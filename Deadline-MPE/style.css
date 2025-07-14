@@ -1,0 +1,459 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Changed from center to allow scrolling */
+    min-height: 100vh;
+    margin: 0;
+    background-color: #333;
+    color: #eee;
+    padding: 20px 0; /* Added padding top/bottom */
+}
+
+.app-container {
+    text-align: center;
+    background-color: #444;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    width: 90%;
+    max-width: 700px;
+    display: flex; /* Added for layout */
+    flex-direction: column; /* Stack elements vertically */
+    max-height: calc(100vh - 40px); /* Prevent overflow, consider padding */
+}
+
+.header-info {
+    margin-bottom: 15px;
+}
+
+h1, h2, h3 {
+    color: #61dafb;
+}
+h2 { margin-top: 0; } /* For taskListContainer h2 */
+
+#gameScreen {
+    width: 100%;
+    height: 250px; /* Adjusted height */
+    border: 3px solid #61dafb;
+    position: relative;
+    background-color: #282c34;
+    overflow: hidden;
+    margin-bottom: 15px; /* Added margin */
+    border-radius: 5px;
+    flex-shrink: 0; /* Prevent game screen from shrinking too much */
+}
+
+#base {
+    width: 150px;
+    height: 100%;
+    background-color: #saddlebrown;
+    background-image: url('base_100.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    left: 0;
+    top: 0;
+    border-right: 3px solid #ffffff;
+    box-sizing: border-box;
+}
+
+.enemy {
+    width: 60px; /* Increased slightly */
+    height: 70px;
+    background-color: #90ee90;
+    background-image: url('zombie4.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    text-indent: -9999px; /* Hide text if using image */
+    color: #1a1a1a;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    border: 2px solid #57a657;
+    border-radius: 5px;
+    font-size: 10px;
+    text-align: center;
+    padding: 3px; /* Increased padding */
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+    word-break: break-all;
+}
+
+/* Placeholder Enemy Category Styles */
+.enemy.category-career { background-color: #4a90e2; border-color: #357abd; } /* Blueish */
+.enemy.category-creativity { background-color: #f5a623; border-color: #c5851b; } /* Orangeish */
+.enemy.category-financial { background-color: #50e3c2; border-color: #3dbba2; } /* Tealish */
+.enemy.category-health { background-color: #e91e63; border-color: #b0164c;} /* Pink/Red */
+.enemy.category-lifestyle { background-color: #bd10e0; border-color: #8c0da5; } /* Purpleish */
+.enemy.category-relationships { background-color: #f8e71c; border-color: #c8ba16; color: #333; } /* Yellowish */
+.enemy.category-spirituality { background-color: #7ed321; border-color: #66b01a; } /* Greenish */
+.enemy.category-other { background-color: #90ee90; border-color: #57a657; } /* Default green */
+
+.enemy-name {
+    font-weight: bold;
+    margin-bottom: 3px;
+    font-size: 11px; /* Slightly larger */
+}
+
+.enemy-time {
+    font-size: 9px;
+}
+
+.enemy.habit-enemy {
+    width: 50px; /* Smaller */
+    height: 60px; /* Smaller */
+    /* background-image: url('habit_sprite.png'); /* Placeholder for a different habit sprite */
+    border-style: dashed; /* Dashed border to look different */
+}
+.enemy.habit-enemy.high-streak { /* For habits on fire */
+    box-shadow: 0 0 10px #ff8c00, 0 0 20px #ffa500; /* Orange/fire glow */
+    animation: pulseHabitStreak 1s infinite alternate;
+}
+@keyframes pulseHabitStreak {
+    from { box-shadow: 0 0 8px #ff8c00, 0 0 15px #ffa500; }
+    to { box-shadow: 0 0 15px #ff8c00, 0 0 25px #ffa500; }
+}
+
+.player-stats {
+    display: flex;
+    justify-content: space-around; /* Will try to space them evenly */
+    flex-wrap: wrap; /* Allow wrapping if space is tight */
+    align-items: center;
+    font-size: 1.0em; /* Slightly adjusted for more items */
+    color: #ffc107;
+    margin-bottom: 10px;
+    padding: 8px 5px; /* Adjusted padding */
+    background-color: #3a3f47;
+    border-radius: 4px;
+}
+.player-stats span { /* Add some margin between stat items */
+    margin: 0 3px; font-size: 0.95em;
+}
+
+#routineForm .routine-creation {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 500px; /* Max width for this input group */
+}
+#routineForm .routine-creation label {
+    margin-bottom: 0; /* Override general label style */
+    white-space: nowrap;
+}
+#routineForm .routine-creation input[type="text"] {
+    flex-grow: 1;
+}
+
+.routine-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #5f656e;
+}
+.routine-name-display {
+    font-weight: bold;
+    font-size: 1.2em;
+}
+.activate-routine-button,
+.add-selected-habit-button,
+.remove-habit-from-routine-button { /* Combined styling for smaller buttons */
+    padding: 6px 12px;
+    font-size: 0.9em;
+    border-radius: 4px;
+    cursor: pointer;
+    border: none;
+}
+.activate-routine-button { background-color: #28a745; color: white; } /* Green for activate */
+.activate-routine-button.active { background-color: #dc3545; } /* Red for deactivate */
+
+.routine-habits-list {
+    list-style-type: disc; /* Or none if preferred */
+    padding-left: 20px; /* Indent habits */
+    margin-bottom: 10px;
+}
+.routine-habits-list li {
+    padding: 5px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95em;
+}
+.remove-habit-from-routine-button {
+    background-color: #c9302c; /* Darker red */
+    color: white;
+    margin-left: 10px;
+}
+
+.add-habit-to-routine-section {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.add-habit-to-routine-section select { /* Re-using .controls select styles but can be specific */
+    flex-grow: 1;
+    padding: 8px; /* Slightly smaller */
+    border-radius: 5px;
+    border: 1px solid #555;
+    background-color: #555;
+    color: #eee;
+    font-family: inherit;
+    font-size: 0.9em;
+}
+.add-selected-habit-button {
+    background-color: #007bff; /* Blue */
+    color: white;
+}
+
+#levelUpMessage {
+    position: fixed; /* Or absolute within app-container if preferred */
+    top: 20%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 20px 40px;
+    background-color: #28a745; /* Green for success */
+    color: white;
+    font-size: 1.8em;
+    font-weight: bold;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    z-index: 100; /* Ensure it's on top */
+    text-align: center;
+    animation: fadeInOut 2.5s ease-in-out forwards;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+}
+
+#taskListContainer {
+    width: 100%;
+    flex-grow: 1; /* Allow this to take remaining space */
+    overflow-y: auto; /* Enable scrolling for the list */
+    background-color: #3a3f47; /* Slightly different background for list area */
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 20px; /* Space before controls */
+    text-align: left; /* Align list items content to left */
+}
+
+#activeItemsList { /* Renamed from taskList */
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+#activeItemsList li { /* Renamed from taskList li */
+    background-color: #4f555e;
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #40454c;
+}
+#activeItemsList li .item-info { flex-grow: 1; } /* Generic class for task/habit info */
+#activeItemsList li .item-name { font-weight: bold; display: block; margin-bottom: 4px; }
+#activeItemsList li .item-due { font-size: 0.9em; color: #b0b0b0; }
+#activeItemsList li .item-streak { font-size: 0.8em; color: #ffc107; margin-left: 10px; } /* For habit streaks */
+#activeItemsList li .item-actions button {
+    padding: 5px 10px;
+    background-color: #e74c3c; /* Red for defeat */
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+#activeItemsList li .task-actions button:hover {
+    background-color: #c0392b;
+}
+
+#activeItemsList li .item-category { /* For displaying category in list */
+    font-size: 0.8em;
+    /* background-color: #3a3f47; REMOVE THIS - will be set by JS */
+    color: #ffffff; /* Default to white, good for most dark backgrounds */
+    padding: 3px 8px; /* Slightly adjusted padding */
+    border-radius: 10px; /* More rounded */
+    margin-left: 10px;
+    display: inline-block;
+    font-weight: 500;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.5); /* Slight shadow for readability */
+}
+
+/* Specific text colors for category backgrounds that are light */
+.category-relationships-text { color: #333333 !important; text-shadow: none !important; } /* For yellow background */
+.category-other-text { color: #1a1a1a !important; text-shadow: none !important; } /* For default green background */
+
+/* Style for overdue tasks in the list */
+#activeItemsList li.overdue-list-item .item-name { color: #ffdddd; }
+#activeItemsList li.overdue-list-item { border-left: 4px solid #e74c3c; }
+
+/* High Priority List Item Indicator */
+#activeItemsList li.high-priority-list-item { border-left: 5px solid #ffeb3b; }
+#activeItemsList li.high-priority-list-item .item-name::before { content: "★ "; color: #ffeb3b; font-weight: bold; margin-right: 4px;}
+
+
+.input-controls-container { /* New wrapper for all input controls */
+    margin-top: 10px;
+    padding-top: 15px;
+    flex-shrink: 0;
+}
+
+.form-toggle-buttons {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
+    padding-top: 15px;
+}
+
+.form-toggle-buttons button {
+    padding: 10px 20px;
+    background-color: #555;
+    color: #ccc;
+    border: 1px solid #666;
+    cursor: pointer;
+    font-size: 1em;
+}
+.form-toggle-buttons button:first-child {
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+}
+.form-toggle-buttons button:last-child {
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-left: none; /* Avoid double border */
+}
+.form-toggle-buttons button.active {
+    background-color: #61dafb;
+    color: #282c34;
+    font-weight: bold;
+}
+
+.controls { /* General styles for both forms */
+    display: none; /* Hide by default */
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+.controls.active-form { /* Show the active form */
+    display: flex;
+}
+
+.controls div { /* Styles for label/input groups within forms */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 95%;
+    max-width: 400px;
+}
+/* ... (rest of .controls label, input, button, select, .priority-input styles as before) ... */
+
+#restartButton { /* Ensure restart button is styled if it's now outside .controls */
+    padding: 12px 25px;
+    border-radius: 5px;
+    border: none;
+    background-color: #f0ad4e;
+    color: #282c34;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+    width: 60%;
+    max-width: 200px;
+    margin-top: 15px; /* Add some margin if it's separate */
+}
+#restartButton:hover { background-color: #ec971f; }
+.controls .priority-input { /* Style for the checkbox and its label */
+    display: flex;
+    align-items: center; /* Vertically align checkbox and label */
+    margin-bottom: 10px; /* Space below it */
+    width: 100%; /* Take full width of its parent (the div in .controls) */
+}
+
+.controls .priority-input input[type="checkbox"] {
+    margin-right: 8px; /* Space between checkbox and label */
+    width: auto; /* Override the 100% width from the general input style */
+    transform: scale(1.3); /* Make checkbox slightly bigger */
+}
+.controls .priority-input label {
+    margin-bottom: 0; /* Remove bottom margin from label here */
+    font-weight: normal; /* Normal weight for this label */
+    color: #eee; /* Ensure label text is visible */
+    cursor: pointer;
+}
+
+.game-info {
+    font-size: 1.1em; /* Slightly smaller */
+    color: #ffc107;
+    display: flex;
+    justify-content: space-between; /* Spread out health and game over message */
+    align-items: center;
+    padding: 0 10px; /* Add some padding */
+}
+
+#gameOverMessage {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.base-hit-flash {
+    animation: flashRed 0.3s;
+}
+
+@keyframes flashRed {
+    0%, 100% { background-color: #saddlebrown; }
+    50% { background-color: #dc3545; }
+}
+
+.enemy-at-base {
+    border-color: red !important;
+    animation: pulseRed 1s infinite alternate;
+    /* You might want to add specific z-index if enemies overlap badly at base */
+}
+
+@keyframes pulseRed {
+    from { box-shadow: 0 0 3px #ff0000, 0 0 6px #ff0000; }
+    to { box-shadow: 0 0 6px #ff0000, 0 0 12px #ff4d4d; }
+}
+
+/* High Priority Enemy Glow/Outline */
+.enemy.high-priority {
+    outline: 3px solid #ffeb3b; /* Bright yellow outline */
+    box-shadow: 0 0 15px #ffeb3b, 0 0 25px #ffc107; /* Yellow glow */
+    animation: pulseHighPriority 1.5s infinite alternate;
+    z-index: 10; /* Ensure it's above other non-priority enemies if they overlap */
+}
+
+@keyframes pulseHighPriority {
+    from {
+        outline-width: 3px;
+        box-shadow: 0 0 10px #ffeb3b, 0 0 15px #ffc107;
+    }
+    to {
+        outline-width: 4px; /* Slightly thicker outline on pulse */
+        box-shadow: 0 0 18px #ffeb3b, 0 0 30px #ffc107;
+    }
+}
