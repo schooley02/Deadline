@@ -187,13 +187,9 @@ body {
 
 /* Enemy Styles */
 .enemy {
-    width: 60px;
-    height: 70px;
-    background-color: var(--color-secondary-green-light);
-    background-image: url('zombie4.png');
-    background-size: contain;
-    background-position: center;
-    background-repeat: no-repeat;
+    width: 32px;
+    height: 32px;
+    background-color: transparent;
     color: var(--color-text-primary);
     display: flex;
     flex-direction: column;
@@ -203,15 +199,34 @@ body {
     top: 50%;
     transform: translateY(-50%);
     cursor: pointer;
-    border: 2px solid var(--color-secondary-green-light);
-    border-radius: 8px;
-    font-size: 10px;
+    border: none;
+    border-radius: 50%;
+    font-size: 6px;
     text-align: center;
-    padding: 4px;
+    padding: 0;
     box-sizing: border-box;
     font-weight: bold;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     transition: all 0.2s ease;
+    overflow: visible;
+}
+
+/* Remove default zombie background for category-based enemies */
+.enemy:not(.use-zombie-sprite) {
+    background-image: none;
+}
+
+/* Optional: Keep zombie sprite for specific cases */
+.enemy.use-zombie-sprite {
+    background-image: url('zombie4.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* Category icons are centered via flexbox */
+.enemy::before {
+    pointer-events: none;
 }
 
 .enemy:hover {
@@ -219,46 +234,117 @@ body {
     z-index: 10;
 }
 
-/* Category-specific Enemy Colors */
-.enemy.category-career { 
-    background-color: #4a90e2; 
-    border-color: #357abd; 
+/* Category-specific Enemy Colors removed - using transparent background */
+
+/* Category Icons for Enemies */
+.enemy.category-career::before {
+    content: "💼";
+    font-size: 32px;
+    z-index: 2;
 }
 
-.enemy.category-creativity { 
-    background-color: #f5a623; 
-    border-color: #c5851b; 
+.enemy.category-creativity::before {
+    content: "💡";
+    font-size: 32px;
+    z-index: 2;
 }
 
-.enemy.category-financial { 
-    background-color: #50e3c2; 
-    border-color: #3dbba2; 
+.enemy.category-financial::before {
+    content: "💰";
+    font-size: 32px;
+    z-index: 2;
 }
 
-.enemy.category-health { 
-    background-color: #e91e63; 
-    border-color: #b0164c;
-} 
-
-.enemy.category-lifestyle { 
-    background-color: #bd10e0; 
-    border-color: #8c0da5; 
+.enemy.category-health::before {
+    content: "❤️";
+    font-size: 32px;
+    z-index: 2;
 }
 
-.enemy.category-relationships { 
-    background-color: #f8e71c; 
-    border-color: #c8ba16; 
-    color: #333; 
+.enemy.category-lifestyle::before {
+    content: "🏠";
+    font-size: 32px;
+    z-index: 2;
 }
 
-.enemy.category-spirituality { 
-    background-color: #7ed321; 
-    border-color: #66b01a; 
+.enemy.category-relationships::before {
+    content: "🤝";
+    font-size: 32px;
+    z-index: 2;
 }
 
-.enemy.category-other { 
-    background-color: #90ee90; 
-    border-color: #57a657; 
+.enemy.category-spirituality::before {
+    content: "🙏";
+    font-size: 32px;
+    z-index: 2;
+}
+
+.enemy.category-other::before {
+    content: "📁";
+    font-size: 32px;
+    z-index: 2;
+}
+
+/* Custom icon background images (for when custom icons are added) */
+.enemy.use-custom-icons.category-career {
+    background-image: url('icons/briefcase.png');
+    background-size: 32px 32px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.use-custom-icons.category-creativity {
+    background-image: url('icons/lightbulb.png');
+    background-size: 32px 32px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.use-custom-icons.category-financial {
+    background-image: url('icons/piggy-bank.png');
+    background-size: 32px 32px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.use-custom-icons.category-health {
+    background-image: url('icons/heart.png');
+    background-size: 32px 32px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.use-custom-icons.category-lifestyle {
+    background-image: url('icons/house.png');
+    background-size: 32px 32px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.use-custom-icons.category-relationships {
+    background-image: url('icons/family.png');
+    background-size: 32px 32px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.use-custom-icons.category-spirituality {
+    background-image: url('icons/praying-hands.png');
+    background-size: 32px 32px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.use-custom-icons.category-other {
+    background-image: url('icons/folder.png');
+    background-size: 32px 32px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* Hide pseudo-element content when using custom icons */
+.enemy.use-custom-icons::before {
+    display: none;
 }
 
 /* High Priority Enemies */
@@ -269,6 +355,17 @@ body {
     z-index: 15;
 }
 
+/* High priority star indicator */
+.enemy.high-priority::after {
+    content: "⭐";
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    font-size: 16px;
+    z-index: 4;
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
 @keyframes pulse-priority {
     from {
         outline-width: 3px;
@@ -277,6 +374,29 @@ body {
     to {
         outline-width: 4px;
         box-shadow: 0 0 18px var(--color-holy-gold), 0 0 30px var(--color-accent-yellow);
+    }
+}
+
+/* Responsive icon sizing for mobile */
+@media (max-width: 768px) {
+    .enemy::before {
+        font-size: 24px;
+    }
+    
+    .enemy.category-relationships::before {
+        font-size: 18px;
+    }
+    
+    .enemy.high-priority::after {
+        font-size: 14px;
+        top: -6px;
+        left: -6px;
+    }
+    
+    .enemy.habit-enemy.negative-habit::after {
+        font-size: 10px;
+        width: 14px;
+        height: 14px;
     }
 }
 
@@ -298,7 +418,7 @@ body {
     box-shadow: 0 0 8px var(--color-warning), 0 0 15px rgba(245, 124, 0, 0.3);
 }
 
-.enemy.habit-enemy.negative-habit::before {
+.enemy.habit-enemy.negative-habit::after {
     content: "🚫";
     position: absolute;
     top: -5px;
@@ -312,6 +432,12 @@ body {
     align-items: center;
     justify-content: center;
     line-height: 1;
+    z-index: 3;
+}
+
+/* Ensure category icons are visible behind negative habit indicator */
+.enemy.habit-enemy.negative-habit::before {
+    z-index: 2;
 }
 
 @keyframes pulse-streak {
@@ -423,8 +549,8 @@ body {
     padding: var(--space-4);
     margin-bottom: var(--space-2);
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: var(--space-4);
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -462,6 +588,9 @@ body {
 .item-info {
     flex-grow: 1;
     text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
 }
 
 .item-name {
@@ -494,6 +623,8 @@ body {
     display: inline-block;
     font-weight: 500;
     text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+    align-self: flex-start;
+    width: fit-content;
 }
 
 .item-actions button {
@@ -518,6 +649,49 @@ body {
 
 .negative-habit-button:hover {
     background-color: #e68900 !important;
+}
+
+/* Category Sprites Column in Task List Items */
+.item-sprite {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    width: 40px;
+    height: 40px;
+}
+
+.task-list li.category-career .item-sprite::before {
+    content: "💼";
+}
+
+.task-list li.category-creativity .item-sprite::before {
+    content: "💡";
+}
+
+.task-list li.category-financial .item-sprite::before {
+    content: "💰";
+}
+
+.task-list li.category-health .item-sprite::before {
+    content: "❤️";
+}
+
+.task-list li.category-lifestyle .item-sprite::before {
+    content: "🏠";
+}
+
+.task-list li.category-relationships .item-sprite::before {
+    content: "🤝";
+}
+
+.task-list li.category-spirituality .item-sprite::before {
+    content: "🙏";
+}
+
+.task-list li.category-other .item-sprite::before {
+    content: "📁";
 }
 
 /* Floating Action Button */

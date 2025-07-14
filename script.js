@@ -274,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dueDateTime = new Date(creationTime.getTime() + 5 * 60 * 1000);
         }
         
-        return {
+        const taskData = {
             id: itemIdCounter++,
             type: 'task',
             name: name || "Unnamed Task",
@@ -283,12 +283,17 @@ document.addEventListener('DOMContentLoaded', () => {
             dueDateTime: dueDateTime,
             creationTime: creationTime,
             timeToDueAtCreationMs: Math.max(0, dueDateTime.getTime() - creationTime.getTime()),
-            x: GAME_SCREEN_WIDTH - ENEMY_WIDTH,
+            x: GAME_SCREEN_WIDTH - ENEMY_WIDTH, // Will be recalculated below
             isOverdue: false,
             lastDamageTickTime: null,
             element: null,
             listItemElement: null
         };
+        
+        // Calculate initial position based on new timeline system
+        taskData.x = calculateTimelinePosition(taskData, creationTime);
+        
+        return taskData;
     }
 
     function addItemToGame(itemData) {
@@ -349,9 +354,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const listItem = document.createElement('li');
         listItem.dataset.itemId = itemData.id;
         
+        // Add category class for sprite styling
+        listItem.classList.add(`category-${itemData.category}`);
+        
         if (itemData.type === 'task' && itemData.isHighPriority) {
             listItem.classList.add('high-priority-list-item');
         }
+        
+        // Create sprite column
+        const itemSpriteDiv = document.createElement('div');
+        itemSpriteDiv.classList.add('item-sprite');
         
         // Create item info div
         const itemInfoDiv = document.createElement('div');
@@ -412,6 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         itemActionsDiv.appendChild(completeButton);
         
+        listItem.appendChild(itemSpriteDiv);
         listItem.appendChild(itemInfoDiv);
         listItem.appendChild(itemActionsDiv);
         
@@ -512,6 +525,61 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Helper function to get today's 5pm
+    function getTodayAt5PM() {
+        const today = new Date();
+        const fivePM = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 17, 0, 0, 0);
+        return fivePM;
+    }
+    
+    // Calculate position based on timeline from now to 5pm
+    function calculateTimelinePosition(item, currentTime) {
+        const currentItemWidth = (item.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH;
+        const fivePM = getTodayAt5PM();
+        const currentTimeMs = currentTime.getTime();
+        const fivePMMs = fivePM.getTime();
+        
+        // If it's past 5pm, treat as next day's timeline
+        if (currentTimeMs > fivePMMs) {
+            const tomorrowFivePM = new Date(fivePM);
+            tomorrowFivePM.setDate(tomorrowFivePM.getDate() + 1);
+            const totalTimelineMs = tomorrowFivePM.getTime() - currentTimeMs;
+            const taskDueMs = item.dueDateTime.getTime();
+            
+            if (taskDueMs <= currentTimeMs) {
+                // Task is overdue - position at base
+                return BASE_WIDTH;
+            } else if (taskDueMs >= tomorrowFivePM.getTime()) {
+                // Task is beyond tomorrow's 5pm - position at far right
+                return GAME_SCREEN_WIDTH - currentItemWidth;
+            } else {
+                // Task is between now and tomorrow's 5pm - interpolate position
+                const taskTimeFromNow = taskDueMs - currentTimeMs;
+                const progress = taskTimeFromNow / totalTimelineMs;
+                const travelDistance = GAME_SCREEN_WIDTH - BASE_WIDTH - currentItemWidth;
+                return BASE_WIDTH + (progress * travelDistance);
+            }
+        } else {
+            // Normal timeline: current time to today's 5pm
+            const totalTimelineMs = fivePMMs - currentTimeMs;
+            const taskDueMs = item.dueDateTime.getTime();
+            
+            if (taskDueMs <= currentTimeMs) {
+                // Task is overdue - position at base
+                return BASE_WIDTH;
+            } else if (taskDueMs >= fivePMMs) {
+                // Task is beyond 5pm - position at far right
+                return GAME_SCREEN_WIDTH - currentItemWidth;
+            } else {
+                // Task is between now and 5pm - interpolate position
+                const taskTimeFromNow = taskDueMs - currentTimeMs;
+                const progress = taskTimeFromNow / totalTimelineMs;
+                const travelDistance = GAME_SCREEN_WIDTH - BASE_WIDTH - currentItemWidth;
+                return BASE_WIDTH + (progress * travelDistance);
+            }
+        }
+    }
+
     function updateActiveItems() {
         if (gameIsOver) return;
         
@@ -520,23 +588,15 @@ document.addEventListener('DOMContentLoaded', () => {
         
         for (let i = activeItems.length - 1; i >= 0; i--) {
             const item = activeItems[i];
-            const currentItemWidth = (item.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH;
             
             if (!item.isOverdue) {
                 if (item.dueDateTime <= currentTime) {
                     // Item just became overdue
                     item.x = BASE_WIDTH;
                     markAsOverdue(item, currentTime);
-                } else if (item.timeToDueAtCreationMs > 0) {
-                    // Calculate movement progress
-                    const timeElapsed = currentTimeMs - item.creationTime.getTime();
-                    const progress = Math.min(1, timeElapsed / item.timeToDueAtCreationMs);
-                    const travelDistance = GAME_SCREEN_WIDTH - BASE_WIDTH - currentItemWidth;
-                    item.x = (GAME_SCREEN_WIDTH - currentItemWidth) - (progress * travelDistance);
                 } else {
-                    // No time left, move to base
-                    item.x = BASE_WIDTH;
-                    markAsOverdue(item, currentTime);
+                    // Calculate position based on timeline from now to 5pm
+                    item.x = calculateTimelinePosition(item, currentTime);
                 }
                 
                 // Update visual position
@@ -674,7 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dueDateTime = getHabitInstanceDueTime(habitDef.timeOfDay, targetInstanceDate);
         }
         
-        return {
+        const habitInstanceData = {
             id: itemIdCounter++,
             type: 'habit',
             definitionId: habitDef.id,
@@ -684,7 +744,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dueDateTime: dueDateTime,
             creationTime: instanceCreationTime,
             timeToDueAtCreationMs: Math.max(0, dueDateTime.getTime() - instanceCreationTime.getTime()),
-            x: GAME_SCREEN_WIDTH - HABIT_ENEMY_WIDTH,
+            x: GAME_SCREEN_WIDTH - HABIT_ENEMY_WIDTH, // Will be recalculated below
             isOverdue: false,
             lastDamageTickTime: null,
             streak: habitDef.streak,
@@ -693,6 +753,11 @@ document.addEventListener('DOMContentLoaded', () => {
             listItemElement: null,
             originalDueDate: new Date(dueDateTime)
         };
+        
+        // Calculate initial position based on new timeline system
+        habitInstanceData.x = calculateTimelinePosition(habitInstanceData, instanceCreationTime);
+        
+        return habitInstanceData;
     }
 
     function generateDailyHabitInstances(forWhichGameDay) {
