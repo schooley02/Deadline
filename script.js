@@ -756,8 +756,90 @@ document.addEventListener('DOMContentLoaded', () => {
         const routine = definedRoutines[routineIndex];
         if (confirm(`Are you sure you want to delete the routine "${routine.name}"?`)) {
             definedRoutines.splice(routineIndex, 1);
-            renderDefinedRoutines();
+            
+            // Update routines window if open
+            setTimeout(() => {
+                if (managementWindows.routines && !managementWindows.routines.classList.contains('hidden')) {
+                    populateRoutinesWindow();
+                }
+            }, 100);
         }
+    }
+    
+    function attachRoutineManagementListeners(routineId) {
+        const routine = definedRoutines.find(r => r.id === routineId);
+        if (!routine) return;
+        
+        // Toggle routine status
+        const toggleBtn = document.getElementById('toggleRoutineStatus');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                toggleRoutineActive(routineId);
+                closeModal();
+                // Refresh routines window
+                setTimeout(() => {
+                    if (managementWindows.routines && !managementWindows.routines.classList.contains('hidden')) {
+                        populateRoutinesWindow();
+                    }
+                }, 100);
+            });
+        }
+        
+        // Add habit button
+        const addHabitBtn = document.getElementById('addHabitToRoutine');
+        if (addHabitBtn) {
+            addHabitBtn.addEventListener('click', () => {
+                showAddItemToRoutineModal(routineId, 'habit');
+            });
+        }
+        
+        // Add task button
+        const addTaskBtn = document.getElementById('addTaskToRoutine');
+        if (addTaskBtn) {
+            addTaskBtn.addEventListener('click', () => {
+                showAddItemToRoutineModal(routineId, 'task');
+            });
+        }
+        
+        // Remove habit buttons
+        document.querySelectorAll('.remove-habit-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const habitId = e.target.dataset.habitId;
+                removeHabitFromRoutine(routineId, habitId);
+                populateRoutineHabits(routine);
+            });
+        });
+        
+        // Remove task buttons
+        document.querySelectorAll('.remove-task-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const taskId = e.target.dataset.taskId;
+                removeTaskFromRoutine(routineId, taskId);
+                populateRoutineTasks(routine);
+            });
+        });
+        
+        // Edit habit buttons
+        document.querySelectorAll('.edit-habit-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const habitId = e.target.dataset.habitId;
+                const habit = definedHabits.find(h => h.id === habitId);
+                if (habit) {
+                    showEditHabitForm(routineId, habit);
+                }
+            });
+        });
+        
+        // Edit task buttons
+        document.querySelectorAll('.edit-task-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const taskId = e.target.dataset.taskId;
+                const task = definedTasks.find(t => t.id === taskId);
+                if (task) {
+                    showEditTaskForm(routineId, task);
+                }
+            });
+        });
     }
     
     function removeHabitFromRoutine(routineId, habitDefId) {
@@ -845,7 +927,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const taskIndex = routine.taskDefinitionIds.indexOf(taskId);
         if (taskIndex > -1) {
             routine.taskDefinitionIds.splice(taskIndex, 1);
-            renderDefinedRoutines();
         }
     }
 
@@ -1104,7 +1185,100 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         routine.isActive = !routine.isActive;
-        renderDefinedRoutines();
+    }
+    
+    function showAddItemToRoutineModal(routineId, itemType) {
+        const routine = definedRoutines.find(r => r.id === routineId);
+        if (!routine) return;
+        
+        let optionsHtml = '';
+        let existingIds = [];
+        
+        if (itemType === 'habit') {
+            existingIds = routine.habitDefinitionIds || [];
+            optionsHtml = definedHabits
+                .filter(habit => !existingIds.includes(habit.id))
+                .map(habit => {
+                    const icon = habit.isNegative ? '🚫' : '✅';
+                    return `<option value="${habit.id}">${habit.name} (${habit.category}) ${icon}</option>`;
+                })
+                .join('');
+        } else if (itemType === 'task') {
+            if (!definedTasks) window.definedTasks = [];
+            existingIds = routine.taskDefinitionIds || [];
+            optionsHtml = definedTasks
+                .filter(task => !existingIds.includes(task.id))
+                .map(task => {
+                    const priority = task.isHighPriority ? '⭐' : '';
+                    return `<option value="${task.id}">${task.name} (${task.category}) ${priority}</option>`;
+                })
+                .join('');
+        }
+        
+        const modalHtml = `
+            <div class="modal-overlay" id="addItemModal">
+                <div class="modal-content">
+                    <h3>Add ${itemType === 'habit' ? 'Habit' : 'Task'} to Routine</h3>
+                    <div class="form-row">
+                        <label>Select existing ${itemType}:</label>
+                        <select id="existingItemSelect">
+                            <option value="">-- Select ${itemType} --</option>
+                            ${optionsHtml}
+                        </select>
+                    </div>
+                    <div style="text-align: center; margin: 20px 0; color: var(--color-neutral);">OR</div>
+                    <div class="form-row">
+                        <button id="createNewItemBtn" class="secondary-button" style="width: 100%;">Create New ${itemType === 'habit' ? 'Habit' : 'Task'}</button>
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="addSelectedItemBtn" class="primary-button">Add Selected</button>
+                        <button class="secondary-button" onclick="closeModal()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Attach event listeners
+        const addBtn = document.getElementById('addSelectedItemBtn');
+        const createBtn = document.getElementById('createNewItemBtn');
+        const selectEl = document.getElementById('existingItemSelect');
+        
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                const selectedId = selectEl.value;
+                if (selectedId) {
+                    if (itemType === 'habit') {
+                        if (!routine.habitDefinitionIds) routine.habitDefinitionIds = [];
+                        routine.habitDefinitionIds.push(selectedId);
+                    } else {
+                        if (!routine.taskDefinitionIds) routine.taskDefinitionIds = [];
+                        routine.taskDefinitionIds.push(selectedId);
+                    }
+                    closeModal();
+                    // Refresh the routine management modal
+                    setTimeout(() => {
+                        showRoutineManagement(routineId);
+                    }, 100);
+                } else {
+                    alert(`Please select a ${itemType} to add.`);
+                }
+            });
+        }
+        
+        if (createBtn) {
+            createBtn.addEventListener('click', () => {
+                closeModal();
+                setTimeout(() => {
+                    if (itemType === 'habit') {
+                        showCreateHabitForm(routineId);
+                    } else {
+                        showCreateTaskForm(routineId);
+                    }
+                }, 100);
+            });
+        }
     }
 
     function updateRoutineDisplay() {
@@ -1389,6 +1563,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const modals = document.querySelectorAll('.modal-overlay');
         modals.forEach(modal => modal.remove());
     };
+    
+    // Add escape key listener for closing modals and windows
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            // Close any open modals first
+            const modals = document.querySelectorAll('.modal-overlay');
+            if (modals.length > 0) {
+                closeModal();
+                return;
+            }
+            
+            // Close any open management windows
+            closeAllManagementWindows();
+            
+            // Close FAB menu
+            closeFabMenu();
+        }
+    });
 
     // Floating Action Button and Window Management
     const fabButton = document.getElementById('fabButton');
@@ -1419,6 +1611,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // Close FAB menu
         closeFabMenu();
         
+        // Add or show backdrop
+        let backdrop = document.querySelector('.window-backdrop');
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.className = 'window-backdrop';
+            backdrop.addEventListener('click', () => {
+                closeAllManagementWindows();
+            });
+            document.body.appendChild(backdrop);
+        }
+        backdrop.classList.add('show');
+        
         // Open requested window
         const window = managementWindows[type];
         if (window) {
@@ -1435,10 +1639,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    function closeAllManagementWindows() {
+        Object.values(managementWindows).forEach(window => {
+            if (window) window.classList.add('hidden');
+        });
+        
+        const backdrop = document.querySelector('.window-backdrop');
+        if (backdrop) {
+            backdrop.classList.remove('show');
+        }
+    }
+    
     function closeManagementWindow(windowId) {
         const window = document.getElementById(windowId);
         if (window) {
             window.classList.add('hidden');
+        }
+        
+        // Check if all windows are closed, then hide backdrop
+        const anyWindowOpen = Object.values(managementWindows).some(w => 
+            w && !w.classList.contains('hidden')
+        );
+        
+        if (!anyWindowOpen) {
+            const backdrop = document.querySelector('.window-backdrop');
+            if (backdrop) {
+                backdrop.classList.remove('show');
+            }
         }
     }
     
@@ -1511,71 +1738,470 @@ document.addEventListener('DOMContentLoaded', () => {
             const taskCount = routine.taskDefinitionIds ? routine.taskDefinitionIds.length : 0;
             
             li.innerHTML = `
-                <span>${statusIcon} ${routine.name}</span>
-                <span style="font-size: 12px; color: var(--color-neutral);">${habitCount} habits, ${taskCount} tasks</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <div>
+                        <div>${statusIcon} ${routine.name}</div>
+                        <div style="font-size: 12px; color: var(--color-neutral);">${habitCount} habits, ${taskCount} tasks</div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="edit-routine-btn" data-routine-id="${routine.id}" style="padding: 4px 8px; font-size: 12px; background: var(--color-accent-teal); color: white; border: none; border-radius: 4px; cursor: pointer;">Manage</button>
+                        <button class="toggle-routine-btn" data-routine-id="${routine.id}" style="padding: 4px 8px; font-size: 12px; background: ${routine.isActive ? 'var(--color-error)' : 'var(--color-success)'}; color: white; border: none; border-radius: 4px; cursor: pointer;">${routine.isActive ? 'Deactivate' : 'Activate'}</button>
+                    </div>
+                </div>
             `;
-            li.addEventListener('click', () => {
-                closeManagementWindow('routinesWindow');
-                showForm('routine');
-            });
-            li.style.cursor = 'pointer';
+            
+            // Add event listeners for buttons
+            const manageBtn = li.querySelector('.edit-routine-btn');
+            const toggleBtn = li.querySelector('.toggle-routine-btn');
+            
+            if (manageBtn) {
+                manageBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showRoutineManagement(routine.id);
+                });
+            }
+            
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleRoutineActive(routine.id);
+                    populateRoutinesWindow(); // Refresh the list
+                });
+            }
+            
             routinesList.appendChild(li);
         });
     }
     
-    function showFormModal(formType) {
-        let formElement, title;
-        
-        switch (formType) {
-            case 'task':
-                formElement = document.getElementById('taskForm');
-                title = 'Add New Task';
-                break;
-            case 'habit':
-                formElement = document.getElementById('habitForm');
-                title = 'Add New Habit';
-                break;
-            case 'routine':
-                formElement = document.getElementById('routineForm');
-                title = 'Create New Routine';
-                break;
-        }
-        
-        if (!formElement) return;
+    function showRoutineManagement(routineId) {
+        const routine = definedRoutines.find(r => r.id === routineId);
+        if (!routine) return;
         
         const modalHtml = `
-            <div class="modal-overlay" id="${formType}FormModal">
-                <div class="modal-content">
-                    ${formElement.outerHTML}
+            <div class="modal-overlay" id="routineManagementModal">
+                <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+                    <h3>Manage Routine: ${routine.name}</h3>
+                    
+                    <!-- Routine Status -->
+                    <div style="margin-bottom: 20px; padding: 12px; background: var(--color-bg-light); border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>Status: ${routine.isActive ? '🟢 Active' : '⚪ Inactive'}</span>
+                            <button id="toggleRoutineStatus" class="secondary-button" style="padding: 6px 12px;">
+                                ${routine.isActive ? 'Deactivate' : 'Activate'}
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Habits Section -->
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h4>Habits</h4>
+                            <button id="addHabitToRoutine" class="secondary-button" style="padding: 6px 12px;">+ Add Habit</button>
+                        </div>
+                        <div id="routineHabitsList"></div>
+                    </div>
+                    
+                    <!-- Tasks Section -->
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h4>Tasks</h4>
+                            <button id="addTaskToRoutine" class="secondary-button" style="padding: 6px 12px;">+ Add Task</button>
+                        </div>
+                        <div id="routineTasksList"></div>
+                    </div>
+                    
+                    <div class="modal-buttons">
+                        <button class="primary-button" onclick="closeModal()">Done</button>
+                        <button class="secondary-button" onclick="deleteRoutine('${routine.id}'); closeModal();">Delete Routine</button>
+                    </div>
                 </div>
             </div>
         `;
         
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         
-        // Re-attach event listeners for the modal form
-        const modalForm = document.querySelector(`#${formType}FormModal`);
-        if (modalForm) {
-            // Add form-specific event listeners
-            const addButton = modalForm.querySelector(`#add${formType.charAt(0).toUpperCase() + formType.slice(1)}Button`);
-            if (addButton) {
-                addButton.addEventListener('click', () => {
-                    handleFormSubmission(formType);
-                });
+        // Populate the routine content
+        populateRoutineHabits(routine);
+        populateRoutineTasks(routine);
+        
+        // Attach event listeners
+        attachRoutineManagementListeners(routine.id);
+    }
+    
+    function populateRoutineHabits(routine) {
+        const container = document.getElementById('routineHabitsList');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        if (!routine.habitDefinitionIds || routine.habitDefinitionIds.length === 0) {
+            container.innerHTML = '<div style="padding: 12px; background: var(--color-bg-light); border-radius: 6px; color: var(--color-neutral); font-style: italic;">No habits in this routine</div>';
+            return;
+        }
+        
+        routine.habitDefinitionIds.forEach(habitId => {
+            const habit = definedHabits.find(h => h.id === habitId);
+            if (habit) {
+                const habitDiv = document.createElement('div');
+                habitDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--color-bg-light); border-radius: 6px; margin-bottom: 6px;';
+                
+                const habitTypeIcon = habit.isNegative ? ' 🚫' : ' ✅';
+                habitDiv.innerHTML = `
+                    <span>${habit.name} (${habit.category})${habitTypeIcon}</span>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="edit-habit-btn" data-habit-id="${habit.id}" style="padding: 4px 8px; font-size: 11px; background: var(--color-accent-teal); color: white; border: none; border-radius: 3px; cursor: pointer;">Edit</button>
+                        <button class="remove-habit-btn" data-habit-id="${habit.id}" style="padding: 4px 8px; font-size: 11px; background: var(--color-error); color: white; border: none; border-radius: 3px; cursor: pointer;">Remove</button>
+                    </div>
+                `;
+                
+                container.appendChild(habitDiv);
             }
+        });
+    }
+    
+    function populateRoutineTasks(routine) {
+        const container = document.getElementById('routineTasksList');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        if (!definedTasks) window.definedTasks = [];
+        
+        if (!routine.taskDefinitionIds || routine.taskDefinitionIds.length === 0) {
+            container.innerHTML = '<div style="padding: 12px; background: var(--color-bg-light); border-radius: 6px; color: var(--color-neutral); font-style: italic;">No tasks in this routine</div>';
+            return;
+        }
+        
+        routine.taskDefinitionIds.forEach(taskId => {
+            const task = definedTasks.find(t => t.id === taskId);
+            if (task) {
+                const taskDiv = document.createElement('div');
+                taskDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--color-bg-light); border-radius: 6px; margin-bottom: 6px;';
+                
+                taskDiv.innerHTML = `
+                    <span>${task.name} (${task.category})${task.isHighPriority ? ' ⭐' : ''}</span>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="edit-task-btn" data-task-id="${task.id}" style="padding: 4px 8px; font-size: 11px; background: var(--color-accent-teal); color: white; border: none; border-radius: 3px; cursor: pointer;">Edit</button>
+                        <button class="remove-task-btn" data-task-id="${task.id}" style="padding: 4px 8px; font-size: 11px; background: var(--color-error); color: white; border: none; border-radius: 3px; cursor: pointer;">Remove</button>
+                    </div>
+                `;
+                
+                container.appendChild(taskDiv);
+            }
+        });
+    }
+    
+    function showFormModal(formType) {
+        // Close any existing modals first
+        closeModal();
+        
+        console.log('Creating modal for:', formType);
+        
+        let formHtml;
+        
+        switch (formType) {
+            case 'task':
+                formHtml = createTaskFormHtml();
+                break;
+            case 'habit':
+                formHtml = createHabitFormHtml();
+                break;
+            case 'routine':
+                formHtml = createRoutineFormHtml();
+                break;
+        }
+        
+        console.log('Generated form HTML:', formHtml ? 'SUCCESS' : 'FAILED');
+        
+        if (!formHtml) {
+            console.error('Failed to generate form HTML for type:', formType);
+            return;
+        }
+        
+        const modalElement = document.createElement('div');
+        modalElement.className = 'modal-overlay';
+        modalElement.id = `${formType}FormModal`;
+        modalElement.innerHTML = `
+            <div class="modal-content">
+                ${formHtml}
+            </div>
+        `;
+        
+        console.log('Creating modal element:', modalElement);
+        
+        document.body.appendChild(modalElement);
+        
+        // Small delay to ensure DOM is updated
+        setTimeout(() => {
+            attachModalEventListeners(formType);
+        }, 50);
+    }
+    
+    function createTaskFormHtml() {
+        const today = new Date().toISOString().split('T')[0];
+        return `
+            <h3>Add New Task</h3>
+            <div class="form-row">
+                <label for="modalTaskName">Task Name:</label>
+                <input type="text" id="modalTaskName" placeholder="Enter task name..." required>
+            </div>
+            <div class="form-row">
+                <label for="modalTaskCategory">Category:</label>
+                <select id="modalTaskCategory">
+                    <option value="other">Other (Generic)</option>
+                    <option value="career">Career</option>
+                    <option value="creativity">Creativity</option>
+                    <option value="financial">Financial</option>
+                    <option value="health">Health</option>
+                    <option value="lifestyle">Lifestyle</option>
+                    <option value="relationships">Relationships</option>
+                    <option value="spirituality">Spirituality</option>
+                </select>
+            </div>
+            <div class="form-row priority-row">
+                <input type="checkbox" id="modalTaskHighPriority">
+                <label for="modalTaskHighPriority">High Priority</label>
+            </div>
+            <div class="form-row-group">
+                <div class="form-row">
+                    <label for="modalDueDate">Due Date:</label>
+                    <input type="date" id="modalDueDate" value="${today}" required>
+                </div>
+                <div class="form-row">
+                    <label for="modalDueTime">Due Time:</label>
+                    <input type="time" id="modalDueTime" value="17:00">
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button id="modalAddTaskButton" class="primary-button">Add Task</button>
+                <button class="secondary-button" onclick="closeModal()">Cancel</button>
+            </div>
+        `;
+    }
+    
+    function createHabitFormHtml() {
+        return `
+            <h3>Add New Habit</h3>
+            <div class="form-row">
+                <label>Habit Type:</label>
+                <div class="habit-type-toggle">
+                    <input type="radio" id="modalPositiveHabit" name="modalHabitType" value="positive" checked>
+                    <label for="modalPositiveHabit" class="habit-type-label positive">
+                        <span class="habit-icon">✅</span>
+                        <span class="habit-label">Positive</span>
+                        <span class="habit-description">Complete to earn points</span>
+                    </label>
+                    <input type="radio" id="modalNegativeHabit" name="modalHabitType" value="negative">
+                    <label for="modalNegativeHabit" class="habit-type-label negative">
+                        <span class="habit-icon">🚫</span>
+                        <span class="habit-label">Negative</span>
+                        <span class="habit-description">Avoid to earn points</span>
+                    </label>
+                </div>
+            </div>
+            <div class="form-row">
+                <label for="modalHabitName">Habit Name:</label>
+                <input type="text" id="modalHabitName" placeholder="e.g., Exercise, Drink Water" required>
+            </div>
+            <div class="form-row">
+                <label for="modalHabitCategory">Category:</label>
+                <select id="modalHabitCategory">
+                    <option value="health">Health</option>
+                    <option value="other">Other (Generic)</option>
+                    <option value="career">Career</option>
+                    <option value="creativity">Creativity</option>
+                    <option value="financial">Financial</option>
+                    <option value="lifestyle">Lifestyle</option>
+                    <option value="relationships">Relationships</option>
+                    <option value="spirituality">Spirituality</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label for="modalHabitFrequency">Frequency:</label>
+                <select id="modalHabitFrequency">
+                    <option value="daily">Daily</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label for="modalHabitTimeOfDay">Completion Window:</label>
+                <select id="modalHabitTimeOfDay">
+                    <option value="anytime">Anytime Today</option>
+                    <option value="morning">Morning (by 12 PM)</option>
+                    <option value="afternoon">Afternoon (by 5 PM)</option>
+                    <option value="evening">Evening (by 10 PM)</option>
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button id="modalAddHabitButton" class="primary-button">Add Habit</button>
+                <button class="secondary-button" onclick="closeModal()">Cancel</button>
+            </div>
+        `;
+    }
+    
+    function createRoutineFormHtml() {
+        return `
+            <h3>Create New Routine</h3>
+            <div class="form-row">
+                <label for="modalRoutineName">Routine Name:</label>
+                <input type="text" id="modalRoutineName" placeholder="e.g., Morning Ritual" required>
+            </div>
+            <div class="modal-buttons">
+                <button id="modalCreateRoutineButton" class="primary-button">Create Routine</button>
+                <button class="secondary-button" onclick="closeModal()">Cancel</button>
+            </div>
+        `;
+    }
+    
+    function attachModalEventListeners(formType) {
+        const modal = document.querySelector(`#${formType}FormModal`);
+        console.log('Attaching listeners to modal:', modal);
+        
+        if (!modal) {
+            console.error('Modal not found:', `#${formType}FormModal`);
+            return;
+        }
+        
+        switch (formType) {
+            case 'task':
+                const addTaskBtn = modal.querySelector('#modalAddTaskButton');
+                console.log('Found task button:', addTaskBtn);
+                
+                if (addTaskBtn) {
+                    addTaskBtn.addEventListener('click', () => {
+                        console.log('Task button clicked');
+                        
+                        const nameInput = modal.querySelector('#modalTaskName');
+                        const categoryInput = modal.querySelector('#modalTaskCategory');
+                        const priorityInput = modal.querySelector('#modalTaskHighPriority');
+                        const dateInput = modal.querySelector('#modalDueDate');
+                        const timeInput = modal.querySelector('#modalDueTime');
+                        
+                        console.log('Form inputs:', { nameInput, categoryInput, priorityInput, dateInput, timeInput });
+                        
+                        const name = nameInput ? nameInput.value.trim() : '';
+                        const category = categoryInput ? categoryInput.value : 'other';
+                        const isHighPriority = priorityInput ? priorityInput.checked : false;
+                        const dueDate = dateInput ? dateInput.value : '';
+                        const dueTime = timeInput ? timeInput.value : '17:00';
+                        
+                        console.log('Form values:', { name, category, isHighPriority, dueDate, dueTime });
+                        
+                        if (!name || !dueDate) {
+                            alert('Task Name and Due Date are required.');
+                            return;
+                        }
+                        
+                        const taskData = createTaskItemData(name, category, isHighPriority, dueDate, dueTime);
+                        addItemToGame(taskData);
+                        sortAndRenderActiveList();
+                        closeModal();
+                        
+                        // Update tasks window if open
+                        setTimeout(() => {
+                            if (managementWindows.tasks && !managementWindows.tasks.classList.contains('hidden')) {
+                                populateTasksWindow();
+                            }
+                        }, 100);
+                    });
+                } else {
+                    console.error('Task button not found in modal');
+                }
+                break;
+                
+            case 'habit':
+                const addHabitBtn = modal.querySelector('#modalAddHabitButton');
+                console.log('Found habit button:', addHabitBtn);
+                
+                if (addHabitBtn) {
+                    addHabitBtn.addEventListener('click', () => {
+                        console.log('Habit button clicked');
+                        
+                        const nameInput = modal.querySelector('#modalHabitName');
+                        const categoryInput = modal.querySelector('#modalHabitCategory');
+                        const frequencyInput = modal.querySelector('#modalHabitFrequency');
+                        const timeOfDayInput = modal.querySelector('#modalHabitTimeOfDay');
+                        const typeRadio = modal.querySelector('input[name="modalHabitType"]:checked');
+                        
+                        const name = nameInput ? nameInput.value.trim() : '';
+                        const category = categoryInput ? categoryInput.value : 'health';
+                        const frequency = frequencyInput ? frequencyInput.value : 'daily';
+                        const timeOfDay = timeOfDayInput ? timeOfDayInput.value : 'anytime';
+                        const isNegative = typeRadio ? typeRadio.value === 'negative' : false;
+                        
+                        console.log('Habit form values:', { name, category, frequency, timeOfDay, isNegative });
+                        
+                        if (!name) {
+                            alert('Habit Name is required.');
+                            return;
+                        }
+                        
+                        createHabitDefinition(name, category, frequency, timeOfDay, isNegative);
+                        closeModal();
+                        
+                        // Update habits window if open
+                        setTimeout(() => {
+                            if (managementWindows.habits && !managementWindows.habits.classList.contains('hidden')) {
+                                populateHabitsWindow();
+                            }
+                        }, 100);
+                    });
+                } else {
+                    console.error('Habit button not found in modal');
+                }
+                break;
+                
+            case 'routine':
+                const createRoutineBtn = modal.querySelector('#modalCreateRoutineButton');
+                console.log('Found routine button:', createRoutineBtn);
+                
+                if (createRoutineBtn) {
+                    createRoutineBtn.addEventListener('click', () => {
+                        console.log('Routine button clicked');
+                        
+                        const nameInput = modal.querySelector('#modalRoutineName');
+                        const name = nameInput ? nameInput.value.trim() : '';
+                        
+                        console.log('Routine form values:', { name });
+                        
+                        if (!name) {
+                            alert('Please enter a routine name.');
+                            return;
+                        }
+                        
+                        if (definedRoutines.some(r => r.name.toLowerCase() === name.toLowerCase())) {
+                            alert('Routine name already exists.');
+                            return;
+                        }
+                        
+                        const newRoutine = {
+                            id: `routine_${definedRoutines.length}_${Date.now()}`,
+                            name: name,
+                            habitDefinitionIds: [],
+                            taskDefinitionIds: [],
+                            isActive: false
+                        };
+                        
+                        definedRoutines.push(newRoutine);
+                        closeModal();
+                        
+                        // Update routines window if open
+                        setTimeout(() => {
+                            if (managementWindows.routines && !managementWindows.routines.classList.contains('hidden')) {
+                                populateRoutinesWindow();
+                            } else {
+                                // Open routine management for the new routine if window was closed
+                                openManagementWindow('routines');
+                            }
+                        }, 100);
+                    });
+                } else {
+                    console.error('Routine button not found in modal');
+                }
+                break;
         }
     }
     
-    function handleFormSubmission(formType) {
-        if (formType === 'task') {
-            if (addTaskButton) addTaskButton.click();
-        } else if (formType === 'habit') {
-            if (addHabitButton) addHabitButton.click();
-        } else if (formType === 'routine') {
-            if (createRoutineButton) createRoutineButton.click();
-        }
-        closeModal();
-    }
+    // Forms are now handled through dedicated modal functions above
     
     // Event Listeners
     if (fabButton) {
@@ -1596,6 +2222,27 @@ document.addEventListener('DOMContentLoaded', () => {
             const windowId = e.target.dataset.window;
             closeManagementWindow(windowId);
         });
+    });
+    
+    // Close windows when clicking outside
+    document.addEventListener('click', (e) => {
+        // Handle clicking outside management windows
+        const anyWindowOpen = Object.values(managementWindows).some(w => 
+            w && !w.classList.contains('hidden')
+        );
+        
+        if (anyWindowOpen && !e.target.closest('.management-window') && !e.target.closest('.fab-container')) {
+            // Don't close if clicking on a modal
+            if (!e.target.closest('.modal-overlay')) {
+                closeAllManagementWindows();
+            }
+        }
+        
+        // Close modals when clicking outside
+        const modal = e.target.closest('.modal-overlay');
+        if (e.target.classList.contains('modal-overlay')) {
+            closeModal();
+        }
     });
     
     // Add new item button listeners
