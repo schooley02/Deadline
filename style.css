@@ -229,53 +229,16 @@ body {
 
 /* Category-specific Enemy Colors removed - using transparent background */
 
-/* Category Icons for Enemies */
-.enemy.category-career::before {
-    content: "💼";
-    font-size: 32px;
-    z-index: 2;
-}
-
-.enemy.category-creativity::before {
-    content: "💡";
-    font-size: 32px;
-    z-index: 2;
-}
-
-.enemy.category-financial::before {
-    content: "💰";
-    font-size: 32px;
-    z-index: 2;
-}
-
-.enemy.category-health::before {
-    content: "❤️";
-    font-size: 32px;
-    z-index: 2;
-}
-
-.enemy.category-lifestyle::before {
-    content: "🏠";
-    font-size: 32px;
-    z-index: 2;
-}
-
-.enemy.category-relationships::before {
-    content: "🤝";
-    font-size: 32px;
-    z-index: 2;
-}
-
-.enemy.category-spirituality::before {
-    content: "🙏";
-    font-size: 32px;
-    z-index: 2;
-}
-
+/* Category Icons for Enemies - Hidden to prevent overlap with sprite backgrounds */
+.enemy.category-career::before,
+.enemy.category-creativity::before,
+.enemy.category-financial::before,
+.enemy.category-health::before,
+.enemy.category-lifestyle::before,
+.enemy.category-relationships::before,
+.enemy.category-spirituality::before,
 .enemy.category-other::before {
-    content: "📁";
-    font-size: 32px;
-    z-index: 2;
+    display: none;
 }
 
 /* Custom icon background images (for when custom icons are added) */
@@ -712,36 +675,66 @@ body {
     height: 40px;
 }
 
-.task-list li.category-career .item-sprite::before {
-    content: "💼";
+/* Task List Category Sprites - Using background images instead of emoji */
+.task-list li.category-career .item-sprite {
+    background-image: url('Assets/Zombies/career-zombie.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
-.task-list li.category-creativity .item-sprite::before {
-    content: "💡";
+.task-list li.category-creativity .item-sprite {
+    background-image: url('Assets/Zombies/creativity-zombie.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
-.task-list li.category-financial .item-sprite::before {
-    content: "💰";
+.task-list li.category-financial .item-sprite {
+    background-image: url('Assets/Zombies/financial-zombie.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
-.task-list li.category-health .item-sprite::before {
-    content: "❤️";
+.task-list li.category-health .item-sprite {
+    background-image: url('Assets/Zombies/health-zombie.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
-.task-list li.category-lifestyle .item-sprite::before {
-    content: "🏠";
+.task-list li.category-lifestyle .item-sprite {
+    background-image: url('Assets/Zombies/lifestyle-zombie.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
-.task-list li.category-relationships .item-sprite::before {
-    content: "🤝";
+.task-list li.category-relationships .item-sprite {
+    background-image: url('Assets/Zombies/relationships-zombie.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
-.task-list li.category-spirituality .item-sprite::before {
-    content: "🙏";
+.task-list li.category-spirituality .item-sprite {
+    background-image: url('Assets/Zombies/spiritual-zombie.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
-.task-list li.category-other .item-sprite::before {
-    content: "📁";
+.task-list li.category-other .item-sprite {
+    background-image: url('Assets/Zombies/other-zombie.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* Hide the pseudo-element content since we're using background images */
+.task-list li .item-sprite::before {
+    display: none;
 }
 
 /* Floating Action Button */

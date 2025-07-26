@@ -65,6 +65,21 @@ document.addEventListener('DOMContentLoaded', () => {
     let itemIdCounter, gameLoopInterval, gameIsOver, daysSurvived, dayTimerInterval, currentGameDate;
     let attackMode = false;
 
+    // Category to zombie emoji mapping
+    function getZombieEmoji(category) {
+        const zombieMap = {
+            'career': '💼', // Business zombie
+            'creativity': '🎨', // Artist zombie  
+            'financial': '💰', // Money zombie
+            'health': '⚕️', // Medical zombie
+            'lifestyle': '👤', // Generic stylish zombie
+            'relationships': '💝', // Gift-giving zombie
+            'spirituality': '⛪', // Religious zombie
+            'other': '🧟' // Standard zombie
+        };
+        return zombieMap[category] || zombieMap['other'];
+    }
+
     // --- Game Settings ---
     const GAME_TICK_MS = 50;
     const DAY_DURATION_MS = 60000;
@@ -330,6 +345,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Set up click handler
         itemElement.dataset.itemId = itemData.id;
         itemElement.addEventListener('click', () => handleEnemyClick(itemData.id));
+        
+// Remove zombie emoji content to use sprite backgrounds
+itemElement.textContent = '';
         
         // Add to game screen
         gameScreen.appendChild(itemElement);
