@@ -168,7 +168,7 @@ body {
     width: 120px;
     height: 100%;
     background-color: var(--color-sacred-stone);
-    background-image: url('base_100.png');
+    background-image: url('Assets/Base/base_100.png');
     background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
@@ -216,13 +216,6 @@ body {
     background-image: none;
 }
 
-/* Optional: Keep zombie sprite for specific cases */
-.enemy.use-zombie-sprite {
-    background-image: url('zombie4.png');
-    background-size: contain;
-    background-position: center;
-    background-repeat: no-repeat;
-}
 
 /* Category icons are centered via flexbox */
 .enemy::before {
@@ -345,6 +338,63 @@ body {
 /* Hide pseudo-element content when using custom icons */
 .enemy.use-custom-icons::before {
     display: none;
+}
+
+/* Category-specific zombie sprites */
+.enemy.category-career {
+    background-image: url('Assets/Zombies/career-zombie.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.category-creativity {
+    background-image: url('Assets/Zombies/creativity-zombie.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.category-financial {
+    background-image: url('Assets/Zombies/financial-zombie.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.category-health {
+    background-image: url('Assets/Zombies/health-zombie.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.category-lifestyle {
+    background-image: url('Assets/Zombies/lifestyle-zombie.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.category-relationships {
+    background-image: url('Assets/Zombies/relationships-zombie.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.category-spirituality {
+    background-image: url('Assets/Zombies/spiritual-zombie.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.category-other {
+    background-image: url('Assets/Zombies/other-zombie.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 /* High Priority Enemies */
