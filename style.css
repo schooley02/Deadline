@@ -83,7 +83,7 @@ body {
     position: relative;
     background: linear-gradient(135deg, var(--color-secondary-green-pale) 0%, var(--color-primary-white) 100%);
     border-bottom: 2px solid var(--color-secondary-green-light);
-    overflow: hidden;
+    overflow: visible;
 }
 
 /* Stats Overlay */
@@ -160,7 +160,7 @@ body {
     height: 100%;
     position: relative;
     background: linear-gradient(135deg, #87CEEB 0%, #98D8C8 50%, #8FBC8F 100%);
-    overflow: hidden;
+    overflow: visible;
 }
 
 /* Base (Church) */
@@ -187,8 +187,8 @@ body {
 
 /* Enemy Styles */
 .enemy {
-    width: 32px;
-    height: 32px;
+    width: 128px;
+    height: 128px;
     background-color: transparent;
     color: var(--color-text-primary);
     display: flex;
@@ -196,11 +196,9 @@ body {
     justify-content: center;
     align-items: center;
     position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
     cursor: pointer;
     border: none;
-    border-radius: 50%;
+    border-radius: 0;
     font-size: 6px;
     text-align: center;
     padding: 0;
@@ -223,7 +221,7 @@ body {
 }
 
 .enemy:hover {
-    transform: translateY(-50%) scale(1.05);
+    transform: scale(1.05);
     z-index: 10;
 }
 
@@ -306,56 +304,56 @@ body {
 /* Category-specific zombie sprites */
 .enemy.category-career {
     background-image: url('Assets/Zombies/career-zombie.png');
-    background-size: contain;
+    background-size: 128px 128px;
     background-position: center;
     background-repeat: no-repeat;
 }
 
 .enemy.category-creativity {
     background-image: url('Assets/Zombies/creativity-zombie.png');
-    background-size: contain;
+    background-size: 128px 128px;
     background-position: center;
     background-repeat: no-repeat;
 }
 
 .enemy.category-financial {
     background-image: url('Assets/Zombies/financial-zombie.png');
-    background-size: contain;
+    background-size: 128px 128px;
     background-position: center;
     background-repeat: no-repeat;
 }
 
 .enemy.category-health {
     background-image: url('Assets/Zombies/health-zombie.png');
-    background-size: contain;
+    background-size: 128px 128px;
     background-position: center;
     background-repeat: no-repeat;
 }
 
 .enemy.category-lifestyle {
     background-image: url('Assets/Zombies/lifestyle-zombie.png');
-    background-size: contain;
+    background-size: 128px 128px;
     background-position: center;
     background-repeat: no-repeat;
 }
 
 .enemy.category-relationships {
     background-image: url('Assets/Zombies/relationships-zombie.png');
-    background-size: contain;
+    background-size: 128px 128px;
     background-position: center;
     background-repeat: no-repeat;
 }
 
 .enemy.category-spirituality {
     background-image: url('Assets/Zombies/spiritual-zombie.png');
-    background-size: contain;
+    background-size: 128px 128px;
     background-position: center;
     background-repeat: no-repeat;
 }
 
 .enemy.category-other {
     background-image: url('Assets/Zombies/other-zombie.png');
-    background-size: contain;
+    background-size: 128px 128px;
     background-position: center;
     background-repeat: no-repeat;
 }
@@ -415,9 +413,42 @@ body {
 
 /* Habit Enemies */
 .enemy.habit-enemy {
-    width: 50px;
-    height: 60px;
+    width: 70px;
+    height: 70px;
     border-style: dashed;
+}
+
+/* Habit enemy sprite sizing */
+.enemy.habit-enemy.category-career {
+    background-size: 70px 70px;
+}
+
+.enemy.habit-enemy.category-creativity {
+    background-size: 70px 70px;
+}
+
+.enemy.habit-enemy.category-financial {
+    background-size: 70px 70px;
+}
+
+.enemy.habit-enemy.category-health {
+    background-size: 70px 70px;
+}
+
+.enemy.habit-enemy.category-lifestyle {
+    background-size: 70px 70px;
+}
+
+.enemy.habit-enemy.category-relationships {
+    background-size: 70px 70px;
+}
+
+.enemy.habit-enemy.category-spirituality {
+    background-size: 70px 70px;
+}
+
+.enemy.habit-enemy.category-other {
+    background-size: 70px 70px;
 }
 
 .enemy.habit-enemy.high-streak {
@@ -671,63 +702,63 @@ body {
     align-items: center;
     justify-content: center;
     font-size: 28px;
-    width: 40px;
-    height: 40px;
+    width: 50px;
+    height: 50px;
 }
 
 /* Task List Category Sprites - Using background images instead of emoji */
 .task-list li.category-career .item-sprite {
     background-image: url('Assets/Zombies/career-zombie.png');
-    background-size: contain;
+    background-size: 50px 50px;
     background-position: center;
     background-repeat: no-repeat;
 }
 
 .task-list li.category-creativity .item-sprite {
     background-image: url('Assets/Zombies/creativity-zombie.png');
-    background-size: contain;
+    background-size: 50px 50px;
     background-position: center;
     background-repeat: no-repeat;
 }
 
 .task-list li.category-financial .item-sprite {
     background-image: url('Assets/Zombies/financial-zombie.png');
-    background-size: contain;
+    background-size: 50px 50px;
     background-position: center;
     background-repeat: no-repeat;
 }
 
 .task-list li.category-health .item-sprite {
     background-image: url('Assets/Zombies/health-zombie.png');
-    background-size: contain;
+    background-size: 50px 50px;
     background-position: center;
     background-repeat: no-repeat;
 }
 
 .task-list li.category-lifestyle .item-sprite {
     background-image: url('Assets/Zombies/lifestyle-zombie.png');
-    background-size: contain;
+    background-size: 50px 50px;
     background-position: center;
     background-repeat: no-repeat;
 }
 
 .task-list li.category-relationships .item-sprite {
     background-image: url('Assets/Zombies/relationships-zombie.png');
-    background-size: contain;
+    background-size: 50px 50px;
     background-position: center;
     background-repeat: no-repeat;
 }
 
 .task-list li.category-spirituality .item-sprite {
     background-image: url('Assets/Zombies/spiritual-zombie.png');
-    background-size: contain;
+    background-size: 50px 50px;
     background-position: center;
     background-repeat: no-repeat;
 }
 
 .task-list li.category-other .item-sprite {
     background-image: url('Assets/Zombies/other-zombie.png');
-    background-size: contain;
+    background-size: 50px 50px;
     background-position: center;
     background-repeat: no-repeat;
 }
