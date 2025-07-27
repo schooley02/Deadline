@@ -221,8 +221,9 @@ body {
 }
 
 .enemy:hover {
-    transform: scale(1.05);
-    z-index: 10;
+    transform: scale(1.1);
+    z-index: 20;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
 }
 
 /* Category-specific Enemy Colors removed - using transparent background */
@@ -1694,4 +1695,178 @@ body {
     .window-content {
         padding: var(--space-2);
     }
+}
+
+/* Task Details Modal Styles */
+.task-details-modal {
+    position: relative;
+}
+
+.close-modal-x {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-4);
+    background: none;
+    border: none;
+    font-size: 32px;
+    font-weight: bold;
+    color: var(--color-neutral);
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.close-modal-x:hover {
+    background: var(--color-error);
+    color: white;
+    transform: scale(1.1);
+}
+
+/* Edit Icon Button Styling */
+.edit-icon-btn {
+    background: transparent;
+    color: var(--color-text-primary);
+    border: none;
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transition: all 0.2s ease;
+    margin: 0;
+    padding: 0;
+}
+
+.edit-icon-btn:hover {
+    background: var(--color-secondary-green-pale);
+    transform: scale(1.1);
+}
+
+/* Task Actions Container */
+.task-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    min-height: 32px; /* Ensure minimum height for proper alignment */
+}
+
+/* Item Status Container (for completed items) */
+.item-status {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    height: 100%;
+    min-height: 32px; /* Match task-actions height */
+}
+
+/* Completion Checkbox Styling */
+.completion-checkbox {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-weight: 500;
+    cursor: pointer;
+    margin: 0;
+    height: 32px; /* Match edit button height */
+}
+
+.completion-checkbox-input {
+    width: 24px !important;
+    height: 24px !important;
+    border: 3px solid var(--color-error) !important;
+    border-radius: 4px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background: white;
+    position: relative;
+    transition: all 0.2s ease;
+    margin: 0 !important;
+    transform: none !important;
+}
+
+.completion-checkbox-input:hover {
+    border-color: #c0392b;
+    box-shadow: 0 0 8px rgba(229, 57, 53, 0.3);
+}
+
+.completion-checkbox-input:checked {
+    background: var(--color-error);
+    border-color: var(--color-error);
+}
+
+.completion-checkbox-input:checked::after {
+    content: "✓";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* Completed Tasks Section */
+.completed-tasks-section {
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-secondary-green-pale);
+}
+
+.completed-tasks-section h3 {
+    font-size: var(--text-body);
+    color: var(--color-neutral);
+    margin: 0 0 var(--space-3) 0;
+    font-weight: 600;
+}
+
+.completed-tasks-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.completed-tasks-list li {
+    display: flex;
+    align-items: center;
+    padding: var(--space-4);
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-secondary-green-pale);
+    border-radius: 8px;
+    margin-bottom: var(--space-2);
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    gap: var(--space-4);
+}
+
+.completed-tasks-list li:hover {
+    opacity: 1;
+}
+
+.completed-tasks-list .item-name {
+    text-decoration: line-through;
+    color: var(--color-neutral);
+}
+
+.completed-tasks-list .item-due {
+    color: var(--color-neutral);
+    opacity: 0.8;
+}
+
+.completed-tasks-list .item-category {
+    opacity: 0.6;
 }

@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Game State ---
     let baseHealth, playerXP, playerLevel, playerPoints, routineSlots;
     let activeItems = [];
+    let completedItems = [];
     let definedHabits = [];
     let definedRoutines = [];
     let itemIdCounter, gameLoopInterval, gameIsOver, daysSurvived, dayTimerInterval, currentGameDate;
@@ -120,7 +121,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item.listItemElement) item.listItemElement.remove();
         });
         activeItems = [];
+        completedItems = [];
         if (activeItemsListUL) activeItemsListUL.innerHTML = '';
+        
+        // Hide completed tasks section at game start
+        const completedTasksSection = document.getElementById('completedTasksSection');
+        if (completedTasksSection) completedTasksSection.classList.add('hidden');
         
         // Reset game state
         itemIdCounter = 0;
@@ -390,6 +396,38 @@ document.addEventListener('DOMContentLoaded', () => {
         
         itemInfoDiv.appendChild(itemNameSpan);
         itemInfoDiv.appendChild(itemDueSpan);
+
+        // Add edit icon and checkbox to the task item (aligned to the right)
+        const itemActionsDiv = document.createElement('div');
+        itemActionsDiv.classList.add('task-actions');
+        itemActionsDiv.style.cssText = 'display: flex; justify-content: flex-end; gap: 10px; align-items: center; margin-top: 8px;';
+        
+        // Make the parent item-info a flex container for better vertical alignment
+        itemInfoDiv.style.cssText = 'display: flex; flex-direction: column; justify-content: center; flex-grow: 1;';
+
+        const editIconButton = document.createElement('button');
+        editIconButton.classList.add('edit-icon-btn');
+        editIconButton.title = 'Edit Task';
+        editIconButton.textContent = '✏️';
+        editIconButton.addEventListener('click', () => showEditTaskModal(itemData));
+        itemActionsDiv.appendChild(editIconButton);
+
+        const completeCheckboxLabel = document.createElement('label');
+        completeCheckboxLabel.classList.add('completion-checkbox');
+
+        const completeCheckbox = document.createElement('input');
+        completeCheckbox.type = 'checkbox';
+        completeCheckbox.classList.add('completion-checkbox-input');
+        completeCheckbox.addEventListener('change', () => {
+            if (completeCheckbox.checked) {
+                completeItem(itemData.id);
+            }
+        });
+        completeCheckboxLabel.appendChild(completeCheckbox);
+        completeCheckboxLabel.appendChild(document.createTextNode(' Mark as Complete'));
+
+        itemActionsDiv.appendChild(completeCheckboxLabel);
+        itemInfoDiv.appendChild(itemActionsDiv);
         
         // Add category badge
         const itemCategorySpan = document.createElement('span');
@@ -412,36 +450,166 @@ document.addEventListener('DOMContentLoaded', () => {
             itemInfoDiv.appendChild(streakSpan);
         }
         
-        // Create action button
-        const itemActionsDiv = document.createElement('div');
-        itemActionsDiv.classList.add('item-actions');
-        
-        const completeButton = document.createElement('button');
-        if (itemData.type === 'habit') {
-            completeButton.textContent = itemData.isNegative ? "Avoided" : "Complete";
-            if (itemData.isNegative) {
-                completeButton.classList.add('negative-habit-button');
-            }
-        } else {
-            completeButton.textContent = "Defeat";
-        }
-        completeButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            completeItem(itemData.id);
-        });
-        
-        itemActionsDiv.appendChild(completeButton);
+        // Remove the defeat/complete button - controls are now in item-info section
         
         listItem.appendChild(itemSpriteDiv);
         listItem.appendChild(itemInfoDiv);
-        listItem.appendChild(itemActionsDiv);
         
         itemData.listItemElement = listItem;
     }
 
-    function handleEnemyClick(itemId) {
-        if (!attackMode || gameIsOver) return;
-        completeItem(itemId);
+function handleEnemyClick(itemId) {
+        if (gameIsOver) return;
+        const itemData = activeItems.find(i => i.id === itemId);
+        if (!itemData) return;
+        showTaskDetailsPopup(itemData);
+    }
+
+function showTaskDetailsPopup(item) {
+        const modalHtml = `
+            <div class="modal-overlay">
+                <div class="modal-content task-details-modal">
+                    <button class="close-modal-x" onclick="closeModal()">&times;</button>
+                    <h3>${item.name}</h3>
+                    <div class="task-details">
+                        <p><strong>Category:</strong> ${item.category}</p>
+                        <p><strong>Due:</strong> ${item.dueDateTime.toLocaleString()}</p>
+                        <p><strong>Priority:</strong> ${item.isHighPriority ? 'High' : 'Normal'}</p>
+                        ${item.type === 'habit' ? `<p><strong>Streak:</strong> ${item.streak}</p>` : ''}
+                        <div class="task-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
+                            <button id="editTaskBtn" class="edit-icon-btn" title="Edit Task">✏️</button>
+                            <label class="completion-checkbox">
+                                <input type="checkbox" id="completeTaskCheck" class="completion-checkbox-input" />
+                                Mark as Complete
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Add event listeners
+        const completeCheckbox = document.getElementById('completeTaskCheck');
+        const editButton = document.getElementById('editTaskBtn');
+
+        if (completeCheckbox) {
+            completeCheckbox.addEventListener('change', () => {
+                if (completeCheckbox.checked) {
+                    completeItem(item.id);
+                    closeModal();
+                }
+            });
+        }
+
+        if (editButton) {
+            editButton.addEventListener('click', () => {
+                closeModal();
+                showEditTaskModal(item);
+            });
+        }
+
+        // Close modal when clicking overlay
+        document.querySelector('.modal-overlay').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-overlay')) closeModal();
+        });
+    }
+
+    function showEditTaskModal(item) {
+        const today = new Date().toISOString().split('T')[0];
+        const dueDate = item.dueDateTime.toISOString().split('T')[0];
+        const dueTime = item.dueDateTime.toISOString().split('T')[1].substring(0, 5);
+
+        const modalHtml = `
+            <div class="modal-overlay">
+                <div class="modal-content">
+                    <h3>Edit Task</h3>
+                    <div class="form-row">
+                        <label for="editTaskName">Task Name:</label>
+                        <input type="text" id="editTaskName" value="${item.name}" required>
+                    </div>
+                    <div class="form-row">
+                        <label for="editTaskCategory">Category:</label>
+                        <select id="editTaskCategory">
+                            <option value="other" ${item.category === 'other' ? 'selected' : ''}>Other (Generic)</option>
+                            <option value="career" ${item.category === 'career' ? 'selected' : ''}>Career</option>
+                            <option value="creativity" ${item.category === 'creativity' ? 'selected' : ''}>Creativity</option>
+                            <option value="financial" ${item.category === 'financial' ? 'selected' : ''}>Financial</option>
+                            <option value="health" ${item.category === 'health' ? 'selected' : ''}>Health</option>
+                            <option value="lifestyle" ${item.category === 'lifestyle' ? 'selected' : ''}>Lifestyle</option>
+                            <option value="relationships" ${item.category === 'relationships' ? 'selected' : ''}>Relationships</option>
+                            <option value="spirituality" ${item.category === 'spirituality' ? 'selected' : ''}>Spirituality</option>
+                        </select>
+                    </div>
+                    <div class="form-row priority-row">
+                        <input type="checkbox" id="editTaskHighPriority" ${item.isHighPriority ? 'checked' : ''}>
+                        <label for="editTaskHighPriority">High Priority</label>
+                    </div>
+                    <div class="form-row-group">
+                        <div class="form-row">
+                            <label for="editDueDate">Due Date:</label>
+                            <input type="date" id="editDueDate" value="${dueDate}" required>
+                        </div>
+                        <div class="form-row">
+                            <label for="editDueTime">Due Time:</label>
+                            <input type="time" id="editDueTime" value="${dueTime}">
+                        </div>
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="saveTaskChanges" class="primary-button">Save Changes</button>
+                        <button class="secondary-button" onclick="closeModal()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Add save functionality
+        const saveButton = document.getElementById('saveTaskChanges');
+        if (saveButton) {
+            saveButton.addEventListener('click', () => {
+                const name = document.getElementById('editTaskName').value.trim();
+                const category = document.getElementById('editTaskCategory').value;
+                const isHighPriority = document.getElementById('editTaskHighPriority').checked;
+                const dueDate = document.getElementById('editDueDate').value;
+                const dueTime = document.getElementById('editDueTime').value;
+
+                if (!name || !dueDate) {
+                    alert('Task Name and Due Date are required.');
+                    return;
+                }
+
+                // Update the item data
+                item.name = name;
+                item.category = category;
+                item.isHighPriority = isHighPriority;
+                item.dueDateTime = new Date(`${dueDate}T${dueTime}`);
+
+                // Update visual elements
+                if (item.element) {
+                    item.element.classList.toggle('high-priority', isHighPriority);
+                    item.element.className = item.element.className.replace(/category-\w+/g, '');
+                    item.element.classList.add(`category-${category}`);
+                    item.element.classList.add(`zombie-${category}`);
+                }
+
+                // Recreate list item with updated data
+                if (item.listItemElement) {
+                    item.listItemElement.remove();
+                    createListItem(item);
+                }
+
+                sortAndRenderActiveList();
+                closeModal();
+            });
+        }
+
+        // Close modal when clicking overlay
+        document.querySelector('.modal-overlay').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-overlay')) closeModal();
+        });
     }
 
     function completeItem(itemId) {
@@ -473,8 +641,24 @@ document.addEventListener('DOMContentLoaded', () => {
             updatePlayerDisplays();
             checkPlayerLevelUp();
         }
+
+        // Move item to completed list
+        item.completedAt = new Date();
+        completedItems.push(item);
         
-        removeItem(itemId);
+        // Show completed tasks section and render completed items
+        renderCompletedItems();
+
+        // Fade out animation
+        if (item.element) {
+            item.element.style.transition = 'opacity 0.5s ease';
+            item.element.style.opacity = '0';
+        }
+
+        // Remove item after fade animation
+        setTimeout(() => {
+            removeItem(itemId);
+        }, 500);
     }
 
     function removeItem(itemId) {
@@ -490,6 +674,107 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function uncompleteItem(itemId) {
+        const completedIndex = completedItems.findIndex(i => i.id === itemId);
+        if (completedIndex === -1) return;
+        
+        const item = completedItems[completedIndex];
+        
+        // Remove from completed items
+        completedItems.splice(completedIndex, 1);
+        
+        // Remove completion timestamp
+        delete item.completedAt;
+        
+        // Reset overdue status (they can start fresh)
+        item.isOverdue = false;
+        item.lastDamageTickTime = null;
+        
+        // Recalculate position based on current time
+        const currentTime = new Date();
+        item.x = calculateTimelinePosition(item, currentTime);
+        
+        // Check if it should be marked as overdue
+        if (item.dueDateTime <= currentTime) {
+            markAsOverdue(item, currentTime);
+            item.x = BASE_WIDTH;
+        }
+        
+        // Recreate enemy element
+        const itemElement = document.createElement('div');
+        itemElement.classList.add('enemy');
+        itemElement.classList.add(`category-${item.category}`);
+        itemElement.classList.add('zombie-sprite');
+        itemElement.classList.add(`zombie-${item.category}`);
+        
+        const itemSpriteWidth = (item.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH;
+        const itemSpriteHeight = (item.type === 'habit') ? 70 : 128;
+        
+        itemElement.style.width = `${itemSpriteWidth}px`;
+        itemElement.style.height = `${itemSpriteHeight}px`;
+        
+        if (item.type === 'task' && item.isHighPriority) {
+            itemElement.classList.add('high-priority');
+        } else if (item.type === 'habit') {
+            itemElement.classList.add('habit-enemy');
+            itemElement.classList.add('zombie-small');
+            if (item.isNegative) {
+                itemElement.classList.add('negative-habit');
+            }
+            if (item.streak >= HABIT_STREAK_BONUS_THRESHOLD) {
+                itemElement.classList.add('high-streak');
+            }
+        }
+        
+        // Position the enemy
+        itemElement.style.left = item.x + 'px';
+        const randomTop = Math.random() * (gameCanvas.offsetHeight - itemSpriteHeight);
+        itemElement.style.top = Math.max(0, Math.min(randomTop, gameCanvas.offsetHeight - itemSpriteHeight)) + 'px';
+        
+        // Set up click handler
+        itemElement.dataset.itemId = item.id;
+        itemElement.addEventListener('click', () => handleEnemyClick(item.id));
+        
+        // Add to game canvas
+        gameCanvas.appendChild(itemElement);
+        item.element = itemElement;
+        
+        // Recreate list item
+        createListItem(item);
+        
+        // Add back to active items
+        activeItems.push(item);
+        
+        // Update displays
+        updateTaskCountDisplay();
+        sortAndRenderActiveList();
+        renderCompletedItems();
+        
+        // Reverse the XP and points gained (if any)
+        if (item.type === 'task') {
+            const xpLost = XP_PER_TASK_DEFEAT;
+            const pointsLost = item.isHighPriority ? POINTS_PER_TASK * 2 : POINTS_PER_TASK;
+            
+            playerXP = Math.max(0, playerXP - xpLost);
+            playerPoints = Math.max(0, playerPoints - pointsLost);
+        } else if (item.type === 'habit') {
+            const habitDef = definedHabits.find(def => def.id === item.definitionId);
+            if (habitDef) {
+                // Reverse the streak increment
+                habitDef.streak = Math.max(0, habitDef.streak - 1);
+                habitDef.lastCompletionDate = null;
+                
+                const xpLost = XP_PER_HABIT_COMPLETE;
+                const pointsLost = POINTS_PER_HABIT + (habitDef.streak >= HABIT_STREAK_BONUS_THRESHOLD ? 5 : 0);
+                
+                playerXP = Math.max(0, playerXP - xpLost);
+                playerPoints = Math.max(0, playerPoints - pointsLost);
+            }
+        }
+        
+        updatePlayerDisplays();
+    }
+
     function sortAndRenderActiveList() {
         // Sort by due date (most urgent first)
         activeItems.sort((a, b) => a.dueDateTime - b.dueDateTime);
@@ -501,6 +786,103 @@ document.addEventListener('DOMContentLoaded', () => {
                     activeItemsListUL.appendChild(item.listItemElement);
                 }
             });
+        }
+    }
+
+    function renderCompletedItems() {
+        const completedTasksSection = document.getElementById('completedTasksSection');
+        const completedItemsList = document.getElementById('completedItemsList');
+        
+        if (!completedTasksSection || !completedItemsList) return;
+        
+        // Show the completed tasks section if there are completed items
+        if (completedItems.length > 0) {
+            completedTasksSection.classList.remove('hidden');
+            
+            // Clear existing list
+            completedItemsList.innerHTML = '';
+            
+            // Sort by completion time (most recent first)
+            const sortedCompletedItems = [...completedItems].sort((a, b) => b.completedAt - a.completedAt);
+            
+            sortedCompletedItems.forEach(item => {
+                const li = document.createElement('li');
+                li.classList.add('completed-item');
+                li.classList.add(`category-${item.category}`);
+                
+                // Create sprite column
+                const itemSpriteDiv = document.createElement('div');
+                itemSpriteDiv.classList.add('item-sprite');
+                
+                // Create item info div
+                const itemInfoDiv = document.createElement('div');
+                itemInfoDiv.classList.add('item-info');
+                
+                const itemNameSpan = document.createElement('span');
+                itemNameSpan.classList.add('item-name');
+                itemNameSpan.textContent = item.name;
+                
+                const itemCompletedSpan = document.createElement('span');
+                itemCompletedSpan.classList.add('item-completed');
+                itemCompletedSpan.textContent = `Completed: ${item.completedAt.toLocaleString([], { 
+                    dateStyle: 'short', 
+                    timeStyle: 'short' 
+                })}`;
+                
+                itemInfoDiv.appendChild(itemNameSpan);
+                itemInfoDiv.appendChild(itemCompletedSpan);
+                
+                // Add category badge
+                const itemCategorySpan = document.createElement('span');
+                itemCategorySpan.classList.add('item-category');
+                itemCategorySpan.textContent = item.category.charAt(0).toUpperCase() + item.category.slice(1);
+                
+                const currentCategoryStyle = categoryStyles[item.category] || categoryStyles["other"];
+                itemCategorySpan.style.backgroundColor = currentCategoryStyle.bgColor;
+                if (currentCategoryStyle.textColorClass) {
+                    itemCategorySpan.classList.add(currentCategoryStyle.textColorClass);
+                }
+                itemInfoDiv.appendChild(itemCategorySpan);
+                
+                // Add completion controls (edit icon and checkbox)
+                const itemStatusDiv = document.createElement('div');
+                itemStatusDiv.classList.add('item-status');
+                itemStatusDiv.style.cssText = 'display: flex; justify-content: flex-end; gap: 10px; align-items: center; height: 100%;';
+                
+                // Edit icon button
+                const editIconButton = document.createElement('button');
+                editIconButton.classList.add('edit-icon-btn');
+                editIconButton.title = 'Edit Task';
+                editIconButton.textContent = '✏️';
+                editIconButton.addEventListener('click', () => showEditTaskModal(item));
+                itemStatusDiv.appendChild(editIconButton);
+                
+                // Completion checkbox (pre-checked for completed items)
+                const completeCheckboxLabel = document.createElement('label');
+                completeCheckboxLabel.classList.add('completion-checkbox');
+                
+                const completeCheckbox = document.createElement('input');
+                completeCheckbox.type = 'checkbox';
+                completeCheckbox.classList.add('completion-checkbox-input');
+                completeCheckbox.checked = true; // Pre-checked for completed items
+                completeCheckbox.addEventListener('change', () => {
+                    if (!completeCheckbox.checked) {
+                        uncompleteItem(item.id);
+                    }
+                });
+                completeCheckboxLabel.appendChild(completeCheckbox);
+                completeCheckboxLabel.appendChild(document.createTextNode(' Completed'));
+                
+                itemStatusDiv.appendChild(completeCheckboxLabel);
+                
+                li.appendChild(itemSpriteDiv);
+                li.appendChild(itemInfoDiv);
+                li.appendChild(itemStatusDiv);
+                
+                completedItemsList.appendChild(li);
+            });
+        } else {
+            completedTasksSection.classList.add('hidden');
         }
     }
 
