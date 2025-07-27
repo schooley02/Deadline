@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Elements ---
-    const gameCanvas = document.getElementById('gameCanvas');
+    const gameScreen = document.getElementById('gameScreen');
     const baseElement = document.getElementById('base');
     const baseHealthDisplay = document.getElementById('baseHealthDisplay');
     const playerXpDisplay = document.getElementById('playerXpDisplay');
@@ -98,10 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function initGame() {
         // Calculate dimensions
-        GAME_SCREEN_WIDTH = gameCanvas.offsetWidth;
+        GAME_SCREEN_WIDTH = gameScreen.offsetWidth;
         BASE_WIDTH = baseElement.offsetWidth;
-        ENEMY_WIDTH = 128;
-        HABIT_ENEMY_WIDTH = 70;
+        ENEMY_WIDTH = 60;
+        HABIT_ENEMY_WIDTH = 50;
 
         // Initialize player stats
         playerXP = 0;
@@ -320,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
         itemElement.classList.add(`category-${itemData.category}`);
         
         const itemSpriteWidth = (itemData.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH;
-        const itemSpriteHeight = (itemData.type === 'habit') ? 70 : 128;
+        const itemSpriteHeight = (itemData.type === 'habit') ? 60 : 70;
         
         itemElement.style.width = `${itemSpriteWidth}px`;
         itemElement.style.height = `${itemSpriteHeight}px`;
@@ -339,18 +339,20 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Position enemy
         itemElement.style.left = itemData.x + 'px';
-        const randomTop = Math.random() * (gameCanvas.offsetHeight - itemSpriteHeight);
-        itemElement.style.top = Math.max(0, Math.min(randomTop, gameCanvas.offsetHeight - itemSpriteHeight)) + 'px';
+        const randomTop = Math.random() * (gameScreen.offsetHeight - itemSpriteHeight);
+        itemElement.style.top = Math.max(0, Math.min(randomTop, gameScreen.offsetHeight - itemSpriteHeight)) + 'px';
         
         // Set up click handler
         itemElement.dataset.itemId = itemData.id;
         itemElement.addEventListener('click', () => handleEnemyClick(itemData.id));
         
-// Remove zombie emoji content to use sprite backgrounds
-itemElement.textContent = '';
+        // Add zombie emoji as content for visual representation
+        itemElement.textContent = getZombieEmoji(itemData.category);
+        itemElement.style.fontSize = '32px';
+        itemElement.style.lineHeight = '1';
         
-        // Add to game canvas
-        gameCanvas.appendChild(itemElement);
+        // Add to game screen
+        gameScreen.appendChild(itemElement);
         itemData.element = itemElement;
         
         // Create list item
@@ -550,109 +552,90 @@ itemElement.textContent = '';
         return fivePM;
     }
     
-    // Calculate position based on timeline system with 2-hour and 4-hour marks
-function calculateTimelinePosition(item, currentTime) {
-    const currentItemWidth = (item.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH;
-    const currentTimeMs = currentTime.getTime();
-    const midnight = new Date(currentTime);
-    midnight.setHours(24, 0, 0, 0);
-    const taskDueMs = item.dueDateTime.getTime();
-    
-    // Available screen width for positioning (from base to right edge)
-    const totalWidth = GAME_SCREEN_WIDTH - BASE_WIDTH - currentItemWidth;
-
-    if (taskDueMs <= currentTimeMs) {
-        // Task is overdue - position at base
-        return BASE_WIDTH;
-    } else if (taskDueMs > midnight.getTime()) {
-        // Task is due next day - initial position off-screen right
-        return GAME_SCREEN_WIDTH;
-    } else {
-        // Calculate position based on time remaining until due
-        const timeToDue = taskDueMs - currentTimeMs;
-        const twoHoursMs = 2 * 60 * 60 * 1000;
-        const fourHoursMs = 4 * 60 * 60 * 1000;
-        const timeUntilMidnight = midnight.getTime() - currentTimeMs;
-
-        if (timeToDue <= twoHoursMs) {
-            // Within 2 hours: Position linearly from base (0%) to 50% of screen
-            const progress = timeToDue / twoHoursMs; // 1 = due in 2 hours, 0 = due now
-            return BASE_WIDTH + (totalWidth * 0.5 * progress);
-        } else if (timeToDue <= fourHoursMs) {
-            // Between 2-4 hours: Position linearly from 50% to 75% of screen
-            const progress = (timeToDue - twoHoursMs) / twoHoursMs; // 0 = due in 2 hours, 1 = due in 4 hours
-            return BASE_WIDTH + (totalWidth * 0.5) + (totalWidth * 0.25 * progress);
+    // Calculate position based on timeline from now to 5pm
+    function calculateTimelinePosition(item, currentTime) {
+        const currentItemWidth = (item.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH;
+        const fivePM = getTodayAt5PM();
+        const currentTimeMs = currentTime.getTime();
+        const fivePMMs = fivePM.getTime();
+        
+        // If it's past 5pm, treat as next day's timeline
+        if (currentTimeMs > fivePMMs) {
+            const tomorrowFivePM = new Date(fivePM);
+            tomorrowFivePM.setDate(tomorrowFivePM.getDate() + 1);
+            const totalTimelineMs = tomorrowFivePM.getTime() - currentTimeMs;
+            const taskDueMs = item.dueDateTime.getTime();
+            
+            if (taskDueMs <= currentTimeMs) {
+                // Task is overdue - position at base
+                return BASE_WIDTH;
+            } else if (taskDueMs >= tomorrowFivePM.getTime()) {
+                // Task is beyond tomorrow's 5pm - position at far right
+                return GAME_SCREEN_WIDTH - currentItemWidth;
+            } else {
+                // Task is between now and tomorrow's 5pm - interpolate position
+                const taskTimeFromNow = taskDueMs - currentTimeMs;
+                const progress = taskTimeFromNow / totalTimelineMs;
+                const travelDistance = GAME_SCREEN_WIDTH - BASE_WIDTH - currentItemWidth;
+                return BASE_WIDTH + (progress * travelDistance);
+            }
         } else {
-            // More than 4 hours: Position linearly from 75% to 100% of screen
-            const remainingTime = timeUntilMidnight - fourHoursMs;
-            const progress = remainingTime > 0 ? (timeToDue - fourHoursMs) / remainingTime : 0;
-            return BASE_WIDTH + (totalWidth * 0.75) + (totalWidth * 0.25 * progress);
+            // Normal timeline: current time to today's 5pm
+            const totalTimelineMs = fivePMMs - currentTimeMs;
+            const taskDueMs = item.dueDateTime.getTime();
+            
+            if (taskDueMs <= currentTimeMs) {
+                // Task is overdue - position at base
+                return BASE_WIDTH;
+            } else if (taskDueMs >= fivePMMs) {
+                // Task is beyond 5pm - position at far right
+                return GAME_SCREEN_WIDTH - currentItemWidth;
+            } else {
+                // Task is between now and 5pm - interpolate position
+                const taskTimeFromNow = taskDueMs - currentTimeMs;
+                const progress = taskTimeFromNow / totalTimelineMs;
+                const travelDistance = GAME_SCREEN_WIDTH - BASE_WIDTH - currentItemWidth;
+                return BASE_WIDTH + (progress * travelDistance);
+            }
         }
     }
-}
 
-function updateActiveItems() {
-    if (gameIsOver) return;
-
-    const currentTime = new Date();
-    const currentTimeMs = currentTime.getTime();
-
-    for (let i = activeItems.length - 1; i >= 0; i--) {
-        const item = activeItems[i];
+    function updateActiveItems() {
+        if (gameIsOver) return;
         
-        if (!item.isOverdue) {
-            if (item.dueDateTime <= currentTime) {
-                // Item just became overdue
-                item.x = BASE_WIDTH;
-                markAsOverdue(item, currentTime);
-            } else {
-                // Calculate position based on timeline
-                item.x = calculateTimelinePosition(item, currentTime);
-
-                // Check for next day's enemy visibility
-                if (item.dueDateTime.getDate() !== currentTime.getDate() && currentTime.getHours() >= 20) {
-                    item.element.style.visibility = "visible";
+        const currentTime = new Date();
+        const currentTimeMs = currentTime.getTime();
+        
+        for (let i = activeItems.length - 1; i >= 0; i--) {
+            const item = activeItems[i];
+            
+            if (!item.isOverdue) {
+                if (item.dueDateTime <= currentTime) {
+                    // Item just became overdue
+                    item.x = BASE_WIDTH;
+                    markAsOverdue(item, currentTime);
+                } else {
+                    // Calculate position based on timeline from now to 5pm
+                    item.x = calculateTimelinePosition(item, currentTime);
+                }
+                
+                // Update visual position
+                if (item.element) {
+                    item.element.style.left = Math.max(BASE_WIDTH, item.x) + 'px';
                 }
             }
-
-            // Update visual position
-            if (item.element) {
-                item.element.style.left = Math.max(BASE_WIDTH, item.x) + 'px';
-            }
-        }
-        
-        // Handle damage from overdue items
-        if (item.isOverdue) {
-            if (currentTimeMs >= item.lastDamageTickTime + DAMAGE_INTERVAL_MS) {
-                damageBase(OVERDUE_DAMAGE);
-                item.lastDamageTickTime += DAMAGE_INTERVAL_MS;
-                
-                if (gameIsOver) break;
+            
+            // Handle damage from overdue items
+            if (item.isOverdue) {
+                if (currentTimeMs >= item.lastDamageTickTime + DAMAGE_INTERVAL_MS) {
+                    damageBase(OVERDUE_DAMAGE);
+                    item.lastDamageTickTime += DAMAGE_INTERVAL_MS;
+                    
+                    if (gameIsOver) break;
+                }
             }
         }
     }
-
-    updateMidnightLine(currentTime);
-}
-
-function updateMidnightLine(currentTime) {
-    const midnightLine = document.getElementById('midnightLine');
-    if (!midnightLine) return;
-    
-    if (currentTime.getHours() >= 20) {
-        midnightLine.style.display = 'block';
-        
-        // Calculate midnight line position
-        const midnight = new Date(currentTime);
-        midnight.setHours(24, 0, 0, 0);
-        const timeLeftToMidnight = midnight.getTime() - currentTime.getTime();
-        const distanceToBase = GAME_SCREEN_WIDTH - BASE_WIDTH;
-        const progress = timeLeftToMidnight / (4 * 60 * 60 * 1000); // 4 hours
-        midnightLine.style.left = BASE_WIDTH + distanceToBase * (1 - progress) + 'px';
-    } else {
-        midnightLine.style.display = 'none';
-    }
-}
 
     function updateBaseVisuals() {
         let newBaseImage = '';
@@ -2433,7 +2416,7 @@ function updateMidnightLine(currentTime) {
         attackButton.addEventListener('click', () => {
             attackMode = !attackMode;
             attackButton.classList.toggle('active', attackMode);
-            gameCanvas.style.cursor = attackMode ? 'crosshair' : 'default';
+            gameScreen.style.cursor = attackMode ? 'crosshair' : 'default';
         });
     }
 

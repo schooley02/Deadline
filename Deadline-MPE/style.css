@@ -48,7 +48,7 @@ h2 { margin-top: 0; } /* For taskListContainer h2 */
     width: 150px;
     height: 100%;
     background-color: #saddlebrown;
-    background-image: url('base_100.png');
+    background-image: url('Assets/Base/base_100.png');
     background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
@@ -66,7 +66,6 @@ h2 { margin-top: 0; } /* For taskListContainer h2 */
     width: 60px; /* Increased slightly */
     height: 70px;
     background-color: #90ee90;
-    background-image: url('zombie4.png');
     background-size: contain;
     background-position: center;
     background-repeat: no-repeat;

@@ -125,7 +125,11 @@ Run-Based Gameplay
 * XP and routine slots carry over between runs
 * Tasks, habits, and routines remain active between runs
 UX/UI Considerations
-* Main Game Screen: Top 60% tower-defense canvas with country church base and advancing zombie enemies
+* Game Canvas: Top 60% tower-defense canvas containing Base Zone (church), Combat Field (enemy area), and Stats Overlay
+* Base Zone: Leftmost 120px area with church building and hero positioning
+* Combat Field: Main enemy spawning and movement area (right of Base Zone)
+* Deadline Boundary: Visual fence line that enemies cross to damage the base
+* Stats Overlay: Transparent HUD showing player stats and attack button
 * Dynamic Task List: Bottom 40% scrollable list sorted by proximity to base with edit icons
 * Time Slider: 24-hour slider at canvas/list boundary showing current time with fast-forward/rewind enemy position preview (preview only, no actual time manipulation)
 * Time Scale Options: Today/This Week/This Month view modes

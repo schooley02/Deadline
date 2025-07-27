@@ -1,0 +1,5 @@
+Metric,Category,Implemented,Partially,Missing,Inconsistent,Total,Implementation_Rate
+Overall,All Requirements,0,125,75,0,200,0.0%
+Category,User Story,0,16,36,0,52,0.0%
+Category,Technical - Performance,0,48,17,0,65,0.0%
+Category,Technical - Data,0,61,22,0,83,0.0%

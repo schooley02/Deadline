@@ -77,13 +77,13 @@ body {
 }
 
 /* Game Canvas Section - Top 1/3 */
-.game-canvas {
+.game-section {
     height: 33vh;
     min-height: 250px;
     position: relative;
     background: linear-gradient(135deg, var(--color-secondary-green-pale) 0%, var(--color-primary-white) 100%);
     border-bottom: 2px solid var(--color-secondary-green-light);
-    overflow: visible;
+    overflow: hidden;
 }
 
 /* Stats Overlay */
@@ -154,13 +154,13 @@ body {
     50% { transform: scale(1.15); }
 }
 
-/* Game Canvas */
-#gameCanvas {
+/* Game Screen */
+#gameScreen {
     width: 100%;
     height: 100%;
     position: relative;
     background: linear-gradient(135deg, #87CEEB 0%, #98D8C8 50%, #8FBC8F 100%);
-    overflow: visible;
+    overflow: hidden;
 }
 
 /* Base (Church) */
@@ -168,7 +168,7 @@ body {
     width: 120px;
     height: 100%;
     background-color: var(--color-sacred-stone);
-    background-image: url('Assets/Base/base_100.png');
+    background-image: url('base_100.png');
     background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
@@ -187,8 +187,8 @@ body {
 
 /* Enemy Styles */
 .enemy {
-    width: 128px;
-    height: 128px;
+    width: 32px;
+    height: 32px;
     background-color: transparent;
     color: var(--color-text-primary);
     display: flex;
@@ -196,9 +196,11 @@ body {
     justify-content: center;
     align-items: center;
     position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
     cursor: pointer;
     border: none;
-    border-radius: 0;
+    border-radius: 50%;
     font-size: 6px;
     text-align: center;
     padding: 0;
@@ -221,22 +223,59 @@ body {
 }
 
 .enemy:hover {
-    transform: scale(1.05);
+    transform: translateY(-50%) scale(1.05);
     z-index: 10;
 }
 
 /* Category-specific Enemy Colors removed - using transparent background */
 
-/* Category Icons for Enemies - Hidden to prevent overlap with sprite backgrounds */
-.enemy.category-career::before,
-.enemy.category-creativity::before,
-.enemy.category-financial::before,
-.enemy.category-health::before,
-.enemy.category-lifestyle::before,
-.enemy.category-relationships::before,
-.enemy.category-spirituality::before,
+/* Category Icons for Enemies */
+.enemy.category-career::before {
+    content: "💼";
+    font-size: 32px;
+    z-index: 2;
+}
+
+.enemy.category-creativity::before {
+    content: "💡";
+    font-size: 32px;
+    z-index: 2;
+}
+
+.enemy.category-financial::before {
+    content: "💰";
+    font-size: 32px;
+    z-index: 2;
+}
+
+.enemy.category-health::before {
+    content: "❤️";
+    font-size: 32px;
+    z-index: 2;
+}
+
+.enemy.category-lifestyle::before {
+    content: "🏠";
+    font-size: 32px;
+    z-index: 2;
+}
+
+.enemy.category-relationships::before {
+    content: "🤝";
+    font-size: 32px;
+    z-index: 2;
+}
+
+.enemy.category-spirituality::before {
+    content: "🙏";
+    font-size: 32px;
+    z-index: 2;
+}
+
 .enemy.category-other::before {
-    display: none;
+    content: "📁";
+    font-size: 32px;
+    z-index: 2;
 }
 
 /* Custom icon background images (for when custom icons are added) */
@@ -301,63 +340,6 @@ body {
     display: none;
 }
 
-/* Category-specific zombie sprites */
-.enemy.category-career {
-    background-image: url('Assets/Zombies/career-zombie.png');
-    background-size: 128px 128px;
-    background-position: center;
-    background-repeat: no-repeat;
-}
-
-.enemy.category-creativity {
-    background-image: url('Assets/Zombies/creativity-zombie.png');
-    background-size: 128px 128px;
-    background-position: center;
-    background-repeat: no-repeat;
-}
-
-.enemy.category-financial {
-    background-image: url('Assets/Zombies/financial-zombie.png');
-    background-size: 128px 128px;
-    background-position: center;
-    background-repeat: no-repeat;
-}
-
-.enemy.category-health {
-    background-image: url('Assets/Zombies/health-zombie.png');
-    background-size: 128px 128px;
-    background-position: center;
-    background-repeat: no-repeat;
-}
-
-.enemy.category-lifestyle {
-    background-image: url('Assets/Zombies/lifestyle-zombie.png');
-    background-size: 128px 128px;
-    background-position: center;
-    background-repeat: no-repeat;
-}
-
-.enemy.category-relationships {
-    background-image: url('Assets/Zombies/relationships-zombie.png');
-    background-size: 128px 128px;
-    background-position: center;
-    background-repeat: no-repeat;
-}
-
-.enemy.category-spirituality {
-    background-image: url('Assets/Zombies/spiritual-zombie.png');
-    background-size: 128px 128px;
-    background-position: center;
-    background-repeat: no-repeat;
-}
-
-.enemy.category-other {
-    background-image: url('Assets/Zombies/other-zombie.png');
-    background-size: 128px 128px;
-    background-position: center;
-    background-repeat: no-repeat;
-}
-
 /* High Priority Enemies */
 .enemy.high-priority {
     outline: 3px solid var(--color-holy-gold);
@@ -413,42 +395,9 @@ body {
 
 /* Habit Enemies */
 .enemy.habit-enemy {
-    width: 70px;
-    height: 70px;
+    width: 50px;
+    height: 60px;
     border-style: dashed;
-}
-
-/* Habit enemy sprite sizing */
-.enemy.habit-enemy.category-career {
-    background-size: 70px 70px;
-}
-
-.enemy.habit-enemy.category-creativity {
-    background-size: 70px 70px;
-}
-
-.enemy.habit-enemy.category-financial {
-    background-size: 70px 70px;
-}
-
-.enemy.habit-enemy.category-health {
-    background-size: 70px 70px;
-}
-
-.enemy.habit-enemy.category-lifestyle {
-    background-size: 70px 70px;
-}
-
-.enemy.habit-enemy.category-relationships {
-    background-size: 70px 70px;
-}
-
-.enemy.habit-enemy.category-spirituality {
-    background-size: 70px 70px;
-}
-
-.enemy.habit-enemy.category-other {
-    background-size: 70px 70px;
 }
 
 .enemy.habit-enemy.high-streak {
@@ -508,31 +457,6 @@ body {
 @keyframes flash-damage {
     0%, 100% { filter: brightness(1); }
     50% { filter: brightness(1.5) hue-rotate(0deg) saturate(2); }
-}
-
-/* Midnight Line */
-#midnightLine {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background: linear-gradient(180deg, #ff6b6b 0%, #ff4757 50%, #ff3838 100%);
-    box-shadow: 0 0 10px rgba(255, 107, 107, 0.6), 0 0 20px rgba(255, 107, 107, 0.4);
-    z-index: 5;
-    opacity: 0.9;
-}
-
-#midnightLine::before {
-    content: "MIDNIGHT";
-    position: absolute;
-    top: 10px;
-    left: 8px;
-    font-size: 10px;
-    font-weight: bold;
-    color: #ff4757;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
-    writing-mode: vertical-lr;
-    text-orientation: mixed;
 }
 
 /* Message Overlays */
@@ -727,70 +651,40 @@ body {
     align-items: center;
     justify-content: center;
     font-size: 28px;
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
 }
 
-/* Task List Category Sprites - Using background images instead of emoji */
-.task-list li.category-career .item-sprite {
-    background-image: url('Assets/Zombies/career-zombie.png');
-    background-size: 50px 50px;
-    background-position: center;
-    background-repeat: no-repeat;
+.task-list li.category-career .item-sprite::before {
+    content: "💼";
 }
 
-.task-list li.category-creativity .item-sprite {
-    background-image: url('Assets/Zombies/creativity-zombie.png');
-    background-size: 50px 50px;
-    background-position: center;
-    background-repeat: no-repeat;
+.task-list li.category-creativity .item-sprite::before {
+    content: "💡";
 }
 
-.task-list li.category-financial .item-sprite {
-    background-image: url('Assets/Zombies/financial-zombie.png');
-    background-size: 50px 50px;
-    background-position: center;
-    background-repeat: no-repeat;
+.task-list li.category-financial .item-sprite::before {
+    content: "💰";
 }
 
-.task-list li.category-health .item-sprite {
-    background-image: url('Assets/Zombies/health-zombie.png');
-    background-size: 50px 50px;
-    background-position: center;
-    background-repeat: no-repeat;
+.task-list li.category-health .item-sprite::before {
+    content: "❤️";
 }
 
-.task-list li.category-lifestyle .item-sprite {
-    background-image: url('Assets/Zombies/lifestyle-zombie.png');
-    background-size: 50px 50px;
-    background-position: center;
-    background-repeat: no-repeat;
+.task-list li.category-lifestyle .item-sprite::before {
+    content: "🏠";
 }
 
-.task-list li.category-relationships .item-sprite {
-    background-image: url('Assets/Zombies/relationships-zombie.png');
-    background-size: 50px 50px;
-    background-position: center;
-    background-repeat: no-repeat;
+.task-list li.category-relationships .item-sprite::before {
+    content: "🤝";
 }
 
-.task-list li.category-spirituality .item-sprite {
-    background-image: url('Assets/Zombies/spiritual-zombie.png');
-    background-size: 50px 50px;
-    background-position: center;
-    background-repeat: no-repeat;
+.task-list li.category-spirituality .item-sprite::before {
+    content: "🙏";
 }
 
-.task-list li.category-other .item-sprite {
-    background-image: url('Assets/Zombies/other-zombie.png');
-    background-size: 50px 50px;
-    background-position: center;
-    background-repeat: no-repeat;
-}
-
-/* Hide the pseudo-element content since we're using background images */
-.task-list li .item-sprite::before {
-    display: none;
+.task-list li.category-other .item-sprite::before {
+    content: "📁";
 }
 
 /* Floating Action Button */
@@ -1522,7 +1416,7 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .game-canvas {
+    .game-section {
         height: 30vh;
         min-height: 200px;
     }
@@ -1552,7 +1446,7 @@ body {
 }
 
 @media (min-width: 1024px) {
-    .game-canvas {
+    .game-section {
         height: 33vh;
         min-height: 300px;
     }
