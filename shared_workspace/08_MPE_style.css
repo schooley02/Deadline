@@ -89,15 +89,250 @@ h2 { margin-top: 0; } /* For taskListContainer h2 */
     word-break: break-all;
 }
 
-/* Placeholder Enemy Category Styles */
-.enemy.category-career { background-color: #4a90e2; border-color: #357abd; } /* Blueish */
-.enemy.category-creativity { background-color: #f5a623; border-color: #c5851b; } /* Orangeish */
-.enemy.category-financial { background-color: #50e3c2; border-color: #3dbba2; } /* Tealish */
-.enemy.category-health { background-color: #e91e63; border-color: #b0164c;} /* Pink/Red */
-.enemy.category-lifestyle { background-color: #bd10e0; border-color: #8c0da5; } /* Purpleish */
-.enemy.category-relationships { background-color: #f8e71c; border-color: #c8ba16; color: #333; } /* Yellowish */
-.enemy.category-spirituality { background-color: #7ed321; border-color: #66b01a; } /* Greenish */
-.enemy.category-other { background-color: #90ee90; border-color: #57a657; } /* Default green */
+/* Remove default zombie background for category-based enemies */
+.enemy:not(.use-zombie-sprite) {
+    background-image: none;
+}
+
+/* Custom icon background images (for when custom icons are added) */
+.enemy.use-custom-icons.category-career {
+    background-image: url('icons/briefcase.png');
+    background-size: 32px 32px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.use-custom-icons.category-creativity {
+    background-image: url('icons/lightbulb.png');
+    background-size: 32px 32px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.use-custom-icons.category-financial {
+    background-image: url('icons/piggy-bank.png');
+    background-size: 32px 32px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.use-custom-icons.category-health {
+    background-image: url('icons/heart.png');
+    background-size: 32px 32px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.use-custom-icons.category-lifestyle {
+    background-image: url('icons/house.png');
+    background-size: 32px 32px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.use-custom-icons.category-relationships {
+    background-image: url('icons/family.png');
+    background-size: 32px 32px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.use-custom-icons.category-spirituality {
+    background-image: url('icons/praying-hands.png');
+    background-size: 32px 32px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.use-custom-icons.category-other {
+    background-image: url('icons/folder.png');
+    background-size: 32px 32px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* Hide pseudo-element content when using custom icons */
+.enemy.use-custom-icons::before {
+    display: none;
+}
+
+/* Category-specific zombie sprites - Main classes */
+.enemy.category-career {
+    background-image: url('Assets/Zombies/career-zombie.png');
+    background-size: 60px 70px; /* Match MPE enemy size */
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.category-creativity {
+    background-image: url('Assets/Zombies/creativity-zombie.png');
+    background-size: 60px 70px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.category-financial {
+    background-image: url('Assets/Zombies/financial-zombie.png');
+    background-size: 60px 70px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.category-health {
+    background-image: url('Assets/Zombies/health-zombie.png');
+    background-size: 60px 70px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.category-lifestyle {
+    background-image: url('Assets/Zombies/lifestyle-zombie.png');
+    background-size: 60px 70px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.category-relationships {
+    background-image: url('Assets/Zombies/relationships-zombie.png');
+    background-size: 60px 70px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.category-spirituality {
+    background-image: url('Assets/Zombies/spiritual-zombie.png');
+    background-size: 60px 70px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.enemy.category-other {
+    background-image: url('Assets/Zombies/other-zombie.png');
+    background-size: 60px 70px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* New zombie sprite system with explicit size classes */
+.zombie-sprite {
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* Default (large) zombie sprites for tasks */
+.zombie-sprite.zombie-career,
+.zombie-career {
+    background-image: url('Assets/Zombies/career-zombie.png');
+    background-size: 60px 70px;
+}
+
+.zombie-sprite.zombie-creativity,
+.zombie-creativity {
+    background-image: url('Assets/Zombies/creativity-zombie.png');
+    background-size: 60px 70px;
+}
+
+.zombie-sprite.zombie-financial,
+.zombie-financial {
+    background-image: url('Assets/Zombies/financial-zombie.png');
+    background-size: 60px 70px;
+}
+
+.zombie-sprite.zombie-health,
+.zombie-health {
+    background-image: url('Assets/Zombies/health-zombie.png');
+    background-size: 60px 70px;
+}
+
+.zombie-sprite.zombie-lifestyle,
+.zombie-lifestyle {
+    background-image: url('Assets/Zombies/lifestyle-zombie.png');
+    background-size: 60px 70px;
+}
+
+.zombie-sprite.zombie-relationships,
+.zombie-relationships {
+    background-image: url('Assets/Zombies/relationships-zombie.png');
+    background-size: 60px 70px;
+}
+
+.zombie-sprite.zombie-spirituality,
+.zombie-spirituality {
+    background-image: url('Assets/Zombies/spiritual-zombie.png');
+    background-size: 60px 70px;
+}
+
+.zombie-sprite.zombie-other,
+.zombie-other {
+    background-image: url('Assets/Zombies/other-zombie.png');
+    background-size: 60px 70px;
+}
+
+/* Small zombie sprites for habits */
+.zombie-sprite.zombie-small.zombie-career {
+    background-size: 50px 60px;
+}
+
+.zombie-sprite.zombie-small.zombie-creativity {
+    background-size: 50px 60px;
+}
+
+.zombie-sprite.zombie-small.zombie-financial {
+    background-size: 50px 60px;
+}
+
+.zombie-sprite.zombie-small.zombie-health {
+    background-size: 50px 60px;
+}
+
+.zombie-sprite.zombie-small.zombie-lifestyle {
+    background-size: 50px 60px;
+}
+
+.zombie-sprite.zombie-small.zombie-relationships {
+    background-size: 50px 60px;
+}
+
+.zombie-sprite.zombie-small.zombie-spirituality {
+    background-size: 50px 60px;
+}
+
+.zombie-sprite.zombie-small.zombie-other {
+    background-size: 50px 60px;
+}
+
+/* Habit enemy sprite sizing */
+.enemy.habit-enemy.category-career {
+    background-size: 50px 60px;
+}
+
+.enemy.habit-enemy.category-creativity {
+    background-size: 50px 60px;
+}
+
+.enemy.habit-enemy.category-financial {
+    background-size: 50px 60px;
+}
+
+.enemy.habit-enemy.category-health {
+    background-size: 50px 60px;
+}
+
+.enemy.habit-enemy.category-lifestyle {
+    background-size: 50px 60px;
+}
+
+.enemy.habit-enemy.category-relationships {
+    background-size: 50px 60px;
+}
+
+.enemy.habit-enemy.category-spirituality {
+    background-size: 50px 60px;
+}
+
+.enemy.habit-enemy.category-other {
+    background-size: 50px 60px;
+}
 
 .enemy-name {
     font-weight: bold;
@@ -285,6 +520,52 @@ h2 { margin-top: 0; } /* For taskListContainer h2 */
 }
 #activeItemsList li .task-actions button:hover {
     background-color: #c0392b;
+}
+
+/* Item sprite for task list zombie consistency */
+.item-sprite {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 32px 32px;
+}
+
+/* Task list zombie sprite classes for consistency with battle view */
+#activeItemsList li.category-career .item-sprite {
+    background-image: url('Assets/Zombies/career-zombie.png');
+}
+
+#activeItemsList li.category-creativity .item-sprite {
+    background-image: url('Assets/Zombies/creativity-zombie.png');
+}
+
+#activeItemsList li.category-financial .item-sprite {
+    background-image: url('Assets/Zombies/financial-zombie.png');
+}
+
+#activeItemsList li.category-health .item-sprite {
+    background-image: url('Assets/Zombies/health-zombie.png');
+}
+
+#activeItemsList li.category-lifestyle .item-sprite {
+    background-image: url('Assets/Zombies/lifestyle-zombie.png');
+}
+
+#activeItemsList li.category-relationships .item-sprite {
+    background-image: url('Assets/Zombies/relationships-zombie.png');
+}
+
+#activeItemsList li.category-spirituality .item-sprite {
+    background-image: url('Assets/Zombies/spiritual-zombie.png');
+}
+
+#activeItemsList li.category-other .item-sprite {
+    background-image: url('Assets/Zombies/other-zombie.png');
 }
 
 #activeItemsList li .item-category { /* For displaying category in list */

@@ -213,9 +213,50 @@ document.addEventListener('DOMContentLoaded', () => {
         }); sortAndRenderActiveList();
     }
     function addItemToGame(itemData) {
-        if (gameIsOver) return; const itemElement = document.createElement('div'); itemElement.classList.add('enemy'); itemElement.classList.add(`category-${itemData.category}`); const itemSpriteWidth = (itemData.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH; const itemSpriteHeight = (itemData.type === 'habit') ? 60 : 70; itemElement.style.width = `${itemSpriteWidth}px`; itemElement.style.height = `${itemSpriteHeight}px`;
-        if (itemData.type === 'task' && itemData.isHighPriority) { itemElement.classList.add('high-priority'); } else if (itemData.type === 'habit') { itemElement.classList.add('habit-enemy'); if (itemData.streak >= HABIT_STREAK_BONUS_THRESHOLD) { itemElement.classList.add('high-streak'); } }
-        itemElement.style.left = itemData.x + 'px'; const randomTop = Math.random() * (gameScreen.offsetHeight - itemSpriteHeight); itemElement.style.top = Math.max(0, Math.min(randomTop, gameScreen.offsetHeight - itemSpriteHeight)) + 'px'; itemElement.dataset.itemId = itemData.id; itemElement.addEventListener('click', () => !gameIsOver && completeItem(itemData.id)); gameScreen.appendChild(itemElement); itemData.element = itemElement;
+        if (gameIsOver) return;
+        
+        // Create enemy element
+        const itemElement = document.createElement('div');
+        itemElement.classList.add('enemy');
+        itemElement.classList.add(`category-${itemData.category}`);
+
+        // Add new zombie sprite classes
+        itemElement.classList.add('zombie-sprite');
+        itemElement.classList.add(`zombie-${itemData.category}`);
+
+        const itemSpriteWidth = (itemData.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH;
+        const itemSpriteHeight = (itemData.type === 'habit') ? 60 : 70;
+
+        itemElement.style.width = `${itemSpriteWidth}px`;
+        itemElement.style.height = `${itemSpriteHeight}px`;
+
+        if (itemData.type === 'task' & itemData.isHighPriority) { 
+            itemElement.classList.add('high-priority'); 
+        } else if (itemData.type === 'habit') { 
+            itemElement.classList.add('habit-enemy'); 
+            itemElement.classList.add('zombie-small'); // Add small size class for habits
+            if (itemData.streak >= HABIT_STREAK_BONUS_THRESHOLD) {
+                itemElement.classList.add('high-streak'); 
+            } 
+        }
+
+        // Position enemy using transform for better performance
+        const randomTop = Math.random() * (gameScreen.offsetHeight - itemSpriteHeight);
+        const yPos = Math.max(0, Math.min(randomTop, gameScreen.offsetHeight - itemSpriteHeight));
+        itemElement.style.transform = `translate(${itemData.x}px, ${yPos - itemSpriteHeight/2}px) translateZ(0)`;
+        itemElement.style.left = '0px';
+        itemElement.style.top = '50%';
+
+        // Set up click handler
+        itemElement.dataset.itemId = itemData.id;
+        itemElement.addEventListener('click', () => !gameIsOver & completeItem(itemData.id));
+
+        // Never write emoji textContent - always use sprite classes
+        itemElement.textContent = '';
+
+        // Add to game screen
+        gameScreen.appendChild(itemElement);
+        itemData.element = itemElement;
         const listItem = document.createElement('li'); listItem.dataset.itemId = itemData.id; if (itemData.type === 'task' && itemData.isHighPriority) listItem.classList.add('high-priority-list-item');
         const itemInfoDiv = document.createElement('div'); itemInfoDiv.classList.add('item-info'); const itemNameSpan = document.createElement('span'); itemNameSpan.classList.add('item-name'); itemNameSpan.textContent = itemData.name; const itemDueSpan = document.createElement('span'); itemDueSpan.classList.add('item-due'); itemDueSpan.textContent = `Due: ${itemData.dueDateTime.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`; itemInfoDiv.appendChild(itemNameSpan); itemInfoDiv.appendChild(itemDueSpan);
         const itemCategorySpan = document.createElement('span'); itemCategorySpan.classList.add('item-category'); itemCategorySpan.textContent = itemData.category.charAt(0).toUpperCase() + itemData.category.slice(1); const currentCategoryStyle = categoryStyles[itemData.category] || categoryStyles["other"]; itemCategorySpan.style.backgroundColor = currentCategoryStyle.bgColor; if (currentCategoryStyle.textColorClass) itemCategorySpan.classList.add(currentCategoryStyle.textColorClass); else { itemCategorySpan.classList.remove("category-relationships-text", "category-other-text"); } itemInfoDiv.appendChild(itemCategorySpan);
@@ -225,7 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function sortAndRenderActiveList() { activeItems.sort((a, b) => a.dueDateTime - b.dueDateTime); if (activeItemsListUL) activeItemsListUL.innerHTML = ''; activeItems.forEach(item => { if (activeItemsListUL && item.listItemElement) { activeItemsListUL.appendChild(item.listItemElement) } }); }
     function markAsOverdue(item, currentTime) { if(item.isOverdue) return; item.isOverdue = true; item.lastDamageTickTime = item.dueDateTime.getTime(); if (item.element) item.element.classList.add('enemy-at-base'); if (item.listItemElement) item.listItemElement.classList.add('overdue-list-item'); console.log(`Item "${item.name}" (${item.type}) is NOW overdue.`); if (item.type === 'habit') { const habitDef = definedHabits.find(def => def.id === item.definitionId); if (habitDef && habitDef.streak > 0) { habitDef.streak = 0; if(item.listItemElement) { const streakSpan = item.listItemElement.querySelector('.item-streak'); if (streakSpan) streakSpan.textContent = `Streak: 0`; } if (item.element) item.element.classList.remove('high-streak'); } } }
-    function updateActiveItems() { if (gameIsOver) return; const actualCurrentTime = new Date(); const actualCurrentTimeMs = actualCurrentTime.getTime(); for (let i = activeItems.length - 1; i >= 0; i--) { const item = activeItems[i]; const currentItemWidth = (item.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH; if (!item.isOverdue) { if (item.dueDateTime <= actualCurrentTime) { item.x = BASE_WIDTH; markAsOverdue(item, actualCurrentTime); } else if (item.timeToDueAtCreationMs > 0) { const timeElapsedSinceInstanceCreationMs = actualCurrentTimeMs - item.creationTime.getTime(); const progress = Math.min(1, timeElapsedSinceInstanceCreationMs / item.timeToDueAtCreationMs); const travelDistance = GAME_SCREEN_WIDTH - BASE_WIDTH - currentItemWidth; item.x = (GAME_SCREEN_WIDTH - currentItemWidth) - (progress * travelDistance); } else { item.x = BASE_WIDTH; markAsOverdue(item, actualCurrentTime); } if (item.element) item.element.style.left = Math.max(BASE_WIDTH, item.x) + 'px'; } if (item.isOverdue) { if (actualCurrentTimeMs >= item.lastDamageTickTime + DAMAGE_INTERVAL_MS) { damageBase(OVERDUE_DAMAGE); item.lastDamageTickTime += DAMAGE_INTERVAL_MS; if (gameIsOver) break; } } } }
+    function updateActiveItems() { if (gameIsOver) return; const actualCurrentTime = new Date(); const actualCurrentTimeMs = actualCurrentTime.getTime(); for (let i = activeItems.length - 1; i >= 0; i--) { const item = activeItems[i]; const currentItemWidth = (item.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH; if (!item.isOverdue) { if (item.dueDateTime <= actualCurrentTime) { item.x = BASE_WIDTH; markAsOverdue(item, actualCurrentTime); } else if (item.timeToDueAtCreationMs > 0) { const timeElapsedSinceInstanceCreationMs = actualCurrentTimeMs - item.creationTime.getTime(); const progress = Math.min(1, timeElapsedSinceInstanceCreationMs / item.timeToDueAtCreationMs); const travelDistance = GAME_SCREEN_WIDTH - BASE_WIDTH - currentItemWidth; item.x = (GAME_SCREEN_WIDTH - currentItemWidth) - (progress * travelDistance); } else { item.x = BASE_WIDTH; markAsOverdue(item, actualCurrentTime); } if (item.element) { const currentTransform = item.element.style.transform || ''; const yTransform = currentTransform.match(/translate\([^,]+,\s*([^,\)]+)/); const yValue = yTransform ? yTransform[1] : '0px'; item.element.style.transform = `translate(${Math.max(BASE_WIDTH, item.x)}px, ${yValue}) translateZ(0)`; } } if (item.isOverdue) { if (actualCurrentTimeMs >= item.lastDamageTickTime + DAMAGE_INTERVAL_MS) { damageBase(OVERDUE_DAMAGE); item.lastDamageTickTime += DAMAGE_INTERVAL_MS; if (gameIsOver) break; } } } }
     function updateBaseVisuals() { let newBaseImage = ''; if (baseHealth > 75) { newBaseImage = 'base_100.png'; } else if (baseHealth > 50) { newBaseImage = 'base_075.png'; } else if (baseHealth > 25) { newBaseImage = 'base_050.png'; } else if (baseHealth > 0) { newBaseImage = 'base_025.png'; } else { newBaseImage = 'base_000.png'; } const currentBgImage = baseElement.style.backgroundImage; const targetBgImage = `url("${newBaseImage}")`; if (newBaseImage && currentBgImage !== targetBgImage) { baseElement.style.backgroundImage = targetBgImage; } }
     function damageBase(amount) { if (gameIsOver) return; baseHealth -= amount; if (baseHealth < 0) baseHealth = 0; baseHealthDisplay.textContent = baseHealth; baseElement.classList.add('base-hit-flash'); setTimeout(() => { baseElement.classList.remove('base-hit-flash'); }, 300); updateBaseVisuals(); if (baseHealth <= 0) gameOver(); }
     function completeItem(itemId) { if (gameIsOver) return; const itemIndex = activeItems.findIndex(i => i.id === itemId); if (itemIndex === -1) return; const item = activeItems[itemIndex]; let xpGained = 0; if (item.type === 'task') { xpGained = XP_PER_TASK_DEFEAT; } else if (item.type === 'habit') { const habitDef = definedHabits.find(def => def.id === item.definitionId); if (habitDef) { habitDef.streak++; habitDef.lastCompletionDate = new Date(item.originalDueDate); xpGained = XP_PER_HABIT_COMPLETE; } } if (xpGained > 0) { playerXP += xpGained; updatePlayerXpDisplay(); checkPlayerLevelUp(); } removeItem(itemId); }
@@ -353,6 +394,64 @@ document.addEventListener('DOMContentLoaded', () => {
             if (gameIsOver) { console.log("DEBUG: Game is over, cannot damage base."); return; }
             console.log("DEBUG: Manually damaging base by 10 HP.");
             damageBase(10);
+        });
+    }
+
+    // Performance Stress Test - Spawn 100+ enemies
+    const debugPerformanceTestButton = document.getElementById('debugPerformanceTestButton');
+    if (debugPerformanceTestButton) {
+        debugPerformanceTestButton.addEventListener('click', () => {
+            if (gameIsOver) { console.log("DEBUG: Game is over, cannot spawn stress test enemies."); return; }
+            console.log("DEBUG: Starting performance stress test - spawning 120 mixed-category enemies");
+            
+            const categories = ['career', 'creativity', 'financial', 'health', 'lifestyle', 'relationships', 'spirituality', 'other'];
+            const enemyTypes = ['task', 'habit'];
+            const priorities = [true, false];
+            
+            // Spawn 120 enemies (100 tasks + 20 habits)
+            for (let i = 0; i < 120; i++) {
+                const category = categories[i % categories.length];
+                const enemyType = i < 100 ? 'task' : 'habit';
+                const isHighPriority = i < 20 ? priorities[i % priorities.length] : false; // First 20 have mixed priority
+                
+                let enemyData;
+                if (enemyType === 'task') {
+                    const futureTime = new Date(Date.now() + (Math.random() * 300000) + 60000); // 1-6 minutes from now
+                    const dueDateStr = futureTime.toISOString().split('T')[0];
+                    const dueTimeStr = futureTime.toTimeString().split(' ')[0].substring(0, 5);
+                    
+                    enemyData = createTaskItemData(
+                        `StressTest Task ${i + 1}`,
+                        category,
+                        isHighPriority,
+                        dueDateStr,
+                        dueTimeStr
+                    );
+                } else {
+                    // Create a temporary habit definition for stress test
+                    const tempHabitDef = {
+                        id: `stressTest_habit_${i}`,
+                        name: `StressTest Habit ${i - 99}`,
+                        category: category,
+                        frequency: 'daily',
+                        timeOfDay: 'anytime',
+                        streak: Math.floor(Math.random() * 10),
+                        lastCompletionDate: null
+                    };
+                    
+                    enemyData = createHabitInstanceData(tempHabitDef, currentGameDate);
+                }
+                
+                // Add slight delay to spread out creation and avoid blocking
+                setTimeout(() => {
+                    addItemToGame(enemyData);
+                    if (i === 119) {
+                        sortAndRenderActiveList();
+                        console.log("DEBUG: Performance stress test complete - 120 enemies spawned");
+                        console.log("Performance tip: Open Chrome DevTools > Performance tab to profile FPS");
+                    }
+                }, i * 5); // 5ms delay between each spawn
+            }
         });
     }
 

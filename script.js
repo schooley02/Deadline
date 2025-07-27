@@ -65,20 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let itemIdCounter, gameLoopInterval, gameIsOver, daysSurvived, dayTimerInterval, currentGameDate;
     let attackMode = false;
 
-    // Category to zombie emoji mapping
-    function getZombieEmoji(category) {
-        const zombieMap = {
-            'career': '💼', // Business zombie
-            'creativity': '🎨', // Artist zombie  
-            'financial': '💰', // Money zombie
-            'health': '⚕️', // Medical zombie
-            'lifestyle': '👤', // Generic stylish zombie
-            'relationships': '💝', // Gift-giving zombie
-            'spirituality': '⛪', // Religious zombie
-            'other': '🧟' // Standard zombie
-        };
-        return zombieMap[category] || zombieMap['other'];
-    }
 
     // --- Game Settings ---
     const GAME_TICK_MS = 50;
@@ -162,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!gameIsOver) daysSurvived++;
         }, DAY_DURATION_MS);
 
-        console.log("Game Initialized. Date:", currentGameDate.toDateString());
     }
 
     function updatePlayerDisplays() {
@@ -319,6 +304,10 @@ document.addEventListener('DOMContentLoaded', () => {
         itemElement.classList.add('enemy');
         itemElement.classList.add(`category-${itemData.category}`);
         
+        // Add new zombie sprite classes
+        itemElement.classList.add('zombie-sprite');
+        itemElement.classList.add(`zombie-${itemData.category}`);
+        
         const itemSpriteWidth = (itemData.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH;
         const itemSpriteHeight = (itemData.type === 'habit') ? 70 : 128;
         
@@ -329,6 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
             itemElement.classList.add('high-priority');
         } else if (itemData.type === 'habit') {
             itemElement.classList.add('habit-enemy');
+            itemElement.classList.add('zombie-small'); // Add small size class for habits
             if (itemData.isNegative) {
                 itemElement.classList.add('negative-habit');
             }
@@ -346,8 +336,8 @@ document.addEventListener('DOMContentLoaded', () => {
         itemElement.dataset.itemId = itemData.id;
         itemElement.addEventListener('click', () => handleEnemyClick(itemData.id));
         
-// Remove zombie emoji content to use sprite backgrounds
-itemElement.textContent = '';
+        // Never write emoji textContent - always use sprite classes
+        itemElement.textContent = '';
         
         // Add to game canvas
         gameCanvas.appendChild(itemElement);
