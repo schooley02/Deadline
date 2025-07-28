@@ -284,8 +284,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        // Validate due date
-        if (isNaN(dueDateTime.getTime()) || dueDateTime < creationTime) {
+        // Validate due date but allow past time today
+        if (isNaN(dueDateTime.getTime()) || (dueDateTime < creationTime && dueDateStr !== creationTime.toISOString().split('T')[0])) {
             dueDateTime = new Date(creationTime.getTime() + 5 * 60 * 1000);
         }
         
@@ -362,18 +362,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add to game canvas
         gameCanvas.appendChild(itemElement);
         itemData.element = itemElement;
-        
-        // Debug: Log element classes and background image
-        console.log('Created enemy element:', {
-            id: itemData.id,
-            name: itemData.name,
-            category: itemData.category,
-            type: itemData.type,
-            classes: itemElement.className,
-            width: itemElement.style.width,
-            height: itemElement.style.height,
-            backgroundImage: getComputedStyle(itemElement).backgroundImage
-        });
         
         // Create list item only if it's a top-level task
         if (!itemData.parentId) {
@@ -473,7 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const subTasksContainer = document.createElement('ul');
         subTasksContainer.classList.add('sub-tasks-container');
         
-        // Add existing sub-tasks
+                // Add existing sub-tasks
         itemData.subTasks.forEach(subTaskId => {
             const subTaskData = activeItems.find(subItem => subItem.id === subTaskId);
             if (subTaskData) {
@@ -488,6 +476,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const subTaskCheckbox = document.createElement('input');
                 subTaskCheckbox.type = 'checkbox';
                 subTaskCheckbox.classList.add('sub-task-checkbox');
+                // Force the checkbox to be unchecked - comprehensive reset
+                subTaskCheckbox.checked = false;
+                subTaskCheckbox.defaultChecked = false;
+                subTaskCheckbox.removeAttribute('checked');
+                subTaskCheckbox.setAttribute('data-sub-task-id', subTaskData.id);
+                
+                console.log(`DEBUG: Created sub-task checkbox for ${subTaskData.name}, checked: ${subTaskCheckbox.checked}`);
+                
                 subTaskCheckbox.addEventListener('change', () => {
                     if (subTaskCheckbox.checked) {
                         completeItem(subTaskData.id);
@@ -848,7 +844,6 @@ function showTaskDetailsPopup(item) {
         // Update active items list
         sortAndRenderActiveList();
 
-        console.log(`Created sub-task "${subTaskName}" for parent task "${parentTask.name}"`);
     }
 
     function uncompleteItem(itemId) {
@@ -857,13 +852,6 @@ function showTaskDetailsPopup(item) {
         
         const item = completedItems[completedIndex];
         
-        // Debug logging
-        console.log('Uncompleting item:', {
-            id: item.id,
-            name: item.name,
-            parentId: item.parentId,
-            isSubTask: !!item.parentId
-        });
         
         // Remove from completed items
         completedItems.splice(completedIndex, 1);
@@ -930,20 +918,9 @@ function showTaskDetailsPopup(item) {
         // If this is a sub-task, re-add it to parent's sub-task list
         if (item.parentId) {
             const parentTask = activeItems.find(parent => parent.id === item.parentId);
-            console.log('Parent task found:', parentTask ? parentTask.name : 'NOT FOUND');
-            
             if (parentTask) {
                 // Add back to parent's subTasks array if not already there
                 if (!parentTask.subTasks.includes(item.id)) {
-                    console.log('Adding sub-task back to parent:', {
-                        subTaskId: item.id,
-                        subTaskName: item.name,
-                        parentId: parentTask.id,
-                        parentName: parentTask.name,
-                        beforeSubTasks: [...parentTask.subTasks],
-                        beforeCompletedSubTasks: parentTask.completedSubTasks
-                    });
-                    
                     parentTask.subTasks.push(item.id);
                     parentTask.totalSubTasks = parentTask.subTasks.length;
                     
@@ -952,32 +929,26 @@ function showTaskDetailsPopup(item) {
                         parentTask.completedSubTasks--;
                     }
                     
-                    console.log('After restoration:', {
-                        afterSubTasks: [...parentTask.subTasks],
-                        afterCompletedSubTasks: parentTask.completedSubTasks,
-                        totalSubTasks: parentTask.totalSubTasks
-                    });
-                    
                     // Refresh parent task's list item to show the restored sub-task
                     if (parentTask.listItemElement) {
                         parentTask.listItemElement.remove();
                         createListItem(parentTask);
-                        console.log('Parent task list item recreated');
+        // Re-render the active list to show the updated parent task
+                        sortAndRenderActiveList();
+                        
+                        // Force comprehensive checkbox reset after DOM update
+                        setTimeout(() => {
+                            resetAllSubTaskCheckboxes();
+                        }, 10);
+                        
+                        // Also do an immediate reset
+                        resetAllSubTaskCheckboxes();
                     }
                 }
-            } else {
-                console.error('Parent task not found for sub-task:', {
-                    subTaskId: item.id,
-                    subTaskName: item.name,
-                    parentId: item.parentId,
-                    activeItemsCount: activeItems.length
-                });
             }
-        } else {
-            // Only create list item if it's a top-level task (not a sub-task)
-            createListItem(item);
-            console.log('Created list item for top-level task:', item.name);
         }
+        // Note: Sub-tasks should never get their own main list item,
+        // they are only displayed within their parent's list item
         
         // Update displays
         updateTaskCountDisplay();
@@ -1010,51 +981,55 @@ function showTaskDetailsPopup(item) {
     }
 
     function sortAndRenderActiveList() {
-        const debugInfo = {
-            totalActiveItems: activeItems.length,
-            itemsWithListElement: activeItems.filter(item => item.listItemElement).length,
-            topLevelItems: activeItems.filter(item => !item.parentId).length,
-            subTasks: activeItems.filter(item => item.parentId).length
-        };
-        
-        showDebugInfo('sortAndRenderActiveList', debugInfo);
-        
-        console.log('=== sortAndRenderActiveList START ===');
-        console.log('Total activeItems before sort:', activeItems.length);
-        console.log('ActiveItems details:', activeItems.map(item => ({
-            id: item.id,
-            name: item.name,
-            parentId: item.parentId,
-            hasListItemElement: !!item.listItemElement
-        })));
-        
         // Sort by due date (most urgent first)
         activeItems.sort((a, b) => a.dueDateTime - b.dueDateTime);
         
         if (activeItemsListUL) {
-            const beforeClear = activeItemsListUL.children.length;
-            console.log('Clearing activeItemsListUL, had', beforeClear, 'children');
             activeItemsListUL.innerHTML = '';
             
-            let addedCount = 0;
             activeItems.forEach(item => {
                 // Only show top-level items (not sub-tasks) in the main list
                 if (item.listItemElement && !item.parentId) {
-                    console.log('Adding top-level item to list:', {
-                        id: item.id,
-                        name: item.name,
-                        hasElement: !!item.listItemElement
-                    });
                     activeItemsListUL.appendChild(item.listItemElement);
-                    addedCount++;
                 }
             });
             
-            console.log('Added', addedCount, 'items to activeItemsListUL');
-            console.log('Final activeItemsListUL children count:', activeItemsListUL.children.length);
+            // After rendering, ensure all sub-task checkboxes are properly reset
+            setTimeout(() => {
+                resetAllSubTaskCheckboxes();
+            }, 0);
         }
+    }
+    
+    // Utility function to comprehensively reset all sub-task checkboxes
+    function resetAllSubTaskCheckboxes() {
+        const allSubTaskCheckboxes = document.querySelectorAll('.sub-task-checkbox');
+        console.log(`DEBUG: resetAllSubTaskCheckboxes found ${allSubTaskCheckboxes.length} checkboxes`);
         
-        console.log('=== sortAndRenderActiveList END ===');
+        allSubTaskCheckboxes.forEach((checkbox, index) => {
+            const wasChecked = checkbox.checked;
+            const subTaskId = checkbox.getAttribute('data-sub-task-id');
+            
+            // Multiple methods to ensure unchecked state
+            checkbox.checked = false;
+            checkbox.defaultChecked = false;
+            checkbox.removeAttribute('checked');
+            
+            // Force property update
+            Object.defineProperty(checkbox, 'checked', {
+                value: false,
+                writable: true,
+                configurable: true
+            });
+            
+            // Re-enable normal property behavior
+            delete checkbox.checked;
+            checkbox.checked = false;
+            
+            if (wasChecked) {
+                console.log(`DEBUG: Reset checkbox for sub-task ${subTaskId}, was checked: ${wasChecked}, now checked: ${checkbox.checked}`);
+            }
+        });
     }
 
     function renderCompletedItems() {
@@ -1166,7 +1141,6 @@ function showTaskDetailsPopup(item) {
         if (item.element) item.element.classList.add('enemy-at-base');
         if (item.listItemElement) item.listItemElement.classList.add('overdue-list-item');
         
-        console.log(`Item "${item.name}" (${item.type}) is now overdue.`);
         
         // Reset habit streak if it's a habit
         if (item.type === 'habit') {
@@ -1197,9 +1171,13 @@ function showTaskDetailsPopup(item) {
 function calculateTimelinePosition(item, currentTime) {
     const currentItemWidth = (item.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH;
     const currentTimeMs = currentTime.getTime();
-    const midnight = new Date(currentTime);
-    midnight.setHours(24, 0, 0, 0);
     const taskDueMs = item.dueDateTime.getTime();
+    
+    // Calculate next midnight from the task's due date, not current time
+    const taskDueDate = new Date(item.dueDateTime);
+    const nextMidnight = new Date(taskDueDate);
+    nextMidnight.setDate(taskDueDate.getDate() + 1);
+    nextMidnight.setHours(0, 0, 0, 0);
     
     // Available screen width for positioning (from base to right edge)
     const totalWidth = GAME_SCREEN_WIDTH - BASE_WIDTH - currentItemWidth;
@@ -1207,15 +1185,15 @@ function calculateTimelinePosition(item, currentTime) {
     if (taskDueMs <= currentTimeMs) {
         // Task is overdue - position at base
         return BASE_WIDTH;
-    } else if (taskDueMs > midnight.getTime()) {
-        // Task is due next day - initial position off-screen right
+    } else if (taskDueMs >= nextMidnight.getTime()) {
+        // Task is due next day or later - initial position off-screen right
         return GAME_SCREEN_WIDTH;
     } else {
         // Calculate position based on time remaining until due
         const timeToDue = taskDueMs - currentTimeMs;
         const twoHoursMs = 2 * 60 * 60 * 1000;
         const fourHoursMs = 4 * 60 * 60 * 1000;
-        const timeUntilMidnight = midnight.getTime() - currentTimeMs;
+        const timeUntilMidnight = nextMidnight.getTime() - currentTimeMs;
 
         if (timeToDue <= twoHoursMs) {
             // Within 2 hours: Position linearly from base (0%) to 50% of screen
@@ -1251,11 +1229,6 @@ function updateActiveItems() {
             } else {
                 // Calculate position based on timeline
                 item.x = calculateTimelinePosition(item, currentTime);
-
-                // Check for next day's enemy visibility
-                if (item.dueDateTime.getDate() !== currentTime.getDate() && currentTime.getHours() >= 20) {
-                    item.element.style.visibility = "visible";
-                }
             }
 
             // Update visual position
@@ -1277,7 +1250,6 @@ function updateActiveItems() {
 
     updateMidnightLine(currentTime);
 }
-
 function updateMidnightLine(currentTime) {
     const midnightLine = document.getElementById('midnightLine');
     if (!midnightLine) return;
@@ -1288,10 +1260,28 @@ function updateMidnightLine(currentTime) {
         // Calculate midnight line position
         const midnight = new Date(currentTime);
         midnight.setHours(24, 0, 0, 0);
-        const timeLeftToMidnight = midnight.getTime() - currentTime.getTime();
-        const distanceToBase = GAME_SCREEN_WIDTH - BASE_WIDTH;
-        const progress = timeLeftToMidnight / (4 * 60 * 60 * 1000); // 4 hours
-        midnightLine.style.left = BASE_WIDTH + distanceToBase * (1 - progress) + 'px';
+        const currentTimeMs = currentTime.getTime();
+        const twoHoursMs = 2 * 60 * 60 * 1000;
+        const fourHoursMs = 4 * 60 * 60 * 1000;
+        const timeUntilMidnight = midnight.getTime() - currentTimeMs;
+        const totalWidth = GAME_SCREEN_WIDTH - BASE_WIDTH;
+        
+        let linePosition;
+
+        if (timeUntilMidnight <= twoHoursMs) {
+            // Within 2 hours: Position linearly from base to 50% of screen
+            const progress = timeUntilMidnight / twoHoursMs;
+            linePosition = BASE_WIDTH + (totalWidth * 0.5 * progress);
+        } else if (timeUntilMidnight <= fourHoursMs) {
+            // Between 2-4 hours: Position linearly from 50% to 75% of screen
+            const progress = (timeUntilMidnight - twoHoursMs) / twoHoursMs;
+            linePosition = BASE_WIDTH + (totalWidth * 0.5) + (totalWidth * 0.25 * progress);
+        } else {
+            // More than 4 hours: Already off-screen right
+            linePosition = GAME_SCREEN_WIDTH;
+        }
+        
+        midnightLine.style.left = linePosition + 'px';
     } else {
         midnightLine.style.display = 'none';
     }
@@ -1407,12 +1397,6 @@ function updateMidnightLine(currentTime) {
         const instanceCreationTime = new Date();
         let targetInstanceDate = new Date(forDate);
         let dueDateTime = getHabitInstanceDueTime(habitDef.timeOfDay, targetInstanceDate);
-        
-        // If due time has passed today, schedule for tomorrow
-        if (dueDateTime < instanceCreationTime) {
-            targetInstanceDate.setDate(targetInstanceDate.getDate() + 1);
-            dueDateTime = getHabitInstanceDueTime(habitDef.timeOfDay, targetInstanceDate);
-        }
         
         const habitInstanceData = {
             id: itemIdCounter++,
@@ -2692,7 +2676,9 @@ function updateMidnightLine(currentTime) {
     }
     
     function createTaskFormHtml() {
-        const today = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const todayString = today.toISOString().split('T')[0];
         return `
             <h3>Add New Task</h3>
             <div class="form-row">
@@ -2719,7 +2705,7 @@ function updateMidnightLine(currentTime) {
             <div class="form-row-group">
                 <div class="form-row">
                     <label for="modalDueDate">Due Date:</label>
-                    <input type="date" id="modalDueDate" value="${today}" required>
+                    <input type="date" id="modalDueDate" value="${todayString}" required>
                 </div>
                 <div class="form-row">
                     <label for="modalDueTime">Due Time:</label>
@@ -3112,7 +3098,8 @@ function updateMidnightLine(currentTime) {
 
     // Set default due date to today
     if (dueDateInput) {
-        const today = new Date();
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         dueDateInput.value = today.toISOString().split('T')[0];
     }
     

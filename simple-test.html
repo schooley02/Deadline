@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .test-enemy {
+            width: 128px;
+            height: 128px;
+            border: 2px solid red;
+            display: inline-block;
+            margin: 10px;
+        }
+        
+        .enemy {
+            background-color: transparent;
+        }
+        
+        .zombie-sprite {
+            background-color: transparent !important;
+        }
+        
+        .zombie-health {
+            background-image: url('zombies/zombie_health.png') !important;
+            background-size: contain !important;
+            background-position: center !important;
+            background-repeat: no-repeat !important;
+        }
+    </style>
+</head>
+<body>
+    <h1>Zombie Sprite Test</h1>
+    
+    <div>Without zombie classes:</div>
+    <div class="test-enemy enemy"></div>
+    
+    <div>With zombie classes:</div>
+    <div class="test-enemy enemy zombie-sprite zombie-health"></div>
+    
+    <div>Check if image loads directly:</div>
+    <img src="zombies/zombie_health.png" width="128" height="128" onerror="this.style.border='2px solid red'; this.alt='IMAGE NOT FOUND';">
+</body>
+</html>
