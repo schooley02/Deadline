@@ -165,16 +165,46 @@ document.addEventListener('DOMContentLoaded', () => {
             checkPlayerLevelUp(); return true;
         } return false;
     }
-    function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr) {
+    function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId = null) {
         const creationTime = new Date(); let dueDateTime;
         if (dueDateStr && dueTimeStr) { dueDateTime = new Date(`${dueDateStr}T${dueTimeStr}`);}
         else if (dueDateStr) { dueDateTime = new Date(dueDateStr); dueDateTime.setHours(23, 59, 59, 999); }
         else { dueDateTime = new Date(creationTime.getTime() + 10 * 60 * 1000); }
+        
+        // If this is a sub-task and no due date was provided, inherit from parent
+        if (parentId && !dueDateStr && !dueTimeStr) {
+            const parentTask = activeItems.find(item => item.id === parentId && item.type === 'task');
+            if (parentTask) {
+                dueDateTime = new Date(parentTask.dueDateTime);
+            }
+        }
+        
         if (isNaN(dueDateTime.getTime()) || (dueDateTime < creationTime && !(dueDateStr && dueDateTime.getFullYear() === creationTime.getFullYear() && dueDateTime.getMonth() === creationTime.getMonth() && dueDateTime.getDate() === creationTime.getDate() && dueDateTime.getHours() === 23 && dueDateTime.getMinutes() === 59))) {
             if (isNaN(dueDateTime.getTime()) || dueDateTime < creationTime) {
                 dueDateTime = new Date(creationTime.getTime() + 5 * 60 * 1000);
             }
-        } return { id: itemIdCounter++, type: 'task', name: name || "Task", category: category || "other", isHighPriority: isHighPriority, dueDateTime: dueDateTime, creationTime: creationTime, timeToDueAtCreationMs: Math.max(0, dueDateTime.getTime() - creationTime.getTime()), x: GAME_SCREEN_WIDTH - ENEMY_WIDTH, isOverdue: false, lastDamageTickTime: null, element: null, listItemElement: null };
+        } 
+        
+        return { 
+            id: itemIdCounter++, 
+            type: 'task', 
+            name: name || "Task", 
+            category: category || "other", 
+            isHighPriority: isHighPriority, 
+            dueDateTime: dueDateTime, 
+            creationTime: creationTime, 
+            timeToDueAtCreationMs: Math.max(0, dueDateTime.getTime() - creationTime.getTime()), 
+            x: GAME_SCREEN_WIDTH - ENEMY_WIDTH, 
+            isOverdue: false, 
+            lastDamageTickTime: null, 
+            element: null, 
+            listItemElement: null,
+            // Sub-task hierarchy fields
+            parentId: parentId,
+            subTasks: [],
+            completedSubTasks: 0,
+            totalSubTasks: 0
+        };
     }
     function createHabitDefinition(name, category, frequency, timeOfDay) {
         const newHabitDef = { id: `habitDef_${definedHabits.length}_${Date.now()}`, name, category, frequency, timeOfDay, streak: 0, lastCompletionDate: null };
@@ -245,9 +275,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const randomTop = Math.random() * (gameScreen.offsetHeight - itemSpriteHeight);
         itemElement.style.top = Math.max(0, Math.min(randomTop, gameScreen.offsetHeight - itemSpriteHeight)) + 'px';
 
-        // Set up click handler
+        // Set up click handler with visual feedback
         itemElement.dataset.itemId = itemData.id;
-        itemElement.addEventListener('click', () = !gameIsOver  completeItem(itemData.id));
+        itemElement.addEventListener('click', () => {
+            if (!gameIsOver) {
+                // Add click feedback
+                itemElement.classList.add('enemy-clicked');
+                setTimeout(() => itemElement.classList.remove('enemy-clicked'), 200);
+                completeItem(itemData.id);
+            }
+        });
+        
+        // Add hover effect for better UX feedback
+        itemElement.addEventListener('mouseenter', () => {
+            if (!gameIsOver) {
+                itemElement.classList.add('enemy-hover');
+            }
+        });
+        
+        itemElement.addEventListener('mouseleave', () => {
+            itemElement.classList.remove('enemy-hover');
+        });
 
         // Never write emoji textContent - always use sprite classes
         itemElement.textContent = '';
@@ -296,12 +344,42 @@ document.addEventListener('DOMContentLoaded', () => {
             itemInfoDiv.appendChild(streakSpan);
         }
 
-        const itemActionsDiv = document.createElement('div'); 
-        itemActionsDiv.classList.add('item-actions'); 
-        const completeButton = document.createElement('button'); 
-        completeButton.textContent = itemData.type === 'habit' ? "Complete" : "Defeat"; 
-        completeButton.addEventListener('click', () => !gameIsOver && completeItem(itemData.id)); 
-        itemActionsDiv.appendChild(completeButton); 
+        const itemActionsDiv = document.createElement('div');
+        itemActionsDiv.classList.add('item-actions');
+        
+        // Create checkbox interface for task completion
+        const completeCheckboxLabel = document.createElement('label');
+        completeCheckboxLabel.classList.add('completion-checkbox');
+        
+        const completeCheckbox = document.createElement('input');
+        completeCheckbox.type = 'checkbox';
+        completeCheckbox.classList.add('completion-checkbox-input');
+        completeCheckbox.addEventListener('change', () => {
+            if (completeCheckbox.checked && !gameIsOver) {
+                completeItem(itemData.id);
+            }
+        });
+        
+        completeCheckboxLabel.appendChild(completeCheckbox);
+        
+        // Add appropriate label text based on item type
+        const labelText = document.createTextNode(itemData.type === 'habit' ? ' Complete Habit' : ' Defeat Enemy');
+        completeCheckboxLabel.appendChild(labelText);
+        
+        itemActionsDiv.appendChild(completeCheckboxLabel);
+        
+        // Add sub-task button for tasks only
+        if (itemData.type === 'task') {
+            const addSubTaskButton = document.createElement('button');
+            addSubTaskButton.classList.add('add-subtask-button');
+            addSubTaskButton.textContent = '+ Sub-task';
+            addSubTaskButton.addEventListener('click', () => {
+                if (!gameIsOver) {
+                    createSubTaskPrompt(itemData.id);
+                }
+            });
+            itemActionsDiv.appendChild(addSubTaskButton);
+        }
         
         listItem.appendChild(itemSpriteDiv);
         listItem.appendChild(itemInfoDiv); 
@@ -317,11 +395,148 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function sortAndRenderActiveList() { activeItems.sort((a, b) => a.dueDateTime - b.dueDateTime); if (activeItemsListUL) activeItemsListUL.innerHTML = ''; activeItems.forEach(item => { if (activeItemsListUL && item.listItemElement) { activeItemsListUL.appendChild(item.listItemElement) } }); }
     function markAsOverdue(item, currentTime) { if(item.isOverdue) return; item.isOverdue = true; item.lastDamageTickTime = item.dueDateTime.getTime(); if (item.element) item.element.classList.add('enemy-at-base'); if (item.listItemElement) item.listItemElement.classList.add('overdue-list-item'); console.log(`Item "${item.name}" (${item.type}) is NOW overdue.`); if (item.type === 'habit') { const habitDef = definedHabits.find(def => def.id === item.definitionId); if (habitDef && habitDef.streak > 0) { habitDef.streak = 0; if(item.listItemElement) { const streakSpan = item.listItemElement.querySelector('.item-streak'); if (streakSpan) streakSpan.textContent = `Streak: 0`; } if (item.element) item.element.classList.remove('high-streak'); } } }
-    function updateActiveItems() { if (gameIsOver) return; const actualCurrentTime = new Date(); const actualCurrentTimeMs = actualCurrentTime.getTime(); for (let i = activeItems.length - 1; i >= 0; i--) { const item = activeItems[i]; const currentItemWidth = (item.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH; if (!item.isOverdue) { if (item.dueDateTime <= actualCurrentTime) { item.x = BASE_WIDTH; markAsOverdue(item, actualCurrentTime); } else if (item.timeToDueAtCreationMs > 0) { const timeElapsedSinceInstanceCreationMs = actualCurrentTimeMs - item.creationTime.getTime(); const progress = Math.min(1, timeElapsedSinceInstanceCreationMs / item.timeToDueAtCreationMs); const travelDistance = GAME_SCREEN_WIDTH - BASE_WIDTH - currentItemWidth; item.x = (GAME_SCREEN_WIDTH - currentItemWidth) - (progress * travelDistance); } else { item.x = BASE_WIDTH; markAsOverdue(item, actualCurrentTime); } if (item.element) item.element.style.left = Math.max(BASE_WIDTH, item.x) + 'px'; } if (item.isOverdue) { if (actualCurrentTimeMs >= item.lastDamageTickTime + DAMAGE_INTERVAL_MS) { damageBase(OVERDUE_DAMAGE); item.lastDamageTickTime += DAMAGE_INTERVAL_MS; if (gameIsOver) break; } } } }
+    // Calculate position based on timeline system with 2-hour and 4-hour marks
+    function calculateTimelinePosition(item, currentTime) {
+        const currentItemWidth = (item.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH;
+        const currentTimeMs = currentTime.getTime();
+        const midnight = new Date(currentTime);
+        midnight.setHours(24, 0, 0, 0);
+        const taskDueMs = item.dueDateTime.getTime();
+        
+        // Available screen width for positioning (from base to right edge)
+        const totalWidth = GAME_SCREEN_WIDTH - BASE_WIDTH - currentItemWidth;
+
+        if (taskDueMs <= currentTimeMs) {
+            // Task is overdue - position at base
+            return BASE_WIDTH;
+        } else if (taskDueMs > midnight.getTime()) {
+            // Task is due next day - initial position off-screen right
+            return GAME_SCREEN_WIDTH;
+        } else {
+            // Calculate position based on time remaining until due
+            const timeToDue = taskDueMs - currentTimeMs;
+            const twoHoursMs = 2 * 60 * 60 * 1000;
+            const fourHoursMs = 4 * 60 * 60 * 1000;
+            const timeUntilMidnight = midnight.getTime() - currentTimeMs;
+
+            if (timeToDue <= twoHoursMs) {
+                // Within 2 hours: Position linearly from base (0%) to 50% of screen
+                const progress = timeToDue / twoHoursMs; // 1 = due in 2 hours, 0 = due now
+                return BASE_WIDTH + (totalWidth * 0.5 * progress);
+            } else if (timeToDue <= fourHoursMs) {
+                // Between 2-4 hours: Position linearly from 50% to 75% of screen
+                const progress = (timeToDue - twoHoursMs) / twoHoursMs; // 0 = due in 2 hours, 1 = due in 4 hours
+                return BASE_WIDTH + (totalWidth * 0.5) + (totalWidth * 0.25 * progress);
+            } else {
+                // More than 4 hours: Position linearly from 75% to 100% of screen
+                const remainingTime = timeUntilMidnight - fourHoursMs;
+                const progress = remainingTime > 0 ? (timeToDue - fourHoursMs) / remainingTime : 0;
+                return BASE_WIDTH + (totalWidth * 0.75) + (totalWidth * 0.25 * progress);
+            }
+        }
+    }
+
+    function updateActiveItems() {
+        if (gameIsOver) return;
+
+        const currentTime = new Date();
+        const currentTimeMs = currentTime.getTime();
+
+        for (let i = activeItems.length - 1; i >= 0; i--) {
+            const item = activeItems[i];
+            
+            if (!item.isOverdue) {
+                if (item.dueDateTime <= currentTime) {
+                    // Item just became overdue
+                    item.x = BASE_WIDTH;
+                    markAsOverdue(item, currentTime);
+                } else {
+                    // Calculate position based on timeline
+                    item.x = calculateTimelinePosition(item, currentTime);
+
+                    // Check for next day's enemy visibility
+                    if (item.dueDateTime.getDate() !== currentTime.getDate() && currentTime.getHours() >= 20) {
+                        if (item.element) item.element.style.visibility = "visible";
+                    }
+                }
+
+                // Update visual position
+                if (item.element) {
+                    item.element.style.left = Math.max(BASE_WIDTH, item.x) + 'px';
+                }
+            }
+            
+            // Handle damage from overdue items
+            if (item.isOverdue) {
+                if (currentTimeMs >= item.lastDamageTickTime + DAMAGE_INTERVAL_MS) {
+                    damageBase(OVERDUE_DAMAGE);
+                    item.lastDamageTickTime += DAMAGE_INTERVAL_MS;
+                    
+                    if (gameIsOver) break;
+                }
+            }
+        }
+
+        updateMidnightLine(currentTime);
+    }
+
+    function updateMidnightLine(currentTime) {
+        const midnightLine = document.getElementById('midnightLine');
+        if (!midnightLine) return;
+        
+        if (currentTime.getHours() >= 20) {
+            midnightLine.style.display = 'block';
+            
+            // Calculate midnight line position
+            const midnight = new Date(currentTime);
+            midnight.setHours(24, 0, 0, 0);
+            const timeLeftToMidnight = midnight.getTime() - currentTime.getTime();
+            const distanceToBase = GAME_SCREEN_WIDTH - BASE_WIDTH;
+            const progress = timeLeftToMidnight / (4 * 60 * 60 * 1000); // 4 hours
+            if (midnightLine) {
+                midnightLine.style.left = BASE_WIDTH + distanceToBase * (1 - progress) + 'px';
+            }
+        } else {
+            if (midnightLine) midnightLine.style.display = 'none';
+        }
+    }
     function updateBaseVisuals() { let newBaseImage = ''; if (baseHealth > 75) { newBaseImage = 'base_100.png'; } else if (baseHealth > 50) { newBaseImage = 'base_075.png'; } else if (baseHealth > 25) { newBaseImage = 'base_050.png'; } else if (baseHealth > 0) { newBaseImage = 'base_025.png'; } else { newBaseImage = 'base_000.png'; } const currentBgImage = baseElement.style.backgroundImage; const targetBgImage = `url("${newBaseImage}")`; if (newBaseImage && currentBgImage !== targetBgImage) { baseElement.style.backgroundImage = targetBgImage; } }
     function damageBase(amount) { if (gameIsOver) return; baseHealth -= amount; if (baseHealth < 0) baseHealth = 0; baseHealthDisplay.textContent = baseHealth; baseElement.classList.add('base-hit-flash'); setTimeout(() => { baseElement.classList.remove('base-hit-flash'); }, 300); updateBaseVisuals(); if (baseHealth <= 0) gameOver(); }
     function completeItem(itemId) { if (gameIsOver) return; const itemIndex = activeItems.findIndex(i => i.id === itemId); if (itemIndex === -1) return; const item = activeItems[itemIndex]; let xpGained = 0; if (item.type === 'task') { xpGained = XP_PER_TASK_DEFEAT; } else if (item.type === 'habit') { const habitDef = definedHabits.find(def => def.id === item.definitionId); if (habitDef) { habitDef.streak++; habitDef.lastCompletionDate = new Date(item.originalDueDate); xpGained = XP_PER_HABIT_COMPLETE; } } if (xpGained > 0) { playerXP += xpGained; updatePlayerXpDisplay(); checkPlayerLevelUp(); } removeItem(itemId); }
     function removeItem(itemId) { const itemIndex = activeItems.findIndex(i => i.id === itemId); if (itemIndex > -1) { const item = activeItems[itemIndex]; if (item.element) item.element.remove(); if (item.listItemElement) item.listItemElement.remove(); activeItems.splice(itemIndex, 1); } }
+    
+    function createSubTaskPrompt(parentId) {
+        const parentTask = activeItems.find(item => item.id === parentId && item.type === 'task');
+        if (!parentTask) {
+            alert('Parent task not found.');
+            return;
+        }
+        
+        const subTaskName = prompt(`Create sub-task for "${parentTask.name}":\n\nEnter sub-task name:`);
+        if (!subTaskName || !subTaskName.trim()) {
+            return; // User cancelled or entered empty name
+        }
+        
+        // Create sub-task with same category and priority as parent, inheriting due date
+        const subTaskData = createTaskItemData(
+            subTaskName.trim(),
+            parentTask.category,
+            parentTask.isHighPriority,
+            null, // No specific due date - will inherit from parent
+            null, // No specific due time - will inherit from parent
+            parentId
+        );
+        
+        // Add to parent's subTasks array
+        parentTask.subTasks.push(subTaskData.id);
+        parentTask.totalSubTasks = parentTask.subTasks.length;
+        
+        // Add to game
+        addItemToGame(subTaskData);
+        sortAndRenderActiveList();
+        
+        console.log(`Created sub-task "${subTaskName}" for parent task "${parentTask.name}"`);
+    }
     function createRoutineDefinition() { const name = routineNameInput.value.trim(); if (!name) { alert("Please enter a routine name."); return; } if (definedRoutines.some(r => r.name.toLowerCase() === name.toLowerCase())) { alert("Routine name already exists."); return; } const newRoutine = { id: `routine_${definedRoutines.length}_${Date.now()}`, name: name, habitDefinitionIds: [], isActive: false }; definedRoutines.push(newRoutine); routineNameInput.value = ''; renderDefinedRoutines(); }
     function addHabitToRoutine(routineId, habitDefId) { const routine = definedRoutines.find(r => r.id === routineId); const habitDef = definedHabits.find(hd => hd.id === habitDefId); if (!routine || !habitDef) { alert("Error finding routine or habit."); return; } if (routine.habitDefinitionIds.includes(habitDefId)) { alert("Habit already in routine."); return; } routine.habitDefinitionIds.push(habitDefId); renderDefinedRoutines(); }
     function populateHabitSelectDropdown(selectElement) { selectElement.innerHTML = '<option value="">-- Select Habit --</option>'; if (definedHabits.length === 0) { const opt = document.createElement('option'); opt.textContent = "No habits defined"; opt.disabled = true; selectElement.appendChild(opt); return; } definedHabits.forEach(hd => { const opt = document.createElement('option'); opt.value = hd.id; opt.textContent = `${hd.name} (${hd.category})`; selectElement.appendChild(opt); }); }

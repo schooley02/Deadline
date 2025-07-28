@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Console Logger</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+        #logOutput {
+            background-color: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+        .log-info { color: #4a90e2; }
+        .log-warn { color: #f5a623; }
+        .log-error { color: #e91e63; }
+        .log-debug { color: #7ed321; }
+        button {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #357abd;
+        }
+    </style>
+</head>
+<body>
+    <h1>Debug Console Logger</h1>
+    <p>This page will capture console logs from your main application. Keep this open while testing the sub-task uncomplete issue.</p>
+    
+    <button onclick="clearLogs()">Clear Logs</button>
+    <button onclick="exportLogs()">Export Logs</button>
+    
+    <div id="logOutput"></div>
+
+    <script>
+        const logOutput = document.getElementById('logOutput');
+        const originalConsole = {
+            log: console.log,
+            warn: console.warn,
+            error: console.error,
+            info: console.info,
+            debug: console.debug
+        };
+
+        function addLogEntry(level, args) {
+            const timestamp = new Date().toLocaleTimeString();
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${level}`;
+            entry.textContent = `[${timestamp}] ${level.toUpperCase()}: ${message}`;
+            
+            logOutput.appendChild(entry);
+            logOutput.scrollTop = logOutput.scrollHeight;
+            
+            // Keep only last 1000 entries
+            while (logOutput.children.length > 1000) {
+                logOutput.removeChild(logOutput.firstChild);
+            }
+        }
+
+        // Override console methods
+        console.log = function(...args) {
+            originalConsole.log.apply(console, args);
+            addLogEntry('info', args);
+        };
+
+        console.warn = function(...args) {
+            originalConsole.warn.apply(console, args);
+            addLogEntry('warn', args);
+        };
+
+        console.error = function(...args) {
+            originalConsole.error.apply(console, args);
+            addLogEntry('error', args);
+        };
+
+        console.info = function(...args) {
+            originalConsole.info.apply(console, args);
+            addLogEntry('info', args);
+        };
+
+        console.debug = function(...args) {
+            originalConsole.debug.apply(console, args);
+            addLogEntry('debug', args);
+        };
+
+        function clearLogs() {
+            logOutput.innerHTML = '';
+        }
+
+        function exportLogs() {
+            const logs = Array.from(logOutput.children).map(entry => entry.textContent).join('\n');
+            const blob = new Blob([logs], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `debug-logs-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Listen for messages from other windows/tabs
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'console-log') {
+                addLogEntry(event.data.level || 'info', [event.data.message]);
+            }
+        });
+
+        console.log('Debug logger initialized. Ready to capture logs.');
+    </script>
+</body>
+</html>

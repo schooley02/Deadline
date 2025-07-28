@@ -209,6 +209,11 @@ body {
     overflow: visible;
 }
 
+/* Ensure zombie sprites override transparent background */
+.enemy.zombie-sprite {
+    background-color: transparent !important;
+}
+
 /* Remove default zombie background for category-based enemies */
 .enemy:not(.use-zombie-sprite) {
     background-image: none;
@@ -304,59 +309,59 @@ body {
 
 /* Category-specific zombie sprites - Legacy classes (maintaining backward compatibility) */
 .enemy.category-career {
-    background-image: url('Assets/Zombies/career-zombie.png');
-    background-size: 128px 128px;
-    background-position: center;
-    background-repeat: no-repeat;
+    background-image: url('Assets/Zombies/career-zombie.png') !important;
+    background-size: 128px 128px !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
 }
 
 .enemy.category-creativity {
-    background-image: url('Assets/Zombies/creativity-zombie.png');
-    background-size: 128px 128px;
-    background-position: center;
-    background-repeat: no-repeat;
+    background-image: url('Assets/Zombies/creativity-zombie.png') !important;
+    background-size: 128px 128px !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
 }
 
 .enemy.category-financial {
-    background-image: url('Assets/Zombies/financial-zombie.png');
-    background-size: 128px 128px;
-    background-position: center;
-    background-repeat: no-repeat;
+    background-image: url('Assets/Zombies/financial-zombie.png') !important;
+    background-size: 128px 128px !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
 }
 
 .enemy.category-health {
-    background-image: url('Assets/Zombies/health-zombie.png');
-    background-size: 128px 128px;
-    background-position: center;
-    background-repeat: no-repeat;
+    background-image: url('Assets/Zombies/health-zombie.png') !important;
+    background-size: 128px 128px !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
 }
 
 .enemy.category-lifestyle {
-    background-image: url('Assets/Zombies/lifestyle-zombie.png');
-    background-size: 128px 128px;
-    background-position: center;
-    background-repeat: no-repeat;
+    background-image: url('Assets/Zombies/lifestyle-zombie.png') !important;
+    background-size: 128px 128px !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
 }
 
 .enemy.category-relationships {
-    background-image: url('Assets/Zombies/relationships-zombie.png');
-    background-size: 128px 128px;
-    background-position: center;
-    background-repeat: no-repeat;
+    background-image: url('Assets/Zombies/relationships-zombie.png') !important;
+    background-size: 128px 128px !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
 }
 
 .enemy.category-spirituality {
-    background-image: url('Assets/Zombies/spiritual-zombie.png');
-    background-size: 128px 128px;
-    background-position: center;
-    background-repeat: no-repeat;
+    background-image: url('Assets/Zombies/spiritual-zombie.png') !important;
+    background-size: 128px 128px !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
 }
 
 .enemy.category-other {
-    background-image: url('Assets/Zombies/other-zombie.png');
-    background-size: 128px 128px;
-    background-position: center;
-    background-repeat: no-repeat;
+    background-image: url('Assets/Zombies/other-zombie.png') !important;
+    background-size: 128px 128px !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
 }
 
 /* New zombie sprite system with explicit size classes */
@@ -517,35 +522,35 @@ body {
 
 /* Habit enemy sprite sizing */
 .enemy.habit-enemy.category-career {
-    background-size: 70px 70px;
+    background-size: 70px 70px !important;
 }
 
 .enemy.habit-enemy.category-creativity {
-    background-size: 70px 70px;
+    background-size: 70px 70px !important;
 }
 
 .enemy.habit-enemy.category-financial {
-    background-size: 70px 70px;
+    background-size: 70px 70px !important;
 }
 
 .enemy.habit-enemy.category-health {
-    background-size: 70px 70px;
+    background-size: 70px 70px !important;
 }
 
 .enemy.habit-enemy.category-lifestyle {
-    background-size: 70px 70px;
+    background-size: 70px 70px !important;
 }
 
 .enemy.habit-enemy.category-relationships {
-    background-size: 70px 70px;
+    background-size: 70px 70px !important;
 }
 
 .enemy.habit-enemy.category-spirituality {
-    background-size: 70px 70px;
+    background-size: 70px 70px !important;
 }
 
 .enemy.habit-enemy.category-other {
-    background-size: 70px 70px;
+    background-size: 70px 70px !important;
 }
 
 .enemy.habit-enemy.high-streak {
@@ -1760,6 +1765,68 @@ body {
     gap: 10px;
     margin-top: 8px;
     min-height: 32px; /* Ensure minimum height for proper alignment */
+}
+
+/* Sub-tasks container styling */
+.sub-tasks-container {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0 0;
+    background: var(--color-bg-light);
+    border-radius: 4px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.sub-tasks-container:not(:empty) {
+    max-height: 200px;
+    padding: 8px;
+    border-left: 3px solid var(--color-accent-teal);
+}
+
+.sub-task-item {
+    font-size: 0.9em;
+    color: var(--color-neutral);
+    padding: 4px 0;
+    border-bottom: 1px solid var(--color-secondary-green-pale);
+}
+
+.sub-task-item:last-child {
+    border-bottom: none;
+}
+
+.sub-task-item::before {
+    content: "↳ ";
+    color: var(--color-accent-teal);
+    font-weight: bold;
+}
+
+/* Add sub-task button styling */
+.add-subtask-button {
+    background: linear-gradient(135deg, var(--color-accent-teal), var(--color-secondary-green-light));
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.add-subtask-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 191, 165, 0.3);
+}
+
+.add-subtask-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 /* Item Status Container (for completed items) */

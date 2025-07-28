@@ -164,7 +164,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateTaskCountDisplay() {
-        const taskCount = activeItems.length;
+        // Only count top-level tasks (not sub-tasks) in the display
+        const taskCount = activeItems.filter(item => !item.parentId).length;
         if (taskCountDisplay) {
             taskCountDisplay.textContent = `${taskCount} task${taskCount !== 1 ? 's' : ''}`;
         }
@@ -262,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Task creation and management
-    function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr) {
+    function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId = null) {
         const creationTime = new Date();
         let dueDateTime;
         
@@ -273,6 +274,14 @@ document.addEventListener('DOMContentLoaded', () => {
             dueDateTime.setHours(23, 59, 59, 999);
         } else {
             dueDateTime = new Date(creationTime.getTime() + 10 * 60 * 1000); // 10 minutes from now
+        }
+        
+        // If this is a sub-task and no due date was provided, inherit from parent
+        if (parentId && !dueDateStr && !dueTimeStr) {
+            const parentTask = activeItems.find(item => item.id === parentId && item.type === 'task');
+            if (parentTask) {
+                dueDateTime = new Date(parentTask.dueDateTime);
+            }
         }
         
         // Validate due date
@@ -293,7 +302,12 @@ document.addEventListener('DOMContentLoaded', () => {
             isOverdue: false,
             lastDamageTickTime: null,
             element: null,
-            listItemElement: null
+            listItemElement: null,
+            // Sub-task hierarchy fields
+            parentId: parentId,
+            subTasks: [],
+            completedSubTasks: 0,
+            totalSubTasks: 0
         };
         
         // Calculate initial position based on new timeline system
@@ -349,8 +363,22 @@ document.addEventListener('DOMContentLoaded', () => {
         gameCanvas.appendChild(itemElement);
         itemData.element = itemElement;
         
-        // Create list item
-        createListItem(itemData);
+        // Debug: Log element classes and background image
+        console.log('Created enemy element:', {
+            id: itemData.id,
+            name: itemData.name,
+            category: itemData.category,
+            type: itemData.type,
+            classes: itemElement.className,
+            width: itemElement.style.width,
+            height: itemElement.style.height,
+            backgroundImage: getComputedStyle(itemElement).backgroundImage
+        });
+        
+        // Create list item only if it's a top-level task
+        if (!itemData.parentId) {
+            createListItem(itemData);
+        }
         
         // Check if already overdue
         if (itemData.dueDateTime < new Date()) {
@@ -412,6 +440,20 @@ document.addEventListener('DOMContentLoaded', () => {
         editIconButton.addEventListener('click', () => showEditTaskModal(itemData));
         itemActionsDiv.appendChild(editIconButton);
 
+        // Add sub-task button for tasks only
+        if (itemData.type === 'task') {
+            const addSubTaskButton = document.createElement('button');
+            addSubTaskButton.classList.add('add-subtask-button');
+            addSubTaskButton.textContent = '+ Sub-task';
+            addSubTaskButton.title = 'Add Sub-task';
+            addSubTaskButton.addEventListener('click', () => {
+                if (!gameIsOver) {
+                    createSubTaskPrompt(itemData.id);
+                }
+            });
+            itemActionsDiv.appendChild(addSubTaskButton);
+        }
+
         const completeCheckboxLabel = document.createElement('label');
         completeCheckboxLabel.classList.add('completion-checkbox');
 
@@ -427,7 +469,45 @@ document.addEventListener('DOMContentLoaded', () => {
         completeCheckboxLabel.appendChild(document.createTextNode(' Mark as Complete'));
 
         itemActionsDiv.appendChild(completeCheckboxLabel);
+        // Create sub-tasks container
+        const subTasksContainer = document.createElement('ul');
+        subTasksContainer.classList.add('sub-tasks-container');
+        
+        // Add existing sub-tasks
+        itemData.subTasks.forEach(subTaskId => {
+            const subTaskData = activeItems.find(subItem => subItem.id === subTaskId);
+            if (subTaskData) {
+                const subTaskItem = document.createElement('li');
+                subTaskItem.classList.add('sub-task-item');
+                
+                // Create checkbox for sub-task completion
+                const subTaskCheckboxLabel = document.createElement('label');
+                subTaskCheckboxLabel.classList.add('sub-task-completion');
+                subTaskCheckboxLabel.style.cssText = 'display: flex; align-items: center; gap: 8px; cursor: pointer;';
+                
+                const subTaskCheckbox = document.createElement('input');
+                subTaskCheckbox.type = 'checkbox';
+                subTaskCheckbox.classList.add('sub-task-checkbox');
+                subTaskCheckbox.addEventListener('change', () => {
+                    if (subTaskCheckbox.checked) {
+                        completeItem(subTaskData.id);
+                    }
+                });
+                
+                const subTaskInfo = document.createElement('span');
+                subTaskInfo.classList.add('sub-task-info');
+                subTaskInfo.textContent = `${subTaskData.name} - Due: ${subTaskData.dueDateTime.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`;
+                
+                subTaskCheckboxLabel.appendChild(subTaskCheckbox);
+                subTaskCheckboxLabel.appendChild(subTaskInfo);
+                subTaskItem.appendChild(subTaskCheckboxLabel);
+                
+                subTasksContainer.appendChild(subTaskItem);
+            }
+        });
+
         itemInfoDiv.appendChild(itemActionsDiv);
+        itemInfoDiv.appendChild(subTasksContainer);
         
         // Add category badge
         const itemCategorySpan = document.createElement('span');
@@ -598,7 +678,10 @@ function showTaskDetailsPopup(item) {
                 // Recreate list item with updated data
                 if (item.listItemElement) {
                     item.listItemElement.remove();
-                    createListItem(item);
+                    // Only create list item if it's a top-level task (not a sub-task)
+                    if (!item.parentId) {
+                        createListItem(item);
+                    }
                 }
 
                 sortAndRenderActiveList();
@@ -642,6 +725,25 @@ function showTaskDetailsPopup(item) {
             checkPlayerLevelUp();
         }
 
+        // If this is a sub-task, remove it from parent's sub-task list
+        if (item.parentId) {
+            const parentTask = activeItems.find(parent => parent.id === item.parentId);
+            if (parentTask) {
+                const subTaskIndex = parentTask.subTasks.indexOf(itemId);
+                if (subTaskIndex > -1) {
+                    parentTask.subTasks.splice(subTaskIndex, 1);
+                    parentTask.completedSubTasks++;
+                    
+                    // Refresh parent task's list item to update sub-task display
+                    if (parentTask.listItemElement) {
+                        parentTask.listItemElement.remove();
+                        createListItem(parentTask);
+                        sortAndRenderActiveList();
+                    }
+                }
+            }
+        }
+
         // Move item to completed list
         item.completedAt = new Date();
         completedItems.push(item);
@@ -673,12 +775,95 @@ function showTaskDetailsPopup(item) {
             updateTaskCountDisplay();
         }
     }
+    function createSubTaskPrompt(parentId) {
+        const parentTask = activeItems.find(item => item.id === parentId && item.type === 'task');
+        if (!parentTask) {
+            alert('Parent task not found.');
+            return;
+        }
+        
+        const subTaskName = prompt(`Create sub-task for "${parentTask.name}":\n\nEnter sub-task name:`);
+        if (!subTaskName || !subTaskName.trim()) {
+            return; // User cancelled or entered empty name
+        }
+        
+        // Create sub-task with same category and priority as parent, inheriting due date
+        const subTaskData = createTaskItemData(
+            subTaskName.trim(),
+            parentTask.category,
+            parentTask.isHighPriority,
+            null, // No specific due date - will inherit from parent
+            null, // No specific due time - will inherit from parent
+            parentId
+        );
+        
+        // Add to parent's subTasks array
+        parentTask.subTasks.push(subTaskData.id);
+        parentTask.totalSubTasks = parentTask.subTasks.length;
+        
+        // Add to game canvas
+        const itemElement = document.createElement('div');
+        itemElement.classList.add('enemy');
+        itemElement.classList.add(`category-${subTaskData.category}`);
+        itemElement.classList.add('zombie-sprite');
+        itemElement.classList.add(`zombie-${subTaskData.category}`);
+        
+        itemElement.style.width = `${ENEMY_WIDTH}px`;
+        itemElement.style.height = `128px`;
+        
+        if (subTaskData.isHighPriority) {
+            itemElement.classList.add('high-priority');
+        }
+        
+        // Position enemy
+        itemElement.style.left = subTaskData.x + 'px';
+        const randomTop = Math.random() * (gameCanvas.offsetHeight - 128);
+        itemElement.style.top = Math.max(0, Math.min(randomTop, gameCanvas.offsetHeight - 128)) + 'px';
+        
+        // Set up click handler
+        itemElement.dataset.itemId = subTaskData.id;
+        itemElement.addEventListener('click', () => handleEnemyClick(subTaskData.id));
+        
+        // Add to game canvas
+        gameCanvas.appendChild(itemElement);
+        subTaskData.element = itemElement;
+        
+        // Check if already overdue
+        if (subTaskData.dueDateTime < new Date()) {
+            markAsOverdue(subTaskData, new Date());
+            subTaskData.x = BASE_WIDTH;
+            if (subTaskData.element) subTaskData.element.style.left = subTaskData.x + 'px';
+        }
+        
+        // Add sub-task to activeItems Array
+        activeItems.push(subTaskData);
+        updateTaskCountDisplay();
+
+        // Refresh the parent task's list item to show the new sub-task
+        if (parentTask.listItemElement) {
+            parentTask.listItemElement.remove();
+            createListItem(parentTask);
+        }
+
+        // Update active items list
+        sortAndRenderActiveList();
+
+        console.log(`Created sub-task "${subTaskName}" for parent task "${parentTask.name}"`);
+    }
 
     function uncompleteItem(itemId) {
         const completedIndex = completedItems.findIndex(i => i.id === itemId);
         if (completedIndex === -1) return;
         
         const item = completedItems[completedIndex];
+        
+        // Debug logging
+        console.log('Uncompleting item:', {
+            id: item.id,
+            name: item.name,
+            parentId: item.parentId,
+            isSubTask: !!item.parentId
+        });
         
         // Remove from completed items
         completedItems.splice(completedIndex, 1);
@@ -739,11 +924,60 @@ function showTaskDetailsPopup(item) {
         gameCanvas.appendChild(itemElement);
         item.element = itemElement;
         
-        // Recreate list item
-        createListItem(item);
-        
-        // Add back to active items
+        // Add back to active items first
         activeItems.push(item);
+        
+        // If this is a sub-task, re-add it to parent's sub-task list
+        if (item.parentId) {
+            const parentTask = activeItems.find(parent => parent.id === item.parentId);
+            console.log('Parent task found:', parentTask ? parentTask.name : 'NOT FOUND');
+            
+            if (parentTask) {
+                // Add back to parent's subTasks array if not already there
+                if (!parentTask.subTasks.includes(item.id)) {
+                    console.log('Adding sub-task back to parent:', {
+                        subTaskId: item.id,
+                        subTaskName: item.name,
+                        parentId: parentTask.id,
+                        parentName: parentTask.name,
+                        beforeSubTasks: [...parentTask.subTasks],
+                        beforeCompletedSubTasks: parentTask.completedSubTasks
+                    });
+                    
+                    parentTask.subTasks.push(item.id);
+                    parentTask.totalSubTasks = parentTask.subTasks.length;
+                    
+                    // Decrement the completed sub-tasks count since we're restoring this one
+                    if (parentTask.completedSubTasks > 0) {
+                        parentTask.completedSubTasks--;
+                    }
+                    
+                    console.log('After restoration:', {
+                        afterSubTasks: [...parentTask.subTasks],
+                        afterCompletedSubTasks: parentTask.completedSubTasks,
+                        totalSubTasks: parentTask.totalSubTasks
+                    });
+                    
+                    // Refresh parent task's list item to show the restored sub-task
+                    if (parentTask.listItemElement) {
+                        parentTask.listItemElement.remove();
+                        createListItem(parentTask);
+                        console.log('Parent task list item recreated');
+                    }
+                }
+            } else {
+                console.error('Parent task not found for sub-task:', {
+                    subTaskId: item.id,
+                    subTaskName: item.name,
+                    parentId: item.parentId,
+                    activeItemsCount: activeItems.length
+                });
+            }
+        } else {
+            // Only create list item if it's a top-level task (not a sub-task)
+            createListItem(item);
+            console.log('Created list item for top-level task:', item.name);
+        }
         
         // Update displays
         updateTaskCountDisplay();
@@ -776,17 +1010,51 @@ function showTaskDetailsPopup(item) {
     }
 
     function sortAndRenderActiveList() {
+        const debugInfo = {
+            totalActiveItems: activeItems.length,
+            itemsWithListElement: activeItems.filter(item => item.listItemElement).length,
+            topLevelItems: activeItems.filter(item => !item.parentId).length,
+            subTasks: activeItems.filter(item => item.parentId).length
+        };
+        
+        showDebugInfo('sortAndRenderActiveList', debugInfo);
+        
+        console.log('=== sortAndRenderActiveList START ===');
+        console.log('Total activeItems before sort:', activeItems.length);
+        console.log('ActiveItems details:', activeItems.map(item => ({
+            id: item.id,
+            name: item.name,
+            parentId: item.parentId,
+            hasListItemElement: !!item.listItemElement
+        })));
+        
         // Sort by due date (most urgent first)
         activeItems.sort((a, b) => a.dueDateTime - b.dueDateTime);
         
         if (activeItemsListUL) {
+            const beforeClear = activeItemsListUL.children.length;
+            console.log('Clearing activeItemsListUL, had', beforeClear, 'children');
             activeItemsListUL.innerHTML = '';
+            
+            let addedCount = 0;
             activeItems.forEach(item => {
-                if (item.listItemElement) {
+                // Only show top-level items (not sub-tasks) in the main list
+                if (item.listItemElement && !item.parentId) {
+                    console.log('Adding top-level item to list:', {
+                        id: item.id,
+                        name: item.name,
+                        hasElement: !!item.listItemElement
+                    });
                     activeItemsListUL.appendChild(item.listItemElement);
+                    addedCount++;
                 }
             });
+            
+            console.log('Added', addedCount, 'items to activeItemsListUL');
+            console.log('Final activeItemsListUL children count:', activeItemsListUL.children.length);
         }
+        
+        console.log('=== sortAndRenderActiveList END ===');
     }
 
     function renderCompletedItems() {
@@ -806,6 +1074,9 @@ function showTaskDetailsPopup(item) {
             const sortedCompletedItems = [...completedItems].sort((a, b) => b.completedAt - a.completedAt);
             
             sortedCompletedItems.forEach(item => {
+                // Only show top-level completed items (not sub-tasks) in the completed list
+                if (item.parentId) return;
+                
                 const li = document.createElement('li');
                 li.classList.add('completed-item');
                 li.classList.add(`category-${item.category}`);
@@ -2059,6 +2330,8 @@ function updateMidnightLine(currentTime) {
     // Floating Action Button and Window Management
     const fabButton = document.getElementById('fabButton');
     const fabMenu = document.getElementById('fabMenu');
+    console.log('FAB Button found:', fabButton);
+    console.log('FAB Menu found:', fabMenu);
     const managementWindows = {
         tasks: document.getElementById('tasksWindow'),
         habits: document.getElementById('habitsWindow'),
@@ -2066,9 +2339,15 @@ function updateMidnightLine(currentTime) {
     };
     
     function toggleFabMenu() {
+        console.log('toggleFabMenu called');
+        console.log('fabMenu:', fabMenu);
+        console.log('fabButton:', fabButton);
         const isHidden = fabMenu.classList.contains('hidden');
+        console.log('isHidden:', isHidden);
         fabMenu.classList.toggle('hidden', !isHidden);
         fabButton.classList.toggle('active', isHidden);
+        console.log('After toggle - fabMenu classes:', fabMenu.className);
+        console.log('After toggle - fabButton classes:', fabButton.className);
     }
     
     function closeFabMenu() {
@@ -2149,12 +2428,13 @@ function updateMidnightLine(currentTime) {
         
         tasksList.innerHTML = '';
         
-        if (activeItems.filter(item => item.type === 'task').length === 0) {
+        const topLevelTasks = activeItems.filter(item => item.type === 'task' && !item.parentId);
+        if (topLevelTasks.length === 0) {
             tasksList.innerHTML = '<li>No active tasks</li>';
             return;
         }
         
-        activeItems.filter(item => item.type === 'task').forEach(task => {
+        topLevelTasks.forEach(task => {
             const li = document.createElement('li');
             li.innerHTML = `
                 <span>${task.name} (${task.category})${task.isHighPriority ? ' ⭐' : ''}</span>
@@ -2845,6 +3125,46 @@ function updateMidnightLine(currentTime) {
 
     // Initialize definedTasks array
     if (!window.definedTasks) window.definedTasks = [];
+    
+    // Debug display function
+    function showDebugInfo(functionName, data) {
+        let debugDisplay = document.getElementById('debugDisplay');
+        if (!debugDisplay) {
+            debugDisplay = document.createElement('div');
+            debugDisplay.id = 'debugDisplay';
+            debugDisplay.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+                font-family: monospace;
+                font-size: 12px;
+                max-width: 300px;
+                z-index: 10000;
+                max-height: 200px;
+                overflow-y: auto;
+            `;
+            document.body.appendChild(debugDisplay);
+        }
+        
+        const timestamp = new Date().toLocaleTimeString();
+        const debugEntry = document.createElement('div');
+        debugEntry.style.cssText = 'margin-bottom: 5px; padding: 2px; border-bottom: 1px solid #333;';
+        debugEntry.innerHTML = `
+            <strong>[${timestamp}] ${functionName}</strong><br>
+            ${Object.entries(data).map(([key, value]) => `${key}: ${value}`).join('<br>')}
+        `;
+        
+        debugDisplay.appendChild(debugEntry);
+        
+        // Keep only last 10 entries
+        while (debugDisplay.children.length > 10) {
+            debugDisplay.removeChild(debugDisplay.firstChild);
+        }
+    }
     
     // Initialize the game
     initGame();

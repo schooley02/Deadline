@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zombie Sprite Test</title>
+    <style>
+        .test-enemy {
+            width: 128px;
+            height: 128px;
+            background-color: transparent;
+            display: inline-block;
+            margin: 10px;
+            border: 2px solid red;
+            position: relative;
+        }
+        
+        .test-enemy.category-career {
+            background-image: url('Assets/Zombies/career-zombie.png') !important;
+            background-size: 128px 128px !important;
+            background-position: center !important;
+            background-repeat: no-repeat !important;
+        }
+        
+        .test-enemy.category-health {
+            background-image: url('Assets/Zombies/health-zombie.png') !important;
+            background-size: 128px 128px !important;
+            background-position: center !important;
+            background-repeat: no-repeat !important;
+        }
+        
+        .test-enemy.category-other {
+            background-image: url('Assets/Zombies/other-zombie.png') !important;
+            background-size: 128px 128px !important;
+            background-position: center !important;
+            background-repeat: no-repeat !important;
+        }
+        
+        .label {
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Zombie Sprite Loading Test</h1>
+    <p>Red borders should show enemy boxes. If sprites load correctly, you should see zombie images inside the boxes.</p>
+    
+    <div class="test-enemy category-career">
+        <div class="label">Career Zombie</div>
+    </div>
+    
+    <div class="test-enemy category-health">
+        <div class="label">Health Zombie</div>
+    </div>
+    
+    <div class="test-enemy category-other">
+        <div class="label">Other Zombie</div>
+    </div>
+    
+    <hr>
+    <p>If you see red boxes but no zombie images, the image files might not be loading properly.</p>
+    <p>If you see zombie images, then the CSS is working and the issue is in the JavaScript.</p>
+</body>
+</html>
