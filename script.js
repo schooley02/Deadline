@@ -390,60 +390,45 @@ document.addEventListener('DOMContentLoaded', () => {
         if (itemData.type === 'task' && itemData.isHighPriority) {
             listItem.classList.add('high-priority-list-item');
         }
+
+        // Adjust main task container to align properly
+        listItem.style.display = 'flex';
+        listItem.style.justifyContent = 'space-between';
+        listItem.style.alignItems = 'flex-start';
         
         // Create sprite column
         const itemSpriteDiv = document.createElement('div');
         itemSpriteDiv.classList.add('item-sprite');
         
-        // Create item info div
+        // Create item info div - this will contain the main task content
         const itemInfoDiv = document.createElement('div');
         itemInfoDiv.classList.add('item-info');
+        itemInfoDiv.style.cssText = 'flex-grow: 1; padding: 8px 0; display: flex; flex-direction: column; gap: 4px;';
+        
+        // Top row: Task title and controls on same horizontal line
+        const titleAndControlsRow = document.createElement('div');
+        titleAndControlsRow.style.cssText = 'display: flex; justify-content: space-between; align-items: center;';
         
         const itemNameSpan = document.createElement('span');
         itemNameSpan.classList.add('item-name');
+        itemNameSpan.style.cssText = 'font-weight: 500; flex-grow: 1;';
         itemNameSpan.textContent = itemData.name;
         
-        const itemDueSpan = document.createElement('span');
-        itemDueSpan.classList.add('item-due');
-        itemDueSpan.textContent = `Due: ${itemData.dueDateTime.toLocaleString([], { 
-            dateStyle: 'short', 
-            timeStyle: 'short' 
-        })}`;
+        // Controls container aligned to the right on same line as title
+        const itemActionsContainer = document.createElement('div');
+        itemActionsContainer.classList.add('task-controls');
+        itemActionsContainer.style.cssText = 'display: flex; align-items: center; gap: 12px; flex-shrink: 0;';
         
-        itemInfoDiv.appendChild(itemNameSpan);
-        itemInfoDiv.appendChild(itemDueSpan);
-
-        // Add edit icon and checkbox to the task item (aligned to the right)
-        const itemActionsDiv = document.createElement('div');
-        itemActionsDiv.classList.add('task-actions');
-        itemActionsDiv.style.cssText = 'display: flex; justify-content: flex-end; gap: 10px; align-items: center; margin-top: 8px;';
-        
-        // Make the parent item-info a flex container for better vertical alignment
-        itemInfoDiv.style.cssText = 'display: flex; flex-direction: column; justify-content: center; flex-grow: 1;';
-
         const editIconButton = document.createElement('button');
         editIconButton.classList.add('edit-icon-btn');
         editIconButton.title = 'Edit Task';
         editIconButton.textContent = '✏️';
+        editIconButton.style.cssText = 'background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;';
         editIconButton.addEventListener('click', () => showEditTaskModal(itemData));
-        itemActionsDiv.appendChild(editIconButton);
-
-        // Add sub-task button for tasks only
-        if (itemData.type === 'task') {
-            const addSubTaskButton = document.createElement('button');
-            addSubTaskButton.classList.add('add-subtask-button');
-            addSubTaskButton.textContent = '+ Sub-task';
-            addSubTaskButton.title = 'Add Sub-task';
-            addSubTaskButton.addEventListener('click', () => {
-                if (!gameIsOver) {
-                    createSubTaskPrompt(itemData.id);
-                }
-            });
-            itemActionsDiv.appendChild(addSubTaskButton);
-        }
-
+        
         const completeCheckboxLabel = document.createElement('label');
         completeCheckboxLabel.classList.add('completion-checkbox');
+        completeCheckboxLabel.style.cssText = 'display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px;';
 
         const completeCheckbox = document.createElement('input');
         completeCheckbox.type = 'checkbox';
@@ -453,10 +438,59 @@ document.addEventListener('DOMContentLoaded', () => {
                 completeItem(itemData.id);
             }
         });
+        
+        const checkboxLabel = document.createTextNode('Mark as Complete');
         completeCheckboxLabel.appendChild(completeCheckbox);
-        completeCheckboxLabel.appendChild(document.createTextNode(' Mark as Complete'));
+        completeCheckboxLabel.appendChild(checkboxLabel);
+        
+        itemActionsContainer.appendChild(editIconButton);
+        itemActionsContainer.appendChild(completeCheckboxLabel);
+        
+        titleAndControlsRow.appendChild(itemNameSpan);
+        titleAndControlsRow.appendChild(itemActionsContainer);
+        
+        // Second row: Due date, category, and sub-task button
+        const detailsAndSubTaskRow = document.createElement('div');
+        detailsAndSubTaskRow.style.cssText = 'display: flex; justify-content: space-between; align-items: center;';
+        
+        // Container for due date and category on left side
+        const itemDetailsContainer = document.createElement('div');
+        itemDetailsContainer.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+        
+        const itemDetailsSpan = document.createElement('span');
+        itemDetailsSpan.classList.add('item-details');
+        itemDetailsSpan.style.cssText = 'font-size: 12px; color: var(--color-neutral);';
+        itemDetailsSpan.textContent = `Due: ${itemData.dueDateTime.toLocaleString([], { 
+            dateStyle: 'short', 
+            timeStyle: 'short' 
+        })}`;
+        
+        itemDetailsContainer.appendChild(itemDetailsSpan);
+        detailsAndSubTaskRow.appendChild(itemDetailsContainer);
+        
+        itemInfoDiv.appendChild(titleAndControlsRow);
+        itemInfoDiv.appendChild(detailsAndSubTaskRow);
 
-        itemActionsDiv.appendChild(completeCheckboxLabel);
+        // Create sub-tasks section container
+        const subTasksSectionDiv = document.createElement('div');
+        subTasksSectionDiv.classList.add('sub-tasks-section');
+        subTasksSectionDiv.style.cssText = 'width: 100%; margin-top: 8px;';
+        
+        // Add sub-task button for tasks only - place it on the right side of details row
+        if (itemData.type === 'task') {
+            const addSubTaskButton = document.createElement('button');
+            addSubTaskButton.classList.add('add-subtask-button');
+            addSubTaskButton.textContent = '+ Sub-task';
+            addSubTaskButton.title = 'Add Sub-task';
+            addSubTaskButton.style.cssText = 'font-size: 12px; padding: 4px 8px; flex-shrink: 0;';
+            addSubTaskButton.addEventListener('click', () => {
+                if (!gameIsOver) {
+                    createSubTaskPrompt(itemData.id);
+                }
+            });
+            // Add the sub-task button to the right side of the details row
+            detailsAndSubTaskRow.appendChild(addSubTaskButton);
+        }
         // Create sub-tasks container
         const subTasksContainer = document.createElement('ul');
         subTasksContainer.classList.add('sub-tasks-container');
@@ -467,15 +501,45 @@ document.addEventListener('DOMContentLoaded', () => {
             if (subTaskData) {
                 const subTaskItem = document.createElement('li');
                 subTaskItem.classList.add('sub-task-item');
+                subTaskItem.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--color-bg-light);';
                 
-                // Create checkbox for sub-task completion
+                // Left side: Sub-task info
+                const subTaskInfo = document.createElement('div');
+                subTaskInfo.classList.add('sub-task-info');
+                subTaskInfo.style.cssText = 'flex-grow: 1;';
+                
+                const subTaskName = document.createElement('div');
+                subTaskName.style.cssText = 'font-weight: 500; margin-bottom: 4px;';
+                subTaskName.textContent = subTaskData.name;
+                
+                const subTaskDetails = document.createElement('div');
+                subTaskDetails.style.cssText = 'font-size: 12px; color: var(--color-neutral);';
+                subTaskDetails.textContent = `Due: ${subTaskData.dueDateTime.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })} | ${subTaskData.category}`;
+                
+                subTaskInfo.appendChild(subTaskName);
+                subTaskInfo.appendChild(subTaskDetails);
+                
+                // Right side: Controls (edit icon and checkbox)
+                const subTaskControls = document.createElement('div');
+                subTaskControls.classList.add('sub-task-controls');
+                subTaskControls.style.cssText = 'display: flex; align-items: center; gap: 12px;';
+                
+                // Edit icon button
+                const editIconButton = document.createElement('button');
+                editIconButton.classList.add('edit-icon-btn');
+                editIconButton.title = 'Edit Sub-task';
+                editIconButton.textContent = '✏️';
+                editIconButton.style.cssText = 'background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;';
+                editIconButton.addEventListener('click', () => showEditTaskModal(subTaskData));
+                
+                // Completion checkbox with label
                 const subTaskCheckboxLabel = document.createElement('label');
-                subTaskCheckboxLabel.classList.add('sub-task-completion');
-                subTaskCheckboxLabel.style.cssText = 'display: flex; align-items: center; gap: 8px; cursor: pointer;';
+                subTaskCheckboxLabel.classList.add('completion-checkbox');
+                subTaskCheckboxLabel.style.cssText = 'display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; padding-right: 8px;';
                 
                 const subTaskCheckbox = document.createElement('input');
                 subTaskCheckbox.type = 'checkbox';
-                subTaskCheckbox.classList.add('sub-task-checkbox');
+                subTaskCheckbox.classList.add('sub-task-checkbox', 'completion-checkbox-input');
                 // Force the checkbox to be unchecked - comprehensive reset
                 subTaskCheckbox.checked = false;
                 subTaskCheckbox.defaultChecked = false;
@@ -490,22 +554,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
                 
-                const subTaskInfo = document.createElement('span');
-                subTaskInfo.classList.add('sub-task-info');
-                subTaskInfo.textContent = `${subTaskData.name} - Due: ${subTaskData.dueDateTime.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`;
-                
+                const checkboxLabel = document.createTextNode('Mark as Complete');
                 subTaskCheckboxLabel.appendChild(subTaskCheckbox);
-                subTaskCheckboxLabel.appendChild(subTaskInfo);
-                subTaskItem.appendChild(subTaskCheckboxLabel);
+                subTaskCheckboxLabel.appendChild(checkboxLabel);
+                
+                // Add controls to container
+                subTaskControls.appendChild(editIconButton);
+                subTaskControls.appendChild(subTaskCheckboxLabel);
+                
+                // Assemble the sub-task item
+                subTaskItem.appendChild(subTaskInfo);
+                subTaskItem.appendChild(subTaskControls);
                 
                 subTasksContainer.appendChild(subTaskItem);
             }
         });
 
-        itemInfoDiv.appendChild(itemActionsDiv);
-        itemInfoDiv.appendChild(subTasksContainer);
+        subTasksSectionDiv.appendChild(subTasksContainer);
         
-        // Add category badge
+        // Add category badge next to due date
         const itemCategorySpan = document.createElement('span');
         itemCategorySpan.classList.add('item-category');
         itemCategorySpan.textContent = itemData.category.charAt(0).toUpperCase() + itemData.category.slice(1);
@@ -515,7 +582,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentCategoryStyle.textColorClass) {
             itemCategorySpan.classList.add(currentCategoryStyle.textColorClass);
         }
-        itemInfoDiv.appendChild(itemCategorySpan);
+        itemDetailsContainer.appendChild(itemCategorySpan);
         
         // Add streak info for habits
         if (itemData.type === 'habit') {
@@ -523,13 +590,18 @@ document.addEventListener('DOMContentLoaded', () => {
             streakSpan.classList.add('item-streak');
             const streakType = itemData.isNegative ? 'Avoided' : 'Streak';
             streakSpan.textContent = `${streakType}: ${itemData.streak}`;
-            itemInfoDiv.appendChild(streakSpan);
+            itemNameContainer.appendChild(streakSpan);
         }
         
-        // Remove the defeat/complete button - controls are now in item-info section
+        // Create a wrapper div for the whole task content
+        const taskContentDiv = document.createElement('div');
+        taskContentDiv.style.cssText = 'display: flex; flex-direction: column; width: 100%;';
+        
+        taskContentDiv.appendChild(itemInfoDiv);
+        taskContentDiv.appendChild(subTasksSectionDiv);
         
         listItem.appendChild(itemSpriteDiv);
-        listItem.appendChild(itemInfoDiv);
+        listItem.appendChild(taskContentDiv);
         
         itemData.listItemElement = listItem;
     }
@@ -772,78 +844,149 @@ function showTaskDetailsPopup(item) {
         }
     }
     function createSubTaskPrompt(parentId) {
+        showCreateSubTaskModal(parentId);
+    }
+    
+    function showCreateSubTaskModal(parentId) {
         const parentTask = activeItems.find(item => item.id === parentId && item.type === 'task');
         if (!parentTask) {
             alert('Parent task not found.');
             return;
         }
         
-        const subTaskName = prompt(`Create sub-task for "${parentTask.name}":\n\nEnter sub-task name:`);
-        if (!subTaskName || !subTaskName.trim()) {
-            return; // User cancelled or entered empty name
-        }
+        const today = new Date().toISOString().split('T')[0];
+        const parentDueDate = parentTask.dueDateTime.toISOString().split('T')[0];
+        const parentDueTime = parentTask.dueDateTime.toISOString().split('T')[1].substring(0, 5);
         
-        // Create sub-task with same category and priority as parent, inheriting due date
-        const subTaskData = createTaskItemData(
-            subTaskName.trim(),
-            parentTask.category,
-            parentTask.isHighPriority,
-            null, // No specific due date - will inherit from parent
-            null, // No specific due time - will inherit from parent
-            parentId
-        );
+        const modalHtml = `
+            <div class="modal-overlay">
+                <div class="modal-content">
+                    <h3>Create Sub-task for "${parentTask.name}"</h3>
+                    <div class="form-row">
+                        <label for="subTaskName">Sub-task Name:</label>
+                        <input type="text" id="subTaskName" required>
+                    </div>
+                    <div class="form-row">
+                        <label for="subTaskCategory">Category:</label>
+                        <select id="subTaskCategory">
+                            <option value="other" ${parentTask.category === 'other' ? 'selected' : ''}>Other (Generic)</option>
+                            <option value="career" ${parentTask.category === 'career' ? 'selected' : ''}>Career</option>
+                            <option value="creativity" ${parentTask.category === 'creativity' ? 'selected' : ''}>Creativity</option>
+                            <option value="financial" ${parentTask.category === 'financial' ? 'selected' : ''}>Financial</option>
+                            <option value="health" ${parentTask.category === 'health' ? 'selected' : ''}>Health</option>
+                            <option value="lifestyle" ${parentTask.category === 'lifestyle' ? 'selected' : ''}>Lifestyle</option>
+                            <option value="relationships" ${parentTask.category === 'relationships' ? 'selected' : ''}>Relationships</option>
+                            <option value="spirituality" ${parentTask.category === 'spirituality' ? 'selected' : ''}>Spirituality</option>
+                        </select>
+                    </div>
+                    <div class="form-row priority-row">
+                        <input type="checkbox" id="subTaskHighPriority" ${parentTask.isHighPriority ? 'checked' : ''}>
+                        <label for="subTaskHighPriority">High Priority</label>
+                    </div>
+                    <div class="form-row-group">
+                        <div class="form-row">
+                            <label for="subTaskDueDate">Due Date:</label>
+                            <input type="date" id="subTaskDueDate" value="${parentDueDate}" required>
+                        </div>
+                        <div class="form-row">
+                            <label for="subTaskDueTime">Due Time:</label>
+                            <input type="time" id="subTaskDueTime" value="${parentDueTime}">
+                        </div>
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="createSubTaskBtn" class="primary-button">Create Sub-task</button>
+                        <button class="secondary-button" onclick="closeModal()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
         
-        // Add to parent's subTasks array
-        parentTask.subTasks.push(subTaskData.id);
-        parentTask.totalSubTasks = parentTask.subTasks.length;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
         
-        // Add to game canvas
-        const itemElement = document.createElement('div');
-        itemElement.classList.add('enemy');
-        itemElement.classList.add(`category-${subTaskData.category}`);
-        itemElement.classList.add('zombie-sprite');
-        itemElement.classList.add(`zombie-${subTaskData.category}`);
-        
-        itemElement.style.width = `${ENEMY_WIDTH}px`;
-        itemElement.style.height = `128px`;
-        
-        if (subTaskData.isHighPriority) {
-            itemElement.classList.add('high-priority');
-        }
-        
-        // Position enemy
-        itemElement.style.left = subTaskData.x + 'px';
-        const randomTop = Math.random() * (gameCanvas.offsetHeight - 128);
-        itemElement.style.top = Math.max(0, Math.min(randomTop, gameCanvas.offsetHeight - 128)) + 'px';
-        
-        // Set up click handler
-        itemElement.dataset.itemId = subTaskData.id;
-        itemElement.addEventListener('click', () => handleEnemyClick(subTaskData.id));
-        
-        // Add to game canvas
-        gameCanvas.appendChild(itemElement);
-        subTaskData.element = itemElement;
-        
-        // Check if already overdue
-        if (subTaskData.dueDateTime < new Date()) {
-            markAsOverdue(subTaskData, new Date());
-            subTaskData.x = BASE_WIDTH;
-            if (subTaskData.element) subTaskData.element.style.left = subTaskData.x + 'px';
-        }
-        
-        // Add sub-task to activeItems Array
-        activeItems.push(subTaskData);
-        updateTaskCountDisplay();
+        // Add create functionality
+        const createButton = document.getElementById('createSubTaskBtn');
+        if (createButton) {
+            createButton.addEventListener('click', () => {
+                const name = document.getElementById('subTaskName').value.trim();
+                const category = document.getElementById('subTaskCategory').value;
+                const isHighPriority = document.getElementById('subTaskHighPriority').checked;
+                const dueDate = document.getElementById('subTaskDueDate').value;
+                const dueTime = document.getElementById('subTaskDueTime').value;
+                
+                if (!name || !dueDate) {
+                    alert('Sub-task Name and Due Date are required.');
+                    return;
+                }
+                
+                // Create sub-task with specified fields
+                const subTaskData = createTaskItemData(
+                    name,
+                    category,
+                    isHighPriority,
+                    dueDate,
+                    dueTime,
+                    parentId
+                );
+                
+                // Add to parent's subTasks array
+                parentTask.subTasks.push(subTaskData.id);
+                parentTask.totalSubTasks = parentTask.subTasks.length;
+                
+                // Add to game canvas
+                const itemElement = document.createElement('div');
+                itemElement.classList.add('enemy');
+                itemElement.classList.add(`category-${subTaskData.category}`);
+                itemElement.classList.add('zombie-sprite');
+                itemElement.classList.add(`zombie-${subTaskData.category}`);
+                
+                itemElement.style.width = `${ENEMY_WIDTH}px`;
+                itemElement.style.height = `128px`;
+                
+                if (subTaskData.isHighPriority) {
+                    itemElement.classList.add('high-priority');
+                }
+                
+                // Position enemy
+                itemElement.style.left = subTaskData.x + 'px';
+                const randomTop = Math.random() * (gameCanvas.offsetHeight - 128);
+                itemElement.style.top = Math.max(0, Math.min(randomTop, gameCanvas.offsetHeight - 128)) + 'px';
+                
+                // Set up click handler
+                itemElement.dataset.itemId = subTaskData.id;
+                itemElement.addEventListener('click', () => handleEnemyClick(subTaskData.id));
+                
+                // Add to game canvas
+                gameCanvas.appendChild(itemElement);
+                subTaskData.element = itemElement;
+                
+                // Check if already overdue
+                if (subTaskData.dueDateTime < new Date()) {
+                    markAsOverdue(subTaskData, new Date());
+                    subTaskData.x = BASE_WIDTH;
+                    if (subTaskData.element) subTaskData.element.style.left = subTaskData.x + 'px';
+                }
+                
+                // Add sub-task to activeItems Array
+                activeItems.push(subTaskData);
+                updateTaskCountDisplay();
 
-        // Refresh the parent task's list item to show the new sub-task
-        if (parentTask.listItemElement) {
-            parentTask.listItemElement.remove();
-            createListItem(parentTask);
+                // Refresh the parent task's list item to show the new sub-task
+                if (parentTask.listItemElement) {
+                    parentTask.listItemElement.remove();
+                    createListItem(parentTask);
+                }
+
+                // Update active items list
+                sortAndRenderActiveList();
+                
+                closeModal();
+            });
         }
-
-        // Update active items list
-        sortAndRenderActiveList();
-
+        
+        // Close modal when clicking overlay
+        document.querySelector('.modal-overlay').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-overlay')) closeModal();
+        });
     }
 
     function uncompleteItem(itemId) {
