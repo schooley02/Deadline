@@ -187,8 +187,8 @@ body {
 
 /* Enemy Styles */
 .enemy {
-    width: 32px;
-    height: 32px;
+    width: 64px;
+    height: 64px;
     background-color: transparent;
     color: var(--color-text-primary);
     display: flex;

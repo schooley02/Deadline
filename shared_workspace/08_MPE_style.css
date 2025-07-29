@@ -63,8 +63,8 @@ h2 { margin-top: 0; } /* For taskListContainer h2 */
 }
 
 .enemy {
-    width: 60px; /* Increased slightly */
-    height: 70px;
+    width: 64px; /* Updated to 64x64 sprite size */
+    height: 64px;
     background-color: #90ee90;
     background-size: contain;
     background-position: center;
@@ -265,115 +265,115 @@ h2 { margin-top: 0; } /* For taskListContainer h2 */
 .zombie-sprite.zombie-career,
 .zombie-career {
     background-image: url('Assets/Zombies/career-zombie.png');
-    background-size: 60px 70px;
+    background-size: 64px 64px;
 }
 
 .zombie-sprite.zombie-creativity,
 .zombie-creativity {
     background-image: url('Assets/Zombies/creativity-zombie.png');
-    background-size: 60px 70px;
+    background-size: 64px 64px;
 }
 
 .zombie-sprite.zombie-financial,
 .zombie-financial {
     background-image: url('Assets/Zombies/financial-zombie.png');
-    background-size: 60px 70px;
+    background-size: 64px 64px;
 }
 
 .zombie-sprite.zombie-health,
 .zombie-health {
     background-image: url('Assets/Zombies/health-zombie.png');
-    background-size: 60px 70px;
+    background-size: 64px 64px;
 }
 
 .zombie-sprite.zombie-lifestyle,
 .zombie-lifestyle {
     background-image: url('Assets/Zombies/lifestyle-zombie.png');
-    background-size: 60px 70px;
+    background-size: 64px 64px;
 }
 
 .zombie-sprite.zombie-relationships,
 .zombie-relationships {
     background-image: url('Assets/Zombies/relationships-zombie.png');
-    background-size: 60px 70px;
+    background-size: 64px 64px;
 }
 
 .zombie-sprite.zombie-spirituality,
 .zombie-spirituality {
     background-image: url('Assets/Zombies/spiritual-zombie.png');
-    background-size: 60px 70px;
+    background-size: 64px 64px;
 }
 
 .zombie-sprite.zombie-other,
 .zombie-other {
     background-image: url('Assets/Zombies/other-zombie.png');
-    background-size: 60px 70px;
+    background-size: 64px 64px;
 }
 
-/* Small zombie sprites for habits */
+/* Small zombie sprites for habits - Now using 64x64 like tasks */
 .zombie-sprite.zombie-small.zombie-career {
-    background-size: 50px 60px;
+    background-size: 64px 64px;
 }
 
 .zombie-sprite.zombie-small.zombie-creativity {
-    background-size: 50px 60px;
+    background-size: 64px 64px;
 }
 
 .zombie-sprite.zombie-small.zombie-financial {
-    background-size: 50px 60px;
+    background-size: 64px 64px;
 }
 
 .zombie-sprite.zombie-small.zombie-health {
-    background-size: 50px 60px;
+    background-size: 64px 64px;
 }
 
 .zombie-sprite.zombie-small.zombie-lifestyle {
-    background-size: 50px 60px;
+    background-size: 64px 64px;
 }
 
 .zombie-sprite.zombie-small.zombie-relationships {
-    background-size: 50px 60px;
+    background-size: 64px 64px;
 }
 
 .zombie-sprite.zombie-small.zombie-spirituality {
-    background-size: 50px 60px;
+    background-size: 64px 64px;
 }
 
 .zombie-sprite.zombie-small.zombie-other {
-    background-size: 50px 60px;
+    background-size: 64px 64px;
 }
 
-/* Habit enemy sprite sizing */
+/* Habit enemy sprite sizing - Updated to 64x64 */
 .enemy.habit-enemy.category-career {
-    background-size: 50px 60px;
+    background-size: 64px 64px;
 }
 
 .enemy.habit-enemy.category-creativity {
-    background-size: 50px 60px;
+    background-size: 64px 64px;
 }
 
 .enemy.habit-enemy.category-financial {
-    background-size: 50px 60px;
+    background-size: 64px 64px;
 }
 
 .enemy.habit-enemy.category-health {
-    background-size: 50px 60px;
+    background-size: 64px 64px;
 }
 
 .enemy.habit-enemy.category-lifestyle {
-    background-size: 50px 60px;
+    background-size: 64px 64px;
 }
 
 .enemy.habit-enemy.category-relationships {
-    background-size: 50px 60px;
+    background-size: 64px 64px;
 }
 
 .enemy.habit-enemy.category-spirituality {
-    background-size: 50px 60px;
+    background-size: 64px 64px;
 }
 
 .enemy.habit-enemy.category-other {
-    background-size: 50px 60px;
+    background-size: 64px 64px;
 }
 
 .enemy-name {
@@ -387,8 +387,8 @@ h2 { margin-top: 0; } /* For taskListContainer h2 */
 }
 
 .enemy.habit-enemy {
-    width: 50px; /* Smaller */
-    height: 60px; /* Smaller */
+    width: 64px; /* Updated to 64x64 sprite size */
+    height: 64px; /* Updated to 64x64 sprite size */
     /* background-image: url('habit_sprite.png'); /* Placeholder for a different habit sprite */
     border-style: dashed; /* Dashed border to look different */
 }
@@ -624,11 +624,11 @@ h2 { margin-top: 0; } /* For taskListContainer h2 */
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 64px;
+    height: 64px;
     background-position: center;
     background-repeat: no-repeat;
-    background-size: 32px 32px;
+    background-size: 64px 64px;
 }
 
 /* Task list zombie sprite classes for consistency with battle view */
@@ -831,5 +831,47 @@ h2 { margin-top: 0; } /* For taskListContainer h2 */
     to {
         outline-width: 4px; /* Slightly thicker outline on pulse */
         box-shadow: 0 0 18px #ffeb3b, 0 0 30px #ffc107;
+    }
+}
+
+/* Mobile responsive rules to maintain 64px sprite sizes */
+@media screen and (max-width: 768px) {
+    /* Ensure 64x64 sprites are maintained on mobile */
+    .enemy {
+        width: 64px !important;
+        height: 64px !important;
+    }
+    
+    .enemy.habit-enemy {
+        width: 64px !important;
+        height: 64px !important;
+    }
+    
+    .item-sprite {
+        width: 64px !important;
+        height: 64px !important;
+        background-size: 64px 64px !important;
+    }
+    
+    /* Maintain 64x64 background sizes for all sprite types */
+    .zombie-sprite,
+    .zombie-sprite.zombie-small,
+    .enemy.category-career,
+    .enemy.category-creativity,
+    .enemy.category-financial,
+    .enemy.category-health,
+    .enemy.category-lifestyle,
+    .enemy.category-relationships,
+    .enemy.category-spirituality,
+    .enemy.category-other,
+    .enemy.habit-enemy.category-career,
+    .enemy.habit-enemy.category-creativity,
+    .enemy.habit-enemy.category-financial,
+    .enemy.habit-enemy.category-health,
+    .enemy.habit-enemy.category-lifestyle,
+    .enemy.habit-enemy.category-relationships,
+    .enemy.habit-enemy.category-spirituality,
+    .enemy.habit-enemy.category-other {
+        background-size: 64px 64px !important;
     }
 }

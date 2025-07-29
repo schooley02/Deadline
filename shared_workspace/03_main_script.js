@@ -86,8 +86,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Calculate dimensions
         GAME_SCREEN_WIDTH = gameScreen.offsetWidth;
         BASE_WIDTH = baseElement.offsetWidth;
-        ENEMY_WIDTH = 60;
-        HABIT_ENEMY_WIDTH = 50;
+        ENEMY_WIDTH = 64;
+        HABIT_ENEMY_WIDTH = 64;
 
         // Initialize player stats
         playerXP = 0;

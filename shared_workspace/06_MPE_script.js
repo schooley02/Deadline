@@ -68,13 +68,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function initGame() {
         GAME_SCREEN_WIDTH = gameScreen.offsetWidth;
         BASE_WIDTH = baseElement.offsetWidth;
-        const tempEnemy = document.createElement('div');
-        tempEnemy.classList.add('enemy');
-        tempEnemy.style.visibility = 'hidden';
-        gameScreen.appendChild(tempEnemy);
-        ENEMY_WIDTH = tempEnemy.offsetWidth || 60;
-        gameScreen.removeChild(tempEnemy);
-        HABIT_ENEMY_WIDTH = ENEMY_WIDTH * 0.8;
+        ENEMY_WIDTH = 64;
+        HABIT_ENEMY_WIDTH = 64;
 
         playerXP = 0; updatePlayerXpDisplay();
         playerLevel = 1;
@@ -255,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
         itemElement.classList.add(`zombie-${itemData.category}`);
 
         const itemSpriteWidth = (itemData.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH;
-        const itemSpriteHeight = (itemData.type === 'habit') ? 60 : 70;
+        const itemSpriteHeight = 64; // All sprites now use 64x64 size
 
         itemElement.style.width = `${itemSpriteWidth}px`;
         itemElement.style.height = `${itemSpriteHeight}px`;
