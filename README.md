@@ -25,6 +25,24 @@ This project is a gamified productivity app where tasks and habits are represent
 - **Negative Habits**: Visual distinction for habits considered negative if not avoided.
 - **Streak Bonuses**: Visual representation and bonuses for maintaining a streak in habits.
 
+### Sub-task Sprite System
+
+Sub-tasks are smaller components of main tasks that inherit their parent category's visual styling while maintaining their own distinct appearance for better organization.
+
+#### Sizing
+- **Standard Display**: Sub-tasks use 64 × 64 pixel dimensions for consistent visual hierarchy
+- **Compact View**: Maintains proportional scaling when displayed in condensed layouts
+
+#### CSS Classes
+- **Primary Class**: `.zombie-subtask` - Base styling for all sub-task sprites
+- **Category Inheritance**: Sub-tasks automatically inherit parent task category colors and themes
+- **Size Modifier**: Applied alongside category classes for proper 64 × 64 display
+
+#### Asset Naming
+- **Convention**: `subtask-[category]-[variant].png` (e.g., `subtask-career-basic.png`)
+- **Fallback**: Uses parent category assets with size modifications when specific sub-task assets are unavailable
+- **States**: Similar to main tasks, sub-tasks support active, completed, and overdue visual states
+
 ## Usage
 
 1. **Navigate the Game Screen**: Use different form inputs to add tasks and habits.

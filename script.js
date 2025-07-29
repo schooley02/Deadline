@@ -57,6 +57,60 @@ document.addEventListener('DOMContentLoaded', () => {
         "spirituality": { bgColor: "#7ed321" }
     };
 
+    /*
+    ============================================================================
+    SUBTASK CREATION CALL CHAIN MAP
+    ============================================================================
+    
+    UI EVENT LISTENERS & CALL FLOW:
+    
+    1. "+ Sub-task" Button Click (Line ~525)
+       └── addSubTaskButton.addEventListener('click', () => {
+           └── createSubTaskPrompt(itemData.id)  [Line 527]
+    
+    2. createSubTaskPrompt(parentId)  [Line 895]
+       └── showCreateSubTaskModal(parentId)  [Line 896]
+    
+    3. showCreateSubTaskModal(parentId)  [Line 899]
+       ├── Creates modal HTML with form inputs
+       ├── Finds parent task from activeItems array
+       └── Sets up "Create Sub-task" button event listener
+           └── createButton.addEventListener('click', (event) => {  [Line 964]
+    
+    4. "Create Sub-task" Button Click Handler  [Line 964]
+       ├── Validates form inputs (name, dueDate required)
+       ├── Calls: createTaskItemData(name, category, isHighPriority, dueDate, dueTime, parentId)  [Line 991]
+       ├── Updates parent task: parentTask.subTasks.push(subTaskData.id)  [Line 1001]
+       ├── Calls: addItemToGame(subTaskData)  [Line 1005]
+       ├── Refreshes parent's list item display  [Line 1008-1011]
+       └── Calls: closeModal()  [Line 1017]
+    
+    5. createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId)  [Line 266]
+       ├── Creates task data object with parentId field
+       ├── Handles due date inheritance from parent if none provided
+       ├── Sets up subtask hierarchy fields (parentId, subTasks[], etc.)
+       └── Returns: taskData object with all properties
+    
+    6. addItemToGame(itemData)  [Line 336]
+       ├── Creates DOM enemy element (smaller size for subtasks)
+       ├── Adds subtask-specific CSS classes ('subtask-enemy', 'zombie-subtask')
+       ├── Does NOT create list item for subtasks (only for top-level tasks)
+       ├── Positions element on game canvas
+       └── Adds to activeItems array
+    
+    TASK OBJECT CONSTRUCTION:
+    - Task objects are constructed in createTaskItemData() [Line 266]
+    - Key subtask properties: parentId, subTasks[], completedSubTasks, totalSubTasks
+    - Subtasks inherit due date from parent if not specified
+    
+    UI RENDERING:
+    - Subtasks are rendered within their parent's list item in createListItem() [Line 422]
+    - Parent tasks show subtask list with individual controls [Line 537-620]
+    - Subtasks get their own game canvas sprites but no separate list items
+    
+    ============================================================================
+    */
+
     // --- Game State ---
     let baseHealth, playerXP, playerLevel, playerPoints, routineSlots;
     let activeItems = [];
@@ -88,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         GAME_SCREEN_WIDTH = gameCanvas.offsetWidth;
         BASE_WIDTH = baseElement.offsetWidth;
         ENEMY_WIDTH = 128;
-        HABIT_ENEMY_WIDTH = 70;
+        HABIT_ENEMY_WIDTH = 128;
 
         // Initialize player stats
         playerXP = 0;
@@ -264,6 +318,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Task creation and management
     function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId = null) {
+        console.log('🛠️ createTaskItemData called with:', {
+            name,
+            category,
+            isHighPriority,
+            dueDateStr,
+            dueTimeStr,
+            parentId,
+            parentIdType: typeof parentId
+        });
+        
         const creationTime = new Date();
         let dueDateTime;
         
@@ -313,10 +377,26 @@ document.addEventListener('DOMContentLoaded', () => {
         // Calculate initial position based on new timeline system
         taskData.x = calculateTimelinePosition(taskData, creationTime);
         
+        console.log('🔧 createTaskItemData returning:', {
+            id: taskData.id,
+            name: taskData.name,
+            parentId: taskData.parentId,
+            parentIdType: typeof taskData.parentId
+        });
+        
         return taskData;
     }
 
     function addItemToGame(itemData) {
+        console.log('📍 addItemToGame called with:', {
+            id: itemData.id,
+            name: itemData.name,
+            type: itemData.type,
+            parentId: itemData.parentId,
+            parentIdType: typeof itemData.parentId,
+            stackTrace: new Error().stack.split('\n').slice(1, 4).join('\n')
+        });
+        
         if (gameIsOver) return;
         
         // Create enemy element
@@ -328,8 +408,21 @@ document.addEventListener('DOMContentLoaded', () => {
         itemElement.classList.add('zombie-sprite');
         itemElement.classList.add(`zombie-${itemData.category}`);
         
-        const itemSpriteWidth = (itemData.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH;
-        const itemSpriteHeight = (itemData.type === 'habit') ? 70 : 128;
+        let itemSpriteWidth, itemSpriteHeight;
+        
+        if (itemData.parentId) {
+            // This is a subtask
+            itemSpriteWidth = 64;
+            itemSpriteHeight = 64;
+            itemElement.classList.add('subtask-enemy');
+            itemElement.classList.add('zombie-subtask');
+        } else if (itemData.type === 'habit') {
+            itemSpriteWidth = HABIT_ENEMY_WIDTH;
+            itemSpriteHeight = 128;
+        } else {
+            itemSpriteWidth = ENEMY_WIDTH;
+            itemSpriteHeight = 128;
+        }
         
         itemElement.style.width = `${itemSpriteWidth}px`;
         itemElement.style.height = `${itemSpriteHeight}px`;
@@ -502,11 +595,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 const subTaskItem = document.createElement('li');
                 subTaskItem.classList.add('sub-task-item');
                 subTaskItem.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--color-bg-light);';
+                subTaskItem.classList.add(`category-${subTaskData.category}`);
                 
-                // Left side: Sub-task info
+                // Left side: Sub-task sprite and info
+                const subTaskSpriteDiv = document.createElement('div');
+                subTaskSpriteDiv.classList.add('item-sprite');
+                if (subTaskData.parentId) {
+                    subTaskSpriteDiv.classList.add('zombie-subtask');
+                    subTaskSpriteDiv.style.width = '32px';
+                    subTaskSpriteDiv.style.height = '32px';
+                }
+                
                 const subTaskInfo = document.createElement('div');
                 subTaskInfo.classList.add('sub-task-info');
-                subTaskInfo.style.cssText = 'flex-grow: 1;';
+                subTaskInfo.style.cssText = 'flex-grow: 1; margin-left: 8px;';
                 
                 const subTaskName = document.createElement('div');
                 subTaskName.style.cssText = 'font-weight: 500; margin-bottom: 4px;';
@@ -563,6 +665,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 subTaskControls.appendChild(subTaskCheckboxLabel);
                 
                 // Assemble the sub-task item
+                subTaskItem.appendChild(subTaskSpriteDiv);
                 subTaskItem.appendChild(subTaskInfo);
                 subTaskItem.appendChild(subTaskControls);
                 
@@ -848,11 +951,17 @@ function showTaskDetailsPopup(item) {
     }
     
     function showCreateSubTaskModal(parentId) {
+        console.log('🎯 showCreateSubTaskModal called with parentId:', parentId, 'type:', typeof parentId);
+        
         const parentTask = activeItems.find(item => item.id === parentId && item.type === 'task');
         if (!parentTask) {
+            console.log('❌ Parent task not found for parentId:', parentId);
+            console.log('Available active items:', activeItems.map(item => ({ id: item.id, name: item.name, type: item.type })));
             alert('Parent task not found.');
             return;
         }
+        
+        console.log('✅ Found parent task:', { id: parentTask.id, name: parentTask.name, type: parentTask.type });
         
         const today = new Date().toISOString().split('T')[0];
         const parentDueDate = parentTask.dueDateTime.toISOString().split('T')[0];
@@ -906,17 +1015,31 @@ function showTaskDetailsPopup(item) {
         // Add create functionality
         const createButton = document.getElementById('createSubTaskBtn');
         if (createButton) {
-            createButton.addEventListener('click', () => {
+            createButton.addEventListener('click', (event) => {
+                console.log('🔥 SUBTASK CREATE BUTTON CLICKED - DEBUG INFO:');
+                console.log('Event object:', event);
+                console.log('Modal open:', document.querySelector('.modal-overlay') !== null);
+                console.log('Preventing default and stopping propagation');
+                
+                // Prevent any event bubbling or default actions
+                event.preventDefault();
+                event.stopPropagation();
+                
                 const name = document.getElementById('subTaskName').value.trim();
                 const category = document.getElementById('subTaskCategory').value;
                 const isHighPriority = document.getElementById('subTaskHighPriority').checked;
                 const dueDate = document.getElementById('subTaskDueDate').value;
                 const dueTime = document.getElementById('subTaskDueTime').value;
                 
+                console.log('Subtask form values:', { name, category, isHighPriority, dueDate, dueTime });
+                
                 if (!name || !dueDate) {
+                    console.log('⚠️ Subtask creation stopped - missing name or date');
                     alert('Sub-task Name and Due Date are required.');
                     return;
                 }
+                
+                console.log('✅ Creating SUBTASK:', { name, category, isHighPriority, dueDate, dueTime, parentId });
                 
                 // Create sub-task with specified fields
                 const subTaskData = createTaskItemData(
@@ -932,53 +1055,17 @@ function showTaskDetailsPopup(item) {
                 parentTask.subTasks.push(subTaskData.id);
                 parentTask.totalSubTasks = parentTask.subTasks.length;
                 
-                // Add to game canvas
-                const itemElement = document.createElement('div');
-                itemElement.classList.add('enemy');
-                itemElement.classList.add(`category-${subTaskData.category}`);
-                itemElement.classList.add('zombie-sprite');
-                itemElement.classList.add(`zombie-${subTaskData.category}`);
-                
-                itemElement.style.width = `${ENEMY_WIDTH}px`;
-                itemElement.style.height = `128px`;
-                
-                if (subTaskData.isHighPriority) {
-                    itemElement.classList.add('high-priority');
-                }
-                
-                // Position enemy
-                itemElement.style.left = subTaskData.x + 'px';
-                const randomTop = Math.random() * (gameCanvas.offsetHeight - 128);
-                itemElement.style.top = Math.max(0, Math.min(randomTop, gameCanvas.offsetHeight - 128)) + 'px';
-                
-                // Set up click handler
-                itemElement.dataset.itemId = subTaskData.id;
-                itemElement.addEventListener('click', () => handleEnemyClick(subTaskData.id));
-                
-                // Add to game canvas
-                gameCanvas.appendChild(itemElement);
-                subTaskData.element = itemElement;
-                
-                // Check if already overdue
-                if (subTaskData.dueDateTime < new Date()) {
-                    markAsOverdue(subTaskData, new Date());
-                    subTaskData.x = BASE_WIDTH;
-                    if (subTaskData.element) subTaskData.element.style.left = subTaskData.x + 'px';
-                }
-                
-                // Add sub-task to activeItems Array
-                activeItems.push(subTaskData);
-                updateTaskCountDisplay();
+                // Use centralized addItemToGame function which handles subtask logic
+                addItemToGame(subTaskData);
 
                 // Refresh the parent task's list item to show the new sub-task
                 if (parentTask.listItemElement) {
                     parentTask.listItemElement.remove();
                     createListItem(parentTask);
+                    sortAndRenderActiveList();
                 }
-
-                // Update active items list
-                sortAndRenderActiveList();
                 
+                console.log('🏁 Subtask creation complete, closing modal');
                 closeModal();
             });
         }
@@ -3163,6 +3250,13 @@ function updateMidnightLine(currentTime) {
 
     if (addTaskButton) {
         addTaskButton.addEventListener('click', () => {
+            console.log('🔥 MAIN TASK BUTTON CLICKED - DEBUG INFO:');
+            console.log('Game over:', gameIsOver);
+            console.log('Modal open:', document.querySelector('.modal-overlay') !== null);
+            console.log('Task form active:', taskForm && taskForm.classList.contains('active-form'));
+            console.log('Task name input value:', taskNameInput ? taskNameInput.value : 'NO INPUT');
+            console.log('Due date input value:', dueDateInput ? dueDateInput.value : 'NO INPUT');
+            
             if (gameIsOver) return;
             
             const name = taskNameInput.value.trim();
@@ -3172,10 +3266,12 @@ function updateMidnightLine(currentTime) {
             const dueTime = dueTimeInput.value;
             
             if (!name || !dueDate) {
+                console.log('⚠️ Main task creation stopped - missing name or date');
                 alert("Task Name and Due Date are required.");
                 return;
             }
             
+            console.log('✅ Creating MAIN TASK:', { name, category, isHighPriority, dueDate, dueTime });
             const taskData = createTaskItemData(name, category, isHighPriority, dueDate, dueTime);
             addItemToGame(taskData);
             
@@ -3226,7 +3322,11 @@ function updateMidnightLine(currentTime) {
     if (taskNameInput) {
         taskNameInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && taskForm && taskForm.classList.contains('active-form')) {
-                if (addTaskButton) addTaskButton.click();
+                // Only trigger if no modal is open
+                const anyModalOpen = document.querySelector('.modal-overlay');
+                if (!anyModalOpen && addTaskButton) {
+                    addTaskButton.click();
+                }
             }
         });
     }

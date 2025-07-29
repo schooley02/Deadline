@@ -460,6 +460,62 @@ body {
     background-size: 70px 70px;
 }
 
+/* Sub-task zombie sprites (64 × 64) */
+.zombie-subtask {
+    width: 64px;
+    height: 64px;
+    opacity: 0.85;
+    outline: 1px solid rgba(0, 191, 165, 0.3);
+}
+
+.zombie-sprite.zombie-subtask.zombie-career,
+.zombie-subtask.zombie-career {
+    background-image: url('Assets/Zombies/career-zombie-64.png');
+    background-size: 64px 64px;
+}
+
+.zombie-sprite.zombie-subtask.zombie-creativity,
+.zombie-subtask.zombie-creativity {
+    background-image: url('Assets/Zombies/creativity-zombie-64.png');
+    background-size: 64px 64px;
+}
+
+.zombie-sprite.zombie-subtask.zombie-financial,
+.zombie-subtask.zombie-financial {
+    background-image: url('Assets/Zombies/financial-zombie-64.png');
+    background-size: 64px 64px;
+}
+
+.zombie-sprite.zombie-subtask.zombie-health,
+.zombie-subtask.zombie-health {
+    background-image: url('Assets/Zombies/health-zombie-64.png');
+    background-size: 64px 64px;
+}
+
+.zombie-sprite.zombie-subtask.zombie-lifestyle,
+.zombie-subtask.zombie-lifestyle {
+    background-image: url('Assets/Zombies/lifestyle-zombie-64.png');
+    background-size: 64px 64px;
+}
+
+.zombie-sprite.zombie-subtask.zombie-relationships,
+.zombie-subtask.zombie-relationships {
+    background-image: url('Assets/Zombies/relationships-zombie-64.png');
+    background-size: 64px 64px;
+}
+
+.zombie-sprite.zombie-subtask.zombie-spirituality,
+.zombie-subtask.zombie-spirituality {
+    background-image: url('Assets/Zombies/spiritual-zombie-64.png');
+    background-size: 64px 64px;
+}
+
+.zombie-sprite.zombie-subtask.zombie-other,
+.zombie-subtask.zombie-other {
+    background-image: url('Assets/Zombies/other-zombie-64.png');
+    background-size: 64px 64px;
+}
+
 /* High Priority Enemies */
 .enemy.high-priority {
     outline: 3px solid var(--color-holy-gold);
@@ -833,12 +889,24 @@ body {
     height: 50px;
 }
 
+/* Smaller sprite size for subtasks */
+.item-sprite.zombie-subtask {
+    width: 32px;
+    height: 32px;
+    font-size: 20px;
+}
+
 /* Task List Category Sprites - Using background images instead of emoji */
 .task-list li.category-career .item-sprite {
     background-image: url('Assets/Zombies/career-zombie.png');
     background-size: 50px 50px;
     background-position: center;
     background-repeat: no-repeat;
+}
+
+/* Subtask sprites in list view - smaller size */
+.task-list li.category-career .item-sprite.zombie-subtask {
+    background-size: 32px 32px;
 }
 
 .task-list li.category-creativity .item-sprite {
@@ -848,11 +916,19 @@ body {
     background-repeat: no-repeat;
 }
 
+.task-list li.category-creativity .item-sprite.zombie-subtask {
+    background-size: 32px 32px;
+}
+
 .task-list li.category-financial .item-sprite {
     background-image: url('Assets/Zombies/financial-zombie.png');
     background-size: 50px 50px;
     background-position: center;
     background-repeat: no-repeat;
+}
+
+.task-list li.category-financial .item-sprite.zombie-subtask {
+    background-size: 32px 32px;
 }
 
 .task-list li.category-health .item-sprite {
@@ -862,11 +938,19 @@ body {
     background-repeat: no-repeat;
 }
 
+.task-list li.category-health .item-sprite.zombie-subtask {
+    background-size: 32px 32px;
+}
+
 .task-list li.category-lifestyle .item-sprite {
     background-image: url('Assets/Zombies/lifestyle-zombie.png');
     background-size: 50px 50px;
     background-position: center;
     background-repeat: no-repeat;
+}
+
+.task-list li.category-lifestyle .item-sprite.zombie-subtask {
+    background-size: 32px 32px;
 }
 
 .task-list li.category-relationships .item-sprite {
@@ -876,6 +960,10 @@ body {
     background-repeat: no-repeat;
 }
 
+.task-list li.category-relationships .item-sprite.zombie-subtask {
+    background-size: 32px 32px;
+}
+
 .task-list li.category-spirituality .item-sprite {
     background-image: url('Assets/Zombies/spiritual-zombie.png');
     background-size: 50px 50px;
@@ -883,11 +971,19 @@ body {
     background-repeat: no-repeat;
 }
 
+.task-list li.category-spirituality .item-sprite.zombie-subtask {
+    background-size: 32px 32px;
+}
+
 .task-list li.category-other .item-sprite {
     background-image: url('Assets/Zombies/other-zombie.png');
     background-size: 50px 50px;
     background-position: center;
     background-repeat: no-repeat;
+}
+
+.task-list li.category-other .item-sprite.zombie-subtask {
+    background-size: 32px 32px;
 }
 
 /* Hide the pseudo-element content since we're using background images */

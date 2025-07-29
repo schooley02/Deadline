@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subtask Debug Tool</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        button { padding: 10px 15px; margin: 5px; }
+        .info { background: #e7f3ff; padding: 10px; margin: 10px 0; }
+        .error { background: #ffe7e7; padding: 10px; margin: 10px 0; }
+        .success { background: #e7ffe7; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Subtask Debug Tool</h1>
+    
+    <div class="debug-section">
+        <h2>Manual Test Steps</h2>
+        <p>Open the main application at <a href="http://localhost:8000" target="_blank">http://localhost:8000</a> and follow these steps:</p>
+        
+        <h3>Test 1: Create Parent Task</h3>
+        <ol>
+            <li>Click the FAB (+) button</li>
+            <li>Click "Tasks"</li>
+            <li>Fill form: Name="Parent Task", Category="career", High Priority=checked, Due Date=today, Due Time=17:00</li>
+            <li>Click "Add Task"</li>
+            <li>✅ Verify: Parent task appears in list and game canvas</li>
+        </ol>
+        
+        <h3>Test 2: Create Subtask</h3>
+        <ol>
+            <li>Click the "+ Sub-task" button on the parent task</li>
+            <li>Fill form: Name="Research Phase", Category=inherited (career)</li>
+            <li>Click "Create Sub-task"</li>
+            <li>✅ Expected: Subtask appears under parent task, NOT as separate task</li>
+            <li>❌ Bug: Extra standalone task appears in main list</li>
+        </ol>
+        
+        <h3>Debugging Questions</h3>
+        <ul>
+            <li>Does the "+ Sub-task" button appear on the parent task?</li>
+            <li>Does clicking it open the subtask creation modal?</li>
+            <li>After creating the subtask, how many items are in the main task list?</li>
+            <li>How many enemies are in the game canvas?</li>
+            <li>Is there a subtask shown under the parent task?</li>
+        </ul>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Console Commands</h2>
+        <p>Open browser dev tools (F12) and run these commands in the console:</p>
+        <pre>
+// Check active items
+console.log('Active Items:', activeItems);
+
+// Check for parent-child relationships
+activeItems.forEach(item => {
+    console.log(`${item.name} (ID: ${item.id}) - Parent: ${item.parentId}, SubTasks: [${item.subTasks.join(', ')}]`);
+});
+
+// Check game canvas enemies
+console.log('Enemies in canvas:', document.querySelectorAll('.enemy').length);
+console.log('Subtask enemies:', document.querySelectorAll('.subtask-enemy').length);
+
+// Check task list items
+console.log('Task list items:', document.querySelectorAll('#activeItemsList li').length);
+        </pre>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Expected vs Actual Behavior</h2>
+        <div class="success">
+            <h4>✅ Expected (After Fix)</h4>
+            <ul>
+                <li>1 parent task in main list</li>
+                <li>1 subtask displayed under parent task</li>
+                <li>2 enemies total in game canvas (1 parent + 1 subtask)</li>
+                <li>Subtask has smaller sprite and "subtask-enemy" class</li>
+            </ul>
+        </div>
+        
+        <div class="error">
+            <h4>❌ Bug Behavior (Before Fix)</h4>
+            <ul>
+                <li>2 items in main task list (parent + duplicate subtask)</li>
+                <li>Subtask also appears as standalone task</li>
+                <li>Extra enemies in game canvas</li>
+                <li>Duplicate task creation</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function openMainApp() {
+            window.open('http://localhost:8000', '_blank');
+        }
+        
+        function showInstructions() {
+            alert(`
+1. Open http://localhost:8000 in a new tab
+2. Create a parent task first
+3. Try to create a subtask
+4. Check if subtask appears correctly under parent
+5. Report back what you observe
+            `);
+        }
+    </script>
+    
+    <button onclick="openMainApp()">Open Main App</button>
+    <button onclick="showInstructions()">Show Instructions</button>
+</body>
+</html>
