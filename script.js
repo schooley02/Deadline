@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+
     // --- DOM Elements ---
     const gameCanvas = document.getElementById('gameCanvas');
     const baseElement = document.getElementById('base');
@@ -44,6 +45,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Control buttons
     const attackButton = document.getElementById('attackButton');
     const restartButton = document.getElementById('restartButton');
+
+    // Initialize TaskManager and IdCounter
+    const itemIdCounter = new IdCounter();
+    const taskManager = new TaskManager(gameCanvas, activeItemsListUL, itemIdCounter);
 
     // Category styling configuration
     const categoryStyles = {
@@ -111,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ============================================================================
     */
 
-    // --- Game State ---
+const { gameIsOver } = window; // Assuming gameIsOver is set somewhere in global scope
     let baseHealth, playerXP, playerLevel, playerPoints, routineSlots;
     let activeItems = [];
     let completedItems = [];
@@ -317,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Task creation and management
-    function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId = null) {
+    function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId) {
         console.log('🛠️ createTaskItemData called with:', {
             name,
             category,
@@ -866,7 +871,6 @@ function showTaskDetailsPopup(item) {
         });
     }
 
-    function completeItem(itemId) {
         if (gameIsOver) return;
         
         const itemIndex = activeItems.findIndex(i => i.id === itemId);
@@ -950,7 +954,6 @@ function showTaskDetailsPopup(item) {
         showCreateSubTaskModal(parentId);
     }
     
-    function showCreateSubTaskModal(parentId) {
         console.log('🎯 showCreateSubTaskModal called with parentId:', parentId, 'type:', typeof parentId);
         
         const parentTask = activeItems.find(item => item.id === parentId && item.type === 'task');
@@ -1076,7 +1079,6 @@ function showTaskDetailsPopup(item) {
         });
     }
 
-    function uncompleteItem(itemId) {
         const completedIndex = completedItems.findIndex(i => i.id === itemId);
         if (completedIndex === -1) return;
         
@@ -3175,7 +3177,24 @@ function updateMidnightLine(currentTime) {
     
     // Event Listeners
     if (fabButton) {
-        fabButton.addEventListener('click', toggleFabMenu);
+        console.log('💥 SETTING UP FAB BUTTON EVENT LISTENER');
+        fabButton.addEventListener('click', (e) => {
+            console.log('💥 FAB BUTTON CLICKED!', e);
+            toggleFabMenu();
+        });
+        
+        // Test if the button is accessible
+        fabButton.addEventListener('mouseenter', () => {
+            console.log('💥 FAB BUTTON MOUSE ENTER');
+        });
+        
+        // Log button properties
+        console.log('FAB Button style display:', fabButton.style.display);
+        console.log('FAB Button computed style:', window.getComputedStyle(fabButton));
+        console.log('FAB Button offsetParent:', fabButton.offsetParent);
+        console.log('FAB Button bounding rect:', fabButton.getBoundingClientRect());
+    } else {
+        console.error('❌ FAB BUTTON NOT FOUND!');
     }
     
     // FAB menu item listeners

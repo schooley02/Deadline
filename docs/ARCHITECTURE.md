@@ -1,0 +1,48 @@
+# Architecture — Current State, Target, Refactor Rules
+
+## Current State (July 2025 codebase)
+- `index.html` (266 lines) + `script.js` (~3,420 lines) + `style.css` (~2,035 lines) — a working DOM-rendered monolith.
+- `js/TaskManager.js`, `js/IdCounter.js` — first extractions already made.
+- `server.js` — tiny static server (`node server.js` → http://localhost:8000). `npx serve .` also works.
+- `test/` — Jest tests (subtask creation) + puppeteer visual tests. `npm install` then `npm test`.
+- No persistence (localStorage is Milestone 1). No build step — keep it that way.
+
+## Why we refactor
+The 3,420-line script.js forced every Claude session to re-read one giant file — that's what degraded the July 2025 sessions. Modules mean a session loads only what its task touches.
+
+## Refactor Strategy: incremental extraction (decided 2026-07-16)
+NOT a big-bang rewrite. One system per session:
+1. Identify the functions for one system (Grep script.js — don't read it whole).
+2. Move them to a module under `js/`, exporting what script.js needs.
+3. Load via `<script>` tag order or ES module conversion (convert to ES modules once, early in Milestone 2, as its own session).
+4. `npm test` + manual smoke test pass before AND after. Commit each extraction.
+
+## Target Layout
+```
+js/
+├── config.js          # ALL gameplay numbers (create in Milestone 1)
+├── state.js           # central state + mutation functions (only place state changes)
+├── persistence.js     # localStorage save/load + schemaVersion migrations
+├── clock.js           # real time, timeline positions, midnight line, offline catch-up
+├── spawning.js        # enemy creation/admission (max 20 on screen)
+├── movement.js        # timeline-based positioning
+├── damage.js          # overdue damage, base HP, game over
+├── progression.js     # XP, levels, slots
+├── habits.js          # habit instances, streaks, pos/neg logic
+├── routines.js        # heroes, slots, frozen recovery
+├── economy.js         # points, shop, exponential pricing
+├── TaskManager.js     # (exists) task CRUD
+├── IdCounter.js       # (exists) id generation
+└── ui/                # forms, agendaList, canvasView, hud, popups, fabMenu
+```
+`script.js` ends as boot/wiring only (<300 lines). `style.css` splits per component after JS is done.
+
+## Conventions
+- Balance numbers only in `js/config.js`. UI never mutates state directly. Max ~300 lines/file.
+- Real timestamps in logic; accelerated demo time only behind a config flag.
+- No new dependencies without a DECISIONS.md entry.
+- Old prototype `Deadline-MPE/` is frozen reference — never modify.
+
+## Testing
+- Jest for logic; keep tests running through every extraction. Add tests for each extracted module (movement math, damage ticks, pricing curve, streak resets, persistence round-trip).
+- `playtester` agent runs `npm test` + `node --check` on changed files before handoff.
