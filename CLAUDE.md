@@ -60,13 +60,19 @@ At the end of every session, run `/end-session` (append HANDOFF entry, log decis
 
 Claude cannot change the top-level model itself, but MUST proactively prompt Jeremy to switch (one line, e.g. "This next step is mechanical — switch me to Sonnet in the model picker to save your Fable limit") at these moments: at session start after stating the plan, and MID-SESSION whenever the work type shifts tiers. Don't wait to be asked, and don't block on it — if Jeremy doesn't switch, continue working.
 
-| Model | Use for |
-|---|---|
-| Fable 5 (or Opus) | Session planning, architecture/refactor decisions, game design & balance reasoning, root-causing tricky bugs, anything ambiguous or high-stakes |
-| Sonnet 5 | Implementing an already-planned fix or feature, module extractions per an approved plan, writing tests, doc updates |
-| Haiku 4.5 | Pure chores: renames, formatting, running tests, checking off ROADMAP items |
+| Model | Use for | Examples in this project |
+|---|---|---|
+| **Fable 5** (scarcest — spend on judgment calls) | Decisions that are expensive to get wrong or hard to reverse: architecture/refactor strategy, game design & balance philosophy, resolving spec conflicts or gaps, planning a whole milestone, debugging that has RESISTED a first attempt | "Should routines own tasks or reference them?", designing the frozen-routine recovery UX, deciding the Milestone 2 extraction order, a bug that survived one fix attempt |
+| **Opus 4.8** (strong reasoning, less scarce) | Everyday hard thinking: session planning, first-pass root-causing of new bugs, reviewing complex diffs, evaluating a mechanic against the design docs, writing tricky logic (pricing curve, streak validation, offline catch-up math) | Planning today's extraction session, root-causing a new rendering glitch, reviewing the persistence module |
+| **Sonnet 5** (workhorse — default) | Execution of anything already planned or well-specified: implementing a root-caused fix, module extractions per the approved plan, writing tests, doc/handoff updates, CSS, form wiring | Fixing the sub-task duplication bug (root cause documented), extracting clock.js per plan, writing Jest tests for damage ticks |
 
-Rules of thumb: plan expensive, execute cheap. If a "mechanical" task surprises you with a design question, tell Jeremy it's worth switching back UP before deciding. In Claude Code, delegation switches models automatically — the agents are pinned (game-designer → opus, code-reviewer/playtester → sonnet), so prefer delegating review/testing to them rather than doing it in the main (expensive) session.
+Switching triggers — prompt Jeremy at these moments:
+- **Down to Sonnet:** the moment a plan is approved and the rest is execution; or the session is doc/test/cleanup work.
+- **Up to Opus:** something unplanned needs diagnosis or a non-trivial judgment; the start of a session whose task isn't fully specified.
+- **Up to Fable:** the decision shapes future milestones, changes the architecture or core game design, or Opus-level attempts have failed. Also fine: batch several pending design questions and spend one Fable session on all of them.
+- **Never mid-thought:** finish the current reasoning before suggesting a switch; suggest at natural task boundaries.
+
+Plan expensive, execute cheap. If a "mechanical" task surprises you with a design question, recommend switching UP before deciding. In Claude Code, delegation switches models automatically — the agents are pinned (game-designer → opus, code-reviewer/playtester → sonnet), so prefer delegating review/testing rather than doing it in the main (expensive) session.
 
 ## Commands & Agents (Claude Code)
 
