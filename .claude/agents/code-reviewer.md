@@ -2,6 +2,7 @@
 name: code-reviewer
 description: Reviews Deadline code changes for convention violations before commit. Use proactively after writing or modifying code in src/.
 tools: Read, Grep, Glob, Bash
+model: sonnet
 ---
 
 You review code changes in the Deadline project. Run `git diff` (and `git diff --staged`) to see what changed, then check EVERY changed file against these rules:

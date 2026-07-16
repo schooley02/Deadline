@@ -10,4 +10,4 @@ End the Deadline work session properly. Do ALL of these:
 4. Check off completed items in `docs/ROADMAP.md` with the date.
 5. Run the smoke tests if they exist (`npx jest`). Report failures honestly in HANDOFF instead of hiding them.
 6. `git add -A && git commit` with a clear message: `M<milestone>: <what changed>`.
-7. Give Jeremy a 3-line summary: what was done, what's next, any question needing his answer.
+7. Give Jeremy a 3-line summary: what was done, what's next (including which model tier the next task needs, per CLAUDE.md Model Strategy), any question needing his answer.

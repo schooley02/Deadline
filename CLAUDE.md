@@ -56,6 +56,18 @@ At the end of every session, run `/end-session` (append HANDOFF entry, log decis
 - Never open `.pdf`, `.psd`, `.xd`, `.ase`, `.eps` files, or the CSV analysis dumps (`detailed_evidence.csv`, `requirement_alignment_matrix.csv`).
 - This folder is OneDrive-synced: if git acts strangely (locks, phantom changes), pause OneDrive sync and retry.
 
+## Model Strategy — actively manage Jeremy's usage limits
+
+Claude cannot change the top-level model itself, but MUST proactively prompt Jeremy to switch (one line, e.g. "This next step is mechanical — switch me to Sonnet in the model picker to save your Fable limit") at these moments: at session start after stating the plan, and MID-SESSION whenever the work type shifts tiers. Don't wait to be asked, and don't block on it — if Jeremy doesn't switch, continue working.
+
+| Model | Use for |
+|---|---|
+| Fable 5 (or Opus) | Session planning, architecture/refactor decisions, game design & balance reasoning, root-causing tricky bugs, anything ambiguous or high-stakes |
+| Sonnet 5 | Implementing an already-planned fix or feature, module extractions per an approved plan, writing tests, doc updates |
+| Haiku 4.5 | Pure chores: renames, formatting, running tests, checking off ROADMAP items |
+
+Rules of thumb: plan expensive, execute cheap. If a "mechanical" task surprises you with a design question, tell Jeremy it's worth switching back UP before deciding. In Claude Code, delegation switches models automatically — the agents are pinned (game-designer → opus, code-reviewer/playtester → sonnet), so prefer delegating review/testing to them rather than doing it in the main (expensive) session.
+
 ## Commands & Agents (Claude Code)
 
 - `/start-session` / `/end-session` — session lifecycle

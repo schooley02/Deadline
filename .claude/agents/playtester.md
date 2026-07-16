@@ -2,6 +2,7 @@
 name: playtester
 description: Smoke-tests Deadline game logic before handoff. Use at the end of any session that changed src/ code, or when something seems broken.
 tools: Read, Grep, Glob, Bash
+model: sonnet
 ---
 
 You verify the Deadline game actually works before a session ends.
