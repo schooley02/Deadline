@@ -10,11 +10,11 @@
 ## Why we refactor
 The 3,420-line script.js forced every Claude session to re-read one giant file — that's what degraded the July 2025 sessions. Modules mean a session loads only what its task touches.
 
-## Refactor Strategy: incremental extraction (decided 2026-07-16)
+## Refactor Strategy: incremental extraction (decided 2026-07-16; step 3 superseded 2026-07-17)
 NOT a big-bang rewrite. One system per session:
 1. Identify the functions for one system (Grep script.js — don't read it whole).
-2. Move them to a module under `js/`, exporting what script.js needs.
-3. Load via `<script>` tag order or ES module conversion (convert to ES modules once, early in Milestone 2, as its own session).
+2. Move them to a module under `js/`, exporting what script.js needs. If the moved functions closed over script.js's module-scoped state (e.g. DOM-derived `let`s like `GAME_SCREEN_WIDTH`), take that state as explicit function parameters instead — don't recreate the closure across files. script.js can keep a thin wrapper at the original call sites so nothing else has to change.
+3. Load via `<script>` tag order (index.html) — **the planned ES module conversion is CANCELLED (2026-07-17, see DECISIONS.md)**. Staying with the global + `module.exports` pattern already proven by `js/config.js`/`js/persistence.js`: no build step, and test files `require()` modules directly in Node.
 4. `npm test` + manual smoke test pass before AND after. Commit each extraction.
 
 ## Target Layout
@@ -23,10 +23,10 @@ js/
 ├── config.js          # ALL gameplay numbers (create in Milestone 1)
 ├── state.js           # central state + mutation functions (only place state changes)
 ├── persistence.js     # localStorage save/load + schemaVersion migrations
-├── clock.js           # real time, timeline positions, midnight line, offline catch-up
+├── clock.js           # real time, timeline positions, midnight line (IMPLEMENTED 2026-07-17 — see DECISIONS.md). Offline catch-up deliberately stayed in script.js for now; moves to damage.js instead when that extraction happens (too tangled with damage/DOM animation to split off cleanly in clock.js's first session)
 ├── spawning.js        # enemy creation/admission (max 20 on screen)
 ├── movement.js        # timeline-based positioning
-├── damage.js          # overdue damage, base HP, game over
+├── damage.js          # overdue damage, base HP, game over, offline catch-up (moved here from clock.js's original scope — see clock.js note above)
 ├── progression.js     # XP, levels, slots
 ├── habits.js          # habit instances, streaks, pos/neg logic
 ├── routines.js        # heroes, slots, frozen recovery

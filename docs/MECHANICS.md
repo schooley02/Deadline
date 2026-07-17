@@ -17,7 +17,7 @@
 
 ## Base
 
-- A country church overlooking an eerie graveyard. 100 HP, replenishes to full each day.
+- A country church overlooking an eerie graveyard. 100 HP. **Healing/recovery is an OPEN QUESTION — not implemented, and the docs disagree with each other** (this line's "replenishes to full each day" vs. PROJECT_SPEC's gradual 1 HP/5min regen + repair-kit-gated recovery after destruction — see DECISIONS.md 2026-07-17). Do not build against either description until it's decided.
 - Visual damage states (see ART_STYLE.md): shakes on each hit; progressively destroyed; smoking; fully engulfed in flames right before destruction.
 - Base HP reaching 0 ends the run. Game-over screen: "Your Base survived X days. What adjustments can you make to have a stronger Base in your life?" + New Base button.
 - Run history log: routines used, active date range, and which tasks/habits took the base out. New run starts with the same active tasks/habits/routines.
@@ -61,3 +61,4 @@
 - Exact HP/damage numbers for enemies inside the base damaging routine health.
 - Double-points probability curve for streaks ("higher chance" per spec; exact % TBD).
 - Note: negative-habit avoidance IS spec'd — validated via daily check-in prompts (see ROUTINES.md).
+- **Base healing: daily full reset vs. gradual regen + repair kits.** MECHANICS.md and PROJECT_SPEC.md describe two different, currently-unimplemented recovery systems (see DECISIONS.md 2026-07-17). Must be decided before [P2-GAME-012] (Milestone 4).

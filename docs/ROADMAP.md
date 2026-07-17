@@ -18,7 +18,7 @@ Work ONE unchecked task per session. Check items off with the date. Ticket IDs r
 
 ## Milestone 2 — Modularize script.js (incremental; one extraction per session)
 Order chosen so each step is small and testable. Tests pass before/after each; commit each.
-- [ ] Extract clock/time + timeline positioning (`calculateTimelinePosition`, `updateMidnightLine`)
+- [x] Extract clock/time + timeline positioning (2026-07-17) — `calculateTimelinePosition`/`updateMidnightLine` moved to `js/clock.js` (dims passed explicitly, not closure); script.js keeps thin wrappers so call sites are unchanged. Offline catch-up deliberately NOT moved (deferred to the damage/base-health extraction below). See DECISIONS.md.
 - [ ] Extract enemy spawning + movement
 - [ ] Extract damage/base-health/game-over
 - [ ] Extract progression (XP, levels, slots)

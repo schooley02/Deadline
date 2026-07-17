@@ -1777,50 +1777,16 @@ function showTaskDetailsPopup(item) {
         return Math.max(0, Math.min(randomTop, gameCanvas.offsetHeight - itemHeight));
     }
 
-    // Calculate position based on timeline system with 2-hour and 4-hour marks
-function calculateTimelinePosition(item, currentTime) {
-    const currentItemWidth = (item.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH;
-    const currentTimeMs = currentTime.getTime();
-    const taskDueMs = item.dueDateTime.getTime();
-    
-    // Calculate next midnight from the task's due date, not current time
-    const taskDueDate = new Date(item.dueDateTime);
-    const nextMidnight = new Date(taskDueDate);
-    nextMidnight.setDate(taskDueDate.getDate() + 1);
-    nextMidnight.setHours(0, 0, 0, 0);
-    
-    // Available screen width for positioning (from base to right edge)
-    const totalWidth = GAME_SCREEN_WIDTH - BASE_WIDTH - currentItemWidth;
-
-    if (taskDueMs <= currentTimeMs) {
-        // Task is overdue - position at base
-        return BASE_WIDTH;
-    } else if (taskDueMs >= nextMidnight.getTime()) {
-        // Task is due next day or later - initial position off-screen right
-        return GAME_SCREEN_WIDTH;
-    } else {
-        // Calculate position based on time remaining until due
-        const timeToDue = taskDueMs - currentTimeMs;
-        const twoHoursMs = 2 * 60 * 60 * 1000;
-        const fourHoursMs = 4 * 60 * 60 * 1000;
-        const timeUntilMidnight = nextMidnight.getTime() - currentTimeMs;
-
-        if (timeToDue <= twoHoursMs) {
-            // Within 2 hours: Position linearly from base (0%) to 50% of screen
-            const progress = timeToDue / twoHoursMs; // 1 = due in 2 hours, 0 = due now
-            return BASE_WIDTH + (totalWidth * 0.5 * progress);
-        } else if (timeToDue <= fourHoursMs) {
-            // Between 2-4 hours: Position linearly from 50% to 75% of screen
-            const progress = (timeToDue - twoHoursMs) / twoHoursMs; // 0 = due in 2 hours, 1 = due in 4 hours
-            return BASE_WIDTH + (totalWidth * 0.5) + (totalWidth * 0.25 * progress);
-        } else {
-            // More than 4 hours: Position linearly from 75% to 100% of screen
-            const remainingTime = timeUntilMidnight - fourHoursMs;
-            const progress = remainingTime > 0 ? (timeToDue - fourHoursMs) / remainingTime : 0;
-            return BASE_WIDTH + (totalWidth * 0.75) + (totalWidth * 0.25 * progress);
-        }
+    // Timeline position math lives in js/clock.js (Milestone 2 extraction,
+    // 2026-07-17) — thin wrapper so every existing call site is unchanged.
+    function calculateTimelinePosition(item, currentTime) {
+        return Clock.calculateTimelinePosition(item, currentTime, {
+            gameScreenWidth: GAME_SCREEN_WIDTH,
+            baseWidth: BASE_WIDTH,
+            enemyWidth: ENEMY_WIDTH,
+            habitEnemyWidth: HABIT_ENEMY_WIDTH
+        });
     }
-}
 
 function updateActiveItems() {
     if (gameIsOver) return;
@@ -1861,42 +1827,14 @@ function updateActiveItems() {
 
     updateMidnightLine(currentTime);
 }
-function updateMidnightLine(currentTime) {
-    const midnightLine = document.getElementById('midnightLine');
-    if (!midnightLine) return;
-    
-    if (currentTime.getHours() >= 20) {
-        midnightLine.style.display = 'block';
-        
-        // Calculate midnight line position
-        const midnight = new Date(currentTime);
-        midnight.setHours(24, 0, 0, 0);
-        const currentTimeMs = currentTime.getTime();
-        const twoHoursMs = 2 * 60 * 60 * 1000;
-        const fourHoursMs = 4 * 60 * 60 * 1000;
-        const timeUntilMidnight = midnight.getTime() - currentTimeMs;
-        const totalWidth = GAME_SCREEN_WIDTH - BASE_WIDTH;
-        
-        let linePosition;
-
-        if (timeUntilMidnight <= twoHoursMs) {
-            // Within 2 hours: Position linearly from base to 50% of screen
-            const progress = timeUntilMidnight / twoHoursMs;
-            linePosition = BASE_WIDTH + (totalWidth * 0.5 * progress);
-        } else if (timeUntilMidnight <= fourHoursMs) {
-            // Between 2-4 hours: Position linearly from 50% to 75% of screen
-            const progress = (timeUntilMidnight - twoHoursMs) / twoHoursMs;
-            linePosition = BASE_WIDTH + (totalWidth * 0.5) + (totalWidth * 0.25 * progress);
-        } else {
-            // More than 4 hours: Already off-screen right
-            linePosition = GAME_SCREEN_WIDTH;
-        }
-        
-        midnightLine.style.left = linePosition + 'px';
-    } else {
-        midnightLine.style.display = 'none';
+    // Midnight-line math lives in js/clock.js (Milestone 2 extraction,
+    // 2026-07-17) — thin wrapper so the call site is unchanged.
+    function updateMidnightLine(currentTime) {
+        Clock.updateMidnightLine(currentTime, {
+            gameScreenWidth: GAME_SCREEN_WIDTH,
+            baseWidth: BASE_WIDTH
+        });
     }
-}
 
     function updateBaseVisuals() {
         let newBaseImage = '';
