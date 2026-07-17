@@ -33,6 +33,7 @@
 - Negative habit indulged, or positive habit missed → lose points. Points CAN go negative.
 - Time-of-day matters: track when habits are due/completed to surface behavior patterns (help break negative patterns, reinforce hard positive ones).
 - Streaks: missing a habit (overdue) resets its streak to 0. High streaks give a higher chance of double points on completion, plus the on-fire visual.
+- **Editing a live habit instance** (agenda row edit pencil, implemented 2026-07-17): opens the habit-definition editor (name/category/frequency/time-of-day/type), pre-filled from `definedHabits`. Saving updates the definition AND syncs any already-spawned instance's name/category/isNegative + re-renders its agenda row immediately. Frequency/time-of-day changes do NOT retroactively move today's due time — they take effect starting the next day's instance. (Tasks and habits render via distinct branches in `createListItem`, each with their own edit target — see docs/ARCHITECTURE.md.)
 
 ## XP & Leveling
 

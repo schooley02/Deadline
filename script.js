@@ -568,13 +568,26 @@ document.addEventListener('DOMContentLoaded', () => {
         saveGame();
     }
 
+    // Habit-specific: resolve an active habit instance back to its definition
+    // and open the definition editor. Habits have no per-instance editor today
+    // (only the routine-context habitDef editor), so this is the closest
+    // correct "edit" action; saveEditedHabit() keeps active instances in sync.
+    function showEditHabitInstanceModal(itemData) {
+        const habitDef = definedHabits.find(d => d.id === itemData.definitionId);
+        if (!habitDef) {
+            console.error('Edit habit: no definedHabits entry for definitionId', itemData.definitionId);
+            return;
+        }
+        showEditHabitForm(null, habitDef);
+    }
+
     function createListItem(itemData) {
         const listItem = document.createElement('li');
         listItem.dataset.itemId = itemData.id;
-        
+
         // Add category class for sprite styling
         listItem.classList.add(`category-${itemData.category}`);
-        
+
         if (itemData.type === 'task' && itemData.isHighPriority) {
             listItem.classList.add('high-priority-list-item');
         }
@@ -583,37 +596,45 @@ document.addEventListener('DOMContentLoaded', () => {
         listItem.style.display = 'flex';
         listItem.style.justifyContent = 'space-between';
         listItem.style.alignItems = 'flex-start';
-        
+
         // Create sprite column
         const itemSpriteDiv = document.createElement('div');
         itemSpriteDiv.classList.add('item-sprite');
-        
+
         // Create item info div - this will contain the main task content
         const itemInfoDiv = document.createElement('div');
         itemInfoDiv.classList.add('item-info');
         itemInfoDiv.style.cssText = 'flex-grow: 1; padding: 8px 0; display: flex; flex-direction: column; gap: 4px;';
-        
+
         // Top row: Task title and controls on same horizontal line
         const titleAndControlsRow = document.createElement('div');
         titleAndControlsRow.style.cssText = 'display: flex; justify-content: space-between; align-items: center;';
-        
+
         const itemNameSpan = document.createElement('span');
         itemNameSpan.classList.add('item-name');
         itemNameSpan.style.cssText = 'font-weight: 500; flex-grow: 1;';
         itemNameSpan.textContent = itemData.name;
-        
+
         // Controls container aligned to the right on same line as title
         const itemActionsContainer = document.createElement('div');
         itemActionsContainer.classList.add('task-controls');
         itemActionsContainer.style.cssText = 'display: flex; align-items: center; gap: 12px; flex-shrink: 0;';
-        
+
+        // Edit pencil: behavior and target editor are type-specific (a task
+        // and a habit instance have different shapes and different editors).
         const editIconButton = document.createElement('button');
         editIconButton.classList.add('edit-icon-btn');
-        editIconButton.title = 'Edit Task';
         editIconButton.textContent = '✏️';
         editIconButton.style.cssText = 'background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;';
-        editIconButton.addEventListener('click', () => showEditTaskModal(itemData));
-        
+        if (itemData.type === 'habit') {
+            editIconButton.title = 'Edit Habit';
+            editIconButton.addEventListener('click', () => showEditHabitInstanceModal(itemData));
+        } else {
+            // Tasks (and anything else, defensively) get the task editor.
+            editIconButton.title = 'Edit Task';
+            editIconButton.addEventListener('click', () => showEditTaskModal(itemData));
+        }
+
         const completeCheckboxLabel = document.createElement('label');
         completeCheckboxLabel.classList.add('completion-checkbox');
         completeCheckboxLabel.style.cssText = 'display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px;';
@@ -659,13 +680,16 @@ document.addEventListener('DOMContentLoaded', () => {
         itemInfoDiv.appendChild(titleAndControlsRow);
         itemInfoDiv.appendChild(detailsAndSubTaskRow);
 
-        // Create sub-tasks section container
-        const subTasksSectionDiv = document.createElement('div');
-        subTasksSectionDiv.classList.add('sub-tasks-section');
-        subTasksSectionDiv.style.cssText = 'width: 100%; margin-top: 8px;';
-        
-        // Add sub-task button for tasks only - place it on the right side of details row
+        // Sub-tasks are a task-only concept (habits/other types never have
+        // subTasks or the "+ Sub-task" affordance) — build this whole section
+        // only for tasks, rather than relying on empty-but-present containers.
+        let subTasksSectionDiv = null;
         if (itemData.type === 'task') {
+            subTasksSectionDiv = document.createElement('div');
+            subTasksSectionDiv.classList.add('sub-tasks-section');
+            subTasksSectionDiv.style.cssText = 'width: 100%; margin-top: 8px;';
+
+            // Add sub-task button - place it on the right side of details row
             const addSubTaskButton = document.createElement('button');
             addSubTaskButton.classList.add('add-subtask-button');
             addSubTaskButton.textContent = '+ Sub-task';
@@ -678,13 +702,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             // Add the sub-task button to the right side of the details row
             detailsAndSubTaskRow.appendChild(addSubTaskButton);
-        }
-        // Create sub-tasks container
-        const subTasksContainer = document.createElement('ul');
-        subTasksContainer.classList.add('sub-tasks-container');
-        
-                // Add existing sub-tasks
-        itemData.subTasks.forEach(subTaskId => {
+
+            // Create sub-tasks container
+            const subTasksContainer = document.createElement('ul');
+            subTasksContainer.classList.add('sub-tasks-container');
+
+            // Add existing sub-tasks
+            (itemData.subTasks || []).forEach(subTaskId => {
             const subTaskData = activeItems.find(subItem => subItem.id === subTaskId);
             if (subTaskData) {
                 const subTaskItem = document.createElement('li');
@@ -765,11 +789,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 subTaskItem.appendChild(subTaskControls);
                 
                 subTasksContainer.appendChild(subTaskItem);
-            }
-        });
+                }
+            });
 
-        subTasksSectionDiv.appendChild(subTasksContainer);
-        
+            subTasksSectionDiv.appendChild(subTasksContainer);
+        }
+
         // Add category badge next to due date
         const itemCategorySpan = document.createElement('span');
         itemCategorySpan.classList.add('item-category');
@@ -788,19 +813,25 @@ document.addEventListener('DOMContentLoaded', () => {
             streakSpan.classList.add('item-streak');
             const streakType = itemData.isNegative ? 'Avoided' : 'Streak';
             streakSpan.textContent = `${streakType}: ${itemData.streak}`;
-            itemNameContainer.appendChild(streakSpan);
+            itemDetailsContainer.appendChild(streakSpan);
+        } else if (itemData.type !== 'task') {
+            // Defensive: any future item type falls through to the shared
+            // shell only, rather than silently breaking like habits used to.
+            console.warn('createListItem: unrecognized item type', itemData.type, '- rendering shared shell only.');
         }
-        
+
         // Create a wrapper div for the whole task content
         const taskContentDiv = document.createElement('div');
         taskContentDiv.style.cssText = 'display: flex; flex-direction: column; width: 100%;';
-        
+
         taskContentDiv.appendChild(itemInfoDiv);
-        taskContentDiv.appendChild(subTasksSectionDiv);
-        
+        if (subTasksSectionDiv) {
+            taskContentDiv.appendChild(subTasksSectionDiv);
+        }
+
         listItem.appendChild(itemSpriteDiv);
         listItem.appendChild(taskContentDiv);
-        
+
         itemData.listItemElement = listItem;
     }
 
@@ -2698,6 +2729,35 @@ function updateMidnightLine(currentTime) {
         }
         
         editHabitInRoutine(habitId, { name, category, frequency, timeOfDay, isNegative });
+
+        // Keep any already-spawned instance of this habit in sync, so editing
+        // from today's agenda row (or anywhere else) doesn't go stale until
+        // the next day's instance regenerates. Deliberately does NOT touch
+        // frequency/timeOfDay for an already-spawned instance — recomputing
+        // today's due time retroactively is a separate, more involved
+        // follow-up (see docs/DECISIONS.md).
+        activeItems.forEach(item => {
+            if (item.type === 'habit' && item.definitionId === habitId) {
+                const oldCategory = item.category;
+                item.name = name;
+                item.category = category;
+                item.isNegative = isNegative;
+
+                if (item.element) {
+                    item.element.classList.remove(`category-${oldCategory}`, `zombie-${oldCategory}`);
+                    item.element.classList.add(`category-${category}`, `zombie-${category}`);
+                    item.element.classList.toggle('negative-habit', isNegative);
+                }
+
+                if (item.listItemElement) {
+                    item.listItemElement.remove();
+                    createListItem(item);
+                }
+            }
+        });
+        sortAndRenderActiveList();
+        saveGame();
+
         closeModal();
     };
     
