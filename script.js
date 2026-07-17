@@ -249,12 +249,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // saveGame() directly yet — a periodic save bounds any loss to a few seconds.
     let lastAutosaveMs = 0;
 
+    // True while the offline catch-up animation owns enemy positions;
+    // updateActiveItems() skips position/damage work until it finishes.
+    let offlineCatchUpActive = false;
+
     // Runs ONCE on boot, right after initGame() has reset to a fresh state.
     // Returns true if a save was restored.
     function restoreGameState() {
         if (typeof Persistence === 'undefined') return false;
         const save = Persistence.load();
         if (!save) return false;
+
+        // Offline window: elapsed time since the save was written, capped at
+        // the spec's 3-day max offline progression (CONFIG.OFFLINE_MAX_MS).
+        const restoreNowMs = Date.now();
+        const savedAtMs = (save.savedAt instanceof Date) ? save.savedAt.getTime() : null;
+        const offlineMs = (savedAtMs !== null)
+            ? Math.min(Math.max(0, restoreNowMs - savedAtMs), CONFIG.OFFLINE_MAX_MS)
+            : 0;
+        const restoredEntries = []; // { item, savedX } for the catch-up animation
 
         // Scalars (initGame just set the fresh-game defaults; overwrite them)
         playerXP = save.playerXP || 0;
@@ -282,14 +295,20 @@ document.addEventListener('DOMContentLoaded', () => {
         (save.activeItems || []).forEach(item => {
             item.element = null;
             item.listItemElement = null;
+            const savedX = (typeof item.x === 'number') ? item.x : null;
             addItemToGame(item);
+            restoredEntries.push({ item, savedX });
+            // item.isOverdue here covers BOTH items saved as overdue (markAsOverdue
+            // early-returned; re-apply its visual state) and items whose due date
+            // passed while offline (addItemToGame just marked them — but with
+            // lastDamageTickTime = dueDateTime, which would make the live loop
+            // hammer one tick per game tick until "caught up"). Either way:
+            // reset the live damage clock to now. The offline window's damage is
+            // back-charged separately — capped per item — by runOfflineCatchUp
+            // (policy decided 2026-07-17, see DECISIONS.md).
             if (item.isOverdue) {
-                // markAsOverdue early-returns for already-overdue items, so
-                // re-apply the visual state it would have set.
                 if (item.element) item.element.classList.add('enemy-at-base');
                 if (item.listItemElement) item.listItemElement.classList.add('overdue-list-item');
-                // Don't back-charge damage for time spent closed: offline
-                // catch-up is its own Milestone 1 task (see DECISIONS.md).
                 item.lastDamageTickTime = Date.now();
             }
         });
@@ -317,7 +336,109 @@ document.addEventListener('DOMContentLoaded', () => {
         sortAndRenderActiveList();
 
         if (save.gameIsOver) gameOver();
+
+        // Offline catch-up: animate zombies from their saved positions to now,
+        // then back-charge capped offline overdue damage (see DECISIONS.md).
+        if (!gameIsOver) runOfflineCatchUp(restoredEntries, offlineMs);
         return true;
+    }
+
+    // Damage owed for the portion of the offline window [nowMs - offlineMs, nowMs]
+    // that an item spent overdue: real elapsed ticks at the live rate. Capped at
+    // CONFIG.OFFLINE_DAMAGE_CAP_PER_ITEM for the item's ENTIRE lifetime, not per
+    // restore — alreadyCharged is the item's running offlineDamageCharged total,
+    // so re-closing/reopening the same still-overdue item across many days can
+    // never charge more than the cap in total (duration of neglect shouldn't
+    // matter more than once it's already been "paid"; only breadth across
+    // multiple items should be able to add up to real base damage). Items
+    // already overdue before the save were charged live while the game was
+    // open, so the window starts at the LATER of (due time, start of offline
+    // window) — no double-charging with the live tick loop either.
+    // Pure function — mirrored in test/offline-catchup.test.js.
+    function computeOfflineOverdueDamage(dueMs, nowMs, offlineMs, alreadyCharged) {
+        const remaining = CONFIG.OFFLINE_DAMAGE_CAP_PER_ITEM - (alreadyCharged || 0);
+        if (offlineMs <= 0 || dueMs >= nowMs || remaining <= 0) return 0;
+        const overdueStartMs = Math.max(dueMs, nowMs - offlineMs);
+        const ticks = Math.floor((nowMs - overdueStartMs) / DAMAGE_INTERVAL_MS);
+        return Math.min(ticks * OVERDUE_DAMAGE, remaining);
+    }
+
+    function applyOfflineDamage(hits) {
+        for (const hit of hits) {
+            if (gameIsOver) break;
+            hit.item.offlineDamageCharged = (hit.item.offlineDamageCharged || 0) + hit.dmg;
+            damageBase(hit.dmg);
+        }
+    }
+
+    // Spec (PROJECT_SPEC §3.5): on app resume, zombies animate from their saved
+    // positions to their current-time positions in ≤5s, then offline consequences
+    // apply. entries = [{ item, savedX }] in saved order (parents before sub-tasks,
+    // so cluster targets resolve against updated parent positions).
+    function runOfflineCatchUp(entries, offlineMs) {
+        if (gameIsOver) return;
+        const nowMs = Date.now();
+        const now = new Date();
+
+        const hits = [];
+        activeItems.forEach(item => {
+            const dmg = computeOfflineOverdueDamage(
+                item.dueDateTime.getTime(), nowMs, offlineMs, item.offlineDamageCharged
+            );
+            if (dmg > 0) hits.push({ item, dmg });
+        });
+
+        // Compute target positions in order, updating item.x as we go so
+        // sub-task clustering sees its parent's target, not its saved x.
+        // Overdue items already had x set to the base by addItemToGame.
+        entries.forEach(e => {
+            e.targetX = e.item.isOverdue
+                ? e.item.x
+                : calculateTimelineXWithClustering(e.item, now);
+            e.item.x = e.targetX;
+        });
+
+        const animatable = entries.filter(e =>
+            e.savedX !== null && e.item.element &&
+            Math.abs(e.targetX - e.savedX) > 2
+        );
+
+        // Brief absence or nothing moved: apply consequences instantly.
+        if (offlineMs < CONFIG.OFFLINE_ANIMATION_THRESHOLD_MS || animatable.length === 0) {
+            entries.forEach(e => {
+                if (e.item.element) e.item.element.style.left = Math.max(BASE_WIDTH, e.targetX) + 'px';
+            });
+            applyOfflineDamage(hits);
+            return;
+        }
+
+        offlineCatchUpActive = true;
+        const duration = Math.max(
+            CONFIG.OFFLINE_CATCHUP_MIN_MS,
+            Math.min(CONFIG.OFFLINE_CATCHUP_MAX_MS, animatable.length * CONFIG.OFFLINE_CATCHUP_MS_PER_ITEM)
+        );
+        animatable.forEach(e => {
+            e.item.element.style.left = Math.max(BASE_WIDTH, e.savedX) + 'px';
+            e.item.element.classList.add('catching-up');
+        });
+
+        const startTime = performance.now();
+        function frame(t) {
+            const p = Math.min(1, (t - startTime) / duration);
+            const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
+            animatable.forEach(e => {
+                const x = e.savedX + (e.targetX - e.savedX) * eased;
+                e.item.element.style.left = Math.max(BASE_WIDTH, x) + 'px';
+            });
+            if (p < 1) {
+                requestAnimationFrame(frame);
+                return;
+            }
+            animatable.forEach(e => e.item.element.classList.remove('catching-up'));
+            offlineCatchUpActive = false;
+            applyOfflineDamage(hits);
+        }
+        requestAnimationFrame(frame);
     }
 
     function showForm(formType) {
@@ -466,7 +587,11 @@ document.addEventListener('DOMContentLoaded', () => {
             parentId: parentId,
             subTasks: [],
             completedSubTasks: 0,
-            totalSubTasks: 0
+            totalSubTasks: 0,
+            // Cumulative offline overdue damage ever charged to this item —
+            // lifetime cap (CONFIG.OFFLINE_DAMAGE_CAP_PER_ITEM), not per-restore.
+            // See computeOfflineOverdueDamage / DECISIONS.md 2026-07-17.
+            offlineDamageCharged: 0
         };
         
         // Calculate initial position based on new timeline system
@@ -964,6 +1089,16 @@ function showTaskDetailsPopup(item) {
                 item.isHighPriority = isHighPriority;
                 item.dueDateTime = new Date(`${dueDate}T${dueTime}`);
 
+                // Re-derive overdue state from the NEW due date. Without this,
+                // pushing an overdue task's deadline into the future left
+                // isOverdue: true (it's only ever set by markAsOverdue/
+                // updateActiveItems, never re-checked against dueDateTime), so
+                // the zombie stayed camped at the base still ticking damage
+                // every DAMAGE_INTERVAL_MS even though it was no longer due.
+                // That defeated the whole point of letting someone fix an
+                // overly-aggressive deadline. See DECISIONS.md 2026-07-17.
+                recomputeOverdueStateAfterEdit(item);
+
                 // Update visual elements
                 if (item.element) {
                     item.element.classList.toggle('high-priority', isHighPriority);
@@ -982,6 +1117,7 @@ function showTaskDetailsPopup(item) {
                 }
 
                 sortAndRenderActiveList();
+                saveGame();
                 closeModal();
             });
         }
@@ -1519,6 +1655,32 @@ function showTaskDetailsPopup(item) {
         saveGame();
     }
 
+    // Re-derives isOverdue from the item's CURRENT dueDateTime — call after any
+    // edit that changes an item's due date, since isOverdue is otherwise only
+    // ever set forward by markAsOverdue/updateActiveItems and never re-checked.
+    // Without this, editing an overdue task's deadline into the future left it
+    // camped at the base still taking damage (see showEditTaskModal save
+    // handler, DECISIONS.md 2026-07-17).
+    function recomputeOverdueStateAfterEdit(item) {
+        const now = new Date();
+        const shouldBeOverdue = item.dueDateTime <= now;
+
+        if (item.isOverdue && !shouldBeOverdue) {
+            // Pushed back into the future: un-overdue it.
+            item.isOverdue = false;
+            item.lastDamageTickTime = null;
+            if (item.element) item.element.classList.remove('enemy-at-base');
+            if (item.listItemElement) item.listItemElement.classList.remove('overdue-list-item');
+            item.x = calculateTimelineXWithClustering(item, now);
+            if (item.element) item.element.style.left = Math.max(BASE_WIDTH, item.x) + 'px';
+        } else if (!item.isOverdue && shouldBeOverdue) {
+            // Pulled into the past: it's overdue starting now.
+            markAsOverdue(item, now);
+            item.x = BASE_WIDTH + getSubTaskClusterOffset(item);
+            if (item.element) item.element.style.left = item.x + 'px';
+        }
+    }
+
     // Helper function to get today's 5pm
     function getTodayAt5PM() {
         const today = new Date();
@@ -1662,6 +1824,7 @@ function calculateTimelinePosition(item, currentTime) {
 
 function updateActiveItems() {
     if (gameIsOver) return;
+    if (offlineCatchUpActive) return; // catch-up animation owns positions/damage until it completes
 
     const currentTime = new Date();
     const currentTimeMs = currentTime.getTime();
@@ -1872,7 +2035,9 @@ function updateMidnightLine(currentTime) {
             isNegative: habitDef.isNegative,
             element: null,
             listItemElement: null,
-            originalDueDate: new Date(dueDateTime)
+            originalDueDate: new Date(dueDateTime),
+            // Cumulative offline overdue damage ever charged — see createTaskItemData.
+            offlineDamageCharged: 0
         };
         
         // Calculate initial position based on new timeline system

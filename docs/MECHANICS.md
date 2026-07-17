@@ -49,8 +49,12 @@
 - Sub-tasks do NOT get their own entry in the main agenda list — only nested inside their parent's list item.
 - **Open tension, not yet resolved:** the original spec (PROJECT_SPEC.md) describes the PARENT growing larger with more sub-tasks and shrinking as they're completed, rather than sub-tasks appearing as separate visible sprites at all. The current implementation (separate clustered sub-task sprites) is what's actually built and was confirmed by Jeremy on 2026-07-17; the "growing/shrinking parent" idea is not implemented and is a candidate for Milestone 3 ([P1-DATA-004] sub-task hierarchy) — worth a deliberate decision on whether both effects happen together or the shrinking-parent idea is dropped.
 
-## Offline Catch-up
-On app reopen, paused zombies animate quickly (max 5 seconds) to their current time positions.
+## Offline Catch-up (implemented 2026-07-17)
+
+- On restore, zombies animate (ease-out, capped at `CONFIG.OFFLINE_CATCHUP_MAX_MS` = 5s) from their last-saved positions to their current-time positions. Skipped for very brief absences (`CONFIG.OFFLINE_ANIMATION_THRESHOLD_MS` = 30s) — positions just update instantly.
+- **Offline overdue damage policy** (decided with Jeremy, see DECISIONS.md 2026-07-17): each item that spent offline time overdue is back-charged its real elapsed damage (same 1 HP/`DAMAGE_INTERVAL_MS` rate as live play), but capped at `CONFIG.OFFLINE_DAMAGE_CAP_PER_ITEM` = 12 HP **for that item's entire lifetime**, not per restore. Design principle: punish the COUNT of neglected items, not the DURATION you were away — sleeping/being busy shouldn't be able to kill the base by itself, but enough neglected items still can (8+ at the current cap). Time already charged live (before the item was saved) is never double-charged; the chargeable window starts at whichever is later, the item's due time or the start of the offline period. Offline progression itself is capped at 3 days (`CONFIG.OFFLINE_MAX_MS`, per PROJECT_SPEC).
+- **Editing a task's due date re-evaluates overdue state** (`recomputeOverdueStateAfterEdit`, companion fix to the above): pushing an overdue task's deadline into the future clears its overdue flag/visuals and stops further damage — the intended escape hatch if a deadline was set too aggressively. Pulling a not-yet-due task's deadline into the past marks it overdue immediately. Not yet wired into the habit-instance editor (frequency/time-of-day changes there still don't retroactively move today's instance — pre-existing gap, see ROUTINES.md/DECISIONS.md).
+- Offline HEALING (gradual recovery while away) is NOT implemented — belongs to Milestone 4's base-healing system ([P2-GAME-012]); it isn't live yet either.
 
 ## Open Questions (ask Jeremy before implementing)
 

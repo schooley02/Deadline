@@ -210,6 +210,13 @@ body {
     z-index: 10;
 }
 
+/* Offline catch-up: JS animates left directly — kill the 0.2s transition so
+   frames don't lag, and add a subtle motion trail (spec: trail effects). */
+.enemy.catching-up {
+    transition: none;
+    filter: drop-shadow(12px 0 8px rgba(0, 0, 0, 0.35));
+}
+
 /* Ensure zombie sprites override transparent background */
 .enemy.zombie-sprite {
     background-color: transparent !important;

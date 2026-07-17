@@ -15,6 +15,17 @@ const CONFIG = {
     MAX_BASE_HEALTH: 100,
     OVERDUE_DAMAGE: 1,
 
+    // --- Offline catch-up (decided 2026-07-17, see DECISIONS.md) ---
+    // Per-item cap on back-charged overdue damage for time spent offline.
+    // 12 HP ≈ 1 hour's worth at OVERDUE_DAMAGE per DAMAGE_INTERVAL_MS.
+    // Principle: punish the COUNT of neglected items, not hours away.
+    OFFLINE_DAMAGE_CAP_PER_ITEM: 12,
+    OFFLINE_MAX_MS: 3 * 24 * 60 * 60 * 1000, // spec: max 3 days of offline progression
+    OFFLINE_CATCHUP_MAX_MS: 5000,            // spec: catch-up animation never exceeds 5s
+    OFFLINE_CATCHUP_MS_PER_ITEM: 400,        // animation duration scales with item count…
+    OFFLINE_CATCHUP_MIN_MS: 1200,            // …but never shorter than this
+    OFFLINE_ANIMATION_THRESHOLD_MS: 30 * 1000, // skip the animation for briefer absences
+
     // --- XP & Points ---
     XP_PER_TASK_DEFEAT: 10,
     XP_PER_HABIT_COMPLETE: 5,
