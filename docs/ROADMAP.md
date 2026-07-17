@@ -9,7 +9,7 @@ Work ONE unchecked task per session. Check items off with the date. Ticket IDs r
 
 ## Milestone 1 — Stabilize (CURRENT)
 - [x] Fix sub-task duplication bug (2026-07-17) — already fixed in commit `38409ca` (Jul 29 2025), predates the M0 repo move; verified via `test/subtask-creation.test.js` (14/14 passing), no new code change needed. See DECISIONS.md.
-- [ ] Decide branch state with Jeremy: merge `feature/sprite-system-cleanup` → `main`, push to GitHub
+- [x] Decide branch state with Jeremy (2026-07-17) — fast-forward merged `feature/sprite-system-cleanup` → `main` (10 commits, no conflicts), pushed both to GitHub. Also: project home moved from OneDrive to `C:\Users\jscho\Projects\Deadline`; GitHub repo had to be recreated (see DECISIONS.md).
 - [ ] Create `js/config.js` and move existing gameplay constants from script.js into it
 - [ ] localStorage persistence per docs/DATA_SCHEMA.md (save on mutation, load on boot, schemaVersion) — biggest missing feature; a refresh currently loses everything
 - [ ] Offline catch-up on load (paused zombies animate to current position, max 5s — spec'd in PROJECT_SPEC.md)

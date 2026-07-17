@@ -37,7 +37,8 @@ At the end of every session, run `/end-session` (append HANDOFF entry, log decis
 - `Assets/Zombies/` — finished 64×64 sprites for all 8 categories. `Assets/Base/` — base damage states.
 - **No persistence yet** — refresh loses everything. localStorage is a top roadmap item.
 - **Known bug**: sub-task creation duplicates a standalone task (root-caused in SUBTASK_BUG_REPRODUCTION_REPORT.md; fix is Milestone 1).
-- Git: branch `feature/sprite-system-cleanup`, remote github.com/schooley02/Deadline. `Deadline-MPE/` is the old May 2025 prototype — reference only, never touch.
+- Git: `main` and `feature/sprite-system-cleanup` are both at the same commit (fast-forward merged 2026-07-17); `main` is now current. Remote: github.com/schooley02/Deadline (repo was recreated 2026-07-17 after the original was found deleted — see DECISIONS.md). `Deadline-MPE/` is the old May 2025 prototype — reference only, never touch.
+- Project home: `C:\Users\jscho\Projects\Deadline` (moved out of OneDrive 2026-07-17 — see DECISIONS.md).
 
 ## Refactor Rules (Milestone 2+; strategy decided 2026-07-16)
 
@@ -54,7 +55,6 @@ At the end of every session, run `/end-session` (append HANDOFF entry, log decis
 - Never change balance numbers silently — use the `balance-tuning` skill and log to DECISIONS.
 - Update the relevant `docs/*.md` in the SAME session as any mechanic/schema change.
 - Never open `.pdf`, `.psd`, `.xd`, `.ase`, `.eps` files, or the CSV analysis dumps (`detailed_evidence.csv`, `requirement_alignment_matrix.csv`).
-- This folder is OneDrive-synced: if git acts strangely (locks, phantom changes), pause OneDrive sync and retry.
 
 ## Model Strategy — actively manage Jeremy's usage limits
 
@@ -85,6 +85,6 @@ Plan expensive, execute cheap. If a "mechanical" task surprises you with a desig
 
 The `deadline-session` Cowork skill (installed in Jeremy's Cowork) mirrors /start-session and /end-session. If it isn't loaded, follow the Session Protocol above manually. Cowork-specific rules:
 
-- **Git**: NEVER run git write commands (`add`, `commit`, `rm --cached`) from the Cowork sandbox — its index writes corrupt on this OneDrive folder (`bad signature 0x00000000`). Read-only git is fine. At session end, give Jeremy the commands to paste into his own terminal. Recovery if the index corrupts: `rm .git/index` then `git reset` (history is unaffected).
+- **Git**: NEVER run `git` commands at all from the Cowork sandbox/device-bridge against this repo — not even read-only ones like `git status`. The device-bridge tooling can create a temporary `.git/index.lock` during a read but can't delete it afterward (no unlink permission on the mounted folder), leaving a stale lock that blocks Jeremy's real `git` commands in his own terminal. To check repo state from Cowork, read `.git/HEAD` and `.git/refs/heads/*` / `.git/refs/remotes/origin/*` directly as plain text files instead (each just contains a branch ref or a 40-char commit SHA — no `git` process involved, so no lock). For all actual git writes (`add`, `commit`, `merge`, `push`), give Jeremy the exact commands to paste into his own terminal.
 - **npm/Jest**: never `npm install` in this folder from the sandbox — copy `package.json`, `jest.config.js`, `js/`, `test/` + code under test to the sandbox scratchpad and run tests there.
 - **Playtesting**: Jeremy runs `node server.js` locally and reports what he sees; Claude can't view the running game.
