@@ -46,10 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const attackButton = document.getElementById('attackButton');
     const restartButton = document.getElementById('restartButton');
 
-    // Initialize TaskManager and IdCounter
-    const itemIdCounter = new IdCounter();
-    const taskManager = new TaskManager(gameCanvas, activeItemsListUL, itemIdCounter);
-
     // Category styling configuration
     const categoryStyles = {
         "other": { bgColor: "#90ee90", textColorClass: "category-other-text" },
@@ -116,7 +112,6 @@ document.addEventListener('DOMContentLoaded', () => {
     ============================================================================
     */
 
-const { gameIsOver } = window; // Assuming gameIsOver is set somewhere in global scope
     let baseHealth, playerXP, playerLevel, playerPoints, routineSlots;
     let activeItems = [];
     let completedItems = [];
@@ -127,17 +122,18 @@ const { gameIsOver } = window; // Assuming gameIsOver is set somewhere in global
 
 
     // --- Game Settings ---
-    const GAME_TICK_MS = 50;
-    const DAY_DURATION_MS = 60000;
-    const OVERDUE_DAMAGE = 1;
-    const DAMAGE_INTERVAL_MS = 5 * 60 * 1000;
-    const XP_PER_TASK_DEFEAT = 10;
-    const XP_PER_HABIT_COMPLETE = 5;
-    const POINTS_PER_TASK = 10;
-    const POINTS_PER_HABIT = 5;
-    const HABIT_STREAK_BONUS_THRESHOLD = 3;
-    const LEVEL_XP_THRESHOLDS = [0, 100, 250, 500, 800, 1200, 1700, 2300, 3000];
-    const ROUTINE_SLOTS_PER_LEVEL = { 1: 1, 2: 1, 3: 2, 4: 2, 5: 3, 6: 3, 7: 4, 8: 4 };
+    // Values live in js/config.js (CONFIG) — never hardcode a balance number here.
+    const GAME_TICK_MS = CONFIG.GAME_TICK_MS;
+    const DAY_DURATION_MS = CONFIG.DAY_DURATION_MS;
+    const OVERDUE_DAMAGE = CONFIG.OVERDUE_DAMAGE;
+    const DAMAGE_INTERVAL_MS = CONFIG.DAMAGE_INTERVAL_MS;
+    const XP_PER_TASK_DEFEAT = CONFIG.XP_PER_TASK_DEFEAT;
+    const XP_PER_HABIT_COMPLETE = CONFIG.XP_PER_HABIT_COMPLETE;
+    const POINTS_PER_TASK = CONFIG.POINTS_PER_TASK;
+    const POINTS_PER_HABIT = CONFIG.POINTS_PER_HABIT;
+    const HABIT_STREAK_BONUS_THRESHOLD = CONFIG.HABIT_STREAK_BONUS_THRESHOLD;
+    const LEVEL_XP_THRESHOLDS = CONFIG.LEVEL_XP_THRESHOLDS;
+    const ROUTINE_SLOTS_PER_LEVEL = CONFIG.ROUTINE_SLOTS_PER_LEVEL;
     const MAX_PLAYER_LEVEL = LEVEL_XP_THRESHOLDS.length;
 
     let GAME_SCREEN_WIDTH, BASE_WIDTH, ENEMY_WIDTH, HABIT_ENEMY_WIDTH;
@@ -146,8 +142,8 @@ const { gameIsOver } = window; // Assuming gameIsOver is set somewhere in global
         // Calculate dimensions
         GAME_SCREEN_WIDTH = gameCanvas.offsetWidth;
         BASE_WIDTH = baseElement.offsetWidth;
-        ENEMY_WIDTH = 128;
-        HABIT_ENEMY_WIDTH = 128;
+        ENEMY_WIDTH = CONFIG.ENEMY_WIDTH;
+        HABIT_ENEMY_WIDTH = CONFIG.HABIT_ENEMY_WIDTH;
 
         // Initialize player stats
         playerXP = 0;
@@ -158,7 +154,7 @@ const { gameIsOver } = window; // Assuming gameIsOver is set somewhere in global
         updatePlayerDisplays();
 
         // Initialize base
-        baseHealth = 100;
+        baseHealth = CONFIG.MAX_BASE_HEALTH;
         baseHealthDisplay.textContent = baseHealth;
         baseElement.style.backgroundImage = "url('base_100.png')";
         baseElement.classList.remove('base-hit-flash');
@@ -188,7 +184,7 @@ const { gameIsOver } = window; // Assuming gameIsOver is set somewhere in global
         if (completedTasksSection) completedTasksSection.classList.add('hidden');
         
         // Reset game state
-        itemIdCounter = 0;
+        itemIdCounter = 1; // never 0 — many parentId checks use truthy tests (`if (item.parentId)`), and 0 is falsy
         gameIsOver = false;
         daysSurvived = 0;
         attackMode = false;
@@ -228,6 +224,100 @@ const { gameIsOver } = window; // Assuming gameIsOver is set somewhere in global
         if (taskCountDisplay) {
             taskCountDisplay.textContent = `${taskCount} task${taskCount !== 1 ? 's' : ''}`;
         }
+    }
+
+    // --- Persistence (js/persistence.js) ---
+    // schemaVersion 1 persists the CURRENT in-memory shapes as-is; see
+    // docs/DATA_SCHEMA.md + DECISIONS.md (2026-07-17). Call saveGame() after
+    // every state mutation — Persistence debounces the actual write.
+
+    function getPersistableState() {
+        return {
+            baseHealth, playerXP, playerLevel, playerPoints, routineSlots,
+            itemIdCounter, gameIsOver, daysSurvived, currentGameDate,
+            activeItems, completedItems, definedHabits, definedRoutines
+        };
+    }
+
+    function saveGame() {
+        if (typeof Persistence !== 'undefined') {
+            Persistence.requestSave(getPersistableState);
+        }
+    }
+
+    // Safety net: some edit paths (routine editors, task edit modal) don't call
+    // saveGame() directly yet — a periodic save bounds any loss to a few seconds.
+    let lastAutosaveMs = 0;
+
+    // Runs ONCE on boot, right after initGame() has reset to a fresh state.
+    // Returns true if a save was restored.
+    function restoreGameState() {
+        if (typeof Persistence === 'undefined') return false;
+        const save = Persistence.load();
+        if (!save) return false;
+
+        // Scalars (initGame just set the fresh-game defaults; overwrite them)
+        playerXP = save.playerXP || 0;
+        playerLevel = save.playerLevel || 1;
+        playerPoints = save.playerPoints || 0;
+        routineSlots = ROUTINE_SLOTS_PER_LEVEL[playerLevel] || 1;
+        baseHealth = (typeof save.baseHealth === 'number') ? save.baseHealth : CONFIG.MAX_BASE_HEALTH;
+        itemIdCounter = save.itemIdCounter || 1;
+        daysSurvived = save.daysSurvived || 0;
+        if (save.currentGameDate instanceof Date && !isNaN(save.currentGameDate.getTime())) {
+            currentGameDate = save.currentGameDate;
+        }
+
+        // Plain-data collections (no DOM refs to rebuild)
+        definedHabits = save.definedHabits || [];
+        definedRoutines = save.definedRoutines || [];
+        completedItems = (save.completedItems || []).map(item => {
+            item.element = null;
+            item.listItemElement = null;
+            return item;
+        });
+
+        // Active items: rebuild DOM via addItemToGame (it pushes into activeItems,
+        // which initGame just emptied). Saved order preserves parents-before-subtasks.
+        (save.activeItems || []).forEach(item => {
+            item.element = null;
+            item.listItemElement = null;
+            addItemToGame(item);
+            if (item.isOverdue) {
+                // markAsOverdue early-returns for already-overdue items, so
+                // re-apply the visual state it would have set.
+                if (item.element) item.element.classList.add('enemy-at-base');
+                if (item.listItemElement) item.listItemElement.classList.add('overdue-list-item');
+                // Don't back-charge damage for time spent closed: offline
+                // catch-up is its own Milestone 1 task (see DECISIONS.md).
+                item.lastDamageTickTime = Date.now();
+            }
+        });
+
+        // Parents' list items were built before their sub-tasks existed in
+        // activeItems — rebuild those list items now that everything is loaded.
+        activeItems.forEach(item => {
+            if (!item.parentId && item.subTasks && item.subTasks.length > 0 && item.listItemElement) {
+                item.listItemElement.remove();
+                createListItem(item);
+            }
+        });
+
+        // Spawn today's habit instances the save doesn't already contain
+        generateDailyHabitInstances(currentGameDate);
+
+        // Refresh every display touched above
+        updatePlayerDisplays();
+        if (baseHealthDisplay) baseHealthDisplay.textContent = baseHealth;
+        updateBaseVisuals();
+        updateTaskCountDisplay();
+        updateRoutineDisplay();
+        renderDefinedRoutines();
+        renderCompletedItems();
+        sortAndRenderActiveList();
+
+        if (save.gameIsOver) gameOver();
+        return true;
     }
 
     function showForm(formType) {
@@ -380,7 +470,7 @@ const { gameIsOver } = window; // Assuming gameIsOver is set somewhere in global
         };
         
         // Calculate initial position based on new timeline system
-        taskData.x = calculateTimelinePosition(taskData, creationTime);
+        taskData.x = calculateTimelineXWithClustering(taskData, creationTime);
         
         console.log('🔧 createTaskItemData returning:', {
             id: taskData.id,
@@ -417,8 +507,8 @@ const { gameIsOver } = window; // Assuming gameIsOver is set somewhere in global
         
         if (itemData.parentId) {
             // This is a subtask
-            itemSpriteWidth = 64;
-            itemSpriteHeight = 64;
+            itemSpriteWidth = CONFIG.SUBTASK_ENEMY_WIDTH;
+            itemSpriteHeight = CONFIG.SUBTASK_ENEMY_WIDTH;
             itemElement.classList.add('subtask-enemy');
             itemElement.classList.add('zombie-subtask');
         } else if (itemData.type === 'habit') {
@@ -447,8 +537,7 @@ const { gameIsOver } = window; // Assuming gameIsOver is set somewhere in global
         
         // Position enemy
         itemElement.style.left = itemData.x + 'px';
-        const randomTop = Math.random() * (gameCanvas.offsetHeight - itemSpriteHeight);
-        itemElement.style.top = Math.max(0, Math.min(randomTop, gameCanvas.offsetHeight - itemSpriteHeight)) + 'px';
+        itemElement.style.top = getItemTopPosition(itemData, itemSpriteHeight) + 'px';
         
         // Set up click handler
         itemElement.dataset.itemId = itemData.id;
@@ -469,13 +558,14 @@ const { gameIsOver } = window; // Assuming gameIsOver is set somewhere in global
         // Check if already overdue
         if (itemData.dueDateTime < new Date()) {
             markAsOverdue(itemData, new Date());
-            itemData.x = BASE_WIDTH;
+            itemData.x = BASE_WIDTH + getSubTaskClusterOffset(itemData);
             if (itemData.element) itemData.element.style.left = itemData.x + 'px';
         }
         
         activeItems.push(itemData);
         updateTaskCountDisplay();
         sortAndRenderActiveList();
+        saveGame();
     }
 
     function createListItem(itemData) {
@@ -871,8 +961,9 @@ function showTaskDetailsPopup(item) {
         });
     }
 
+    function completeItem(itemId) {
         if (gameIsOver) return;
-        
+
         const itemIndex = activeItems.findIndex(i => i.id === itemId);
         if (itemIndex === -1) return;
         
@@ -889,7 +980,7 @@ function showTaskDetailsPopup(item) {
                 habitDef.streak++;
                 habitDef.lastCompletionDate = new Date(item.originalDueDate);
                 xpGained = XP_PER_HABIT_COMPLETE;
-                pointsGained = POINTS_PER_HABIT + (habitDef.streak >= HABIT_STREAK_BONUS_THRESHOLD ? 5 : 0);
+                pointsGained = POINTS_PER_HABIT + (habitDef.streak >= HABIT_STREAK_BONUS_THRESHOLD ? CONFIG.HABIT_STREAK_BONUS_POINTS : 0);
             }
         }
         
@@ -922,6 +1013,7 @@ function showTaskDetailsPopup(item) {
         // Move item to completed list
         item.completedAt = new Date();
         completedItems.push(item);
+        saveGame();
         
         // Show completed tasks section and render completed items
         renderCompletedItems();
@@ -948,12 +1040,14 @@ function showTaskDetailsPopup(item) {
             
             activeItems.splice(itemIndex, 1);
             updateTaskCountDisplay();
+            saveGame();
         }
     }
     function createSubTaskPrompt(parentId) {
         showCreateSubTaskModal(parentId);
     }
-    
+
+    function showCreateSubTaskModal(parentId) {
         console.log('🎯 showCreateSubTaskModal called with parentId:', parentId, 'type:', typeof parentId);
         
         const parentTask = activeItems.find(item => item.id === parentId && item.type === 'task');
@@ -1079,6 +1173,7 @@ function showTaskDetailsPopup(item) {
         });
     }
 
+    function uncompleteItem(itemId) {
         const completedIndex = completedItems.findIndex(i => i.id === itemId);
         if (completedIndex === -1) return;
         
@@ -1097,12 +1192,12 @@ function showTaskDetailsPopup(item) {
         
         // Recalculate position based on current time
         const currentTime = new Date();
-        item.x = calculateTimelinePosition(item, currentTime);
-        
+        item.x = calculateTimelineXWithClustering(item, currentTime);
+
         // Check if it should be marked as overdue
         if (item.dueDateTime <= currentTime) {
             markAsOverdue(item, currentTime);
-            item.x = BASE_WIDTH;
+            item.x = BASE_WIDTH + getSubTaskClusterOffset(item);
         }
         
         // Recreate enemy element
@@ -1133,8 +1228,7 @@ function showTaskDetailsPopup(item) {
         
         // Position the enemy
         itemElement.style.left = item.x + 'px';
-        const randomTop = Math.random() * (gameCanvas.offsetHeight - itemSpriteHeight);
-        itemElement.style.top = Math.max(0, Math.min(randomTop, gameCanvas.offsetHeight - itemSpriteHeight)) + 'px';
+        itemElement.style.top = getItemTopPosition(item, itemSpriteHeight) + 'px';
         
         // Set up click handler
         itemElement.dataset.itemId = item.id;
@@ -1202,14 +1296,15 @@ function showTaskDetailsPopup(item) {
                 habitDef.lastCompletionDate = null;
                 
                 const xpLost = XP_PER_HABIT_COMPLETE;
-                const pointsLost = POINTS_PER_HABIT + (habitDef.streak >= HABIT_STREAK_BONUS_THRESHOLD ? 5 : 0);
+                const pointsLost = POINTS_PER_HABIT + (habitDef.streak >= HABIT_STREAK_BONUS_THRESHOLD ? CONFIG.HABIT_STREAK_BONUS_POINTS : 0);
                 
                 playerXP = Math.max(0, playerXP - xpLost);
                 playerPoints = Math.max(0, playerPoints - pointsLost);
             }
         }
-        
+
         updatePlayerDisplays();
+        saveGame();
     }
 
     function sortAndRenderActiveList() {
@@ -1390,6 +1485,7 @@ function showTaskDetailsPopup(item) {
                 if (item.element) item.element.classList.remove('high-streak');
             }
         }
+        saveGame();
     }
 
     // Helper function to get today's 5pm
@@ -1399,6 +1495,95 @@ function showTaskDetailsPopup(item) {
         return fivePM;
     }
     
+    // The zombie PNGs have large transparent margins (the visible graphic is
+    // roughly the middle 44%-92% of the box, varying per category — measured
+    // fractions live in CONFIG.ZOMBIE_VISIBLE_MARGINS). Returns the visible
+    // graphic's left/right edges in px, relative to the sprite box's left edge.
+    function getVisibleEdges(category, boxWidth) {
+        const m = CONFIG.ZOMBIE_VISIBLE_MARGINS[category] || CONFIG.ZOMBIE_VISIBLE_MARGIN_FALLBACK;
+        return {
+            left: boxWidth * m.left,
+            right: boxWidth * (1 - m.right)
+        };
+    }
+
+    // Sub-tasks fan out beside their parent: alternating right/left by creation
+    // order (ordered by id, so the arrangement stays stable as siblings
+    // complete). Offsets are computed from the sprites' VISIBLE graphic edges
+    // (via getVisibleEdges), not their box edges — the PNGs have big transparent
+    // margins, so box-edge math left visually inconsistent gaps. Each side's 1st
+    // slot butts its visible graphic against the parent's visible edge (plus a
+    // small gap); each further same-side slot chains off the previous sibling's
+    // visible edge. Sibling categories can differ, so the chain walks every
+    // earlier sibling and uses each one's own measured margins.
+    function getSubTaskClusterOffset(item) {
+        if (!item.parentId) return 0;
+        const parentTask = activeItems.find(p => p.id === item.parentId);
+        const gap = CONFIG.SUBTASK_CLUSTER_GAP_PX;
+        const subWidth = CONFIG.SUBTASK_ENEMY_WIDTH;
+
+        const parentEdges = getVisibleEdges(parentTask ? parentTask.category : 'other', ENEMY_WIDTH);
+        let rightFrontier = parentEdges.right; // visible right edge of the rightmost cluster member so far (px, relative to parent box left)
+        let leftFrontier = parentEdges.left;   // visible left edge of the leftmost cluster member so far
+
+        const siblings = activeItems
+            .filter(i => i.parentId === item.parentId && i.id <= item.id)
+            .sort((a, b) => a.id - b.id);
+
+        let offset = 0;
+        siblings.forEach((sib, idx) => {
+            const sibEdges = getVisibleEdges(sib.category, subWidth);
+            let sibOffset;
+            if (idx % 2 === 0) {
+                // right side: sib's visible left edge sits gap px after the current right frontier
+                sibOffset = rightFrontier + gap - sibEdges.left;
+                rightFrontier = sibOffset + sibEdges.right;
+            } else {
+                // left side: sib's visible right edge sits gap px before the current left frontier
+                sibOffset = leftFrontier - gap - sibEdges.right;
+                leftFrontier = sibOffset + sibEdges.left;
+            }
+            if (sib.id === item.id) offset = sibOffset;
+        });
+        return offset;
+    }
+
+    // Sub-tasks normally track the PARENT's timeline position (offset by
+    // getSubTaskClusterOffset) rather than their own due date, so they stay
+    // visually clustered with the parent even if their due time is only a
+    // little different. Only when a sub-task's own due date is due
+    // significantly EARLIER than the parent's (its own timeline position is
+    // meaningfully closer to the base) does it break from the cluster and
+    // show its own real urgency further ahead.
+    function calculateTimelineXWithClustering(item, currentTime) {
+        const ownTimelineX = calculateTimelinePosition(item, currentTime);
+        if (!item.parentId) return ownTimelineX;
+
+        const parentTask = activeItems.find(p => p.id === item.parentId);
+        if (!parentTask) return ownTimelineX + getSubTaskClusterOffset(item);
+
+        if (parentTask.x - ownTimelineX > CONFIG.SUBTASK_AHEAD_THRESHOLD_PX) {
+            return ownTimelineX; // due much earlier than parent — show real urgency
+        }
+        return parentTask.x + getSubTaskClusterOffset(item);
+    }
+
+    // Sub-tasks bottom-align with their parent (feet on the same ground line)
+    // instead of a random height, so they visually cluster with it. Falls back
+    // to random for top-level items or if the parent isn't rendered yet.
+    function getItemTopPosition(item, itemHeight) {
+        if (item.parentId) {
+            const parentTask = activeItems.find(p => p.id === item.parentId);
+            if (parentTask && parentTask.element) {
+                const parentTop = parseFloat(parentTask.element.style.top);
+                const parentHeight = parseFloat(parentTask.element.style.height) || itemHeight;
+                if (!isNaN(parentTop)) return parentTop + (parentHeight - itemHeight);
+            }
+        }
+        const randomTop = Math.random() * (gameCanvas.offsetHeight - itemHeight);
+        return Math.max(0, Math.min(randomTop, gameCanvas.offsetHeight - itemHeight));
+    }
+
     // Calculate position based on timeline system with 2-hour and 4-hour marks
 function calculateTimelinePosition(item, currentTime) {
     const currentItemWidth = (item.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH;
@@ -1456,11 +1641,11 @@ function updateActiveItems() {
         if (!item.isOverdue) {
             if (item.dueDateTime <= currentTime) {
                 // Item just became overdue
-                item.x = BASE_WIDTH;
+                item.x = BASE_WIDTH + getSubTaskClusterOffset(item);
                 markAsOverdue(item, currentTime);
             } else {
                 // Calculate position based on timeline
-                item.x = calculateTimelinePosition(item, currentTime);
+                item.x = calculateTimelineXWithClustering(item, currentTime);
             }
 
             // Update visual position
@@ -1557,7 +1742,8 @@ function updateMidnightLine(currentTime) {
         }, 300);
         
         updateBaseVisuals();
-        
+        saveGame();
+
         if (baseHealth <= 0) {
             gameOver();
         }
@@ -1576,13 +1762,20 @@ function updateMidnightLine(currentTime) {
         
         if (restartButton) restartButton.classList.remove('hidden');
         if (baseElement) baseElement.style.backgroundImage = "url('base_000.png')";
-        
+
         enableFormControls(false);
+        saveGame();
     }
 
     function updateGame() {
         if (!gameIsOver) {
             updateActiveItems();
+
+            const nowMs = Date.now();
+            if (nowMs - lastAutosaveMs >= CONFIG.PERSISTENCE_AUTOSAVE_MS) {
+                lastAutosaveMs = nowMs;
+                saveGame();
+            }
         }
     }
 
@@ -1601,6 +1794,7 @@ function updateMidnightLine(currentTime) {
         
         definedHabits.push(newHabitDef);
         generateDailyHabitInstances(currentGameDate);
+        saveGame();
     }
 
     function getHabitInstanceDueTime(timeOfDayString, referenceDate) {
@@ -1708,6 +1902,7 @@ function updateMidnightLine(currentTime) {
         definedRoutines.push(newRoutine);
         routineNameInput.value = '';
         renderDefinedRoutines();
+        saveGame();
     }
     
     function deleteRoutine(routineId) {
@@ -1717,7 +1912,8 @@ function updateMidnightLine(currentTime) {
         const routine = definedRoutines[routineIndex];
         if (confirm(`Are you sure you want to delete the routine "${routine.name}"?`)) {
             definedRoutines.splice(routineIndex, 1);
-            
+            saveGame();
+
             // Update routines window if open
             setTimeout(() => {
                 if (managementWindows.routines && !managementWindows.routines.classList.contains('hidden')) {
@@ -3334,7 +3530,13 @@ function updateMidnightLine(currentTime) {
     }
 
     if (restartButton) {
-        restartButton.addEventListener('click', initGame);
+        restartButton.addEventListener('click', () => {
+            // A restart abandons the dead run — clear its save so a reload
+            // before the first new mutation doesn't resurrect it.
+            if (typeof Persistence !== 'undefined') Persistence.clear();
+            initGame();
+            saveGame();
+        });
     }
 
     // Keyboard shortcuts
@@ -3417,4 +3619,16 @@ function updateMidnightLine(currentTime) {
     
     // Initialize the game
     initGame();
+    restoreGameState();
+
+    // Flush any pending debounced save when the page hides or closes.
+    // visibilitychange covers mobile Chrome, where beforeunload is unreliable.
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden' && typeof Persistence !== 'undefined') {
+            Persistence.flush();
+        }
+    });
+    window.addEventListener('beforeunload', () => {
+        if (typeof Persistence !== 'undefined') Persistence.flush();
+    });
 });

@@ -5,8 +5,20 @@ TARGET schema for the persistence work (Milestone 1) and modularization. The mon
 ## Storage
 - `localStorage`, key prefix `deadline.`
 - `deadline.save` — full serialized state (JSON) with `schemaVersion` for migrations
-- `deadline.settings` — user settings (demo clock on/off, etc.)
+- `deadline.settings` — user settings (demo clock on/off, etc.) — not yet implemented
 - Save on every state mutation (debounced), load on boot. Cross-tab sync later via `storage` events.
+
+### IMPLEMENTED (2026-07-17): schemaVersion 1 ≠ this target schema
+`js/persistence.js` + `restoreGameState()` in script.js are live. **schemaVersion 1
+saves the monolith's CURRENT in-memory shapes as-is** (numeric item ids,
+`activeItems`/`completedItems` arrays, `definedHabits`/`definedRoutines`, player
+scalars, `itemIdCounter`, `currentGameDate`) — NOT the target objects below.
+The objects below remain the goal; migrate toward them during Milestone 2
+extractions via schemaVersion bumps + the migration chain in `js/persistence.js`
+(decision + implementation notes: DECISIONS.md 2026-07-17). DOM refs
+(`element`, `listItemElement`) are stripped on save and rebuilt on load; Dates
+round-trip via a strict ISO reviver. Restored overdue items do NOT back-charge
+offline damage — that's the offline catch-up task's scope.
 
 ## Objects
 

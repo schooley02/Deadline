@@ -42,8 +42,11 @@
 
 ## Sub-tasks
 
-- Parent tasks with sub-tasks are larger enemies (more steps = bigger threat).
-- Completing sub-tasks shrinks/weakens the parent enemy.
+- Sub-tasks render as their own smaller (`CONFIG.SUBTASK_ENEMY_WIDTH` = 64×64) enemy sprites, bottom-aligned with their parent (feet on the same ground line — not top-aligned) and fan out beside it, alternating right/left by creation order: 1st right of the parent, 2nd left, 3rd further right (clearing the 1st), 4th further left, etc.
+- **Offsets are computed from the sprites' VISIBLE graphic edges, not their box edges.** The zombie PNGs have large transparent margins (visible graphic is ~44%–92% of the box width depending on category, and not centered — e.g. lifestyle leans right). Per-category margins were measured from the PNGs' alpha channels on 2026-07-17 and live in `CONFIG.ZOMBIE_VISIBLE_MARGINS`; `getSubTaskClusterOffset` chains each sibling's visible edge `CONFIG.SUBTASK_CLUSTER_GAP_PX` (8px) from the previous one's, handling mixed sibling categories. If sprite art is ever redrawn, re-measure and update the margin table (alpha-bbox script in DECISIONS.md 2026-07-17 entry). The parent sprite always renders above any overlapping sub-task sprite (z-index: parent 10, sub-task 5).
+- Sub-tasks track the PARENT's timeline position (plus the cluster offset above) rather than their own due date, so a sub-task due only a little earlier/later than its parent stays visually clustered with it instead of drifting away. A sub-task only breaks from the cluster and shows further ahead (closer to the base) on its own timeline if its own due date is due *significantly* earlier than the parent's (currently: its own timeline x would be 150px+ closer to the base — `CONFIG.SUBTASK_AHEAD_THRESHOLD_PX`).
+- Sub-tasks do NOT get their own entry in the main agenda list — only nested inside their parent's list item.
+- **Open tension, not yet resolved:** the original spec (PROJECT_SPEC.md) describes the PARENT growing larger with more sub-tasks and shrinking as they're completed, rather than sub-tasks appearing as separate visible sprites at all. The current implementation (separate clustered sub-task sprites) is what's actually built and was confirmed by Jeremy on 2026-07-17; the "growing/shrinking parent" idea is not implemented and is a candidate for Milestone 3 ([P1-DATA-004] sub-task hierarchy) — worth a deliberate decision on whether both effects happen together or the shrinking-parent idea is dropped.
 
 ## Offline Catch-up
 On app reopen, paused zombies animate quickly (max 5 seconds) to their current time positions.
