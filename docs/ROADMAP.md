@@ -8,7 +8,7 @@ Work ONE unchecked task per session. Check items off with the date. Ticket IDs r
 - [x] Repo moved to permanent home (Claude\Projects\Deadline); node_modules untracked, .gitignore added
 
 ## Milestone 1 — Stabilize (CURRENT)
-- [ ] Fix sub-task duplication bug — root cause + repro already in SUBTASK_BUG_REPRODUCTION_REPORT.md; Jest tests in test/. Fix, verify `npm test`, commit.
+- [x] Fix sub-task duplication bug (2026-07-17) — already fixed in commit `38409ca` (Jul 29 2025), predates the M0 repo move; verified via `test/subtask-creation.test.js` (14/14 passing), no new code change needed. See DECISIONS.md.
 - [ ] Decide branch state with Jeremy: merge `feature/sprite-system-cleanup` → `main`, push to GitHub
 - [ ] Create `js/config.js` and move existing gameplay constants from script.js into it
 - [ ] localStorage persistence per docs/DATA_SCHEMA.md (save on mutation, load on boot, schemaVersion) — biggest missing feature; a refresh currently loses everything

@@ -4,6 +4,11 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-17 — Sub-task duplication bug: already fixed, no new code change needed
+**Decision:** Verified (not re-fixed) — the fix described as "Next Steps" in SUBTASK_BUG_REPRODUCTION_REPORT.md was already implemented in commit `38409ca` ("Fix: prevent duplicate regular task when adding subtask", Jul 29 2025), the same commit that added the repro report itself. `addItemToGame()` only calls `createListItem()` when `!itemData.parentId` (script.js ~line 465), and `sortAndRenderActiveList()` only appends items to the DOM list when `!item.parentId` (script.js ~line 1224). Ran `test/subtask-creation.test.js` (14 tests) in the sandbox scratchpad — all pass.
+**Why:** HANDOFF.md and ROADMAP.md (written 2026-07-16 during the repo move) described this as an open bug because the repro report reads that way, but they predate a check against the actual code/git history. Confirmed via `git show 38409ca -- script.js` that the guard clauses are already present in the current script.js.
+**Note:** `test/subtask-creation.test.js` tests a self-contained copy of the fixed logic (mirrors script.js, doesn't `require` it directly) — matches current script.js line-for-line for the relevant functions, but a future session should consider making the test import the real functions to prevent silent drift.
+
 ## 2026-07-16 — Permanent home: OneDrive\Documents\Claude\Projects\Deadline
 **Decision:** July 2025 repo copied here (history verified); scaffolding merged in. Jeremy to delete the original C:\Users\jscho\Deadline after verifying; the OneDrive "Baseline - Old\Deadline" folder stays (art sources).
 **Why:** Jeremy's choice for project organization. Caveat accepted: OneDrive + git can conflict — folder should be set to "Always keep on this device"; pause sync if git misbehaves.
