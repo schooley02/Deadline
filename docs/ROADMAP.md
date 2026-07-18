@@ -39,12 +39,15 @@ Order chosen so each step is small and testable. Tests pass before/after each; c
   - [x] 3. `js/ui/fabMenu.js` + `js/ui/managementWindows.js` (2026-07-18)
   - [x] 4. `js/ui/forms.js` (2026-07-18) — showFormModal/createTaskFormHtml/createHabitFormHtml/createRoutineFormHtml/attachModalEventListeners. Reconciled the `createRoutineFormHtml` inline duplicate to call `Routines.createRoutineDefinition` — adds a previously-missing `saveGame()` call (real behavior change, see DECISIONS.md).
   - [x] 5. `js/ui/popups.js` (2026-07-18) — enemy click, task details, edit task, sub-task modal. showCreateSubTaskModal's debug logging deliberately left untouched given the historic sub-task-duplication bug.
-  - [ ] 6. `js/ui/agendaList.js` part 1 — `createListItem` (268 lines)
+  - [x] 6. `js/ui/agendaList.js` part 1 (2026-07-18) — `createListItem` (267 lines). `gameIsOver` is passed as a GETTER (`isGameOver: () => gameIsOver`), not a captured boolean — first UI extraction whose handlers outlive the call, so a snapshot would go stale. See DECISIONS.md. New `test/agenda-list.test.js` (16 tests) requires and executes the REAL module — the first UI extraction with genuine unit coverage rather than a hand-maintained mirror.
   - [ ] 7. `js/ui/agendaList.js` part 2 — list rendering, completed items, sub-task checkbox reset
   - [ ] 8. `js/ui/routineViews.js` part 1 — routine rendering functions left behind by routines.js
   - [ ] 9. `js/ui/routineViews.js` part 2 — routine create/edit forms + the four `window.save*` handlers
 - [ ] script.js reduced to boot/wiring (<300 lines) — session 10 of the UI plan
 - [ ] Split style.css by component
+
+## Known bugs (found, not yet scheduled)
+- [ ] **Edit Task / Create Sub-task modals pre-fill due date+time in UTC, not local time** (found 2026-07-18, session 6 live verification; NOT introduced by the extraction). `js/ui/popups.js` uses `dueDateTime.toISOString()` to populate the date/time inputs (lines ~92-93 in `showEditTaskModal`, ~222-223 in `createSubTaskPrompt`), while the agenda row renders with `toLocaleString()`. In CDT the modal shows a task due 12:00 PM as 05:00 PM. **This silently corrupts data:** opening Edit Task and pressing Save Changes without touching the time shifts the due date forward by the UTC offset, and for evening tasks the DATE rolls to the next day too. Fix is to format from local getters (`getFullYear`/`getMonth`/`getDate`/`getHours`/`getMinutes`) rather than `toISOString`. Verify against `test/` — no current test covers modal pre-fill.
 
 ## Milestone 3 — Core Feature Gaps (P1 tickets)
 - [ ] [P1-DATA-004] Sub-task hierarchy system (beyond bug fix: dependent due dates, shrinking parents)

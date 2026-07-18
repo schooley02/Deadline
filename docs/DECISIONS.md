@@ -4,6 +4,34 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-18 — UI extraction session 6: live state reaches extracted UI modules as getters when handlers outlive the call
+
+**Context:** UI extraction sessions 3, 4 and 5 all used the same dependency shape — a `<module>Deps()` helper in script.js returning a plain object, snapshotted at call time and read immediately inside the same tick. That is correct for those clusters: `handleEnemyClick` reads `deps.gameIsOver` and returns; `showFormModal` builds a modal and returns. Nothing survives the call.
+
+`createListItem` (session 6) is the first UI extraction where that assumption breaks. It ATTACHES EVENT HANDLERS THAT OUTLIVE THE CALL: the "+ Sub-task" button's click handler reads the game-over flag whenever the user eventually clicks it, which may be minutes after the row was built. `gameIsOver` is a mutable `let` in script.js's closure, flipped by `setGameOver()`. Captured as a flat boolean in a deps snapshot, the handler would read the value as of RENDER time forever — so every row rendered before game-over would keep accepting new sub-tasks after the base fell, while rows rendered afterward would correctly refuse. A silent, state-dependent inconsistency, and precisely the shape of the three prior "createListItem family" bugs (row renders against stale state rather than current state).
+
+**Decision:** live, mutable script.js state crosses into an extracted UI module as a GETTER (`isGameOver: () => gameIsOver`) whenever the module attaches handlers that outlive the call. Applied here to `gameIsOver`. Stable bindings — `activeItems` (mutated in place, never reassigned) and `categoryStyles` (a `const` object) — stay plain references, since a captured reference always observes current data.
+
+This is not a new convention so much as a consistently-applied one: `js/spawning.js` already passes `isGameOver: () => gameIsOver` for the same reason. Sessions 3-5's flat booleans remain correct for their clusters and are NOT being retrofitted — the rule is about handler lifetime, not about the flag.
+
+**Verified, not assumed:** `test/agenda-list.test.js` pins this down with a test that builds a row while the game is live, fires the button, flips the flag, and fires again. Temporarily reverting the module to a flat boolean fails that test and only that test (checked during the session), so the test genuinely has teeth rather than passing vacuously.
+
+**Alternatives rejected:** (a) *Flat boolean, accept the staleness* — a real behavior regression against the original inline code, which read the live closure variable. (b) *Re-call `agendaListDeps()` inside each handler* — rebuilds the whole deps object on every click to refresh one field; more allocation and more indirection for less clarity. (c) *Pass the whole script.js state object through* — recreates the closure across files, which ARCHITECTURE.md's refactor rules explicitly forbid.
+
+---
+
+## 2026-07-18 — UI extraction session 6: extracted UI modules get real unit tests, not hand-maintained mirrors
+
+**Context:** `test/create-list-item-branching.test.js` (2026-07-18) is a hand-written MIRROR of `createListItem`'s branch structure rather than a test of the function itself. Its own header explains why: script.js has no `module.exports`, everything lives in one `DOMContentLoaded` closure, so the real function could not be `require`d. The same convention was followed in `test/subtask-creation.test.js`. Mirrors catch structural regressions in the copy, not in the shipped code — they can pass while the real function is broken.
+
+**Decision:** now that `createListItem` lives in `js/ui/agendaList.js` with a real `module.exports`, the reason for mirroring is gone, and session 6 added `test/agenda-list.test.js` (16 tests) which `require`s and EXECUTES the actual module against a minimal `document` stub — including firing the registered click/change listeners. Going forward, extracted UI modules get tests against the real module; new mirrors should not be written.
+
+**Not done — deliberately:** the existing mirror file was NOT deleted or rewritten. It still guards the branch structure, and removing a regression test for the project's most bug-prone function should be its own considered decision, not a side effect of an extraction session. Flagged in HANDOFF for session 7, which owns the rest of agendaList.js.
+
+**Why this matters beyond tidiness:** the UI extraction plan's standing hazards note says UI clusters are "less unit-testable than logic extractions" and that sessions should "expect to lean on `node --check` plus Jeremy's live smoke test more than on Jest." Sessions 1-5 each added zero tests on that basis. Extraction turns out to be what MAKES these testable — the untestability was a property of the monolith, not of UI code.
+
+---
+
 ## 2026-07-18 — UI extraction session 4: reconciled the routine-creation inline duplicate; routine creation now saves immediately
 
 **Context:** flagged back in the routines.js extraction (2026-07-18) and again in the UI extraction planning session: `createRoutineFormHtml`'s modal handler (inside `attachModalEventListeners`'s `case 'routine':` branch) built a new routine object inline — same id format and fields as `Routines.createRoutineDefinition`, but duplicated rather than calling it, and missing that function's implicit reliance on the caller adding `saveGame()`. The other call site (`script.js`'s standalone `createRoutineDefinition()` wrapper, tied to the dead `routineNameInput`/`createRoutineButton` legacy inputs deleted in session 0) already called `saveGame()` correctly but is itself unreachable dead code — confirmed by Grep (`document.getElementById('routineName')` returns null; no listener ever fires it).
