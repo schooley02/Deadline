@@ -6,75 +6,28 @@
  * regardless of routine membership or active state, and toggleRoutineActive
  * only flipped the flag (no spawn gating, no recall, no save).
  *
- * This file mirrors two pieces of script.js:
- *   1. The habit-side spawn selection (the habit equivalent of
- *      selectTaskDefsToSpawn in test/routine-task-instances.test.js).
+ * This file covers two pieces:
+ *   1. The habit-side spawn selection. Originally a hand-maintained mirror
+ *      of script.js's private selection logic; as of the habits.js
+ *      extraction (2026-07-18) that logic is real, exported code
+ *      (Habits.selectHabitDefsToSpawn), so this now requires it directly
+ *      instead of keeping a second copy that could drift.
  *   2. selectActiveItemIdsToClearForRoutine — the pure selection half of
  *      clearActiveInstancesForRoutine, which recalls a deactivated routine's
  *      active enemies (decided with Jeremy: deactivating clears active
  *      enemies immediately, not just gates future spawns). The DOM/removal
  *      half goes through the existing removeItem(), verified by playtest —
- *      same split as Spawning.addItemToGame (see ARCHITECTURE.md).
- *
- * These functions live in script.js, which has no module.exports, so this is
- * a hand-maintained mirror matching the convention of
- * test/routine-task-instances.test.js. Keep in sync with script.js's
- * generateDailyHabitInstances / selectActiveItemIdsToClearForRoutine.
+ *      same split as Spawning.addItemToGame (see ARCHITECTURE.md). As of the
+ *      routines.js extraction (2026-07-18) this is real, exported code
+ *      (Routines.selectActiveItemIdsToClearForRoutine), so this now requires
+ *      it directly instead of keeping a second copy that could drift.
  */
 
-// --- mirrors of script.js -------------------------------------------------
+const Habits = require('../js/habits.js');
+const selectHabitDefsToSpawn = Habits.selectHabitDefsToSpawn;
 
-// The selection half of generateDailyHabitInstances: which habit definitions
-// spawn for a given day. Mirrors selectTaskDefsToSpawn's shape/dedupe logic,
-// substituting habits' lastCompletionDate check for tasks' completedItems scan.
-function selectHabitDefsToSpawn(definedHabits, definedRoutines, activeItems, forWhichGameDay) {
-    const forWhichGameDayString = forWhichGameDay.toDateString();
-
-    const activeRoutineHabitIds = new Set();
-    definedRoutines.forEach(routine => {
-        if (!routine.isActive) return;
-        (routine.habitDefinitionIds || []).forEach(id => activeRoutineHabitIds.add(id));
-    });
-
-    return definedHabits.filter(habitDef => {
-        if (!activeRoutineHabitIds.has(habitDef.id)) return false;
-        if (habitDef.frequency !== 'daily') return false;
-
-        const lastCompletionDayString = habitDef.lastCompletionDate
-            ? new Date(habitDef.lastCompletionDate).toDateString()
-            : null;
-        const alreadyCompletedForThisGameDay = lastCompletionDayString === forWhichGameDayString;
-
-        const existingActiveInstance = activeItems.find(item =>
-            item.type === 'habit' &&
-            item.definitionId === habitDef.id &&
-            item.originalDueDate &&
-            new Date(item.originalDueDate).toDateString() === forWhichGameDayString
-        );
-
-        return !alreadyCompletedForThisGameDay && !existingActiveInstance;
-    });
-}
-
-// Mirrors script.js's selectActiveItemIdsToClearForRoutine.
-function selectActiveItemIdsToClearForRoutine(activeItems, routine) {
-    const habitDefIds = new Set(routine.habitDefinitionIds || []);
-    const taskDefIds = new Set(routine.taskDefinitionIds || []);
-
-    const rootIds = activeItems
-        .filter(item =>
-            (item.type === 'habit' && habitDefIds.has(item.definitionId)) ||
-            (item.type === 'task' && taskDefIds.has(item.definitionId))
-        )
-        .map(item => item.id);
-
-    const rootIdSet = new Set(rootIds);
-    const subTaskIds = activeItems
-        .filter(item => item.parentId !== undefined && rootIdSet.has(item.parentId))
-        .map(item => item.id);
-
-    return [...subTaskIds, ...rootIds];
-}
+const Routines = require('../js/routines.js');
+const selectActiveItemIdsToClearForRoutine = Routines.selectActiveItemIdsToClearForRoutine;
 
 // --- fixtures --------------------------------------------------------------
 

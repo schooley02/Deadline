@@ -1066,10 +1066,16 @@ function showTaskDetailsPopup(item) {
         } else if (item.type === 'habit') {
             const habitDef = definedHabits.find(def => def.id === item.definitionId);
             if (habitDef) {
-                habitDef.streak++;
-                habitDef.lastCompletionDate = new Date(item.originalDueDate);
-                xpGained = XP_PER_HABIT_COMPLETE;
-                pointsGained = POINTS_PER_HABIT + (habitDef.streak >= HABIT_STREAK_BONUS_THRESHOLD ? CONFIG.HABIT_STREAK_BONUS_POINTS : 0);
+                const result = Habits.applyHabitCompletion(habitDef.streak, item.originalDueDate, {
+                    xpPerHabitComplete: XP_PER_HABIT_COMPLETE,
+                    pointsPerHabit: POINTS_PER_HABIT,
+                    streakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD,
+                    streakBonusPoints: CONFIG.HABIT_STREAK_BONUS_POINTS
+                });
+                habitDef.streak = result.streak;
+                habitDef.lastCompletionDate = result.lastCompletionDate;
+                xpGained = result.xpGained;
+                pointsGained = result.pointsGained;
             }
         }
         
@@ -1380,15 +1386,17 @@ function showTaskDetailsPopup(item) {
         } else if (item.type === 'habit') {
             const habitDef = definedHabits.find(def => def.id === item.definitionId);
             if (habitDef) {
-                // Reverse the streak increment
-                habitDef.streak = Math.max(0, habitDef.streak - 1);
-                habitDef.lastCompletionDate = null;
-                
-                const xpLost = XP_PER_HABIT_COMPLETE;
-                const pointsLost = POINTS_PER_HABIT + (habitDef.streak >= HABIT_STREAK_BONUS_THRESHOLD ? CONFIG.HABIT_STREAK_BONUS_POINTS : 0);
-                
-                playerXP = Math.max(0, playerXP - xpLost);
-                playerPoints = Math.max(0, playerPoints - pointsLost);
+                const result = Habits.applyHabitUncompletion(habitDef.streak, {
+                    xpPerHabitComplete: XP_PER_HABIT_COMPLETE,
+                    pointsPerHabit: POINTS_PER_HABIT,
+                    streakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD,
+                    streakBonusPoints: CONFIG.HABIT_STREAK_BONUS_POINTS
+                });
+                habitDef.streak = result.streak;
+                habitDef.lastCompletionDate = result.lastCompletionDate;
+
+                playerXP = Math.max(0, playerXP - result.xpLost);
+                playerPoints = Math.max(0, playerPoints - result.pointsLost);
             }
         }
 
@@ -1561,17 +1569,20 @@ function showTaskDetailsPopup(item) {
         // Reset habit streak if it's a habit
         if (item.type === 'habit') {
             const habitDef = definedHabits.find(def => def.id === item.definitionId);
-            if (habitDef && habitDef.streak > 0) {
-                habitDef.streak = 0;
-                
-                // Update streak display in list
-                if (item.listItemElement) {
-                    const streakSpan = item.listItemElement.querySelector('.item-streak');
-                    if (streakSpan) streakSpan.textContent = 'Streak: 0';
+            if (habitDef) {
+                const result = Habits.resetStreakOnOverdue(habitDef.streak);
+                habitDef.streak = result.streak;
+
+                if (result.wasReset) {
+                    // Update streak display in list
+                    if (item.listItemElement) {
+                        const streakSpan = item.listItemElement.querySelector('.item-streak');
+                        if (streakSpan) streakSpan.textContent = 'Streak: 0';
+                    }
+
+                    // Remove high-streak visual effects
+                    if (item.element) item.element.classList.remove('high-streak');
                 }
-                
-                // Remove high-streak visual effects
-                if (item.element) item.element.classList.remove('high-streak');
             }
         }
         saveGame();
@@ -1756,103 +1767,41 @@ function updateActiveItems() {
             streak: 0,
             lastCompletionDate: null
         };
-        
+
         definedHabits.push(newHabitDef);
         generateDailyHabitInstances(currentGameDate);
         saveGame();
     }
 
+    // Habit instance creation, daily spawn selection, and streak math live in
+    // js/habits.js (Milestone 2 extraction, 2026-07-18) — the functions below
+    // are thin wrappers so every existing call site is unchanged. See
+    // js/habits.js's header comment for the deps shape and the one
+    // deliberately-preserved pre-existing bug (streak-bonus asymmetry).
+    function habitInstanceDeps() {
+        return {
+            getNextId: () => itemIdCounter++,
+            calculateTimelinePosition,
+            gameScreenWidth: GAME_SCREEN_WIDTH,
+            habitEnemyWidth: HABIT_ENEMY_WIDTH,
+            definedHabits,
+            definedRoutines,
+            activeItems,
+            addItemToGame,
+            sortAndRenderActiveList
+        };
+    }
+
     function getHabitInstanceDueTime(timeOfDayString, referenceDate) {
-        const due = new Date(referenceDate);
-        due.setSeconds(0, 0);
-        
-        switch (timeOfDayString) {
-            case 'morning':
-                due.setHours(12, 0);
-                break;
-            case 'afternoon':
-                due.setHours(17, 0);
-                break;
-            case 'evening':
-                due.setHours(22, 0);
-                break;
-            default:
-                due.setHours(23, 59);
-                break;
-        }
-        
-        return due;
+        return Habits.getHabitInstanceDueTime(timeOfDayString, referenceDate);
     }
 
     function createHabitInstanceData(habitDef, forDate) {
-        const instanceCreationTime = new Date();
-        let targetInstanceDate = new Date(forDate);
-        let dueDateTime = getHabitInstanceDueTime(habitDef.timeOfDay, targetInstanceDate);
-        
-        const habitInstanceData = {
-            id: itemIdCounter++,
-            type: 'habit',
-            definitionId: habitDef.id,
-            name: habitDef.name,
-            category: habitDef.category,
-            isHighPriority: false,
-            dueDateTime: dueDateTime,
-            creationTime: instanceCreationTime,
-            timeToDueAtCreationMs: Math.max(0, dueDateTime.getTime() - instanceCreationTime.getTime()),
-            x: GAME_SCREEN_WIDTH - HABIT_ENEMY_WIDTH, // Will be recalculated below
-            isOverdue: false,
-            lastDamageTickTime: null,
-            streak: habitDef.streak,
-            isNegative: habitDef.isNegative,
-            element: null,
-            listItemElement: null,
-            originalDueDate: new Date(dueDateTime),
-            // Cumulative offline overdue damage ever charged — see createTaskItemData.
-            offlineDamageCharged: 0
-        };
-        
-        // Calculate initial position based on new timeline system
-        habitInstanceData.x = calculateTimelinePosition(habitInstanceData, instanceCreationTime);
-        
-        return habitInstanceData;
+        return Habits.createHabitInstanceData(habitDef, forDate, habitInstanceDeps());
     }
 
     function generateDailyHabitInstances(forWhichGameDay) {
-        const forWhichGameDayString = forWhichGameDay.toDateString();
-
-        // Only habits belonging to an ACTIVE routine spawn (2026-07-18 fix —
-        // see docs/ROUTINES.md and DECISIONS.md). A habit orphaned by
-        // removeHabitFromRoutine, or one whose routine is deactivated, is inert.
-        const activeRoutineHabitIds = new Set();
-        definedRoutines.forEach(routine => {
-            if (!routine.isActive) return;
-            (routine.habitDefinitionIds || []).forEach(id => activeRoutineHabitIds.add(id));
-        });
-
-        definedHabits.forEach(habitDef => {
-            if (!activeRoutineHabitIds.has(habitDef.id)) return;
-            if (habitDef.frequency === 'daily') {
-                const lastCompletionDayString = habitDef.lastCompletionDate ? 
-                    new Date(habitDef.lastCompletionDate).toDateString() : null;
-                const alreadyCompletedForThisGameDay = lastCompletionDayString === forWhichGameDayString;
-                
-                const existingActiveInstance = activeItems.find(item => 
-                    item.type === 'habit' && 
-                    item.definitionId === habitDef.id && 
-                    item.originalDueDate && 
-                    item.originalDueDate.toDateString() === forWhichGameDayString
-                );
-                
-                if (!alreadyCompletedForThisGameDay && !existingActiveInstance) {
-                    const habitInstanceData = createHabitInstanceData(habitDef, forWhichGameDay);
-                    if (habitInstanceData && habitInstanceData.originalDueDate.toDateString() === forWhichGameDayString) {
-                        addItemToGame(habitInstanceData);
-                    }
-                }
-            }
-        });
-        
-        sortAndRenderActiveList();
+        Habits.generateDailyHabitInstances(forWhichGameDay, habitInstanceDeps());
     }
 
     // --- Routine task instances (2026-07-18) ---
@@ -1862,137 +1811,60 @@ function updateActiveItems() {
     // in the agenda (see docs/DECISIONS.md). Routine tasks recur DAILY, the same
     // as routine habits — decided with Jeremy 2026-07-18.
 
-    // Task definitions carry a "HH:MM" defaultDueTime rather than the habit
-    // system's coarse timeOfDay buckets, so they get their own due-time helper.
-    function getRoutineTaskInstanceDueTime(defaultDueTime, referenceDate) {
-        const due = new Date(referenceDate);
-        due.setSeconds(0, 0);
-
-        const [hours, minutes] = String(defaultDueTime || '17:00').split(':').map(Number);
-        if (Number.isFinite(hours) && Number.isFinite(minutes)) {
-            due.setHours(hours, minutes);
-        } else {
-            due.setHours(17, 0); // same fallback the task-definition form defaults to
-        }
-
-        return due;
+    // Routine task instance helpers now live in js/routines.js (Milestone 2
+    // extraction #6, 2026-07-18) — thin wrappers so every call site is
+    // unchanged. See docs/ARCHITECTURE.md / DECISIONS.md.
+    function routineTaskInstanceDeps() {
+        return {
+            getNextId: () => itemIdCounter++,
+            gameScreenWidth: GAME_SCREEN_WIDTH,
+            enemyWidth: ENEMY_WIDTH,
+            calculateTimelineXWithClustering,
+            definedTasks: window.definedTasks || (window.definedTasks = []),
+            definedRoutines,
+            activeItems,
+            completedItems,
+            addItemToGame,
+            sortAndRenderActiveList
+        };
     }
 
-    // Mirrors createHabitInstanceData. The instance is a normal `type: 'task'`
-    // item so every downstream system (damage, completion, sub-tasks, sorting)
-    // treats it exactly like a manually-created task — it just also carries a
-    // definitionId back to definedTasks so the daily generator can dedupe.
+    function getRoutineTaskInstanceDueTime(defaultDueTime, referenceDate) {
+        return Routines.getRoutineTaskInstanceDueTime(defaultDueTime, referenceDate);
+    }
+
     function createRoutineTaskInstanceData(taskDef, forDate) {
-        const instanceCreationTime = new Date();
-        const dueDateTime = getRoutineTaskInstanceDueTime(taskDef.defaultDueTime, forDate);
-
-        const taskInstanceData = {
-            id: itemIdCounter++,
-            type: 'task',
-            definitionId: taskDef.id,
-            name: taskDef.name,
-            category: taskDef.category || 'other',
-            isHighPriority: taskDef.isHighPriority || false,
-            dueDateTime: dueDateTime,
-            creationTime: instanceCreationTime,
-            timeToDueAtCreationMs: Math.max(0, dueDateTime.getTime() - instanceCreationTime.getTime()),
-            x: GAME_SCREEN_WIDTH - ENEMY_WIDTH, // recalculated below
-            isOverdue: false,
-            lastDamageTickTime: null,
-            element: null,
-            listItemElement: null,
-            // Sub-task hierarchy fields — a routine task is a top-level task and
-            // can take sub-tasks like any other.
-            parentId: undefined,
-            subTasks: [],
-            completedSubTasks: 0,
-            totalSubTasks: 0,
-            originalDueDate: new Date(dueDateTime),
-            offlineDamageCharged: 0
-        };
-
-        taskInstanceData.x = calculateTimelineXWithClustering(taskInstanceData, instanceCreationTime);
-
-        return taskInstanceData;
+        return Routines.createRoutineTaskInstanceData(taskDef, forDate, routineTaskInstanceDeps());
     }
 
     // Daily spawn pass for routine tasks, mirroring generateDailyHabitInstances.
     function generateDailyRoutineTaskInstances(forWhichGameDay) {
-        if (!window.definedTasks) window.definedTasks = [];
-        const forWhichGameDayString = forWhichGameDay.toDateString();
-
-        // Only definitions attached to an ACTIVE routine spawn (2026-07-18 fix
-        // — see docs/ROUTINES.md and DECISIONS.md). A definition orphaned by
-        // removeTaskFromRoutine, or one whose routine is deactivated, is inert.
-        const activeRoutineTaskIds = new Set();
-        definedRoutines.forEach(routine => {
-            if (!routine.isActive) return;
-            (routine.taskDefinitionIds || []).forEach(id => activeRoutineTaskIds.add(id));
-        });
-
-        definedTasks.forEach(taskDef => {
-            if (!activeRoutineTaskIds.has(taskDef.id)) return;
-
-            const existingActiveInstance = activeItems.find(item =>
-                item.type === 'task' &&
-                item.definitionId === taskDef.id &&
-                item.originalDueDate &&
-                new Date(item.originalDueDate).toDateString() === forWhichGameDayString
-            );
-
-            // Habits track "done for today" on the definition (lastCompletionDate);
-            // task definitions have no such field, so completion is read from
-            // completedItems instead — the instance keeps its definitionId there.
-            const alreadyCompletedForThisGameDay = completedItems.some(item =>
-                item.type === 'task' &&
-                item.definitionId === taskDef.id &&
-                item.originalDueDate &&
-                new Date(item.originalDueDate).toDateString() === forWhichGameDayString
-            );
-
-            if (!existingActiveInstance && !alreadyCompletedForThisGameDay) {
-                const taskInstanceData = createRoutineTaskInstanceData(taskDef, forWhichGameDay);
-                addItemToGame(taskInstanceData);
-            }
-        });
-
-        sortAndRenderActiveList();
+        Routines.generateDailyRoutineTaskInstances(forWhichGameDay, routineTaskInstanceDeps());
     }
 
     // Routine management functions
     function createRoutineDefinition() {
-        const name = routineNameInput.value.trim();
-        if (!name) {
-            alert("Please enter a routine name.");
+        const result = Routines.createRoutineDefinition(routineNameInput.value, definedRoutines);
+        if (!result.ok) {
+            alert(result.reason === 'empty' ? "Please enter a routine name." : "Routine name already exists.");
             return;
         }
-        
-        if (definedRoutines.some(r => r.name.toLowerCase() === name.toLowerCase())) {
-            alert("Routine name already exists.");
-            return;
-        }
-        
-        const newRoutine = {
-            id: `routine_${definedRoutines.length}_${Date.now()}`,
-            name: name,
-            habitDefinitionIds: [],
-            taskDefinitionIds: [],
-            isActive: false
-        };
-        
-        definedRoutines.push(newRoutine);
+
+        definedRoutines.push(result.routine);
         routineNameInput.value = '';
         renderDefinedRoutines();
         saveGame();
     }
-    
+
     function deleteRoutine(routineId) {
-        const routineIndex = definedRoutines.findIndex(r => r.id === routineId);
-        if (routineIndex === -1) return;
-        
-        const routine = definedRoutines[routineIndex];
+        const routine = definedRoutines.find(r => r.id === routineId);
+        if (!routine) return;
+
         if (confirm(`Are you sure you want to delete the routine "${routine.name}"?`)) {
-            definedRoutines.splice(routineIndex, 1);
+            // Recalls active habit/task instances before removing the routine
+            // — see js/routines.js's deleteRoutine for the bugfix rationale
+            // and DECISIONS.md.
+            Routines.deleteRoutine(routineId, { definedRoutines, activeItems, removeItem });
             saveGame();
 
             // Update routines window if open
@@ -2003,6 +1875,16 @@ function updateActiveItems() {
             }, 100);
         }
     }
+    // Pre-existing bug (found live 2026-07-18, right after the routines
+    // extraction): showRoutineManagement's Delete Routine button uses an
+    // inline onclick="deleteRoutine(...)" string, which runs in GLOBAL scope
+    // — but deleteRoutine was only ever a closure-scoped function inside this
+    // DOMContentLoaded wrapper, never attached to window like its siblings
+    // (window.closeModal, window.saveNewHabit, window.saveNewTask,
+    // window.saveEditedHabit, window.saveEditedTask). The click silently
+    // failed to find the function. Not introduced by the routines.js
+    // extraction — the function body moved, but its scope didn't change.
+    window.deleteRoutine = deleteRoutine;
     
     function attachRoutineManagementListeners(routineId) {
         const routine = definedRoutines.find(r => r.id === routineId);
@@ -2081,55 +1963,25 @@ function updateActiveItems() {
     }
     
     function removeHabitFromRoutine(routineId, habitDefId) {
-        const routine = definedRoutines.find(r => r.id === routineId);
-        if (!routine) return;
-        
-        const habitIndex = routine.habitDefinitionIds.indexOf(habitDefId);
-        if (habitIndex > -1) {
-            routine.habitDefinitionIds.splice(habitIndex, 1);
+        if (Routines.removeHabitFromRoutine(routineId, habitDefId, definedRoutines)) {
             renderDefinedRoutines();
         }
     }
-    
+
     function createNewHabitInRoutine(routineId, habitData) {
-        const routine = definedRoutines.find(r => r.id === routineId);
-        if (!routine) return;
-        
-        const newHabit = {
-            id: `habitDef_${definedHabits.length}_${Date.now()}`,
-            name: habitData.name,
-            category: habitData.category,
-            frequency: habitData.frequency,
-            timeOfDay: habitData.timeOfDay,
-            isNegative: habitData.isNegative || false,
-            streak: 0,
-            lastCompletionDate: null
-        };
-        
-        definedHabits.push(newHabit);
-        routine.habitDefinitionIds.push(newHabit.id);
+        const newHabit = Routines.createNewHabitInRoutine(routineId, habitData, definedRoutines, definedHabits);
+        if (!newHabit) return;
+
         generateDailyHabitInstances(currentGameDate);
         renderDefinedRoutines();
         saveGame();
     }
-    
+
     function createNewTaskInRoutine(routineId, taskData) {
-        const routine = definedRoutines.find(r => r.id === routineId);
-        if (!routine) return;
-        
-        if (!routine.taskDefinitionIds) routine.taskDefinitionIds = [];
-        
-        const newTaskDef = {
-            id: `taskDef_${Date.now()}`,
-            name: taskData.name,
-            category: taskData.category,
-            isHighPriority: taskData.isHighPriority,
-            defaultDueTime: taskData.defaultDueTime || '17:00'
-        };
-        
         if (!window.definedTasks) window.definedTasks = [];
-        definedTasks.push(newTaskDef);
-        routine.taskDefinitionIds.push(newTaskDef.id);
+        const newTaskDef = Routines.createNewTaskInRoutine(routineId, taskData, definedRoutines, definedTasks);
+        if (!newTaskDef) return;
+
         // Spawn today's instance immediately, matching createNewHabitInRoutine.
         // Without this the definition existed but never became a live enemy —
         // the task appeared in the routine window only. See DECISIONS.md.
@@ -2137,41 +1989,21 @@ function updateActiveItems() {
         renderDefinedRoutines();
         saveGame();
     }
-    
+
     function editHabitInRoutine(habitId, updatedData) {
-        const habit = definedHabits.find(h => h.id === habitId);
-        if (!habit) return;
-        
-        habit.name = updatedData.name;
-        habit.category = updatedData.category;
-        habit.frequency = updatedData.frequency;
-        habit.timeOfDay = updatedData.timeOfDay;
-        habit.isNegative = updatedData.isNegative;
-        
-        renderDefinedRoutines();
-    }
-    
-    function editTaskInRoutine(taskId, updatedData) {
-        if (!definedTasks) return;
-        const task = definedTasks.find(t => t.id === taskId);
-        if (!task) return;
-        
-        task.name = updatedData.name;
-        task.category = updatedData.category;
-        task.isHighPriority = updatedData.isHighPriority;
-        task.defaultDueTime = updatedData.defaultDueTime;
-        
-        renderDefinedRoutines();
-    }
-    
-    function removeTaskFromRoutine(routineId, taskId) {
-        const routine = definedRoutines.find(r => r.id === routineId);
-        if (!routine || !routine.taskDefinitionIds) return;
-        
-        const taskIndex = routine.taskDefinitionIds.indexOf(taskId);
-        if (taskIndex > -1) {
-            routine.taskDefinitionIds.splice(taskIndex, 1);
+        if (Routines.editHabitInRoutine(habitId, updatedData, definedHabits)) {
+            renderDefinedRoutines();
         }
+    }
+
+    function editTaskInRoutine(taskId, updatedData) {
+        if (Routines.editTaskInRoutine(taskId, updatedData, definedTasks)) {
+            renderDefinedRoutines();
+        }
+    }
+
+    function removeTaskFromRoutine(routineId, taskId) {
+        Routines.removeTaskFromRoutine(routineId, taskId, definedRoutines);
     }
 
     function renderDefinedRoutines() {
@@ -2400,95 +2232,39 @@ function updateActiveItems() {
     }
     
     function addHabitToRoutine(routineId, habitDefId) {
-        const routine = definedRoutines.find(r => r.id === routineId);
-        const habitDef = definedHabits.find(h => h.id === habitDefId);
-        
-        if (!routine || !habitDef) {
-            alert('Error finding routine or habit.');
+        const result = Routines.addHabitToRoutine(routineId, habitDefId, definedRoutines, definedHabits);
+        if (!result.ok) {
+            alert(result.reason === 'not-found' ? 'Error finding routine or habit.' : 'Habit already in routine.');
             return;
         }
-        
-        if (routine.habitDefinitionIds.includes(habitDefId)) {
-            alert('Habit already in routine.');
-            return;
-        }
-        
-        routine.habitDefinitionIds.push(habitDefId);
+
         renderDefinedRoutines();
     }
 
-    // The selection half of clearActiveInstancesForRoutine below — which
-    // active items get recalled when a routine is deactivated, and in what
-    // order. Kept separate from removeItem's DOM/state work so it's testable
-    // without a DOM (matches the Spawning.addItemToGame precedent — see
-    // ARCHITECTURE.md and test/routine-active-gating.test.js).
-    // Sub-tasks are cascaded ahead of their parent so nothing is left
-    // pointing at a parent that no longer exists.
+    // selectActiveItemIdsToClearForRoutine/clearActiveInstancesForRoutine/
+    // toggleRoutineActive now live in js/routines.js (Milestone 2 extraction
+    // #6, 2026-07-18) — thin wrappers so every call site is unchanged. See
+    // docs/ARCHITECTURE.md / DECISIONS.md.
     function selectActiveItemIdsToClearForRoutine(activeItemsList, routine) {
-        const habitDefIds = new Set(routine.habitDefinitionIds || []);
-        const taskDefIds = new Set(routine.taskDefinitionIds || []);
-
-        const rootIds = activeItemsList
-            .filter(item =>
-                (item.type === 'habit' && habitDefIds.has(item.definitionId)) ||
-                (item.type === 'task' && taskDefIds.has(item.definitionId))
-            )
-            .map(item => item.id);
-
-        const rootIdSet = new Set(rootIds);
-        const subTaskIds = activeItemsList
-            .filter(item => item.parentId !== undefined && rootIdSet.has(item.parentId))
-            .map(item => item.id);
-
-        return [...subTaskIds, ...rootIds];
+        return Routines.selectActiveItemIdsToClearForRoutine(activeItemsList, routine);
     }
 
-    // Deactivating a routine (2026-07-18 fix, decided with Jeremy) recalls its
-    // currently-active habit/task instances from the board immediately, on top
-    // of the isActive spawn-gating above. Recalled items are NOT completed and
-    // NOT counted — no XP/points/streak change, no damage penalty. This is a
-    // pure removal ("the routine went on vacation"), not "the player finished
-    // them." Uses the existing removeItem() so DOM cleanup, activeItems
-    // bookkeeping, and persistence all go through the one path every other
-    // removal uses.
     function clearActiveInstancesForRoutine(routineId) {
-        const routine = definedRoutines.find(r => r.id === routineId);
-        if (!routine) return;
-
-        selectActiveItemIdsToClearForRoutine(activeItems, routine).forEach(id => removeItem(id));
+        Routines.clearActiveInstancesForRoutine(routineId, { definedRoutines, activeItems, removeItem });
     }
 
     function toggleRoutineActive(routineId) {
-        const routine = definedRoutines.find(r => r.id === routineId);
-        if (!routine) return;
-
-        const activeRoutines = definedRoutines.filter(r => r.isActive).length;
-
-        if (!routine.isActive && activeRoutines >= routineSlots) {
-            alert(`You can only have ${routineSlots} active routine${routineSlots !== 1 ? 's' : ''} at your current level.`);
-            return;
-        }
-
-        const wasActive = routine.isActive;
-        routine.isActive = !routine.isActive;
-
-        if (wasActive && !routine.isActive) {
-            clearActiveInstancesForRoutine(routineId);
-        } else if (!wasActive && routine.isActive) {
-            // Bugfix (2026-07-18, found live by Jeremy right after the isActive
-            // gating fix): activating a routine spawned nothing until the next
-            // daily generation pass (initGame/restoreGameState), since the daily
-            // generators only run there, at creation time, and at day-rollover.
-            // A routine created inactive, given a habit/task, then activated,
-            // showed nothing in the game area or agenda until a reload. Spawning
-            // today's due instances immediately on activation is the natural
-            // symmetric counterpart to clearActiveInstancesForRoutine's immediate
-            // recall on deactivation above. See DECISIONS.md.
-            generateDailyHabitInstances(currentGameDate);
-            generateDailyRoutineTaskInstances(currentGameDate);
-        }
-
-        saveGame();
+        Routines.toggleRoutineActive(routineId, {
+            definedRoutines,
+            routineSlots,
+            activeItems,
+            removeItem,
+            alert,
+            generateDailyHabitInstances,
+            generateDailyRoutineTaskInstances,
+            currentGameDate,
+            saveGame
+        });
     }
     
     function showAddItemToRoutineModal(routineId, itemType) {

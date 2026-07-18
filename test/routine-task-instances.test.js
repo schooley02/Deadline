@@ -10,62 +10,17 @@
  * spawning (see test/routine-active-gating.test.js for the habit-side mirror
  * and the recall-on-deactivate selection logic).
  *
- * These functions live in script.js, which has no module.exports, so this is a
- * hand-maintained mirror matching the convention of test/subtask-creation.test.js
- * and test/create-list-item-branching.test.js. Keep in sync with script.js's
- * getRoutineTaskInstanceDueTime / generateDailyRoutineTaskInstances.
+ * getRoutineTaskInstanceDueTime and selectTaskDefsToSpawn were originally a
+ * hand-maintained mirror of script.js's private logic (script.js had no
+ * module.exports at the time). As of the routines.js extraction (2026-07-18)
+ * both are real, exported code (Routines.getRoutineTaskInstanceDueTime,
+ * Routines.selectTaskDefsToSpawn), so this now requires them directly instead
+ * of keeping a second copy that could drift.
  */
 
-// --- mirrors of script.js -------------------------------------------------
-
-function getRoutineTaskInstanceDueTime(defaultDueTime, referenceDate) {
-    const due = new Date(referenceDate);
-    due.setSeconds(0, 0);
-
-    const [hours, minutes] = String(defaultDueTime || '17:00').split(':').map(Number);
-    if (Number.isFinite(hours) && Number.isFinite(minutes)) {
-        due.setHours(hours, minutes);
-    } else {
-        due.setHours(17, 0);
-    }
-
-    return due;
-}
-
-// The selection half of generateDailyRoutineTaskInstances — which definitions
-// spawn for a given day. The DOM half (addItemToGame) is verified by playtest,
-// matching how Spawning.addItemToGame is treated (see ARCHITECTURE.md).
-function selectTaskDefsToSpawn(definedTasks, definedRoutines, activeItems, completedItems, forWhichGameDay) {
-    const forWhichGameDayString = forWhichGameDay.toDateString();
-
-    // Only definitions attached to a currently-ACTIVE routine spawn
-    // (2026-07-18 isActive-gating fix).
-    const routineTaskIds = new Set();
-    definedRoutines.forEach(routine => {
-        if (!routine.isActive) return;
-        (routine.taskDefinitionIds || []).forEach(id => routineTaskIds.add(id));
-    });
-
-    return definedTasks.filter(taskDef => {
-        if (!routineTaskIds.has(taskDef.id)) return false;
-
-        const existingActiveInstance = activeItems.find(item =>
-            item.type === 'task' &&
-            item.definitionId === taskDef.id &&
-            item.originalDueDate &&
-            new Date(item.originalDueDate).toDateString() === forWhichGameDayString
-        );
-
-        const alreadyCompletedForThisGameDay = completedItems.some(item =>
-            item.type === 'task' &&
-            item.definitionId === taskDef.id &&
-            item.originalDueDate &&
-            new Date(item.originalDueDate).toDateString() === forWhichGameDayString
-        );
-
-        return !existingActiveInstance && !alreadyCompletedForThisGameDay;
-    });
-}
+const Routines = require('../js/routines.js');
+const getRoutineTaskInstanceDueTime = Routines.getRoutineTaskInstanceDueTime;
+const selectTaskDefsToSpawn = Routines.selectTaskDefsToSpawn;
 
 // --- fixtures --------------------------------------------------------------
 
