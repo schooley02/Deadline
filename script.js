@@ -1271,212 +1271,37 @@ function updateActiveItems() {
         Routines.removeTaskFromRoutine(routineId, taskId, definedRoutines);
     }
 
-    function renderDefinedRoutines() {
-        if (!definedRoutinesListUL) return;
-        
-        definedRoutinesListUL.innerHTML = '';
-        
-        if (definedRoutines.length === 0) {
-            definedRoutinesListUL.innerHTML = '<li>No routines created.</li>';
-            return;
-        }
-        
-        definedRoutines.forEach(routine => {
-            const li = document.createElement('li');
-            li.dataset.routineId = routine.id;
-            
-            // Routine header with name and controls
-            const header = document.createElement('div');
-            header.classList.add('routine-header');
-            
-            const nameSpan = document.createElement('span');
-            nameSpan.classList.add('routine-name-display');
-            nameSpan.textContent = routine.name;
-            
-            const buttonGroup = document.createElement('div');
-            buttonGroup.classList.add('routine-button-group');
-            
-            const activateBtn = document.createElement('button');
-            activateBtn.classList.add('activate-routine-button');
-            activateBtn.textContent = routine.isActive ? "Deactivate" : "Activate";
-            activateBtn.dataset.routineId = routine.id;
-            
-            if (routine.isActive) {
-                activateBtn.classList.add('active');
-            }
-            
-            activateBtn.addEventListener('click', () => toggleRoutineActive(routine.id));
-            
-            const deleteBtn = document.createElement('button');
-            deleteBtn.classList.add('delete-routine-button');
-            deleteBtn.textContent = "Delete";
-            deleteBtn.addEventListener('click', () => deleteRoutine(routine.id));
-            
-            buttonGroup.appendChild(activateBtn);
-            buttonGroup.appendChild(deleteBtn);
-            
-            header.appendChild(nameSpan);
-            header.appendChild(buttonGroup);
-            li.appendChild(header);
-            
-            // Habits section
-            const habitsSection = document.createElement('div');
-            habitsSection.classList.add('routine-section');
-            
-            const habitsTitle = document.createElement('h5');
-            habitsTitle.textContent = 'Habits:';
-            habitsSection.appendChild(habitsTitle);
-            
-            const habitsUl = document.createElement('ul');
-            habitsUl.classList.add('routine-habits-list');
-            
-            if (routine.habitDefinitionIds && routine.habitDefinitionIds.length > 0) {
-                routine.habitDefinitionIds.forEach(habitId => {
-                    const habitDef = definedHabits.find(h => h.id === habitId);
-                    if (habitDef) {
-                        const habitLi = document.createElement('li');
-                        habitLi.classList.add('routine-item');
-                        
-                        const habitInfo = document.createElement('span');
-                        const habitTypeIcon = habitDef.isNegative ? ' 🚫' : ' ✅';
-                        habitInfo.textContent = `${habitDef.name} (${habitDef.category})${habitTypeIcon}`;
-                        
-                        const buttonGroup = document.createElement('div');
-                        buttonGroup.classList.add('item-button-group');
-                        
-                        const editHabitBtn = document.createElement('button');
-                        editHabitBtn.classList.add('edit-item-button');
-                        editHabitBtn.textContent = '✏️';
-                        editHabitBtn.title = 'Edit habit';
-                        editHabitBtn.addEventListener('click', () => showEditHabitForm(routine.id, habitDef));
-                        
-                        const removeHabitBtn = document.createElement('button');
-                        removeHabitBtn.classList.add('remove-item-button');
-                        removeHabitBtn.textContent = '×';
-                        removeHabitBtn.title = 'Remove habit from routine';
-                        removeHabitBtn.addEventListener('click', () => removeHabitFromRoutine(routine.id, habitId));
-                        
-                        buttonGroup.appendChild(editHabitBtn);
-                        buttonGroup.appendChild(removeHabitBtn);
-                        
-                        habitLi.appendChild(habitInfo);
-                        habitLi.appendChild(buttonGroup);
-                        habitsUl.appendChild(habitLi);
-                    }
-                });
-            } else {
-                const noHabits = document.createElement('li');
-                noHabits.textContent = 'No habits in routine';
-                noHabits.style.fontStyle = 'italic';
-                habitsUl.appendChild(noHabits);
-            }
-            
-            habitsSection.appendChild(habitsUl);
-            
-            // Add habit control
-            const addHabitDiv = document.createElement('div');
-            addHabitDiv.classList.add('add-item-control');
-            
-            const habitSelect = document.createElement('select');
-            habitSelect.classList.add('habit-select');
-            populateHabitSelectDropdown(habitSelect);
-            
-            const addHabitBtn = document.createElement('button');
-            addHabitBtn.classList.add('add-item-button');
-            addHabitBtn.textContent = 'Add Habit';
-            addHabitBtn.addEventListener('click', () => {
-                const selectedHabitId = habitSelect.value;
-                if (selectedHabitId) {
-                    addHabitToRoutine(routine.id, selectedHabitId);
-                    habitSelect.value = '';
-                } else {
-                    alert('Please select a habit to add.');
-                }
-            });
-            
-            addHabitDiv.appendChild(habitSelect);
-            addHabitDiv.appendChild(addHabitBtn);
-            
-            // Add new habit button
-            const addNewHabitBtn = document.createElement('button');
-            addNewHabitBtn.classList.add('add-item-button');
-            addNewHabitBtn.textContent = '+ Create New Habit';
-            addNewHabitBtn.addEventListener('click', () => showCreateHabitForm(routine.id));
-            
-            habitsSection.appendChild(addHabitDiv);
-            habitsSection.appendChild(addNewHabitBtn);
-            
-            li.appendChild(habitsSection);
-            
-            // Tasks section
-            const tasksSection = document.createElement('div');
-            tasksSection.classList.add('routine-section');
-            
-            const tasksTitle = document.createElement('h5');
-            tasksTitle.textContent = 'Tasks:';
-            tasksSection.appendChild(tasksTitle);
-            
-            const tasksUl = document.createElement('ul');
-            tasksUl.classList.add('routine-tasks-list');
-            
-            if (!definedTasks) window.definedTasks = [];
-            
-            if (routine.taskDefinitionIds && routine.taskDefinitionIds.length > 0) {
-                routine.taskDefinitionIds.forEach(taskId => {
-                    const taskDef = definedTasks.find(t => t.id === taskId);
-                    if (taskDef) {
-                        const taskLi = document.createElement('li');
-                        taskLi.classList.add('routine-item');
-                        
-                        const taskInfo = document.createElement('span');
-                        taskInfo.textContent = `${taskDef.name} (${taskDef.category})${taskDef.isHighPriority ? ' ⭐' : ''}`;
-                        
-                        const buttonGroup = document.createElement('div');
-                        buttonGroup.classList.add('item-button-group');
-                        
-                        const editTaskBtn = document.createElement('button');
-                        editTaskBtn.classList.add('edit-item-button');
-                        editTaskBtn.textContent = '✏️';
-                        editTaskBtn.title = 'Edit task';
-                        editTaskBtn.addEventListener('click', () => showEditTaskForm(routine.id, taskDef));
-                        
-                        const removeTaskBtn = document.createElement('button');
-                        removeTaskBtn.classList.add('remove-item-button');
-                        removeTaskBtn.textContent = '×';
-                        removeTaskBtn.title = 'Remove task from routine';
-                        removeTaskBtn.addEventListener('click', () => removeTaskFromRoutine(routine.id, taskId));
-                        
-                        buttonGroup.appendChild(editTaskBtn);
-                        buttonGroup.appendChild(removeTaskBtn);
-                        
-                        taskLi.appendChild(taskInfo);
-                        taskLi.appendChild(buttonGroup);
-                        tasksUl.appendChild(taskLi);
-                    }
-                });
-            } else {
-                const noTasks = document.createElement('li');
-                noTasks.textContent = 'No tasks in routine';
-                noTasks.style.fontStyle = 'italic';
-                tasksUl.appendChild(noTasks);
-            }
-            
-            tasksSection.appendChild(tasksUl);
-            
-            // Add new task control
-            const addNewTaskBtn = document.createElement('button');
-            addNewTaskBtn.classList.add('add-item-button');
-            addNewTaskBtn.textContent = '+ Create New Task';
-            addNewTaskBtn.addEventListener('click', () => showCreateTaskForm(routine.id));
-            
-            tasksSection.appendChild(addNewTaskBtn);
-            li.appendChild(tasksSection);
-            definedRoutinesListUL.appendChild(li);
-        });
-        
-        updateRoutineDisplay();
+    // Thin wrappers — real implementations live in js/ui/routineViews.js
+    // (Milestone 2 UI extraction session 8, 2026-07-18). Call sites
+    // unchanged.
+    //
+    // definedRoutines/definedHabits cross in as GETTERS (reassigned
+    // elsewhere in script.js — new-game reset, restoreGameState), matching
+    // agendaList.js part 2's precedent (session 7). definedTasks has no
+    // local declaration at all (always `window.definedTasks`), so the
+    // module reads it as a bare global directly — no dep needed.
+    // definedRoutinesListUL/activeRoutineCountDisplay are stable const DOM
+    // refs. Everything from cluster F's form half (showEditHabitForm,
+    // populateHabitSelectDropdown, addHabitToRoutine, showCreateHabitForm,
+    // showEditTaskForm, showCreateTaskForm, attachRoutineManagementListeners)
+    // is still script.js-scoped — session 9 — and passed through as plain
+    // function references.
+    function routineViewsDeps() {
+        return {
+            definedRoutinesListUL, activeRoutineCountDisplay,
+            definedRoutines: () => definedRoutines,
+            definedHabits: () => definedHabits,
+            toggleRoutineActive, deleteRoutine, removeHabitFromRoutine, removeTaskFromRoutine,
+            showEditHabitForm, populateHabitSelectDropdown, addHabitToRoutine,
+            showCreateHabitForm, showEditTaskForm, showCreateTaskForm,
+            attachRoutineManagementListeners
+        };
     }
-    
+
+    function renderDefinedRoutines() {
+        RoutineViews.renderDefinedRoutines(routineViewsDeps());
+    }
+
     function populateHabitSelectDropdown(selectElement) {
         selectElement.innerHTML = '<option value="">-- Select Habit --</option>';
         
@@ -1635,12 +1460,9 @@ function updateActiveItems() {
     }
 
     function updateRoutineDisplay() {
-        const activeRoutines = definedRoutines.filter(r => r.isActive).length;
-        if (activeRoutineCountDisplay) {
-            activeRoutineCountDisplay.textContent = activeRoutines;
-        }
+        RoutineViews.updateRoutineDisplay(routineViewsDeps());
     }
-    
+
     function showCreateHabitForm(routineId) {
         const formHtml = `
             <div class="modal-overlay" id="habitFormModal">
@@ -2016,123 +1838,17 @@ function updateActiveItems() {
     }
     
     function showRoutineManagement(routineId) {
-        const routine = definedRoutines.find(r => r.id === routineId);
-        if (!routine) return;
-        
-        const modalHtml = `
-            <div class="modal-overlay" id="routineManagementModal">
-                <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
-                    <h3>Manage Routine: ${routine.name}</h3>
-                    
-                    <!-- Routine Status -->
-                    <div style="margin-bottom: 20px; padding: 12px; background: var(--color-bg-light); border-radius: 8px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span>Status: ${routine.isActive ? '🟢 Active' : '⚪ Inactive'}</span>
-                            <button id="toggleRoutineStatus" class="secondary-button" style="padding: 6px 12px;">
-                                ${routine.isActive ? 'Deactivate' : 'Activate'}
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Habits Section -->
-                    <div style="margin-bottom: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <h4>Habits</h4>
-                            <button id="addHabitToRoutine" class="secondary-button" style="padding: 6px 12px;">+ Add Habit</button>
-                        </div>
-                        <div id="routineHabitsList"></div>
-                    </div>
-                    
-                    <!-- Tasks Section -->
-                    <div style="margin-bottom: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <h4>Tasks</h4>
-                            <button id="addTaskToRoutine" class="secondary-button" style="padding: 6px 12px;">+ Add Task</button>
-                        </div>
-                        <div id="routineTasksList"></div>
-                    </div>
-                    
-                    <div class="modal-buttons">
-                        <button class="primary-button" onclick="closeModal()">Done</button>
-                        <button class="secondary-button" onclick="deleteRoutine('${routine.id}'); closeModal();">Delete Routine</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
-        // Populate the routine content
-        populateRoutineHabits(routine);
-        populateRoutineTasks(routine);
-        
-        // Attach event listeners
-        attachRoutineManagementListeners(routine.id);
+        RoutineViews.showRoutineManagement(routineId, routineViewsDeps());
     }
-    
+
     function populateRoutineHabits(routine) {
-        const container = document.getElementById('routineHabitsList');
-        if (!container) return;
-        
-        container.innerHTML = '';
-        
-        if (!routine.habitDefinitionIds || routine.habitDefinitionIds.length === 0) {
-            container.innerHTML = '<div style="padding: 12px; background: var(--color-bg-light); border-radius: 6px; color: var(--color-neutral); font-style: italic;">No habits in this routine</div>';
-            return;
-        }
-        
-        routine.habitDefinitionIds.forEach(habitId => {
-            const habit = definedHabits.find(h => h.id === habitId);
-            if (habit) {
-                const habitDiv = document.createElement('div');
-                habitDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--color-bg-light); border-radius: 6px; margin-bottom: 6px;';
-                
-                const habitTypeIcon = habit.isNegative ? ' 🚫' : ' ✅';
-                habitDiv.innerHTML = `
-                    <span>${habit.name} (${habit.category})${habitTypeIcon}</span>
-                    <div style="display: flex; gap: 6px;">
-                        <button class="edit-habit-btn" data-habit-id="${habit.id}" style="padding: 4px 8px; font-size: 11px; background: var(--color-accent-teal); color: white; border: none; border-radius: 3px; cursor: pointer;">Edit</button>
-                        <button class="remove-habit-btn" data-habit-id="${habit.id}" style="padding: 4px 8px; font-size: 11px; background: var(--color-error); color: white; border: none; border-radius: 3px; cursor: pointer;">Remove</button>
-                    </div>
-                `;
-                
-                container.appendChild(habitDiv);
-            }
-        });
+        RoutineViews.populateRoutineHabits(routine, routineViewsDeps());
     }
-    
+
     function populateRoutineTasks(routine) {
-        const container = document.getElementById('routineTasksList');
-        if (!container) return;
-        
-        container.innerHTML = '';
-        
-        if (!definedTasks) window.definedTasks = [];
-        
-        if (!routine.taskDefinitionIds || routine.taskDefinitionIds.length === 0) {
-            container.innerHTML = '<div style="padding: 12px; background: var(--color-bg-light); border-radius: 6px; color: var(--color-neutral); font-style: italic;">No tasks in this routine</div>';
-            return;
-        }
-        
-        routine.taskDefinitionIds.forEach(taskId => {
-            const task = definedTasks.find(t => t.id === taskId);
-            if (task) {
-                const taskDiv = document.createElement('div');
-                taskDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--color-bg-light); border-radius: 6px; margin-bottom: 6px;';
-                
-                taskDiv.innerHTML = `
-                    <span>${task.name} (${task.category})${task.isHighPriority ? ' ⭐' : ''}</span>
-                    <div style="display: flex; gap: 6px;">
-                        <button class="edit-task-btn" data-task-id="${task.id}" style="padding: 4px 8px; font-size: 11px; background: var(--color-accent-teal); color: white; border: none; border-radius: 3px; cursor: pointer;">Edit</button>
-                        <button class="remove-task-btn" data-task-id="${task.id}" style="padding: 4px 8px; font-size: 11px; background: var(--color-error); color: white; border: none; border-radius: 3px; cursor: pointer;">Remove</button>
-                    </div>
-                `;
-                
-                container.appendChild(taskDiv);
-            }
-        });
+        RoutineViews.populateRoutineTasks(routine);
     }
-    
+
     // Thin wrappers — real implementations live in js/ui/forms.js
     // (Milestone 2 UI extraction session 4, 2026-07-18). Call sites
     // unchanged. The routine-creation branch was reconciled to call

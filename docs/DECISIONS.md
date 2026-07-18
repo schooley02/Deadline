@@ -4,6 +4,22 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-18 — UI extraction session 8: `renderDefinedRoutines` is dead code; plan's `populateRoutinesWindow` line was stale
+
+**Context:** session 8 of `docs/UI_EXTRACTION_PLAN.md` targets cluster F's rendering half. Two discoveries while executing it, neither fixed (out of session scope):
+
+**1. The plan's session-8 row lists `populateRoutinesWindow` as part of this extraction, but it was already moved into `js/ui/managementWindows.js` during session 3 (cluster E) — script.js's copy is already a thin wrapper over `ManagementWindows.populateRoutinesWindow`.** The plan's per-session function inventory was written before session 3 ran and never updated afterward. Nothing to do here except note the correction; not a bug, just stale planning-doc bookkeeping.
+
+**2. `renderDefinedRoutines` is dead code.** It targets `document.getElementById('definedRoutinesList')`, and no element with that id exists anywhere in current `index.html` — confirmed by Grep (case-insensitive, zero matches) and by live Chrome verification (called it via 8 script.js call sites during normal routine CRUD, zero visible effect, zero console errors — it always hits its own `if (!definedRoutinesListUL) return` guard and no-ops). The id is a holdover from the pre-modal routine UI; the live game exclusively uses the modal-based `routinesWindowList` (`ManagementWindows.populateRoutinesWindow`) and the `Manage Routine` modal (`RoutineViews.showRoutineManagement`, this same session), neither of which touches `#definedRoutinesList`.
+
+**Decision:** extracted `renderDefinedRoutines` into `js/ui/routineViews.js` verbatim (same dead-on-arrival guard clause) rather than deleting it or its 8 call sites — a behavior-identical move, consistent with every other session's rule not to fix unrelated things mid-extraction. Logged as a cleanup candidate rather than scheduled, since deleting dead code found incidentally during an unrelated extraction risks scope creep the guardrails specifically warn against (see session 0's `showForm` precedent, which WAS scheduled as its own session rather than folded in).
+
+**Also this session:** `definedRoutines`/`definedHabits` cross into `js/ui/routineViews.js` as getters (same reassignment-elsewhere rule as agendaList.js part 2, session 7's DECISIONS.md entry). `definedTasks` needed no getter at all — Grep confirmed it has no local script.js declaration whatsoever (every reference, including script.js's own, is the bare `window.definedTasks` global), so the module reads it directly with zero staleness risk, matching how CONFIG/Clock/Modal/Routines are already treated as bare globals elsewhere in `js/ui/`.
+
+**Alternatives rejected:** deleting `renderDefinedRoutines` and its call sites now, since it's provably inert — rejected because "provably inert" still needs its own verification pass across all 8 call sites' surrounding logic (some may have side effects beyond the render call itself), which is exactly the kind of scope creep this project's one-task-per-session guardrail exists to prevent.
+
+---
+
 ## 2026-07-18 — UI extraction session 7: mirror test retired (Jeremy's call); agendaList.js complete
 
 **Context:** session 6 deliberately left `test/create-list-item-branching.test.js` (the hand-maintained mirror of `createListItem`'s branch structure) in place, flagging the retire/keep decision for session 7 since `test/agenda-list.test.js` now requires and executes the real module. Jeremy's call this session: retire it if it has no unique coverage left.

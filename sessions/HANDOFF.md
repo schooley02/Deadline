@@ -13,6 +13,26 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-18 — UI extraction session 8: `js/ui/routineViews.js` part 1 (Cowork session)
+
+**Did:** Executed session 8 of `docs/UI_EXTRACTION_PLAN.md` — the rendering half of cluster F: moved `renderDefinedRoutines`, `showRoutineManagement`, `populateRoutineHabits`, `populateRoutineTasks`, and `updateRoutineDisplay` from script.js into new `js/ui/routineViews.js`, wired in after `agendaList.js` in index.html. script.js keeps thin wrappers at all original call sites via a new `routineViewsDeps()` helper. script.js is down to **2,038 lines** (was 2,322).
+
+**Two discoveries, neither fixed (out of scope, logged in DECISIONS.md):** (1) the plan's session-8 row also lists `populateRoutinesWindow`, but that was already extracted into `managementWindows.js` back in session 3 — the plan's function inventory predates that session and was never updated, so there was nothing left to move for it. (2) `renderDefinedRoutines` is dead code — it targets `#definedRoutinesList`, an id that doesn't exist anywhere in current `index.html` (confirmed by Grep and by exercising all 8 of its call sites live in Chrome with zero visible effect). It's a holdover from the pre-modal routine UI; the live game only uses the modal-based `routinesWindowList` and the `Manage Routine` modal. Extracted verbatim with its existing no-op guard clause rather than fixed/deleted — flagged as a cleanup candidate, not scheduled.
+
+**Dependency pattern:** `definedRoutines`/`definedHabits` cross into the module as GETTERS, extending session 7's reassignment rule. `definedTasks` needed no getter at all — Grep confirmed it has no local script.js declaration anywhere (every read/write, including script.js's own code, goes through the bare `window.definedTasks` global), so the module reads it directly, same treatment as CONFIG/Clock/Modal/Routines elsewhere in `js/ui/`.
+
+**State:** ✅ **15 suites, 289/289 passing** in the sandbox — no count change (this extraction is pure DOM rendering with no new pure logic to isolate, same as most UI-cluster sessions). `node --check` clean on script.js and routineViews.js. **Live-verified in Chrome**: opened the Routines management window (FAB → Routines), clicked Manage on "dfgas" — `showRoutineManagement` rendered status/habits/tasks correctly (dfaSDF habit with its ✅ icon, adf task), clicked Edit on the habit and confirmed `showEditHabitForm` (still script.js-scoped, session 9) opened correctly through the new deps wiring, pre-filled and stacked properly over the still-open Manage Routine modal. Cancelled everything, no data changed. Console clean apart from the usual extension noise.
+
+**Docs updated same session:** ARCHITECTURE.md (`routineViews.js` entry added, both discoveries noted), DECISIONS.md (dead-code finding + stale-plan-line correction + getter/bare-global rationale), ROADMAP.md (session 8 checked off).
+
+**Next:** **session 9 of the UI plan: `js/ui/routineViews.js` part 2** — the form half of cluster F: `showCreateHabitForm`/`showCreateTaskForm`/`showEditHabitForm`/`showEditTaskForm`, `showAddItemToRoutineModal`, `attachRoutineManagementListeners`, `populateHabitSelectDropdown`, and the four `window.save*` handlers. This is the function set that session 8's `routineViewsDeps()` currently passes through as plain script.js references — after session 9 those move into the module too, so `routineViewsDeps()` will shrink and some of session 8's plain-function deps become module-internal calls instead. Sonnet-level per the plan, though double-check the plan's function inventory against a fresh Grep first — it's now been stale twice (session 3's early extraction of `populateRoutinesWindow`, this session's discovery), so line numbers and even function membership shouldn't be trusted without verifying.
+
+**Watch out:**
+- The dead `renderDefinedRoutines`/`#definedRoutinesList` finding — cheap to clean up (delete the function + its 8 call sites) whenever a session is already touching routine rendering, but deliberately not bundled here.
+- After session 9, re-check whether `renderDefinedRoutines`'s dead call sites are still worth investigating, since some of what currently calls it may be form-half code moving in that session.
+
+---
+
 ## 2026-07-18 — UI extraction session 7: `js/ui/agendaList.js` part 2 — module complete (Cowork session)
 
 **Did:** Three carry-overs from the prior session first: (1) live-verified the UTC pre-fill fix in Chrome — Edit Task on the "adf" row now pre-fills 12:00 PM matching the agenda row, untouched Save leaves it at 12:00 PM; (2) confirmed via `.git/logs/HEAD` (read-only, no `git` process — see CLAUDE.md Cowork git rule) that both session 5 (`74e232a`) and session 6 (`45942cf`) commits landed, followed by the UTC bugfix commit (`45eaa49`); (3) Jeremy approved retiring `test/create-list-item-branching.test.js` — confirmed its coverage is fully subsumed by `test/agenda-list.test.js` (real module) and deleted it.
