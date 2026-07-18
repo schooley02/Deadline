@@ -188,6 +188,34 @@ describe('removeHabitFromRoutine / removeTaskFromRoutine', () => {
         expect(Routines.removeHabitFromRoutine('r1', 'h1', routines)).toBe(false);
     });
 
+    // 2026-07-18: removal releases the habit to STANDALONE (Jeremy's call) so
+    // it keeps its streak and resumes spawning on its own. See DECISIONS.md.
+    test('removeHabitFromRoutine nulls the habit routineId (released to standalone)', () => {
+        const routines = [routine('r1', { habitDefinitionIds: ['h1'] })];
+        const habits = [habitDef('h1', { routineId: 'r1', streak: 4 })];
+        expect(Routines.removeHabitFromRoutine('r1', 'h1', routines, habits)).toBe(true);
+        expect(habits[0].routineId).toBeNull();
+    });
+
+    test('removeHabitFromRoutine preserves the streak when releasing to standalone', () => {
+        const routines = [routine('r1', { habitDefinitionIds: ['h1'] })];
+        const habits = [habitDef('h1', { routineId: 'r1', streak: 4 })];
+        Routines.removeHabitFromRoutine('r1', 'h1', routines, habits);
+        expect(habits[0].streak).toBe(4);
+    });
+
+    test('removeHabitFromRoutine does not throw when definedHabits is omitted', () => {
+        const routines = [routine('r1', { habitDefinitionIds: ['h1'] })];
+        expect(() => Routines.removeHabitFromRoutine('r1', 'h1', routines)).not.toThrow();
+    });
+
+    test('removeHabitFromRoutine leaves other habits routineId untouched', () => {
+        const routines = [routine('r1', { habitDefinitionIds: ['h1', 'h2'] })];
+        const habits = [habitDef('h1', { routineId: 'r1' }), habitDef('h2', { routineId: 'r1' })];
+        Routines.removeHabitFromRoutine('r1', 'h1', routines, habits);
+        expect(habits[1].routineId).toBe('r1');
+    });
+
     test('removeTaskFromRoutine splices the id and returns true', () => {
         const routines = [routine('r1', { taskDefinitionIds: ['t1', 't2'] })];
         expect(Routines.removeTaskFromRoutine('r1', 't1', routines)).toBe(true);
@@ -207,6 +235,15 @@ describe('addHabitToRoutine', () => {
         const habits = [habitDef('h1')];
         expect(Routines.addHabitToRoutine('r1', 'h1', routines, habits)).toEqual({ ok: true });
         expect(routines[0].habitDefinitionIds).toEqual(['h1']);
+    });
+
+    // Adopting a standalone habit transfers ownership, so it becomes gated on
+    // the routine's isActive instead of spawning unconditionally.
+    test('adopting a standalone habit sets its routineId', () => {
+        const routines = [routine('r1')];
+        const habits = [habitDef('h1', { routineId: null })];
+        Routines.addHabitToRoutine('r1', 'h1', routines, habits);
+        expect(habits[0].routineId).toBe('r1');
     });
 
     test('rejects when routine or habit is missing', () => {
@@ -237,6 +274,14 @@ describe('createNewHabitInRoutine', () => {
         const habits = [];
         expect(Routines.createNewHabitInRoutine('nope', { name: 'X' }, [], habits)).toBeNull();
         expect(habits).toHaveLength(0);
+    });
+
+    // Habits born inside a routine are owned by it from the start, so they're
+    // gated on its isActive rather than spawning standalone.
+    test('stamps the owning routineId on the new habit', () => {
+        const routines = [routine('r1')];
+        const newHabit = Routines.createNewHabitInRoutine('r1', { name: 'Meditate', category: 'wellness', frequency: 'daily', timeOfDay: 'morning' }, routines, []);
+        expect(newHabit.routineId).toBe('r1');
     });
 });
 

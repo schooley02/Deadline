@@ -206,7 +206,9 @@ const Routines = (() => {
     }
 
     // Mutates routine.habitDefinitionIds in place. Returns true if removed.
-    function removeHabitFromRoutine(routineId, habitDefId, definedRoutines) {
+    // definedHabits is optional only for backward compatibility with older
+    // callers; pass it so the habit is correctly released to standalone.
+    function removeHabitFromRoutine(routineId, habitDefId, definedRoutines, definedHabits) {
         const routine = definedRoutines.find(r => r.id === routineId);
         if (!routine) return false;
 
@@ -214,6 +216,17 @@ const Routines = (() => {
         if (habitIndex === -1) return false;
 
         routine.habitDefinitionIds.splice(habitIndex, 1);
+
+        // Removing a habit from a routine makes it STANDALONE (Jeremy's call,
+        // 2026-07-18 — see DECISIONS.md), so it keeps its streak and resumes
+        // spawning daily on its own. This deliberately supersedes the earlier
+        // same-day "orphaned definitions stay inert" decision, which predates
+        // standalone habits being distinguishable from orphaned ones at all.
+        if (definedHabits) {
+            const habitDef = definedHabits.find(h => h.id === habitDefId);
+            if (habitDef) habitDef.routineId = null;
+        }
+
         return true;
     }
 
@@ -243,6 +256,8 @@ const Routines = (() => {
             frequency: habitData.frequency,
             timeOfDay: habitData.timeOfDay,
             isNegative: habitData.isNegative || false,
+            // Owned by this routine — only spawns while the routine isActive.
+            routineId: routineId,
             streak: 0,
             lastCompletionDate: null
         };
@@ -320,6 +335,9 @@ const Routines = (() => {
         }
 
         routine.habitDefinitionIds.push(habitDefId);
+        // Adopting an existing (standalone) habit into a routine transfers
+        // ownership, so it's now gated on this routine's isActive.
+        habitDef.routineId = routineId;
         return { ok: true };
     }
 

@@ -1,0 +1,345 @@
+/**
+ * Popups — enemy click, task details, edit task, and sub-task creation
+ * modals (Milestone 2 UI extraction, session 5, 2026-07-18).
+ *
+ * Extracted from script.js per docs/UI_EXTRACTION_PLAN.md cluster D:
+ * handleEnemyClick, showTaskDetailsPopup, showEditTaskModal,
+ * createSubTaskPrompt, showCreateSubTaskModal.
+ *
+ * Same dependency approach as forms.js (session 4): Modal is called as a
+ * bare stable global (fully extracted module, guaranteed loaded first).
+ * Everything else — script.js closure state/functions (activeItems,
+ * gameIsOver, completeItem, createListItem, sortAndRenderActiveList,
+ * saveGame, recomputeOverdueStateAfterEdit, createTaskItemData,
+ * addItemToGame) — arrives via an explicit deps object. The five functions
+ * in this cluster call each other directly (module-internal), not through
+ * deps, since they're all defined in this same file.
+ *
+ * DELIBERATE CARVE-OUT: showCreateSubTaskModal's debug console.log lines
+ * (🎯/❌/✅/🔥-prefixed) are LEFT AS-IS, unlike the debug-log cleanup done in
+ * fabMenu.js (session 3) and forms.js (session 4). This exact function is
+ * the one at the center of the historic sub-task duplication bug
+ * (root-caused and fixed in an earlier session — see
+ * SUBTASK_BUG_REPRODUCTION_REPORT.md, which this session did not open per
+ * the project's guardrail against opening that file). Second-guessing
+ * diagnostic logging left behind from that bug hunt is a separate decision
+ * from moving the code, not made here.
+ */
+const Popups = (() => {
+
+    // deps: { gameIsOver, activeItems }
+    function handleEnemyClick(itemId, deps) {
+        if (deps.gameIsOver) return;
+        const itemData = deps.activeItems.find(i => i.id === itemId);
+        if (!itemData) return;
+        showTaskDetailsPopup(itemData, deps);
+    }
+
+    // deps: { completeItem }
+    function showTaskDetailsPopup(item, deps) {
+        const modalHtml = `
+            <div class="modal-overlay">
+                <div class="modal-content task-details-modal">
+                    <button class="close-modal-x" onclick="closeModal()">&times;</button>
+                    <h3>${item.name}</h3>
+                    <div class="task-details">
+                        <p><strong>Category:</strong> ${item.category}</p>
+                        <p><strong>Due:</strong> ${item.dueDateTime.toLocaleString()}</p>
+                        <p><strong>Priority:</strong> ${item.isHighPriority ? 'High' : 'Normal'}</p>
+                        ${item.type === 'habit' ? `<p><strong>Streak:</strong> ${item.streak}</p>` : ''}
+                        <div class="task-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
+                            <button id="editTaskBtn" class="edit-icon-btn" title="Edit Task">✏️</button>
+                            <label class="completion-checkbox">
+                                <input type="checkbox" id="completeTaskCheck" class="completion-checkbox-input" />
+                                Mark as Complete
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Add event listeners
+        const completeCheckbox = document.getElementById('completeTaskCheck');
+        const editButton = document.getElementById('editTaskBtn');
+
+        if (completeCheckbox) {
+            completeCheckbox.addEventListener('change', () => {
+                if (completeCheckbox.checked) {
+                    deps.completeItem(item.id);
+                    Modal.closeModal();
+                }
+            });
+        }
+
+        if (editButton) {
+            editButton.addEventListener('click', () => {
+                Modal.closeModal();
+                showEditTaskModal(item, deps);
+            });
+        }
+
+        // Close modal when clicking overlay
+        document.querySelector('.modal-overlay').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-overlay')) Modal.closeModal();
+        });
+    }
+
+    // deps: { recomputeOverdueStateAfterEdit, createListItem, sortAndRenderActiveList, saveGame }
+    function showEditTaskModal(item, deps) {
+        const dueDate = item.dueDateTime.toISOString().split('T')[0];
+        const dueTime = item.dueDateTime.toISOString().split('T')[1].substring(0, 5);
+
+        const modalHtml = `
+            <div class="modal-overlay">
+                <div class="modal-content">
+                    <h3>Edit Task</h3>
+                    <div class="form-row">
+                        <label for="editTaskName">Task Name:</label>
+                        <input type="text" id="editTaskName" value="${item.name}" required>
+                    </div>
+                    <div class="form-row">
+                        <label for="editTaskCategory">Category:</label>
+                        <select id="editTaskCategory">
+                            <option value="other" ${item.category === 'other' ? 'selected' : ''}>Other (Generic)</option>
+                            <option value="career" ${item.category === 'career' ? 'selected' : ''}>Career</option>
+                            <option value="creativity" ${item.category === 'creativity' ? 'selected' : ''}>Creativity</option>
+                            <option value="financial" ${item.category === 'financial' ? 'selected' : ''}>Financial</option>
+                            <option value="health" ${item.category === 'health' ? 'selected' : ''}>Health</option>
+                            <option value="lifestyle" ${item.category === 'lifestyle' ? 'selected' : ''}>Lifestyle</option>
+                            <option value="relationships" ${item.category === 'relationships' ? 'selected' : ''}>Relationships</option>
+                            <option value="spirituality" ${item.category === 'spirituality' ? 'selected' : ''}>Spirituality</option>
+                        </select>
+                    </div>
+                    <div class="form-row priority-row">
+                        <input type="checkbox" id="editTaskHighPriority" ${item.isHighPriority ? 'checked' : ''}>
+                        <label for="editTaskHighPriority">High Priority</label>
+                    </div>
+                    <div class="form-row-group">
+                        <div class="form-row">
+                            <label for="editDueDate">Due Date:</label>
+                            <input type="date" id="editDueDate" value="${dueDate}" required>
+                        </div>
+                        <div class="form-row">
+                            <label for="editDueTime">Due Time:</label>
+                            <input type="time" id="editDueTime" value="${dueTime}">
+                        </div>
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="saveTaskChanges" class="primary-button">Save Changes</button>
+                        <button class="secondary-button" onclick="closeModal()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Add save functionality
+        const saveButton = document.getElementById('saveTaskChanges');
+        if (saveButton) {
+            saveButton.addEventListener('click', () => {
+                const name = document.getElementById('editTaskName').value.trim();
+                const category = document.getElementById('editTaskCategory').value;
+                const isHighPriority = document.getElementById('editTaskHighPriority').checked;
+                const newDueDate = document.getElementById('editDueDate').value;
+                const newDueTime = document.getElementById('editDueTime').value;
+
+                if (!name || !newDueDate) {
+                    alert('Task Name and Due Date are required.');
+                    return;
+                }
+
+                // Update the item data
+                item.name = name;
+                item.category = category;
+                item.isHighPriority = isHighPriority;
+                item.dueDateTime = new Date(`${newDueDate}T${newDueTime}`);
+
+                // Re-derive overdue state from the NEW due date. Without this,
+                // pushing an overdue task's deadline into the future left
+                // isOverdue: true (it's only ever set by markAsOverdue/
+                // updateActiveItems, never re-checked against dueDateTime), so
+                // the zombie stayed camped at the base still ticking damage
+                // every DAMAGE_INTERVAL_MS even though it was no longer due.
+                // That defeated the whole point of letting someone fix an
+                // overly-aggressive deadline. See DECISIONS.md 2026-07-17.
+                deps.recomputeOverdueStateAfterEdit(item);
+
+                // Update visual elements
+                if (item.element) {
+                    item.element.classList.toggle('high-priority', isHighPriority);
+                    item.element.className = item.element.className.replace(/category-\w+/g, '');
+                    item.element.classList.add(`category-${category}`);
+                    item.element.classList.add(`zombie-${category}`);
+                }
+
+                // Recreate list item with updated data
+                if (item.listItemElement) {
+                    item.listItemElement.remove();
+                    // Only create list item if it's a top-level task (not a sub-task)
+                    if (!item.parentId) {
+                        deps.createListItem(item);
+                    }
+                }
+
+                deps.sortAndRenderActiveList();
+                deps.saveGame();
+                Modal.closeModal();
+            });
+        }
+
+        // Close modal when clicking overlay
+        document.querySelector('.modal-overlay').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-overlay')) Modal.closeModal();
+        });
+    }
+
+    // deps: passed straight through to showCreateSubTaskModal
+    function createSubTaskPrompt(parentId, deps) {
+        showCreateSubTaskModal(parentId, deps);
+    }
+
+    // deps: { activeItems, createTaskItemData, addItemToGame, createListItem, sortAndRenderActiveList }
+    //
+    // Debug console.log lines below are DELIBERATELY UNCHANGED — see file
+    // header. This function is the historic sub-task-duplication bug site.
+    function showCreateSubTaskModal(parentId, deps) {
+        console.log('🎯 showCreateSubTaskModal called with parentId:', parentId, 'type:', typeof parentId);
+
+        const parentTask = deps.activeItems.find(item => item.id === parentId && item.type === 'task');
+        if (!parentTask) {
+            console.log('❌ Parent task not found for parentId:', parentId);
+            console.log('Available active items:', deps.activeItems.map(item => ({ id: item.id, name: item.name, type: item.type })));
+            alert('Parent task not found.');
+            return;
+        }
+
+        console.log('✅ Found parent task:', { id: parentTask.id, name: parentTask.name, type: parentTask.type });
+
+        const parentDueDate = parentTask.dueDateTime.toISOString().split('T')[0];
+        const parentDueTime = parentTask.dueDateTime.toISOString().split('T')[1].substring(0, 5);
+
+        const modalHtml = `
+            <div class="modal-overlay">
+                <div class="modal-content">
+                    <h3>Create Sub-task for "${parentTask.name}"</h3>
+                    <div class="form-row">
+                        <label for="subTaskName">Sub-task Name:</label>
+                        <input type="text" id="subTaskName" required>
+                    </div>
+                    <div class="form-row">
+                        <label for="subTaskCategory">Category:</label>
+                        <select id="subTaskCategory">
+                            <option value="other" ${parentTask.category === 'other' ? 'selected' : ''}>Other (Generic)</option>
+                            <option value="career" ${parentTask.category === 'career' ? 'selected' : ''}>Career</option>
+                            <option value="creativity" ${parentTask.category === 'creativity' ? 'selected' : ''}>Creativity</option>
+                            <option value="financial" ${parentTask.category === 'financial' ? 'selected' : ''}>Financial</option>
+                            <option value="health" ${parentTask.category === 'health' ? 'selected' : ''}>Health</option>
+                            <option value="lifestyle" ${parentTask.category === 'lifestyle' ? 'selected' : ''}>Lifestyle</option>
+                            <option value="relationships" ${parentTask.category === 'relationships' ? 'selected' : ''}>Relationships</option>
+                            <option value="spirituality" ${parentTask.category === 'spirituality' ? 'selected' : ''}>Spirituality</option>
+                        </select>
+                    </div>
+                    <div class="form-row priority-row">
+                        <input type="checkbox" id="subTaskHighPriority" ${parentTask.isHighPriority ? 'checked' : ''}>
+                        <label for="subTaskHighPriority">High Priority</label>
+                    </div>
+                    <div class="form-row-group">
+                        <div class="form-row">
+                            <label for="subTaskDueDate">Due Date:</label>
+                            <input type="date" id="subTaskDueDate" value="${parentDueDate}" required>
+                        </div>
+                        <div class="form-row">
+                            <label for="subTaskDueTime">Due Time:</label>
+                            <input type="time" id="subTaskDueTime" value="${parentDueTime}">
+                        </div>
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="createSubTaskBtn" class="primary-button">Create Sub-task</button>
+                        <button class="secondary-button" onclick="closeModal()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Add create functionality
+        const createButton = document.getElementById('createSubTaskBtn');
+        if (createButton) {
+            createButton.addEventListener('click', (event) => {
+                console.log('🔥 SUBTASK CREATE BUTTON CLICKED - DEBUG INFO:');
+                console.log('Event object:', event);
+                console.log('Modal open:', document.querySelector('.modal-overlay') !== null);
+                console.log('Preventing default and stopping propagation');
+
+                // Prevent any event bubbling or default actions
+                event.preventDefault();
+                event.stopPropagation();
+
+                const name = document.getElementById('subTaskName').value.trim();
+                const category = document.getElementById('subTaskCategory').value;
+                const isHighPriority = document.getElementById('subTaskHighPriority').checked;
+                const dueDate = document.getElementById('subTaskDueDate').value;
+                const dueTime = document.getElementById('subTaskDueTime').value;
+
+                console.log('Subtask form values:', { name, category, isHighPriority, dueDate, dueTime });
+
+                if (!name || !dueDate) {
+                    console.log('⚠️ Subtask creation stopped - missing name or date');
+                    alert('Sub-task Name and Due Date are required.');
+                    return;
+                }
+
+                console.log('✅ Creating SUBTASK:', { name, category, isHighPriority, dueDate, dueTime, parentId });
+
+                // Create sub-task with specified fields
+                const subTaskData = deps.createTaskItemData(
+                    name,
+                    category,
+                    isHighPriority,
+                    dueDate,
+                    dueTime,
+                    parentId
+                );
+
+                // Add to parent's subTasks array
+                parentTask.subTasks.push(subTaskData.id);
+                parentTask.totalSubTasks = parentTask.subTasks.length;
+
+                // Use centralized addItemToGame function which handles subtask logic
+                deps.addItemToGame(subTaskData);
+
+                // Refresh the parent task's list item to show the new sub-task
+                if (parentTask.listItemElement) {
+                    parentTask.listItemElement.remove();
+                    deps.createListItem(parentTask);
+                    deps.sortAndRenderActiveList();
+                }
+
+                console.log('🏁 Subtask creation complete, closing modal');
+                Modal.closeModal();
+            });
+        }
+
+        // Close modal when clicking overlay
+        document.querySelector('.modal-overlay').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-overlay')) Modal.closeModal();
+        });
+    }
+
+    return {
+        handleEnemyClick,
+        showTaskDetailsPopup,
+        showEditTaskModal,
+        createSubTaskPrompt,
+        showCreateSubTaskModal,
+    };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = Popups;
+}

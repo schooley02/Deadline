@@ -65,10 +65,56 @@ describe('selectHabitDefsToSpawn — isActive gating', () => {
         expect(selectHabitDefsToSpawn(defs, routines, [], DAY)).toHaveLength(0);
     });
 
-    test('a habit not attached to any routine is inert (orphaned)', () => {
-        const defs = [habitDef('h1'), habitDef('orphan')];
+    // REVISED 2026-07-18: this previously asserted that a habit attached to no
+    // routine is inert. That rule was aimed at orphaned definitions but also
+    // silently blocked every STANDALONE (FAB-created) habit — the bug Jeremy
+    // hit live. Standalone and orphaned habits now both spawn on their own.
+    // See DECISIONS.md.
+    test('a habit attached to no routine (standalone) DOES spawn', () => {
+        const defs = [habitDef('h1', { routineId: 'r1' }), habitDef('standalone', { routineId: null })];
         const routines = [routine('r1', ['h1'], true)];
+        expect(selectHabitDefsToSpawn(defs, routines, [], DAY).map(d => d.id))
+            .toEqual(['h1', 'standalone']);
+    });
+
+    test('a standalone habit spawns even when every routine is INACTIVE', () => {
+        const defs = [habitDef('standalone', { routineId: null })];
+        const routines = [routine('r1', ['h1'], false)];
+        expect(selectHabitDefsToSpawn(defs, routines, [], DAY).map(d => d.id)).toEqual(['standalone']);
+    });
+
+    test('a standalone habit spawns when there are no routines at all', () => {
+        const defs = [habitDef('standalone', { routineId: null })];
+        expect(selectHabitDefsToSpawn(defs, [], [], DAY).map(d => d.id)).toEqual(['standalone']);
+    });
+
+    test('a habit with no routineId field at all (legacy shape) spawns as standalone', () => {
+        const defs = [habitDef('legacy')]; // fixture omits routineId entirely
+        expect(selectHabitDefsToSpawn(defs, [], [], DAY).map(d => d.id)).toEqual(['legacy']);
+    });
+
+    test('an ORPHANED habit (routineId nulled, no longer listed) spawns as standalone', () => {
+        const defs = [habitDef('h1', { routineId: null })];
+        const routines = [routine('r1', [], false)]; // routine no longer lists it
         expect(selectHabitDefsToSpawn(defs, routines, [], DAY).map(d => d.id)).toEqual(['h1']);
+    });
+
+    test('a DANGLING routineId (its routine was deleted) spawns as standalone', () => {
+        const defs = [habitDef('h1', { routineId: 'deletedRoutine' })];
+        const routines = [routine('r1', [], false)];
+        expect(selectHabitDefsToSpawn(defs, routines, [], DAY).map(d => d.id)).toEqual(['h1']);
+    });
+
+    test('routine membership still gates even if routineId is missing (legacy save)', () => {
+        const defs = [habitDef('h1')]; // no routineId, but listed by an inactive routine
+        const routines = [routine('r1', ['h1'], false)];
+        expect(selectHabitDefsToSpawn(defs, routines, [], DAY)).toHaveLength(0);
+    });
+
+    test('routineId alone gates even if the routine does not list it', () => {
+        const defs = [habitDef('h1', { routineId: 'r1' })];
+        const routines = [routine('r1', [], false)];
+        expect(selectHabitDefsToSpawn(defs, routines, [], DAY)).toHaveLength(0);
     });
 
     test('shared by an active AND inactive routine still spawns (active wins)', () => {

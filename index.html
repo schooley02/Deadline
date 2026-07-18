@@ -146,106 +146,18 @@
         </div>
         
         <!-- Hidden Forms (for modal use) -->
+        <!-- Task Form and Habit Form removed 2026-07-18 (dead legacy inline
+             forms, unreachable since the showForm shadowing bug predating this
+             fix — see docs/DECISIONS.md). The live creation path is the FAB
+             modal system (showFormModal / createTaskFormHtml / createHabitFormHtml),
+             which builds its own markup with modalTaskName/modalHabitName ids. -->
         <div class="hidden-forms" style="display: none;">
-            <!-- Task Form -->
-            <div id="taskForm" class="form-container">
-                <h3>Add New Task</h3>
-                <div class="form-row">
-                    <label for="taskName">Task Name:</label>
-                    <input type="text" id="taskName" placeholder="Enter task name..." required>
-                </div>
-                <div class="form-row">
-                    <label for="taskCategory">Category:</label>
-                    <select id="taskCategory">
-                        <option value="other">Other (Generic)</option>
-                        <option value="career">Career</option>
-                        <option value="creativity">Creativity</option>
-                        <option value="financial">Financial</option>
-                        <option value="health">Health</option>
-                        <option value="lifestyle">Lifestyle</option>
-                        <option value="relationships">Relationships</option>
-                        <option value="spirituality">Spirituality</option>
-                    </select>
-                </div>
-                <div class="form-row priority-row">
-                    <input type="checkbox" id="taskHighPriority">
-                    <label for="taskHighPriority">High Priority</label>
-                </div>
-                <div class="form-row-group">
-                    <div class="form-row">
-                        <label for="dueDate">Due Date:</label>
-                        <input type="date" id="dueDate" required>
-                    </div>
-                    <div class="form-row">
-                        <label for="dueTime">Due Time:</label>
-                        <input type="time" id="dueTime" value="17:00">
-                    </div>
-                </div>
-                <div class="modal-buttons">
-                    <button id="addTaskButton" class="primary-button">Add Task</button>
-                    <button class="secondary-button" onclick="closeModal()">Cancel</button>
-                </div>
-            </div>
-
-            <!-- Habit Form -->
-            <div id="habitForm" class="form-container">
-                <h3>Add New Habit</h3>
-                <div class="form-row">
-                    <label>Habit Type:</label>
-                    <div class="habit-type-toggle">
-                        <input type="radio" id="mainPositiveHabit" name="mainHabitType" value="positive" checked>
-                        <label for="mainPositiveHabit" class="habit-type-label positive">
-                            <span class="habit-icon">✅</span>
-                            <span class="habit-label">Positive</span>
-                            <span class="habit-description">Complete to earn points</span>
-                        </label>
-                        <input type="radio" id="mainNegativeHabit" name="mainHabitType" value="negative">
-                        <label for="mainNegativeHabit" class="habit-type-label negative">
-                            <span class="habit-icon">🚫</span>
-                            <span class="habit-label">Negative</span>
-                            <span class="habit-description">Avoid to earn points</span>
-                        </label>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <label for="habitName">Habit Name:</label>
-                    <input type="text" id="habitName" placeholder="e.g., Exercise, Drink Water" required>
-                </div>
-                <div class="form-row">
-                    <label for="habitCategory">Category:</label>
-                    <select id="habitCategory">
-                        <option value="health">Health</option>
-                        <option value="other">Other (Generic)</option>
-                        <option value="career">Career</option>
-                        <option value="creativity">Creativity</option>
-                        <option value="financial">Financial</option>
-                        <option value="lifestyle">Lifestyle</option>
-                        <option value="relationships">Relationships</option>
-                        <option value="spirituality">Spirituality</option>
-                    </select>
-                </div>
-                <div class="form-row">
-                    <label for="habitFrequency">Frequency:</label>
-                    <select id="habitFrequency">
-                        <option value="daily">Daily</option>
-                    </select>
-                </div>
-                <div class="form-row">
-                    <label for="habitTimeOfDay">Completion Window:</label>
-                    <select id="habitTimeOfDay">
-                        <option value="anytime">Anytime Today</option>
-                        <option value="morning">Morning (by 12 PM)</option>
-                        <option value="afternoon">Afternoon (by 5 PM)</option>
-                        <option value="evening">Evening (by 10 PM)</option>
-                    </select>
-                </div>
-                <div class="modal-buttons">
-                    <button id="addHabitButton" class="primary-button">Add Habit</button>
-                    <button class="secondary-button" onclick="closeModal()">Cancel</button>
-                </div>
-            </div>
-
-            <!-- Routine Creation Form -->
+            <!-- Routine Creation Form — deliberately left in place, along with
+                 script.js's routineNameInput/createRoutineButton/createRoutineDefinition(),
+                 which are equally unreachable today. Session 4 of
+                 docs/UI_EXTRACTION_PLAN.md reconciles this against the modal's
+                 own inline routine-creation duplicate; removing it here would
+                 split that story across two sessions. -->
             <div id="routineForm" class="form-container">
                 <h3>Create New Routine</h3>
                 <div class="form-row">
@@ -272,6 +184,12 @@
     <script src="js/progression.js"></script>
     <script src="js/habits.js"></script>
     <script src="js/routines.js"></script>
+    <script src="js/ui/modal.js"></script>
+    <script src="js/ui/hud.js"></script>
+    <script src="js/ui/fabMenu.js"></script>
+    <script src="js/ui/managementWindows.js"></script>
+    <script src="js/ui/forms.js"></script>
+    <script src="js/ui/popups.js"></script>
     <script src="js/IdCounter.js"></script>
     <script src="js/TaskManager.js"></script>
     <script src="script.js"></script>

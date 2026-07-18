@@ -8,6 +8,15 @@ TARGET schema for the persistence work (Milestone 1) and modularization. The mon
 - `deadline.settings` — user settings (demo clock on/off, etc.) — not yet implemented
 - Save on every state mutation (debounced), load on boot. Cross-tab sync later via `storage` events.
 
+### schemaVersion 2 (2026-07-18): habit `routineId` landed
+The `routineId: string|null` field on `Habit` below is now **live**, ahead of the rest of
+this target schema. `null` = standalone (spawns daily on its own); a routine id = owned by
+that routine (spawns only while it's `isActive`). The v1→v2 migration in `js/persistence.js`
+infers it from existing `routine.habitDefinitionIds` membership. Note that membership is
+still many-to-many in the live code (a habit can sit in several routines) while `routineId`
+names a single owner, so spawn gating checks both — see `Habits.selectHabitDefsToSpawn`
+and DECISIONS.md 2026-07-18.
+
 ### IMPLEMENTED (2026-07-17): schemaVersion 1 ≠ this target schema
 `js/persistence.js` + `restoreGameState()` in script.js are live. **schemaVersion 1
 saves the monolith's CURRENT in-memory shapes as-is** (numeric item ids,

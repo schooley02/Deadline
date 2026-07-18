@@ -15,7 +15,8 @@
  */
 const Persistence = (() => {
     const SAVE_KEY = 'deadline.save';
-    const SCHEMA_VERSION = 1;
+    // v2 (2026-07-18): habit definitions gained `routineId` (null = standalone).
+    const SCHEMA_VERSION = 2;
     const DEBOUNCE_MS = 500;
 
     // DOM references on item objects — never serialized, rebuilt on load.
@@ -92,7 +93,33 @@ const Persistence = (() => {
      * save in place (v1→v2, v2→v3, …). Log every migration in DECISIONS.md.
      */
     function migrate(save) {
-        // if (save.schemaVersion === 1) { …upgrade…; save.schemaVersion = 2; }
+        // v1 → v2 (2026-07-18): habit definitions gained `routineId`
+        // (null = standalone). v1 saves have no such field, so infer it from
+        // routine membership: a habit listed in some routine's
+        // habitDefinitionIds is owned by that routine; anything unreferenced
+        // is standalone. Without this, every pre-v2 habit would load with
+        // routineId undefined and be treated as standalone — which would
+        // wrongly un-gate habits that really do belong to a routine.
+        // See DECISIONS.md 2026-07-18.
+        if (save.schemaVersion === 1) {
+            const ownerByHabitId = new Map();
+            (save.definedRoutines || []).forEach(routine => {
+                (routine.habitDefinitionIds || []).forEach(habitId => {
+                    if (!ownerByHabitId.has(habitId)) ownerByHabitId.set(habitId, routine.id);
+                });
+            });
+
+            (save.definedHabits || []).forEach(habitDef => {
+                if (habitDef.routineId === undefined) {
+                    habitDef.routineId = ownerByHabitId.has(habitDef.id)
+                        ? ownerByHabitId.get(habitDef.id)
+                        : null;
+                }
+            });
+
+            save.schemaVersion = 2;
+        }
+
         if (save.schemaVersion !== SCHEMA_VERSION) {
             console.warn(
                 'Deadline: save has unknown schemaVersion ' + save.schemaVersion +
@@ -128,6 +155,7 @@ const Persistence = (() => {
         SCHEMA_VERSION,
         serialize,     // exposed for tests
         deserialize,   // exposed for tests
+        migrate,       // exposed for tests
         requestSave,
         flush,
         load,

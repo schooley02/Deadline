@@ -4,6 +4,20 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-18 — UI extraction session 4: reconciled the routine-creation inline duplicate; routine creation now saves immediately
+
+**Context:** flagged back in the routines.js extraction (2026-07-18) and again in the UI extraction planning session: `createRoutineFormHtml`'s modal handler (inside `attachModalEventListeners`'s `case 'routine':` branch) built a new routine object inline — same id format and fields as `Routines.createRoutineDefinition`, but duplicated rather than calling it, and missing that function's implicit reliance on the caller adding `saveGame()`. The other call site (`script.js`'s standalone `createRoutineDefinition()` wrapper, tied to the dead `routineNameInput`/`createRoutineButton` legacy inputs deleted in session 0) already called `saveGame()` correctly but is itself unreachable dead code — confirmed by Grep (`document.getElementById('routineName')` returns null; no listener ever fires it).
+
+**Decision:** during session 4's extraction into `js/ui/forms.js`, replaced the inline object construction with a direct call to `Routines.createRoutineDefinition(name, definedRoutines)` — same validation order, identical alert copy for both failure reasons ('empty' → "Please enter a routine name.", 'duplicate' → "Routine name already exists."), identical routine shape. Added `deps.saveGame()` right after the push, before `closeModal()`.
+
+**This is a real, if minor, behavior change, not a pure code-move:** routine creation via the FAB modal previously relied on the 5-second autosave timer to persist a newly created routine; now it saves immediately on creation, matching how every other creation path in the game already behaves (tasks, habits, and routine-scoped habits/tasks all call `saveGame()` at their creation call sites). Flagging explicitly per the "never change behavior silently" guardrail, even though the change is a bugfix-shaped improvement rather than a balance change.
+
+**Alternatives rejected:** (a) *Leave the duplicate as-is, extract verbatim* — would have carried the known duplication and missing-save bug into `js/ui/forms.js` unchanged, contradicting the plan's explicit call to reconcile it in this session. (b) *Fix the OTHER (dead) `createRoutineDefinition()` wrapper instead* — pointless, that code path is unreachable; the modal system is the only way routines are actually created in the live game.
+
+**Not touched:** the dead `routineNameInput`/`createRoutineButton`/script.js `createRoutineDefinition()` trio remains in script.js, unreachable, exactly as session 0 left it. Removing dead code is a separate decision from this session's reconciliation — noted, not acted on.
+
+---
+
 ## 2026-07-18 — UI extraction planned as 11 sessions, not one; and the dead legacy inline form system will be deleted
 
 **Context:** the last unchecked Milestone 2 extraction was a single ROADMAP line, "Extract UI: forms, agenda list, popups, FAB menu". Mapping it (Grep only — script.js never read whole) found it covers **~2,500 lines across seven clusters**, including two functions over 260 lines each (`createListItem` 268, `attachModalEventListeners` 366) and a routine-UI cluster of ~854 lines. That is many times the size of any prior extraction and exactly the kind of scope that caused the July 2025 context failures.
@@ -25,6 +39,49 @@ So ~150 lines of script.js plus ~100 lines of index.html markup get removed as s
 **Alternatives rejected:** (a) *Revive the inline forms and demote the modals* — much larger change, would require adding the missing toggle buttons to index.html, and inverts the system Jeremy has been playtesting. (b) *Leave the legacy code and extract around it* — keeps this planning session smaller but guarantees dead code lands in `js/ui/` and blocks the `<300 line script.js` goal. (c) *Four coarse sessions instead of eleven fine ones* — fewer commits, but each session would be large enough to risk the context blowups the one-system-per-session rule exists to prevent.
 
 **Not done this session:** no code was changed. This was planning only.
+
+## 2026-07-18 — bugfix: standalone habits never spawned; habits gain `routineId`; schemaVersion 1→2
+
+**Bug (reported live by Jeremy):** a habit created outside a routine — the FAB → "Add New Habit" path — produced no sprite and no agenda row. Nothing about it appeared in the game.
+
+**Root cause (pre-existing, unrelated to the same-day session 0 deletion):** `Habits.selectHabitDefsToSpawn` opened with `if (!activeRoutineHabitIds.has(habitDef.id)) return false;`, where the set was built only from habits belonging to a currently-`isActive` routine. A standalone habit is in no routine, so it failed unconditionally. This came from the 2026-07-18 isActive-gating session, whose DECISIONS entry states the intent was to make *orphaned* definitions inert — standalone habits were never considered, and a standalone habit is indistinguishable from an orphaned one in the v1 data (neither is referenced by any routine).
+
+**Fix:** habit definitions now carry `routineId` (null = standalone), which `docs/DATA_SCHEMA.md`'s target `Habit` shape **already specified** — the live schema just never got the field. Gating is now: a habit with no owning routine spawns on its own; a habit with one spawns only while that routine is active.
+
+Ownership is resolved from BOTH `routine.habitDefinitionIds` and `habitDef.routineId`, deliberately:
+- The two representations can't silently disagree.
+- Membership is many-to-many today (`addHabitToRoutine` permits a habit in several routines) while `routineId` names a single owner — checking both preserves the existing "shared by an active and an inactive routine still spawns" behavior that a `routineId`-only check would have quietly broken. This was caught by an existing test, not by inspection.
+- A dangling `routineId` (its routine was deleted) resolves to standalone rather than leaving a habit that's listed in the Habits window but can never spawn.
+
+**Write paths updated:** `createHabitDefinition` (standalone, null), `Routines.createNewHabitInRoutine` (stamps the owning routine), `Routines.addHabitToRoutine` (adoption transfers ownership), `Routines.removeHabitFromRoutine` (releases to standalone — signature gained `definedHabits`), and the inline duplicate of add-to-routine inside `showAddItemToRoutineModal`, which bypasses `Routines.addHabitToRoutine` entirely (flagged again for session 4 of UI_EXTRACTION_PLAN.md, which reconciles these duplicates). `removeHabitFromRoutine`'s script.js wrapper also gained a missing `saveGame()`.
+
+**Decision — removing a habit from a routine releases it to STANDALONE (Jeremy's call):** it keeps its streak and resumes spawning daily. This deliberately supersedes the isActive-gating session's "orphaned definitions stay inert" decision, which predates standalone habits being distinguishable at all. Rationale: the Habits window lists every habit, so an inert-but-listed habit is exactly the invisible-yet-present state that produced this bug report. **Rejected:** keeping orphans inert via a third state (most faithful to the prior decision, but preserves the confusing UX); deleting the definition outright on removal (cleanest data model, but destroys the streak and overloads what the Remove button means).
+
+**Migration (schemaVersion 1 → 2, Jeremy's call):** infers `routineId` from existing routine membership rather than defaulting everything to standalone — a habit listed in some routine's `habitDefinitionIds` is owned by it, anything unreferenced is standalone. Defaulting all to standalone would have detached genuinely routine-owned habits and made them spawn regardless of routine state. The migration is idempotent (never overwrites a `routineId` that's already set, including an explicit `null`, so it won't re-link a deliberate orphan). `Persistence.migrate` is now exported for tests, matching the existing `serialize`/`deserialize` convention.
+
+**Tests:** 26 new cases — 9 gating cases in `test/routine-active-gating.test.js` (standalone spawns with routines inactive / absent / legacy-shaped; orphaned and dangling-routineId cases; membership-only and routineId-only gating), 6 ownership-transfer cases in `test/routines.test.js`, and a new `test/persistence-migration.test.js` (11 cases). One existing test was intentionally reversed — it asserted "a habit not attached to any routine is inert", which is precisely the bug; its replacement documents why.
+
+**Verified live in Chrome against Jeremy's real save:** migration ran (v1→v2), his two standalone habits (`ADSFA`, `njgsgj`) correctly inferred to `routineId: null` and now render, his routine habit (`dfaSDF`) correctly linked to its routine. A newly created standalone habit spawned with 1 active instance, an agenda row, and a sprite. Gating re-checked both ways on the real data: standalone habits spawn whether routines are active or not; the routine habit spawns only while its routine is active.
+
+**Incidental finding worth remembering:** mid-verification the save flip-flopped between v2/4-habits and v1/3-habits. Cause was a SECOND Deadline tab open on the old cached code, whose 5s autosave repeatedly clobbered the migrated save. Not a code bug — but a real hazard for this app generally: two tabs share one localStorage key with no coordination, and the older tab wins whenever it autosaves last. Worth considering a tab-coordination or save-generation guard if it recurs.
+
+**Full suite:** 270 passing, 0 failing (244 prior + 26 new). Run under a minimal Jest-compatible harness (`describe`/`test`/`expect`/`jest.fn`/`spyOn`/`test.each`/asymmetric matchers) because `npm install` could not be made to complete in the Cowork sandbox across six attempts — the mounted filesystem also produced a `Bus error` running Jest directly. The harness runs the repo's real, unmodified test files. **Jeremy should still run `npm test` locally** to confirm under real Jest.
+
+## 2026-07-18 — session 0 executed: legacy inline form system deleted
+
+**Did:** removed the dead legacy inline form system per the plan above and Jeremy's "delete it" call.
+- script.js: removed the real `showForm(formType)` implementation (~28 lines), the shadowing legacy `showForm` stub, `clearFormInputs()`, and the DOM consts that only those touched (`showTaskFormButton`/`showHabitFormButton`/`showRoutineFormButton`, `taskForm`/`habitForm`, all task-form and habit-form input consts). Removed the dead `addTaskButton`/`addHabitButton` click listeners and the keypress/default-due-date block that referenced the same removed consts. Fixed `initGame`'s calls into the dead functions (`showForm('task')`, `enableFormControls(true)`, `clearFormInputs()` at boot) by deleting those lines — they were no-ops already (shadowed).
+- index.html: removed the `taskForm`/`habitForm` markup from the `hidden-forms` block (they were permanently `display: none` and used different element IDs than the live modal system's `modalTaskName`/`modalHabitName`/etc. — confirmed zero overlap before deleting).
+
+**Found mid-session, handled without expanding scope:**
+1. **`js/damage.js`'s `gameOver()` calls `deps.enableFormControls(false)` unconditionally.** Deleting the function outright would have broken the game-over flow (a live, working feature) with a `ReferenceError`. Its effect was already invisible in practice — it only ever disabled the dead inline-form inputs, never the live FAB/modal buttons — so `enableFormControls` was kept as a documented no-op stub in script.js rather than touching `damage.js`. Real behavior (should creation be blocked on game over at all?) is deferred to the UI extraction, not decided here.
+2. **`routineNameInput`/`createRoutineButton`/script.js's `createRoutineDefinition()` wrapper turned out to be unreachable too** — same dead-code pattern, but tangled with the already-flagged inline routine-creation duplicate in the modal's `attachModalEventListeners` (`case 'routine':`). **Jeremy's call: leave for session 4**, where that duplicate gets reconciled, rather than splitting the story across two sessions. The `routineForm` markup and its consts/function are untouched.
+
+**Verification:** `node --check script.js` clean before and after every edit. Confirmed via Grep that zero references remain to any removed identifier (`showForm`, `clearFormInputs`, `taskForm`, `habitForm`, `taskNameInput`, etc.) anywhere in script.js, index.html, or js/*.js except the intentional `enableFormControls` no-op stub and the intentionally-untouched routine cluster.
+
+**Not verified this session — sandbox limitation, not a code issue:** could not get a full Jest run to complete. `npm install` repeatedly stalled or left `node_modules` in an inconsistent state across four attempts in the Cowork sandbox (the optional `puppeteer` dependency pulls a large, slow tree through the sandbox's network proxy, and each attempt hit the tool's per-call timeout mid-install). No test files or test-relevant code were touched — the deletions were entirely in script.js's DOM-wiring section and index.html markup, nothing `test/*.test.js` exercises — so risk is low, but this is a gap. **Needs Jeremy to run `npm test` locally to confirm 244/244 still holds**, and to live-playtest that FAB-based task/habit/routine creation still works (the only creation path, unchanged by this session, but worth confirming after any deletion this close to it).
+
+**Alternatives rejected:** re-attempting `npm install` further (tried 4 times across ~10 minutes of wall time with degrading results — third attempt actually corrupted node_modules further, from 258 packages down to 213 — continuing would risk more sandbox mess for uncertain payoff); claiming tests passed without seeing them run (would violate the "report results honestly" rule).
 
 ## 2026-07-18 — bugfix (not a roadmap item): deleting a routine left its active sprites/agenda rows stranded on the board
 

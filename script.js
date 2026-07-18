@@ -12,29 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeItemsListUL = document.getElementById('activeItemsList');
     const taskCountDisplay = document.getElementById('taskCountDisplay');
     
-    // Form elements
-    const showTaskFormButton = document.getElementById('showTaskFormButton');
-    const showHabitFormButton = document.getElementById('showHabitFormButton');
-    const showRoutineFormButton = document.getElementById('showRoutineFormButton');
-    const taskForm = document.getElementById('taskForm');
-    const habitForm = document.getElementById('habitForm');
-    const routineForm = document.getElementById('routineForm');
-    
-    // Task form inputs
-    const taskNameInput = document.getElementById('taskName');
-    const taskCategoryInput = document.getElementById('taskCategory');
-    const taskHighPriorityInput = document.getElementById('taskHighPriority');
-    const dueDateInput = document.getElementById('dueDate');
-    const dueTimeInput = document.getElementById('dueTime');
-    const addTaskButton = document.getElementById('addTaskButton');
-    
-    // Habit form inputs
-    const habitNameInput = document.getElementById('habitName');
-    const habitCategoryInput = document.getElementById('habitCategory');
-    const habitFrequencyInput = document.getElementById('habitFrequency');
-    const habitTimeOfDayInput = document.getElementById('habitTimeOfDay');
-    const addHabitButton = document.getElementById('addHabitButton');
-    
     // Routine elements
     const routineNameInput = document.getElementById('routineName');
     const createRoutineButton = document.getElementById('createRoutineButton');
@@ -167,12 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Reset UI state
         if (gameOverMessage) gameOverMessage.classList.add('hidden');
         if (levelUpMessage) levelUpMessage.classList.add('hidden');
-        
-        // Set initial form state
-        showForm('task');
-        
-        // Enable all form controls
-        enableFormControls(true);
         if (restartButton) restartButton.classList.add('hidden');
 
         // Clear active items
@@ -201,7 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
         currentGameDate = new Date();
         currentGameDate.setHours(0, 0, 0, 0);
 
-        clearFormInputs();
         generateDailyHabitInstances(currentGameDate);
         generateDailyRoutineTaskInstances(currentGameDate);
         updateTaskCountDisplay();
@@ -223,19 +193,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return Damage.computeDaysSurvived(runStartedAtMs, Date.now(), CONFIG.MS_PER_REAL_DAY);
     }
 
+    // Thin wrappers — real implementations live in js/ui/hud.js
+    // (Milestone 2 UI extraction session 2, 2026-07-18). Call sites unchanged.
     function updatePlayerDisplays() {
-        if (playerXpDisplay) playerXpDisplay.textContent = playerXP;
-        if (playerLevelDisplay) playerLevelDisplay.textContent = playerLevel;
-        if (playerPointsDisplay) playerPointsDisplay.textContent = playerPoints;
-        if (totalRoutineSlotsDisplay) totalRoutineSlotsDisplay.textContent = routineSlots;
+        Hud.updatePlayerDisplays({
+            playerXP, playerLevel, playerPoints, routineSlots,
+            playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay
+        });
     }
 
     function updateTaskCountDisplay() {
-        // Only count top-level tasks (not sub-tasks) in the display
-        const taskCount = activeItems.filter(item => !item.parentId).length;
-        if (taskCountDisplay) {
-            taskCountDisplay.textContent = `${taskCount} task${taskCount !== 1 ? 's' : ''}`;
-        }
+        Hud.updateTaskCountDisplay({ activeItems, taskCountDisplay });
     }
 
     // --- Persistence (js/persistence.js) ---
@@ -420,70 +388,18 @@ document.addEventListener('DOMContentLoaded', () => {
         Damage.runOfflineCatchUp(entries, offlineMs, damageDeps());
     }
 
-    function showForm(formType) {
-        // Hide all forms
-        [taskForm, habitForm, routineForm].forEach(form => {
-            if (form) form.classList.remove('active-form');
-        });
-        
-        // Remove active state from all buttons
-        [showTaskFormButton, showHabitFormButton, showRoutineFormButton].forEach(btn => {
-            if (btn) btn.classList.remove('active');
-        });
-
-        // Show selected form and activate button
-        switch (formType) {
-            case 'task':
-                if (taskForm) taskForm.classList.add('active-form');
-                if (showTaskFormButton) showTaskFormButton.classList.add('active');
-                break;
-            case 'habit':
-                if (habitForm) habitForm.classList.add('active-form');
-                if (showHabitFormButton) showHabitFormButton.classList.add('active');
-                break;
-            case 'routine':
-                if (routineForm) routineForm.classList.add('active-form');
-                if (showRoutineFormButton) showRoutineFormButton.classList.add('active');
-                renderDefinedRoutines();
-                break;
-        }
-    }
-
-    function clearFormInputs() {
-        if (taskNameInput) taskNameInput.value = '';
-        if (taskCategoryInput) taskCategoryInput.value = 'other';
-        if (taskHighPriorityInput) taskHighPriorityInput.checked = false;
-        if (dueDateInput) dueDateInput.value = '';
-        if (dueTimeInput) dueTimeInput.value = '17:00';
-        
-        if (habitNameInput) habitNameInput.value = '';
-        if (habitCategoryInput) habitCategoryInput.value = 'health';
-        if (habitFrequencyInput) habitFrequencyInput.value = 'daily';
-        if (habitTimeOfDayInput) habitTimeOfDayInput.value = 'anytime';
-        
-        // Reset main habit type to positive
-        const mainPositiveRadio = document.getElementById('mainPositiveHabit');
-        if (mainPositiveRadio) mainPositiveRadio.checked = true;
-        
-        if (routineNameInput) routineNameInput.value = '';
-    }
-
-    function enableFormControls(enabled) {
-        const controls = [
-            taskNameInput, taskCategoryInput, taskHighPriorityInput, dueDateInput, dueTimeInput, addTaskButton,
-            habitNameInput, habitCategoryInput, habitFrequencyInput, habitTimeOfDayInput, addHabitButton,
-            routineNameInput, createRoutineButton
-        ];
-        
-        controls.forEach(control => {
-            if (control) control.disabled = !enabled;
-        });
-    }
-
     // Level-up math lives in js/progression.js (Milestone 2 extraction,
     // 2026-07-18) — thin wrapper so this call site is unchanged. A single
     // completion can cross more than one threshold; Progression.checkLevelUp
     // walks all of them in one call instead of the old recursive self-call.
+    // No-op since the 2026-07-18 legacy-inline-form deletion (see DECISIONS.md)
+    // removed the only elements this ever disabled — a hidden, unreachable
+    // form div, never the live FAB/modal buttons. Kept only because
+    // js/damage.js's gameOver() still calls deps.enableFormControls(false)
+    // unconditionally; real behavior (disabling creation on game over, if
+    // wanted at all) belongs to the future UI extraction, not this cleanup.
+    function enableFormControls(enabled) {}
+
     function checkPlayerLevelUp() {
         const result = Progression.checkLevelUp(
             { level: playerLevel, xp: playerXP, slots: routineSlots },
@@ -505,13 +421,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
 
+    // Thin wrapper — real implementation lives in js/ui/hud.js
+    // (Milestone 2 UI extraction session 2, 2026-07-18). Call site unchanged.
     function showLevelUpMessage() {
-        if (!levelUpMessage) return;
-        levelUpMessage.textContent = `LEVEL ${playerLevel}!`;
-        levelUpMessage.classList.remove('hidden');
-        setTimeout(() => {
-            levelUpMessage.classList.add('hidden');
-        }, 2500);
+        Hud.showLevelUpMessage({ playerLevel, levelUpMessage });
     }
 
     // Task creation and management
@@ -882,172 +795,29 @@ document.addEventListener('DOMContentLoaded', () => {
         itemData.listItemElement = listItem;
     }
 
-function handleEnemyClick(itemId) {
-        if (gameIsOver) return;
-        const itemData = activeItems.find(i => i.id === itemId);
-        if (!itemData) return;
-        showTaskDetailsPopup(itemData);
+    // Thin wrappers — real implementations live in js/ui/popups.js
+    // (Milestone 2 UI extraction session 5, 2026-07-18). Call sites
+    // unchanged. Two dead local `today` variables (computed, never used)
+    // were dropped during the move — zero behavior effect, verified by
+    // Grep before removing.
+    function popupsDeps() {
+        return {
+            gameIsOver, activeItems, completeItem, createListItem,
+            sortAndRenderActiveList, saveGame, recomputeOverdueStateAfterEdit,
+            createTaskItemData, addItemToGame
+        };
     }
 
-function showTaskDetailsPopup(item) {
-        const modalHtml = `
-            <div class="modal-overlay">
-                <div class="modal-content task-details-modal">
-                    <button class="close-modal-x" onclick="closeModal()">&times;</button>
-                    <h3>${item.name}</h3>
-                    <div class="task-details">
-                        <p><strong>Category:</strong> ${item.category}</p>
-                        <p><strong>Due:</strong> ${item.dueDateTime.toLocaleString()}</p>
-                        <p><strong>Priority:</strong> ${item.isHighPriority ? 'High' : 'Normal'}</p>
-                        ${item.type === 'habit' ? `<p><strong>Streak:</strong> ${item.streak}</p>` : ''}
-                        <div class="task-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
-                            <button id="editTaskBtn" class="edit-icon-btn" title="Edit Task">✏️</button>
-                            <label class="completion-checkbox">
-                                <input type="checkbox" id="completeTaskCheck" class="completion-checkbox-input" />
-                                Mark as Complete
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+    function handleEnemyClick(itemId) {
+        Popups.handleEnemyClick(itemId, popupsDeps());
+    }
 
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-        // Add event listeners
-        const completeCheckbox = document.getElementById('completeTaskCheck');
-        const editButton = document.getElementById('editTaskBtn');
-
-        if (completeCheckbox) {
-            completeCheckbox.addEventListener('change', () => {
-                if (completeCheckbox.checked) {
-                    completeItem(item.id);
-                    closeModal();
-                }
-            });
-        }
-
-        if (editButton) {
-            editButton.addEventListener('click', () => {
-                closeModal();
-                showEditTaskModal(item);
-            });
-        }
-
-        // Close modal when clicking overlay
-        document.querySelector('.modal-overlay').addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal-overlay')) closeModal();
-        });
+    function showTaskDetailsPopup(item) {
+        Popups.showTaskDetailsPopup(item, popupsDeps());
     }
 
     function showEditTaskModal(item) {
-        const today = new Date().toISOString().split('T')[0];
-        const dueDate = item.dueDateTime.toISOString().split('T')[0];
-        const dueTime = item.dueDateTime.toISOString().split('T')[1].substring(0, 5);
-
-        const modalHtml = `
-            <div class="modal-overlay">
-                <div class="modal-content">
-                    <h3>Edit Task</h3>
-                    <div class="form-row">
-                        <label for="editTaskName">Task Name:</label>
-                        <input type="text" id="editTaskName" value="${item.name}" required>
-                    </div>
-                    <div class="form-row">
-                        <label for="editTaskCategory">Category:</label>
-                        <select id="editTaskCategory">
-                            <option value="other" ${item.category === 'other' ? 'selected' : ''}>Other (Generic)</option>
-                            <option value="career" ${item.category === 'career' ? 'selected' : ''}>Career</option>
-                            <option value="creativity" ${item.category === 'creativity' ? 'selected' : ''}>Creativity</option>
-                            <option value="financial" ${item.category === 'financial' ? 'selected' : ''}>Financial</option>
-                            <option value="health" ${item.category === 'health' ? 'selected' : ''}>Health</option>
-                            <option value="lifestyle" ${item.category === 'lifestyle' ? 'selected' : ''}>Lifestyle</option>
-                            <option value="relationships" ${item.category === 'relationships' ? 'selected' : ''}>Relationships</option>
-                            <option value="spirituality" ${item.category === 'spirituality' ? 'selected' : ''}>Spirituality</option>
-                        </select>
-                    </div>
-                    <div class="form-row priority-row">
-                        <input type="checkbox" id="editTaskHighPriority" ${item.isHighPriority ? 'checked' : ''}>
-                        <label for="editTaskHighPriority">High Priority</label>
-                    </div>
-                    <div class="form-row-group">
-                        <div class="form-row">
-                            <label for="editDueDate">Due Date:</label>
-                            <input type="date" id="editDueDate" value="${dueDate}" required>
-                        </div>
-                        <div class="form-row">
-                            <label for="editDueTime">Due Time:</label>
-                            <input type="time" id="editDueTime" value="${dueTime}">
-                        </div>
-                    </div>
-                    <div class="modal-buttons">
-                        <button id="saveTaskChanges" class="primary-button">Save Changes</button>
-                        <button class="secondary-button" onclick="closeModal()">Cancel</button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-        // Add save functionality
-        const saveButton = document.getElementById('saveTaskChanges');
-        if (saveButton) {
-            saveButton.addEventListener('click', () => {
-                const name = document.getElementById('editTaskName').value.trim();
-                const category = document.getElementById('editTaskCategory').value;
-                const isHighPriority = document.getElementById('editTaskHighPriority').checked;
-                const dueDate = document.getElementById('editDueDate').value;
-                const dueTime = document.getElementById('editDueTime').value;
-
-                if (!name || !dueDate) {
-                    alert('Task Name and Due Date are required.');
-                    return;
-                }
-
-                // Update the item data
-                item.name = name;
-                item.category = category;
-                item.isHighPriority = isHighPriority;
-                item.dueDateTime = new Date(`${dueDate}T${dueTime}`);
-
-                // Re-derive overdue state from the NEW due date. Without this,
-                // pushing an overdue task's deadline into the future left
-                // isOverdue: true (it's only ever set by markAsOverdue/
-                // updateActiveItems, never re-checked against dueDateTime), so
-                // the zombie stayed camped at the base still ticking damage
-                // every DAMAGE_INTERVAL_MS even though it was no longer due.
-                // That defeated the whole point of letting someone fix an
-                // overly-aggressive deadline. See DECISIONS.md 2026-07-17.
-                recomputeOverdueStateAfterEdit(item);
-
-                // Update visual elements
-                if (item.element) {
-                    item.element.classList.toggle('high-priority', isHighPriority);
-                    item.element.className = item.element.className.replace(/category-\w+/g, '');
-                    item.element.classList.add(`category-${category}`);
-                    item.element.classList.add(`zombie-${category}`);
-                }
-
-                // Recreate list item with updated data
-                if (item.listItemElement) {
-                    item.listItemElement.remove();
-                    // Only create list item if it's a top-level task (not a sub-task)
-                    if (!item.parentId) {
-                        createListItem(item);
-                    }
-                }
-
-                sortAndRenderActiveList();
-                saveGame();
-                closeModal();
-            });
-        }
-
-        // Close modal when clicking overlay
-        document.querySelector('.modal-overlay').addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal-overlay')) closeModal();
-        });
+        Popups.showEditTaskModal(item, popupsDeps());
     }
 
     function completeItem(itemId) {
@@ -1139,133 +909,11 @@ function showTaskDetailsPopup(item) {
         }
     }
     function createSubTaskPrompt(parentId) {
-        showCreateSubTaskModal(parentId);
+        Popups.createSubTaskPrompt(parentId, popupsDeps());
     }
 
     function showCreateSubTaskModal(parentId) {
-        console.log('🎯 showCreateSubTaskModal called with parentId:', parentId, 'type:', typeof parentId);
-        
-        const parentTask = activeItems.find(item => item.id === parentId && item.type === 'task');
-        if (!parentTask) {
-            console.log('❌ Parent task not found for parentId:', parentId);
-            console.log('Available active items:', activeItems.map(item => ({ id: item.id, name: item.name, type: item.type })));
-            alert('Parent task not found.');
-            return;
-        }
-        
-        console.log('✅ Found parent task:', { id: parentTask.id, name: parentTask.name, type: parentTask.type });
-        
-        const today = new Date().toISOString().split('T')[0];
-        const parentDueDate = parentTask.dueDateTime.toISOString().split('T')[0];
-        const parentDueTime = parentTask.dueDateTime.toISOString().split('T')[1].substring(0, 5);
-        
-        const modalHtml = `
-            <div class="modal-overlay">
-                <div class="modal-content">
-                    <h3>Create Sub-task for "${parentTask.name}"</h3>
-                    <div class="form-row">
-                        <label for="subTaskName">Sub-task Name:</label>
-                        <input type="text" id="subTaskName" required>
-                    </div>
-                    <div class="form-row">
-                        <label for="subTaskCategory">Category:</label>
-                        <select id="subTaskCategory">
-                            <option value="other" ${parentTask.category === 'other' ? 'selected' : ''}>Other (Generic)</option>
-                            <option value="career" ${parentTask.category === 'career' ? 'selected' : ''}>Career</option>
-                            <option value="creativity" ${parentTask.category === 'creativity' ? 'selected' : ''}>Creativity</option>
-                            <option value="financial" ${parentTask.category === 'financial' ? 'selected' : ''}>Financial</option>
-                            <option value="health" ${parentTask.category === 'health' ? 'selected' : ''}>Health</option>
-                            <option value="lifestyle" ${parentTask.category === 'lifestyle' ? 'selected' : ''}>Lifestyle</option>
-                            <option value="relationships" ${parentTask.category === 'relationships' ? 'selected' : ''}>Relationships</option>
-                            <option value="spirituality" ${parentTask.category === 'spirituality' ? 'selected' : ''}>Spirituality</option>
-                        </select>
-                    </div>
-                    <div class="form-row priority-row">
-                        <input type="checkbox" id="subTaskHighPriority" ${parentTask.isHighPriority ? 'checked' : ''}>
-                        <label for="subTaskHighPriority">High Priority</label>
-                    </div>
-                    <div class="form-row-group">
-                        <div class="form-row">
-                            <label for="subTaskDueDate">Due Date:</label>
-                            <input type="date" id="subTaskDueDate" value="${parentDueDate}" required>
-                        </div>
-                        <div class="form-row">
-                            <label for="subTaskDueTime">Due Time:</label>
-                            <input type="time" id="subTaskDueTime" value="${parentDueTime}">
-                        </div>
-                    </div>
-                    <div class="modal-buttons">
-                        <button id="createSubTaskBtn" class="primary-button">Create Sub-task</button>
-                        <button class="secondary-button" onclick="closeModal()">Cancel</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
-        // Add create functionality
-        const createButton = document.getElementById('createSubTaskBtn');
-        if (createButton) {
-            createButton.addEventListener('click', (event) => {
-                console.log('🔥 SUBTASK CREATE BUTTON CLICKED - DEBUG INFO:');
-                console.log('Event object:', event);
-                console.log('Modal open:', document.querySelector('.modal-overlay') !== null);
-                console.log('Preventing default and stopping propagation');
-                
-                // Prevent any event bubbling or default actions
-                event.preventDefault();
-                event.stopPropagation();
-                
-                const name = document.getElementById('subTaskName').value.trim();
-                const category = document.getElementById('subTaskCategory').value;
-                const isHighPriority = document.getElementById('subTaskHighPriority').checked;
-                const dueDate = document.getElementById('subTaskDueDate').value;
-                const dueTime = document.getElementById('subTaskDueTime').value;
-                
-                console.log('Subtask form values:', { name, category, isHighPriority, dueDate, dueTime });
-                
-                if (!name || !dueDate) {
-                    console.log('⚠️ Subtask creation stopped - missing name or date');
-                    alert('Sub-task Name and Due Date are required.');
-                    return;
-                }
-                
-                console.log('✅ Creating SUBTASK:', { name, category, isHighPriority, dueDate, dueTime, parentId });
-                
-                // Create sub-task with specified fields
-                const subTaskData = createTaskItemData(
-                    name,
-                    category,
-                    isHighPriority,
-                    dueDate,
-                    dueTime,
-                    parentId
-                );
-                
-                // Add to parent's subTasks array
-                parentTask.subTasks.push(subTaskData.id);
-                parentTask.totalSubTasks = parentTask.subTasks.length;
-                
-                // Use centralized addItemToGame function which handles subtask logic
-                addItemToGame(subTaskData);
-
-                // Refresh the parent task's list item to show the new sub-task
-                if (parentTask.listItemElement) {
-                    parentTask.listItemElement.remove();
-                    createListItem(parentTask);
-                    sortAndRenderActiveList();
-                }
-                
-                console.log('🏁 Subtask creation complete, closing modal');
-                closeModal();
-            });
-        }
-        
-        // Close modal when clicking overlay
-        document.querySelector('.modal-overlay').addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal-overlay')) closeModal();
-        });
+        Popups.showCreateSubTaskModal(parentId, popupsDeps());
     }
 
     function uncompleteItem(itemId) {
@@ -1764,6 +1412,10 @@ function updateActiveItems() {
             frequency,
             timeOfDay,
             isNegative,
+            // null = standalone (not owned by any routine), so it spawns daily
+            // regardless of routine state. See docs/DATA_SCHEMA.md's Habit shape
+            // and Habits.selectHabitDefsToSpawn.
+            routineId: null,
             streak: 0,
             lastCompletionDate: null
         };
@@ -1963,8 +1615,9 @@ function updateActiveItems() {
     }
     
     function removeHabitFromRoutine(routineId, habitDefId) {
-        if (Routines.removeHabitFromRoutine(routineId, habitDefId, definedRoutines)) {
+        if (Routines.removeHabitFromRoutine(routineId, habitDefId, definedRoutines, definedHabits)) {
             renderDefinedRoutines();
+            saveGame();
         }
     }
 
@@ -2332,10 +1985,18 @@ function updateActiveItems() {
                     if (itemType === 'habit') {
                         if (!routine.habitDefinitionIds) routine.habitDefinitionIds = [];
                         routine.habitDefinitionIds.push(selectedId);
+                        // Transfer ownership so the habit is gated on this
+                        // routine's isActive rather than spawning standalone.
+                        // (This modal duplicates Routines.addHabitToRoutine
+                        // rather than calling it — flagged for the session-4
+                        // UI extraction, which reconciles these duplicates.)
+                        const adoptedHabit = definedHabits.find(h => h.id === selectedId);
+                        if (adoptedHabit) adoptedHabit.routineId = routine.id;
                     } else {
                         if (!routine.taskDefinitionIds) routine.taskDefinitionIds = [];
                         routine.taskDefinitionIds.push(selectedId);
                     }
+                    saveGame();
                     closeModal();
                     // Refresh the routine management modal
                     setTimeout(() => {
@@ -2668,10 +2329,9 @@ function updateActiveItems() {
         closeModal();
     };
     
-    window.closeModal = function() {
-        const modals = document.querySelectorAll('.modal-overlay');
-        modals.forEach(modal => modal.remove());
-    };
+    // Thin wrapper — real implementation lives in js/ui/modal.js
+    // (Milestone 2 UI extraction session 1, 2026-07-18). Call site unchanged.
+    window.closeModal = Modal.closeModal;
     
     // Add escape key listener for closing modals and windows
     document.addEventListener('keydown', (e) => {
@@ -2702,192 +2362,44 @@ function updateActiveItems() {
         routines: document.getElementById('routinesWindow')
     };
     
+    // Thin wrappers — real implementations live in js/ui/fabMenu.js and
+    // js/ui/managementWindows.js (Milestone 2 UI extraction session 3,
+    // 2026-07-18). Call sites unchanged. toggleFabMenu's 6 debug console.log
+    // lines were removed as pure noise during the move — see fabMenu.js header.
     function toggleFabMenu() {
-        console.log('toggleFabMenu called');
-        console.log('fabMenu:', fabMenu);
-        console.log('fabButton:', fabButton);
-        const isHidden = fabMenu.classList.contains('hidden');
-        console.log('isHidden:', isHidden);
-        fabMenu.classList.toggle('hidden', !isHidden);
-        fabButton.classList.toggle('active', isHidden);
-        console.log('After toggle - fabMenu classes:', fabMenu.className);
-        console.log('After toggle - fabButton classes:', fabButton.className);
+        FabMenu.toggleFabMenu({ fabMenu, fabButton });
     }
-    
+
     function closeFabMenu() {
-        fabMenu.classList.add('hidden');
-        fabButton.classList.remove('active');
+        FabMenu.closeFabMenu({ fabMenu, fabButton });
     }
-    
+
     function openManagementWindow(type) {
-        // Close all windows first
-        Object.values(managementWindows).forEach(window => {
-            if (window) window.classList.add('hidden');
+        ManagementWindows.openManagementWindow(type, {
+            managementWindows, closeFabMenu, activeItems, definedHabits,
+            definedRoutines, routineSlots, showRoutineManagement, toggleRoutineActive
         });
-        
-        // Close FAB menu
-        closeFabMenu();
-        
-        // Add or show backdrop
-        let backdrop = document.querySelector('.window-backdrop');
-        if (!backdrop) {
-            backdrop = document.createElement('div');
-            backdrop.className = 'window-backdrop';
-            backdrop.addEventListener('click', () => {
-                closeAllManagementWindows();
-            });
-            document.body.appendChild(backdrop);
-        }
-        backdrop.classList.add('show');
-        
-        // Open requested window
-        const window = managementWindows[type];
-        if (window) {
-            window.classList.remove('hidden');
-            
-            // Populate the window with current data
-            if (type === 'tasks') {
-                populateTasksWindow();
-            } else if (type === 'habits') {
-                populateHabitsWindow();
-            } else if (type === 'routines') {
-                populateRoutinesWindow();
-            }
-        }
     }
-    
+
     function closeAllManagementWindows() {
-        Object.values(managementWindows).forEach(window => {
-            if (window) window.classList.add('hidden');
-        });
-        
-        const backdrop = document.querySelector('.window-backdrop');
-        if (backdrop) {
-            backdrop.classList.remove('show');
-        }
+        ManagementWindows.closeAllManagementWindows({ managementWindows });
     }
-    
+
     function closeManagementWindow(windowId) {
-        const window = document.getElementById(windowId);
-        if (window) {
-            window.classList.add('hidden');
-        }
-        
-        // Check if all windows are closed, then hide backdrop
-        const anyWindowOpen = Object.values(managementWindows).some(w => 
-            w && !w.classList.contains('hidden')
-        );
-        
-        if (!anyWindowOpen) {
-            const backdrop = document.querySelector('.window-backdrop');
-            if (backdrop) {
-                backdrop.classList.remove('show');
-            }
-        }
+        ManagementWindows.closeManagementWindow(windowId, { managementWindows });
     }
-    
+
     function populateTasksWindow() {
-        const tasksList = document.getElementById('tasksWindowList');
-        if (!tasksList) return;
-        
-        tasksList.innerHTML = '';
-        
-        const topLevelTasks = activeItems.filter(item => item.type === 'task' && !item.parentId);
-        if (topLevelTasks.length === 0) {
-            tasksList.innerHTML = '<li>No active tasks</li>';
-            return;
-        }
-        
-        topLevelTasks.forEach(task => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <span>${task.name} (${task.category})${task.isHighPriority ? ' ⭐' : ''}</span>
-                <span style="font-size: 12px; color: var(--color-neutral);">Due: ${task.dueDateTime.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
-            `;
-            tasksList.appendChild(li);
-        });
+        ManagementWindows.populateTasksWindow({ activeItems });
     }
-    
+
     function populateHabitsWindow() {
-        const habitsList = document.getElementById('habitsWindowList');
-        if (!habitsList) return;
-        
-        habitsList.innerHTML = '';
-        
-        if (definedHabits.length === 0) {
-            habitsList.innerHTML = '<li>No habits defined</li>';
-            return;
-        }
-        
-        definedHabits.forEach(habit => {
-            const li = document.createElement('li');
-            const habitTypeIcon = habit.isNegative ? ' 🚫' : ' ✅';
-            li.innerHTML = `
-                <span>${habit.name} (${habit.category})${habitTypeIcon}</span>
-                <span style="font-size: 12px; color: var(--color-neutral);">Streak: ${habit.streak}</span>
-            `;
-            habitsList.appendChild(li);
-        });
+        ManagementWindows.populateHabitsWindow({ definedHabits });
     }
-    
+
     function populateRoutinesWindow() {
-        const routinesList = document.getElementById('routinesWindowList');
-        const activeCountDisplay = document.getElementById('windowActiveRoutineCountDisplay');
-        const totalSlotsDisplay = document.getElementById('windowTotalRoutineSlotsDisplay');
-        
-        if (!routinesList) return;
-        
-        // Update counts
-        const activeRoutines = definedRoutines.filter(r => r.isActive).length;
-        if (activeCountDisplay) activeCountDisplay.textContent = activeRoutines;
-        if (totalSlotsDisplay) totalSlotsDisplay.textContent = routineSlots;
-        
-        routinesList.innerHTML = '';
-        
-        if (definedRoutines.length === 0) {
-            routinesList.innerHTML = '<li>No routines created</li>';
-            return;
-        }
-        
-        definedRoutines.forEach(routine => {
-            const li = document.createElement('li');
-            const statusIcon = routine.isActive ? '🟢' : '⚪';
-            const habitCount = routine.habitDefinitionIds ? routine.habitDefinitionIds.length : 0;
-            const taskCount = routine.taskDefinitionIds ? routine.taskDefinitionIds.length : 0;
-            
-            li.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                    <div>
-                        <div>${statusIcon} ${routine.name}</div>
-                        <div style="font-size: 12px; color: var(--color-neutral);">${habitCount} habits, ${taskCount} tasks</div>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="edit-routine-btn" data-routine-id="${routine.id}" style="padding: 4px 8px; font-size: 12px; background: var(--color-accent-teal); color: white; border: none; border-radius: 4px; cursor: pointer;">Manage</button>
-                        <button class="toggle-routine-btn" data-routine-id="${routine.id}" style="padding: 4px 8px; font-size: 12px; background: ${routine.isActive ? 'var(--color-error)' : 'var(--color-success)'}; color: white; border: none; border-radius: 4px; cursor: pointer;">${routine.isActive ? 'Deactivate' : 'Activate'}</button>
-                    </div>
-                </div>
-            `;
-            
-            // Add event listeners for buttons
-            const manageBtn = li.querySelector('.edit-routine-btn');
-            const toggleBtn = li.querySelector('.toggle-routine-btn');
-            
-            if (manageBtn) {
-                manageBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    showRoutineManagement(routine.id);
-                });
-            }
-            
-            if (toggleBtn) {
-                toggleBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    toggleRoutineActive(routine.id);
-                    populateRoutinesWindow(); // Refresh the list
-                });
-            }
-            
-            routinesList.appendChild(li);
+        ManagementWindows.populateRoutinesWindow({
+            definedRoutines, routineSlots, showRoutineManagement, toggleRoutineActive
         });
     }
     
@@ -3009,318 +2521,33 @@ function updateActiveItems() {
         });
     }
     
+    // Thin wrappers — real implementations live in js/ui/forms.js
+    // (Milestone 2 UI extraction session 4, 2026-07-18). Call sites
+    // unchanged. The routine-creation branch was reconciled to call
+    // Routines.createRoutineDefinition (adds a previously-missing
+    // saveGame() call) — see js/ui/forms.js header and DECISIONS.md.
+    function formsDeps() {
+        return {
+            createTaskItemData, addItemToGame, sortAndRenderActiveList,
+            managementWindows, populateTasksWindow,
+            createHabitDefinition, populateHabitsWindow,
+            definedRoutines, saveGame, populateRoutinesWindow, openManagementWindow
+        };
+    }
+
     function showFormModal(formType) {
-        // Close any existing modals first
-        closeModal();
-        
-        console.log('Creating modal for:', formType);
-        
-        let formHtml;
-        
-        switch (formType) {
-            case 'task':
-                formHtml = createTaskFormHtml();
-                break;
-            case 'habit':
-                formHtml = createHabitFormHtml();
-                break;
-            case 'routine':
-                formHtml = createRoutineFormHtml();
-                break;
-        }
-        
-        console.log('Generated form HTML:', formHtml ? 'SUCCESS' : 'FAILED');
-        
-        if (!formHtml) {
-            console.error('Failed to generate form HTML for type:', formType);
-            return;
-        }
-        
-        const modalElement = document.createElement('div');
-        modalElement.className = 'modal-overlay';
-        modalElement.id = `${formType}FormModal`;
-        modalElement.innerHTML = `
-            <div class="modal-content">
-                ${formHtml}
-            </div>
-        `;
-        
-        console.log('Creating modal element:', modalElement);
-        
-        document.body.appendChild(modalElement);
-        
-        // Small delay to ensure DOM is updated
-        setTimeout(() => {
-            attachModalEventListeners(formType);
-        }, 50);
+        Forms.showFormModal(formType, formsDeps());
     }
-    
-    function createTaskFormHtml() {
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const todayString = today.toISOString().split('T')[0];
-        return `
-            <h3>Add New Task</h3>
-            <div class="form-row">
-                <label for="modalTaskName">Task Name:</label>
-                <input type="text" id="modalTaskName" placeholder="Enter task name..." required>
-            </div>
-            <div class="form-row">
-                <label for="modalTaskCategory">Category:</label>
-                <select id="modalTaskCategory">
-                    <option value="other">Other (Generic)</option>
-                    <option value="career">Career</option>
-                    <option value="creativity">Creativity</option>
-                    <option value="financial">Financial</option>
-                    <option value="health">Health</option>
-                    <option value="lifestyle">Lifestyle</option>
-                    <option value="relationships">Relationships</option>
-                    <option value="spirituality">Spirituality</option>
-                </select>
-            </div>
-            <div class="form-row priority-row">
-                <input type="checkbox" id="modalTaskHighPriority">
-                <label for="modalTaskHighPriority">High Priority</label>
-            </div>
-            <div class="form-row-group">
-                <div class="form-row">
-                    <label for="modalDueDate">Due Date:</label>
-                    <input type="date" id="modalDueDate" value="${todayString}" required>
-                </div>
-                <div class="form-row">
-                    <label for="modalDueTime">Due Time:</label>
-                    <input type="time" id="modalDueTime" value="17:00">
-                </div>
-            </div>
-            <div class="modal-buttons">
-                <button id="modalAddTaskButton" class="primary-button">Add Task</button>
-                <button class="secondary-button" onclick="closeModal()">Cancel</button>
-            </div>
-        `;
-    }
-    
-    function createHabitFormHtml() {
-        return `
-            <h3>Add New Habit</h3>
-            <div class="form-row">
-                <label>Habit Type:</label>
-                <div class="habit-type-toggle">
-                    <input type="radio" id="modalPositiveHabit" name="modalHabitType" value="positive" checked>
-                    <label for="modalPositiveHabit" class="habit-type-label positive">
-                        <span class="habit-icon">✅</span>
-                        <span class="habit-label">Positive</span>
-                        <span class="habit-description">Complete to earn points</span>
-                    </label>
-                    <input type="radio" id="modalNegativeHabit" name="modalHabitType" value="negative">
-                    <label for="modalNegativeHabit" class="habit-type-label negative">
-                        <span class="habit-icon">🚫</span>
-                        <span class="habit-label">Negative</span>
-                        <span class="habit-description">Avoid to earn points</span>
-                    </label>
-                </div>
-            </div>
-            <div class="form-row">
-                <label for="modalHabitName">Habit Name:</label>
-                <input type="text" id="modalHabitName" placeholder="e.g., Exercise, Drink Water" required>
-            </div>
-            <div class="form-row">
-                <label for="modalHabitCategory">Category:</label>
-                <select id="modalHabitCategory">
-                    <option value="health">Health</option>
-                    <option value="other">Other (Generic)</option>
-                    <option value="career">Career</option>
-                    <option value="creativity">Creativity</option>
-                    <option value="financial">Financial</option>
-                    <option value="lifestyle">Lifestyle</option>
-                    <option value="relationships">Relationships</option>
-                    <option value="spirituality">Spirituality</option>
-                </select>
-            </div>
-            <div class="form-row">
-                <label for="modalHabitFrequency">Frequency:</label>
-                <select id="modalHabitFrequency">
-                    <option value="daily">Daily</option>
-                </select>
-            </div>
-            <div class="form-row">
-                <label for="modalHabitTimeOfDay">Completion Window:</label>
-                <select id="modalHabitTimeOfDay">
-                    <option value="anytime">Anytime Today</option>
-                    <option value="morning">Morning (by 12 PM)</option>
-                    <option value="afternoon">Afternoon (by 5 PM)</option>
-                    <option value="evening">Evening (by 10 PM)</option>
-                </select>
-            </div>
-            <div class="modal-buttons">
-                <button id="modalAddHabitButton" class="primary-button">Add Habit</button>
-                <button class="secondary-button" onclick="closeModal()">Cancel</button>
-            </div>
-        `;
-    }
-    
-    function createRoutineFormHtml() {
-        return `
-            <h3>Create New Routine</h3>
-            <div class="form-row">
-                <label for="modalRoutineName">Routine Name:</label>
-                <input type="text" id="modalRoutineName" placeholder="e.g., Morning Ritual" required>
-            </div>
-            <div class="modal-buttons">
-                <button id="modalCreateRoutineButton" class="primary-button">Create Routine</button>
-                <button class="secondary-button" onclick="closeModal()">Cancel</button>
-            </div>
-        `;
-    }
-    
+
+    // Note: createTaskFormHtml/createHabitFormHtml/createRoutineFormHtml had
+    // no callers outside showFormModal's old switch statement (verified by
+    // Grep before removing them here) — Forms.showFormModal now calls its
+    // own module-scoped copies internally, so no script.js wrapper is
+    // needed for them.
     function attachModalEventListeners(formType) {
-        const modal = document.querySelector(`#${formType}FormModal`);
-        console.log('Attaching listeners to modal:', modal);
-        
-        if (!modal) {
-            console.error('Modal not found:', `#${formType}FormModal`);
-            return;
-        }
-        
-        switch (formType) {
-            case 'task':
-                const addTaskBtn = modal.querySelector('#modalAddTaskButton');
-                console.log('Found task button:', addTaskBtn);
-                
-                if (addTaskBtn) {
-                    addTaskBtn.addEventListener('click', () => {
-                        console.log('Task button clicked');
-                        
-                        const nameInput = modal.querySelector('#modalTaskName');
-                        const categoryInput = modal.querySelector('#modalTaskCategory');
-                        const priorityInput = modal.querySelector('#modalTaskHighPriority');
-                        const dateInput = modal.querySelector('#modalDueDate');
-                        const timeInput = modal.querySelector('#modalDueTime');
-                        
-                        console.log('Form inputs:', { nameInput, categoryInput, priorityInput, dateInput, timeInput });
-                        
-                        const name = nameInput ? nameInput.value.trim() : '';
-                        const category = categoryInput ? categoryInput.value : 'other';
-                        const isHighPriority = priorityInput ? priorityInput.checked : false;
-                        const dueDate = dateInput ? dateInput.value : '';
-                        const dueTime = timeInput ? timeInput.value : '17:00';
-                        
-                        console.log('Form values:', { name, category, isHighPriority, dueDate, dueTime });
-                        
-                        if (!name || !dueDate) {
-                            alert('Task Name and Due Date are required.');
-                            return;
-                        }
-                        
-                        const taskData = createTaskItemData(name, category, isHighPriority, dueDate, dueTime);
-                        addItemToGame(taskData);
-                        sortAndRenderActiveList();
-                        closeModal();
-                        
-                        // Update tasks window if open
-                        setTimeout(() => {
-                            if (managementWindows.tasks && !managementWindows.tasks.classList.contains('hidden')) {
-                                populateTasksWindow();
-                            }
-                        }, 100);
-                    });
-                } else {
-                    console.error('Task button not found in modal');
-                }
-                break;
-                
-            case 'habit':
-                const addHabitBtn = modal.querySelector('#modalAddHabitButton');
-                console.log('Found habit button:', addHabitBtn);
-                
-                if (addHabitBtn) {
-                    addHabitBtn.addEventListener('click', () => {
-                        console.log('Habit button clicked');
-                        
-                        const nameInput = modal.querySelector('#modalHabitName');
-                        const categoryInput = modal.querySelector('#modalHabitCategory');
-                        const frequencyInput = modal.querySelector('#modalHabitFrequency');
-                        const timeOfDayInput = modal.querySelector('#modalHabitTimeOfDay');
-                        const typeRadio = modal.querySelector('input[name="modalHabitType"]:checked');
-                        
-                        const name = nameInput ? nameInput.value.trim() : '';
-                        const category = categoryInput ? categoryInput.value : 'health';
-                        const frequency = frequencyInput ? frequencyInput.value : 'daily';
-                        const timeOfDay = timeOfDayInput ? timeOfDayInput.value : 'anytime';
-                        const isNegative = typeRadio ? typeRadio.value === 'negative' : false;
-                        
-                        console.log('Habit form values:', { name, category, frequency, timeOfDay, isNegative });
-                        
-                        if (!name) {
-                            alert('Habit Name is required.');
-                            return;
-                        }
-                        
-                        createHabitDefinition(name, category, frequency, timeOfDay, isNegative);
-                        closeModal();
-                        
-                        // Update habits window if open
-                        setTimeout(() => {
-                            if (managementWindows.habits && !managementWindows.habits.classList.contains('hidden')) {
-                                populateHabitsWindow();
-                            }
-                        }, 100);
-                    });
-                } else {
-                    console.error('Habit button not found in modal');
-                }
-                break;
-                
-            case 'routine':
-                const createRoutineBtn = modal.querySelector('#modalCreateRoutineButton');
-                console.log('Found routine button:', createRoutineBtn);
-                
-                if (createRoutineBtn) {
-                    createRoutineBtn.addEventListener('click', () => {
-                        console.log('Routine button clicked');
-                        
-                        const nameInput = modal.querySelector('#modalRoutineName');
-                        const name = nameInput ? nameInput.value.trim() : '';
-                        
-                        console.log('Routine form values:', { name });
-                        
-                        if (!name) {
-                            alert('Please enter a routine name.');
-                            return;
-                        }
-                        
-                        if (definedRoutines.some(r => r.name.toLowerCase() === name.toLowerCase())) {
-                            alert('Routine name already exists.');
-                            return;
-                        }
-                        
-                        const newRoutine = {
-                            id: `routine_${definedRoutines.length}_${Date.now()}`,
-                            name: name,
-                            habitDefinitionIds: [],
-                            taskDefinitionIds: [],
-                            isActive: false
-                        };
-                        
-                        definedRoutines.push(newRoutine);
-                        closeModal();
-                        
-                        // Update routines window if open
-                        setTimeout(() => {
-                            if (managementWindows.routines && !managementWindows.routines.classList.contains('hidden')) {
-                                populateRoutinesWindow();
-                            } else {
-                                // Open routine management for the new routine if window was closed
-                                openManagementWindow('routines');
-                            }
-                        }, 100);
-                    });
-                } else {
-                    console.error('Routine button not found in modal');
-                }
-                break;
-        }
+        Forms.attachModalEventListeners(formType, formsDeps());
     }
-    
+
     // Forms are now handled through dedicated modal functions above
     
     // Event Listeners
@@ -3415,60 +2642,6 @@ function updateActiveItems() {
         }
     });
 
-    if (addTaskButton) {
-        addTaskButton.addEventListener('click', () => {
-            console.log('🔥 MAIN TASK BUTTON CLICKED - DEBUG INFO:');
-            console.log('Game over:', gameIsOver);
-            console.log('Modal open:', document.querySelector('.modal-overlay') !== null);
-            console.log('Task form active:', taskForm && taskForm.classList.contains('active-form'));
-            console.log('Task name input value:', taskNameInput ? taskNameInput.value : 'NO INPUT');
-            console.log('Due date input value:', dueDateInput ? dueDateInput.value : 'NO INPUT');
-            
-            if (gameIsOver) return;
-            
-            const name = taskNameInput.value.trim();
-            const category = taskCategoryInput.value;
-            const isHighPriority = taskHighPriorityInput.checked;
-            const dueDate = dueDateInput.value;
-            const dueTime = dueTimeInput.value;
-            
-            if (!name || !dueDate) {
-                console.log('⚠️ Main task creation stopped - missing name or date');
-                alert("Task Name and Due Date are required.");
-                return;
-            }
-            
-            console.log('✅ Creating MAIN TASK:', { name, category, isHighPriority, dueDate, dueTime });
-            const taskData = createTaskItemData(name, category, isHighPriority, dueDate, dueTime);
-            addItemToGame(taskData);
-            
-            clearFormInputs();
-            taskNameInput.focus();
-        });
-    }
-
-    if (addHabitButton) {
-        addHabitButton.addEventListener('click', () => {
-            if (gameIsOver) return;
-            
-            const name = habitNameInput.value.trim();
-            const category = habitCategoryInput.value;
-            const frequency = habitFrequencyInput.value;
-            const timeOfDay = habitTimeOfDayInput.value;
-            const isNegative = document.querySelector('input[name="mainHabitType"]:checked').value === 'negative';
-            
-            if (!name) {
-                alert("Habit Name is required.");
-                return;
-            }
-            
-            createHabitDefinition(name, category, frequency, timeOfDay, isNegative);
-            
-            clearFormInputs();
-            habitNameInput.focus();
-        });
-    }
-
     if (createRoutineButton) {
         createRoutineButton.addEventListener('click', createRoutineDefinition);
     }
@@ -3509,82 +2682,15 @@ function updateActiveItems() {
         });
     }
 
-    // Keyboard shortcuts
-    if (taskNameInput) {
-        taskNameInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && taskForm && taskForm.classList.contains('active-form')) {
-                // Only trigger if no modal is open
-                const anyModalOpen = document.querySelector('.modal-overlay');
-                if (!anyModalOpen && addTaskButton) {
-                    addTaskButton.click();
-                }
-            }
-        });
-    }
-
-    if (habitNameInput) {
-        habitNameInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && habitForm && habitForm.classList.contains('active-form')) {
-                if (addHabitButton) addHabitButton.click();
-            }
-        });
-    }
-
-    // Set default due date to today
-    if (dueDateInput) {
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        dueDateInput.value = today.toISOString().split('T')[0];
-    }
-    
-    // Legacy form function for routine management
-    function showForm(formType) {
-        if (formType === 'routine') {
-            openManagementWindow('routines');
-        }
-    }
-
     // Initialize definedTasks array
     if (!window.definedTasks) window.definedTasks = [];
     
-    // Debug display function
+    // Thin wrapper — real implementation lives in js/ui/hud.js
+    // (Milestone 2 UI extraction session 2, 2026-07-18). Call site unchanged.
+    // NOTE: unreferenced anywhere in script.js — dead code, extracted as-is
+    // per the plan's cluster boundary, not removed. See js/ui/hud.js header.
     function showDebugInfo(functionName, data) {
-        let debugDisplay = document.getElementById('debugDisplay');
-        if (!debugDisplay) {
-            debugDisplay = document.createElement('div');
-            debugDisplay.id = 'debugDisplay';
-            debugDisplay.style.cssText = `
-                position: fixed;
-                top: 10px;
-                right: 10px;
-                background: rgba(0, 0, 0, 0.8);
-                color: white;
-                padding: 10px;
-                border-radius: 5px;
-                font-family: monospace;
-                font-size: 12px;
-                max-width: 300px;
-                z-index: 10000;
-                max-height: 200px;
-                overflow-y: auto;
-            `;
-            document.body.appendChild(debugDisplay);
-        }
-        
-        const timestamp = new Date().toLocaleTimeString();
-        const debugEntry = document.createElement('div');
-        debugEntry.style.cssText = 'margin-bottom: 5px; padding: 2px; border-bottom: 1px solid #333;';
-        debugEntry.innerHTML = `
-            <strong>[${timestamp}] ${functionName}</strong><br>
-            ${Object.entries(data).map(([key, value]) => `${key}: ${value}`).join('<br>')}
-        `;
-        
-        debugDisplay.appendChild(debugEntry);
-        
-        // Keep only last 10 entries
-        while (debugDisplay.children.length > 10) {
-            debugDisplay.removeChild(debugDisplay.firstChild);
-        }
+        Hud.showDebugInfo(functionName, data);
     }
     
     // Initialize the game

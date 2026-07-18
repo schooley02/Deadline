@@ -13,6 +13,161 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-18 — UI extraction session 5: `js/ui/popups.js` (Cowork session)
+
+**Did:** Executed session 5 of `docs/UI_EXTRACTION_PLAN.md` — cluster D: `handleEnemyClick`, `showTaskDetailsPopup`, `showEditTaskModal`, `createSubTaskPrompt`, `showCreateSubTaskModal`. Re-Grepped script.js fresh. Same dependency pattern as forms.js (session 4): `Modal` called as a bare stable global, script.js closure state/functions (`activeItems`, `gameIsOver`, `completeItem`, `createListItem`, `sortAndRenderActiveList`, `saveGame`, `recomputeOverdueStateAfterEdit`, `createTaskItemData`, `addItemToGame`) threaded through a shared `popupsDeps()` helper. The five functions call each other directly (module-internal) rather than through deps. Wired into index.html after forms.js. Dropped two dead unused `today` local variables (computed, never referenced) — verified by Grep before removing, zero behavior effect.
+
+**Deliberate carve-out, flagged before starting:** `showCreateSubTaskModal` is the exact function at the center of the historic sub-task-duplication bug (root-caused and fixed in an earlier session; `SUBTASK_BUG_REPRODUCTION_REPORT.md` was NOT opened, per the project's standing guardrail). Its debug `console.log` lines (🎯/❌/✅/🔥-prefixed) were left completely unchanged this session — unlike the debug-log cleanup applied in fabMenu.js (session 3) and forms.js (session 4). Second-guessing diagnostic logging left behind from that bug hunt felt like a separate decision from moving the code, not one to fold in here.
+
+**Tests:** no new test file — this cluster is DOM/modal wiring; the underlying sub-task creation logic (`createTaskItemData`, `addItemToGame`) is unchanged and already covered by `test/subtask-creation.test.js`.
+
+**State:** ✅ Full Jest suite green: **14 suites, 270/270** (unchanged, expected). `node --check` clean on `script.js` and `js/ui/popups.js`. ✅ **Live-verified in Chrome against Jeremy's real save via Claude in Chrome**, with the sub-task path as the priority given its bug history: hard-reloaded, clicked "+ SUB-TASK" on the "adf" task, created "ZZTest-Session5-Subtask" — **exactly one sub-task row appeared, no duplication**. Also verified `handleEnemyClick` → `showTaskDetailsPopup` (clicked the "adf" sprite, popup showed correct details) and `showEditTaskModal` (clicked the edit pencil, form pre-filled correctly, Cancelled with no changes applied). No console errors traceable to this session (same generic extension "message channel closed" noise as every prior session).
+
+**⚠️ Another harmless test artifact added:** "ZZTest-Session5-Subtask" is now a permanent sub-task under Jeremy's "adf" task in his real save (created to verify the no-duplication behavior specifically, so it was worth doing against real data rather than a throwaway state). Can be deleted via its own edit/complete controls whenever convenient — third such leftover now (alongside "ZZTest Standalone Habit" and "ZZTest-Session4-Routine").
+
+**Docs updated same session:** ROADMAP.md (checked off session 5), ARCHITECTURE.md (`js/ui/popups.js` marked IMPLEMENTED, including the debug-log carve-out note).
+
+**Next:** commit this session (command below), then **session 6 of the UI plan: `js/ui/agendaList.js` (part 1)** — `createListItem` only (268 lines, the task/habit branching shell and row construction). Flagged Opus → Sonnet in the plan; this is also explicitly called out in prior HANDOFFs as "the `createListItem` family of bugs" (three prior incidents, all the same shape: the row builder renders a fresh task instead of the item's current state) — worth extra care and probably worth Jeremy switching up for the first-pass mapping.
+
+**Watch out:**
+- **Three harmless leftover test artifacts now sit in Jeremy's save**: "ZZTest Standalone Habit," "ZZTest-Session4-Routine," and "ZZTest-Session5-Subtask" — all safe to delete manually, none affect gameplay. Might be worth a batch cleanup pass once the UI extraction is further along.
+- Session 4's finding about native `confirm()`/`alert()` dialogs blocking Claude-in-Chrome automation still applies — this session avoided triggering any (no deletes attempted).
+- `createListItem` (next session's target) is the single riskiest remaining extraction in this whole plan given its bug history — budget more time for careful deps-mapping than the last two sessions needed.
+
+---
+
+## 2026-07-18 — UI extraction session 4: `js/ui/forms.js` (Cowork session)
+
+**Did:** Executed session 4 of `docs/UI_EXTRACTION_PLAN.md` — cluster A. Re-Grepped script.js fresh; real scope was ~311 lines (2789-3099), not the plan's stale ~529 estimate — `attachModalEventListeners` itself is ~148 lines, not 366; that larger number apparently included the FAB/window event-listener wiring just below it, which is a separate init block, NOT part of this cluster. Created `js/ui/forms.js`: `showFormModal`, `createTaskFormHtml`, `createHabitFormHtml`, `createRoutineFormHtml`, `attachModalEventListeners`. `Modal` and `Routines` are called as bare stable globals (they're fully-extracted modules guaranteed loaded first, same category as CONFIG/Clock in movement.js) — different from session 3's treatment of script.js CLOSURE functions, which still need deps. script.js's five originals are now thin wrappers via a shared `formsDeps()` helper. Wired `js/ui/forms.js` into index.html after managementWindows.js. Also removed 3 script.js pass-through functions (`createTaskFormHtml`/`createHabitFormHtml`/`createRoutineFormHtml` wrappers) that turned out to have zero callers once `showFormModal`'s switch was gone — didn't want to leave freshly-created dead code lying around.
+
+**Second piece — the reconciliation flagged back in the routines.js extraction and the UI planning session:** `createRoutineFormHtml`'s modal handler built a new routine object inline, duplicating `Routines.createRoutineDefinition`'s id-format/validation logic AND missing its own `saveGame()` call. Now calls `Routines.createRoutineDefinition(name, definedRoutines)` directly — same validation order, identical alert copy, identical routine shape — and calls `deps.saveGame()` before closing the modal. **This is a real, if minor, behavior change** (not a pure code-move): routine creation via the FAB modal now saves immediately instead of relying on the 5-second autosave timer, matching how every other creation path already behaves. Full reasoning in DECISIONS.md. Confirmed via Grep that the OTHER routine-creation call site (script.js's standalone `createRoutineDefinition()` wrapper tied to the dead `routineNameInput`/`createRoutineButton` inputs deleted in session 0) remains unreachable dead code — not touched, that's a separate cleanup decision.
+
+**Also removed:** debug `console.log` tracing throughout (added while chasing the original FAB-not-working bug, long since fixed) — same precedent as session 3's fabMenu.js cleanup. `console.error` calls on genuine failure paths (form HTML generation failed, modal/button not found) were kept.
+
+**Tests:** no new test file — this cluster is DOM/form wiring with validation logic that's already covered by `test/routines.test.js` (via the now-direct call to `Routines.createRoutineDefinition`).
+
+**State:** ✅ Full Jest suite green: **14 suites, 270/270** (unchanged, expected — `createRoutineDefinition`'s own logic didn't change, only its caller). `node --check` clean on `script.js` and `js/ui/forms.js`. ✅ **Live-verified in Chrome against Jeremy's real save via Claude in Chrome**, specifically targeting the behavior change: hard-reloaded, opened the Routines window, clicked "+ Add New Routine", created "ZZTest-Session4-Routine" via the modal, then **immediately hard-reloaded again (well under 5 seconds)** and confirmed the routine persisted — proving the reconciled `saveGame()` call fires synchronously rather than waiting for autosave. No console errors.
+
+**⚠️ Cleanup note:** attempted to delete the test routine afterward via Manage → Delete Routine, but the native `confirm()` dialog it triggers blocked the Chrome automation tooling (CDP couldn't dispatch further clicks/screenshots while the dialog was open); a page navigation was needed to recover the tab, which likely cancelled the confirm. **"ZZTest-Session4-Routine" (0 habits, 0 tasks, inactive) is still in Jeremy's save** — harmless, same category as the pre-existing "ZZTest Standalone Habit" test leftover, but worth a manual delete whenever convenient. Noting for future sessions: **Delete Routine's `confirm()` dialog is not safely testable via Claude in Chrome automation** — if a future session needs to verify it, ask Jeremy to click it live instead.
+
+**Docs updated same session:** ROADMAP.md (checked off session 4), ARCHITECTURE.md (`js/ui/forms.js` marked IMPLEMENTED), DECISIONS.md (new entry on the reconciliation and its real behavior-change implication).
+
+**Next:** commit this session (command below), then **session 5 of the UI plan: `js/ui/popups.js`** — cluster D (`handleEnemyClick`, `showTaskDetailsPopup`, `showEditTaskModal`, `createSubTaskPrompt`, `showCreateSubTaskModal`), Sonnet-level per the plan.
+
+**Watch out:**
+- **Two harmless leftover test artifacts now sit in Jeremy's save**: "ZZTest Standalone Habit" (prior session) and "ZZTest-Session4-Routine" (this session) — both safe to delete manually, neither affects gameplay.
+- `confirm()`/`alert()` native dialogs block Claude-in-Chrome automation mid-interaction — plan around this in future live-verification sessions (e.g., don't chain more actions after triggering one in the same batch; expect to need a navigate to recover if one gets stuck).
+- The dead `routineNameInput`/`createRoutineButton`/script.js `createRoutineDefinition()` trio (unreachable since session 0) is still sitting in script.js, now joined by an explicit code comment in the forms.js wrapper explaining why no wrapper exists for the three form-HTML builders. Both are flagged, neither removed — dead-code cleanup remains a separate, not-yet-scheduled decision.
+
+---
+
+## 2026-07-18 — UI extraction session 3: `js/ui/fabMenu.js` + `js/ui/managementWindows.js` (Cowork session)
+
+**Did:** Executed session 3 of `docs/UI_EXTRACTION_PLAN.md` — cluster E. Re-Grepped script.js fresh (line numbers drifted again). Created two files per the plan's split: `js/ui/fabMenu.js` (`toggleFabMenu`, `closeFabMenu` — deps `{fabMenu, fabButton}`) and `js/ui/managementWindows.js` (`openManagementWindow`, `closeAllManagementWindows`, `closeManagementWindow`, `populateTasksWindow`, `populateHabitsWindow`, `populateRoutinesWindow`). script.js's eight originals are now thin wrappers. Wired both into index.html after hud.js.
+
+**Two real cross-module dependencies found while mapping this cluster, both threaded through deps rather than assumed** (this cluster isn't as self-contained as the plan's "no logic entanglement" note suggested):
+1. `openManagementWindow` calls `closeFabMenu` — a DIFFERENT module (fabMenu.js, same session but still a separate file). Passed in as `deps.closeFabMenu` so managementWindows.js doesn't hard-depend on fabMenu.js's internals.
+2. `populateRoutinesWindow`'s Manage/Activate buttons call `showRoutineManagement` (still script.js-scoped — belongs to cluster F, sessions 8/9, not extracted yet) and `toggleRoutineActive` (a script.js wrapper around `Routines.toggleRoutineActive`). Both passed in via deps rather than assumed global — this module has no implicit dependency on extraction order elsewhere. The post-toggle re-render (`populateRoutinesWindow()` called from inside its own toggle-button handler) is a direct module-internal self-call, not a deps callback, since it's the same function.
+
+**Also removed:** 6 leftover debug `console.log` lines in `toggleFabMenu` (menu/button class state before/after toggling) — pure noise, same category as the parentId logs removed during the damage.js extraction. Nothing else about the logic changed.
+
+**Tests:** no new test file — all extracted functions are DOM reads/writes and string-building (no branching logic beyond what's already covered indirectly), same category as sessions 1 and 2.
+
+**State:** ✅ Full Jest suite green: **14 suites, 270/270** (unchanged, expected). `node --check` clean on `script.js`, `js/ui/fabMenu.js`, `js/ui/managementWindows.js`. ✅ **Live-verified in Chrome against Jeremy's real save via Claude in Chrome:** hard-reloaded, opened the FAB menu (toggle confirmed working both directions), opened the Routines window (`populateRoutinesWindow` correctly rendered "dfgas" with counts and buttons), opened its Manage popup (confirms `deps.showRoutineManagement` cross-dependency works), closed back to the Routines list via Done, then **Deactivated and re-Activated "dfgas"** to confirm `deps.toggleRoutineActive` + the self-refresh both work — routine's active count, icon, and button label all updated correctly in place, and its habit/task instances correctly left the board on deactivate and respawned on reactivate. Also opened the Tasks window (`populateTasksWindow` correctly showed only the top-level task "adf", correctly excluding habits). All windows closed cleanly via X with no backdrop left behind. No console errors traceable to this session's code (same generic extension "message channel closed" noise as prior sessions).
+
+**⚠️ Real save was touched again this session** (same category as session 2, not session 1): deactivating/reactivating "dfgas" is a real, if fully reversible, state change — Jeremy's routine ended up back in its original active state, but its habit/task instances were briefly recalled and respawned during the test (no XP/points/streak impact, since that's a pure removal+respawn per the existing deactivation/activation design, not a completion).
+
+**Docs updated same session:** ROADMAP.md (checked off session 3 sub-item), ARCHITECTURE.md (both files marked IMPLEMENTED under `ui/`).
+
+**Next:** commit this session (command below), then **session 4 of the UI plan: `js/ui/forms.js`** — cluster A. This one's flagged Opus → Sonnet in the plan (366-line `attachModalEventListeners` splits per form type) and also reconciles the `createRoutineFormHtml` inline duplicate of `Routines.createRoutineDefinition` (still missing its own `saveGame()` call) flagged back on 2026-07-18. Worth a model switch prompt before starting.
+
+**Watch out:**
+- This cluster's real cross-module deps (closeFabMenu, showRoutineManagement, toggleRoutineActive) are a preview of what session 4 will hit more of — `attachModalEventListeners` almost certainly reaches into routine/habit/task creation functions still scattered across script.js and now-extracted modules. Map dependencies before assuming a clean split.
+- `showRoutineManagement` remains the single largest still-script.js-scoped function these UI modules depend on (854-line cluster F, not due until sessions 8/9) — every session between now and then that touches routine UI will need to keep passing it through deps.
+- Same pattern as sessions 1–2: only the UI paths actually exercised this session (FAB, Routines window + Manage + toggle, Tasks window) are confirmed live. Habits window wasn't clicked this session — low risk (identical shape to Tasks window, same extraction pattern) but not literally verified.
+
+---
+
+## 2026-07-18 — UI extraction session 2: `js/ui/hud.js` (Cowork session)
+
+**Did:** Executed session 2 of `docs/UI_EXTRACTION_PLAN.md` — cluster G, the smallest/lowest-risk item, chosen to confirm the session 1 extraction pattern before the larger UI sessions. Grepped script.js fresh (line numbers had already drifted from session 1's edits). Created `js/ui/hud.js`: `updatePlayerDisplays`, `updateTaskCountDisplay`, `showLevelUpMessage`, `showDebugInfo`, each taking an explicit deps object for the script.js-owned state/DOM elements it reads (no closures) — same pattern as damage.js/habits.js/routines.js. script.js's four originals are now one-line thin wrappers building the deps object from closure variables and delegating to `Hud.*`. Wired `js/ui/hud.js` into index.html after modal.js.
+
+**Found while mapping the cluster:** `showDebugInfo` has **zero call sites anywhere in script.js** (confirmed by Grep) — it's dead code, only ever defined, never invoked. Extracted as-is rather than removed, since it's in scope per the plan's cluster boundary and removing dead code is a separate decision from moving it (per the "ONE roadmap task per session" guardrail). Flagged here rather than silently dropped or silently kept without comment.
+
+**Tests:** no new test file — all four functions are pure DOM writes (textContent/classList/setTimeout), same category as `closeModal` last session; no logic worth unit-testing. Verified via `node --check` + Jest (unchanged, confirming nothing else broke) + a live Chrome smoke test.
+
+**State:** ✅ Full Jest suite green: **14 suites, 270/270** (unchanged — expected, no test file added). `node --check` clean on `script.js` and `js/ui/hud.js`. ✅ **Live-verified in Chrome against Jeremy's real save via Claude in Chrome:** hard-reloaded, confirmed the HUD renders correctly on load (Health/XP/Level/Points, task count "6 tasks"), then completed the "GA" task and confirmed `updatePlayerDisplays` updated XP (0→10) and Points (0→10) live, and `updateTaskCountDisplay` updated the count (6 tasks → 5 tasks) and removed the row — all working, no console errors. **`showLevelUpMessage` was NOT directly exercised** (would require enough XP to cross a level threshold, not achievable in one quick task completion) — the code is unchanged logic in the same deps pattern verified working for the other two functions in this same file, so risk is low, but this is an honest gap, not a claimed pass.
+
+**⚠️ Real save was modified during this smoke test** (unlike session 1's testing, which only opened/closed modals with no side effects): the "GA" task was marked complete and removed from Jeremy's actual game — this was real gameplay, not test data, and is not reversible from this end. Jeremy should be aware his task list and points changed from live verification, not from playing.
+
+**Docs updated same session:** ROADMAP.md (checked off session 2 sub-item), ARCHITECTURE.md (`js/ui/hud.js` marked IMPLEMENTED).
+
+**Next:** commit this session (command below), then **session 3 of the UI plan: `js/ui/fabMenu.js` + `js/ui/managementWindows.js`** — cluster E, self-contained, no logic entanglement per the plan.
+
+**Watch out:**
+- `showDebugInfo` is dead code (extracted, not removed) — don't be surprised if a future cleanup session wants to delete it; that's a separate call, not made here.
+- Jeremy's real save now has one fewer active task ("GA" completed) and +10 XP/+10 points from this session's live verification — not a bug, just worth knowing why the numbers moved.
+- Same as session 1: only a subset of the game's dismissible UI was exercised. This session tested HUD display updates specifically, not modal-adjacent UI.
+
+---
+
+## 2026-07-18 — UI extraction session 1: `js/ui/modal.js` (Cowork session)
+
+**Did:** Executed session 1 of `docs/UI_EXTRACTION_PLAN.md`. Re-Grepped script.js first since the plan's line numbers were already stale (`closeModal` had drifted from ~2671 to 2602 after session 0's deletions). Created `js/ui/modal.js` following the config.js/habits.js IIFE + `module.exports` pattern: `closeModal` (unchanged 4-line DOM teardown, `querySelectorAll('.modal-overlay').forEach(remove)`) plus a new `exposeGlobal(name, fn)` helper for attaching functions to `window` for inline `onclick=` handlers — the systematic version of what the `deleteRoutine` bug (2026-07-18) showed is currently ad-hoc. script.js's `window.closeModal` definition is now a one-line thin wrapper (`window.closeModal = Modal.closeModal;`) — call site unchanged, all 18 inline `onclick="closeModal()"` sites unaffected. Wired `js/ui/modal.js` into index.html after routines.js.
+
+**Scope note (matches the plan, no surprises):** overlay CREATION was deliberately left out — Grepped for any shared "open modal" function and found none; every form/popup cluster still builds its own `modal-overlay` HTML string inline and calls `insertAdjacentHTML` directly. That logic moves as each cluster (A/C/D/E/F) gets its own extraction session, not here. `exposeGlobal` is net-new (not adopted at existing `window.foo = foo` call sites yet, e.g. `window.deleteRoutine`) — available for future sessions to use rather than retrofitted everywhere in this one.
+
+**Tests:** no new test file — both `closeModal` (pure DOM manipulation) and `exposeGlobal` (one-line assignment) have no logic worth unit-testing, consistent with how prior UI-adjacent wiring (`window.deleteRoutine` fix, etc.) was verified by `node --check` + live smoke test rather than Jest.
+
+**State:** ✅ **Full Jest suite green under REAL Jest this time (not the harness): 14 suites, 270/270**, run in `/tmp/deadline-run` after `npm install --omit=optional` + the documented `npm i @unrs/resolver-binding-linux-x64-gnu --no-save` fix for the recurring sandbox resolver issue. `node --check` clean on `script.js` and `js/ui/modal.js`. ✅ **Live-verified in Chrome against Jeremy's real save via Claude in Chrome** (hard-reloaded first per the standing cache warning): opened the Add Task modal via FAB → Tasks → + Add New Task and closed it via Cancel, via clicking the overlay background outside the form, and via Escape — all three closed cleanly with no stray overlay left behind. Also opened the task-details popup (click an enemy sprite) and closed it via its X button. All four close paths behave identically to before the extraction. Only console activity was 3 generic "message channel closed" exceptions with no file/line attribution — a known Chrome-extension messaging artifact, not from script.js or js/ui/modal.js. No items in Jeremy's real save were added, edited, or removed during testing (Cancel/close only, no Save/Add clicked). The habit-edit modal and management windows (Tasks/Habits/Routines list popups) use Cancel-only or their own dedicated close, not the shared `closeModal()` — confirmed unaffected since neither was touched by this extraction.
+
+**Docs updated same session:** ROADMAP.md (checked off session 1 sub-item), ARCHITECTURE.md (`js/ui/modal.js` marked IMPLEMENTED under the `ui/` entry). No DECISIONS.md entry — this session made no design calls, it executed the plan as written.
+
+**Next:** commit this session (command below), then **session 2 of the UI plan: `js/ui/hud.js`** — cluster G (`updatePlayerDisplays`, `updateTaskCountDisplay`, `showLevelUpMessage`, `showDebugInfo`), small and near-zero risk, confirms the extraction pattern for the rest of the UI sequence. Sonnet-level, fully specified.
+
+**Watch out:**
+- Session 0 (delete legacy inline forms) is **still unconfirmed live by Jeremy** — this session's Chrome testing exercised the FAB → Add Task flow (proving session 0's deletions didn't break the live creation path) but wasn't a dedicated re-test of that session specifically. Worth a mental checkmark next time you're in the game.
+- `docs/UI_EXTRACTION_PLAN.md`'s line numbers are now stale for TWO sessions running (0 and 1) — always re-Grep before trusting them, per its own header warning.
+- The real-Jest run this session (vs. the minimal harness used two sessions ago) confirms that harness's 270/270 result was accurate — worth noting since that session's handoff flagged it as unverified.
+- Cowork's Claude in Chrome can drive Jeremy's real, already-running local Chrome (via the connected extension) — worth remembering for future sessions' smoke tests instead of only asking Jeremy to test manually. Habit-edit modals and management windows (Tasks/Habits/Routines popups) don't use the shared `closeModal()` — don't assume this session's four verified paths cover every dismissible UI in the game.
+
+---
+
+## 2026-07-18 — Bugfix (found live by Jeremy right after session 0): standalone habits never spawned
+
+**Did:** Jeremy reported that a habit added outside a routine showed up in neither the game area nor the agenda list. **Pre-existing bug, NOT caused by session 0's deletions.** `Habits.selectHabitDefsToSpawn` required every habit to belong to an active routine — a rule the isActive-gating session added to make *orphaned* definitions inert, which also swept up standalone habits (the two are indistinguishable in v1 data). Fixed by giving habit definitions `routineId` (null = standalone), which `docs/DATA_SCHEMA.md`'s target Habit shape already specified but the live schema never had. Gating now applies only to habits a routine actually owns.
+
+**Design calls made with Jeremy (both logged in DECISIONS.md):** removing a habit from a routine RELEASES it to standalone (keeps its streak, resumes daily spawns) — deliberately superseding the earlier "orphans stay inert" decision, which predates standalone habits being distinguishable. And the v1→v2 migration INFERS `routineId` from existing `habitDefinitionIds` membership rather than defaulting everything to standalone.
+
+**One subtlety worth knowing:** ownership is resolved from BOTH `routine.habitDefinitionIds` and `habitDef.routineId`. Membership is many-to-many today while `routineId` names a single owner — a `routineId`-only check would have quietly broken the existing "shared by an active and an inactive routine still spawns" behavior. An existing test caught that, not inspection.
+
+**Files:** `js/habits.js` (gating), `js/routines.js` (create/add/remove ownership; `removeHabitFromRoutine` signature gained `definedHabits`), `js/persistence.js` (SCHEMA_VERSION 2 + migration, `migrate` now exported for tests), `script.js` (`createHabitDefinition` stamps null; the `showAddItemToRoutineModal` inline duplicate also stamps ownership; `removeHabitFromRoutine` wrapper gained a missing `saveGame()`). Docs: DECISIONS, ROADMAP, DATA_SCHEMA, ROUTINES all updated same session.
+
+**State:** ✅ **270 passing, 0 failing** (244 prior + 26 new: 9 gating, 6 ownership-transfer, 11 in a new `test/persistence-migration.test.js`). One existing test intentionally reversed — it asserted "a habit not attached to any routine is inert", which IS the bug. `node --check` clean on all four changed JS files. ✅ **Verified live in Chrome against Jeremy's real save:** migration ran v1→v2, his standalone habits (`ADSFA`, `njgsgj`) inferred to null and now render, his routine habit (`dfaSDF`) correctly linked; a new standalone habit spawned with instance + agenda row + sprite; gating re-checked both directions on real data. The test habit I created was removed afterward — Jeremy's own data untouched.
+
+**Next:** commit (command below), then session 1 of `docs/UI_EXTRACTION_PLAN.md`: `js/ui/modal.js`.
+
+**Watch out:**
+- **Two Deadline tabs will corrupt each other's saves.** Mid-verification the save flip-flopped between v2/4-habits and v1/3-habits — a second tab on the old cached code was clobbering the migrated save every 5s via autosave. Not a code bug, but a real hazard: both tabs share one localStorage key with no coordination and the last autosave wins. Keep ONE tab open when playtesting, and hard-reload after any change.
+- The test suite was run under a **minimal Jest-compatible harness**, not real Jest — `npm install` could not be completed in the Cowork sandbox across six attempts, and running Jest on the mounted filesystem produced a `Bus error`. The harness runs the repo's real test files unmodified, but **please run `npm test` locally to confirm under real Jest.** The harness lives in the sandbox only; nothing was added to the repo.
+- `Routines.removeHabitFromRoutine`'s signature is now `(routineId, habitDefId, definedRoutines, definedHabits)`. The 4th arg is optional for safety but MUST be passed or the habit won't be released to standalone.
+
+## 2026-07-18 — UI extraction session 0: deleted the dead legacy inline form system
+
+**Did:** Executed session 0 of `docs/UI_EXTRACTION_PLAN.md` (planned earlier this same day — see the planning entry below). Removed the legacy inline form system from script.js: the real `showForm(formType)` implementation, the shadowing legacy stub that had been silently overriding it since before 2026-07-17, `clearFormInputs()`, `enableFormControls()` (see below), the form/button/input DOM consts only those touched, and the dead `addTaskButton`/`addHabitButton` listeners plus the keypress/default-date block that referenced them. Fixed `initGame`'s three calls into this dead code (all were already no-ops). Removed the `taskForm`/`habitForm` markup from index.html's `hidden-forms` block — confirmed zero ID overlap with the live modal system first (`modalTaskName` etc. vs `taskName` etc.). The live FAB → modal creation path is completely unchanged.
+
+**Two things surfaced mid-session and handled without silently expanding scope (both logged in DECISIONS.md):**
+1. `js/damage.js`'s `gameOver()` unconditionally calls `deps.enableFormControls(false)` — deleting the function outright would have broken the live game-over flow. Left it as a documented no-op stub in script.js (its effect was already invisible — only ever touched the dead inline inputs) rather than editing damage.js.
+2. `routineNameInput`/`createRoutineButton`/script.js's `createRoutineDefinition()` turned out to be equally unreachable, tangled with the already-flagged inline routine-creation duplicate in the modal handler. **Asked Jeremy — his call: leave it for session 4**, where that duplicate gets reconciled anyway, rather than splitting the story across two sessions.
+
+**State:** `node --check script.js` clean before and after every edit. Grepped to confirm zero remaining references to any removed identifier anywhere in script.js, index.html, or js/*.js. **Could NOT get a full Jest run to complete in the sandbox this session** — `npm install` stalled or left `node_modules` inconsistent across four attempts (likely the optional `puppeteer` dependency's large download through the sandbox's proxy, compounded by the tool's per-call timeout killing installs mid-extraction; one attempt actually lost packages, 258→213). Nothing in `test/*.test.js` is exercised by this session's changes (pure DOM-wiring deletions), so risk is low, but this is an honest gap, not a claimed pass.
+
+**Next:** **Jeremy, please run `npm test` locally to confirm 244/244 still holds**, and do a quick live smoke test that creating a task/habit/routine via the FAB still works exactly as before (should be unchanged — nothing in the live path was touched). Once confirmed, commit this session (command below), then move to session 1 of the UI plan: `js/ui/modal.js` (pull `closeModal` out of the routine code, add the `window.*` exposure helper).
+
+**Watch out:**
+- If `npm test` fails in a way that looks environment-related (missing modules, resolver errors) rather than an actual assertion failure, that's consistent with what I hit in the sandbox — try a clean `rm -rf node_modules package-lock.json && npm install` first before assuming this session broke something.
+- The routine inline-duplicate + dead `createRoutineDefinition()` finding is now flagged twice (DECISIONS.md, ROADMAP.md session 4) — don't lose track of it, but it's explicitly not in scope until then.
+
 ## 2026-07-18 — PLANNING session: sequenced the UI extraction (no code changed)
 
 **Did:** Jeremy confirmed the pending delete-routine recall fix playtests correctly, so the three uncommitted pieces (routines extraction, window-exposure fix, recall fix) are cleared to commit. Then planned the last unchecked Milestone 2 item, "Extract UI", which was a single ROADMAP line. Mapped the whole UI surface via Grep only (script.js never read whole): **~2,500 lines across 7 clusters**, including `createListItem` (268 lines), `attachModalEventListeners` (366), and a routine-UI cluster of ~854. Far too big for one session. Produced **`docs/UI_EXTRACTION_PLAN.md`** — function map with line ranges, 11-session sequence, per-session model recommendation, and standing hazards. ROADMAP.md's single line is now 10 ordered sub-items. See DECISIONS.md for the three decisions.

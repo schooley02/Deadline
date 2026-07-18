@@ -54,22 +54,44 @@ const Habits = (() => {
     }
 
     // Which habit definitions should spawn an instance for forWhichGameDay.
-    // Only definitions belonging to a currently-isActive routine spawn (an
-    // orphaned definition, or one whose routine is deactivated, is inert —
-    // 2026-07-18 fix, see DECISIONS.md). Dedupes against both "already
-    // completed today" (habitDef.lastCompletionDate) and "already has a
-    // live instance for today" (activeItems scan).
+    //
+    // Routine membership is carried by habitDef.routineId (null = standalone),
+    // matching docs/DATA_SCHEMA.md's Habit shape. Gating (2026-07-18, revised
+    // same day — see DECISIONS.md):
+    //   - STANDALONE habits (routineId null/undefined) always spawn. These are
+    //     the FAB-created ones; they have no routine to gate on.
+    //   - ROUTINE habits spawn only while their routine is isActive, so
+    //     deactivating a routine stops future spawns.
+    //   - A DANGLING routineId (routine was deleted) resolves to standalone,
+    //     rather than leaving a habit that's listed in the Habits window but
+    //     can never spawn.
+    // The original 2026-07-18 rule was "only spawn habits in an active
+    // routine", which was aimed at orphaned definitions but also silently
+    // blocked every standalone habit — the bug this replaces.
+    //
+    // Dedupes against both "already completed today"
+    // (habitDef.lastCompletionDate) and "already has a live instance for
+    // today" (activeItems scan).
     function selectHabitDefsToSpawn(definedHabits, definedRoutines, activeItems, forWhichGameDay) {
         const forWhichGameDayString = forWhichGameDay.toDateString();
 
-        const activeRoutineHabitIds = new Set();
-        definedRoutines.forEach(routine => {
-            if (!routine.isActive) return;
-            (routine.habitDefinitionIds || []).forEach(id => activeRoutineHabitIds.add(id));
-        });
-
         return definedHabits.filter(habitDef => {
-            if (!activeRoutineHabitIds.has(habitDef.id)) return false;
+            // A habit is owned by a routine if that routine lists it OR the
+            // habit points at it. Both are checked so the two representations
+            // can't disagree, and so a habit shared by several routines still
+            // works (membership is many-to-many today even though routineId
+            // names a single owner).
+            const owningRoutines = definedRoutines.filter(r =>
+                (r.habitDefinitionIds || []).includes(habitDef.id) ||
+                (habitDef.routineId != null && r.id === habitDef.routineId)
+            );
+
+            // No owner at all => standalone (or orphaned, or its routine was
+            // deleted) => spawns on its own. Otherwise at least one owning
+            // routine must be active — so "shared by an active and an inactive
+            // routine" still spawns.
+            if (owningRoutines.length > 0 && !owningRoutines.some(r => r.isActive)) return false;
+
             if (habitDef.frequency !== 'daily') return false;
 
             const lastCompletionDayString = habitDef.lastCompletionDate
