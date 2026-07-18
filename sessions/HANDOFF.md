@@ -13,6 +13,25 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-18 — Jest setup fixed (the "missing babel deps" diagnosis was wrong)
+
+**Did:** Fixed the test-infrastructure gap that had blocked four sessions. **The standing diagnosis was wrong:** installing `jest` alone pulls `babel-jest` + `@babel/core` transitively (verified by installing only `jest` and inspecting node_modules), and nothing here needs babel anyway — all of `test/` is plain CommonJS on modern Node, no JSX/TS/ESM. No babel devDependencies, no `babel.config.js`. Four real defects fixed (detail + rationale in DECISIONS.md 2026-07-18):
+1. **`npm test` never ran Jest** — it ran `node test/visual-tests.js` (puppeteer). Every prior handoff saying "run `npm test`" to check the unit suite was running the wrong thing. Now `test` = `jest`; visual tests are `npm run test:visual`.
+2. **`devDependencies` was empty** → added `jest: ^30.4.2`.
+3. **`test/setup.js` didn't exist** though `jest.config.js` has referenced it since July 2025, so Jest died before the first test. Created as a real documented file (guards unhandled rejections only; per-test global wiring stays in the test files on purpose).
+4. **Coverage was on by default with 80% global thresholds** → would fail `npm test` with every assertion green, since `Spawning.addItemToGame` is deliberately DOM-only. Coverage is now opt-in (`npm run test:coverage`), thresholds dropped until Milestone 2 can meet them honestly.
+
+Also removed the `transform: 'babel-jest'` override (it's Jest's default — almost certainly the source of the whole babel misdiagnosis), and moved `puppeteer`/`pixelmatch`/`pngjs` from `dependencies` to `optionalDependencies` (the game has zero runtime deps; those are visual-test-only and pull a full Chromium download, which is exactly what kept killing sandbox installs). **`npm install --omit=optional` is now the fast jest-only path for Cowork/CI.**
+
+**State:** Config validated — `package.json` parses (`test` → `jest`, devDeps `{jest}`), `jest.config.js` + `test/setup.js` pass `node --check`, config confirmed to no longer override `transform` or enable coverage, no ESM in any `test/*.test.js`, `node_modules` gitignored. **A green `jest` run was NOT achieved in-sandbox** — `npm install` could not complete (network-throttled; the mounted outputs dir also refuses unlinks so partially-extracted packages can't be repaired). **NOT committed.**
+
+**Next:** Jeremy runs `npm install` then `npm test` locally — this is the first time the Jest suite will actually have run. Expect 7 test files: clock, movement, spawning, live-gap-catchup, offline-catchup, create-list-item-branching, subtask-creation. Two of those (`offline-catchup`, `create-list-item-branching`, plus `subtask-creation`) are older hand-maintained mirror tests that have never been executed by a working Jest either — **some may need small fixes on first real run.** After that, next Milestone 2 item is extract damage/base-health/game-over.
+
+**Watch out:**
+- **First real Jest run may surface failures in the OLD mirror tests**, which have never actually executed. That's expected archaeology, not a regression from this session's changes — triage them separately from the new suites.
+- If `npm test` complains about a missing module, run plain `npm install` (not `--omit=optional`) — or install puppeteer if running visual tests.
+- The `--omit=optional` fast path is the one to use from Cowork; a full `npm install` downloads Chromium and will likely be killed in the sandbox.
+
 ## 2026-07-18 — Milestone 2 extraction #2 (spawning + movement), dev reset button, and three overdue-damage bugs from Jeremy's overnight test (Cowork session, live browser verification)
 
 **Did:** Three pieces of work.

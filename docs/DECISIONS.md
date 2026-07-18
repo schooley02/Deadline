@@ -4,6 +4,23 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-18 — Jest setup fixed; the "missing babel deps" diagnosis was wrong
+
+Four sessions in a row worked around a broken Jest setup in a sandbox copy instead of fixing the repo, each logging "add jest + babel-jest + @babel/core + @babel/preset-env to devDependencies." **That diagnosis was wrong.** Installing `jest` alone pulls in `babel-jest` (30.4.1) and `@babel/core` transitively — verified empirically by installing only `jest` and inspecting `node_modules`. No babel packages and no `babel.config.js` are needed: everything here is plain CommonJS (`require`/`module.exports`) on modern Node, with no JSX, TypeScript, or ESM anywhere in `test/`.
+
+Four distinct defects, all fixed:
+
+1. **`npm test` never ran Jest at all.** The script was `node test/visual-tests.js` — the puppeteer visual-regression suite. Every handoff that said "run `npm test`" to check the unit suite was running something else entirely. Now `test` = `jest`; the visual tests moved to `test:visual` / `test:visual:baseline`.
+2. **`devDependencies` was empty** — Jest was never declared, so a fresh clone had no way to run the suite. Added `jest: ^30.4.2` (the version npm currently resolves).
+3. **`test/setup.js` didn't exist** although `jest.config.js` has referenced it via `setupFilesAfterEach` since July 2025 — so Jest failed before running a single test. Created as a real, documented, near-empty file (it only guards unhandled rejections; per-test global wiring deliberately stays in the test files).
+4. **Coverage was on by default with 80% global thresholds**, which would fail `npm test` even with every assertion green — some extracted code is deliberately not unit-tested (`Spawning.addItemToGame` is DOM orchestration verified by live playtest). Coverage is now opt-in via `npm run test:coverage`, with the hard thresholds removed until Milestone 2 has pulled enough logic out of script.js to meet them honestly.
+
+**Also removed the `transform: {'^.+\\.js$': 'babel-jest'}` override.** babel-jest is already Jest's default transform, so the line was redundant — and it was almost certainly the thing that made every previous session conclude babel packages were a missing dependency.
+
+**Dependency layout:** the game itself has NO runtime dependencies (vanilla JS, no build step), so `dependencies` is now empty. `puppeteer`/`pixelmatch`/`pngjs` moved to `optionalDependencies` — they exist solely for the visual tests and pull a full Chromium download, which is what made `npm install` unusable from the Cowork sandbox (installs were repeatedly killed mid-download). **`npm install --omit=optional` now gives a fast, jest-only setup** — that's the command to use from Cowork/CI. A normal `npm install` still installs everything. **Rejected:** leaving them in `dependencies` (wrong semantically — they're test tooling, not runtime) and putting them in `devDependencies` (`--omit=dev` would then also skip Jest, defeating the purpose).
+
+**Not verified in-sandbox:** a green `jest` run. The Cowork sandbox could not complete `npm install` (network-throttled; the mounted outputs dir also refuses unlinks, so partially-extracted packages can't be repaired). Config files are validated — `package.json` parses, `jest.config.js`/`test/setup.js` pass `node --check`, no ESM in any test file — and the new-logic assertions were separately verified with Node's built-in runner. **Jeremy must run `npm install` + `npm test` locally to confirm.**
+
 ## 2026-07-18 — Suspended-loop (sleep/background) damage catch-up, and "days survived" from real time
 
 Both came out of an overnight playtest: Jeremy left the tab open with one overdue task, came back at 7:47 AM to a base at 0 HP and "GAME OVER! Your Base Survived 22 Days."

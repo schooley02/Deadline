@@ -1,20 +1,31 @@
 {
-  "name": "deadline-visual-tests",
+  "name": "deadline",
   "version": "1.0.0",
-  "description": "Visual regression tests for Deadline game categories",
-  "main": "test/visual-tests.js",
+  "private": true,
+  "description": "Deadline — tower defense productivity game. Tasks and habits become zombies advancing on a church base.",
+  "main": "script.js",
   "scripts": {
-    "test": "node test/visual-tests.js",
-    "test:baseline": "node test/visual-tests.js --baseline",
-    "start:server": "node server.js"
+    "start": "node server.js",
+    "start:server": "node server.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:visual": "node test/visual-tests.js",
+    "test:visual:baseline": "node test/visual-tests.js --baseline"
   },
-  "dependencies": {
+  "devDependencies": {
+    "jest": "^30.4.2"
+  },
+  "optionalDependencies": {
     "puppeteer": "^21.0.0",
     "pixelmatch": "^5.3.0",
     "pngjs": "^7.0.0"
   },
-  "devDependencies": {},
-  "keywords": ["visual-testing", "puppeteer", "regression"],
+  "keywords": [
+    "productivity",
+    "tower-defense",
+    "gamification"
+  ],
   "author": "",
   "license": "MIT"
 }
