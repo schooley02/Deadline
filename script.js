@@ -215,12 +215,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // (a timer only advances while the tab is awake). See DECISIONS.md.
     }
 
-    // Real calendar days elapsed since the run started. Replaces the old
-    // accelerated 60s-per-"day" interval, which both over-counted short waking
-    // sessions and stopped entirely while the machine slept.
+    // Real calendar days elapsed since the run started. Math lives in
+    // js/damage.js (Milestone 2 extraction #3, 2026-07-18) — thin wrapper so
+    // the call sites are unchanged.
     function computeDaysSurvived() {
-        if (!runStartedAtMs) return 0;
-        return Math.max(0, Math.floor((Date.now() - runStartedAtMs) / CONFIG.MS_PER_REAL_DAY));
+        return Damage.computeDaysSurvived(runStartedAtMs, Date.now(), CONFIG.MS_PER_REAL_DAY);
     }
 
     function updatePlayerDisplays() {
@@ -264,6 +263,36 @@ document.addEventListener('DOMContentLoaded', () => {
     // True while the offline catch-up animation owns enemy positions;
     // updateActiveItems() skips position/damage work until it finishes.
     let offlineCatchUpActive = false;
+
+    // --- Damage / base health (js/damage.js) ---
+    // Milestone 2 extraction #3 (2026-07-18). js/damage.js is the only module so
+    // far that WRITES script.js-owned state (baseHealth, gameIsOver), so it gets
+    // accessors rather than raw values; see the header comment in js/damage.js
+    // for why ownership didn't move. Rebuilt per call because BASE_WIDTH and the
+    // DOM handles aren't resolved until initGame() runs.
+    function damageDeps() {
+        return {
+            getBaseHealth: () => baseHealth,
+            setBaseHealth: (n) => { baseHealth = n; },
+            isGameOver: () => gameIsOver,
+            setGameOver: () => { gameIsOver = true; },
+            getActiveItems: () => activeItems,
+            getRunStartedAtMs: () => runStartedAtMs,
+            setDaysSurvived: (n) => { daysSurvived = n; },
+            setOfflineCatchUpActive: (v) => { offlineCatchUpActive = v; },
+            getGameLoopInterval: () => gameLoopInterval,
+            baseWidth: BASE_WIDTH,
+            baseElement,
+            baseHealthDisplay,
+            gameOverMessage,
+            restartButton,
+            markAsOverdue,
+            getSubTaskClusterOffset,
+            calculateTimelineXWithClustering,
+            enableFormControls,
+            saveGame,
+        };
+    }
 
     // Runs ONCE on boot, right after initGame() has reset to a fresh state.
     // Returns true if a save was restored.
@@ -363,102 +392,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
 
-    // Damage owed for the portion of the offline window [nowMs - offlineMs, nowMs]
-    // that an item spent overdue: real elapsed ticks at the live rate. Capped at
-    // CONFIG.OFFLINE_DAMAGE_CAP_PER_ITEM for the item's ENTIRE lifetime, not per
-    // restore — alreadyCharged is the item's running offlineDamageCharged total,
-    // so re-closing/reopening the same still-overdue item across many days can
-    // never charge more than the cap in total (duration of neglect shouldn't
-    // matter more than once it's already been "paid"; only breadth across
-    // multiple items should be able to add up to real base damage). Items
-    // already overdue before the save were charged live while the game was
-    // open, so the window starts at the LATER of (due time, start of offline
-    // window) — no double-charging with the live tick loop either.
-    // Pure function — mirrored in test/offline-catchup.test.js.
+    // Offline catch-up math + animation live in js/damage.js (Milestone 2
+    // extraction #3, 2026-07-18 — this is the code deliberately deferred from
+    // the clock.js extraction). Thin wrappers so all call sites are unchanged.
     function computeOfflineOverdueDamage(dueMs, nowMs, offlineMs, alreadyCharged) {
-        const remaining = CONFIG.OFFLINE_DAMAGE_CAP_PER_ITEM - (alreadyCharged || 0);
-        if (offlineMs <= 0 || dueMs >= nowMs || remaining <= 0) return 0;
-        const overdueStartMs = Math.max(dueMs, nowMs - offlineMs);
-        const ticks = Math.floor((nowMs - overdueStartMs) / DAMAGE_INTERVAL_MS);
-        return Math.min(ticks * OVERDUE_DAMAGE, remaining);
+        return Damage.computeOfflineOverdueDamage(dueMs, nowMs, offlineMs, alreadyCharged);
     }
 
     function applyOfflineDamage(hits) {
-        for (const hit of hits) {
-            if (gameIsOver) break;
-            hit.item.offlineDamageCharged = (hit.item.offlineDamageCharged || 0) + hit.dmg;
-            damageBase(hit.dmg);
-        }
+        Damage.applyOfflineDamage(hits, damageDeps());
     }
 
-    // Spec (PROJECT_SPEC §3.5): on app resume, zombies animate from their saved
-    // positions to their current-time positions in ≤5s, then offline consequences
-    // apply. entries = [{ item, savedX }] in saved order (parents before sub-tasks,
-    // so cluster targets resolve against updated parent positions).
+    // Offline catch-up animation lives in js/damage.js (Milestone 2 extraction
+    // #3, 2026-07-18) — thin wrapper so the call site is unchanged.
     function runOfflineCatchUp(entries, offlineMs) {
-        if (gameIsOver) return;
-        const nowMs = Date.now();
-        const now = new Date();
-
-        const hits = [];
-        activeItems.forEach(item => {
-            const dmg = computeOfflineOverdueDamage(
-                item.dueDateTime.getTime(), nowMs, offlineMs, item.offlineDamageCharged
-            );
-            if (dmg > 0) hits.push({ item, dmg });
-        });
-
-        // Compute target positions in order, updating item.x as we go so
-        // sub-task clustering sees its parent's target, not its saved x.
-        // Overdue items already had x set to the base by addItemToGame.
-        entries.forEach(e => {
-            e.targetX = e.item.isOverdue
-                ? e.item.x
-                : calculateTimelineXWithClustering(e.item, now);
-            e.item.x = e.targetX;
-        });
-
-        const animatable = entries.filter(e =>
-            e.savedX !== null && e.item.element &&
-            Math.abs(e.targetX - e.savedX) > 2
-        );
-
-        // Brief absence or nothing moved: apply consequences instantly.
-        if (offlineMs < CONFIG.OFFLINE_ANIMATION_THRESHOLD_MS || animatable.length === 0) {
-            entries.forEach(e => {
-                if (e.item.element) e.item.element.style.left = Math.max(BASE_WIDTH, e.targetX) + 'px';
-            });
-            applyOfflineDamage(hits);
-            return;
-        }
-
-        offlineCatchUpActive = true;
-        const duration = Math.max(
-            CONFIG.OFFLINE_CATCHUP_MIN_MS,
-            Math.min(CONFIG.OFFLINE_CATCHUP_MAX_MS, animatable.length * CONFIG.OFFLINE_CATCHUP_MS_PER_ITEM)
-        );
-        animatable.forEach(e => {
-            e.item.element.style.left = Math.max(BASE_WIDTH, e.savedX) + 'px';
-            e.item.element.classList.add('catching-up');
-        });
-
-        const startTime = performance.now();
-        function frame(t) {
-            const p = Math.min(1, (t - startTime) / duration);
-            const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
-            animatable.forEach(e => {
-                const x = e.savedX + (e.targetX - e.savedX) * eased;
-                e.item.element.style.left = Math.max(BASE_WIDTH, x) + 'px';
-            });
-            if (p < 1) {
-                requestAnimationFrame(frame);
-                return;
-            }
-            animatable.forEach(e => e.item.element.classList.remove('catching-up'));
-            offlineCatchUpActive = false;
-            applyOfflineDamage(hits);
-        }
-        requestAnimationFrame(frame);
+        Damage.runOfflineCatchUp(entries, offlineMs, damageDeps());
     }
 
     function showForm(formType) {
@@ -554,16 +502,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Task creation and management
     function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId) {
-        console.log('🛠️ createTaskItemData called with:', {
-            name,
-            category,
-            isHighPriority,
-            dueDateStr,
-            dueTimeStr,
-            parentId,
-            parentIdType: typeof parentId
-        });
-        
+        // (Removed 2026-07-18: a parentId debug log added while chasing the
+        // sub-task duplication bug. That bug was fixed 2026-07-17 and the log
+        // fired hundreds of times per test run, burying real output.)
         const creationTime = new Date();
         let dueDateTime;
         
@@ -675,6 +616,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (itemData.type === 'task' && itemData.isHighPriority) {
             listItem.classList.add('high-priority-list-item');
+        }
+
+        // Overdue styling is DERIVED from state here, not just applied by
+        // markAsOverdue (2026-07-18). markAsOverdue early-returns when an item
+        // is already overdue, so it only ever styles the row on the TRANSITION
+        // into overdue. Every path that REBUILDS a list item for an item that
+        // was already overdue therefore produced an un-highlighted row while
+        // the sprite kept its red box: editing an overdue task's due date
+        // (showEditTaskModal), adding a sub-task to one, and restoring a save
+        // whose parent has sub-tasks (restoreGameState re-applies the class,
+        // then rebuilds the element right after). Deriving it here fixes all of
+        // them at once and keeps rebuilds idempotent. See DECISIONS.md.
+        if (itemData.isOverdue) {
+            listItem.classList.add('overdue-list-item');
         }
 
         // Adjust main task container to align properly
@@ -1740,117 +1695,24 @@ function updateActiveItems() {
         });
     }
 
+    // Base sprite / damage / game-over all live in js/damage.js (Milestone 2
+    // extraction #3, 2026-07-18) — thin wrappers so all call sites are unchanged.
     function updateBaseVisuals() {
-        let newBaseImage = '';
-        
-        if (baseHealth > 75) {
-            newBaseImage = 'base_100.png';
-        } else if (baseHealth > 50) {
-            newBaseImage = 'base_075.png';
-        } else if (baseHealth > 25) {
-            newBaseImage = 'base_050.png';
-        } else if (baseHealth > 0) {
-            newBaseImage = 'base_025.png';
-        } else {
-            newBaseImage = 'base_000.png';
-        }
-        
-        const currentBgImage = baseElement.style.backgroundImage;
-        const targetBgImage = `url("${newBaseImage}")`;
-        
-        if (newBaseImage && currentBgImage !== targetBgImage) {
-            baseElement.style.backgroundImage = targetBgImage;
-        }
+        Damage.updateBaseVisuals(damageDeps());
     }
 
     function damageBase(amount) {
-        if (gameIsOver) return;
-        
-        baseHealth -= amount;
-        if (baseHealth < 0) baseHealth = 0;
-        
-        baseHealthDisplay.textContent = baseHealth;
-        
-        // Visual feedback
-        baseElement.classList.add('base-hit-flash');
-        setTimeout(() => {
-            baseElement.classList.remove('base-hit-flash');
-        }, 300);
-        
-        updateBaseVisuals();
-        saveGame();
-
-        if (baseHealth <= 0) {
-            gameOver();
-        }
+        Damage.damageBase(amount, damageDeps());
     }
 
     function gameOver() {
-        gameIsOver = true;
-
-        clearInterval(gameLoopInterval);
-
-        // Freeze the real-time day count at the moment of death, so the
-        // message and the saved run history agree afterwards.
-        daysSurvived = computeDaysSurvived();
-
-        if (gameOverMessage) {
-            const dayLabel = daysSurvived === 1 ? 'Day' : 'Days';
-            gameOverMessage.textContent = `GAME OVER! Your Base Survived ${daysSurvived} ${dayLabel}.`;
-            gameOverMessage.classList.remove('hidden');
-        }
-        
-        if (restartButton) restartButton.classList.remove('hidden');
-        if (baseElement) baseElement.style.backgroundImage = "url('base_000.png')";
-
-        enableFormControls(false);
-        saveGame();
+        Damage.gameOver(damageDeps());
     }
 
-    // The page stayed open but the game loop stopped running for a while
-    // (laptop sleep, throttled background tab). There was no reload, so
-    // restoreGameState()/runOfflineCatchUp() never ran — yet updateActiveItems()
-    // would happily replay the entire gap at one DAMAGE_INTERVAL_MS per 50ms
-    // tick (~120 damage in 6s after a 10-hour sleep, flattening the base).
-    //
-    // Treat the gap as time the player was away: charge the same per-item,
-    // LIFETIME-capped damage a reload would (shared offlineDamageCharged
-    // budget), then park each overdue item's damage clock at the caught-up
-    // time so the live loop resumes normally from here.
-    //
-    // Pending ticks are computed from lastDamageTickTime and the clock is
-    // advanced by whole intervals only — keeping the sub-interval remainder.
-    // (Computing from the gap window instead would floor() each window to zero
-    // for a background tab ticking once a minute, making backgrounding a
-    // damage-evasion loophole.)
+    // Suspended-loop (sleep / throttled tab) catch-up lives in js/damage.js
+    // (Milestone 2 extraction #3, 2026-07-18) — thin wrapper, call site unchanged.
     function runLiveGapCatchUp() {
-        if (gameIsOver) return;
-        const nowMs = Date.now();
-        const now = new Date();
-        const hits = [];
-
-        activeItems.forEach(item => {
-            if (item.dueDateTime.getTime() > nowMs) return; // not due yet
-
-            // Items that fell due DURING the gap aren't marked yet; marking
-            // sets lastDamageTickTime to the due time, which is exactly the
-            // window we're about to charge for.
-            if (!item.isOverdue) {
-                item.x = BASE_WIDTH + getSubTaskClusterOffset(item);
-                markAsOverdue(item, now);
-                if (item.element) item.element.style.left = item.x + 'px';
-            }
-
-            const pendingTicks = Math.floor((nowMs - item.lastDamageTickTime) / DAMAGE_INTERVAL_MS);
-            if (pendingTicks <= 0) return;
-            item.lastDamageTickTime += pendingTicks * DAMAGE_INTERVAL_MS;
-
-            const remaining = CONFIG.OFFLINE_DAMAGE_CAP_PER_ITEM - (item.offlineDamageCharged || 0);
-            const dmg = Math.min(pendingTicks * OVERDUE_DAMAGE, Math.max(0, remaining));
-            if (dmg > 0) hits.push({ item, dmg });
-        });
-
-        applyOfflineDamage(hits); // increments offlineDamageCharged + saves via damageBase
+        Damage.runLiveGapCatchUp(damageDeps());
     }
 
     function updateGame() {

@@ -26,7 +26,7 @@ js/
 ├── clock.js           # real time, timeline positions, midnight line (IMPLEMENTED 2026-07-17 — see DECISIONS.md). Offline catch-up deliberately stayed in script.js for now; moves to damage.js instead when that extraction happens (too tangled with damage/DOM animation to split off cleanly in clock.js's first session)
 ├── spawning.js        # enemy creation/admission (IMPLEMENTED 2026-07-17 — addItemToGame + pure resolveEnemyVisual; DOM collaborators injected via deps)
 ├── movement.js        # timeline-based positioning (IMPLEMENTED 2026-07-17 — getSubTaskClusterOffset/calculateTimelineXWithClustering/getItemTopPosition + internal getVisibleEdges; state/dims passed explicitly, CONFIG+Clock as globals)
-├── damage.js          # overdue damage, base HP, game over, offline catch-up (moved here from clock.js's original scope — see clock.js note above)
+├── damage.js          # overdue damage, base HP, game over, both catch-up paths (IMPLEMENTED 2026-07-18 — damageBase/gameOver/updateBaseVisuals/computeDaysSurvived + runOfflineCatchUp (moved here from clock.js's original scope, see clock.js note above) + runLiveGapCatchUp. Pure cores split out for testing: resolveBaseImage, computeGapCatchUpHits, computeOfflineOverdueDamage, computeCatchUpDuration, computeDaysSurvived. FIRST module to WRITE script.js-owned state (baseHealth, gameIsOver) — reached via accessor deps rather than moving ownership; see DECISIONS.md 2026-07-18. markAsOverdue stayed in script.js (it also resets habit streaks → belongs with the habits extraction) and arrives as a dep.
 ├── progression.js     # XP, levels, slots
 ├── habits.js          # habit instances, streaks, pos/neg logic
 ├── routines.js        # heroes, slots, frozen recovery

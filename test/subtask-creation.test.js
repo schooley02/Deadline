@@ -69,21 +69,16 @@ global.document = {
     }))
 };
 
+// (2026-07-18: the three parentId debug console.logs mirrored from script.js
+// were removed here alongside their originals — they fired hundreds of times
+// per run and buried the actual assertions. The sub-task duplication bug they
+// were added for was fixed 2026-07-17.)
+
 /**
  * Simplified version of createTaskItemData function for testing
  * Based on the actual implementation from script.js lines 320-387
  */
 function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId = null) {
-    console.log('🛠️ createTaskItemData called with:', {
-        name,
-        category,
-        isHighPriority,
-        dueDateStr,
-        dueTimeStr,
-        parentId,
-        parentIdType: typeof parentId
-    });
-    
     const creationTime = new Date();
     let dueDateTime;
     
@@ -133,13 +128,6 @@ function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeS
     // Calculate initial position based on timeline system
     taskData.x = calculateTimelinePosition(taskData, creationTime);
     
-    console.log('🔧 createTaskItemData returning:', {
-        id: taskData.id,
-        name: taskData.name,
-        parentId: taskData.parentId,
-        parentIdType: typeof taskData.parentId
-    });
-    
     return taskData;
 }
 
@@ -148,14 +136,6 @@ function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeS
  * Based on the actual implementation from script.js lines 390-474
  */
 function addItemToGame(itemData) {
-    console.log('📍 addItemToGame called with:', {
-        id: itemData.id,
-        name: itemData.name,
-        type: itemData.type,
-        parentId: itemData.parentId,
-        parentIdType: typeof itemData.parentId
-    });
-    
     if (gameIsOver) return;
     
     // Create enemy element (mocked)

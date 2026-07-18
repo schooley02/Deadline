@@ -4,6 +4,36 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-18 — overdue row styling is DERIVED from state in createListItem, not applied only on transition
+
+**Bug (found by Jeremy playtesting extraction #3):** an overdue task's agenda row rendered with no red highlight while its sprite correctly kept the red box. Reproduced live: editing an already-overdue task's due date drops `overdue-list-item` from its row.
+
+**Root cause:** `createListItem` built the row's classes from `category` and `isHighPriority` but never from `isOverdue`. The class was added in exactly one place — `markAsOverdue` — which opens with `if (item.isOverdue) return;`. So it styles the row only on the TRANSITION into overdue, and any path that REBUILDS the row of an item that is *already* overdue produces an unstyled row. At least three paths do that: the edit-task save handler, adding a sub-task to an overdue parent, and `restoreGameState` (which re-applies the class at its line ~360 and then rebuilds the element for sub-tasked parents immediately after, discarding it). The sprite was unaffected because `item.element` is never rebuilt — which is exactly why the two disagreed.
+
+**Decision:** derive it in `createListItem` (`if (itemData.isOverdue) listItem.classList.add('overdue-list-item')`), making row construction idempotent and fixing every rebuild path at once. `markAsOverdue` keeps its own `classList.add` for the live transition, where no rebuild happens.
+
+**Rejected:** re-applying the class at each of the three rebuild call sites (same defect re-introduced by the next rebuild path anyone adds — this is the third bug in this family after the 2026-07-17 habit-unsafe `createListItem` issues), and dropping the early return in `markAsOverdue` (it also resets habit streaks and parks the damage clock; making it re-entrant would risk double side effects).
+
+**Same family as the 2026-07-17 `createListItem` hardening:** the row builder keeps being written as "render a fresh task" rather than "render this item's current state." Worth watching for on the remaining Milestone 2 UI extraction.
+
+## 2026-07-18 — damage.js reaches script.js state through accessor deps instead of taking ownership
+
+Milestone 2 extraction #3 moved base health, damage ticks, game over, and both catch-up paths into `js/damage.js`. Unlike clock.js / movement.js / spawning.js, which only ever READ script.js state, this module must WRITE it: `baseHealth` and `gameIsOver` are module-scoped `let`s in script.js with ~68 references between them.
+
+**Decision:** pass a `damageDeps()` bag containing accessors (`getBaseHealth`/`setBaseHealth`/`isGameOver`/`setGameOver`/`setDaysSurvived`/`setOfflineCatchUpActive`) rather than moving those variables into damage.js. This extends the `isGameOver()` precedent spawning.js already set, and keeps the extraction behavior-identical — every call site in script.js is an unchanged thin wrapper.
+
+**Why:** moving ownership would have required touching all 68 references in one session, turning a mechanical extraction into a semantic change to the game's central state, with no test coverage over most of the touched call sites. The refactor rules call for incremental extraction with tests green before and after; this satisfies that. State ownership can move once enough of script.js is modularized that the remaining readers are few.
+
+**Rejected:** (a) damage.js owns `baseHealth`/`gameIsOver` with script.js reading through getters — right end state, wrong session, too large a blast radius today; (b) a shared mutable `GameState` object passed everywhere — a bigger architectural commitment than this milestone has decided on, and it would front-run the DATA_SCHEMA reconciliation still pending from Milestone 1.
+
+**`markAsOverdue` deliberately stayed in script.js** and arrives as a dep, even though it sets the damage clock. It also resets habit streaks and touches `definedHabits`, so it belongs with the future habits extraction; pulling it into damage.js would drag the habit system in early.
+
+**Balance numbers unchanged** — this is a pure extraction. `computeOfflineOverdueDamage` now reads `CONFIG.DAMAGE_INTERVAL_MS`/`CONFIG.OVERDUE_DAMAGE` directly instead of via script.js's local `const` aliases of the same values.
+
+**Two cleanups folded in** (both carried on the handoff's watch-out list for several sessions):
+- The `🛠️ createTaskItemData` / `🔧 …returning` / `📍 addItemToGame` debug logs were removed from script.js, js/spawning.js, and the mirrored copies in `test/subtask-creation.test.js`. They were added while chasing the sub-task duplication bug, which was fixed 2026-07-17; they fired hundreds of times per test run and buried the assertions (that suite's output dropped from 858 lines to 26). Chosen over silencing `console.log` globally in `test/setup.js`, which would have hidden future real logs too.
+- **puppeteer bumped `^21.0.0` → `^24.0.0`**, clearing the 9 npm-audit findings (1 critical, 5 high) that all traced to the unsupported 21.x line. This required a source change: puppeteer removed `page.waitForTimeout` in v22, so `test/visual-tests.js` now uses a local `sleep(ms)` helper (4 call sites). **Unverified** — the visual suite needs Chromium and can't run from the Cowork sandbox. Note `reproduce_subtask_bug.js` (a stale root-level debug script for the long-fixed sub-task bug, not wired into any npm script) still calls `waitForTimeout` and would break under v24; deleting it is probably the right call.
+
 ## 2026-07-18 — Jest setup fixed; the "missing babel deps" diagnosis was wrong
 
 Four sessions in a row worked around a broken Jest setup in a sandbox copy instead of fixing the repo, each logging "add jest + babel-jest + @babel/core + @babel/preset-env to devDependencies." **That diagnosis was wrong.** Installing `jest` alone pulls in `babel-jest` (30.4.1) and `@babel/core` transitively — verified empirically by installing only `jest` and inspecting `node_modules`. No babel packages and no `babel.config.js` are needed: everything here is plain CommonJS (`require`/`module.exports`) on modern Node, with no JSX, TypeScript, or ESM anywhere in `test/`.

@@ -4,6 +4,10 @@ const { PNG } = require('pngjs');
 const fs = require('fs');
 const path = require('path');
 
+// puppeteer removed page.waitForTimeout in v22 (2026-07-18: bumped from 21.x to
+// clear the npm-audit criticals). This is the documented replacement.
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 const VIEWPORT_SIZE = { width: 1280, height: 720 };
 const ROOT_URL = 'file:///' + __dirname.replace(/\\/g, '/') + '/../index.html';
 const MPE_URL = 'file:///' + __dirname.replace(/\\/g, '/') + '/../Deadline-MPE/index.html';
@@ -36,7 +40,7 @@ async function createTaskInCategory(page, category) {
     if (fabButton) {
       // Root build - click FAB, then tasks
       await page.click('#fabButton');
-      await page.waitForTimeout(500);
+      await sleep(500);
       await page.click('[data-type="tasks"]');
     } else {
       // MPE build - click show task form button
@@ -65,7 +69,7 @@ async function createTaskInCategory(page, category) {
     await page.click('#addTaskButton');
     
     // Wait for task to appear on screen
-    await page.waitForTimeout(1000);
+    await sleep(1000);
     
     console.log(`✓ Task created for ${category.name}`);
     return true;
@@ -85,7 +89,7 @@ async function createHabitInCategory(page, category) {
     if (fabButton) {
       // Root build - click FAB, then habits
       await page.click('#fabButton');
-      await page.waitForTimeout(500);
+      await sleep(500);
       await page.click('[data-type="habits"]');
     } else {
       // MPE build - click show habit form button
@@ -103,7 +107,7 @@ async function createHabitInCategory(page, category) {
     await page.click('#addHabitButton');
     
     // Wait for habit to appear
-    await page.waitForTimeout(1000);
+    await sleep(1000);
     
     console.log(`✓ Habit created for ${category.name}`);
     return true;

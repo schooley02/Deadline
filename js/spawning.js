@@ -77,15 +77,10 @@ const Spawning = (() => {
             isGameOver
         } = deps;
 
-        console.log('📍 addItemToGame called with:', {
-            id: itemData.id,
-            name: itemData.name,
-            type: itemData.type,
-            parentId: itemData.parentId,
-            parentIdType: typeof itemData.parentId,
-            stackTrace: new Error().stack.split('\n').slice(1, 4).join('\n')
-        });
-
+        // (Removed 2026-07-18: a parentId + stack-trace debug log carried over
+        // from the sub-task duplication investigation, fixed 2026-07-17. It
+        // fired hundreds of times in test/subtask-creation.test.js and buried
+        // the actual results.)
         if (isGameOver()) return;
 
         // Create enemy element
