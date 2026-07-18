@@ -7,8 +7,12 @@
 const CONFIG = {
     // --- Timing ---
     GAME_TICK_MS: 50,
-    DAY_DURATION_MS: 60000,
     DAMAGE_INTERVAL_MS: 5 * 60 * 1000,
+    // "Days survived" is derived from REAL elapsed time since the run started
+    // (2026-07-18). It used to be an accelerated demo timer incrementing every
+    // DAY_DURATION_MS (60s), so an overnight run reported "22 days" — see
+    // DECISIONS.md. Accelerated time, if ever reintroduced, goes behind a flag.
+    MS_PER_REAL_DAY: 24 * 60 * 60 * 1000,
     PERSISTENCE_AUTOSAVE_MS: 5000, // safety-net save cadence (mutations also save directly, debounced)
 
     // --- Base ---
@@ -25,6 +29,13 @@ const CONFIG = {
     OFFLINE_CATCHUP_MS_PER_ITEM: 400,        // animation duration scales with item count…
     OFFLINE_CATCHUP_MIN_MS: 1200,            // …but never shorter than this
     OFFLINE_ANIMATION_THRESHOLD_MS: 30 * 1000, // skip the animation for briefer absences
+    // A gap this large between game-loop ticks means the loop was SUSPENDED
+    // (laptop sleep, throttled background tab) rather than merely running slow.
+    // The page never reloaded, so restoreGameState()/runOfflineCatchUp() never
+    // ran and the live loop would otherwise replay the whole gap at one 5-min
+    // interval per 50ms tick — ~120 damage in 6s after a 10-hour sleep. Gaps at
+    // or above this route through the same capped path a reload uses.
+    LIVE_GAP_THRESHOLD_MS: 30 * 1000,
 
     // --- XP & Points ---
     XP_PER_TASK_DEFEAT: 10,

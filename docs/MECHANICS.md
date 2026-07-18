@@ -26,6 +26,14 @@
 
 - When an enemy reaches the base (item is due/overdue): base takes 1 HP damage every 5 minutes until the item is completed.
 - If still incomplete after 1 hour, the enemy gets INSIDE the base and starts damaging the health of the Routine it belongs to.
+- **Live damage is uncapped** — an item you leave overdue while actually watching the game keeps costing 1 HP per `DAMAGE_INTERVAL_MS`, indefinitely. The per-item cap below applies ONLY to time the player was away.
+- **Items created already overdue start their damage clock at spawn (fixed 2026-07-18).** Adding a task whose deadline has already passed costs 0 HP up front — it spawns at the base and begins ticking from now. Previously the clock was parked at the due time and the live loop replayed the gap, so a task backdated 3 hours instantly cost 36 HP.
+- **Suspended game loop = time away (fixed 2026-07-18).** If the loop stops ticking for ≥ `CONFIG.LIVE_GAP_THRESHOLD_MS` (30s) — laptop sleep, throttled background tab — `runLiveGapCatchUp()` charges the gap through the same capped path a reload uses, sharing one `OFFLINE_DAMAGE_CAP_PER_ITEM` lifetime budget per item (see Offline Catch-up below), then resumes normal live ticking. Previously nothing guarded this path (the cap only covered reloads) and the live loop replayed the whole gap at one damage interval per 50ms tick — an overnight sleep flattened a full base in seconds. Pending damage is tracked via `lastDamageTickTime` in whole intervals (remainder preserved), so a background tab waking once a minute can't round its way out of damage.
+
+## Days Survived
+
+- Derived from REAL elapsed time since the run started: `floor((now - runStartedAtMs) / CONFIG.MS_PER_REAL_DAY)`. Frozen at death by `gameOver()`.
+- Not a tick counter. The old accelerated timer (`DAY_DURATION_MS`, 1 real minute = 1 "day") was removed 2026-07-18 — it reported "22 Days" for 22 minutes of runtime while ignoring the ~10 hours the machine was asleep. See DECISIONS.md.
 
 ## Habits: Positive & Negative
 

@@ -17,8 +17,15 @@ The objects below remain the goal; migrate toward them during Milestone 2
 extractions via schemaVersion bumps + the migration chain in `js/persistence.js`
 (decision + implementation notes: DECISIONS.md 2026-07-17). DOM refs
 (`element`, `listItemElement`) are stripped on save and rebuilt on load; Dates
-round-trip via a strict ISO reviver. Restored overdue items do NOT back-charge
-offline damage — that's the offline catch-up task's scope.
+round-trip via a strict ISO reviver.
+
+**Additive fields since (no schemaVersion bump — plain properties with safe
+fallbacks on read, per DECISIONS.md):**
+- `item.offlineDamageCharged` (2026-07-17) — per-item lifetime total of
+  back-charged away-from-game damage; reads guard with `|| 0`.
+- `runStartedAtMs` (2026-07-18) — wall-clock ms when the run began; source of
+  truth for "days survived". Missing in older saves, so `restoreGameState`
+  falls back to the save's `savedAt`, then `Date.now()`.
 
 ## Objects
 
