@@ -4,6 +4,26 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-18 — UI extraction session 9: `routineViews.js` complete; `window.save*` handlers kept as window-scoped wrappers
+
+**Context:** session 9 of `docs/UI_EXTRACTION_PLAN.md` — the form half of cluster F, completing `js/ui/routineViews.js` (part 2 of 2). Fresh Grep against script.js confirmed the plan's function inventory was still accurate for this row (unlike sessions 3 and 8, no stale lines found this time) — line numbers had simply drifted, membership hadn't.
+
+**Moved:** `showCreateHabitForm`/`showCreateTaskForm`/`showEditHabitForm`/`showEditTaskForm` (pure HTML-string builders, take no deps), `showAddItemToRoutineModal`, `attachRoutineManagementListeners`, `populateHabitSelectDropdown`, and `saveNewHabit`/`saveNewTask`/`saveEditedHabit`/`saveEditedTask`.
+
+**Decision: the four `save*` handlers stay `window.*` in script.js, not plain-function thin wrappers.** Every other session's UI-extraction wrapper is a plain function (`function showX() { Module.showX(deps); }`), but the create/edit habit and task forms this same session builds contain inline `onclick="saveNewHabit('${routineId}')"` etc. — those strings execute in global scope, so the handler must resolve via `window.saveNewHabit`. Kept the existing `window.saveNewHabit = function(routineId) { RoutineViews.saveNewHabit(routineId, routineViewsDeps()); }` pattern already established for `window.closeModal`/`window.deleteRoutine`/`window.toggleFabMenu`, etc. — the underlying implementation still lives in `js/ui/routineViews.js`; only the script.js-side exposure differs from a bare function.
+
+**Also this session — part 1's six plain-function deps became module-internal calls.** Now that `showEditHabitForm`, `populateHabitSelectDropdown`, `showCreateHabitForm`, `showEditTaskForm`, `showCreateTaskForm`, and `attachRoutineManagementListeners` all live in `js/ui/routineViews.js`, `renderDefinedRoutines` and `showRoutineManagement` (session 8) call them directly instead of via `deps.*`. `routineViewsDeps()` in script.js dropped those six keys and gained: `managementWindows`/`populateRoutinesWindow` (the routine-status-toggle refresh, needed by `attachRoutineManagementListeners`), `saveGame`, `createNewHabitInRoutine`/`createNewTaskInRoutine`/`editHabitInRoutine`/`editTaskInRoutine` (the four save handlers' actual mutation logic — still script.js/routines.js-scoped, unaffected by this session), and `activeItems`/`createListItem`/`sortAndRenderActiveList` (only `saveEditedHabit` needs these, for its live-instance-sync side effect).
+
+**`activeItems` passed as a plain reference, not a getter**, despite the module's header note that `definedRoutines`/`definedHabits` need getters because they're reassigned elsewhere. Followed `agendaListDeps()`'s existing precedent instead (session 6-7's DECISIONS.md entry): `activeItems` is documented there as a "stable binding" even though it IS reassigned on new-game reset, and that precedent is now depended on by multiple modules (agendaList.js, and now routineViews.js) — revisiting whether it should actually be a getter is a cross-cutting question bigger than this one extraction, not something to silently diverge on here.
+
+**`Modal.closeModal()` called as a bare stable global** throughout the newly-moved code (replacing the closure's bare `closeModal()` identifier), matching popups.js/forms.js's established convention for calling a fully-extracted module directly rather than threading it through deps.
+
+**Result:** `js/ui/routineViews.js` is now complete (979 lines) and script.js is down to **1,608 lines** (was 2,038) — under half its pre-Milestone-2 peak. `node --check` clean on both files. 15 suites, 289/289 passing in the sandbox (no count change — pure code motion, same as most UI-cluster sessions, matching session 8's precedent).
+
+**Alternatives rejected:** converting the inline `onclick="saveNewHabit(...)"` strings to real `addEventListener` calls while already touching this code (which would let the four handlers become plain functions like everything else) — rejected as scope creep; the standing hazard note in `docs/UI_EXTRACTION_PLAN.md` explicitly allows this "when a session is already rewriting the markup," but this session didn't need to touch the markup, only move existing logic, so converting it would be an unrelated behavior-preserving refactor bundled into an extraction session.
+
+---
+
 ## 2026-07-18 — UI extraction session 8: `renderDefinedRoutines` is dead code; plan's `populateRoutinesWindow` line was stale
 
 **Context:** session 8 of `docs/UI_EXTRACTION_PLAN.md` targets cluster F's rendering half. Two discoveries while executing it, neither fixed (out of session scope):

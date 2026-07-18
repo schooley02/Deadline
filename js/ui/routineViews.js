@@ -1,10 +1,10 @@
 /**
- * Routine views — part 1 of 2 (Milestone 2 UI extraction, session 8,
- * 2026-07-18).
+ * Routine views — cluster F, both parts (Milestone 2 UI extraction,
+ * sessions 8-9, 2026-07-18).
  *
- * Extracted from script.js per docs/UI_EXTRACTION_PLAN.md cluster F,
- * rendering half: `renderDefinedRoutines`, `showRoutineManagement`,
- * `populateRoutineHabits`, `populateRoutineTasks`, `updateRoutineDisplay`.
+ * Part 1 (session 8, rendering half): `renderDefinedRoutines`,
+ * `showRoutineManagement`, `populateRoutineHabits`, `populateRoutineTasks`,
+ * `updateRoutineDisplay`.
  *
  * PLAN CORRECTION: the plan's session-8 row also lists `populateRoutinesWindow`,
  * but that function was already extracted into js/ui/managementWindows.js
@@ -13,15 +13,18 @@
  * There was nothing left to move for it here; the plan's function inventory
  * (written before session 3 ran) was never updated. See DECISIONS.md.
  *
- * Part 2 (session 9, form half) — showCreateHabitForm/showCreateTaskForm/
- * showEditHabitForm/showEditTaskForm, showAddItemToRoutineModal,
- * attachRoutineManagementListeners, populateHabitSelectDropdown, and the
- * four window.save* handlers — is NOT extracted yet and still lives in
- * script.js. Every one of those is called BY the functions in this file
- * (edit/create/add buttons inside a rendered routine), so they arrive here
- * as plain function-reference deps, same as any other not-yet-extracted
- * script.js function this project's modules depend on (e.g. popups.js
- * depending on createTaskItemData).
+ * Part 2 (session 9, form half): `showCreateHabitForm`, `showCreateTaskForm`,
+ * `showEditHabitForm`, `showEditTaskForm`, `showAddItemToRoutineModal`,
+ * `attachRoutineManagementListeners`, `populateHabitSelectDropdown`, and
+ * `saveNewHabit`/`saveNewTask`/`saveEditedHabit`/`saveEditedTask` (script.js
+ * keeps the `window.save*` global names as thin wrappers, since inline
+ * `onclick="saveNewHabit(...)"` strings in the create/edit form HTML need
+ * the window-level names — see js/ui/modal.js's `window.*` exposure note).
+ * These were part 1's plain-function-reference deps (`showEditHabitForm`,
+ * `showCreateHabitForm`, `showEditTaskForm`, `showCreateTaskForm`,
+ * `populateHabitSelectDropdown`, `attachRoutineManagementListeners`) — now
+ * module-internal calls instead, so `routineViewsDeps()` in script.js drops
+ * them.
  *
  * DEPENDENCY NOTE — getters vs plain/bare references:
  * `definedRoutines` and `definedHabits` are script.js `let` closure
@@ -36,6 +39,13 @@
  * and no staleness risk since it's read fresh off `window` on every call.
  * `definedRoutinesListUL` and `activeRoutineCountDisplay` are stable `const`
  * DOM refs in script.js (queried once, never reassigned) — plain references.
+ * `activeItems` (needed by `saveEditedHabit`, part 2) is likewise a plain
+ * reference, not a getter — matching agendaListDeps()'s established
+ * precedent that `activeItems` is a "stable binding" despite being
+ * reassigned on new-game reset (see script.js comment above
+ * `agendaListDeps()`). `Modal.closeModal()` is called as a bare stable
+ * global throughout part 2, matching popups.js/forms.js convention (Modal
+ * is a fully-extracted module guaranteed loaded first) — no dep needed.
  */
 const RoutineViews = (() => {
 
@@ -120,10 +130,12 @@ const RoutineViews = (() => {
     /**
      * deps: { definedRoutinesListUL, definedRoutines (getter),
      *         definedHabits (getter), activeRoutineCountDisplay,
-     *         toggleRoutineActive, deleteRoutine, showEditHabitForm,
-     *         removeHabitFromRoutine, populateHabitSelectDropdown,
-     *         addHabitToRoutine, showCreateHabitForm, showEditTaskForm,
-     *         removeTaskFromRoutine, showCreateTaskForm }
+     *         toggleRoutineActive, deleteRoutine,
+     *         removeHabitFromRoutine, addHabitToRoutine,
+     *         removeTaskFromRoutine }
+     * showEditHabitForm/showCreateHabitForm/showEditTaskForm/
+     * showCreateTaskForm/populateHabitSelectDropdown are module-internal
+     * calls as of session 9 (part 2) — no longer deps.
      */
     function renderDefinedRoutines(deps) {
         if (!deps.definedRoutinesListUL) return;
@@ -204,7 +216,7 @@ const RoutineViews = (() => {
                         editHabitBtn.classList.add('edit-item-button');
                         editHabitBtn.textContent = '✏️';
                         editHabitBtn.title = 'Edit habit';
-                        editHabitBtn.addEventListener('click', () => deps.showEditHabitForm(routine.id, habitDef));
+                        editHabitBtn.addEventListener('click', () => showEditHabitForm(routine.id, habitDef));
 
                         const removeHabitBtn = document.createElement('button');
                         removeHabitBtn.classList.add('remove-item-button');
@@ -235,7 +247,7 @@ const RoutineViews = (() => {
 
             const habitSelect = document.createElement('select');
             habitSelect.classList.add('habit-select');
-            deps.populateHabitSelectDropdown(habitSelect);
+            populateHabitSelectDropdown(habitSelect, { definedHabits: deps.definedHabits });
 
             const addHabitBtn = document.createElement('button');
             addHabitBtn.classList.add('add-item-button');
@@ -257,7 +269,7 @@ const RoutineViews = (() => {
             const addNewHabitBtn = document.createElement('button');
             addNewHabitBtn.classList.add('add-item-button');
             addNewHabitBtn.textContent = '+ Create New Habit';
-            addNewHabitBtn.addEventListener('click', () => deps.showCreateHabitForm(routine.id));
+            addNewHabitBtn.addEventListener('click', () => showCreateHabitForm(routine.id));
 
             habitsSection.appendChild(addHabitDiv);
             habitsSection.appendChild(addNewHabitBtn);
@@ -294,7 +306,7 @@ const RoutineViews = (() => {
                         editTaskBtn.classList.add('edit-item-button');
                         editTaskBtn.textContent = '✏️';
                         editTaskBtn.title = 'Edit task';
-                        editTaskBtn.addEventListener('click', () => deps.showEditTaskForm(routine.id, taskDef));
+                        editTaskBtn.addEventListener('click', () => showEditTaskForm(routine.id, taskDef));
 
                         const removeTaskBtn = document.createElement('button');
                         removeTaskBtn.classList.add('remove-item-button');
@@ -323,7 +335,7 @@ const RoutineViews = (() => {
             const addNewTaskBtn = document.createElement('button');
             addNewTaskBtn.classList.add('add-item-button');
             addNewTaskBtn.textContent = '+ Create New Task';
-            addNewTaskBtn.addEventListener('click', () => deps.showCreateTaskForm(routine.id));
+            addNewTaskBtn.addEventListener('click', () => showCreateTaskForm(routine.id));
 
             tasksSection.appendChild(addNewTaskBtn);
             li.appendChild(tasksSection);
@@ -337,8 +349,11 @@ const RoutineViews = (() => {
     }
 
     /**
-     * deps: { definedRoutines (getter), definedHabits (getter),
-     *         attachRoutineManagementListeners, deleteRoutine }
+     * deps: { definedRoutines (getter), definedHabits (getter), deleteRoutine }
+     * plus everything attachRoutineManagementListeners needs (session 9,
+     * part 2) — this function forwards the whole deps object along, since
+     * it doesn't itself need to distinguish which keys belong to which
+     * downstream call.
      */
     function showRoutineManagement(routineId, deps) {
         const routine = deps.definedRoutines().find(r => r.id === routineId);
@@ -391,8 +406,551 @@ const RoutineViews = (() => {
         populateRoutineHabits(routine, { definedHabits: deps.definedHabits });
         populateRoutineTasks(routine);
 
-        // Attach event listeners — still script.js-scoped (session 9, form half)
-        deps.attachRoutineManagementListeners(routine.id);
+        // Attach event listeners — module-internal as of session 9 (part 2)
+        attachRoutineManagementListeners(routine.id, deps);
+    }
+
+    // -------------------------------------------------------------------
+    // Part 2 (session 9, form half of cluster F)
+    // -------------------------------------------------------------------
+
+    /**
+     * deps: { definedRoutines (getter), definedHabits (getter),
+     *         toggleRoutineActive, managementWindows, populateRoutinesWindow,
+     *         removeHabitFromRoutine, removeTaskFromRoutine }
+     * definedTasks read as bare window global. Modal.closeModal() called as
+     * a bare stable global. showAddItemToRoutineModal/showEditHabitForm/
+     * showEditTaskForm are module-internal calls.
+     */
+    function attachRoutineManagementListeners(routineId, deps) {
+        const routine = deps.definedRoutines().find(r => r.id === routineId);
+        if (!routine) return;
+
+        // Toggle routine status
+        const toggleBtn = document.getElementById('toggleRoutineStatus');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                deps.toggleRoutineActive(routineId);
+                Modal.closeModal();
+                // Refresh routines window
+                setTimeout(() => {
+                    if (deps.managementWindows.routines && !deps.managementWindows.routines.classList.contains('hidden')) {
+                        deps.populateRoutinesWindow();
+                    }
+                }, 100);
+            });
+        }
+
+        // Add habit button
+        const addHabitBtn = document.getElementById('addHabitToRoutine');
+        if (addHabitBtn) {
+            addHabitBtn.addEventListener('click', () => {
+                showAddItemToRoutineModal(routineId, 'habit', deps);
+            });
+        }
+
+        // Add task button
+        const addTaskBtn = document.getElementById('addTaskToRoutine');
+        if (addTaskBtn) {
+            addTaskBtn.addEventListener('click', () => {
+                showAddItemToRoutineModal(routineId, 'task', deps);
+            });
+        }
+
+        // Remove habit buttons
+        document.querySelectorAll('.remove-habit-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const habitId = e.target.dataset.habitId;
+                deps.removeHabitFromRoutine(routineId, habitId);
+                populateRoutineHabits(routine, { definedHabits: deps.definedHabits });
+            });
+        });
+
+        // Remove task buttons
+        document.querySelectorAll('.remove-task-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const taskId = e.target.dataset.taskId;
+                deps.removeTaskFromRoutine(routineId, taskId);
+                populateRoutineTasks(routine);
+            });
+        });
+
+        // Edit habit buttons
+        document.querySelectorAll('.edit-habit-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const habitId = e.target.dataset.habitId;
+                const habit = deps.definedHabits().find(h => h.id === habitId);
+                if (habit) {
+                    showEditHabitForm(routineId, habit);
+                }
+            });
+        });
+
+        // Edit task buttons
+        document.querySelectorAll('.edit-task-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const taskId = e.target.dataset.taskId;
+                if (!window.definedTasks) window.definedTasks = [];
+                const task = window.definedTasks.find(t => t.id === taskId);
+                if (task) {
+                    showEditTaskForm(routineId, task);
+                }
+            });
+        });
+    }
+
+    /**
+     * deps: { definedHabits (getter) }
+     */
+    function populateHabitSelectDropdown(selectElement, deps) {
+        selectElement.innerHTML = '<option value="">-- Select Habit --</option>';
+
+        const definedHabits = deps.definedHabits();
+
+        if (definedHabits.length === 0) {
+            const option = document.createElement('option');
+            option.textContent = 'No habits defined';
+            option.disabled = true;
+            selectElement.appendChild(option);
+            return;
+        }
+
+        definedHabits.forEach(habit => {
+            const option = document.createElement('option');
+            option.value = habit.id;
+            option.textContent = `${habit.name} (${habit.category})`;
+            selectElement.appendChild(option);
+        });
+    }
+
+    /**
+     * deps: { definedRoutines (getter), definedHabits (getter), saveGame }
+     * plus everything showRoutineManagement needs, since the "Add Selected"
+     * handler re-opens it. definedTasks read as bare window global.
+     * Modal.closeModal() called as a bare stable global.
+     * showRoutineManagement/showCreateHabitForm/showCreateTaskForm are
+     * module-internal calls.
+     */
+    function showAddItemToRoutineModal(routineId, itemType, deps) {
+        const routine = deps.definedRoutines().find(r => r.id === routineId);
+        if (!routine) return;
+
+        let optionsHtml = '';
+        let existingIds = [];
+
+        if (itemType === 'habit') {
+            existingIds = routine.habitDefinitionIds || [];
+            optionsHtml = deps.definedHabits()
+                .filter(habit => !existingIds.includes(habit.id))
+                .map(habit => {
+                    const icon = habit.isNegative ? '🚫' : '✅';
+                    return `<option value="${habit.id}">${habit.name} (${habit.category}) ${icon}</option>`;
+                })
+                .join('');
+        } else if (itemType === 'task') {
+            if (!window.definedTasks) window.definedTasks = [];
+            existingIds = routine.taskDefinitionIds || [];
+            optionsHtml = window.definedTasks
+                .filter(task => !existingIds.includes(task.id))
+                .map(task => {
+                    const priority = task.isHighPriority ? '⭐' : '';
+                    return `<option value="${task.id}">${task.name} (${task.category}) ${priority}</option>`;
+                })
+                .join('');
+        }
+
+        const modalHtml = `
+            <div class="modal-overlay" id="addItemModal">
+                <div class="modal-content">
+                    <h3>Add ${itemType === 'habit' ? 'Habit' : 'Task'} to Routine</h3>
+                    <div class="form-row">
+                        <label>Select existing ${itemType}:</label>
+                        <select id="existingItemSelect">
+                            <option value="">-- Select ${itemType} --</option>
+                            ${optionsHtml}
+                        </select>
+                    </div>
+                    <div style="text-align: center; margin: 20px 0; color: var(--color-neutral);">OR</div>
+                    <div class="form-row">
+                        <button id="createNewItemBtn" class="secondary-button" style="width: 100%;">Create New ${itemType === 'habit' ? 'Habit' : 'Task'}</button>
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="addSelectedItemBtn" class="primary-button">Add Selected</button>
+                        <button class="secondary-button" onclick="closeModal()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Attach event listeners
+        const addBtn = document.getElementById('addSelectedItemBtn');
+        const createBtn = document.getElementById('createNewItemBtn');
+        const selectEl = document.getElementById('existingItemSelect');
+
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                const selectedId = selectEl.value;
+                if (selectedId) {
+                    if (itemType === 'habit') {
+                        if (!routine.habitDefinitionIds) routine.habitDefinitionIds = [];
+                        routine.habitDefinitionIds.push(selectedId);
+                        // Transfer ownership so the habit is gated on this
+                        // routine's isActive rather than spawning standalone.
+                        // (This modal duplicates Routines.addHabitToRoutine
+                        // rather than calling it — flagged for the session-4
+                        // UI extraction, which reconciles these duplicates.)
+                        const adoptedHabit = deps.definedHabits().find(h => h.id === selectedId);
+                        if (adoptedHabit) adoptedHabit.routineId = routine.id;
+                    } else {
+                        if (!routine.taskDefinitionIds) routine.taskDefinitionIds = [];
+                        routine.taskDefinitionIds.push(selectedId);
+                    }
+                    deps.saveGame();
+                    Modal.closeModal();
+                    // Refresh the routine management modal
+                    setTimeout(() => {
+                        showRoutineManagement(routineId, deps);
+                    }, 100);
+                } else {
+                    alert(`Please select a ${itemType} to add.`);
+                }
+            });
+        }
+
+        if (createBtn) {
+            createBtn.addEventListener('click', () => {
+                Modal.closeModal();
+                setTimeout(() => {
+                    if (itemType === 'habit') {
+                        showCreateHabitForm(routineId);
+                    } else {
+                        showCreateTaskForm(routineId);
+                    }
+                }, 100);
+            });
+        }
+    }
+
+    // No deps — pure HTML-string builder; the inline
+    // onclick="saveNewHabit(...)" reaches the window-level global (script.js
+    // thin wrapper), same as every other inline onclick in this project.
+    function showCreateHabitForm(routineId) {
+        const formHtml = `
+            <div class="modal-overlay" id="habitFormModal">
+                <div class="modal-content">
+                    <h3>Create New Habit</h3>
+                    <div class="form-row">
+                        <label>Habit Type:</label>
+                        <div class="habit-type-toggle">
+                            <input type="radio" id="positiveHabit" name="habitType" value="positive" checked>
+                            <label for="positiveHabit" class="habit-type-label positive">
+                                <span class="habit-icon">✅</span>
+                                <span class="habit-label">Positive</span>
+                                <span class="habit-description">Complete to earn points</span>
+                            </label>
+                            <input type="radio" id="negativeHabit" name="habitType" value="negative">
+                            <label for="negativeHabit" class="habit-type-label negative">
+                                <span class="habit-icon">🚫</span>
+                                <span class="habit-label">Negative</span>
+                                <span class="habit-description">Avoid to earn points</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label>Habit Name:</label>
+                        <input type="text" id="newHabitName" placeholder="e.g., Exercise, Drink Water">
+                    </div>
+                    <div class="form-row">
+                        <label>Category:</label>
+                        <select id="newHabitCategory">
+                            <option value="health">Health</option>
+                            <option value="other">Other</option>
+                            <option value="career">Career</option>
+                            <option value="creativity">Creativity</option>
+                            <option value="financial">Financial</option>
+                            <option value="lifestyle">Lifestyle</option>
+                            <option value="relationships">Relationships</option>
+                            <option value="spirituality">Spirituality</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>Frequency:</label>
+                        <select id="newHabitFrequency">
+                            <option value="daily">Daily</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>Time of Day:</label>
+                        <select id="newHabitTimeOfDay">
+                            <option value="anytime">Anytime Today</option>
+                            <option value="morning">Morning (by 12 PM)</option>
+                            <option value="afternoon">Afternoon (by 5 PM)</option>
+                            <option value="evening">Evening (by 10 PM)</option>
+                        </select>
+                    </div>
+                    <div class="modal-buttons">
+                        <button class="primary-button" onclick="saveNewHabit('${routineId}')">Create Habit</button>
+                        <button class="secondary-button" onclick="closeModal()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', formHtml);
+    }
+
+    // No deps — pure HTML-string builder (see showCreateHabitForm note).
+    function showCreateTaskForm(routineId) {
+        const formHtml = `
+            <div class="modal-overlay" id="taskFormModal">
+                <div class="modal-content">
+                    <h3>Create New Task</h3>
+                    <div class="form-row">
+                        <label>Task Name:</label>
+                        <input type="text" id="newTaskName" placeholder="Enter task name">
+                    </div>
+                    <div class="form-row">
+                        <label>Category:</label>
+                        <select id="newTaskCategory">
+                            <option value="other">Other</option>
+                            <option value="career">Career</option>
+                            <option value="creativity">Creativity</option>
+                            <option value="financial">Financial</option>
+                            <option value="health">Health</option>
+                            <option value="lifestyle">Lifestyle</option>
+                            <option value="relationships">Relationships</option>
+                            <option value="spirituality">Spirituality</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>Default Due Time:</label>
+                        <input type="time" id="newTaskDueTime" value="17:00">
+                    </div>
+                    <div class="form-row priority-row">
+                        <input type="checkbox" id="newTaskHighPriority">
+                        <label for="newTaskHighPriority">High Priority</label>
+                    </div>
+                    <div class="modal-buttons">
+                        <button class="primary-button" onclick="saveNewTask('${routineId}')">Create Task</button>
+                        <button class="secondary-button" onclick="closeModal()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', formHtml);
+    }
+
+    // No deps — pure HTML-string builder (see showCreateHabitForm note).
+    function showEditHabitForm(routineId, habitDef) {
+        const formHtml = `
+            <div class="modal-overlay" id="editHabitFormModal">
+                <div class="modal-content">
+                    <h3>Edit Habit</h3>
+                    <div class="form-row">
+                        <label>Habit Type:</label>
+                        <div class="habit-type-toggle">
+                            <input type="radio" id="editPositiveHabit" name="editHabitType" value="positive" ${!habitDef.isNegative ? 'checked' : ''}>
+                            <label for="editPositiveHabit" class="habit-type-label positive">
+                                <span class="habit-icon">✅</span>
+                                <span class="habit-label">Positive</span>
+                                <span class="habit-description">Complete to earn points</span>
+                            </label>
+                            <input type="radio" id="editNegativeHabit" name="editHabitType" value="negative" ${habitDef.isNegative ? 'checked' : ''}>
+                            <label for="editNegativeHabit" class="habit-type-label negative">
+                                <span class="habit-icon">🚫</span>
+                                <span class="habit-label">Negative</span>
+                                <span class="habit-description">Avoid to earn points</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label>Habit Name:</label>
+                        <input type="text" id="editHabitName" value="${habitDef.name}">
+                    </div>
+                    <div class="form-row">
+                        <label>Category:</label>
+                        <select id="editHabitCategory">
+                            <option value="health" ${habitDef.category === 'health' ? 'selected' : ''}>Health</option>
+                            <option value="other" ${habitDef.category === 'other' ? 'selected' : ''}>Other</option>
+                            <option value="career" ${habitDef.category === 'career' ? 'selected' : ''}>Career</option>
+                            <option value="creativity" ${habitDef.category === 'creativity' ? 'selected' : ''}>Creativity</option>
+                            <option value="financial" ${habitDef.category === 'financial' ? 'selected' : ''}>Financial</option>
+                            <option value="lifestyle" ${habitDef.category === 'lifestyle' ? 'selected' : ''}>Lifestyle</option>
+                            <option value="relationships" ${habitDef.category === 'relationships' ? 'selected' : ''}>Relationships</option>
+                            <option value="spirituality" ${habitDef.category === 'spirituality' ? 'selected' : ''}>Spirituality</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>Frequency:</label>
+                        <select id="editHabitFrequency">
+                            <option value="daily" ${habitDef.frequency === 'daily' ? 'selected' : ''}>Daily</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>Time of Day:</label>
+                        <select id="editHabitTimeOfDay">
+                            <option value="anytime" ${habitDef.timeOfDay === 'anytime' ? 'selected' : ''}>Anytime Today</option>
+                            <option value="morning" ${habitDef.timeOfDay === 'morning' ? 'selected' : ''}>Morning (by 12 PM)</option>
+                            <option value="afternoon" ${habitDef.timeOfDay === 'afternoon' ? 'selected' : ''}>Afternoon (by 5 PM)</option>
+                            <option value="evening" ${habitDef.timeOfDay === 'evening' ? 'selected' : ''}>Evening (by 10 PM)</option>
+                        </select>
+                    </div>
+                    <div class="modal-buttons">
+                        <button class="primary-button" onclick="saveEditedHabit('${habitDef.id}')">Save Changes</button>
+                        <button class="secondary-button" onclick="closeModal()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', formHtml);
+    }
+
+    // No deps — pure HTML-string builder (see showCreateHabitForm note).
+    function showEditTaskForm(routineId, taskDef) {
+        const formHtml = `
+            <div class="modal-overlay" id="editTaskFormModal">
+                <div class="modal-content">
+                    <h3>Edit Task</h3>
+                    <div class="form-row">
+                        <label>Task Name:</label>
+                        <input type="text" id="editTaskName" value="${taskDef.name}">
+                    </div>
+                    <div class="form-row">
+                        <label>Category:</label>
+                        <select id="editTaskCategory">
+                            <option value="other" ${taskDef.category === 'other' ? 'selected' : ''}>Other</option>
+                            <option value="career" ${taskDef.category === 'career' ? 'selected' : ''}>Career</option>
+                            <option value="creativity" ${taskDef.category === 'creativity' ? 'selected' : ''}>Creativity</option>
+                            <option value="financial" ${taskDef.category === 'financial' ? 'selected' : ''}>Financial</option>
+                            <option value="health" ${taskDef.category === 'health' ? 'selected' : ''}>Health</option>
+                            <option value="lifestyle" ${taskDef.category === 'lifestyle' ? 'selected' : ''}>Lifestyle</option>
+                            <option value="relationships" ${taskDef.category === 'relationships' ? 'selected' : ''}>Relationships</option>
+                            <option value="spirituality" ${taskDef.category === 'spirituality' ? 'selected' : ''}>Spirituality</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>Default Due Time:</label>
+                        <input type="time" id="editTaskDueTime" value="${taskDef.defaultDueTime || '17:00'}">
+                    </div>
+                    <div class="form-row priority-row">
+                        <input type="checkbox" id="editTaskHighPriority" ${taskDef.isHighPriority ? 'checked' : ''}>
+                        <label for="editTaskHighPriority">High Priority</label>
+                    </div>
+                    <div class="modal-buttons">
+                        <button class="primary-button" onclick="saveEditedTask('${taskDef.id}')">Save Changes</button>
+                        <button class="secondary-button" onclick="closeModal()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', formHtml);
+    }
+
+    /**
+     * deps: { createNewHabitInRoutine }
+     * Called by script.js's window.saveNewHabit thin wrapper (inline
+     * onclick="saveNewHabit(...)" needs the window-level name).
+     */
+    function saveNewHabit(routineId, deps) {
+        const name = document.getElementById('newHabitName').value.trim();
+        const category = document.getElementById('newHabitCategory').value;
+        const frequency = document.getElementById('newHabitFrequency').value;
+        const timeOfDay = document.getElementById('newHabitTimeOfDay').value;
+        const isNegative = document.querySelector('input[name="habitType"]:checked').value === 'negative';
+
+        if (!name) {
+            alert('Please enter a habit name.');
+            return;
+        }
+
+        deps.createNewHabitInRoutine(routineId, { name, category, frequency, timeOfDay, isNegative });
+        Modal.closeModal();
+    }
+
+    /**
+     * deps: { createNewTaskInRoutine }
+     */
+    function saveNewTask(routineId, deps) {
+        const name = document.getElementById('newTaskName').value.trim();
+        const category = document.getElementById('newTaskCategory').value;
+        const defaultDueTime = document.getElementById('newTaskDueTime').value;
+        const isHighPriority = document.getElementById('newTaskHighPriority').checked;
+
+        if (!name) {
+            alert('Please enter a task name.');
+            return;
+        }
+
+        deps.createNewTaskInRoutine(routineId, { name, category, defaultDueTime, isHighPriority });
+        Modal.closeModal();
+    }
+
+    /**
+     * deps: { editHabitInRoutine, activeItems (plain reference — see header
+     *         note), createListItem, sortAndRenderActiveList, saveGame }
+     */
+    function saveEditedHabit(habitId, deps) {
+        const name = document.getElementById('editHabitName').value.trim();
+        const category = document.getElementById('editHabitCategory').value;
+        const frequency = document.getElementById('editHabitFrequency').value;
+        const timeOfDay = document.getElementById('editHabitTimeOfDay').value;
+        const isNegative = document.querySelector('input[name="editHabitType"]:checked').value === 'negative';
+
+        if (!name) {
+            alert('Please enter a habit name.');
+            return;
+        }
+
+        deps.editHabitInRoutine(habitId, { name, category, frequency, timeOfDay, isNegative });
+
+        // Keep any already-spawned instance of this habit in sync, so editing
+        // from today's agenda row (or anywhere else) doesn't go stale until
+        // the next day's instance regenerates. Deliberately does NOT touch
+        // frequency/timeOfDay for an already-spawned instance — recomputing
+        // today's due time retroactively is a separate, more involved
+        // follow-up (see docs/DECISIONS.md).
+        deps.activeItems.forEach(item => {
+            if (item.type === 'habit' && item.definitionId === habitId) {
+                const oldCategory = item.category;
+                item.name = name;
+                item.category = category;
+                item.isNegative = isNegative;
+
+                if (item.element) {
+                    item.element.classList.remove(`category-${oldCategory}`, `zombie-${oldCategory}`);
+                    item.element.classList.add(`category-${category}`, `zombie-${category}`);
+                    item.element.classList.toggle('negative-habit', isNegative);
+                }
+
+                if (item.listItemElement) {
+                    item.listItemElement.remove();
+                    deps.createListItem(item);
+                }
+            }
+        });
+        deps.sortAndRenderActiveList();
+        deps.saveGame();
+
+        Modal.closeModal();
+    }
+
+    /**
+     * deps: { editTaskInRoutine }
+     */
+    function saveEditedTask(taskId, deps) {
+        const name = document.getElementById('editTaskName').value.trim();
+        const category = document.getElementById('editTaskCategory').value;
+        const defaultDueTime = document.getElementById('editTaskDueTime').value;
+        const isHighPriority = document.getElementById('editTaskHighPriority').checked;
+
+        if (!name) {
+            alert('Please enter a task name.');
+            return;
+        }
+
+        deps.editTaskInRoutine(taskId, { name, category, defaultDueTime, isHighPriority });
+        Modal.closeModal();
     }
 
     return {
@@ -400,7 +958,18 @@ const RoutineViews = (() => {
         populateRoutineHabits,
         populateRoutineTasks,
         renderDefinedRoutines,
-        showRoutineManagement
+        showRoutineManagement,
+        attachRoutineManagementListeners,
+        populateHabitSelectDropdown,
+        showAddItemToRoutineModal,
+        showCreateHabitForm,
+        showCreateTaskForm,
+        showEditHabitForm,
+        showEditTaskForm,
+        saveNewHabit,
+        saveNewTask,
+        saveEditedHabit,
+        saveEditedTask
     };
 })();
 
