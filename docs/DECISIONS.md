@@ -4,6 +4,32 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-18 — routine tasks spawn DAILY, like routine habits; definedTasks is now persisted
+
+**Bug (reported by Jeremy):** a task created inside a routine never appeared on the board or in the agenda list.
+
+**Root cause:** not a rendering bug — the spawn path was never built. `createNewTaskInRoutine` created a task *definition*, pushed it to `definedTasks`, and called only `renderDefinedRoutines()`. Nothing anywhere converted a task definition into a live item; there was no task equivalent of `createHabitInstanceData` / `generateDailyHabitInstances`. The task correctly appeared inside the routine management window, which is why it looked like a display problem.
+
+**Decision (with Jeremy): routine tasks recur DAILY**, matching routine habits. Added `getRoutineTaskInstanceDueTime` (parses the definition's `HH:MM` `defaultDueTime`, unlike habits' coarse `timeOfDay` buckets), `createRoutineTaskInstanceData`, and `generateDailyRoutineTaskInstances`, called everywhere `generateDailyHabitInstances` is called (initGame, restoreGameState, and at creation time in `createNewTaskInRoutine`). Instances are normal `type: 'task'` items carrying a `definitionId`, so every downstream system (damage, completion, sub-tasks, sorting) treats them identically to a manually-created task.
+
+**Dedupe differs from habits by necessity:** habits track "done today" on the definition (`lastCompletionDate`), but task definitions have no such field, so completion is read from `completedItems` by `definitionId` + `originalDueDate` day match. Only definitions actually referenced by some routine's `taskDefinitionIds` spawn — one orphaned by `removeTaskFromRoutine` stays in `definedTasks` but is inert.
+
+**Rejected:** spawn-once-on-activation (would have given `isActive` real meaning, but makes routine tasks one-shot and leaves `defaultDueTime` odd), and spawn-once-immediately-on-creation (reduces routines to a grouping tag for tasks).
+
+**Also fixed alongside: `definedTasks` was never persisted.** It's a bare `window.definedTasks`, and `getPersistableState()` saved `definedRoutines` (including `taskDefinitionIds`) but not the definitions themselves — so a refresh left those ids dangling against nothing. Added to save/restore as an additive field (no schemaVersion bump; older saves restore an empty array) and cleared by the dev reset button. `createNewTaskInRoutine`/`createNewHabitInRoutine` also gained the `saveGame()` calls they were missing (they previously relied on the 5s autosave net).
+
+**Known gap deliberately NOT fixed here (own roadmap item):** `isActive` is inert. `generateDailyHabitInstances` iterates ALL of `definedHabits` ignoring routine membership, so a habit in a deactivated routine still spawns — and `toggleRoutineActive` only flips the flag (no save, no re-render). docs/ROUTINES.md says "deactivated routines spawn no enemies." The new task generator deliberately mirrors the habit generator's behavior rather than gating on `isActive`, so the two don't diverge; both get fixed together. Also latent: `generateDailyHabitInstances` only handles `frequency === 'daily'`, which is safe only because the create-habit form offers no other option.
+
+## 2026-07-18 — progression.js extraction leaves playerPoints in script.js (economy.js's future scope, not built yet)
+
+Milestone 2 extraction: `js/progression.js` pulls the level-up math (`checkPlayerLevelUp`'s threshold-crossing loop) out of script.js as a pure `Progression.checkLevelUp(state, thresholds, slotsPerLevel, maxLevel)` — no DOM, no CONFIG global dependency, takes everything as explicit arguments. A single big XP award can cross more than one level threshold at once; the original code handled this with a recursive self-call, the extracted version walks a `while` loop instead (same effective behavior — level, xp, slots all update before either DOM side effect fires).
+
+**Decision:** `playerPoints` stays in script.js, even though it's earned/lost in the exact same `completeItem`/`uncompleteItem` code paths as XP. docs/ARCHITECTURE.md's target layout puts points under the future `economy.js` (points, shop, exponential pricing), not `progression.js` (XP, levels, slots) — and the shop itself is an unbuilt Milestone 3 item (docs/ECONOMY.md). Extracting points now would mean building `economy.js` ahead of the shop it exists to support, off the strength of one counter variable.
+
+**What moved vs what stayed:** `Progression.checkLevelUp` (pure) → js/progression.js. `checkPlayerLevelUp()` stays in script.js as a thin wrapper applying the result to `playerLevel`/`routineSlots` and driving `updatePlayerDisplays()`/`showLevelUpMessage()`/`updateRoutineDisplay()`. `playerXP`, `playerPoints`, and `updatePlayerDisplays()` itself all stay in script.js — the display function writes 4 HUD fields (xp, level, points, slots) together and splitting it now would separate two numbers that render side by side for no behavioral gain.
+
+**Rejected:** pulling `playerPoints` into progression.js alongside XP (mixes economy's future scope into progression's, and the ARCHITECTURE.md layout already draws this line); pulling `updatePlayerDisplays()` into progression.js (it's the same "one module writes DOM it doesn't fully own" shape damage.js's `updateBaseVisuals` avoided by owning ALL of base's visual state — points aren't progression's to own).
+
 ## 2026-07-18 — overdue row styling is DERIVED from state in createListItem, not applied only on transition
 
 **Bug (found by Jeremy playtesting extraction #3):** an overdue task's agenda row rendered with no red highlight while its sprite correctly kept the red box. Reproduced live: editing an already-overdue task's due date drops `overdue-list-item` from its row.

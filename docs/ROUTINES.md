@@ -16,8 +16,13 @@ Routines are "Heroes" living in the Base, with health, XP, and levels. They orga
 ## Health
 Enemies that get inside the base (item overdue > 1 hour) damage the health of the routine they belong to.
 
+## Spawning (implemented 2026-07-18)
+Both routine habits and routine tasks spawn DAILY. Habits use their `timeOfDay` bucket (morning/afternoon/evening/anytime); tasks use the definition's `HH:MM` `defaultDueTime`. Instances are ordinary `type: 'habit'`/`type: 'task'` items carrying a `definitionId`, so damage, completion and sorting treat them like any manually-created item. Each generator dedupes per day against `activeItems` (already spawned) and completion (habits via `lastCompletionDate`, tasks via `completedItems`).
+
 ## Activation & Deactivation
 Routines can be deactivated (vacation/seasonal) and reactivated; deactivated routines spawn no enemies.
+
+> **NOT YET IMPLEMENTED (as of 2026-07-18).** `isActive` is currently inert: both generators iterate every definition regardless of routine membership or active state, and `toggleRoutineActive` only flips the flag. Tracked as a ROADMAP item — see DECISIONS.md 2026-07-18.
 
 ## Frozen Routine Slots (canonical spec — from PROJECT_SPEC.md)
 - A NEGATIVE habit streak of 3+ days (indulging 3 days running) FREEZES the associated routine slot.

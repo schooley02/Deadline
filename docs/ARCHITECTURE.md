@@ -27,7 +27,7 @@ js/
 ├── spawning.js        # enemy creation/admission (IMPLEMENTED 2026-07-17 — addItemToGame + pure resolveEnemyVisual; DOM collaborators injected via deps)
 ├── movement.js        # timeline-based positioning (IMPLEMENTED 2026-07-17 — getSubTaskClusterOffset/calculateTimelineXWithClustering/getItemTopPosition + internal getVisibleEdges; state/dims passed explicitly, CONFIG+Clock as globals)
 ├── damage.js          # overdue damage, base HP, game over, both catch-up paths (IMPLEMENTED 2026-07-18 — damageBase/gameOver/updateBaseVisuals/computeDaysSurvived + runOfflineCatchUp (moved here from clock.js's original scope, see clock.js note above) + runLiveGapCatchUp. Pure cores split out for testing: resolveBaseImage, computeGapCatchUpHits, computeOfflineOverdueDamage, computeCatchUpDuration, computeDaysSurvived. FIRST module to WRITE script.js-owned state (baseHealth, gameIsOver) — reached via accessor deps rather than moving ownership; see DECISIONS.md 2026-07-18. markAsOverdue stayed in script.js (it also resets habit streaks → belongs with the habits extraction) and arrives as a dep.
-├── progression.js     # XP, levels, slots
+├── progression.js     # XP, levels, slots (IMPLEMENTED 2026-07-18 — pure Progression.checkLevelUp(state, thresholds, slotsPerLevel, maxLevel), walks every threshold crossed in one call instead of the old recursive self-call. playerPoints deliberately stayed in script.js — it's economy.js's future scope and the shop doesn't exist yet; see DECISIONS.md.)
 ├── habits.js          # habit instances, streaks, pos/neg logic
 ├── routines.js        # heroes, slots, frozen recovery
 ├── economy.js         # points, shop, exponential pricing

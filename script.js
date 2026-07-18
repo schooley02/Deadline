@@ -203,6 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         clearFormInputs();
         generateDailyHabitInstances(currentGameDate);
+        generateDailyRoutineTaskInstances(currentGameDate);
         updateTaskCountDisplay();
         updateRoutineDisplay();
 
@@ -246,7 +247,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
             baseHealth, playerXP, playerLevel, playerPoints, routineSlots,
             itemIdCounter, gameIsOver, daysSurvived, runStartedAtMs, currentGameDate,
-            activeItems, completedItems, definedHabits, definedRoutines
+            activeItems, completedItems, definedHabits, definedRoutines,
+            // Routine TASK definitions. Previously omitted while
+            // routine.taskDefinitionIds WAS saved, so a refresh left those ids
+            // dangling against nothing. Additive — no schemaVersion bump needed;
+            // older saves simply restore an empty array. See DECISIONS.md.
+            definedTasks: window.definedTasks || []
         };
     }
 
@@ -333,6 +339,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Plain-data collections (no DOM refs to rebuild)
         definedHabits = save.definedHabits || [];
         definedRoutines = save.definedRoutines || [];
+        // Saves written before 2026-07-18 have no definedTasks — restore empty
+        // rather than leaving whatever the previous page load put on window.
+        window.definedTasks = save.definedTasks || [];
         completedItems = (save.completedItems || []).map(item => {
             item.element = null;
             item.listItemElement = null;
@@ -371,8 +380,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Spawn today's habit instances the save doesn't already contain
+        // Spawn today's habit + routine-task instances the save doesn't already
+        // contain (both generators dedupe against activeItems/completedItems)
         generateDailyHabitInstances(currentGameDate);
+        generateDailyRoutineTaskInstances(currentGameDate);
 
         // Refresh every display touched above
         updatePlayerDisplays();
@@ -469,26 +480,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Level-up math lives in js/progression.js (Milestone 2 extraction,
+    // 2026-07-18) — thin wrapper so this call site is unchanged. A single
+    // completion can cross more than one threshold; Progression.checkLevelUp
+    // walks all of them in one call instead of the old recursive self-call.
     function checkPlayerLevelUp() {
-        if (playerLevel >= MAX_PLAYER_LEVEL || !LEVEL_XP_THRESHOLDS[playerLevel]) return false;
-        
-        if (playerXP >= LEVEL_XP_THRESHOLDS[playerLevel]) {
-            playerLevel++;
+        const result = Progression.checkLevelUp(
+            { level: playerLevel, xp: playerXP, slots: routineSlots },
+            LEVEL_XP_THRESHOLDS, ROUTINE_SLOTS_PER_LEVEL, MAX_PLAYER_LEVEL
+        );
+
+        if (!result.leveledUp) return false;
+
+        playerLevel = result.level;
+        updatePlayerDisplays();
+        showLevelUpMessage();
+
+        if (result.slotsUnlocked) {
+            routineSlots = result.slots;
             updatePlayerDisplays();
-            showLevelUpMessage();
-            
-            // Check for routine slot unlock
-            if (ROUTINE_SLOTS_PER_LEVEL[playerLevel] && ROUTINE_SLOTS_PER_LEVEL[playerLevel] > routineSlots) {
-                routineSlots = ROUTINE_SLOTS_PER_LEVEL[playerLevel];
-                updatePlayerDisplays();
-                updateRoutineDisplay();
-            }
-            
-            // Check for additional level ups
-            checkPlayerLevelUp();
-            return true;
+            updateRoutineDisplay();
         }
-        return false;
+
+        return true;
     }
 
     function showLevelUpMessage() {
@@ -557,13 +571,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Calculate initial position based on new timeline system
         taskData.x = calculateTimelineXWithClustering(taskData, creationTime);
-        
-        console.log('🔧 createTaskItemData returning:', {
-            id: taskData.id,
-            name: taskData.name,
-            parentId: taskData.parentId,
-            parentIdType: typeof taskData.parentId
-        });
         
         return taskData;
     }
@@ -1838,6 +1845,113 @@ function updateActiveItems() {
         sortAndRenderActiveList();
     }
 
+    // --- Routine task instances (2026-07-18) ---
+    // Routine TASKS previously had no spawn path at all: createNewTaskInRoutine
+    // stored a definition in definedTasks and nothing ever turned it into a live
+    // item, so a task added through a routine could never appear on the board or
+    // in the agenda (see docs/DECISIONS.md). Routine tasks recur DAILY, the same
+    // as routine habits — decided with Jeremy 2026-07-18.
+
+    // Task definitions carry a "HH:MM" defaultDueTime rather than the habit
+    // system's coarse timeOfDay buckets, so they get their own due-time helper.
+    function getRoutineTaskInstanceDueTime(defaultDueTime, referenceDate) {
+        const due = new Date(referenceDate);
+        due.setSeconds(0, 0);
+
+        const [hours, minutes] = String(defaultDueTime || '17:00').split(':').map(Number);
+        if (Number.isFinite(hours) && Number.isFinite(minutes)) {
+            due.setHours(hours, minutes);
+        } else {
+            due.setHours(17, 0); // same fallback the task-definition form defaults to
+        }
+
+        return due;
+    }
+
+    // Mirrors createHabitInstanceData. The instance is a normal `type: 'task'`
+    // item so every downstream system (damage, completion, sub-tasks, sorting)
+    // treats it exactly like a manually-created task — it just also carries a
+    // definitionId back to definedTasks so the daily generator can dedupe.
+    function createRoutineTaskInstanceData(taskDef, forDate) {
+        const instanceCreationTime = new Date();
+        const dueDateTime = getRoutineTaskInstanceDueTime(taskDef.defaultDueTime, forDate);
+
+        const taskInstanceData = {
+            id: itemIdCounter++,
+            type: 'task',
+            definitionId: taskDef.id,
+            name: taskDef.name,
+            category: taskDef.category || 'other',
+            isHighPriority: taskDef.isHighPriority || false,
+            dueDateTime: dueDateTime,
+            creationTime: instanceCreationTime,
+            timeToDueAtCreationMs: Math.max(0, dueDateTime.getTime() - instanceCreationTime.getTime()),
+            x: GAME_SCREEN_WIDTH - ENEMY_WIDTH, // recalculated below
+            isOverdue: false,
+            lastDamageTickTime: null,
+            element: null,
+            listItemElement: null,
+            // Sub-task hierarchy fields — a routine task is a top-level task and
+            // can take sub-tasks like any other.
+            parentId: undefined,
+            subTasks: [],
+            completedSubTasks: 0,
+            totalSubTasks: 0,
+            originalDueDate: new Date(dueDateTime),
+            offlineDamageCharged: 0
+        };
+
+        taskInstanceData.x = calculateTimelineXWithClustering(taskInstanceData, instanceCreationTime);
+
+        return taskInstanceData;
+    }
+
+    // Daily spawn pass for routine tasks, mirroring generateDailyHabitInstances.
+    // NOTE: like the habit generator, this deliberately does NOT yet check
+    // routine.isActive — deactivated routines are supposed to spawn nothing
+    // (docs/ROUTINES.md), but isActive is currently inert for habits too. That
+    // mismatch is its own roadmap item; fixing it here would leave tasks and
+    // habits behaving differently.
+    function generateDailyRoutineTaskInstances(forWhichGameDay) {
+        if (!window.definedTasks) window.definedTasks = [];
+        const forWhichGameDayString = forWhichGameDay.toDateString();
+
+        // Only definitions actually attached to a routine spawn. A definition
+        // orphaned by removeTaskFromRoutine stays in definedTasks but is inert.
+        const routineTaskIds = new Set();
+        definedRoutines.forEach(routine => {
+            (routine.taskDefinitionIds || []).forEach(id => routineTaskIds.add(id));
+        });
+
+        definedTasks.forEach(taskDef => {
+            if (!routineTaskIds.has(taskDef.id)) return;
+
+            const existingActiveInstance = activeItems.find(item =>
+                item.type === 'task' &&
+                item.definitionId === taskDef.id &&
+                item.originalDueDate &&
+                new Date(item.originalDueDate).toDateString() === forWhichGameDayString
+            );
+
+            // Habits track "done for today" on the definition (lastCompletionDate);
+            // task definitions have no such field, so completion is read from
+            // completedItems instead — the instance keeps its definitionId there.
+            const alreadyCompletedForThisGameDay = completedItems.some(item =>
+                item.type === 'task' &&
+                item.definitionId === taskDef.id &&
+                item.originalDueDate &&
+                new Date(item.originalDueDate).toDateString() === forWhichGameDayString
+            );
+
+            if (!existingActiveInstance && !alreadyCompletedForThisGameDay) {
+                const taskInstanceData = createRoutineTaskInstanceData(taskDef, forWhichGameDay);
+                addItemToGame(taskInstanceData);
+            }
+        });
+
+        sortAndRenderActiveList();
+    }
+
     // Routine management functions
     function createRoutineDefinition() {
         const name = routineNameInput.value.trim();
@@ -1989,6 +2103,7 @@ function updateActiveItems() {
         routine.habitDefinitionIds.push(newHabit.id);
         generateDailyHabitInstances(currentGameDate);
         renderDefinedRoutines();
+        saveGame();
     }
     
     function createNewTaskInRoutine(routineId, taskData) {
@@ -2005,10 +2120,15 @@ function updateActiveItems() {
             defaultDueTime: taskData.defaultDueTime || '17:00'
         };
         
-        if (!definedTasks) window.definedTasks = [];
+        if (!window.definedTasks) window.definedTasks = [];
         definedTasks.push(newTaskDef);
         routine.taskDefinitionIds.push(newTaskDef.id);
+        // Spawn today's instance immediately, matching createNewHabitInRoutine.
+        // Without this the definition existed but never became a live enemy —
+        // the task appeared in the routine window only. See DECISIONS.md.
+        generateDailyRoutineTaskInstances(currentGameDate);
         renderDefinedRoutines();
+        saveGame();
     }
     
     function editHabitInRoutine(habitId, updatedData) {
@@ -3539,6 +3659,7 @@ function updateActiveItems() {
             if (!confirm('Reset the game to a fresh state? This clears all tasks, habits, routines, and progress.')) return;
             definedHabits = [];
             definedRoutines = [];
+            window.definedTasks = [];
             if (typeof Persistence !== 'undefined') Persistence.clear();
             initGame();
             saveGame();
