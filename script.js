@@ -514,38 +514,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Habit-specific: resolve an active habit instance back to its definition
-    // and open the definition editor. Habits have no per-instance editor today
-    // (only the routine-context habitDef editor), so this is the closest
-    // correct "edit" action; saveEditedHabit() keeps active instances in sync.
-    function showEditHabitInstanceModal(itemData) {
-        const habitDef = definedHabits.find(d => d.id === itemData.definitionId);
-        if (!habitDef) {
-            console.error('Edit habit: no definedHabits entry for definitionId', itemData.definitionId);
-            return;
-        }
-        showEditHabitForm(null, habitDef);
-    }
-
-    // Thin wrapper — real implementation lives in js/ui/agendaList.js
-    // (Milestone 2 UI extraction session 6, 2026-07-18). Call sites unchanged.
+    // Thin wrappers — real implementations live in js/ui/agendaList.js
+    // (Milestone 2 UI extraction sessions 6-7, 2026-07-18). Call sites
+    // unchanged.
     //
     // isGameOver is passed as a GETTER, not a boolean: createListItem attaches
     // click handlers that outlive this call (the "+ Sub-task" button reads the
     // flag when clicked), so a snapshotted value would go stale after game
     // over. Same reason js/spawning.js passes `isGameOver: () => gameIsOver`.
     // activeItems and categoryStyles are stable bindings, so plain references
-    // are correct for those.
+    // are correct for those. completedItems and definedHabits are GETTERS
+    // (session 7) because both are REASSIGNED elsewhere (new-game reset,
+    // restoreGameState) rather than only mutated in place.
     function agendaListDeps() {
         return {
             activeItems, categoryStyles, completeItem,
             isGameOver: () => gameIsOver,
-            showEditTaskModal, showEditHabitInstanceModal, createSubTaskPrompt
+            showEditTaskModal, showEditHabitInstanceModal, createSubTaskPrompt,
+            activeItemsListUL,
+            completedItems: () => completedItems,
+            uncompleteItem,
+            definedHabits: () => definedHabits,
+            showEditHabitForm
         };
     }
 
     function createListItem(itemData) {
         return AgendaList.createListItem(itemData, agendaListDeps());
+    }
+
+    function showEditHabitInstanceModal(itemData) {
+        AgendaList.showEditHabitInstanceModal(itemData, agendaListDeps());
     }
 
     // Thin wrappers — real implementations live in js/ui/popups.js
@@ -806,155 +805,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function sortAndRenderActiveList() {
-        // Sort by due date (most urgent first)
-        activeItems.sort((a, b) => a.dueDateTime - b.dueDateTime);
-        
-        if (activeItemsListUL) {
-            activeItemsListUL.innerHTML = '';
-            
-            activeItems.forEach(item => {
-                // Only show top-level items (not sub-tasks) in the main list
-                if (item.listItemElement && !item.parentId) {
-                    activeItemsListUL.appendChild(item.listItemElement);
-                }
-            });
-            
-            // After rendering, ensure all sub-task checkboxes are properly reset
-            setTimeout(() => {
-                resetAllSubTaskCheckboxes();
-            }, 0);
-        }
+        AgendaList.sortAndRenderActiveList(agendaListDeps());
     }
-    
-    // Utility function to comprehensively reset all sub-task checkboxes
+
     function resetAllSubTaskCheckboxes() {
-        const allSubTaskCheckboxes = document.querySelectorAll('.sub-task-checkbox');
-        console.log(`DEBUG: resetAllSubTaskCheckboxes found ${allSubTaskCheckboxes.length} checkboxes`);
-        
-        allSubTaskCheckboxes.forEach((checkbox, index) => {
-            const wasChecked = checkbox.checked;
-            const subTaskId = checkbox.getAttribute('data-sub-task-id');
-            
-            // Multiple methods to ensure unchecked state
-            checkbox.checked = false;
-            checkbox.defaultChecked = false;
-            checkbox.removeAttribute('checked');
-            
-            // Force property update
-            Object.defineProperty(checkbox, 'checked', {
-                value: false,
-                writable: true,
-                configurable: true
-            });
-            
-            // Re-enable normal property behavior
-            delete checkbox.checked;
-            checkbox.checked = false;
-            
-            if (wasChecked) {
-                console.log(`DEBUG: Reset checkbox for sub-task ${subTaskId}, was checked: ${wasChecked}, now checked: ${checkbox.checked}`);
-            }
-        });
+        AgendaList.resetAllSubTaskCheckboxes();
     }
 
     function renderCompletedItems() {
-        const completedTasksSection = document.getElementById('completedTasksSection');
-        const completedItemsList = document.getElementById('completedItemsList');
-        
-        if (!completedTasksSection || !completedItemsList) return;
-        
-        // Show the completed tasks section if there are completed items
-        if (completedItems.length > 0) {
-            completedTasksSection.classList.remove('hidden');
-            
-            // Clear existing list
-            completedItemsList.innerHTML = '';
-            
-            // Sort by completion time (most recent first)
-            const sortedCompletedItems = [...completedItems].sort((a, b) => b.completedAt - a.completedAt);
-            
-            sortedCompletedItems.forEach(item => {
-                // Only show top-level completed items (not sub-tasks) in the completed list
-                if (item.parentId) return;
-                
-                const li = document.createElement('li');
-                li.classList.add('completed-item');
-                li.classList.add(`category-${item.category}`);
-                
-                // Create sprite column
-                const itemSpriteDiv = document.createElement('div');
-                itemSpriteDiv.classList.add('item-sprite');
-                
-                // Create item info div
-                const itemInfoDiv = document.createElement('div');
-                itemInfoDiv.classList.add('item-info');
-                
-                const itemNameSpan = document.createElement('span');
-                itemNameSpan.classList.add('item-name');
-                itemNameSpan.textContent = item.name;
-                
-                const itemCompletedSpan = document.createElement('span');
-                itemCompletedSpan.classList.add('item-completed');
-                itemCompletedSpan.textContent = `Completed: ${item.completedAt.toLocaleString([], { 
-                    dateStyle: 'short', 
-                    timeStyle: 'short' 
-                })}`;
-                
-                itemInfoDiv.appendChild(itemNameSpan);
-                itemInfoDiv.appendChild(itemCompletedSpan);
-                
-                // Add category badge
-                const itemCategorySpan = document.createElement('span');
-                itemCategorySpan.classList.add('item-category');
-                itemCategorySpan.textContent = item.category.charAt(0).toUpperCase() + item.category.slice(1);
-                
-                const currentCategoryStyle = categoryStyles[item.category] || categoryStyles["other"];
-                itemCategorySpan.style.backgroundColor = currentCategoryStyle.bgColor;
-                if (currentCategoryStyle.textColorClass) {
-                    itemCategorySpan.classList.add(currentCategoryStyle.textColorClass);
-                }
-                itemInfoDiv.appendChild(itemCategorySpan);
-                
-                // Add completion controls (edit icon and checkbox)
-                const itemStatusDiv = document.createElement('div');
-                itemStatusDiv.classList.add('item-status');
-                itemStatusDiv.style.cssText = 'display: flex; justify-content: flex-end; gap: 10px; align-items: center; height: 100%;';
-                
-                // Edit icon button
-                const editIconButton = document.createElement('button');
-                editIconButton.classList.add('edit-icon-btn');
-                editIconButton.title = 'Edit Task';
-                editIconButton.textContent = '✏️';
-                editIconButton.addEventListener('click', () => showEditTaskModal(item));
-                itemStatusDiv.appendChild(editIconButton);
-                
-                // Completion checkbox (pre-checked for completed items)
-                const completeCheckboxLabel = document.createElement('label');
-                completeCheckboxLabel.classList.add('completion-checkbox');
-                
-                const completeCheckbox = document.createElement('input');
-                completeCheckbox.type = 'checkbox';
-                completeCheckbox.classList.add('completion-checkbox-input');
-                completeCheckbox.checked = true; // Pre-checked for completed items
-                completeCheckbox.addEventListener('change', () => {
-                    if (!completeCheckbox.checked) {
-                        uncompleteItem(item.id);
-                    }
-                });
-                completeCheckboxLabel.appendChild(completeCheckbox);
-                completeCheckboxLabel.appendChild(document.createTextNode(' Completed'));
-                
-                itemStatusDiv.appendChild(completeCheckboxLabel);
-                
-                li.appendChild(itemSpriteDiv);
-                li.appendChild(itemInfoDiv);
-                li.appendChild(itemStatusDiv);
-                
-                completedItemsList.appendChild(li);
-            });
-        } else {
-            completedTasksSection.classList.add('hidden');
-        }
+        AgendaList.renderCompletedItems(agendaListDeps());
     }
 
     function markAsOverdue(item, currentTime) {

@@ -4,6 +4,20 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-18 — UI extraction session 7: mirror test retired (Jeremy's call); agendaList.js complete
+
+**Context:** session 6 deliberately left `test/create-list-item-branching.test.js` (the hand-maintained mirror of `createListItem`'s branch structure) in place, flagging the retire/keep decision for session 7 since `test/agenda-list.test.js` now requires and executes the real module. Jeremy's call this session: retire it if it has no unique coverage left.
+
+**Decision:** confirmed no unique coverage — every case the mirror guarded (task/habit/unknown-type branching, editor wiring, overdue-class derivation including the REBUILD case, high-priority+overdue coexistence) is covered by `test/agenda-list.test.js` against the real module, which is strictly stronger evidence. Deleted `test/create-list-item-branching.test.js`. Suite went from 16 suites/298 tests to 15 suites/289 tests (the 9 retired tests, all superseded).
+
+**Session 7 scope:** extracted the rest of `js/ui/agendaList.js` — `sortAndRenderActiveList`, `resetAllSubTaskCheckboxes`, `renderCompletedItems`, `showEditHabitInstanceModal` — completing the cluster. `completedItems` and `definedHabits` cross into the module as GETTERS (`deps.completedItems()`, `deps.definedHabits()`), extending session 6's getter-for-outliving-handlers rule to a related but distinct case: both are variables REASSIGNED elsewhere in script.js (new-game reset, restoreGameState), so a plain reference captured at deps-build time could go stale after either happens, even though `agendaListDeps()` is rebuilt fresh on every call (the getter guards against a future caller that doesn't rebuild fresh, and is consistent with the existing `isGameOver`/`activeItems` split). No new tests added this session — matches sessions 1-5's precedent for pure code-motion with no new behavioral decision (session 6 was the exception, because the getter behavior itself was new).
+
+**Bug found during live verification, NOT fixed here (pre-existing, not a regression from this extraction):** uncompleting an item (`uncompleteItem`) reuses the item's stale `listItemElement` object rather than rebuilding it, so if that row's "Mark as Complete" checkbox was left checked (which it always is — checking it is literally what triggers completion), the row re-enters the active list still visually checked until the next full rebuild (page reload, or any edit that removes+recreates the row). Confirmed cosmetic only: the underlying save data round-trips correctly (XP/points/task-count all returned to baseline exactly after complete → uncomplete in this session's live check). Not scheduled — logged in ROADMAP's Known bugs.
+
+**Alternatives rejected:** keeping the mirror "just in case" — rejected per the same reasoning as session 6's write-up: a regression test for a copy, not the shipped code, isn't worth maintaining once real coverage exists, and keeping dead test infrastructure around adds exactly the kind of context weight this project's docs system exists to avoid.
+
+---
+
 ## 2026-07-18 — Date/time input pre-fill must use local getters, never toISOString (UTC pre-fill bugfix)
 
 **Context:** session 6's live verification found that `showEditTaskModal` and `createSubTaskPrompt` (`js/ui/popups.js`) pre-filled their date/time `<input>`s from `dueDateTime.toISOString()` (UTC wall-clock), while the Save handler parses `` new Date(`${date}T${time}`) `` — which is LOCAL time. In CDT that displayed a 12:00 PM task as 05:00 PM, and an untouched Save shifted the stored due time forward by the UTC offset (rolling the DATE for evening tasks). Silent data corruption, trivially triggerable; jumped the queue ahead of UI-extraction session 7 (Jeremy's call, 2026-07-18).

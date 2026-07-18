@@ -13,6 +13,26 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-18 — UI extraction session 7: `js/ui/agendaList.js` part 2 — module complete (Cowork session)
+
+**Did:** Three carry-overs from the prior session first: (1) live-verified the UTC pre-fill fix in Chrome — Edit Task on the "adf" row now pre-fills 12:00 PM matching the agenda row, untouched Save leaves it at 12:00 PM; (2) confirmed via `.git/logs/HEAD` (read-only, no `git` process — see CLAUDE.md Cowork git rule) that both session 5 (`74e232a`) and session 6 (`45942cf`) commits landed, followed by the UTC bugfix commit (`45eaa49`); (3) Jeremy approved retiring `test/create-list-item-branching.test.js` — confirmed its coverage is fully subsumed by `test/agenda-list.test.js` (real module) and deleted it.
+
+Then executed session 7 of `docs/UI_EXTRACTION_PLAN.md`: moved `sortAndRenderActiveList`, `resetAllSubTaskCheckboxes`, `renderCompletedItems`, and `showEditHabitInstanceModal` (script.js lines ~521-958 pre-session) into `js/ui/agendaList.js`, completing the module (part 1 was `createListItem`, session 6). script.js keeps thin wrappers at all original call sites — `agendaListDeps()` extended with `activeItemsListUL`, `completedItems`/`definedHabits` (getters — both reassigned elsewhere in script.js, unlike `activeItems`/`categoryStyles`'s stable in-place mutation), `uncompleteItem`, `showEditHabitForm`. script.js is down to **2,322 lines** (was 2,463).
+
+**State:** ✅ **15 suites, 289/289 passing** in the sandbox (was 16/298 — the mirror's 9 tests retired, no new ones added this session, matching sessions 1-5's precedent for pure code-motion). `node --check` clean on script.js and agendaList.js. **Live-verified in Chrome**: reloaded against Jeremy's real save — agenda list, sub-task nesting, and overdue highlighting all render correctly through the completed extraction; habit edit pencil (`showEditHabitInstanceModal`) correctly opens the routine-context habit editor pre-filled (ADSFA/Health/Daily), cancelled without saving; completed a throwaway habit (njgsgj) to exercise `renderCompletedItems`, confirmed it appears in "Completed Today" sorted correctly with the right category badge, then unchecked it to exercise `uncompleteItem` — XP/points/task-count all round-tripped back to exactly their starting values (10/10/5 tasks), confirming no data drift. Console clean apart from the usual extension "message channel closed" noise.
+
+**🐛 Bug found live, NOT fixed (pre-existing, not a regression from this session)** — see ROADMAP Known bugs: uncompleting an item can leave its "Mark as Complete" checkbox visually checked because `uncompleteItem` reuses the stale `listItemElement` instead of rebuilding it. Cosmetic only (confirmed via the round-trip above that saved data is unaffected); clears on next full rebuild (reload, or any edit that recreates the row).
+
+**Docs updated same session:** ARCHITECTURE.md (`agendaList.js` entry marked complete, both sessions' dependency rationale merged), DECISIONS.md (mirror-retirement decision + getter-extension rationale + the checkbox bug), ROADMAP.md (session 7 checked off, UTC fix live-verification noted, new known bug logged).
+
+**Next:** **session 8 of the UI plan: `js/ui/routineViews.js` part 1** — rendering half of cluster F left behind by routines.js: `renderDefinedRoutines`, `populateRoutinesWindow`, `showRoutineManagement`, `populateRoutineHabits`/`populateRoutineTasks`, `updateRoutineDisplay`. Sonnet-level per the plan. Note `showEditHabitForm` (called by the now-complete agendaList.js) still lives in script.js as part of cluster F's session 9 (form half) — don't be surprised to see it as a live cross-reference when that session starts.
+
+**Watch out:**
+- The cosmetic checkbox-on-uncomplete bug above — not scheduled, but cheap to fix if a future session is already touching `uncompleteItem` or `createListItem`.
+- `showEditHabitForm` and `uncompleteItem` are now both agendaList.js dependencies (passed as plain function refs) — sessions 8/9 moving `showEditHabitForm` out of script.js should re-check `agendaListDeps()` still resolves it correctly (hoisting means order won't matter, but the dep wiring is worth a glance).
+
+---
+
 ## 2026-07-18 — Bugfix: UTC pre-fill in Edit Task / Create Sub-task modals (Cowork session)
 
 **Did:** Fixed the data-corrupting UTC pre-fill bug found in session 6's live verification (jumped the queue ahead of UI-extraction session 7, Jeremy's call). `js/ui/popups.js`: new local-getter formatters `formatDateInputValue`/`formatTimeInputValue` (exposed on the module return for tests) replace the four `toISOString()` pre-fill lines in `showEditTaskModal` and `createSubTaskPrompt`. Companion one-liner in `js/ui/forms.js` `createTaskFormHtml` — same family (UTC default date; latent in CDT, shows yesterday in positive-offset TZs). New `test/popups-prefill.test.js` (12 tests): formatting, padding, and the real invariant — format-then-reparse reproduces the original instant exactly (round-trip), plus a negative control proving the old approach drifts by exactly `getTimezoneOffset()`. First test coverage of modal pre-fill.

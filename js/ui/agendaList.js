@@ -1,10 +1,27 @@
 /**
- * Agenda list — part 1 (Milestone 2 UI extraction, session 6, 2026-07-18).
+ * Agenda list — parts 1 + 2 (Milestone 2 UI extraction, sessions 6-7,
+ * 2026-07-18).
  *
- * Extracted from script.js per docs/UI_EXTRACTION_PLAN.md session 6:
- * createListItem only — the task/habit branching shell and row construction.
- * Part 2 (sortAndRenderActiveList, renderCompletedItems,
- * resetAllSubTaskCheckboxes, showEditHabitInstanceModal) is session 7.
+ * Part 1 (session 6): createListItem — the task/habit branching shell and
+ * row construction.
+ * Part 2 (session 7): sortAndRenderActiveList, renderCompletedItems,
+ * resetAllSubTaskCheckboxes, showEditHabitInstanceModal.
+ *
+ * PART 2 DEPENDENCY NOTE — getters vs plain references for script.js state:
+ * `activeItems` and `categoryStyles` stay plain references (established in
+ * part 1 — stable bindings, captured fresh on each call via agendaListDeps()
+ * in script.js). `completedItems` and `definedHabits`, by contrast, arrive
+ * as GETTERS (`deps.completedItems()`, `deps.definedHabits()`) because both
+ * are REASSIGNED elsewhere in script.js (on new-game reset and on
+ * restoreGameState) rather than only mutated in place — a plain reference
+ * captured before a reset/restore would go stale. Matches the isGameOver
+ * getter precedent from part 1 and js/spawning.js.
+ *
+ * `showEditHabitForm` and `uncompleteItem` are passed through as function
+ * references — both still live in script.js (showEditHabitForm is cluster F,
+ * routines UI, not yet extracted; uncompleteItem is a large standalone
+ * function out of this session's scope) and are called, not read, so a
+ * plain reference is correct.
  *
  * DEPENDENCY NOTE — why gameIsOver arrives as a getter, not a boolean:
  * every prior UI module in this sequence (fabMenu, managementWindows, forms,
@@ -313,7 +330,200 @@ const AgendaList = (() => {
         itemData.listItemElement = listItem;
     }
 
-    return { createListItem };
+    /**
+     * Sort activeItems by due date and re-render the top-level rows into the
+     * active-items list. Sub-tasks are never appended here — they render
+     * nested inside their parent's row (see createListItem).
+     *
+     * deps: { activeItems, activeItemsListUL }
+     */
+    function sortAndRenderActiveList(deps) {
+        // Sort by due date (most urgent first)
+        deps.activeItems.sort((a, b) => a.dueDateTime - b.dueDateTime);
+
+        if (deps.activeItemsListUL) {
+            deps.activeItemsListUL.innerHTML = '';
+
+            deps.activeItems.forEach(item => {
+                // Only show top-level items (not sub-tasks) in the main list
+                if (item.listItemElement && !item.parentId) {
+                    deps.activeItemsListUL.appendChild(item.listItemElement);
+                }
+            });
+
+            // After rendering, ensure all sub-task checkboxes are properly reset
+            setTimeout(() => {
+                resetAllSubTaskCheckboxes();
+            }, 0);
+        }
+    }
+
+    // Utility function to comprehensively reset all sub-task checkboxes.
+    // No script.js state — queries the live DOM directly, so it takes no deps.
+    function resetAllSubTaskCheckboxes() {
+        const allSubTaskCheckboxes = document.querySelectorAll('.sub-task-checkbox');
+        console.log(`DEBUG: resetAllSubTaskCheckboxes found ${allSubTaskCheckboxes.length} checkboxes`);
+
+        allSubTaskCheckboxes.forEach((checkbox, index) => {
+            const wasChecked = checkbox.checked;
+            const subTaskId = checkbox.getAttribute('data-sub-task-id');
+
+            // Multiple methods to ensure unchecked state
+            checkbox.checked = false;
+            checkbox.defaultChecked = false;
+            checkbox.removeAttribute('checked');
+
+            // Force property update
+            Object.defineProperty(checkbox, 'checked', {
+                value: false,
+                writable: true,
+                configurable: true
+            });
+
+            // Re-enable normal property behavior
+            delete checkbox.checked;
+            checkbox.checked = false;
+
+            if (wasChecked) {
+                console.log(`DEBUG: Reset checkbox for sub-task ${subTaskId}, was checked: ${wasChecked}, now checked: ${checkbox.checked}`);
+            }
+        });
+    }
+
+    /**
+     * Render the completed-items list (below the active agenda). Sub-tasks
+     * are never shown here — only top-level completed items.
+     *
+     * deps: { completedItems (getter), categoryStyles, showEditTaskModal,
+     *         uncompleteItem }
+     */
+    function renderCompletedItems(deps) {
+        const completedTasksSection = document.getElementById('completedTasksSection');
+        const completedItemsList = document.getElementById('completedItemsList');
+
+        if (!completedTasksSection || !completedItemsList) return;
+
+        const completedItems = deps.completedItems();
+
+        // Show the completed tasks section if there are completed items
+        if (completedItems.length > 0) {
+            completedTasksSection.classList.remove('hidden');
+
+            // Clear existing list
+            completedItemsList.innerHTML = '';
+
+            // Sort by completion time (most recent first)
+            const sortedCompletedItems = [...completedItems].sort((a, b) => b.completedAt - a.completedAt);
+
+            sortedCompletedItems.forEach(item => {
+                // Only show top-level completed items (not sub-tasks) in the completed list
+                if (item.parentId) return;
+
+                const li = document.createElement('li');
+                li.classList.add('completed-item');
+                li.classList.add(`category-${item.category}`);
+
+                // Create sprite column
+                const itemSpriteDiv = document.createElement('div');
+                itemSpriteDiv.classList.add('item-sprite');
+
+                // Create item info div
+                const itemInfoDiv = document.createElement('div');
+                itemInfoDiv.classList.add('item-info');
+
+                const itemNameSpan = document.createElement('span');
+                itemNameSpan.classList.add('item-name');
+                itemNameSpan.textContent = item.name;
+
+                const itemCompletedSpan = document.createElement('span');
+                itemCompletedSpan.classList.add('item-completed');
+                itemCompletedSpan.textContent = `Completed: ${item.completedAt.toLocaleString([], {
+                    dateStyle: 'short',
+                    timeStyle: 'short'
+                })}`;
+
+                itemInfoDiv.appendChild(itemNameSpan);
+                itemInfoDiv.appendChild(itemCompletedSpan);
+
+                // Add category badge
+                const itemCategorySpan = document.createElement('span');
+                itemCategorySpan.classList.add('item-category');
+                itemCategorySpan.textContent = item.category.charAt(0).toUpperCase() + item.category.slice(1);
+
+                const currentCategoryStyle = deps.categoryStyles[item.category] || deps.categoryStyles["other"];
+                itemCategorySpan.style.backgroundColor = currentCategoryStyle.bgColor;
+                if (currentCategoryStyle.textColorClass) {
+                    itemCategorySpan.classList.add(currentCategoryStyle.textColorClass);
+                }
+                itemInfoDiv.appendChild(itemCategorySpan);
+
+                // Add completion controls (edit icon and checkbox)
+                const itemStatusDiv = document.createElement('div');
+                itemStatusDiv.classList.add('item-status');
+                itemStatusDiv.style.cssText = 'display: flex; justify-content: flex-end; gap: 10px; align-items: center; height: 100%;';
+
+                // Edit icon button
+                const editIconButton = document.createElement('button');
+                editIconButton.classList.add('edit-icon-btn');
+                editIconButton.title = 'Edit Task';
+                editIconButton.textContent = '✏️';
+                editIconButton.addEventListener('click', () => deps.showEditTaskModal(item));
+                itemStatusDiv.appendChild(editIconButton);
+
+                // Completion checkbox (pre-checked for completed items)
+                const completeCheckboxLabel = document.createElement('label');
+                completeCheckboxLabel.classList.add('completion-checkbox');
+
+                const completeCheckbox = document.createElement('input');
+                completeCheckbox.type = 'checkbox';
+                completeCheckbox.classList.add('completion-checkbox-input');
+                completeCheckbox.checked = true; // Pre-checked for completed items
+                completeCheckbox.addEventListener('change', () => {
+                    if (!completeCheckbox.checked) {
+                        deps.uncompleteItem(item.id);
+                    }
+                });
+                completeCheckboxLabel.appendChild(completeCheckbox);
+                completeCheckboxLabel.appendChild(document.createTextNode(' Completed'));
+
+                itemStatusDiv.appendChild(completeCheckboxLabel);
+
+                li.appendChild(itemSpriteDiv);
+                li.appendChild(itemInfoDiv);
+                li.appendChild(itemStatusDiv);
+
+                completedItemsList.appendChild(li);
+            });
+        } else {
+            completedTasksSection.classList.add('hidden');
+        }
+    }
+
+    /**
+     * Habit-specific: resolve an active habit instance back to its
+     * definition and open the definition editor. Habits have no per-instance
+     * editor today (only the routine-context habitDef editor), so this is
+     * the closest correct "edit" action; saveEditedHabit() keeps active
+     * instances in sync.
+     *
+     * deps: { definedHabits (getter), showEditHabitForm }
+     */
+    function showEditHabitInstanceModal(itemData, deps) {
+        const habitDef = deps.definedHabits().find(d => d.id === itemData.definitionId);
+        if (!habitDef) {
+            console.error('Edit habit: no definedHabits entry for definitionId', itemData.definitionId);
+            return;
+        }
+        deps.showEditHabitForm(null, habitDef);
+    }
+
+    return {
+        createListItem,
+        sortAndRenderActiveList,
+        resetAllSubTaskCheckboxes,
+        renderCompletedItems,
+        showEditHabitInstanceModal
+    };
 })();
 
 // Node/Jest interop — the browser gets the bare global above.
