@@ -24,8 +24,8 @@ js/
 ├── state.js           # central state + mutation functions (only place state changes)
 ├── persistence.js     # localStorage save/load + schemaVersion migrations
 ├── clock.js           # real time, timeline positions, midnight line (IMPLEMENTED 2026-07-17 — see DECISIONS.md). Offline catch-up deliberately stayed in script.js for now; moves to damage.js instead when that extraction happens (too tangled with damage/DOM animation to split off cleanly in clock.js's first session)
-├── spawning.js        # enemy creation/admission (max 20 on screen)
-├── movement.js        # timeline-based positioning
+├── spawning.js        # enemy creation/admission (IMPLEMENTED 2026-07-17 — addItemToGame + pure resolveEnemyVisual; DOM collaborators injected via deps)
+├── movement.js        # timeline-based positioning (IMPLEMENTED 2026-07-17 — getSubTaskClusterOffset/calculateTimelineXWithClustering/getItemTopPosition + internal getVisibleEdges; state/dims passed explicitly, CONFIG+Clock as globals)
 ├── damage.js          # overdue damage, base HP, game over, offline catch-up (moved here from clock.js's original scope — see clock.js note above)
 ├── progression.js     # XP, levels, slots
 ├── habits.js          # habit instances, streaks, pos/neg logic

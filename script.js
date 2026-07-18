@@ -117,14 +117,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let completedItems = [];
     let definedHabits = [];
     let definedRoutines = [];
-    let itemIdCounter, gameLoopInterval, gameIsOver, daysSurvived, dayTimerInterval, currentGameDate;
+    let itemIdCounter, gameLoopInterval, gameIsOver, daysSurvived, currentGameDate;
+    // Wall-clock ms when the current run started — "days survived" is derived
+    // from this rather than counted by a timer (see computeDaysSurvived).
+    let runStartedAtMs = null;
+    // Wall-clock ms of the previous game-loop tick, used to detect a suspended
+    // loop (laptop sleep / throttled tab). See runLiveGapCatchUp.
+    let lastLoopTickMs = null;
     let attackMode = false;
 
 
     // --- Game Settings ---
     // Values live in js/config.js (CONFIG) — never hardcode a balance number here.
     const GAME_TICK_MS = CONFIG.GAME_TICK_MS;
-    const DAY_DURATION_MS = CONFIG.DAY_DURATION_MS;
     const OVERDUE_DAMAGE = CONFIG.OVERDUE_DAMAGE;
     const DAMAGE_INTERVAL_MS = CONFIG.DAMAGE_INTERVAL_MS;
     const XP_PER_TASK_DEFEAT = CONFIG.XP_PER_TASK_DEFEAT;
@@ -187,6 +192,8 @@ document.addEventListener('DOMContentLoaded', () => {
         itemIdCounter = 1; // never 0 — many parentId checks use truthy tests (`if (item.parentId)`), and 0 is falsy
         gameIsOver = false;
         daysSurvived = 0;
+        runStartedAtMs = Date.now();
+        lastLoopTickMs = null; // first tick after init establishes the baseline
         attackMode = false;
         if (attackButton) attackButton.classList.remove('active');
         
@@ -203,12 +210,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gameLoopInterval) clearInterval(gameLoopInterval);
         gameLoopInterval = setInterval(updateGame, GAME_TICK_MS);
 
-        // Start day timer
-        if (dayTimerInterval) clearInterval(dayTimerInterval);
-        dayTimerInterval = setInterval(() => {
-            if (!gameIsOver) daysSurvived++;
-        }, DAY_DURATION_MS);
+        // No day timer: daysSurvived is derived from real elapsed time via
+        // computeDaysSurvived(), so it stays correct across sleep/suspension
+        // (a timer only advances while the tab is awake). See DECISIONS.md.
+    }
 
+    // Real calendar days elapsed since the run started. Replaces the old
+    // accelerated 60s-per-"day" interval, which both over-counted short waking
+    // sessions and stopped entirely while the machine slept.
+    function computeDaysSurvived() {
+        if (!runStartedAtMs) return 0;
+        return Math.max(0, Math.floor((Date.now() - runStartedAtMs) / CONFIG.MS_PER_REAL_DAY));
     }
 
     function updatePlayerDisplays() {
@@ -234,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function getPersistableState() {
         return {
             baseHealth, playerXP, playerLevel, playerPoints, routineSlots,
-            itemIdCounter, gameIsOver, daysSurvived, currentGameDate,
+            itemIdCounter, gameIsOver, daysSurvived, runStartedAtMs, currentGameDate,
             activeItems, completedItems, definedHabits, definedRoutines
         };
     }
@@ -277,6 +289,14 @@ document.addEventListener('DOMContentLoaded', () => {
         baseHealth = (typeof save.baseHealth === 'number') ? save.baseHealth : CONFIG.MAX_BASE_HEALTH;
         itemIdCounter = save.itemIdCounter || 1;
         daysSurvived = save.daysSurvived || 0;
+        // Saves written before 2026-07-18 have no runStartedAtMs (days were
+        // counted by the old accelerated timer). Fall back to the save's own
+        // timestamp so a restored run doesn't report a bogus day count.
+        runStartedAtMs = (typeof save.runStartedAtMs === 'number')
+            ? save.runStartedAtMs
+            : ((save.savedAt instanceof Date && !isNaN(save.savedAt.getTime()))
+                ? save.savedAt.getTime()
+                : Date.now());
         if (save.currentGameDate instanceof Date && !isNaN(save.currentGameDate.getTime())) {
             currentGameDate = save.currentGameDate;
         }
@@ -607,90 +627,30 @@ document.addEventListener('DOMContentLoaded', () => {
         return taskData;
     }
 
+    // Enemy admission (sprite build, positioning, overdue-on-spawn) lives in
+    // js/spawning.js (Milestone 2 extraction, 2026-07-17). Thin wrapper passes
+    // script.js's collaborators + dims via deps; every call site is unchanged.
     function addItemToGame(itemData) {
-        console.log('📍 addItemToGame called with:', {
-            id: itemData.id,
-            name: itemData.name,
-            type: itemData.type,
-            parentId: itemData.parentId,
-            parentIdType: typeof itemData.parentId,
-            stackTrace: new Error().stack.split('\n').slice(1, 4).join('\n')
+        return Spawning.addItemToGame(itemData, {
+            gameCanvas,
+            activeItems,
+            baseWidth: BASE_WIDTH,
+            dims: {
+                enemyWidth: ENEMY_WIDTH,
+                habitEnemyWidth: HABIT_ENEMY_WIDTH,
+                subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH,
+                habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD
+            },
+            getItemTopPosition,
+            getSubTaskClusterOffset,
+            handleEnemyClick,
+            createListItem,
+            markAsOverdue,
+            updateTaskCountDisplay,
+            sortAndRenderActiveList,
+            saveGame,
+            isGameOver: () => gameIsOver
         });
-        
-        if (gameIsOver) return;
-        
-        // Create enemy element
-        const itemElement = document.createElement('div');
-        itemElement.classList.add('enemy');
-        itemElement.classList.add(`category-${itemData.category}`);
-        
-        // Add new zombie sprite classes
-        itemElement.classList.add('zombie-sprite');
-        itemElement.classList.add(`zombie-${itemData.category}`);
-        
-        let itemSpriteWidth, itemSpriteHeight;
-        
-        if (itemData.parentId) {
-            // This is a subtask
-            itemSpriteWidth = CONFIG.SUBTASK_ENEMY_WIDTH;
-            itemSpriteHeight = CONFIG.SUBTASK_ENEMY_WIDTH;
-            itemElement.classList.add('subtask-enemy');
-            itemElement.classList.add('zombie-subtask');
-        } else if (itemData.type === 'habit') {
-            itemSpriteWidth = HABIT_ENEMY_WIDTH;
-            itemSpriteHeight = 128;
-        } else {
-            itemSpriteWidth = ENEMY_WIDTH;
-            itemSpriteHeight = 128;
-        }
-        
-        itemElement.style.width = `${itemSpriteWidth}px`;
-        itemElement.style.height = `${itemSpriteHeight}px`;
-        
-        if (itemData.type === 'task' && itemData.isHighPriority) {
-            itemElement.classList.add('high-priority');
-        } else if (itemData.type === 'habit') {
-            itemElement.classList.add('habit-enemy');
-            itemElement.classList.add('zombie-small'); // Add small size class for habits
-            if (itemData.isNegative) {
-                itemElement.classList.add('negative-habit');
-            }
-            if (itemData.streak >= HABIT_STREAK_BONUS_THRESHOLD) {
-                itemElement.classList.add('high-streak');
-            }
-        }
-        
-        // Position enemy
-        itemElement.style.left = itemData.x + 'px';
-        itemElement.style.top = getItemTopPosition(itemData, itemSpriteHeight) + 'px';
-        
-        // Set up click handler
-        itemElement.dataset.itemId = itemData.id;
-        itemElement.addEventListener('click', () => handleEnemyClick(itemData.id));
-        
-        // Never write emoji textContent - always use sprite classes
-        itemElement.textContent = '';
-        
-        // Add to game canvas
-        gameCanvas.appendChild(itemElement);
-        itemData.element = itemElement;
-        
-        // Create list item only if it's a top-level task
-        if (!itemData.parentId) {
-            createListItem(itemData);
-        }
-        
-        // Check if already overdue
-        if (itemData.dueDateTime < new Date()) {
-            markAsOverdue(itemData, new Date());
-            itemData.x = BASE_WIDTH + getSubTaskClusterOffset(itemData);
-            if (itemData.element) itemData.element.style.left = itemData.x + 'px';
-        }
-        
-        activeItems.push(itemData);
-        updateTaskCountDisplay();
-        sortAndRenderActiveList();
-        saveGame();
     }
 
     // Habit-specific: resolve an active habit instance back to its definition
@@ -1688,93 +1648,37 @@ function showTaskDetailsPopup(item) {
         return fivePM;
     }
     
-    // The zombie PNGs have large transparent margins (the visible graphic is
-    // roughly the middle 44%-92% of the box, varying per category — measured
-    // fractions live in CONFIG.ZOMBIE_VISIBLE_MARGINS). Returns the visible
-    // graphic's left/right edges in px, relative to the sprite box's left edge.
-    function getVisibleEdges(category, boxWidth) {
-        const m = CONFIG.ZOMBIE_VISIBLE_MARGINS[category] || CONFIG.ZOMBIE_VISIBLE_MARGIN_FALLBACK;
-        return {
-            left: boxWidth * m.left,
-            right: boxWidth * (1 - m.right)
-        };
-    }
-
-    // Sub-tasks fan out beside their parent: alternating right/left by creation
-    // order (ordered by id, so the arrangement stays stable as siblings
-    // complete). Offsets are computed from the sprites' VISIBLE graphic edges
-    // (via getVisibleEdges), not their box edges — the PNGs have big transparent
-    // margins, so box-edge math left visually inconsistent gaps. Each side's 1st
-    // slot butts its visible graphic against the parent's visible edge (plus a
-    // small gap); each further same-side slot chains off the previous sibling's
-    // visible edge. Sibling categories can differ, so the chain walks every
-    // earlier sibling and uses each one's own measured margins.
+    // Sub-task cluster offset + visible-edge math live in js/movement.js
+    // (Milestone 2 extraction, 2026-07-17). Thin wrapper — call site unchanged.
     function getSubTaskClusterOffset(item) {
-        if (!item.parentId) return 0;
-        const parentTask = activeItems.find(p => p.id === item.parentId);
-        const gap = CONFIG.SUBTASK_CLUSTER_GAP_PX;
-        const subWidth = CONFIG.SUBTASK_ENEMY_WIDTH;
-
-        const parentEdges = getVisibleEdges(parentTask ? parentTask.category : 'other', ENEMY_WIDTH);
-        let rightFrontier = parentEdges.right; // visible right edge of the rightmost cluster member so far (px, relative to parent box left)
-        let leftFrontier = parentEdges.left;   // visible left edge of the leftmost cluster member so far
-
-        const siblings = activeItems
-            .filter(i => i.parentId === item.parentId && i.id <= item.id)
-            .sort((a, b) => a.id - b.id);
-
-        let offset = 0;
-        siblings.forEach((sib, idx) => {
-            const sibEdges = getVisibleEdges(sib.category, subWidth);
-            let sibOffset;
-            if (idx % 2 === 0) {
-                // right side: sib's visible left edge sits gap px after the current right frontier
-                sibOffset = rightFrontier + gap - sibEdges.left;
-                rightFrontier = sibOffset + sibEdges.right;
-            } else {
-                // left side: sib's visible right edge sits gap px before the current left frontier
-                sibOffset = leftFrontier - gap - sibEdges.right;
-                leftFrontier = sibOffset + sibEdges.left;
-            }
-            if (sib.id === item.id) offset = sibOffset;
+        return Movement.getSubTaskClusterOffset(item, {
+            activeItems,
+            enemyWidth: ENEMY_WIDTH
         });
-        return offset;
     }
 
-    // Sub-tasks normally track the PARENT's timeline position (offset by
-    // getSubTaskClusterOffset) rather than their own due date, so they stay
-    // visually clustered with the parent even if their due time is only a
-    // little different. Only when a sub-task's own due date is due
-    // significantly EARLIER than the parent's (its own timeline position is
-    // meaningfully closer to the base) does it break from the cluster and
-    // show its own real urgency further ahead.
+    // Sub-task clustering vs own-urgency logic lives in js/movement.js
+    // (Milestone 2 extraction, 2026-07-17). Thin wrapper — call site unchanged.
     function calculateTimelineXWithClustering(item, currentTime) {
-        const ownTimelineX = calculateTimelinePosition(item, currentTime);
-        if (!item.parentId) return ownTimelineX;
-
-        const parentTask = activeItems.find(p => p.id === item.parentId);
-        if (!parentTask) return ownTimelineX + getSubTaskClusterOffset(item);
-
-        if (parentTask.x - ownTimelineX > CONFIG.SUBTASK_AHEAD_THRESHOLD_PX) {
-            return ownTimelineX; // due much earlier than parent — show real urgency
-        }
-        return parentTask.x + getSubTaskClusterOffset(item);
+        return Movement.calculateTimelineXWithClustering(item, currentTime, {
+            activeItems,
+            dims: {
+                gameScreenWidth: GAME_SCREEN_WIDTH,
+                baseWidth: BASE_WIDTH,
+                enemyWidth: ENEMY_WIDTH,
+                habitEnemyWidth: HABIT_ENEMY_WIDTH
+            }
+        });
     }
 
-    // Sub-tasks bottom-align with their parent (feet on the same ground line)
-    // instead of a random height, so they visually cluster with it. Falls back
-    // to random for top-level items or if the parent isn't rendered yet.
+    // Sub-task-vs-parent vertical alignment lives in js/movement.js (Milestone 2
+    // extraction, 2026-07-17). Wrapper reads the live canvas height (DOM) here;
+    // call site unchanged.
     function getItemTopPosition(item, itemHeight) {
-        if (item.parentId) {
-            const parentTask = activeItems.find(p => p.id === item.parentId);
-            if (parentTask && parentTask.element) {
-                const parentTop = parseFloat(parentTask.element.style.top);
-                const parentHeight = parseFloat(parentTask.element.style.height) || itemHeight;
-                if (!isNaN(parentTop)) return parentTop + (parentHeight - itemHeight);
-            }
-        }
-        const randomTop = Math.random() * (gameCanvas.offsetHeight - itemHeight);
-        return Math.max(0, Math.min(randomTop, gameCanvas.offsetHeight - itemHeight));
+        return Movement.getItemTopPosition(item, itemHeight, {
+            activeItems,
+            canvasHeight: gameCanvas.offsetHeight
+        });
     }
 
     // Timeline position math lives in js/clock.js (Milestone 2 extraction,
@@ -1883,12 +1787,16 @@ function updateActiveItems() {
 
     function gameOver() {
         gameIsOver = true;
-        
+
         clearInterval(gameLoopInterval);
-        clearInterval(dayTimerInterval);
-        
+
+        // Freeze the real-time day count at the moment of death, so the
+        // message and the saved run history agree afterwards.
+        daysSurvived = computeDaysSurvived();
+
         if (gameOverMessage) {
-            gameOverMessage.textContent = `GAME OVER! Your Base Survived ${daysSurvived} Days.`;
+            const dayLabel = daysSurvived === 1 ? 'Day' : 'Days';
+            gameOverMessage.textContent = `GAME OVER! Your Base Survived ${daysSurvived} ${dayLabel}.`;
             gameOverMessage.classList.remove('hidden');
         }
         
@@ -1899,11 +1807,67 @@ function updateActiveItems() {
         saveGame();
     }
 
+    // The page stayed open but the game loop stopped running for a while
+    // (laptop sleep, throttled background tab). There was no reload, so
+    // restoreGameState()/runOfflineCatchUp() never ran — yet updateActiveItems()
+    // would happily replay the entire gap at one DAMAGE_INTERVAL_MS per 50ms
+    // tick (~120 damage in 6s after a 10-hour sleep, flattening the base).
+    //
+    // Treat the gap as time the player was away: charge the same per-item,
+    // LIFETIME-capped damage a reload would (shared offlineDamageCharged
+    // budget), then park each overdue item's damage clock at the caught-up
+    // time so the live loop resumes normally from here.
+    //
+    // Pending ticks are computed from lastDamageTickTime and the clock is
+    // advanced by whole intervals only — keeping the sub-interval remainder.
+    // (Computing from the gap window instead would floor() each window to zero
+    // for a background tab ticking once a minute, making backgrounding a
+    // damage-evasion loophole.)
+    function runLiveGapCatchUp() {
+        if (gameIsOver) return;
+        const nowMs = Date.now();
+        const now = new Date();
+        const hits = [];
+
+        activeItems.forEach(item => {
+            if (item.dueDateTime.getTime() > nowMs) return; // not due yet
+
+            // Items that fell due DURING the gap aren't marked yet; marking
+            // sets lastDamageTickTime to the due time, which is exactly the
+            // window we're about to charge for.
+            if (!item.isOverdue) {
+                item.x = BASE_WIDTH + getSubTaskClusterOffset(item);
+                markAsOverdue(item, now);
+                if (item.element) item.element.style.left = item.x + 'px';
+            }
+
+            const pendingTicks = Math.floor((nowMs - item.lastDamageTickTime) / DAMAGE_INTERVAL_MS);
+            if (pendingTicks <= 0) return;
+            item.lastDamageTickTime += pendingTicks * DAMAGE_INTERVAL_MS;
+
+            const remaining = CONFIG.OFFLINE_DAMAGE_CAP_PER_ITEM - (item.offlineDamageCharged || 0);
+            const dmg = Math.min(pendingTicks * OVERDUE_DAMAGE, Math.max(0, remaining));
+            if (dmg > 0) hits.push({ item, dmg });
+        });
+
+        applyOfflineDamage(hits); // increments offlineDamageCharged + saves via damageBase
+    }
+
     function updateGame() {
         if (!gameIsOver) {
+            const nowMs = Date.now();
+
+            // Detect a suspended loop before ticking, so the damage catch-up is
+            // capped rather than replayed one interval per frame.
+            if (lastLoopTickMs !== null && (nowMs - lastLoopTickMs) >= CONFIG.LIVE_GAP_THRESHOLD_MS) {
+                runLiveGapCatchUp();
+            }
+            lastLoopTickMs = nowMs;
+
+            if (gameIsOver) return; // catch-up may have ended the run
+
             updateActiveItems();
 
-            const nowMs = Date.now();
             if (nowMs - lastAutosaveMs >= CONFIG.PERSISTENCE_AUTOSAVE_MS) {
                 lastAutosaveMs = nowMs;
                 saveGame();
@@ -3696,6 +3660,23 @@ function updateActiveItems() {
         restartButton.addEventListener('click', () => {
             // A restart abandons the dead run — clear its save so a reload
             // before the first new mutation doesn't resurrect it.
+            if (typeof Persistence !== 'undefined') Persistence.clear();
+            initGame();
+            saveGame();
+        });
+    }
+
+    // Dev/testing only: full reset to a fresh, empty game. Unlike the restart
+    // button (which keeps habit/routine DEFINITIONS and re-seeds today's habit
+    // instances via initGame), this also wipes definedHabits/definedRoutines so
+    // the next generateDailyHabitInstances() has nothing to re-create. Clears
+    // the save and persists the empty state, so no reload or flush-guard needed.
+    const resetTestButton = document.getElementById('resetTestButton');
+    if (resetTestButton) {
+        resetTestButton.addEventListener('click', () => {
+            if (!confirm('Reset the game to a fresh state? This clears all tasks, habits, routines, and progress.')) return;
+            definedHabits = [];
+            definedRoutines = [];
             if (typeof Persistence !== 'undefined') Persistence.clear();
             initGame();
             saveGame();

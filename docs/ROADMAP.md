@@ -19,8 +19,9 @@ Work ONE unchecked task per session. Check items off with the date. Ticket IDs r
 ## Milestone 2 — Modularize script.js (incremental; one extraction per session)
 Order chosen so each step is small and testable. Tests pass before/after each; commit each.
 - [x] Extract clock/time + timeline positioning (2026-07-17) — `calculateTimelinePosition`/`updateMidnightLine` moved to `js/clock.js` (dims passed explicitly, not closure); script.js keeps thin wrappers so call sites are unchanged. Offline catch-up deliberately NOT moved (deferred to the damage/base-health extraction below). See DECISIONS.md.
-- [ ] Extract enemy spawning + movement
-- [ ] Extract damage/base-health/game-over
+- [x] Extract enemy spawning + movement (2026-07-17) — `js/movement.js` (getSubTaskClusterOffset, calculateTimelineXWithClustering, getItemTopPosition + internal getVisibleEdges; explicit ctx/dims instead of closures, CONFIG+Clock as globals) and `js/spawning.js` (addItemToGame + pure resolveEnemyVisual, DOM collaborators injected via deps). script.js keeps thin wrappers so all call sites are unchanged. Both wired into index.html after clock.js. Tests: `test/movement.test.js` + `test/spawning.test.js`. Behavior-identical extraction.
+- [ ] Extract damage/base-health/game-over — scope grew 2026-07-18: also absorbs `runLiveGapCatchUp` + `computeDaysSurvived` (new that day) and the offline catch-up code deferred from clock.js
+- [x] **Bugfix (2026-07-18, not a Milestone item): three overdue-damage bugs from Jeremy's overnight test** — one root cause (a far-past `lastDamageTickTime` makes the live loop pay one damage interval per 50ms tick; the offline cap only guarded the reload path). Fixed: suspended-loop gaps now route through the capped path (`runLiveGapCatchUp`, `CONFIG.LIVE_GAP_THRESHOLD_MS`); items created already-overdue start their clock at spawn; and "days survived" now derives from real elapsed time (`runStartedAtMs` + `CONFIG.MS_PER_REAL_DAY`) instead of the removed 60s-per-day `DAY_DURATION_MS` timer. Also added a dev-only bottom-left reset button. See DECISIONS.md.
 - [ ] Extract progression (XP, levels, slots)
 - [ ] Extract habits + streaks
 - [ ] Extract routines
