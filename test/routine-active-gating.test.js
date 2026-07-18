@@ -1,0 +1,210 @@
+/**
+ * Routine isActive gating + deactivation recall tests (2026-07-18).
+ *
+ * Covers the ROADMAP item found the same day as the routine-tasks fix:
+ * isActive was inert. generateDailyHabitInstances iterated every habit
+ * regardless of routine membership or active state, and toggleRoutineActive
+ * only flipped the flag (no spawn gating, no recall, no save).
+ *
+ * This file mirrors two pieces of script.js:
+ *   1. The habit-side spawn selection (the habit equivalent of
+ *      selectTaskDefsToSpawn in test/routine-task-instances.test.js).
+ *   2. selectActiveItemIdsToClearForRoutine — the pure selection half of
+ *      clearActiveInstancesForRoutine, which recalls a deactivated routine's
+ *      active enemies (decided with Jeremy: deactivating clears active
+ *      enemies immediately, not just gates future spawns). The DOM/removal
+ *      half goes through the existing removeItem(), verified by playtest —
+ *      same split as Spawning.addItemToGame (see ARCHITECTURE.md).
+ *
+ * These functions live in script.js, which has no module.exports, so this is
+ * a hand-maintained mirror matching the convention of
+ * test/routine-task-instances.test.js. Keep in sync with script.js's
+ * generateDailyHabitInstances / selectActiveItemIdsToClearForRoutine.
+ */
+
+// --- mirrors of script.js -------------------------------------------------
+
+// The selection half of generateDailyHabitInstances: which habit definitions
+// spawn for a given day. Mirrors selectTaskDefsToSpawn's shape/dedupe logic,
+// substituting habits' lastCompletionDate check for tasks' completedItems scan.
+function selectHabitDefsToSpawn(definedHabits, definedRoutines, activeItems, forWhichGameDay) {
+    const forWhichGameDayString = forWhichGameDay.toDateString();
+
+    const activeRoutineHabitIds = new Set();
+    definedRoutines.forEach(routine => {
+        if (!routine.isActive) return;
+        (routine.habitDefinitionIds || []).forEach(id => activeRoutineHabitIds.add(id));
+    });
+
+    return definedHabits.filter(habitDef => {
+        if (!activeRoutineHabitIds.has(habitDef.id)) return false;
+        if (habitDef.frequency !== 'daily') return false;
+
+        const lastCompletionDayString = habitDef.lastCompletionDate
+            ? new Date(habitDef.lastCompletionDate).toDateString()
+            : null;
+        const alreadyCompletedForThisGameDay = lastCompletionDayString === forWhichGameDayString;
+
+        const existingActiveInstance = activeItems.find(item =>
+            item.type === 'habit' &&
+            item.definitionId === habitDef.id &&
+            item.originalDueDate &&
+            new Date(item.originalDueDate).toDateString() === forWhichGameDayString
+        );
+
+        return !alreadyCompletedForThisGameDay && !existingActiveInstance;
+    });
+}
+
+// Mirrors script.js's selectActiveItemIdsToClearForRoutine.
+function selectActiveItemIdsToClearForRoutine(activeItems, routine) {
+    const habitDefIds = new Set(routine.habitDefinitionIds || []);
+    const taskDefIds = new Set(routine.taskDefinitionIds || []);
+
+    const rootIds = activeItems
+        .filter(item =>
+            (item.type === 'habit' && habitDefIds.has(item.definitionId)) ||
+            (item.type === 'task' && taskDefIds.has(item.definitionId))
+        )
+        .map(item => item.id);
+
+    const rootIdSet = new Set(rootIds);
+    const subTaskIds = activeItems
+        .filter(item => item.parentId !== undefined && rootIdSet.has(item.parentId))
+        .map(item => item.id);
+
+    return [...subTaskIds, ...rootIds];
+}
+
+// --- fixtures --------------------------------------------------------------
+
+const DAY = new Date(2026, 6, 18); // Sat Jul 18 2026, local
+const OTHER_DAY = new Date(2026, 6, 19);
+
+function habitDef(id, overrides = {}) {
+    return { id, name: `Habit ${id}`, category: 'other', frequency: 'daily', timeOfDay: 'anytime', streak: 0, isNegative: false, ...overrides };
+}
+
+function routine(id, habitDefinitionIds, isActive = true, taskDefinitionIds = []) {
+    return { id, name: `Routine ${id}`, habitDefinitionIds, taskDefinitionIds, isActive };
+}
+
+function habitInstance(id, definitionId, dueDate, overrides = {}) {
+    return { id, type: 'habit', definitionId, originalDueDate: new Date(dueDate), ...overrides };
+}
+
+function taskInstance(id, definitionId, overrides = {}) {
+    return { id, type: 'task', definitionId, ...overrides };
+}
+
+// --- selectHabitDefsToSpawn -------------------------------------------------
+
+describe('selectHabitDefsToSpawn — isActive gating', () => {
+    test('a habit in an ACTIVE routine spawns', () => {
+        const defs = [habitDef('h1')];
+        const routines = [routine('r1', ['h1'], true)];
+        expect(selectHabitDefsToSpawn(defs, routines, [], DAY).map(d => d.id)).toEqual(['h1']);
+    });
+
+    test('a habit in an INACTIVE routine does not spawn', () => {
+        const defs = [habitDef('h1')];
+        const routines = [routine('r1', ['h1'], false)];
+        expect(selectHabitDefsToSpawn(defs, routines, [], DAY)).toHaveLength(0);
+    });
+
+    test('a habit not attached to any routine is inert (orphaned)', () => {
+        const defs = [habitDef('h1'), habitDef('orphan')];
+        const routines = [routine('r1', ['h1'], true)];
+        expect(selectHabitDefsToSpawn(defs, routines, [], DAY).map(d => d.id)).toEqual(['h1']);
+    });
+
+    test('shared by an active AND inactive routine still spawns (active wins)', () => {
+        const defs = [habitDef('h1')];
+        const routines = [routine('r1', ['h1'], false), routine('r2', ['h1'], true)];
+        expect(selectHabitDefsToSpawn(defs, routines, [], DAY)).toHaveLength(1);
+    });
+
+    test('does not double-spawn when already completed for this game day', () => {
+        const defs = [habitDef('h1', { lastCompletionDate: DAY })];
+        const routines = [routine('r1', ['h1'], true)];
+        expect(selectHabitDefsToSpawn(defs, routines, [], DAY)).toHaveLength(0);
+    });
+
+    test('DOES spawn again on a new day after being completed yesterday', () => {
+        const defs = [habitDef('h1', { lastCompletionDate: DAY })];
+        const routines = [routine('r1', ['h1'], true)];
+        expect(selectHabitDefsToSpawn(defs, routines, [], OTHER_DAY).map(d => d.id)).toEqual(['h1']);
+    });
+
+    test('does not double-spawn when an instance for that day is already active', () => {
+        const defs = [habitDef('h1')];
+        const routines = [routine('r1', ['h1'], true)];
+        const active = [habitInstance(1, 'h1', DAY)];
+        expect(selectHabitDefsToSpawn(defs, routines, active, DAY)).toHaveLength(0);
+    });
+
+    test('non-daily frequency does not spawn (dormant safety net — form only offers daily today)', () => {
+        const defs = [habitDef('h1', { frequency: 'weekly' })];
+        const routines = [routine('r1', ['h1'], true)];
+        expect(selectHabitDefsToSpawn(defs, routines, [], DAY)).toHaveLength(0);
+    });
+});
+
+// --- selectActiveItemIdsToClearForRoutine -----------------------------------
+
+describe('selectActiveItemIdsToClearForRoutine — deactivation recall', () => {
+    test('recalls an active habit instance belonging to the routine', () => {
+        const active = [habitInstance(1, 'h1', DAY)];
+        const r = routine('r1', ['h1']);
+        expect(selectActiveItemIdsToClearForRoutine(active, r)).toEqual([1]);
+    });
+
+    test('recalls an active task instance belonging to the routine', () => {
+        const active = [taskInstance(2, 't1')];
+        const r = routine('r1', [], true, ['t1']);
+        expect(selectActiveItemIdsToClearForRoutine(active, r)).toEqual([2]);
+    });
+
+    test('leaves items belonging to OTHER routines alone', () => {
+        const active = [habitInstance(1, 'h1', DAY), habitInstance(2, 'h2', DAY)];
+        const r = routine('r1', ['h1']);
+        expect(selectActiveItemIdsToClearForRoutine(active, r)).toEqual([1]);
+    });
+
+    test('leaves manually-created items (no definitionId) alone', () => {
+        const active = [{ id: 3, type: 'task', originalDueDate: new Date(DAY) }];
+        const r = routine('r1', [], true, ['t1']);
+        expect(selectActiveItemIdsToClearForRoutine(active, r)).toEqual([]);
+    });
+
+    test('cascades sub-tasks of a recalled routine task, ordered before their parent', () => {
+        const active = [
+            taskInstance(10, 't1'),
+            { id: 11, type: 'task', parentId: 10 },
+            { id: 12, type: 'task', parentId: 10 },
+        ];
+        const r = routine('r1', [], true, ['t1']);
+        expect(selectActiveItemIdsToClearForRoutine(active, r)).toEqual([11, 12, 10]);
+    });
+
+    test('does not cascade sub-tasks of an unrelated parent', () => {
+        const active = [
+            taskInstance(10, 't1'),
+            { id: 11, type: 'task', parentId: 99 }, // belongs to some other, non-routine task
+        ];
+        const r = routine('r1', [], true, ['t1']);
+        expect(selectActiveItemIdsToClearForRoutine(active, r)).toEqual([10]);
+    });
+
+    test('a routine with no habitDefinitionIds/taskDefinitionIds does not throw', () => {
+        const active = [habitInstance(1, 'h1', DAY)];
+        const r = { id: 'r1', name: 'legacy' };
+        expect(() => selectActiveItemIdsToClearForRoutine(active, r)).not.toThrow();
+        expect(selectActiveItemIdsToClearForRoutine(active, r)).toEqual([]);
+    });
+
+    test('empty activeItems returns empty', () => {
+        const r = routine('r1', ['h1'], true, ['t1']);
+        expect(selectActiveItemIdsToClearForRoutine([], r)).toEqual([]);
+    });
+});

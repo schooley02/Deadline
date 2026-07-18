@@ -13,6 +13,37 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-18 — Bugfix (same session, found live right after the isActive fix): activating a routine spawned nothing until reload
+
+**Did:** Jeremy hit this immediately after the isActive-gating session below: create a routine, add a task, hit Activate — nothing showed up in the game area or agenda list. **Root cause: a gap in that same isActive fix.** The daily generators (`generateDailyHabitInstances`/`generateDailyRoutineTaskInstances`) only run from `initGame`, `restoreGameState`, and creation time. A routine starts `isActive: false`, so adding a task to it calls the generator while still inactive — correctly a no-op under the new gating. `toggleRoutineActive` then flips `isActive` to `true` but never called either generator itself, so nothing spawned until a reload or day-rollover.
+
+**Fix:** `toggleRoutineActive` now calls both daily generators on the inactive→active transition — the direct symmetric counterpart to the immediate recall already added for the active→inactive transition. Updated docs/ROUTINES.md (the "does NOT retroactively spawn... next daily pass" line was this session's original, now-corrected design intent) and DECISIONS.md.
+
+**State:** `node --check` clean, full Jest suite still green (11 suites, 182/182 — unchanged, this call-site fix isn't independently unit-tested; it's DOM orchestration like `Spawning.addItemToGame`, verified by playtest per ARCHITECTURE.md). **NOT yet live-playtested by Jeremy** — please confirm: create a routine, add a habit AND a task to it, hit Activate, and check both appear immediately as sprite + agenda row.
+
+**Next:** same as below — playtest both the recall (deactivate) and spawn (activate) paths together, then commit everything pending, then move to habits + streaks extraction.
+
+**Watch out:** same isActive-related items as the entry below still apply (recall only fires inside `toggleRoutineActive`; sub-task cascade is one level deep).
+
+## 2026-07-18 — Routine `isActive` now gates spawning + recalls active enemies on deactivation (Cowork session)
+
+**Did:** Closed the ROADMAP item found during the previous session's routine-tasks fix. `generateDailyHabitInstances` and `generateDailyRoutineTaskInstances` now build a set of definition ids belonging to a currently-`isActive` routine and skip anything not in it — this also makes a definition orphaned from its routine (via `removeHabitFromRoutine`/`removeTaskFromRoutine`) inert, same as it already was for tasks. Asked Jeremy the one open design question first: should deactivating a routine just stop future spawns, or also pull already-active enemies off the board? **He chose: also clear active enemies.** Added `selectActiveItemIdsToClearForRoutine` (pure: matches active items by `definitionId` against the routine's `habitDefinitionIds`/`taskDefinitionIds`, cascades sub-tasks of a matched routine task ahead of their parent) + `clearActiveInstancesForRoutine` (routineId), which runs each selected id through the existing `removeItem()` — no new DOM/removal path, no XP/points/streak/damage side effects, not recorded in `completedItems`. `toggleRoutineActive` now calls this on active→inactive transitions and also gained the `saveGame()` call it was missing (previously relied on the 5s autosave net).
+
+**Docs updated same session:** docs/ROUTINES.md's "Activation & Deactivation" section now describes both the spawn-gating and the recall behavior (removed the old "NOT YET IMPLEMENTED" note). Decision + rejected alternative (leave active enemies running their course) logged in DECISIONS.md.
+
+**Tests:** extended `test/routine-task-instances.test.js`'s `selectTaskDefsToSpawn` mirror with isActive gating (4 new cases; the `routine()` fixture helper now defaults `isActive: true` so the pre-existing dedupe tests didn't need touching). New `test/routine-active-gating.test.js` (16 cases): habit-side spawn-selection mirror with isActive gating, plus `selectActiveItemIdsToClearForRoutine` coverage (basic match, cross-routine isolation, manual-item isolation, sub-task cascade ordering, unrelated-parent non-cascade, missing-fields no-throw, empty-input).
+
+**State:** ✅ **Full Jest suite green in the sandbox: 11 suites, 182/182** (162 prior + 20 new). `node --check` clean on script.js and every file in js/. **NOT live-playtested by Jeremy yet** — the recall path (`removeItem` DOM cleanup) should be confirmed in the browser: create/activate a routine with a habit and a task, let both spawn, deactivate the routine, and confirm both sprites and agenda rows vanish immediately with no XP/points awarded and no console errors; then reactivate and confirm nothing spawns until the next daily pass. **NOT committed** — sits on top of the not-yet-committed work from the last two sessions (progression.js extraction + the routine-tasks fix); all three should go in one commit round or be split carefully if Jeremy wants separate commits.
+
+**Sandbox tooling note:** hit the ENOTEMPTY npm-install corruption for the first time this session — turned out to be because I was running `npm install` inside the **outputs folder itself**, which the platform makes files un-renamable/un-deletable in (by design, so Jeremy's deliverables can't vanish underneath him). That's fatal for `npm install`'s atomic rename-based package writes. Switched to `/tmp` in the sandbox (a real scratch dir, not host-mapped) and the install completed cleanly in one shot. Worth remembering: **any sandbox `npm install` must happen in `/tmp` (or similar), never under the outputs path**, even though outputs is the folder shell commands can otherwise read/write freely. Also hit the by-now-familiar `unrs-resolver` missing-native-binding issue (`test/setup.js ... not found`) — same fix as before (`npm i @unrs/resolver-binding-linux-x64-gnu --no-save`).
+
+**Next:** commit all three pending pieces of work (commands below), then live-playtest the recall behavior described above. After that, next Milestone 2 item is **extract habits + streaks** (now unblocked — the isActive/frequency entanglement HANDOFF flagged last session is resolved).
+
+**Watch out:**
+- Recall only fires on the active→inactive *transition* inside `toggleRoutineActive`. If any other code path ever sets `routine.isActive = false` directly (I didn't find one, but the habits/routines extraction should re-check), it would skip the recall and leave stale enemies on the board.
+- `selectActiveItemIdsToClearForRoutine` cascades only ONE level of sub-tasks (a sub-task's own children, if that ever becomes a thing). Not an issue today — sub-tasks can't currently have sub-tasks — but worth a second look if that changes.
+- Cached script.js has bitten multiple prior sessions — hard-reload before doubting a fix.
+
 ## 2026-07-18 — Routine tasks never spawned (root-caused + fixed); definedTasks now persisted (Cowork session)
 
 **Did:** Jeremy reported that a task added through a routine didn't show up on the board or in the agenda list. **Not a rendering bug — the spawn path was never built.** `createNewTaskInRoutine` created a task *definition*, pushed it to `definedTasks`, and called only `renderDefinedRoutines()`. Nothing anywhere converted a definition into a live item: there was no task equivalent of `createHabitInstanceData`/`generateDailyHabitInstances`. The task DID appear inside the routine management window, which is exactly why it looked like a display problem.

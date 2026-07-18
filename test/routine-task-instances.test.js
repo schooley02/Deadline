@@ -6,6 +6,10 @@
  * definedTasks and nothing ever instantiated it. There was no task equivalent
  * of createHabitInstanceData/generateDailyHabitInstances.
  *
+ * Also covers the same-day follow-up fix: routine.isActive now gates
+ * spawning (see test/routine-active-gating.test.js for the habit-side mirror
+ * and the recall-on-deactivate selection logic).
+ *
  * These functions live in script.js, which has no module.exports, so this is a
  * hand-maintained mirror matching the convention of test/subtask-creation.test.js
  * and test/create-list-item-branching.test.js. Keep in sync with script.js's
@@ -34,8 +38,11 @@ function getRoutineTaskInstanceDueTime(defaultDueTime, referenceDate) {
 function selectTaskDefsToSpawn(definedTasks, definedRoutines, activeItems, completedItems, forWhichGameDay) {
     const forWhichGameDayString = forWhichGameDay.toDateString();
 
+    // Only definitions attached to a currently-ACTIVE routine spawn
+    // (2026-07-18 isActive-gating fix).
     const routineTaskIds = new Set();
     definedRoutines.forEach(routine => {
+        if (!routine.isActive) return;
         (routine.taskDefinitionIds || []).forEach(id => routineTaskIds.add(id));
     });
 
@@ -69,8 +76,11 @@ function taskDef(id, overrides = {}) {
     return { id, name: `Task ${id}`, category: 'other', isHighPriority: false, defaultDueTime: '17:00', ...overrides };
 }
 
-function routine(id, taskDefinitionIds) {
-    return { id, name: `Routine ${id}`, habitDefinitionIds: [], taskDefinitionIds, isActive: false };
+// Defaults to isActive: true so the pre-existing dedupe/matching tests below
+// (written before the isActive-gating fix) don't all need updating — the
+// gating behavior itself gets its own describe block.
+function routine(id, taskDefinitionIds, isActive = true) {
+    return { id, name: `Routine ${id}`, habitDefinitionIds: [], taskDefinitionIds, isActive };
 }
 
 function instance(definitionId, dueDate) {
@@ -175,5 +185,32 @@ describe('selectTaskDefsToSpawn', () => {
         const defs = [taskDef('t1')];
         const routines = [routine('r1', ['t1']), routine('r2', ['t1'])];
         expect(selectTaskDefsToSpawn(defs, routines, [], [], DAY)).toHaveLength(1);
+    });
+});
+
+describe('selectTaskDefsToSpawn — isActive gating (2026-07-18 fix)', () => {
+    test('a task attached to an INACTIVE routine does not spawn', () => {
+        const defs = [taskDef('t1')];
+        const routines = [routine('r1', ['t1'], false)];
+        expect(selectTaskDefsToSpawn(defs, routines, [], [], DAY)).toHaveLength(0);
+    });
+
+    test('a task attached to an ACTIVE routine spawns', () => {
+        const defs = [taskDef('t1')];
+        const routines = [routine('r1', ['t1'], true)];
+        expect(selectTaskDefsToSpawn(defs, routines, [], [], DAY).map(d => d.id)).toEqual(['t1']);
+    });
+
+    test('shared by an active AND an inactive routine still spawns (active wins)', () => {
+        const defs = [taskDef('t1')];
+        const routines = [routine('r1', ['t1'], false), routine('r2', ['t1'], true)];
+        expect(selectTaskDefsToSpawn(defs, routines, [], [], DAY)).toHaveLength(1);
+    });
+
+    test('a routine missing isActive entirely is treated as inactive, not throwing', () => {
+        const defs = [taskDef('t1')];
+        const routines = [{ id: 'r1', name: 'legacy', taskDefinitionIds: ['t1'] }];
+        expect(() => selectTaskDefsToSpawn(defs, routines, [], [], DAY)).not.toThrow();
+        expect(selectTaskDefsToSpawn(defs, routines, [], [], DAY)).toHaveLength(0);
     });
 });

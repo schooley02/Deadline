@@ -19,10 +19,12 @@ Enemies that get inside the base (item overdue > 1 hour) damage the health of th
 ## Spawning (implemented 2026-07-18)
 Both routine habits and routine tasks spawn DAILY. Habits use their `timeOfDay` bucket (morning/afternoon/evening/anytime); tasks use the definition's `HH:MM` `defaultDueTime`. Instances are ordinary `type: 'habit'`/`type: 'task'` items carrying a `definitionId`, so damage, completion and sorting treat them like any manually-created item. Each generator dedupes per day against `activeItems` (already spawned) and completion (habits via `lastCompletionDate`, tasks via `completedItems`).
 
-## Activation & Deactivation
-Routines can be deactivated (vacation/seasonal) and reactivated; deactivated routines spawn no enemies.
+## Activation & Deactivation (implemented 2026-07-18)
+Routines can be deactivated (vacation/seasonal) and reactivated. Deactivating a routine does two things immediately, via `toggleRoutineActive`:
+- **Stops future spawning** — both daily generators (`generateDailyHabitInstances`, `generateDailyRoutineTaskInstances`) only spawn definitions belonging to a currently-active routine. A definition orphaned from any routine (via `removeHabitFromRoutine`/`removeTaskFromRoutine`) is inert the same way.
+- **Recalls active enemies** — any of the routine's habit/task instances currently on the board are removed immediately (`clearActiveInstancesForRoutine`), including any sub-tasks of a recalled routine task. This is a pure removal: no completion credit, no XP/points, no streak change, no damage penalty — the routine "went on vacation," it didn't get finished. Uses the same `removeItem()` path as any other removal.
 
-> **NOT YET IMPLEMENTED (as of 2026-07-18).** `isActive` is currently inert: both generators iterate every definition regardless of routine membership or active state, and `toggleRoutineActive` only flips the flag. Tracked as a ROADMAP item — see DECISIONS.md 2026-07-18.
+**Reactivating a routine spawns today's due instances immediately** (fixed 2026-07-18, same day as the gating fix above — the first version of this made activation spawn nothing until the next daily pass/reload, which Jeremy hit live: create a routine, add a task, activate it, nothing appeared). `toggleRoutineActive` calls both daily generators on the inactive→active transition, the direct counterpart to the immediate recall on active→inactive.
 
 ## Frozen Routine Slots (canonical spec — from PROJECT_SPEC.md)
 - A NEGATIVE habit streak of 3+ days (indulging 3 days running) FREEZES the associated routine slot.

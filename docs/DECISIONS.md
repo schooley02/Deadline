@@ -4,6 +4,49 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-18 — day-of-week / monthly scheduling DESIGNED with Jeremy (not yet built)
+
+**Request:** some routines need certain habits/tasks active only on specific days (weekdays vs. weekends), and the frequency dropdown (currently just "Daily") needs "Weekly" and "Monthly" options — for both routine habits/tasks and standalone (non-routine) habits.
+
+**Grounding:** this isn't a new invention — docs/DATA_SCHEMA.md's target schema already had `frequency: "daily"|"weekly"|{ days: number[] }`, and PROJECT_SPEC.md's original `Habit.schedule` object (`{ frequency: 'daily'|'weekly'|'custom', daysOfWeek: [0-6], timesPerWeek, timeWindows }`) designed this years ago; it was just never built (the live dropdown only ever had one option).
+
+**Decision (with Jeremy, three questions asked directly rather than guessed):**
+1. **Monthly short-month edge case:** clamp `dayOfMonth` to the month's last day (e.g. 31 → Feb 28/29) rather than skipping that month entirely.
+2. **Scope:** the schedule applies to habits and routine task definitions only (both already recur). Standalone one-off tasks do NOT get a recurrence schedule — that would be a new capability, not an extension of one.
+3. **Migration:** old saves migrate automatically — a `schemaVersion` bump rewrites `frequency: 'daily'` into `schedule: { frequency: 'daily', daysOfWeek: [0,1,2,3,4,5,6] }` on load, so nothing breaks for existing habits/tasks.
+
+**Design (full detail in docs/DATA_SCHEMA.md `Schedule` + docs/MECHANICS.md):** a single `schedule: { frequency, daysOfWeek, dayOfMonth }` object replaces the bare `frequency` string. Daily and weekly deliberately share ONE generator mechanism (a day-of-week checkbox filter) rather than getting separate streak/dedupe semantics — "weekly" is really "daily, but you pick which days," not a distinct weekly-streak concept. Monthly is the one genuinely different case, needing a day-of-month field instead of checkboxes.
+
+**Rejected:** giving "weekly" its own streak-per-week accounting distinct from daily's streak-per-day (would be new, unrequested balance/mechanics design layered onto a scheduling request); adding recurrence to standalone tasks (bigger scope than asked for, and standalone tasks have no recurrence concept today to extend).
+
+**Not yet implemented.** This was a design/planning conversation (recommended switching to Fable/Opus for it, since it's a schema-shaping decision — stayed on Sonnet at Jeremy's pace). Next session that picks this up needs: the `schemaVersion` bump + migration in `js/persistence.js`, the day-of-week/day-of-month UI (habit form + routine task form, both standalone and in-routine), and updating `generateDailyHabitInstances`/`generateDailyRoutineTaskInstances` (and the not-yet-built routine-task monthly path) to read `schedule` instead of `frequency`. Should probably be its own ROADMAP item under Milestone 2 or 3 — touches the same generators the pending "extract habits + streaks" extraction does, so worth sequencing deliberately rather than doing both blind.
+
+## 2026-07-18 — bugfix (not a roadmap item): activating a routine now spawns today's instances immediately
+
+**Bug (reported live by Jeremy, same day as the isActive-gating fix below):** create a routine, add a task to it, hit Activate — the task never appeared in the game area or the agenda list.
+
+**Root cause:** a gap in the isActive-gating fix itself. The daily generators (`generateDailyHabitInstances`/`generateDailyRoutineTaskInstances`) only run from three places: `initGame`, `restoreGameState`, and at creation time inside `createNewHabitInRoutine`/`createNewTaskInRoutine`. A routine starts `isActive: false` (`createRoutineDefinition`), so adding a task to it calls `generateDailyRoutineTaskInstances` while the routine is still inactive — the new gating correctly no-ops. `toggleRoutineActive` then flips `isActive` to `true` but never itself calls either generator, so nothing spawned until the next full reload or day-rollover.
+
+**Fix:** `toggleRoutineActive` now calls both daily generators on the inactive→active transition, spawning any of the routine's habits/tasks that are due today and not already active/completed. This is the direct symmetric counterpart to `clearActiveInstancesForRoutine`'s immediate recall on the active→inactive transition (added in the entry below) — deactivate removes today's instances immediately, activate adds them back immediately, rather than either edge waiting for a reload.
+
+**Superseded text:** docs/ROUTINES.md previously said reactivating "does NOT retroactively spawn today's instances... they appear on the next daily generation pass" — that was this session's original (wrong) design intent, corrected here after hitting it live.
+
+**Not unit-tested directly:** the call site change is DOM orchestration (spawning ultimately calls `addItemToGame`), same category as `Spawning.addItemToGame` per ARCHITECTURE.md — the selection logic it calls into was already covered by `test/routine-active-gating.test.js` / `test/routine-task-instances.test.js` from the entry below. Verify by playtest: create/activate a routine with a habit and a task, confirm both appear immediately.
+
+## 2026-07-18 — routine `isActive` now gates spawning AND recalls active enemies on deactivation
+
+**Roadmap item (found the same day as the routine-tasks fix above):** `isActive` was inert — both daily generators iterated every definition regardless of routine membership or active state, and `toggleRoutineActive` only flipped the flag (no save, no re-render). docs/ROUTINES.md said deactivated routines "spawn no enemies," which wasn't true.
+
+**Fix, part 1 (spawning):** `generateDailyHabitInstances` and `generateDailyRoutineTaskInstances` now build a set of definition ids belonging to a currently-`isActive` routine and skip anything not in that set — this also makes an orphaned definition (removed from its routine via `removeHabitFromRoutine`/`removeTaskFromRoutine` but never deleted from `definedHabits`/`definedTasks`) inert, matching the already-inert behavior tasks had for orphaning.
+
+**Fix, part 2 (recall) — asked Jeremy directly since the docs didn't specify it:** should deactivating a routine also remove its already-spawned, currently-active enemies from the board, or just stop new ones from spawning? **Jeremy chose: also clear active enemies.** Implemented as `clearActiveInstancesForRoutine` (routineId) → `selectActiveItemIdsToClearForRoutine` (pure selection: matches active items by `definitionId` against the routine's `habitDefinitionIds`/`taskDefinitionIds`, cascades any sub-tasks of a matched routine task ahead of their parent) → each id run through the existing `removeItem()`. Recall is a pure removal: no XP/points, no habit streak change, no damage penalty, not recorded in `completedItems` — the routine "went on vacation," it wasn't finished. Reactivating a routine does NOT retroactively spawn today's instances; they appear on the next daily generation pass, same as a brand-new routine habit/task.
+
+**`toggleRoutineActive` also gained the missing `saveGame()` call** (previously relied on the 5s autosave net, like the two routine-creation functions fixed in the entry above).
+
+**Rejected:** leaving already-active enemies to run their course after deactivation (the literal ROUTINES.md wording and the smaller diff) — Jeremy explicitly wanted immediate recall instead.
+
+**Deliberately NOT touched this session:** `generateDailyHabitInstances` still only handles `frequency === 'daily'`. Still safe today because the create-habit form's frequency dropdown has exactly one option (`daily`) — noted again in case that changes.
+
 ## 2026-07-18 — routine tasks spawn DAILY, like routine habits; definedTasks is now persisted
 
 **Bug (reported by Jeremy):** a task created inside a routine never appeared on the board or in the agenda list.

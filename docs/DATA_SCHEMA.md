@@ -49,12 +49,33 @@ Habit {
   name: string,
   category: Category,
   polarity: "positive"|"negative",
-  frequency: "daily"|"weekly"|{ days: number[] },  // days: 0-6
+  schedule: Schedule,       // see below — DESIGNED 2026-07-18, not yet built
   timeOfDay: "HH:MM"|null,
   routineId: string|null,
   streak: number,
   lastCompletionDate: ISOString|null,
   active: boolean
+}
+
+// DESIGNED 2026-07-18 (decided with Jeremy, see DECISIONS.md), NOT YET BUILT.
+// Replaces the current live schema's bare `frequency: 'daily'` string on both
+// `definedHabits` entries and routine task definitions (`definedTasks`) — both
+// get this same Schedule object, since both are recurring definitions.
+// Deliberately NOT extended to one-off standalone tasks (they don't recur today
+// and this doesn't add that capability).
+Schedule {
+  frequency: "daily"|"weekly"|"monthly",
+  daysOfWeek: number[],     // 0=Sun..6=Sat. Used for "daily" (default: all 7,
+                            // preserves today's every-day behavior) and
+                            // "weekly" (default: empty, forces an explicit
+                            // pick). Daily and weekly are the SAME generator
+                            // mechanism — a day-of-week filter — "weekly" is
+                            // just a UI label implying "pick specific days,"
+                            // not a separate streak/dedupe system.
+  dayOfMonth: number|null   // 1-31, used for "monthly" only. If the target
+                            // month is shorter than dayOfMonth, CLAMP to that
+                            // month's last day (e.g. 31 → Feb 28/29) rather
+                            // than skipping the month.
 }
 
 HabitInstance {              // today's spawned copy of a Habit

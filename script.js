@@ -1819,8 +1819,18 @@ function updateActiveItems() {
 
     function generateDailyHabitInstances(forWhichGameDay) {
         const forWhichGameDayString = forWhichGameDay.toDateString();
-        
+
+        // Only habits belonging to an ACTIVE routine spawn (2026-07-18 fix —
+        // see docs/ROUTINES.md and DECISIONS.md). A habit orphaned by
+        // removeHabitFromRoutine, or one whose routine is deactivated, is inert.
+        const activeRoutineHabitIds = new Set();
+        definedRoutines.forEach(routine => {
+            if (!routine.isActive) return;
+            (routine.habitDefinitionIds || []).forEach(id => activeRoutineHabitIds.add(id));
+        });
+
         definedHabits.forEach(habitDef => {
+            if (!activeRoutineHabitIds.has(habitDef.id)) return;
             if (habitDef.frequency === 'daily') {
                 const lastCompletionDayString = habitDef.lastCompletionDate ? 
                     new Date(habitDef.lastCompletionDate).toDateString() : null;
@@ -1907,24 +1917,21 @@ function updateActiveItems() {
     }
 
     // Daily spawn pass for routine tasks, mirroring generateDailyHabitInstances.
-    // NOTE: like the habit generator, this deliberately does NOT yet check
-    // routine.isActive — deactivated routines are supposed to spawn nothing
-    // (docs/ROUTINES.md), but isActive is currently inert for habits too. That
-    // mismatch is its own roadmap item; fixing it here would leave tasks and
-    // habits behaving differently.
     function generateDailyRoutineTaskInstances(forWhichGameDay) {
         if (!window.definedTasks) window.definedTasks = [];
         const forWhichGameDayString = forWhichGameDay.toDateString();
 
-        // Only definitions actually attached to a routine spawn. A definition
-        // orphaned by removeTaskFromRoutine stays in definedTasks but is inert.
-        const routineTaskIds = new Set();
+        // Only definitions attached to an ACTIVE routine spawn (2026-07-18 fix
+        // — see docs/ROUTINES.md and DECISIONS.md). A definition orphaned by
+        // removeTaskFromRoutine, or one whose routine is deactivated, is inert.
+        const activeRoutineTaskIds = new Set();
         definedRoutines.forEach(routine => {
-            (routine.taskDefinitionIds || []).forEach(id => routineTaskIds.add(id));
+            if (!routine.isActive) return;
+            (routine.taskDefinitionIds || []).forEach(id => activeRoutineTaskIds.add(id));
         });
 
         definedTasks.forEach(taskDef => {
-            if (!routineTaskIds.has(taskDef.id)) return;
+            if (!activeRoutineTaskIds.has(taskDef.id)) return;
 
             const existingActiveInstance = activeItems.find(item =>
                 item.type === 'task' &&
@@ -2410,18 +2417,78 @@ function updateActiveItems() {
         renderDefinedRoutines();
     }
 
+    // The selection half of clearActiveInstancesForRoutine below — which
+    // active items get recalled when a routine is deactivated, and in what
+    // order. Kept separate from removeItem's DOM/state work so it's testable
+    // without a DOM (matches the Spawning.addItemToGame precedent — see
+    // ARCHITECTURE.md and test/routine-active-gating.test.js).
+    // Sub-tasks are cascaded ahead of their parent so nothing is left
+    // pointing at a parent that no longer exists.
+    function selectActiveItemIdsToClearForRoutine(activeItemsList, routine) {
+        const habitDefIds = new Set(routine.habitDefinitionIds || []);
+        const taskDefIds = new Set(routine.taskDefinitionIds || []);
+
+        const rootIds = activeItemsList
+            .filter(item =>
+                (item.type === 'habit' && habitDefIds.has(item.definitionId)) ||
+                (item.type === 'task' && taskDefIds.has(item.definitionId))
+            )
+            .map(item => item.id);
+
+        const rootIdSet = new Set(rootIds);
+        const subTaskIds = activeItemsList
+            .filter(item => item.parentId !== undefined && rootIdSet.has(item.parentId))
+            .map(item => item.id);
+
+        return [...subTaskIds, ...rootIds];
+    }
+
+    // Deactivating a routine (2026-07-18 fix, decided with Jeremy) recalls its
+    // currently-active habit/task instances from the board immediately, on top
+    // of the isActive spawn-gating above. Recalled items are NOT completed and
+    // NOT counted — no XP/points/streak change, no damage penalty. This is a
+    // pure removal ("the routine went on vacation"), not "the player finished
+    // them." Uses the existing removeItem() so DOM cleanup, activeItems
+    // bookkeeping, and persistence all go through the one path every other
+    // removal uses.
+    function clearActiveInstancesForRoutine(routineId) {
+        const routine = definedRoutines.find(r => r.id === routineId);
+        if (!routine) return;
+
+        selectActiveItemIdsToClearForRoutine(activeItems, routine).forEach(id => removeItem(id));
+    }
+
     function toggleRoutineActive(routineId) {
         const routine = definedRoutines.find(r => r.id === routineId);
         if (!routine) return;
-        
+
         const activeRoutines = definedRoutines.filter(r => r.isActive).length;
-        
+
         if (!routine.isActive && activeRoutines >= routineSlots) {
             alert(`You can only have ${routineSlots} active routine${routineSlots !== 1 ? 's' : ''} at your current level.`);
             return;
         }
-        
+
+        const wasActive = routine.isActive;
         routine.isActive = !routine.isActive;
+
+        if (wasActive && !routine.isActive) {
+            clearActiveInstancesForRoutine(routineId);
+        } else if (!wasActive && routine.isActive) {
+            // Bugfix (2026-07-18, found live by Jeremy right after the isActive
+            // gating fix): activating a routine spawned nothing until the next
+            // daily generation pass (initGame/restoreGameState), since the daily
+            // generators only run there, at creation time, and at day-rollover.
+            // A routine created inactive, given a habit/task, then activated,
+            // showed nothing in the game area or agenda until a reload. Spawning
+            // today's due instances immediately on activation is the natural
+            // symmetric counterpart to clearActiveInstancesForRoutine's immediate
+            // recall on deactivation above. See DECISIONS.md.
+            generateDailyHabitInstances(currentGameDate);
+            generateDailyRoutineTaskInstances(currentGameDate);
+        }
+
+        saveGame();
     }
     
     function showAddItemToRoutineModal(routineId, itemType) {
