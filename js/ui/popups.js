@@ -27,6 +27,26 @@
  */
 const Popups = (() => {
 
+    // -----------------------------------------------------------------------
+    // Local-time formatters for <input type="date"> / <input type="time">
+    // pre-fill. These MUST use local getters, never toISOString(): the save
+    // path parses `${date}T${time}` as LOCAL time (no Z suffix), so pre-filling
+    // from UTC meant opening Edit Task and pressing Save without touching
+    // anything shifted the due time forward by the UTC offset (and rolled the
+    // DATE for evening tasks). Found during session 6 live verification; see
+    // DECISIONS.md 2026-07-18.
+    // -----------------------------------------------------------------------
+
+    function formatDateInputValue(date) {
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    }
+
+    function formatTimeInputValue(date) {
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
     // deps: { gameIsOver, activeItems }
     function handleEnemyClick(itemId, deps) {
         if (deps.gameIsOver) return;
@@ -89,8 +109,8 @@ const Popups = (() => {
 
     // deps: { recomputeOverdueStateAfterEdit, createListItem, sortAndRenderActiveList, saveGame }
     function showEditTaskModal(item, deps) {
-        const dueDate = item.dueDateTime.toISOString().split('T')[0];
-        const dueTime = item.dueDateTime.toISOString().split('T')[1].substring(0, 5);
+        const dueDate = formatDateInputValue(item.dueDateTime);
+        const dueTime = formatTimeInputValue(item.dueDateTime);
 
         const modalHtml = `
             <div class="modal-overlay">
@@ -219,8 +239,8 @@ const Popups = (() => {
 
         console.log('✅ Found parent task:', { id: parentTask.id, name: parentTask.name, type: parentTask.type });
 
-        const parentDueDate = parentTask.dueDateTime.toISOString().split('T')[0];
-        const parentDueTime = parentTask.dueDateTime.toISOString().split('T')[1].substring(0, 5);
+        const parentDueDate = formatDateInputValue(parentTask.dueDateTime);
+        const parentDueTime = formatTimeInputValue(parentTask.dueDateTime);
 
         const modalHtml = `
             <div class="modal-overlay">
@@ -337,6 +357,9 @@ const Popups = (() => {
         showEditTaskModal,
         createSubTaskPrompt,
         showCreateSubTaskModal,
+        // Exposed for tests (test/popups-prefill.test.js)
+        formatDateInputValue,
+        formatTimeInputValue,
     };
 })();
 

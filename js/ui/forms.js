@@ -49,9 +49,12 @@ const Forms = (() => {
     // ---------------------------------------------------------------------
 
     function createTaskFormHtml() {
+        // Local getters, not toISOString(): UTC formatting shows YESTERDAY's
+        // date in positive-offset timezones (latent for CDT; same bug family
+        // as the popups.js UTC pre-fill fix — see DECISIONS.md 2026-07-18).
         const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const todayString = today.toISOString().split('T')[0];
+        const pad = (n) => String(n).padStart(2, '0');
+        const todayString = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
         return `
             <h3>Add New Task</h3>
             <div class="form-row">

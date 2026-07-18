@@ -13,6 +13,26 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-18 — Bugfix: UTC pre-fill in Edit Task / Create Sub-task modals (Cowork session)
+
+**Did:** Fixed the data-corrupting UTC pre-fill bug found in session 6's live verification (jumped the queue ahead of UI-extraction session 7, Jeremy's call). `js/ui/popups.js`: new local-getter formatters `formatDateInputValue`/`formatTimeInputValue` (exposed on the module return for tests) replace the four `toISOString()` pre-fill lines in `showEditTaskModal` and `createSubTaskPrompt`. Companion one-liner in `js/ui/forms.js` `createTaskFormHtml` — same family (UTC default date; latent in CDT, shows yesterday in positive-offset TZs). New `test/popups-prefill.test.js` (12 tests): formatting, padding, and the real invariant — format-then-reparse reproduces the original instant exactly (round-trip), plus a negative control proving the old approach drifts by exactly `getTimezoneOffset()`. First test coverage of modal pre-fill.
+
+**Deliberately NOT fixed** (logged in DECISIONS.md): `js/TaskManager.js` ~317-318 has the same stale pattern but is the abandoned parallel extraction, not the live sub-task path; `script.js:456` compares a date string against a UTC `toISOString()` date in due-date validation (validation-only, no corruption — needs its own look someday).
+
+**State:** ✅ **16 suites, 298/298 passing** (was 15/286 — +1 suite, +12 tests) in the sandbox (UTC). Prefill suite additionally re-run under `TZ=America/Chicago` — passes, and a manual check confirmed new pre-fill shows 12:00 where the old showed 17:00 (the exact live-observed symptom). `node --check` clean on popups.js and forms.js. **NOT live-verified in Chrome this session** — worth a 30-second check next session: open Edit Task on a task, confirm the time matches the agenda row, Save untouched, confirm the due time did not move.
+
+**Sandbox gotcha (supersedes session 6's npm note):** backgrounded processes do NOT survive between Cowork bash calls, so `nohup npm install &` dies silently. What works: `PUPPETEER_SKIP_DOWNLOAD=true npm install --no-audit --no-fund` in the FOREGROUND — skipping puppeteer's Chrome download gets the full install (incl. optional deps, so Jest 30's resolver stays happy) down to ~23s, inside the 45s call timeout. Also: a half-broken node_modules in the mounted outputs dir couldn't be `rm`'d (Operation not permitted) — use a fresh `/tmp` dir instead.
+
+**Docs updated same session:** ROADMAP.md (Known bugs entry checked off with detail), DECISIONS.md (local-getters rule + scope notes).
+
+**Next:** **session 7 of the UI plan: `js/ui/agendaList.js` part 2** — `sortAndRenderActiveList`, `renderCompletedItems`, `resetAllSubTaskCheckboxes`, `showEditHabitInstanceModal`. Sonnet-level per the plan. Carry-over notes from session 6 still stand: `sortAndRenderActiveList` has its own `categoryStyles` use (was script.js:1158); moving `showEditHabitInstanceModal` lets session 7 drop it from `agendaListDeps()`.
+
+**Watch out:**
+- Still open from session 6: Jeremy's call on retiring the `create-list-item-branching.test.js` mirror; verify `git log` shows sessions 5 AND 6 (session 5's commit may not have run); the two modules retaining sub-task-bug-era `DEBUG:` logging; three ZZTest artifacts in the save.
+- The 30-second live check of this fix (above) before or at the start of session 7.
+
+---
+
 ## 2026-07-18 — UI extraction session 6: `js/ui/agendaList.js` part 1 (Cowork session)
 
 **Did:** Executed session 6 of `docs/UI_EXTRACTION_PLAN.md` — `createListItem` only (script.js 530-796, 267 lines), into new `js/ui/agendaList.js`. script.js's original is now a thin wrapper over a shared `agendaListDeps()` helper; wired into index.html after popups.js. script.js is down to **2,463 lines**. Deps: `activeItems`, `categoryStyles`, `completeItem`, `showEditTaskModal`, `showEditHabitInstanceModal` (still script.js-scoped — session 7's target, so passed via deps rather than assumed global), `createSubTaskPrompt`, `isGameOver`.

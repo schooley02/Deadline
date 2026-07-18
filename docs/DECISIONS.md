@@ -4,6 +4,16 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-18 — Date/time input pre-fill must use local getters, never toISOString (UTC pre-fill bugfix)
+
+**Context:** session 6's live verification found that `showEditTaskModal` and `createSubTaskPrompt` (`js/ui/popups.js`) pre-filled their date/time `<input>`s from `dueDateTime.toISOString()` (UTC wall-clock), while the Save handler parses `` new Date(`${date}T${time}`) `` — which is LOCAL time. In CDT that displayed a 12:00 PM task as 05:00 PM, and an untouched Save shifted the stored due time forward by the UTC offset (rolling the DATE for evening tasks). Silent data corruption, trivially triggerable; jumped the queue ahead of UI-extraction session 7 (Jeremy's call, 2026-07-18).
+
+**Decision:** anything that round-trips a Date through an `<input type="date">`/`<input type="time">` value must format from local getters. Added `formatDateInputValue` (YYYY-MM-DD) and `formatTimeInputValue` (HH:MM) inside popups.js, exposed on the module return for tests. The invariant, pinned by `test/popups-prefill.test.js` (12 tests): format-then-reparse reproduces the original instant exactly in every timezone (the old code only satisfied this at UTC offset 0 — which is why the sandbox's UTC test environment could never have caught it; the suite includes a negative control asserting the old approach's drift equals `getTimezoneOffset()`).
+
+**Scope note (flagged, same family):** `js/ui/forms.js` `createTaskFormHtml` had the same pattern for the create-task default date — latent for Jeremy (correct in all negative-offset TZs), wrong (yesterday's date) in positive-offset TZs. Fixed with the same one-liner in this session rather than left as a scheduled bug, since it is the identical root cause and two lines. NOT touched: `js/TaskManager.js` ~317-318 (same stale pattern, but that file is the abandoned parallel extraction — popups.js is the live sub-task path; fixing dead code invites divergence questions better handled when TaskManager.js is retired) and `script.js:456`'s UTC date-string comparison in due-date validation (validation-only, no corruption; needs its own look).
+
+**Alternatives rejected:** (a) *Parse the save-side string as UTC instead* — would "fix" the round-trip while making every displayed and entered time UTC, diverging from the agenda row's `toLocaleString()` and from user intent. (b) *A shared js/ui/dateInputs.js module* — two 3-line formatters don't justify a new file plus load-order wiring; revisit if a third consumer appears.
+
 ## 2026-07-18 — UI extraction session 6: live state reaches extracted UI modules as getters when handlers outlive the call
 
 **Context:** UI extraction sessions 3, 4 and 5 all used the same dependency shape — a `<module>Deps()` helper in script.js returning a plain object, snapshotted at call time and read immediately inside the same tick. That is correct for those clusters: `handleEnemyClick` reads `deps.gameIsOver` and returns; `showFormModal` builds a modal and returns. Nothing survives the call.
