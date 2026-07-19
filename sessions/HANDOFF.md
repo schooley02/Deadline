@@ -13,6 +13,65 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 47: [P1-DATA-004] sub-session 1 BUILT — completion block + deletion cascade + orphan sanitizer (Cowork session, Sonnet)
+
+**Did:** SUBTASKS_PLAN.md sub-session 1, fully per plan. `Items.completeItem` (js/items.js) refuses
+a parent task with open `subTasks` (`{ ok: false, reason: 'subtasks_remaining', remaining: N }`,
+shop.js-style result object) before any reward/relink logic runs. `Items.removeItem` now cascades
+recursively both directions: deleting a parent sweeps every child (live `parentId` lookup, not just
+the parent's own `subTasks` array), deleting a sub syncs the parent's `subTasks`/`totalSubTasks`
+WITHOUT touching `completedSubTasks`; gained two optional deps (`createListItem`/
+`sortAndRenderActiveList`) so older smaller-deps callers keep working unchanged. New
+`State.sanitizeOrphanedSubTasks` (js/state.js) runs in `restoreGameState` and promotes any item
+whose `parentId` doesn't resolve to a live parent task to standalone — state.js got its first-ever
+`module.exports` (guarded, matching every other js/*.js module) purely to make this testable.
+agendaList.js's and popups.js's "Mark as Complete" checkboxes now disable with a "N sub-tasks
+remaining" title/label when a parent has open subs. New `test/subtask-lifecycle.test.js` (17 tests:
+block/allow matrix, cascade both directions incl. a defensive multi-level chain, counter sync,
+sanitizer promote/idempotence/non-task-parent, uncomplete relink regression). Docs: MECHANICS.md
+(resolved the old "open tension" paragraph, added the completion-block/cascade/sanitizer summary),
+SUBTASKS_PLAN.md (sub-session 1 marked built), ROADMAP.md (sub-item checked off), DECISIONS.md
+(4 decisions/findings — block-at-source rationale, live-parentId cascade rationale, the
+no-delete-UI-exists finding, the state.js module.exports addition + why it's require-safe).
+
+**State:** ✅ **36 suites, 761/761** (+17 over session 45's 744 — no code changed in session 46,
+planning-only). `node --check` clean on all four touched files (items.js, state.js,
+agendaList.js, popups.js). **Live-verified in Chrome against the REAL running server:** created a
+real parent + 2 subs — checkbox showed disabled "(N remaining)" in both the agenda row and the
+popup at 2, then 1 remaining; auto-enabled once both subs completed; parent completed normally
+(30 XP/30 pts total, confirming subs still pay FULL value — sub-session 3's half-value economy is
+not built yet, working as expected). Orphan sanitizer live-verified end-to-end: edited the saved
+`activeItems` in `localStorage` to sever a real sub-task's `parentId` (parent removed from the
+save, simulating a pre-cascade-era orphan), reloaded, confirmed the sub-task came back as a normal
+top-level agenda row with `parentId: null` in the reloaded save. The deletion cascade itself has NO
+live-UI trigger — grepped the whole app, there is no "Delete Task" affordance anywhere (removeItem
+is only ever called internally) — so it's Jest-covered only, which matches the ticket's actual
+scope (a data-integrity guarantee on the function, not a new feature). Zero app console errors
+(only the recurring extension messaging noise). Dev save reset clean afterward.
+
+**Next:** SUBTASKS_PLAN.md sub-session 2 (Sonnet): dependent due dates — default+max = parent
+deadline, earlier allowed later never; parent-pulled-earlier re-clamps children via
+`recomputeOverdueStateAfterEdit` per child. Fully specified in the plan.
+
+**Watch out:**
+- **Testing `localStorage`-edit-then-reload scenarios:** the page's `beforeunload`/
+  `visibilitychange` autosave hook will overwrite a manual `localStorage` edit with live in-memory
+  state before the reload actually completes. Work around it by monkey-patching
+  `Storage.prototype.setItem` to no-op writes to `deadline.save` immediately after making the edit,
+  then navigate. Distinct from the existing `confirm()`/`alert()` CDP-freeze note and the debounced-
+  save-readback note already in CLAUDE.md — a new lifecycle-hook hazard for this specific test
+  shape, logged in DECISIONS.md session 47.
+- Clicking the dev Reset button still triggers the documented `confirm()` CDP freeze if
+  `window.confirm` isn't stubbed first — recovery is navigating the tab to any URL (no partial
+  mutation observed), same as always.
+- state.js now has `module.exports` — if a future session adds a genuinely DOM-dependent top-level
+  reference to that file (not inside a function body), `require`-ing it from Jest's `node`
+  testEnvironment would break. Keep DOM/window access inside function bodies only.
+- Sub-session 2 should NOT touch `Persistence` serialization — due-date clamping is a value
+  constraint on existing fields, no schema change.
+
+---
+
 ## 2026-07-19 — Session 46: [P1-DATA-004] sub-tasks SEQUENCED — docs/SUBTASKS_PLAN.md, 4 forks resolved (Cowork session, Fable planning)
 
 **Did:** Planning session only, NO code. Live Chrome playtest of current sub-task behavior against

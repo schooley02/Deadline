@@ -215,6 +215,38 @@ const State = (() => {
 
     // Runs ONCE on boot, right after initGame() has reset to a fresh state.
     // Returns true if a save was restored.
+    /**
+     * [P1-DATA-004] sub-session 1 (2026-07-19): heals a save where a task's
+     * `parentId` doesn't resolve to a live parent task in `activeItems`
+     * (parent deleted before items.js's deletion cascade existed, or any
+     * other stale-parentId edge case). MECHANICS.md's nested-only agenda
+     * rendering means such an item would otherwise be invisible forever —
+     * reachable only by clicking its battlefield sprite — while still
+     * counting toward base damage (the "orphan hole," see
+     * SUBTASKS_PLAN.md/DECISIONS.md session 46). Promotes it to standalone
+     * (`parentId = null`) so it regains a normal agenda row. Pure (mutates
+     * only the items it's given, no DOM/deps reads), idempotent (a second
+     * pass over already-promoted items is a no-op — they have no parentId
+     * left to fail resolution), no schema change (parentId already exists
+     * on every task). Returns the promoted items so the caller can build
+     * their list items — `Spawning.addItemToGame` skipped `createListItem`
+     * for them while `parentId` was still set (it only builds a row for
+     * top-level items).
+     */
+    function sanitizeOrphanedSubTasks(activeItems) {
+        const promoted = [];
+        activeItems.forEach(item => {
+            if (item.parentId) {
+                const parent = activeItems.find(p => p.id === item.parentId && p.type === 'task');
+                if (!parent) {
+                    item.parentId = null;
+                    promoted.push(item);
+                }
+            }
+        });
+        return promoted;
+    }
+
     function restoreGameState(deps) {
         if (typeof Persistence === 'undefined') return false;
         const save = Persistence.load();
@@ -299,6 +331,17 @@ const State = (() => {
                 if (item.listItemElement) item.listItemElement.classList.add('overdue-list-item');
                 item.lastDamageTickTime = Date.now();
             }
+        });
+
+        // Orphan sanitizer ([P1-DATA-004] sub-session 1) — runs after every
+        // saved item is back in activeItems (so parent lookups see everyone)
+        // and before the parent list-item rebuild below, so a promoted item
+        // is treated as an ordinary top-level task from here on: it needs a
+        // list item built now (addItemToGame skipped it while parentId was
+        // still set), same as any other top-level item that just entered
+        // the game.
+        sanitizeOrphanedSubTasks(deps.getActiveItems()).forEach(item => {
+            deps.createListItem(item);
         });
 
         // Parents' list items were built before their sub-tasks existed in
@@ -397,5 +440,19 @@ const State = (() => {
         saveGame,
         buildDamageDeps,
         restoreGameState,
+        sanitizeOrphanedSubTasks,
     };
 })();
+
+// [P1-DATA-004] sub-session 1 (2026-07-19): state.js had no module.exports
+// before this session — nothing in it was unit-testable from test/. Adding
+// it here (matching every other js/*.js module's guarded-export footer) is
+// safe for Node `require`: the only DOM/window reference in the whole file
+// (`window.definedTasks = ...`) lives inside restoreGameState's function
+// body, not at module-load time, so requiring this file in a node
+// testEnvironment never touches it unless restoreGameState is actually
+// called (which no current test does — only the pure sanitizeOrphanedSubTasks
+// is exercised).
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = State;
+}

@@ -129,20 +129,35 @@ const AgendaList = (() => {
             editIconButton.addEventListener('click', () => deps.showEditTaskModal(itemData));
         }
 
+        // [P1-DATA-004] sub-session 1 (2026-07-19): a parent task with open
+        // sub-tasks can't be completed (Items.completeItem enforces this —
+        // see its header comment for why). Disabling the checkbox here is
+        // the proactive half; completeItem's own guard is the backstop for
+        // any path that bypasses this row (e.g. a stale rebuild).
+        const openSubTaskCount = (itemData.type === 'task' && itemData.subTasks) ? itemData.subTasks.length : 0;
+        const hasOpenSubTasks = openSubTaskCount > 0;
+
         const completeCheckboxLabel = document.createElement('label');
         completeCheckboxLabel.classList.add('completion-checkbox');
-        completeCheckboxLabel.style.cssText = 'display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px;';
+        completeCheckboxLabel.style.cssText = 'display: flex; align-items: center; gap: 6px; font-size: 12px;' +
+            (hasOpenSubTasks ? ' cursor: not-allowed; opacity: 0.6;' : ' cursor: pointer;');
+        if (hasOpenSubTasks) {
+            completeCheckboxLabel.title = `${openSubTaskCount} sub-task${openSubTaskCount === 1 ? '' : 's'} remaining`;
+        }
 
         const completeCheckbox = document.createElement('input');
         completeCheckbox.type = 'checkbox';
         completeCheckbox.classList.add('completion-checkbox-input');
+        completeCheckbox.disabled = hasOpenSubTasks;
         completeCheckbox.addEventListener('change', () => {
             if (completeCheckbox.checked) {
                 deps.completeItem(itemData.id);
             }
         });
 
-        const checkboxLabel = document.createTextNode('Mark as Complete');
+        const checkboxLabel = document.createTextNode(
+            hasOpenSubTasks ? `Mark as Complete (${openSubTaskCount} remaining)` : 'Mark as Complete'
+        );
         completeCheckboxLabel.appendChild(completeCheckbox);
         completeCheckboxLabel.appendChild(checkboxLabel);
 

@@ -335,6 +335,26 @@ const Items = (() => {
         if (itemIndex === -1) return;
 
         const item = deps.activeItems[itemIndex];
+
+        // [P1-DATA-004] sub-session 1 (2026-07-19): a parent task with open
+        // sub-tasks cannot be completed. Previously this paid the full
+        // reward and stranded every child as an agenda-invisible,
+        // base-damaging zombie (nested-only rendering means no row exists
+        // without a parent to nest under) — the "orphan hole," found via a
+        // live playtest and closed at the source rather than by cascading a
+        // completion/reward onto the children (rejected forks — see
+        // SUBTASKS_PLAN.md/DECISIONS.md session 46). Result-object return
+        // (shop.js pattern) lets UI callers render "N sub-tasks remaining"
+        // without string-matching; UI already disables the checkbox
+        // proactively (agendaList.js/popups.js), this is the backstop.
+        // Callers that don't check the return value (existing tests, the
+        // day-rollover settle* paths that never touch sub-tasked items) are
+        // unaffected — nothing below this point runs when blocked, same as
+        // the pre-existing isGameOver/not-found early returns.
+        if (item.type === 'task' && item.subTasks && item.subTasks.length > 0) {
+            return { ok: false, reason: 'subtasks_remaining', remaining: item.subTasks.length };
+        }
+
         let xpGained = 0;
         let pointsGained = 0;
 
@@ -414,20 +434,64 @@ const Items = (() => {
     }
 
     /**
-     * deps: { activeItems, updateTaskCountDisplay, saveGame }
+     * deps: { activeItems, updateTaskCountDisplay, saveGame,
+     *         createListItem?, sortAndRenderActiveList? }
+     *
+     * [P1-DATA-004] sub-session 1 (2026-07-19): cascades in both directions
+     * — a ticket acceptance criterion, and the other half of closing the
+     * orphan hole (completeItem's new block above covers the completion
+     * path; this covers every OTHER path that can remove a parent, e.g.
+     * routine-clearing, day-token settlement, rollover). Deleting a PARENT
+     * sweeps every child with it (children are looked up live via
+     * `parentId`, not just the parent's own `subTasks` array, so a
+     * desynced array can't leave a dangling sprite). Deleting a SUB updates
+     * the parent's counters (`subTasks`/`totalSubTasks`) WITHOUT touching
+     * `completedSubTasks` — this is a removal, not a completion — and
+     * refreshes the parent's list item so the sub-tasks section reflects
+     * the new count immediately. `createListItem`/`sortAndRenderActiveList`
+     * are OPTIONAL: older callers in this file (settleStaleRecurringInstance,
+     * settleExcusedCheatDay, useSkipDayOnItem, useSickDayGlobally,
+     * indulgeHabit) pass the smaller deps shape documented above and never
+     * touch sub-tasked items in practice, so the refresh is skippable there.
      */
     function removeItem(itemId, deps) {
         const itemIndex = deps.activeItems.findIndex(i => i.id === itemId);
-        if (itemIndex > -1) {
-            const item = deps.activeItems[itemIndex];
+        if (itemIndex === -1) return;
 
-            if (item.element) item.element.remove();
-            if (item.listItemElement) item.listItemElement.remove();
+        const item = deps.activeItems[itemIndex];
 
-            deps.activeItems.splice(itemIndex, 1);
-            deps.updateTaskCountDisplay();
-            deps.saveGame();
+        if (item.element) item.element.remove();
+        if (item.listItemElement) item.listItemElement.remove();
+
+        deps.activeItems.splice(itemIndex, 1);
+
+        // Cascade to children. Snapshot ids before recursing — removeItem
+        // splices deps.activeItems in place, which would otherwise skip
+        // entries while iterating it live (same hazard as
+        // useSickDayGlobally's snapshot-then-forEach above).
+        const childIds = deps.activeItems
+            .filter(i => i.parentId === itemId)
+            .map(i => i.id);
+        childIds.forEach(childId => removeItem(childId, deps));
+
+        // Sync the parent's counters if THIS was a sub-task.
+        if (item.parentId) {
+            const parentTask = deps.activeItems.find(parent => parent.id === item.parentId);
+            if (parentTask) {
+                const subTaskIndex = parentTask.subTasks.indexOf(itemId);
+                if (subTaskIndex > -1) parentTask.subTasks.splice(subTaskIndex, 1);
+                parentTask.totalSubTasks = parentTask.subTasks.length;
+
+                if (parentTask.listItemElement && deps.createListItem) {
+                    parentTask.listItemElement.remove();
+                    deps.createListItem(parentTask);
+                    if (deps.sortAndRenderActiveList) deps.sortAndRenderActiveList();
+                }
+            }
         }
+
+        deps.updateTaskCountDisplay();
+        deps.saveGame();
     }
 
     /**

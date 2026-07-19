@@ -94,7 +94,7 @@ Broken/missing (drives the sub-sessions below):
 
 ## Session sequence (each ends green + committed; ONE sub-session per session)
 
-### Sub-session 1 — completion/deletion rules core + orphan sanitizer (Sonnet)
+### Sub-session 1 — completion/deletion rules core + orphan sanitizer (Sonnet) — ✅ BUILT 2026-07-19 session 47
 **Goal:** no path can create an orphan, and old saves are repaired. Pure logic + tests, no visuals.
 - `completeItem`: refuse (result-object style, shop.js pattern) when `item.subTasks.length > 0`;
   agenda checkbox + popup checkbox render disabled with "N sub-tasks remaining" tooltip/label.
@@ -107,6 +107,36 @@ Broken/missing (drives the sub-sessions below):
   counter sync on sub-delete, sanitizer promote + idempotence, uncomplete-parent relink unchanged.
 - **Live-verify (Chrome):** parent checkbox disabled until both subs done then completes normally;
   deleting a parent sweeps child sprites; a hand-crafted orphan save promotes on reload.
+
+**BUILT as specified.** `Items.completeItem` refuses (`{ ok: false, reason: 'subtasks_remaining',
+remaining: N }`) when a task has open `subTasks`; `Items.removeItem` now cascades recursively in
+both directions (parent delete sweeps children via a live `parentId` lookup, not just the parent's
+own `subTasks` array — so a desynced array can't leave a dangling sprite; sub delete syncs
+`subTasks`/`totalSubTasks` without touching `completedSubTasks`) and gained two new OPTIONAL deps
+(`createListItem`/`sortAndRenderActiveList`) so older call sites (day-token settlement, rollover,
+routine-clearing) keep working unchanged with their smaller deps shape. `State.sanitizeOrphanedSubTasks`
+(new pure function) runs in `restoreGameState` right after every saved item re-enters `activeItems`
+and before the existing parent-list-item rebuild — promotes any item whose `parentId` doesn't
+resolve to a live parent TASK to standalone and returns it for `createListItem` (which
+`Spawning.addItemToGame` skipped while `parentId` was still set). **state.js had no
+`module.exports` before this session** — added one (guarded, matching every other `js/*.js`
+module) purely so the sanitizer is unit-testable; safe for Node `require` since the file's only
+`window.`/`document.` reference lives inside `restoreGameState`'s body, not at load time. UI:
+agendaList.js's and popups.js's "Mark as Complete" checkboxes are disabled with a
+"N sub-tasks remaining" title/label when a parent has open subs (proactive half; completeItem's
+guard is the backstop). 36 suites, 761/761 (+17: new `test/subtask-lifecycle.test.js`). `node
+--check` clean on all four touched files. **Live-verified in Chrome against the real running
+server:** created a real parent + 2 subs — parent checkbox showed disabled "(2 remaining)" in both
+the agenda row and the popup at every open-sub count; completed both subs, parent auto-enabled with
+no reason label, completed normally (30 XP/30 pts total — sub-session 3's half-value economy isn't
+built yet, so subs still pay full value); the deletion cascade itself has no live UI trigger (no
+"Delete Task" affordance exists anywhere in the app — confirmed by grep, ticket's cascade
+criterion is scoped to internal `removeItem` correctness) so it's covered by the Jest suite only;
+the orphan sanitizer was live-verified end-to-end by editing `localStorage`'s save to sever a
+sub-task's `parentId` (simulating a pre-cascade-era orphan) and reloading — the sub-task came back
+as a normal top-level agenda row with its own checkbox and "+ SUB-TASK" button, `parentId: null`
+confirmed in the reloaded save. Zero app console errors (only the recurring extension messaging
+noise). Dev save reset clean afterward.
 
 ### Sub-session 2 — dependent due dates (Sonnet)
 **Goal:** Jeremy's clamp model, end to end.

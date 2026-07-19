@@ -4,6 +4,63 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 47: [P1-DATA-004] sub-session 1 BUILT — completion block + deletion cascade + orphan sanitizer (Cowork session, Sonnet)
+
+**Decision — block at the source (parent checkbox disabled), not cascade the completion onto
+children.** Matches session 46's Fork 2 exactly as specified: `Items.completeItem` now checks
+`item.subTasks.length > 0` before any XP/points/relink logic runs and returns
+`{ ok: false, reason: 'subtasks_remaining', remaining: N }` (shop.js's result-object convention) —
+existing callers that ignore the return value are unaffected since nothing below the check executes
+when blocked, same as the pre-existing `isGameOver`/not-found early returns. UI (agendaList.js,
+popups.js) disables the checkbox proactively with a "N sub-tasks remaining" title/label; the
+items.js guard is the backstop for any path that bypasses the row.
+
+**Decision — `removeItem` cascades via a LIVE `parentId` lookup, not the parent's own `subTasks`
+array.** Deleting a parent now recursively removes every item whose `parentId` currently points at
+it (snapshotting ids before recursing — same live-splice hazard `useSickDayGlobally` already
+guards against). Reading live relationships instead of trusting `subTasks` to be in sync means a
+desynced array (however it happened) can't leave a dangling sprite behind. Deleting a sub instead
+syncs the parent's `subTasks`/`totalSubTasks` — deliberately NOT `completedSubTasks`, since a
+delete is not a completion. `removeItem` gained two OPTIONAL deps (`createListItem`,
+`sortAndRenderActiveList`) guarded with `if (deps.x)` so the many existing smaller-deps callers in
+items.js (day-token settlement, rollover, routine-clearing) — none of which touch sub-tasked items
+in practice — keep working with zero changes.
+
+**Finding — there is no "Delete Task" UI anywhere in the app.** Grepped for it before writing the
+cascade; `removeItem` is only ever invoked internally (completion's fade-out, routine-clearing,
+Cheat/Skip/Sick Day settlement, rollover). The ticket's "deletion cascade" acceptance criterion is
+therefore a data-integrity guarantee on the internal function, not a new user-facing feature — sub-
+session 1 delivers exactly that scope. Consequence: the cascade has no live-UI path to exercise in
+Chrome; it's covered by `test/subtask-lifecycle.test.js` only (recursive-depth case included,
+defensively, even though the UI caps real depth at 1).
+
+**Decision — `State.sanitizeOrphanedSubTasks` is a new pure function, and state.js now has
+`module.exports`.** Placed in `restoreGameState` right after every saved item re-enters
+`activeItems` (so parent lookups see everyone) and before the pre-existing parent-list-item rebuild
+block (so a promoted item is treated as an ordinary top-level task from that point on — it needs
+`createListItem` called for it, since `Spawning.addItemToGame` skipped that while `parentId` was
+still set). state.js had NEVER had a `module.exports` before this session — nothing in it was
+unit-testable. Added the standard guarded footer (matching every other `js/*.js` module) rather
+than leaving the sanitizer untested or duplicating its logic into a test-only copy (the
+`test/subtask-creation.test.js` legacy pattern this session deliberately did NOT repeat — see
+Watch out in HANDOFF.md). Confirmed safe: the only `window.`/`document.` reference in the whole
+file lives inside `restoreGameState`'s function body, not at module-load time, so `require`-ing it
+in Jest's `node` testEnvironment never touches DOM globals unless `restoreGameState` itself is
+called (it isn't, by any current test — only the pure sanitizer is exercised).
+
+**Finding — the orphan hole was confirmed live, and the sanitizer closes it end-to-end.**
+Live-verified in Chrome by creating a real parent+sub, flushing the save, editing `localStorage` to
+delete the parent from the saved `activeItems` (simulating a pre-cascade-era orphan) while
+suppressing the page's `beforeunload`/`visibilitychange` autosave hook (which would otherwise
+re-write the live, still-has-the-parent state over the edit before the reload actually took it) via
+a `Storage.prototype.setItem` monkey-patch — a new hazard, distinct from CLAUDE.md's documented
+`confirm()`/`alert()` CDP freeze and debounced-save-readback notes, logged here for future
+sessions doing similar `localStorage` surgery-then-reload tests. After reload, the orphaned
+sub-task appeared as a normal top-level agenda row with its own checkbox — `parentId: null`
+confirmed in the reloaded save.
+
+---
+
 ## 2026-07-19 — Session 46: [P1-DATA-004] sub-task hierarchy SEQUENCED — 4 forks resolved (Cowork session, Fable)
 
 Planning session only, no code. Output: `docs/SUBTASKS_PLAN.md` (5 sub-sessions, no schema bump).

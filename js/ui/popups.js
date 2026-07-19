@@ -158,12 +158,19 @@ const Popups = (() => {
                 ${buildSkipDaySectionHtml(item, deps)}
             `;
         }
+        // [P1-DATA-004] sub-session 1 (2026-07-19): mirrors agendaList.js's
+        // disabled-checkbox treatment — see its comment for the rationale
+        // (Items.completeItem is the real backstop; this is the proactive
+        // half + a visible reason).
+        const openSubTaskCount = (item.type === 'task' && item.subTasks) ? item.subTasks.length : 0;
+        const hasOpenSubTasks = openSubTaskCount > 0;
+        const remainingSuffix = openSubTaskCount === 1 ? '' : 's';
         return `
             <div class="task-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
                 <button id="editTaskBtn" class="edit-icon-btn" title="Edit Task">✏️</button>
-                <label class="completion-checkbox">
-                    <input type="checkbox" id="completeTaskCheck" class="completion-checkbox-input" />
-                    Mark as Complete
+                <label class="completion-checkbox"${hasOpenSubTasks ? ` title="${openSubTaskCount} sub-task${remainingSuffix} remaining" style="cursor: not-allowed; opacity: 0.6;"` : ''}>
+                    <input type="checkbox" id="completeTaskCheck" class="completion-checkbox-input"${hasOpenSubTasks ? ' disabled' : ''} />
+                    Mark as Complete${hasOpenSubTasks ? ` (${openSubTaskCount} remaining)` : ''}
                 </label>
             </div>
             ${buildPushbackSectionHtml(deps)}
