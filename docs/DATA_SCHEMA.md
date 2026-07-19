@@ -78,12 +78,13 @@ Habit {
   occurrenceHistory: { date: "YYYY-MM-DD", success: boolean }[]
 }
 
-// DESIGNED 2026-07-18 (decided with Jeremy, see DECISIONS.md), NOT YET BUILT.
-// Replaces the current live schema's bare `frequency: 'daily'` string on both
-// `definedHabits` entries and routine task definitions (`definedTasks`) — both
-// get this same Schedule object, since both are recurring definitions.
-// Deliberately NOT extended to one-off standalone tasks (they don't recur today
-// and this doesn't add that capability).
+// BUILT 2026-07-18 (session 14) as js/schedule.js + schemaVersion 2→3 migration.
+// Replaces the former bare `frequency: 'daily'` string on both `definedHabits`
+// entries and routine task definitions (`definedTasks`) — both get this same
+// Schedule object, since both are recurring definitions. Deliberately NOT
+// extended to one-off standalone tasks (they don't recur). The scheduling UI
+// (day-of-week checkboxes / day-of-month field) is a SEPARATE follow-up — until
+// it lands, every created/migrated definition is daily-all-7. See DECISIONS.md.
 Schedule {
   frequency: "daily"|"weekly"|"monthly",
   daysOfWeek: number[],     // 0=Sun..6=Sat. Used for "daily" (default: all 7,

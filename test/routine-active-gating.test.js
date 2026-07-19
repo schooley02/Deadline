@@ -23,6 +23,10 @@
  *      it directly instead of keeping a second copy that could drift.
  */
 
+// habits.js/routines.js read the Schedule global in their spawn selectors
+// (schemaVersion 3 recurrence gate) — bind it first, as the browser's <script>
+// order does.
+global.Schedule = require('../js/schedule.js');
 const Habits = require('../js/habits.js');
 const selectHabitDefsToSpawn = Habits.selectHabitDefsToSpawn;
 
@@ -142,10 +146,29 @@ describe('selectHabitDefsToSpawn — isActive gating', () => {
         expect(selectHabitDefsToSpawn(defs, routines, active, DAY)).toHaveLength(0);
     });
 
-    test('non-daily frequency does not spawn (dormant safety net — form only offers daily today)', () => {
+    test('legacy bare weekly frequency (no schedule, empty day set) does not spawn', () => {
         const defs = [habitDef('h1', { frequency: 'weekly' })];
         const routines = [routine('r1', ['h1'], true)];
         expect(selectHabitDefsToSpawn(defs, routines, [], DAY)).toHaveLength(0);
+    });
+
+    // schemaVersion 3 recurrence gate (2026-07-18). DAY is Sat Jul 18 2026 (getDay 6).
+    test('a weekly schedule including Saturday spawns on DAY', () => {
+        const defs = [habitDef('h1', { schedule: { frequency: 'weekly', daysOfWeek: [6], dayOfMonth: null } })];
+        const routines = [routine('r1', ['h1'], true)];
+        expect(selectHabitDefsToSpawn(defs, routines, [], DAY)).toHaveLength(1);
+    });
+
+    test('a weekly schedule for weekdays only does NOT spawn on Saturday', () => {
+        const defs = [habitDef('h1', { schedule: { frequency: 'weekly', daysOfWeek: [1, 2, 3, 4, 5], dayOfMonth: null } })];
+        const routines = [routine('r1', ['h1'], true)];
+        expect(selectHabitDefsToSpawn(defs, routines, [], DAY)).toHaveLength(0);
+    });
+
+    test('a monthly schedule for the 18th spawns on DAY (Jul 18)', () => {
+        const defs = [habitDef('h1', { schedule: { frequency: 'monthly', daysOfWeek: [], dayOfMonth: 18 } })];
+        const routines = [routine('r1', ['h1'], true)];
+        expect(selectHabitDefsToSpawn(defs, routines, [], DAY)).toHaveLength(1);
     });
 });
 

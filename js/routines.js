@@ -71,6 +71,12 @@ const Routines = (() => {
         return definedTasks.filter(taskDef => {
             if (!activeRoutineTaskIds.has(taskDef.id)) return false;
 
+            // Recurrence gate (schemaVersion 3, 2026-07-18): routine tasks now
+            // carry a schedule. A missing schedule (in-memory def created before
+            // this session, or a not-yet-migrated one) normalizes to daily, so
+            // the prior "spawns every active day" behavior is preserved.
+            if (!Schedule.isScheduledForDay(taskDef.schedule, forWhichGameDay)) return false;
+
             const existingActiveInstance = activeItems.find(item =>
                 item.type === 'task' &&
                 item.definitionId === taskDef.id &&
@@ -253,13 +259,16 @@ const Routines = (() => {
             id: `habitDef_${definedHabits.length}_${Date.now()}`,
             name: habitData.name,
             category: habitData.category,
-            frequency: habitData.frequency,
+            // schemaVersion 3 (2026-07-18): recurrence is a `schedule` object,
+            // built from the form's still-'daily' frequency string.
+            schedule: Schedule.fromLegacyFrequency(habitData.frequency),
             timeOfDay: habitData.timeOfDay,
             isNegative: habitData.isNegative || false,
             // Owned by this routine — only spawns while the routine isActive.
             routineId: routineId,
             streak: 0,
-            lastCompletionDate: null
+            lastCompletionDate: null,
+            occurrenceHistory: []
         };
 
         definedHabits.push(newHabit);
@@ -282,7 +291,12 @@ const Routines = (() => {
             name: taskData.name,
             category: taskData.category,
             isHighPriority: taskData.isHighPriority,
-            defaultDueTime: taskData.defaultDueTime || '17:00'
+            defaultDueTime: taskData.defaultDueTime || '17:00',
+            // schemaVersion 3 (2026-07-18): routine tasks gained recurrence.
+            // Default daily (all 7 days) preserves the prior "spawns every day
+            // the routine is active" behavior. taskData carries no schedule
+            // until the scheduling UI lands.
+            schedule: Schedule.normalize(taskData.schedule)
         };
 
         definedTasks.push(newTaskDef);
@@ -298,7 +312,12 @@ const Routines = (() => {
 
         habit.name = updatedData.name;
         habit.category = updatedData.category;
-        habit.frequency = updatedData.frequency;
+        // schemaVersion 3: store recurrence as a schedule. If the edit form
+        // passed a full schedule (future UI), use it; otherwise convert its
+        // legacy frequency string.
+        habit.schedule = updatedData.schedule
+            ? Schedule.normalize(updatedData.schedule)
+            : Schedule.fromLegacyFrequency(updatedData.frequency);
         habit.timeOfDay = updatedData.timeOfDay;
         habit.isNegative = updatedData.isNegative;
 

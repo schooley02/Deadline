@@ -8,6 +8,10 @@
  * instance creation/orchestration, definition CRUD, and
  * activation/deactivation (toggleRoutineActive + clearActiveInstancesForRoutine).
  */
+// routines.js reads the Schedule global in selectTaskDefsToSpawn (schemaVersion
+// 3 recurrence gate) — bind it before requiring, as the browser's <script>
+// order does.
+global.Schedule = require('../js/schedule.js');
 const Routines = require('../js/routines.js');
 
 const DAY = new Date(2026, 6, 18); // Sat Jul 18 2026, local

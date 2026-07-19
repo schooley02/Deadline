@@ -784,7 +784,7 @@ const RoutineViews = (() => {
                     <div class="form-row">
                         <label>Frequency:</label>
                         <select id="editHabitFrequency">
-                            <option value="daily" ${habitDef.frequency === 'daily' ? 'selected' : ''}>Daily</option>
+                            <option value="daily" ${(habitDef.schedule ? habitDef.schedule.frequency : habitDef.frequency) === 'daily' ? 'selected' : ''}>Daily</option>
                         </select>
                     </div>
                     <div class="form-row">

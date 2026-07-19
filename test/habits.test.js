@@ -7,6 +7,10 @@
  * covers streak math, instance creation, and generateDailyHabitInstances'
  * orchestration (selection + creation + admission wiring).
  */
+// habits.js reads the Schedule global inside selectHabitDefsToSpawn (schemaVersion
+// 3 recurrence gate) — bind it before requiring the module, same as the browser's
+// <script> order does.
+global.Schedule = require('../js/schedule.js');
 const Habits = require('../js/habits.js');
 const CONFIG = require('../js/config.js');
 

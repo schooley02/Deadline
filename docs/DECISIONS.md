@@ -4,6 +4,23 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-18 — Session 14: scheduling step (a) — schemaVersion 3 migration + schedule-aware generators BUILT
+
+**Context:** first implementation session off the session-13 design batch. Scope held deliberately to step (a) of the scheduling stack (migration + generators) — persistence-touching, so strict one-system-per-session. UI (b) and rate bonus (c) explicitly out of scope.
+
+**Built:**
+- **`js/schedule.js`** (new pure module, loaded after config.js): `defaultSchedule`, `fromLegacyFrequency`, `normalize` (tolerates a bare legacy `frequency` string or partial object), `isScheduledForDay`. Daily & weekly share one day-of-week filter; monthly clamps `dayOfMonth` to the month's last day (31 → Feb 28/29). Matches the DATA_SCHEMA.md `Schedule` design.
+- **`persistence.js` `SCHEMA_VERSION = 3`** + v2→v3 migration: habit defs' bare `frequency` string → `schedule` object (+ `frequency` deleted), habit defs seed `occurrenceHistory: []`, routine task defs gain a default daily `schedule`. **Migration written with literal shapes, not by calling schedule.js** — a migration is a historical transform and shouldn't change if the module's logic later evolves.
+- **Data layer writes `schedule`:** `createHabitDefinition` (script.js), `createNewHabitInRoutine`/`createNewTaskInRoutine`/`editHabitInRoutine` (routines.js) build it from the form's still-`'daily'` frequency via `Schedule.fromLegacyFrequency`/`normalize`. `editHabitInRoutine` already accepts a full `schedule` object if a future form provides one.
+- **Generators gate on schedule:** `Habits.selectHabitDefsToSpawn` (replaced `frequency !== 'daily'`) and `Routines.selectTaskDefsToSpawn` (had no recurrence check — routine tasks previously spawned every active day) now call `Schedule.isScheduledForDay(def.schedule || def.frequency, day)`. The `|| frequency` fallback + `normalize` means an unmigrated in-memory def still gates correctly.
+- **One UI read touch-up:** routineViews.js edit-habit form's frequency `<option selected>` state now reads `habitDef.schedule.frequency` (was `.frequency`), so the edit form doesn't break before step (b).
+
+**occurrenceHistory recording DEFERRED to step (c)** (Jeremy's call this session): the field is seeded empty now; the completion/overdue recording that fills it lands with the rate-bonus work, keeping this session's blast radius to persistence+generators and out of items.js/habits.js completion paths. Cost: the multiplier is 1× for the first ~7 occurrences after (c) ships. Accepted.
+
+**Tests:** new `test/schedule.test.js` (daily/weekly/monthly incl. leap-year + short-month clamping); expanded `test/persistence-migration.test.js` with a v2→v3 block + a v1→v3 full-chain case (two old tests that asserted the chain stops at v2 updated to v3 — v2 is no longer terminal); new schedule-gate cases in `test/routine-active-gating.test.js`; `global.Schedule` bound in the four test files whose modules read it. **17 suites, 329/329** (was 302). Live-verified in Chrome against Jeremy's real save: v2→v3 migration ran on load (all 5 habits and the one task def migrated correctly, `frequency` removed, `occurrenceHistory` seeded, schemaVersion 3 re-persisted), daily habits still spawned (5 agenda rows), console clean.
+
+**Rejected:** calling schedule.js from inside the migration (couples a historical transform to evolving logic); doing recording now (over-scopes a persistence session).
+
 ## 2026-07-18 — Session 13 (Fable design session): rate-based habit bonus + gradual base regen DECIDED
 
 **Context:** the batched design session recommended in the habits-extraction entry — two open design questions settled with Jeremy in one Fable sitting instead of separate turns. No code written; docs are the deliverable.

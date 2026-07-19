@@ -92,7 +92,11 @@ const Habits = (() => {
             // routine" still spawns.
             if (owningRoutines.length > 0 && !owningRoutines.some(r => r.isActive)) return false;
 
-            if (habitDef.frequency !== 'daily') return false;
+            // Recurrence gate (schemaVersion 3, 2026-07-18): the habit must be
+            // scheduled for this day. Schedule.normalize tolerates a legacy
+            // bare `frequency` string too, so an unmigrated in-memory def can't
+            // slip through. Replaces the old `frequency !== 'daily'` check.
+            if (!Schedule.isScheduledForDay(habitDef.schedule || habitDef.frequency, forWhichGameDay)) return false;
 
             const lastCompletionDayString = habitDef.lastCompletionDate
                 ? new Date(habitDef.lastCompletionDate).toDateString()

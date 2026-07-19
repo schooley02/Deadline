@@ -13,6 +13,25 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-18 — Session 14: scheduling step (a) — schemaVersion 3 migration + schedule-aware generators (Cowork session)
+
+**Did:** First implementation off the session-13 design batch, scoped strictly to step (a) (persistence work, one-system-per-session). New pure `js/schedule.js` (daily/weekly day-of-week filter + monthly with short-month/leap-year clamping). Bumped `Persistence.SCHEMA_VERSION` to 3 with a v2→v3 migration: habit defs' bare `frequency` string → `schedule` object + seed `occurrenceHistory: []`; routine task defs gain a default daily `schedule`. Creation/edit functions (`createHabitDefinition`, `createNewHabitInRoutine`, `createNewTaskInRoutine`, `editHabitInRoutine`) now write `schedule`; generators (`selectHabitDefsToSpawn`, `selectTaskDefsToSpawn`) gate on `Schedule.isScheduledForDay`. One UI read touch-up in routineViews (edit-habit frequency dropdown). Wired schedule.js into index.html after config.js.
+
+**State:** ✅ **17 suites, 329/329** (was 302 — +new schedule.test.js, +v2→v3 migration cases, +schedule-gate cases; two old migration tests updated from v2→v3 since v2 is no longer the terminal version). `node --check` clean on all six touched files. **Live-verified in Chrome against Jeremy's real save:** confirmed v2 start state, hard-reloaded, migration ran → all 5 habits now `schedule {daily, all 7}` with `frequency` removed + `occurrenceHistory: []`, task def "adf" gained a daily schedule, schemaVersion 3 re-persisted; all 5 daily habits still spawned (5 agenda rows); console clean apart from the usual extension noise.
+
+**Design choice this session:** `occurrenceHistory` recording DEFERRED to step (c) (Jeremy's call) — field seeded now, the completion/overdue recording that fills it lands with the rate bonus. Keeps this session out of the item-lifecycle completion paths.
+
+**Docs updated same session:** ARCHITECTURE.md (schedule.js entry + persistence v3 note), DATA_SCHEMA.md (Schedule marked BUILT), DECISIONS.md (session 14 entry), ROADMAP.md (scheduling item split into a/b/c, (a) checked off).
+
+**Next:** step (b) — scheduling UI: day-of-week checkboxes (daily/weekly) + day-of-month field (monthly) in the habit form (`js/ui/forms.js`) and routine habit/task forms (`js/ui/routineViews.js`), standalone and in-routine. The data layer already round-trips a full `schedule`; forms currently only emit `frequency:'daily'`. `editHabitInRoutine` already accepts a full `schedule` if provided. This is mostly form markup + read handlers — Sonnet-appropriate once the field layout is decided. Then step (c) the rate bonus. Alternatively P2-GAME-012 gradual regen (small, self-contained) or the style.css split.
+
+**Watch out:**
+- New habits/tasks created between now and step (b) get daily-all-7 schedules (the form still emits only `frequency:'daily'`) — expected, not a bug.
+- The migration writes literal schedule shapes rather than calling schedule.js (deliberate — a migration must stay a stable historical transform). Don't "DRY" it up by routing it through Schedule later.
+- Sandbox scratch dir this session: `/sessions/<name>/dl-s14` (the older `/tmp/deadline-test` is owned by another user and unusable).
+
+---
+
 ## 2026-07-18 — Session 13: Fable design session — habit bonus + base healing DECIDED (Cowork session)
 
 **Did:** The batched design session flagged since the habits extraction. Two decisions made with Jeremy (full rationale + rejected alternatives in DECISIONS.md): (1) **habit bonus is rate-based** — streak becomes visual-only; points multiplier from rolling success rate over last 14 scheduled occurrences (≥90% → 1.5×, ≥70% → 1.25×, else 1×; 1× until ≥7 recorded; points only, never XP; uncompletion flips today's history entry → symmetric refunds, structurally killing the flat-bonus asymmetry bug). (2) **base healing is gradual regen** — 1 HP/5min while alive + same rate offline (applied after offline damage on restore), clamp 100; repair kits = instant mid-run heals; 0 HP stays run-over; daily reset rejected. No code written — docs are the deliverable.

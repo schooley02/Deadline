@@ -16,7 +16,10 @@
 const Persistence = (() => {
     const SAVE_KEY = 'deadline.save';
     // v2 (2026-07-18): habit definitions gained `routineId` (null = standalone).
-    const SCHEMA_VERSION = 2;
+    // v3 (2026-07-18): habit + routine-task definitions gained a `schedule`
+    // object (replacing habits' bare `frequency` string; routine tasks had no
+    // recurrence field before); habit definitions gained `occurrenceHistory`.
+    const SCHEMA_VERSION = 3;
     const DEBOUNCE_MS = 500;
 
     // DOM references on item objects — never serialized, rebuilt on load.
@@ -118,6 +121,42 @@ const Persistence = (() => {
             });
 
             save.schemaVersion = 2;
+        }
+
+        // v2 → v3 (2026-07-18): recurrence moves from habits' bare `frequency`
+        // string to a `schedule` object on BOTH habit defs and routine task
+        // defs (routine tasks had no recurrence field — they spawned daily
+        // whenever their routine was active), and habit defs gain
+        // `occurrenceHistory` (seeded empty; recording lands with the
+        // rate-based bonus — see DECISIONS.md). Written with literal shapes
+        // rather than calling js/schedule.js so this migration stays a stable
+        // historical transform even if Schedule's logic later evolves. Every
+        // pre-v3 habit had frequency 'daily' in practice (the form offered no
+        // other option), so all migrate to the every-day schedule.
+        if (save.schemaVersion === 2) {
+            const dailySchedule = () => ({
+                frequency: 'daily',
+                daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+                dayOfMonth: null,
+            });
+
+            (save.definedHabits || []).forEach(habitDef => {
+                if (habitDef.schedule === undefined) {
+                    habitDef.schedule = dailySchedule();
+                }
+                delete habitDef.frequency;
+                if (!Array.isArray(habitDef.occurrenceHistory)) {
+                    habitDef.occurrenceHistory = [];
+                }
+            });
+
+            (save.definedTasks || []).forEach(taskDef => {
+                if (taskDef.schedule === undefined) {
+                    taskDef.schedule = dailySchedule();
+                }
+            });
+
+            save.schemaVersion = 3;
         }
 
         if (save.schemaVersion !== SCHEMA_VERSION) {

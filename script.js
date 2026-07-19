@@ -569,7 +569,10 @@ document.addEventListener('DOMContentLoaded', () => {
             id: `habitDef_${definedHabits.length}_${Date.now()}`,
             name,
             category,
-            frequency,
+            // Recurrence is a `schedule` object as of schemaVersion 3 (2026-07-18).
+            // The form still passes a `frequency` string (only 'daily' until the
+            // scheduling UI lands); Schedule.fromLegacyFrequency converts it.
+            schedule: Schedule.fromLegacyFrequency(frequency),
             timeOfDay,
             isNegative,
             // null = standalone (not owned by any routine), so it spawns daily
@@ -577,7 +580,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // and Habits.selectHabitDefsToSpawn.
             routineId: null,
             streak: 0,
-            lastCompletionDate: null
+            lastCompletionDate: null,
+            // Seeded empty; the rate-based points bonus (future session) records
+            // into this. See DECISIONS.md 2026-07-18.
+            occurrenceHistory: []
         };
 
         definedHabits.push(newHabitDef);
