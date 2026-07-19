@@ -77,6 +77,10 @@ describe('occurrenceSuccess (polarity routing seam)', () => {
         expect(Habits.occurrenceSuccess(false, 'overdue')).toBe(false);
         expect(Habits.occurrenceSuccess(true, 'overdue')).toBe(false);
     });
+    test('indulged is a miss for both polarities ([P1-DATA-005], only meaningful for negative)', () => {
+        expect(Habits.occurrenceSuccess(true, 'indulged')).toBe(false);
+        expect(Habits.occurrenceSuccess(false, 'indulged')).toBe(false);
+    });
 });
 
 describe('recordOccurrence', () => {
@@ -223,6 +227,44 @@ describe('applyHabitOverdue', () => {
         const missed = Habits.applyHabitOverdue(2, [], false, due, CONFIG.HABIT_RATE_WINDOW);
         const done = Habits.applyHabitCompletion(0, missed.occurrenceHistory, false, due, RATE_CONFIG);
         expect(done.occurrenceHistory).toEqual([{ date: '2026-07-18', success: true }]);
+    });
+});
+
+describe('applyHabitIndulgence ([P1-DATA-005] session 25, pure core only)', () => {
+    test('no-op for a positive habit: streak/history unchanged, pointsLost 0, noOp true', () => {
+        const h = history(3, 1);
+        const result = Habits.applyHabitIndulgence(4, h, false, new Date(2026, 6, 18), RATE_CONFIG);
+        expect(result.noOp).toBe(true);
+        expect(result.streak).toBe(4);
+        expect(result.occurrenceHistory).toBe(h); // same reference, untouched
+        expect(result.pointsLost).toBe(0);
+    });
+
+    test('negative habit: zeroes the streak and records a miss occurrence for the day', () => {
+        const result = Habits.applyHabitIndulgence(5, [], true, new Date(2026, 6, 18), RATE_CONFIG);
+        expect(result.noOp).toBe(false);
+        expect(result.streak).toBe(0);
+        expect(result.occurrenceHistory).toEqual([{ date: '2026-07-18', success: false }]);
+    });
+
+    test('1x multiplier for a new habit (below min sample): base points lost only', () => {
+        const result = Habits.applyHabitIndulgence(0, [], true, new Date(2026, 6, 18), RATE_CONFIG);
+        expect(result.multiplier).toBe(1);
+        expect(result.pointsLost).toBe(CONFIG.POINTS_PER_HABIT);
+    });
+
+    test('high success (avoidance) rate still costs points on indulgence, scaled by the current multiplier', () => {
+        // 8 prior avoidance successes; today's indulged miss makes 8/9 ≈ 88.9% (>= min sample 7) -> 1.5x tier
+        const result = Habits.applyHabitIndulgence(8, history(8, 0), true, new Date(2026, 6, 18), RATE_CONFIG);
+        expect(result.multiplier).toBe(1.5);
+        expect(result.pointsLost).toBe(Math.round(CONFIG.POINTS_PER_HABIT * 1.5));
+    });
+
+    test('a later same-day indulgence overwrites an earlier completion (upsert, like overdue)', () => {
+        const due = new Date(2026, 6, 18);
+        const done = Habits.applyHabitCompletion(0, [], true, due, RATE_CONFIG);
+        const indulged = Habits.applyHabitIndulgence(done.streak, done.occurrenceHistory, true, due, RATE_CONFIG);
+        expect(indulged.occurrenceHistory).toEqual([{ date: '2026-07-18', success: false }]);
     });
 });
 

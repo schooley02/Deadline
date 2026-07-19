@@ -13,6 +13,23 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 25 (cont'd): [P1-DATA-005] sub-session 1 — `'indulged'` pure seam (Cowork session, Sonnet)
+
+**Did:** Built `docs/NEGATIVE_HABITS_PLAN.md`'s Sub-session 1, same-session as the planning above (Jeremy switched to Sonnet after the plan). `js/habits.js`: `occurrenceSuccess(isNegative, 'indulged')` added (always a miss); new pure `applyHabitIndulgence(currentStreak, occurrenceHistory, isNegative, originalDueDate, config)` — no-ops for positive habits (`noOp: true`, nothing changes), for negative habits records the miss + zeroes the visual streak + computes `pointsLost` from the post-record rate multiplier (mirrors `applyHabitCompletion`'s convention, not `applyHabitUncompletion`'s — so a future undo-indulge could mirror the recompute-then-pop symmetry). Exported from the `Habits` module. `test/habits.test.js`: 6 new cases. **Deliberately no `items.js`/UI/economy wiring** — `playerPoints` isn't touched by anything yet; that's later sub-sessions.
+
+**State:** ✅ **19 suites, 413/413** (+6). `node --check js/habits.js` clean. No Chrome verification — pure function, no UI surface to click yet.
+
+**Docs updated same session:** MECHANICS.md (habit polarity paragraph updated to describe the new seam + pure-core-only caveat), NEGATIVE_HABITS_PLAN.md (sub-session 1 marked done with implementation notes), ROADMAP.md (sub-item 1 checked), DECISIONS.md (session 25 entry with the no-op-guard and post-record-multiplier rationale).
+
+**Next: the Fable fork session.** Per NEGATIVE_HABITS_PLAN.md, resolve Forks A (core negative-habit interaction/enemy model — advancing-temptation vs. idle+explicit-lapse; this is the one that decides whether base-damage code is reused or bypassed), B (debt depth + recovery UX), and C (day-token scope) together in one Fable session — they interact. Sub-sessions 2-5 are gated on this. Update the plan doc with the decisions when done.
+
+**Watch out:**
+- `applyHabitIndulgence` exists but is UNREACHABLE from gameplay — no button calls it yet. Don't mistake its presence for the feature being live.
+- The no-op guard returns the SAME `occurrenceHistory` reference (not a copy) when called on a positive habit — fine for the pure-function contract (nothing mutates it), but worth knowing if a future caller assumes a fresh array.
+- Sandbox scratch dir this session: `/tmp/dl-s25` (fresh; package.json/jest.config.js/js/test copied per the Cowork sandbox rule, never `npm install`ed in the mounted folder).
+
+---
+
 ## 2026-07-19 — Session 25: [P1-DATA-005] SEQUENCED into a plan doc (Cowork session, Opus — planning only, no code)
 
 **Did:** Sequenced the negative-habits ticket into `docs/NEGATIVE_HABITS_PLAN.md` (mirrors SHOP_PLAN.md). Started with a Chrome + code recon that materially changed the picture: **this ticket is NOT greenfield.** Already built and verified: the Positive/Negative toggle in both the add-habit form and the edit-habit editor, `isNegative` on habit defs + instances (threaded through `createHabitInstanceData`), the `.negative-habit` CSS hook in `items.js`, and the polarity seam `Habits.occurrenceSuccess(isNegative, event)` (currently polarity-agnostic — session 16 built it as the explicit extension point). `Economy.subtractPoints` clamps at 0 with a header NOTE reserving the non-clamping indulgence path. Docs (MECHANICS/ECONOMY/ROUTINES) already describe intended behavior. **What remains** = differentiated behavior only: the `'indulged'` event, inverted negative-overdue semantics, negative balance + debt UX, daily check-in, day-tokens.

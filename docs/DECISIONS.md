@@ -4,6 +4,18 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 25: [P1-DATA-005] sequenced + sub-session 1 built (Cowork session, Opus plan → Sonnet execution)
+
+**Sequencing decision (Opus):** recon before planning changed the scope materially — most of the polarity plumbing (form toggle, `isNegative` on defs/instances, `.negative-habit` CSS, the `occurrenceSuccess` seam) was already built in session 16 as an explicit extension point. What remains is differentiated behavior, sequenced into `docs/NEGATIVE_HABITS_PLAN.md` as 5 sub-sessions plus one batched Fable fork session (interaction model / debt depth / day-token scope — these three interact and are architecture-shaping, so they're deliberately NOT split across sessions). Sub-session 1 was carved out as fork-independent: it only touches the pure seam, so it didn't need to wait on the Fable session.
+
+**Sub-session 1 implementation (Sonnet):** added `'indulged'` to `Habits.occurrenceSuccess(isNegative, event)` (always resolves to a miss — meaningful only for negative habits) and a new pure `Habits.applyHabitIndulgence(currentStreak, occurrenceHistory, isNegative, originalDueDate, config)`. Design choices: (1) **no-op guard for positive habits** — returns `{ streak, occurrenceHistory, pointsLost: 0, multiplier: 0, noOp: true }` unchanged rather than throwing, so a misrouted call is inert; there's no "indulge" concept for a positive habit (that's just not completing it). (2) **pointsLost computed from the POST-record multiplier**, mirroring `applyHabitCompletion`'s convention for `pointsGained` (not the pre-record convention `applyHabitUncompletion` uses for refunds) — chosen so a future "undo indulge" op could cleanly mirror `applyHabitUncompletion`'s recompute-then-pop symmetry the same way completion/uncompletion already do. (3) **streak zeroes on indulgence**, same as overdue — a lapse breaks the visual streak regardless of whether it was caught by the automatic overdue timer or admitted explicitly.
+
+**Deliberately NOT done this sub-session** (scope discipline per the plan): no `items.js` wiring, no UI, no economy/persistence changes — `playerPoints` is not actually debited by anything yet. The function is unreachable from gameplay until a later sub-session wires it in, which is intentional: pure-core-first lets this land before the Fable fork session resolves the interaction model, since the fork changes HOW indulgence gets triggered (button vs. base-damage-on-arrival) but not the pure math this sub-session built.
+
+**State:** 19 suites, 413/413 (+6 new tests in `test/habits.test.js`). `node --check js/habits.js` clean. No live Chrome verification needed/possible — pure function, no UI surface exists yet to click.
+
+---
+
 ## 2026-07-19 — Session 24: Shop session 5 — balance re-tune, THEORY pass ([P1-UI-008] CLOSED) (Cowork session, Fable)
 
 **Mode decision (Jeremy):** theory pass now, real-play re-check later — every point in his save so far was injected or earned from seconds-old test tasks, so there was no real earn-rate data to tune against. The balance-tuning skill (Claude Code) isn't available in Cowork; its protocol was followed manually: all numbers in config.js, every number + rationale logged here, tests updated in the same session.

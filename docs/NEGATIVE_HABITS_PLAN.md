@@ -108,17 +108,23 @@ fork-independent and can proceed on Sonnet immediately.
 
 ## Session sequence (each ends green + committed; ONE per session for anything touching persistence/balance)
 
-### Sub-session 1 — `'indulged'` event in the pure seam (Sonnet, fork-independent)
+### Sub-session 1 — `'indulged'` event in the pure seam (Sonnet, fork-independent) — ✅ DONE 2026-07-19 session 25
 **Goal:** add the polarity-aware `'indulged'` outcome to `Habits.occurrenceSuccess` and a pure
 appliers path for an indulgence, WITHOUT wiring any UI or economy side effects yet. Pure-core only,
 so it's safe to land before the forks are resolved.
-- `js/habits.js`: extend `occurrenceSuccess(isNegative, 'indulged')` → returns `false` (a miss) for a
-  negative habit; guard/no-op for positive. Add a pure `applyHabitIndulgence(...)` (or extend the
-  existing appliers) that records the miss occurrence and returns a `pointsLost` computed from the
-  rate multiplier — mirroring `applyHabitUncompletion`'s symmetry discipline.
-- `test/habits.test.js`: cover `'indulged'` routing for both polarities + the indulgence applier
-  (points-lost, occurrence recorded, symmetric with a hypothetical un-indulge if we add one).
-- No `items.js`/UI/economy changes. No schema change. Tests green.
+- `js/habits.js`: extended `occurrenceSuccess(isNegative, 'indulged')` — returns `false` (a miss) for
+  either polarity; added a pure `applyHabitIndulgence(currentStreak, occurrenceHistory, isNegative,
+  originalDueDate, config)` — no-ops (streak/history unchanged, `pointsLost: 0`, `noOp: true`) for a
+  positive habit; for a negative habit records the miss, zeroes the visual streak, and computes
+  `pointsLost` from the POST-record rate multiplier (same convention `applyHabitCompletion` uses for
+  `pointsGained`, so a future "undo indulge" could mirror `applyHabitUncompletion`'s
+  recompute-then-pop symmetry).
+- `test/habits.test.js`: 6 new cases — `occurrenceSuccess` indulged routing (both polarities), the
+  positive no-op, negative miss-recording + streak zeroing, 1x/1.5x multiplier scaling, and the
+  same-day upsert-over-a-completion case.
+- No `items.js`/UI/economy changes. No schema change. **19 suites, 413/413** (was 407 — +6). `node
+  --check js/habits.js` clean. Run via the sandbox-copy method (`package.json`/`jest.config.js`/`js`/
+  `test` copied to scratch, `npm install` + `npx jest` there — never in the mounted folder).
 **Why first:** it's the one piece that's purely internal, fully unit-testable, and every later
 sub-session depends on it. Good cheap Sonnet win that de-risks the seam.
 

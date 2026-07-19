@@ -19,13 +19,17 @@
  * awarded from (recompute-then-pop), so refunds mirror awards by construction.
  *
  * POLARITY-READY (Jeremy's call, session 16): occurrence success is routed
- * through the single `occurrenceSuccess(isNegative, event)` helper. Today both
- * polarities map completed→success / overdue→miss (for a negative habit,
- * "completed" means "I avoided it today"). The genuinely-inverted negative
- * path — an explicit "indulged" action that costs points, the daily check-in
- * prompt, frozen-slot ties — is [P1-DATA-005] (Milestone 3), unbuilt; when it
- * lands it only has to add an 'indulged' event to this one helper, no rework
- * of the rate math. See DECISIONS.md 2026-07-18 (session 16).
+ * through the single `occurrenceSuccess(isNegative, event)` helper. Completed/
+ * overdue map completed→success / overdue→miss for both polarities (for a
+ * negative habit, "completed" means "I avoided it today"). [P1-DATA-005]
+ * session 25 (2026-07-19, sub-session 1) added the 'indulged' event + the
+ * pure `applyHabitIndulgence` applier — the explicit "I lapsed" action for a
+ * negative habit, recording a miss and computing points lost the same way
+ * applyHabitCompletion computes points gained. This is PURE CORE ONLY: no
+ * items.js/UI/economy wiring yet (playerPoints isn't actually debited), no
+ * daily check-in prompt, no frozen-slot ties — those are later sub-sessions
+ * per docs/NEGATIVE_HABITS_PLAN.md, gated on a Fable fork session that
+ * decides the negative-habit interaction model. See DECISIONS.md session 25.
  *
  * selectHabitDefsToSpawn matches the hand-maintained mirror that
  * test/routine-active-gating.test.js had of this same logic (written the
@@ -138,13 +142,14 @@ const Habits = (() => {
     }
 
     // The single polarity-aware routing point (see file header). event is
-    // 'completed' | 'overdue'. Today isNegative doesn't change the outcome —
-    // it's the explicit extension seam for [P1-DATA-005]'s future 'indulged'
-    // event, so that feature never has to touch the rate math.
+    // 'completed' | 'overdue' | 'indulged'. 'indulged' is only meaningful for
+    // negative habits (see applyHabitIndulgence's no-op guard for positive
+    // habits) — it always resolves to a miss, same as 'overdue'.
     function occurrenceSuccess(isNegative, event) {
         switch (event) {
             case 'completed': return true;  // positive: did it; negative: avoided it
             case 'overdue':   return false; // positive: missed; negative: lapsed
+            case 'indulged':  return false; // negative: explicitly caved today
             default:          return false;
         }
     }
@@ -246,6 +251,53 @@ const Habits = (() => {
         return { streak: 0, wasReset: currentStreak > 0, occurrenceHistory: history };
     }
 
+    // [P1-DATA-005] The explicit "I indulged" action for a negative habit —
+    // the player admits a lapse before the day rolls over (as opposed to
+    // applyHabitOverdue, which fires automatically when the window expires
+    // unattended). Mirrors applyHabitCompletion's shape: records the miss via
+    // the same occurrenceSuccess/recordOccurrence seam, resets the visual
+    // streak (a lapse breaks it, same as overdue), and computes pointsLost
+    // from the POST-record history multiplier — the same convention
+    // applyHabitCompletion uses for pointsGained, so a future "undo indulge"
+    // could mirror applyHabitUncompletion's recompute-then-pop symmetry.
+    //
+    // No-op guard: calling this on a positive habit (isNegative === false)
+    // is a caller error (there's no "indulge" action for a positive habit —
+    // that's just not completing it, i.e. overdue). Returns the streak/
+    // history unchanged and pointsLost: 0 rather than throwing, so a
+    // misrouted call is inert instead of corrupting state.
+    //
+    // PURE CORE ONLY (session 25, sub-session 1): items.js doesn't call this
+    // yet — no playerPoints debit, no UI, no persistence. Wiring is a later
+    // sub-session per docs/NEGATIVE_HABITS_PLAN.md, once the Fable fork
+    // session decides the negative-habit interaction model.
+    function applyHabitIndulgence(currentStreak, occurrenceHistory, isNegative, originalDueDate, config) {
+        if (!isNegative) {
+            return {
+                streak: currentStreak,
+                occurrenceHistory,
+                pointsLost: 0,
+                multiplier: 0,
+                noOp: true,
+            };
+        }
+
+        const dateStr = toOccurrenceDate(originalDueDate);
+        const history = recordOccurrence(
+            occurrenceHistory, dateStr, occurrenceSuccess(isNegative, 'indulged'), config.rateWindow
+        );
+        const multiplier = pointsMultiplier(history, { minSample: config.rateMinSample, tiers: config.rateTiers });
+        const pointsLost = Math.round(config.pointsPerHabit * multiplier);
+
+        return {
+            streak: 0,
+            occurrenceHistory: history,
+            pointsLost,
+            multiplier,
+            noOp: false,
+        };
+    }
+
     // Streak-only reset (no occurrence recording). Retained for callers/tests
     // that only need the visual streak decision; applyHabitOverdue wraps this
     // conceptually but records the occurrence too.
@@ -331,6 +383,7 @@ const Habits = (() => {
         applyHabitCompletion,
         applyHabitUncompletion,
         applyHabitOverdue,
+        applyHabitIndulgence,
         resetStreakOnOverdue,
         createHabitInstanceData,
         generateDailyHabitInstances,
