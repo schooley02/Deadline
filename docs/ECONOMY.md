@@ -6,14 +6,14 @@ Source: PROJECT_SPEC.md (Features List → shop/monetization sections). Numbers 
 - Earned by defeating enemies (completing tasks, completing positive habits, avoiding negative habits).
 - Lost by indulging negative habits or missing positive habits. Balance CAN go negative (debt state gets clear visualization + recovery plan suggestions).
 - Larger/more complex tasks award more points based on difficulty.
-- High-streak habits: higher chance of DOUBLE points on completion.
+- Habit points bonus (decided 2026-07-18, replaces the old "higher chance of double points"): a capped multiplier from the habit's rolling success rate over its last 14 scheduled occurrences — ≥90% → 1.5×, ≥70% → 1.25×, else 1× (config-tunable; 1× until ≥7 occurrences recorded). Points only, never XP. See MECHANICS.md Habits + DECISIONS.md.
 
 ## Shop — Exponential Pricing (anti-abuse)
 **Formula: price = base cost × 1.5^quantity_owned** (unlimited scaling — encourages routine optimization over token dependency; base costs designed for weekly affordability)
 
 | Item | Base cost | Effect |
 |---|---|---|
-| Repair kit (small) | 25 pts | Instant base HP restoration |
+| Repair kit (small) | 25 pts | Instant base HP restoration (mid-run top-up on top of the free gradual regen decided 2026-07-18 — see MECHANICS.md Base) |
 | Repair kit (medium) | 50 pts | Instant base HP restoration |
 | Repair kit (large) | 100 pts | Instant base HP restoration |
 | Enemy Pushback 1hr | 50 pts | Push enemy back 1 hour (stacking allowed) |

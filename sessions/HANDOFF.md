@@ -13,6 +13,21 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-18 — Session 13: Fable design session — habit bonus + base healing DECIDED (Cowork session)
+
+**Did:** The batched design session flagged since the habits extraction. Two decisions made with Jeremy (full rationale + rejected alternatives in DECISIONS.md): (1) **habit bonus is rate-based** — streak becomes visual-only; points multiplier from rolling success rate over last 14 scheduled occurrences (≥90% → 1.5×, ≥70% → 1.25×, else 1×; 1× until ≥7 recorded; points only, never XP; uncompletion flips today's history entry → symmetric refunds, structurally killing the flat-bonus asymmetry bug). (2) **base healing is gradual regen** — 1 HP/5min while alive + same rate offline (applied after offline damage on restore), clamp 100; repair kits = instant mid-run heals; 0 HP stays run-over; daily reset rejected. No code written — docs are the deliverable.
+
+**State:** Code untouched since session 12 (16 suites, 302/302). Docs updated: MECHANICS.md (Base + Habits sections rewritten, Open Questions pruned to one), ECONOMY.md, DATA_SCHEMA.md (`occurrenceHistory` added to Habit), ROADMAP.md (design item checked off; scheduling item now carries the one 2→3 migration for BOTH features; asymmetry-bugfix item superseded; P2-GAME-012 annotated as design-decided), DECISIONS.md (session 13 entry).
+
+**Next:** Implement the scheduling + rate-bonus stack, in order: (a) schemaVersion 2→3 migration + generator updates (Opus to plan, Sonnet to execute — touches persistence, strict one-per-session), (b) scheduling UI (day-of-week checkboxes + day-of-month field), (c) rate-based bonus. Or the style.css split if Jeremy wants something lighter. P2-GAME-012 (regen) is now implementable any time — small, mostly loop.js/damage.js + config.
+
+**Watch out:**
+- The 2→3 migration is the first since routineId (schemaVersion 2) — it must handle BOTH `frequency`→`schedule` and seeding `occurrenceHistory: []` in one bump. Don't split into two bumps.
+- The rate thresholds (90/70/1.5/1.25) are legibility placeholders, NOT tuned economy values — revisit against real shop prices in Milestone 3 (noted in DECISIONS.md).
+- The flat streak bonus (`HABIT_STREAK_BONUS_*`) stays live in code until the rate bonus lands — the known refund-asymmetry bug stays live with it, by choice.
+
+---
+
 ## 2026-07-18 — Session 12: `js/loop.js` + final cleanup — Milestone 2's extraction line COMPLETE (Cowork session)
 
 **Did:** Extracted the game loop (`updateGame` + `updateActiveItems` — the last real game logic in script.js) into new `js/loop.js` behind a single `loopDeps()` (lastLoopTickMs/lastAutosaveMs as get/set pairs; activeItems plain reference, safe because deps rebuild per tick). Cleanup: deleted the stale 53-line SUBTASK CALL CHAIN MAP comment, dead `getTodayAt5PM` (zero callers), the FAB debug console.log block, and 3 now-unused CONFIG aliases. script.js down to **1,141 lines** (was 1,244). Wired loop.js into index.html after state.js. `docs/UI_EXTRACTION_PLAN.md` formally CLOSED.

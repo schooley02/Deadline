@@ -4,6 +4,26 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-18 — Session 13 (Fable design session): rate-based habit bonus + gradual base regen DECIDED
+
+**Context:** the batched design session recommended in the habits-extraction entry — two open design questions settled with Jeremy in one Fable sitting instead of separate turns. No code written; docs are the deliverable.
+
+**Decision 1 — habit bonus is RATE-BASED; streak becomes visual-only.**
+- `streak` keeps its legibility jobs (agenda badge, on-fire sprite at high streak) and loses all economy effect.
+- Points bonus = multiplier from rolling success rate over the habit's last **14 scheduled occurrences** (per its `schedule`; success = completed for positive habits, avoided for negative): **≥90% → 1.5×, ≥70% → 1.25×, else 1×**. All numbers config-tunable via the balance protocol; capped at 1.5× by construction. **1× until ≥7 occurrences recorded** (`HABIT_RATE_MIN_SAMPLE`) so a new habit can't instantly max out. **Points only, never XP** — prices into the Milestone 3 shop without accelerating levels.
+- Uncompleting flips today's `occurrenceHistory` entry and recomputes — refunds symmetric by construction, which **structurally obsoletes the flat-bonus refund-asymmetry bug** (its ROADMAP fix item is folded into this implementation; the flat +5 goes away entirely).
+- Data: `occurrenceHistory: {date, success}[]` on habit definitions, trimmed to the window — ships in the **same schemaVersion 2→3 migration as `Schedule`** (one bump). Implementation order: (a) migration + generators, (b) scheduling UI, (c) rate bonus.
+- **Rejected:** keeping the flat streak-≥3 +5 (unbounded-feeling, one miss zeroes it — abandonment driver); MECHANICS.md's never-built probabilistic double points (random rewards tune badly and feel unfair in a productivity tool).
+- Multiplier curve gets re-examined against real shop prices once Milestone 3's shop exists — the thresholds are placeholders chosen for legibility (90/70), not tuned economy values.
+
+**Decision 2 — base healing is GRADUAL REGEN (resolves the 2026-07-17 open question).**
+- 1 HP per 5 min (`BASE_REGEN_HP`/`BASE_REGEN_INTERVAL_MS`) continuously while the run is alive, clamped at 100. Offline time heals at the same rate, applied on restore **after** offline overdue damage is back-charged (net: quiet base recovers overnight, neglected base doesn't). Repair kits stay as spec'd — instant mid-run heals, the paid "now" lever over the free slow climb.
+- **0 HP remains run-over** (`gameOver()`, already live). PROJECT_SPEC's "healing disabled at 0 until repair kit" clause is thereby moot — 0 is death, not a state. New Base = new run at full HP, unchanged.
+- **Rejected:** daily full reset (MECHANICS.md's old line) — wipes the meaning of overnight damage every midnight, gutting the offline lifetime-cap design (2026-07-17 Fable decision), and makes all three repair-kit tiers pointless free-alternative purchases; hybrid regen+partial-reset — two overlapping forgiveness systems to tune for no added design expression.
+- Regen interacts with live overdue damage as opposing rates (net -0 with one overdue item at current numbers — worth watching in playtest once built; tunable).
+
+**Docs updated this session:** MECHANICS.md (Base, Habits/streaks, offline-healing note, Open Questions pruned), ECONOMY.md (points bonus line, repair-kit note), DATA_SCHEMA.md (Habit.occurrenceHistory + streak annotation), ROADMAP.md (design item checked; scheduling item extended; asymmetry bugfix superseded; P2-GAME-012 annotated).
+
 ## 2026-07-18 — Session 12: `js/loop.js` extracted + final cleanup; the `<300 lines` goal revised, not met
 
 **Decision 1 — extract the game loop.** `updateGame` (the setInterval callback) and `updateActiveItems` (position/overdue/damage sweep) moved to `js/loop.js` behind a single `loopDeps()` — they were the last real game logic in script.js. `lastLoopTickMs`/`lastAutosaveMs` cross as get/set pairs (damage.js precedent); `activeItems` as a plain reference (safe because loopDeps() is rebuilt every tick). `test/loop.test.js` (13 cases) runs the real module — suite now **16 suites, 302/302**.

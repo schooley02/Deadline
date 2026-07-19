@@ -61,9 +61,21 @@ Habit {
   schedule: Schedule,       // see below — DESIGNED 2026-07-18, not yet built
   timeOfDay: "HH:MM"|null,
   routineId: string|null,
-  streak: number,
+  streak: number,           // VISUAL layer only as of 2026-07-18 — badge +
+                            // on-fire sprite; no economy effect (see below)
   lastCompletionDate: ISOString|null,
-  active: boolean
+  active: boolean,
+  // DESIGNED 2026-07-18 (rate-based bonus decision, see DECISIONS.md +
+  // MECHANICS.md Habits), NOT YET BUILT. Ships in the SAME schemaVersion 2→3
+  // migration as Schedule (one bump, decided 2026-07-18). Rolling record of
+  // this habit's scheduled occurrences, newest last, trimmed to the most
+  // recent 14 (CONFIG.HABIT_RATE_WINDOW). success = completed (positive
+  // habits) / avoided (negative habits). The points multiplier derives from
+  // the success fraction: ≥90% → 1.5×, ≥70% → 1.25×, else 1× — all four
+  // numbers config-tunable; 1× until ≥7 entries exist
+  // (CONFIG.HABIT_RATE_MIN_SAMPLE). Uncompleting today flips today's entry
+  // and recomputes (symmetric refunds by construction).
+  occurrenceHistory: { date: "YYYY-MM-DD", success: boolean }[]
 }
 
 // DESIGNED 2026-07-18 (decided with Jeremy, see DECISIONS.md), NOT YET BUILT.
