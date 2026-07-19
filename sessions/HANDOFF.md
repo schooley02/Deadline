@@ -13,6 +13,24 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 25: [P1-DATA-005] SEQUENCED into a plan doc (Cowork session, Opus — planning only, no code)
+
+**Did:** Sequenced the negative-habits ticket into `docs/NEGATIVE_HABITS_PLAN.md` (mirrors SHOP_PLAN.md). Started with a Chrome + code recon that materially changed the picture: **this ticket is NOT greenfield.** Already built and verified: the Positive/Negative toggle in both the add-habit form and the edit-habit editor, `isNegative` on habit defs + instances (threaded through `createHabitInstanceData`), the `.negative-habit` CSS hook in `items.js`, and the polarity seam `Habits.occurrenceSuccess(isNegative, event)` (currently polarity-agnostic — session 16 built it as the explicit extension point). `Economy.subtractPoints` clamps at 0 with a header NOTE reserving the non-clamping indulgence path. Docs (MECHANICS/ECONOMY/ROUTINES) already describe intended behavior. **What remains** = differentiated behavior only: the `'indulged'` event, inverted negative-overdue semantics, negative balance + debt UX, daily check-in, day-tokens.
+
+**Plan shape:** 5 sub-sessions + one batched **Fable fork session** (3 forks: A = core negative-habit interaction/enemy model [advancing-temptation vs idle+explicit-lapse — the architecture-shaping one]; B = debt depth + recovery UX; C = day-token scope). **Sub-session 1 (pure `'indulged'` seam in habits.js + tests) is fork-independent and ready for Sonnet now.** Sub-sessions 2-5 gated on the fork session.
+
+**State:** ✅ No code touched — planning only. Tests untouched (last known: 19 suites, 407/407 from session 24). Game runs; dev save still holds session-23 debris (0 pts, ~66 HP, overdue `PushbackTest-Zombie`) — recon confirmed, Reset still recommended before real play. Docs updated same session: NEGATIVE_HABITS_PLAN.md (new), ROADMAP.md ([P1-DATA-005] expanded to sub-items + [~]).
+
+**Next:** Sub-session 1 — add the `'indulged'` case to `Habits.occurrenceSuccess` + a pure indulgence applier (mirror `applyHabitUncompletion`'s symmetry), cover in `test/habits.test.js`. Pure-core, no UI/economy/schema change, no fork needed → **Sonnet.** After that, book the Fable fork session before Sub-session 2.
+
+**Watch out:**
+- The forks genuinely interact — decide A/B/C together in ONE Fable session, don't drip them.
+- Fork A is the crux: whether negative habits reuse or bypass the base-damage path. Don't let Sub-session 2 start until it's decided.
+- Day-tokens were deferred OUT of the shop ([P1-UI-008]) specifically to land here — Cheat Day needs the indulgence mechanic. They likely force the 4→5 schema migration (its own session per the guardrail).
+- `test/habits.test.js` pins the rate-tier values on purpose — unrelated to this ticket but don't disturb them.
+
+---
+
 ## 2026-07-19 — Session 24: Shop sub-session 5 — balance THEORY pass — [P1-UI-008] CLOSED (Cowork session, Fable)
 
 **Did:** The final shop sub-session, run as a theory pass (Jeremy's call — no real earn-rate data exists yet; his save points were injected/test-earned). Yardstick derived: solid day ≈ 75–85 pts. Three verdicts, all Jeremy's on Fable (full rationale + rejected alternatives in DECISIONS.md session 24):
