@@ -4,6 +4,38 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 43 (cont'd): Sub-session 4 forks RESOLVED — banked slot points, no grandfathering (design discussion, no code)
+
+**Decision 1 — grandfathering is moot: fresh run.** Jeremy reset the game, so no pre-enforcement
+routines exist to grandfather. Slot enforcement ships clean in sub-session 4 with zero legacy
+logic. Why available: single-player prototype — the entire "installed base" is one dev save.
+Alternatives rejected: grandfather-existing (now pointless), forced compliance (was never
+seriously considered — destructive).
+
+**Decision 2 — slot model = banked slot points (Jeremy's call).** Level 1 = 1 habit + 1 task
+slot; each level-up deposits 1 slot point (`routine.slotPoints`); the player spends a point on a
+habit-or-task slot AT THE MOMENT they try to add past their limit ("spend a point to unlock this
+slot?"), not at level-up time. Unspent points bank. Rationale: keeps leveling a draw (Jeremy's
+stated goal), puts the choice where it's informed (when you actually need the slot) instead of
+interrupting the level-up moment with a decision made blind. Alternatives rejected: symmetric
+auto +1/+1 (already built in sub-session 1's `slotsForLevel` — no engagement pull; will be
+superseded/re-derived in sub-session 4), pick-at-level-up modal (uninformed forced choice, worse
+UX for the same budget).
+
+**Decision 3 — cap: natural 9-per-type only, no artificial cap.** 8 earnable points (levels 2-9)
+→ max 9 of one type, 10 total slots. The 5/5 artificial cap was considered and dropped. Noted for
+balance review: banked points HALVE the total budget vs symmetric (10 vs 18 total at max level) —
+matches the "pick one per level" intent, but re-check with play data.
+
+**Cost acknowledged:** sub-session 4 now needs schemaVersion 8→9 (`slotPoints` + spent-slot
+fields), breaking HEROES_PLAN's "single schema bump" note — accepted; the fresh run makes the
+migration seed-only. Sub-tasks on routine tasks (confirmed working, no routineId guard anywhere
+in the sub-task path) remain the outlier valve for "needs more than 9 tasks" routines.
+
+HEROES_PLAN.md sub-session 4 rewritten accordingly. No code this session-segment.
+
+---
+
 ## 2026-07-19 — Session 43: HEROES_PLAN sub-session 3 BUILT — hero rendering at the base (Cowork session, Sonnet)
 
 **Built:** `js/ui/heroes.js` (`HeroesView`) + `css/heroes.css`. One avatar chip per routine renders

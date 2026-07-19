@@ -157,15 +157,36 @@ the real notice end-to-end; deactivating/reactivating updated the chip's state s
 one game-loop tick, no reload needed. Mobile breakpoint verified by reading the loaded stylesheet
 (sandbox couldn't actually resize the remote browser viewport) — see DECISIONS.md session 43.
 
-### Sub-session 4 — hero management UI + slot enforcement (Sonnet; ask Jeremy the grandfather question before coding)
-**Goal:** routine cards + Manage modal show level/XP-progress/stars/health; Activate control
-reflects KO gating (sub-session 2's disabled state gets its explanation here); slot limits
-(`slotsForLevel`) enforced on ADD (the "+ Add Habit/Task" flows refuse past the limit with a
-"level up to unlock" message). **Open fork for Jeremy at session start:** what about existing
-routines already OVER their level-1 slot count? (Recommend: grandfather — never evict, only block
-NEW adds past the limit.)
-- Tests: slot math, add-gating. **Live-verify:** full card/modal pass, over-limit add blocked with
-  message, grandfathered routine untouched.
+### Sub-session 4 — hero management UI + slot enforcement, BANKED SLOT POINTS (Sonnet) — forks RESOLVED 2026-07-19 session 43 (Jeremy)
+**Design forks resolved (post-session-43 discussion, logged in DECISIONS.md):**
+1. **Grandfathering is MOOT — Jeremy reset to a fresh run.** Single-player prototype; no
+   pre-enforcement routines exist. Enforcement ships clean: no grandfather logic, no migration of
+   legacy over-limit routines. (A shipped game couldn't do this; a prototype can.)
+2. **Slot model = BANKED SLOT POINTS**, replacing sub-session 1's symmetric auto +1/+1
+   (`Heroes.slotsForLevel` becomes the derivation over spent points, or is superseded — session's
+   call, keep the pure-core discipline either way). Level 1 baseline: 1 habit + 1 task slot. Each
+   level-up (levels 2-9) deposits **1 slot point** into `routine.slotPoints`. Points are spent —
+   on a habit slot OR a task slot — at the moment the player tries to ADD past their current
+   limit: the "+ Add Habit/Task" flow prompts "spend a point to unlock this slot?" instead of a
+   flat refusal. Unspent points accumulate. Chosen over pick-at-level-up (decision forced before
+   the need is known, interrupts the level-up moment) and over pure symmetric (no engagement pull).
+3. **Cap:** natural only — 8 points max (levels 2-9), so per-type ceiling is 1+8 = 9 and total
+   slots max out at 10. No artificial 5/5 cap (considered, dropped). NOTE the budget difference
+   vs the old symmetric model (which reached 9+9 = 18 total): banked points HALVE the total slot
+   budget — this matches Jeremy's original "pick one per level" intent, but re-check against play
+   data once routines actually level.
+**Schema:** needs `routine.slotPoints` (int) + spent-slot tracking (e.g. `routine.boughtHabitSlots`/
+`boughtTaskSlots` ints — cheapest honest shape; level stays derived from xp). SchemaVersion 8→9.
+This BREAKS the "single schema bump in sub-session 1" plan note below — deliberate, logged; the
+fresh-run reset means the migration only needs to seed fields (no legacy reconstruction).
+**Also still in scope (unchanged from original plan):** routine cards + Manage modal show
+level/XP-progress/stars/health; Activate control explains KO gating (sub-session 2's disabled
+state gets its explanation here).
+- Tests: slot-point math (deposit on level-up incl. multi-level single completion, spend, refund
+  behavior on de-level — decide + log whether a de-level can strand spent slots; recommend: yes,
+  strand harmlessly, never evict members), add-gating, migration seeding. **Live-verify:** full
+  card/modal pass; add-past-limit prompts spend; spend unlocks and persists; out-of-points add
+  shows "level up to earn a slot point."
 
 ### Sub-session 5 — polish: interaction visuals + ranking (Sonnet) — OPTIONAL, cut if play data says otherwise
 **Goal:** the ticket's remaining criteria. Hero reacts when its routine takes damage (flinch/flash)
