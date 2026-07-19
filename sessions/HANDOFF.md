@@ -13,6 +13,23 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 27: [P1-DATA-005] sub-session 2 PLANNED + split into 2a/2b (Cowork session, Opus — planning only, no code)
+
+**Did:** Opus planning pass for the A2-lurker implementation. Mapped every code path the lurker model touches and found sub-session 2 was too big / too high-blast-radius for one session: excluding negative habits from base damage requires touching THREE separate paths — `Loop.updateActiveItems` (live tick, loop.js ~49), `Damage.computeGapCatchUpHits` (backgrounded-tab catch-up, damage.js ~110), and the offline catch-up entries built in script.js. Split into **2a** (make negative habits non-threatening "lurkers": one `Items.isNonThreatening` predicate, exclude from all 3 damage paths + defensive `markAsOverdue` guard, fixed `CONFIG` lurk position, tests + live verify — no new player action) and **2b** (indulge/avoid popup binary + `indulgeHabit` wiring + the rollover double-spawn guard). Full surgery map with line refs is inline in NEGATIVE_HABITS_PLAN.md sub-sessions 2a/2b.
+
+**Key recon catch (folded into 2b):** `selectHabitDefsToSpawn` only dedupes against instances due TODAY, so a yesterday lurker left unresolved would let today spawn a SECOND lurker. Interim fix = auto-resolve prior-day lurkers as "avoided" at rollover (matches session-26's older-days-default-to-avoided); sub-session 4's check-in later refines the most-recent day.
+
+**State:** ✅ No code touched. Tests untouched (19 suites, 413/413). Docs updated same session: NEGATIVE_HABITS_PLAN.md (2 → 2a/2b with the surgery map), ROADMAP.md (sub-items split). No DECISIONS.md entry — this is execution planning, not a design decision (the design was fixed in session 26).
+
+**Next: Sub-session 2a — the lurker core-loop surgery. It's fully specified now → Sonnet.** The three damage-path exclusions are the whole risk; the plan names each with line refs. Verify the offline-entries exclusion by Grepping script.js for where the offline catch-up `entries`/`animatableCount` set is assembled (not yet pinned to a line).
+
+**Watch out:**
+- Do NOT let 2a and 2b merge back together — the split exists precisely because the damage-loop surgery is high-blast-radius and deserves its own green-tested commit before any UI rides on it.
+- The lurk position must be a fixed CONFIG x, NOT derived from `dueDateTime` — a lurker that still reads its timeline position would creep toward the base as the day progresses.
+- Dev save still has session-23 debris; Reset before real play (standing note).
+
+---
+
 ## 2026-07-19 — Session 26: [P1-DATA-005] FORK SESSION — all three design forks resolved (Cowork session, Fable)
 
 **Did:** The batched Fable fork session from NEGATIVE_HABITS_PLAN.md. All three verdicts Jeremy's; full rationale + rejected alternatives in DECISIONS.md session 26. **A = A2 idle lurker:** negative-habit zombie lurks near the fence, never advances, NO base damage/overdue path (key insight: the game can't observe an indulgence — time expiring is SUCCESS for a negative habit, so the reach-base-= -failure machinery is semantically inverted and unreusable); tap → "I indulged" → points loss + streak zero; unresolved days settle at next morning's check-in; older days default to avoided. **B = unbounded debt, orthogonal to base health, no clearing deadline** (Jeremy probed tying debt to HP/run-death — rejected on punishment-stacking, the self-report honesty problem [the decisive argument: every consequence attached to "I indulged" incentivizes lying, and lies corrupt the whole reflection layer], and illegible-death grounds); red HUD + "−12 · complete 2 tasks to break even" nudge; no new shop gating. **C = Cheat Day only** (excused day: no cost, NO occurrence recorded, streak preserved); Sick/Skip deferred to the frozen-slots ticket.

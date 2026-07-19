@@ -153,19 +153,68 @@ Batch the three forks. Output: the chosen negative-habit interaction model, the 
 day-token scope — enough to make sub-sessions 2-5 execution work. Update this plan doc with the
 decisions.
 
-### Sub-session 2 — lurker zombie + indulge action wired end-to-end (Opus plan → Sonnet)
-**Goal:** implement the A2 lurker model. Negative-habit instances spawn a NON-advancing zombie at a
-fixed lurk position near the fence (`.negative-habit` tint already applied); they are excluded from
-the overdue/base-damage path entirely (`markAsOverdue` must skip negative instances — this is the
-main items.js surgery). Enemy-click popup for a negative habit shows "I indulged" instead of the
-task actions → wires `Habits.applyHabitIndulgence` (session 25) into `items.js` + points debit +
-agenda re-render + save. End-of-day: negative instances do NOT resolve at rollover — they carry as
-"unresolved" for the check-in (sub-session 4); until 4 lands, an interim decision is needed on what
-the rollover does with them (recommend: hold the instance, no occurrence recorded — check-in will
-settle it). Live-verify in Chrome (create negative habit → lurker spawns, never moves, no damage
-ticks; indulge → points drop, streak zeroes, zombie exits). Depends on Sub-session 1. **Note:** the
-points debit here still goes through the 0-floored `Economy.subtractPoints` until sub-session 3
-lands the non-clamping path — acceptable interim (debt just can't go below 0 for a few sessions).
+### Sub-session 2 — SPLIT into 2a + 2b (planned 2026-07-19 session 27, Opus)
+The original single "sub-session 2" bundled the core-loop surgery (high blast radius, three separate
+damage paths) with the indulge-action UI. Splitting keeps each session to one coherent system and
+respects the strict one-per-session rule for architecture/blast-radius work. Full surgery map from
+the session-27 recon is inline below so execution doesn't have to re-discover it.
+
+#### Sub-session 2a — make negative habits non-threatening "lurkers" (Sonnet; core-loop surgery)
+**Goal:** a negative-habit instance never advances, never goes overdue, never damages the base — it
+sits at a fixed lurk position. NO new player action yet (that's 2b). This is the architecture piece.
+
+**The predicate.** Add one helper — `Items.isNonThreatening(item)` (or `isNegativeHabitInstance`):
+`item.type === 'habit' && item.isNegative === true`. Every exclusion below uses it, so the concept
+lives in exactly one place and is unit-testable.
+
+**Three overdue/damage paths must all exclude it** (this is why it's its own session — miss one and
+a lurker silently damages the base):
+1. `js/loop.js` `updateActiveItems` (~line 49 loop body): at the top of the per-item body, if
+   non-threatening → set `item.x` to the fixed lurk position, update `element.style.left`, and
+   `continue` — skipping BOTH the `dueDateTime <= now` overdue transition AND the
+   `if (item.isOverdue)` damage block.
+2. `js/damage.js` `computeGapCatchUpHits` (~line 110 `forEach`): early `return` for non-threatening
+   items (backgrounded-tab catch-up must not charge them).
+3. `js/damage.js` offline catch-up — `runOfflineCatchUp` / the `entries` built in script.js that feed
+   `computeOfflineOverdueDamage`: exclude non-threatening items when building entries (Grep script.js
+   for where offline entries/`animatableCount` are assembled). Verify a negative instance isn't in
+   the animated set either.
+4. Defensive: `js/items.js` `markAsOverdue` (~line 390) early-returns for non-threatening items — a
+   belt-and-suspenders guard that also protects the `recomputeOverdueStateAfterEdit` path.
+
+**Lurk position.** New `CONFIG` value (e.g. `NEGATIVE_LURK_X_OFFSET`) — a fixed x near the fence,
+NOT derived from `dueDateTime` (lurkers don't advance). Keep `dueDateTime` intact on the instance
+(it still tags which day the instance belongs to, needed by 2b/4). `.negative-habit` tint already
+applied in items.js ~292.
+
+**Tests:** `test/loop.test.js` / `test/damage.test.js` (or the movement suite) — a negative habit
+instance past its due time accrues ZERO damage in all three paths and stays un-overdue; a positive
+habit is unaffected (regression). `Items.isNonThreatening` unit cases.
+**Live-verify (Chrome):** create a negative habit → lurker spawns near the fence, does NOT advance
+as the day progresses, base HP holds steady with it past due. Depends on Sub-session 1.
+
+#### Sub-session 2b — indulge / avoid actions + rollover hold (Opus plan → Sonnet)
+**Goal:** wire the two player actions onto the lurker, mirroring the spec's binary. Depends on 2a.
+- Enemy-click popup (`js/ui/popups.js` `showTaskDetailsPopup`): for a negative-habit instance,
+  REPLACE the "Mark as Complete" checkbox + pushback section with two buttons — **"Successfully
+  avoided"** (→ `completeItem`, which already routes `applyHabitCompletion` with `isNegative`:
+  success occurrence + points + defeat explosion) and **"I indulged"** (→ new handler wiring
+  `Habits.applyHabitIndulgence` from session 25: points debit + streak zero + agenda re-render +
+  zombie "got you" exit + save). Uses the same label as the sub-session-4 check-in for consistency.
+- `js/items.js`: new `indulgeHabit(itemId, deps)` applying the session-25 pure result to the habitDef
+  + `playerPoints`. **Interim:** debit through the 0-floored `Economy.subtractPoints` until
+  sub-session 3 lands the non-clamping path — acceptable (debt just can't cross 0 for a session or
+  two); leave a `// TODO(sub-session 3): non-clamping` marker.
+- **Rollover hold / double-spawn guard (important — found in session-27 recon):**
+  `selectHabitDefsToSpawn` dedupes only against an instance whose `originalDueDate` is TODAY, so a
+  yesterday lurker left on the field would let today spawn a SECOND lurker. Interim rule (matches the
+  session-26 "older days default to avoided"): at day rollover, auto-resolve any still-lurking
+  negative instance from a PRIOR day as **avoided** (success occurrence + points), removing it before
+  today spawns. Sub-session 4 later refines this so the single most-recent day routes through the
+  check-in instead of silently auto-resolving.
+- **Live-verify:** indulge → points drop + streak 0 + zombie exits; avoid → points up + explosion;
+  reload mid-day keeps the lurker; cross a day boundary → yesterday's lurker auto-resolves, exactly
+  one new lurker spawns.
 
 ### Sub-session 3 — unbounded debt + encouraging debt UX (Opus plan → Sonnet)
 **Goal:** add `Economy.applyIndulgenceCost` (or similar) — the non-clamping sibling reserved by the
