@@ -4,6 +4,20 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-18 — Session 19: Milestone 3 opened; ordering decided; [P1-DATA-007] done via js/economy.js (Cowork session, Fable plan → Sonnet execution)
+
+**Milestone 3 ordering decided (Fable):** P1-DATA-007 points standardization → P1-UI-008 shop → P1-DATA-005 negative habits (+ frozen slots) → P1-UI-006 heroes / P1-DATA-004 sub-task hierarchy / run history. Why: 007 is smallest and explicitly gates the shop; the shop unblocks repair kits AND the habit-rate-tier re-tune; negative habits already have their seam (`occurrenceSuccess`, session 16) and lead into frozen slots. Rejected: starting with P1-DATA-005 (3-week ticket, blocks nothing else); starting with the shop directly (its ticket names 007 as a dependency).
+
+**P1-DATA-007 rescoped:** the ticket's acceptance criteria are ~half moot — they target the MPE variant, which is reference-only since Milestone 0. The Root variant's points system was already consistent (earning in items.js/habits.js, display in hud.js, persistence in state.js, values in config.js). What was actually missing: `js/economy.js` (ARCHITECTURE.md target module; progression.js deliberately left `playerPoints` behind for it), a single home for the high-priority ×2 rule (was duplicated inline in items.js's complete + uncomplete paths), and the shop's exponential-pricing formula.
+
+**Built:** `js/economy.js` — pure `taskPoints(isHighPriority, pointsPerTask)`, `addPoints`, `subtractPoints` (0-floor), `shopPrice(baseCost, owned)` = `round(base × 1.5^owned)` per ECONOMY.md. items.js's four points call sites now route through it; behavior-identical (same numbers). `playerPoints` OWNERSHIP stays in script.js accessor-deps, consistent with every other module.
+
+**Decision — zero floor kept for refunds:** ECONOMY.md says balances CAN go negative, but only via negative-habit indulgence ([P1-DATA-005], unbuilt). `Economy.subtractPoints` keeps the 0-floor and carries a comment: when indulgence lands it gets a dedicated non-clamping path; uncompletion refunds keep the floor. Rejected: allowing negative now (nothing can legitimately produce it; would mask refund bugs).
+
+**Tests:** `test/economy.test.js` (10 cases incl. pinned shopPrice values so a silent formula change fails loudly). 18 suites, 380/380. Live-verified in Chrome: normal task +10/−10 round-trip exact; high-priority task +20 points/+10 XP (the ×2 applies to points only); persistence through reload; console clean. Re-observed the known cosmetic uncomplete-checkbox bug (ROADMAP known-bugs) — unchanged, not a regression.
+
+---
+
 ## 2026-07-18 — Session 18: style.css split by component (Cowork session) — Milestone 2 CLOSED
 
 **Context:** last open Milestone 2 item (`docs/ARCHITECTURE.md`: "`style.css` splits per component after JS is done"). Mechanical split, no design judgment — grouped by the natural `js/ui/*.js` cluster boundaries the JS extraction already established, plus 4 pre-UI-extraction files (`base`, `gameCanvas`, `enemySprites`, `enemyStatus`) and one cross-cutting `responsive.css`.

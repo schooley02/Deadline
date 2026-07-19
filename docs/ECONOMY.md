@@ -9,6 +9,8 @@ Source: PROJECT_SPEC.md (Features List → shop/monetization sections). Numbers 
 - Habit points bonus (BUILT 2026-07-18 session 16, replaces the old flat streak bonus): a capped multiplier from the habit's rolling success rate over its last 14 recorded occurrences — ≥90% → 1.5×, ≥70% → 1.25×, else 1× (`CONFIG.HABIT_RATE_*`, config-tunable; 1× until ≥7 occurrences recorded). `pointsGained = round(POINTS_PER_HABIT × multiplier)`. Points only, never XP. Thresholds are legibility placeholders — re-tune against real shop prices once the shop below exists. See MECHANICS.md Habits + DECISIONS.md.
 
 ## Shop — Exponential Pricing (anti-abuse)
+Points math + this pricing formula live in `js/economy.js` (built 2026-07-18 session 19, [P1-DATA-007]): `Economy.shopPrice(baseCost, quantityOwned)`, plus `taskPoints` (high-priority ×2) and `addPoints`/`subtractPoints` (refunds floor at 0 until P1-DATA-005 indulgence adds the negative-balance path). The shop UI itself is unbuilt ([P1-UI-008]).
+
 **Formula: price = base cost × 1.5^quantity_owned** (unlimited scaling — encourages routine optimization over token dependency; base costs designed for weekly affordability)
 
 | Item | Base cost | Effect |

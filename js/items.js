@@ -149,7 +149,7 @@ const Items = (() => {
 
         if (item.type === 'task') {
             xpGained = deps.xpPerTaskDefeat;
-            pointsGained = item.isHighPriority ? deps.pointsPerTask * 2 : deps.pointsPerTask;
+            pointsGained = Economy.taskPoints(item.isHighPriority, deps.pointsPerTask);
         } else if (item.type === 'habit') {
             const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
             if (habitDef) {
@@ -171,7 +171,7 @@ const Items = (() => {
 
         if (xpGained > 0) {
             deps.setPlayerXP(deps.getPlayerXP() + xpGained);
-            deps.setPlayerPoints(deps.getPlayerPoints() + pointsGained);
+            deps.setPlayerPoints(Economy.addPoints(deps.getPlayerPoints(), pointsGained));
             deps.updatePlayerDisplays();
             deps.checkPlayerLevelUp();
         }
@@ -355,10 +355,10 @@ const Items = (() => {
         // Reverse the XP and points gained (if any)
         if (item.type === 'task') {
             const xpLost = deps.xpPerTaskDefeat;
-            const pointsLost = item.isHighPriority ? deps.pointsPerTask * 2 : deps.pointsPerTask;
+            const pointsLost = Economy.taskPoints(item.isHighPriority, deps.pointsPerTask);
 
             deps.setPlayerXP(Math.max(0, deps.getPlayerXP() - xpLost));
-            deps.setPlayerPoints(Math.max(0, deps.getPlayerPoints() - pointsLost));
+            deps.setPlayerPoints(Economy.subtractPoints(deps.getPlayerPoints(), pointsLost));
         } else if (item.type === 'habit') {
             const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
             if (habitDef) {
@@ -375,7 +375,7 @@ const Items = (() => {
                 habitDef.occurrenceHistory = result.occurrenceHistory;
 
                 deps.setPlayerXP(Math.max(0, deps.getPlayerXP() - result.xpLost));
-                deps.setPlayerPoints(Math.max(0, deps.getPlayerPoints() - result.pointsLost));
+                deps.setPlayerPoints(Economy.subtractPoints(deps.getPlayerPoints(), result.pointsLost));
             }
         }
 

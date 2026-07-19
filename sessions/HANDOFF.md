@@ -13,6 +13,23 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-18 — Session 19: Milestone 3 OPENED — ordering decided + [P1-DATA-007] done via js/economy.js (Cowork session)
+
+**Did:** Fable session start: decided the Milestone 3 order (007 → 008 shop → 005 negative habits/frozen slots → 006 heroes / 004 sub-tasks / run history — rationale in DECISIONS.md), then executed P1-DATA-007. The ticket was half-moot (MPE variant is reference-only; Root points were already consistent), so the real work was `js/economy.js`: pure `taskPoints` (high-priority ×2 rule, previously duplicated inline in items.js complete + uncomplete), `addPoints`/`subtractPoints` (0-floor, documented non-clamping path planned for P1-DATA-005 indulgence), and `shopPrice(base, owned) = round(base × 1.5^owned)` from ECONOMY.md so the shop starts from a tested pricing core. items.js's four points call sites now route through Economy; wired into index.html after progression.js. Behavior-identical — same numbers everywhere.
+
+**State:** ✅ **18 suites, 380/380** (was 370; +10 `test/economy.test.js` incl. pinned shopPrice values). `node --check` clean on economy.js/items.js. **Live-verified in Chrome:** normal task complete/uncomplete round-tripped points 20→30→20 exactly; new high-priority task awarded +20 points/+10 XP (×2 is points-only); values survived reload; console clean on fresh load. Re-observed the known cosmetic uncomplete-checkbox bug — unchanged, pre-existing.
+
+**Docs updated same session:** ECONOMY.md, ARCHITECTURE.md (economy.js IMPLEMENTED), ROADMAP.md (007 checked, Milestone 3 ordering header), DECISIONS.md (session 19 entry).
+
+**Next:** [P1-UI-008] shop. It's the biggest M3 ticket (13 pts) — first session should SEQUENCE it into a plan doc (like UI_EXTRACTION_PLAN.md) before building: shop modal UI, repair-kit inventory + use, pushback tokens, cheat/sick/skip-day tokens, and the rate-tier + repair-kit price re-tune against real prices (balance-tuning protocol). Pricing math already exists (`Economy.shopPrice`).
+
+**Watch out:**
+- `Economy.subtractPoints` floors at 0 deliberately — do NOT remove the clamp for P1-DATA-005; add a separate indulgence path instead (see DECISIONS.md).
+- Jeremy's live save now has a leftover `Session19-EconomyTest-HP` completed task and base health was ~5 during testing (two long-overdue test tasks are ticking damage; regen will climb it back). Consider cleaning up old test items or using Reset before shop playtesting.
+- Sandbox scratch dir this session: `/sessions/exciting-happy-turing/dl-s19`.
+
+---
+
 ## 2026-07-18 — Session 18: style.css split by component (Cowork session) — Milestone 2 CLOSED
 
 **Did:** Split the 2,095-line `style.css` monolith into 12 files under `css/`, mapped to the existing `js/ui/*.js` cluster boundaries where a natural component match existed (`agendaList.css`, `fabMenu.css`, `managementWindows.css`, `forms.css`, `routineViews.css`, `modal.css`, `popups.css`), plus `base.css`/`gameCanvas.css`/`enemySprites.css`/`enemyStatus.css` for pre-UI-extraction rules and `responsive.css` for the `@media` overrides. Pure mechanical move — verified byte-for-byte content match (non-blank line counts identical, 2,095 = 2,095) before adding provenance header comments. `index.html`'s single `<link>` replaced with 12, in a specific order. Old root `style.css` deleted (asked first — verified working, recoverable via git history).

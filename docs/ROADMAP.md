@@ -57,12 +57,13 @@ Order chosen so each step is small and testable. Tests pass before/after each; c
 - [ ] **Uncompleting an item can leave its "Mark as Complete" checkbox visually checked** (found 2026-07-18, session 7 live verification; not fixed). `uncompleteItem` reuses the item's stale `listItemElement` rather than rebuilding it, so the checkbox — which is always checked at the moment completion fires — stays checked when the row re-enters the active list, until the next full rebuild (reload, or any edit that recreates the row). Cosmetic only: confirmed the underlying save data (XP/points/task-count) round-trips exactly on complete → uncomplete. Pre-existing, not a regression from the agendaList.js part 2 extraction. See DECISIONS.md.
 
 ## Milestone 3 — Core Feature Gaps (P1 tickets)
-- [ ] [P1-DATA-004] Sub-task hierarchy system (beyond bug fix: dependent due dates, shrinking parents)
-- [ ] [P1-DATA-005] Positive/negative habit distinction (points loss, negative balance)
-- [ ] [P1-UI-006] Hero/routine visual system (heroes in base, health, levels)
+Ordering decided 2026-07-18 session 19 (Fable — see DECISIONS.md): 007 → 008 shop → 005 negative habits (+ frozen slots) → 006 heroes / 004 sub-tasks / run history.
+- [x] [P1-DATA-007] Standardize points/currency system (2026-07-18, session 19) — rescoped: MPE half of the ticket is moot (reference-only variant); Root points were already consistent. Built `js/economy.js` (ARCHITECTURE.md target): `taskPoints` (the high-priority ×2 rule, de-duplicated from items.js's complete/uncomplete paths), `addPoints`/`subtractPoints` (0-floor kept — negative balances wait for P1-DATA-005 indulgence, see DECISIONS.md), and `shopPrice` (base × 1.5^owned per ECONOMY.md) ready for the shop. `test/economy.test.js` (18 suites, 380/380). Live-verified in Chrome. See DECISIONS.md.
+- [ ] [P1-UI-008] Shop + repair kits + tokens with exponential pricing (see docs/ECONOMY.md) — NEXT; pricing core already in economy.js. Big ticket: sequence into sessions first (its own plan doc, like UI_EXTRACTION_PLAN.md)
+- [ ] [P1-DATA-005] Positive/negative habit distinction (points loss, negative balance) — `occurrenceSuccess` seam (session 16) + `Economy.subtractPoints` non-clamping path are the entry points
 - [ ] Frozen routine slots + recovery (spec'd: 3+ day negative streak freezes; recover via habit edit or 3-day avoidance; daily check-ins — see docs/ROUTINES.md)
-- [ ] [P1-DATA-007] Standardize points/currency system
-- [ ] [P1-UI-008] Shop + repair kits + tokens with exponential pricing (see docs/ECONOMY.md)
+- [ ] [P1-UI-006] Hero/routine visual system (heroes in base, health, levels)
+- [ ] [P1-DATA-004] Sub-task hierarchy system (beyond bug fix: dependent due dates, shrinking parents)
 - [ ] Run history + run review screen
 
 ## Milestone 4 — Polish (P2 tickets)
