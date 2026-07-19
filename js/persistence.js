@@ -31,7 +31,7 @@ const Persistence = (() => {
     // 5) — top-level `sickDayDate` (global, null = no active Sick Day) and
     // habit-def `skipDayDate` (per-habit, null = no active Skip Day). Old
     // saves seed both null.
-    const SCHEMA_VERSION = 7;
+    const SCHEMA_VERSION = 8;
     const DEBOUNCE_MS = 500;
 
     // DOM references on item objects — never serialized, rebuilt on load.
@@ -233,6 +233,30 @@ const Persistence = (() => {
                 }
             });
             save.schemaVersion = 7;
+        }
+
+        // v7 → v8 (2026-07-19): hero/routine progression ([P1-UI-006]
+        // sub-session 1). Additive on routines — `xp`/`level` (routine-own
+        // leveling, js/heroes.js), `health` (seeded full; damage wiring is
+        // sub-session 2), `createdAt` (star-rating window start — best
+        // available birthday for a pre-v8 routine is the run start, falling
+        // back to now), and `koState` (null = not knocked out; set by
+        // sub-session 2's KO path). Literal values rather than CONFIG.* so
+        // this stays a stable historical transform (v2→v3 precedent) — 100
+        // is ROUTINE_MAX_HEALTH's value at migration-writing time. See
+        // DECISIONS.md session 41.
+        if (save.schemaVersion === 7) {
+            const birthday = typeof save.runStartedAtMs === 'number'
+                ? save.runStartedAtMs
+                : Date.now();
+            (save.definedRoutines || []).forEach(routine => {
+                if (typeof routine.xp !== 'number') routine.xp = 0;
+                if (typeof routine.level !== 'number') routine.level = 1;
+                if (typeof routine.health !== 'number') routine.health = 100;
+                if (typeof routine.createdAt !== 'number') routine.createdAt = birthday;
+                if (routine.koState === undefined) routine.koState = null;
+            });
+            save.schemaVersion = 8;
         }
 
         if (save.schemaVersion !== SCHEMA_VERSION) {

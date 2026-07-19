@@ -14,6 +14,7 @@ global.Habits = require('../js/habits.js');
 global.Economy = require('../js/economy.js');
 global.FrozenSlots = require('../js/frozenSlots.js');
 global.CONFIG = require('../js/config.js');
+global.Heroes = require('../js/heroes.js');
 const Items = require('../js/items.js');
 
 function fakeEl() {

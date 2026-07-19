@@ -194,7 +194,16 @@ const Routines = (() => {
             isActive: false,
             // Frozen routine slots (schemaVersion 6, 2026-07-19): null = not
             // frozen. See js/frozenSlots.js.
-            frozenState: null
+            frozenState: null,
+            // Hero/routine progression (schemaVersion 8, [P1-UI-006]
+            // sub-session 1, 2026-07-19): see js/heroes.js. `createdAt` is
+            // the star-rating window start (clamped to run start by callers);
+            // `koState` is set by the KO path (sub-session 2), null = fine.
+            xp: 0,
+            level: 1,
+            health: CONFIG.ROUTINE_MAX_HEALTH,
+            createdAt: Date.now(),
+            koState: null
         };
 
         return { ok: true, routine };

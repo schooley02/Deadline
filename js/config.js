@@ -94,6 +94,40 @@ const CONFIG = {
     LEVEL_XP_THRESHOLDS: [0, 100, 250, 500, 800, 1200, 1700, 2300, 3000],
     ROUTINE_SLOTS_PER_LEVEL: { 1: 1, 2: 1, 3: 2, 4: 2, 5: 3, 6: 3, 7: 4, 8: 4 },
 
+    // --- Hero/routine progression ([P1-UI-006] sub-session 1, 2026-07-19
+    // session 41; docs/HEROES_PLAN.md + docs/ROUTINES.md). NOT to be confused
+    // with ROUTINE_SLOTS_PER_LEVEL above, which maps PLAYER level -> number of
+    // concurrent routines; these govern each routine's OWN leveling.
+    // A routine earns XP when its member items complete (mirrors the player's
+    // 10/5 task/habit values — a routine levels alongside the player who feeds
+    // it); a frozen or inactive routine earns nothing (items.js gates on
+    // FrozenSlots.isRoutineSuspended). Thresholds are the player curve halved
+    // (a routine only ever sees its own members' completions). Same table
+    // semantics: thresholds[level] = XP to advance FROM level TO level+1.
+    ROUTINE_XP_PER_TASK: 10,
+    ROUTINE_XP_PER_HABIT: 5,
+    ROUTINE_LEVEL_XP_THRESHOLDS: [0, 50, 125, 250, 400, 600, 850, 1150, 1500],
+    // Member slots: level 1 = 1 habit + 1 task slot; +1 of each per level
+    // (spec gives no numbers — cheapest symmetric reading, revisit with play
+    // data). Enforcement lands in sub-session 4.
+    ROUTINE_HABIT_SLOTS_BASE: 1,
+    ROUTINE_TASK_SLOTS_BASE: 1,
+    ROUTINE_SLOTS_PER_LEVEL_GAIN: 1,
+    // Routine health (sub-session 2 wires damage/KO; the max seeds the v8
+    // migration NOW so the field exists). KO at 0 -> auto-deactivate, manual
+    // revive next calendar day at HERO_REVIVE_HEALTH (fork 2, session 41).
+    ROUTINE_MAX_HEALTH: 100,
+    HERO_REVIVE_HEALTH: 50,
+    // Star tiers (PROJECT_SPEC ~78-83, fixed spec values): completion rate ->
+    // stars, checked high-to-low, first match wins; below 60% (or unrated) = 0.
+    HERO_STAR_TIERS: [
+        { minRate: 0.95, stars: 5 },
+        { minRate: 0.90, stars: 4 },
+        { minRate: 0.80, stars: 3 },
+        { minRate: 0.70, stars: 2 },
+        { minRate: 0.60, stars: 1 },
+    ],
+
     // --- Shop catalog ([P1-UI-008], SHOP_PLAN.md session 1, 2026-07-18) ---
     // Base costs + effects transcribed from docs/ECONOMY.md (canonical). Live
     // price at the shop is Economy.shopPrice(baseCost, owned) = round(base ×

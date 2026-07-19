@@ -136,6 +136,71 @@ const Items = (() => {
         }
     }
 
+    // --- Hero/routine XP ([P1-UI-006] sub-session 1, 2026-07-19 session 41;
+    // js/heroes.js + docs/HEROES_PLAN.md). A routine earns XP when a member
+    // item completes; frozen/inactive routines earn nothing
+    // (FrozenSlots.isRoutineSuspended — the session-36 "no XP while frozen"
+    // no-op finally has something to suspend). Heroes + FrozenSlots called as
+    // bare stable globals, `deps.definedRoutines` optional (no-op when
+    // omitted), matching this module's existing conventions.
+
+    // The routine that owns an ITEM (not just a habit def): habit instances
+    // via habitDef.routineId (findOwningRoutine), routine-task instances via
+    // taskDefinitionIds membership. Standalone items -> null.
+    function findRoutineForItem(item, deps) {
+        if (item.type === 'habit') {
+            const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
+            return habitDef ? findOwningRoutine(habitDef, deps) : null;
+        }
+        if (item.type === 'task' && item.definitionId != null) {
+            const definedRoutines = typeof deps.definedRoutines === 'function' ? deps.definedRoutines() : [];
+            return (definedRoutines || []).find(r => (r.taskDefinitionIds || []).includes(item.definitionId)) || null;
+        }
+        return null;
+    }
+
+    // Award routine XP for a routine-owned completion, STAMPING the awarded
+    // amount on the item (`item.routineXpAwarded` — persists wholesale like
+    // every other item field) so refundRoutineXpForItem can mirror it
+    // EXACTLY. The stamp, not a re-check of current conditions, is what the
+    // refund trusts — otherwise a freeze/deactivation between complete and
+    // uncomplete would break refund symmetry, the same asymmetry class as
+    // the old streak-bonus refund bug (see DECISIONS.md 2026-07-18).
+    function awardRoutineXpForItem(item, deps) {
+        const routine = findRoutineForItem(item, deps);
+        if (!routine || FrozenSlots.isRoutineSuspended(routine)) return;
+        const amount = Heroes.xpAmountFor(item.type, CONFIG);
+        const result = Heroes.applyXpDelta(routine.xp || 0, amount, CONFIG.ROUTINE_LEVEL_XP_THRESHOLDS);
+        routine.xp = result.xp;
+        routine.level = result.level;
+        item.routineXpAwarded = amount;
+    }
+
+    // Reverse a prior award off the stamp — unconditional (no suspension
+    // check; see awardRoutineXpForItem). No stamp = nothing was awarded
+    // (standalone item, or completed while frozen) = nothing to refund.
+    function refundRoutineXpForItem(item, deps) {
+        const amount = item.routineXpAwarded;
+        if (!amount) return;
+        delete item.routineXpAwarded;
+        const routine = findRoutineForItem(item, deps);
+        if (!routine) return;
+        const result = Heroes.applyXpDelta(routine.xp || 0, -amount, CONFIG.ROUTINE_LEVEL_XP_THRESHOLDS);
+        routine.xp = result.xp;
+        routine.level = result.level;
+    }
+
+    // Award for the two habit-def-only completion sites (check-in 'avoided',
+    // rollover auto-avoid) — no item survives those paths and neither can
+    // ever be un-done, so there's nothing to stamp.
+    function awardRoutineXpForHabitDef(habitDef, deps) {
+        const routine = findOwningRoutine(habitDef, deps);
+        if (!routine || FrozenSlots.isRoutineSuspended(routine)) return;
+        const result = Heroes.applyXpDelta(routine.xp || 0, Heroes.xpAmountFor('habit', CONFIG), CONFIG.ROUTINE_LEVEL_XP_THRESHOLDS);
+        routine.xp = result.xp;
+        routine.level = result.level;
+    }
+
     /**
      * deps: { getNextId, activeItems, gameScreenWidth, enemyWidth,
      *         calculateTimelineXWithClustering }
@@ -247,6 +312,10 @@ const Items = (() => {
             deps.setPlayerPoints(Economy.addPoints(deps.getPlayerPoints(), pointsGained));
             deps.updatePlayerDisplays();
             deps.checkPlayerLevelUp();
+            // Hero/routine XP ([P1-UI-006]): the owning routine levels too.
+            // AFTER maybeRecoverRoutine above, so an avoid that just
+            // unfroze its routine earns XP for the unfreezing completion.
+            awardRoutineXpForItem(item, deps);
         }
 
         // If this is a sub-task, remove it from parent's sub-task list
@@ -375,6 +444,9 @@ const Items = (() => {
                 // Frozen routine slots: auto-avoided is a success occurrence
                 // for a negative habit — check recovery path 2.
                 maybeRecoverRoutine(habitDef, deps);
+                // Hero/routine XP ([P1-UI-006]): after the recovery check,
+                // same ordering rationale as completeItem.
+                awardRoutineXpForHabitDef(habitDef, deps);
             }
         }
         removeItem(item.id, deps);
@@ -531,6 +603,9 @@ const Items = (() => {
             // Frozen routine slots: 'avoided' is a success occurrence for a
             // negative habit — check recovery path 2.
             maybeRecoverRoutine(habitDef, deps);
+            // Hero/routine XP ([P1-UI-006]): after the recovery check, same
+            // ordering rationale as completeItem.
+            awardRoutineXpForHabitDef(habitDef, deps);
         } else if (outcome === 'indulged') {
             if (isCheatDayExcused(habitDef, originalDueDate)) {
                 habitDef.cheatDayDate = null;
@@ -779,6 +854,10 @@ const Items = (() => {
                 deps.setPlayerPoints(Economy.subtractPoints(deps.getPlayerPoints(), result.pointsLost));
             }
         }
+
+        // Hero/routine XP ([P1-UI-006]): mirror the award exactly, off the
+        // stamp completeItem left on the item (see refundRoutineXpForItem).
+        refundRoutineXpForItem(item, deps);
 
         deps.updatePlayerDisplays();
         deps.saveGame();

@@ -13,6 +13,9 @@
 // order does.
 global.Schedule = require('../js/schedule.js');
 global.FrozenSlots = require('../js/frozenSlots.js');
+// createRoutineDefinition seeds hero fields (health) from CONFIG as of
+// schemaVersion 8 ([P1-UI-006] sub-session 1) — bind it like the browser does.
+global.CONFIG = require('../js/config.js');
 const Routines = require('../js/routines.js');
 
 const DAY = new Date(2026, 6, 18); // Sat Jul 18 2026, local
@@ -145,6 +148,16 @@ describe('createRoutineDefinition', () => {
     test('trims the name before storing', () => {
         const result = Routines.createRoutineDefinition('  Padded  ', []);
         expect(result.routine.name).toBe('Padded');
+    });
+
+    test('seeds hero progression fields ([P1-UI-006] sub-session 1, schemaVersion 8)', () => {
+        const before = Date.now();
+        const result = Routines.createRoutineDefinition('Hero Routine', []);
+        expect(result.routine.xp).toBe(0);
+        expect(result.routine.level).toBe(1);
+        expect(result.routine.health).toBe(CONFIG.ROUTINE_MAX_HEALTH);
+        expect(result.routine.createdAt).toBeGreaterThanOrEqual(before);
+        expect(result.routine.koState).toBeNull();
     });
 });
 

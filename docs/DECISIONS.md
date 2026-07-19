@@ -4,6 +4,79 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 41: Spawn "bug" resolved (not a bug) + [P1-UI-006] SEQUENCED (HEROES_PLAN.md) + sub-session 1 BUILT (Cowork session; planning on premium model, execution offered to Sonnet)
+
+**Session-40 spawn mystery RESOLVED — not a regression, closed in ~15 minutes:** the dev save had
+`sickDayDate: "2026-07-19"` (set by session 39's OWN live-test of the Sick Day token) plus
+`skipDayDate` = same day on the one standalone habit — the global/per-habit same-day spawn gates were
+doing exactly what session 39 built them to do for the rest of that calendar day. Cleared both dates
+(documented neutering trick) → all 3 habits spawned immediately, zero app console errors. Two side
+findings: (1) `window.activeItems`/`window.definedHabits` are STALE MIRRORS — the live state is
+closure-scoped and unreachable from devtools/extension probes, which is exactly what made session
+40's `activeItems: []` probe (and this session's first probe) so alarming; the reliable dev checks
+are the DOM (`document.querySelectorAll('.enemy').length`) and the SAVE, not window globals. (2) The
+orphaned habit (routineId → deleted routine) DID spawn — the "orphans are inert" intent from the
+isActive-gating session doesn't hold after the standalone-habit fix rescoped the gate; logged as its
+own Known-bugs entry (decide: inert, or migrate orphans to routineId null).
+
+**[P1-UI-006] sequenced into docs/HEROES_PLAN.md (5 sub-sessions, ONE schema bump 7→8), three forks
+resolved (Jeremy):** (1) hero art = CSS/emoji placeholder chips behind a rendering seam — NO hero
+sprite assets exist anywhere (Assets/ has only zombies + base states); AI-generating sprites and
+recoloring zombies rejected (art-direction risk / hero-enemy confusion). (2) Routine health 0 = KO:
+auto-deactivate via the EXISTING toggleRoutineActive machinery (vacation semantics, recall included),
+disabled reactivation until the next calendar day, revive at `HERO_REVIVE_HEALTH` (50). Visual-only
+floor rejected (no teeth); freeze-style suspension rejected (frozen slots mean "your BEHAVIOR froze
+it," KO means "the zombies got it" — different channels, session-26 principle). (3) Mechanics before
+visuals — sub-session 1 is the invisible layer so sub-session 3 renders real data.
+
+**Sub-session 1 BUILT same session (Jeremy's call to continue past the planning session precedent).
+Implementation decisions:**
+- **Routine `level` is DERIVED from xp (`Heroes.levelForXp`), deliberately diverging from the
+  player's monotonic level.** Why: with a derived level, complete→uncomplete round-trips EXACTLY by
+  construction. The player-precedent (never de-level) was rejected for routines because the refund
+  asymmetry it creates is the same bug class as the old streak-bonus refund bug.
+- **Refunds mirror awards via an `item.routineXpAwarded` STAMP, not by re-checking award
+  conditions.** completeItem stamps the exact amount on the item (persists wholesale like every item
+  field); uncompleteItem refunds off the stamp unconditionally and deletes it. A routine that
+  freezes/deactivates between complete and uncomplete can neither block the refund (stamp present)
+  nor suffer a wrongful deduction (no stamp = nothing was awarded). Unit-tested both directions.
+- **XP awarded at ALL completion sites, not just the plan's completeItem/uncompleteItem:**
+  `resolvePendingCheckIn`-'avoided' and `settleStaleRecurringInstance` also call
+  `Habits.applyHabitCompletion` and award player XP, so skipping them would undercount routines
+  inconsistently. Habit-def-only helper there (no stamp — those paths can never be undone).
+  **Ordering: award AFTER `maybeRecoverRoutine`** — the avoid that completes recovery path 2 and
+  unfreezes the routine earns XP for that very completion (friendlier reading of "no XP while
+  frozen"; the alternative — award-before-recovery-check — silently zeroes the unfreezing day).
+- **"No XP while frozen" gates on `FrozenSlots.isRoutineSuspended`** (covers frozen AND inactive) —
+  the session-36 "true no-op, noted for whoever builds routine XP" note is now real code.
+- **Star-rating `completionRate` samples HABIT members only (v1).** The plan's suggestion to count
+  routine-task completions via completedItems was DROPPED: completions are recorded but MISSES are
+  not (rollover drops routine tasks without a trace), so any task denominator would be reconstructed
+  guesswork that drifts across reloads. Habits' occurrenceHistory is the one honest complete record.
+  Revisit when run history lands. A rate with zero samples is null → 0 stars ("unrated", not "0%").
+- **Balance numbers (config, new):** `ROUTINE_XP_PER_TASK/HABIT` = 10/5 (mirrors player values);
+  `ROUTINE_LEVEL_XP_THRESHOLDS` = player curve halved ([0,50,125,250,400,600,850,1150,1500] — a
+  routine only sees its own members' completions); slots = 1 habit + 1 task at L1, +1 each per level
+  (spec gives no numbers; cheapest symmetric reading); `ROUTINE_MAX_HEALTH` 100,
+  `HERO_REVIVE_HEALTH` 50; star tiers 60/70/80/90/95% → 1-5★ (fixed spec values, PROJECT_SPEC
+  ~78-83). All flagged for re-tune with play data.
+- **Migration v7→v8** seeds xp 0 / level 1 / health 100 (literal, stable-transform precedent) /
+  `createdAt` = `runStartedAtMs` (best available birthday for a pre-v8 routine, falls back to now) /
+  `koState` null; idempotent (existing values never overwritten).
+
+**Tests:** 32 suites, 635/635 (+50). New `test/heroes.test.js` (pure core) +
+`test/items-routine-xp.test.js` (wiring incl. the froze-between-complete-and-uncomplete stamp case
+and the recovery-then-award ordering case); v7→v8 cases in persistence-migration.test.js; hero-field
+seeding case in routines.test.js; `global.Heroes` bound in the 7 items-*.test.js files (bare-global
+convention). Sandbox note for future sessions: jest 30's resolver needs its NATIVE optional dep —
+`npm install --omit=optional` silently breaks ALL module resolution ("setup.js not found"); install
+with optionals + `PUPPETEER_SKIP_DOWNLOAD=1` instead, and remember backgrounded processes die when a
+Cowork bash call returns (run npm foreground; it resumes from cache across timeout slices).
+
+**Live-verified in Chrome:** v7→v8 migration on the real dev save; award/refund round-trip exact
+(xp 5→0, stamp created then deleted, player XP/points 5/605 → 0/600, occurrence popped). Zero app
+console errors.
+
 ## 2026-07-19 — Session 40: FIXED — FAB→Routines popup staleness after habit edit (Cowork session, Sonnet execute — small pre-scoped bug fix, Jeremy's pick from session 39's punch list)
 
 **Fix:** `editHabitInRoutine` (script.js wrapper) now mirrors `deleteRoutine`'s existing pattern —

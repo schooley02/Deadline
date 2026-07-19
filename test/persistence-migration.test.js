@@ -409,6 +409,74 @@ describe('migrate v6 → v7: Sick Day (global) + Skip Day (per-habit) tokens', (
     });
 });
 
+describe('migrate v7 → v8: hero/routine progression fields ([P1-UI-006] sub-session 1)', () => {
+    function v7Save(overrides = {}) {
+        return {
+            schemaVersion: 7,
+            sickDayDate: null,
+            runStartedAtMs: 1784484435114,
+            definedHabits: [],
+            definedRoutines: [],
+            ...overrides
+        };
+    }
+
+    test('routines gain xp 0 / level 1 / health 100 / koState null', () => {
+        const save = Persistence.migrate(v7Save({
+            definedRoutines: [{ id: 'r1', habitDefinitionIds: [], isActive: true, frozenState: null }]
+        }));
+        const r = save.definedRoutines[0];
+        expect(r.xp).toBe(0);
+        expect(r.level).toBe(1);
+        expect(r.health).toBe(100);
+        expect(r.koState).toBeNull();
+    });
+
+    test('createdAt is seeded from runStartedAtMs (best available birthday for a pre-v8 routine)', () => {
+        const save = Persistence.migrate(v7Save({
+            definedRoutines: [{ id: 'r1' }]
+        }));
+        expect(save.definedRoutines[0].createdAt).toBe(1784484435114);
+    });
+
+    test('createdAt falls back to now when runStartedAtMs is absent', () => {
+        const before = Date.now();
+        const save = Persistence.migrate(v7Save({
+            runStartedAtMs: undefined,
+            definedRoutines: [{ id: 'r1' }]
+        }));
+        expect(save.definedRoutines[0].createdAt).toBeGreaterThanOrEqual(before);
+    });
+
+    test('pre-existing field values are NOT overwritten (idempotent re-run safety)', () => {
+        const save = Persistence.migrate(v7Save({
+            definedRoutines: [{ id: 'r1', xp: 60, level: 2, health: 45, createdAt: 123, koState: { koAt: 'x' } }]
+        }));
+        const r = save.definedRoutines[0];
+        expect(r.xp).toBe(60);
+        expect(r.level).toBe(2);
+        expect(r.health).toBe(45);
+        expect(r.createdAt).toBe(123);
+        expect(r.koState).toEqual({ koAt: 'x' });
+    });
+
+    test('tolerates a save with no definedRoutines at all', () => {
+        const save = Persistence.migrate({ schemaVersion: 7, sickDayDate: null });
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+    });
+
+    test('the full v1 → current chain seeds hero fields too', () => {
+        const save = Persistence.migrate({
+            schemaVersion: 1,
+            definedHabits: [{ id: 'h1', frequency: 'daily' }],
+            definedRoutines: [{ id: 'r1', habitDefinitionIds: ['h1'], isActive: true }]
+        });
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+        expect(save.definedRoutines[0].xp).toBe(0);
+        expect(save.definedRoutines[0].health).toBe(100);
+    });
+});
+
 describe('migrate: version handling', () => {
     test('a current-version save passes through unchanged (same reference)', () => {
         const original = {

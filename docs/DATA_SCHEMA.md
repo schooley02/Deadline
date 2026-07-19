@@ -8,6 +8,25 @@ TARGET schema for the persistence work (Milestone 1) and modularization. The mon
 - `deadline.settings` — user settings (demo clock on/off, etc.) — not yet implemented
 - Save on every state mutation (debounced), load on boot. Cross-tab sync later via `storage` events.
 
+### schemaVersion 8 (2026-07-19): hero/routine progression fields landed
+Sub-session 1 of [P1-UI-006] (see docs/HEROES_PLAN.md session 41 + docs/ROUTINES.md). Five new
+fields on `Routine`, all additive: `xp: number` (earned when member items complete —
+`CONFIG.ROUTINE_XP_PER_TASK`/`ROUTINE_XP_PER_HABIT`, 10/5; a frozen or INACTIVE routine earns
+nothing via `FrozenSlots.isRoutineSuspended`), `level: number` (DERIVED from xp against
+`CONFIG.ROUTINE_LEVEL_XP_THRESHOLDS` — deliberately NOT monotonic like the player's level: an
+uncompletion refund can de-level, making complete→uncomplete a perfect round-trip by construction),
+`health: number` (seeded 100 = `ROUTINE_MAX_HEALTH`; damage wiring is sub-session 2), `createdAt:
+ms` (star-rating window start = `max(createdAt, runStartedAtMs)`; migration seeds pre-v8 routines
+with `runStartedAtMs` as best-available birthday), and `koState: { koAt } | null` (set by
+sub-session 2's KO-at-0 path; null = fine). Also NEW on completed/active ITEMS (no migration
+needed — absent means "nothing awarded"): `routineXpAwarded: number` — a stamp `Items.completeItem`
+leaves on a routine-owned item recording exactly what its routine earned, which
+`Items.uncompleteItem` refunds off (stamp beats re-checking conditions — a freeze/deactivation
+between complete and uncomplete can't break refund symmetry; the streak-bonus-asymmetry lesson).
+Star ratings (`Heroes.completionRate`/`starRating`, spec tiers 60/70/80/90/95% → 1-5★) are
+computed fresh from habit `occurrenceHistory`, never persisted. v7→v8 migration in
+`js/persistence.js`. See DECISIONS.md session 41.
+
 ### schemaVersion 6 (2026-07-19): frozen routine slots — `routine.frozenState` + habit `modificationHistory` landed
 Sub-session 1 of the "Frozen routine slots + recovery" ticket (see docs/FROZEN_SLOTS_PLAN.md
 session 35 Fable + docs/ROUTINES.md). `Routine.frozenState: { frozenBy: habitDefId, frozenAt:

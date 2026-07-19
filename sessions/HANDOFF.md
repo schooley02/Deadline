@@ -13,6 +13,48 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 41: Spawn "bug" closed (not a bug) + [P1-UI-006] sequenced (HEROES_PLAN.md) + sub-session 1 BUILT (Cowork session)
+
+**Did:** Three chunks (Jeremy's calls to continue at each boundary). (1) Session 40's
+"nothing spawns" finding RESOLVED in minutes — not a regression: the dev save's
+`sickDayDate`/`skipDayDate` were set to that same day by session 39's own token live-tests; the
+same-day spawn gates were working as designed. Cleared them → all 3 habits spawned, console clean.
+ROADMAP Known-bugs entry checked off; NEW entry logged (orphaned habit whose routineId points at a
+deleted routine DOES spawn — "orphans are inert" no longer holds). (2) [P1-UI-006] sequenced into
+`docs/HEROES_PLAN.md` (5 sub-sessions, one schema bump), 3 forks resolved: CSS/emoji placeholder
+heroes (NO hero sprites exist), health-0 = KO auto-deactivate + next-day revive at 50, mechanics
+first. (3) Sub-session 1 BUILT: `js/heroes.js` pure core, `routine.xp/level/health/createdAt/
+koState` (schemaVersion 7→8), XP wired at ALL completion sites (incl. check-in avoided + rollover
+auto-avoid, AFTER the recovery check), gated by `FrozenSlots.isRoutineSuspended`, refund-exact via
+`item.routineXpAwarded` stamp + level DERIVED from xp. New CONFIG block (10/5 XP, halved player
+curve, star tiers 60-95%). Docs: DATA_SCHEMA (v8 section), ROUTINES.md, HEROES_PLAN.md, ROADMAP.md,
+DECISIONS.md (session 41).
+
+**State:** ✅ **32 suites, 635/635** (+2 suites/+50 tests). `node --check` clean. Live-verified in
+Chrome: v7→v8 migration on the real dev save; complete/uncomplete round-trip exact (routine xp 5→0,
+stamp created/deleted, player 5/605→0/600 XP/points, occurrence popped). Zero app console errors.
+NOT committed yet — git commands below/in chat.
+
+**Next:** HEROES_PLAN sub-session 2 — routine health damage + KO/revive (Sonnet; up to Opus if the
+damage/loop wiring fights back). Or the small orphaned-habit Known-bugs decision first (inert vs
+migrate-to-standalone) — it's quick and touches the same spawn-gate code sub-session 2 reads.
+
+**Watch out:**
+- `window.activeItems`/`window.definedHabits`/`window.definedRoutines` are STALE MIRRORS — live
+  state is closure-scoped. Debug via the SAVE (`localStorage['deadline.save']`) or DOM
+  (`querySelectorAll('.enemy').length`), never window globals. (This is what made session 40's
+  finding look like a real bug.)
+- Sandbox Jest: `npm install --omit=optional` silently breaks jest 30's resolver (native binding is
+  an OPTIONAL dep — every module resolve returns "not found"). Install WITH optionals +
+  `PUPPETEER_SKIP_DOWNLOAD=1`. Backgrounded processes die when a Cowork bash call returns — run npm
+  in the foreground; it resumes from cache across 40s timeout slices.
+- Dev save still has the session-40 test data (Session40 Test Routine, Test Vice, Drink Water,
+  600 pts) — Reset before real play.
+- Sub-session 4's open fork (grandfathering routines already over their level-1 slot count) must be
+  asked BEFORE coding that session.
+
+---
+
 ## 2026-07-19 — Session 40: FIXED — FAB→Routines popup staleness after habit edit (Cowork session, Sonnet execute)
 
 **Did:** Small, pre-scoped bug fix (Jeremy's pick off session 39's punch list). `editHabitInRoutine`

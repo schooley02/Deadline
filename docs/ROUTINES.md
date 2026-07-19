@@ -13,6 +13,18 @@ Routines are "Heroes" living in the Base, with health, XP, and levels. They orga
 - Routines earn XP when their tasks/habits are completed.
 - PLAYER level-ups unlock additional routine slots (more concurrent routines); base visuals upgrade to house more heroes.
 
+**Mechanics BUILT 2026-07-19 (session 41, [P1-UI-006] sub-session 1 — see docs/HEROES_PLAN.md):**
+`routine.xp/level/health/createdAt/koState` (schemaVersion 8), `js/heroes.js` pure core. XP:
+10/task, 5/habit (`CONFIG.ROUTINE_XP_PER_*`), awarded at ALL completion sites (completeItem,
+check-in 'avoided', rollover auto-avoid) AFTER the recovery check — so the avoid that unfreezes a
+routine still earns; a frozen or inactive routine earns nothing (`FrozenSlots.isRoutineSuspended` —
+the session-36 "no XP while frozen" no-op is now real). Uncompletion refunds EXACTLY off an
+`item.routineXpAwarded` stamp, and level is DERIVED from xp (can de-level on refund — perfect
+round-trip by construction). Slots-per-level math (`Heroes.slotsForLevel`: 1+1 at L1, +1 each per
+level) and star ratings (`completionRate`/`starRating`, spec tiers 60-95% → 1-5★, HABIT members
+only in v1 — routine-task misses are recorded nowhere, so no honest task denominator exists) are
+built but NOT yet enforced/rendered — sub-sessions 3-4. Routine health damage/KO is sub-session 2.
+
 ## Health
 Enemies that get inside the base (item overdue > 1 hour) damage the health of the routine they belong to.
 
