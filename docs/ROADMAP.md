@@ -59,7 +59,12 @@ Order chosen so each step is small and testable. Tests pass before/after each; c
 ## Milestone 3 — Core Feature Gaps (P1 tickets)
 Ordering decided 2026-07-18 session 19 (Fable — see DECISIONS.md): 007 → 008 shop → 005 negative habits (+ frozen slots) → 006 heroes / 004 sub-tasks / run history.
 - [x] [P1-DATA-007] Standardize points/currency system (2026-07-18, session 19) — rescoped: MPE half of the ticket is moot (reference-only variant); Root points were already consistent. Built `js/economy.js` (ARCHITECTURE.md target): `taskPoints` (the high-priority ×2 rule, de-duplicated from items.js's complete/uncomplete paths), `addPoints`/`subtractPoints` (0-floor kept — negative balances wait for P1-DATA-005 indulgence, see DECISIONS.md), and `shopPrice` (base × 1.5^owned per ECONOMY.md) ready for the shop. `test/economy.test.js` (18 suites, 380/380). Live-verified in Chrome. See DECISIONS.md.
-- [ ] [P1-UI-008] Shop + repair kits + tokens with exponential pricing (see docs/ECONOMY.md) — NEXT; pricing core already in economy.js. Big ticket: sequence into sessions first (its own plan doc, like UI_EXTRACTION_PLAN.md)
+- [ ] [P1-UI-008] Shop + repair kits + tokens with exponential pricing (see docs/ECONOMY.md) — NEXT; **sequenced into 5 sessions in `docs/SHOP_PLAN.md`** (2026-07-18 session 19). v1 scope = repair kits + pushback (day-tokens deferred to after negative habits); FAB 4th-item entry; inventory-based pricing. Pricing core already in economy.js.
+  - [ ] 1. State + config + `js/shop.js` pure core (schemaVersion 3→4 inventory migration)
+  - [ ] 2. Shop UI frame — FAB 4th item + shop window + `js/ui/shopView.js`
+  - [ ] 3. Repair kit inventory + USE → `Damage.healBase`
+  - [ ] 4. Pushback items + enemy targeting (resolve pushback-pricing sub-decision)
+  - [ ] 5. Balance re-tune (repair-kit prices, pushback basis, habit rate tiers) — Fable
 - [ ] [P1-DATA-005] Positive/negative habit distinction (points loss, negative balance) — `occurrenceSuccess` seam (session 16) + `Economy.subtractPoints` non-clamping path are the entry points
 - [ ] Frozen routine slots + recovery (spec'd: 3+ day negative streak freezes; recover via habit edit or 3-day avoidance; daily check-ins — see docs/ROUTINES.md)
 - [ ] [P1-UI-006] Hero/routine visual system (heroes in base, health, levels)
