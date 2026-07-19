@@ -34,6 +34,50 @@
     transform: scale(1.1);
 }
 
+/* Pushback section (session 4, 2026-07-19) — enemy popup "push back this
+   deadline" tiers. Sits below the task actions inside .task-details. */
+.pushback-section {
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-secondary-green-pale);
+}
+
+.pushback-label {
+    margin: 0 0 var(--space-2) 0;
+    color: var(--color-text-primary);
+}
+
+.pushback-options {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.pushback-btn {
+    flex: 1;
+    min-width: 90px;
+    padding: var(--space-2) var(--space-4);
+    border: 1.5px solid var(--color-accent-teal);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--color-accent-teal);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pushback-btn:hover:not(:disabled) {
+    background: var(--color-accent-teal);
+    color: white;
+}
+
+.pushback-btn:disabled {
+    border-color: var(--color-neutral);
+    color: var(--color-neutral);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
 /* Edit Icon Button Styling */
 .edit-icon-btn {
     background: transparent;

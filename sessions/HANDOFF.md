@@ -13,6 +13,30 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 23: Shop sub-session 4 — pushback items + enemy targeting (Cowork session, Opus plan → Sonnet)
+
+**Did:** Built pushback end-to-end per `docs/SHOP_PLAN.md` session 4, after resolving the two design calls on Opus (both Jeremy's): **(1) flat pushback pricing** — base cost every time, which is what `Shop.price` already returns for non-consumables, so zero pricing-code change; per-run inflation deferred to the session-5 balance pass to avoid a persistence migration here. **(2) pushback applies to all enemies** (task/sub-task/habit), uniform mechanic. Then executed on Sonnet:
+- `js/shop.js`: new pure `pushedBackDueDate(dueDate, ms)` (new Date, no mutation), exported + unit-tested.
+- `js/ui/popups.js`: `showTaskDetailsPopup` gains a "Push back this deadline" section — one button per tier w/ live price, disabled when unaffordable; on success refreshes the shown Due time + re-checks affordability IN PLACE (supports stacking).
+- `js/ui/shopView.js`: pushback cards now show a "Tap a zombie to push it back" hint instead of a dead Buy button (buying a non-holdable item spent points for nothing — a latent dead-end from sessions 2–3).
+- `script.js`: `popupsDeps()` gains `pushbackCatalog` / `getPlayerPoints` / `onPushback`; new `handlePushback(itemId, targetItem)` pays via `Shop.purchase`, shifts the due date, `recomputeOverdueStateAfterEdit`s (un-camps overdue zombies — same fn as Edit-Task save), re-renders the row + saves.
+
+**No `setTimeout(0)` needed** (unlike shop Buy/Use): the popup refresh updates text + `disabled` in place instead of rebuilding the clicked button's container, so the detachment hazard doesn't arise.
+
+**State:** ✅ **19 suites, 407/407** (+4 `pushedBackDueDate` cases). `node --check` clean on all touched JS. **Live-verified in Chrome:** 1hr push shifted due time + −50pts + popup stayed open + zombie repositioned; 1-day push stacked + in-place affordability correctly disabled the unaffordable tiers; made a task overdue via Edit then pushed it into the future → zombie left the base, row un-reddened, base damage stopped (the recompute path); pushed-back due time persisted across reload; shop pushback cards showed the hint; console clean.
+
+**Docs updated same session:** SHOP_PLAN.md (session 4 checked + pricing-wrinkle section marked RESOLVED), ROADMAP.md (sub-item 4 checked), DECISIONS.md (session 23 entry).
+
+**Next — Shop sub-session 5: balance re-tune (Fable, balance-tuning protocol).** The LAST shop sub-session. Re-tune three number sets against real prices now that the whole shop exists: (a) repair-kit base costs + the placeholder `healAmount`s (15/35/75, flagged since session 20), (b) pushback pricing basis — decide whether flat stays or per-run inflation is worth the persistence change (see DECISIONS.md session 23), (c) the `CONFIG.HABIT_RATE_TIERS` multipliers (legibility placeholders pending since session 16). Log every number to DECISIONS.md per the balance-tuning skill. Fable — batch all three judgments in one session.
+
+**Watch out:**
+- **Dev save is in a synthetic/degraded state from this session's testing:** 0 points, base health ~64, one active `PushbackTest-Zombie` task (due 7/19 9:45am), plus the older completed `ShopTest-*` tasks. All valid game state, but Jeremy may want to **Reset before the session-5 balance playtest** (which needs real earned prices, not injected points). The 400 points used for testing were injected, not earned.
+- **localStorage injection recipe reminder** (from session 22, reconfirmed): patch `Persistence.flush`/`requestSave` to no-ops AND do the `localStorage` write + `location.reload()` in the SAME js call — a separate navigate call lets a pending debounced save (500ms) clobber the injection first (hit this once this session before switching to the single-call form).
+- Sandbox scratch dir this session: `/sessions/great-sharp-franklin/dl-s23`.
+- The Chrome tab id changed mid-session (old tab closed) — nothing code-related, just a browser-control note.
+
+---
+
 ## 2026-07-19 — Session 22: Shop sub-session 3 — repair kit USE (Cowork session, Sonnet)
 
 **Did:** Closed the repair-kit loop end-to-end per `docs/SHOP_PLAN.md` session 3. `js/ui/shopView.js`: each repair-kit card grows a "Use (+N HP)" button once `held > 0` (repair kits only), disabled with "Base at full health" once `baseHealth >= CONFIG.MAX_BASE_HEALTH`. script.js: new `handleShopUse(itemId)` — `Shop.consume` (pure, decrements held) then the existing `healBase(amount)` wrapper (session-17 base-regen code, reused unchanged — clamps at max, updates display/sprite, saves); `playerInventory` set BEFORE calling `healBase` so its internal save captures the decrement. `baseHealth` threaded through as a new shop dep alongside `playerPoints`. Applied the session-2 `setTimeout(0)` fix to this click handler from the start — same event-detachment hazard would've recurred otherwise.

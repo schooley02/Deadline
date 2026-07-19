@@ -107,6 +107,40 @@ describe('purchase', () => {
     });
 });
 
+describe('pushedBackDueDate', () => {
+    const ONE_HOUR = 60 * 60 * 1000;
+
+    test('shifts the due date later by pushbackMs', () => {
+        const due = new Date('2026-07-19T12:00:00.000Z');
+        const shifted = Shop.pushedBackDueDate(due, ONE_HOUR);
+        expect(shifted.getTime()).toBe(due.getTime() + ONE_HOUR);
+        expect(shifted.toISOString()).toBe('2026-07-19T13:00:00.000Z');
+    });
+
+    test('uses the catalog pushback amounts (1hr/2hr/1day)', () => {
+        const due = new Date('2026-07-19T12:00:00.000Z');
+        const p1hr = CATALOG.find(i => i.id === 'pushback_1hr');
+        const p1day = CATALOG.find(i => i.id === 'pushback_1day');
+        expect(Shop.pushedBackDueDate(due, p1hr.effect.pushbackMs).getTime())
+            .toBe(due.getTime() + ONE_HOUR);
+        expect(Shop.pushedBackDueDate(due, p1day.effect.pushbackMs).getTime())
+            .toBe(due.getTime() + 24 * ONE_HOUR);
+    });
+
+    test('never mutates the input Date', () => {
+        const due = new Date('2026-07-19T12:00:00.000Z');
+        const before = due.getTime();
+        Shop.pushedBackDueDate(due, ONE_HOUR);
+        expect(due.getTime()).toBe(before);
+    });
+
+    test('missing/zero pushbackMs is a no-op shift (equal-valued new Date)', () => {
+        const due = new Date('2026-07-19T12:00:00.000Z');
+        expect(Shop.pushedBackDueDate(due, 0).getTime()).toBe(due.getTime());
+        expect(Shop.pushedBackDueDate(due, undefined).getTime()).toBe(due.getTime());
+    });
+});
+
 describe('consume', () => {
     test('decrements a held item', () => {
         const r = Shop.consume('repair_small', { repair_small: 2 });

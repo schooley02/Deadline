@@ -37,17 +37,22 @@ Source of truth for items/prices/effects is `docs/ECONOMY.md`; pricing math alre
 
 ---
 
-## The pushback pricing wrinkle (sub-decision, resolve in session 4)
+## The pushback pricing wrinkle (RESOLVED — session 4, 2026-07-19)
 
 `owned = currently held` works for repair kits (you can stockpile them). But pushback is an
 **instant-consume** effect — nothing is held, so "currently held" is always 0 and the exponential
 price would never climb, defeating the anti-abuse intent. ECONOMY.md lists pushback with flat base
 costs and "stacking allowed" but doesn't explicitly say pushback is exponentially priced.
 
-**Proposed (confirm when building session 4):** price pushback by **count purchased in the current
-run** (resets on new run / game-over), so repeated same-run pushback inflates but a fresh run starts
-cheap. Alternative: flat price for pushback (simplest, matches the table's face value). This is a
-balance call — fold into the session-5 tuning pass if unresolved.
+**Resolved: FLAT pricing** (Jeremy, 2026-07-19 session 4, on Opus). Each pushback costs its base
+price every time (50/100/300) — which is exactly what `Shop.price` already returns for
+non-consumables (`held` is always 0, so `base × 1.5^0 = base`), so it needed zero pricing-code
+change. Rejected: per-run purchase-count inflation — it would require a new persisted counter + a
+v4→v5 schema migration + reset logic, stacking a persistence change onto this targeting session
+against the one-persistence-change-per-session guardrail. If the session-5 balance pass (Fable)
+decides pushback SHOULD inflate, that's the deliberate place to add the counter. Until then, the
+anti-abuse pressure for pushback comes from the flat cost being non-trivial (50/100/300) plus the
+fact that pushback only delays — the task still has to be done.
 
 ---
 
@@ -61,7 +66,7 @@ Foundation (state + pure logic) first, then the UI frame, then each effect, then
 | **1 ✅** | State + config + `js/shop.js` (pure core, no UI) — **DONE 2026-07-18 session 20** | Added `inventory` to persisted state + `SCHEMA_VERSION` 3→4 migration; `CONFIG.SHOP_ITEMS` (6 items); `js/shop.js` pure `price`/`canAfford`/`purchase`/`consume`/`heldCount`/`getItem` (delegates to `Economy`). `test/shop.test.js` + migration cases; 19 suites, 403/403; live-verified in Chrome. Note built: `price(item, inventory)` (not `catalogPrice(item, owned)` as sketched) — takes the inventory object and derives held internally. See DECISIONS.md. | Opus → Sonnet |
 | **2 ✅** | Shop UI frame — FAB 4th item + shop window — **DONE 2026-07-19 session 21** | Built as scoped. Note: shipped as `Shop.price(item, inventory)` (matches session 1's actual signature, not the `catalogPrice` name used in this plan's original sketch). **Bug found + fixed live in Chrome:** the Buy click handler's synchronous DOM rebuild detached the clicked button before its click event finished bubbling to script.js's document-level "click outside closes window" listener, so every purchase self-closed the shop window; fixed via `setTimeout(0)` deferring the rebuild. **This is a hazard for sessions 3 and 4 too** (repair-kit USE button, pushback-targeting popup both trigger their own DOM rebuild from a click) — see the hazards list below, now updated. 19 suites, 403/403 (unchanged — UI-only session). See DECISIONS.md session 21. | Opus → Sonnet |
 | **3 ✅** | Repair kit inventory + USE → base heal — **DONE 2026-07-19 session 22** | Built as scoped: each repair-kit card grows a "Use (+N HP)" button once held > 0, calling `Shop.consume` (decrement) + the existing `healBase(amount)` wrapper (session-17 base regen code, reused as-is — clamps at `CONFIG.MAX_BASE_HEALTH`, updates display/sprite, saves). Disabled with "Base at full health" once `baseHealth >= CONFIG.MAX_BASE_HEALTH`, so a kit can't be wasted for zero effect. Applied the session-2 `setTimeout(0)` deferral to this click handler from the start — no repeat of that bug. 19 suites, 403/403 (unchanged — no new pure-core logic, `Shop.consume` already covered since session 1). Live-verified in Chrome: Use healed 60→75 HP, decremented held 1→0 (price dropped back to base 25 pts), window stayed open, persisted correctly across reload; separately verified the full-health disabled guard via a localStorage injection test. See DECISIONS.md. | Sonnet |
-| **4** | Pushback items + enemy targeting | Resolve the pricing wrinkle above. Buy pushback → select target enemy (hang off the existing enemy-click popup in `popups.js`: add a "Push back" action when pushback is affordable/held) → shift that item's `dueDateTime` later by the tier's amount, re-render its position, clear overdue state if it moves into the future (reuse `recomputeOverdueStateAfterEdit` from `items.js`). Stacking allowed. `test/` for the pure due-time shift + overdue recompute. | Opus → Sonnet |
+| **4 ✅** | Pushback items + enemy targeting — **DONE 2026-07-19 session 23** | Built as scoped. **Pricing wrinkle resolved: flat pricing** (Jeremy, 2026-07-19 — see below). Pushback lives in the enemy-click popup (`showTaskDetailsPopup`): a "Push back this deadline" section with the three tiers + live prices, each enabled only if affordable, applying to ANY enemy (task/sub-task/habit, Jeremy's call). Clicking a tier pays via `Shop.purchase` (non-consumable → inventory unchanged), shifts the target's `dueDateTime` via the new pure `Shop.pushedBackDueDate`, `recomputeOverdueStateAfterEdit`s it (un-camps + repositions if it crosses into the future), re-renders the agenda row + saves, and refreshes the popup IN PLACE (updates the shown Due time + re-checks each tier's affordability) to support stacking. Shop-window pushback cards now show a "Tap a zombie to push it back" hint instead of a dead Buy button. `test/shop.test.js` +4 `pushedBackDueDate` cases; 19 suites, 407/407. Live-verified in Chrome (shift, points, stacking, in-place affordability, overdue→un-camp + damage stop, persistence, console clean). No `setTimeout(0)` needed — the in-place refresh never rebuilds the clicked button's container. See DECISIONS.md. | Opus → Sonnet |
 | **5** | Balance re-tune (balance-tuning protocol) | Now that real shop prices exist, re-tune: repair-kit base costs, pushback pricing basis, AND the habit rate-tier multipliers (`CONFIG.HABIT_RATE_TIERS` — flagged since session 16 as legibility placeholders pending shop prices). Log every number to `docs/DECISIONS.md` per the balance-tuning skill. | Fable (batch the balance judgment) |
 
 ---

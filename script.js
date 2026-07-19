@@ -402,7 +402,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
             gameIsOver, activeItems, completeItem, createListItem,
             sortAndRenderActiveList, saveGame, recomputeOverdueStateAfterEdit,
-            createTaskItemData, addItemToGame
+            createTaskItemData, addItemToGame,
+            // Pushback ([P1-UI-008] session 4): the pushback tiers, a live
+            // points getter (popup re-checks affordability after each buy),
+            // and the handler that pays + shifts the target's due date.
+            pushbackCatalog: CONFIG.SHOP_ITEMS.filter(i => i.category === 'pushback'),
+            getPlayerPoints: () => playerPoints,
+            onPushback: handlePushback
         };
     }
 
@@ -1058,6 +1064,53 @@ document.addEventListener('DOMContentLoaded', () => {
         // above, and SHOP_PLAN.md's hazards list) — defer the rebuild so the
         // click finishes bubbling with its target still attached.
         setTimeout(populateShopWindow, 0);
+    }
+
+    // Pushback handler wired to each enemy popup's tier buttons (session 4,
+    // SHOP_PLAN.md). Called with the shop item id + the TARGET enemy the popup
+    // is about. Pays via Shop.purchase (pushback is non-consumable, so
+    // inventory is returned unchanged — it just does the affordability check +
+    // point math in one place), then shifts the target's due date later by the
+    // tier's amount (pure Shop.pushedBackDueDate), re-derives overdue state
+    // (un-camps + repositions the zombie if it crossed into the future), and
+    // re-renders the agenda row. Pricing is flat this session (Jeremy's call
+    // 2026-07-19) — no per-run inflation; that's a session-5 balance decision.
+    // Returns { ok } so the popup can refresh its UI in place. Stacking is
+    // allowed (ECONOMY.md) — repeated calls just push the same item further.
+    function handlePushback(itemId, targetItem) {
+        const item = Shop.getItem(itemId, CONFIG.SHOP_ITEMS);
+        if (!item || item.category !== 'pushback' || !item.effect || typeof item.effect.pushbackMs !== 'number') {
+            return { ok: false };
+        }
+        if (!targetItem) return { ok: false };
+
+        const result = Shop.purchase(itemId, CONFIG.SHOP_ITEMS, playerInventory, playerPoints);
+        if (!result.ok) {
+            // Tier buttons are disabled when unaffordable, so this is a
+            // defensive guard rather than the expected path.
+            return { ok: false };
+        }
+
+        playerPoints = result.newPoints;
+        targetItem.dueDateTime = Shop.pushedBackDueDate(targetItem.dueDateTime, item.effect.pushbackMs);
+
+        // Re-derive overdue state from the NEW due date — same reasoning as the
+        // Edit Task save path (js/ui/popups.js showEditTaskModal): without this
+        // a pushed-back overdue zombie stays camped at the base ticking damage.
+        // A non-overdue item pushed further out just gets repositioned by the
+        // next 50ms game-loop tick (Loop.updateActiveItems).
+        recomputeOverdueStateAfterEdit(targetItem);
+
+        // Refresh the target's agenda row (its due time changed) + re-sort.
+        if (targetItem.listItemElement) {
+            targetItem.listItemElement.remove();
+            if (!targetItem.parentId) createListItem(targetItem);
+        }
+        sortAndRenderActiveList();
+        updatePlayerDisplays();
+        saveGame();
+
+        return { ok: true, newPoints: playerPoints };
     }
 
     function showRoutineManagement(routineId) {

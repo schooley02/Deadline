@@ -10,9 +10,13 @@
  * over — everything arrives via an explicit deps object, same pattern as
  * managementWindows.js / routineViews.js.
  *
- * Pushback targeting (session 4) is still unbuilt — pushback items are
- * `consumable: false` (see js/shop.js), so they never get a Use button here;
- * that's the session-4 pricing/targeting wrinkle, not a bug in this file.
+ * Pushback items (`consumable: false`) can't be bought-to-hold — they're
+ * applied to a specific zombie from the enemy-click popup (js/ui/popups.js,
+ * session 4). Their cards show the price but a "tap a zombie" hint in place
+ * of a Buy button, so points are never spent into the void. Pricing is flat
+ * (base cost every time) for now — `Shop.price` returns baseCost for
+ * non-consumables since `held` is always 0; any per-run inflation is a
+ * session-5 balance decision (Jeremy, 2026-07-19). No Use button either.
  */
 const ShopView = (() => {
 
@@ -55,6 +59,16 @@ const ShopView = (() => {
                </button>`
             : '';
 
+        // Pushback (non-consumable) can't be bought-to-hold — it's applied to
+        // a specific zombie from the enemy-click popup (session 4). So its card
+        // shows the price but routes the player to the real action instead of
+        // a Buy button that would spend points for nothing.
+        const actionRow = item.consumable
+            ? `<button type="button" class="shop-buy-button"${affordable ? '' : ' disabled'}>
+                   ${affordable ? 'Buy' : 'Not enough points'}
+               </button>`
+            : `<div class="shop-item-note shop-pushback-hint">Tap a zombie to push it back</div>`;
+
         card.innerHTML = `
             <div class="shop-item-header">
                 <span class="shop-item-icon">${CATEGORY_ICON[item.category] || '🛒'}</span>
@@ -65,9 +79,7 @@ const ShopView = (() => {
                 <div class="shop-item-price">${cost} pts</div>
                 ${priceNote}
             </div>
-            <button type="button" class="shop-buy-button"${affordable ? '' : ' disabled'}>
-                ${affordable ? 'Buy' : 'Not enough points'}
-            </button>
+            ${actionRow}
             ${useRow}
         `;
 
@@ -75,7 +87,7 @@ const ShopView = (() => {
         // closure, so any inline onclick= string would need window.* exposure
         // (see SHOP_PLAN.md hazards). Direct listeners sidestep that.
         const buyButton = card.querySelector('.shop-buy-button');
-        buyButton.addEventListener('click', () => onBuy(item.id));
+        if (buyButton) buyButton.addEventListener('click', () => onBuy(item.id));
 
         if (canUse) {
             const useButton = card.querySelector('.shop-use-button');

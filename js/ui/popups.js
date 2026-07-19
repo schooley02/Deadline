@@ -7,13 +7,16 @@
  * createSubTaskPrompt, showCreateSubTaskModal.
  *
  * Same dependency approach as forms.js (session 4): Modal is called as a
- * bare stable global (fully extracted module, guaranteed loaded first).
+ * bare stable global (fully extracted module, guaranteed loaded first). The
+ * pushback section (session 4) also calls Shop as a bare global — it loads
+ * at index.html line ~202, well before this module (~213), same as Modal.
  * Everything else — script.js closure state/functions (activeItems,
  * gameIsOver, completeItem, createListItem, sortAndRenderActiveList,
  * saveGame, recomputeOverdueStateAfterEdit, createTaskItemData,
- * addItemToGame) — arrives via an explicit deps object. The five functions
- * in this cluster call each other directly (module-internal), not through
- * deps, since they're all defined in this same file.
+ * addItemToGame) plus the pushback deps (pushbackCatalog, getPlayerPoints,
+ * onPushback) — arrives via an explicit deps object. The functions in this
+ * cluster call each other directly (module-internal), not through deps,
+ * since they're all defined in this same file.
  *
  * DELIBERATE CARVE-OUT: showCreateSubTaskModal's debug console.log lines
  * (🎯/❌/✅/🔥-prefixed) are LEFT AS-IS, unlike the debug-log cleanup done in
@@ -55,7 +58,38 @@ const Popups = (() => {
         showTaskDetailsPopup(itemData, deps);
     }
 
-    // deps: { completeItem }
+    // Builds the "Push back this deadline" section HTML for the enemy popup
+    // (session 4). Empty string when pushback isn't wired (no deps.onPushback
+    // or no catalog) so the popup degrades cleanly. Prices are live via
+    // Shop.price (bare global, loaded before this module — same as Modal);
+    // a tier is disabled when the player can't afford it. Pushback applies to
+    // ANY enemy (task/sub-task/habit), Jeremy's call 2026-07-19.
+    function buildPushbackSectionHtml(deps) {
+        if (!deps.onPushback || !Array.isArray(deps.pushbackCatalog) || deps.pushbackCatalog.length === 0) {
+            return '';
+        }
+        const points = typeof deps.getPlayerPoints === 'function' ? deps.getPlayerPoints() : 0;
+
+        const buttons = deps.pushbackCatalog.map(p => {
+            const price = Shop.price(p, {});
+            const affordable = points >= price;
+            // Short label from the catalog name: "Enemy Pushback (1 hr)" -> "1 hr".
+            const m = /\(([^)]+)\)/.exec(p.name);
+            const label = m ? m[1] : p.name;
+            return `<button type="button" class="pushback-btn" data-item-id="${p.id}"${affordable ? '' : ' disabled'}>
+                        ${label} — ${price} pts
+                    </button>`;
+        }).join('');
+
+        return `
+            <div class="pushback-section">
+                <p class="pushback-label"><strong>Push back this deadline:</strong></p>
+                <div class="pushback-options">${buttons}</div>
+            </div>
+        `;
+    }
+
+    // deps: { completeItem, pushbackCatalog?, getPlayerPoints?, onPushback? }
     function showTaskDetailsPopup(item, deps) {
         const modalHtml = `
             <div class="modal-overlay">
@@ -64,7 +98,7 @@ const Popups = (() => {
                     <h3>${item.name}</h3>
                     <div class="task-details">
                         <p><strong>Category:</strong> ${item.category}</p>
-                        <p><strong>Due:</strong> ${item.dueDateTime.toLocaleString()}</p>
+                        <p><strong>Due:</strong> <span class="task-due-display">${item.dueDateTime.toLocaleString()}</span></p>
                         <p><strong>Priority:</strong> ${item.isHighPriority ? 'High' : 'Normal'}</p>
                         ${item.type === 'habit' ? `<p><strong>Streak:</strong> ${item.streak}</p>` : ''}
                         <div class="task-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
@@ -74,6 +108,7 @@ const Popups = (() => {
                                 Mark as Complete
                             </label>
                         </div>
+                        ${buildPushbackSectionHtml(deps)}
                     </div>
                 </div>
             </div>
@@ -101,8 +136,38 @@ const Popups = (() => {
             });
         }
 
+        // Pushback tier buttons (session 4). Each applies its tier to THIS
+        // item via deps.onPushback, which pays + shifts the due date + saves
+        // and returns { ok }. On success we refresh the popup IN PLACE — update
+        // the shown due time and re-evaluate every tier's affordability against
+        // the now-lower points — rather than rebuilding the section's innerHTML.
+        // In-place updates never detach the just-clicked button, so this
+        // sidesteps the click-event-bubbling hazard that bit the shop Buy/Use
+        // buttons (see SHOP_PLAN.md hazards / DECISIONS.md session 21); no
+        // setTimeout(0) needed here. Stacking multiple pushbacks in one popup
+        // session is supported (ECONOMY.md "stacking allowed").
+        const overlay = document.querySelector('.modal-overlay');
+
+        function refreshPushbackUI() {
+            const dueDisplay = overlay.querySelector('.task-due-display');
+            if (dueDisplay) dueDisplay.textContent = item.dueDateTime.toLocaleString();
+
+            const points = typeof deps.getPlayerPoints === 'function' ? deps.getPlayerPoints() : 0;
+            overlay.querySelectorAll('.pushback-btn').forEach(btn => {
+                const p = deps.pushbackCatalog.find(i => i.id === btn.dataset.itemId);
+                if (p) btn.disabled = points < Shop.price(p, {});
+            });
+        }
+
+        overlay.querySelectorAll('.pushback-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const result = deps.onPushback(btn.dataset.itemId, item);
+                if (result && result.ok) refreshPushbackUI();
+            });
+        });
+
         // Close modal when clicking overlay
-        document.querySelector('.modal-overlay').addEventListener('click', (e) => {
+        overlay.addEventListener('click', (e) => {
             if (e.target.classList.contains('modal-overlay')) Modal.closeModal();
         });
     }

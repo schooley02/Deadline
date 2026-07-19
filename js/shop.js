@@ -77,6 +77,18 @@ const Shop = (() => {
     }
 
     /**
+     * Pure due-date shift for the pushback action (session 4, SHOP_PLAN.md).
+     * Returns a NEW Date shifted later by pushbackMs — never mutates its
+     * argument (callers own the item's state). A missing/zero pushbackMs is a
+     * no-op shift (returns an equal-valued new Date). The caller is
+     * responsible for re-deriving overdue state afterwards
+     * (Items.recomputeOverdueStateAfterEdit).
+     */
+    function pushedBackDueDate(currentDueDate, pushbackMs) {
+        return new Date(currentDueDate.getTime() + (pushbackMs || 0));
+    }
+
+    /**
      * Consume one held unit of a consumable item (repair-kit USE, session 3).
      * Pure — returns { ok, newInventory } with the held count decremented, or
      * { ok: false } if none are held. Never goes below zero.
@@ -101,6 +113,7 @@ const Shop = (() => {
         canAfford,
         purchase,
         consume,
+        pushedBackDueDate,
     };
 })();
 
