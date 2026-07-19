@@ -1,5 +1,14 @@
 # UI Extraction Plan (Milestone 2 — final item)
 
+> **CLOSED 2026-07-18 (session 12).** All sessions complete. Session 10's row as written below was
+> superseded at execution time: a fresh Grep found ~700-800 lines of never-extracted core game logic
+> (item lifecycle, init/persistence orchestration) this plan's clusters never covered, so "session 10"
+> became three sessions — `js/items.js` (10), `js/state.js` (11), and final cleanup + `js/loop.js` (12).
+> See ROADMAP.md and DECISIONS.md 2026-07-18. The `<300 lines` goal was revised in session 12:
+> script.js is ~1,140 lines, almost entirely thin wrappers + deps builders kept deliberately so call
+> sites never changed during extraction. Getting below 300 is the deferred state-ownership migration
+> (state.js owning the variables, wrappers retired) — its own future session, not part of this plan.
+
 Planning session 2026-07-18. Supersedes the single ROADMAP line "Extract UI: forms, agenda list, popups, FAB menu",
 which turned out to cover ~2,500 lines across seven clusters — far too much for the one-system-per-session rule.
 

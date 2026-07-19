@@ -13,6 +13,25 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-18 — Session 12: `js/loop.js` + final cleanup — Milestone 2's extraction line COMPLETE (Cowork session)
+
+**Did:** Extracted the game loop (`updateGame` + `updateActiveItems` — the last real game logic in script.js) into new `js/loop.js` behind a single `loopDeps()` (lastLoopTickMs/lastAutosaveMs as get/set pairs; activeItems plain reference, safe because deps rebuild per tick). Cleanup: deleted the stale 53-line SUBTASK CALL CHAIN MAP comment, dead `getTodayAt5PM` (zero callers), the FAB debug console.log block, and 3 now-unused CONFIG aliases. script.js down to **1,141 lines** (was 1,244). Wired loop.js into index.html after state.js. `docs/UI_EXTRACTION_PLAN.md` formally CLOSED.
+
+**Key decision:** the roadmap's `<300 lines` goal was REVISED, not chased — what remains is ~90 thin wrappers + deps builders (kept by design) plus DOM consts/event wiring, which is the boot/wiring target state. Sub-300 requires the deferred state-ownership migration (state.js owns the variables, wrappers retired) — its own future session, good early-Milestone-3 candidate. Logged in DECISIONS.md; ARCHITECTURE.md's target-layout footer updated to match.
+
+**State:** ✅ **16 suites, 302/302 passing** in the sandbox (13 new loop tests exercise the real module: overdue transition, per-interval damage ticks, game-over sweep abort, gap catch-up routing, autosave re-arm). `node --check` clean on script.js and loop.js. **Live-verified in Chrome** against Jeremy's real save: boot restored session 11's end state exactly (Health 39 — overnight overdue damage from Session10-TestTask, expected); FAB menu opens/closes through its rewired one-line listener; completed ADSFA (XP/Points 20→25, sprite recalled), uncompleted it (exact 20/20 round-trip, sprite rebuilt); reloaded and confirmed the full save→reload→restore cycle. Console clean apart from the usual extension "message channel closed" noise.
+
+**Docs updated same session:** ARCHITECTURE.md (loop.js entry + revised line-count footer), DECISIONS.md (session 12 block), ROADMAP.md (session 12 checked off), UI_EXTRACTION_PLAN.md (closure note).
+
+**Next:** Milestone 2 has two open items: **day-of-week/monthly scheduling** (designed, DATA_SCHEMA.md `Schedule`; sequence with the rate-based streak-bonus design — both need one schemaVersion bump) and **split style.css by component**. Also open: the streak-bonus refund asymmetry bugfix (small, own session) and the batched Fable design session (streak-vs-rate bonus + base healing). The state-ownership migration is the natural capstone whenever wrappers start to chafe.
+
+**Watch out:**
+- The known cosmetic uncomplete-checkbox bug is still visible (pre-existing, ROADMAP Known bugs).
+- Test fixtures in Jeremy's save unchanged this session except ADSFA's completion round-tripped back to active — no new clutter.
+- /tmp/deadline-test in the Cowork sandbox is owned by another user and unusable — use a fresh directory (this session used /sessions/<name>/deadline-test-s12).
+
+---
+
 ## 2026-07-18 — Session 11: `js/state.js` — game lifecycle/persistence orchestration (Cowork session)
 
 **Did:** Extracted `initGame`, `restoreGameState`, `getPersistableState`, `saveGame`, and `damageDeps` (renamed `buildDamageDeps` in the module) from script.js into new `js/state.js`, behind a single `stateDeps()` accessor object — same pattern as every prior extraction. script.js down to **1,244 lines** (was 1,346). Wired into index.html after `js/items.js`.

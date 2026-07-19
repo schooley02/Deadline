@@ -4,6 +4,17 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-18 — Session 12: `js/loop.js` extracted + final cleanup; the `<300 lines` goal revised, not met
+
+**Decision 1 — extract the game loop.** `updateGame` (the setInterval callback) and `updateActiveItems` (position/overdue/damage sweep) moved to `js/loop.js` behind a single `loopDeps()` — they were the last real game logic in script.js. `lastLoopTickMs`/`lastAutosaveMs` cross as get/set pairs (damage.js precedent); `activeItems` as a plain reference (safe because loopDeps() is rebuilt every tick). `test/loop.test.js` (13 cases) runs the real module — suite now **16 suites, 302/302**.
+
+**Decision 2 — revise the `<300 lines` goal instead of chasing it.** Fresh inventory: script.js (1,244 → **1,141** lines) is now ~90 thin wrappers + the deps builders, plus DOM consts and event wiring — which IS the "boot/wiring only" target state. The wrappers exist by design (every extraction's "call sites unchanged" rule); retiring them is the already-deferred state-ownership migration (see session 11 entry), not a cleanup. Sub-300 was written before the deps pattern existed. ARCHITECTURE.md and UI_EXTRACTION_PLAN.md updated; the migration remains its own future session (good early-Milestone-3 candidate).
+**Rejected:** starting the ownership migration in the same session (stacks a persistence-risk change onto a cleanup pass; violates one-system-per-session for exactly the category it exists for).
+
+**Cleanup performed:** deleted the 53-line "SUBTASK CREATION CALL CHAIN MAP" comment (every line number stale; superseded by ARCHITECTURE.md); deleted `getTodayAt5PM` (dead — zero callers repo-wide); removed the FAB debug console.log block (listener kept, now one line); removed three now-unused CONFIG aliases (GAME_TICK_MS/OVERDUE_DAMAGE/DAMAGE_INTERVAL_MS — loop.js reads CONFIG directly; state.js already did).
+
+**UI_EXTRACTION_PLAN.md formally CLOSED** (closure note added at top, including the session-10 rescope history its own rows never reflected).
+
 ## 2026-07-18 — Session 11: `js/state.js` extracted (game lifecycle/persistence orchestration); ownership migration deliberately deferred
 
 **Context:** session 11 of the items/state split (see the entry below). Extracted `initGame`, `restoreGameState`, `getPersistableState`, `saveGame`, and `damageDeps` (renamed `buildDamageDeps` in the module) into `js/state.js`, via a single `stateDeps()` in script.js — the same accessor-injection pattern every prior module uses. script.js down to **1,244 lines** (was 1,346).

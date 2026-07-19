@@ -35,59 +35,10 @@ document.addEventListener('DOMContentLoaded', () => {
         "spirituality": { bgColor: "#7ed321" }
     };
 
-    /*
-    ============================================================================
-    SUBTASK CREATION CALL CHAIN MAP
-    ============================================================================
-    
-    UI EVENT LISTENERS & CALL FLOW:
-    
-    1. "+ Sub-task" Button Click (Line ~525)
-       └── addSubTaskButton.addEventListener('click', () => {
-           └── createSubTaskPrompt(itemData.id)  [Line 527]
-    
-    2. createSubTaskPrompt(parentId)  [Line 895]
-       └── showCreateSubTaskModal(parentId)  [Line 896]
-    
-    3. showCreateSubTaskModal(parentId)  [Line 899]
-       ├── Creates modal HTML with form inputs
-       ├── Finds parent task from activeItems array
-       └── Sets up "Create Sub-task" button event listener
-           └── createButton.addEventListener('click', (event) => {  [Line 964]
-    
-    4. "Create Sub-task" Button Click Handler  [Line 964]
-       ├── Validates form inputs (name, dueDate required)
-       ├── Calls: createTaskItemData(name, category, isHighPriority, dueDate, dueTime, parentId)  [Line 991]
-       ├── Updates parent task: parentTask.subTasks.push(subTaskData.id)  [Line 1001]
-       ├── Calls: addItemToGame(subTaskData)  [Line 1005]
-       ├── Refreshes parent's list item display  [Line 1008-1011]
-       └── Calls: closeModal()  [Line 1017]
-    
-    5. createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId)  [Line 266]
-       ├── Creates task data object with parentId field
-       ├── Handles due date inheritance from parent if none provided
-       ├── Sets up subtask hierarchy fields (parentId, subTasks[], etc.)
-       └── Returns: taskData object with all properties
-    
-    6. addItemToGame(itemData)  [Line 336]
-       ├── Creates DOM enemy element (smaller size for subtasks)
-       ├── Adds subtask-specific CSS classes ('subtask-enemy', 'zombie-subtask')
-       ├── Does NOT create list item for subtasks (only for top-level tasks)
-       ├── Positions element on game canvas
-       └── Adds to activeItems array
-    
-    TASK OBJECT CONSTRUCTION:
-    - Task objects are constructed in createTaskItemData() [Line 266]
-    - Key subtask properties: parentId, subTasks[], completedSubTasks, totalSubTasks
-    - Subtasks inherit due date from parent if not specified
-    
-    UI RENDERING:
-    - Subtasks are rendered within their parent's list item in createListItem() [Line 422]
-    - Parent tasks show subtask list with individual controls [Line 537-620]
-    - Subtasks get their own game canvas sprites but no separate list items
-    
-    ============================================================================
-    */
+    // (The old SUBTASK CREATION CALL CHAIN MAP comment lived here 2025-07 →
+    // 2026-07-18. Every line number and location in it was stale — the code it
+    // described now lives in js/items.js, js/spawning.js, and js/ui/popups.js.
+    // See docs/ARCHITECTURE.md for the current module map.)
 
     let baseHealth, playerXP, playerLevel, playerPoints, routineSlots;
     let activeItems = [];
@@ -106,9 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Game Settings ---
     // Values live in js/config.js (CONFIG) — never hardcode a balance number here.
-    const GAME_TICK_MS = CONFIG.GAME_TICK_MS;
-    const OVERDUE_DAMAGE = CONFIG.OVERDUE_DAMAGE;
-    const DAMAGE_INTERVAL_MS = CONFIG.DAMAGE_INTERVAL_MS;
     const XP_PER_TASK_DEFEAT = CONFIG.XP_PER_TASK_DEFEAT;
     const XP_PER_HABIT_COMPLETE = CONFIG.XP_PER_HABIT_COMPLETE;
     const POINTS_PER_TASK = CONFIG.POINTS_PER_TASK;
@@ -510,13 +458,6 @@ document.addEventListener('DOMContentLoaded', () => {
         Items.recomputeOverdueStateAfterEdit(item, itemsDeps());
     }
 
-    // Helper function to get today's 5pm
-    function getTodayAt5PM() {
-        const today = new Date();
-        const fivePM = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 17, 0, 0, 0);
-        return fivePM;
-    }
-    
     // Sub-task cluster offset + visible-edge math live in js/movement.js
     // (Milestone 2 extraction, 2026-07-17). Thin wrapper — call site unchanged.
     function getSubTaskClusterOffset(item) {
@@ -561,45 +502,34 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-function updateActiveItems() {
-    if (gameIsOver) return;
-    if (offlineCatchUpActive) return; // catch-up animation owns positions/damage until it completes
-
-    const currentTime = new Date();
-    const currentTimeMs = currentTime.getTime();
-
-    for (let i = activeItems.length - 1; i >= 0; i--) {
-        const item = activeItems[i];
-        
-        if (!item.isOverdue) {
-            if (item.dueDateTime <= currentTime) {
-                // Item just became overdue
-                item.x = BASE_WIDTH + getSubTaskClusterOffset(item);
-                markAsOverdue(item, currentTime);
-            } else {
-                // Calculate position based on timeline
-                item.x = calculateTimelineXWithClustering(item, currentTime);
-            }
-
-            // Update visual position
-            if (item.element) {
-                item.element.style.left = Math.max(BASE_WIDTH, item.x) + 'px';
-            }
-        }
-        
-        // Handle damage from overdue items
-        if (item.isOverdue) {
-            if (currentTimeMs >= item.lastDamageTickTime + DAMAGE_INTERVAL_MS) {
-                damageBase(OVERDUE_DAMAGE);
-                item.lastDamageTickTime += DAMAGE_INTERVAL_MS;
-                
-                if (gameIsOver) break;
-            }
-        }
+    // --- Game loop (js/loop.js) ---
+    // Milestone 2 extraction session 12, 2026-07-18 — the per-tick loop
+    // (updateGame/updateActiveItems) was the last real game logic in this
+    // file. Thin wrappers so all call sites (setInterval in state.js's
+    // initGame via stateDeps().updateGame, offline catch-up) are unchanged.
+    function loopDeps() {
+        return {
+            isGameOver: () => gameIsOver,
+            isOfflineCatchUpActive: () => offlineCatchUpActive,
+            activeItems,
+            baseWidth: BASE_WIDTH,
+            getLastLoopTickMs: () => lastLoopTickMs,
+            setLastLoopTickMs: (n) => { lastLoopTickMs = n; },
+            getLastAutosaveMs: () => lastAutosaveMs,
+            setLastAutosaveMs: (n) => { lastAutosaveMs = n; },
+            markAsOverdue,
+            getSubTaskClusterOffset,
+            calculateTimelineXWithClustering,
+            damageBase,
+            updateMidnightLine,
+            runLiveGapCatchUp,
+            saveGame,
+        };
     }
 
-    updateMidnightLine(currentTime);
-}
+    function updateActiveItems() {
+        Loop.updateActiveItems(loopDeps());
+    }
     // Midnight-line math lives in js/clock.js (Milestone 2 extraction,
     // 2026-07-17) — thin wrapper so the call site is unchanged.
     function updateMidnightLine(currentTime) {
@@ -630,25 +560,7 @@ function updateActiveItems() {
     }
 
     function updateGame() {
-        if (!gameIsOver) {
-            const nowMs = Date.now();
-
-            // Detect a suspended loop before ticking, so the damage catch-up is
-            // capped rather than replayed one interval per frame.
-            if (lastLoopTickMs !== null && (nowMs - lastLoopTickMs) >= CONFIG.LIVE_GAP_THRESHOLD_MS) {
-                runLiveGapCatchUp();
-            }
-            lastLoopTickMs = nowMs;
-
-            if (gameIsOver) return; // catch-up may have ended the run
-
-            updateActiveItems();
-
-            if (nowMs - lastAutosaveMs >= CONFIG.PERSISTENCE_AUTOSAVE_MS) {
-                lastAutosaveMs = nowMs;
-                saveGame();
-            }
-        }
+        Loop.updateGame(loopDeps());
     }
 
     // Habit system functions
@@ -1086,24 +998,9 @@ function updateActiveItems() {
     
     // Event Listeners
     if (fabButton) {
-        console.log('💥 SETTING UP FAB BUTTON EVENT LISTENER');
-        fabButton.addEventListener('click', (e) => {
-            console.log('💥 FAB BUTTON CLICKED!', e);
-            toggleFabMenu();
-        });
-        
-        // Test if the button is accessible
-        fabButton.addEventListener('mouseenter', () => {
-            console.log('💥 FAB BUTTON MOUSE ENTER');
-        });
-        
-        // Log button properties
-        console.log('FAB Button style display:', fabButton.style.display);
-        console.log('FAB Button computed style:', window.getComputedStyle(fabButton));
-        console.log('FAB Button offsetParent:', fabButton.offsetParent);
-        console.log('FAB Button bounding rect:', fabButton.getBoundingClientRect());
+        fabButton.addEventListener('click', toggleFabMenu);
     } else {
-        console.error('❌ FAB BUTTON NOT FOUND!');
+        console.error('FAB button not found — creation UI unavailable');
     }
     
     // FAB menu item listeners
