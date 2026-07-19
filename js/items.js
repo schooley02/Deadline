@@ -66,6 +66,20 @@
  */
 const Items = (() => {
 
+    // [P1-DATA-005] session 27/28 — the single canonical definition of "this
+    // item is a negative-habit lurker": never advances, never goes overdue,
+    // never damages the base (see docs/NEGATIVE_HABITS_PLAN.md sub-session 2a,
+    // DECISIONS.md session 26's A2 model). markAsOverdue below uses it
+    // directly (same file, no cross-module reference needed); js/loop.js and
+    // js/damage.js — which load BEFORE this file and can't reference `Items`
+    // as a bare global at definition time, plus have their own pure-function/
+    // deps-only conventions — receive it as an injected `isNonThreatening`
+    // collaborator (see loopDeps()/damageDeps() in script.js) rather than
+    // duplicating the check, so there is still exactly one implementation.
+    function isNonThreatening(item) {
+        return item.type === 'habit' && item.isNegative === true;
+    }
+
     /**
      * deps: { getNextId, activeItems, gameScreenWidth, enemyWidth,
      *         calculateTimelineXWithClustering }
@@ -389,6 +403,13 @@ const Items = (() => {
      */
     function markAsOverdue(item, currentTime, deps) {
         if (item.isOverdue) return;
+        // Defensive guard (session 27): a negative-habit lurker must never go
+        // overdue. The primary exclusions live in loop.js/damage.js (the
+        // three damage-tick paths never call this for a lurker in the first
+        // place), but this belt-and-suspenders check also protects
+        // recomputeOverdueStateAfterEdit's "pulled into the past" branch,
+        // which calls markAsOverdue directly.
+        if (isNonThreatening(item)) return;
 
         item.isOverdue = true;
         item.lastDamageTickTime = item.dueDateTime.getTime();
@@ -435,6 +456,11 @@ const Items = (() => {
      * plus everything markAsOverdue needs, since this may call it.
      */
     function recomputeOverdueStateAfterEdit(item, deps) {
+        // A negative-habit lurker has no overdue state to recompute (session
+        // 27) — without this guard, an edit-triggered call would overwrite
+        // its fixed lurk x with a timeline/base position.
+        if (isNonThreatening(item)) return;
+
         const now = new Date();
         const shouldBeOverdue = item.dueDateTime <= now;
 
@@ -455,6 +481,7 @@ const Items = (() => {
     }
 
     return {
+        isNonThreatening,
         createTaskItemData,
         completeItem,
         removeItem,

@@ -159,7 +159,7 @@ damage paths) with the indulge-action UI. Splitting keeps each session to one co
 respects the strict one-per-session rule for architecture/blast-radius work. Full surgery map from
 the session-27 recon is inline below so execution doesn't have to re-discover it.
 
-#### Sub-session 2a — make negative habits non-threatening "lurkers" (Sonnet; core-loop surgery)
+#### Sub-session 2a — make negative habits non-threatening "lurkers" (Sonnet; core-loop surgery) — ✅ DONE 2026-07-19 session 28
 **Goal:** a negative-habit instance never advances, never goes overdue, never damages the base — it
 sits at a fixed lurk position. NO new player action yet (that's 2b). This is the architecture piece.
 
@@ -192,6 +192,28 @@ instance past its due time accrues ZERO damage in all three paths and stays un-o
 habit is unaffected (regression). `Items.isNonThreatening` unit cases.
 **Live-verify (Chrome):** create a negative habit → lurker spawns near the fence, does NOT advance
 as the day progresses, base HP holds steady with it past due. Depends on Sub-session 1.
+
+**Implementation (session 28):** matched the surgery map almost exactly, with one refinement — the
+canonical `Items.isNonThreatening(item)` predicate lives in `js/items.js` (used directly by
+`markAsOverdue` and a new guard added to `recomputeOverdueStateAfterEdit`, found during
+implementation: an edit-triggered recompute on a lurker would otherwise overwrite its fixed lurk x).
+`js/loop.js` and `js/damage.js` load BEFORE `items.js` in `index.html`, so they can't reference
+`Items` as a bare global — both receive `isNonThreatening` as an injected deps collaborator instead
+(`loopDeps()`/`buildDamageDeps()` in script.js, wired from `Items.isNonThreatening`), and damage.js's
+pure catch-up functions default to an inline equivalent when the collaborator is omitted (keeps them
+dependency-free for direct unit testing, per damage.js's existing "pure core" philosophy). Lurk
+position: new `CONFIG.NEGATIVE_LURK_OFFSET_PX` (220px past baseWidth — deliberately beyond
+`SUBTASK_AHEAD_THRESHOLD_PX` so lurkers don't visually collide with the overdue-task cluster at the
+base). `habits.js`'s `createHabitInstanceData` sets a negative habit's spawn `x` to the lurk position
+directly (never routes through `calculateTimelinePosition`) — the offset arrives via a new
+`deps.negativeLurkOffsetPx`/`deps.baseWidth` rather than a bare `CONFIG` reference, since
+`habits.js` deliberately has no CONFIG global (see its test file's header note).
+**Tests:** 21 new (`test/loop.test.js` +5, `test/damage.test.js` +7, `test/habits.test.js` +1, new
+`test/items-lurker.test.js` +8) — **20 suites, 434/434.** `node --check` clean on all touched files.
+**Live-verified in Chrome:** created a negative habit → lurker spawned at a fixed offset near the
+base (visually distinct orange/negative styling), did not move or take/deal damage over 8+ seconds
+past its due time, base HP held steady, survived a full page reload at the same position, and the
+pre-existing overdue task zombie alongside it was unaffected (regression check).
 
 #### Sub-session 2b — indulge / avoid actions + rollover hold (Opus plan → Sonnet)
 **Goal:** wire the two player actions onto the lurker, mirroring the spec's binary. Depends on 2a.

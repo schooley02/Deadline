@@ -34,6 +34,8 @@
  *   setOfflineCatchUpActive, // (bool) -> void
  *   getGameLoopInterval,  // () -> intervalId
  *   baseWidth,            // BASE_WIDTH (px)
+ *   gameScreenWidth,      // GAME_SCREEN_WIDTH (px) — [P1-DATA-005] session 29,
+ *                         //   the negative-habit lurker's fixed x anchor
  *
  *   // --- DOM handles (may be null; every use is guarded) ---
  *   baseElement, baseHealthDisplay, gameOverMessage, restartButton,
@@ -45,7 +47,11 @@
  *   getSubTaskClusterOffset,     // (item) -> px
  *   calculateTimelineXWithClustering, // (item, nowDate) -> px
  *   enableFormControls,          // (bool) -> void
- *   saveGame                     // () -> void
+ *   saveGame,                    // () -> void
+ *   isNonThreatening             // (item) -> bool  ([P1-DATA-005] session 27,
+ *                                //   Items.isNonThreatening — optional; the
+ *                                //   pure catch-up functions fall back to an
+ *                                //   inline equivalent if omitted)
  * }
  */
 const Damage = (() => {
@@ -103,11 +109,20 @@ const Damage = (() => {
     // WHOLE intervals only, keeping the sub-interval remainder. Computing from
     // the gap window instead would floor() each window to zero for a background
     // tab ticking once a minute, making backgrounding a damage-evasion loophole.
-    function computeGapCatchUpHits(activeItems, nowMs, markFn) {
+    //
+    // isNonThreatening (optional, [P1-DATA-005] session 27): a negative-habit
+    // lurker must never be charged catch-up damage or marked overdue for a
+    // gap it spent lurking. Defaults to the same check Items.isNonThreatening
+    // makes (kept inline so this pure function stays dependency-free — see
+    // items.js's header comment for why the two can't just share one
+    // reference across the script-load boundary).
+    function computeGapCatchUpHits(activeItems, nowMs, markFn, isNonThreatening) {
+        const isLurker = isNonThreatening || ((item) => item.type === 'habit' && item.isNegative === true);
         const hits = [];
         const newlyOverdue = [];
 
         activeItems.forEach(item => {
+            if (isLurker(item)) return; // never overdue, never damaged
             if (item.dueDateTime.getTime() > nowMs) return; // not due yet
 
             if (!item.isOverdue) {
@@ -269,7 +284,7 @@ const Damage = (() => {
     function runLiveGapCatchUp(deps) {
         const {
             isGameOver, getActiveItems, markAsOverdue,
-            getSubTaskClusterOffset, baseWidth
+            getSubTaskClusterOffset, baseWidth, isNonThreatening
         } = deps;
 
         if (isGameOver()) return;
@@ -280,7 +295,7 @@ const Damage = (() => {
             item.x = baseWidth + getSubTaskClusterOffset(item);
             markAsOverdue(item, now);
             if (item.element) item.element.style.left = item.x + 'px';
-        });
+        }, isNonThreatening);
 
         applyOfflineDamage(hits, deps); // increments offlineDamageCharged + saves via damageBase
 
@@ -303,15 +318,17 @@ const Damage = (() => {
     function runOfflineCatchUp(entries, offlineMs, deps) {
         const {
             isGameOver, getActiveItems, calculateTimelineXWithClustering,
-            baseWidth, setOfflineCatchUpActive
+            baseWidth, gameScreenWidth, setOfflineCatchUpActive, isNonThreatening
         } = deps;
 
         if (isGameOver()) return;
         const nowMs = Date.now();
         const now = new Date();
+        const isLurker = isNonThreatening || ((item) => item.type === 'habit' && item.isNegative === true);
 
         const hits = [];
         getActiveItems().forEach(item => {
+            if (isLurker(item)) return; // [P1-DATA-005] session 27 — no offline damage for lurkers
             const dmg = computeOfflineOverdueDamage(
                 item.dueDateTime.getTime(), nowMs, offlineMs, item.offlineDamageCharged
             );
@@ -319,12 +336,18 @@ const Damage = (() => {
         });
 
         // Compute target positions in order, updating item.x as we go so
-        // sub-task clustering sees its parent's target, not its saved x.
+        // sub-task clustering sees its parent's target, not its saved x. A
+        // lurker's target is its fixed lurk position — anchored to the far
+        // right of the canvas since session 29, never a timeline calc.
         // Overdue items already had x set to the base by addItemToGame.
         entries.forEach(e => {
-            e.targetX = e.item.isOverdue
-                ? e.item.x
-                : calculateTimelineXWithClustering(e.item, now);
+            if (isLurker(e.item)) {
+                e.targetX = gameScreenWidth - CONFIG.HABIT_ENEMY_WIDTH - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX;
+            } else {
+                e.targetX = e.item.isOverdue
+                    ? e.item.x
+                    : calculateTimelineXWithClustering(e.item, now);
+            }
             e.item.x = e.targetX;
         });
 

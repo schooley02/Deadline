@@ -54,6 +54,7 @@
  *   // --- damage-deps passthrough (see buildDamageDeps) ---
  *   markAsOverdue, getSubTaskClusterOffset, calculateTimelineXWithClustering,
  *   enableFormControls, saveGame, getLastRegenTickMs, setLastRegenTickMs,
+ *   isNonThreatening, // [P1-DATA-005] session 27 — Items.isNonThreatening
  * }
  */
 const State = (() => {
@@ -191,6 +192,10 @@ const State = (() => {
             calculateTimelineXWithClustering: deps.calculateTimelineXWithClustering,
             enableFormControls: deps.enableFormControls,
             saveGame: deps.saveGame,
+            // [P1-DATA-005] session 27 — negative-habit lurkers are excluded
+            // from both catch-up paths' damage/positioning; see damage.js's
+            // header comment.
+            isNonThreatening: deps.isNonThreatening,
             // Regen clock passthrough ([P2-GAME-012], 2026-07-18) — lets
             // runOfflineCatchUp/runLiveGapCatchUp apply offline/suspended-gap
             // regen and reset the live loop's regen clock afterward.

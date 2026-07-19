@@ -12,13 +12,18 @@
  *   - activeItems: plain reference (itemsDeps()/agendaListDeps() precedent;
  *     safe because deps are rebuilt per call, so reassignment can't go stale).
  *   - baseWidth: plain value, rebuilt per call (not resolved until initGame()).
+ *   - gameScreenWidth: plain value ([P1-DATA-005] session 29 — the negative-
+ *     habit lurker's fixed x anchors to the far right of the canvas).
  *   - getLastLoopTickMs/setLastLoopTickMs, getLastAutosaveMs/setLastAutosaveMs,
  *     getLastRegenTickMs/setLastRegenTickMs ([P2-GAME-012], 2026-07-18):
  *     get/set pairs for script.js-owned timing state this module WRITES
  *     (damage.js baseHealth precedent).
  *   - collaborators: markAsOverdue, getSubTaskClusterOffset,
  *     calculateTimelineXWithClustering, damageBase, healBase
- *     ([P2-GAME-012]), updateMidnightLine, runLiveGapCatchUp, saveGame.
+ *     ([P2-GAME-012]), updateMidnightLine, runLiveGapCatchUp, saveGame,
+ *     isNonThreatening ([P1-DATA-005] session 27 — Items.isNonThreatening,
+ *     injected rather than referenced as a bare global since Items loads
+ *     AFTER this file; see items.js's header comment).
  * CONFIG is read as a bare stable global (movement.js/clock.js precedent).
  */
 const Loop = (() => {
@@ -48,6 +53,21 @@ const Loop = (() => {
 
         for (let i = deps.activeItems.length - 1; i >= 0; i--) {
             const item = deps.activeItems[i];
+
+            // [P1-DATA-005] session 27, repositioned session 29 — a
+            // negative-habit lurker never advances, never goes overdue,
+            // never damages the base (the A2 model — see DECISIONS.md
+            // sessions 26/29). It sits at a fixed position anchored to the
+            // far right of the canvas (not near the base — parking a
+            // stationary, non-threatening item near the base misrepresented
+            // it as an imminent threat) instead of a timeline position.
+            // Skips BOTH the overdue-transition branch below AND the
+            // damage-tick branch entirely.
+            if (deps.isNonThreatening && deps.isNonThreatening(item)) {
+                item.x = deps.gameScreenWidth - CONFIG.HABIT_ENEMY_WIDTH - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX;
+                if (item.element) item.element.style.left = item.x + 'px';
+                continue;
+            }
 
             if (!item.isOverdue) {
                 if (item.dueDateTime <= currentTime) {

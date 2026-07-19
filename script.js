@@ -226,6 +226,8 @@ document.addEventListener('DOMContentLoaded', () => {
             calculateTimelineXWithClustering,
             enableFormControls,
             saveGame,
+            // [P1-DATA-005] session 27 — negative-habit lurker exclusion
+            isNonThreatening: Items.isNonThreatening,
         };
     }
 
@@ -545,6 +547,8 @@ document.addEventListener('DOMContentLoaded', () => {
             updateMidnightLine,
             runLiveGapCatchUp,
             saveGame,
+            // [P1-DATA-005] session 27 — negative-habit lurker exclusion
+            isNonThreatening: Items.isNonThreatening,
         };
     }
 
@@ -630,6 +634,9 @@ document.addEventListener('DOMContentLoaded', () => {
             calculateTimelinePosition,
             gameScreenWidth: GAME_SCREEN_WIDTH,
             habitEnemyWidth: HABIT_ENEMY_WIDTH,
+            // [P1-DATA-005] session 27 — a negative habit's fixed lurk x
+            baseWidth: BASE_WIDTH,
+            negativeLurkOffsetPx: CONFIG.NEGATIVE_LURK_OFFSET_PX,
             definedHabits,
             definedRoutines,
             activeItems,

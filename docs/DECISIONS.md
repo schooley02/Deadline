@@ -4,6 +4,38 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 28: [P1-DATA-005] sub-session 2a built — lurker core-loop surgery (Cowork session, Sonnet)
+
+Executed the session-27 surgery plan (NEGATIVE_HABITS_PLAN.md sub-session 2a) essentially as
+specified, with one implementation-time refinement worth logging: the load-order constraint. `js/
+loop.js` and `js/damage.js` both load BEFORE `js/items.js` in `index.html`, so neither can reference
+`Items.isNonThreatening` as a bare global at call time in the way `Habits`/`CONFIG` are referenced by
+later-loading modules — script.js already threads collaborators through explicit deps objects for
+both modules, so `isNonThreatening` was added the same way (`loopDeps()`/`buildDamageDeps()`), rather
+than introducing a new cross-module global-reference pattern. `damage.js`'s two PURE catch-up
+functions (`computeGapCatchUpHits`, and the target-position calc inside `runOfflineCatchUp`) default
+to an inline equivalent of the predicate when the collaborator isn't passed, preserving their
+existing "pure core, no dependencies" testing philosophy (direct unit tests don't need to wire the
+collaborator through).
+
+Second implementation-time catch: `Items.recomputeOverdueStateAfterEdit` (called after any edit to
+an item's due date) would have overwritten a lurker's fixed lurk x with a timeline/base position if
+left unguarded — the surgery plan's 4 named exclusion points didn't originally list this path
+explicitly (only `markAsOverdue`, which it calls internally). Added as a 5th guard, found by
+reading the function rather than by a live bug.
+
+**Lurk position:** `CONFIG.NEGATIVE_LURK_OFFSET_PX = 220` (px past `baseWidth`) — chosen to exceed
+`SUBTASK_AHEAD_THRESHOLD_PX` (150) so lurkers render clear of the overdue-task cluster that camps at
+the base. Not a balance number (no gameplay/economy effect, purely a layout constant), so the
+balance-tuning protocol doesn't apply.
+
+**State:** 20 suites, 434/434 (+21 new tests across loop.test.js, damage.test.js, habits.test.js, and
+a new items-lurker.test.js — items.js had no direct unit-test file before this session). Live-verified
+in Chrome: a negative habit spawns as a stationary lurker, takes no damage and doesn't move past its
+due time, survives a reload at the same position, and doesn't affect an unrelated overdue task.
+
+---
+
 ## 2026-07-19 — Session 26: [P1-DATA-005] FORK SESSION — negative-habit design resolved (Cowork session, Fable; all three verdicts Jeremy's)
 
 The three interacting design forks from `docs/NEGATIVE_HABITS_PLAN.md`, batched into one Fable session per the model strategy. Decisive spec evidence found during analysis: PROJECT_SPEC.md's Daily Check-in Flow (~line 640) specifies retrospective SELF-REPORT resolution — one card per incomplete negative habit from the previous day, binary "Successfully avoided" / "I indulged" buttons.

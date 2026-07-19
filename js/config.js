@@ -120,6 +120,18 @@ const CONFIG = {
     SUBTASK_CLUSTER_GAP_PX: 8, // visual gap between clustered sprites' VISIBLE graphics (not their boxes)
     SUBTASK_AHEAD_THRESHOLD_PX: 150, // how much closer to the base a sub-task's own due date must put it before it breaks from the cluster
 
+    // [P1-DATA-005] session 27/28, repositioned session 29 (Jeremy's call) —
+    // negative-habit "lurker" model (see docs/NEGATIVE_HABITS_PLAN.md,
+    // DECISIONS.md session 26). A negative-habit instance never advances on
+    // the timeline; it sits at a fixed x instead: gameScreenWidth -
+    // habitEnemyWidth - this margin, i.e. anchored to the FAR RIGHT of the
+    // visible canvas (the same edge tasks due tomorrow-or-later initially
+    // park at), not near the base. Rationale: since it never moves, parking
+    // it near the base like an imminent threat was misleading — the base
+    // area should stay reserved for genuinely urgent, damage-dealing enemies
+    // so the player gets honest visual triage at a glance.
+    NEGATIVE_LURK_RIGHT_MARGIN_PX: 20,
+
     // Measured visible-pixel margins of each zombie sprite, as fractions of the
     // sprite box width (alpha-channel bounding box, measured 2026-07-17 from
     // Assets/Zombies/*.png — 128 and 64 variants have near-identical fractions).

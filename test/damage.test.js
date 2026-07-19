@@ -322,6 +322,46 @@ describe('computeGapCatchUpHits', () => {
         expect(hits[0].dmg).toBe(CAP);
         expect(hits[0].dmg).toBeLessThan(100); // would have been ~120 before the fix
     });
+
+    // [P1-DATA-005] session 27 — negative-habit lurkers never accrue
+    // catch-up damage or get marked overdue for a background/sleep gap.
+    describe('negative-habit lurker exclusion', () => {
+        const lurker = (props = {}) => item({
+            type: 'habit',
+            isNegative: true,
+            dueDateTime: new Date(Date.now() - 10 * 60 * 60 * 1000),
+            isOverdue: false,
+            lastDamageTickTime: Date.now() - 10 * 60 * 60 * 1000,
+            ...props,
+        });
+
+        test('a lurker produces no hits and is never marked, using the default (no isNonThreatening arg) fallback', () => {
+            const it = lurker();
+            const marked = [];
+            const { hits, newlyOverdue } = Damage.computeGapCatchUpHits([it], Date.now(), (i) => marked.push(i));
+            expect(hits).toEqual([]);
+            expect(newlyOverdue).toEqual([]);
+            expect(marked).toEqual([]);
+        });
+
+        test('a lurker produces no hits with an explicit isNonThreatening collaborator', () => {
+            const it = lurker();
+            const isNonThreatening = (i) => i.type === 'habit' && i.isNegative === true;
+            const { hits } = Damage.computeGapCatchUpHits([it], Date.now(), undefined, isNonThreatening);
+            expect(hits).toEqual([]);
+        });
+
+        test('a positive habit alongside a lurker is unaffected', () => {
+            const negItem = lurker({ dueDateTime: new Date(Date.now() - 10 * 60 * 60 * 1000) });
+            const posItem = item({
+                type: 'habit', isNegative: false,
+                lastDamageTickTime: Date.now() - 4 * INTERVAL,
+            });
+            const { hits } = Damage.computeGapCatchUpHits([negItem, posItem], Date.now());
+            expect(hits).toHaveLength(1);
+            expect(hits[0].item).toBe(posItem);
+        });
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -499,6 +539,31 @@ describe('runLiveGapCatchUp', () => {
         Damage.runLiveGapCatchUp(deps);
         expect(deps._state.baseHealth).toBe(50 + 3 * CONFIG.BASE_REGEN_HP);
     });
+
+    // [P1-DATA-005] session 27 — a negative-habit lurker takes no damage
+    // for a suspended-loop gap, whether or not deps threads isNonThreatening.
+    test('a lurker takes no damage across a 10-hour suspended-loop gap (default fallback)', () => {
+        const lurker = item({
+            type: 'habit', isNegative: true,
+            lastDamageTickTime: Date.now() - 10 * 60 * 60 * 1000,
+        });
+        const deps = makeDeps({ state: { activeItems: [lurker] } });
+        Damage.runLiveGapCatchUp(deps);
+        expect(deps._state.baseHealth).toBe(100);
+    });
+
+    test('a lurker takes no damage with isNonThreatening explicitly threaded via deps', () => {
+        const lurker = item({
+            type: 'habit', isNegative: true,
+            lastDamageTickTime: Date.now() - 10 * 60 * 60 * 1000,
+        });
+        const deps = makeDeps({
+            state: { activeItems: [lurker] },
+            deps: { isNonThreatening: (i) => i.type === 'habit' && i.isNegative === true },
+        });
+        Damage.runLiveGapCatchUp(deps);
+        expect(deps._state.baseHealth).toBe(100);
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -579,5 +644,40 @@ describe('runOfflineCatchUp', () => {
         const deps = makeDeps({ state: { activeItems: [it], gameIsOver: true, baseHealth: 40 } });
         Damage.runOfflineCatchUp([{ item: it, savedX: 0 }], 1000, deps);
         expect(deps._state.baseHealth).toBe(40);
+    });
+
+    // [P1-DATA-005] session 27 — a negative-habit lurker accrues no offline
+    // damage, and its target position is the fixed lurk x, never the
+    // timeline calc, even across a long absence.
+    test('a lurker takes no offline damage across a 10-hour absence', () => {
+        const lurker = item({
+            type: 'habit', isNegative: true,
+            dueDateTime: new Date(Date.now() - 10 * 60 * 60 * 1000),
+            element: null,
+        });
+        const deps = makeDeps({
+            state: { activeItems: [lurker], baseHealth: 50 },
+            deps: { isNonThreatening: (i) => i.type === 'habit' && i.isNegative === true },
+        });
+        Damage.runOfflineCatchUp([{ item: lurker, savedX: null }], 10 * INTERVAL, deps);
+        // no damage subtracted — only the [P2-GAME-012] regen for the same window applies
+        expect(deps._state.baseHealth).toBe(Math.min(CONFIG.MAX_BASE_HEALTH, 50 + 10 * CONFIG.BASE_REGEN_HP));
+    });
+
+    test('a lurker\'s target position is the fixed lurk x, not the timeline calc', () => {
+        const lurker = item({
+            type: 'habit', isNegative: true,
+            dueDateTime: new Date(Date.now() - 10 * 60 * 60 * 1000),
+            isOverdue: false,
+            x: 0,
+            element: fakeEl(),
+        });
+        const deps = makeDeps({
+            state: { activeItems: [lurker] },
+            deps: { isNonThreatening: (i) => i.type === 'habit' && i.isNegative === true },
+        });
+        Damage.runOfflineCatchUp([{ item: lurker, savedX: 0 }], 1000, deps);
+        expect(lurker.x).toBe(deps.baseWidth + CONFIG.NEGATIVE_LURK_OFFSET_PX);
+        expect(lurker.x).not.toBe(500); // never the stub calculateTimelineXWithClustering value
     });
 });

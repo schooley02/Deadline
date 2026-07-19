@@ -315,8 +315,15 @@ const Habits = (() => {
     // deps = {
     //   getNextId,                // () -> number   (itemIdCounter++ in script.js)
     //   calculateTimelinePosition,// (item, now) -> px  (script.js's Clock wrapper)
-    //   gameScreenWidth,          // GAME_SCREEN_WIDTH
+    //   gameScreenWidth,          // GAME_SCREEN_WIDTH (also doubles as the fixed
+    //                             //   x anchor for a negative habit's lurk
+    //                             //   position — session 29)
     //   habitEnemyWidth,          // CONFIG.HABIT_ENEMY_WIDTH
+    //   negativeLurkRightMarginPx,// CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX (this
+    //                             //   file deliberately has no bare CONFIG
+    //                             //   global — see test/habits.test.js's header
+    //                             //   note — so the value crosses in via deps
+    //                             //   like habitEnemyWidth does)
     // }
     function createHabitInstanceData(habitDef, forDate, deps) {
         const instanceCreationTime = new Date();
@@ -345,7 +352,15 @@ const Habits = (() => {
             offlineDamageCharged: 0
         };
 
-        habitInstanceData.x = deps.calculateTimelinePosition(habitInstanceData, instanceCreationTime);
+        // [P1-DATA-005] session 27, repositioned session 29 — a negative habit
+        // spawns as a lurker: a fixed position anchored to the FAR RIGHT of the
+        // canvas, never a timeline position (the A2 model — see DECISIONS.md
+        // sessions 26/29: since it never moves, parking it near the base like
+        // an imminent threat was misleading). Every OTHER instance (positive
+        // habit, task) keeps the existing timeline calc.
+        habitInstanceData.x = habitDef.isNegative
+            ? deps.gameScreenWidth - deps.habitEnemyWidth - deps.negativeLurkRightMarginPx
+            : deps.calculateTimelinePosition(habitInstanceData, instanceCreationTime);
 
         return habitInstanceData;
     }

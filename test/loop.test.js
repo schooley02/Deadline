@@ -69,9 +69,21 @@ function makeDeps(overrides = {}) {
         updateMidnightLine: () => { state.midnightUpdates++; },
         runLiveGapCatchUp: () => { state.gapCatchUps++; },
         saveGame: () => { state.saves++; },
+        // [P1-DATA-005] session 27 — matches Items.isNonThreatening
+        isNonThreatening: (item) => item.type === 'habit' && item.isNegative === true,
         ...overrides.deps,
     };
     return deps;
+}
+
+function makeLurker(overrides = {}) {
+    return makeItem({
+        type: 'habit',
+        isNegative: true,
+        dueDateTime: new Date(Date.now() - 60 * 60 * 1000), // already "due" — must NOT go overdue
+        isOverdue: false,
+        ...overrides,
+    });
 }
 
 describe('Loop.updateActiveItems', () => {
@@ -181,6 +193,53 @@ describe('Loop.updateActiveItems', () => {
         const deps = makeDeps({ state: { activeItems: [], lastRegenTickMs: Date.now() } });
         Loop.updateActiveItems(deps);
         expect(deps._state.healDealt).toBe(0);
+    });
+});
+
+describe('Loop.updateActiveItems — negative-habit lurker exclusion ([P1-DATA-005] session 27)', () => {
+    test('a lurker past its due time is never marked overdue and takes no damage', () => {
+        const lurker = makeLurker();
+        const deps = makeDeps({ state: { activeItems: [lurker] } });
+        Loop.updateActiveItems(deps);
+        expect(lurker.isOverdue).toBe(false);
+        expect(deps._state.overdueMarks).toEqual([]);
+        expect(deps._state.damageDealt).toBe(0);
+    });
+
+    test('a lurker is positioned at baseWidth + CONFIG.NEGATIVE_LURK_OFFSET_PX, not a timeline position', () => {
+        const lurker = makeLurker();
+        const deps = makeDeps({ state: { activeItems: [lurker] } });
+        Loop.updateActiveItems(deps);
+        expect(lurker.x).toBe(deps.baseWidth + CONFIG.NEGATIVE_LURK_OFFSET_PX);
+        expect(lurker.element.style.left).toBe(`${deps.baseWidth + CONFIG.NEGATIVE_LURK_OFFSET_PX}px`);
+        // never routed through the timeline calc
+        expect(lurker.x).not.toBe(500); // the deps' calculateTimelineXWithClustering stub
+    });
+
+    test('an already-overdue lurker (edge case) still deals no damage and is left alone', () => {
+        const lurker = makeLurker({ isOverdue: true, lastDamageTickTime: Date.now() - INTERVAL - 10 });
+        const deps = makeDeps({ state: { activeItems: [lurker] } });
+        Loop.updateActiveItems(deps);
+        expect(deps._state.damageDealt).toBe(0);
+    });
+
+    test('a positive habit (isNegative: false) with the same shape is unaffected — normal overdue/damage applies', () => {
+        const positiveHabit = makeItem({
+            type: 'habit',
+            isNegative: false,
+            dueDateTime: new Date(Date.now() - 1000),
+        });
+        const deps = makeDeps({ state: { activeItems: [positiveHabit] } });
+        Loop.updateActiveItems(deps);
+        expect(positiveHabit.isOverdue).toBe(true);
+        expect(deps._state.overdueMarks).toEqual([1]);
+    });
+
+    test('a task (type: task) is unaffected by the lurker exclusion even if isNegative were somehow set', () => {
+        const item = makeItem({ isNegative: true, dueDateTime: new Date(Date.now() - 1000) }); // type defaults to undefined/'task'
+        const deps = makeDeps({ state: { activeItems: [item] } });
+        Loop.updateActiveItems(deps);
+        expect(item.isOverdue).toBe(true); // isNonThreatening requires type === 'habit'
     });
 });
 

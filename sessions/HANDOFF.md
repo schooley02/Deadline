@@ -13,6 +13,23 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 28: [P1-DATA-005] sub-session 2a BUILT — lurker core-loop surgery (Cowork session, Sonnet)
+
+**Did:** Built the session-27 surgery plan almost exactly as specified. New `Items.isNonThreatening(item)` predicate (`type === 'habit' && isNegative === true`) in `js/items.js`, used directly by `markAsOverdue`'s early-return and a NEW guard added to `recomputeOverdueStateAfterEdit` (found while implementing — an edit-triggered recompute would've overwritten a lurker's fixed x otherwise; the surgery plan's 4 exclusion points didn't originally name this path). `js/loop.js`'s `updateActiveItems` and `js/damage.js`'s `computeGapCatchUpHits`/`runOfflineCatchUp` all receive `isNonThreatening` as an injected deps collaborator (load-order: loop.js/damage.js load BEFORE items.js in index.html, so they can't reference `Items` as a bare global like `CONFIG`/`Habits` are elsewhere — damage.js's pure functions default to an inline equivalent when the collaborator is omitted, keeping them dependency-free for direct unit tests). New `CONFIG.NEGATIVE_LURK_OFFSET_PX = 220` — a fixed x past `baseWidth`, deliberately beyond `SUBTASK_AHEAD_THRESHOLD_PX` so lurkers don't visually collide with the overdue-task cluster. `js/habits.js`'s `createHabitInstanceData` spawns a negative habit directly at the lurk position (never the timeline calc) via new `deps.baseWidth`/`deps.negativeLurkOffsetPx` (not a bare CONFIG reference — habits.js deliberately has none, see its test file header).
+
+**State:** ✅ **20 suites, 434/434** (+21 new: loop.test.js +5, damage.test.js +7, habits.test.js +1, new items-lurker.test.js +8 — items.js had no direct test file before this session). `node --check` clean on all touched files. **Live-verified in Chrome:** created a negative habit → lurker spawned at a fixed offset, stationary and undamaged after 8+ seconds past its due time, base HP held steady, survived a full reload at the same position, and the pre-existing overdue task zombie alongside it was unaffected.
+
+**Docs updated same session:** NEGATIVE_HABITS_PLAN.md (2a marked done with implementation notes), ROADMAP.md (2a checked), DECISIONS.md (session 28 entry — the two implementation-time catches above, load-order reasoning, lurk-offset rationale).
+
+**Next: Sub-session 2b — indulge/avoid popup actions + rollover-hold guard.** Fully specified in the plan already (Opus planned it in session 27) — wire the popup binary, `indulgeHabit` in items.js (interim: through the 0-floored `subtractPoints` until sub-session 3), and the prior-day-lurker auto-resolve-as-avoided guard in `selectHabitDefsToSpawn`'s dedupe path (the double-spawn bug caught in session 27's recon). This is Opus→Sonnet — the popup UI wiring is mostly mechanical but touches the double-spawn edge case, worth a planning pass first.
+
+**Watch out:**
+- The lurker's `dueDateTime` is still set and unchanged (only `x` is fixed) — it's still the day-tag 2b/4 need. Don't let a future session "clean up" dueDateTime on lurkers.
+- `Items.isNonThreatening` is now the single source of truth — if a future session adds a new overdue/damage path, it MUST check this predicate too (there were already 3 separate paths plus 2 defensive guards; a 6th path is plausible if e.g. a new offline/background mechanism is added).
+- Dev save now has a `LurkerTest-Smoking` negative habit from live verification, alongside the existing session-23 debris. Recommend Reset before real play (standing note, now doubly true).
+
+---
+
 ## 2026-07-19 — Session 27: [P1-DATA-005] sub-session 2 PLANNED + split into 2a/2b (Cowork session, Opus — planning only, no code)
 
 **Did:** Opus planning pass for the A2-lurker implementation. Mapped every code path the lurker model touches and found sub-session 2 was too big / too high-blast-radius for one session: excluding negative habits from base damage requires touching THREE separate paths — `Loop.updateActiveItems` (live tick, loop.js ~49), `Damage.computeGapCatchUpHits` (backgrounded-tab catch-up, damage.js ~110), and the offline catch-up entries built in script.js. Split into **2a** (make negative habits non-threatening "lurkers": one `Items.isNonThreatening` predicate, exclude from all 3 damage paths + defensive `markAsOverdue` guard, fixed `CONFIG` lurk position, tests + live verify — no new player action) and **2b** (indulge/avoid popup binary + `indulgeHabit` wiring + the rollover double-spawn guard). Full surgery map with line refs is inline in NEGATIVE_HABITS_PLAN.md sub-sessions 2a/2b.
