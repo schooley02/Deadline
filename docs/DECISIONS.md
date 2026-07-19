@@ -4,6 +4,30 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 32: Day-advance mechanism BUILT — restore-path day rollover (Cowork session, Opus plan → Sonnet execute)
+
+**Problem (recon from session 30):** `currentGameDate` was set once at initGame() and restored as-is; nothing advanced it. A session spanning midnight left the game on the old day — daily generators ran with a stale date, today's habit/routine-task instances never spawned, prior-day instances lingered. Base HP / offline damage / regen / days-survived derive from real elapsed time and were never affected — only the game-DAY concept.
+
+**Design (settlement follows from prior decisions, so NOT a Fable-tier fork):** on restore, if `DayRollover.hasDayRolledOver(savedGameDate, now)`, close out the prior day's RECURRING instances (identified by `definitionId` — habits + routine tasks; one-off tasks/sub-tasks have none and are untouched), then advance `currentGameDate` to today. Per-item settlement:
+- Negative lurker → auto-avoided (session-26's "prior days default to avoided"): full avoid reward, occurrence keyed to yesterday so today still spawns a fresh lurker. NOT added to "Completed Today" (that's the sub-session-4 check-in's surface).
+- Positive habit → dropped (miss already recorded by markAsOverdue on re-add).
+- Routine task → dropped.
+
+**Decisions made this session:**
+- **Routine tasks settle like habits, not like one-off tasks** (Jeremy, via AskUserQuestion): a daily routine task is a per-day check, so yesterday's uncompleted instance is removed and today's spawns — rather than accumulating as a persistent overdue threat. One-off tasks keep the deadline model (persist, keep threatening the base).
+- **Scope = restore-path only; LIVE mid-session midnight crossing deferred** (Jeremy): a tab left running past midnight stays stale but self-corrects on next reload, never corrupts. Live rollover would add day-mutation logic to the per-tick loop hot path + a visible mid-session event — not worth it before the restore path is proven. Logged as a later-version item in ROADMAP.
+- **Multi-day gaps fabricate no retroactive misses:** only instances actually on the board settle (the away days never generated instances). Matches the offline "punish count, not duration" philosophy and avoids nuking a player's rate history for a vacation.
+- **Auto-avoid awards the FULL reward (XP + points + occurrence), mirroring the manual "Successfully avoided"** — consistent, and `checkPlayerLevelUp` handles any threshold crossing on restore. Only difference from manual avoid: no "Completed Today" entry (wrong day) and no fade animation (synchronous).
+- **Closed-out recurring instances charge NO offline base damage** (removed before runOfflineCatchUp): recurring-habit consequences are behavioral (points/rate), base HP is for one-off deadline failures. A minor behavior change from the old "overdue habit keeps damaging on restore," and the correct channel separation.
+
+**Structure:** new pure `js/dayRollover.js` (startOfDay / hasDayRolledOver / selectStaleRecurringInstances — tested), `Items.settleStaleRecurringInstance` (the per-item avoid-vs-drop branch — tested), orchestration in state.js's restoreGameState (untested DOM glue, verified by live playtest, per project norm). Guarded by `!save.gameIsOver`. `restoredEntries` pruned of settled items so the offline catch-up animation doesn't process detached ghosts.
+
+**Tests:** 24 suites, 473/473 (+18: `test/dayRollover.test.js` detection/selection incl. one-off-task + sub-task + no-originalDueDate exclusion, same-day no-op, clock-skew, multi-day; `test/items-rollover.test.js` avoid-awards-points / keys-lastCompletionDate-to-yesterday / positive-drops / routine-task-drops). `node --check` clean on dayRollover.js/items.js/state.js/script.js.
+
+**Live-verified in Chrome** (backdated the save one day + reloaded): points −5→0, XP 25→30 (negative lurker auto-avoided), a fresh lurker spawned for today, the positive habit's miss recorded + instance dropped + fresh spawned, the one-off task untouched, `currentGameDate` advanced, no duplicates, no app-code console errors. **Testing note for the future:** the page's unload flush (`Persistence.flush` on beforeunload/visibilitychange) will clobber a hand-backdated localStorage save on reload — neuter `Persistence.flush`/`requestSave` in the console BEFORE reloading to simulate a rollover. (This cost a real debugging detour this session; the rollover code was correct all along.)
+
+---
+
 ## 2026-07-19 — Session 31: [P1-DATA-005] sub-session 3 BUILT — non-clamping debt + red HUD nudge (Cowork session, Sonnet)
 
 **Built:** `Economy.applyIndulgenceCost(current, amount)` — a deliberately separate, non-clamping

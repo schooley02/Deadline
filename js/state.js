@@ -293,6 +293,38 @@ const State = (() => {
             }
         });
 
+        // Day rollover (restore path) — day-advance mechanism, 2026-07-19.
+        // If real time has crossed into a later calendar day than the save's
+        // currentGameDate, close out the PRIOR day's recurring instances BEFORE
+        // spawning today's, then advance currentGameDate so the generators below
+        // use today. Without this, currentGameDate stayed frozen at the save's
+        // value and today's habit/routine-task instances never spawned (the
+        // whole bug this fixes). Settlement per item lives in
+        // Items.settleStaleRecurringInstance (negative lurker → auto-avoided;
+        // positive habit → already miss-recorded on re-add above, then dropped;
+        // routine task → dropped). Runs AFTER the re-add loop (so a positive
+        // habit's miss is recorded by markAsOverdue) and BEFORE the generators.
+        // Skipped for a game-over save (no settling a dead run). Base HP / offline
+        // damage / regen / days-survived are unaffected — all derive from real
+        // elapsed time, not the game day. LIVE mid-session crossing is a later
+        // version; a running tab rolls over on its next reload. See DECISIONS.md.
+        if (!save.gameIsOver) {
+            const rolloverNow = new Date();
+            if (DayRollover.hasDayRolledOver(deps.getCurrentGameDate(), rolloverNow)) {
+                DayRollover.selectStaleRecurringInstances(deps.getActiveItems(), rolloverNow)
+                    .forEach(item => deps.settleStaleRecurringInstance(item));
+                deps.setCurrentGameDate(DayRollover.startOfDay(rolloverNow));
+                // Drop settled (now-removed) items from the catch-up entry set so
+                // runOfflineCatchUp below doesn't animate/position ghosts whose DOM
+                // elements were just detached. Damage already reads live
+                // activeItems, so this is purely to keep the animation clean.
+                const liveItems = deps.getActiveItems();
+                for (let i = restoredEntries.length - 1; i >= 0; i--) {
+                    if (!liveItems.includes(restoredEntries[i].item)) restoredEntries.splice(i, 1);
+                }
+            }
+        }
+
         // Spawn today's habit + routine-task instances the save doesn't already
         // contain (both generators dedupe against activeItems/completedItems)
         deps.generateDailyHabitInstances(deps.getCurrentGameDate());

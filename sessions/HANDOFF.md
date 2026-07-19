@@ -13,6 +13,47 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 32: Day-advance mechanism BUILT (restore path) (Cowork session, Opus plan → Sonnet execute)
+
+**Did:** Built the day-advance mechanism flagged in session 30. New pure `js/dayRollover.js`
+(startOfDay / hasDayRolledOver / selectStaleRecurringInstances) + `Items.settleStaleRecurringInstance`
++ rollover wiring in `js/state.js`'s restoreGameState (advance currentGameDate to today, settle prior-day
+recurring instances, then spawn today's). On reopen after midnight: a prior-day negative lurker
+auto-resolves as avoided (full reward, fresh lurker respawns for today), a positive habit's miss is
+recorded then its stale instance dropped, a routine task is dropped, and one-off tasks are left alone.
+`index.html` gains the dayRollover.js script tag; script.js gains a thin wrapper + a stateDeps
+collaborator.
+
+**Decisions (see DECISIONS.md session 32):** routine tasks settle like habits (Jeremy); scope is
+restore-path only, LIVE mid-session rollover deferred (Jeremy) and added to ROADMAP; multi-day gaps
+fabricate no retroactive misses; auto-avoid gives the full XP+points reward minus the "Completed
+Today" entry; closed-out recurring instances charge no offline base damage.
+
+**State:** ✅ **24 suites, 473/473** (+18: `test/dayRollover.test.js`, `test/items-rollover.test.js`).
+`node --check` clean on all touched files. **Live-verified in Chrome** by backdating the save one day
+and reloading: points −5→0, XP 25→30 (negative auto-avoided), fresh lurker spawned, positive habit
+miss recorded + dropped + fresh spawned, one-off task untouched, currentGameDate advanced, no
+duplicates, no app-code console errors.
+
+**Docs updated same session:** MECHANICS.md (new "Day Rollover" section), DECISIONS.md (session 32),
+ROADMAP.md (day-advance checked; sub-session 4 unblocked; LIVE rollover added as a later item).
+
+**Next:** sub-session 4 (daily check-in prompt) is now UNBLOCKED — it refines the rollover's silent
+"auto-avoid the most-recent day" into a binary check-in card. Or sub-session 5 (Cheat Day token), or
+the deferred LIVE mid-session rollover. Jeremy's call.
+
+**Watch out:**
+- **Testing a rollover:** the page's unload flush (`Persistence.flush` on beforeunload/visibilitychange)
+  overwrites a hand-backdated localStorage save on reload. To simulate: set `Persistence.flush = ()=>{}`
+  and `Persistence.requestSave = ()=>{}` in the console BEFORE writing the backdated save + reloading.
+  (This cost a debugging detour this session — the rollover code was correct all along.)
+- The SAME-day indulge→reload respawn bug (ROADMAP "Known bugs") is unchanged — day-advance only
+  handles the PRIOR-day case.
+- Dev save now has DebtTest-Snacking / PosTest-Water / PushbackTest-Zombie test artifacts (points 0).
+  Recommend Reset before real play.
+
+---
+
 ## 2026-07-19 — Session 31: [P1-DATA-005] sub-session 3 BUILT — non-clamping debt + red HUD nudge (Cowork session, Sonnet)
 
 **Did:** Built the negative-balance path the ECONOMY.md docs had already promised but nothing

@@ -247,6 +247,63 @@ const Items = (() => {
     }
 
     /**
+     * deps: superset of completeItem's + removeItem's:
+     *   { isGameOver, activeItems, definedHabits (getter), xpPerHabitComplete,
+     *     pointsPerHabit, getPlayerXP, setPlayerXP, getPlayerPoints,
+     *     setPlayerPoints, updatePlayerDisplays, checkPlayerLevelUp,
+     *     updateTaskCountDisplay, saveGame }
+     * Habits (applyHabitCompletion) + Economy (addPoints) called as bare globals.
+     *
+     * Day-advance mechanism (2026-07-19): closes out ONE prior-day recurring
+     * instance at day rollover (called from state.js's restoreGameState for each
+     * item DayRollover.selectStaleRecurringInstances returned). Two cases:
+     *
+     *   - NEGATIVE habit lurker → auto-resolve as AVOIDED (session-26's generous
+     *     default for prior days): the full avoid reward via applyHabitCompletion
+     *     — success occurrence keyed to the instance's originalDueDate (yesterday),
+     *     streak++, XP + rate-multiplied points, level check — exactly the manual
+     *     "Successfully avoided" economics. Because lastCompletionDate is keyed to
+     *     originalDueDate (yesterday), NOT today, today's generator still spawns a
+     *     fresh lurker — the temptation returns each day. Deliberately does NOT
+     *     push into completedItems (it happened yesterday, not today; surfacing
+     *     past auto-resolutions is the sub-session-4 check-in's job, not this).
+     *
+     *   - Everything else (POSITIVE habit, routine TASK) → just remove. A positive
+     *     habit's miss was already recorded by markAsOverdue when addItemToGame
+     *     re-added it on restore (before this runs); a routine task has no rate
+     *     history to record. Removing before runOfflineCatchUp means a closed-out
+     *     recurring instance charges NO offline base damage — recurring-habit
+     *     consequences are behavioral (points/rate), base HP is for one-off
+     *     deadline failures. See DECISIONS.md session 32.
+     *
+     * Synchronous (no fade/setTimeout) so the board is settled before the
+     * generators + offline catch-up run in the same restore pass.
+     */
+    function settleStaleRecurringInstance(item, deps) {
+        if (item.type === 'habit' && item.isNegative === true) {
+            const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
+            if (habitDef) {
+                const result = Habits.applyHabitCompletion(
+                    habitDef.streak, habitDef.occurrenceHistory, habitDef.isNegative, item.originalDueDate, {
+                        xpPerHabitComplete: deps.xpPerHabitComplete,
+                        pointsPerHabit: deps.pointsPerHabit,
+                        rateWindow: CONFIG.HABIT_RATE_WINDOW,
+                        rateMinSample: CONFIG.HABIT_RATE_MIN_SAMPLE,
+                        rateTiers: CONFIG.HABIT_RATE_TIERS
+                    });
+                habitDef.streak = result.streak;
+                habitDef.lastCompletionDate = result.lastCompletionDate;
+                habitDef.occurrenceHistory = result.occurrenceHistory;
+                deps.setPlayerXP(deps.getPlayerXP() + result.xpGained);
+                deps.setPlayerPoints(Economy.addPoints(deps.getPlayerPoints(), result.pointsGained));
+                deps.updatePlayerDisplays();
+                deps.checkPlayerLevelUp();
+            }
+        }
+        removeItem(item.id, deps);
+    }
+
+    /**
      * deps: { isGameOver, activeItems, definedHabits (getter), pointsPerHabit,
      *         getPlayerPoints, setPlayerPoints, updatePlayerDisplays,
      *         updateTaskCountDisplay, saveGame }
@@ -549,6 +606,7 @@ const Items = (() => {
         completeItem,
         indulgeHabit,
         removeItem,
+        settleStaleRecurringInstance,
         uncompleteItem,
         markAsOverdue,
         recomputeOverdueStateAfterEdit

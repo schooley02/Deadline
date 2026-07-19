@@ -217,6 +217,8 @@ document.addEventListener('DOMContentLoaded', () => {
             updateBaseVisuals,
             generateDailyHabitInstances,
             generateDailyRoutineTaskInstances,
+            // Day-advance mechanism (2026-07-19): restore-path day rollover.
+            settleStaleRecurringInstance,
             addItemToGame,
             createListItem,
             renderDefinedRoutines,
@@ -446,6 +448,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function removeItem(itemId) {
         Items.removeItem(itemId, itemsDeps());
+    }
+
+    // Thin wrapper — real implementation lives in js/items.js (day-advance
+    // mechanism, 2026-07-19). Called by state.js's restoreGameState for each
+    // prior-day recurring instance at day rollover. Call site: stateDeps().
+    function settleStaleRecurringInstance(item) {
+        Items.settleStaleRecurringInstance(item, itemsDeps());
     }
 
     function createSubTaskPrompt(parentId) {
