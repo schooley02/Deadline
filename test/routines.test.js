@@ -125,6 +125,9 @@ describe('createRoutineDefinition', () => {
         expect(result.routine.habitDefinitionIds).toEqual([]);
         expect(result.routine.taskDefinitionIds).toEqual([]);
         expect(result.routine.isActive).toBe(false);
+        // Frozen routine slots (schemaVersion 6, 2026-07-19): new routines
+        // start unfrozen.
+        expect(result.routine.frozenState).toBeNull();
     });
 
     test('trims the name before storing', () => {
@@ -294,6 +297,9 @@ describe('createNewHabitInRoutine', () => {
         const newHabit = Routines.createNewHabitInRoutine('r1', { name: 'Meditate', category: 'wellness', frequency: 'daily', timeOfDay: 'morning' }, routines, []);
         expect(newHabit.schedule).toEqual({ frequency: 'daily', daysOfWeek: [0, 1, 2, 3, 4, 5, 6], dayOfMonth: null });
         expect(newHabit.occurrenceHistory).toEqual([]);
+        // Frozen routine slots (schemaVersion 6, 2026-07-19): new habit defs
+        // start with no modification history.
+        expect(newHabit.modificationHistory).toEqual([]);
     });
 
     test('a full schedule object from the scheduling UI is preferred over frequency', () => {

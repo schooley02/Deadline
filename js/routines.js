@@ -185,7 +185,10 @@ const Routines = (() => {
             name: trimmedName,
             habitDefinitionIds: [],
             taskDefinitionIds: [],
-            isActive: false
+            isActive: false,
+            // Frozen routine slots (schemaVersion 6, 2026-07-19): null = not
+            // frozen. See js/frozenSlots.js.
+            frozenState: null
         };
 
         return { ok: true, routine };
@@ -270,7 +273,10 @@ const Routines = (() => {
             routineId: routineId,
             streak: 0,
             lastCompletionDate: null,
-            occurrenceHistory: []
+            occurrenceHistory: [],
+            // Frozen routine slots (schemaVersion 6, 2026-07-19): recovery
+            // path 1 (edit-to-unfreeze) appends to this. See js/frozenSlots.js.
+            modificationHistory: []
         };
 
         definedHabits.push(newHabit);

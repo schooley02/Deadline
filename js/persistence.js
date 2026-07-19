@@ -25,7 +25,7 @@ const Persistence = (() => {
     // sub-session 5, Cheat Day token) — the one currently-active excused
     // occurrence date for that habit, or null. Old saves seed null on every
     // habit def.
-    const SCHEMA_VERSION = 5;
+    const SCHEMA_VERSION = 6;
     const DEBOUNCE_MS = 500;
 
     // DOM references on item objects — never serialized, rebuilt on load.
@@ -187,6 +187,28 @@ const Persistence = (() => {
                 }
             });
             save.schemaVersion = 5;
+        }
+
+        // v5 → v6 (2026-07-19): frozen routine slots (sub-session 1).
+        // Additive on two shapes — routines gain `frozenState` (null = not
+        // frozen; { frozenBy, frozenAt } once a routine-owned negative habit
+        // hits 3 consecutive indulged days, see js/frozenSlots.js) and habit
+        // definitions gain `modificationHistory` (empty array; recovery path
+        // 1 — "edit the habit to unfreeze" — appends to this in a later
+        // sub-session, landing the field now so that migration is a no-op).
+        // Pre-v6 saves have neither, so seed both. See DECISIONS.md.
+        if (save.schemaVersion === 5) {
+            (save.definedRoutines || []).forEach(routine => {
+                if (routine.frozenState === undefined) {
+                    routine.frozenState = null;
+                }
+            });
+            (save.definedHabits || []).forEach(habitDef => {
+                if (!Array.isArray(habitDef.modificationHistory)) {
+                    habitDef.modificationHistory = [];
+                }
+            });
+            save.schemaVersion = 6;
         }
 
         if (save.schemaVersion !== SCHEMA_VERSION) {

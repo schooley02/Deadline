@@ -27,6 +27,35 @@ Routines can be deactivated (vacation/seasonal) and reactivated. Deactivating a 
 **Reactivating a routine spawns today's due instances immediately** (fixed 2026-07-18, same day as the gating fix above — the first version of this made activation spawn nothing until the next daily pass/reload, which Jeremy hit live: create a routine, add a task, activate it, nothing appeared). `toggleRoutineActive` calls both daily generators on the inactive→active transition, the direct counterpart to the immediate recall on active→inactive.
 
 ## Frozen Routine Slots (canonical spec — from PROJECT_SPEC.md)
+
+**Planning + design forks (2026-07-19, session 35, Fable):** see
+`docs/FROZEN_SLOTS_PLAN.md` for the full sub-session sequence. Four forks
+resolved: (1) freezing is ROUTINE-scoped only (never a bare task, never a
+standalone negative habit with no routine) and a freeze SUSPENDS the routine
+— its other habits/tasks stop spawning and it earns no XP, but the OFFENDING
+negative habit keeps spawning its lurker so recovery path 2 stays possible
+(non-destructive: no recall of already-spawned instances); (2) a Cheat/Sick/
+Skip-Day-excused day is TRANSPARENT to both the freeze-trigger count and the
+avoidance-recovery count (an excused day records no occurrence at all, so
+it's simply absent from the trailing run rather than breaking it — tokens
+can't be used to dodge a freeze); (3) recovery path 1 (edit-to-unfreeze) logs
+minimal change tracking (`{ timestamp, changedFields }`) — old/new values and
+notes are deferred; (4) Sick Day is GLOBAL (excuses ALL habits for a day),
+Skip Day is PER-HABIT (mirrors Cheat Day's targeting) — both ride with this
+ticket, both transparent to freeze/recovery counts.
+
+**Sub-session 1 BUILT 2026-07-19:** the pure freeze/recovery core
+(`js/frozenSlots.js`: `shouldFreeze`/`shouldRecoverByAvoidance` read trailing
+runs off `habitDef.occurrenceHistory`; `buildFrozenState`) is wired into the
+five occurrence-recording sites in `js/items.js` — `indulgeHabit` and
+`resolvePendingCheckIn`'s indulged branch check the freeze trigger;
+`completeItem`, `settleStaleRecurringInstance`, and `resolvePendingCheckIn`'s
+avoided branch check avoidance-recovery. `routine.frozenState = { frozenBy,
+frozenAt } | null` (schemaVersion 6). **NOT yet built:** spawn gating (a
+frozen routine's other definitions still spawn today), the frozen-state UI
+(greyed card, notification, progress), recovery path 1 (edit-to-unfreeze),
+and Sick/Skip Day tokens — see `docs/FROZEN_SLOTS_PLAN.md` sub-sessions 2-5.
+
 - A NEGATIVE habit streak of 3+ days (indulging 3 days running) FREEZES the associated routine slot.
 - Frozen slots appear greyed out, with a notification explaining the freeze and recovery options. Frozen routines remain viewable so the user can identify needed adjustments.
 - **Recovery, two paths:**

@@ -13,6 +13,61 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 35: Frozen routine slots — Fable fork + Sub-session 1 BUILT (Cowork session, Fable plan → Sonnet execute)
+
+**Did:** Sequenced the "Frozen routine slots + recovery" roadmap item into `docs/FROZEN_SLOTS_PLAN.md`
+(mirrors NEGATIVE_HABITS_PLAN.md), resolving 4 design forks live with Jeremy: (1) freezing is
+ROUTINE-scoped only and SUSPENDS the routine (other habits/tasks stop spawning, no XP) while the
+offending negative habit keeps lurking so recovery stays possible — non-destructive; (2)
+Cheat/Sick/Skip-excused days are transparent to both 3-day counts (freeze-trigger and
+avoidance-recovery); (3) recovery path 1 (edit-to-unfreeze) gets minimal change tracking
+(`{timestamp, changedFields}`) only; (4) Sick Day = global, Skip Day = per-habit. Then built
+Sub-session 1: `js/frozenSlots.js` (pure — `trailingRun`/`shouldFreeze`/`shouldRecoverByAvoidance`/
+`avoidanceProgress`/`buildFrozenState`, all reading `habitDef.occurrenceHistory`), schemaVersion
+5→6 (`routine.frozenState`, `habitDef.modificationHistory`, seeded on migrate + on creation), and
+wired the freeze/recovery checks into `js/items.js`'s five occurrence-recording sites
+(`indulgeHabit`, `resolvePendingCheckIn` both branches, `completeItem`, `settleStaleRecurringInstance`).
+`deps.definedRoutines` is optional in items.js (falls back to `[]`) — no existing test file needed
+touching.
+
+**State:** ✅ **28 suites, 532/532** (+2 suites/+34 tests: new `test/frozen-slots.test.js` pure-core,
+new `test/items-freeze.test.js` wiring across all 4 trigger functions incl. standalone-habit
+no-op and cross-habit non-interference; `test/persistence-migration.test.js` +8 v5→v6 cases;
+`test/routines.test.js` +2 field assertions). `node --check` clean on all touched files incl.
+script.js. **Live-verified in Chrome:** created a routine + negative habit via the real UI,
+backdated 2 indulged days directly in the save, then clicked the REAL "I indulged" button for the
+3rd day — `routine.frozenState` was set with the correct `frozenBy`/timestamp. Then backdated 2
+avoided days and clicked the REAL "Successfully avoided" button for the 3rd — `frozenState`
+cleared back to `null`. No app console errors (only unrelated Chrome-extension messaging noise).
+
+**Next:** Sub-session 2 (spawn gating — a frozen routine's OTHER definitions still spawn today;
+this is where the freeze gets real teeth) is next per `docs/FROZEN_SLOTS_PLAN.md`. Sub-sessions
+3 (frozen UI), 4 (edit-to-unfreeze), 5 (Sick/Skip tokens + 6→7 migration) follow. Verify the
+routine-XP "earns no XP while frozen" question in sub-session 2 — believed unbuilt (P1-UI-006
+territory), so it may be a no-op to note rather than code to write.
+
+**Watch out:**
+- **Backdating gotcha (new, found this session):** editing `localStorage['deadline.save']` from the
+  console and then reloading is NOT enough — the page's flush-on-hide/unload handler saves the
+  STALE in-memory state over your edit during the reload's teardown, silently undoing it. Fix:
+  write the edit with the real `localStorage.setItem`, THEN do `localStorage.setItem = function(){}`
+  (neuter it) BEFORE triggering `location.reload()`, so the unload-flush's write becomes a no-op and
+  your edit survives into the fresh load. (`Persistence`/`Habits`/`Items`/etc. are module-scope
+  `const`s, not `window` properties, so you can't neuter `Persistence.flush` directly from console —
+  neutering `localStorage.setItem` itself is the reliable workaround.)
+- **Known same-day lurker-respawn bug (ROADMAP.md) is actually useful for this kind of testing:**
+  after indulging removes the lurker, a same-day reload spawns a fresh one — that's how the
+  recovery-path test got a lurker to click "Successfully avoided" on without waiting for a real
+  day boundary.
+- Dev save has a `Frozen Test Routine` + `Test Vice` negative habit (routine currently unfrozen,
+  points at 0, occurrenceHistory all-avoided) from this session's live verification. Recommend
+  Reset before real play.
+- `createNewHabitInRoutine` (routines.js) still doesn't seed `cheatDayDate` on new routine-owned
+  habits (pre-existing gap, confirmed still present, out of this session's scope — only
+  `createHabitDefinition`, the standalone path, seeds it).
+
+---
+
 ## 2026-07-19 — Session 34: Sub-session 5 BUILT — Cheat Day token, [P1-DATA-005] CLOSED (Cowork session, Opus plan → Sonnet execute)
 
 **Did:** Built the last piece of the negative-habits ticket. `js/persistence.js` bumped SCHEMA_VERSION

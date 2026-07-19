@@ -278,6 +278,77 @@ describe('migrate v4 → v5: Cheat Day (cheatDayDate)', () => {
     });
 });
 
+describe('migrate v5 → v6: frozen routine slots (frozenState + modificationHistory)', () => {
+    function v5Save(overrides = {}) {
+        return {
+            schemaVersion: 5,
+            definedHabits: [],
+            definedRoutines: [],
+            definedTasks: [],
+            inventory: {},
+            ...overrides
+        };
+    }
+
+    test('bumps schemaVersion to the current version', () => {
+        expect(Persistence.migrate(v5Save()).schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+    });
+
+    test('seeds frozenState: null on every routine that lacks it', () => {
+        const save = Persistence.migrate(v5Save({
+            definedRoutines: [{ id: 'r1' }, { id: 'r2' }]
+        }));
+        expect(save.definedRoutines[0].frozenState).toBeNull();
+        expect(save.definedRoutines[1].frozenState).toBeNull();
+    });
+
+    test('does not clobber an existing frozenState', () => {
+        const existing = { frozenBy: 'h1', frozenAt: '2026-07-19T00:00:00.000Z' };
+        const save = Persistence.migrate(v5Save({
+            definedRoutines: [{ id: 'r1', frozenState: existing }]
+        }));
+        expect(save.definedRoutines[0].frozenState).toBe(existing);
+    });
+
+    test('seeds modificationHistory: [] on every habit def that lacks it', () => {
+        const save = Persistence.migrate(v5Save({
+            definedHabits: [{ id: 'h1' }, { id: 'h2' }]
+        }));
+        expect(save.definedHabits[0].modificationHistory).toEqual([]);
+        expect(save.definedHabits[1].modificationHistory).toEqual([]);
+    });
+
+    test('does not clobber an existing modificationHistory', () => {
+        const existing = [{ timestamp: '2026-07-19T00:00:00.000Z', changedFields: ['timeOfDay'] }];
+        const save = Persistence.migrate(v5Save({
+            definedHabits: [{ id: 'h1', modificationHistory: existing }]
+        }));
+        expect(save.definedHabits[0].modificationHistory).toBe(existing);
+    });
+
+    test('tolerates a save with no definedRoutines / definedHabits at all', () => {
+        const save = Persistence.migrate({ schemaVersion: 5 });
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+    });
+
+    test('leaves other save fields untouched', () => {
+        const save = Persistence.migrate(v5Save({ playerPoints: 150 }));
+        expect(save.playerPoints).toBe(150);
+    });
+
+    test('runs the full v1 → current chain in one pass, including frozen-slot fields', () => {
+        const save = Persistence.migrate({
+            schemaVersion: 1,
+            definedHabits: [{ id: 'h1', frequency: 'daily' }],
+            definedRoutines: [{ id: 'r1', habitDefinitionIds: ['h1'], isActive: true }],
+            definedTasks: [{ id: 't1' }]
+        });
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+        expect(save.definedRoutines[0].frozenState).toBeNull();
+        expect(save.definedHabits[0].modificationHistory).toEqual([]);
+    });
+});
+
 describe('migrate: version handling', () => {
     test('a current-version save passes through unchanged (same reference)', () => {
         const original = {

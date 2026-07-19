@@ -61,6 +61,17 @@ const CONFIG = {
     // replaced it. See DECISIONS.md.
     HABIT_STREAK_BONUS_THRESHOLD: 3,
 
+    // --- Frozen routine slots ("Frozen routine slots + recovery" ticket,
+    // sub-session 1, 2026-07-19; docs/ROUTINES.md + docs/FROZEN_SLOTS_PLAN.md
+    // session 35 Fable). Both thresholds are 3 per the canonical spec
+    // (PROJECT_SPEC.md ~56-58) — freeze after 3 consecutive indulged days on
+    // a routine-owned negative habit; recover via 3 consecutive avoided days
+    // while it stays active (recovery path 2; path 1 is a real habit edit —
+    // see js/frozenSlots.js). Balance-tuning protocol applies if these ever
+    // move off the spec's 3.
+    FREEZE_THRESHOLD_DAYS: 3,
+    RECOVERY_AVOIDED_DAYS: 3,
+
     // --- Habit rate-based points bonus (decided session 13, built session 16;
     // see DECISIONS.md + docs/MECHANICS.md). A habit's points award is
     // multiplied by a factor derived from its rolling success rate over its last

@@ -8,6 +8,21 @@ TARGET schema for the persistence work (Milestone 1) and modularization. The mon
 - `deadline.settings` — user settings (demo clock on/off, etc.) — not yet implemented
 - Save on every state mutation (debounced), load on boot. Cross-tab sync later via `storage` events.
 
+### schemaVersion 6 (2026-07-19): frozen routine slots — `routine.frozenState` + habit `modificationHistory` landed
+Sub-session 1 of the "Frozen routine slots + recovery" ticket (see docs/FROZEN_SLOTS_PLAN.md
+session 35 Fable + docs/ROUTINES.md). `Routine.frozenState: { frozenBy: habitDefId, frozenAt:
+ISOString } | null` — `null` = not frozen; set when a routine-owned negative habit hits
+`CONFIG.FREEZE_THRESHOLD_DAYS` (3) consecutive indulged days, cleared by recovery path 2 (3
+consecutive avoided days by the SAME habit) via `js/frozenSlots.js`'s pure counting functions.
+`Habit.modificationHistory: { timestamp: ISOString, changedFields: string[] }[]` — empty array
+seeded now so a later sub-session (recovery path 1, "edit the habit to unfreeze") is
+migration-free. Both counts read directly off the existing `occurrenceHistory` array — a
+Cheat/Sick/Skip-Day-excused day records no occurrence at all, so it's transparent to both
+runs (neither breaks nor advances them) by construction. v5→v6 migration in `js/persistence.js`
+seeds `frozenState: null` on every routine and `modificationHistory: []` on every habit def.
+Spawn gating (frozen routine stops spawning its OTHER definitions) and the frozen-state UI are
+NOT yet built — later sub-sessions. See DECISIONS.md 2026-07-19.
+
 ### schemaVersion 4 (2026-07-18): shop `inventory` landed
 Top-level `inventory: { [shopItemId]: heldCount }` added for the shop ([P1-UI-008],
 SHOP_PLAN.md session 1). Absent key = 0 held. Owned in script.js (`playerInventory`),
@@ -89,7 +104,12 @@ Habit {
   // numbers config-tunable; 1× until ≥7 entries exist
   // (CONFIG.HABIT_RATE_MIN_SAMPLE). Uncompleting today flips today's entry
   // and recomputes (symmetric refunds by construction).
-  occurrenceHistory: { date: "YYYY-MM-DD", success: boolean }[]
+  occurrenceHistory: { date: "YYYY-MM-DD", success: boolean }[],
+  // BUILT 2026-07-19 (schemaVersion 6, frozen-slots sub-session 1). Recovery
+  // path 1 ("edit the habit to unfreeze") appends one entry per real edit;
+  // an edit only unfreezes if changedFields is non-empty (a no-op Save
+  // doesn't count). Old/new values + notes deferred — see DECISIONS.md.
+  modificationHistory: { timestamp: "ISOString", changedFields: string[] }[]
 }
 
 // BUILT 2026-07-18: js/schedule.js + schemaVersion 2→3 migration (session 14),
@@ -132,7 +152,13 @@ Routine {
   habitSlots: number,      // grows with level
   taskSlots: number,
   isActive: boolean,
-  frozen: boolean          // frozen-recovery mechanic (spec pending)
+  // BUILT 2026-07-19 (schemaVersion 6, frozen-slots sub-session 1). null =
+  // not frozen. Set when a routine-owned negative habit it owns hits
+  // CONFIG.FREEZE_THRESHOLD_DAYS (3) consecutive indulged days; cleared by
+  // that SAME habit (frozenBy match) hitting CONFIG.RECOVERY_AVOIDED_DAYS
+  // (3) consecutive avoided days, or by a real edit to that habit (recovery
+  // path 1, later sub-session). See js/frozenSlots.js + DECISIONS.md.
+  frozenState: { frozenBy: string, frozenAt: "ISOString" } | null
 }
 
 Run {

@@ -318,11 +318,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // values rebuilt fresh on every call (not resolved until initGame() runs —
     // same reasoning as damageDeps()). Habits/CONFIG are called as bare stable
     // globals inside js/items.js itself, not threaded through here.
+    // definedRoutines is a GETTER too (added "Frozen routine slots" sub-session
+    // 1, 2026-07-19) — same reassignment reason as definedHabits. FrozenSlots
+    // is called as a bare stable global inside js/items.js, same as Habits/CONFIG.
     function itemsDeps() {
         return {
             activeItems,
             completedItems: () => completedItems,
             definedHabits: () => definedHabits,
+            // Frozen routine slots ("Frozen routine slots + recovery" ticket,
+            // sub-session 1, 2026-07-19): items.js looks up a negative
+            // habit's owning routine to check/clear frozenState. GETTER for
+            // the same reassignment reason as definedHabits above.
+            definedRoutines: () => definedRoutines,
             isGameOver: () => gameIsOver,
             getPlayerXP: () => playerXP,
             setPlayerXP: (n) => { playerXP = n; },
@@ -706,7 +714,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // schemaVersion 5): null = no active excused day. Only meaningful
             // for negative habits, but seeded on every habit for shape
             // consistency with the persisted/migrated form.
-            cheatDayDate: null
+            cheatDayDate: null,
+            // Frozen routine slots (schemaVersion 6, 2026-07-19): recovery
+            // path 1 (edit-to-unfreeze) appends to this. See js/frozenSlots.js.
+            // Only meaningful for routine-owned negative habits, seeded on
+            // every habit for shape consistency (same reasoning as cheatDayDate).
+            modificationHistory: []
         };
 
         definedHabits.push(newHabitDef);

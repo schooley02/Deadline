@@ -80,6 +80,51 @@ const Items = (() => {
         return item.type === 'habit' && item.isNegative === true;
     }
 
+    // --- Frozen routine slots ("Frozen routine slots + recovery" ticket,
+    // sub-session 1, 2026-07-19; see js/frozenSlots.js + docs/ROUTINES.md).
+    //
+    // Both helpers are no-ops for a standalone negative habit
+    // (habitDef.routineId == null) — there's no routine to freeze, and debt
+    // + streak already punish a standalone lapse. `deps.definedRoutines` is
+    // OPTIONAL — existing deps objects (and every pre-existing test) that
+    // don't build one simply see no routine and no-op, matching the
+    // "collaborator omitted -> inline equivalent" precedent js/damage.js set
+    // in session 28 rather than requiring every call site to be touched.
+    function findOwningRoutine(habitDef, deps) {
+        if (!habitDef || habitDef.routineId == null) return null;
+        const definedRoutines = typeof deps.definedRoutines === 'function' ? deps.definedRoutines() : [];
+        return (definedRoutines || []).find(r => r.id === habitDef.routineId) || null;
+    }
+
+    // Call after recording a FAILURE (indulged) occurrence for a negative
+    // habit — checks whether it just hit the freeze threshold and, if so,
+    // sets the owning routine's frozenState. A routine that's already frozen
+    // (by this habit or another) is left alone — freezing doesn't "stack" or
+    // reset frozenAt.
+    function maybeFreezeRoutine(habitDef, deps) {
+        if (!habitDef.isNegative) return;
+        const routine = findOwningRoutine(habitDef, deps);
+        if (!routine || routine.frozenState) return;
+        if (FrozenSlots.shouldFreeze(habitDef.occurrenceHistory, CONFIG.FREEZE_THRESHOLD_DAYS)) {
+            routine.frozenState = FrozenSlots.buildFrozenState(habitDef.id, new Date());
+        }
+    }
+
+    // Call after recording a SUCCESS (avoided) occurrence for a negative
+    // habit — recovery path 2 (docs/ROUTINES.md): checks whether it just hit
+    // the avoidance-recovery threshold and, if so, clears frozenState. Only
+    // clears a freeze that THIS habit caused — a routine frozen by a
+    // DIFFERENT negative habit it owns is untouched (that habit has its own
+    // recovery to earn).
+    function maybeRecoverRoutine(habitDef, deps) {
+        if (!habitDef.isNegative) return;
+        const routine = findOwningRoutine(habitDef, deps);
+        if (!routine || !routine.frozenState || routine.frozenState.frozenBy !== habitDef.id) return;
+        if (FrozenSlots.shouldRecoverByAvoidance(habitDef.occurrenceHistory, CONFIG.RECOVERY_AVOIDED_DAYS)) {
+            routine.frozenState = null;
+        }
+    }
+
     /**
      * deps: { getNextId, activeItems, gameScreenWidth, enemyWidth,
      *         calculateTimelineXWithClustering }
@@ -180,6 +225,9 @@ const Items = (() => {
                 habitDef.occurrenceHistory = result.occurrenceHistory;
                 xpGained = result.xpGained;
                 pointsGained = result.pointsGained;
+                // Frozen routine slots: for a negative habit this is the
+                // "Successfully avoided" path — check recovery path 2.
+                maybeRecoverRoutine(habitDef, deps);
             }
         }
 
@@ -313,6 +361,9 @@ const Items = (() => {
                 deps.setPlayerPoints(Economy.addPoints(deps.getPlayerPoints(), result.pointsGained));
                 deps.updatePlayerDisplays();
                 deps.checkPlayerLevelUp();
+                // Frozen routine slots: auto-avoided is a success occurrence
+                // for a negative habit — check recovery path 2.
+                maybeRecoverRoutine(habitDef, deps);
             }
         }
         removeItem(item.id, deps);
@@ -411,6 +462,9 @@ const Items = (() => {
             deps.setPlayerXP(deps.getPlayerXP() + result.xpGained);
             deps.setPlayerPoints(Economy.addPoints(deps.getPlayerPoints(), result.pointsGained));
             deps.checkPlayerLevelUp();
+            // Frozen routine slots: 'avoided' is a success occurrence for a
+            // negative habit — check recovery path 2.
+            maybeRecoverRoutine(habitDef, deps);
         } else if (outcome === 'indulged') {
             if (isCheatDayExcused(habitDef, originalDueDate)) {
                 habitDef.cheatDayDate = null;
@@ -422,6 +476,9 @@ const Items = (() => {
                     habitDef.streak = result.streak;
                     habitDef.occurrenceHistory = result.occurrenceHistory;
                     deps.setPlayerPoints(Economy.applyIndulgenceCost(deps.getPlayerPoints(), result.pointsLost));
+                    // Frozen routine slots: 'indulged' is a failure occurrence
+                    // for a negative habit — check the freeze trigger.
+                    maybeFreezeRoutine(habitDef, deps);
                 }
             }
         }
@@ -491,6 +548,9 @@ const Items = (() => {
             habitDef.occurrenceHistory = result.occurrenceHistory;
 
             deps.setPlayerPoints(Economy.applyIndulgenceCost(deps.getPlayerPoints(), result.pointsLost));
+            // Frozen routine slots: this indulge is a failure occurrence for
+            // a negative habit — check the freeze trigger.
+            maybeFreezeRoutine(habitDef, deps);
             deps.updatePlayerDisplays();
             deps.saveGame();
         }
