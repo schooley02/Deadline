@@ -15,6 +15,19 @@
  */
 const Persistence = require('../js/persistence.js');
 
+describe('negative playerPoints round-trips through serialize/deserialize ([P1-DATA-005] sub-session 3)', () => {
+    test('a negative balance survives serialize -> deserialize unchanged', () => {
+        const raw = Persistence.serialize({ schemaVersion: Persistence.SCHEMA_VERSION, playerPoints: -37 });
+        const restored = Persistence.deserialize(raw);
+        expect(restored.playerPoints).toBe(-37);
+    });
+
+    test('a negative balance survives the full migrate chain unchanged (not touched by any migration step)', () => {
+        const save = Persistence.migrate(v1Save({ playerPoints: -8 }));
+        expect(save.playerPoints).toBe(-8);
+    });
+});
+
 function v1Save(overrides = {}) {
     return {
         schemaVersion: 1,

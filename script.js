@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const playerXpDisplay = document.getElementById('playerXpDisplay');
     const playerLevelDisplay = document.getElementById('playerLevelDisplay');
     const playerPointsDisplay = document.getElementById('playerPointsDisplay');
+    // [P1-DATA-005] sub-session 3, 2026-07-19 — negative-balance red styling + nudge.
+    const playerPointsStat = document.getElementById('playerPointsStat');
+    const playerPointsNudge = document.getElementById('playerPointsNudge');
     const gameOverMessage = document.getElementById('gameOverMessage');
     const levelUpMessage = document.getElementById('levelUpMessage');
     const activeItemsListUL = document.getElementById('activeItemsList');
@@ -96,7 +99,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function updatePlayerDisplays() {
         Hud.updatePlayerDisplays({
             playerXP, playerLevel, playerPoints, routineSlots,
-            playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay
+            pointsPerTask: POINTS_PER_TASK,
+            playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay,
+            playerPointsStat, playerPointsNudge
         });
     }
 

@@ -269,7 +269,7 @@ lurker and reloading SAME-DAY spawns a fresh lurker immediately (dedupe only che
 double-spawn class of bug, logged in ROADMAP.md "Known bugs", not fixed this session. Full detail in
 DECISIONS.md session 30.
 
-### Sub-session 3 — unbounded debt + encouraging debt UX (Opus plan → Sonnet)
+### Sub-session 3 — unbounded debt + encouraging debt UX (Opus plan → Sonnet) — ✅ DONE 2026-07-19 session 31
 **Goal:** add `Economy.applyIndulgenceCost` (or similar) — the non-clamping sibling reserved by the
 economy.js header NOTE; switch sub-session 2's debit to it. Uncompletion refunds KEEP the 0 floor.
 Points HUD renders negative balances in red with the agency-framed nudge ("−12 · complete 2 tasks to
@@ -278,6 +278,22 @@ already handles it). NO recovery-plan UI (deferred to run review — see DECISIO
 Tests: indulgence subtracts below 0; refunds still floor; nudge math. Persistence: playerPoints
 already persists as a plain number — verify a negative value round-trips (should be free, but test
 it).
+
+**BUILT 2026-07-19 session 31:** `Economy.applyIndulgenceCost(current, amount)` (non-clamping sibling
+to `subtractPoints`) lands in `js/economy.js`; `js/items.js`'s `indulgeHabit` switched to it (the
+sub-session 2b `TODO` marker is gone). `js/ui/hud.js`'s `updatePlayerDisplays` gained a pure
+`tasksToBreakEven(points, pointsPerTask)` helper plus DOM wiring: negative balance → red
+`#playerPointsDisplay` (`.points-negative` class on the stat-item) + a `#playerPointsNudge` span
+reading " · complete N tasks to break even" (N rounds UP — a partial task still leaves debt).
+`index.html`/`css/gameCanvas.css` got the new markup/styling; `script.js` threads `pointsPerTask`
+(`POINTS_PER_TASK`) and the two new DOM refs through `updatePlayerDisplays()`. Uncompletion refunds
+were NOT touched — `subtractPoints` (0-floored) stays their path; only indulgence goes negative.
+Tests: 22 suites, 455/455 (+15: `test/economy.test.js` applyIndulgenceCost cases, new
+`test/hud.test.js` for `tasksToBreakEven` + the DOM styling/nudge behavior, an `items-indulge.test.js`
+case proving indulgence crosses 0, and a `persistence-migration.test.js` negative-round-trip check
+via the exposed `serialize`/`deserialize`). Live-verified in Chrome: indulging from a 0 balance
+produced exactly "−5 · complete 1 task to break even" in red, persisted correctly across reload, no
+console errors. `docs/ECONOMY.md` updated in the same session.
 
 ### Sub-session 4 — daily check-in prompt (Opus plan → Sonnet)
 **Goal:** first-open-of-a-new-day prompt: one card per UNRESOLVED negative habit from the previous

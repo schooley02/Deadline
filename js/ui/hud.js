@@ -21,14 +21,46 @@ const Hud = (() => {
     // Player stat displays
     // ---------------------------------------------------------------------
 
-    // deps: { playerXP, playerLevel, playerPoints, routineSlots,
+    // Pure: how many pointsPerTask-sized tasks would it take to bring a
+    // negative balance back to >= 0. Rounds UP (a partial task still leaves
+    // debt) — no new tunable, derived from the existing pointsPerTask value.
+    // Returns 0 for a non-negative balance or a non-positive pointsPerTask
+    // (defensive; the caller only invokes this when points < 0).
+    function tasksToBreakEven(points, pointsPerTask) {
+        if (points >= 0 || !(pointsPerTask > 0)) return 0;
+        return Math.ceil(Math.abs(points) / pointsPerTask);
+    }
+
+    // deps: { playerXP, playerLevel, playerPoints, routineSlots, pointsPerTask,
     //         playerXpDisplay, playerLevelDisplay, playerPointsDisplay,
-    //         totalRoutineSlotsDisplay }
+    //         totalRoutineSlotsDisplay, playerPointsStat?, playerPointsNudge? }
+    //
+    // Negative-balance styling + agency-framed nudge ([P1-DATA-005]
+    // sub-session 3, 2026-07-19). Debt only happens via negative-habit
+    // indulgence (Economy.applyIndulgenceCost is the only non-clamping
+    // debit path) — rendered in red with "complete N tasks to break even"
+    // so it reads as fixable rather than purely punitive. playerPointsStat/
+    // playerPointsNudge are optional so tests/older markup degrade cleanly.
     function updatePlayerDisplays(deps) {
         if (deps.playerXpDisplay) deps.playerXpDisplay.textContent = deps.playerXP;
         if (deps.playerLevelDisplay) deps.playerLevelDisplay.textContent = deps.playerLevel;
         if (deps.playerPointsDisplay) deps.playerPointsDisplay.textContent = deps.playerPoints;
         if (deps.totalRoutineSlotsDisplay) deps.totalRoutineSlotsDisplay.textContent = deps.routineSlots;
+
+        const inDebt = deps.playerPoints < 0;
+        if (deps.playerPointsStat) deps.playerPointsStat.classList.toggle('points-negative', inDebt);
+        if (deps.playerPointsNudge) {
+            if (inDebt) {
+                const n = tasksToBreakEven(deps.playerPoints, deps.pointsPerTask);
+                deps.playerPointsNudge.textContent = n > 0
+                    ? ` · complete ${n} task${n !== 1 ? 's' : ''} to break even`
+                    : '';
+                deps.playerPointsNudge.classList.remove('hidden');
+            } else {
+                deps.playerPointsNudge.textContent = '';
+                deps.playerPointsNudge.classList.add('hidden');
+            }
+        }
     }
 
     // deps: { activeItems, taskCountDisplay }
@@ -101,6 +133,7 @@ const Hud = (() => {
     }
 
     return {
+        tasksToBreakEven,
         updatePlayerDisplays,
         updateTaskCountDisplay,
         showLevelUpMessage,

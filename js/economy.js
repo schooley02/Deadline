@@ -16,11 +16,12 @@
  * Habit points stay in habits.js (rate-multiplier logic is habit state
  * math); economy just receives the computed amounts.
  *
- * NOTE on the zero floor: subtractPoints clamps at 0 today. docs/ECONOMY.md
- * says balances CAN go negative — but only via negative-habit indulgence,
- * which is unbuilt [P1-DATA-005]. When that lands, indulgence should use a
- * dedicated non-clamping path (or a config flag here); uncompletion refunds
- * keep the floor regardless.
+ * NOTE on the zero floor: subtractPoints clamps at 0 — used for uncompletion
+ * refunds, which always keep the floor. Negative-habit indulgence
+ * ([P1-DATA-005] sub-session 3, 2026-07-19) uses the dedicated non-clamping
+ * applyIndulgenceCost below instead, per docs/ECONOMY.md's "balances CAN go
+ * negative" rule — debt is a deliberate consequence of indulgence, not
+ * something to floor away.
  */
 const Economy = (() => {
     // Points awarded for completing a task. High-priority tasks award double
@@ -40,6 +41,16 @@ const Economy = (() => {
         return Math.max(0, current - amount);
     }
 
+    // Non-clamping debit for negative-habit indulgence ([P1-DATA-005]
+    // sub-session 3) — the balance CAN go negative (debt), per
+    // docs/ECONOMY.md. Deliberately a separate function from subtractPoints
+    // rather than a flag: refunds (uncompletion) must NEVER go negative, so
+    // keeping two named functions makes each call site's floor behavior
+    // obvious at the call site instead of depending on a boolean argument.
+    function applyIndulgenceCost(current, amount) {
+        return current - amount;
+    }
+
     // Shop pricing (docs/ECONOMY.md): price = baseCost × 1.5^quantityOwned,
     // rounded to whole points. Unlimited scaling by design (anti-abuse).
     function shopPrice(baseCost, quantityOwned) {
@@ -50,6 +61,7 @@ const Economy = (() => {
         taskPoints,
         addPoints,
         subtractPoints,
+        applyIndulgenceCost,
         shopPrice,
     };
 })();

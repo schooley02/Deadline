@@ -4,6 +4,43 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 31: [P1-DATA-005] sub-session 3 BUILT — non-clamping debt + red HUD nudge (Cowork session, Sonnet)
+
+**Built:** `Economy.applyIndulgenceCost(current, amount)` — a deliberately separate, non-clamping
+sibling to `subtractPoints`, per the header NOTE `js/economy.js` reserved back in session 19.
+`indulgeHabit` (session 30) now debits through it instead of the 0-floored `subtractPoints`, so a
+negative-habit indulgence can push the balance below 0 — matching docs/ECONOMY.md's "balances CAN go
+negative" rule, which was previously unbuilt. Uncompletion refunds deliberately still use
+`subtractPoints` — only indulgence goes negative, refunds never do.
+
+`js/ui/hud.js`'s `updatePlayerDisplays` renders the negative balance in red (`.points-negative` on the
+points stat-item) with an agency-framed nudge: "−N · complete X tasks to break even", X computed by a
+new pure `tasksToBreakEven(points, pointsPerTask)` (rounds UP — a partial task still leaves debt; no
+new tunable, derived from the existing `pointsPerTask`). Chose a plain text nudge over a progress bar
+or icon — matches the existing stat-item's minimal style and needed no new CSS component.
+
+**Explicitly NOT built this session (per the sub-session 3 spec, unchanged):** no shop-gating changes
+(`canAfford` already refuses purchases a negative balance can't cover) and no recovery-plan UI
+(deferred to run review — see session 26).
+
+**Tests:** 22 suites, 455/455 (+15: `Economy.applyIndulgenceCost` cases in `test/economy.test.js`;
+new `test/hud.test.js` covering `tasksToBreakEven` math + the DOM class/nudge toggle including the
+negative→non-negative transition and a graceful no-op when the optional DOM refs are absent; an
+`items-indulge.test.js` case proving a real indulgence crosses 0; a `persistence-migration.test.js`
+case proving a negative `playerPoints` survives `serialize`/`deserialize` and the full migration chain
+unchanged). `node --check` clean on `js/economy.js`, `js/items.js`, `js/ui/hud.js`, `script.js`.
+
+**Live-verified in Chrome:** the first indulge from a 5-point balance landed exactly at 0 (5−5=0,
+which doesn't distinguish clamping from non-clamping by itself) — a second indulge from that 0
+balance produced "−5 · complete 1 task to break even" in red, confirming the non-clamping path is
+actually live. Reload persisted the negative balance and the red nudge correctly. No console errors
+from app code.
+
+**Docs updated same session:** `docs/ECONOMY.md` (negative-balance rule now marked built, not just
+reserved), `docs/NEGATIVE_HABITS_PLAN.md` (sub-session 3 marked done), `docs/ROADMAP.md` (checked).
+
+---
+
 ## 2026-07-19 — Session 30: [P1-DATA-005] sub-session 2b BUILT — indulge/avoid actions; rollover guard DESCOPED (Cowork session, Sonnet)
 
 **Built:** the two-button binary on the negative-habit lurker popup — "Successfully avoided" (routes

@@ -266,10 +266,10 @@ const Items = (() => {
      * mirrors completeItem's animation (no separate "got you" asset exists
      * yet — same visual treatment, different bookkeeping).
      *
-     * Interim: debits through the 0-floored Economy.subtractPoints.
-     * TODO(sub-session 3): switch to the non-clamping indulgence path once
-     * it lands (docs/NEGATIVE_HABITS_PLAN.md sub-session 3) — debt just
-     * can't cross 0 for a session or two.
+     * Debits via Economy.applyIndulgenceCost (sub-session 3, 2026-07-19) —
+     * NON-clamping, so the balance can go negative (debt), per
+     * docs/ECONOMY.md. Uncompletion refunds elsewhere still use the
+     * 0-floored Economy.subtractPoints — only indulgence goes negative.
      */
     function indulgeHabit(itemId, deps) {
         if (deps.isGameOver()) return;
@@ -293,7 +293,7 @@ const Items = (() => {
         habitDef.streak = result.streak;
         habitDef.occurrenceHistory = result.occurrenceHistory;
 
-        deps.setPlayerPoints(Economy.subtractPoints(deps.getPlayerPoints(), result.pointsLost));
+        deps.setPlayerPoints(Economy.applyIndulgenceCost(deps.getPlayerPoints(), result.pointsLost));
         deps.updatePlayerDisplays();
         deps.saveGame();
 

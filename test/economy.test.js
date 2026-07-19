@@ -42,6 +42,26 @@ describe('addPoints / subtractPoints', () => {
     });
 });
 
+describe('applyIndulgenceCost — non-clamping debit ([P1-DATA-005] sub-session 3)', () => {
+    test('subtracts normally when the balance covers it', () => {
+        expect(Economy.applyIndulgenceCost(15, 10)).toBe(5);
+    });
+
+    test('goes negative when the balance does not cover it (debt, by design)', () => {
+        expect(Economy.applyIndulgenceCost(5, 10)).toBe(-5);
+        expect(Economy.applyIndulgenceCost(0, 20)).toBe(-20);
+    });
+
+    test('stacks further into debt from an already-negative balance', () => {
+        expect(Economy.applyIndulgenceCost(-5, 10)).toBe(-15);
+    });
+
+    test('is NOT floored, unlike subtractPoints, given the same inputs', () => {
+        const current = 5, amount = 10;
+        expect(Economy.applyIndulgenceCost(current, amount)).not.toBe(Economy.subtractPoints(current, amount));
+    });
+});
+
 describe('shopPrice — exponential pricing (docs/ECONOMY.md)', () => {
     test('first purchase (0 owned) costs the base price', () => {
         expect(Economy.shopPrice(25, 0)).toBe(25);

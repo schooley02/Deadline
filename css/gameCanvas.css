@@ -51,6 +51,21 @@
     margin-right: var(--space-1);
 }
 
+/* Negative points balance (debt, [P1-DATA-005] sub-session 3, 2026-07-19) —
+   red text + an agency-framed nudge, not a punitive/alarming treatment
+   (border stays the same as every other stat-item; only the numbers read
+   differently). */
+.stat-item.points-negative #playerPointsDisplay {
+    color: var(--color-error);
+    font-weight: 700;
+}
+
+.points-nudge {
+    color: var(--color-error);
+    font-size: var(--text-caption);
+    font-weight: 400;
+}
+
 .attack-button {
     width: 56px;
     height: 56px;

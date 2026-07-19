@@ -13,6 +13,42 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 31: [P1-DATA-005] sub-session 3 BUILT — non-clamping debt + red HUD nudge (Cowork session, Sonnet)
+
+**Did:** Built the negative-balance path the ECONOMY.md docs had already promised but nothing
+implemented yet. `js/economy.js` gained `applyIndulgenceCost(current, amount)` — non-clamping,
+deliberately separate from the 0-floored `subtractPoints` (refunds never go negative; only
+indulgence does). `js/items.js`'s `indulgeHabit` (from session 30) now debits through it. `js/ui/hud.js`
+gained a pure `tasksToBreakEven(points, pointsPerTask)` helper + DOM wiring: a negative balance
+renders red with "· complete N tasks to break even" (N rounds up). `index.html` + `css/gameCanvas.css`
+got the new markup/styling; `script.js` threads `pointsPerTask` and the two new DOM refs through
+`updatePlayerDisplays()`.
+
+**State:** ✅ **22 suites, 455/455** (+15 new: `economy.test.js` applyIndulgenceCost cases, new
+`test/hud.test.js`, an `items-indulge.test.js` negative-crossing case, a
+`persistence-migration.test.js` negative-round-trip case). `node --check` clean on all touched files.
+**Live-verified in Chrome:** indulging from a 0 balance produced "−5 · complete 1 task to break even"
+in red; reload persisted the negative balance and styling correctly; no console errors from app code.
+
+**Docs updated same session:** `docs/ECONOMY.md` (negative-balance rule now built, not reserved),
+`docs/NEGATIVE_HABITS_PLAN.md` (sub-session 3 done), `docs/ROADMAP.md` (checked), `docs/DECISIONS.md`
+(session 31 entry).
+
+**Next:** either sub-session 4 (daily check-in prompt) — but that's blocked on the day-advance
+mechanism flagged in session 30, so it isn't truly actionable yet — or sub-session 5 (Cheat Day
+token), which needs sub-sessions 2+3 (both now done) but not day-advance. Alternatively: finally
+tackle the day-advance mechanism itself (Opus-plan → Sonnet-execute; recon is already written up in
+session 30's DECISIONS.md entry). Jeremy's call on which of these three next.
+
+**Watch out:**
+- The same-day lurker-respawn-after-indulge bug (session 30, ROADMAP.md "Known bugs") is still
+  unfixed and was reproduced again this session incidentally — not a new issue, just confirming it's
+  still there.
+- Dev save now has more completed/debt test artifacts (`DebtTest-Snacking`, negative balance active).
+  Recommend Reset before real play — now standing at quadruple-emphasis across recent sessions.
+
+---
+
 ## 2026-07-19 — Session 30: [P1-DATA-005] sub-session 2b BUILT — indulge/avoid actions; rollover guard descoped (Cowork session, Sonnet)
 
 **Did:** Built the indulge/avoid two-button binary on the negative-habit lurker popup, per session
