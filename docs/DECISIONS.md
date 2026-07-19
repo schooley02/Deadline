@@ -4,6 +4,65 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 45: HEROES_PLAN sub-session 5 BUILT — interaction FX + ranking, [P1-UI-006] CLOSED (Cowork session, Sonnet)
+
+**Decision — ranking wired into BOTH routine-list surfaces, not just the Manage modal.** The plan
+text only mentioned "Routines view ranks by level then star rate," and the sub-session-4 precedent
+only ever touched the Manage-modal list. Session's call: `HeroesView.rankRoutines` is also wired into
+`managementWindows.js`'s `populateRoutinesWindow` (the compact Routines-window card list) — ROUTINES.md's
+existing "Routine A/B Testing" line already promised this ranking behavior at the list level, not just
+inside a modal, so leaving the compact list in raw creation order would have left that promise half
+kept. Both call sites use the same pure `rankRoutines` (level desc → completion rate desc, null/unrated
+treated as -1 → name asc) and both render a sorted COPY — `definedRoutines`'s array order (and its
+persistence order) is untouched by either.
+
+**Decision — FX state is ephemeral timestamps replayed via negative `animation-delay`, not a
+class-toggle-and-forget.** `renderHeroesAtBase()` fully rebuilds every chip each 50ms tick (sub-session
+3's design). A naive `classList.add('flinch')` on the damage hook would get wiped and restarted every
+single tick for as long as the class was "on," never actually completing a natural-looking animation.
+Instead `Items.damageRoutineForItem`/`awardRoutineXpForItem`/`awardRoutineXpForHabitDef` stamp a
+wall-clock timestamp (via new optional `deps.onRoutineDamaged`/`onRoutineCelebrate` hooks, same
+"omitted → no-op" tolerance as every other optional items.js collaborator) into a new ephemeral,
+non-persisted `heroFxMemory` map in script.js (sibling to `heroStarMemory`, same reset-on-new-game
+treatment — no schema bump). `HeroesView.deriveFx` reads elapsed-time-since-stamp each render and the
+DOM builder sets a **negative** `animation-delay` equal to that elapsed time, so the rebuilt chip
+resumes the CSS animation mid-flight instead of restarting it — visually continuous across rebuilds,
+and naturally expires once elapsed passes `CONFIG.HERO_FLINCH_MS`/`HERO_CELEBRATE_MS`. A same-instant
+tie favors flinch (damage feedback should never be silently masked by a celebrate).
+
+**Finding — apparent "damage isn't firing" was expected symmetric regen, not a bug.** Mid-verification,
+after several real minutes of wall-clock time elapsed during the session (a tool-call pause), a
+routine's health and the base's health both stayed unchanged despite `item.lastDamageTickTime`
+visibly advancing by a full `DAMAGE_INTERVAL_MS` — looked exactly like the damage hook silently
+failing. It wasn't: `CONFIG.BASE_REGEN_INTERVAL_MS` equals `CONFIG.DAMAGE_INTERVAL_MS` (5 min) and
+`BASE_REGEN_HP` equals `OVERDUE_DAMAGE` (1), deliberately symmetric per [P2-GAME-012]'s own config
+comment — over an idle span that's a whole number of 5-minute intervals, a damage tick and a regen
+tick net to zero BASE health change. (Routine health has no regen at all — only base health nets to
+zero; a routine's own health genuinely dropped once verified in isolation.) Confirmed the hook fires
+correctly by using a runtime-only `CONFIG.DAMAGE_INTERVAL_MS` override (not persisted, discarded on
+reload) to accelerate past the real interval — `hero-chip--fx-flinch` fired with correct
+duration/delay and both healths dropped by exactly 1 per tick, matching the unaccelerated math.
+Flagging for the next session that touches damage/regen/base-health: a short live-verify window that
+happens to span whole 5-minute multiples will show no NET base-health change and that is correct,
+not evidence the wiring broke.
+
+**Also decided (mechanical, not a design fork):** the Manage modal's completion-% label
+(`buildCompletionRateLabel`) is a pure, separately-exported string builder off the existing
+`buildChipViewModel`'s `rate`/`rateSamples` fields (newly exposed on the view model this session) —
+same "one source of truth, thin presentation wrapper" discipline as sub-session 4's hero-stats block.
+
+Tests: 35 suites, 744/744 (+27: fx-hook gating — fires/doesn't-fire branches — added to
+`test/items-routine-damage.test.js` and `test/items-routine-xp.test.js`; `deriveFx` (8 cases) and
+`rankRoutines` (7 cases) plus the view model's newly-exposed raw `rate` field in
+`test/heroes-view.test.js`; `buildCompletionRateLabel` plus `buildHeroStatsHtml`'s new label in
+`test/routine-views-slots.test.js`). `node --check` clean on every touched file. Live-verified
+end-to-end in Chrome against a real running server (localhost:8000) — see HEROES_PLAN.md sub-session 5
+for the full live-verify writeup, including the regen finding above. [P1-UI-006] (hero/routine visual
+system) is now fully CLOSED — sub-session 5 was scoped optional/cut-if-play-data-said-otherwise and
+shipped instead, since it was small and the plan was fully specified.
+
+---
+
 ## 2026-07-19 — Session 44: HEROES_PLAN sub-session 4 BUILT — hero management UI + banked slot points (Cowork session, Sonnet)
 
 **Decision — available slot points DERIVED from level, not stored (deviates from session 43's

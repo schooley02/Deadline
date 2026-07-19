@@ -133,4 +133,52 @@ describe('Items.damageRoutineForItem', () => {
         expect(() => Items.damageRoutineForItem(item, 10, deps)).not.toThrow();
         expect(routine.koState).not.toBeNull();
     });
+
+    // Flinch FX hook ([P1-UI-006] sub-session 5, 2026-07-19).
+    test('fires optional deps.onRoutineDamaged on a real damage tick', () => {
+        const routine = activeRoutine({ taskDefinitionIds: ['td1'] });
+        const item = routineTaskItem();
+        const flinched = [];
+        const deps = makeDeps({ definedRoutines: [routine], onRoutineDamaged: (r) => flinched.push(r.id) });
+
+        Items.damageRoutineForItem(item, 10, deps);
+
+        expect(flinched).toEqual(['r1']);
+    });
+
+    test('fires onRoutineDamaged on the damage tick that KOs', () => {
+        const routine = activeRoutine({ taskDefinitionIds: ['td1'], health: 5 });
+        const item = routineTaskItem();
+        const flinched = [];
+        const deps = makeDeps({ definedRoutines: [routine], onRoutineDamaged: (r) => flinched.push(r.id) });
+
+        Items.damageRoutineForItem(item, 10, deps);
+
+        expect(routine.koState).not.toBeNull();
+        expect(flinched).toEqual(['r1']); // the KO'ing hit still flinches
+    });
+
+    test('does NOT fire onRoutineDamaged when the KO guard skips damage', () => {
+        const routine = activeRoutine({
+            taskDefinitionIds: ['td1'], health: 0, isActive: false,
+            koState: { koAt: 12345 },
+        });
+        const item = routineTaskItem();
+        const flinched = [];
+        const deps = makeDeps({ definedRoutines: [routine], onRoutineDamaged: (r) => flinched.push(r.id) });
+
+        Items.damageRoutineForItem(item, 10, deps);
+
+        expect(flinched).toEqual([]);
+    });
+
+    test('does NOT fire onRoutineDamaged for a standalone item (no owning routine)', () => {
+        const item = routineTaskItem({ definitionId: null });
+        const flinched = [];
+        const deps = makeDeps({ onRoutineDamaged: (r) => flinched.push(r.id) });
+
+        Items.damageRoutineForItem(item, 10, deps);
+
+        expect(flinched).toEqual([]);
+    });
 });

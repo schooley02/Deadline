@@ -194,7 +194,17 @@ const ManagementWindows = (() => {
             return;
         }
 
-        deps.definedRoutines.forEach(routine => {
+        // Ranked display order ([P1-UI-006] sub-session 5, 2026-07-19;
+        // ROUTINES.md A/B-testing ranking): level desc, then completion rate
+        // desc. rankRoutines returns a copy — the underlying array (and its
+        // persistence order) is untouched. definedHabits/runStartedAtMs are
+        // this function's existing optional deps; omitted, ranking degrades
+        // to level-then-name (rate treated as unrated), same graceful-degrade
+        // precedent as buildLevelStarsLine.
+        const rankedRoutines = HeroesView.rankRoutines(
+            deps.definedRoutines, deps.definedHabits, CONFIG, deps.runStartedAtMs);
+
+        rankedRoutines.forEach(routine => {
             const li = document.createElement('li');
             // Sub-session 3 ("Frozen routine slots" UI, 2026-07-19): a frozen
             // routine is visually distinct from a merely-inactive one — grey

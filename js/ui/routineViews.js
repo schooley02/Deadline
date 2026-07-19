@@ -230,7 +230,12 @@ const RoutineViews = (() => {
 
         deps.definedRoutinesListUL.innerHTML = '';
 
-        const definedRoutines = deps.definedRoutines();
+        // Ranked display order ([P1-UI-006] sub-session 5, 2026-07-19;
+        // ROUTINES.md A/B-testing ranking): level desc, then completion rate
+        // desc. rankRoutines returns a copy — the underlying definedRoutines
+        // array (and its persistence order) is untouched.
+        const definedRoutines = HeroesView.rankRoutines(
+            deps.definedRoutines(), deps.definedHabits(), CONFIG, deps.runStartedAtMs);
 
         if (definedRoutines.length === 0) {
             deps.definedRoutinesListUL.innerHTML = '<li>No routines created.</li>';
@@ -521,6 +526,17 @@ const RoutineViews = (() => {
     // availableSlotPoints for the slot line (js/heroes.js sub-session 4
     // core). `runStartedAtMs` may be omitted by older callers/tests — treated
     // as 0 (matches HeroesView.buildChipViewModel's own default handling).
+    // Real-time completion % next to the star row ([P1-UI-006] sub-session 5,
+    // 2026-07-19). Pure HTML-string builder off the chip view model —
+    // vm.rate is null (UNRATED, not 0%) until a member habit has at least one
+    // recorded occurrence inside the rating window.
+    function buildCompletionRateLabel(vm) {
+        const text = vm.rate === null || vm.rate === undefined
+            ? 'unrated'
+            : `${Math.round(vm.rate * 100)}% of ${vm.rateSamples}`;
+        return ` <span style="font-size: 11px; color: var(--color-neutral);">(${text})</span>`;
+    }
+
     function buildHeroStatsHtml(routine, definedHabits, runStartedAtMs) {
         const vm = HeroesView.buildChipViewModel(routine, definedHabits, CONFIG, runStartedAtMs);
         const xpLabel = vm.xpForNext === null
@@ -540,7 +556,7 @@ const RoutineViews = (() => {
             <div style="margin-bottom: 20px; padding: 12px; background: var(--color-bg-light); border-radius: 8px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <strong>Lv${vm.level} Hero</strong>
-                    <span title="Completion rate over recorded habit occurrences">${HeroesView.starsHtml(vm.stars)}</span>
+                    <span title="Completion rate over recorded habit occurrences">${HeroesView.starsHtml(vm.stars)}${buildCompletionRateLabel(vm)}</span>
                 </div>
                 <div style="font-size: 12px; color: var(--color-neutral); margin-bottom: 6px;">${xpLabel}</div>
                 <div style="height: 8px; border-radius: 4px; background: var(--color-bg); overflow: hidden; margin-bottom: 10px;">
@@ -1236,6 +1252,7 @@ const RoutineViews = (() => {
         renderDefinedRoutines,
         buildFrozenBannerHtml,
         buildStatusRowHtml,
+        buildCompletionRateLabel,
         buildHeroStatsHtml,
         ensureRoutineSlotAvailable,
         showRoutineManagement,

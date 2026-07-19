@@ -155,6 +155,16 @@ const CONFIG = {
     // Base Zone is small (120px wide) — cap simultaneous chips and show a
     // "+N" overflow chip past this count rather than crowding/overflowing.
     HERO_CHIP_MAX_DISPLAY: 6,
+    // Interaction FX ([P1-UI-006] sub-session 5, 2026-07-19): how long a
+    // chip's flinch (routine damaged) / celebrate (member completed)
+    // animation plays, in ms. Display-only timing, not gameplay balance —
+    // same category as the chip-display constants above. renderHeroesAtBase
+    // rebuilds every chip each 50ms game tick, so HeroesView replays the
+    // animation with a negative animation-delay equal to the elapsed time;
+    // these windows are both the CSS duration and the "still animating"
+    // cutoff that keeps the effect visually continuous across rebuilds.
+    HERO_FLINCH_MS: 500,
+    HERO_CELEBRATE_MS: 900,
 
     // --- Shop catalog ([P1-UI-008], SHOP_PLAN.md session 1, 2026-07-18) ---
     // Base costs + effects transcribed from docs/ECONOMY.md (canonical). Live

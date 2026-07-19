@@ -174,6 +174,10 @@ const Items = (() => {
         routine.xp = result.xp;
         routine.level = result.level;
         item.routineXpAwarded = amount;
+        // Celebrate FX ([P1-UI-006] sub-session 5): optional, DOM-free —
+        // script.js stamps an ephemeral timestamp HeroesView reads at render
+        // time. Same optional-collaborator pattern as onRoutineKo below.
+        if (typeof deps.onRoutineCelebrate === 'function') deps.onRoutineCelebrate(routine);
     }
 
     // Reverse a prior award off the stamp — unconditional (no suspension
@@ -199,6 +203,8 @@ const Items = (() => {
         const result = Heroes.applyXpDelta(routine.xp || 0, Heroes.xpAmountFor('habit', CONFIG), CONFIG.ROUTINE_LEVEL_XP_THRESHOLDS);
         routine.xp = result.xp;
         routine.level = result.level;
+        // Celebrate FX (sub-session 5) — see awardRoutineXpForItem.
+        if (typeof deps.onRoutineCelebrate === 'function') deps.onRoutineCelebrate(routine);
     }
 
     // --- Routine health damage + KO ([P1-UI-006] sub-session 2, 2026-07-19;
@@ -233,6 +239,11 @@ const Items = (() => {
 
         const currentHealth = (typeof routine.health === 'number') ? routine.health : CONFIG.ROUTINE_MAX_HEALTH;
         routine.health = Heroes.applyRoutineDamage(currentHealth, amount);
+
+        // Flinch FX ([P1-UI-006] sub-session 5): optional, DOM-free — fires
+        // on every real damage tick, including the one that KOs. Same
+        // optional-collaborator pattern as onRoutineKo below.
+        if (typeof deps.onRoutineDamaged === 'function') deps.onRoutineDamaged(routine);
 
         if (Heroes.shouldKo(routine.health)) {
             routine.koState = { koAt: Date.now() };

@@ -214,6 +214,52 @@ describe('completeItem awards routine XP to the owning routine', () => {
 
         expect(routine.level).toBe(2);
     });
+
+    // Celebrate FX hook ([P1-UI-006] sub-session 5, 2026-07-19): fires
+    // exactly when routine XP is awarded — same gating, by construction.
+    test('fires optional deps.onRoutineCelebrate when routine XP is awarded', () => {
+        const routine = activeRoutine({ taskDefinitionIds: ['td1'] });
+        const item = routineTaskItem();
+        const celebrated = [];
+        const deps = makeDeps({
+            activeItems: [item], definedRoutines: [routine],
+            onRoutineCelebrate: (r) => celebrated.push(r.id),
+        });
+
+        Items.completeItem(1, deps);
+
+        expect(celebrated).toEqual(['r1']);
+    });
+
+    test('does NOT fire onRoutineCelebrate for a standalone item', () => {
+        const item = routineTaskItem({ definitionId: undefined });
+        const celebrated = [];
+        const deps = makeDeps({
+            activeItems: [item],
+            onRoutineCelebrate: (r) => celebrated.push(r.id),
+        });
+
+        Items.completeItem(1, deps);
+
+        expect(celebrated).toEqual([]);
+    });
+
+    test('does NOT fire onRoutineCelebrate for a suspended (frozen) routine', () => {
+        const routine = activeRoutine({
+            taskDefinitionIds: ['td1'],
+            frozenState: { frozenBy: 'someHabit', frozenAt: new Date() },
+        });
+        const item = routineTaskItem();
+        const celebrated = [];
+        const deps = makeDeps({
+            activeItems: [item], definedRoutines: [routine],
+            onRoutineCelebrate: (r) => celebrated.push(r.id),
+        });
+
+        Items.completeItem(1, deps);
+
+        expect(celebrated).toEqual([]);
+    });
 });
 
 describe('uncompleteItem refunds routine XP off the stamp', () => {

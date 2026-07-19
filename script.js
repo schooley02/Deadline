@@ -76,6 +76,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // schema bump this session) per-routine star-rating memory for
     // HeroesView's star-threshold-crossed notice. See js/ui/heroes.js header.
     let heroStarMemory = {};
+    // [P1-UI-006] sub-session 5, 2026-07-19 — ephemeral (NOT persisted)
+    // per-routine FX timestamps: { [routineId]: { damagedAt, celebratedAt } }.
+    // Stamped by itemsDeps' onRoutineDamaged/onRoutineCelebrate, read by
+    // renderHeroesAtBase each tick to keep flinch/celebrate animations
+    // continuous across the 50ms full-rebuild renders. See js/ui/heroes.js.
+    let heroFxMemory = {};
 
 
     // --- Game Settings ---
@@ -101,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // without a full page reload, so this can't rely on module-load init
         // alone).
         heroStarMemory = {};
+        heroFxMemory = {};
         State.initGame(stateDeps());
     }
 
@@ -367,6 +374,15 @@ document.addEventListener('DOMContentLoaded', () => {
             clearActiveInstancesForRoutine,
             onRoutineKo: (routine) => {
                 FrozenNotice.showRoutineKoNotice(routine.name);
+            },
+            // Interaction FX ([P1-UI-006] sub-session 5, 2026-07-19): stamp
+            // ephemeral timestamps for HeroesView's flinch/celebrate
+            // animations — no DOM here, render reads them each tick.
+            onRoutineDamaged: (routine) => {
+                (heroFxMemory[routine.id] = heroFxMemory[routine.id] || {}).damagedAt = Date.now();
+            },
+            onRoutineCelebrate: (routine) => {
+                (heroFxMemory[routine.id] = heroFxMemory[routine.id] || {}).celebratedAt = Date.now();
             },
             isGameOver: () => gameIsOver,
             getPlayerXP: () => playerXP,
@@ -1099,6 +1115,8 @@ document.addEventListener('DOMContentLoaded', () => {
             onStarThresholdCrossed: (routine, stars) => {
                 FrozenNotice.showHeroStarUpNotice(routine.name, stars);
             },
+            // Sub-session 5: flinch/celebrate FX timestamps (see itemsDeps).
+            fxMemory: heroFxMemory,
         });
     }
 

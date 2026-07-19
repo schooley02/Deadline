@@ -219,5 +219,37 @@ routine slots + recovery" ticket (5 sub-sessions, 2 schema bumps) is now fully C
   still auto-resolve as avoided via the existing `settleStaleRecurringInstance`
   path (session 26's generous default) — this surface never sees those.
 
+## Hero Interaction FX + Ranking ([P1-UI-006] sub-session 5, BUILT 2026-07-19 — TICKET CLOSED)
+
+The hero chip flinches on routine damage and celebrates on a routine-owned completion — pure CSS
+animation classes toggled off the sub-session-2 damage hook (`Items.damageRoutineForItem`) and the
+sub-session-1 XP-award sites (`Items.awardRoutineXpForItem`/`awardRoutineXpForHabitDef`), no new
+persisted state. Each site optionally calls a new collaborator (`deps.onRoutineDamaged` /
+`deps.onRoutineCelebrate`, same "omitted → no-op" tolerance as every other optional hook in this
+codebase) that stamps a wall-clock timestamp into an ephemeral, NON-persisted script.js map
+(`heroFxMemory: { [routineId]: { damagedAt, celebratedAt } }`, reset alongside `heroStarMemory` on
+new game/reset). `renderHeroesAtBase()` full-rebuilds every chip each 50ms tick (see Hero Rendering
+above), so a naive class toggle would restart the animation every rebuild — instead
+`HeroesView.deriveFx` reads the timestamp each render and replays the animation via a **negative**
+`animation-delay` equal to the elapsed time, so it looks continuous across rebuilds and expires
+cleanly once past `CONFIG.HERO_FLINCH_MS` (500ms) / `CONFIG.HERO_CELEBRATE_MS` (900ms). A same-instant
+tie favors flinch — damage feedback should never be masked by a celebrate.
+
+Routine View ranking (this section's own line, previously aspirational) is now real:
+`HeroesView.rankRoutines` sorts by level desc, then live completion rate desc (unrated routines sort
+below a real 0%-rated one within the same level band — a record beats no record), then name asc for
+a deterministic order. Wired into both routine list surfaces — the compact Routines-window card list
+(`js/ui/managementWindows.js`'s `populateRoutinesWindow`) and the Manage-modal's routine list
+(`js/ui/routineViews.js`'s `renderDefinedRoutines`) — both now render routines in ranked order
+instead of raw array/creation order; the underlying `definedRoutines` array (and its persistence
+order) is never mutated, `rankRoutines` returns a sorted copy.
+
+The Manage modal's hero stats block (`buildHeroStatsHtml`) also gained a live completion-%
+label next to the star row — "67% of 3" once a member habit has recorded occurrences, "(unrated)"
+before that (never conflated with a real 0%).
+
+Ticket [P1-UI-006] (hero/routine visual system) is now fully CLOSED — all required scope plus this
+optional polish sub-session shipped.
+
 ## Routine A/B Testing
-Run one routine variant for 6 weeks, another for the next 6; compare streaks/performance. Routine View ranks routines by level (top performers first).
+Run one routine variant for 6 weeks, another for the next 6; compare streaks/performance. Routine View ranks routines by level (top performers first, then completion rate — [P1-UI-006] sub-session 5).

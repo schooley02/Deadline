@@ -223,4 +223,139 @@ describe('buildChipViewModel', () => {
         const vm = HeroesView.buildChipViewModel(routine, [], CONFIG, 0);
         expect(vm.state).toBe('ko');
     });
+
+    // Sub-session 5: the raw rate is exposed for the Manage modal's live
+    // completion-% label (null = unrated, distinct from 0%).
+    test('exposes the raw completion rate (null when unrated)', () => {
+        const unrated = HeroesView.buildChipViewModel(
+            { id: 'r5', name: 'New', level: 1, xp: 0, isActive: true, createdAt: 0 }, [], CONFIG, 0);
+        expect(unrated.rate).toBeNull();
+
+        const routine = { id: 'r6', name: 'Rated', level: 1, xp: 0, isActive: true, createdAt: 0, habitDefinitionIds: ['h1'] };
+        const habits = [{ id: 'h1', routineId: 'r6', category: 'health', occurrenceHistory: [
+            { date: '2026-07-10', success: true },
+            { date: '2026-07-11', success: false },
+        ] }];
+        const rated = HeroesView.buildChipViewModel(routine, habits, CONFIG, 0);
+        expect(rated.rate).toBeCloseTo(0.5);
+        expect(rated.rateSamples).toBe(2);
+    });
+});
+
+// --- Interaction FX ([P1-UI-006] sub-session 5, 2026-07-19) ---
+describe('deriveFx', () => {
+    const NOW = 1000000;
+
+    test('null for a routine with no fx entry', () => {
+        expect(HeroesView.deriveFx(undefined, NOW, CONFIG)).toBeNull();
+        expect(HeroesView.deriveFx({}, NOW, CONFIG)).toBeNull();
+    });
+
+    test('flinch inside its window, with elapsed/duration for the negative-delay replay', () => {
+        const fx = HeroesView.deriveFx({ damagedAt: NOW - 100 }, NOW, CONFIG);
+        expect(fx).toEqual({ effect: 'flinch', elapsedMs: 100, durationMs: CONFIG.HERO_FLINCH_MS });
+    });
+
+    test('null once the window has fully elapsed', () => {
+        expect(HeroesView.deriveFx({ damagedAt: NOW - CONFIG.HERO_FLINCH_MS }, NOW, CONFIG)).toBeNull();
+        expect(HeroesView.deriveFx({ celebratedAt: NOW - CONFIG.HERO_CELEBRATE_MS }, NOW, CONFIG)).toBeNull();
+    });
+
+    test('celebrate inside its window', () => {
+        const fx = HeroesView.deriveFx({ celebratedAt: NOW - 200 }, NOW, CONFIG);
+        expect(fx).toEqual({ effect: 'celebrate', elapsedMs: 200, durationMs: CONFIG.HERO_CELEBRATE_MS });
+    });
+
+    test('the more recent event wins when both windows are live', () => {
+        const fx = HeroesView.deriveFx({ damagedAt: NOW - 300, celebratedAt: NOW - 100 }, NOW, CONFIG);
+        expect(fx.effect).toBe('celebrate');
+
+        const fx2 = HeroesView.deriveFx({ damagedAt: NOW - 100, celebratedAt: NOW - 300 }, NOW, CONFIG);
+        expect(fx2.effect).toBe('flinch');
+    });
+
+    test('flinch wins a same-instant tie (damage feedback is never masked)', () => {
+        const fx = HeroesView.deriveFx({ damagedAt: NOW - 100, celebratedAt: NOW - 100 }, NOW, CONFIG);
+        expect(fx.effect).toBe('flinch');
+    });
+
+    test('an expired event does not shadow a live older one of the other kind', () => {
+        // celebrate is newer but already expired; the older flinch is still live.
+        const entry = { damagedAt: NOW - 400, celebratedAt: NOW - CONFIG.HERO_CELEBRATE_MS - 1 };
+        // only meaningful if flinch window > 400ms:
+        expect(CONFIG.HERO_FLINCH_MS).toBeGreaterThan(400);
+        expect(HeroesView.deriveFx(entry, NOW, CONFIG).effect).toBe('flinch');
+    });
+
+    test('a future timestamp (clock skew) is ignored, not animated', () => {
+        expect(HeroesView.deriveFx({ damagedAt: NOW + 50 }, NOW, CONFIG)).toBeNull();
+    });
+});
+
+// --- Ranked display order ([P1-UI-006] sub-session 5, 2026-07-19) ---
+describe('rankRoutines', () => {
+    function ratedHabit(routineId, id, successes, failures) {
+        const occurrenceHistory = [];
+        for (let i = 0; i < successes; i++) occurrenceHistory.push({ date: '2026-07-10', success: true });
+        for (let i = 0; i < failures; i++) occurrenceHistory.push({ date: '2026-07-10', success: false });
+        return { id, routineId, category: 'health', occurrenceHistory };
+    }
+
+    test('sorts by level desc first', () => {
+        const routines = [
+            { id: 'a', name: 'A', level: 1, createdAt: 0 },
+            { id: 'b', name: 'B', level: 3, createdAt: 0 },
+            { id: 'c', name: 'C', level: 2, createdAt: 0 },
+        ];
+        const ranked = HeroesView.rankRoutines(routines, [], CONFIG, 0);
+        expect(ranked.map(r => r.id)).toEqual(['b', 'c', 'a']);
+    });
+
+    test('breaks level ties by completion rate desc', () => {
+        const routines = [
+            { id: 'low', name: 'Low', level: 2, createdAt: 0, habitDefinitionIds: ['h1'] },
+            { id: 'high', name: 'High', level: 2, createdAt: 0, habitDefinitionIds: ['h2'] },
+        ];
+        const habits = [ratedHabit('low', 'h1', 1, 3), ratedHabit('high', 'h2', 3, 1)];
+        const ranked = HeroesView.rankRoutines(routines, habits, CONFIG, 0);
+        expect(ranked.map(r => r.id)).toEqual(['high', 'low']);
+    });
+
+    test('within a level band, a 0%-rated routine outranks an unrated one (a record beats no record)', () => {
+        const routines = [
+            { id: 'unrated', name: 'Unrated', level: 1, createdAt: 0 },
+            { id: 'zero', name: 'Zero', level: 1, createdAt: 0, habitDefinitionIds: ['h1'] },
+        ];
+        const habits = [ratedHabit('zero', 'h1', 0, 2)];
+        const ranked = HeroesView.rankRoutines(routines, habits, CONFIG, 0);
+        expect(ranked.map(r => r.id)).toEqual(['zero', 'unrated']);
+    });
+
+    test('full ties fall back to name asc for a deterministic order', () => {
+        const routines = [
+            { id: 'z', name: 'Zeta', level: 1, createdAt: 0 },
+            { id: 'a', name: 'Alpha', level: 1, createdAt: 0 },
+        ];
+        const ranked = HeroesView.rankRoutines(routines, [], CONFIG, 0);
+        expect(ranked.map(r => r.id)).toEqual(['a', 'z']);
+    });
+
+    test('returns a copy — the input array order is untouched', () => {
+        const routines = [
+            { id: 'a', name: 'A', level: 1, createdAt: 0 },
+            { id: 'b', name: 'B', level: 3, createdAt: 0 },
+        ];
+        const ranked = HeroesView.rankRoutines(routines, [], CONFIG, 0);
+        expect(ranked).not.toBe(routines);
+        expect(routines.map(r => r.id)).toEqual(['a', 'b']);
+    });
+
+    test('missing level defaults to 1 (pre-migration shape)', () => {
+        const routines = [
+            { id: 'nolevel', name: 'NoLevel', createdAt: 0 },
+            { id: 'lv2', name: 'Lv2', level: 2, createdAt: 0 },
+        ];
+        const ranked = HeroesView.rankRoutines(routines, [], CONFIG, 0);
+        expect(ranked.map(r => r.id)).toEqual(['lv2', 'nolevel']);
+    });
 });

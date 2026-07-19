@@ -228,11 +228,46 @@ matching the compact card. Zero real app console errors (only the recurring docu
 Chrome-extension messaging noise). Reset the dev save clean afterward (`Persistence.clear()`,
 same neutering protocol to dodge the live-tab autosave race documented in session 42's Watch-out).
 
-### Sub-session 5 — polish: interaction visuals + ranking (Sonnet) — OPTIONAL, cut if play data says otherwise
+### Sub-session 5 — polish: interaction visuals + ranking (Sonnet) — OPTIONAL, cut if play data says otherwise — ✅ BUILT 2026-07-19, session 45 — TICKET CLOSED
 **Goal:** the ticket's remaining criteria. Hero reacts when its routine takes damage (flinch/flash)
 and on member completion (brief celebrate) — CSS animation classes toggled from the sub-session-2
 damage hook and completion sites, no new state. Routines view ranks by level then star rate
 (ROUTINES.md's A/B-testing ranking). Real-time completion % on the Manage modal.
+
+**BUILT as specified.** `Items.damageRoutineForItem`/`awardRoutineXpForItem`/
+`awardRoutineXpForHabitDef` gained optional `deps.onRoutineDamaged`/`deps.onRoutineCelebrate` hooks
+(omitted → no-op, same tolerance as every other optional collaborator in items.js) that stamp a
+wall-clock timestamp into a new ephemeral, non-persisted script.js map (`heroFxMemory`, sibling to
+`heroStarMemory`, same reset-on-new-game treatment). `js/ui/heroes.js` gained a pure `deriveFx`
+(picks the more recent still-live event, flinch wins a same-instant tie, returns elapsed/duration for
+a **negative** `animation-delay` replay) so the 50ms full-rebuild render (see sub-session 3) doesn't
+restart the CSS animation every tick, and a pure `rankRoutines` (level desc → completion rate desc,
+null/unrated treated as -1 → name asc), wired into BOTH routine-list surfaces
+(`managementWindows.js`'s `populateRoutinesWindow`, `routineViews.js`'s `renderDefinedRoutines` — the
+sub-session-4 plan text only anticipated the Manage-modal list, session's call to also fix the
+compact Routines-window card list since ROUTINES.md's A/B-testing line already promised ranking
+there too). `buildHeroStatsHtml` gained a completion-% label (`buildCompletionRateLabel`) next to the
+star row. New CSS keyframes (`hero-chip-flinch`/`hero-chip-celebrate`, `css/heroes.css`) with
+duration/delay set inline by `buildChipElement` from the new `CONFIG.HERO_FLINCH_MS`(500)/
+`HERO_CELEBRATE_MS`(900) display-only constants. 35 suites, 744/744 (+27: fx-hook gating in
+`items-routine-damage.test.js`/`items-routine-xp.test.js`, `deriveFx`/`rankRoutines`/raw-`rate`
+exposure in `heroes-view.test.js`, `buildCompletionRateLabel` in `routine-views-slots.test.js`).
+`node --check` clean on every touched file. **Live-verified in Chrome against a real running server**
+(localhost:8000): created two routines (Alpha/Beta) through the real UI, completed a real habit and
+saw the chip's class list gain `hero-chip--fx-celebrate` with the correct inline duration/delay
+during the 900ms window and clear after; confirmed the Manage modal shows "(unrated)" before any
+recorded occurrence and "(100% of 1)" after; confirmed both `populateRoutinesWindow` and
+`renderDefinedRoutines` call `rankRoutines` at runtime (not just by grep). Flinch required a runtime-
+only `CONFIG.DAMAGE_INTERVAL_MS` override (not persisted, discarded on reload) to accelerate past the
+real 5-minute damage-tick interval for verification — with it, `hero-chip--fx-flinch` fired with the
+correct duration/delay and base/routine health both dropped by 1 in the same tick, exactly matching
+the real (unaccelerated) interval's math. One false alarm during testing, logged for the next session
+that touches damage/regen: at the DEFAULT 5-minute interval, `OVERDUE_DAMAGE` and `BASE_REGEN_HP` are
+deliberately symmetric (1 HP each, same `DAMAGE_INTERVAL_MS`/`BASE_REGEN_INTERVAL_MS`) — over several
+real minutes of idle wall-clock time (a tool-call pause mid-session), a damage tick and a regen tick
+net to zero base-health change, which briefly looked like damage wasn't firing at all. It was — this
+is expected, by-design symmetric behavior, not a bug; see DECISIONS.md. Reset the dev save clean
+afterward (`resetTestButton`, confirmed zero routines/items/baseHealth back to 100).
 
 ---
 

@@ -114,6 +114,41 @@ describe('buildHeroStatsHtml', () => {
         const html = RoutineViews.buildHeroStatsHtml(r, [], 0);
         expect(html).not.toContain('slot point');
     });
+
+    // Sub-session 5: real-time completion % beside the star row.
+    test('shows "(unrated)" beside the stars when no occurrences are recorded', () => {
+        const r = routine();
+        const html = RoutineViews.buildHeroStatsHtml(r, [], 0);
+        expect(html).toContain('(unrated)');
+    });
+
+    test('shows the live completion % and sample count once occurrences exist', () => {
+        const r = routine({ habitDefinitionIds: ['h1'], createdAt: 0 });
+        const habits = [{ id: 'h1', routineId: 'r1', category: 'health', occurrenceHistory: [
+            { date: '2026-07-10', success: true },
+            { date: '2026-07-11', success: true },
+            { date: '2026-07-12', success: false },
+        ] }];
+        const html = RoutineViews.buildHeroStatsHtml(r, habits, 0);
+        expect(html).toContain('(67% of 3)');
+    });
+});
+
+// Sub-session 5: the label builder itself (pure string helper).
+describe('buildCompletionRateLabel', () => {
+    test('null rate renders "unrated"', () => {
+        expect(RoutineViews.buildCompletionRateLabel({ rate: null, rateSamples: 0 })).toContain('unrated');
+    });
+
+    test('a real rate renders a rounded percent with the sample count', () => {
+        expect(RoutineViews.buildCompletionRateLabel({ rate: 0.856, rateSamples: 14 })).toContain('86% of 14');
+    });
+
+    test('0% is rendered as a rate, not mistaken for unrated', () => {
+        const label = RoutineViews.buildCompletionRateLabel({ rate: 0, rateSamples: 2 });
+        expect(label).toContain('0% of 2');
+        expect(label).not.toContain('unrated');
+    });
 });
 
 describe('ensureRoutineSlotAvailable', () => {

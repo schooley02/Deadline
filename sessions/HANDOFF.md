@@ -13,6 +13,62 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 45: HEROES_PLAN sub-session 5 BUILT — flinch/celebrate FX + ranking, [P1-UI-006] CLOSED (Cowork session, Sonnet throughout)
+
+**Did:** [P1-UI-006] sub-session 5 (optional, cut-if-play-data-said-otherwise — shipped instead,
+small and fully specified). `Items.damageRoutineForItem`/`awardRoutineXpForItem`/
+`awardRoutineXpForHabitDef` gained optional `deps.onRoutineDamaged`/`onRoutineCelebrate` hooks
+stamping wall-clock timestamps into a new ephemeral, non-persisted script.js map (`heroFxMemory`,
+no schema bump). `js/ui/heroes.js` gained `deriveFx` (replays the CSS animation via a **negative**
+`animation-delay` so the sub-session-3 50ms full-rebuild render doesn't restart it every tick;
+flinch wins a same-instant tie) and `rankRoutines` (level desc → completion rate desc → name asc),
+wired into BOTH routine-list surfaces (`managementWindows.js`'s compact card list AND
+`routineViews.js`'s Manage-modal list — the plan text only anticipated the latter, session's call
+to also fix the former since ROUTINES.md's A/B-testing line already promised list-level ranking).
+`buildHeroStatsHtml` gained a live completion-% label (`buildCompletionRateLabel`) beside the star
+row. New `css/heroes.css` keyframes (`hero-chip-flinch`/`hero-chip-celebrate`) + new
+`CONFIG.HERO_FLINCH_MS`(500)/`HERO_CELEBRATE_MS`(900) display constants. Docs: ROUTINES.md (new
+"Hero Interaction FX + Ranking" section, ticket-closed note), HEROES_PLAN.md (sub-session 5 marked
+built), ROADMAP.md ([P1-UI-006] checked off, closed), DECISIONS.md (ranking-scope decision, FX-replay
+decision, a regen-symmetry false-alarm finding — see Watch out).
+
+**State:** ✅ **35 suites, 744/744** (+27 over session 44's 717: fx-hook gating in
+`items-routine-damage.test.js`/`items-routine-xp.test.js`, `deriveFx`/`rankRoutines`/exposed-`rate`
+in `heroes-view.test.js`, `buildCompletionRateLabel` in `routine-views-slots.test.js`). `node --check`
+clean on every touched file. **Live-verified in Chrome against a REAL running server**
+(localhost:8000, end-to-end through the actual app): created two real routines (Alpha/Beta) via the
+real UI, completed a real habit and confirmed `hero-chip--fx-celebrate` with correct inline
+duration/delay appeared during the 900ms window and cleared after; confirmed the Manage modal shows
+"(unrated)" pre-occurrence and "(100% of 1)" post; confirmed both ranking call sites are exercised at
+runtime, not just present in source. Flinch required a runtime-only `CONFIG.DAMAGE_INTERVAL_MS`
+override (not persisted, discarded on reload) to accelerate past the real 5-minute damage interval —
+with it, flinch fired correctly and both base/routine health dropped by 1 in the same tick, matching
+the unaccelerated math exactly. Dev save reset clean afterward (`resetTestButton`, confirmed empty).
+[P1-UI-006] is now fully CLOSED.
+
+**Next:** Milestone 3's remaining open items — [P1-DATA-004] sub-task hierarchy system (dependent due
+dates, shrinking parents) or run history. Neither is sequenced yet; start with an Opus planning
+session (or Fable if the scope has real design forks) rather than jumping straight to a build session.
+
+**Watch out:**
+- **Symmetric base regen can mask damage in a short live-verify window.**
+  `CONFIG.BASE_REGEN_INTERVAL_MS` == `CONFIG.DAMAGE_INTERVAL_MS` (5 min) and `BASE_REGEN_HP` ==
+  `OVERDUE_DAMAGE` (1), by design ([P2-GAME-012]). If your live-verify window happens to span a whole
+  number of 5-minute intervals, base health will show NO net change even though damage IS firing —
+  don't mistake this for a broken hook. (Routine health has no regen, so it's a cleaner signal, but a
+  routine's OWN health check can still confuse you if you're staring at base health instead.) To
+  verify quickly rather than waiting out real 5-minute intervals, a runtime-only
+  `CONFIG.DAMAGE_INTERVAL_MS = <small number>` override in the live console (never touches
+  config.js, discarded on reload) works cleanly since loop.js reads `CONFIG.DAMAGE_INTERVAL_MS` fresh
+  every tick.
+- Only one active-routine slot at player level 1 (`routineSlots`) — if you need two routines both
+  spawning for a live-verify, level the player first or deactivate/reactivate to swap which one is
+  live, same as this session did.
+- Full HANDOFF/DECISIONS history for the FX-replay design and the ranking-scope call is in
+  DECISIONS.md's 2026-07-19 Session 45 entry.
+
+---
+
 ## 2026-07-19 — Session 44: HEROES_PLAN sub-session 4 BUILT — hero management UI + banked slot points (Cowork session, Sonnet throughout)
 
 **Did:** [P1-UI-006] sub-session 4, the last unbuilt mechanic in the ticket (sub-session 5, polish,

@@ -123,6 +123,7 @@ const HeroesView = (() => {
             xpForNext: progress.xpForNext,
             xpPct: progress.pct,
             stars,
+            rate: rate.rate,
             rateSamples: rate.samples,
             health,
             healthPct,
@@ -157,6 +158,15 @@ const HeroesView = (() => {
         chip.dataset.routineId = vm.id;
         chip.title = `${vm.name} — Lv${vm.level} — ${STATE_LABEL[vm.state] || 'Active'}`;
 
+        // Interaction FX (sub-session 5): resume the animation mid-flight
+        // across the 50ms full rebuilds via negative animation-delay — see
+        // deriveFx.
+        if (vm.fx) {
+            chip.classList.add(`hero-chip--fx-${vm.fx.effect}`);
+            chip.style.animationDuration = `${vm.fx.durationMs}ms`;
+            chip.style.animationDelay = `-${vm.fx.elapsedMs}ms`;
+        }
+
         const statusIcon = STATE_ICON[vm.state]
             ? `<span class="hero-chip-status-icon">${STATE_ICON[vm.state]}</span>`
             : '';
@@ -172,6 +182,60 @@ const HeroesView = (() => {
             </div>
         `;
         return chip;
+    }
+
+    // --- Interaction FX ([P1-UI-006] sub-session 5, 2026-07-19) ---
+    // renderHeroesAtBase full-rebuilds every chip each 50ms tick, so a naive
+    // class toggle would restart its CSS animation every rebuild. Instead the
+    // fx memory (script.js's ephemeral heroFxMemory: { damagedAt,
+    // celebratedAt } per routine id) records WHEN the event happened, and the
+    // rebuilt chip replays the animation with a negative animation-delay
+    // equal to the elapsed time — visually continuous across rebuilds.
+    // Pure: picks the most recent event still inside its config window
+    // (flinch wins a tie — damage feedback shouldn't be masked by a
+    // same-instant celebrate). Returns null or { effect, elapsedMs,
+    // durationMs }.
+    function deriveFx(fxEntry, nowMs, config) {
+        if (!fxEntry) return null;
+
+        const candidates = [
+            { effect: 'flinch', at: fxEntry.damagedAt, durationMs: config.HERO_FLINCH_MS || 0 },
+            { effect: 'celebrate', at: fxEntry.celebratedAt, durationMs: config.HERO_CELEBRATE_MS || 0 },
+        ];
+
+        let best = null;
+        candidates.forEach(c => {
+            if (typeof c.at !== 'number') return;
+            const elapsedMs = nowMs - c.at;
+            if (elapsedMs < 0 || elapsedMs >= c.durationMs) return;
+            if (!best || c.at > best.at) best = { effect: c.effect, at: c.at, elapsedMs, durationMs: c.durationMs };
+        });
+
+        return best ? { effect: best.effect, elapsedMs: best.elapsedMs, durationMs: best.durationMs } : null;
+    }
+
+    // Display ranking for routine lists (ROUTINES.md "Routine View ranks
+    // routines by level (top performers first)"): level desc, then
+    // completion rate desc (null/unrated is treated as -1, so within a level
+    // band even a 0%-rated routine with real recorded failures sorts above a
+    // brand-new unrated one — a record beats no record), then name asc for a
+    // deterministic total order. Returns a sorted COPY — never mutates the
+    // caller's array (definedRoutines is live state).
+    function rankRoutines(routines, definedHabits, config, runStartedAtMs) {
+        return (routines || []).slice().sort((a, b) => {
+            const levelDiff = (b.level || 1) - (a.level || 1);
+            if (levelDiff !== 0) return levelDiff;
+
+            const rateOf = (r) => {
+                const windowStartMs = Math.max(r.createdAt || 0, runStartedAtMs || 0);
+                const rate = Heroes.completionRate(r, definedHabits, windowStartMs).rate;
+                return rate === null ? -1 : rate;
+            };
+            const rateDiff = rateOf(b) - rateOf(a);
+            if (rateDiff !== 0) return rateDiff;
+
+            return (a.name || '').localeCompare(b.name || '');
+        });
     }
 
     // Mutates `memory` in place (upsert-by-id, same discipline as
@@ -213,6 +277,11 @@ const HeroesView = (() => {
 
         visible.forEach(routine => {
             const vm = buildChipViewModel(routine, deps.definedHabits, config, deps.runStartedAtMs);
+            // Interaction FX (sub-session 5, optional dep — omit fxMemory to
+            // skip): stamped timestamps -> replayed CSS animation.
+            if (deps.fxMemory) {
+                vm.fx = deriveFx(deps.fxMemory[routine.id], deps.nowMs || Date.now(), config);
+            }
             containerEl.appendChild(buildChipElement(vm));
 
             if (deps.starMemory && deps.onStarThresholdCrossed) {
@@ -236,6 +305,8 @@ const HeroesView = (() => {
         starsHtml,
         healthColorVar,
         trackStarCrossing,
+        deriveFx,
+        rankRoutines,
         // DOM
         buildChipElement,
         buildOverflowChip,
