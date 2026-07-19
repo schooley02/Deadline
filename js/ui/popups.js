@@ -99,7 +99,44 @@ const Popups = (() => {
         `;
     }
 
-    // deps: { completeItem, pushbackCatalog?, getPlayerPoints?, onPushback? }
+    // A negative-habit lurker (session 29) gets the indulge/avoid binary
+    // instead of the ordinary complete checkbox — see buildActionsHtml.
+    function isNegativeHabitInstance(item) {
+        return item.type === 'habit' && item.isNegative === true;
+    }
+
+    // deps: { completeItem, indulgeHabit, pushbackCatalog?, getPlayerPoints?, onPushback? }
+    //
+    // Sub-session 2b ([P1-DATA-005], NEGATIVE_HABITS_PLAN.md): for a
+    // negative-habit lurker, the "Mark as Complete" checkbox + pushback
+    // section are REPLACED with the spec's binary — "Successfully avoided"
+    // (routes through the normal completeItem/applyHabitCompletion path:
+    // success occurrence + points + defeat exit) and "I indulged" (routes
+    // through the new indulgeHabit/applyHabitIndulgence path: points debit +
+    // streak zero + exit, no occurrence success). Pushback doesn't apply to
+    // a lurker — it never advances, so there's no deadline to push back.
+    function buildActionsHtml(item, deps) {
+        if (isNegativeHabitInstance(item)) {
+            return `
+                <div class="task-actions negative-habit-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
+                    <button id="editTaskBtn" class="edit-icon-btn" title="Edit Task">✏️</button>
+                    <button type="button" id="avoidHabitBtn" class="negative-habit-button avoid-btn">Successfully avoided</button>
+                    <button type="button" id="indulgeHabitBtn" class="negative-habit-button indulge-btn">I indulged</button>
+                </div>
+            `;
+        }
+        return `
+            <div class="task-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
+                <button id="editTaskBtn" class="edit-icon-btn" title="Edit Task">✏️</button>
+                <label class="completion-checkbox">
+                    <input type="checkbox" id="completeTaskCheck" class="completion-checkbox-input" />
+                    Mark as Complete
+                </label>
+            </div>
+            ${buildPushbackSectionHtml(deps)}
+        `;
+    }
+
     function showTaskDetailsPopup(item, deps) {
         const modalHtml = `
             <div class="modal-overlay">
@@ -111,14 +148,7 @@ const Popups = (() => {
                         <p><strong>Due:</strong> <span class="task-due-display">${item.dueDateTime.toLocaleString()}</span></p>
                         <p><strong>Priority:</strong> ${item.isHighPriority ? 'High' : 'Normal'}</p>
                         ${item.type === 'habit' ? `<p><strong>Streak:</strong> ${item.streak}</p>` : ''}
-                        <div class="task-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
-                            <button id="editTaskBtn" class="edit-icon-btn" title="Edit Task">✏️</button>
-                            <label class="completion-checkbox">
-                                <input type="checkbox" id="completeTaskCheck" class="completion-checkbox-input" />
-                                Mark as Complete
-                            </label>
-                        </div>
-                        ${buildPushbackSectionHtml(deps)}
+                        ${buildActionsHtml(item, deps)}
                     </div>
                 </div>
             </div>
@@ -129,6 +159,8 @@ const Popups = (() => {
         // Add event listeners
         const completeCheckbox = document.getElementById('completeTaskCheck');
         const editButton = document.getElementById('editTaskBtn');
+        const avoidButton = document.getElementById('avoidHabitBtn');
+        const indulgeButton = document.getElementById('indulgeHabitBtn');
 
         if (completeCheckbox) {
             completeCheckbox.addEventListener('change', () => {
@@ -136,6 +168,20 @@ const Popups = (() => {
                     deps.completeItem(item.id);
                     Modal.closeModal();
                 }
+            });
+        }
+
+        if (avoidButton) {
+            avoidButton.addEventListener('click', () => {
+                deps.completeItem(item.id);
+                Modal.closeModal();
+            });
+        }
+
+        if (indulgeButton) {
+            indulgeButton.addEventListener('click', () => {
+                deps.indulgeHabit(item.id);
+                Modal.closeModal();
             });
         }
 

@@ -13,6 +13,50 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 30: [P1-DATA-005] sub-session 2b BUILT — indulge/avoid actions; rollover guard descoped (Cowork session, Sonnet)
+
+**Did:** Built the indulge/avoid two-button binary on the negative-habit lurker popup, per session
+27's plan. `js/ui/popups.js` `showTaskDetailsPopup` now branches on a new `isNegativeHabitInstance`
+check to swap the "Mark as Complete" checkbox + pushback section for two buttons: "Successfully
+avoided" (routes through the unchanged `completeItem`/`applyHabitCompletion` path) and "I indulged"
+(new `Items.indulgeHabit(itemId, deps)`, wiring session-25's `Habits.applyHabitIndulgence` — points
+debit via the 0-floored `Economy.subtractPoints` with a `TODO(sub-session 3)` marker, streak zero,
+fade-and-remove exit, deliberately NOT pushed into completedItems since a lapse isn't an
+accomplishment). Both wired through `script.js`'s `popupsDeps()`/`itemsDeps()`.
+
+**Descoped mid-session (Jeremy's call, via AskUserQuestion):** the rollover-hold guard. Recon found
+there is currently NO live day-advance mechanism in the codebase at all — `currentGameDate` is set
+once at boot and never advances to the real current date on reload, so nothing detects a day boundary
+today. Stopped 2b here rather than inventing that mechanism inline; scheduled it as its own future
+ROADMAP item. Sub-session 4 (daily check-in) is now blocked on that future session, not on 2b.
+
+**State:** ✅ **21 suites, 440/440** (+6 new `test/items-indulge.test.js`). `node --check` clean on
+`js/items.js` and `js/ui/popups.js`. **Live-verified in Chrome:** "I indulged" → points held at floor,
+streak zeroed, zombie faded out, correctly absent from Completed Today; "Successfully avoided" (fresh
+lurker) → XP 20→25, points 0→5, zombie exited, correctly appeared in Completed Today; reload persisted
+both outcomes correctly. No console errors from app code (3 unrelated Chrome-extension messaging
+exceptions, not from this app).
+
+**Docs updated same session:** NEGATIVE_HABITS_PLAN.md (2b marked done + descope note),
+ROADMAP.md (2b checked, new "Day-advance mechanism" item added, new known-bug entry), DECISIONS.md
+(session 30 entry with full recon).
+
+**Next: the day-advance mechanism** — needs its own Opus-plan → Sonnet-execute session before
+sub-session 4 (daily check-in) or the deferred rollover-hold guard can be meaningful. Alternatively,
+sub-session 3 (negative balance + debt visualization) can go first if Jeremy wants to keep riding the
+indulge/avoid work instead — it doesn't depend on day-advance.
+
+**Watch out:**
+- Indulging a lurker and reloading SAME-DAY spawns a fresh lurker immediately (dedupe only checks
+  `lastCompletionDate`, which `indulgeHabit` deliberately never sets) — logged in ROADMAP.md "Known
+  bugs," not fixed. Distinct from the prior-day rollover case.
+- `indulgeHabit`'s point debit is still the 0-floored `Economy.subtractPoints` (interim) — a
+  `TODO(sub-session 3)` marker is in `js/items.js` for the non-clamping swap.
+- Dev save now also has a fresh completed `LurkerTest-Smoking` entry from live verification. Recommend
+  Reset before real play (standing note, now triply true).
+
+---
+
 ## 2026-07-19 — Session 29: [P1-DATA-005] lurker styling + position tweak (Cowork session, Sonnet)
 
 **Did:** Jeremy's post-live-verify feedback on session 28's lurker, addressed same session. (1) `.negative-habit` CSS: solid orange fill → border-only (transparent bg, 3px solid orange border) — a filled block read as more urgent/active than the passive stationary lurker actually is. (2) Repositioned the lurk anchor from near the base (`baseWidth + NEGATIVE_LURK_OFFSET_PX`) to the far right of the canvas (`gameScreenWidth - habitEnemyWidth - NEGATIVE_LURK_RIGHT_MARGIN_PX`, config renamed accordingly, margin = 20px) — Jeremy's reasoning: the base-adjacent zone should stay reserved for genuinely urgent enemies so the player gets honest visual triage; a lurker that never moves doesn't belong there. Threaded `gameScreenWidth` through `loopDeps()`, `stateDeps()` (→ `State.buildDamageDeps`), and `habitInstanceDeps()` — the same accessor-passthrough pattern `baseWidth` already used for the old formula. `habits.js` still has no bare CONFIG global (session 27 constraint held).

@@ -403,7 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Grep before removing.
     function popupsDeps() {
         return {
-            gameIsOver, activeItems, completeItem, createListItem,
+            gameIsOver, activeItems, completeItem, indulgeHabit, createListItem,
             sortAndRenderActiveList, saveGame, recomputeOverdueStateAfterEdit,
             createTaskItemData, addItemToGame,
             // Pushback ([P1-UI-008] session 4): the pushback tiers, a live
@@ -431,6 +431,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // extraction session 10, 2026-07-18). Call sites unchanged.
     function completeItem(itemId) {
         Items.completeItem(itemId, itemsDeps());
+    }
+
+    // Thin wrapper — real implementation lives in js/items.js (sub-session
+    // 2b, 2026-07-19, [P1-DATA-005]). Call site wired from popupsDeps().
+    function indulgeHabit(itemId) {
+        Items.indulgeHabit(itemId, itemsDeps());
     }
 
     function removeItem(itemId) {

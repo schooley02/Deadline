@@ -232,7 +232,7 @@ lurker spawns at the far-right edge, and reloading an old save with a lurker at 
 position correctly animates it to its new far-right resting spot via the existing offline
 catch-up animation (confirms `runOfflineCatchUp`'s targetX fix is live).
 
-#### Sub-session 2b — indulge / avoid actions + rollover hold (Opus plan → Sonnet)
+#### Sub-session 2b — indulge / avoid actions + rollover hold (Opus plan → Sonnet) — ✅ DONE 2026-07-19 session 30 (rollover hold DESCOPED, see below)
 **Goal:** wire the two player actions onto the lurker, mirroring the spec's binary. Depends on 2a.
 - Enemy-click popup (`js/ui/popups.js` `showTaskDetailsPopup`): for a negative-habit instance,
   REPLACE the "Mark as Complete" checkbox + pushback section with two buttons — **"Successfully
@@ -254,6 +254,20 @@ catch-up animation (confirms `runOfflineCatchUp`'s targetX fix is live).
 - **Live-verify:** indulge → points drop + streak 0 + zombie exits; avoid → points up + explosion;
   reload mid-day keeps the lurker; cross a day boundary → yesterday's lurker auto-resolves, exactly
   one new lurker spawns.
+
+**BUILT 2026-07-19 session 30:** the indulge/avoid two-button binary shipped exactly as specified
+above — `js/ui/popups.js`'s `showTaskDetailsPopup` branches on a new `isNegativeHabitInstance` check
+to swap the checkbox+pushback for the two buttons; `js/items.js` gained `indulgeHabit(itemId, deps)`.
+**The rollover-hold guard was DESCOPED, not built.** Recon found there is no live day-advance
+mechanism anywhere in the codebase yet — `currentGameDate` never advances to the real current date on
+reload, so nothing currently detects a day boundary at all. The guard has nothing real to attach to.
+Jeremy's call: ship 2b without it, schedule a dedicated future session for the day-advance mechanism
+(see ROADMAP.md), and revisit the rollover-hold guard once that lands. Sub-session 4 (daily check-in)
+is now blocked on that future session rather than on 2b. Also found live-verifying: indulging a
+lurker and reloading SAME-DAY spawns a fresh lurker immediately (dedupe only checks
+`lastCompletionDate`, which indulging deliberately never sets) — a same-day cousin of the
+double-spawn class of bug, logged in ROADMAP.md "Known bugs", not fixed this session. Full detail in
+DECISIONS.md session 30.
 
 ### Sub-session 3 — unbounded debt + encouraging debt UX (Opus plan → Sonnet)
 **Goal:** add `Economy.applyIndulgenceCost` (or similar) — the non-clamping sibling reserved by the

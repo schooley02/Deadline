@@ -247,6 +247,69 @@ const Items = (() => {
     }
 
     /**
+     * deps: { isGameOver, activeItems, definedHabits (getter), pointsPerHabit,
+     *         getPlayerPoints, setPlayerPoints, updatePlayerDisplays,
+     *         updateTaskCountDisplay, saveGame }
+     * Habits (applyHabitIndulgence) called as a bare stable global.
+     *
+     * Sub-session 2b ([P1-DATA-005], NEGATIVE_HABITS_PLAN.md): the "I
+     * indulged" player action for a negative-habit lurker. Mirrors
+     * completeItem's habit branch but DEBITS points instead of awarding
+     * them, zeroes the streak, and never touches XP — points only, per the
+     * plan (a lapse isn't a defeat). No-op if the item isn't an active
+     * negative-habit instance (applyHabitIndulgence's own no-op guard also
+     * covers a misrouted positive habit, belt-and-suspenders).
+     *
+     * Deliberately does NOT push into completedItems / call
+     * renderCompletedItems: indulging is a lapse, not an accomplishment, so
+     * it shouldn't appear in the completed list. The fade-and-remove exit
+     * mirrors completeItem's animation (no separate "got you" asset exists
+     * yet — same visual treatment, different bookkeeping).
+     *
+     * Interim: debits through the 0-floored Economy.subtractPoints.
+     * TODO(sub-session 3): switch to the non-clamping indulgence path once
+     * it lands (docs/NEGATIVE_HABITS_PLAN.md sub-session 3) — debt just
+     * can't cross 0 for a session or two.
+     */
+    function indulgeHabit(itemId, deps) {
+        if (deps.isGameOver()) return;
+
+        const item = deps.activeItems.find(i => i.id === itemId);
+        if (!item || item.type !== 'habit') return;
+
+        const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
+        if (!habitDef || !habitDef.isNegative) return;
+
+        const result = Habits.applyHabitIndulgence(
+            habitDef.streak, habitDef.occurrenceHistory, habitDef.isNegative, item.originalDueDate, {
+                pointsPerHabit: deps.pointsPerHabit,
+                rateWindow: CONFIG.HABIT_RATE_WINDOW,
+                rateMinSample: CONFIG.HABIT_RATE_MIN_SAMPLE,
+                rateTiers: CONFIG.HABIT_RATE_TIERS
+            });
+
+        if (result.noOp) return;
+
+        habitDef.streak = result.streak;
+        habitDef.occurrenceHistory = result.occurrenceHistory;
+
+        deps.setPlayerPoints(Economy.subtractPoints(deps.getPlayerPoints(), result.pointsLost));
+        deps.updatePlayerDisplays();
+        deps.saveGame();
+
+        // Fade out animation (same treatment as completeItem's exit).
+        if (item.element) {
+            item.element.style.transition = 'opacity 0.5s ease';
+            item.element.style.opacity = '0';
+        }
+
+        // Remove item after fade animation
+        setTimeout(() => {
+            removeItem(itemId, deps);
+        }, 500);
+    }
+
+    /**
      * deps: { completedItems (getter), baseWidth, gameCanvas, enemyWidth,
      *         habitEnemyWidth, habitStreakBonusThreshold, handleEnemyClick,
      *         activeItems, createListItem, sortAndRenderActiveList,
@@ -484,6 +547,7 @@ const Items = (() => {
         isNonThreatening,
         createTaskItemData,
         completeItem,
+        indulgeHabit,
         removeItem,
         uncompleteItem,
         markAsOverdue,

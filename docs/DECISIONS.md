@@ -4,6 +4,54 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 30: [P1-DATA-005] sub-session 2b BUILT — indulge/avoid actions; rollover guard DESCOPED (Cowork session, Sonnet)
+
+**Built:** the two-button binary on the negative-habit lurker popup — "Successfully avoided" (routes
+through the existing `completeItem`/`applyHabitCompletion` path unchanged: success occurrence +
+points + XP + lands in Completed Today) and "I indulged" (new `Items.indulgeHabit`, wiring
+`Habits.applyHabitIndulgence`: points debit via the 0-floored `Economy.subtractPoints` — interim,
+`TODO(sub-session 3)` marker left in place — streak zero, fade-and-remove exit, deliberately does
+NOT push into completedItems since a lapse isn't an accomplishment). `js/ui/popups.js`'s
+`showTaskDetailsPopup` now branches on `isNegativeHabitInstance` to swap the checkbox+pushback
+section for the two buttons; pushback doesn't apply to a lurker (never advances, no deadline to push).
+
+**Descoped, not built:** the rollover-hold guard (auto-resolve a prior-day lurker as avoided before
+today's spawn). Recon found there is currently NO live day-advance mechanism anywhere in the
+codebase — `currentGameDate` is set once at `initGame()` boot and, on reload, is restored to
+whatever value was saved; nothing ever advances it to the real current date. Every
+`generateDailyHabitInstances`/`generateDailyRoutineTaskInstances` call site (habit/routine creation,
+`restoreGameState`) passes that same stale `currentGameDate`, never `new Date()`. So a session
+spanning midnight doesn't currently spawn new daily instances for the new day at all — the game
+doesn't yet know a day has passed. This is bigger than 2b's UI-wiring scope (it's an architecture
+gap, not a rollover-guard wiring task) and the rollover guard has nothing real to hook into yet.
+**Jeremy's call:** stop 2b here (ship the indulge/avoid actions as-is), and schedule the day-advance
+mechanism as its own future ROADMAP item — see ROADMAP.md "Known bugs" / Milestone 3 addition.
+Sub-session 4 (daily check-in) is blocked on that future session, not on 2b.
+
+**Also found live-verifying (not fixed, noted for the future day-advance session):** `indulgeHabit`
+deliberately does NOT set `habitDef.lastCompletionDate` (a lapse isn't a completion) — but
+`selectHabitDefsToSpawn`'s dedupe checks ONLY `lastCompletionDate` + an existing active instance for
+today. Confirmed live: indulge a lurker, reload same day → a FRESH lurker instance spawns
+immediately (no waiting for a day boundary). This is a same-day variant of the double-spawn class of
+bug, distinct from the prior-day rollover case 2b's guard was meant to cover, and needs its own
+resolution (most likely: indulging should record something dedupe can see, mirroring how completion
+does via `lastCompletionDate` — a design call, not obvious which state field is right, given
+`applyHabitIndulgence` already records an `occurrenceHistory` entry for today that dedupe doesn't
+currently consult). Flagging for whoever picks up the day-advance / dedupe work.
+
+**Tests:** 21 suites, 440/440 (+6 new `test/items-indulge.test.js`: valid indulge debits points +
+zeroes streak; no-ops for game-over, unknown item id, non-habit item, positive-habit misroute, and
+missing habit definition). `node --check` clean on `js/items.js` and `js/ui/popups.js`.
+**Live-verified in Chrome:** "I indulged" → points held at floor (already 0), streak zeroed, zombie
+faded out, did NOT appear in Completed Today, no console errors. "Successfully avoided" (fresh
+lurker) → XP 20→25, points 0→5, zombie exited, correctly appeared in Completed Today. Reload
+persisted both stat changes and the resolved (no-respawn) state correctly for the avoided case.
+
+**Docs updated same session:** NEGATIVE_HABITS_PLAN.md (2b marked done + descope note), ROADMAP.md
+(2b checked, new day-advance item added), this entry.
+
+---
+
 ## 2026-07-19 — Session 29: [P1-DATA-005] lurker styling + position refinement (Cowork session, Sonnet)
 
 Jeremy's feedback after live-verifying session 28's lurker: (1) the solid orange fill on
