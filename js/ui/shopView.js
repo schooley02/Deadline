@@ -23,6 +23,7 @@ const ShopView = (() => {
     const CATEGORY_ICON = {
         repair: '🔧',
         pushback: '⏩',
+        cheatDay: '🎟️',
     };
 
     // Builds one catalog card. Pure DOM construction, no mutation of deps.
@@ -69,6 +70,15 @@ const ShopView = (() => {
                </button>`
             : `<div class="shop-item-note shop-pushback-hint">Tap a zombie to push it back</div>`;
 
+        // Cheat Day ([P1-DATA-005] sub-session 5, 2026-07-19): consumable
+        // (Buy-to-hold, like repair kits) but "used" by tapping a specific
+        // negative-habit lurker's popup, not a card button — reuses
+        // pushback's targeting pattern. Only shown once you hold at least
+        // one; nothing to target with zero held.
+        const cheatDayHintRow = (item.category === 'cheatDay' && held > 0)
+            ? `<div class="shop-item-note shop-cheatday-hint">Tap a negative habit to use</div>`
+            : '';
+
         card.innerHTML = `
             <div class="shop-item-header">
                 <span class="shop-item-icon">${CATEGORY_ICON[item.category] || '🛒'}</span>
@@ -81,6 +91,7 @@ const ShopView = (() => {
             </div>
             ${actionRow}
             ${useRow}
+            ${cheatDayHintRow}
         `;
 
         // Real listeners, not inline onclick — script.js is a DOMContentLoaded

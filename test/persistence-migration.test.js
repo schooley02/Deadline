@@ -213,8 +213,11 @@ describe('migrate v3 → v4: shop inventory', () => {
         };
     }
 
-    test('bumps schemaVersion to 4', () => {
-        expect(Persistence.migrate(v3Save()).schemaVersion).toBe(4);
+    test('runs the v3→v4 step (inventory seeded) on the way to the current version', () => {
+        // migrate() chains all the way to Persistence.SCHEMA_VERSION in one
+        // call (v4→v5 landed 2026-07-19, [P1-DATA-005] sub-session 5) — this
+        // asserts the v3→v4 step specifically ran, not the final version.
+        expect(Persistence.migrate(v3Save()).inventory).toEqual({});
     });
 
     test('seeds an empty inventory on a save that has none', () => {
@@ -234,6 +237,43 @@ describe('migrate v3 → v4: shop inventory', () => {
 
     test('leaves other save fields untouched', () => {
         const save = Persistence.migrate(v3Save({ playerPoints: 200 }));
+        expect(save.playerPoints).toBe(200);
+    });
+});
+
+describe('migrate v4 → v5: Cheat Day (cheatDayDate)', () => {
+    function v4Save(overrides = {}) {
+        return {
+            schemaVersion: 4,
+            definedHabits: [],
+            definedRoutines: [],
+            definedTasks: [],
+            inventory: {},
+            ...overrides
+        };
+    }
+
+    test('bumps schemaVersion to the current version', () => {
+        expect(Persistence.migrate(v4Save()).schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+    });
+
+    test('seeds cheatDayDate: null on every habit def that lacks it', () => {
+        const save = Persistence.migrate(v4Save({
+            definedHabits: [{ id: 'h1' }, { id: 'h2' }]
+        }));
+        expect(save.definedHabits[0].cheatDayDate).toBeNull();
+        expect(save.definedHabits[1].cheatDayDate).toBeNull();
+    });
+
+    test('does not clobber an existing cheatDayDate', () => {
+        const save = Persistence.migrate(v4Save({
+            definedHabits: [{ id: 'h1', cheatDayDate: '2026-07-18' }]
+        }));
+        expect(save.definedHabits[0].cheatDayDate).toBe('2026-07-18');
+    });
+
+    test('leaves other save fields untouched', () => {
+        const save = Persistence.migrate(v4Save({ playerPoints: 200 }));
         expect(save.playerPoints).toBe(200);
     });
 });

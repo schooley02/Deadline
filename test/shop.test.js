@@ -13,13 +13,14 @@ const CONFIG = require('../js/config.js');
 const CATALOG = CONFIG.SHOP_ITEMS;
 const smallKit = CATALOG.find(i => i.id === 'repair_small');   // baseCost 25, consumable
 const pushback1hr = CATALOG.find(i => i.id === 'pushback_1hr'); // baseCost 50, not consumable
+const cheatDay = CATALOG.find(i => i.id === 'cheat_day');       // baseCost 200, consumable ([P1-DATA-005] sub-session 5)
 
 describe('catalog integrity', () => {
     test('every item has the required shape', () => {
         CATALOG.forEach(item => {
             expect(typeof item.id).toBe('string');
             expect(typeof item.baseCost).toBe('number');
-            expect(['repair', 'pushback']).toContain(item.category);
+            expect(['repair', 'pushback', 'cheatDay']).toContain(item.category);
             expect(typeof item.consumable).toBe('boolean');
         });
     });
@@ -161,5 +162,37 @@ describe('consume', () => {
         const inv = { repair_small: 2 };
         Shop.consume('repair_small', inv);
         expect(inv).toEqual({ repair_small: 2 });
+    });
+});
+
+// [P1-DATA-005] sub-session 5 (Cheat Day token, 2026-07-19): 200 pts is the
+// unchanged ECONOMY.md/spec face value (Fable session 26) — protects it from
+// silent drift. Cheat Day is Buy-to-hold like a repair kit (held-inventory
+// exponential pricing), so Shop's existing generic purchase/consume paths
+// need no new code — this just asserts the catalog entry + those generic
+// paths compose correctly for the new id.
+describe('Cheat Day token catalog entry', () => {
+    test('is in the catalog with the spec face-value cost, consumable', () => {
+        expect(cheatDay).toBeDefined();
+        expect(cheatDay.baseCost).toBe(200);
+        expect(cheatDay.consumable).toBe(true);
+        expect(cheatDay.category).toBe('cheatDay');
+    });
+
+    test('prices like a held-inventory consumable (base × 1.5^held)', () => {
+        expect(Shop.price(cheatDay, {})).toBe(200);
+        expect(Shop.price(cheatDay, { cheat_day: 1 })).toBe(300);
+    });
+
+    test('purchase adds to held inventory (not instant-consume like pushback)', () => {
+        const r = Shop.purchase('cheat_day', CATALOG, {}, 200);
+        expect(r.ok).toBe(true);
+        expect(r.newInventory).toEqual({ cheat_day: 1 });
+    });
+
+    test('consume decrements the held count', () => {
+        const r = Shop.consume('cheat_day', { cheat_day: 1 });
+        expect(r.ok).toBe(true);
+        expect(r.newInventory).toEqual({});
     });
 });

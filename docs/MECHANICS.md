@@ -36,7 +36,7 @@
 
 On restore (`js/state.js`'s restoreGameState, after re-adding saved items and before spawning today's), if real time has crossed into a later calendar day than the save's `currentGameDate` (`DayRollover.hasDayRolledOver`, `js/dayRollover.js`), the prior day's RECURRING instances are closed out, then `currentGameDate` advances to today so the generators spawn today's. Recurring instances = those carrying a `definitionId` (habits + routine tasks); one-off tasks and sub-tasks have none and are left alone — a missed one-off deadline stays an overdue base threat, it isn't a per-day concept.
 
-**Settlement per item is now a two-way fork** (updated 2026-07-19, sub-session 4, [P1-DATA-005] — see "Daily Check-in" below): for a negative-habit lurker, `state.js` checks `DayRollover.isFromPreviousDay(item.originalDueDate, now)` — the SINGLE most recent prior day routes to `Items.markPendingCheckIn` (deferred to the check-in prompt) instead of auto-resolving. Everything else still goes through `Items.settleStaleRecurringInstance`:
+**Settlement per item is now a THREE-way fork** (sub-session 4 added the check-in split 2026-07-19; sub-session 5 added Cheat Day 2026-07-19 — see "Daily Check-in" and "Cheat Day Token" below). For a negative-habit lurker, `state.js` checks, in order: (1) does an active Cheat Day cover this lurker's day (`deps.isCheatDayExcusedForItem`) → `Items.settleExcusedCheatDay`, checked FIRST, ahead of everything else; (2) is this the SINGLE most recent prior day (`DayRollover.isFromPreviousDay`) → `Items.markPendingCheckIn` (deferred to the check-in prompt); (3) otherwise → the existing `Items.settleStaleRecurringInstance`:
 
 - **Negative-habit lurker from an OLDER day → auto-resolved as AVOIDED** (session-26's generous "prior days default to avoided"): the full avoid reward — success occurrence keyed to the instance's original date, streak++, XP + rate-multiplied points. Because the occurrence is keyed to that day (not today), today still spawns a fresh lurker (the temptation returns daily). Not surfaced in "Completed Today" (it happened in the past; surfacing IS the check-in's job for the previous day specifically).
 - **Positive habit → dropped.** Its miss was already recorded by markAsOverdue when the instance was re-added on restore (streak reset, rate-history miss); the stale instance is then removed so it doesn't linger into today.
@@ -52,6 +52,19 @@ The check-in SURFACE for the previous day's negative-habit lurker (frozen routin
 - **indulged** → `Habits.applyHabitIndulgence`: miss occurrence, streak zeroed, non-clamping points debit via `Economy.applyIndulgenceCost` (same debt path as the live "I indulged" button).
 
 Also: **"I'll check this later" snooze** (spec PROJECT_SPEC.md ~646) — a plain in-session `setTimeout` (`CONFIG.CHECK_IN_SNOOZE_MS`, 4 hours) that re-shows the modal if anything's still pending. NOT persisted across reload — closing the tab and reopening before 4 hours just re-prompts immediately on the next restore. This ticket built the check-in surface only, not a scheduling system.
+
+## Cheat Day Token (BUILT 2026-07-19, sub-session 5, [P1-DATA-005])
+
+A shop consumable (200 pts, held-inventory exponential pricing like repair kits — see ECONOMY.md) that excuses one negative habit's indulgence for one specific day: while active, indulging costs nothing and records NO occurrence — the day is EXCUSED, not a success or a miss; streak is preserved, not incremented (decided session 26, Fable).
+
+**Targeting:** unlike repair kits (a shop-card "Use" button) or pushback (applies to whatever enemy you tap), Cheat Day is Buy-to-hold like a repair kit but "used" by tapping a specific negative-habit lurker's popup — a new **"Use Cheat Day (N held)"** button (`js/ui/popups.js`, shown only when held > 0) consumes one token (`Shop.consume`) and sets that habit definition's `habitDef.cheatDayDate` to the lurker's occurrence date (`Habits.toOccurrenceDate`). The popup rebuilds itself (deferred via `setTimeout(0)` — replacing the button with an "active" note mid-click is the same event-bubbling hazard that bit the shop's Buy/Use buttons in session 21) to show "🎟️ Cheat Day active — indulging today is free."
+
+**Schema:** `habitDef.cheatDayDate` (a `'YYYY-MM-DD'` string or `null`) — schemaVersion 4→5 migration, additive, seeded `null` on every pre-existing habit.
+
+**Where it's checked** (`Items.isCheatDayExcused(habitDef, originalDueDate)` — true when `cheatDayDate` matches that day's occurrence date):
+- **Live indulge** (`Items.indulgeHabit`): skips the points debit and streak/occurrence changes entirely; just clears the marker (one use per token).
+- **Check-in resolution** (`Items.resolvePendingCheckIn`'s `'indulged'` branch): same excused check, defensive — in practice a cheat-day-covered day never reaches the check-in card at all (see the rollover fork above), but this guards a same-day edge case.
+- **Rollover** (`state.js`): `Items.settleExcusedCheatDay` — checked FIRST, ahead of the check-in-eligible and auto-avoid paths; clears the marker and removes the lurker with no points/xp/streak/occurrence change, silently, matching NEGATIVE_HABITS_PLAN.md's "the check-in card for that day auto-resolves as excused."
 
 ## Days Survived
 

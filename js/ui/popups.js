@@ -105,7 +105,8 @@ const Popups = (() => {
         return item.type === 'habit' && item.isNegative === true;
     }
 
-    // deps: { completeItem, indulgeHabit, pushbackCatalog?, getPlayerPoints?, onPushback? }
+    // deps: { completeItem, indulgeHabit, pushbackCatalog?, getPlayerPoints?,
+    //         onPushback?, getCheatDayHeldCount?, isCheatDayActiveForItem?, onUseCheatDay? }
     //
     // Sub-session 2b ([P1-DATA-005], NEGATIVE_HABITS_PLAN.md): for a
     // negative-habit lurker, the "Mark as Complete" checkbox + pushback
@@ -115,14 +116,29 @@ const Popups = (() => {
     // through the new indulgeHabit/applyHabitIndulgence path: points debit +
     // streak zero + exit, no occurrence success). Pushback doesn't apply to
     // a lurker — it never advances, so there's no deadline to push back.
+    //
+    // Sub-session 5 (Cheat Day token, 2026-07-19): a third row targets THIS
+    // lurker with a held Cheat Day token (reuses pushback's tap-a-zombie
+    // targeting shape). Three states: an ACTIVE cheat day for this lurker's
+    // day shows a note (indulging is free — items.js's indulgeHabit already
+    // enforces this); zero held shows nothing (nothing to use); one-or-more
+    // held shows the "Use Cheat Day" button.
     function buildActionsHtml(item, deps) {
         if (isNegativeHabitInstance(item)) {
+            const cheatDayActive = typeof deps.isCheatDayActiveForItem === 'function' && deps.isCheatDayActiveForItem(item);
+            const heldCheatDays = typeof deps.getCheatDayHeldCount === 'function' ? deps.getCheatDayHeldCount() : 0;
+            const cheatDayRow = cheatDayActive
+                ? `<p class="cheat-day-active-note">🎟️ Cheat Day active — indulging today is free.</p>`
+                : (heldCheatDays > 0
+                    ? `<button type="button" id="useCheatDayBtn" class="negative-habit-button cheatday-btn">Use Cheat Day (${heldCheatDays} held)</button>`
+                    : '');
             return `
-                <div class="task-actions negative-habit-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
+                <div class="task-actions negative-habit-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center; flex-wrap: wrap;">
                     <button id="editTaskBtn" class="edit-icon-btn" title="Edit Task">✏️</button>
                     <button type="button" id="avoidHabitBtn" class="negative-habit-button avoid-btn">Successfully avoided</button>
                     <button type="button" id="indulgeHabitBtn" class="negative-habit-button indulge-btn">I indulged</button>
                 </div>
+                ${cheatDayRow}
             `;
         }
         return `
@@ -182,6 +198,27 @@ const Popups = (() => {
             indulgeButton.addEventListener('click', () => {
                 deps.indulgeHabit(item.id);
                 Modal.closeModal();
+            });
+        }
+
+        // Use Cheat Day button (sub-session 5, 2026-07-19). Unlike pushback's
+        // in-place refresh, this REPLACES the button with an "active" note —
+        // rebuilding the popup while its own click is still bubbling is
+        // exactly the hazard that bit the shop's Buy/Use buttons (session 21,
+        // see SHOP_PLAN.md hazards / DECISIONS.md), so the rebuild is
+        // deferred via setTimeout(0). Simplest correct rebuild: close and
+        // reopen the SAME popup, which re-evaluates cheatDayActive/held
+        // fresh from deps.
+        const useCheatDayButton = document.getElementById('useCheatDayBtn');
+        if (useCheatDayButton) {
+            useCheatDayButton.addEventListener('click', () => {
+                const result = deps.onUseCheatDay ? deps.onUseCheatDay('cheat_day', item) : { ok: false };
+                if (result && result.ok) {
+                    setTimeout(() => {
+                        Modal.closeModal();
+                        showTaskDetailsPopup(item, deps);
+                    }, 0);
+                }
             });
         }
 

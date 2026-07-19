@@ -99,13 +99,15 @@ const CONFIG = {
     // Shape per item:
     //   id        stable key (persisted inventory is keyed by this)
     //   name      display label
-    //   category  'repair' | 'pushback' (drives UI grouping + effect dispatch)
+    //   category  'repair' | 'pushback' | 'cheatDay' (drives UI grouping + effect dispatch)
     //   baseCost  points, before the exponential owned-multiplier
-    //   consumable true = held in inventory then used later (repair kits);
-    //             false = applied instantly on purchase (pushback)
+    //   consumable true = held in inventory then used later (repair kits,
+    //             Cheat Day); false = applied instantly on purchase (pushback)
     //   effect    category-specific params:
     //             repair   -> { healAmount }  HP restored per use
     //             pushback -> { pushbackMs }   ms the target's due date shifts later
+    //             cheatDay -> {} (no numeric effect — applying it just sets
+    //                         the target habit's cheatDayDate; see items.js)
     SHOP_ITEMS: [
         { id: 'repair_small',  name: 'Repair Kit (Small)',  category: 'repair',   baseCost: 25,  consumable: true,  effect: { healAmount: 15 } },
         { id: 'repair_medium', name: 'Repair Kit (Medium)', category: 'repair',   baseCost: 50,  consumable: true,  effect: { healAmount: 35 } },
@@ -113,6 +115,12 @@ const CONFIG = {
         { id: 'pushback_1hr',  name: 'Enemy Pushback (1 hr)',  category: 'pushback', baseCost: 50,  consumable: false, effect: { pushbackMs: 1 * 60 * 60 * 1000 } },
         { id: 'pushback_2hr',  name: 'Enemy Pushback (2 hr)',  category: 'pushback', baseCost: 100, consumable: false, effect: { pushbackMs: 2 * 60 * 60 * 1000 } },
         { id: 'pushback_1day', name: 'Enemy Pushback (1 day)', category: 'pushback', baseCost: 300, consumable: false, effect: { pushbackMs: 24 * 60 * 60 * 1000 } },
+        // [P1-DATA-005] sub-session 5 (2026-07-19): 200 pts is the unchanged
+        // ECONOMY.md/spec face value (Fable session 26). Held-inventory
+        // exponential pricing like repair kits — "using" one targets a
+        // specific negative habit from its lurker popup (js/ui/popups.js),
+        // not a shop-card button (see js/ui/shopView.js's hint).
+        { id: 'cheat_day', name: 'Habit Cheat Day', category: 'cheatDay', baseCost: 200, consumable: true, effect: {} },
     ],
 
     // --- Sprites ---

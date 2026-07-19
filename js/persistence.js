@@ -21,7 +21,11 @@ const Persistence = (() => {
     // recurrence field before); habit definitions gained `occurrenceHistory`.
     // v4 (2026-07-18): top-level `inventory` object (shop item id -> held
     // count) added for [P1-UI-008]. Old saves seed an empty inventory.
-    const SCHEMA_VERSION = 4;
+    // v5 (2026-07-19): habit definitions gain `cheatDayDate` ([P1-DATA-005]
+    // sub-session 5, Cheat Day token) — the one currently-active excused
+    // occurrence date for that habit, or null. Old saves seed null on every
+    // habit def.
+    const SCHEMA_VERSION = 5;
     const DEBOUNCE_MS = 500;
 
     // DOM references on item objects — never serialized, rebuilt on load.
@@ -171,6 +175,18 @@ const Persistence = (() => {
                 save.inventory = {};
             }
             save.schemaVersion = 4;
+        }
+
+        // v4 → v5 (2026-07-19): habit definitions gain `cheatDayDate` ([P1-
+        // DATA-005] sub-session 5, Cheat Day token). Additive — pre-v5 habits
+        // have none, so seed null (no active cheat day). See DECISIONS.md.
+        if (save.schemaVersion === 4) {
+            (save.definedHabits || []).forEach(habitDef => {
+                if (habitDef.cheatDayDate === undefined) {
+                    habitDef.cheatDayDate = null;
+                }
+            });
+            save.schemaVersion = 5;
         }
 
         if (save.schemaVersion !== SCHEMA_VERSION) {

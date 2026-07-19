@@ -323,7 +323,7 @@ closes without resolving and re-prompts on next reload; avoided awards XP/points
 indulged debits points (non-clamping) and zeroes streak. No duplicate lurkers, no console errors.
 See DECISIONS.md session 33.
 
-### Sub-session 5 — Cheat Day token (Sonnet; 4→5 schema migration lands here)
+### Sub-session 5 — Cheat Day token (Sonnet; 4→5 schema migration lands here) — ✅ BUILT 2026-07-19 session 34
 **Goal:** add Cheat Day to `CONFIG.SHOP_ITEMS` (200 pts base — spec face value, unchanged; held-
 inventory exponential pricing like repair kits, `consumable: true`). "Use" targets a negative habit
 (reuse the pushback tap-a-zombie targeting pattern from shop sessions 3–4, incl. the shopView hint
@@ -333,6 +333,24 @@ active, "I indulged" costs nothing and records NO occurrence (day excused; strea
 incremented) — and the check-in card for that day auto-resolves as excused. Sick/Skip: NOT in this
 ticket (session 26 — deferred to frozen slots). Depends on Sub-sessions 2+3 (needs the indulge
 action + the real debit path).
+
+**BUILT as specified above.** `js/persistence.js` SCHEMA_VERSION 4→5, `habitDef.cheatDayDate`
+('YYYY-MM-DD' or null) seeded on migrate + on every new habit def. `CONFIG.SHOP_ITEMS` gained
+`cheat_day` (200 pts, consumable, category `cheatDay`). Targeting landed exactly as planned: Buy-to-
+hold via the shop (generic `Shop.purchase`/`consume`, no new shop-core code needed), "used" via a new
+"Use Cheat Day (N held)" button in the negative-habit lurker's popup (`js/ui/popups.js`) that consumes
+one token and sets `habitDef.cheatDayDate` — the popup rebuilds itself via the planned `setTimeout(0)`
+deferral (closes + reopens the same popup) to show the "Cheat Day active — indulging today is free"
+state. `Items.isCheatDayExcused` is the single predicate checked in three places: `indulgeHabit` (live,
+skips debit/streak/occurrence), `resolvePendingCheckIn`'s indulged branch (defensive — see below), and
+a new `Items.settleExcusedCheatDay` in state.js's rollover fork, checked FIRST (ahead of both the
+check-in-eligible and auto-avoid paths) — exactly the "auto-resolves as excused" behavior specified.
+26 suites, 498/498 (+16: persistence-migration v4→v5 cases, shop.test.js catalog+pricing cases,
+new items-cheatday.test.js). Live-verified in Chrome: bought a token (200→300 price climb confirmed),
+used it on a lurker (popup rebuilt showing the active note), indulged for free (points/streak/
+occurrenceHistory all unaffected, marker cleared), and separately verified the rollover path — a
+backdated stale lurker with a matching `cheatDayDate` silently excused with NO check-in card, no
+duplicate spawn, `currentGameDate` advanced correctly. See DECISIONS.md session 34.
 
 ---
 

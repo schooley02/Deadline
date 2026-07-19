@@ -279,6 +279,21 @@ const Items = (() => {
      * Synchronous (no fade/setTimeout) so the board is settled before the
      * generators + offline catch-up run in the same restore pass.
      */
+    /**
+     * [P1-DATA-005] sub-session 5 (Cheat Day token, 2026-07-19): true when
+     * `habitDef.cheatDayDate` (set by useCheatDay) matches the occurrence
+     * date of `originalDueDate` — i.e. a Cheat Day token is active for THIS
+     * specific negative-habit lurker's day. Decided session 26 (Fable):
+     * while active, indulging is excused — no points debit, no occurrence
+     * recorded (not a success, not a miss), streak preserved untouched.
+     * Habits.toOccurrenceDate called as a bare global (same as everywhere
+     * else in this module).
+     */
+    function isCheatDayExcused(habitDef, originalDueDate) {
+        return !!habitDef.cheatDayDate &&
+            habitDef.cheatDayDate === Habits.toOccurrenceDate(originalDueDate);
+    }
+
     function settleStaleRecurringInstance(item, deps) {
         if (item.type === 'habit' && item.isNegative === true) {
             const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
@@ -299,6 +314,27 @@ const Items = (() => {
                 deps.updatePlayerDisplays();
                 deps.checkPlayerLevelUp();
             }
+        }
+        removeItem(item.id, deps);
+    }
+
+    /**
+     * deps: { definedHabits (getter), activeItems, updateTaskCountDisplay, saveGame }
+     *
+     * Sub-session 5 (Cheat Day token, 2026-07-19): the EXCUSED counterpart to
+     * settleStaleRecurringInstance above, checked FIRST by state.js's
+     * rollover fork (ahead of the check-in-eligible / auto-avoid split) — a
+     * stale negative-habit lurker whose day has an active Cheat Day
+     * (isCheatDayExcused) never becomes a pendingCheckIn and never
+     * auto-avoids; it's simply excused. No points/xp/streak/occurrence
+     * change (not a success, not a miss — session 26, Fable) — just clears
+     * the `cheatDayDate` marker (one use per token) and removes the lurker
+     * so today's fresh one spawns clean.
+     */
+    function settleExcusedCheatDay(item, deps) {
+        const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
+        if (habitDef) {
+            habitDef.cheatDayDate = null;
         }
         removeItem(item.id, deps);
     }
@@ -343,6 +379,14 @@ const Items = (() => {
      * long gone (removed at rollover by markPendingCheckIn). No-ops
      * (defensively) if the habit has no pending check-in — e.g. a stale
      * double-click on an already-resolved card.
+     *
+     * Sub-session 5 (Cheat Day token, 2026-07-19): a stale lurker with an
+     * ACTIVE Cheat Day for its day never reaches this function in practice
+     * — state.js's rollover fork excuses it directly (settleExcusedCheatDay)
+     * before it can become a pendingCheckIn. This 'indulged' branch still
+     * checks isCheatDayExcused defensively (belt-and-suspenders, matching
+     * indulgeHabit's live equivalent) in case a token was somehow applied
+     * after the marker was already set.
      */
     function resolvePendingCheckIn(habitDefId, outcome, deps) {
         const habitDef = deps.definedHabits().find(def => def.id === habitDefId);
@@ -368,13 +412,17 @@ const Items = (() => {
             deps.setPlayerPoints(Economy.addPoints(deps.getPlayerPoints(), result.pointsGained));
             deps.checkPlayerLevelUp();
         } else if (outcome === 'indulged') {
-            const result = Habits.applyHabitIndulgence(
-                habitDef.streak, habitDef.occurrenceHistory, habitDef.isNegative, originalDueDate, config
-            );
-            if (!result.noOp) {
-                habitDef.streak = result.streak;
-                habitDef.occurrenceHistory = result.occurrenceHistory;
-                deps.setPlayerPoints(Economy.applyIndulgenceCost(deps.getPlayerPoints(), result.pointsLost));
+            if (isCheatDayExcused(habitDef, originalDueDate)) {
+                habitDef.cheatDayDate = null;
+            } else {
+                const result = Habits.applyHabitIndulgence(
+                    habitDef.streak, habitDef.occurrenceHistory, habitDef.isNegative, originalDueDate, config
+                );
+                if (!result.noOp) {
+                    habitDef.streak = result.streak;
+                    habitDef.occurrenceHistory = result.occurrenceHistory;
+                    deps.setPlayerPoints(Economy.applyIndulgenceCost(deps.getPlayerPoints(), result.pointsLost));
+                }
             }
         }
 
@@ -407,6 +455,13 @@ const Items = (() => {
      * NON-clamping, so the balance can go negative (debt), per
      * docs/ECONOMY.md. Uncompletion refunds elsewhere still use the
      * 0-floored Economy.subtractPoints — only indulgence goes negative.
+     *
+     * Sub-session 5 (Cheat Day token, 2026-07-19): if a Cheat Day is active
+     * for THIS lurker's day (isCheatDayExcused), the debit is skipped
+     * entirely and no occurrence is recorded — the day is EXCUSED, not a
+     * success or a miss, so streak/occurrenceHistory are left untouched
+     * (session 26, Fable). The marker is cleared either way (one use per
+     * token). Still exits with the same fade animation either path.
      */
     function indulgeHabit(itemId, deps) {
         if (deps.isGameOver()) return;
@@ -417,22 +472,28 @@ const Items = (() => {
         const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
         if (!habitDef || !habitDef.isNegative) return;
 
-        const result = Habits.applyHabitIndulgence(
-            habitDef.streak, habitDef.occurrenceHistory, habitDef.isNegative, item.originalDueDate, {
-                pointsPerHabit: deps.pointsPerHabit,
-                rateWindow: CONFIG.HABIT_RATE_WINDOW,
-                rateMinSample: CONFIG.HABIT_RATE_MIN_SAMPLE,
-                rateTiers: CONFIG.HABIT_RATE_TIERS
-            });
+        if (isCheatDayExcused(habitDef, item.originalDueDate)) {
+            habitDef.cheatDayDate = null;
+            deps.updatePlayerDisplays();
+            deps.saveGame();
+        } else {
+            const result = Habits.applyHabitIndulgence(
+                habitDef.streak, habitDef.occurrenceHistory, habitDef.isNegative, item.originalDueDate, {
+                    pointsPerHabit: deps.pointsPerHabit,
+                    rateWindow: CONFIG.HABIT_RATE_WINDOW,
+                    rateMinSample: CONFIG.HABIT_RATE_MIN_SAMPLE,
+                    rateTiers: CONFIG.HABIT_RATE_TIERS
+                });
 
-        if (result.noOp) return;
+            if (result.noOp) return;
 
-        habitDef.streak = result.streak;
-        habitDef.occurrenceHistory = result.occurrenceHistory;
+            habitDef.streak = result.streak;
+            habitDef.occurrenceHistory = result.occurrenceHistory;
 
-        deps.setPlayerPoints(Economy.applyIndulgenceCost(deps.getPlayerPoints(), result.pointsLost));
-        deps.updatePlayerDisplays();
-        deps.saveGame();
+            deps.setPlayerPoints(Economy.applyIndulgenceCost(deps.getPlayerPoints(), result.pointsLost));
+            deps.updatePlayerDisplays();
+            deps.saveGame();
+        }
 
         // Fade out animation (same treatment as completeItem's exit).
         if (item.element) {
@@ -689,6 +750,8 @@ const Items = (() => {
         settleStaleRecurringInstance,
         markPendingCheckIn,
         resolvePendingCheckIn,
+        isCheatDayExcused,
+        settleExcusedCheatDay,
         uncompleteItem,
         markAsOverdue,
         recomputeOverdueStateAfterEdit

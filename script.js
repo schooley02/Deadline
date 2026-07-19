@@ -223,6 +223,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // check-in-eligible counterpart, called instead for the single
             // most-recent prior day's negative-habit lurker.
             markPendingCheckIn,
+            // Sub-session 5 (Cheat Day token, 2026-07-19): checked FIRST,
+            // ahead of the check-in-eligible fork above.
+            isCheatDayExcusedForItem,
+            settleExcusedCheatDay,
             addItemToGame,
             createListItem,
             renderDefinedRoutines,
@@ -422,7 +426,18 @@ document.addEventListener('DOMContentLoaded', () => {
             // and the handler that pays + shifts the target's due date.
             pushbackCatalog: CONFIG.SHOP_ITEMS.filter(i => i.category === 'pushback'),
             getPlayerPoints: () => playerPoints,
-            onPushback: handlePushback
+            onPushback: handlePushback,
+            // Cheat Day targeting ([P1-DATA-005] sub-session 5, 2026-07-19):
+            // held count for the popup's "Use Cheat Day (N held)" button,
+            // whether THIS lurker's day already has one active (shows the
+            // "active" note instead), and the handler that consumes a token
+            // + sets the target habit definition's cheatDayDate.
+            getCheatDayHeldCount: () => Shop.heldCount(playerInventory, 'cheat_day'),
+            isCheatDayActiveForItem: (item) => {
+                const habitDef = definedHabits.find(def => def.id === item.definitionId);
+                return !!habitDef && Items.isCheatDayExcused(habitDef, item.originalDueDate);
+            },
+            onUseCheatDay: handleUseCheatDay
         };
     }
 
@@ -472,6 +487,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function resolvePendingCheckIn(habitDefId, outcome) {
         Items.resolvePendingCheckIn(habitDefId, outcome, itemsDeps());
+    }
+
+    // Thin wrappers — real implementations live in js/items.js (sub-session 5,
+    // [P1-DATA-005], 2026-07-19, Cheat Day token). Called by state.js's
+    // restoreGameState (stateDeps()) ahead of the check-in-eligible fork.
+    function isCheatDayExcusedForItem(item) {
+        const habitDef = definedHabits.find(def => def.id === item.definitionId);
+        return !!habitDef && Items.isCheatDayExcused(habitDef, item.originalDueDate);
+    }
+
+    function settleExcusedCheatDay(item) {
+        Items.settleExcusedCheatDay(item, itemsDeps());
     }
 
     // Builds the deps object for js/ui/checkIn.js's showCheckInModal
@@ -674,7 +701,12 @@ document.addEventListener('DOMContentLoaded', () => {
             lastCompletionDate: null,
             // Seeded empty; the rate-based points bonus (future session) records
             // into this. See DECISIONS.md 2026-07-18.
-            occurrenceHistory: []
+            occurrenceHistory: [],
+            // [P1-DATA-005] sub-session 5 (Cheat Day token, 2026-07-19,
+            // schemaVersion 5): null = no active excused day. Only meaningful
+            // for negative habits, but seeded on every habit for shape
+            // consistency with the persisted/migrated form.
+            cheatDayDate: null
         };
 
         definedHabits.push(newHabitDef);
@@ -1178,6 +1210,42 @@ document.addEventListener('DOMContentLoaded', () => {
         saveGame();
 
         return { ok: true, newPoints: playerPoints };
+    }
+
+    // Cheat Day targeting handler ([P1-DATA-005] sub-session 5, 2026-07-19),
+    // wired to a negative-habit lurker popup's "Use Cheat Day" button
+    // (js/ui/popups.js). Mirrors handlePushback's shape (called with the shop
+    // item id + the TARGET instance), but Cheat Day is a HELD consumable —
+    // the button only renders once you already hold one, so this goes
+    // through Shop.consume (decrement), not Shop.purchase (buy). Sets the
+    // target habit definition's `cheatDayDate` to the lurker's occurrence
+    // date (Habits.toOccurrenceDate) — items.js's indulgeHabit/
+    // resolvePendingCheckIn check this to excuse that day's indulgence for
+    // free (no debit, no occurrence, streak untouched — session 26, Fable).
+    // Returns { ok } so the popup can rebuild itself (deferred via
+    // setTimeout(0) — see popups.js's comment on why in-place isn't safe here).
+    function handleUseCheatDay(cheatDayItemId, targetItem) {
+        const item = Shop.getItem(cheatDayItemId, CONFIG.SHOP_ITEMS);
+        if (!item || item.category !== 'cheatDay') return { ok: false };
+        if (!targetItem || targetItem.type !== 'habit' || !targetItem.isNegative) return { ok: false };
+
+        const habitDef = definedHabits.find(def => def.id === targetItem.definitionId);
+        if (!habitDef) return { ok: false };
+
+        const result = Shop.consume(cheatDayItemId, playerInventory);
+        if (!result.ok) {
+            // Button is only rendered when held > 0, so this is a defensive
+            // guard rather than the expected path.
+            return { ok: false };
+        }
+
+        playerInventory = result.newInventory;
+        habitDef.cheatDayDate = Habits.toOccurrenceDate(targetItem.originalDueDate);
+
+        updatePlayerDisplays();
+        saveGame();
+
+        return { ok: true };
     }
 
     function showRoutineManagement(routineId) {

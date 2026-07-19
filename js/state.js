@@ -315,14 +315,25 @@ const State = (() => {
         // (session 26's generous default), positive habits (already
         // miss-recorded above), routine tasks — still goes through
         // Items.settleStaleRecurringInstance exactly as before.
+        //
+        // Sub-session 5 (Cheat Day token, 2026-07-19): now a THREE-way fork,
+        // checked in this order. A stale negative-habit lurker whose day has
+        // an ACTIVE Cheat Day (deps.isCheatDayExcusedForItem) is EXCUSED
+        // first — ahead of both the check-in-eligible and auto-avoid checks
+        // — via Items.settleExcusedCheatDay, per NEGATIVE_HABITS_PLAN.md's
+        // "the check-in card for that day auto-resolves as excused."
         if (!save.gameIsOver) {
             const rolloverNow = new Date();
             if (DayRollover.hasDayRolledOver(deps.getCurrentGameDate(), rolloverNow)) {
                 DayRollover.selectStaleRecurringInstances(deps.getActiveItems(), rolloverNow)
                     .forEach(item => {
-                        const isCheckInEligible = item.type === 'habit' && item.isNegative === true &&
+                        const isExcusedCheatDay = item.type === 'habit' && item.isNegative === true &&
+                            deps.isCheatDayExcusedForItem(item);
+                        const isCheckInEligible = !isExcusedCheatDay && item.type === 'habit' && item.isNegative === true &&
                             DayRollover.isFromPreviousDay(item.originalDueDate, rolloverNow);
-                        if (isCheckInEligible) {
+                        if (isExcusedCheatDay) {
+                            deps.settleExcusedCheatDay(item);
+                        } else if (isCheckInEligible) {
                             deps.markPendingCheckIn(item);
                         } else {
                             deps.settleStaleRecurringInstance(item);

@@ -13,6 +13,50 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 34: Sub-session 5 BUILT — Cheat Day token, [P1-DATA-005] CLOSED (Cowork session, Opus plan → Sonnet execute)
+
+**Did:** Built the last piece of the negative-habits ticket. `js/persistence.js` bumped SCHEMA_VERSION
+to 5 (`habitDef.cheatDayDate`, additive, seeded null). `CONFIG.SHOP_ITEMS` gained `cheat_day` (200 pts,
+held-inventory pricing like repair kits). Targeting: Buy-to-hold via the shop as usual, but "used" by
+tapping a specific negative-habit lurker's popup (new "Use Cheat Day (N held)" button, `js/ui/popups.js`,
+mirrors pushback's tap-a-zombie pattern) — sets `habitDef.cheatDayDate` to that lurker's day and rebuilds
+the popup via `setTimeout(0)` (same event-bubbling hazard as the session-21 shop bug) to show "Cheat Day
+active — indulging today is free." New `Items.isCheatDayExcused` predicate is checked in `indulgeHabit`
+(skips debit/streak/occurrence entirely), `resolvePendingCheckIn`'s indulged branch (defensive), and a
+new `Items.settleExcusedCheatDay` in `state.js`'s rollover fork — now three-way, checked FIRST (ahead of
+the check-in-eligible split and the older-day auto-avoid).
+
+**State:** ✅ **26 suites, 498/498** (+16: persistence-migration v4→v5 cases, shop.test.js Cheat Day
+cases, new `test/items-cheatday.test.js`). Fixed one test made stale by the version bump. `node --check`
+clean on all touched files. **Live-verified in Chrome:** bought a token (200→300 price climb), used it on
+a lurker (popup rebuilt showing the active state), indulged for free (points/streak/occurrenceHistory all
+correctly unaffected, marker cleared); separately verified the rollover path with a backdated stale lurker
+whose `cheatDayDate` matched — silently excused, no check-in card, no duplicate spawn, no console errors.
+
+**Docs updated same session:** `docs/MECHANICS.md` (new "Cheat Day Token" section + rollover fork updated
+to three-way), `docs/ECONOMY.md` (Cheat Day row + shop summary), `docs/NEGATIVE_HABITS_PLAN.md`
+(sub-session 5 marked done with full detail), `docs/DECISIONS.md` (session 34), `docs/ROADMAP.md`
+(sub-session 5 checked, **[P1-DATA-005] marked fully CLOSED**).
+
+**Next:** [P1-DATA-005] is done. Milestone 3's remaining open items: frozen routine slots (now has both
+a check-in surface AND Cheat Day to build on — Sick/Skip Day tokens ride with this ticket too, per
+session 26), [P1-UI-006] hero/routine visuals, [P1-DATA-004] sub-task hierarchy, run history, and the
+deferred LIVE mid-session day-advance rollover. Jeremy's call which.
+
+**Watch out:**
+- **Test env for the migration:** `persistence-migration.test.js`'s v3→v4 test now asserts the
+  inventory-seeding STEP ran (not `schemaVersion === 4`), since `migrate()` chains a v3 save all the
+  way to the CURRENT version (5) in one call — any future schema bump will hit the same thing for
+  whichever test asserts an intermediate version number literally.
+- **Backdating for cheatDayDate rollover tests:** when hand-editing a save to test the excused rollover
+  path, the habit's `cheatDayDate` must be backdated to match the LURKER's backdated `originalDueDate`
+  — if you only backdate the item and forget the marker, `isCheatDayExcused` won't match and it'll fall
+  through to the check-in-eligible path instead (cost me a wrong first attempt this session).
+- Dev save has a `CheatDayTest-Snacking` test habit + this session's live-verification point/inventory
+  mutations. Recommend Reset before real play.
+
+---
+
 ## 2026-07-19 — Session 33: Sub-session 4 BUILT — daily check-in prompt (Cowork session, Opus plan → Sonnet execute)
 
 **Did:** Built the check-in surface flagged as unblocked in session 32. `js/dayRollover.js` gained

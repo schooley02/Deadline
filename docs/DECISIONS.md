@@ -4,6 +4,27 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 34: Sub-session 5 BUILT — Cheat Day token, [P1-DATA-005] CLOSED (Cowork session, Opus plan → Sonnet execute)
+
+**Problem:** the last piece of the negative-habits ticket — a shop-purchasable "free pass" for one negative habit's indulgence on one day, per the session-26 Fable fork (200 pts, excused not success/miss, streak preserved). Also the ticket's one deferred schema migration (4→5).
+
+**Design (no open forks — session 26 already settled semantics; this was execution + concrete technical mapping):**
+- Schema: `habitDef.cheatDayDate` ('YYYY-MM-DD' or null), schemaVersion 4→5, additive migration seeding null on every existing habit def (mirrors the v3→v4 inventory precedent).
+- Catalog: `CONFIG.SHOP_ITEMS` gains `cheat_day` (200 pts — spec/ECONOMY.md face value, unchanged; `consumable: true`, category `cheatDay`). `js/shop.js` needed NO changes — `purchase`/`consume` are already generic over any consumable id.
+- **Targeting decision:** Cheat Day is Buy-to-hold like a repair kit (shop card: Buy button + held count), but unlike a repair kit its "Use" isn't a shop-card button — it targets a SPECIFIC negative habit, so it's applied from that habit's lurker popup instead (reusing pushback's tap-a-zombie targeting shape, per the plan doc). `js/ui/shopView.js`'s card shows a "Tap a negative habit to use" hint once held > 0 (mirrors pushback's hint); `js/ui/popups.js`'s negative-habit-lurker actions gain a third row — "Use Cheat Day (N held)" when held > 0, or an "active" note when already applied to this lurker's day.
+- **The setTimeout(0) hazard, again:** using a token REPLACES the button with an "active" note — rebuilding DOM mid-click-bubble is exactly the session-21 shop hazard. Simplest correct fix: defer via `setTimeout(0)`, then close + reopen the SAME popup (reuses the existing render path rather than a bespoke in-place patch like pushback's).
+- **Where the excused check lives:** one predicate, `Items.isCheatDayExcused(habitDef, originalDueDate)`, checked in three places — `indulgeHabit` (live: skips the debit/streak/occurrence entirely), `resolvePendingCheckIn`'s indulged branch (defensive/belt-and-suspenders; in practice never reached because of the next point), and a NEW `Items.settleExcusedCheatDay` in state.js's rollover fork, checked FIRST — ahead of both the check-in-eligible split (sub-session 4) and the older-day auto-avoid default. This directly implements the plan doc's "the check-in card for that day auto-resolves as excused": a cheat-day-covered stale lurker never becomes a pendingCheckIn at all.
+
+**Structure:** `js/persistence.js` (SCHEMA_VERSION 5 + migration), `js/config.js` (+cheat_day catalog entry), `js/items.js` (+isCheatDayExcused, +settleExcusedCheatDay, indulgeHabit/resolvePendingCheckIn branches), `js/ui/shopView.js` (+cheatDay hint), `js/ui/popups.js` (+Use Cheat Day button/note), `css/popups.css` (+.cheat-day-active-note), `js/state.js` (three-way rollover fork), `script.js` (handleUseCheatDay mirroring handlePushback + popupsDeps/stateDeps wiring), `script.js`'s createHabitDefinition (seeds cheatDayDate: null on new habits).
+
+**Tests:** 26 suites, 498/498 (+16: 4 new persistence-migration v4→v5 cases, 4 new shop.test.js Cheat Day catalog/pricing cases, 8 new `test/items-cheatday.test.js` covering isCheatDayExcused/settleExcusedCheatDay/both excused-indulge branches). Also fixed a test made stale by the version bump (`persistence-migration.test.js`'s "bumps schemaVersion to 4" now asserts the v3→v4 STEP ran, not the final version, since migrate() chains all the way to 5 in one call) and widened `shop.test.js`'s category assertion to include `cheatDay`. `node --check` clean on all touched files.
+
+**Live-verified in Chrome:** created a negative habit, bought a Cheat Day (200→300 price climb confirmed, held: 1), tapped the lurker and used it — popup rebuilt in place showing "Cheat Day active — indulging today is free"; clicked "I indulged" — points unchanged, streak/occurrenceHistory/cheatDayDate all correctly untouched-then-cleared, no app-code console errors. Separately verified the rollover path: bought + applied a second token to today's fresh lurker, then backdated `currentGameDate` + the lurker's `originalDueDate` + the habit's `cheatDayDate` to match (session 32's neutered-flush trick) and reloaded — the stale lurker was silently excused (no check-in card, no duplicate spawn, `currentGameDate` advanced, occurrenceHistory/streak/points all unaffected).
+
+**[P1-DATA-005] is now fully CLOSED** — all 5 sub-sessions plus the session-26 Fable fork are built. Frozen routine slots (docs/ROUTINES.md) is the next related ticket and now has a real check-in surface + Cheat Day mechanic to build on.
+
+---
+
 ## 2026-07-19 — Session 33: Sub-session 4 BUILT — daily check-in prompt (Cowork session, Opus plan → Sonnet execute)
 
 **Problem:** session 30/32 left the previous day's negative-habit lurker silently auto-resolving as "avoided" at rollover — generous but never actually asked the player. NEGATIVE_HABITS_PLAN.md sub-session 4 (now unblocked by session 32's day-advance mechanism) specs a binary confirmation card instead, for the SINGLE most recent prior day only; older days keep the silent auto-avoid default (session 26).
