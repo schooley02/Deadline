@@ -45,6 +45,108 @@
 const Forms = (() => {
 
     // ---------------------------------------------------------------------
+    // Schedule fields — day-of-week / day-of-month widget shared by every
+    // recurring-definition form (session 15, 2026-07-18, see DECISIONS.md).
+    // routineViews.js keeps its own copy of these three helpers rather than
+    // sharing across files — same "each cluster inlines its own markup"
+    // convention the rest of js/ui/ already follows (see this file's header
+    // and popups.js/routineViews.js's precedent). Schedule itself stays a
+    // pure, DOM-free global (js/schedule.js); these helpers are the DOM glue
+    // around it.
+    //
+    // UI/data-model reconciliation: "Daily" and "Weekly" are cosmetic labels
+    // over the SAME daysOfWeek filter (see js/schedule.js header) — the
+    // frequency dropdown only meaningfully branches behavior for "Monthly".
+    // Selecting Daily auto-checks all 7 boxes (editable, not locked — the
+    // user can still hand-pick a subset while "Daily" stays selected, which
+    // is functionally identical to Weekly with that subset). Selecting
+    // Weekly clears the boxes ONLY if they were all still checked (the
+    // untouched "Daily" state) — an explicit pick already in progress is
+    // never wiped by a frequency change.
+    // ---------------------------------------------------------------------
+    const SCHEDULE_DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+    function scheduleFieldsHtml(prefix, schedule) {
+        const s = schedule || Schedule.defaultSchedule();
+        const daysHtml = SCHEDULE_DAY_LABELS.map((label, i) => `
+            <label class="day-checkbox">
+                <input type="checkbox" id="${prefix}Day${i}" value="${i}" ${s.daysOfWeek.includes(i) ? 'checked' : ''}>
+                <span>${label}</span>
+            </label>
+        `).join('');
+
+        return `
+            <div class="form-row">
+                <label for="${prefix}Frequency">Frequency:</label>
+                <select id="${prefix}Frequency">
+                    <option value="daily" ${s.frequency === 'daily' ? 'selected' : ''}>Daily</option>
+                    <option value="weekly" ${s.frequency === 'weekly' ? 'selected' : ''}>Weekly</option>
+                    <option value="monthly" ${s.frequency === 'monthly' ? 'selected' : ''}>Monthly</option>
+                </select>
+            </div>
+            <div class="form-row schedule-days-row" id="${prefix}DaysOfWeekRow" style="${s.frequency === 'monthly' ? 'display:none;' : ''}">
+                <label>Repeat on:</label>
+                <div class="days-of-week-checkboxes">${daysHtml}</div>
+            </div>
+            <div class="form-row schedule-month-row" id="${prefix}DayOfMonthRow" style="${s.frequency === 'monthly' ? '' : 'display:none;'}">
+                <label for="${prefix}DayOfMonth">Day of Month:</label>
+                <input type="number" id="${prefix}DayOfMonth" min="1" max="31" value="${s.dayOfMonth || 1}">
+            </div>
+        `;
+    }
+
+    // Wires the frequency dropdown's show/hide + auto-check behavior. Call
+    // once after the form HTML is in the DOM.
+    function wireScheduleFieldsToggle(prefix) {
+        const freqSelect = document.getElementById(`${prefix}Frequency`);
+        const daysRow = document.getElementById(`${prefix}DaysOfWeekRow`);
+        const monthRow = document.getElementById(`${prefix}DayOfMonthRow`);
+        if (!freqSelect) return;
+
+        freqSelect.addEventListener('change', () => {
+            const freq = freqSelect.value;
+            if (daysRow) daysRow.style.display = freq === 'monthly' ? 'none' : '';
+            if (monthRow) monthRow.style.display = freq === 'monthly' ? '' : 'none';
+
+            if (freq === 'daily') {
+                Schedule.ALL_DAYS.forEach(d => {
+                    const cb = document.getElementById(`${prefix}Day${d}`);
+                    if (cb) cb.checked = true;
+                });
+            } else if (freq === 'weekly') {
+                const allChecked = Schedule.ALL_DAYS.every(d => {
+                    const cb = document.getElementById(`${prefix}Day${d}`);
+                    return cb && cb.checked;
+                });
+                if (allChecked) {
+                    Schedule.ALL_DAYS.forEach(d => {
+                        const cb = document.getElementById(`${prefix}Day${d}`);
+                        if (cb) cb.checked = false;
+                    });
+                }
+            }
+        });
+    }
+
+    // Reads the widget back into a normalized Schedule object on submit.
+    function readScheduleFromFields(prefix) {
+        const freqSelect = document.getElementById(`${prefix}Frequency`);
+        const frequency = freqSelect ? freqSelect.value : 'daily';
+
+        if (frequency === 'monthly') {
+            const dayInput = document.getElementById(`${prefix}DayOfMonth`);
+            const dayOfMonth = dayInput ? parseInt(dayInput.value, 10) : 1;
+            return Schedule.normalize({ frequency: 'monthly', daysOfWeek: [], dayOfMonth });
+        }
+
+        const daysOfWeek = Schedule.ALL_DAYS.filter(d => {
+            const cb = document.getElementById(`${prefix}Day${d}`);
+            return cb && cb.checked;
+        });
+        return Schedule.normalize({ frequency, daysOfWeek, dayOfMonth: null });
+    }
+
+    // ---------------------------------------------------------------------
     // Form HTML builders — pure, no script.js state
     // ---------------------------------------------------------------------
 
@@ -132,12 +234,7 @@ const Forms = (() => {
                     <option value="spirituality">Spirituality</option>
                 </select>
             </div>
-            <div class="form-row">
-                <label for="modalHabitFrequency">Frequency:</label>
-                <select id="modalHabitFrequency">
-                    <option value="daily">Daily</option>
-                </select>
-            </div>
+            ${scheduleFieldsHtml('modalHabit', Schedule.defaultSchedule())}
             <div class="form-row">
                 <label for="modalHabitTimeOfDay">Completion Window:</label>
                 <select id="modalHabitTimeOfDay">
@@ -211,6 +308,7 @@ const Forms = (() => {
         // Small delay to ensure DOM is updated
         setTimeout(() => {
             attachModalEventListeners(formType, deps);
+            if (formType === 'habit') wireScheduleFieldsToggle('modalHabit');
         }, 50);
     }
 
@@ -276,13 +374,12 @@ const Forms = (() => {
                     addHabitBtn.addEventListener('click', () => {
                         const nameInput = modal.querySelector('#modalHabitName');
                         const categoryInput = modal.querySelector('#modalHabitCategory');
-                        const frequencyInput = modal.querySelector('#modalHabitFrequency');
                         const timeOfDayInput = modal.querySelector('#modalHabitTimeOfDay');
                         const typeRadio = modal.querySelector('input[name="modalHabitType"]:checked');
 
                         const name = nameInput ? nameInput.value.trim() : '';
                         const category = categoryInput ? categoryInput.value : 'health';
-                        const frequency = frequencyInput ? frequencyInput.value : 'daily';
+                        const schedule = readScheduleFromFields('modalHabit');
                         const timeOfDay = timeOfDayInput ? timeOfDayInput.value : 'anytime';
                         const isNegative = typeRadio ? typeRadio.value === 'negative' : false;
 
@@ -290,8 +387,12 @@ const Forms = (() => {
                             alert('Habit Name is required.');
                             return;
                         }
+                        if (schedule.frequency !== 'monthly' && schedule.daysOfWeek.length === 0) {
+                            alert('Please select at least one day.');
+                            return;
+                        }
 
-                        deps.createHabitDefinition(name, category, frequency, timeOfDay, isNegative);
+                        deps.createHabitDefinition(name, category, schedule, timeOfDay, isNegative);
                         Modal.closeModal();
 
                         // Update habits window if open

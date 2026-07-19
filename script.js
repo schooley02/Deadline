@@ -564,15 +564,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Habit system functions
-    function createHabitDefinition(name, category, frequency, timeOfDay, isNegative = false) {
+    function createHabitDefinition(name, category, scheduleOrFrequency, timeOfDay, isNegative = false) {
         const newHabitDef = {
             id: `habitDef_${definedHabits.length}_${Date.now()}`,
             name,
             category,
             // Recurrence is a `schedule` object as of schemaVersion 3 (2026-07-18).
-            // The form still passes a `frequency` string (only 'daily' until the
-            // scheduling UI lands); Schedule.fromLegacyFrequency converts it.
-            schedule: Schedule.fromLegacyFrequency(frequency),
+            // Schedule.normalize accepts either a full schedule object (the
+            // scheduling UI, session 15) or a legacy bare frequency string
+            // (any older caller), so this one call handles both.
+            schedule: Schedule.normalize(scheduleOrFrequency),
             timeOfDay,
             isNegative,
             // null = standalone (not owned by any routine), so it spawns daily

@@ -78,13 +78,12 @@ Habit {
   occurrenceHistory: { date: "YYYY-MM-DD", success: boolean }[]
 }
 
-// BUILT 2026-07-18 (session 14) as js/schedule.js + schemaVersion 2→3 migration.
-// Replaces the former bare `frequency: 'daily'` string on both `definedHabits`
-// entries and routine task definitions (`definedTasks`) — both get this same
-// Schedule object, since both are recurring definitions. Deliberately NOT
-// extended to one-off standalone tasks (they don't recur). The scheduling UI
-// (day-of-week checkboxes / day-of-month field) is a SEPARATE follow-up — until
-// it lands, every created/migrated definition is daily-all-7. See DECISIONS.md.
+// BUILT 2026-07-18: js/schedule.js + schemaVersion 2→3 migration (session 14),
+// scheduling UI in all 5 recurring-definition forms (session 15). Replaces the
+// former bare `frequency: 'daily'` string on both `definedHabits` entries and
+// routine task definitions (`definedTasks`) — both get this same Schedule
+// object, since both are recurring definitions. Deliberately NOT extended to
+// one-off standalone tasks (they don't recur). See DECISIONS.md.
 Schedule {
   frequency: "daily"|"weekly"|"monthly",
   daysOfWeek: number[],     // 0=Sun..6=Sat. Used for "daily" (default: all 7,

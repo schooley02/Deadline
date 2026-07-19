@@ -1313,6 +1313,28 @@ body {
     box-shadow: 0 0 0 3px rgba(10, 95, 85, 0.1);
 }
 
+/* Schedule widget (day-of-week / day-of-month) — session 15, 2026-07-18 */
+.days-of-week-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.day-checkbox {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-weight: 400;
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
+.day-checkbox input[type="checkbox"] {
+    width: auto;
+    transform: scale(1.2);
+}
+
 .priority-row {
     display: flex;
     align-items: center;

@@ -287,6 +287,28 @@ describe('createNewHabitInRoutine', () => {
         const newHabit = Routines.createNewHabitInRoutine('r1', { name: 'Meditate', category: 'wellness', frequency: 'daily', timeOfDay: 'morning' }, routines, []);
         expect(newHabit.routineId).toBe('r1');
     });
+
+    // Session 15 (2026-07-18): scheduling UI passes a full schedule object.
+    test('a legacy bare frequency string still converts to a daily schedule', () => {
+        const routines = [routine('r1')];
+        const newHabit = Routines.createNewHabitInRoutine('r1', { name: 'Meditate', category: 'wellness', frequency: 'daily', timeOfDay: 'morning' }, routines, []);
+        expect(newHabit.schedule).toEqual({ frequency: 'daily', daysOfWeek: [0, 1, 2, 3, 4, 5, 6], dayOfMonth: null });
+        expect(newHabit.occurrenceHistory).toEqual([]);
+    });
+
+    test('a full schedule object from the scheduling UI is preferred over frequency', () => {
+        const routines = [routine('r1')];
+        const weekly = { frequency: 'weekly', daysOfWeek: [1, 3, 5], dayOfMonth: null };
+        const newHabit = Routines.createNewHabitInRoutine('r1', { name: 'Meditate', category: 'wellness', schedule: weekly, timeOfDay: 'morning' }, routines, []);
+        expect(newHabit.schedule).toEqual(weekly);
+    });
+
+    test('a monthly schedule is preserved as-is', () => {
+        const routines = [routine('r1')];
+        const monthly = { frequency: 'monthly', daysOfWeek: [], dayOfMonth: 15 };
+        const newHabit = Routines.createNewHabitInRoutine('r1', { name: 'Pay rent', category: 'financial', schedule: monthly, timeOfDay: 'morning' }, routines, []);
+        expect(newHabit.schedule).toEqual(monthly);
+    });
 });
 
 describe('createNewTaskInRoutine', () => {
@@ -305,6 +327,20 @@ describe('createNewTaskInRoutine', () => {
         const newTask = Routines.createNewTaskInRoutine('r1', { name: 'X', category: 'other' }, routines, tasks);
         expect(routines[0].taskDefinitionIds).toEqual([newTask.id]);
     });
+
+    // Session 15 (2026-07-18): routine tasks gained a schedule too.
+    test('defaults to a daily schedule when the form provides none', () => {
+        const routines = [routine('r1')];
+        const newTask = Routines.createNewTaskInRoutine('r1', { name: 'X', category: 'other' }, routines, []);
+        expect(newTask.schedule).toEqual({ frequency: 'daily', daysOfWeek: [0, 1, 2, 3, 4, 5, 6], dayOfMonth: null });
+    });
+
+    test('honors a schedule passed from the scheduling UI', () => {
+        const routines = [routine('r1')];
+        const monthly = { frequency: 'monthly', daysOfWeek: [], dayOfMonth: 1 };
+        const newTask = Routines.createNewTaskInRoutine('r1', { name: 'Pay rent', category: 'financial', schedule: monthly }, routines, []);
+        expect(newTask.schedule).toEqual(monthly);
+    });
 });
 
 describe('editHabitInRoutine / editTaskInRoutine', () => {
@@ -318,6 +354,37 @@ describe('editHabitInRoutine / editTaskInRoutine', () => {
 
     test('editHabitInRoutine returns false for an unknown id', () => {
         expect(Routines.editHabitInRoutine('nope', {}, [])).toBe(false);
+    });
+
+    // Session 15 (2026-07-18): editHabitInRoutine prefers a full schedule
+    // object over the legacy frequency fallback.
+    test('editHabitInRoutine prefers a full schedule object when provided', () => {
+        const habits = [habitDef('h1')];
+        const weekly = { frequency: 'weekly', daysOfWeek: [2, 4], dayOfMonth: null };
+        Routines.editHabitInRoutine('h1', { name: 'X', category: 'other', schedule: weekly, timeOfDay: 'morning', isNegative: false }, habits);
+        expect(habits[0].schedule).toEqual(weekly);
+    });
+
+    // Session 15: editTaskInRoutine gains schedule support.
+    test('editTaskInRoutine writes a provided schedule', () => {
+        const tasks = [taskDef('t1', { schedule: { frequency: 'daily', daysOfWeek: [0,1,2,3,4,5,6], dayOfMonth: null } })];
+        const weekly = { frequency: 'weekly', daysOfWeek: [1, 3, 5], dayOfMonth: null };
+        expect(Routines.editTaskInRoutine('t1', { name: 'X', category: 'other', isHighPriority: false, defaultDueTime: '09:00', schedule: weekly }, tasks)).toBe(true);
+        expect(tasks[0].schedule).toEqual(weekly);
+    });
+
+    test('editTaskInRoutine preserves the existing schedule when none is provided', () => {
+        const existing = { frequency: 'monthly', daysOfWeek: [], dayOfMonth: 5 };
+        const tasks = [taskDef('t1', { schedule: existing })];
+        Routines.editTaskInRoutine('t1', { name: 'X', category: 'other', isHighPriority: false, defaultDueTime: '09:00' }, tasks);
+        expect(tasks[0].schedule).toEqual(existing);
+    });
+
+    test('editTaskInRoutine defaults to daily when the task never had a schedule and none is provided', () => {
+        const tasks = [taskDef('t1')];
+        delete tasks[0].schedule;
+        Routines.editTaskInRoutine('t1', { name: 'X', category: 'other', isHighPriority: false, defaultDueTime: '09:00' }, tasks);
+        expect(tasks[0].schedule).toEqual({ frequency: 'daily', daysOfWeek: [0, 1, 2, 3, 4, 5, 6], dayOfMonth: null });
     });
 
     test('editTaskInRoutine updates fields in place and returns true', () => {

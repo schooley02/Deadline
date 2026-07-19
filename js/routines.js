@@ -259,9 +259,11 @@ const Routines = (() => {
             id: `habitDef_${definedHabits.length}_${Date.now()}`,
             name: habitData.name,
             category: habitData.category,
-            // schemaVersion 3 (2026-07-18): recurrence is a `schedule` object,
-            // built from the form's still-'daily' frequency string.
-            schedule: Schedule.fromLegacyFrequency(habitData.frequency),
+            // schemaVersion 3 (2026-07-18): recurrence is a `schedule` object.
+            // Prefers a full schedule from the scheduling UI (session 15);
+            // falls back to converting a legacy bare frequency string for any
+            // older caller.
+            schedule: habitData.schedule ? Schedule.normalize(habitData.schedule) : Schedule.fromLegacyFrequency(habitData.frequency),
             timeOfDay: habitData.timeOfDay,
             isNegative: habitData.isNegative || false,
             // Owned by this routine — only spawns while the routine isActive.
@@ -334,6 +336,19 @@ const Routines = (() => {
         task.category = updatedData.category;
         task.isHighPriority = updatedData.isHighPriority;
         task.defaultDueTime = updatedData.defaultDueTime;
+        // schemaVersion 3 (2026-07-18, session 15): routine tasks gained a
+        // schedule. Preserves the existing schedule if the caller doesn't
+        // provide one (rather than silently resetting a custom weekly/monthly
+        // pick to daily on every edit) — mirrors editHabitInRoutine's
+        // schedule-preferred, frequency-fallback pattern, but with no
+        // frequency fallback to fall back TO here (routine tasks never had a
+        // bare frequency field), so an absent schedule keeps whatever the
+        // task already had.
+        if (updatedData.schedule) {
+            task.schedule = Schedule.normalize(updatedData.schedule);
+        } else if (!task.schedule) {
+            task.schedule = Schedule.defaultSchedule();
+        }
 
         return true;
     }

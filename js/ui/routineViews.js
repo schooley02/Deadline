@@ -49,6 +49,94 @@
  */
 const RoutineViews = (() => {
 
+    // ---------------------------------------------------------------------
+    // Schedule fields — day-of-week / day-of-month widget shared by all four
+    // recurring-definition forms below (session 15, 2026-07-18, see
+    // DECISIONS.md). Duplicates js/ui/forms.js's copy of the same three
+    // helpers rather than sharing across files — the established convention
+    // for this codebase's js/ui/ clusters (see forms.js's header). Schedule
+    // itself (js/schedule.js) stays a pure, DOM-free global; these are the
+    // DOM glue around it.
+    // ---------------------------------------------------------------------
+    const SCHEDULE_DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+    function scheduleFieldsHtml(prefix, schedule) {
+        const s = schedule || Schedule.defaultSchedule();
+        const daysHtml = SCHEDULE_DAY_LABELS.map((label, i) => `
+            <label class="day-checkbox">
+                <input type="checkbox" id="${prefix}Day${i}" value="${i}" ${s.daysOfWeek.includes(i) ? 'checked' : ''}>
+                <span>${label}</span>
+            </label>
+        `).join('');
+
+        return `
+            <div class="form-row">
+                <label for="${prefix}Frequency">Frequency:</label>
+                <select id="${prefix}Frequency">
+                    <option value="daily" ${s.frequency === 'daily' ? 'selected' : ''}>Daily</option>
+                    <option value="weekly" ${s.frequency === 'weekly' ? 'selected' : ''}>Weekly</option>
+                    <option value="monthly" ${s.frequency === 'monthly' ? 'selected' : ''}>Monthly</option>
+                </select>
+            </div>
+            <div class="form-row schedule-days-row" id="${prefix}DaysOfWeekRow" style="${s.frequency === 'monthly' ? 'display:none;' : ''}">
+                <label>Repeat on:</label>
+                <div class="days-of-week-checkboxes">${daysHtml}</div>
+            </div>
+            <div class="form-row schedule-month-row" id="${prefix}DayOfMonthRow" style="${s.frequency === 'monthly' ? '' : 'display:none;'}">
+                <label for="${prefix}DayOfMonth">Day of Month:</label>
+                <input type="number" id="${prefix}DayOfMonth" min="1" max="31" value="${s.dayOfMonth || 1}">
+            </div>
+        `;
+    }
+
+    function wireScheduleFieldsToggle(prefix) {
+        const freqSelect = document.getElementById(`${prefix}Frequency`);
+        const daysRow = document.getElementById(`${prefix}DaysOfWeekRow`);
+        const monthRow = document.getElementById(`${prefix}DayOfMonthRow`);
+        if (!freqSelect) return;
+
+        freqSelect.addEventListener('change', () => {
+            const freq = freqSelect.value;
+            if (daysRow) daysRow.style.display = freq === 'monthly' ? 'none' : '';
+            if (monthRow) monthRow.style.display = freq === 'monthly' ? '' : 'none';
+
+            if (freq === 'daily') {
+                Schedule.ALL_DAYS.forEach(d => {
+                    const cb = document.getElementById(`${prefix}Day${d}`);
+                    if (cb) cb.checked = true;
+                });
+            } else if (freq === 'weekly') {
+                const allChecked = Schedule.ALL_DAYS.every(d => {
+                    const cb = document.getElementById(`${prefix}Day${d}`);
+                    return cb && cb.checked;
+                });
+                if (allChecked) {
+                    Schedule.ALL_DAYS.forEach(d => {
+                        const cb = document.getElementById(`${prefix}Day${d}`);
+                        if (cb) cb.checked = false;
+                    });
+                }
+            }
+        });
+    }
+
+    function readScheduleFromFields(prefix) {
+        const freqSelect = document.getElementById(`${prefix}Frequency`);
+        const frequency = freqSelect ? freqSelect.value : 'daily';
+
+        if (frequency === 'monthly') {
+            const dayInput = document.getElementById(`${prefix}DayOfMonth`);
+            const dayOfMonth = dayInput ? parseInt(dayInput.value, 10) : 1;
+            return Schedule.normalize({ frequency: 'monthly', daysOfWeek: [], dayOfMonth });
+        }
+
+        const daysOfWeek = Schedule.ALL_DAYS.filter(d => {
+            const cb = document.getElementById(`${prefix}Day${d}`);
+            return cb && cb.checked;
+        });
+        return Schedule.normalize({ frequency, daysOfWeek, dayOfMonth: null });
+    }
+
     /**
      * deps: { definedRoutines (getter), activeRoutineCountDisplay }
      */
@@ -675,12 +763,7 @@ const RoutineViews = (() => {
                             <option value="spirituality">Spirituality</option>
                         </select>
                     </div>
-                    <div class="form-row">
-                        <label>Frequency:</label>
-                        <select id="newHabitFrequency">
-                            <option value="daily">Daily</option>
-                        </select>
-                    </div>
+                    ${scheduleFieldsHtml('newHabit', Schedule.defaultSchedule())}
                     <div class="form-row">
                         <label>Time of Day:</label>
                         <select id="newHabitTimeOfDay">
@@ -698,6 +781,7 @@ const RoutineViews = (() => {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', formHtml);
+        wireScheduleFieldsToggle('newHabit');
     }
 
     // No deps — pure HTML-string builder (see showCreateHabitForm note).
@@ -731,6 +815,7 @@ const RoutineViews = (() => {
                         <input type="checkbox" id="newTaskHighPriority">
                         <label for="newTaskHighPriority">High Priority</label>
                     </div>
+                    ${scheduleFieldsHtml('newTask', Schedule.defaultSchedule())}
                     <div class="modal-buttons">
                         <button class="primary-button" onclick="saveNewTask('${routineId}')">Create Task</button>
                         <button class="secondary-button" onclick="closeModal()">Cancel</button>
@@ -739,6 +824,7 @@ const RoutineViews = (() => {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', formHtml);
+        wireScheduleFieldsToggle('newTask');
     }
 
     // No deps — pure HTML-string builder (see showCreateHabitForm note).
@@ -781,12 +867,7 @@ const RoutineViews = (() => {
                             <option value="spirituality" ${habitDef.category === 'spirituality' ? 'selected' : ''}>Spirituality</option>
                         </select>
                     </div>
-                    <div class="form-row">
-                        <label>Frequency:</label>
-                        <select id="editHabitFrequency">
-                            <option value="daily" ${(habitDef.schedule ? habitDef.schedule.frequency : habitDef.frequency) === 'daily' ? 'selected' : ''}>Daily</option>
-                        </select>
-                    </div>
+                    ${scheduleFieldsHtml('editHabit', habitDef.schedule ? Schedule.normalize(habitDef.schedule) : Schedule.fromLegacyFrequency(habitDef.frequency))}
                     <div class="form-row">
                         <label>Time of Day:</label>
                         <select id="editHabitTimeOfDay">
@@ -804,6 +885,7 @@ const RoutineViews = (() => {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', formHtml);
+        wireScheduleFieldsToggle('editHabit');
     }
 
     // No deps — pure HTML-string builder (see showCreateHabitForm note).
@@ -837,6 +919,7 @@ const RoutineViews = (() => {
                         <input type="checkbox" id="editTaskHighPriority" ${taskDef.isHighPriority ? 'checked' : ''}>
                         <label for="editTaskHighPriority">High Priority</label>
                     </div>
+                    ${scheduleFieldsHtml('editTask', taskDef.schedule ? Schedule.normalize(taskDef.schedule) : Schedule.defaultSchedule())}
                     <div class="modal-buttons">
                         <button class="primary-button" onclick="saveEditedTask('${taskDef.id}')">Save Changes</button>
                         <button class="secondary-button" onclick="closeModal()">Cancel</button>
@@ -845,6 +928,7 @@ const RoutineViews = (() => {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', formHtml);
+        wireScheduleFieldsToggle('editTask');
     }
 
     /**
@@ -855,7 +939,7 @@ const RoutineViews = (() => {
     function saveNewHabit(routineId, deps) {
         const name = document.getElementById('newHabitName').value.trim();
         const category = document.getElementById('newHabitCategory').value;
-        const frequency = document.getElementById('newHabitFrequency').value;
+        const schedule = readScheduleFromFields('newHabit');
         const timeOfDay = document.getElementById('newHabitTimeOfDay').value;
         const isNegative = document.querySelector('input[name="habitType"]:checked').value === 'negative';
 
@@ -863,8 +947,12 @@ const RoutineViews = (() => {
             alert('Please enter a habit name.');
             return;
         }
+        if (schedule.frequency !== 'monthly' && schedule.daysOfWeek.length === 0) {
+            alert('Please select at least one day.');
+            return;
+        }
 
-        deps.createNewHabitInRoutine(routineId, { name, category, frequency, timeOfDay, isNegative });
+        deps.createNewHabitInRoutine(routineId, { name, category, schedule, timeOfDay, isNegative });
         Modal.closeModal();
     }
 
@@ -876,13 +964,18 @@ const RoutineViews = (() => {
         const category = document.getElementById('newTaskCategory').value;
         const defaultDueTime = document.getElementById('newTaskDueTime').value;
         const isHighPriority = document.getElementById('newTaskHighPriority').checked;
+        const schedule = readScheduleFromFields('newTask');
 
         if (!name) {
             alert('Please enter a task name.');
             return;
         }
+        if (schedule.frequency !== 'monthly' && schedule.daysOfWeek.length === 0) {
+            alert('Please select at least one day.');
+            return;
+        }
 
-        deps.createNewTaskInRoutine(routineId, { name, category, defaultDueTime, isHighPriority });
+        deps.createNewTaskInRoutine(routineId, { name, category, defaultDueTime, isHighPriority, schedule });
         Modal.closeModal();
     }
 
@@ -893,7 +986,7 @@ const RoutineViews = (() => {
     function saveEditedHabit(habitId, deps) {
         const name = document.getElementById('editHabitName').value.trim();
         const category = document.getElementById('editHabitCategory').value;
-        const frequency = document.getElementById('editHabitFrequency').value;
+        const schedule = readScheduleFromFields('editHabit');
         const timeOfDay = document.getElementById('editHabitTimeOfDay').value;
         const isNegative = document.querySelector('input[name="editHabitType"]:checked').value === 'negative';
 
@@ -901,8 +994,12 @@ const RoutineViews = (() => {
             alert('Please enter a habit name.');
             return;
         }
+        if (schedule.frequency !== 'monthly' && schedule.daysOfWeek.length === 0) {
+            alert('Please select at least one day.');
+            return;
+        }
 
-        deps.editHabitInRoutine(habitId, { name, category, frequency, timeOfDay, isNegative });
+        deps.editHabitInRoutine(habitId, { name, category, schedule, timeOfDay, isNegative });
 
         // Keep any already-spawned instance of this habit in sync, so editing
         // from today's agenda row (or anywhere else) doesn't go stale until
@@ -943,13 +1040,18 @@ const RoutineViews = (() => {
         const category = document.getElementById('editTaskCategory').value;
         const defaultDueTime = document.getElementById('editTaskDueTime').value;
         const isHighPriority = document.getElementById('editTaskHighPriority').checked;
+        const schedule = readScheduleFromFields('editTask');
 
         if (!name) {
             alert('Please enter a task name.');
             return;
         }
+        if (schedule.frequency !== 'monthly' && schedule.daysOfWeek.length === 0) {
+            alert('Please select at least one day.');
+            return;
+        }
 
-        deps.editTaskInRoutine(taskId, { name, category, defaultDueTime, isHighPriority });
+        deps.editTaskInRoutine(taskId, { name, category, defaultDueTime, isHighPriority, schedule });
         Modal.closeModal();
     }
 

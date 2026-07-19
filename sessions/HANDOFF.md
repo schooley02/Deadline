@@ -13,6 +13,23 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-18 — Session 15: scheduling step (b) — day-of-week/day-of-month UI (Cowork session)
+
+**Did:** Built the scheduling UI on top of session 14's data layer. Shared widget (Frequency dropdown + day-of-week checkboxes + day-of-month field), duplicated once in `js/ui/forms.js` and once in `js/ui/routineViews.js` per the established per-cluster convention, wired into all 5 recurring-definition forms: standalone habit create, routine habit create/edit, routine task create/edit. Daily auto-checks all 7 days (still editable); Weekly clears the boxes only if they were still all-checked, so an in-progress custom pick or a Weekly↔Monthly toggle is never wiped. `createHabitDefinition`, `createNewHabitInRoutine`, `editHabitInRoutine` now prefer a full `schedule` object; `editTaskInRoutine` gained schedule support it never had (preserves the existing schedule if none is passed, rather than resetting to daily). Client-side "select at least one day" validation added to all 4 save handlers.
+
+**State:** ✅ **17 suites, 338/338** (was 329 — +9 routines.js data-layer cases; DOM widget code itself isn't unit tested, matching this repo's no-jsdom convention — verified live instead). `node --check` clean on script.js, routines.js, forms.js, routineViews.js. **Live-verified in Chrome:** created a standalone Weekly habit (Mon/Wed/Fri) — correctly didn't spawn on today (Saturday); created a routine Monthly task (day 18 = today) via Manage Routine → Add Task — correctly spawned; edited a session-14-migrated habit (ADSFA) from its daily-all-7 default to Monthly day 5 via the agenda pencil — pre-filled correctly, saved correctly, survived a reload. Console clean apart from the pre-existing extension noise.
+
+**Docs updated same session:** ARCHITECTURE.md (forms.js/routineViews.js entries), DATA_SCHEMA.md (Schedule marked fully BUILT), MECHANICS.md (Scheduling section marked BUILT), DECISIONS.md (session 15 entry with the two scope/design questions asked), ROADMAP.md (step (b) checked off, (c) is now the only open scheduling piece).
+
+**Next:** step (c) — the rate-based bonus. Record into `occurrenceHistory` on habit completion/overdue (touches items.js's `completeItem`/`uncompleteItem` and habits.js's `markAsOverdue`-adjacent reset path), then compute the rolling-rate multiplier and apply it wherever points are awarded (habits.js's `applyHabitCompletion`/`applyHabitUncompletion`). This is the last piece of the session-13 design batch. Recommend Opus to plan the completion-path touch points (unplanned judgment: exactly where in the completion flow the occurrence gets recorded), Sonnet to execute once the shape is clear.
+
+**Watch out:**
+- New standalone/routine habits and tasks created between sessions now get whatever schedule the user actually picked — daily-all-7 is no longer the only possible outcome. If step (c) or any future generator work assumes daily, re-check against real data.
+- `editTaskInRoutine`'s "preserve if absent" behavior is a deliberate asymmetry from `editHabitInRoutine`'s "fall back to frequency" — don't try to unify them without re-reading the session-15 DECISIONS.md rationale (routine tasks have no legacy frequency field to fall back to).
+- Sandbox scratch dir this session: `/sessions/<name>/dl-s15`.
+
+---
+
 ## 2026-07-18 — Session 14: scheduling step (a) — schemaVersion 3 migration + schedule-aware generators (Cowork session)
 
 **Did:** First implementation off the session-13 design batch, scoped strictly to step (a) (persistence work, one-system-per-session). New pure `js/schedule.js` (daily/weekly day-of-week filter + monthly with short-month/leap-year clamping). Bumped `Persistence.SCHEMA_VERSION` to 3 with a v2→v3 migration: habit defs' bare `frequency` string → `schedule` object + seed `occurrenceHistory: []`; routine task defs gain a default daily `schedule`. Creation/edit functions (`createHabitDefinition`, `createNewHabitInRoutine`, `createNewTaskInRoutine`, `editHabitInRoutine`) now write `schedule`; generators (`selectHabitDefsToSpawn`, `selectTaskDefsToSpawn`) gate on `Schedule.isScheduledForDay`. One UI read touch-up in routineViews (edit-habit frequency dropdown). Wired schedule.js into index.html after config.js.

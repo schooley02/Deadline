@@ -64,15 +64,16 @@
 - **Editing a task's due date re-evaluates overdue state** (`recomputeOverdueStateAfterEdit`, companion fix to the above): pushing an overdue task's deadline into the future clears its overdue flag/visuals and stops further damage — the intended escape hatch if a deadline was set too aggressively. Pulling a not-yet-due task's deadline into the past marks it overdue immediately. Not yet wired into the habit-instance editor (frequency/time-of-day changes there still don't retroactively move today's instance — pre-existing gap, see ROUTINES.md/DECISIONS.md).
 - Offline HEALING (gradual recovery while away) is NOT implemented yet — it's part of the gradual-regen design decided 2026-07-18 (see Base above): same 1 HP/5min rate applied on restore AFTER offline damage, clamped at 100. Lands with [P2-GAME-012].
 
-## Scheduling — day-of-week / monthly recurrence (DESIGNED 2026-07-18, not yet built)
+## Scheduling — day-of-week / monthly recurrence (BUILT 2026-07-18)
 
-Requested by Jeremy: some routines need certain habits/tasks active only on weekdays vs. weekends, or on a specific day of the month. Design finalized (see docs/DATA_SCHEMA.md `Schedule` and DECISIONS.md 2026-07-18):
-- Replaces the current always-`'daily'` frequency on both habit definitions AND routine task definitions with a `schedule` object: `{ frequency: 'daily'|'weekly'|'monthly', daysOfWeek: number[], dayOfMonth: number|null }`.
-- "Daily" and "weekly" share one mechanism — a day-of-week checkbox filter (0=Sun..6=Sat). Daily defaults to all 7 checked (today's behavior, unchanged); weekly defaults to none, forcing an explicit pick. No separate streak/dedupe logic for weekly vs. daily-with-a-subset — same generator path, same per-scheduled-day streak accounting.
-- "Monthly" uses a single `dayOfMonth` (1-31) instead of checkboxes. If the target month is shorter than `dayOfMonth`, clamp to that month's last day (31 → Feb 28/29) rather than skipping the month.
-- Scope: habits and routine tasks only (both are recurring definitions already). One-off standalone tasks are NOT getting a recurrence schedule — they stay one-off.
-- Needs a `schemaVersion` bump + migration (old `frequency: 'daily'` string → `schedule: { frequency: 'daily', daysOfWeek: [0,1,2,3,4,5,6] }`) so existing saves aren't broken.
-- Not yet on the ROADMAP as an active session's work — logged here and in DECISIONS.md so the next session implementing it (or the habits/routines Milestone 2 extraction, which touches the same generators) doesn't rediscover this from scratch.
+Requested by Jeremy: some routines need certain habits/tasks active only on weekdays vs. weekends, or on a specific day of the month. See docs/DATA_SCHEMA.md `Schedule` and DECISIONS.md 2026-07-18 (sessions 14-15):
+- Replaces the old always-`'daily'` frequency on both habit definitions AND routine task definitions with a `schedule` object: `{ frequency: 'daily'|'weekly'|'monthly', daysOfWeek: number[], dayOfMonth: number|null }`.
+- "Daily" and "weekly" share one mechanism — a day-of-week checkbox filter (0=Sun..6=Sat). Daily defaults to all 7 checked; weekly defaults to none, forcing an explicit pick. No separate streak/dedupe logic for weekly vs. daily-with-a-subset — same generator path, same per-scheduled-day streak accounting.
+- "Monthly" uses a single `dayOfMonth` (1-31) instead of checkboxes. If the target month is shorter than `dayOfMonth`, clamps to that month's last day (31 → Feb 28/29) rather than skipping the month.
+- Scope: habits and routine tasks only (both are recurring definitions already). One-off standalone tasks do NOT get a recurrence schedule — they stay one-off.
+- `js/schedule.js` (pure recurrence rules) + `Persistence.SCHEMA_VERSION = 3` migration (old `frequency: 'daily'` string → `schedule: { frequency: 'daily', daysOfWeek: [0,1,2,3,4,5,6] }`, plus habit defs seed `occurrenceHistory: []`) — session 14. Both generators (`Habits.selectHabitDefsToSpawn`, `Routines.selectTaskDefsToSpawn`) gate on `Schedule.isScheduledForDay`.
+- UI: all 5 recurring-definition forms (standalone habit create; routine habit create/edit; routine task create/edit) have a Frequency dropdown (Daily/Weekly/Monthly) plus the day-of-week checkbox row or day-of-month field — session 15.
+- `occurrenceHistory` recording (for the rate-based bonus, see below) is the one still-open piece.
 
 ## Open Questions (ask Jeremy before implementing)
 
