@@ -27,6 +27,7 @@
 // (schemaVersion 3 recurrence gate) — bind it first, as the browser's <script>
 // order does.
 global.Schedule = require('../js/schedule.js');
+global.FrozenSlots = require('../js/frozenSlots.js');
 const Habits = require('../js/habits.js');
 const selectHabitDefsToSpawn = Habits.selectHabitDefsToSpawn;
 

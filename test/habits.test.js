@@ -11,6 +11,7 @@
 // 3 recurrence gate) — bind it before requiring the module, same as the browser's
 // <script> order does.
 global.Schedule = require('../js/schedule.js');
+global.FrozenSlots = require('../js/frozenSlots.js');
 const Habits = require('../js/habits.js');
 const CONFIG = require('../js/config.js');
 
@@ -379,6 +380,48 @@ describe('generateDailyHabitInstances', () => {
         });
         Habits.generateDailyHabitInstances(DAY, deps);
         expect(deps._admitted).toHaveLength(0);
+    });
+
+    describe('frozen routine gating (sub-session 2, "Frozen routine slots")', () => {
+        test('a NON-offending habit in a frozen routine does not spawn', () => {
+            const deps = makeDeps({
+                definedHabits: [{ id: 'h1', name: 'Read', category: 'growth', frequency: 'daily', timeOfDay: 'evening', streak: 0, isNegative: false }],
+                definedRoutines: [{ id: 'r1', habitDefinitionIds: ['h1'], isActive: true, frozenState: { frozenBy: 'other-habit', frozenAt: 'X' } }],
+            });
+            Habits.generateDailyHabitInstances(DAY, deps);
+            expect(deps._admitted).toHaveLength(0);
+        });
+
+        test('the OFFENDING habit (frozenBy matches its own id) still spawns while its routine is frozen', () => {
+            const deps = makeDeps({
+                definedHabits: [{ id: 'h1', name: 'Junk Food', category: 'health', frequency: 'daily', timeOfDay: 'anytime', streak: 0, isNegative: true }],
+                definedRoutines: [{ id: 'r1', habitDefinitionIds: ['h1'], isActive: true, frozenState: { frozenBy: 'h1', frozenAt: 'X' } }],
+            });
+            Habits.generateDailyHabitInstances(DAY, deps);
+            expect(deps._admitted).toHaveLength(1);
+            expect(deps._admitted[0].definitionId).toBe('h1');
+        });
+
+        test('a habit shared by a frozen routine and a separate usable active routine still spawns', () => {
+            const deps = makeDeps({
+                definedHabits: [{ id: 'h1', name: 'Read', category: 'growth', frequency: 'daily', timeOfDay: 'evening', streak: 0, isNegative: false }],
+                definedRoutines: [
+                    { id: 'r1', habitDefinitionIds: ['h1'], isActive: true, frozenState: { frozenBy: 'other-habit', frozenAt: 'X' } },
+                    { id: 'r2', habitDefinitionIds: ['h1'], isActive: true, frozenState: null },
+                ],
+            });
+            Habits.generateDailyHabitInstances(DAY, deps);
+            expect(deps._admitted).toHaveLength(1);
+        });
+
+        test('a habit with no frozenState field at all (pre-existing routine shape) spawns normally', () => {
+            const deps = makeDeps({
+                definedHabits: [{ id: 'h1', name: 'Meditate', category: 'health', frequency: 'daily', timeOfDay: 'morning', streak: 0, isNegative: false }],
+                definedRoutines: [{ id: 'r1', habitDefinitionIds: ['h1'], isActive: true }],
+            });
+            Habits.generateDailyHabitInstances(DAY, deps);
+            expect(deps._admitted).toHaveLength(1);
+        });
     });
 
     test('does not double-spawn when already completed for this game day', () => {

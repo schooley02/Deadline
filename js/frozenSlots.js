@@ -28,6 +28,11 @@
  * occurrenceHistory on demand (avoidanceProgress below), not persisted
  * separately — one less place for it to drift out of sync with the history
  * it's computed from.
+ *
+ * SUB-SESSION 2 (2026-07-19) adds spawn gating: `isRoutineUsableForHabit`/
+ * `isRoutineSuspended` below compose with the pre-existing isActive gate in
+ * habits.js/routines.js's daily generators — see those call sites for how
+ * the "offending habit still spawns" exception is applied.
  */
 const FrozenSlots = (() => {
     // Length of the trailing run of occurrences whose `success` matches
@@ -84,12 +89,42 @@ const FrozenSlots = (() => {
         };
     }
 
+    // --- Spawn gating (sub-session 2, 2026-07-19) ---
+    //
+    // A frozen routine SUSPENDS — its other habit/task definitions stop
+    // spawning, but the OFFENDING negative habit (the one that caused the
+    // freeze) keeps spawning its lurker, because recovery path 2 requires it
+    // to stay active. Two predicates, not one, because tasks and OTHER
+    // habits can never be "the offending habit" — only a routine's own
+    // negative habit, matched by id, gets the exception.
+
+    // True when `routine` is usable as a spawn source for the habit def
+    // identified by `habitDefId` — i.e. it's active AND (not frozen OR frozen
+    // BY this exact habit). Used by habits.js's spawn-selection gate, which
+    // already composes this with the existing isActive-only check for a
+    // habit's OTHER owning routines (a habit can have more than one owner).
+    function isRoutineUsableForHabit(routine, habitDefId) {
+        if (!routine || !routine.isActive) return false;
+        return !routine.frozenState || routine.frozenState.frozenBy === habitDefId;
+    }
+
+    // True when `routine` should spawn NOTHING for a caller that has no
+    // "offending def" exception — i.e. routine TASKS, which can never be the
+    // negative habit that caused a freeze. Equivalent to "not usable for any
+    // habit id that isn't the one holding the freeze".
+    function isRoutineSuspended(routine) {
+        if (!routine) return true;
+        return !routine.isActive || !!routine.frozenState;
+    }
+
     return {
         trailingRun,
         shouldFreeze,
         shouldRecoverByAvoidance,
         avoidanceProgress,
         buildFrozenState,
+        isRoutineUsableForHabit,
+        isRoutineSuspended,
     };
 })();
 

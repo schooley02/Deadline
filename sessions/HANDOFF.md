@@ -13,6 +13,48 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 36: Sub-session 2 BUILT — frozen-slot spawn gating (Cowork session, Sonnet execute)
+
+**Did:** Gave sub-session 1's `routine.frozenState` real teeth. `js/frozenSlots.js` gained
+`isRoutineUsableForHabit(routine, habitDefId)` (active AND not-frozen-or-frozen-by-this-habit) and
+`isRoutineSuspended(routine)` (active AND not frozen, no exception). `Habits.selectHabitDefsToSpawn`'s
+owning-routine check now calls the first (so the negative habit that caused a freeze keeps spawning
+its lurker); `Routines.selectTaskDefsToSpawn`'s active-routine collector calls the second (tasks
+always suspend, no exception — a task can never hold a freeze). Freezing stays non-destructive —
+nothing already on the board gets recalled, only future spawns are gated. Confirmed via Grep that
+routine XP/leveling doesn't exist in code yet (P1-UI-006), so "no XP while frozen" is a genuine no-op
+today, not something to build around.
+
+**State:** ✅ **28 suites, 547/547** (+15: 2 new predicate describe-blocks in
+`test/frozen-slots.test.js`, +4 gating cases in `test/habits.test.js` incl. a multi-owner edge case,
++1 in `test/routines.test.js`). 4 test files gained a `global.FrozenSlots` binding (same convention
+as `global.Schedule`) since both spawn selectors now reference it as a bare global. `node --check`
+clean. **Live-verified in Chrome:** froze the session-35 test routine via the save (sub-session 1
+already proved the real indulge-3x trigger, so this reused that shortcut), added a new POSITIVE habit
+to the frozen routine through the real "+ Add Habit" UI — definition created and linked, but the
+immediate spawn pass admitted zero instances (checked both the save's `activeItems` and visually).
+Cleared `frozenState`, reloaded — the same habit spawned normally on the next boot. No console errors
+in either direction.
+
+**Next:** Sub-session 3 (frozen UI — greyed routine card, freeze notification, live avoidance
+progress) is next per `docs/FROZEN_SLOTS_PLAN.md`. Sub-sessions 4 (edit-to-unfreeze) and 5 (Sick/Skip
+tokens + 6→7 migration) follow.
+
+**Watch out:**
+- **Confirmed again this session:** editing `localStorage['deadline.save']` from the console then
+  reloading gets silently overwritten by the page's flush-on-hide handler UNLESS you neuter
+  `localStorage.setItem` (see session 35's entry below for the exact recipe). This is now a
+  recurring need for any live-verification that requires simulating multiple days — expect to reuse
+  it in sub-sessions 3-5 too.
+- Dev save now ALSO has a "Test Study" positive habit in the "Frozen Test Routine" (created this
+  session, currently spawning normally — routine is unfrozen). Recommend Reset before real play.
+- The Routines list modal's "N habits, M tasks" count under each routine card doesn't update live
+  after adding a habit via the nested "Add Habit" flow (still showed "0 habits" briefly last
+  session, "1 habits" this session even before the second habit was added) — pre-existing display
+  bug, confirmed NOT introduced by this ticket, not investigated further (out of scope).
+
+---
+
 ## 2026-07-19 — Session 35: Frozen routine slots — Fable fork + Sub-session 1 BUILT (Cowork session, Fable plan → Sonnet execute)
 
 **Did:** Sequenced the "Frozen routine slots + recovery" roadmap item into `docs/FROZEN_SLOTS_PLAN.md`

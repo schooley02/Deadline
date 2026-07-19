@@ -51,10 +51,19 @@ five occurrence-recording sites in `js/items.js` — `indulgeHabit` and
 `resolvePendingCheckIn`'s indulged branch check the freeze trigger;
 `completeItem`, `settleStaleRecurringInstance`, and `resolvePendingCheckIn`'s
 avoided branch check avoidance-recovery. `routine.frozenState = { frozenBy,
-frozenAt } | null` (schemaVersion 6). **NOT yet built:** spawn gating (a
-frozen routine's other definitions still spawn today), the frozen-state UI
-(greyed card, notification, progress), recovery path 1 (edit-to-unfreeze),
-and Sick/Skip Day tokens — see `docs/FROZEN_SLOTS_PLAN.md` sub-sessions 2-5.
+frozenAt } | null` (schemaVersion 6).
+
+**Sub-session 2 BUILT 2026-07-19:** spawn gating. `Habits.selectHabitDefsToSpawn` and
+`Routines.selectTaskDefsToSpawn` now consult `js/frozenSlots.js`'s
+`isRoutineUsableForHabit`/`isRoutineSuspended` instead of a bare `isActive` check — a frozen
+routine's OTHER habits/tasks stop spawning (same as an inactive routine would), while the
+negative habit that caused the freeze keeps spawning its lurker through its own frozen routine
+(recovery path 2 needs it active). Freezing is non-destructive — nothing already on the board
+gets recalled; this only gates FUTURE spawns. Routine XP/leveling doesn't exist in code yet
+(P1-UI-006), so "a frozen routine earns no XP" has nothing to suspend today.
+
+**NOT yet built:** the frozen-state UI (greyed card, notification, progress), recovery path 1
+(edit-to-unfreeze), and Sick/Skip Day tokens — see `docs/FROZEN_SLOTS_PLAN.md` sub-sessions 3-5.
 
 - A NEGATIVE habit streak of 3+ days (indulging 3 days running) FREEZES the associated routine slot.
 - Frozen slots appear greyed out, with a notification explaining the freeze and recovery options. Frozen routines remain viewable so the user can identify needed adjustments.

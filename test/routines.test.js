@@ -12,6 +12,7 @@
 // 3 recurrence gate) — bind it before requiring, as the browser's <script>
 // order does.
 global.Schedule = require('../js/schedule.js');
+global.FrozenSlots = require('../js/frozenSlots.js');
 const Routines = require('../js/routines.js');
 
 const DAY = new Date(2026, 6, 18); // Sat Jul 18 2026, local
@@ -93,6 +94,17 @@ describe('generateDailyRoutineTaskInstances', () => {
     test('does not spawn a task belonging to an inactive routine', () => {
         const { deps, added } = makeDeps({
             definedRoutines: [routine('r1', { taskDefinitionIds: ['t1'], isActive: false })]
+        });
+        Routines.generateDailyRoutineTaskInstances(DAY, deps);
+        expect(added).toHaveLength(0);
+    });
+
+    test('does not spawn a task belonging to a FROZEN routine (sub-session 2 — tasks have no offending-def exception)', () => {
+        const { deps, added } = makeDeps({
+            definedRoutines: [routine('r1', {
+                taskDefinitionIds: ['t1'], isActive: true,
+                frozenState: { frozenBy: 'someHabit', frozenAt: 'X' }
+            })]
         });
         Routines.generateDailyRoutineTaskInstances(DAY, deps);
         expect(added).toHaveLength(0);

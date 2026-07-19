@@ -102,9 +102,17 @@ const Habits = (() => {
 
             // No owner at all => standalone (or orphaned, or its routine was
             // deleted) => spawns on its own. Otherwise at least one owning
-            // routine must be active — so "shared by an active and an inactive
-            // routine" still spawns.
-            if (owningRoutines.length > 0 && !owningRoutines.some(r => r.isActive)) return false;
+            // routine must be USABLE for this habit: active, and either not
+            // frozen or frozen BY this exact habit (sub-session 2, "Frozen
+            // routine slots" — a freeze suspends the routine's OTHER habits,
+            // but the offending negative habit keeps lurking so recovery path
+            // 2 stays reachable). "Shared by a usable routine and an
+            // unusable one" still spawns, same precedent as the old
+            // active/inactive check this replaces.
+            if (owningRoutines.length > 0 &&
+                !owningRoutines.some(r => FrozenSlots.isRoutineUsableForHabit(r, habitDef.id))) {
+                return false;
+            }
 
             // Recurrence gate (schemaVersion 3, 2026-07-18): the habit must be
             // scheduled for this day. Schedule.normalize tolerates a legacy

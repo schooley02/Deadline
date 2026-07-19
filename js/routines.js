@@ -64,7 +64,13 @@ const Routines = (() => {
 
         const activeRoutineTaskIds = new Set();
         definedRoutines.forEach(routine => {
-            if (!routine.isActive) return;
+            // Sub-session 2 ("Frozen routine slots"): a frozen routine is
+            // suspended the same way an inactive one is, for TASKS — unlike a
+            // negative habit, a task can never be "the offending def" that
+            // caused the freeze, so there's no exception here (contrast with
+            // habits.js's selectHabitDefsToSpawn, which keeps the offending
+            // habit spawning).
+            if (FrozenSlots.isRoutineSuspended(routine)) return;
             (routine.taskDefinitionIds || []).forEach(id => activeRoutineTaskIds.add(id));
         });
 

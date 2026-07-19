@@ -22,6 +22,7 @@
 // 3 recurrence gate). Existing task defs in these tests carry no schedule, which
 // Schedule.normalize treats as daily — preserving the prior always-spawn behavior.
 global.Schedule = require('../js/schedule.js');
+global.FrozenSlots = require('../js/frozenSlots.js');
 const Routines = require('../js/routines.js');
 const getRoutineTaskInstanceDueTime = Routines.getRoutineTaskInstanceDueTime;
 const selectTaskDefsToSpawn = Routines.selectTaskDefsToSpawn;

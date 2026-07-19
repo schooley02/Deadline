@@ -4,6 +4,69 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 36: Sub-session 2 BUILT — frozen-slot spawn gating (Cowork session, Sonnet execute — plan already approved in session 35)
+
+**Problem:** sub-session 1 made `routine.frozenState` real and observable, but nothing in the game
+actually reacted to it yet — a frozen routine's habits/tasks spawned exactly as if nothing had
+happened. This session gives fork 1 ("a freeze suspends the routine") its teeth.
+
+**Design (no new forks — session 35 already settled the "suspend, offending habit exempt"
+semantics; this was execution against the plan doc):**
+- `js/frozenSlots.js` gained two pure predicates rather than the plan's single sketched
+  `isRoutineSuspended`: `isRoutineUsableForHabit(routine, habitDefId)` (active AND (not frozen OR
+  frozen BY this exact habit id)) and `isRoutineSuspended(routine)` (active AND not frozen, no
+  exception). Two were needed because ONLY a negative habit can be "the offending def" — a routine
+  TASK can never hold a freeze, so it has no analogous exception to check.
+- `Habits.selectHabitDefsToSpawn`'s owning-routine check replaced a bare `r.isActive` test with
+  `FrozenSlots.isRoutineUsableForHabit(r, habitDef.id)` — composes cleanly with the existing
+  many-to-many "at least one owning routine must be usable" logic; a habit shared by a frozen
+  routine and a separate active/non-frozen routine still spawns via the second owner, same
+  precedent the old active/inactive check already set.
+- `Routines.selectTaskDefsToSpawn`'s active-routine-task collector replaced its bare
+  `!routine.isActive` skip with `FrozenSlots.isRoutineSuspended(routine)`.
+- **Non-destructive, confirmed:** freezing only gates FUTURE daily-generator passes; nothing
+  already spawned gets recalled (unlike routine deactivation's `clearActiveInstancesForRoutine`).
+  No code needed for this — it falls out of not calling any recall function.
+- **Routine-XP verification (per sub-session 1's flagged open question):** Grepped the whole repo
+  for `routine.xp`/`routineXP`/`addRoutineXP` — none exist. Routine leveling is DATA_SCHEMA.md
+  target-schema-only, unbuilt (P1-UI-006). "A frozen routine earns no XP" is therefore a TRUE no-op
+  today — there's nothing to suspend. Left as a note for whoever builds routine XP, not code.
+- **Backward compatibility:** both predicates treat a missing `frozenState` field as "not frozen"
+  (`!undefined` is truthy), so every existing routine fixture across the test suite needed zero
+  changes — only `global.FrozenSlots` had to be added to the 4 test files whose fixtures actually
+  execute `selectHabitDefsToSpawn`/`selectTaskDefsToSpawn` (`habits.test.js`, `routines.test.js`,
+  `routine-active-gating.test.js`, `routine-task-instances.test.js`), since FrozenSlots is now a
+  bare-global dependency of both functions the same way Schedule already is.
+
+**Structure:** `js/frozenSlots.js` (+2 predicates), `js/habits.js` (+1 line, owning-routine check),
+`js/routines.js` (+1 line, active-routine-task collector), 4 test files (+`global.FrozenSlots`
+binding), `test/frozen-slots.test.js` (+2 describe blocks), `test/habits.test.js` (+4 cases),
+`test/routines.test.js` (+1 case).
+
+**Tests:** 28 suites, 547/547 (+15). `node --check` clean on all touched files.
+
+**Live-verified in Chrome:** froze the same test routine from session 35 directly via the save
+(skipping re-earning it — sub-session 1 already proved the real trigger path), then added a NEW
+positive habit to the frozen routine through the actual "+ Add Habit" UI flow: the definition was
+created and correctly linked to the routine, but the daily generator that fires immediately after
+creation admitted ZERO active instances for it (verified via the save's `activeItems` array and
+visually — no new sprite or agenda row appeared), with no console errors. Cleared `frozenState` and
+reloaded — the SAME habit spawned normally on the very next boot pass, confirming the gate reacts
+live to both directions of the freeze/unfreeze transition, not just at creation time.
+
+**Found and worked around (not a code bug, a testing gotcha):** editing `localStorage['deadline.save']`
+directly from the console and then reloading is NOT reliable — the page's flush-on-hide/unload
+handler saves the STALE in-memory state over the edit during the reload's teardown, silently
+undoing it. `Persistence`/`Habits`/`Items`/etc. are module-scope `const`s in script.js/js/*, not
+`window` properties (only `var`/function-style globals and a few explicit `window.foo = foo`
+exposures attach), so `Persistence.flush` can't be neutered directly from console either. Reliable
+fix: write the edit with the real `localStorage.setItem`, THEN overwrite `localStorage.setItem` with
+a no-op BEFORE calling `location.reload()`, so the unload-flush's write becomes inert and the edit
+survives into the fresh load. Logged here (and in HANDOFF.md) since this will recur for any future
+backdating-style live verification.
+
+---
+
 ## 2026-07-19 — Session 35: Frozen routine slots planned (Fable fork) + Sub-session 1 BUILT (Cowork session, Fable plan → Sonnet execute)
 
 **Problem:** the "Frozen routine slots + recovery" roadmap item (Milestone 3, spec'd but never sequenced) was picked as this session's task, chosen over P1-UI-006/P1-DATA-004/run history. The spec (PROJECT_SPEC.md ~56-58, ~424-435, ~669-672; docs/ROUTINES.md) needed four design forks resolved before any code could land — resolved live with Jeremy, batched into one Fable session per the model-strategy protocol, then written up as `docs/FROZEN_SLOTS_PLAN.md` (mirrors NEGATIVE_HABITS_PLAN.md's sub-session structure).

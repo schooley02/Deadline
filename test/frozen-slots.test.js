@@ -79,6 +79,50 @@ describe('avoidanceProgress', () => {
     });
 });
 
+describe('isRoutineUsableForHabit (sub-session 2 spawn gating)', () => {
+    test('active, not frozen -> usable', () => {
+        expect(FrozenSlots.isRoutineUsableForHabit({ isActive: true, frozenState: null }, 'h1')).toBe(true);
+    });
+
+    test('inactive -> never usable, even for the offending habit', () => {
+        expect(FrozenSlots.isRoutineUsableForHabit({ isActive: false, frozenState: { frozenBy: 'h1' } }, 'h1')).toBe(false);
+    });
+
+    test('active + frozen BY this habit -> usable (offending habit keeps lurking)', () => {
+        expect(FrozenSlots.isRoutineUsableForHabit({ isActive: true, frozenState: { frozenBy: 'h1' } }, 'h1')).toBe(true);
+    });
+
+    test('active + frozen BY a different habit -> not usable', () => {
+        expect(FrozenSlots.isRoutineUsableForHabit({ isActive: true, frozenState: { frozenBy: 'h2' } }, 'h1')).toBe(false);
+    });
+
+    test('a missing routine is never usable', () => {
+        expect(FrozenSlots.isRoutineUsableForHabit(null, 'h1')).toBe(false);
+    });
+
+    test('a routine with no frozenState field at all (pre-existing shape) is usable when active', () => {
+        expect(FrozenSlots.isRoutineUsableForHabit({ isActive: true }, 'h1')).toBe(true);
+    });
+});
+
+describe('isRoutineSuspended (sub-session 2 — tasks have no offending-def exception)', () => {
+    test('active, not frozen -> not suspended', () => {
+        expect(FrozenSlots.isRoutineSuspended({ isActive: true, frozenState: null })).toBe(false);
+    });
+
+    test('inactive -> suspended', () => {
+        expect(FrozenSlots.isRoutineSuspended({ isActive: false, frozenState: null })).toBe(true);
+    });
+
+    test('active but frozen -> suspended, regardless of frozenBy', () => {
+        expect(FrozenSlots.isRoutineSuspended({ isActive: true, frozenState: { frozenBy: 'anything' } })).toBe(true);
+    });
+
+    test('a missing routine counts as suspended', () => {
+        expect(FrozenSlots.isRoutineSuspended(null)).toBe(true);
+    });
+});
+
 describe('buildFrozenState', () => {
     test('builds a frozenBy/frozenAt marker with an ISO timestamp', () => {
         const now = new Date('2026-07-19T12:00:00.000Z');

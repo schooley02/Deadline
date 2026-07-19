@@ -79,12 +79,36 @@ NO UI yet (state is console/save-observable).
 - **Live-verify (Chrome):** v5 save migrates clean; backdate 3 indulged occurrences → indulge →
   `routine.frozenState` set in the save; 3 avoided → null again.
 
-### Sub-session 2 — spawn gating + non-destructive suspension (Sonnet)
+### Sub-session 2 — spawn gating + non-destructive suspension (Sonnet) — ✅ BUILT 2026-07-19 session 36
 **Goal:** fork 1's teeth. Frozen routine's non-offending habit/task defs excluded from both daily
 generators (compose with the existing isActive gate — likely one shared predicate `isRoutineSuspended
 = !isActive || frozenState`); the offending habit def still spawns. NO recall of already-spawned
 instances at freeze time (non-destructive). Verify routine-XP question (see above). Regression:
 deactivation behavior unchanged.
+
+**BUILT as specified, with two predicates instead of one** (the plan's single `isRoutineSuspended`
+turned out to need a habit-aware sibling): `js/frozenSlots.js` gained `isRoutineUsableForHabit(routine,
+habitDefId)` — active AND (not frozen OR frozen BY this exact habit) — used by
+`Habits.selectHabitDefsToSpawn`'s owning-routine check (replaces the old bare `r.isActive` test), so
+the offending negative habit keeps spawning through its own frozen routine. `isRoutineSuspended(routine)`
+— active AND not frozen, no exception — is used by `Routines.selectTaskDefsToSpawn`'s active-routine-task
+collection, since a routine TASK can never be the def that caused a freeze. Both are pure, unit-tested,
+and default to today's exact behavior when `frozenState` is absent (undefined), so no existing test
+needed touching beyond adding `global.FrozenSlots` to the 4 test files that exercise these two
+generators. No recall logic needed — freezing never removes anything; this session's gate simply stops
+FUTURE spawns. **Routine-XP question resolved: true no-op** — confirmed by Grep that no
+`routine.xp`/level code exists anywhere yet (P1-UI-006, unbuilt), so "earns no XP while frozen" has
+nothing to suspend; noted for whoever builds routine XP later.
+
+28 suites, 547/547 (+15: `test/frozen-slots.test.js` gained 2 new describe blocks for the two
+predicates; `test/habits.test.js` +4 frozen-gating cases incl. the multi-owner "usable via a different
+routine" edge case; `test/routines.test.js` +1 frozen-task case). `node --check` clean. **Live-verified
+in Chrome:** froze a real routine (via the save, skipping re-earning it since sub-session 1 already
+proved the trigger), added a new POSITIVE habit to it through the real "+ Add Habit" UI flow — the
+definition was created and linked, but ZERO active instance spawned (confirmed via the save's
+`activeItems`, and visually — no new sprite/agenda row). Then cleared `frozenState` and reloaded — the
+same habit spawned immediately on the next boot pass (`restoreGameState`'s unconditional generator
+call), with no console errors either direction.
 
 ### Sub-session 3 — frozen UI (Sonnet)
 **Goal:** spec's visibility requirements. Greyed routine card (`.routine-frozen`), freeze
