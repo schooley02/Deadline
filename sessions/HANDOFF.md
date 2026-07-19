@@ -13,6 +13,39 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 46: [P1-DATA-004] sub-tasks SEQUENCED — docs/SUBTASKS_PLAN.md, 4 forks resolved (Cowork session, Fable planning)
+
+**Did:** Planning session only, NO code. Live Chrome playtest of current sub-task behavior against
+the real server (parent + 2 subs via the real UI, full complete/orphan/state inspection, dev save
+reset clean afterward). Wrote `docs/SUBTASKS_PLAN.md` (5 sub-sessions, 5th optional polish, NO
+schema bump — stays 9). Jeremy resolved all 4 forks: (1) parent scales with open subs AND
+clustered sub-sprites stay (resolves the MECHANICS.md open tension); (2) parent completion BLOCKED
+while subs open; (3) sub due dates: default+max = parent deadline, earlier allowed, later never;
+parent-pulled-earlier re-clamps children; (4) subs pay half value (SUBTASK_XP/POINTS 5/5, own-flag
+×2). ROADMAP.md item annotated, DECISIONS.md session 46 entry (full fork rationale + rejected
+alternatives).
+
+**State:** No code touched → tests not re-run (were 35 suites, 744/744 at session 45). Playtest
+found and documented the ORPHAN HOLE: parent complete/delete with open subs strands children as
+agenda-invisible, base-damaging zombies (nested-only rendering means no list row) — reachable only
+via sprite click; `if (parentTask)` guards mean nothing throws. Dev save was reset after the
+playtest; Jeremy's game is clean.
+
+**Next:** SUBTASKS_PLAN.md sub-session 1 (Sonnet): completion-block + deletion cascade + restore-
+time orphan sanitizer + tests. Everything is specified in the plan — pure execution.
+
+**Watch out:**
+- The orphan hole is LIVE in the current build — if Jeremy plays with sub-tasks before sub-session
+  1 lands, completing/deleting a parent with open subs will strand invisible zombies (recover: click
+  the sprite on the battlefield, or the sub-session-1 sanitizer will promote them on reload once built).
+- Sub-session 1's completion-block touches completeItem's early-return shape — keep the result-
+  object pattern (shop.js style) so popups.js/agendaList.js can render the "N sub-tasks remaining"
+  reason without string-matching.
+- Cluster-offset scaling (sub-session 4) multiplies the PARENT's visible-margin contribution only —
+  sub margins are unscaled; don't re-measure `ZOMBIE_VISIBLE_MARGINS`.
+
+---
+
 ## 2026-07-19 — Session 45: HEROES_PLAN sub-session 5 BUILT — flinch/celebrate FX + ranking, [P1-UI-006] CLOSED (Cowork session, Sonnet throughout)
 
 **Did:** [P1-UI-006] sub-session 5 (optional, cut-if-play-data-said-otherwise — shipped instead,

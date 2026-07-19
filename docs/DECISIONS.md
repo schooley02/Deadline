@@ -4,6 +4,48 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 46: [P1-DATA-004] sub-task hierarchy SEQUENCED — 4 forks resolved (Cowork session, Fable)
+
+Planning session only, no code. Output: `docs/SUBTASKS_PLAN.md` (5 sub-sessions, no schema bump).
+Grounded by a live Chrome playtest against the real server (parent + 2 subs through the real UI),
+which found the **orphan hole**: completing a parent with open subs is allowed, pays full reward,
+and strands each child as a battlefield-only zombie with NO agenda row (nested-only rendering) —
+still damaging the base, reachable only by sprite click. `removeItem` has the same gap (no cascade).
+Also confirmed: subs pay FULL task value (10/10 — a 3-sub task is worth 4× a standalone), creation
+inherits the parent deadline but nothing clamps or follows it afterward, parent stays 128px.
+
+**Fork 1 — Parent sizing: BOTH.** Parent scales up per open sub (proposed `PARENT_GROWTH_PER_SUB`
+0.15, capped at 4 subs) and shrinks back as they complete, AND the 2026-07-17 visible-edge
+clustered sub-sprites stay. Resolves MECHANICS.md's long-standing "open tension" by combining the
+spec's growing/shrinking parent with what's actually built. Rejected: keep-as-is (drops a spec
+promise the ticket exists to deliver), shrinking-parent-only (throws away working clustering).
+
+**Fork 2 — Parent completion BLOCKED while subs open** ("N sub-tasks remaining" disabled state).
+Closes the orphan hole at the source; matches the weaken-then-finish fiction. Rejected:
+auto-complete-children-with-rewards (one-click farming of a whole cluster), complete-and-remove-
+unrewarded (silently eats listed work). Deletion cascade (parent delete sweeps children; sub delete
+fixes counters) is a ticket acceptance criterion, not a fork. Pre-existing orphans in old saves:
+restore-time sanitizer PROMOTES unresolvable parentId to standalone — repair, no schema change.
+
+**Fork 3 — Due dates (Jeremy's own wording): default AND latest = parent's deadline; earlier
+allowed, later never.** Clamp at sub creation/edit (form validation, not silent clamping); pulling
+the parent's deadline earlier re-clamps any now-later children down to it via
+`recomputeOverdueStateAfterEdit` per child; pushing later leaves children alone. Rejected:
+delta-shift-with-parent (moves subs the player deliberately set earlier), inherit-at-creation-only
+(deviates from PROJECT_SPEC ~41).
+
+**Fork 4 — Sub economy: half value, `SUBTASK_XP`/`SUBTASK_POINTS` = 5/5.** Parent keeps 10;
+high-priority ×2 applies to each item's own flag (max sub payout 10, still ≤ a standalone task).
+Rejected: keep-full-value (4× multiplier invites decomposition farming; conflicts with the
+session-24 ~75–85 pts/day yardstick), pool-split (punishes breaking work down — the exact behavior
+the game wants to encourage). Numbers land via balance protocol in sub-session 3.
+
+**Scope guards:** depth stays 1 (schema tolerates grandchildren, UI never offers it — documented,
+not built); sub-tasks remain task-type only; drag-reorder/connecting-lines/dependency-mapping stay
+P2. schemaVersion stays 9 across the whole ticket.
+
+---
+
 ## 2026-07-19 — Session 45: HEROES_PLAN sub-session 5 BUILT — interaction FX + ranking, [P1-UI-006] CLOSED (Cowork session, Sonnet)
 
 **Decision — ranking wired into BOTH routine-list surfaces, not just the Manage modal.** The plan
