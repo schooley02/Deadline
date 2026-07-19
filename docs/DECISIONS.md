@@ -4,6 +4,27 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-18 — Session 10 rescoped mid-session; `js/items.js` extracted (item/task/habit completion lifecycle)
+
+**Context:** session 10 was supposed to be the UI plan's final line — "script.js reduced to boot/wiring (<300 lines)." A fresh Grep at session start (per the Session Protocol) found ~700-800 lines of core game logic still directly in script.js that the 11-session UI plan (docs/UI_EXTRACTION_PLAN.md, clusters A-G, all DOM-rendering) never touched: item/task/habit completion lifecycle (`completeItem`, `removeItem`, `uncompleteItem`, `markAsOverdue`, `recomputeOverdueStateAfterEdit`, `createTaskItemData`) and game init/persistence orchestration (`initGame`, `restoreGameState`, `getPersistableState`/`saveGame`). This is `state.js`/item-lifecycle scope from `docs/ARCHITECTURE.md`'s target layout — planned in the target architecture from the start, just never scheduled into a session.
+
+**Decision (Jeremy's call): extract it now rather than defer** — "we might as well extract core logic now if we are going to need to do it later." Split across three sessions to preserve the one-system-per-session rule that's held for all nine prior sessions:
+- Session 10 (this one): `js/items.js` — item/task/habit completion lifecycle. Most self-contained (touches `activeItems`/`completedItems`/player stats only, no game-loop timing), highest value (never delegated anywhere before now).
+- Session 11 (planned): `state.js` — game lifecycle/persistence orchestration. Sequenced after items.js deliberately since it's higher-risk (everything else depends on it).
+- Session 12 (planned): final wiring cleanup, re-verify the `<300` line goal, formally close `docs/UI_EXTRACTION_PLAN.md`.
+
+ROADMAP.md and ARCHITECTURE.md updated same session to reflect the rescoped plan (see ROADMAP.md's Milestone 2 UI-extraction section).
+
+**`js/items.js` extraction itself:** moved `completeItem`, `removeItem`, `uncompleteItem`, `markAsOverdue`, `recomputeOverdueStateAfterEdit`, `createTaskItemData` behind a single `itemsDeps()` (script.js), following the same deps-injection pattern as every prior extraction. Notable dependency choices: `playerXP`/`playerPoints` get get/set accessor pairs (`getPlayerXP`/`setPlayerXP`, `getPlayerPoints`/`setPlayerPoints`) — this is only the second module (after `js/damage.js`'s `baseHealth`/`gameIsOver`) to WRITE script.js-owned numeric state, same reasoning: ownership stays in script.js, the module just gets read/write access via accessors rather than the state moving. `activeItems` stays a plain reference (agendaListDeps() "stable binding" precedent); `completedItems`/`definedHabits`/`gameIsOver` are getters (reassigned elsewhere / handlers outlive the call, matching established precedent). `Habits` and `CONFIG` are called as bare stable globals inside `js/items.js` itself, matching the CONFIG/Clock/Modal/Routines convention.
+
+**FLAGGED, NOT FIXED:** `uncompleteItem` hand-builds the enemy sprite DOM element (classes, dimensions, click handler) from scratch instead of reusing `Spawning.addItemToGame`/`resolveEnemyVisual`, which already do this correctly and are the only other place this construction happens. This is pre-existing duplication (not introduced by this extraction — verified by diffing against the pre-session code), extracted verbatim. Consolidating the two is a real, separate refactor: `addItemToGame` pushes into `activeItems` itself, which `uncompleteItem` also does manually, so reconciling them needs its own careful session, not a drive-by fix bundled into this code-motion session.
+
+**Result:** script.js down to **1,346 lines** (was 1,608). 15 suites, 289/289 passing (no new tests — same as most non-pure-math extractions; the moved code is DOM+state orchestration, not isolated pure logic). `node --check` clean on both files. Live-verified in Chrome: habit complete/uncomplete round-tripped XP/points exactly; editing an overdue task's due date into the future correctly un-overdue'd it (sprite moved off the base, agenda row lost its red border); a newly-created task spawned correctly end-to-end through `createTaskItemData` → `addItemToGame`.
+
+**Alternatives rejected:** doing all three sessions' worth of extraction in one giant session, since Jeremy's answer conditionally endorsed doing it "now" — rejected because the one-system-per-session guardrail has prevented exactly the kind of context-window failure this project's memory system was built to avoid (see CLAUDE.md's Guardrails), and this rescoped work is large enough that folding it into one session would recreate that risk.
+
+---
+
 ## 2026-07-18 — UI extraction session 9: `routineViews.js` complete; `window.save*` handlers kept as window-scoped wrappers
 
 **Context:** session 9 of `docs/UI_EXTRACTION_PLAN.md` — the form half of cluster F, completing `js/ui/routineViews.js` (part 2 of 2). Fresh Grep against script.js confirmed the plan's function inventory was still accurate for this row (unlike sessions 3 and 8, no stale lines found this time) — line numbers had simply drifted, membership hadn't.

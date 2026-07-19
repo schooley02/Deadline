@@ -427,65 +427,53 @@ document.addEventListener('DOMContentLoaded', () => {
         Hud.showLevelUpMessage({ playerLevel, levelUpMessage });
     }
 
-    // Task creation and management
-    function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId) {
-        // (Removed 2026-07-18: a parentId debug log added while chasing the
-        // sub-task duplication bug. That bug was fixed 2026-07-17 and the log
-        // fired hundreds of times per test run, burying real output.)
-        const creationTime = new Date();
-        let dueDateTime;
-        
-        if (dueDateStr && dueTimeStr) {
-            dueDateTime = new Date(`${dueDateStr}T${dueTimeStr}`);
-        } else if (dueDateStr) {
-            dueDateTime = new Date(dueDateStr);
-            dueDateTime.setHours(23, 59, 59, 999);
-        } else {
-            dueDateTime = new Date(creationTime.getTime() + 10 * 60 * 1000); // 10 minutes from now
-        }
-        
-        // If this is a sub-task and no due date was provided, inherit from parent
-        if (parentId && !dueDateStr && !dueTimeStr) {
-            const parentTask = activeItems.find(item => item.id === parentId && item.type === 'task');
-            if (parentTask) {
-                dueDateTime = new Date(parentTask.dueDateTime);
-            }
-        }
-        
-        // Validate due date but allow past time today
-        if (isNaN(dueDateTime.getTime()) || (dueDateTime < creationTime && dueDateStr !== creationTime.toISOString().split('T')[0])) {
-            dueDateTime = new Date(creationTime.getTime() + 5 * 60 * 1000);
-        }
-        
-        const taskData = {
-            id: itemIdCounter++,
-            type: 'task',
-            name: name || "Unnamed Task",
-            category: category || "other",
-            isHighPriority: isHighPriority,
-            dueDateTime: dueDateTime,
-            creationTime: creationTime,
-            timeToDueAtCreationMs: Math.max(0, dueDateTime.getTime() - creationTime.getTime()),
-            x: GAME_SCREEN_WIDTH - ENEMY_WIDTH, // Will be recalculated below
-            isOverdue: false,
-            lastDamageTickTime: null,
-            element: null,
-            listItemElement: null,
-            // Sub-task hierarchy fields
-            parentId: parentId,
-            subTasks: [],
-            completedSubTasks: 0,
-            totalSubTasks: 0,
-            // Cumulative offline overdue damage ever charged to this item —
-            // lifetime cap (CONFIG.OFFLINE_DAMAGE_CAP_PER_ITEM), not per-restore.
-            // See computeOfflineOverdueDamage / DECISIONS.md 2026-07-17.
-            offlineDamageCharged: 0
+    // --- Items (js/items.js) ---
+    // Milestone 2 extraction session 10, 2026-07-18 — see js/items.js's header
+    // comment for the full rationale (this was never part of the UI extraction
+    // plan; found during session 10's scoping, see docs/DECISIONS.md/ROADMAP.md).
+    //
+    // activeItems is a plain reference (agendaListDeps() precedent).
+    // completedItems/definedHabits are GETTERS (reassigned elsewhere — new-game
+    // reset, restoreGameState). gameIsOver is a GETTER for the same reason
+    // js/spawning.js uses one (handlers can outlive the call). playerXP/
+    // playerPoints get get/set accessor pairs, matching js/damage.js's
+    // baseHealth/gameIsOver precedent for script.js-owned state a module needs
+    // to WRITE. gameScreenWidth/baseWidth/enemyWidth/habitEnemyWidth are plain
+    // values rebuilt fresh on every call (not resolved until initGame() runs —
+    // same reasoning as damageDeps()). Habits/CONFIG are called as bare stable
+    // globals inside js/items.js itself, not threaded through here.
+    function itemsDeps() {
+        return {
+            activeItems,
+            completedItems: () => completedItems,
+            definedHabits: () => definedHabits,
+            isGameOver: () => gameIsOver,
+            getPlayerXP: () => playerXP,
+            setPlayerXP: (n) => { playerXP = n; },
+            getPlayerPoints: () => playerPoints,
+            setPlayerPoints: (n) => { playerPoints = n; },
+            gameScreenWidth: GAME_SCREEN_WIDTH,
+            baseWidth: BASE_WIDTH,
+            enemyWidth: ENEMY_WIDTH,
+            habitEnemyWidth: HABIT_ENEMY_WIDTH,
+            habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD,
+            xpPerTaskDefeat: XP_PER_TASK_DEFEAT,
+            xpPerHabitComplete: XP_PER_HABIT_COMPLETE,
+            pointsPerTask: POINTS_PER_TASK,
+            pointsPerHabit: POINTS_PER_HABIT,
+            getNextId: () => itemIdCounter++,
+            gameCanvas,
+            handleEnemyClick, createListItem, sortAndRenderActiveList,
+            resetAllSubTaskCheckboxes, updateTaskCountDisplay, renderCompletedItems,
+            updatePlayerDisplays, checkPlayerLevelUp, saveGame,
+            calculateTimelineXWithClustering, getSubTaskClusterOffset, getItemTopPosition
         };
-        
-        // Calculate initial position based on new timeline system
-        taskData.x = calculateTimelineXWithClustering(taskData, creationTime);
-        
-        return taskData;
+    }
+
+    // Thin wrapper — real implementation lives in js/items.js (Milestone 2
+    // extraction session 10, 2026-07-18). Call site unchanged.
+    function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId) {
+        return Items.createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, itemsDeps());
     }
 
     // Enemy admission (sprite build, positioning, overdue-on-spawn) lives in
@@ -572,94 +560,16 @@ document.addEventListener('DOMContentLoaded', () => {
         Popups.showEditTaskModal(item, popupsDeps());
     }
 
+    // Thin wrappers — real implementations live in js/items.js (Milestone 2
+    // extraction session 10, 2026-07-18). Call sites unchanged.
     function completeItem(itemId) {
-        if (gameIsOver) return;
-
-        const itemIndex = activeItems.findIndex(i => i.id === itemId);
-        if (itemIndex === -1) return;
-        
-        const item = activeItems[itemIndex];
-        let xpGained = 0;
-        let pointsGained = 0;
-        
-        if (item.type === 'task') {
-            xpGained = XP_PER_TASK_DEFEAT;
-            pointsGained = item.isHighPriority ? POINTS_PER_TASK * 2 : POINTS_PER_TASK;
-        } else if (item.type === 'habit') {
-            const habitDef = definedHabits.find(def => def.id === item.definitionId);
-            if (habitDef) {
-                const result = Habits.applyHabitCompletion(habitDef.streak, item.originalDueDate, {
-                    xpPerHabitComplete: XP_PER_HABIT_COMPLETE,
-                    pointsPerHabit: POINTS_PER_HABIT,
-                    streakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD,
-                    streakBonusPoints: CONFIG.HABIT_STREAK_BONUS_POINTS
-                });
-                habitDef.streak = result.streak;
-                habitDef.lastCompletionDate = result.lastCompletionDate;
-                xpGained = result.xpGained;
-                pointsGained = result.pointsGained;
-            }
-        }
-        
-        if (xpGained > 0) {
-            playerXP += xpGained;
-            playerPoints += pointsGained;
-            updatePlayerDisplays();
-            checkPlayerLevelUp();
-        }
-
-        // If this is a sub-task, remove it from parent's sub-task list
-        if (item.parentId) {
-            const parentTask = activeItems.find(parent => parent.id === item.parentId);
-            if (parentTask) {
-                const subTaskIndex = parentTask.subTasks.indexOf(itemId);
-                if (subTaskIndex > -1) {
-                    parentTask.subTasks.splice(subTaskIndex, 1);
-                    parentTask.completedSubTasks++;
-                    
-                    // Refresh parent task's list item to update sub-task display
-                    if (parentTask.listItemElement) {
-                        parentTask.listItemElement.remove();
-                        createListItem(parentTask);
-                        sortAndRenderActiveList();
-                    }
-                }
-            }
-        }
-
-        // Move item to completed list
-        item.completedAt = new Date();
-        completedItems.push(item);
-        saveGame();
-        
-        // Show completed tasks section and render completed items
-        renderCompletedItems();
-
-        // Fade out animation
-        if (item.element) {
-            item.element.style.transition = 'opacity 0.5s ease';
-            item.element.style.opacity = '0';
-        }
-
-        // Remove item after fade animation
-        setTimeout(() => {
-            removeItem(itemId);
-        }, 500);
+        Items.completeItem(itemId, itemsDeps());
     }
 
     function removeItem(itemId) {
-        const itemIndex = activeItems.findIndex(i => i.id === itemId);
-        if (itemIndex > -1) {
-            const item = activeItems[itemIndex];
-            
-            if (item.element) item.element.remove();
-            if (item.listItemElement) item.listItemElement.remove();
-            
-            activeItems.splice(itemIndex, 1);
-            updateTaskCountDisplay();
-            saveGame();
-        }
+        Items.removeItem(itemId, itemsDeps());
     }
+
     function createSubTaskPrompt(parentId) {
         Popups.createSubTaskPrompt(parentId, popupsDeps());
     }
@@ -668,140 +578,10 @@ document.addEventListener('DOMContentLoaded', () => {
         Popups.showCreateSubTaskModal(parentId, popupsDeps());
     }
 
+    // Thin wrapper — real implementation lives in js/items.js (Milestone 2
+    // extraction session 10, 2026-07-18). Call site unchanged.
     function uncompleteItem(itemId) {
-        const completedIndex = completedItems.findIndex(i => i.id === itemId);
-        if (completedIndex === -1) return;
-        
-        const item = completedItems[completedIndex];
-        
-        
-        // Remove from completed items
-        completedItems.splice(completedIndex, 1);
-        
-        // Remove completion timestamp
-        delete item.completedAt;
-        
-        // Reset overdue status (they can start fresh)
-        item.isOverdue = false;
-        item.lastDamageTickTime = null;
-        
-        // Recalculate position based on current time
-        const currentTime = new Date();
-        item.x = calculateTimelineXWithClustering(item, currentTime);
-
-        // Check if it should be marked as overdue
-        if (item.dueDateTime <= currentTime) {
-            markAsOverdue(item, currentTime);
-            item.x = BASE_WIDTH + getSubTaskClusterOffset(item);
-        }
-        
-        // Recreate enemy element
-        const itemElement = document.createElement('div');
-        itemElement.classList.add('enemy');
-        itemElement.classList.add(`category-${item.category}`);
-        itemElement.classList.add('zombie-sprite');
-        itemElement.classList.add(`zombie-${item.category}`);
-        
-        const itemSpriteWidth = (item.type === 'habit') ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH;
-        const itemSpriteHeight = (item.type === 'habit') ? 70 : 128;
-        
-        itemElement.style.width = `${itemSpriteWidth}px`;
-        itemElement.style.height = `${itemSpriteHeight}px`;
-        
-        if (item.type === 'task' && item.isHighPriority) {
-            itemElement.classList.add('high-priority');
-        } else if (item.type === 'habit') {
-            itemElement.classList.add('habit-enemy');
-            itemElement.classList.add('zombie-small');
-            if (item.isNegative) {
-                itemElement.classList.add('negative-habit');
-            }
-            if (item.streak >= HABIT_STREAK_BONUS_THRESHOLD) {
-                itemElement.classList.add('high-streak');
-            }
-        }
-        
-        // Position the enemy
-        itemElement.style.left = item.x + 'px';
-        itemElement.style.top = getItemTopPosition(item, itemSpriteHeight) + 'px';
-        
-        // Set up click handler
-        itemElement.dataset.itemId = item.id;
-        itemElement.addEventListener('click', () => handleEnemyClick(item.id));
-        
-        // Add to game canvas
-        gameCanvas.appendChild(itemElement);
-        item.element = itemElement;
-        
-        // Add back to active items first
-        activeItems.push(item);
-        
-        // If this is a sub-task, re-add it to parent's sub-task list
-        if (item.parentId) {
-            const parentTask = activeItems.find(parent => parent.id === item.parentId);
-            if (parentTask) {
-                // Add back to parent's subTasks array if not already there
-                if (!parentTask.subTasks.includes(item.id)) {
-                    parentTask.subTasks.push(item.id);
-                    parentTask.totalSubTasks = parentTask.subTasks.length;
-                    
-                    // Decrement the completed sub-tasks count since we're restoring this one
-                    if (parentTask.completedSubTasks > 0) {
-                        parentTask.completedSubTasks--;
-                    }
-                    
-                    // Refresh parent task's list item to show the restored sub-task
-                    if (parentTask.listItemElement) {
-                        parentTask.listItemElement.remove();
-                        createListItem(parentTask);
-        // Re-render the active list to show the updated parent task
-                        sortAndRenderActiveList();
-                        
-                        // Force comprehensive checkbox reset after DOM update
-                        setTimeout(() => {
-                            resetAllSubTaskCheckboxes();
-                        }, 10);
-                        
-                        // Also do an immediate reset
-                        resetAllSubTaskCheckboxes();
-                    }
-                }
-            }
-        }
-        // Note: Sub-tasks should never get their own main list item,
-        // they are only displayed within their parent's list item
-        
-        // Update displays
-        updateTaskCountDisplay();
-        sortAndRenderActiveList();
-        renderCompletedItems();
-        
-        // Reverse the XP and points gained (if any)
-        if (item.type === 'task') {
-            const xpLost = XP_PER_TASK_DEFEAT;
-            const pointsLost = item.isHighPriority ? POINTS_PER_TASK * 2 : POINTS_PER_TASK;
-            
-            playerXP = Math.max(0, playerXP - xpLost);
-            playerPoints = Math.max(0, playerPoints - pointsLost);
-        } else if (item.type === 'habit') {
-            const habitDef = definedHabits.find(def => def.id === item.definitionId);
-            if (habitDef) {
-                const result = Habits.applyHabitUncompletion(habitDef.streak, {
-                    xpPerHabitComplete: XP_PER_HABIT_COMPLETE,
-                    pointsPerHabit: POINTS_PER_HABIT,
-                    streakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD,
-                    streakBonusPoints: CONFIG.HABIT_STREAK_BONUS_POINTS
-                });
-                habitDef.streak = result.streak;
-                habitDef.lastCompletionDate = result.lastCompletionDate;
-
-                playerXP = Math.max(0, playerXP - result.xpLost);
-                playerPoints = Math.max(0, playerPoints - result.pointsLost);
-            }
-        }
-
-        updatePlayerDisplays();
-        saveGame();
+        Items.uncompleteItem(itemId, itemsDeps());
     }
 
     function sortAndRenderActiveList() {
@@ -816,36 +596,10 @@ document.addEventListener('DOMContentLoaded', () => {
         AgendaList.renderCompletedItems(agendaListDeps());
     }
 
+    // Thin wrappers — real implementations live in js/items.js (Milestone 2
+    // extraction session 10, 2026-07-18). Call sites unchanged.
     function markAsOverdue(item, currentTime) {
-        if (item.isOverdue) return;
-        
-        item.isOverdue = true;
-        item.lastDamageTickTime = item.dueDateTime.getTime();
-        
-        if (item.element) item.element.classList.add('enemy-at-base');
-        if (item.listItemElement) item.listItemElement.classList.add('overdue-list-item');
-        
-        
-        // Reset habit streak if it's a habit
-        if (item.type === 'habit') {
-            const habitDef = definedHabits.find(def => def.id === item.definitionId);
-            if (habitDef) {
-                const result = Habits.resetStreakOnOverdue(habitDef.streak);
-                habitDef.streak = result.streak;
-
-                if (result.wasReset) {
-                    // Update streak display in list
-                    if (item.listItemElement) {
-                        const streakSpan = item.listItemElement.querySelector('.item-streak');
-                        if (streakSpan) streakSpan.textContent = 'Streak: 0';
-                    }
-
-                    // Remove high-streak visual effects
-                    if (item.element) item.element.classList.remove('high-streak');
-                }
-            }
-        }
-        saveGame();
+        Items.markAsOverdue(item, currentTime, itemsDeps());
     }
 
     // Re-derives isOverdue from the item's CURRENT dueDateTime — call after any
@@ -855,23 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // camped at the base still taking damage (see showEditTaskModal save
     // handler, DECISIONS.md 2026-07-17).
     function recomputeOverdueStateAfterEdit(item) {
-        const now = new Date();
-        const shouldBeOverdue = item.dueDateTime <= now;
-
-        if (item.isOverdue && !shouldBeOverdue) {
-            // Pushed back into the future: un-overdue it.
-            item.isOverdue = false;
-            item.lastDamageTickTime = null;
-            if (item.element) item.element.classList.remove('enemy-at-base');
-            if (item.listItemElement) item.listItemElement.classList.remove('overdue-list-item');
-            item.x = calculateTimelineXWithClustering(item, now);
-            if (item.element) item.element.style.left = Math.max(BASE_WIDTH, item.x) + 'px';
-        } else if (!item.isOverdue && shouldBeOverdue) {
-            // Pulled into the past: it's overdue starting now.
-            markAsOverdue(item, now);
-            item.x = BASE_WIDTH + getSubTaskClusterOffset(item);
-            if (item.element) item.element.style.left = item.x + 'px';
-        }
+        Items.recomputeOverdueStateAfterEdit(item, itemsDeps());
     }
 
     // Helper function to get today's 5pm
