@@ -40,10 +40,12 @@
  *   js/damage.js's damageDeps() comment: these aren't resolved until
  *   initGame() runs, so a deps object built once at module-load time would
  *   be stale.
- * - `Habits` (applyHabitCompletion/applyHabitUncompletion/resetStreakOnOverdue)
- *   and `CONFIG` (HABIT_STREAK_BONUS_POINTS) are called as bare stable
- *   globals — both are fully-extracted modules guaranteed loaded first,
- *   matching the CONFIG/Clock/Modal/Routines convention elsewhere in js/.
+ * - `Habits` (applyHabitCompletion/applyHabitUncompletion/applyHabitOverdue)
+ *   and `CONFIG` (HABIT_RATE_WINDOW/MIN_SAMPLE/TIERS — the rate-based bonus,
+ *   session 16) are called as bare stable globals — both are fully-extracted
+ *   modules guaranteed loaded first, matching the CONFIG/Clock/Modal/Routines
+ *   convention elsewhere in js/. `habitStreakBonusThreshold` still arrives via
+ *   deps but is now VISUAL-only (the high-streak/on-fire class), not points.
  * - Everything else (handleEnemyClick, createListItem, sortAndRenderActiveList,
  *   resetAllSubTaskCheckboxes, updateTaskCountDisplay, renderCompletedItems,
  *   updatePlayerDisplays, checkPlayerLevelUp, saveGame,
@@ -151,14 +153,17 @@ const Items = (() => {
         } else if (item.type === 'habit') {
             const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
             if (habitDef) {
-                const result = Habits.applyHabitCompletion(habitDef.streak, item.originalDueDate, {
-                    xpPerHabitComplete: deps.xpPerHabitComplete,
-                    pointsPerHabit: deps.pointsPerHabit,
-                    streakBonusThreshold: deps.habitStreakBonusThreshold,
-                    streakBonusPoints: CONFIG.HABIT_STREAK_BONUS_POINTS
-                });
+                const result = Habits.applyHabitCompletion(
+                    habitDef.streak, habitDef.occurrenceHistory, habitDef.isNegative, item.originalDueDate, {
+                        xpPerHabitComplete: deps.xpPerHabitComplete,
+                        pointsPerHabit: deps.pointsPerHabit,
+                        rateWindow: CONFIG.HABIT_RATE_WINDOW,
+                        rateMinSample: CONFIG.HABIT_RATE_MIN_SAMPLE,
+                        rateTiers: CONFIG.HABIT_RATE_TIERS
+                    });
                 habitDef.streak = result.streak;
                 habitDef.lastCompletionDate = result.lastCompletionDate;
+                habitDef.occurrenceHistory = result.occurrenceHistory;
                 xpGained = result.xpGained;
                 pointsGained = result.pointsGained;
             }
@@ -357,14 +362,17 @@ const Items = (() => {
         } else if (item.type === 'habit') {
             const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
             if (habitDef) {
-                const result = Habits.applyHabitUncompletion(habitDef.streak, {
-                    xpPerHabitComplete: deps.xpPerHabitComplete,
-                    pointsPerHabit: deps.pointsPerHabit,
-                    streakBonusThreshold: deps.habitStreakBonusThreshold,
-                    streakBonusPoints: CONFIG.HABIT_STREAK_BONUS_POINTS
-                });
+                const result = Habits.applyHabitUncompletion(
+                    habitDef.streak, habitDef.occurrenceHistory, habitDef.isNegative, item.originalDueDate, {
+                        xpPerHabitComplete: deps.xpPerHabitComplete,
+                        pointsPerHabit: deps.pointsPerHabit,
+                        rateWindow: CONFIG.HABIT_RATE_WINDOW,
+                        rateMinSample: CONFIG.HABIT_RATE_MIN_SAMPLE,
+                        rateTiers: CONFIG.HABIT_RATE_TIERS
+                    });
                 habitDef.streak = result.streak;
                 habitDef.lastCompletionDate = result.lastCompletionDate;
+                habitDef.occurrenceHistory = result.occurrenceHistory;
 
                 deps.setPlayerXP(Math.max(0, deps.getPlayerXP() - result.xpLost));
                 deps.setPlayerPoints(Math.max(0, deps.getPlayerPoints() - result.pointsLost));
@@ -388,12 +396,18 @@ const Items = (() => {
         if (item.element) item.element.classList.add('enemy-at-base');
         if (item.listItemElement) item.listItemElement.classList.add('overdue-list-item');
 
-        // Reset habit streak if it's a habit
+        // Reset habit streak (visual) AND record a miss occurrence for the
+        // rate-based bonus (session 16). occurrenceHistory keys off the
+        // instance's originalDueDate — the scheduled day this miss belongs to.
         if (item.type === 'habit') {
             const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
             if (habitDef) {
-                const result = Habits.resetStreakOnOverdue(habitDef.streak);
+                const result = Habits.applyHabitOverdue(
+                    habitDef.streak, habitDef.occurrenceHistory, habitDef.isNegative,
+                    item.originalDueDate, CONFIG.HABIT_RATE_WINDOW
+                );
                 habitDef.streak = result.streak;
+                habitDef.occurrenceHistory = result.occurrenceHistory;
 
                 if (result.wasReset) {
                     // Update streak display in list

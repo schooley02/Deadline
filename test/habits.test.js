@@ -14,12 +14,24 @@ global.Schedule = require('../js/schedule.js');
 const Habits = require('../js/habits.js');
 const CONFIG = require('../js/config.js');
 
-const STREAK_CONFIG = {
+// Rate-based bonus config (session 16). Mirrors what items.js builds from CONFIG.
+const RATE_CONFIG = {
     xpPerHabitComplete: CONFIG.XP_PER_HABIT_COMPLETE,
     pointsPerHabit: CONFIG.POINTS_PER_HABIT,
-    streakBonusThreshold: CONFIG.HABIT_STREAK_BONUS_THRESHOLD,
-    streakBonusPoints: CONFIG.HABIT_STREAK_BONUS_POINTS,
+    rateWindow: CONFIG.HABIT_RATE_WINDOW,
+    rateMinSample: CONFIG.HABIT_RATE_MIN_SAMPLE,
+    rateTiers: CONFIG.HABIT_RATE_TIERS,
 };
+
+// Build an occurrenceHistory of n entries with the given number of successes,
+// dated backward from a fixed reference so dates are distinct and valid.
+function history(nSuccess, nFail) {
+    const out = [];
+    let day = 1;
+    for (let i = 0; i < nSuccess; i++) out.push({ date: `2026-06-${String(day++).padStart(2, '0')}`, success: true });
+    for (let i = 0; i < nFail; i++) out.push({ date: `2026-06-${String(day++).padStart(2, '0')}`, success: false });
+    return out;
+}
 
 describe('getHabitInstanceDueTime', () => {
     const ref = new Date(2026, 6, 18, 9, 30, 15);
@@ -45,80 +57,180 @@ describe('getHabitInstanceDueTime', () => {
     });
 });
 
-describe('applyHabitCompletion', () => {
-    test('increments streak by 1', () => {
-        const result = Habits.applyHabitCompletion(0, new Date(2026, 6, 18), STREAK_CONFIG);
+// --- rate-based bonus pure helpers (session 16) ------------------------------
+
+describe('toOccurrenceDate', () => {
+    test('formats a Date as local YYYY-MM-DD (not UTC)', () => {
+        expect(Habits.toOccurrenceDate(new Date(2026, 6, 18, 23, 30))).toBe('2026-07-18');
+    });
+    test('zero-pads month and day', () => {
+        expect(Habits.toOccurrenceDate(new Date(2026, 0, 5))).toBe('2026-01-05');
+    });
+});
+
+describe('occurrenceSuccess (polarity routing seam)', () => {
+    test('completed is a success for both polarities today', () => {
+        expect(Habits.occurrenceSuccess(false, 'completed')).toBe(true);
+        expect(Habits.occurrenceSuccess(true, 'completed')).toBe(true);
+    });
+    test('overdue is a miss for both polarities today', () => {
+        expect(Habits.occurrenceSuccess(false, 'overdue')).toBe(false);
+        expect(Habits.occurrenceSuccess(true, 'overdue')).toBe(false);
+    });
+});
+
+describe('recordOccurrence', () => {
+    test('appends a new day', () => {
+        const h = Habits.recordOccurrence([], '2026-07-18', true, 14);
+        expect(h).toEqual([{ date: '2026-07-18', success: true }]);
+    });
+    test('upserts (overwrites) an existing day rather than duplicating', () => {
+        const h0 = [{ date: '2026-07-18', success: false }];
+        const h = Habits.recordOccurrence(h0, '2026-07-18', true, 14);
+        expect(h).toEqual([{ date: '2026-07-18', success: true }]);
+    });
+    test('trims to the most recent windowSize entries', () => {
+        let h = [];
+        for (let d = 1; d <= 20; d++) h = Habits.recordOccurrence(h, `2026-06-${String(d).padStart(2, '0')}`, true, 14);
+        expect(h).toHaveLength(14);
+        expect(h[0].date).toBe('2026-06-07'); // oldest 6 dropped
+        expect(h[13].date).toBe('2026-06-20');
+    });
+    test('is pure — does not mutate the input array', () => {
+        const h0 = [{ date: '2026-07-17', success: true }];
+        Habits.recordOccurrence(h0, '2026-07-18', true, 14);
+        expect(h0).toHaveLength(1);
+    });
+});
+
+describe('removeOccurrence', () => {
+    test('removes the entry for the given date', () => {
+        const h0 = [{ date: '2026-07-17', success: true }, { date: '2026-07-18', success: true }];
+        expect(Habits.removeOccurrence(h0, '2026-07-18')).toEqual([{ date: '2026-07-17', success: true }]);
+    });
+    test('is a no-op when the date is absent', () => {
+        const h0 = [{ date: '2026-07-17', success: true }];
+        expect(Habits.removeOccurrence(h0, '2026-07-18')).toEqual(h0);
+    });
+});
+
+describe('successRate', () => {
+    test('null for an empty history', () => {
+        expect(Habits.successRate([])).toBeNull();
+    });
+    test('fraction of successes', () => {
+        expect(Habits.successRate(history(9, 1))).toBeCloseTo(0.9);
+        expect(Habits.successRate(history(7, 3))).toBeCloseTo(0.7);
+    });
+});
+
+describe('pointsMultiplier', () => {
+    const cfg = { minSample: CONFIG.HABIT_RATE_MIN_SAMPLE, tiers: CONFIG.HABIT_RATE_TIERS };
+    test('1x below the minimum sample, even at 100%', () => {
+        expect(Habits.pointsMultiplier(history(6, 0), cfg)).toBe(1);
+    });
+    test('1.5x at >= 90% once sample is met', () => {
+        expect(Habits.pointsMultiplier(history(9, 1), cfg)).toBe(1.5); // 90%
+        expect(Habits.pointsMultiplier(history(10, 0), cfg)).toBe(1.5); // 100%
+    });
+    test('1.25x at >= 70% but < 90%', () => {
+        expect(Habits.pointsMultiplier(history(7, 3), cfg)).toBe(1.25); // 70%
+        expect(Habits.pointsMultiplier(history(8, 2), cfg)).toBe(1.25); // 80%
+    });
+    test('1x below 70%', () => {
+        expect(Habits.pointsMultiplier(history(6, 4), cfg)).toBe(1); // 60%
+    });
+});
+
+describe('applyHabitCompletion (rate-based)', () => {
+    test('increments streak and records a success occurrence for the day', () => {
+        const result = Habits.applyHabitCompletion(0, [], false, new Date(2026, 6, 18), RATE_CONFIG);
         expect(result.streak).toBe(1);
+        expect(result.occurrenceHistory).toEqual([{ date: '2026-07-18', success: true }]);
     });
 
-    test('below bonus threshold: no bonus points', () => {
-        // threshold is 3 in CONFIG; streak 0 -> 1 stays below it
-        const result = Habits.applyHabitCompletion(0, new Date(2026, 6, 18), STREAK_CONFIG);
+    test('1x multiplier for a new habit (below min sample): base points only', () => {
+        const result = Habits.applyHabitCompletion(0, [], false, new Date(2026, 6, 18), RATE_CONFIG);
+        expect(result.multiplier).toBe(1);
         expect(result.pointsGained).toBe(CONFIG.POINTS_PER_HABIT);
     });
 
-    test('crossing the bonus threshold awards the bonus', () => {
-        // streak 2 -> 3 crosses CONFIG.HABIT_STREAK_BONUS_THRESHOLD (3)
-        const result = Habits.applyHabitCompletion(2, new Date(2026, 6, 18), STREAK_CONFIG);
-        expect(result.streak).toBe(3);
-        expect(result.pointsGained).toBe(CONFIG.POINTS_PER_HABIT + CONFIG.HABIT_STREAK_BONUS_POINTS);
+    test('high success rate multiplies the points award', () => {
+        // 8 prior successes; today's completion makes 9/9 = 100% (>= min sample 7) -> 1.5x
+        const result = Habits.applyHabitCompletion(8, history(8, 0), false, new Date(2026, 6, 18), RATE_CONFIG);
+        expect(result.multiplier).toBe(1.5);
+        expect(result.pointsGained).toBe(Math.round(CONFIG.POINTS_PER_HABIT * 1.5));
     });
 
-    test('xpGained is always the flat per-completion amount', () => {
-        const result = Habits.applyHabitCompletion(10, new Date(2026, 6, 18), STREAK_CONFIG);
+    test('xpGained is always the flat per-completion amount (never multiplied)', () => {
+        const result = Habits.applyHabitCompletion(8, history(8, 0), false, new Date(2026, 6, 18), RATE_CONFIG);
         expect(result.xpGained).toBe(CONFIG.XP_PER_HABIT_COMPLETE);
     });
 
-    test('lastCompletionDate is set from originalDueDate (as a Date copy)', () => {
+    test('lastCompletionDate is a copy of originalDueDate', () => {
         const due = new Date(2026, 6, 18);
-        const result = Habits.applyHabitCompletion(0, due, STREAK_CONFIG);
+        const result = Habits.applyHabitCompletion(0, [], false, due, RATE_CONFIG);
         expect(result.lastCompletionDate.getTime()).toBe(due.getTime());
-        expect(result.lastCompletionDate).not.toBe(due); // copy, not same reference
+        expect(result.lastCompletionDate).not.toBe(due);
     });
 });
 
-describe('applyHabitUncompletion', () => {
-    test('decrements streak by 1', () => {
-        const result = Habits.applyHabitUncompletion(3, STREAK_CONFIG);
-        expect(result.streak).toBe(2);
+describe('applyHabitUncompletion (rate-based, symmetric)', () => {
+    test('decrements streak, clamped at 0, and clears lastCompletionDate', () => {
+        expect(Habits.applyHabitUncompletion(3, [], false, new Date(2026, 6, 18), RATE_CONFIG).streak).toBe(2);
+        expect(Habits.applyHabitUncompletion(0, [], false, new Date(2026, 6, 18), RATE_CONFIG).streak).toBe(0);
+        expect(Habits.applyHabitUncompletion(3, [], false, new Date(2026, 6, 18), RATE_CONFIG).lastCompletionDate).toBeNull();
     });
 
-    test('clamps at 0, never negative', () => {
-        const result = Habits.applyHabitUncompletion(0, STREAK_CONFIG);
+    test('pops today\'s occurrence entry', () => {
+        const h = [{ date: '2026-07-17', success: true }, { date: '2026-07-18', success: true }];
+        const result = Habits.applyHabitUncompletion(2, h, false, new Date(2026, 6, 18), RATE_CONFIG);
+        expect(result.occurrenceHistory).toEqual([{ date: '2026-07-17', success: true }]);
+    });
+
+    test('refund mirrors the award exactly (symmetric) — complete then uncomplete nets 0', () => {
+        // Start at 8/8 history. Complete today -> 9/9=100% -> 1.5x award.
+        const due = new Date(2026, 6, 18);
+        const start = history(8, 0);
+        const comp = Habits.applyHabitCompletion(8, start, false, due, RATE_CONFIG);
+        // Uncomplete from the post-completion history: refund must equal comp.pointsGained.
+        const unc = Habits.applyHabitUncompletion(comp.streak, comp.occurrenceHistory, false, due, RATE_CONFIG);
+        expect(unc.pointsLost).toBe(comp.pointsGained);
+        // and the history is back to the pre-completion state
+        expect(unc.occurrenceHistory).toEqual(start);
+    });
+});
+
+describe('applyHabitOverdue', () => {
+    test('zeroes the streak, flags wasReset, and records a miss occurrence', () => {
+        const result = Habits.applyHabitOverdue(5, [], false, new Date(2026, 6, 18), CONFIG.HABIT_RATE_WINDOW);
         expect(result.streak).toBe(0);
+        expect(result.wasReset).toBe(true);
+        expect(result.occurrenceHistory).toEqual([{ date: '2026-07-18', success: false }]);
     });
 
-    test('clears lastCompletionDate', () => {
-        const result = Habits.applyHabitUncompletion(3, STREAK_CONFIG);
-        expect(result.lastCompletionDate).toBeNull();
+    test('wasReset is false when the streak was already 0 (but the miss is still recorded)', () => {
+        const result = Habits.applyHabitOverdue(0, [], false, new Date(2026, 6, 18), CONFIG.HABIT_RATE_WINDOW);
+        expect(result.wasReset).toBe(false);
+        expect(result.occurrenceHistory).toEqual([{ date: '2026-07-18', success: false }]);
     });
 
-    test('refund is computed from the NEW (post-decrement) streak — ' +
-         'this is a known asymmetry with applyHabitCompletion, preserved on ' +
-         'purpose this session (see DECISIONS.md "streak-bonus asymmetry"). ' +
-         'Uncompleting a habit at streak 3 (which had the bonus applied on ' +
-         'the way up) refunds based on streak 2, i.e. WITHOUT the bonus — ' +
-         'the player nets +bonus points from a complete+uncomplete round trip.', () => {
-        const result = Habits.applyHabitUncompletion(3, STREAK_CONFIG);
-        expect(result.streak).toBe(2); // below threshold
-        expect(result.pointsLost).toBe(CONFIG.POINTS_PER_HABIT); // no bonus refunded
-    });
-
-    test('refund includes the bonus when the post-decrement streak is still >= threshold', () => {
-        const result = Habits.applyHabitUncompletion(5, STREAK_CONFIG);
-        expect(result.streak).toBe(4);
-        expect(result.pointsLost).toBe(CONFIG.POINTS_PER_HABIT + CONFIG.HABIT_STREAK_BONUS_POINTS);
+    test('a later same-day completion overwrites the miss (upsert)', () => {
+        const due = new Date(2026, 6, 18);
+        const missed = Habits.applyHabitOverdue(2, [], false, due, CONFIG.HABIT_RATE_WINDOW);
+        const done = Habits.applyHabitCompletion(0, missed.occurrenceHistory, false, due, RATE_CONFIG);
+        expect(done.occurrenceHistory).toEqual([{ date: '2026-07-18', success: true }]);
     });
 });
 
-describe('resetStreakOnOverdue', () => {
+describe('resetStreakOnOverdue (streak-only, retained)', () => {
     test('resetting a positive streak returns streak 0 and wasReset: true', () => {
         const result = Habits.resetStreakOnOverdue(5);
         expect(result.streak).toBe(0);
         expect(result.wasReset).toBe(true);
     });
 
-    test('an already-zero streak reports wasReset: false (no-op guard, matches original)', () => {
+    test('an already-zero streak reports wasReset: false', () => {
         const result = Habits.resetStreakOnOverdue(0);
         expect(result.streak).toBe(0);
         expect(result.wasReset).toBe(false);

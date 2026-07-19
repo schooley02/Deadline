@@ -8,14 +8,24 @@
  * call site (createHabitDefinition, generateDailyHabitInstances,
  * completeItem, uncompleteItem, markAsOverdue) is unchanged.
  *
- * Behavior-identical extraction — no balance numbers changed. ONE KNOWN
- * PRE-EXISTING BUG IS DELIBERATELY PRESERVED, not fixed here (see
- * DECISIONS.md 2026-07-18 "streak-bonus asymmetry"): applyHabitCompletion
- * increments the streak THEN computes the bonus from the NEW streak;
- * applyHabitUncompletion decrements THEN computes the refund from the
- * LOWERED streak. Crossing the bonus threshold and then uncompleting nets
- * the player +bonus points they shouldn't keep. Flagged as its own ROADMAP
- * bugfix item rather than bundled into this extraction.
+ * RATE-BASED POINTS BONUS (session 16, 2026-07-18 — decided session 13,
+ * see DECISIONS.md + docs/MECHANICS.md). The old flat streak-threshold bonus
+ * is GONE: streak is now purely visual (on-fire sprite/badge), and a habit's
+ * points award is instead multiplied by a factor derived from its rolling
+ * success rate over its last HABIT_RATE_WINDOW scheduled occurrences
+ * (occurrenceHistory on the habit definition). Points only, never XP. This
+ * also structurally dissolves the old streak-bonus refund-asymmetry bug —
+ * uncompletion computes its refund from the SAME history state completion
+ * awarded from (recompute-then-pop), so refunds mirror awards by construction.
+ *
+ * POLARITY-READY (Jeremy's call, session 16): occurrence success is routed
+ * through the single `occurrenceSuccess(isNegative, event)` helper. Today both
+ * polarities map completed→success / overdue→miss (for a negative habit,
+ * "completed" means "I avoided it today"). The genuinely-inverted negative
+ * path — an explicit "indulged" action that costs points, the daily check-in
+ * prompt, frozen-slot ties — is [P1-DATA-005] (Milestone 3), unbuilt; when it
+ * lands it only has to add an 'indulged' event to this one helper, no rework
+ * of the rate math. See DECISIONS.md 2026-07-18 (session 16).
  *
  * selectHabitDefsToSpawn matches the hand-maintained mirror that
  * test/routine-active-gating.test.js had of this same logic (written the
@@ -114,42 +124,131 @@ const Habits = (() => {
         });
     }
 
-    // Streak/points math for completing a habit instance. Takes the CURRENT
-    // streak (not the definition object) and returns the new streak plus
-    // rewards; script.js applies the result to habitDef and playerXP/Points.
-    // config = { xpPerHabitComplete, pointsPerHabit, streakBonusThreshold, streakBonusPoints }
-    function applyHabitCompletion(currentStreak, originalDueDate, config) {
-        const streak = currentStreak + 1;
-        const pointsGained = config.pointsPerHabit +
-            (streak >= config.streakBonusThreshold ? config.streakBonusPoints : 0);
+    // -------------------------------------------------------------------------
+    // Rate-based points bonus (session 16). All pure — no DOM, no globals.
+    // -------------------------------------------------------------------------
+
+    // Local YYYY-MM-DD key for an occurrence. Uses local calendar fields (not
+    // toISOString) so a habit's "day" matches the player's wall clock, same
+    // reasoning as the popups.js/forms.js UTC pre-fill fixes (DECISIONS.md).
+    function toOccurrenceDate(date) {
+        const d = new Date(date);
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+
+    // The single polarity-aware routing point (see file header). event is
+    // 'completed' | 'overdue'. Today isNegative doesn't change the outcome —
+    // it's the explicit extension seam for [P1-DATA-005]'s future 'indulged'
+    // event, so that feature never has to touch the rate math.
+    function occurrenceSuccess(isNegative, event) {
+        switch (event) {
+            case 'completed': return true;  // positive: did it; negative: avoided it
+            case 'overdue':   return false; // positive: missed; negative: lapsed
+            default:          return false;
+        }
+    }
+
+    // Upsert an occurrence by date (a late completion overwrites that day's
+    // earlier overdue miss — "completed late still counts as done"), then keep
+    // only the most recent windowSize entries. Pure: returns a new array.
+    function recordOccurrence(history, dateStr, success, windowSize) {
+        const base = Array.isArray(history) ? history.slice() : [];
+        const idx = base.findIndex(o => o.date === dateStr);
+        if (idx >= 0) {
+            base[idx] = { date: dateStr, success };
+        } else {
+            base.push({ date: dateStr, success });
+        }
+        return windowSize > 0 ? base.slice(-windowSize) : base;
+    }
+
+    // Remove any occurrence for the given date (reverses recordOccurrence for
+    // that day). Pure: returns a new array.
+    function removeOccurrence(history, dateStr) {
+        return (Array.isArray(history) ? history : []).filter(o => o.date !== dateStr);
+    }
+
+    // Fraction of recorded occurrences that were successes, or null if empty.
+    function successRate(history) {
+        const h = Array.isArray(history) ? history : [];
+        if (h.length === 0) return null;
+        return h.filter(o => o.success).length / h.length;
+    }
+
+    // The points multiplier for the current history. 1× until minSample
+    // occurrences exist; otherwise the first tier (checked high-to-low) whose
+    // minRate the success rate meets, else 1×. config = { minSample, tiers }.
+    function pointsMultiplier(history, config) {
+        const h = Array.isArray(history) ? history : [];
+        if (h.length < config.minSample) return 1;
+        const rate = successRate(h);
+        for (const tier of config.tiers) {
+            if (rate >= tier.minRate) return tier.multiplier;
+        }
+        return 1;
+    }
+
+    // -------------------------------------------------------------------------
+    // Completion / uncompletion / overdue — streak (visual) + rate-based points.
+    // Each takes the CURRENT streak and occurrenceHistory and returns the new
+    // values (plus the applied multiplier, for display/tests); items.js applies
+    // them to the habitDef and playerXP/Points.
+    // config = { xpPerHabitComplete, pointsPerHabit, rateWindow, rateMinSample, rateTiers }
+    // -------------------------------------------------------------------------
+    function applyHabitCompletion(currentStreak, occurrenceHistory, isNegative, originalDueDate, config) {
+        const dateStr = toOccurrenceDate(originalDueDate);
+        const history = recordOccurrence(
+            occurrenceHistory, dateStr, occurrenceSuccess(isNegative, 'completed'), config.rateWindow
+        );
+        const multiplier = pointsMultiplier(history, { minSample: config.rateMinSample, tiers: config.rateTiers });
+        const pointsGained = Math.round(config.pointsPerHabit * multiplier);
 
         return {
-            streak,
+            streak: currentStreak + 1,
             lastCompletionDate: new Date(originalDueDate),
+            occurrenceHistory: history,
             xpGained: config.xpPerHabitComplete,
             pointsGained,
+            multiplier,
         };
     }
 
-    // Reverse of applyHabitCompletion (uncompleting a habit). Preserves the
-    // original code's asymmetry on purpose — see file header/DECISIONS.md.
-    function applyHabitUncompletion(currentStreak, config) {
-        const streak = Math.max(0, currentStreak - 1);
-        const pointsLost = config.pointsPerHabit +
-            (streak >= config.streakBonusThreshold ? config.streakBonusPoints : 0);
+    // Reverse of applyHabitCompletion. Symmetric by construction: the multiplier
+    // is computed from the CURRENT history (which still contains today's success
+    // entry that completion added), so the refund equals the award, THEN today's
+    // entry is popped. This is why the old refund-asymmetry bug can't recur.
+    function applyHabitUncompletion(currentStreak, occurrenceHistory, isNegative, originalDueDate, config) {
+        const multiplier = pointsMultiplier(occurrenceHistory, { minSample: config.rateMinSample, tiers: config.rateTiers });
+        const pointsLost = Math.round(config.pointsPerHabit * multiplier);
+        const dateStr = toOccurrenceDate(originalDueDate);
+        const history = removeOccurrence(occurrenceHistory, dateStr);
 
         return {
-            streak,
+            streak: Math.max(0, currentStreak - 1),
             lastCompletionDate: null,
+            occurrenceHistory: history,
             xpLost: config.xpPerHabitComplete,
             pointsLost,
+            multiplier,
         };
     }
 
-    // An overdue habit instance zeroes its definition's streak. Pure: just
-    // decides the new streak and whether anything actually changed (so
-    // script.js only touches the DOM — streak badge text, high-streak class
-    // — when a reset actually happened, matching the original's guard).
+    // An overdue habit instance zeroes its definition's streak (visual) AND
+    // records a miss occurrence for the rate bonus. Pure: returns the new streak,
+    // whether the streak actually changed (so items.js only touches the DOM when
+    // it did, matching the original guard), and the new occurrenceHistory.
+    function applyHabitOverdue(currentStreak, occurrenceHistory, isNegative, originalDueDate, windowSize) {
+        const dateStr = toOccurrenceDate(originalDueDate);
+        const history = recordOccurrence(
+            occurrenceHistory, dateStr, occurrenceSuccess(isNegative, 'overdue'), windowSize
+        );
+        return { streak: 0, wasReset: currentStreak > 0, occurrenceHistory: history };
+    }
+
+    // Streak-only reset (no occurrence recording). Retained for callers/tests
+    // that only need the visual streak decision; applyHabitOverdue wraps this
+    // conceptually but records the occurrence too.
     function resetStreakOnOverdue(currentStreak) {
         const wasReset = currentStreak > 0;
         return { streak: 0, wasReset };
@@ -222,8 +321,16 @@ const Habits = (() => {
     return {
         getHabitInstanceDueTime,
         selectHabitDefsToSpawn,
+        // rate-based bonus (session 16)
+        toOccurrenceDate,
+        occurrenceSuccess,
+        recordOccurrence,
+        removeOccurrence,
+        successRate,
+        pointsMultiplier,
         applyHabitCompletion,
         applyHabitUncompletion,
+        applyHabitOverdue,
         resetStreakOnOverdue,
         createHabitInstanceData,
         generateDailyHabitInstances,

@@ -4,6 +4,26 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-18 — Session 16: rate-based habit bonus BUILT (step c) — streak now visual-only; polarity-ready
+
+**Context:** final piece of the session-13 design batch, on top of session 14-15's scheduling. Streak stops driving points; a rolling success-rate multiplier replaces the old flat +5-at-streak-3 bonus.
+
+**Built (all in `js/habits.js`, pure):** `toOccurrenceDate` (local YYYY-MM-DD), `occurrenceSuccess(isNegative, event)` (the polarity seam), `recordOccurrence` (upsert-by-date + trim to window), `removeOccurrence`, `successRate`, `pointsMultiplier`. `applyHabitCompletion`/`applyHabitUncompletion` rewritten and new `applyHabitOverdue` added — each now takes `(streak, occurrenceHistory, isNegative, originalDueDate, config)` and returns the new `occurrenceHistory` alongside the streak/points. `items.js` `completeItem`/`uncompleteItem`/`markAsOverdue` updated to pass `habitDef.occurrenceHistory`/`isNegative` and store the returned history. `resetStreakOnOverdue` retained (streak-only) for any caller that just needs the visual decision.
+
+**Balance change (balance-tuning protocol):** `js/config.js` — ADDED `HABIT_RATE_WINDOW: 14`, `HABIT_RATE_MIN_SAMPLE: 7`, `HABIT_RATE_TIERS: [{minRate:0.9,multiplier:1.5},{minRate:0.7,multiplier:1.25}]` (else 1×). REMOVED `HABIT_STREAK_BONUS_POINTS: 5`. KEPT `HABIT_STREAK_BONUS_THRESHOLD: 3` — repurposed as the visual on-fire/high-streak threshold only (still read by spawning.js/items.js for the sprite class), no longer touches points. `pointsGained = Math.round(POINTS_PER_HABIT × multiplier)` (round: 5×1.25→6, 5×1.5→8; a minor rounding call made here, logged not asked — tunable). Thresholds are legibility placeholders, to be re-tuned against real shop prices once Milestone 3's shop exists.
+
+**Key design decisions:**
+- **Occurrence recording points:** success on completion, miss on overdue, upsert-by-date so a late same-day completion overwrites that day's earlier miss ("completed late still counts"). Verified live + unit-tested.
+- **Symmetric refund by construction (recompute-then-pop):** uncompletion computes the multiplier from the CURRENT history (which still holds today's success entry that completion added), refunds that, THEN pops the entry — the exact inverse of completion's "append then compute." This is why the old refund-asymmetry bug can't recur; no need to store the awarded points on the item. Live-verified a complete→uncomplete round-trip nets exactly 0 points and restores the prior history.
+- **`occurrenceHistory` recording deferred from session 14 lands here** (as planned) — the field was seeded empty in the 2→3 migration; this session fills it.
+- **Polarity-ready, not polarity-complete (Jeremy's call):** Jeremy first chose "model negative-habit inversion now," but on surfacing that the real inversion (an "indulged" action, the daily check-in prompt, frozen-slot ties) is the unbuilt ~3-week [P1-DATA-005], and that under today's single-checkbox UI the rate recording is identical for both polarities, he chose "rate bonus now, polarity-ready." So occurrence success routes through the single `occurrenceSuccess(isNegative, event)` seam; P1-DATA-005 later only adds an 'indulged' event there, no rate-math rework. See the two AskUserQuestion exchanges this session.
+
+**Tests:** `test/habits.test.js` — replaced the old streak-bonus blocks (which asserted the removed flat +5 and the now-dissolved asymmetry) with 17 new cases: the pure helpers (record/remove/rate/multiplier incl. below-min-sample and tier boundaries), completion/uncompletion/overdue occurrence recording, and an explicit symmetric-round-trip test. **17 suites, 355/355** (was 338).
+
+**Rejected:** storing the awarded points on the item for exact refund (recompute-then-pop is exact without persisting extra state); recording occurrences inside items.js rather than returning new history from the pure functions (keeps the logic testable in one place); building the negative-habit inversion now (that's P1-DATA-005, multi-session with its own UI).
+
+**Resolves:** the standalone "streak-bonus refund asymmetry" ROADMAP bugfix (dissolved, not patched). **Completes the session-13 design batch** (rate bonus + scheduling both fully built; gradual base regen [P2-GAME-012] remains design-decided/unbuilt).
+
 ## 2026-07-18 — Session 15: scheduling step (b) — day-of-week/day-of-month UI BUILT
 
 **Context:** second implementation session off the session-13 design batch, following step (a)'s migration/generators (session 14). Scoped to the UI only — forms and their save handlers, no persistence/generator changes.

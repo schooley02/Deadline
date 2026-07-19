@@ -13,6 +13,25 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-18 — Session 16: rate-based habit bonus — step (c), design batch COMPLETE (Cowork session)
+
+**Did:** Replaced the flat streak-threshold points bonus with a rolling success-rate multiplier (the last piece of the session-13 design batch). Streak is now visual-only. `js/habits.js` gained pure rate helpers (`recordOccurrence` upsert-by-date + trim, `removeOccurrence`, `successRate`, `pointsMultiplier`, `occurrenceSuccess` polarity seam, `toOccurrenceDate`); `applyHabitCompletion`/`applyHabitUncompletion` rewritten + new `applyHabitOverdue` — they record occurrences and return the new `occurrenceHistory`. `items.js` completion paths wire them in. `config.js`: added `HABIT_RATE_WINDOW/MIN_SAMPLE/TIERS` (balance-tuning protocol), removed `HABIT_STREAK_BONUS_POINTS`, kept `HABIT_STREAK_BONUS_THRESHOLD` as the visual on-fire trigger only. Points-only (never XP); `round(POINTS_PER_HABIT × multiplier)`.
+
+**State:** ✅ **17 suites, 355/355** (was 338 — +17 rate-bonus cases; old streak-bonus tests replaced). `node --check` clean on config/habits/items/script. **Live-verified in Chrome:** completing dfaSDF recorded `{2026-07-18, success:true}`, streak 0→1, points 20→25 (1× multiplier — 1 occurrence, below the 7 min sample); uncompleting refunded symmetrically (points 25→20, streak 1→0, occurrenceHistory back to `[]`) — the exact round-trip that proves the old asymmetry bug is dissolved. Console clean apart from the pre-existing extension noise.
+
+**Polarity note (Jeremy's call):** built polarity-*ready*, not polarity-complete. The real negative-habit inversion (an "indulged" action, daily check-in prompt, frozen-slot ties) is the unbuilt ~3-week **[P1-DATA-005]**; under today's single-checkbox UI the rate recording is identical for both polarities. `occurrenceSuccess(isNegative, event)` is the single seam P1-DATA-005 extends — no rate-math rework needed later.
+
+**Docs updated same session:** MECHANICS.md (Habits streak section — rate bonus BUILT), ECONOMY.md, DECISIONS.md (session 16 entry + balance-tuning log), ROADMAP.md (step (c) checked; the standalone refund-asymmetry bugfix marked RESOLVED/dissolved).
+
+**Next — the session-13 design batch is now fully built** (rate bonus + scheduling). Remaining nearby work: **[P2-GAME-012] gradual base regen** (design-decided session 13, unbuilt — small, mostly loop.js/damage.js + config, implementable anytime); the **style.css split** (last Milestone 2 item); or opening **Milestone 3** proper (P1-DATA-005 negative habits, sub-task hierarchy, shop). No blockers.
+
+**Watch out:**
+- The rate thresholds (14/7/0.9/0.7/1.5/1.25) are legibility placeholders — re-tune against real shop prices when Milestone 3's shop exists (flagged in config.js + DECISIONS.md).
+- `occurrenceHistory` only starts accruing from now — every existing habit began this session with `[]` (seeded by session 14's migration), so multipliers stay 1× until each habit logs ≥7 occurrences. Expected, not a bug.
+- Sandbox scratch dir this session: `/sessions/<name>/dl-s16`.
+
+---
+
 ## 2026-07-18 — Session 15: scheduling step (b) — day-of-week/day-of-month UI (Cowork session)
 
 **Did:** Built the scheduling UI on top of session 14's data layer. Shared widget (Frequency dropdown + day-of-week checkboxes + day-of-month field), duplicated once in `js/ui/forms.js` and once in `js/ui/routineViews.js` per the established per-cluster convention, wired into all 5 recurring-definition forms: standalone habit create, routine habit create/edit, routine task create/edit. Daily auto-checks all 7 days (still editable); Weekly clears the boxes only if they were still all-checked, so an in-progress custom pick or a Weekly↔Monthly toggle is never wiped. `createHabitDefinition`, `createNewHabitInRoutine`, `editHabitInRoutine` now prefer a full `schedule` object; `editTaskInRoutine` gained schedule support it never had (preserves the existing schedule if none is passed, rather than resetting to daily). Client-side "select at least one day" validation added to all 4 save handlers.

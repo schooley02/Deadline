@@ -42,8 +42,28 @@ const CONFIG = {
     XP_PER_HABIT_COMPLETE: 5,
     POINTS_PER_TASK: 10,
     POINTS_PER_HABIT: 5,
+    // Streak is now a VISUAL-only concept (decided 2026-07-18, session 13; built
+    // session 16). This threshold is the "on-fire" high-streak sprite/badge
+    // trigger (spawning.js, items.js) — it NO LONGER awards points. The old flat
+    // HABIT_STREAK_BONUS_POINTS was removed when the rate-based bonus below
+    // replaced it. See DECISIONS.md.
     HABIT_STREAK_BONUS_THRESHOLD: 3,
-    HABIT_STREAK_BONUS_POINTS: 5,
+
+    // --- Habit rate-based points bonus (decided session 13, built session 16;
+    // see DECISIONS.md + docs/MECHANICS.md). A habit's points award is
+    // multiplied by a factor derived from its rolling success rate over its last
+    // HABIT_RATE_WINDOW scheduled occurrences. Points only, never XP. 1× until at
+    // least HABIT_RATE_MIN_SAMPLE occurrences are recorded, so a new habit can't
+    // instantly max out. Tiers are checked high-to-low; first matching minRate
+    // wins; below the lowest tier the multiplier is 1×. All balance-protocol
+    // tunable — thresholds are legibility placeholders, to be re-tuned against
+    // real shop pricing once Milestone 3's shop exists. ---
+    HABIT_RATE_WINDOW: 14,
+    HABIT_RATE_MIN_SAMPLE: 7,
+    HABIT_RATE_TIERS: [
+        { minRate: 0.9, multiplier: 1.5 },
+        { minRate: 0.7, multiplier: 1.25 },
+    ],
 
     // --- Progression ---
     LEVEL_XP_THRESHOLDS: [0, 100, 250, 500, 800, 1200, 1700, 2300, 3000],
