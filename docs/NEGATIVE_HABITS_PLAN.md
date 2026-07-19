@@ -215,6 +215,23 @@ base (visually distinct orange/negative styling), did not move or take/deal dama
 past its due time, base HP held steady, survived a full page reload at the same position, and the
 pre-existing overdue task zombie alongside it was unaffected (regression check).
 
+**Repositioned same day (session 29, Jeremy's call, post-live-verify feedback):** two follow-up
+tweaks. (1) **Styling** — `.negative-habit` was a solid orange fill; changed to border-only
+(transparent background, 3px solid orange border) so a lurker doesn't read as visually "hotter"/more
+urgent than it is. (2) **Position** — the lurk anchor moved from "near the base"
+(`baseWidth + NEGATIVE_LURK_OFFSET_PX`) to "far right of the canvas"
+(`gameScreenWidth - habitEnemyWidth - NEGATIVE_LURK_RIGHT_MARGIN_PX`, config renamed to
+`CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX = 20`). Rationale: since a lurker never moves, parking it near
+the base — the zone reserved for genuinely urgent, damage-dealing enemies — misrepresented it as an
+imminent threat; the player needs the base-adjacent area to stay honest visual triage. Required
+threading `gameScreenWidth` through `loopDeps()`/`buildDamageDeps()`/`habitInstanceDeps()` (habits.js
+still has no bare CONFIG global, so the margin arrives via `deps.negativeLurkRightMarginPx`).
+All touched tests updated to the new formula; **20 suites, 434/434** (no new test count — same
+tests, updated expected values). Live-verified in Chrome: border-only rendering confirmed, new
+lurker spawns at the far-right edge, and reloading an old save with a lurker at the OLD near-base
+position correctly animates it to its new far-right resting spot via the existing offline
+catch-up animation (confirms `runOfflineCatchUp`'s targetX fix is live).
+
 #### Sub-session 2b — indulge / avoid actions + rollover hold (Opus plan → Sonnet)
 **Goal:** wire the two player actions onto the lurker, mirroring the spec's binary. Depends on 2a.
 - Enemy-click popup (`js/ui/popups.js` `showTaskDetailsPopup`): for a negative-habit instance,

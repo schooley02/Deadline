@@ -58,6 +58,7 @@ function makeDeps(overrides = {}) {
         setOfflineCatchUpActive: (v) => { state.offlineCatchUpActive = v; },
         getGameLoopInterval: () => null,
         baseWidth: 100,
+        gameScreenWidth: 1200, // [P1-DATA-005] session 29 — lurker's far-right anchor
         baseElement: fakeEl(),
         baseHealthDisplay: fakeEl(),
         gameOverMessage: fakeEl(),
@@ -664,7 +665,7 @@ describe('runOfflineCatchUp', () => {
         expect(deps._state.baseHealth).toBe(Math.min(CONFIG.MAX_BASE_HEALTH, 50 + 10 * CONFIG.BASE_REGEN_HP));
     });
 
-    test('a lurker\'s target position is the fixed lurk x, not the timeline calc', () => {
+    test('a lurker\'s target position is the far-right lurk x, not the timeline calc', () => {
         const lurker = item({
             type: 'habit', isNegative: true,
             dueDateTime: new Date(Date.now() - 10 * 60 * 60 * 1000),
@@ -677,7 +678,9 @@ describe('runOfflineCatchUp', () => {
             deps: { isNonThreatening: (i) => i.type === 'habit' && i.isNegative === true },
         });
         Damage.runOfflineCatchUp([{ item: lurker, savedX: 0 }], 1000, deps);
-        expect(lurker.x).toBe(deps.baseWidth + CONFIG.NEGATIVE_LURK_OFFSET_PX);
+        const expectedX = deps.gameScreenWidth - CONFIG.HABIT_ENEMY_WIDTH - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX;
+        expect(lurker.x).toBe(expectedX);
         expect(lurker.x).not.toBe(500); // never the stub calculateTimelineXWithClustering value
+        expect(lurker.x).toBeGreaterThan(deps.baseWidth); // not parked near the base
     });
 });

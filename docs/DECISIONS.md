@@ -4,6 +4,37 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 29: [P1-DATA-005] lurker styling + position refinement (Cowork session, Sonnet)
+
+Jeremy's feedback after live-verifying session 28's lurker: (1) the solid orange fill on
+`.negative-habit` made it look like an active/urgent enemy rather than a passive, stationary
+temptation — changed to border-only (transparent background, 3px solid orange border), matching the
+task/habit sprite convention elsewhere (color communicated via border, not a filled block). (2) the
+lurk position (near the base, `baseWidth + offset`) undersold the game's own visual-triage value:
+since a lurker never moves, parking it in the base-adjacent zone — reserved for genuinely urgent,
+damage-dealing enemies — gave it false visual weight and cluttered the area the player most needs to
+scan at a glance. Moved the anchor to the FAR RIGHT of the canvas (`gameScreenWidth - habitEnemyWidth
+- margin`), the same edge used elsewhere for "not due today" items, so a lurker reads as "on the
+radar, not urgent" rather than "imminent."
+
+**Implementation:** `CONFIG.NEGATIVE_LURK_OFFSET_PX` renamed to `NEGATIVE_LURK_RIGHT_MARGIN_PX`
+(value 20 — a small margin off the true right edge, not a balance number, no protocol needed).
+Required threading `gameScreenWidth` through three deps builders that didn't carry it before:
+`loopDeps()`, `stateDeps()` (feeding `State.buildDamageDeps`), and `habitInstanceDeps()` — all three
+already carried `baseWidth` for the old formula, so this follows the same accessor-passthrough
+pattern rather than introducing a new one. `habits.js` still deliberately has no bare `CONFIG`
+global (session 27's constraint stands), so the margin crosses in via `deps.negativeLurkRightMarginPx`
+same as before.
+
+**State:** 20 suites, 434/434 (same test count as session 28 — existing lurker-position tests updated
+to the new formula/values rather than adding new ones, since the behavior under test didn't change
+in kind, only in value). Live-verified in Chrome: border-only rendering confirmed visually; a fresh
+negative habit spawns at the far-right edge; reloading a save with a lurker still positioned at the
+OLD near-base spot correctly animates it to the new far-right position via the existing offline
+catch-up animation, with no damage or other side effects during the transition.
+
+---
+
 ## 2026-07-19 — Session 28: [P1-DATA-005] sub-session 2a built — lurker core-loop surgery (Cowork session, Sonnet)
 
 Executed the session-27 surgery plan (NEGATIVE_HABITS_PLAN.md sub-session 2a) essentially as

@@ -13,6 +13,22 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 29: [P1-DATA-005] lurker styling + position tweak (Cowork session, Sonnet)
+
+**Did:** Jeremy's post-live-verify feedback on session 28's lurker, addressed same session. (1) `.negative-habit` CSS: solid orange fill → border-only (transparent bg, 3px solid orange border) — a filled block read as more urgent/active than the passive stationary lurker actually is. (2) Repositioned the lurk anchor from near the base (`baseWidth + NEGATIVE_LURK_OFFSET_PX`) to the far right of the canvas (`gameScreenWidth - habitEnemyWidth - NEGATIVE_LURK_RIGHT_MARGIN_PX`, config renamed accordingly, margin = 20px) — Jeremy's reasoning: the base-adjacent zone should stay reserved for genuinely urgent enemies so the player gets honest visual triage; a lurker that never moves doesn't belong there. Threaded `gameScreenWidth` through `loopDeps()`, `stateDeps()` (→ `State.buildDamageDeps`), and `habitInstanceDeps()` — the same accessor-passthrough pattern `baseWidth` already used for the old formula. `habits.js` still has no bare CONFIG global (session 27 constraint held).
+
+**State:** ✅ **20 suites, 434/434** (existing lurker-position tests updated to the new formula, no count change). `node --check` clean. **Live-verified in Chrome:** border-only styling confirmed; a fresh negative habit spawns at the far-right edge; reloading a save with a lurker still at the OLD near-base position correctly animated it to the new far-right spot via the existing offline catch-up animation, no side effects.
+
+**Docs updated same session:** NEGATIVE_HABITS_PLAN.md (2a's writeup extended with the repositioning), DECISIONS.md (session 29 entry).
+
+**Next: Sub-session 2b — indulge/avoid popup actions + rollover-hold guard**, same as before — this session was a pure refinement of 2a, doesn't change 2b's scope. Fully specified in the plan, Opus-plan → Sonnet-execute.
+
+**Watch out:**
+- If any earlier session's screenshots/docs reference "lurker near the base," they're now stale on POSITION (styling docs were already generic). Not worth a retroactive edit, just don't be surprised.
+- The dev save now has a lurker that has visually migrated positions across two sessions (near-base → far-right) — purely cosmetic, no data implications, but confirms the offline-catch-up-animation path handles a changed lurk formula correctly, which is a nice bonus regression check for any FUTURE lurk-position tuning too.
+
+---
+
 ## 2026-07-19 — Session 28: [P1-DATA-005] sub-session 2a BUILT — lurker core-loop surgery (Cowork session, Sonnet)
 
 **Did:** Built the session-27 surgery plan almost exactly as specified. New `Items.isNonThreatening(item)` predicate (`type === 'habit' && isNegative === true`) in `js/items.js`, used directly by `markAsOverdue`'s early-return and a NEW guard added to `recomputeOverdueStateAfterEdit` (found while implementing — an edit-triggered recompute would've overwritten a lurker's fixed x otherwise; the surgery plan's 4 exclusion points didn't originally name this path). `js/loop.js`'s `updateActiveItems` and `js/damage.js`'s `computeGapCatchUpHits`/`runOfflineCatchUp` all receive `isNonThreatening` as an injected deps collaborator (load-order: loop.js/damage.js load BEFORE items.js in index.html, so they can't reference `Items` as a bare global like `CONFIG`/`Habits` are elsewhere — damage.js's pure functions default to an inline equivalent when the collaborator is omitted, keeping them dependency-free for direct unit tests). New `CONFIG.NEGATIVE_LURK_OFFSET_PX = 220` — a fixed x past `baseWidth`, deliberately beyond `SUBTASK_AHEAD_THRESHOLD_PX` so lurkers don't visually collide with the overdue-task cluster. `js/habits.js`'s `createHabitInstanceData` spawns a negative habit directly at the lurk position (never the timeline calc) via new `deps.baseWidth`/`deps.negativeLurkOffsetPx` (not a bare CONFIG reference — habits.js deliberately has none, see its test file header).

@@ -175,6 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
             getGameLoopInterval: () => gameLoopInterval,
             isGameOver: () => gameIsOver,
             baseWidth: BASE_WIDTH,
+            gameScreenWidth: GAME_SCREEN_WIDTH,
 
             // state setters
             setGameScreenWidth: (n) => { GAME_SCREEN_WIDTH = n; },
@@ -533,6 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
             isOfflineCatchUpActive: () => offlineCatchUpActive,
             activeItems,
             baseWidth: BASE_WIDTH,
+            gameScreenWidth: GAME_SCREEN_WIDTH,
             getLastLoopTickMs: () => lastLoopTickMs,
             setLastLoopTickMs: (n) => { lastLoopTickMs = n; },
             getLastRegenTickMs: () => lastRegenTickMs,
@@ -634,9 +636,10 @@ document.addEventListener('DOMContentLoaded', () => {
             calculateTimelinePosition,
             gameScreenWidth: GAME_SCREEN_WIDTH,
             habitEnemyWidth: HABIT_ENEMY_WIDTH,
-            // [P1-DATA-005] session 27 — a negative habit's fixed lurk x
-            baseWidth: BASE_WIDTH,
-            negativeLurkOffsetPx: CONFIG.NEGATIVE_LURK_OFFSET_PX,
+            // [P1-DATA-005] session 27, repositioned session 29 — a negative
+            // habit's fixed lurk x anchors to the far right of the canvas
+            // (gameScreenWidth above), not the base.
+            negativeLurkRightMarginPx: CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX,
             definedHabits,
             definedRoutines,
             activeItems,

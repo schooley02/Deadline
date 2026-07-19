@@ -101,8 +101,13 @@
     animation: pulse-streak 1s infinite alternate;
 }
 
+/* [P1-DATA-005] session 29 (Jeremy's call): border only, no fill — a solid
+   orange background made the lurker read as an active/urgent enemy rather
+   than the passive, stationary temptation it actually is. */
 .enemy.habit-enemy.negative-habit {
-    background-color: var(--color-warning) !important;
+    background-color: transparent !important;
+    border-width: 3px !important;
+    border-style: solid !important;
     border-color: #e68900 !important;
     box-shadow: 0 0 8px var(--color-warning), 0 0 15px rgba(245, 124, 0, 0.3);
 }

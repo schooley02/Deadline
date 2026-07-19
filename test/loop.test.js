@@ -51,6 +51,7 @@ function makeDeps(overrides = {}) {
         isOfflineCatchUpActive: () => state.offlineCatchUpActive,
         activeItems: state.activeItems,
         baseWidth: 100,
+        gameScreenWidth: 1200, // [P1-DATA-005] session 29 — lurker's far-right anchor
         getLastLoopTickMs: () => state.lastLoopTickMs,
         setLastLoopTickMs: (n) => { state.lastLoopTickMs = n; },
         getLastRegenTickMs: () => state.lastRegenTickMs,
@@ -206,14 +207,16 @@ describe('Loop.updateActiveItems — negative-habit lurker exclusion ([P1-DATA-0
         expect(deps._state.damageDealt).toBe(0);
     });
 
-    test('a lurker is positioned at baseWidth + CONFIG.NEGATIVE_LURK_OFFSET_PX, not a timeline position', () => {
+    test('a lurker is positioned at gameScreenWidth - HABIT_ENEMY_WIDTH - NEGATIVE_LURK_RIGHT_MARGIN_PX (far right), not a timeline position', () => {
         const lurker = makeLurker();
         const deps = makeDeps({ state: { activeItems: [lurker] } });
         Loop.updateActiveItems(deps);
-        expect(lurker.x).toBe(deps.baseWidth + CONFIG.NEGATIVE_LURK_OFFSET_PX);
-        expect(lurker.element.style.left).toBe(`${deps.baseWidth + CONFIG.NEGATIVE_LURK_OFFSET_PX}px`);
-        // never routed through the timeline calc
+        const expectedX = deps.gameScreenWidth - CONFIG.HABIT_ENEMY_WIDTH - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX;
+        expect(lurker.x).toBe(expectedX);
+        expect(lurker.element.style.left).toBe(`${expectedX}px`);
+        // never routed through the timeline calc, and not parked near the base
         expect(lurker.x).not.toBe(500); // the deps' calculateTimelineXWithClustering stub
+        expect(lurker.x).toBeGreaterThan(deps.baseWidth);
     });
 
     test('an already-overdue lurker (edge case) still deals no damage and is left alone', () => {

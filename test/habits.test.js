@@ -290,9 +290,9 @@ describe('createHabitInstanceData', () => {
             calculateTimelinePosition: (item) => 42, // stubbed, movement math tested elsewhere
             gameScreenWidth: 800,
             habitEnemyWidth: 60,
-            // [P1-DATA-005] session 27 — negative habit's fixed lurk x
-            baseWidth: 100,
-            negativeLurkOffsetPx: 220,
+            // [P1-DATA-005] session 27, repositioned session 29 — negative
+            // habit's fixed lurk x anchors to the far right of the canvas
+            negativeLurkRightMarginPx: 20,
             ...overrides,
         };
     }
@@ -321,10 +321,10 @@ describe('createHabitInstanceData', () => {
         expect(instance.x).toBe(42);
     });
 
-    test('[P1-DATA-005] session 27: a negative habit spawns at the fixed lurk x, NOT the timeline calc', () => {
+    test('[P1-DATA-005] session 27/29: a negative habit spawns at the far-right lurk x, NOT the timeline calc', () => {
         const negativeHabitDef = { ...habitDef, isNegative: true };
         const instance = Habits.createHabitInstanceData(negativeHabitDef, new Date(2026, 6, 18), deps());
-        expect(instance.x).toBe(100 + 220); // baseWidth + negativeLurkOffsetPx
+        expect(instance.x).toBe(800 - 60 - 20); // gameScreenWidth - habitEnemyWidth - negativeLurkRightMarginPx
         expect(instance.x).not.toBe(42); // never routed through calculateTimelinePosition
     });
 
