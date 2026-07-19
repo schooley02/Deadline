@@ -56,6 +56,26 @@ Per the model strategy, batch these into ONE Fable session (they interact) rathe
 piecemeal. They are expensive to get wrong and reshape architecture. Recommended: hold the Fork
 session right before Sub-session 2.
 
+> **ALL THREE FORKS RESOLVED — 2026-07-19 session 26 (Fable, Jeremy's verdicts; full rationale +
+> rejected alternatives in DECISIONS.md session 26):**
+> - **A = A2 with an idle "lurker" zombie.** Never advances, no base damage, no overdue path. Tap →
+>   "I indulged" → immediate points loss + streak zero. Unresolved days settle at next morning's
+>   check-in (spec's binary avoided/indulged cards); days older than the previous day default to
+>   avoided. A1 rejected as semantically broken (game can't observe indulgence; time expiring =
+>   success for a negative habit).
+> - **B = unbounded debt, fully orthogonal to base health, no clearing deadline.** Debt's function is
+>   keeping indulgence costly at 0 balance, not punishment. Red HUD + agency-framed nudge ("−12 ·
+>   complete 2 tasks to break even"). Shop self-gates via canAfford. Recovery-plan UI deferred to run
+>   review. Channel separation principle: HP = deadline failures, points = behavior costs, frozen
+>   slots = sustained patterns.
+> - **C = Cheat Day only.** 200 pts, held-inventory exponential pricing. Active cheat day ⇒
+>   indulgence costs nothing and NO occurrence is recorded (day excused — not success, not miss);
+>   streak preserved, not incremented. Sick/Skip deferred to the frozen-slots ticket (spec ambiguity
+>   on per-habit vs global + interaction with recovery streaks).
+>
+> The original fork descriptions below are retained for context. Sub-sessions 2–5 are UNBLOCKED and
+> updated with these decisions.
+
 **Fork A — the core interaction & enemy model for a negative habit (the expensive one).**
 A negative habit is a temptation to resist. Two coherent models:
   - *(A1) Advancing temptation:* the negative-habit zombie advances toward the base like a positive
@@ -133,27 +153,49 @@ Batch the three forks. Output: the chosen negative-habit interaction model, the 
 day-token scope — enough to make sub-sessions 2-5 execution work. Update this plan doc with the
 decisions.
 
-### Sub-session 2 — negative-habit behavior wired end-to-end (Opus plan → Sonnet)
-**Goal:** implement Fork A's chosen model in `js/items.js` (+ movement/damage if A1). Negative habits
-earn on avoidance (day rollover or overdue-as-success), lose on indulge; base-damage path reused or
-bypassed per the decision. Live-verify in Chrome. Depends on Sub-session 1 + Fork A.
+### Sub-session 2 — lurker zombie + indulge action wired end-to-end (Opus plan → Sonnet)
+**Goal:** implement the A2 lurker model. Negative-habit instances spawn a NON-advancing zombie at a
+fixed lurk position near the fence (`.negative-habit` tint already applied); they are excluded from
+the overdue/base-damage path entirely (`markAsOverdue` must skip negative instances — this is the
+main items.js surgery). Enemy-click popup for a negative habit shows "I indulged" instead of the
+task actions → wires `Habits.applyHabitIndulgence` (session 25) into `items.js` + points debit +
+agenda re-render + save. End-of-day: negative instances do NOT resolve at rollover — they carry as
+"unresolved" for the check-in (sub-session 4); until 4 lands, an interim decision is needed on what
+the rollover does with them (recommend: hold the instance, no occurrence recorded — check-in will
+settle it). Live-verify in Chrome (create negative habit → lurker spawns, never moves, no damage
+ticks; indulge → points drop, streak zeroes, zombie exits). Depends on Sub-session 1. **Note:** the
+points debit here still goes through the 0-floored `Economy.subtractPoints` until sub-session 3
+lands the non-clamping path — acceptable interim (debt just can't go below 0 for a few sessions).
 
-### Sub-session 3 — negative balance + debt visualization (Opus plan → Sonnet)
-**Goal:** `Economy` non-clamping indulgence path (per the header NOTE reservation); debt-state
-visualization + recovery-suggestion UX per Fork B. Points HUD handles negative display. Tests for the
-non-clamping path (indulgence subtracts below 0; uncompletion refunds still floor at 0). Depends on
-Fork B.
+### Sub-session 3 — unbounded debt + encouraging debt UX (Opus plan → Sonnet)
+**Goal:** add `Economy.applyIndulgenceCost` (or similar) — the non-clamping sibling reserved by the
+economy.js header NOTE; switch sub-session 2's debit to it. Uncompletion refunds KEEP the 0 floor.
+Points HUD renders negative balances in red with the agency-framed nudge ("−12 · complete 2 tasks to
+break even" — derive N from pointsPerTask, no new tunables). No shop gating changes (canAfford
+already handles it). NO recovery-plan UI (deferred to run review — see DECISIONS.md session 26).
+Tests: indulgence subtracts below 0; refunds still floor; nudge math. Persistence: playerPoints
+already persists as a plain number — verify a negative value round-trips (should be free, but test
+it).
 
 ### Sub-session 4 — daily check-in prompt (Opus plan → Sonnet)
-**Goal:** morning/first-login prompt confirming avoidance for each active negative habit
-(ROUTINES.md ~35), recording success/indulge per habit. Build ONLY the check-in surface — NOT frozen
-slots (separate ticket). Depends on Sub-session 2.
+**Goal:** first-open-of-a-new-day prompt: one card per UNRESOLVED negative habit from the previous
+day, binary "Successfully avoided" (→ success occurrence + points + defeat explosion for a still-
+lurking zombie) / "I indulged" (→ retroactive miss via applyHabitIndulgence). Days older than the
+previous day auto-resolve as avoided (generous default, session 26). Spec details worth honoring
+cheaply: PROJECT_SPEC.md ~640 (snooze link "I'll check this later"; skip = re-prompt later, not
+auto-resolve). Build ONLY the check-in surface — NOT frozen slots (separate ticket). Depends on
+Sub-session 2.
 
-### Sub-session 5 — day-tokens (Sonnet, or Opus if Fork C left the application model open)
-**Goal:** add Cheat (+ Sick/Skip per Fork C) day-tokens to the shop and their per-day application
-(Cheat = indulge-without-penalty for a day). Likely the 4→5 schema migration lands here — its own
-session per the one-persistence-change-per-session guardrail. Balance numbers via balance-tuning
-skill. Depends on Sub-session 2 + Fork C.
+### Sub-session 5 — Cheat Day token (Sonnet; 4→5 schema migration lands here)
+**Goal:** add Cheat Day to `CONFIG.SHOP_ITEMS` (200 pts base — spec face value, unchanged; held-
+inventory exponential pricing like repair kits, `consumable: true`). "Use" targets a negative habit
+(reuse the pushback tap-a-zombie targeting pattern from shop sessions 3–4, incl. the shopView hint
+card + the setTimeout(0) hazard check). Active cheat day = persisted per-habit-per-day state (the
+4→5 migration — its own session per the one-persistence-change-per-session guardrail): while
+active, "I indulged" costs nothing and records NO occurrence (day excused; streak preserved, not
+incremented) — and the check-in card for that day auto-resolves as excused. Sick/Skip: NOT in this
+ticket (session 26 — deferred to frozen slots). Depends on Sub-sessions 2+3 (needs the indulge
+action + the real debit path).
 
 ---
 

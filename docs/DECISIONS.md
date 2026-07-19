@@ -4,6 +4,34 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 26: [P1-DATA-005] FORK SESSION — negative-habit design resolved (Cowork session, Fable; all three verdicts Jeremy's)
+
+The three interacting design forks from `docs/NEGATIVE_HABITS_PLAN.md`, batched into one Fable session per the model strategy. Decisive spec evidence found during analysis: PROJECT_SPEC.md's Daily Check-in Flow (~line 640) specifies retrospective SELF-REPORT resolution — one card per incomplete negative habit from the previous day, binary "Successfully avoided" / "I indulged" buttons.
+
+**Fork A — interaction model: A2, idle "lurker" zombie (no base damage, self-report resolution).**
+- Negative habit spawns a zombie that lurks at a fixed position near the fence and NEVER advances (`.negative-habit` red tint, hook already in items.js). No damage timer, no overdue path.
+- Any time during the day: tap → "I indulged" → immediate points loss via `Habits.applyHabitIndulgence` (session 25), streak zeroed, zombie exits victorious.
+- Undecided days resolve at the NEXT MORNING's check-in (per spec): "Successfully avoided" → success occurrence + points + defeat explosion; "I indulged" → retroactive miss.
+- Generous default: unresolved days older than the previous day resolve as avoided (never-punishing tone; spec only asks about "the previous day").
+- **Why A1 (advancing temptation, reach-base = auto-indulge) was rejected — not just riskier, semantically broken:** the game cannot observe an indulgence; only the player can report it. A timer expiring means *the player got through the day* — success for a negative habit — so A1 punishes exactly the behavior the mechanic rewards. The overdue/base-damage machinery's trigger (time ran out) means the OPPOSITE thing for negative habits and cannot be reused. Also rejected: A2 list-only (no field zombie) — cheaper, but forfeits the visual-temptation metaphor on the habits that most need pressure.
+
+**Fork B — debt: unbounded, fully orthogonal to base health, no clearing deadline, encouraging UX.**
+- Jeremy probed whether debt should tie to base health or require clearing before day's end (run ends otherwise). Rejected on three grounds, all logged for future re-litigation:
+  1. **Punishment stacking** — an indulgence already costs points (immediate), streak (reset), rate multiplier (compounding, up to 14 days), and soon frozen slots; adding run-death makes five consequences, contra "reflection over punishment" and hostile to the ADHD audience.
+  2. **The honesty problem (the decisive one)** — the system runs on self-report; every consequence attached to "I indulged" raises the incentive to lie, and one lie corrupts streaks/rate-data/run-reviews — the whole reflection layer. Honesty must stay cheap.
+  3. **Illegible death** — a run ending at midnight over an invisible number breaks "game pressure mirrors real-life urgency"; church-wrecking zombies are legible, debt isn't.
+- **What negative balance is FOR (the design function, worth preserving in future debates):** keeping the cost of indulgence real at zero balance. A 0-floor makes indulgence FREE for the player at 0 points — the player most in trouble faces the least pressure. Debt preserves the incentive gradient; it is an accounting-honesty feature, not a punishment feature.
+- Channel separation principle affirmed: base HP = deadline failures (game-observable), points/debt = behavior costs (self-reported, always recoverable), frozen slots = sustained-pattern consequence. One channel per failure mode.
+- Debt UX: red HUD number + agency-framed nudge ("−12 · complete 2 tasks to break even"), NOT a shame counter. Shop needs no new gating (`canAfford` already requires balance ≥ price). Fuller "recovery plan suggestions" (MECHANICS.md promise) deferred to the run-review screen. Rejected: floored debt (zero-floor problem returns at the floor); added teeth (honesty problem).
+
+**Fork C — day-tokens: Cheat Day only in this ticket; Sick/Skip deferred to the frozen-slots ticket.**
+- Cheat Day (200 pts base, held-inventory exponential pricing like repair kits): while active on a negative habit's day, indulgence costs nothing and **no occurrence is recorded at all** — the day is excused: not a success (you didn't avoid it), not a miss (you paid for grace). Streak preserved, not incremented.
+- Sick/Skip rejected for now: the spec is ambiguous on per-habit vs global application (guardrail: don't invent mechanics), and both interact with frozen-slot recovery streaks — a ticket that doesn't exist yet. They ride with frozen slots.
+
+**Plan impact:** sub-sessions 2–5 in NEGATIVE_HABITS_PLAN.md are now unblocked and updated with these decisions. No balance numbers changed this session (Cheat Day's 200 pts is the spec/ECONOMY.md face value, unchanged; the debt nudge introduces no new tunables yet).
+
+---
+
 ## 2026-07-19 — Session 25: [P1-DATA-005] sequenced + sub-session 1 built (Cowork session, Opus plan → Sonnet execution)
 
 **Sequencing decision (Opus):** recon before planning changed the scope materially — most of the polarity plumbing (form toggle, `isNegative` on defs/instances, `.negative-habit` CSS, the `occurrenceSuccess` seam) was already built in session 16 as an explicit extension point. What remains is differentiated behavior, sequenced into `docs/NEGATIVE_HABITS_PLAN.md` as 5 sub-sessions plus one batched Fable fork session (interaction model / debt depth / day-token scope — these three interact and are architecture-shaping, so they're deliberately NOT split across sessions). Sub-session 1 was carved out as fork-independent: it only touches the pure seam, so it didn't need to wait on the Fable session.

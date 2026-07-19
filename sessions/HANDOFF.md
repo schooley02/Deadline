@@ -13,6 +13,21 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 26: [P1-DATA-005] FORK SESSION — all three design forks resolved (Cowork session, Fable)
+
+**Did:** The batched Fable fork session from NEGATIVE_HABITS_PLAN.md. All three verdicts Jeremy's; full rationale + rejected alternatives in DECISIONS.md session 26. **A = A2 idle lurker:** negative-habit zombie lurks near the fence, never advances, NO base damage/overdue path (key insight: the game can't observe an indulgence — time expiring is SUCCESS for a negative habit, so the reach-base-= -failure machinery is semantically inverted and unreusable); tap → "I indulged" → points loss + streak zero; unresolved days settle at next morning's check-in; older days default to avoided. **B = unbounded debt, orthogonal to base health, no clearing deadline** (Jeremy probed tying debt to HP/run-death — rejected on punishment-stacking, the self-report honesty problem [the decisive argument: every consequence attached to "I indulged" incentivizes lying, and lies corrupt the whole reflection layer], and illegible-death grounds); red HUD + "−12 · complete 2 tasks to break even" nudge; no new shop gating. **C = Cheat Day only** (excused day: no cost, NO occurrence recorded, streak preserved); Sick/Skip deferred to the frozen-slots ticket.
+
+**State:** ✅ No code touched — design session only. Tests untouched (19 suites, 413/413 from session 25). Docs updated same session: DECISIONS.md (session 26 — the canonical writeup), NEGATIVE_HABITS_PLAN.md (forks marked resolved; sub-sessions 2–5 rewritten as concrete execution specs), MECHANICS.md (negative-habit model paragraph), ECONOMY.md (debt design + token table annotations), ROADMAP.md (fork item checked).
+
+**Next: Sub-session 2 — lurker zombie + indulge action wired end-to-end.** Opus to plan the items.js surgery (main risk: `markAsOverdue` must skip negative instances; end-of-day must HOLD unresolved negative instances rather than resolving them), then Sonnet to execute. Interim note: the points debit temporarily uses the 0-floored `subtractPoints` until sub-session 3 lands the non-clamping path — acceptable, documented in the plan.
+
+**Watch out:**
+- Sub-session 2's rollover behavior for unresolved negative instances is specified as "hold, record nothing — check-in settles it" but the check-in doesn't exist until sub-session 4. In the interim a negative habit left untapped just carries; make sure daily spawning doesn't double-spawn a new instance on top of a held one (check `generateDailyHabitInstances`' already-completed guard against this case).
+- The debt nudge's "N tasks to break even" derives from `POINTS_PER_TASK` — no new tunables were introduced, so no balance-tuning protocol needed yet. If sub-session 3 adds any, protocol applies.
+- Dev save still has session-23 debris; Reset before real play (standing note).
+
+---
+
 ## 2026-07-19 — Session 25 (cont'd): [P1-DATA-005] sub-session 1 — `'indulged'` pure seam (Cowork session, Sonnet)
 
 **Did:** Built `docs/NEGATIVE_HABITS_PLAN.md`'s Sub-session 1, same-session as the planning above (Jeremy switched to Sonnet after the plan). `js/habits.js`: `occurrenceSuccess(isNegative, 'indulged')` added (always a miss); new pure `applyHabitIndulgence(currentStreak, occurrenceHistory, isNegative, originalDueDate, config)` — no-ops for positive habits (`noOp: true`, nothing changes), for negative habits records the miss + zeroes the visual streak + computes `pointsLost` from the post-record rate multiplier (mirrors `applyHabitCompletion`'s convention, not `applyHabitUncompletion`'s — so a future undo-indulge could mirror the recompute-then-pop symmetry). Exported from the `Habits` module. `test/habits.test.js`: 6 new cases. **Deliberately no `items.js`/UI/economy wiring** — `playerPoints` isn't touched by anything yet; that's later sub-sessions.

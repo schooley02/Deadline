@@ -4,7 +4,7 @@ Source: PROJECT_SPEC.md (Features List → shop/monetization sections). Numbers 
 
 ## Points / Currency
 - Earned by defeating enemies (completing tasks, completing positive habits, avoiding negative habits).
-- Lost by indulging negative habits or missing positive habits. Balance CAN go negative (debt state gets clear visualization + recovery plan suggestions).
+- Lost by indulging negative habits or missing positive habits. Balance CAN go negative — **debt design decided 2026-07-19 session 26 (Fable, see DECISIONS.md): unbounded, fully orthogonal to base health, no clearing deadline.** Debt's function is keeping indulgence costly at 0 balance (a 0-floor would make lapses free for the player most in trouble), not punishment. Debt UX: red HUD + agency-framed break-even nudge ("−12 · complete 2 tasks to break even"); shop self-gates via `canAfford`; the fuller "recovery plan suggestions" surface is deferred to the run-review screen. Indulgence uses a dedicated non-clamping path in `js/economy.js` ([P1-DATA-005] sub-session 3); uncompletion refunds keep the 0 floor.
 - Larger/more complex tasks award more points based on difficulty.
 - Habit points bonus (BUILT 2026-07-18 session 16, replaces the old flat streak bonus): a capped multiplier from the habit's rolling success rate over its last 14 recorded occurrences — **≥90% → 2× ("task parity": round(5 × 2) = 10 pts, same as a task), ≥70% → 1.5× (8 pts), else 1× (5 pts)** (`CONFIG.HABIT_RATE_*`, config-tunable; 1× until ≥7 occurrences recorded). `pointsGained = round(POINTS_PER_HABIT × multiplier)`. Points only, never XP. Multipliers TUNED 2026-07-19 (session 24 theory pass, Fable): the top tier is deliberately anchored to `POINTS_PER_TASK` for legibility — "a habit you keep excellently is worth a task." Re-check against real play data. See MECHANICS.md Habits + DECISIONS.md.
 
@@ -23,9 +23,9 @@ Points math + this pricing formula live in `js/economy.js` (built 2026-07-18 ses
 | Enemy Pushback 1hr | 50 pts | Push enemy back 1 hour (stacking allowed) |
 | Enemy Pushback 2hr | 100 pts | Push enemy back 2 hours (stacking allowed) |
 | Enemy Pushback 1day | 300 pts | Push enemy back 1 day (stacking allowed) |
-| Habit Cheat Day token | 200 pts | 1 day negative-habit indulgence without penalty |
-| Sick Day token | 200 pts | 1 day habit suspension |
-| Skip Day token | 200 pts | 1 day temporary habit pause |
+| Habit Cheat Day token | 200 pts | 1 day negative-habit indulgence without penalty — semantics decided session 26: while active, indulging costs nothing and NO occurrence is recorded (day excused — not success, not miss); streak preserved, not incremented. Ships in [P1-DATA-005] sub-session 5 (held-inventory exponential pricing, like repair kits) |
+| Sick Day token | 200 pts | 1 day habit suspension — DEFERRED to the frozen-slots ticket (session 26: spec ambiguous on per-habit vs global; interacts with recovery streaks) |
+| Skip Day token | 200 pts | 1 day temporary habit pause — DEFERRED to the frozen-slots ticket (same reasoning as Sick Day) |
 
 ## Shop UI requirements
 - Product grid with clear pricing; inventory counter on each card
