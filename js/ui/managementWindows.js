@@ -19,6 +19,13 @@
  *     in as deps rather than assumed global, so this module has no implicit
  *     dependency on script.js internals or extraction order elsewhere.
  *
+ * Shop dispatch ([P1-UI-008] SHOP_PLAN.md session 2, 2026-07-18): the 'shop'
+ * branch calls ShopView.renderShopWindow — yet another different module
+ * (js/ui/shopView.js). deps.shopCatalog / deps.playerInventory /
+ * deps.playerPoints / deps.onShopBuy are passed through from script.js the
+ * same way the routines deps are, so this file still has zero hard
+ * dependency on shopView.js's internal shape beyond calling one function.
+ *
  * populateRoutinesWindow's re-render-after-toggle call is a direct
  * module-internal reference (calls this file's own populateRoutinesWindow
  * again), not a deps callback — it's the same function, not a cross-module
@@ -28,7 +35,8 @@ const ManagementWindows = (() => {
 
     // deps: { managementWindows, closeFabMenu, activeItems, definedHabits,
     //         definedRoutines, routineSlots, showRoutineManagement,
-    //         toggleRoutineActive }
+    //         toggleRoutineActive, shopCatalog, playerInventory,
+    //         playerPoints, onShopBuy }
     function openManagementWindow(type, deps) {
         // Close all windows first
         Object.values(deps.managementWindows).forEach(win => {
@@ -66,6 +74,13 @@ const ManagementWindows = (() => {
                     routineSlots: deps.routineSlots,
                     showRoutineManagement: deps.showRoutineManagement,
                     toggleRoutineActive: deps.toggleRoutineActive,
+                });
+            } else if (type === 'shop') {
+                ShopView.renderShopWindow({
+                    catalog: deps.shopCatalog,
+                    inventory: deps.playerInventory,
+                    playerPoints: deps.playerPoints,
+                    onBuy: deps.onShopBuy,
                 });
             }
         }

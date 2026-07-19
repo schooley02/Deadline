@@ -939,7 +939,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const managementWindows = {
         tasks: document.getElementById('tasksWindow'),
         habits: document.getElementById('habitsWindow'),
-        routines: document.getElementById('routinesWindow')
+        routines: document.getElementById('routinesWindow'),
+        shop: document.getElementById('shopWindow')
     };
     
     // Thin wrappers — real implementations live in js/ui/fabMenu.js and
@@ -957,7 +958,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function openManagementWindow(type) {
         ManagementWindows.openManagementWindow(type, {
             managementWindows, closeFabMenu, activeItems, definedHabits,
-            definedRoutines, routineSlots, showRoutineManagement, toggleRoutineActive
+            definedRoutines, routineSlots, showRoutineManagement, toggleRoutineActive,
+            shopCatalog: CONFIG.SHOP_ITEMS, playerInventory, playerPoints, onShopBuy: handleShopPurchase
         });
     }
 
@@ -982,7 +984,50 @@ document.addEventListener('DOMContentLoaded', () => {
             definedRoutines, routineSlots, showRoutineManagement, toggleRoutineActive
         });
     }
-    
+
+    // Shop ([P1-UI-008] SHOP_PLAN.md session 2, 2026-07-18). populateShopWindow
+    // mirrors the populateTasksWindow/populateHabitsWindow wrappers above, but
+    // calls ShopView (a different module) directly rather than routing back
+    // through ManagementWindows, since ShopView owns no per-type dispatch logic
+    // of its own to reuse.
+    function populateShopWindow() {
+        ShopView.renderShopWindow({
+            catalog: CONFIG.SHOP_ITEMS, inventory: playerInventory, playerPoints, onBuy: handleShopPurchase
+        });
+    }
+
+    // Buy-one-unit handler wired to every catalog card's Buy button (session 2).
+    // Shop.purchase is pure — this applies its result to state, persists, and
+    // re-renders both the shop grid (new price/held count) and the points HUD.
+    // Repair-kit USE (-> Damage.healBase) is session 3; pushback targeting is
+    // session 4 — buying only fills playerInventory today.
+    function handleShopPurchase(itemId) {
+        const result = Shop.purchase(itemId, CONFIG.SHOP_ITEMS, playerInventory, playerPoints);
+        if (!result.ok) {
+            // Buy button is disabled whenever unaffordable, so this is a
+            // defensive no-op guard (e.g. a stale render) rather than the
+            // expected path — still give feedback if it happens.
+            ShopView.showShopMessage('Not enough points for that.');
+            return;
+        }
+
+        playerPoints = result.newPoints;
+        playerInventory = result.newInventory;
+        updatePlayerDisplays();
+        saveGame();
+
+        // Deferred, not synchronous: populateShopWindow() replaces
+        // #shopWindowList's innerHTML, which DETACHES the very Buy button
+        // that's still bubbling this click event up to document's "click
+        // outside closes windows" listener (script.js, ~line 1086). That
+        // listener does `e.target.closest('.management-window')` — on a
+        // button already removed from the DOM this returns null, so it reads
+        // as an outside click and closes the window immediately after every
+        // purchase. Found live-testing this session (see DECISIONS.md).
+        // setTimeout(0) lets the click finish bubbling before the rebuild.
+        setTimeout(populateShopWindow, 0);
+    }
+
     function showRoutineManagement(routineId) {
         RoutineViews.showRoutineManagement(routineId, routineViewsDeps());
     }

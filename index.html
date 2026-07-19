@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="css/routineViews.css">
     <link rel="stylesheet" href="css/modal.css">
     <link rel="stylesheet" href="css/popups.css">
+    <link rel="stylesheet" href="css/shop.css">
     <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
@@ -105,6 +106,10 @@
                     <span class="fab-menu-icon">👥</span>
                     <span class="fab-menu-label">Routines</span>
                 </button>
+                <button class="fab-menu-item" data-type="shop">
+                    <span class="fab-menu-icon">🛒</span>
+                    <span class="fab-menu-label">Shop</span>
+                </button>
             </div>
         </div>
 
@@ -159,7 +164,23 @@
                 </div>
             </div>
         </div>
-        
+
+        <div id="shopWindow" class="management-window hidden">
+            <div class="window-header">
+                <h3>Shop</h3>
+                <button class="close-window" data-window="shopWindow">×</button>
+            </div>
+            <div class="window-content">
+                <!-- [P1-UI-008] SHOP_PLAN.md session 2: catalog grid only.
+                     Repair-kit USE (session 3) and pushback targeting
+                     (session 4) come later — buying only fills inventory today. -->
+                <div id="shopMessage" class="shop-message hidden"></div>
+                <div id="shopWindowList" class="shop-grid">
+                    <!-- Catalog cards populated by js/ui/shopView.js -->
+                </div>
+            </div>
+        </div>
+
         <!-- Hidden Forms (for modal use) -->
         <!-- Task Form and Habit Form removed 2026-07-18 (dead legacy inline
              forms, unreachable since the showForm shadowing bug predating this
@@ -209,6 +230,7 @@
     <script src="js/ui/hud.js"></script>
     <script src="js/ui/fabMenu.js"></script>
     <script src="js/ui/managementWindows.js"></script>
+    <script src="js/ui/shopView.js"></script>
     <script src="js/ui/forms.js"></script>
     <script src="js/ui/popups.js"></script>
     <script src="js/ui/agendaList.js"></script>

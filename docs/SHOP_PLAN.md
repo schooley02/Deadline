@@ -59,7 +59,7 @@ Foundation (state + pure logic) first, then the UI frame, then each effect, then
 | # | Session | Scope | Model |
 |---|---|---|---|
 | **1 ✅** | State + config + `js/shop.js` (pure core, no UI) — **DONE 2026-07-18 session 20** | Added `inventory` to persisted state + `SCHEMA_VERSION` 3→4 migration; `CONFIG.SHOP_ITEMS` (6 items); `js/shop.js` pure `price`/`canAfford`/`purchase`/`consume`/`heldCount`/`getItem` (delegates to `Economy`). `test/shop.test.js` + migration cases; 19 suites, 403/403; live-verified in Chrome. Note built: `price(item, inventory)` (not `catalogPrice(item, owned)` as sketched) — takes the inventory object and derives held internally. See DECISIONS.md. | Opus → Sonnet |
-| **2** | Shop UI frame — FAB 4th item + shop window | `index.html`: 4th FAB button `data-type="shop"` + `#shopWindow` markup. `js/ui/shopView.js`: render the catalog grid, per-card price (live via `Shop.catalogPrice`) + inventory counter + Buy button wired to `Shop.purchase`, purchase preview, and the "why did the price go up" exponential feedback (ECONOMY.md UI reqs). Wire `type === 'shop'` into `ManagementWindows.openManagementWindow`. `css/shop.css` (linked before `responsive.css`). Repair kits land in inventory; USE comes next session. | Opus → Sonnet |
+| **2 ✅** | Shop UI frame — FAB 4th item + shop window — **DONE 2026-07-19 session 21** | Built as scoped. Note: shipped as `Shop.price(item, inventory)` (matches session 1's actual signature, not the `catalogPrice` name used in this plan's original sketch). **Bug found + fixed live in Chrome:** the Buy click handler's synchronous DOM rebuild detached the clicked button before its click event finished bubbling to script.js's document-level "click outside closes window" listener, so every purchase self-closed the shop window; fixed via `setTimeout(0)` deferring the rebuild. **This is a hazard for sessions 3 and 4 too** (repair-kit USE button, pushback-targeting popup both trigger their own DOM rebuild from a click) — see the hazards list below, now updated. 19 suites, 403/403 (unchanged — UI-only session). See DECISIONS.md session 21. | Opus → Sonnet |
 | **3** | Repair kit inventory + USE → base heal | Inventory panel (held counts) with a "Use" action per repair-kit tier → `Damage.healBase(amount)`, decrement held count, re-render price (now cheaper — the `owned=held` loop). Three tiers side-by-side (ECONOMY.md). Closes the repair-kit loop end-to-end. | Sonnet |
 | **4** | Pushback items + enemy targeting | Resolve the pricing wrinkle above. Buy pushback → select target enemy (hang off the existing enemy-click popup in `popups.js`: add a "Push back" action when pushback is affordable/held) → shift that item's `dueDateTime` later by the tier's amount, re-render its position, clear overdue state if it moves into the future (reuse `recomputeOverdueStateAfterEdit` from `items.js`). Stacking allowed. `test/` for the pure due-time shift + overdue recompute. | Opus → Sonnet |
 | **5** | Balance re-tune (balance-tuning protocol) | Now that real shop prices exist, re-tune: repair-kit base costs, pushback pricing basis, AND the habit rate-tier multipliers (`CONFIG.HABIT_RATE_TIERS` — flagged since session 16 as legibility placeholders pending shop prices). Log every number to `docs/DECISIONS.md` per the balance-tuning skill. | Fable (batch the balance judgment) |
@@ -83,6 +83,14 @@ Foundation (state + pure logic) first, then the UI frame, then each effect, then
 - **UI is less unit-testable than logic** — split each session's pure core (pricing, purchase math,
   due-time shift, overdue recompute) into `js/shop.js` and test THAT; lean on `node --check` + live
   Chrome smoke test for the DOM.
+- **A click handler that rebuilds its own container's DOM must defer that rebuild** (found session 2,
+  see DECISIONS.md). script.js has a document-level "click outside a management window closes it"
+  listener (~line 1086) that runs `e.target.closest('.management-window')` on bubble. If a click
+  handler does `someContainer.innerHTML = '...'` SYNCHRONOUSLY, it detaches its own event target
+  before the event finishes bubbling — `closest()` on a detached node returns `null`, so the click
+  reads as "outside" and closes the window immediately. Fix: wrap the rebuild call in
+  `setTimeout(fn, 0)`. Repair-kit USE (session 3) and the pushback-targeting popup (session 4) both
+  trigger their own click-driven DOM rebuild — apply the same deferral there.
 
 ---
 

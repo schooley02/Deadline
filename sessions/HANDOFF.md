@@ -13,6 +13,26 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 21: Shop sub-session 2 — UI frame (Cowork session, Sonnet)
+
+**Did:** Built the shop UI frame per `docs/SHOP_PLAN.md` session 2: 4th FAB menu item (🛒 `data-type="shop"`) + `#shopWindow` markup in `index.html` (reused the existing management-window/backdrop pattern — no new nav plumbing needed); `js/ui/shopView.js` (new module, no DOM state ownership, same pattern as `managementWindows.js`) renders the 6-item catalog grid with live price (`Shop.price`), held count, Buy button (disabled when unaffordable via `Shop.canAfford`), and the "price rises ×1.5 per one you hold" feedback once held > 0; `css/shop.css` linked before `responsive.css`; `ManagementWindows.openManagementWindow` gained a `type === 'shop'` dispatch branch; script.js added `managementWindows.shop`, threaded shop deps through `openManagementWindow`, and added `populateShopWindow()`/`handleShopPurchase(itemId)` wrappers.
+
+**Found + fixed a real bug live in Chrome:** every purchase was self-closing the shop window. Root cause: `handleShopPurchase` rebuilt `#shopWindowList`'s innerHTML SYNCHRONOUSLY inside the Buy button's own click handler, which detaches the clicked button from the DOM before the click event finishes bubbling to script.js's pre-existing document-level "click outside a management window closes it" listener (~line 1086) — that listener's `e.target.closest('.management-window')` returns `null` on the now-detached node, reading as an outside click. Fixed by wrapping the rebuild in `setTimeout(fn, 0)`. **This same hazard applies to session 3 (repair-kit USE button) and session 4 (pushback-targeting popup)** — added to SHOP_PLAN.md's standing hazards list so it's not rediscovered.
+
+**State:** ✅ **19 suites, 403/403** (unchanged — this was a UI-only session, no new pure-core logic to test, per SHOP_PLAN.md's own guidance to lean on `node --check` + live Chrome smoke test for DOM work). `node --check` clean on all touched JS. **Live-verified in Chrome:** FAB → Shop opens the catalog correctly (6 cards, correct base prices/icons, Held: 0); bought a Repair Kit (Small) — points 40→15, held 0→1, price live-updated 25→38 (`round(25×1.5)`), feedback note appeared, window stayed open (post-fix); `playerPoints`/`playerInventory` both round-tripped correctly across a full page reload (`repair_small: 1` confirmed in `localStorage.deadline.save`). Console clean of app errors (only unrelated browser-extension noise).
+
+**Docs updated same session:** SHOP_PLAN.md (session 2 checked off + new hazard entry), ROADMAP.md (sub-item 2 checked off), DECISIONS.md (session 21 entry).
+
+**Next — Shop sub-session 3: Repair kit inventory + USE → base heal** (`SHOP_PLAN.md`). Inventory panel (held counts) with a "Use" action per repair-kit tier → `Damage.healBase(amount)`, decrement held count, re-render price. Pure execution, planned — Sonnet. **Apply the setTimeout(0) deferral pattern to the USE button's click handler from the start** (see the new hazard entry in SHOP_PLAN.md) rather than rediscovering the same bug.
+
+**Watch out:**
+- Jeremy reset his dev save this session (approved live) to get a clean state for purchase testing — the prior save was full of `Session*-Test*` debris and the base had already hit GAME OVER at 0 health. The FRESH save now has 2 new test tasks (`ShopTest-PointsSource`, `ShopTest-Points2`, both completed) and **1 held `repair_small` in inventory** left over from this session's live purchase test. Fine to leave for session 3 (useful for testing USE), or clean up first — Jeremy's call.
+- `Shop.price`/`purchase`/`canAfford` all take the inventory OBJECT, not an integer `owned` (per session 1 — SHOP_PLAN.md's own sketch used `catalogPrice(item, owned)`, the built code differs; shopView.js was written against the real signature).
+- Pushback pricing is still an unresolved sub-decision (session 4) — pushback items are non-consumable so `Held` never shows/inflates for them in the UI as built; that's expected today, not a bug.
+- Sandbox scratch dir this session: `/sessions/great-sharp-franklin/dl-s21` (fresh — different sandbox instance than sessions 19/20's `exciting-happy-turing`).
+
+---
+
 ## 2026-07-18 — Session 20: Shop plan written + Shop session 1 (state/config/pure core) (Cowork session, Opus)
 
 **Did:** Wrote `docs/SHOP_PLAN.md` (5-sub-session sequence for [P1-UI-008]; scope + entry + pricing decisions in DECISIONS.md session 20), then built sub-session 1 — the pure core + persistence, no UI:
