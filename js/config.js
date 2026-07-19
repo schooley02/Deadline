@@ -54,6 +54,15 @@ const CONFIG = {
     XP_PER_HABIT_COMPLETE: 5,
     POINTS_PER_TASK: 10,
     POINTS_PER_HABIT: 5,
+    // Sub-task economy ([P1-DATA-004] sub-session 3, 2026-07-19, balance-tuning
+    // protocol): half of XP_PER_TASK_DEFEAT/POINTS_PER_TASK — a sub-task is
+    // "half a task," decided alongside the growing-parent visual (both effects
+    // together weaken the parent as subs complete). The high-priority ×2 rule
+    // (Economy.taskPoints) still applies to a SUB's own priority flag on top
+    // of this base, so a high-priority sub can pay up to POINTS_PER_TASK (10)
+    // — capped at, never exceeding, a standalone task. See DECISIONS.md.
+    SUBTASK_XP: 5,
+    SUBTASK_POINTS: 5,
     // Streak is now a VISUAL-only concept (decided 2026-07-18, session 13; built
     // session 16). This threshold is the "on-fire" high-streak sprite/badge
     // trigger (spawning.js, items.js) — it NO LONGER awards points. The old flat

@@ -516,7 +516,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // buildSkipDaySectionHtml) and the handler that consumes a token
             // + excuses + removes the targeted instance.
             getSkipDayHeldCount: () => Shop.heldCount(playerInventory, 'skip_day'),
-            onUseSkipDay: handleUseSkipDay
+            onUseSkipDay: handleUseSkipDay,
+            // Dependent due dates ([P1-DATA-004] sub-session 2): after a
+            // PARENT's deadline is edited, re-clamp any children now due
+            // later than it (Jeremy's clamp model — earlier allowed, later
+            // never; parent-pull re-clamps, parent-push leaves children).
+            clampSubTaskDueDates: (parentItem) => Items.clampSubTasksToParentDeadline(parentItem, itemsDeps())
         };
     }
 
@@ -1352,6 +1357,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         playerPoints = result.newPoints;
         targetItem.dueDateTime = Shop.pushedBackDueDate(targetItem.dueDateTime, item.effect.pushbackMs);
+
+        // Dependent due dates ([P1-DATA-004] sub-session 2): a SUB-TASK can't
+        // be pushed past its parent's deadline — the pushed date clamps to the
+        // parent's (pure Items.clampedSubTaskDueDate). Pushing a PARENT later
+        // never touches its children (they're then "earlier", which is legal).
+        if (targetItem.parentId) {
+            const pushParent = activeItems.find(i => i.id === targetItem.parentId && i.type === 'task');
+            if (pushParent) {
+                targetItem.dueDateTime = Items.clampedSubTaskDueDate(targetItem.dueDateTime, pushParent);
+            }
+        }
 
         // Re-derive overdue state from the NEW due date — same reasoning as the
         // Edit Task save path (js/ui/popups.js showEditTaskModal): without this

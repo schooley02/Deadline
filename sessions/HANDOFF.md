@@ -13,6 +13,95 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 49: [P1-DATA-004] sub-session 3 BUILT — sub-task economy (Cowork session, Sonnet)
+
+**Did:** SUBTASKS_PLAN.md sub-session 3, fully per plan. New `CONFIG.SUBTASK_XP`/`SUBTASK_POINTS`
+(5/5, balance-tuning protocol — value was already decided in session 46's Fork 4, this session
+executed it). `Items.completeItem`/`uncompleteItem`'s task branches now pick the sub base whenever
+`item.parentId` is set and pass it through the SAME `Economy.taskPoints(isHighPriority, base)` seam
+parents use, so the high-priority ×2 rule applies free (max 10 pts for a high-priority sub — parity
+with, never exceeding, a standalone task; XP never multiplies for anyone). Refund branch mirrors the
+award branch exactly (no stamp needed — a sub's `parentId` can't change while active). New
+`test/subtask-economy.test.js` (9 tests: award matrix, high-priority sub vs. standalone, parent
+unaffected, multi-sub independence, two round-trip-to-zero symmetry checks). Docs: ECONOMY.md +
+MECHANICS.md flipped from "not yet rebalanced" to BUILT, SUBTASKS_PLAN.md sub-session 3 marked
+built, ROADMAP.md sub-item checked, DECISIONS.md (2 decisions + 1 finding + 1 flagged gap).
+
+**State:** ✅ **38 suites, 785/785** (+9 over session 48's 776). `node --check` clean on items.js/
+config.js. **Live-verified in Chrome against the real running server:** created a parent + a
+HIGH-PRIORITY sub, completed the sub first — HUD went 0→5 XP / 0→10 pts (5 base ×2 priority),
+parent checkbox re-enabled with no "remaining" label; completed the parent — HUD went 5→15 XP /
+10→20 pts, confirming the parent paid its own full 10/10 untouched by the sub rate. Zero app
+console errors. Dev save reset clean afterward.
+
+**Next:** SUBTASKS_PLAN.md sub-session 4 (Sonnet): growing/shrinking parent visuals —
+`PARENT_GROWTH_PER_SUB`/`PARENT_GROWTH_MAX_SUBS` derived width per open-sub count, CSS transition
+shrink-on-complete, `getSubTaskClusterOffset` scaled to match so the fan stays attached at any
+size. Fully specified in the plan (config numbers already proposed: 0.15/sub, cap 4).
+
+**Watch out:**
+- **`.claude/skills/balance-tuning/SKILL.md`'s canonical-values list is STALE and could not be
+  fixed from this Cowork session** — it's a protected path here (Claude Code skill dir). It still
+  reads "XP: 10 per task defeat, 5 per habit completion" with no sub-task line. Either Jeremy edits
+  it directly or a future Claude Code session does — flag it if you're back in Claude Code.
+- Sub-session 4 touches rendering/CSS, not economy — the two new CONFIG numbers from this session
+  (`SUBTASK_XP`/`SUBTASK_POINTS`) and sub-session 4's new ones (`PARENT_GROWTH_*`) will sit
+  adjacent in config.js; re-Grep before editing rather than assuming line numbers.
+- The economy branch keys off `!!item.parentId` alone (not a separate "isSub" flag on the item) —
+  consistent with how the rest of the codebase already treats parentId as the sub-task signal
+  (completion block, cascade, due-date clamp all do the same), so sub-session 4 should follow suit
+  rather than introducing a new field.
+
+---
+
+## 2026-07-19 — Session 48: [P1-DATA-004] sub-session 2 BUILT — dependent due dates (Cowork session, Fable — Sonnet was recommended)
+
+**Did:** SUBTASKS_PLAN.md sub-session 2, fully per plan. Forms: sub creation modal's date input
+gets `max` = parent deadline + the save handler rejects later values with an alert (mirroring
+createTaskItemData's date-only → 23:59:59.999 parse); edit modal resolves a sub's parent via
+`deps.activeItems` (already in popupsDeps — zero new script.js plumbing) and applies the same
+max + rejection; parent edits get no max. Data layer (js/items.js): pure
+`Items.clampedSubTaskDueDate` (defensive-copy clamp) + silent creation-time backstop in
+`createTaskItemData` (runs last, beats the validation fallback) + new
+`Items.clampSubTasksToParentDeadline` (parent pulled earlier → each now-later child re-clamps,
+routed through `recomputeOverdueStateAfterEdit` per child; pushed later → no-op by construction).
+Wired via optional `deps.clampSubTaskDueDates` in the edit-save handler BEFORE the parent row
+rebuild. Piggybacked judgment call (DECISIONS.md): `handlePushback` on a sub clamps the pushed
+date to the parent deadline — pushback was a side door around the new rule. New
+`test/subtask-due-dates.test.js` (15 tests). Docs: MECHANICS.md sub-task bullet flipped to BUILT,
+SUBTASKS_PLAN.md sub-session 2 marked built, ROADMAP.md sub-item checked, DECISIONS.md (3
+decisions + 2 findings).
+
+**State:** ✅ **37 suites, 776/776** (+15 over session 47's 761). `node --check` clean on
+items.js, popups.js, script.js. **Live-verified in Chrome against the real running server:**
+creation form rejected a +2-day date (alert stubbed, modal stayed open, no spawn) and accepted an
+earlier one; edit form rejected later + accepted legal (an overdue sub correctly un-camped
+120px → field when its date moved to the future); parent 8:00 PM → 6:30 PM re-clamped the 7:00 PM
+child to exactly 6:30 PM (agenda + flushed save confirmed); parent pushed later left the child
+alone; parent pulled into the past drove BOTH overdue — both camped at base (parent 120px, sub
+fanned +89px), red card, save flags right. Zero app console errors. Dev save reset clean.
+
+**Next:** SUBTASKS_PLAN.md sub-session 3 (Sonnet): sub-task economy — `SUBTASK_XP`/
+`SUBTASK_POINTS` = 5/5 through `Economy.taskPoints` (sub's own high-priority ×2), symmetric
+uncomplete refund, balance-tuning protocol + DECISIONS entry for the new CONFIG numbers.
+Fully specified in the plan.
+
+**Watch out:**
+- `window.Persistence` is UNDEFINED — the modules are top-level `const`s, not window properties.
+  A `window.Persistence && Persistence.flush()` guard silently skips the flush and you'll read a
+  stale save (looks like the session-44 debounce note but the guard is the bug). Call bare
+  `Persistence.flush()` from devtools/CDP.
+- Nested sub rows never carry their own `overdue-list-item` styling (pre-existing, cosmetic —
+  the parent's red card covers it visually); on the sub-session 5 polish list.
+- Pushback on a sub still CHARGES full points even when the push clamps at the parent deadline —
+  acceptable for now, flagged in DECISIONS.md for sub-session 5 if Jeremy wants tier buttons
+  greyed when they'd fully clamp.
+- Sub-session 3 touches completeItem/uncompleteItem reward math — the session-47 completion-block
+  result-object and this session's clamps live in the same functions; re-Grep before editing,
+  line numbers have drifted.
+
+---
+
 ## 2026-07-19 — Session 47: [P1-DATA-004] sub-session 1 BUILT — completion block + deletion cascade + orphan sanitizer (Cowork session, Sonnet)
 
 **Did:** SUBTASKS_PLAN.md sub-session 1, fully per plan. `Items.completeItem` (js/items.js) refuses

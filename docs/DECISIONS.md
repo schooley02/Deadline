@@ -4,6 +4,86 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 49: [P1-DATA-004] sub-session 3 BUILT — sub-task economy (Cowork session, Sonnet, balance-tuning protocol)
+
+**Decision — half-value subs applied via the SAME `Economy.taskPoints` seam parents use, not a
+new function.** `completeItem`/`uncompleteItem`'s task branches now pick a base
+(`CONFIG.SUBTASK_XP`/`SUBTASK_POINTS` if `item.parentId`, else the standalone `xpPerTaskDefeat`/
+`pointsPerTask`) and pass it through the existing `Economy.taskPoints(isHighPriority, base)` call —
+so the high-priority ×2 rule "comes free" for subs exactly as the plan specified, with zero new
+economy.js code. A high-priority sub therefore tops out at `SUBTASK_POINTS × 2` = 10, matching but
+never exceeding a standalone task's own base — the plan's explicit ceiling.
+
+**Decision — award/refund symmetry needs no stamp, unlike routine XP.** `uncompleteItem`'s refund
+branch duplicates the identical `isSub`/base-selection logic rather than reading a value stamped at
+award time (the pattern `awardRoutineXpForItem`/`refundRoutineXpForItem` uses, because routine XP
+can cross a level-up boundary between award and refund). A sub-task's `parentId` cannot change
+while it's active, so re-deriving the same branch at refund time is guaranteed to match the award —
+simpler code, same guarantee, confirmed by the round-trip-to-zero tests.
+
+**Balance-tuning protocol followed:** value (5 XP/5 pts) was already deliberated and logged in
+session 46's Fork 4 (SUBTASKS_PLAN.md "Design forks") — this session's job was execution, not a new
+number decision. `js/config.js` comment cross-references the fork; ECONOMY.md and MECHANICS.md
+updated same-session per protocol step 3. **Gap:** `.claude/skills/balance-tuning/SKILL.md`'s own
+canonical-values list (protocol step 3 also names this file) is a protected path from this Cowork
+session and could not be edited here — it still reads "XP: 10 per task defeat, 5 per habit
+completion" with no sub-task line. Needs a Claude Code session or Jeremy's own edit to close the
+protocol's paper trail completely.
+
+**Finding — XP has no priority multiplier anywhere in the codebase**, sub-task or standalone; only
+points get the ×2. Confirmed by reading both branches before writing the tests, not assumed — the
+live Chrome verification's 5→15 XP jump (5 for the high-priority sub, 10 for the parent) would have
+been 20 total if XP multiplied, and it wasn't.
+
+Tests: 38 suites, 785/785 (+9, `test/subtask-economy.test.js`). Live-verified in Chrome; details in
+SUBTASKS_PLAN.md sub-session 3.
+
+## 2026-07-19 — Session 48: [P1-DATA-004] sub-session 2 BUILT — dependent due dates (Cowork session, Sonnet)
+
+**Decision — loud rejection at the forms, silent clamp at the data layer.** The plan specified
+"form validation, not silent clamping, on manual entry" — implemented exactly that (alert + modal
+stays open in both the sub creation and sub edit modals, with the date input additionally capped
+via the HTML `max` attribute so the picker can't even offer a later day). But
+`Items.createTaskItemData` ALSO gained a silent clamp as its LAST step: its own fallback branches
+(no-date → +10min, invalid → +5min) can produce a date past an already-near-deadline parent with
+no user input to reject, and programmatic callers never see a form. Loud where a human typed it,
+silent where no human is present. The clamp runs last so it wins over the validation fallback.
+
+**Decision (scope judgment) — pushback on a SUB-task clamps to the parent's deadline.** Not in
+the plan's bullet list, but `handlePushback` shifts `dueDateTime` later — the exact operation the
+clamp model forbids exceeding the parent — so leaving it unguarded would have shipped a
+rule-violating side door in the same session that built the rule. Pure
+`Items.clampedSubTaskDueDate` applied post-push; a pushed sub caps at the parent deadline (points
+are still spent — the tier button doesn't know about the cap). Flagged for the sub-session 5
+polish pass if Jeremy would rather grey out pushback tiers that would fully clamp. Pushing a
+PARENT later deliberately does NOT touch children (fork 3: they become "earlier", which is legal).
+
+**Decision — `clampSubTasksToParentDeadline` only accepts a top-level TASK parent** (`type ===
+'task' && !parentId`) and only clamps TASK children. Depth stays 1 (plan scope guard), habits
+can't own subs, and a defensive no-op beats a surprising cascade if a future caller hands it
+something odd. Wired into the edit-save path as an OPTIONAL dep (`deps.clampSubTaskDueDates`),
+matching removeItem's session-47 optional-deps precedent — older/test callers keep working.
+
+**Finding — `window.Persistence` is undefined; `Persistence` is a bare global.** A CDP probe of
+`window.Persistence && Persistence.flush()` silently skipped the flush, making the first
+localStorage readback look stale (the session-44 debounce note in CLAUDE.md, but with a new
+failure shape: the flush GUARD failed, not the flush). The module objects are declared with
+`const` at top level, which does NOT create window properties. Devtools/CDP probes should call
+bare `Persistence.flush()` (throws if truly absent — which is the signal you want) rather than
+window-prefixed guards.
+
+**Finding (cosmetic, pre-existing, not fixed) — a nested sub row never carries its own
+`overdue-list-item` styling.** When the parent-pull clamp drove both items overdue, the parent's
+rebuilt card correctly showed the red overdue treatment (session-6 fix: derived in
+`createListItem`) and the nested sub row sits inside that red card, but the sub's own nested row
+has no independent overdue styling — same behavior before this session for any overdue sub after
+a parent-row rebuild. Visually fine (the card is red); logged for the sub-session 5 polish list,
+not scheduled.
+
+Tests: 37 suites, 776/776 (+15, `test/subtask-due-dates.test.js` — pure clamp rule, creation
+backstop, re-clamp matrix incl. both overdue directions reachable by a clamp). Live-verified in
+Chrome end to end; details in SUBTASKS_PLAN.md sub-session 2.
+
 ## 2026-07-19 — Session 47: [P1-DATA-004] sub-session 1 BUILT — completion block + deletion cascade + orphan sanitizer (Cowork session, Sonnet)
 
 **Decision — block at the source (parent checkbox disabled), not cascade the completion onto

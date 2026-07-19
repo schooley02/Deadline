@@ -138,7 +138,7 @@ as a normal top-level agenda row with its own checkbox and "+ SUB-TASK" button, 
 confirmed in the reloaded save. Zero app console errors (only the recurring extension messaging
 noise). Dev save reset clean afterward.
 
-### Sub-session 2 — dependent due dates (Sonnet)
+### Sub-session 2 — dependent due dates (Sonnet) — ✅ BUILT 2026-07-19 session 48
 **Goal:** Jeremy's clamp model, end to end.
 - Sub creation/edit forms: date/time inputs get `max` = parent deadline, default stays parent
   deadline (already the case at creation); reject later values on save (form validation, not
@@ -151,7 +151,32 @@ noise). Dev save reset clean afterward.
 - **Live-verify (Chrome):** form refuses a later date; pulling parent's deadline earlier visibly
   re-clamps the child (agenda + save), zombie positions/overdue state correct.
 
-### Sub-session 3 — sub-task economy (Sonnet)
+**BUILT as specified.** Forms: sub creation modal's date input gets `max` = parent deadline
+(defaults unchanged) and the save handler rejects a later value with an alert (mirrors
+createTaskItemData's date-only → 23:59:59.999 parse so the validated value is the stored value);
+edit modal resolves the parent via `deps.activeItems` (already in popupsDeps — no new script.js
+plumbing) and applies the same max + rejection; parent edit modals get NO max (correct asymmetry).
+Data layer: new pure `Items.clampedSubTaskDueDate(dueDateTime, parentTask)` (defensive-copy clamp)
++ a silent creation-time backstop in `createTaskItemData` (runs LAST, after the validation
+fallback, so programmatic callers can't exceed the parent either). Parent-edit half: new
+`Items.clampSubTasksToParentDeadline(parentTask, deps)` re-clamps every child now later than the
+parent, each routed through `recomputeOverdueStateAfterEdit` (overdue flags/damage-tick/positions
+correct for free); wired into the edit-save handler via optional `deps.clampSubTaskDueDates`
+BEFORE the parent row rebuild so nested sub dates render fresh. Piggybacked (in-scope judgment
+call, logged in DECISIONS.md): `handlePushback` on a SUB-task clamps the pushed date to the
+parent's deadline via the same pure helper — pushback could otherwise silently violate the model.
+37 suites, 776/776 (+15: new `test/subtask-due-dates.test.js`). `node --check` clean on items.js/
+popups.js/script.js. **Live-verified in Chrome against the real running server:** creation form
+showed `max`, rejected a +2-day date (alert, modal stayed open, no spawn), accepted an earlier
+time; edit form rejected a later date on a sub, accepted a legal one (overdue sub correctly
+un-camped 120px → field on the future-dated save); pulling the parent 8:00 PM → 6:30 PM re-clamped
+the 7:00 PM child to exactly 6:30 PM (agenda + flushed save both confirmed); pushing the parent
+later left the child untouched; pulling the parent into the past clamped BOTH overdue — both
+camped at base (parent 120px, sub fanned +89px), red overdue card, save flags correct. Zero app
+console errors; dev save reset clean afterward. Watch out: `Persistence` is NOT a window property
+— `window.Persistence` probes are undefined; call bare `Persistence.flush()` from devtools/CDP.
+
+### Sub-session 3 — sub-task economy (Sonnet) — ✅ BUILT 2026-07-19 session 49
 **Goal:** half-value subs through the existing seam.
 - `completeItem` awards `SUBTASK_XP`/`Economy.taskPoints(item.isHighPriority, SUBTASK_POINTS)` for
   items with `parentId`; uncomplete refunds symmetrically (stamp pattern from heroes if needed —
@@ -160,6 +185,31 @@ noise). Dev save reset clean afterward.
 - Tests: award/refund symmetry for subs, high-priority sub ×2, parent unchanged at 10, standalone
   unchanged.
 - **Live-verify (Chrome):** completing a sub pays 5/5, uncomplete refunds exactly; parent still 10.
+
+**BUILT as specified.** New `CONFIG.SUBTASK_XP`/`SUBTASK_POINTS` (5/5) in js/config.js, added per the
+balance-tuning protocol (value already deliberated in session 46's Fork 4 — this session executed
+it, no new design judgment). `Items.completeItem`'s task branch now checks `!!item.parentId`: subs
+use the halved base through the SAME `Economy.taskPoints(isHighPriority, basePoints)` seam parents
+use, so the high-priority ×2 rule applies to a sub's own flag on top of the halved base (max 10 pts
+— parity with, never exceeding, a standalone task; XP never multiplies anywhere in the game).
+`Items.uncompleteItem` mirrors the identical branch for the refund — a sub's `parentId` can't
+change between complete/uncomplete, so award and refund are symmetric by construction, no
+stamp-and-reuse pattern needed (unlike routine XP's award/refund, which spans a level-up boundary).
+Parents and standalone tasks are entirely unaffected (their branch is unchanged). 38 suites,
+785/785 (+9: new `test/subtask-economy.test.js` — award matrix incl. high-priority sub vs.
+high-priority standalone, parent-unaffected, multi-sub independence, and two full
+complete→uncomplete round-trip-to-zero symmetry tests using `jest.advanceTimersByTime(500)` to let
+completeItem's fade-out `removeItem` actually run before uncompleteItem re-pushes the item — doing
+it without that would double-push under fake timers). `node --check` clean on items.js/config.js.
+**Live-verified in Chrome against the real running server:** created a parent + a HIGH-PRIORITY
+sub, completed the sub first — HUD went 0→5 XP / 0→10 pts (5 base × 2 priority) and the parent
+checkbox re-enabled with no "remaining" label; completed the parent — HUD went 5→15 XP / 10→20 pts
+(full 10/10), confirming the parent was untouched by the sub rate. Zero app console errors (only
+the recurring extension messaging noise). Dev save reset clean afterward. Docs updated: ECONOMY.md
+(sub-task economy paragraph), MECHANICS.md (flipped the "not yet rebalanced" note to BUILT);
+`.claude/skills/balance-tuning/SKILL.md`'s canonical list is a protected path from Cowork and
+could NOT be updated this session — flagged for Jeremy or a future Claude Code session to sync the
+"XP: 10 per task defeat, 5 per habit completion" line with the new sub-task numbers.
 
 ### Sub-session 4 — growing/shrinking parent visuals (Sonnet)
 **Goal:** the resolved fork's visual half.

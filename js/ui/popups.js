@@ -315,10 +315,21 @@ const Popups = (() => {
         });
     }
 
-    // deps: { recomputeOverdueStateAfterEdit, createListItem, sortAndRenderActiveList, saveGame }
+    // deps: { activeItems, recomputeOverdueStateAfterEdit, createListItem,
+    //         sortAndRenderActiveList, saveGame, clampSubTaskDueDates? }
     function showEditTaskModal(item, deps) {
         const dueDate = formatDateInputValue(item.dueDateTime);
         const dueTime = formatTimeInputValue(item.dueDateTime);
+
+        // Dependent due dates ([P1-DATA-004] sub-session 2): editing a SUB
+        // caps its date at the parent's deadline (max attr + loud save-time
+        // validation below — reject, don't silently clamp, on manual entry).
+        const editParentTask = item.parentId
+            ? deps.activeItems.find(i => i.id === item.parentId && i.type === 'task')
+            : null;
+        const maxDateAttr = editParentTask
+            ? ` max="${formatDateInputValue(editParentTask.dueDateTime)}"`
+            : '';
 
         const modalHtml = `
             <div class="modal-overlay">
@@ -348,7 +359,7 @@ const Popups = (() => {
                     <div class="form-row-group">
                         <div class="form-row">
                             <label for="editDueDate">Due Date:</label>
-                            <input type="date" id="editDueDate" value="${dueDate}" required>
+                            <input type="date" id="editDueDate" value="${dueDate}"${maxDateAttr} required>
                         </div>
                         <div class="form-row">
                             <label for="editDueTime">Due Time:</label>
@@ -380,11 +391,23 @@ const Popups = (() => {
                     return;
                 }
 
+                const newDueDateTime = new Date(`${newDueDate}T${newDueTime}`);
+
+                // Clamp model ([P1-DATA-004] sub-session 2): a sub-task may
+                // not be saved with a due date later than its parent's
+                // deadline. Loud rejection on manual entry (form validation),
+                // NOT a silent clamp — the data-layer clamp in items.js only
+                // backstops programmatic paths.
+                if (editParentTask && newDueDateTime > editParentTask.dueDateTime) {
+                    alert(`Sub-task due date can't be later than the parent's deadline (${formatDateInputValue(editParentTask.dueDateTime)} ${formatTimeInputValue(editParentTask.dueDateTime)}).`);
+                    return;
+                }
+
                 // Update the item data
                 item.name = name;
                 item.category = category;
                 item.isHighPriority = isHighPriority;
-                item.dueDateTime = new Date(`${newDueDate}T${newDueTime}`);
+                item.dueDateTime = newDueDateTime;
 
                 // Re-derive overdue state from the NEW due date. Without this,
                 // pushing an overdue task's deadline into the future left
@@ -395,6 +418,18 @@ const Popups = (() => {
                 // That defeated the whole point of letting someone fix an
                 // overly-aggressive deadline. See DECISIONS.md 2026-07-17.
                 deps.recomputeOverdueStateAfterEdit(item);
+
+                // Clamp model, parent half ([P1-DATA-004] sub-session 2): if
+                // this edit pulled a PARENT's deadline earlier, re-clamp any
+                // children now due later than it (each routed through
+                // recomputeOverdueStateAfterEdit inside items.js). Pushing
+                // later is a no-op inside the clamp function. Runs BEFORE the
+                // list-item rebuild below so the parent row's nested sub
+                // rendering reflects the clamped child dates. Optional dep —
+                // older callers without it keep working unchanged.
+                if (!item.parentId && typeof deps.clampSubTaskDueDates === 'function') {
+                    deps.clampSubTaskDueDates(item);
+                }
 
                 // Update visual elements
                 if (item.element) {
@@ -478,7 +513,7 @@ const Popups = (() => {
                     <div class="form-row-group">
                         <div class="form-row">
                             <label for="subTaskDueDate">Due Date:</label>
-                            <input type="date" id="subTaskDueDate" value="${parentDueDate}" required>
+                            <input type="date" id="subTaskDueDate" value="${parentDueDate}" max="${parentDueDate}" required>
                         </div>
                         <div class="form-row">
                             <label for="subTaskDueTime">Due Time:</label>
@@ -519,6 +554,25 @@ const Popups = (() => {
                 if (!name || !dueDate) {
                     console.log('⚠️ Subtask creation stopped - missing name or date');
                     alert('Sub-task Name and Due Date are required.');
+                    return;
+                }
+
+                // Clamp model ([P1-DATA-004] sub-session 2): reject a due
+                // date later than the parent's deadline. Mirrors
+                // createTaskItemData's parse rules (date-only → 23:59:59.999)
+                // so the value validated here is the value that would be
+                // stored. Loud rejection, not a silent clamp — items.js's
+                // data-layer clamp only backstops programmatic paths.
+                let candidateDue;
+                if (dueDate && dueTime) {
+                    candidateDue = new Date(`${dueDate}T${dueTime}`);
+                } else {
+                    candidateDue = new Date(dueDate);
+                    candidateDue.setHours(23, 59, 59, 999);
+                }
+                if (!isNaN(candidateDue.getTime()) && candidateDue > parentTask.dueDateTime) {
+                    console.log('⚠️ Subtask creation stopped - due date later than parent deadline');
+                    alert(`Sub-task due date can't be later than the parent's deadline (${parentDueDate} ${parentDueTime}).`);
                     return;
                 }
 

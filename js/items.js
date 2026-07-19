@@ -287,6 +287,20 @@ const Items = (() => {
             dueDateTime = new Date(creationTime.getTime() + 5 * 60 * 1000);
         }
 
+        // Dependent due dates ([P1-DATA-004] sub-session 2): a sub-task can
+        // never be due LATER than its parent — default AND latest = parent's
+        // deadline; earlier is allowed. The creation/edit FORMS reject later
+        // values loudly (js/ui/popups.js); this is the silent data-layer
+        // backstop for programmatic callers (and the fallback branches above,
+        // which can otherwise land past an already-near/overdue parent's
+        // deadline). Runs LAST so it wins over the validation fallback.
+        if (parentId) {
+            const clampParent = deps.activeItems.find(item => item.id === parentId && item.type === 'task');
+            if (clampParent) {
+                dueDateTime = clampedSubTaskDueDate(dueDateTime, clampParent);
+            }
+        }
+
         const taskData = {
             id: deps.getNextId(),
             type: 'task',
@@ -359,8 +373,17 @@ const Items = (() => {
         let pointsGained = 0;
 
         if (item.type === 'task') {
-            xpGained = deps.xpPerTaskDefeat;
-            pointsGained = Economy.taskPoints(item.isHighPriority, deps.pointsPerTask);
+            // Sub-task economy ([P1-DATA-004] sub-session 3, 2026-07-19):
+            // a sub-task pays HALF a standalone task's base XP/points
+            // (CONFIG.SUBTASK_XP/SUBTASK_POINTS); the parent (parentId
+            // falsy) is unaffected. The high-priority ×2 rule still applies
+            // to a sub's OWN priority flag on top of the halved base, via
+            // the same Economy.taskPoints seam — a high-priority sub tops
+            // out at POINTS_PER_TASK, never exceeding a standalone task.
+            const isSub = !!item.parentId;
+            xpGained = isSub ? CONFIG.SUBTASK_XP : deps.xpPerTaskDefeat;
+            const basePoints = isSub ? CONFIG.SUBTASK_POINTS : deps.pointsPerTask;
+            pointsGained = Economy.taskPoints(item.isHighPriority, basePoints);
         } else if (item.type === 'habit') {
             const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
             if (habitDef) {
@@ -950,8 +973,15 @@ const Items = (() => {
 
         // Reverse the XP and points gained (if any)
         if (item.type === 'task') {
-            const xpLost = deps.xpPerTaskDefeat;
-            const pointsLost = Economy.taskPoints(item.isHighPriority, deps.pointsPerTask);
+            // Sub-task economy refund ([P1-DATA-004] sub-session 3): mirrors
+            // completeItem's award exactly — a sub's parentId can't change
+            // between complete and uncomplete, so the same isSub branch is
+            // symmetric by construction (no stamp-and-reuse pattern needed,
+            // unlike routine XP's award/refund below which spans a level-up).
+            const isSub = !!item.parentId;
+            const xpLost = isSub ? CONFIG.SUBTASK_XP : deps.xpPerTaskDefeat;
+            const basePointsLost = isSub ? CONFIG.SUBTASK_POINTS : deps.pointsPerTask;
+            const pointsLost = Economy.taskPoints(item.isHighPriority, basePointsLost);
 
             deps.setPlayerXP(Math.max(0, deps.getPlayerXP() - xpLost));
             deps.setPlayerPoints(Economy.subtractPoints(deps.getPlayerPoints(), pointsLost));
@@ -1066,9 +1096,44 @@ const Items = (() => {
         }
     }
 
+    // Pure clamp rule for the dependent-due-dates model ([P1-DATA-004]
+    // sub-session 2, Jeremy's fork verdict 2026-07-19): a sub-task's due date
+    // may be EARLIER than its parent's deadline, never later. Returns a NEW
+    // Date when clamping (never mutates), the original value otherwise.
+    function clampedSubTaskDueDate(dueDateTime, parentTask) {
+        if (!parentTask || !(parentTask.dueDateTime instanceof Date)) return dueDateTime;
+        return dueDateTime > parentTask.dueDateTime ? new Date(parentTask.dueDateTime) : dueDateTime;
+    }
+
+    // Parent-deadline-edit half of the clamp model: when a parent's deadline
+    // is pulled EARLIER, every child now due later than it re-clamps DOWN to
+    // the new deadline, routed through recomputeOverdueStateAfterEdit per
+    // child so overdue flags/damage-tick state/positions stay correct for
+    // free (a clamp can pull a child into the past → child goes overdue via
+    // markAsOverdue, exactly like a manual edit would). Pushing the parent
+    // LATER is a no-op here by construction — children are then simply
+    // "earlier", which is legal (NOT the delta-shift model; see
+    // SUBTASKS_PLAN.md fork 3). Returns the clamped children so callers can
+    // refresh UI. deps: same shape as recomputeOverdueStateAfterEdit's.
+    function clampSubTasksToParentDeadline(parentTask, deps) {
+        if (!parentTask || parentTask.type !== 'task' || parentTask.parentId) return [];
+        const clamped = [];
+        deps.activeItems.forEach(child => {
+            if (child.parentId !== parentTask.id || child.type !== 'task') return;
+            if (child.dueDateTime > parentTask.dueDateTime) {
+                child.dueDateTime = new Date(parentTask.dueDateTime);
+                recomputeOverdueStateAfterEdit(child, deps);
+                clamped.push(child);
+            }
+        });
+        return clamped;
+    }
+
     return {
         isNonThreatening,
         createTaskItemData,
+        clampedSubTaskDueDate,
+        clampSubTasksToParentDeadline,
         completeItem,
         indulgeHabit,
         removeItem,
