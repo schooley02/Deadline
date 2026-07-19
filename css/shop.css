@@ -86,6 +86,29 @@
     opacity: 0.7;
 }
 
+/* Use button (session 3, 2026-07-19) — repair kits only, shown once held > 0. */
+.shop-use-button {
+    padding: var(--space-2) var(--space-4);
+    border: 1.5px solid var(--color-primary-dark-green);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--color-primary-dark-green);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.shop-use-button:hover:not(:disabled) {
+    background: var(--color-secondary-green-pale);
+}
+
+.shop-use-button:disabled {
+    border-color: var(--color-neutral);
+    color: var(--color-neutral);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
 .shop-message {
     background: var(--color-bg-white);
     border: 1px solid var(--color-secondary-green-pale);

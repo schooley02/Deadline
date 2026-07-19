@@ -13,6 +13,23 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 22: Shop sub-session 3 — repair kit USE (Cowork session, Sonnet)
+
+**Did:** Closed the repair-kit loop end-to-end per `docs/SHOP_PLAN.md` session 3. `js/ui/shopView.js`: each repair-kit card grows a "Use (+N HP)" button once `held > 0` (repair kits only), disabled with "Base at full health" once `baseHealth >= CONFIG.MAX_BASE_HEALTH`. script.js: new `handleShopUse(itemId)` — `Shop.consume` (pure, decrements held) then the existing `healBase(amount)` wrapper (session-17 base-regen code, reused unchanged — clamps at max, updates display/sprite, saves); `playerInventory` set BEFORE calling `healBase` so its internal save captures the decrement. `baseHealth` threaded through as a new shop dep alongside `playerPoints`. Applied the session-2 `setTimeout(0)` fix to this click handler from the start — same event-detachment hazard would've recurred otherwise.
+
+**State:** ✅ **19 suites, 403/403** (unchanged — no new pure-core logic; `Shop.consume` already covered since session 1, this session only wired tested pieces together through new UI). `node --check` clean. **Live-verified in Chrome:** Use healed 60→75 HP, held 1→0, price reset to base (38→25 pts), window stayed open, `playerInventory`/`baseHealth` persisted correctly across reload; separately confirmed the full-health disabled guard. Console clean of app errors. Used a `Persistence.flush`/`requestSave` no-op patch + `localStorage` edit to set up specific test health values without waiting out the real 5-min damage tick (methodology now written down in DECISIONS.md for reuse). Restored the save to its real values (75 HP, empty inventory, 15 points) before ending.
+
+**Docs updated same session:** SHOP_PLAN.md (session 3 checked off), ROADMAP.md (sub-item 3 checked off), DECISIONS.md (session 22 entry incl. the reusable test-health-injection methodology).
+
+**Next — Shop sub-session 4: pushback items + enemy targeting.** Resolve the pricing wrinkle flagged since session 1 (pushback is `consumable: false`, so `owned` never climbs — decide per-run purchase count vs. flat pricing). Hang the "Push back" action off the existing enemy-click popup (`js/ui/popups.js`), shift `dueDateTime` later by the tier amount, re-render position, clear overdue state via `recomputeOverdueStateAfterEdit` (`items.js`). **Apply the same `setTimeout(0)` deferral to any new click handler that rebuilds its own container** — third time this pattern would apply, worth checking whether the popup's own click-outside-closes logic has the identical hazard before writing the handler. Opus → Sonnet per SHOP_PLAN.md (targeting UX + pricing basis is a judgment call; execution is Sonnet).
+
+**Watch out:**
+- Jeremy's dev save is now clean of the shop-testing debris from session 21 (`ShopTest-*` tasks stay in Completed history but no longer affect current inventory/health) — real state is 75 HP, 15 points, empty inventory.
+- The `Persistence.flush`/`requestSave` no-op patch only survives on the CURRENT live page — it does NOT persist across a reload (each fresh page load re-establishes the real flush behavior). Re-apply it every time before injecting test state and navigating, or the next reload's `beforeunload` flush will clobber the injection with pre-injection in-memory state.
+- Sandbox scratch dir this session: `/sessions/great-sharp-franklin/dl-s22` (fresh instance).
+
+---
+
 ## 2026-07-19 — Session 21: Shop sub-session 2 — UI frame (Cowork session, Sonnet)
 
 **Did:** Built the shop UI frame per `docs/SHOP_PLAN.md` session 2: 4th FAB menu item (🛒 `data-type="shop"`) + `#shopWindow` markup in `index.html` (reused the existing management-window/backdrop pattern — no new nav plumbing needed); `js/ui/shopView.js` (new module, no DOM state ownership, same pattern as `managementWindows.js`) renders the 6-item catalog grid with live price (`Shop.price`), held count, Buy button (disabled when unaffordable via `Shop.canAfford`), and the "price rises ×1.5 per one you hold" feedback once held > 0; `css/shop.css` linked before `responsive.css`; `ManagementWindows.openManagementWindow` gained a `type === 'shop'` dispatch branch; script.js added `managementWindows.shop`, threaded shop deps through `openManagementWindow`, and added `populateShopWindow()`/`handleShopPurchase(itemId)` wrappers.

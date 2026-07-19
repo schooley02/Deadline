@@ -3,17 +3,16 @@
  * ([P1-UI-008], SHOP_PLAN.md session 2, 2026-07-18).
  *
  * Renders `CONFIG.SHOP_ITEMS` as cards with a LIVE price (via `Shop.price`,
- * js/shop.js), a held-count for consumables, and a Buy button wired to
- * `Shop.purchase`. No DOM state is owned here and no script.js state is
- * closed over — everything arrives via an explicit deps object, same pattern
- * as managementWindows.js / routineViews.js.
+ * js/shop.js), a held-count for consumables, a Buy button wired to
+ * `Shop.purchase`, and — for held consumables (repair kits) — a Use button
+ * wired to `Shop.consume` + `Damage.healBase` (session 3, SHOP_PLAN.md,
+ * 2026-07-19). No DOM state is owned here and no script.js state is closed
+ * over — everything arrives via an explicit deps object, same pattern as
+ * managementWindows.js / routineViews.js.
  *
- * Scope for this session: catalog display + buy-into-inventory only. Repair
- * kits land in `playerInventory` but USE (-> Damage.healBase) is session 3;
- * pushback targeting is session 4. Buying a pushback item today just adds a
- * consumable-looking purchase flow with no held count (see js/shop.js —
- * pushback items have `consumable: false`, so `Shop.price` never inflates
- * them yet; that's the session-4 pricing wrinkle, not a bug here).
+ * Pushback targeting (session 4) is still unbuilt — pushback items are
+ * `consumable: false` (see js/shop.js), so they never get a Use button here;
+ * that's the session-4 pricing/targeting wrinkle, not a bug in this file.
  */
 const ShopView = (() => {
 
@@ -23,7 +22,9 @@ const ShopView = (() => {
     };
 
     // Builds one catalog card. Pure DOM construction, no mutation of deps.
-    function buildItemCard(item, inventory, playerPoints, onBuy) {
+    // baseHealth/onUse are only meaningful for repair kits (consumable,
+    // category 'repair') — pushback items pass them through unused today.
+    function buildItemCard(item, inventory, playerPoints, onBuy, baseHealth, onUse) {
         const held = item.consumable ? Shop.heldCount(inventory, item.id) : 0;
         const cost = Shop.price(item, inventory);
         const affordable = Shop.canAfford(item, inventory, playerPoints);
@@ -43,6 +44,17 @@ const ShopView = (() => {
             ? `<div class="shop-item-note">Price rises ×1.5 per one you hold</div>`
             : '';
 
+        // Use button (session 3, repair kits only): shown once you hold at
+        // least one, disabled once the base is already at full health so a
+        // kit can't be wasted for zero effect.
+        const canUse = item.consumable && held > 0 && item.effect && typeof item.effect.healAmount === 'number';
+        const atFullHealth = typeof baseHealth === 'number' && baseHealth >= CONFIG.MAX_BASE_HEALTH;
+        const useRow = canUse
+            ? `<button type="button" class="shop-use-button"${atFullHealth ? ' disabled' : ''}>
+                   ${atFullHealth ? 'Base at full health' : `Use (+${item.effect.healAmount} HP)`}
+               </button>`
+            : '';
+
         card.innerHTML = `
             <div class="shop-item-header">
                 <span class="shop-item-icon">${CATEGORY_ICON[item.category] || '🛒'}</span>
@@ -56,25 +68,33 @@ const ShopView = (() => {
             <button type="button" class="shop-buy-button"${affordable ? '' : ' disabled'}>
                 ${affordable ? 'Buy' : 'Not enough points'}
             </button>
+            ${useRow}
         `;
 
-        // Real listener, not inline onclick — script.js is a DOMContentLoaded
+        // Real listeners, not inline onclick — script.js is a DOMContentLoaded
         // closure, so any inline onclick= string would need window.* exposure
-        // (see SHOP_PLAN.md hazards). A direct listener sidesteps that.
+        // (see SHOP_PLAN.md hazards). Direct listeners sidestep that.
         const buyButton = card.querySelector('.shop-buy-button');
         buyButton.addEventListener('click', () => onBuy(item.id));
+
+        if (canUse) {
+            const useButton = card.querySelector('.shop-use-button');
+            useButton.addEventListener('click', () => onUse(item.id));
+        }
 
         return card;
     }
 
-    // deps: { catalog, inventory, playerPoints, onBuy }
+    // deps: { catalog, inventory, playerPoints, baseHealth, onBuy, onUse }
     function renderShopWindow(deps) {
         const list = document.getElementById('shopWindowList');
         if (!list) return;
 
         list.innerHTML = '';
         deps.catalog.forEach(item => {
-            list.appendChild(buildItemCard(item, deps.inventory, deps.playerPoints, deps.onBuy));
+            list.appendChild(buildItemCard(
+                item, deps.inventory, deps.playerPoints, deps.onBuy, deps.baseHealth, deps.onUse
+            ));
         });
     }
 

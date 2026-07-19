@@ -959,7 +959,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ManagementWindows.openManagementWindow(type, {
             managementWindows, closeFabMenu, activeItems, definedHabits,
             definedRoutines, routineSlots, showRoutineManagement, toggleRoutineActive,
-            shopCatalog: CONFIG.SHOP_ITEMS, playerInventory, playerPoints, onShopBuy: handleShopPurchase
+            shopCatalog: CONFIG.SHOP_ITEMS, playerInventory, playerPoints, baseHealth,
+            onShopBuy: handleShopPurchase, onShopUse: handleShopUse
         });
     }
 
@@ -992,15 +993,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // of its own to reuse.
     function populateShopWindow() {
         ShopView.renderShopWindow({
-            catalog: CONFIG.SHOP_ITEMS, inventory: playerInventory, playerPoints, onBuy: handleShopPurchase
+            catalog: CONFIG.SHOP_ITEMS, inventory: playerInventory, playerPoints, baseHealth,
+            onBuy: handleShopPurchase, onUse: handleShopUse
         });
     }
 
     // Buy-one-unit handler wired to every catalog card's Buy button (session 2).
     // Shop.purchase is pure — this applies its result to state, persists, and
     // re-renders both the shop grid (new price/held count) and the points HUD.
-    // Repair-kit USE (-> Damage.healBase) is session 3; pushback targeting is
-    // session 4 — buying only fills playerInventory today.
+    // Pushback targeting is session 4 — buying only fills playerInventory
+    // today; repair-kit USE (below) closes the loop for repair kits.
     function handleShopPurchase(itemId) {
         const result = Shop.purchase(itemId, CONFIG.SHOP_ITEMS, playerInventory, playerPoints);
         if (!result.ok) {
@@ -1025,6 +1027,36 @@ document.addEventListener('DOMContentLoaded', () => {
         // as an outside click and closes the window immediately after every
         // purchase. Found live-testing this session (see DECISIONS.md).
         // setTimeout(0) lets the click finish bubbling before the rebuild.
+        setTimeout(populateShopWindow, 0);
+    }
+
+    // Use-one-held-unit handler wired to each repair-kit card's Use button
+    // (session 3, SHOP_PLAN.md, 2026-07-19). Shop.consume is pure — decrements
+    // the held count (never below zero); the actual heal goes through the
+    // existing healBase(amount) wrapper (script.js, ~line 569 — built for base
+    // regen [P2-GAME-012], reused as-is here), which itself clamps at
+    // CONFIG.MAX_BASE_HEALTH, updates the health display/base sprite, and
+    // calls saveGame() internally. playerInventory is updated BEFORE calling
+    // healBase so that internal save already captures the decremented count —
+    // no separate saveGame() call needed here.
+    function handleShopUse(itemId) {
+        const item = Shop.getItem(itemId, CONFIG.SHOP_ITEMS);
+        if (!item || !item.consumable || !item.effect || typeof item.effect.healAmount !== 'number') return;
+
+        const result = Shop.consume(itemId, playerInventory);
+        if (!result.ok) {
+            // Use button is only rendered when held > 0, so this is a
+            // defensive no-op guard rather than the expected path.
+            ShopView.showShopMessage("You don't have one of those to use.");
+            return;
+        }
+
+        playerInventory = result.newInventory;
+        healBase(item.effect.healAmount);
+
+        // Same event-bubbling hazard as handleShopPurchase (see its comment
+        // above, and SHOP_PLAN.md's hazards list) — defer the rebuild so the
+        // click finishes bubbling with its target still attached.
         setTimeout(populateShopWindow, 0);
     }
 

@@ -19,12 +19,13 @@
  *     in as deps rather than assumed global, so this module has no implicit
  *     dependency on script.js internals or extraction order elsewhere.
  *
- * Shop dispatch ([P1-UI-008] SHOP_PLAN.md session 2, 2026-07-18): the 'shop'
- * branch calls ShopView.renderShopWindow — yet another different module
- * (js/ui/shopView.js). deps.shopCatalog / deps.playerInventory /
- * deps.playerPoints / deps.onShopBuy are passed through from script.js the
- * same way the routines deps are, so this file still has zero hard
- * dependency on shopView.js's internal shape beyond calling one function.
+ * Shop dispatch ([P1-UI-008] SHOP_PLAN.md sessions 2-3, 2026-07-18/19): the
+ * 'shop' branch calls ShopView.renderShopWindow — yet another different
+ * module (js/ui/shopView.js). deps.shopCatalog / deps.playerInventory /
+ * deps.playerPoints / deps.baseHealth / deps.onShopBuy / deps.onShopUse are
+ * passed through from script.js the same way the routines deps are, so this
+ * file still has zero hard dependency on shopView.js's internal shape beyond
+ * calling one function.
  *
  * populateRoutinesWindow's re-render-after-toggle call is a direct
  * module-internal reference (calls this file's own populateRoutinesWindow
@@ -36,7 +37,7 @@ const ManagementWindows = (() => {
     // deps: { managementWindows, closeFabMenu, activeItems, definedHabits,
     //         definedRoutines, routineSlots, showRoutineManagement,
     //         toggleRoutineActive, shopCatalog, playerInventory,
-    //         playerPoints, onShopBuy }
+    //         playerPoints, baseHealth, onShopBuy, onShopUse }
     function openManagementWindow(type, deps) {
         // Close all windows first
         Object.values(deps.managementWindows).forEach(win => {
@@ -80,7 +81,9 @@ const ManagementWindows = (() => {
                     catalog: deps.shopCatalog,
                     inventory: deps.playerInventory,
                     playerPoints: deps.playerPoints,
+                    baseHealth: deps.baseHealth,
                     onBuy: deps.onShopBuy,
+                    onUse: deps.onShopUse,
                 });
             }
         }
