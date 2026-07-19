@@ -120,70 +120,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let GAME_SCREEN_WIDTH, BASE_WIDTH, ENEMY_WIDTH, HABIT_ENEMY_WIDTH;
 
+    // Real implementation lives in js/state.js (Milestone 2 extraction,
+    // session 11, 2026-07-18) — thin wrapper so this call site is unchanged.
+    // Storage for the state it touches stays in script.js (see stateDeps()
+    // and js/state.js's header for why ownership didn't move this session).
     function initGame() {
-        // Calculate dimensions
-        GAME_SCREEN_WIDTH = gameCanvas.offsetWidth;
-        BASE_WIDTH = baseElement.offsetWidth;
-        ENEMY_WIDTH = CONFIG.ENEMY_WIDTH;
-        HABIT_ENEMY_WIDTH = CONFIG.HABIT_ENEMY_WIDTH;
-
-        // Initialize player stats
-        playerXP = 0;
-        playerLevel = 1;
-        playerPoints = 0;
-        routineSlots = ROUTINE_SLOTS_PER_LEVEL[playerLevel] || 1;
-        
-        updatePlayerDisplays();
-
-        // Initialize base
-        baseHealth = CONFIG.MAX_BASE_HEALTH;
-        baseHealthDisplay.textContent = baseHealth;
-        baseElement.style.backgroundImage = "url('base_100.png')";
-        baseElement.classList.remove('base-hit-flash');
-        
-        // Reset UI state
-        if (gameOverMessage) gameOverMessage.classList.add('hidden');
-        if (levelUpMessage) levelUpMessage.classList.add('hidden');
-        if (restartButton) restartButton.classList.add('hidden');
-
-        // Clear active items
-        activeItems.forEach(item => {
-            if (item.element) item.element.remove();
-            if (item.listItemElement) item.listItemElement.remove();
-        });
-        activeItems = [];
-        completedItems = [];
-        if (activeItemsListUL) activeItemsListUL.innerHTML = '';
-        
-        // Hide completed tasks section at game start
-        const completedTasksSection = document.getElementById('completedTasksSection');
-        if (completedTasksSection) completedTasksSection.classList.add('hidden');
-        
-        // Reset game state
-        itemIdCounter = 1; // never 0 — many parentId checks use truthy tests (`if (item.parentId)`), and 0 is falsy
-        gameIsOver = false;
-        daysSurvived = 0;
-        runStartedAtMs = Date.now();
-        lastLoopTickMs = null; // first tick after init establishes the baseline
-        attackMode = false;
-        if (attackButton) attackButton.classList.remove('active');
-        
-        // Initialize game date
-        currentGameDate = new Date();
-        currentGameDate.setHours(0, 0, 0, 0);
-
-        generateDailyHabitInstances(currentGameDate);
-        generateDailyRoutineTaskInstances(currentGameDate);
-        updateTaskCountDisplay();
-        updateRoutineDisplay();
-
-        // Start game loop
-        if (gameLoopInterval) clearInterval(gameLoopInterval);
-        gameLoopInterval = setInterval(updateGame, GAME_TICK_MS);
-
-        // No day timer: daysSurvived is derived from real elapsed time via
-        // computeDaysSurvived(), so it stays correct across sleep/suspension
-        // (a timer only advances while the tab is awake). See DECISIONS.md.
+        State.initGame(stateDeps());
     }
 
     // Real calendar days elapsed since the run started. Math lives in
@@ -212,22 +154,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // every state mutation — Persistence debounces the actual write.
 
     function getPersistableState() {
-        return {
-            baseHealth, playerXP, playerLevel, playerPoints, routineSlots,
-            itemIdCounter, gameIsOver, daysSurvived, runStartedAtMs, currentGameDate,
-            activeItems, completedItems, definedHabits, definedRoutines,
-            // Routine TASK definitions. Previously omitted while
-            // routine.taskDefinitionIds WAS saved, so a refresh left those ids
-            // dangling against nothing. Additive — no schemaVersion bump needed;
-            // older saves simply restore an empty array. See DECISIONS.md.
-            definedTasks: window.definedTasks || []
-        };
+        return State.getPersistableState(stateDeps());
     }
 
     function saveGame() {
-        if (typeof Persistence !== 'undefined') {
-            Persistence.requestSave(getPersistableState);
-        }
+        State.saveGame(stateDeps());
     }
 
     // Safety net: some edit paths (routine editors, task edit modal) don't call
@@ -245,130 +176,97 @@ document.addEventListener('DOMContentLoaded', () => {
     // for why ownership didn't move. Rebuilt per call because BASE_WIDTH and the
     // DOM handles aren't resolved until initGame() runs.
     function damageDeps() {
+        return State.buildDamageDeps(stateDeps());
+    }
+
+    // Runs ONCE on boot, right after initGame() has reset to a fresh state.
+    // Returns true if a save was restored.
+    function restoreGameState() {
+        return State.restoreGameState(stateDeps());
+    }
+
+    // Builds the deps object for js/state.js's initGame/restoreGameState/
+    // getPersistableState/saveGame/buildDamageDeps (Milestone 2 extraction,
+    // session 11, 2026-07-18). Rebuilt per call, same reasoning as
+    // itemsDeps()/damageDeps(): BASE_WIDTH/GAME_SCREEN_WIDTH aren't resolved
+    // until initGame() runs, and several fields (completedItems,
+    // definedHabits, currentGameDate, etc.) are REASSIGNED elsewhere
+    // (new-game reset, restoreGameState itself), so they're threaded through
+    // as get/set accessor pairs rather than plain values — extending the
+    // js/damage.js precedent for script.js-owned state a module needs to
+    // both read and write.
+    function stateDeps() {
         return {
+            // DOM
+            gameCanvas, baseElement, baseHealthDisplay, gameOverMessage,
+            levelUpMessage, restartButton, activeItemsListUL, attackButton,
+
+            // state getters
             getBaseHealth: () => baseHealth,
-            setBaseHealth: (n) => { baseHealth = n; },
-            isGameOver: () => gameIsOver,
-            setGameOver: () => { gameIsOver = true; },
-            getActiveItems: () => activeItems,
+            getPlayerXP: () => playerXP,
+            getPlayerLevel: () => playerLevel,
+            getPlayerPoints: () => playerPoints,
+            getRoutineSlots: () => routineSlots,
+            getItemIdCounter: () => itemIdCounter,
+            getDaysSurvived: () => daysSurvived,
             getRunStartedAtMs: () => runStartedAtMs,
-            setDaysSurvived: (n) => { daysSurvived = n; },
-            setOfflineCatchUpActive: (v) => { offlineCatchUpActive = v; },
+            getCurrentGameDate: () => currentGameDate,
+            getActiveItems: () => activeItems,
+            getCompletedItems: () => completedItems,
+            getDefinedHabits: () => definedHabits,
+            getDefinedRoutines: () => definedRoutines,
             getGameLoopInterval: () => gameLoopInterval,
+            isGameOver: () => gameIsOver,
             baseWidth: BASE_WIDTH,
-            baseElement,
-            baseHealthDisplay,
-            gameOverMessage,
-            restartButton,
+
+            // state setters
+            setGameScreenWidth: (n) => { GAME_SCREEN_WIDTH = n; },
+            setBaseWidth: (n) => { BASE_WIDTH = n; },
+            setEnemyWidth: (n) => { ENEMY_WIDTH = n; },
+            setHabitEnemyWidth: (n) => { HABIT_ENEMY_WIDTH = n; },
+            setPlayerXP: (n) => { playerXP = n; },
+            setPlayerLevel: (n) => { playerLevel = n; },
+            setPlayerPoints: (n) => { playerPoints = n; },
+            setRoutineSlots: (n) => { routineSlots = n; },
+            setBaseHealth: (n) => { baseHealth = n; },
+            setActiveItems: (arr) => { activeItems = arr; },
+            setCompletedItems: (arr) => { completedItems = arr; },
+            setDefinedHabits: (arr) => { definedHabits = arr; },
+            setDefinedRoutines: (arr) => { definedRoutines = arr; },
+            setItemIdCounter: (n) => { itemIdCounter = n; },
+            setGameIsOver: (v) => { gameIsOver = v; },
+            setGameOver: () => { gameIsOver = true; },
+            setDaysSurvived: (n) => { daysSurvived = n; },
+            setRunStartedAtMs: (n) => { runStartedAtMs = n; },
+            setLastLoopTickMs: (n) => { lastLoopTickMs = n; },
+            setAttackMode: (v) => { attackMode = v; },
+            setCurrentGameDate: (d) => { currentGameDate = d; },
+            setGameLoopInterval: (id) => { gameLoopInterval = id; },
+            setOfflineCatchUpActive: (v) => { offlineCatchUpActive = v; },
+
+            // collaborators
+            updatePlayerDisplays,
+            updateTaskCountDisplay,
+            updateRoutineDisplay,
+            updateBaseVisuals,
+            generateDailyHabitInstances,
+            generateDailyRoutineTaskInstances,
+            addItemToGame,
+            createListItem,
+            renderDefinedRoutines,
+            renderCompletedItems,
+            sortAndRenderActiveList,
+            gameOver,
+            runOfflineCatchUp,
+            updateGame,
+
+            // damage-deps passthrough
             markAsOverdue,
             getSubTaskClusterOffset,
             calculateTimelineXWithClustering,
             enableFormControls,
             saveGame,
         };
-    }
-
-    // Runs ONCE on boot, right after initGame() has reset to a fresh state.
-    // Returns true if a save was restored.
-    function restoreGameState() {
-        if (typeof Persistence === 'undefined') return false;
-        const save = Persistence.load();
-        if (!save) return false;
-
-        // Offline window: elapsed time since the save was written, capped at
-        // the spec's 3-day max offline progression (CONFIG.OFFLINE_MAX_MS).
-        const restoreNowMs = Date.now();
-        const savedAtMs = (save.savedAt instanceof Date) ? save.savedAt.getTime() : null;
-        const offlineMs = (savedAtMs !== null)
-            ? Math.min(Math.max(0, restoreNowMs - savedAtMs), CONFIG.OFFLINE_MAX_MS)
-            : 0;
-        const restoredEntries = []; // { item, savedX } for the catch-up animation
-
-        // Scalars (initGame just set the fresh-game defaults; overwrite them)
-        playerXP = save.playerXP || 0;
-        playerLevel = save.playerLevel || 1;
-        playerPoints = save.playerPoints || 0;
-        routineSlots = ROUTINE_SLOTS_PER_LEVEL[playerLevel] || 1;
-        baseHealth = (typeof save.baseHealth === 'number') ? save.baseHealth : CONFIG.MAX_BASE_HEALTH;
-        itemIdCounter = save.itemIdCounter || 1;
-        daysSurvived = save.daysSurvived || 0;
-        // Saves written before 2026-07-18 have no runStartedAtMs (days were
-        // counted by the old accelerated timer). Fall back to the save's own
-        // timestamp so a restored run doesn't report a bogus day count.
-        runStartedAtMs = (typeof save.runStartedAtMs === 'number')
-            ? save.runStartedAtMs
-            : ((save.savedAt instanceof Date && !isNaN(save.savedAt.getTime()))
-                ? save.savedAt.getTime()
-                : Date.now());
-        if (save.currentGameDate instanceof Date && !isNaN(save.currentGameDate.getTime())) {
-            currentGameDate = save.currentGameDate;
-        }
-
-        // Plain-data collections (no DOM refs to rebuild)
-        definedHabits = save.definedHabits || [];
-        definedRoutines = save.definedRoutines || [];
-        // Saves written before 2026-07-18 have no definedTasks — restore empty
-        // rather than leaving whatever the previous page load put on window.
-        window.definedTasks = save.definedTasks || [];
-        completedItems = (save.completedItems || []).map(item => {
-            item.element = null;
-            item.listItemElement = null;
-            return item;
-        });
-
-        // Active items: rebuild DOM via addItemToGame (it pushes into activeItems,
-        // which initGame just emptied). Saved order preserves parents-before-subtasks.
-        (save.activeItems || []).forEach(item => {
-            item.element = null;
-            item.listItemElement = null;
-            const savedX = (typeof item.x === 'number') ? item.x : null;
-            addItemToGame(item);
-            restoredEntries.push({ item, savedX });
-            // item.isOverdue here covers BOTH items saved as overdue (markAsOverdue
-            // early-returned; re-apply its visual state) and items whose due date
-            // passed while offline (addItemToGame just marked them — but with
-            // lastDamageTickTime = dueDateTime, which would make the live loop
-            // hammer one tick per game tick until "caught up"). Either way:
-            // reset the live damage clock to now. The offline window's damage is
-            // back-charged separately — capped per item — by runOfflineCatchUp
-            // (policy decided 2026-07-17, see DECISIONS.md).
-            if (item.isOverdue) {
-                if (item.element) item.element.classList.add('enemy-at-base');
-                if (item.listItemElement) item.listItemElement.classList.add('overdue-list-item');
-                item.lastDamageTickTime = Date.now();
-            }
-        });
-
-        // Parents' list items were built before their sub-tasks existed in
-        // activeItems — rebuild those list items now that everything is loaded.
-        activeItems.forEach(item => {
-            if (!item.parentId && item.subTasks && item.subTasks.length > 0 && item.listItemElement) {
-                item.listItemElement.remove();
-                createListItem(item);
-            }
-        });
-
-        // Spawn today's habit + routine-task instances the save doesn't already
-        // contain (both generators dedupe against activeItems/completedItems)
-        generateDailyHabitInstances(currentGameDate);
-        generateDailyRoutineTaskInstances(currentGameDate);
-
-        // Refresh every display touched above
-        updatePlayerDisplays();
-        if (baseHealthDisplay) baseHealthDisplay.textContent = baseHealth;
-        updateBaseVisuals();
-        updateTaskCountDisplay();
-        updateRoutineDisplay();
-        renderDefinedRoutines();
-        renderCompletedItems();
-        sortAndRenderActiveList();
-
-        if (save.gameIsOver) gameOver();
-
-        // Offline catch-up: animate zombies from their saved positions to now,
-        // then back-charge capped offline overdue damage (see DECISIONS.md).
-        if (!gameIsOver) runOfflineCatchUp(restoredEntries, offlineMs);
-        return true;
     }
 
     // Offline catch-up math + animation live in js/damage.js (Milestone 2

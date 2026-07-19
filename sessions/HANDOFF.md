@@ -13,6 +13,25 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-18 — Session 11: `js/state.js` — game lifecycle/persistence orchestration (Cowork session)
+
+**Did:** Extracted `initGame`, `restoreGameState`, `getPersistableState`, `saveGame`, and `damageDeps` (renamed `buildDamageDeps` in the module) from script.js into new `js/state.js`, behind a single `stateDeps()` accessor object — same pattern as every prior extraction. script.js down to **1,244 lines** (was 1,346). Wired into index.html after `js/items.js`.
+
+**Design decision made this session:** `docs/ARCHITECTURE.md`'s target layout describes `state.js` as owning the state variables outright ("central state... only place state changes"), but this extraction kept ownership in script.js (deps pattern, like damage.js/items.js) rather than migrating storage too — discussed with Jeremy, logged in full in DECISIONS.md. Key insight worth remembering: the future ownership migration is script.js-only (every other module already takes accessor *functions*, never raw bindings), so it's a clean, low-risk single session later, not a big-bang rewrite. Also discussed and reaffirmed (not changed) the one-system-per-session guardrail itself — still the default, especially for persistence/architecture work, but fair to relax for small independent batches; flagged as a future discussion item, not resolved.
+
+**State:** ✅ **15 suites, 289/289 passing** in the sandbox — no count change (orchestration code, not new pure logic). `node --check` clean on both files. **Live-verified in Chrome** via the Claude in Chrome extension against Jeremy's real save: fresh page load ran `initGame()`→`restoreGameState()` correctly (Health/XP/Level/Points matched session 10's end state exactly); completed "ZZTest Standalone Habit" (XP/Points 15→20); reloaded and confirmed the completion, stats, and all sprite positions persisted exactly — the full save→reload→restore cycle, the specific risk this session was flagged for. Console showed only the pre-existing extension "message channel closed" noise (same timestamp before/after reload, nothing new).
+
+**Docs updated same session:** ARCHITECTURE.md (`state.js` entry marked IMPLEMENTED with the ownership-deferral rationale), DECISIONS.md (full design-fork writeup + guardrail discussion), ROADMAP.md (session 11 checked off).
+
+**Next:** **session 12 — final wiring cleanup.** Re-verify the `<300` line goal with fresh numbers (script.js is at 1,244 now — Grep for what top-level `function` declarations remain before assuming a single clean sweep gets there), mop up whatever's left (DOM consts, event-listener attachment, boot sequence), formally close `docs/UI_EXTRACTION_PLAN.md` (its session-10 row still reflects the original, superseded scope — worth fixing here too). This closes out the 12-session tail of Milestone 2's UI/state extraction line.
+
+**Watch out:**
+- Two leftover test-data mutations from live verification: "ZZTest Standalone Habit" is now completed (moved out of the active list, same fixture-cleanup category as prior sessions' test items) — harmless, matches real gameplay.
+- The state-ownership migration (state.js actually owning baseHealth/playerXP/activeItems/etc.) is a real, deliberately deferred future task — good candidate for session 12 or early Milestone 3, NOT something to fold silently into another session's scope.
+- The one-system-per-session guardrail discussion in DECISIONS.md is unresolved — CLAUDE.md itself hasn't been touched. Worth a short dedicated pass if Jeremy wants it formalized.
+
+---
+
 ## 2026-07-18 — Session 10 (rescoped): `js/items.js` — item/task/habit completion lifecycle (Cowork session)
 
 **Did:** Started as "session 10 of the UI plan" (script.js → boot/wiring, <300 lines) but a fresh Grep at session start found ~700-800 lines of core game logic the 11-session UI plan never covered — item/task/habit completion lifecycle and game init/persistence orchestration. Asked Jeremy how far to go; his call was to extract it now, split across 3 sessions to keep one-system-per-session. This session did slice 1: extracted `completeItem`, `removeItem`, `uncompleteItem`, `markAsOverdue`, `recomputeOverdueStateAfterEdit`, `createTaskItemData` into new `js/items.js`, behind a single `itemsDeps()` in script.js. `playerXP`/`playerPoints` get get/set accessor pairs (only the second module, after damage.js's baseHealth/gameIsOver, to WRITE script.js-owned numeric state). script.js down to **1,346 lines** (was 1,608). New module wired into index.html after `js/routines.js`.
