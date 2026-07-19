@@ -41,6 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // See docs/ARCHITECTURE.md for the current module map.)
 
     let baseHealth, playerXP, playerLevel, playerPoints, routineSlots;
+    // Shop inventory ([P1-UI-008], 2026-07-18): plain object, item id -> held
+    // count (absent key = 0). Owned in script.js like the other scalars; reached
+    // via getPlayerInventory/setPlayerInventory accessor deps. See js/shop.js.
+    let playerInventory = {};
     let activeItems = [];
     let completedItems = [];
     let definedHabits = [];
@@ -159,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
             getPlayerLevel: () => playerLevel,
             getPlayerPoints: () => playerPoints,
             getRoutineSlots: () => routineSlots,
+            getPlayerInventory: () => playerInventory,
             getItemIdCounter: () => itemIdCounter,
             getDaysSurvived: () => daysSurvived,
             getRunStartedAtMs: () => runStartedAtMs,
@@ -180,6 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setPlayerLevel: (n) => { playerLevel = n; },
             setPlayerPoints: (n) => { playerPoints = n; },
             setRoutineSlots: (n) => { routineSlots = n; },
+            setPlayerInventory: (obj) => { playerInventory = obj; },
             setBaseHealth: (n) => { baseHealth = n; },
             setActiveItems: (arr) => { activeItems = arr; },
             setCompletedItems: (arr) => { completedItems = arr; },

@@ -69,6 +69,7 @@ const State = (() => {
         deps.setPlayerXP(0);
         deps.setPlayerLevel(1);
         deps.setPlayerPoints(0);
+        deps.setPlayerInventory({}); // shop inventory — fresh run starts empty
         deps.setRoutineSlots(CONFIG.ROUTINE_SLOTS_PER_LEVEL[1] || 1);
 
         deps.updatePlayerDisplays();
@@ -136,6 +137,7 @@ const State = (() => {
             playerXP: deps.getPlayerXP(),
             playerLevel: deps.getPlayerLevel(),
             playerPoints: deps.getPlayerPoints(),
+            inventory: deps.getPlayerInventory(),
             routineSlots: deps.getRoutineSlots(),
             itemIdCounter: deps.getItemIdCounter(),
             gameIsOver: deps.isGameOver(),
@@ -218,6 +220,9 @@ const State = (() => {
         deps.setPlayerXP(save.playerXP || 0);
         deps.setPlayerLevel(restoredLevel);
         deps.setPlayerPoints(save.playerPoints || 0);
+        // Shop inventory. The v3→v4 migration seeds {} on older saves, but guard
+        // here too (non-object / absent) so a malformed save can never crash boot.
+        deps.setPlayerInventory((save.inventory && typeof save.inventory === 'object') ? save.inventory : {});
         deps.setRoutineSlots(CONFIG.ROUTINE_SLOTS_PER_LEVEL[restoredLevel] || 1);
         deps.setBaseHealth((typeof save.baseHealth === 'number') ? save.baseHealth : CONFIG.MAX_BASE_HEALTH);
         deps.setItemIdCounter(save.itemIdCounter || 1);

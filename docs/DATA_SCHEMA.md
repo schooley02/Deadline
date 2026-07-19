@@ -8,6 +8,20 @@ TARGET schema for the persistence work (Milestone 1) and modularization. The mon
 - `deadline.settings` — user settings (demo clock on/off, etc.) — not yet implemented
 - Save on every state mutation (debounced), load on boot. Cross-tab sync later via `storage` events.
 
+### schemaVersion 4 (2026-07-18): shop `inventory` landed
+Top-level `inventory: { [shopItemId]: heldCount }` added for the shop ([P1-UI-008],
+SHOP_PLAN.md session 1). Absent key = 0 held. Owned in script.js (`playerInventory`),
+threaded via `getPlayerInventory`/`setPlayerInventory` accessor deps, persisted in
+`getPersistableState` / restored in `restoreGameState` (both in `js/state.js`), reset to
+`{}` by `initGame`. The v3→v4 migration seeds `{}` on older saves; restore guards a
+malformed value too. Catalog lives in `CONFIG.SHOP_ITEMS`; pure purchase/price/consume
+logic in `js/shop.js` (delegates pricing to `Economy.shopPrice`). See DECISIONS.md 2026-07-18.
+
+### schemaVersion 3 (2026-07-18): recurrence `schedule` + habit `occurrenceHistory` landed
+Habits and routine-task definitions carry a `schedule` object (`frequency`/`daysOfWeek`/
+`dayOfMonth`) replacing habits' bare `frequency` string; habit defs also carry
+`occurrenceHistory`. v2→v3 migration in `js/persistence.js`. See DECISIONS.md.
+
 ### schemaVersion 2 (2026-07-18): habit `routineId` landed
 The `routineId: string|null` field on `Habit` below is now **live**, ahead of the rest of
 this target schema. `null` = standalone (spawns daily on its own); a routine id = owned by

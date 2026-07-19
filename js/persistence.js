@@ -19,7 +19,9 @@ const Persistence = (() => {
     // v3 (2026-07-18): habit + routine-task definitions gained a `schedule`
     // object (replacing habits' bare `frequency` string; routine tasks had no
     // recurrence field before); habit definitions gained `occurrenceHistory`.
-    const SCHEMA_VERSION = 3;
+    // v4 (2026-07-18): top-level `inventory` object (shop item id -> held
+    // count) added for [P1-UI-008]. Old saves seed an empty inventory.
+    const SCHEMA_VERSION = 4;
     const DEBOUNCE_MS = 500;
 
     // DOM references on item objects — never serialized, rebuilt on load.
@@ -157,6 +159,18 @@ const Persistence = (() => {
             });
 
             save.schemaVersion = 3;
+        }
+
+        // v3 → v4 (2026-07-18): shop inventory ([P1-UI-008]). Additive — a
+        // top-level `inventory` object (shop item id -> held count). Pre-v4
+        // saves have none, so seed an empty one; state.js restore also guards,
+        // but seeding here keeps the migrated save internally consistent.
+        // See DECISIONS.md 2026-07-18.
+        if (save.schemaVersion === 3) {
+            if (!save.inventory || typeof save.inventory !== 'object') {
+                save.inventory = {};
+            }
+            save.schemaVersion = 4;
         }
 
         if (save.schemaVersion !== SCHEMA_VERSION) {

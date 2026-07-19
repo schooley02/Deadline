@@ -4,6 +4,24 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-18 — Session 20: Shop plan written + Shop session 1 ([P1-UI-008] state/config/pure core) (Cowork session, Opus)
+
+**Planned then built.** Wrote `docs/SHOP_PLAN.md` sequencing the 13-pt shop ticket into 5 sub-sessions (state+core → UI frame → repair-kit use → pushback → balance re-tune). Scope calls (Jeremy, session 19): **v1 = repair kits + pushback** (day-tokens deferred until negative habits [P1-DATA-005] exist — Cheat Day depends on them); **entry = 4th FAB menu item**; **exponential pricing uses `owned = currently-held`** (using an item makes the next cheaper). Then executed sub-session 1.
+
+**Built (sub-session 1 — pure core + persistence only, no UI):**
+- `CONFIG.SHOP_ITEMS` catalog (6 items: 3 repair kits, 3 pushback) transcribed from ECONOMY.md. Shape: `{ id, name, category, baseCost, consumable, effect }`.
+- `js/shop.js` — pure `getItem`/`heldCount`/`price`/`canAfford`/`purchase`/`consume`. No DOM, no state ownership. `price`/`purchase` delegate to `Economy.shopPrice`/`Economy.subtractPoints` so pricing + the points floor stay single-sourced. `purchase`/`consume` return NEW inventory objects (never mutate args).
+- Inventory state: `playerInventory = {}` owned in script.js; `getPlayerInventory`/`setPlayerInventory` accessor deps through `stateDeps()`. `getPersistableState` persists it, `restoreGameState` restores it (guards non-object), `initGame` resets to `{}`.
+- Persistence `SCHEMA_VERSION` 3→4 with a v3→v4 migration seeding `inventory: {}` on older saves.
+
+**Decision — `consumable` flag drives inventory vs instant-consume.** Repair kits (`consumable: true`) are held then used; pushback (`consumable: false`) applies instantly on purchase and is NOT added to inventory. Consequence flagged for sub-session 4: with `owned = held`, pushback's held count is always 0, so its exponential price never climbs — the pricing basis for pushback is an open sub-decision (proposed: per-run purchase count, or flat), to resolve when building pushback or in the session-5 tuning pass. Logged in SHOP_PLAN.md.
+
+**Balance note (balance-tuning):** repair-kit `healAmount` values (15/35/75) are NEW placeholders — ECONOMY.md specifies base costs but not heal amounts. Base costs (25/50/100 repair, 50/100/300 pushback) are ECONOMY.md's canonical numbers. All flagged for the session-5 re-tune against real play (alongside the `HABIT_RATE_TIERS` placeholders pending since session 16).
+
+**Tests:** `test/shop.test.js` (new suite — catalog integrity, held/price/afford/purchase/consume incl. the owned=held price climb and the non-consumable no-inventory case) + 5 v3→v4 cases in `persistence-migration.test.js`. Updated the existing migration tests that asserted the chain endpoint `=== 3` to `=== Persistence.SCHEMA_VERSION` (endpoint moved to 4), and the v3-passthrough test to a v4-passthrough. **19 suites, 403/403.** `node --check` clean on all touched files. **Live-verified in Chrome:** disk save migrated v3→v4 with `inventory` seeded; `Shop.purchase` dry-run correct; a full inject→reload→re-persist round-trip proved `restoreGameState` reads inventory back into memory (used the session-17 flush-neutralize workaround — a plain reload clobbers the injected save via the outgoing page's unload flush). Reset Jeremy's inventory to `{}` after (no UI to use phantom kits yet). Console clean; points untouched (40).
+
+---
+
 ## 2026-07-18 — Session 19: Milestone 3 opened; ordering decided; [P1-DATA-007] done via js/economy.js (Cowork session, Fable plan → Sonnet execution)
 
 **Milestone 3 ordering decided (Fable):** P1-DATA-007 points standardization → P1-UI-008 shop → P1-DATA-005 negative habits (+ frozen slots) → P1-UI-006 heroes / P1-DATA-004 sub-task hierarchy / run history. Why: 007 is smallest and explicitly gates the shop; the shop unblocks repair kits AND the habit-rate-tier re-tune; negative habits already have their seam (`occurrenceSuccess`, session 16) and lead into frozen slots. Rejected: starting with P1-DATA-005 (3-week ticket, blocks nothing else); starting with the shop directly (its ticket names 007 as a dependency).

@@ -77,6 +77,34 @@ const CONFIG = {
     LEVEL_XP_THRESHOLDS: [0, 100, 250, 500, 800, 1200, 1700, 2300, 3000],
     ROUTINE_SLOTS_PER_LEVEL: { 1: 1, 2: 1, 3: 2, 4: 2, 5: 3, 6: 3, 7: 4, 8: 4 },
 
+    // --- Shop catalog ([P1-UI-008], SHOP_PLAN.md session 1, 2026-07-18) ---
+    // Base costs + effects transcribed from docs/ECONOMY.md (canonical). Live
+    // price at the shop is Economy.shopPrice(baseCost, owned) = round(base ×
+    // 1.5^owned) where owned = currently-held count (Jeremy's call session 19).
+    // v1 ships repair kits + pushback only; day-tokens (cheat/sick/skip) are
+    // deferred until negative habits [P1-DATA-005] exist (see SHOP_PLAN.md).
+    // BALANCE: these are ECONOMY.md's placeholder numbers — the session-5
+    // tuning pass re-tunes them against real play (balance-tuning protocol).
+    //
+    // Shape per item:
+    //   id        stable key (persisted inventory is keyed by this)
+    //   name      display label
+    //   category  'repair' | 'pushback' (drives UI grouping + effect dispatch)
+    //   baseCost  points, before the exponential owned-multiplier
+    //   consumable true = held in inventory then used later (repair kits);
+    //             false = applied instantly on purchase (pushback)
+    //   effect    category-specific params:
+    //             repair   -> { healAmount }  HP restored per use
+    //             pushback -> { pushbackMs }   ms the target's due date shifts later
+    SHOP_ITEMS: [
+        { id: 'repair_small',  name: 'Repair Kit (Small)',  category: 'repair',   baseCost: 25,  consumable: true,  effect: { healAmount: 15 } },
+        { id: 'repair_medium', name: 'Repair Kit (Medium)', category: 'repair',   baseCost: 50,  consumable: true,  effect: { healAmount: 35 } },
+        { id: 'repair_large',  name: 'Repair Kit (Large)',  category: 'repair',   baseCost: 100, consumable: true,  effect: { healAmount: 75 } },
+        { id: 'pushback_1hr',  name: 'Enemy Pushback (1 hr)',  category: 'pushback', baseCost: 50,  consumable: false, effect: { pushbackMs: 1 * 60 * 60 * 1000 } },
+        { id: 'pushback_2hr',  name: 'Enemy Pushback (2 hr)',  category: 'pushback', baseCost: 100, consumable: false, effect: { pushbackMs: 2 * 60 * 60 * 1000 } },
+        { id: 'pushback_1day', name: 'Enemy Pushback (1 day)', category: 'pushback', baseCost: 300, consumable: false, effect: { pushbackMs: 24 * 60 * 60 * 1000 } },
+    ],
+
     // --- Sprites ---
     ENEMY_WIDTH: 128,
     HABIT_ENEMY_WIDTH: 128,

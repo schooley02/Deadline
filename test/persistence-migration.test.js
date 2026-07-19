@@ -25,11 +25,11 @@ function v1Save(overrides = {}) {
 }
 
 describe('migrate v1 → v2: habit routineId inference', () => {
-    test('bumps schemaVersion through the full chain to 3', () => {
+    test('bumps schemaVersion through the full chain to the current version', () => {
         // The routineId inference is the v1→v2 step; the chain then continues
-        // v2→v3, so a v1 save lands at the current SCHEMA_VERSION (3).
+        // v2→v3→v4, so a v1 save lands at the current SCHEMA_VERSION.
         const save = Persistence.migrate(v1Save());
-        expect(save.schemaVersion).toBe(3);
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
     });
 
     test('a habit listed by a routine gets that routine id', () => {
@@ -100,7 +100,7 @@ describe('migrate v1 → v2: habit routineId inference', () => {
 
     test('tolerates a save with no definedHabits / definedRoutines at all', () => {
         const save = Persistence.migrate({ schemaVersion: 1 });
-        expect(save.schemaVersion).toBe(3);
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
     });
 
     test('leaves other save fields untouched', () => {
@@ -126,8 +126,8 @@ describe('migrate v2 → v3: recurrence schedule + occurrenceHistory', () => {
         };
     }
 
-    test('bumps schemaVersion to 3', () => {
-        expect(Persistence.migrate(v2Save()).schemaVersion).toBe(3);
+    test('runs the v2→v3 step and continues to the current version', () => {
+        expect(Persistence.migrate(v2Save()).schemaVersion).toBe(Persistence.SCHEMA_VERSION);
     });
 
     test("a habit's bare frequency string becomes an every-day schedule and is removed", () => {
@@ -170,28 +170,66 @@ describe('migrate v2 → v3: recurrence schedule + occurrenceHistory', () => {
         const save = v2Save();
         delete save.definedTasks;
         expect(() => Persistence.migrate(save)).not.toThrow();
-        expect(save.schemaVersion).toBe(3);
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
     });
 
-    test('runs the full v1 → v3 chain in one pass', () => {
+    test('runs the full v1 → current chain in one pass', () => {
         const save = Persistence.migrate({
             schemaVersion: 1,
             definedHabits: [{ id: 'h1', frequency: 'daily' }],
             definedRoutines: [{ id: 'r1', habitDefinitionIds: ['h1'], isActive: true }],
             definedTasks: [{ id: 't1' }]
         });
-        expect(save.schemaVersion).toBe(3);
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
         expect(save.definedHabits[0].routineId).toBe('r1');     // v1→v2 ran
         expect(save.definedHabits[0].schedule.frequency).toBe('daily'); // v2→v3 ran
         expect(save.definedHabits[0].occurrenceHistory).toEqual([]);
         expect(save.definedTasks[0].schedule.frequency).toBe('daily');
+        expect(save.inventory).toEqual({}); // v3→v4 ran
+    });
+});
+
+describe('migrate v3 → v4: shop inventory', () => {
+    function v3Save(overrides = {}) {
+        return {
+            schemaVersion: 3,
+            definedHabits: [],
+            definedRoutines: [],
+            definedTasks: [],
+            ...overrides
+        };
+    }
+
+    test('bumps schemaVersion to 4', () => {
+        expect(Persistence.migrate(v3Save()).schemaVersion).toBe(4);
+    });
+
+    test('seeds an empty inventory on a save that has none', () => {
+        const save = Persistence.migrate(v3Save());
+        expect(save.inventory).toEqual({});
+    });
+
+    test('does not clobber an existing inventory', () => {
+        const save = Persistence.migrate(v3Save({ inventory: { repair_small: 2 } }));
+        expect(save.inventory).toEqual({ repair_small: 2 });
+    });
+
+    test('replaces a malformed inventory with an empty object', () => {
+        const save = Persistence.migrate(v3Save({ inventory: 'garbage' }));
+        expect(save.inventory).toEqual({});
+    });
+
+    test('leaves other save fields untouched', () => {
+        const save = Persistence.migrate(v3Save({ playerPoints: 200 }));
+        expect(save.playerPoints).toBe(200);
     });
 });
 
 describe('migrate: version handling', () => {
-    test('a v3 save passes through unchanged (same reference)', () => {
+    test('a current-version save passes through unchanged (same reference)', () => {
         const original = {
-            schemaVersion: 3,
+            schemaVersion: Persistence.SCHEMA_VERSION,
+            inventory: {},
             definedHabits: [{ id: 'h1', routineId: null, schedule: { frequency: 'daily', daysOfWeek: [0,1,2,3,4,5,6], dayOfMonth: null }, occurrenceHistory: [] }]
         };
         expect(Persistence.migrate(original)).toBe(original);

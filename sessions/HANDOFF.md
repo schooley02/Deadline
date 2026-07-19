@@ -13,6 +13,26 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-18 — Session 20: Shop plan written + Shop session 1 (state/config/pure core) (Cowork session, Opus)
+
+**Did:** Wrote `docs/SHOP_PLAN.md` (5-sub-session sequence for [P1-UI-008]; scope + entry + pricing decisions in DECISIONS.md session 20), then built sub-session 1 — the pure core + persistence, no UI:
+- `CONFIG.SHOP_ITEMS`: 6 items (repair small/med/large, pushback 1hr/2hr/1day) with `{ id, name, category, baseCost, consumable, effect }`.
+- `js/shop.js`: pure `getItem`/`heldCount`/`price`/`canAfford`/`purchase`/`consume` — no DOM, no state ownership; delegates pricing to `Economy.shopPrice` and the points floor to `Economy.subtractPoints`; returns NEW inventory objects (never mutates). Wired into index.html after economy.js.
+- Inventory state: `playerInventory = {}` owned in script.js, `getPlayerInventory`/`setPlayerInventory` through `stateDeps()`; persisted (`getPersistableState`), restored (`restoreGameState`, guards malformed), reset by `initGame`.
+- `Persistence.SCHEMA_VERSION` 3→4 + v3→v4 migration seeding `inventory: {}`.
+
+**State:** ✅ **19 suites, 403/403** (was 380; +`test/shop.test.js`, +5 v3→v4 migration cases; updated the existing chain-endpoint assertions from `=== 3` to `=== Persistence.SCHEMA_VERSION`). `node --check` clean on all touched files. **Live-verified in Chrome:** Jeremy's real v3 save migrated to v4 with `inventory` seeded; `Shop.purchase` dry-run correct; full inject→reload→re-persist round-trip proved `restoreGameState` wires inventory (used the session-17 flush-neutralize trick — a plain reload clobbers the injected save via the outgoing unload flush). Reset inventory to `{}` after; console clean; points untouched (40).
+
+**Next — Shop sub-session 2: the UI frame** (`SHOP_PLAN.md`). 4th FAB item `data-type="shop"` + `#shopWindow` markup in index.html, `js/ui/shopView.js` (catalog grid, live price via `Shop.price`, inventory counter, Buy → `Shop.purchase`, purchase preview + exponential-price feedback), wire `type === 'shop'` into `ManagementWindows.openManagementWindow`, `css/shop.css` (before `responsive.css`). Repair kits land in inventory; USE comes sub-session 3. Opus to plan the window integration, then Sonnet.
+
+**Watch out:**
+- **Pushback pricing is an unresolved sub-decision** — `owned = held` means pushback (instant-consume, never held) never inflates. Resolve in sub-session 4 or the session-5 tuning pass (see SHOP_PLAN.md). Don't ship pushback pricing without deciding.
+- Repair-kit `healAmount` (15/35/75) are NEW placeholder numbers (ECONOMY.md didn't specify heal amounts) — re-tune in sub-session 5 via balance-tuning.
+- `Shop.price`/`purchase` take the inventory OBJECT (derive held internally), not an `owned` integer — the plan doc's sketch said `catalogPrice(item, owned)`; the built signature differs.
+- Sandbox scratch dir this session: `/sessions/exciting-happy-turing/dl-s19` (reused).
+
+---
+
 ## 2026-07-18 — Session 19: Milestone 3 OPENED — ordering decided + [P1-DATA-007] done via js/economy.js (Cowork session)
 
 **Did:** Fable session start: decided the Milestone 3 order (007 → 008 shop → 005 negative habits/frozen slots → 006 heroes / 004 sub-tasks / run history — rationale in DECISIONS.md), then executed P1-DATA-007. The ticket was half-moot (MPE variant is reference-only; Root points were already consistent), so the real work was `js/economy.js`: pure `taskPoints` (high-priority ×2 rule, previously duplicated inline in items.js complete + uncomplete), `addPoints`/`subtractPoints` (0-floor, documented non-clamping path planned for P1-DATA-005 indulgence), and `shopPrice(base, owned) = round(base × 1.5^owned)` from ECONOMY.md so the shop starts from a tested pricing core. items.js's four points call sites now route through Economy; wired into index.html after progression.js. Behavior-identical — same numbers everywhere.
