@@ -29,6 +29,24 @@ values first — a no-op Save appends nothing) and, when the edit is to the habi
 its routine's freeze, clears `frozenState` as recovery path 1. No schema change — the field and its
 shape were already seeded by sub-session 1's v5→v6 migration above; this just starts populating it.
 
+### schemaVersion 7 (2026-07-19): Sick Day (global) + Skip Day (per-habit) tokens landed
+Sub-session 5 of the "Frozen routine slots + recovery" ticket, the ticket's final piece (see
+docs/FROZEN_SLOTS_PLAN.md session 35 Fable fork 4 + docs/ECONOMY.md). Two new fields, additive:
+top-level `sickDayDate: ISODateString | null` (GLOBAL — one active Sick Day excuses every habit for
+that occurrence date) and `Habit.skipDayDate: ISODateString | null` (PER-HABIT — mirrors
+`cheatDayDate`'s shape but pauses the habit entirely rather than excusing an indulgence). "Clear
+immediately" model (Jeremy's call, 2026-07-19): unlike Cheat Day, applying either token doesn't wait
+for a later indulge/rollover check — it removes every currently-spawned matching habit instance from
+the board at the moment of use (`Items.useSickDayGlobally`/`useSkipDayOnItem`), so no occurrence is
+ever recorded for that day (streak/points/xp untouched by construction — nothing reaches those
+paths). The date fields still matter afterward purely as a same-day spawn-gate
+(`Habits.selectHabitDefsToSpawn`'s optional 5th `sickDayDate` param + the per-habit `skipDayDate`
+check) so a same-day reload can't respawn a fresh instance in the removed one's place — this
+self-expires the next calendar day without any explicit clearing needed. v6→v7 migration in
+`js/persistence.js` seeds `sickDayDate: null` at the top level and `skipDayDate: null` on every
+habit def. Transparent to freeze/recovery counts (fork 2's principle: no occurrence, nothing to
+count). Routine tasks are untouched — Sick Day is habits-only (fork 4). See DECISIONS.md 2026-07-19.
+
 ### schemaVersion 4 (2026-07-18): shop `inventory` landed
 Top-level `inventory: { [shopItemId]: heldCount }` added for the shop ([P1-UI-008],
 SHOP_PLAN.md session 1). Absent key = 0 held. Owned in script.js (`playerInventory`),

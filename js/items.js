@@ -404,6 +404,61 @@ const Items = (() => {
     /**
      * deps: { definedHabits (getter), activeItems, updateTaskCountDisplay, saveGame }
      *
+     * Frozen-slots sub-session 5 (Skip Day token, 2026-07-19): applies a Skip
+     * Day to ONE targeted, already-spawned habit instance (any type — Skip
+     * Day isn't negative-only, unlike Cheat Day). "Clear immediately" model
+     * (Jeremy's call, 2026-07-19): sets `habitDef.skipDayDate` to this
+     * instance's occurrence date and removes it from the board right away —
+     * no occurrence recorded, streak/points/xp untouched (not a success, not
+     * a miss, same transparency principle as Cheat Day/fork 2). Unlike Cheat
+     * Day, there's no later "excused" branch to wire into indulge/complete/
+     * rollover — the instance is gone the moment the token is used, so
+     * there's nothing left to reach those paths. `skipDayDate` still matters
+     * afterward purely as a same-day spawn-gate (Habits.selectHabitDefsToSpawn)
+     * so a same-day reload can't respawn a fresh instance (same hazard class
+     * as the documented indulge same-day-respawn bug — see ROADMAP.md).
+     */
+    function useSkipDayOnItem(item, deps) {
+        const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
+        if (habitDef) {
+            habitDef.skipDayDate = Habits.toOccurrenceDate(item.originalDueDate);
+        }
+        removeItem(item.id, deps);
+    }
+
+    /**
+     * deps: { definedHabits (getter), activeItems, updateTaskCountDisplay, saveGame }
+     *
+     * Frozen-slots sub-session 5 (Sick Day token, 2026-07-19): the GLOBAL,
+     * untargeted counterpart to useSkipDayOnItem — applied from the Sick Day
+     * shop card directly (js/ui/shopView.js), not tapped onto one instance.
+     * `deps.setSickDayDate` is expected to persist the marker at the
+     * script.js level (mirrors deps.setPlayerInventory's pattern). Sweeps
+     * EVERY currently active HABIT instance (positive or negative) whose
+     * occurrence date is `forDate` off the board — routine TASKS are
+     * untouched (fork 4, docs/FROZEN_SLOTS_PLAN.md: Sick Day only pauses
+     * habits). Same "clear immediately" semantics as useSkipDayOnItem: no
+     * occurrence recorded, streak/points/xp untouched for any of them.
+     */
+    function useSickDayGlobally(forDate, deps) {
+        const forDateString = Habits.toOccurrenceDate(forDate);
+        deps.setSickDayDate(forDateString);
+
+        deps.activeItems
+            .filter(item =>
+                item.type === 'habit' &&
+                item.originalDueDate &&
+                Habits.toOccurrenceDate(item.originalDueDate) === forDateString
+            )
+            // Snapshot ids before removing — removeItem splices deps.activeItems
+            // in place, which would otherwise skip entries while iterating it live.
+            .map(item => item.id)
+            .forEach(itemId => removeItem(itemId, deps));
+    }
+
+    /**
+     * deps: { definedHabits (getter), activeItems, updateTaskCountDisplay, saveGame }
+     *
      * Sub-session 4 ([P1-DATA-005], check-in prompt, 2026-07-19): the
      * check-in-eligible counterpart to settleStaleRecurringInstance above.
      * The SINGLE most-recent prior day's negative-habit lurker (state.js
@@ -823,6 +878,8 @@ const Items = (() => {
         resolvePendingCheckIn,
         isCheatDayExcused,
         settleExcusedCheatDay,
+        useSkipDayOnItem,
+        useSickDayGlobally,
         uncompleteItem,
         markAsOverdue,
         recomputeOverdueStateAfterEdit

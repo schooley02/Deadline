@@ -13,6 +13,55 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 39: Sub-session 5 BUILT — Sick Day + Skip Day tokens, schemaVersion 6→7 — TICKET CLOSED (Cowork session, Sonnet execute)
+
+**Did:** Added two Buy-to-hold shop consumables (200 pts, same exponential pricing as Cheat Day):
+Sick Day (global — excuses every habit for today, used from its own shop card) and Skip Day
+(per-habit — Cheat-Day-style tap targeting from an item's popup, reaches any habit type, not just
+negative). Per Jeremy's "clear immediately" call (asked via AskUserQuestion — this timing behavior
+wasn't specified anywhere in docs/PROJECT_SPEC.md), using either token removes the matching
+already-spawned instance(s) from the board immediately: no occurrence recorded, streak/points
+untouched, transparent to freeze/recovery counts by construction (no code needed there, unlike
+Cheat Day's `isCheatDayExcused` predicate). `habitDef.skipDayDate` / top-level `sickDayDate` double
+as a same-day spawn-gate in `Habits.selectHabitDefsToSpawn` (new optional 5th param) so a same-day
+reload can't respawn what was just cleared. New fields: `js/items.js` (`useSkipDayOnItem`,
+`useSickDayGlobally`), `js/config.js` (`SHOP_ITEMS` catalog entries), `js/persistence.js`
+(schemaVersion 6→7 migration seeding `sickDayDate`/`skipDayDate` null), `js/state.js`
+(persist/restore), `script.js` (`handleUseSkipDay`, `handleUseSickDay`, `handleShopUse` branching),
+`js/ui/popups.js` (Skip Day button in both action-branches), `js/ui/shopView.js` (Sick Day card
+button + icons). Piggybacked fix: `Routines.createNewHabitInRoutine` was missing `cheatDayDate: null`
+(a session-34 oversight) — backfilled alongside the new `skipDayDate: null`, logged transparently in
+DECISIONS.md. Updated `docs/ECONOMY.md`, `docs/DATA_SCHEMA.md` (schemaVersion 7 section),
+`docs/ROUTINES.md`, `docs/FROZEN_SLOTS_PLAN.md`, `docs/ROADMAP.md`, `docs/DECISIONS.md` (session 39
+entry).
+
+**State:** ✅ **30 suites, 585/585** (+25: persistence-migration v6→v7, spawn-gate cases in
+`routine-active-gating.test.js`, new `test/items-skipday-sickday.test.js`, `shop.test.js` catalog
+cases — including a fix to a hardcoded category allowlist that would've broken on the two new
+categories). `node --check` clean on all touched files. **Live-verified in Chrome:** bought Sick Day
++ Skip Day (300 pts on the 2nd unit, confirming exponential pricing), tapped Skip Day from a
+POSITIVE habit's popup — vanished immediately, marker set, streak/occurrenceHistory untouched,
+same-day reload confirmed no respawn. Sick Day's shop-card Use then swept the remaining habit
+instance the same way; reload again confirmed the global gate too. Zero app console errors.
+
+**Found (not fixed — pre-existing, logged in ROADMAP.md's Known bugs, same as session 38):** the
+FAB → Routines popup staleness bug is unrelated to this session's work and remains unfixed.
+
+**Next:** The "Frozen routine slots + recovery" ticket (5 sub-sessions, 2 schema bumps) is fully
+CLOSED. Pick the next Milestone 3 roadmap item — candidates per `docs/ROADMAP.md`: [P1-UI-006]
+Hero/routine visual system, [P1-DATA-004] Sub-task hierarchy, or Run history. Also still open: the
+small FAB→Routines popup staleness fix flagged in session 38 (have `editHabitInRoutine`'s wrapper
+also call `ManagementWindows.populateRoutinesWindow` when that window is open).
+
+**Watch out:**
+- "Clear immediately" (Sick/Skip Day) vs. Cheat Day's "stays on the board, cost excused" are
+  deliberately DIFFERENT models for different tokens — don't unify them without asking Jeremy first.
+- Skip Day's popup button is wired into BOTH branches of `buildActionsHtml` (negative-habit binary
+  AND the generic positive/task branch) — a future new item-type branch needs the same wiring or
+  Skip Day silently won't appear for it.
+
+---
+
 ## 2026-07-19 — Session 38: Sub-session 4 BUILT — recovery path 1, edit-to-unfreeze + modificationHistory (Cowork session, Sonnet execute)
 
 **Did:** `Routines.editHabitInRoutine` (`js/routines.js`) now diffs an incoming habit edit against the

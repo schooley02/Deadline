@@ -48,6 +48,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // count (absent key = 0). Owned in script.js like the other scalars; reached
     // via getPlayerInventory/setPlayerInventory accessor deps. See js/shop.js.
     let playerInventory = {};
+    // Sick Day (frozen-slots sub-session 5, 2026-07-19): GLOBAL marker — the
+    // one occurrence date ('YYYY-MM-DD') a Sick Day token is currently
+    // excusing for EVERY habit, or null. Mirrors playerInventory's ownership
+    // pattern (owned here, reached via getSickDayDate/setSickDayDate deps).
+    // See js/items.js's useSickDayGlobally.
+    let sickDayDate = null;
     let activeItems = [];
     let completedItems = [];
     let definedHabits = [];
@@ -169,6 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
             getPlayerPoints: () => playerPoints,
             getRoutineSlots: () => routineSlots,
             getPlayerInventory: () => playerInventory,
+            getSickDayDate: () => sickDayDate,
             getItemIdCounter: () => itemIdCounter,
             getDaysSurvived: () => daysSurvived,
             getRunStartedAtMs: () => runStartedAtMs,
@@ -192,6 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setPlayerPoints: (n) => { playerPoints = n; },
             setRoutineSlots: (n) => { routineSlots = n; },
             setPlayerInventory: (obj) => { playerInventory = obj; },
+            setSickDayDate: (d) => { sickDayDate = d; },
             setBaseHealth: (n) => { baseHealth = n; },
             setActiveItems: (arr) => { activeItems = arr; },
             setCompletedItems: (arr) => { completedItems = arr; },
@@ -344,6 +352,9 @@ document.addEventListener('DOMContentLoaded', () => {
             setPlayerXP: (n) => { playerXP = n; },
             getPlayerPoints: () => playerPoints,
             setPlayerPoints: (n) => { playerPoints = n; },
+            // Frozen-slots sub-session 5 (2026-07-19): Items.useSickDayGlobally
+            // writes the global Sick Day marker through this setter.
+            setSickDayDate: (d) => { sickDayDate = d; },
             gameScreenWidth: GAME_SCREEN_WIDTH,
             baseWidth: BASE_WIDTH,
             enemyWidth: ENEMY_WIDTH,
@@ -453,7 +464,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const habitDef = definedHabits.find(def => def.id === item.definitionId);
                 return !!habitDef && Items.isCheatDayExcused(habitDef, item.originalDueDate);
             },
-            onUseCheatDay: handleUseCheatDay
+            onUseCheatDay: handleUseCheatDay,
+            // Skip Day targeting (frozen-slots sub-session 5, 2026-07-19):
+            // held count for the popup's "Use Skip Day (N held)" button
+            // (shown for ANY habit type, not just negative — see popups.js's
+            // buildSkipDaySectionHtml) and the handler that consumes a token
+            // + excuses + removes the targeted instance.
+            getSkipDayHeldCount: () => Shop.heldCount(playerInventory, 'skip_day'),
+            onUseSkipDay: handleUseSkipDay
         };
     }
 
@@ -727,7 +745,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // path 1 (edit-to-unfreeze) appends to this. See js/frozenSlots.js.
             // Only meaningful for routine-owned negative habits, seeded on
             // every habit for shape consistency (same reasoning as cheatDayDate).
-            modificationHistory: []
+            modificationHistory: [],
+            // Frozen-slots sub-session 5 (Sick/Skip Day tokens, 2026-07-19,
+            // schemaVersion 7): null = no active excused day for THIS habit.
+            // Seeded on every habit (not just negative ones — Skip Day
+            // applies to any habit type). See js/items.js's useSkipDayOnItem.
+            skipDayDate: null
         };
 
         definedHabits.push(newHabitDef);
@@ -754,7 +777,10 @@ document.addEventListener('DOMContentLoaded', () => {
             definedRoutines,
             activeItems,
             addItemToGame,
-            sortAndRenderActiveList
+            sortAndRenderActiveList,
+            // Frozen-slots sub-session 5 (2026-07-19): the global Sick Day
+            // spawn gate — see Habits.selectHabitDefsToSpawn.
+            sickDayDate
         };
     }
 
@@ -1167,17 +1193,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Use-one-held-unit handler wired to each repair-kit card's Use button
-    // (session 3, SHOP_PLAN.md, 2026-07-19). Shop.consume is pure — decrements
-    // the held count (never below zero); the actual heal goes through the
-    // existing healBase(amount) wrapper (script.js, ~line 569 — built for base
-    // regen [P2-GAME-012], reused as-is here), which itself clamps at
-    // CONFIG.MAX_BASE_HEALTH, updates the health display/base sprite, and
-    // calls saveGame() internally. playerInventory is updated BEFORE calling
-    // healBase so that internal save already captures the decremented count —
-    // no separate saveGame() call needed here.
+    // (session 3, SHOP_PLAN.md, 2026-07-19; extended sub-session 5, 2026-07-19
+    // to Sick Day — same card-Use shape, different category branch). Shop.consume
+    // is pure — decrements the held count (never below zero); the actual effect
+    // branches on category:
+    //   - repair (healAmount): existing healBase(amount) wrapper (script.js,
+    //     ~line 569 — built for base regen [P2-GAME-012]), which clamps at
+    //     CONFIG.MAX_BASE_HEALTH, updates the health display/sprite, and
+    //     calls saveGame() internally.
+    //   - sickDay: handleUseSickDay() (global excuse-and-sweep, see its own
+    //     comment) — no per-item effect payload, just the category check.
+    // playerInventory is updated BEFORE calling either effect so its internal
+    // save (repair) or the explicit saveGame() (sick day) already captures the
+    // decremented count.
     function handleShopUse(itemId) {
         const item = Shop.getItem(itemId, CONFIG.SHOP_ITEMS);
-        if (!item || !item.consumable || !item.effect || typeof item.effect.healAmount !== 'number') return;
+        if (!item || !item.consumable) return;
+        const isRepairKit = item.effect && typeof item.effect.healAmount === 'number';
+        const isSickDay = item.category === 'sickDay';
+        if (!isRepairKit && !isSickDay) return;
 
         const result = Shop.consume(itemId, playerInventory);
         if (!result.ok) {
@@ -1188,7 +1222,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         playerInventory = result.newInventory;
-        healBase(item.effect.healAmount);
+        if (isRepairKit) {
+            healBase(item.effect.healAmount);
+        } else {
+            handleUseSickDay();
+        }
 
         // Same event-bubbling hazard as handleShopPurchase (see its comment
         // above, and SHOP_PLAN.md's hazards list) — defer the rebuild so the
@@ -1277,6 +1315,49 @@ document.addEventListener('DOMContentLoaded', () => {
         saveGame();
 
         return { ok: true };
+    }
+
+    // Skip Day targeting handler (frozen-slots sub-session 5, 2026-07-19),
+    // wired to ANY habit instance's popup "Use Skip Day" button (js/ui/
+    // popups.js) — not restricted to negative lurkers, unlike Cheat Day.
+    // Same held-consumable shape as handleUseCheatDay (Shop.consume, not
+    // Shop.purchase), but the actual excuse-and-remove logic lives in
+    // Items.useSkipDayOnItem ("clear immediately" model, Jeremy's call,
+    // 2026-07-19) since — unlike Cheat Day — there's no later indulge/
+    // complete/rollover branch to also wire; the instance is gone the
+    // moment the token lands.
+    function handleUseSkipDay(skipDayItemId, targetItem) {
+        const item = Shop.getItem(skipDayItemId, CONFIG.SHOP_ITEMS);
+        if (!item || item.category !== 'skipDay') return { ok: false };
+        if (!targetItem || targetItem.type !== 'habit') return { ok: false };
+
+        const result = Shop.consume(skipDayItemId, playerInventory);
+        if (!result.ok) {
+            // Button is only rendered when held > 0, so this is a defensive
+            // guard rather than the expected path.
+            return { ok: false };
+        }
+
+        playerInventory = result.newInventory;
+        Items.useSkipDayOnItem(targetItem, itemsDeps());
+
+        updatePlayerDisplays();
+        saveGame();
+
+        return { ok: true };
+    }
+
+    // Sick Day GLOBAL apply handler (frozen-slots sub-session 5, 2026-07-19),
+    // wired to the Sick Day shop card's own "Use" button (js/ui/shopView.js's
+    // handleShopUse sick-day branch) — untargeted, unlike Cheat/Skip Day.
+    // Sets the global sickDayDate marker + sweeps every currently active
+    // habit instance for today off the board (Items.useSickDayGlobally,
+    // "clear immediately" model). Routine tasks are untouched (fork 4,
+    // docs/FROZEN_SLOTS_PLAN.md — Sick Day is habits-only).
+    function handleUseSickDay() {
+        Items.useSickDayGlobally(currentGameDate, itemsDeps());
+        updatePlayerDisplays();
+        saveGame();
     }
 
     function showRoutineManagement(routineId) {

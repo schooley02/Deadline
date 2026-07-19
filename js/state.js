@@ -34,7 +34,8 @@
  *   getBaseHealth, getPlayerXP, getPlayerPoints, getRoutineSlots,
  *   getItemIdCounter, getDaysSurvived, getRunStartedAtMs, getCurrentGameDate,
  *   getActiveItems, getCompletedItems, getDefinedHabits, getDefinedRoutines,
- *   getPlayerLevel, getGameLoopInterval, isGameOver,
+ *   getPlayerLevel, getGameLoopInterval, isGameOver, getPlayerInventory,
+ *   getSickDayDate, // frozen-slots sub-session 5, 2026-07-19 — global Sick Day marker
  *
  *   // --- state setters ---
  *   setGameScreenWidth, setBaseWidth, setEnemyWidth, setHabitEnemyWidth,
@@ -42,7 +43,7 @@
  *   setBaseHealth, setActiveItems, setCompletedItems, setDefinedHabits,
  *   setDefinedRoutines, setItemIdCounter, setGameIsOver, setDaysSurvived,
  *   setRunStartedAtMs, setLastLoopTickMs, setAttackMode, setCurrentGameDate,
- *   setGameLoopInterval,
+ *   setGameLoopInterval, setPlayerInventory, setSickDayDate,
  *
  *   // --- collaborators (functions already living elsewhere) ---
  *   updatePlayerDisplays, updateTaskCountDisplay, updateRoutineDisplay,
@@ -71,6 +72,7 @@ const State = (() => {
         deps.setPlayerLevel(1);
         deps.setPlayerPoints(0);
         deps.setPlayerInventory({}); // shop inventory — fresh run starts empty
+        deps.setSickDayDate(null); // frozen-slots sub-session 5 — fresh run has no active Sick Day
         deps.setRoutineSlots(CONFIG.ROUTINE_SLOTS_PER_LEVEL[1] || 1);
 
         deps.updatePlayerDisplays();
@@ -139,6 +141,7 @@ const State = (() => {
             playerLevel: deps.getPlayerLevel(),
             playerPoints: deps.getPlayerPoints(),
             inventory: deps.getPlayerInventory(),
+            sickDayDate: deps.getSickDayDate(),
             routineSlots: deps.getRoutineSlots(),
             itemIdCounter: deps.getItemIdCounter(),
             gameIsOver: deps.isGameOver(),
@@ -231,6 +234,10 @@ const State = (() => {
         // Shop inventory. The v3→v4 migration seeds {} on older saves, but guard
         // here too (non-object / absent) so a malformed save can never crash boot.
         deps.setPlayerInventory((save.inventory && typeof save.inventory === 'object') ? save.inventory : {});
+        // Sick Day (frozen-slots sub-session 5, 2026-07-19). The v6→v7
+        // migration seeds null on older saves, but guard here too (any
+        // non-string, e.g. malformed data) so a bad save can never crash boot.
+        deps.setSickDayDate((typeof save.sickDayDate === 'string') ? save.sickDayDate : null);
         deps.setRoutineSlots(CONFIG.ROUTINE_SLOTS_PER_LEVEL[restoredLevel] || 1);
         deps.setBaseHealth((typeof save.baseHealth === 'number') ? save.baseHealth : CONFIG.MAX_BASE_HEALTH);
         deps.setItemIdCounter(save.itemIdCounter || 1);

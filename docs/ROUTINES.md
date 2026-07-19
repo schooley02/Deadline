@@ -80,7 +80,17 @@ window — and a new one-time `FrozenNotice.showRoutineUnfrozenNotice` fires. Th
 path in the UI (the agenda-row "edit" shortcut and the Manage Routine editor both funnel through
 `saveEditedHabit` → `editHabitInRoutine`), so this covers both entry points.
 
-**NOT yet built:** Sick/Skip Day tokens — see `docs/FROZEN_SLOTS_PLAN.md` sub-session 5.
+**Sub-session 5 BUILT 2026-07-19 (session 39) — TICKET CLOSED.** Sick Day (global) + Skip Day
+(per-habit) tokens, schemaVersion 6→7. Both are Buy-to-hold shop consumables (200 pts, same
+exponential pricing as Cheat Day): Sick Day applies from its own shop card (untargeted, excuses
+EVERY habit for today); Skip Day targets ONE habit instance via its popup (Cheat-Day-style tap
+targeting, but reaches any habit type, not just negative). "Clear immediately" model (Jeremy's
+call): using either token removes the matching already-spawned instance(s) from the board right
+away — no occurrence recorded, streak/points untouched, transparent to freeze/recovery counts by the
+same construction as Cheat Day. `habitDef.skipDayDate` / top-level `sickDayDate` double as a
+same-day spawn-gate (`Habits.selectHabitDefsToSpawn`) so a same-day reload can't respawn what was
+just cleared. See docs/ECONOMY.md + docs/DATA_SCHEMA.md schemaVersion 7 + DECISIONS.md. The "Frozen
+routine slots + recovery" ticket (5 sub-sessions, 2 schema bumps) is now fully CLOSED.
 
 - A NEGATIVE habit streak of 3+ days (indulging 3 days running) FREEZES the associated routine slot.
 - Frozen slots appear greyed out, with a notification explaining the freeze and recovery options. Frozen routines remain viewable so the user can identify needed adjustments.

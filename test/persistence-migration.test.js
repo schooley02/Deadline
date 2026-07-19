@@ -349,6 +349,66 @@ describe('migrate v5 → v6: frozen routine slots (frozenState + modificationHis
     });
 });
 
+describe('migrate v6 → v7: Sick Day (global) + Skip Day (per-habit) tokens', () => {
+    function v6Save(overrides = {}) {
+        return {
+            schemaVersion: 6,
+            definedHabits: [],
+            definedRoutines: [],
+            definedTasks: [],
+            inventory: {},
+            ...overrides
+        };
+    }
+
+    test('bumps schemaVersion to the current version', () => {
+        expect(Persistence.migrate(v6Save()).schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+    });
+
+    test('seeds top-level sickDayDate: null when absent', () => {
+        const save = Persistence.migrate(v6Save());
+        expect(save.sickDayDate).toBeNull();
+    });
+
+    test('does not clobber an existing sickDayDate', () => {
+        const save = Persistence.migrate(v6Save({ sickDayDate: '2026-07-19' }));
+        expect(save.sickDayDate).toBe('2026-07-19');
+    });
+
+    test('seeds skipDayDate: null on every habit def that lacks it', () => {
+        const save = Persistence.migrate(v6Save({
+            definedHabits: [{ id: 'h1' }, { id: 'h2' }]
+        }));
+        expect(save.definedHabits[0].skipDayDate).toBeNull();
+        expect(save.definedHabits[1].skipDayDate).toBeNull();
+    });
+
+    test('does not clobber an existing skipDayDate', () => {
+        const save = Persistence.migrate(v6Save({
+            definedHabits: [{ id: 'h1', skipDayDate: '2026-07-18' }]
+        }));
+        expect(save.definedHabits[0].skipDayDate).toBe('2026-07-18');
+    });
+
+    test('tolerates a save with no definedHabits at all', () => {
+        const save = Persistence.migrate({ schemaVersion: 6 });
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+        expect(save.sickDayDate).toBeNull();
+    });
+
+    test('runs the full v1 → current chain in one pass, including sick/skip fields', () => {
+        const save = Persistence.migrate({
+            schemaVersion: 1,
+            definedHabits: [{ id: 'h1', frequency: 'daily' }],
+            definedRoutines: [{ id: 'r1', habitDefinitionIds: ['h1'], isActive: true }],
+            definedTasks: [{ id: 't1' }]
+        });
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+        expect(save.sickDayDate).toBeNull();
+        expect(save.definedHabits[0].skipDayDate).toBeNull();
+    });
+});
+
 describe('migrate: version handling', () => {
     test('a current-version save passes through unchanged (same reference)', () => {
         const original = {

@@ -86,10 +86,25 @@ const Habits = (() => {
     // Dedupes against both "already completed today"
     // (habitDef.lastCompletionDate) and "already has a live instance for
     // today" (activeItems scan).
-    function selectHabitDefsToSpawn(definedHabits, definedRoutines, activeItems, forWhichGameDay) {
+    //
+    // `sickDayDate` (frozen-slots sub-session 5, 2026-07-19) is OPTIONAL —
+    // every pre-existing 4-arg caller (tests, and any call site that never
+    // threads it through) simply sees no active Sick Day, matching the
+    // established "collaborator omitted -> no-op" precedent elsewhere in
+    // this codebase. When a habit's OWN `skipDayDate` or the GLOBAL
+    // `sickDayDate` matches forWhichGameDay's occurrence date, it's excluded
+    // from spawning — this is the same-day respawn guard for
+    // Items.useSkipDayOnItem/useSickDayGlobally's "clear immediately" model
+    // (those functions remove an already-spawned instance right away; this
+    // gate stops a same-day reload from spawning a fresh one in its place).
+    function selectHabitDefsToSpawn(definedHabits, definedRoutines, activeItems, forWhichGameDay, sickDayDate) {
         const forWhichGameDayString = forWhichGameDay.toDateString();
+        const forWhichGameDayOccurrence = toOccurrenceDate(forWhichGameDay);
 
         return definedHabits.filter(habitDef => {
+            if (habitDef.skipDayDate === forWhichGameDayOccurrence) return false;
+            if (sickDayDate && sickDayDate === forWhichGameDayOccurrence) return false;
+
             // A habit is owned by a routine if that routine lists it OR the
             // habit points at it. Both are checked so the two representations
             // can't disagree, and so a habit shared by several routines still
@@ -379,9 +394,10 @@ const Habits = (() => {
     // generateDailyHabitInstances.
     // deps extends createHabitInstanceData's deps with:
     //   definedHabits, definedRoutines, activeItems, addItemToGame, sortAndRenderActiveList
+    //   sickDayDate (optional, frozen-slots sub-session 5 — global Sick Day gate)
     function generateDailyHabitInstances(forWhichGameDay, deps) {
         const forWhichGameDayString = forWhichGameDay.toDateString();
-        const toSpawn = selectHabitDefsToSpawn(deps.definedHabits, deps.definedRoutines, deps.activeItems, forWhichGameDay);
+        const toSpawn = selectHabitDefsToSpawn(deps.definedHabits, deps.definedRoutines, deps.activeItems, forWhichGameDay, deps.sickDayDate);
 
         toSpawn.forEach(habitDef => {
             const habitInstanceData = createHabitInstanceData(habitDef, forWhichGameDay, deps);

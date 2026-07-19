@@ -171,6 +171,45 @@ describe('selectHabitDefsToSpawn — isActive gating', () => {
         const routines = [routine('r1', ['h1'], true)];
         expect(selectHabitDefsToSpawn(defs, routines, [], DAY)).toHaveLength(1);
     });
+
+    // Frozen-slots sub-session 5 (Sick Day / Skip Day tokens, 2026-07-19):
+    // the same-day respawn guard for Items.useSkipDayOnItem/
+    // useSickDayGlobally's "clear immediately" model — both remove an
+    // already-spawned instance right away, so this gate is what stops a
+    // same-day reload from spawning a fresh one in its place.
+    describe('skipDayDate / sickDayDate gating', () => {
+        const DAY_OCCURRENCE = Habits.toOccurrenceDate(DAY);
+
+        test('a habit whose skipDayDate matches DAY does not spawn', () => {
+            const defs = [habitDef('h1', { skipDayDate: DAY_OCCURRENCE })];
+            expect(selectHabitDefsToSpawn(defs, [], [], DAY)).toHaveLength(0);
+        });
+
+        test('a habit whose skipDayDate is for a DIFFERENT day still spawns', () => {
+            const defs = [habitDef('h1', { skipDayDate: '2020-01-01' })];
+            expect(selectHabitDefsToSpawn(defs, [], [], DAY)).toHaveLength(1);
+        });
+
+        test('a habit with no skipDayDate (null/undefined) is unaffected', () => {
+            const defs = [habitDef('h1', { skipDayDate: null }), habitDef('h2')];
+            expect(selectHabitDefsToSpawn(defs, [], [], DAY)).toHaveLength(2);
+        });
+
+        test('the global sickDayDate (5th param) blocks ALL habits for DAY when it matches', () => {
+            const defs = [habitDef('h1'), habitDef('h2', { isNegative: true })];
+            expect(selectHabitDefsToSpawn(defs, [], [], DAY, DAY_OCCURRENCE)).toHaveLength(0);
+        });
+
+        test('a sickDayDate for a DIFFERENT day does not block spawning', () => {
+            const defs = [habitDef('h1')];
+            expect(selectHabitDefsToSpawn(defs, [], [], DAY, '2020-01-01')).toHaveLength(1);
+        });
+
+        test('sickDayDate is OPTIONAL — omitting the 5th param entirely is a no-op (back-compat)', () => {
+            const defs = [habitDef('h1')];
+            expect(selectHabitDefsToSpawn(defs, [], [], DAY)).toHaveLength(1);
+        });
+    });
 });
 
 // --- selectActiveItemIdsToClearForRoutine -----------------------------------

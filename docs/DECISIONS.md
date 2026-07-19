@@ -4,6 +4,75 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 39: Sub-session 5 BUILT — Sick Day + Skip Day tokens, schemaVersion 6→7 (Cowork session, Sonnet execute — plan already approved in session 35, one mechanic gap resolved live with Jeremy)
+
+**Ticket now CLOSED:** [P1-DATA-005]-adjacent "Frozen routine slots + recovery" ticket, all 5
+sub-sessions built across sessions 35–39.
+
+**Decision (Jeremy, asked live this session):** FROZEN_SLOTS_PLAN.md's sub-session 5 goal said "no
+spawn, no occurrence" but didn't pin down what happens when a token is applied to a habit that
+ALREADY spawned today (e.g. buying Sick Day mid-afternoon, after the morning's habits are already
+lurking/on the board). Two options were presented — "clear immediately" (remove the already-spawned
+instance(s) right away, no action needed) vs. "leave it, excuse the miss" (mirror Cheat Day exactly:
+leave the instance on the board, only excuse an eventual miss at rollover). **Jeremy chose "clear
+immediately."** This wasn't invented — the plan's own "Cheat-Day-style targeting" phrase for Skip
+Day pointed at SOME shared shape with Cheat Day, but Cheat Day's mechanic (excuse a still-live
+lurker's eventual indulge) doesn't by itself explain "no spawn." Asking rather than guessing here
+avoided committing code to the wrong shape.
+
+**Why "clear immediately" ended up SIMPLER than Cheat Day, not just different:** since the instance
+is gone the moment the token lands, there's no later indulge/complete/rollover moment left to excuse
+— unlike Cheat Day's `isCheatDayExcused`, checked in 3 places (indulgeHabit, resolvePendingCheckIn,
+a dedicated rollover-fork branch), Sick/Skip Day need ZERO such predicates. `Items.useSkipDayOnItem`/
+`useSickDayGlobally` just set the date marker and call the existing `removeItem` — nothing in
+indulgeHabit, completeItem, resolvePendingCheckIn, or state.js's rollover fork needed to change at
+all. The date marker's only remaining job is a same-day spawn-gate
+(`Habits.selectHabitDefsToSpawn`'s new optional `sickDayDate` param + a `habitDef.skipDayDate`
+check) — guarding the same "same-day reload respawns a cleared item" hazard class as the documented
+indulge same-day-respawn bug (ROADMAP.md Known bugs). This self-expires the next calendar day by
+construction (the marker is a date string compared against THAT day's occurrence date) — no
+explicit clearing code needed anywhere, unlike Cheat Day's clear-on-consumption.
+
+**Structure:** `js/persistence.js` SCHEMA_VERSION 6→7 (top-level `sickDayDate`, `habitDef.
+skipDayDate`, both seed null). `CONFIG.SHOP_ITEMS` gained `sick_day`/`skip_day` (200 pts each,
+unchanged spec value — no balance-tuning needed). `js/items.js`'s two new functions (above).
+`js/habits.js`'s `selectHabitDefsToSpawn` gained the optional 5th param — every pre-existing 4-arg
+test call keeps passing unmodified (collaborator-omitted no-op precedent, same as
+`deps.onRoutineFrozen` etc.). `js/ui/popups.js` gained `buildSkipDaySectionHtml` (shown for ANY
+habit instance, not gated to negative — Skip Day reaches positive habits too, unlike Cheat Day) and
+a `useSkipDayBtn` handler that just calls `Modal.closeModal()` (no setTimeout(0) rebuild needed,
+since — unlike Cheat Day's rebuild-to-show-"active" — there's nothing left to show once the item's
+gone). `js/ui/shopView.js`'s `canUse`/`useRow` extended beyond repair kits' `healAmount` check to
+also cover `category === 'sickDay'` (a real card Use button, not a targeting hint like Cheat/Skip
+Day's).
+
+**Piggybacked fix (not a design change, logged for transparency):** while touching
+`js/routines.js`'s `createNewHabitInRoutine` object literal to add `skipDayDate`, found and
+backfilled a pre-existing gap — `cheatDayDate` (session 34) was never added to that same literal, so
+a routine-owned habit created fresh in-session had no such field until its next save/reload ran the
+v4→v5 migration. Latent, not a crash (`isCheatDayExcused`'s `!!habitDef.cheatDayDate` check degrades
+safely to false meanwhile) — fixed inline rather than left to rediscover.
+
+**Alternative rejected:** keeping Sick/Skip Day mechanically identical to Cheat Day (leave the
+instance, excuse only the eventual miss) — this was the SECOND option Jeremy was offered and did not
+choose. Noted here so a future session doesn't "simplify toward Cheat Day" without realizing that's
+reversing a deliberate choice.
+
+30 suites, 585/585 (+25: persistence-migration v6→v7, `routine-active-gating.test.js` spawn-gate
+cases, new `test/items-skipday-sickday.test.js`, `shop.test.js` catalog cases — including a fix to a
+hardcoded category allowlist there that would've failed on the two new categories). `node --check`
+clean on all touched files.
+
+**Live-verified in Chrome:** granted points via the documented localStorage-edit +
+neutered-`setItem` + reload trick, bought Sick Day + Skip Day (300 pts on the 2nd unit, confirming
+exponential pricing), tapped Skip Day from a POSITIVE habit's popup (not just negative — confirming
+the not-negative-only reach) — it vanished from the board immediately, save confirmed the marker set
+and streak/occurrenceHistory untouched. Reload same-day confirmed no respawn. Sick Day's shop-card
+Use then swept the one remaining habit instance the same way; reload again confirmed the global gate
+too. Zero app console errors (only the recurring unrelated Chrome-extension noise).
+
+---
+
 ## 2026-07-19 — Session 38: Sub-session 4 BUILT — recovery path 1, edit-to-unfreeze + modificationHistory (Cowork session, Sonnet execute — plan already approved in session 35)
 
 **Decision:** instrumented the ONE existing save path (`Routines.editHabitInRoutine`, called by both

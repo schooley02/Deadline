@@ -106,7 +106,8 @@ const Popups = (() => {
     }
 
     // deps: { completeItem, indulgeHabit, pushbackCatalog?, getPlayerPoints?,
-    //         onPushback?, getCheatDayHeldCount?, isCheatDayActiveForItem?, onUseCheatDay? }
+    //         onPushback?, getCheatDayHeldCount?, isCheatDayActiveForItem?, onUseCheatDay?,
+    //         getSkipDayHeldCount?, onUseSkipDay? }
     //
     // Sub-session 2b ([P1-DATA-005], NEGATIVE_HABITS_PLAN.md): for a
     // negative-habit lurker, the "Mark as Complete" checkbox + pushback
@@ -123,6 +124,21 @@ const Popups = (() => {
     // day shows a note (indulging is free — items.js's indulgeHabit already
     // enforces this); zero held shows nothing (nothing to use); one-or-more
     // held shows the "Use Cheat Day" button.
+    // Skip Day (frozen-slots sub-session 5, 2026-07-19): targets ANY habit
+    // instance — positive or negative, unlike Cheat Day's negative-only
+    // reach — via its popup, reusing the tap-a-zombie targeting shape.
+    // "Clear immediately" model (Jeremy's call, 2026-07-19): using it
+    // removes THIS instance from the board right away, so unlike Cheat Day
+    // there's no "active" note state to render — the button either offers
+    // itself (held > 0) or the row is simply empty. Tasks never show it
+    // (fork 4, docs/FROZEN_SLOTS_PLAN.md: Skip Day is habits-only).
+    function buildSkipDaySectionHtml(item, deps) {
+        if (item.type !== 'habit') return '';
+        const heldSkipDays = typeof deps.getSkipDayHeldCount === 'function' ? deps.getSkipDayHeldCount() : 0;
+        if (heldSkipDays <= 0) return '';
+        return `<button type="button" id="useSkipDayBtn" class="negative-habit-button skipday-btn">Use Skip Day (${heldSkipDays} held)</button>`;
+    }
+
     function buildActionsHtml(item, deps) {
         if (isNegativeHabitInstance(item)) {
             const cheatDayActive = typeof deps.isCheatDayActiveForItem === 'function' && deps.isCheatDayActiveForItem(item);
@@ -139,6 +155,7 @@ const Popups = (() => {
                     <button type="button" id="indulgeHabitBtn" class="negative-habit-button indulge-btn">I indulged</button>
                 </div>
                 ${cheatDayRow}
+                ${buildSkipDaySectionHtml(item, deps)}
             `;
         }
         return `
@@ -150,6 +167,7 @@ const Popups = (() => {
                 </label>
             </div>
             ${buildPushbackSectionHtml(deps)}
+            ${buildSkipDaySectionHtml(item, deps)}
         `;
     }
 
@@ -218,6 +236,22 @@ const Popups = (() => {
                         Modal.closeModal();
                         showTaskDetailsPopup(item, deps);
                     }, 0);
+                }
+            });
+        }
+
+        // Use Skip Day button (frozen-slots sub-session 5, 2026-07-19).
+        // Unlike Cheat Day's rebuild-in-place, using Skip Day removes THIS
+        // item from the board immediately ("clear immediately" model), so
+        // there's nothing left for the popup to show — just close it. No
+        // setTimeout(0) needed: closeModal() alone (no rebuild racing it) is
+        // the same safe shape as the avoid/indulge buttons above.
+        const useSkipDayButton = document.getElementById('useSkipDayBtn');
+        if (useSkipDayButton) {
+            useSkipDayButton.addEventListener('click', () => {
+                const result = deps.onUseSkipDay ? deps.onUseSkipDay('skip_day', item) : { ok: false };
+                if (result && result.ok) {
+                    Modal.closeModal();
                 }
             });
         }

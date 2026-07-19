@@ -24,6 +24,8 @@ const ShopView = (() => {
         repair: '🔧',
         pushback: '⏩',
         cheatDay: '🎟️',
+        sickDay: '🤒',
+        skipDay: '⏭️',
     };
 
     // Builds one catalog card. Pure DOM construction, no mutation of deps.
@@ -49,15 +51,21 @@ const ShopView = (() => {
             ? `<div class="shop-item-note">Price rises ×1.5 per one you hold</div>`
             : '';
 
-        // Use button (session 3, repair kits only): shown once you hold at
-        // least one, disabled once the base is already at full health so a
-        // kit can't be wasted for zero effect.
-        const canUse = item.consumable && held > 0 && item.effect && typeof item.effect.healAmount === 'number';
+        // Use button (session 3, repair kits only, extended sub-session 5 to
+        // Sick Day): shown once you hold at least one. Repair kits disable
+        // once the base is already at full health so a kit can't be wasted
+        // for zero effect; Sick Day has no such precondition — it's always
+        // usable once held (the handler is a defensive no-op otherwise).
+        const isRepairKit = item.effect && typeof item.effect.healAmount === 'number';
+        const isSickDay = item.category === 'sickDay';
+        const canUse = item.consumable && held > 0 && (isRepairKit || isSickDay);
         const atFullHealth = typeof baseHealth === 'number' && baseHealth >= CONFIG.MAX_BASE_HEALTH;
         const useRow = canUse
-            ? `<button type="button" class="shop-use-button"${atFullHealth ? ' disabled' : ''}>
-                   ${atFullHealth ? 'Base at full health' : `Use (+${item.effect.healAmount} HP)`}
-               </button>`
+            ? (isSickDay
+                ? `<button type="button" class="shop-use-button">Use (excuses every habit today)</button>`
+                : `<button type="button" class="shop-use-button"${atFullHealth ? ' disabled' : ''}>
+                       ${atFullHealth ? 'Base at full health' : `Use (+${item.effect.healAmount} HP)`}
+                   </button>`)
             : '';
 
         // Pushback (non-consumable) can't be bought-to-hold — it's applied to
@@ -79,6 +87,15 @@ const ShopView = (() => {
             ? `<div class="shop-item-note shop-cheatday-hint">Tap a negative habit to use</div>`
             : '';
 
+        // Skip Day (frozen-slots sub-session 5, 2026-07-19): same targeted-
+        // consumable shape as Cheat Day — buy-to-hold here, "used" by
+        // tapping a specific habit's popup instead of a card button. Unlike
+        // Cheat Day the hint says "habit," not "negative habit" — Skip Day
+        // reaches any habit type.
+        const skipDayHintRow = (item.category === 'skipDay' && held > 0)
+            ? `<div class="shop-item-note shop-skipday-hint">Tap a habit to use</div>`
+            : '';
+
         card.innerHTML = `
             <div class="shop-item-header">
                 <span class="shop-item-icon">${CATEGORY_ICON[item.category] || '🛒'}</span>
@@ -92,6 +109,7 @@ const ShopView = (() => {
             ${actionRow}
             ${useRow}
             ${cheatDayHintRow}
+            ${skipDayHintRow}
         `;
 
         // Real listeners, not inline onclick — script.js is a DOMContentLoaded

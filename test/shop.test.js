@@ -14,13 +14,15 @@ const CATALOG = CONFIG.SHOP_ITEMS;
 const smallKit = CATALOG.find(i => i.id === 'repair_small');   // baseCost 25, consumable
 const pushback1hr = CATALOG.find(i => i.id === 'pushback_1hr'); // baseCost 50, not consumable
 const cheatDay = CATALOG.find(i => i.id === 'cheat_day');       // baseCost 200, consumable ([P1-DATA-005] sub-session 5)
+const sickDay = CATALOG.find(i => i.id === 'sick_day');         // baseCost 200, consumable (frozen-slots sub-session 5)
+const skipDay = CATALOG.find(i => i.id === 'skip_day');         // baseCost 200, consumable (frozen-slots sub-session 5)
 
 describe('catalog integrity', () => {
     test('every item has the required shape', () => {
         CATALOG.forEach(item => {
             expect(typeof item.id).toBe('string');
             expect(typeof item.baseCost).toBe('number');
-            expect(['repair', 'pushback', 'cheatDay']).toContain(item.category);
+            expect(['repair', 'pushback', 'cheatDay', 'sickDay', 'skipDay']).toContain(item.category);
             expect(typeof item.consumable).toBe('boolean');
         });
     });
@@ -194,5 +196,41 @@ describe('Cheat Day token catalog entry', () => {
         const r = Shop.consume('cheat_day', { cheat_day: 1 });
         expect(r.ok).toBe(true);
         expect(r.newInventory).toEqual({});
+    });
+});
+
+// Sick Day (global, shop-card applied) + Skip Day (per-habit, popup-targeted)
+// — frozen-slots sub-session 5, 2026-07-19. Both are Buy-to-hold consumables
+// like Cheat Day (held-inventory exponential pricing); the actual excuse
+// logic (Items.useSickDayGlobally / useSkipDayOnItem) needs no new Shop.js
+// code, same reasoning as Cheat Day's entry above.
+describe('Sick Day / Skip Day token catalog entries', () => {
+    test('both are in the catalog with the spec face-value cost, consumable', () => {
+        expect(sickDay).toBeDefined();
+        expect(sickDay.baseCost).toBe(200);
+        expect(sickDay.consumable).toBe(true);
+        expect(sickDay.category).toBe('sickDay');
+
+        expect(skipDay).toBeDefined();
+        expect(skipDay.baseCost).toBe(200);
+        expect(skipDay.consumable).toBe(true);
+        expect(skipDay.category).toBe('skipDay');
+    });
+
+    test('both price like held-inventory consumables (base × 1.5^held)', () => {
+        expect(Shop.price(sickDay, {})).toBe(200);
+        expect(Shop.price(sickDay, { sick_day: 1 })).toBe(300);
+        expect(Shop.price(skipDay, {})).toBe(200);
+        expect(Shop.price(skipDay, { skip_day: 1 })).toBe(300);
+    });
+
+    test('purchase adds to held inventory for both', () => {
+        expect(Shop.purchase('sick_day', CATALOG, {}, 200).newInventory).toEqual({ sick_day: 1 });
+        expect(Shop.purchase('skip_day', CATALOG, {}, 200).newInventory).toEqual({ skip_day: 1 });
+    });
+
+    test('consume decrements the held count for both', () => {
+        expect(Shop.consume('sick_day', { sick_day: 1 }).newInventory).toEqual({});
+        expect(Shop.consume('skip_day', { skip_day: 1 }).newInventory).toEqual({});
     });
 });

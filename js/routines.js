@@ -280,9 +280,21 @@ const Routines = (() => {
             streak: 0,
             lastCompletionDate: null,
             occurrenceHistory: [],
+            // Backfilled 2026-07-19 (frozen-slots sub-session 5): this object
+            // literal was missing cheatDayDate (schemaVersion 5, session 34)
+            // — a routine-owned habit created fresh in-session had no such
+            // field until its next save/reload ran the v4→v5 migration
+            // (isCheatDayExcused's `!!habitDef.cheatDayDate` check degrades
+            // safely to false meanwhile, so this was latent, not a crash).
+            // Added now while touching this literal for skipDayDate below,
+            // rather than leaving the inconsistency to rediscover later.
+            cheatDayDate: null,
             // Frozen routine slots (schemaVersion 6, 2026-07-19): recovery
             // path 1 (edit-to-unfreeze) appends to this. See js/frozenSlots.js.
-            modificationHistory: []
+            modificationHistory: [],
+            // Frozen-slots sub-session 5 (Sick/Skip Day tokens, 2026-07-19,
+            // schemaVersion 7): null = no active excused day for THIS habit.
+            skipDayDate: null
         };
 
         definedHabits.push(newHabit);

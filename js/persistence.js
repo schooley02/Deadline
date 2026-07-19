@@ -25,7 +25,13 @@ const Persistence = (() => {
     // sub-session 5, Cheat Day token) — the one currently-active excused
     // occurrence date for that habit, or null. Old saves seed null on every
     // habit def.
-    const SCHEMA_VERSION = 6;
+    // v6 (2026-07-19): routines gain `frozenState`, habit defs gain
+    // `modificationHistory` (frozen routine slots, sub-session 1).
+    // v7 (2026-07-19): Sick Day + Skip Day tokens (frozen-slots sub-session
+    // 5) — top-level `sickDayDate` (global, null = no active Sick Day) and
+    // habit-def `skipDayDate` (per-habit, null = no active Skip Day). Old
+    // saves seed both null.
+    const SCHEMA_VERSION = 7;
     const DEBOUNCE_MS = 500;
 
     // DOM references on item objects — never serialized, rebuilt on load.
@@ -209,6 +215,24 @@ const Persistence = (() => {
                 }
             });
             save.schemaVersion = 6;
+        }
+
+        // v6 → v7 (2026-07-19): Sick Day (global) + Skip Day (per-habit)
+        // tokens (frozen-slots sub-session 5). Additive on two shapes — a new
+        // top-level `sickDayDate` (mirrors habitDef.cheatDayDate's shape but
+        // scoped to the whole save, not one habit) and habit defs gain
+        // `skipDayDate`. Both null = no active token for today. Pre-v7 saves
+        // have neither, so seed both. See DECISIONS.md.
+        if (save.schemaVersion === 6) {
+            if (save.sickDayDate === undefined) {
+                save.sickDayDate = null;
+            }
+            (save.definedHabits || []).forEach(habitDef => {
+                if (habitDef.skipDayDate === undefined) {
+                    habitDef.skipDayDate = null;
+                }
+            });
+            save.schemaVersion = 7;
         }
 
         if (save.schemaVersion !== SCHEMA_VERSION) {

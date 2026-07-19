@@ -132,6 +132,17 @@ const CONFIG = {
         // specific negative habit from its lurker popup (js/ui/popups.js),
         // not a shop-card button (see js/ui/shopView.js's hint).
         { id: 'cheat_day', name: 'Habit Cheat Day', category: 'cheatDay', baseCost: 200, consumable: true, effect: {} },
+        // Frozen-slots sub-session 5 (2026-07-19): 200 pts is the unchanged
+        // ECONOMY.md/spec face value (same as Cheat Day, PROJECT_SPEC.md
+        // ~113-114). Held-inventory exponential pricing like Cheat Day.
+        // Sick Day is GLOBAL and untargeted — "used" via a Use button on its
+        // OWN shop card (js/ui/shopView.js), applying to every habit at once.
+        // Skip Day is PER-HABIT and targeted — "used" by tapping a specific
+        // habit instance's popup (js/ui/popups.js), same shape as Cheat Day's
+        // targeting but available for ANY habit (not just negative ones).
+        // Both are Fable fork 4, session 35 (docs/FROZEN_SLOTS_PLAN.md).
+        { id: 'sick_day', name: 'Sick Day', category: 'sickDay', baseCost: 200, consumable: true, effect: {} },
+        { id: 'skip_day', name: 'Skip Day', category: 'skipDay', baseCost: 200, consumable: true, effect: {} },
     ],
 
     // --- Sprites ---
