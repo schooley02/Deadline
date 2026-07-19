@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const levelUpMessage = document.getElementById('levelUpMessage');
     const activeItemsListUL = document.getElementById('activeItemsList');
     const taskCountDisplay = document.getElementById('taskCountDisplay');
+    // [P1-UI-006] sub-session 3, 2026-07-19 — hero chips container over the base.
+    const heroBaseZoneEl = document.getElementById('heroBaseZone');
     
     // Routine elements
     const routineNameInput = document.getElementById('routineName');
@@ -70,6 +72,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // see js/loop.js's updateActiveItems and js/damage.js's applyElapsedRegen.
     let lastRegenTickMs = null;
     let attackMode = false;
+    // [P1-UI-006] sub-session 3, 2026-07-19 — ephemeral (NOT persisted, no
+    // schema bump this session) per-routine star-rating memory for
+    // HeroesView's star-threshold-crossed notice. See js/ui/heroes.js header.
+    let heroStarMemory = {};
 
 
     // --- Game Settings ---
@@ -90,6 +96,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Storage for the state it touches stays in script.js (see stateDeps()
     // and js/state.js's header for why ownership didn't move this session).
     function initGame() {
+        // [P1-UI-006] sub-session 3, 2026-07-19 — a fresh/reset run starts
+        // with no crossing history (the dev Reset button re-calls initGame
+        // without a full page reload, so this can't rely on module-load init
+        // alone).
+        heroStarMemory = {};
         State.initGame(stateDeps());
     }
 
@@ -731,6 +742,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateGame() {
         Loop.updateGame(loopDeps());
+        // [P1-UI-006] sub-session 3, 2026-07-19 — hero chips render from
+        // state only, so a per-tick call keeps them live across every event
+        // that can change a routine's health/XP/level/star rate/frozen/KO/
+        // active state, without new render hooks inside the pure modules.
+        renderHeroesAtBase();
     }
 
     // Habit system functions
@@ -1058,6 +1074,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateRoutineDisplay() {
         RoutineViews.updateRoutineDisplay(routineViewsDeps());
+        // [P1-UI-006] sub-session 3, 2026-07-19 — paint hero chips immediately
+        // whenever routine displays refresh (init/restore/level-up); the
+        // per-tick call in updateGame() keeps them live the rest of the time.
+        renderHeroesAtBase();
+    }
+
+    // Thin wrapper over js/ui/heroes.js — renders from state only, no new
+    // mechanics. Called once per game-loop tick (see updateGame() below) so
+    // hero chips reflect completion/damage/freeze/KO/deactivate within one
+    // 50ms tick without threading a UI dependency through items.js/routines.js/
+    // damage.js (see js/ui/heroes.js header for the full rationale).
+    function renderHeroesAtBase() {
+        HeroesView.renderHeroesAtBase({
+            containerEl: heroBaseZoneEl,
+            definedRoutines,
+            definedHabits,
+            config: CONFIG,
+            runStartedAtMs,
+            starMemory: heroStarMemory,
+            onStarThresholdCrossed: (routine, stars) => {
+                FrozenNotice.showHeroStarUpNotice(routine.name, stars);
+            },
+        });
     }
 
     // Thin wrappers — real implementations live in js/ui/routineViews.js

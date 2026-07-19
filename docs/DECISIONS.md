@@ -4,6 +4,85 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 43: HEROES_PLAN sub-session 3 BUILT — hero rendering at the base (Cowork session, Sonnet)
+
+**Built:** `js/ui/heroes.js` (`HeroesView`) + `css/heroes.css`. One avatar chip per routine renders
+into a new `#heroBaseZone` container positioned over `#base`'s leftmost 120px. Pure view-model math
+(`buildChipViewModel`, `dominantCategoryOrInitial`, `deriveState`, `xpProgress`, `starsHtml`,
+`healthColorVar`, `trackStarCrossing`) is separated from DOM-building (`buildChipElement`,
+`buildOverflowChip`, `renderHeroesAtBase`) — same split discipline as `js/heroes.js`.
+
+**Category identity (new, not previously specified):** a routine's chip emoji is the DOMINANT
+category among its HABIT members (routine tasks excluded — same habit-only scope
+`Heroes.completionRate` already established, for the same reason: task misses aren't recorded
+anywhere honest). No emoji-per-category mapping existed in the codebase before this session (only
+hex colors, in script.js's `categoryStyles` / `js/config.js`'s `CATEGORY_POSITION_OFFSETS`) — added
+`CONFIG.CATEGORY_EMOJI` (8 entries, one per docs/ART_STYLE.md life domain) as a new display-only
+config constant (not gameplay balance, so no balance-tuning protocol invoked — same precedent as
+`ENEMY_WIDTH`/layout constants). A routine with no habit members yet falls back to its name's first
+letter, matching the plan's "category emoji/initial" phrasing literally.
+
+**Live-update wiring — decided in-session:** the plan's live-verify checklist requires chips to
+update on complete/damage/freeze/KO/deactivate. Rather than threading a new UI callback through
+items.js/routines.js/damage.js/loop.js (which would break their DOM-free purity, unlike the
+existing `onRoutineFrozen`/`onRoutineKo` notice callbacks that already live in script.js's
+`itemsDeps()`), `renderHeroesAtBase()` is called once every game-loop tick
+(`CONFIG.GAME_TICK_MS` = 50ms, `updateGame()`'s wrapper) in addition to once immediately after
+init/restore/level-up (`updateRoutineDisplay()`'s wrapper, for instant first paint with no
+50ms-tick lag). A full-rebuild render of a handful of small chips every 50ms is negligible next to
+`updateActiveItems`' per-item DOM work already running on the same tick — simpler and lower-risk
+than scattering new render hooks through four already-complex pure/deps-injected modules.
+
+**Star-threshold-crossed notice (PROJECT_SPEC ~84):** tracked via `heroStarMemory`, a plain object
+in script.js keyed by routine id, deliberately NOT persisted (sub-session 3 lands no schema
+change, per HEROES_PLAN's "migration-free by design"). First observation of a routine seeds the
+memory without notifying; a later render seeing a HIGHER star count than the last one recorded
+fires `FrozenNotice.showHeroStarUpNotice` (added to the existing `FrozenNotice` module — it's
+already the de facto "one-time routine notice" module, having grown past its original frozen-only
+name to cover KO too). Reset on new game/reset (`initGame`'s `heroStarMemory = {}`) so a fresh run
+starts clean.
+
+**Testing:** only the pure helpers are unit-tested (`test/heroes-view.test.js`, 29 cases) — DOM
+functions (`buildChipElement`/`renderHeroesAtBase`) are live-playtest-verified only, per
+ARCHITECTURE.md's established convention (`Spawning.addItemToGame` precedent: this suite's
+`testEnvironment` is `'node'`, no jsdom dependency exists in the repo). 34 suites, 683/683 (+29).
+`node --check` clean on all touched files.
+
+**Live-verified in Chrome (real dev save, Session40 Test Routine):** chip renders correctly at the
+base on page load — confirmed the chip was actually there via `getBoundingClientRect`/DOM query
+even before I could see it clearly in a screenshot (small chip against the church art at normal
+zoom; a `zoom` screenshot of the base-zone region made it clearly visible: category-mix avatar,
+"Lv1" badge, empty star row, health bar colored by tier). Completing a routine-owned habit
+(real click, not synthetic) awarded XP=5 into the routine, and — since this was the routine's
+first-ever recorded occurrence this session — pushed its completion rate to 100%, crossing the top
+star tier and firing `showHeroStarUpNotice` for real ("★★★★★ Session40 Test Routine leveled up its
+rating") end-to-end through the real completion→render→crossing-detection pipeline, not a seeded
+call. Chip updated to 5 stars + the health bar's tier color matched the routine's actual health
+(50/100 → "low" orange, per the same tiers as the base sprite). Deactivating the routine
+immediately greyed the chip (`.hero-chip--inactive`, no reload needed — confirms the 50ms-tick
+live-update wiring); reactivating restored it. Zero real app console errors (only the recurring
+documented Chrome-extension messaging noise). `resize_window` could not actually shrink this
+sandbox's remote browser viewport (window stayed 1926×1297 regardless of the requested size — a
+Chrome-in-Cowork environment limitation, not a code issue), so the mobile breakpoint was verified
+by reading the loaded stylesheet directly instead: confirmed the `@media (max-width: 768px)` rule
+shrinking `.hero-chip`/`.hero-chip-avatar`/`.hero-chip-overflow` is present and correctly scoped.
+Jeremy: worth a manual phone/DevTools-device-toolbar check next time you're at the game, since this
+session couldn't get a real narrow viewport.
+
+**Sandbox gotcha found this session:** `mcp__workspace__bash`'s mounted folders (`mnt/outputs`,
+`mnt/Deadline`) are on a FUSE mount that allows file WRITES but not DELETES/RENAMES for this
+sandbox user — `npm install`'s temp-directory rename step fails there with `ENOTEMPTY`/`EPERM`
+(same underlying class of restriction as the git-index-lock issue already documented in
+CLAUDE.md's Cowork section, just surfacing through npm instead of git). Workaround: run `npm
+install`/Jest from `$HOME` (`/sessions/<session-id>`, OUTSIDE the `mnt/` mounts) instead of
+`mnt/outputs`, copying `js/`/`test/`/`package.json`/`jest.config.js` there first. Worth folding
+into CLAUDE.md's Cowork npm/Jest guidance if it recurs.
+
+Docs updated: docs/ROUTINES.md ("Hero Rendering" section), docs/UI_UX.md (Base Zone heroes line),
+docs/HEROES_PLAN.md (sub-session 3 marked built), docs/ROADMAP.md.
+
+---
+
 ## 2026-07-19 — Session 42 (cont'd): HEROES_PLAN sub-session 2 BUILT — routine health damage + KO/revive (Cowork session, Sonnet)
 
 **Built:** the base-damage tick path (live loop in `js/loop.js`, both catch-up paths sharing

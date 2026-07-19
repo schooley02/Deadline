@@ -130,7 +130,7 @@ calendar day (dayRollover.js precedent), revive at `HERO_REVIVE_HEALTH`, clear `
   path parity. **Live-verify:** let a routine task go overdue >1hr, watch routine health fall;
   force a KO; confirm recall + disabled Activate + next-day revive (backdate trick).
 
-### Sub-session 3 — hero rendering at the base (Sonnet)
+### Sub-session 3 — hero rendering at the base (Sonnet) — ✅ BUILT 2026-07-19 session 43
 **Goal:** the ticket's visible payoff. New `js/ui/heroes.js` + `css/heroes.css`: one avatar chip
 per routine in/around the Base Zone (integrated + perimeter per spec ~88 — CSS positioning,
 capped display with overflow "+N" if slots exceed space), showing category emoji/initial, star
@@ -139,6 +139,23 @@ greyed). Renders from state only — no new mechanics. Star-threshold-crossed no
 ~84) via the FrozenNotice one-time pattern.
 - **Live-verify:** heroes appear/update on complete/damage/freeze/KO/deactivate; no layout break
   on mobile width (Chrome device emulation).
+
+**BUILT as specified, with implementation calls beyond the plan text (all logged in DECISIONS.md
+session 43):** (1) category emoji is the DOMINANT category among the routine's HABIT members
+(routine tasks excluded, same scope as `Heroes.completionRate`), falling back to the routine
+name's initial with no members — new `CONFIG.CATEGORY_EMOJI` (8 entries), a display-only constant
+added without the balance-tuning protocol (not gameplay balance). (2) live-updating chips across
+complete/damage/freeze/KO/deactivate is done via a per-tick render call in `updateGame()`
+(`CONFIG.GAME_TICK_MS` = 50ms) rather than threading a new callback through items.js/routines.js/
+damage.js/loop.js, keeping those modules DOM-free. (3) the star-threshold notice's crossing memory
+(`heroStarMemory`) is a plain, non-persisted script.js object — no schema bump, as planned. Tests:
+34 suites, 683/683 (+29, `test/heroes-view.test.js`, pure helpers only — DOM functions are
+live-playtest-verified per the established `testEnvironment: 'node'` / no-jsdom convention).
+`node --check` clean. **Live-verified in Chrome:** chip renders on load, a real habit completion
+awarded routine XP and (as the routine's first recorded occurrence) crossed into 5 stars, firing
+the real notice end-to-end; deactivating/reactivating updated the chip's state styling live within
+one game-loop tick, no reload needed. Mobile breakpoint verified by reading the loaded stylesheet
+(sandbox couldn't actually resize the remote browser viewport) — see DECISIONS.md session 43.
 
 ### Sub-session 4 — hero management UI + slot enforcement (Sonnet; ask Jeremy the grandfather question before coding)
 **Goal:** routine cards + Manage modal show level/XP-progress/stars/health; Activate control

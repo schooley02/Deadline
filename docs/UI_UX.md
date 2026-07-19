@@ -5,6 +5,7 @@ Mobile-first web app; prioritize Chrome/Android. Must be responsive so it works 
 
 ## Main Screen
 - **Canvas (top):** base on the left, enemies advancing from the right. Defaults to showing the CURRENT DAY's tasks and habits. Only active (non-repeating-future) items render.
+- **Base Zone heroes ([P1-UI-006] sub-session 3, built 2026-07-19):** one small avatar chip per routine renders over the base's leftmost 120px (`js/ui/heroes.js`) — category emoji, level badge, star row, health bar, state styling (active/frozen 🥶/KO'd 💤/inactive greyed). CSS/emoji placeholders for v1 (no hero sprite assets exist); capped display with a "+N" overflow chip. See docs/ROUTINES.md's "Hero Rendering" section for the full mechanic.
 - **Agenda List (below):** today's tasks and habits ordered by closest-to-base (soonest due first). Edit icon next to each item. Complete/Defeat buttons per item.
 - **Time Slider:** sits ON the seam between canvas and list. Represents the 24-hour day; handle starts at the current time. Sliding forward/backward acts like fast-forward/rewind of the enemies (preview which tasks are on the horizon and which are moving fastest). Scope toggle: Today / This Week / This Month.
 - **Plus Button (floating, bottom-left):** Add New Task, Add New Routine, switch to Routine View, open Inventory (tokens), open Store.

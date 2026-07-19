@@ -13,6 +13,68 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 43: HEROES_PLAN sub-session 3 BUILT — hero rendering at the base (Cowork session, Sonnet throughout)
+
+**Did:** [P1-UI-006] sub-session 3, the ticket's visible payoff. New `js/ui/heroes.js`
+(`HeroesView`) + `css/heroes.css`: one avatar chip per routine renders into a new `#heroBaseZone`
+container over `#base`'s leftmost 120px — category emoji (dominant category among the routine's
+habit members, new `CONFIG.CATEGORY_EMOJI`; falls back to the routine name's initial with no
+members), `Lv N` badge, star row (live completion rate), health bar (colored by the same 75/50/25%
+tiers the base sprite uses), and state styling matching `managementWindows.js`'s compact card
+(KO'd 💤 > frozen 🥶 > inactive ⚪ greyed > active). Capped at `CONFIG.HERO_CHIP_MAX_DISPLAY` (6)
+with a "+N" overflow chip. `renderHeroesAtBase()` runs once after init/restore/level-up (instant
+first paint) and once every 50ms game-loop tick (`updateGame()`) so chips stay live across
+complete/damage/freeze/KO/deactivate without threading a new UI dependency through items.js/
+routines.js/damage.js/loop.js. Star-threshold-crossed notice (PROJECT_SPEC ~84) fires via a new
+`FrozenNotice.showHeroStarUpNotice`, tracked by an ephemeral, non-persisted `heroStarMemory`
+(no schema bump this session, as planned). Docs: ROUTINES.md ("Hero Rendering" section), UI_UX.md,
+HEROES_PLAN.md (sub-session 3 marked built), ROADMAP.md, DECISIONS.md, CLAUDE.md (new sandbox
+gotcha, see Watch out).
+
+**State:** ✅ **34 suites, 683/683** (+29, `test/heroes-view.test.js` — pure view-model helpers
+only; DOM functions are live-verified per the established `Spawning.addItemToGame` convention,
+this suite has no jsdom). `node --check` clean on every touched file (config.js, script.js,
+js/ui/heroes.js, js/ui/frozenNotice.js). **Live-verified in Chrome against the real dev save**
+(Session40 Test Routine): chip present at the base on load (confirmed via DOM query, then a zoomed
+screenshot made it clearly visible — small chip against the church art at normal zoom); a REAL
+click-through habit completion (not synthetic) awarded the routine XP, and — since it was the
+routine's first recorded occurrence this session — pushed its completion rate to 100%, crossing
+the top star tier and firing the real star-up notice end-to-end ("★★★★★ Session40 Test Routine
+leveled up its rating"); chip updated to 5 stars, health bar showed the correct tier color for the
+routine's actual health (50/100 → orange "low"). Deactivating the routine greyed the chip
+immediately (confirms the per-tick live-update wiring, no reload needed); reactivating restored it.
+Zero real app console errors (only the recurring documented Chrome-extension messaging noise).
+Mobile breakpoint verified by reading the loaded stylesheet directly (the sandbox's remote browser
+window would not actually resize via `resize_window` — stayed 1926×1297 regardless of the
+requested size) rather than true device-emulation; the `@media (max-width: 768px)` rule was
+confirmed present and correctly scoped, but a real narrow-viewport check is still worth doing next
+time you're at the game. Dev save now has real (non-synthetic) progress on Session40 Test
+Routine (xp 5, 5-star rating) from this session's live-verify clicks — harmless, no cleanup needed.
+
+**Next:** HEROES_PLAN sub-session 4 — hero management UI + slot enforcement (routine cards + Manage
+modal show level/XP-progress/stars/health; Activate control explains KO gating; slot limits
+enforced on ADD). **Ask Jeremy the grandfather question at session start per the plan:** what
+about existing routines already OVER their level-1 slot count? (Plan's recommendation: grandfather
+— never evict, only block NEW adds past the limit.) Sonnet once the fork is resolved. Sub-session 5
+(polish: interaction visuals + ranking) is optional/last, cut if play data says otherwise.
+
+**Watch out:**
+- **New sandbox gotcha, logged in CLAUDE.md:** `mcp__workspace__bash`'s `mnt/` mounts (both
+  `mnt/outputs` and `mnt/Deadline`) are FUSE-backed and allow file WRITES but not DELETES/RENAMES
+  for the sandbox user — `npm install` fails there with `ENOTEMPTY`/`EPERM` on its temp-directory
+  rename step (same restriction class as the git-index-lock issue, just surfacing through npm
+  instead of git). Fix: run `npm install`/Jest from `$HOME` (outside any `mnt/` path), copying
+  `js/`/`test/`/`package.json`/`jest.config.js` there first.
+- `resize_window` (Claude in Chrome) did not actually change this session's remote browser
+  viewport — window stayed 1926×1297 regardless of requested dimensions. If a future session needs
+  real mobile-viewport verification, this may need a different approach (DevTools device toolbar
+  via `javascript_tool`, or accept stylesheet-inspection as the fallback like this session did).
+- Category emoji-per-life-domain (`CONFIG.CATEGORY_EMOJI`) is a NEW mapping this session invented
+  (no prior emoji convention existed in the codebase, only hex colors) — flag it to Jeremy if the
+  choices read oddly in play; easy to swap, just 8 config entries.
+
+---
+
 ## 2026-07-19 — Session 42: Orphaned-habit bug FIXED + HEROES_PLAN sub-session 2 BUILT (routine health/KO/revive) (Cowork session, Sonnet throughout)
 
 **Did:** Two chunks. (1) Orphaned-habit Known-bugs item (found session 41): Jeremy's call was

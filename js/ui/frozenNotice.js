@@ -117,10 +117,38 @@ const FrozenNotice = (() => {
         }, 0);
     }
 
+    // Star-threshold-crossed notice ([P1-UI-006] sub-session 3, 2026-07-19,
+    // PROJECT_SPEC ~84): fires from js/ui/heroes.js's renderHeroesAtBase the
+    // first time a routine's live star rating actually increases (tracked in
+    // an ephemeral, non-persisted per-session memory — see heroes.js's header
+    // for why). Trigger site is a render call inside a 50ms game-loop tick,
+    // not a modal-closing click, but the setTimeout(0) defensive pattern
+    // costs nothing and matches every other notice here.
+    function showHeroStarUpNotice(routineName, stars) {
+        setTimeout(() => {
+            if (document.querySelector('.frozen-notice-overlay')) return;
+
+            const modalHtml = `
+                <div class="modal-overlay frozen-notice-overlay">
+                    <div class="modal-content frozen-notice-modal">
+                        <h3>${'★'.repeat(stars)} ${routineName} leveled up its rating</h3>
+                        <p>${routineName} is now rated ${stars} star${stars === 1 ? '' : 's'} — keep it up!</p>
+                        <div class="modal-buttons">
+                            <button class="primary-button" onclick="closeModal()">Nice</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }, 0);
+    }
+
     return {
         showFrozenRoutineNotice,
         showRoutineUnfrozenNotice,
         showRoutineKoNotice,
+        showHeroStarUpNotice,
     };
 })();
 

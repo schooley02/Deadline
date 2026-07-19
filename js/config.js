@@ -128,6 +128,26 @@ const CONFIG = {
         { minRate: 0.60, stars: 1 },
     ],
 
+    // --- Hero rendering ([P1-UI-006] sub-session 3, 2026-07-19; js/ui/heroes.js) ---
+    // Display-only constants, not gameplay balance (no balance-tuning protocol
+    // needed) — layout/identity concerns, same category as ENEMY_WIDTH etc.
+    // Per-category emoji for a hero's avatar chip (docs/ART_STYLE.md's 8 life
+    // domains). A routine with no habit members yet has no dominant category —
+    // HeroesView falls back to the routine name's initial letter instead.
+    CATEGORY_EMOJI: {
+        other: '⭐',
+        career: '💼',
+        creativity: '🎨',
+        financial: '💰',
+        health: '💪',
+        lifestyle: '🌿',
+        relationships: '❤️',
+        spirituality: '🧘',
+    },
+    // Base Zone is small (120px wide) — cap simultaneous chips and show a
+    // "+N" overflow chip past this count rather than crowding/overflowing.
+    HERO_CHIP_MAX_DISPLAY: 6,
+
     // --- Shop catalog ([P1-UI-008], SHOP_PLAN.md session 1, 2026-07-18) ---
     // Base costs + effects transcribed from docs/ECONOMY.md (canonical). Live
     // price at the shop is Economy.shopPrice(baseCost, owned) = round(base ×

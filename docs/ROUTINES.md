@@ -66,6 +66,36 @@ KO'd, showing "revives tomorrow" vs. "ready to revive"). Once the gate clears, r
 `koState` and restores health to `CONFIG.HERO_REVIVE_HEALTH` (50) — half, not full — before spawning
 today's due instances as normal.
 
+## Hero Rendering ([P1-UI-006] sub-session 3, built 2026-07-19)
+One avatar chip per routine, rendered at the Base Zone (over `#base`'s leftmost 120px). No hero
+sprite assets exist yet (docs/ART_STYLE.md), so v1 is a CSS/emoji placeholder chip (fork 1,
+HEROES_PLAN.md): category emoji (dominant category among the routine's HABIT members — routine
+tasks aren't counted, same habit-only scope as the star-rating math below; falls back to the
+routine name's first letter when it has no habit members yet), a `Lv N` level badge, a star row
+(★☆ from the live completion rate, `Heroes.starRating`), and a health bar (colored by the same
+75/50/25% tiers `Damage.resolveBaseImage` uses for the base sprite itself). State styling matches
+`managementWindows.js`'s compact routine card: KO'd 💤 > frozen 🥶 > inactive ⚪ (greyed) > active
+(normal) — checked in that priority order. The Base Zone caps simultaneous chips at
+`CONFIG.HERO_CHIP_MAX_DISPLAY` (6) and shows a `+N` overflow chip past that.
+
+Pure view-model math (`js/ui/heroes.js`'s `buildChipViewModel` and friends) is unit-tested;
+DOM-building (`buildChipElement`/`renderHeroesAtBase`) is live-playtest-verified only, per
+ARCHITECTURE.md's established convention for DOM-orchestration code. Renders from state ONLY — no
+new mechanics, no schema change (sub-session 3 lands no migration, as planned).
+
+**Wiring:** `renderHeroesAtBase()` (script.js) runs once immediately after init/restore/level-up
+(alongside the existing `updateRoutineDisplay()`) for instant first paint, and once every
+game-loop tick (`CONFIG.GAME_TICK_MS` = 50ms) so the chips stay live across every event that can
+change a routine's health/XP/level/star-rate/frozen/KO/active state — without threading a new UI
+dependency through items.js/routines.js/damage.js, which stay DOM-free.
+
+**Star-threshold-crossed notice** (PROJECT_SPEC ~84): fires the first time a routine's live star
+rating actually increases, via an ephemeral, NON-persisted per-session memory
+(`heroStarMemory` in script.js, reset on new game/reset) — a routine's first observation just
+seeds the memory (no notice); a later render seeing a higher star count than last recorded is a
+real crossing. `FrozenNotice.showHeroStarUpNotice` reuses the existing one-time-notice module/CSS
+class.
+
 ## Frozen Routine Slots (canonical spec — from PROJECT_SPEC.md)
 
 **Planning + design forks (2026-07-19, session 35, Fable):** see
