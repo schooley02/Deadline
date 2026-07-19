@@ -189,15 +189,23 @@ const ManagementWindows = (() => {
 
         deps.definedRoutines.forEach(routine => {
             const li = document.createElement('li');
-            const statusIcon = routine.isActive ? '🟢' : '⚪';
+            // Sub-session 3 ("Frozen routine slots" UI, 2026-07-19): a frozen
+            // routine is visually distinct from a merely-inactive one — grey
+            // card + a dedicated icon, so "frozen" doesn't read as "off".
+            // Detailed recovery info lives in the Manage modal (routineViews.js),
+            // not this compact card.
+            const isFrozen = !!routine.frozenState;
+            if (isFrozen) li.classList.add('routine-frozen');
+            const statusIcon = isFrozen ? '🥶' : (routine.isActive ? '🟢' : '⚪');
             const habitCount = routine.habitDefinitionIds ? routine.habitDefinitionIds.length : 0;
             const taskCount = routine.taskDefinitionIds ? routine.taskDefinitionIds.length : 0;
+            const subtitle = isFrozen ? 'Frozen — see Manage for recovery options' : `${habitCount} habits, ${taskCount} tasks`;
 
             li.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <div>
                         <div>${statusIcon} ${routine.name}</div>
-                        <div style="font-size: 12px; color: var(--color-neutral);">${habitCount} habits, ${taskCount} tasks</div>
+                        <div style="font-size: 12px; color: var(--color-neutral);">${subtitle}</div>
                     </div>
                     <div style="display: flex; gap: 8px;">
                         <button class="edit-routine-btn" data-routine-id="${routine.id}" style="padding: 4px 8px; font-size: 12px; background: var(--color-accent-teal); color: white; border: none; border-radius: 4px; cursor: pointer;">Manage</button>

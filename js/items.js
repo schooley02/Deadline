@@ -100,13 +100,24 @@ const Items = (() => {
     // habit — checks whether it just hit the freeze threshold and, if so,
     // sets the owning routine's frozenState. A routine that's already frozen
     // (by this habit or another) is left alone — freezing doesn't "stack" or
-    // reset frozenAt.
+    // reset frozenAt, and (per the guard below) never re-fires the notice.
+    //
+    // Sub-session 3 (2026-07-19): `deps.onRoutineFrozen(routine, habitDef)` is
+    // an OPTIONAL notification collaborator, called exactly once on the
+    // unfrozen -> frozen transition (never while already frozen, since the
+    // guard above returns before this point on every subsequent call). Same
+    // "no-op if the deps collaborator is omitted" precedent as
+    // `deps.definedRoutines` itself — existing tests that don't pass it are
+    // unaffected.
     function maybeFreezeRoutine(habitDef, deps) {
         if (!habitDef.isNegative) return;
         const routine = findOwningRoutine(habitDef, deps);
         if (!routine || routine.frozenState) return;
         if (FrozenSlots.shouldFreeze(habitDef.occurrenceHistory, CONFIG.FREEZE_THRESHOLD_DAYS)) {
             routine.frozenState = FrozenSlots.buildFrozenState(habitDef.id, new Date());
+            if (typeof deps.onRoutineFrozen === 'function') {
+                deps.onRoutineFrozen(routine, habitDef);
+            }
         }
     }
 

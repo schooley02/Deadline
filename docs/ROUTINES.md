@@ -62,8 +62,18 @@ negative habit that caused the freeze keeps spawning its lurker through its own 
 gets recalled; this only gates FUTURE spawns. Routine XP/leveling doesn't exist in code yet
 (P1-UI-006), so "a frozen routine earns no XP" has nothing to suspend today.
 
-**NOT yet built:** the frozen-state UI (greyed card, notification, progress), recovery path 1
-(edit-to-unfreeze), and Sick/Skip Day tokens — see `docs/FROZEN_SLOTS_PLAN.md` sub-sessions 3-5.
+**Sub-session 3 BUILT 2026-07-19:** the frozen-state UI, across three surfaces. The compact routine
+card (Routines list) greys out (`.routine-frozen`) with a 🥶 icon and a generic "Frozen — see Manage
+for recovery options" subtitle. The "Manage Routine" modal shows a detailed, non-judgmental banner
+naming the offending habit and LIVE recovery progress ("Recovery progress: N/3 days successfully
+avoided"), recomputed fresh from `occurrenceHistory` on every render — nothing new is persisted for
+it. A one-time notice modal (`js/ui/frozenNotice.js`) fires exactly once at the moment of freezing,
+explaining what happened and both recovery paths. Frozen routines remain fully manageable — habits/
+tasks can still be added/edited/removed while frozen, they just won't spawn (per sub-session 2).
+
+**NOT yet built:** recovery path 1's actual edit-to-unfreeze wiring (the banner explains it, but
+saving an edited habit doesn't yet check/clear a freeze) and Sick/Skip Day tokens — see
+`docs/FROZEN_SLOTS_PLAN.md` sub-sessions 4-5.
 
 - A NEGATIVE habit streak of 3+ days (indulging 3 days running) FREEZES the associated routine slot.
 - Frozen slots appear greyed out, with a notification explaining the freeze and recovery options. Frozen routines remain viewable so the user can identify needed adjustments.

@@ -4,6 +4,66 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 37: Sub-session 3 BUILT — frozen routine UI (Cowork session, Sonnet execute — plan already approved in session 35)
+
+**Problem:** sub-sessions 1-2 made freezing real (state + spawn suspension) but entirely invisible —
+nothing in the UI told the player a routine was frozen, why, or what to do about it. This session
+builds PROJECT_SPEC.md ~2696's "non-judgmental tooltip or modal, focusing on the path to recovery."
+
+**Design (no new forks — session 35 already settled tone/content; this was execution + one small
+structural call):** split across three surfaces rather than one:
+1. **Compact card** (Routines list, `managementWindows.js`) — cheap, generic: grey styling + 🥶 icon
+   + "see Manage for recovery options." No habit lookup needed at this level.
+2. **Detailed banner** (Manage Routine modal, `routineViews.js`) — this is where `deps.definedHabits()`
+   is already available, so it's the natural place to name the offending habit and show LIVE
+   recovery progress. New pure `buildFrozenBannerHtml(routine, definedHabits)` returns `''` when
+   unfrozen; unit-tested directly (new `test/routine-views-frozen-banner.test.js`, 5 cases) since
+   it's a pure string builder despite living in a DOM-heavy file.
+3. **One-time trigger notice** — the "something just happened" moment needs its own surface,
+   separate from the other two (which are both pull, not push — the player has to go open Routines).
+   Structural call: rather than adding this to `routineViews.js` (already 1000+ lines, the
+   biggest UI file in the codebase), it's a new small dedicated module (`js/ui/frozenNotice.js`),
+   matching `checkIn.js`'s precedent for a focused, single-purpose UI surface. Wired via a new
+   OPTIONAL `deps.onRoutineFrozen(routine, habitDef)` collaborator in `items.js`'s
+   `maybeFreezeRoutine`, fired exactly once on the unfrozen→frozen transition (the pre-existing
+   "already frozen" guard prevents any re-fire).
+
+**Found and fixed live (real bug, not a design question) — the setTimeout(0) hazard strikes again:**
+this is the third time this exact bug class has appeared in this codebase (session 21's shop
+purchase self-closing the window; session 34's Cheat Day popup rebuild). The trigger site is
+popups.js's "I indulged" button handler: `deps.indulgeHabit(item.id)` runs synchronously (which now
+fires the frozen notice via `onRoutineFrozen`), and the VERY NEXT LINE is `Modal.closeModal()` —
+which does `document.querySelectorAll('.modal-overlay').forEach(m => m.remove())`, indiscriminately
+removing every open modal overlay, including the notice that was just inserted a microtask earlier
+in the same synchronous call stack. The notice was being deleted before the browser ever painted it
+— invisible in normal play, only caught by actually screenshotting immediately after the click and
+finding nothing there. Fixed with the established pattern: `FrozenNotice.showFrozenRoutineNotice`
+now wraps its `insertAdjacentHTML` in `setTimeout(0)`, so it executes as a new task AFTER the click
+handler (including its `closeModal()` call) has fully finished. Cross-checked the OTHER site that
+can trigger a freeze — `checkIn.js`'s card resolution — and confirmed it removes its OWN overlay by
+direct reference (`overlay.remove()`), never a blanket `closeModal()`, so it was never at risk; the
+setTimeout(0) fix is harmless there regardless (just means the notice would render a tick later,
+imperceptible).
+
+**Structure:** new `js/ui/frozenNotice.js`, new `css/frozenNotice.css`, `js/items.js` (+
+`onRoutineFrozen` optional callback in `maybeFreezeRoutine`), `script.js` (+ wiring in `itemsDeps()`),
+`js/ui/managementWindows.js` (`populateRoutinesWindow` frozen styling), `js/ui/routineViews.js`
+(new `buildFrozenBannerHtml` + banner wired into `showRoutineManagement`), `index.html` (+script/link
+tags), new `test/routine-views-frozen-banner.test.js`.
+
+**Tests:** 29 suites, 552/552 (+5). `node --check` clean on all touched files.
+
+**Live-verified in Chrome, the full cycle in one pass:** 3 real "I indulged" clicks (2 backdated)
+correctly triggered — the notice modal appeared with the right routine/habit names and both
+recovery-path bullets; the Routines card immediately showed 🥶 + greyed styling; the Manage modal's
+banner read "Recovery progress: 0/3 days successfully avoided." Backdated 2 avoided days and
+reopened Manage — banner correctly read "2/3." One real "Successfully avoided" click for the 3rd day
+cleared `frozenState`, and the Routines card returned to its normal active/ungreyed state. Zero app
+console errors throughout (only the same recurring, unrelated Chrome-extension "message channel
+closed" noise every session has logged).
+
+---
+
 ## 2026-07-19 — Session 36: Sub-session 2 BUILT — frozen-slot spawn gating (Cowork session, Sonnet execute — plan already approved in session 35)
 
 **Problem:** sub-session 1 made `routine.frozenState` real and observable, but nothing in the game

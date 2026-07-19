@@ -13,6 +13,49 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 37: Sub-session 3 BUILT — frozen routine UI (Cowork session, Sonnet execute)
+
+**Did:** Made frozen routines visible across three surfaces. Compact card (`js/ui/managementWindows.js`'s
+`populateRoutinesWindow`): greys out (`.routine-frozen`), 🥶 icon, generic "Frozen — see Manage for
+recovery options" subtitle. Manage Routine modal (`js/ui/routineViews.js`): new pure
+`buildFrozenBannerHtml(routine, definedHabits)` names the offending habit and shows LIVE recovery
+progress ("Recovery progress: N/3 days successfully avoided"), recomputed fresh from
+`occurrenceHistory` on every render — nothing new persisted. One-time trigger notice: new
+`js/ui/frozenNotice.js` + `css/frozenNotice.css`, wired via a new optional `deps.onRoutineFrozen`
+callback in `items.js`'s `maybeFreezeRoutine`, fired exactly once on the unfrozen→frozen transition.
+
+**State:** ✅ **29 suites, 552/552** (+5, new `test/routine-views-frozen-banner.test.js`). `node --check`
+clean. **Live-verified in Chrome, full cycle:** 3 real "I indulged" clicks (2 backdated) triggered
+the notice with correct routine/habit names and both recovery-path bullets; Routines card immediately
+showed 🥶 + greyed styling; Manage modal banner read "0/3." Backdated 2 avoided days, banner correctly
+showed "2/3." One real "Successfully avoided" click cleared `frozenState`; card returned to normal.
+Zero app console errors.
+
+**Found and fixed a real bug during live verification:** the setTimeout(0) DOM-race hazard struck a
+third time (same class as sessions 21 and 34). `popups.js`'s "I indulged" handler runs
+`deps.indulgeHabit(item.id)` (which now synchronously fires the frozen notice) immediately followed
+by `Modal.closeModal()`, which does `document.querySelectorAll('.modal-overlay').forEach(m =>
+m.remove())` — deleting the just-inserted notice before it ever painted, invisible in normal play.
+Fixed by wrapping `FrozenNotice.showFrozenRoutineNotice`'s DOM insertion in `setTimeout(0)`. Checked
+the other freeze-triggering site (`checkIn.js`) — it removes its own overlay by direct reference, so
+it was never at risk, but the fix is harmless there too.
+
+**Next:** Sub-session 4 (recovery path 1 — edit-to-unfreeze + `modificationHistory` appends) is next
+per `docs/FROZEN_SLOTS_PLAN.md`. Sub-session 5 (Sick Day global + Skip Day per-habit tokens + 6→7
+migration) follows.
+
+**Watch out:**
+- The setTimeout(0) DOM-mutation-ordering hazard is now a 3-time recurring bug class in this codebase
+  (sessions 21, 34, 37). Any NEW code that inserts a DOM overlay synchronously inside a click handler
+  that also calls `Modal.closeModal()` afterward needs this defensive pattern by default — don't wait
+  to rediscover it a 4th time.
+- `css/base.css` only defines `--space-1`, `--space-2`, `--space-4`, `--space-6`, `--space-8`,
+  `--space-12` — no `--space-3`/`--space-5`. Caught this in `frozenNotice.css`, fixed before commit.
+- Recovery path 1 (edit-to-unfreeze) is still NOT wired — the banner explains it as an option, but
+  saving an edited habit doesn't yet check or clear a freeze. That's sub-session 4.
+
+---
+
 ## 2026-07-19 — Session 36: Sub-session 2 BUILT — frozen-slot spawn gating (Cowork session, Sonnet execute)
 
 **Did:** Gave sub-session 1's `routine.frozenState` real teeth. `js/frozenSlots.js` gained

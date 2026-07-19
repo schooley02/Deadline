@@ -443,14 +443,61 @@ const RoutineViews = (() => {
      * it doesn't itself need to distinguish which keys belong to which
      * downstream call.
      */
+    // Sub-session 3 ("Frozen routine slots" UI, 2026-07-19). Returns '' when
+    // the routine isn't frozen (nothing to render). When frozen, looks up the
+    // offending habit by routine.frozenState.frozenBy — it's expected to
+    // exist (only a live, defined negative habit can freeze a routine), but
+    // this defensively falls back to a generic message if it's somehow gone
+    // (e.g. deleted after freezing it — not currently possible via any UI
+    // path, but cheap to guard). FrozenSlots/CONFIG read as bare globals,
+    // same convention as Modal/Routines elsewhere in this file.
+    function buildFrozenBannerHtml(routine, definedHabits) {
+        if (!routine.frozenState) return '';
+
+        const offendingHabit = (definedHabits || []).find(h => h.id === routine.frozenState.frozenBy);
+        if (!offendingHabit) {
+            return `
+                <div class="routine-frozen-banner">
+                    <p>🥶 <strong>This routine is frozen.</strong> Its other habits and tasks won't
+                       spawn until it recovers.</p>
+                </div>
+            `;
+        }
+
+        const progress = FrozenSlots.avoidanceProgress(offendingHabit.occurrenceHistory, CONFIG.RECOVERY_AVOIDED_DAYS);
+
+        return `
+            <div class="routine-frozen-banner">
+                <p>🥶 <strong>This routine is frozen</strong> — "${offendingHabit.name}" has been
+                   indulged 3 days in a row. Its other habits and tasks won't spawn until it
+                   recovers. This isn't a punishment, just a signal something about this habit
+                   might be worth adjusting.</p>
+                <p class="routine-frozen-progress">Recovery progress: ${progress}/${CONFIG.RECOVERY_AVOIDED_DAYS} days
+                   successfully avoided (resets on a lapse) — or edit "${offendingHabit.name}"'s
+                   details below to unfreeze it right away.</p>
+            </div>
+        `;
+    }
+
     function showRoutineManagement(routineId, deps) {
         const routine = deps.definedRoutines().find(r => r.id === routineId);
         if (!routine) return;
+
+        // Sub-session 3 ("Frozen routine slots" UI, 2026-07-19): the detailed
+        // frozen explanation lives here (not the compact card in
+        // managementWindows.js) — it needs the offending habit's name +
+        // live avoidance progress, and this modal already receives
+        // deps.definedHabits(). Non-judgmental tone per PROJECT_SPEC ~2696;
+        // both recovery paths (ROUTINES.md) are spelled out. `avoidanceProgress`
+        // recomputes from occurrenceHistory on demand — nothing new is stored.
+        const frozenBannerHtml = buildFrozenBannerHtml(routine, deps.definedHabits());
 
         const modalHtml = `
             <div class="modal-overlay" id="routineManagementModal">
                 <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
                     <h3>Manage Routine: ${routine.name}</h3>
+
+                    ${frozenBannerHtml}
 
                     <!-- Routine Status -->
                     <div style="margin-bottom: 20px; padding: 12px; background: var(--color-bg-light); border-radius: 8px;">
@@ -1060,6 +1107,7 @@ const RoutineViews = (() => {
         populateRoutineHabits,
         populateRoutineTasks,
         renderDefinedRoutines,
+        buildFrozenBannerHtml,
         showRoutineManagement,
         attachRoutineManagementListeners,
         populateHabitSelectDropdown,

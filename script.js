@@ -331,6 +331,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // habit's owning routine to check/clear frozenState. GETTER for
             // the same reassignment reason as definedHabits above.
             definedRoutines: () => definedRoutines,
+            // Sub-session 3 (2026-07-19): notifies the player exactly once
+            // when a routine freezes. FrozenNotice is a small dedicated UI
+            // module (js/ui/frozenNotice.js), same "module called as a bare
+            // stable global from inside a script.js wrapper" pattern as
+            // CheckIn.showCheckInModal above.
+            onRoutineFrozen: (routine, habitDef) => {
+                FrozenNotice.showFrozenRoutineNotice(routine.name, habitDef.name);
+            },
             isGameOver: () => gameIsOver,
             getPlayerXP: () => playerXP,
             setPlayerXP: (n) => { playerXP = n; },

@@ -1,0 +1,48 @@
+/**
+ * frozenNotice.css — frozen-routine notice modal + routine-card/manage-modal
+ * frozen styling (Milestone 3, "Frozen routine slots + recovery" ticket,
+ * sub-session 3, 2026-07-19). Mirrors modal.css's .modal-overlay/.modal-content
+ * chrome (js/ui/frozenNotice.js reuses those classes), plus the greyed-card
+ * and banner styling used by managementWindows.js/routineViews.js.
+ */
+
+.frozen-notice-modal {
+    max-width: 440px;
+}
+
+.frozen-notice-recovery-list {
+    margin: 0 0 var(--space-2) 0;
+    padding-left: var(--space-4);
+}
+
+.frozen-notice-recovery-list li {
+    margin-bottom: var(--space-1);
+}
+
+/* Routine card in the Routines management window (managementWindows.js) */
+.routine-frozen {
+    opacity: 0.6;
+    filter: grayscale(60%);
+}
+
+/* Frozen banner inside "Manage Routine: X" (routineViews.js) */
+.routine-frozen-banner {
+    margin-bottom: var(--space-4);
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-neutral);
+    border-left: 4px solid var(--color-accent-teal);
+    border-radius: 8px;
+}
+
+.routine-frozen-banner p {
+    margin: 0 0 var(--space-2) 0;
+}
+
+.routine-frozen-banner p:last-child {
+    margin-bottom: 0;
+}
+
+.routine-frozen-banner .routine-frozen-progress {
+    font-weight: 500;
+}

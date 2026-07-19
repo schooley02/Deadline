@@ -110,11 +110,54 @@ definition was created and linked, but ZERO active instance spawned (confirmed v
 same habit spawned immediately on the next boot pass (`restoreGameState`'s unconditional generator
 call), with no console errors either direction.
 
-### Sub-session 3 — frozen UI (Sonnet)
+### Sub-session 3 — frozen UI (Sonnet) — ✅ BUILT 2026-07-19 session 37
 **Goal:** spec's visibility requirements. Greyed routine card (`.routine-frozen`), freeze
 notification/modal on trigger (non-judgmental tone per PROJECT_SPEC ~2696), recovery-options
 explanation with live progress ("2/3 days avoided") on the card, frozen routines remain fully
 viewable. Check-in cards unchanged (they already validate avoidance).
+
+**BUILT as specified, split across three surfaces per the plan's own separation of concerns:**
+- **Compact card** (`js/ui/managementWindows.js`'s `populateRoutinesWindow`) — a frozen routine gets
+  the `.routine-frozen` class (greyed via CSS opacity/grayscale) and swaps its status icon to 🥶,
+  with the subtitle replaced by "Frozen — see Manage for recovery options" (no habit lookup needed
+  here — kept deliberately generic/cheap).
+- **Detailed banner** (`js/ui/routineViews.js`'s new `buildFrozenBannerHtml`, called from
+  `showRoutineManagement`) — looks up the offending habit via `deps.definedHabits()` (already
+  available), names it, explains the freeze in non-judgmental language, and shows LIVE recovery
+  progress via `FrozenSlots.avoidanceProgress(habitDef.occurrenceHistory,
+  CONFIG.RECOVERY_AVOIDED_DAYS)` — recomputed fresh on every render, never stored. Both recovery
+  paths (avoid 3 days / edit the habit) are spelled out.
+- **One-time trigger notice** (new `js/ui/frozenNotice.js`, small dedicated module — mirrors
+  checkIn.js's precedent rather than growing the already-1000+-line routineViews.js) — fires from a
+  new OPTIONAL `deps.onRoutineFrozen(routine, habitDef)` collaborator in
+  `items.js`'s `maybeFreezeRoutine`, called exactly once on the unfrozen→frozen transition (the
+  existing "already frozen" guard means it can never re-fire while frozen).
+
+**Found and fixed live (the setTimeout(0) hazard, again):** the trigger site is popups.js's "I
+indulged" button, whose click handler calls `deps.indulgeHabit(item.id)` (fires the notice
+SYNCHRONOUSLY) then immediately `Modal.closeModal()` — which removes ALL `.modal-overlay` elements
+in the DOM, not just the popup that opened it. The notice was being inserted and instantly deleted
+in the same tick, before ever painting. Same bug class as session 21's shop bug and session 34's
+Cheat Day popup rebuild. Fixed the same way those were: `FrozenNotice.showFrozenRoutineNotice` now
+defers its `insertAdjacentHTML` one tick via `setTimeout(0)`, landing after the click handler's
+`closeModal()` has already run. (The check-in resolution path calls `overlay.remove()` on a direct
+reference instead of a blanket `closeModal()`, so it was never at risk — but the fix is harmless
+there either way.)
+
+29 suites, 552/552 (+5: new `test/routine-views-frozen-banner.test.js` for the pure
+`buildFrozenBannerHtml` builder — covers empty/frozen/capped-progress/missing-habit-fallback/
+both-recovery-paths-mentioned). `frozenNotice.js` itself has no dedicated unit test, matching
+checkIn.js's precedent (DOM-heavy UI modules in this codebase are live-verified, not unit-tested).
+`node --check` clean on all touched files.
+
+**Live-verified in Chrome, full cycle:** froze the test routine via 3 real "I indulged" clicks
+(backdating 2 days, per the by-now-standard neutered-`localStorage.setItem` trick) — the frozen
+notice modal appeared with the correct routine/habit names and both recovery paths; the Routines
+list card immediately showed 🥶 + greyed styling + "Frozen — see Manage..."; the Manage modal's
+banner showed "Recovery progress: 0/3 days successfully avoided." Backdated 2 avoided days and
+reopened Manage — progress correctly read "2/3." One real "Successfully avoided" click for the 3rd
+day cleared `frozenState` to `null`; the Routines card returned to its normal 🟢/ungreyed state with
+no console errors (only the recurring unrelated Chrome-extension messaging noise).
 
 ### Sub-session 4 — recovery path 1: edit-to-unfreeze + modificationHistory (Sonnet)
 **Goal:** append `{ timestamp, changedFields }` on every real habit edit (standalone editor + routine
