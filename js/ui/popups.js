@@ -81,9 +81,19 @@ const Popups = (() => {
                     </button>`;
         }).join('');
 
+        // Affordability feedback (parity with the shop's "Not enough points"
+        // Buy-button text): a disabled tier with no explanation reads as
+        // broken, and a title= tooltip is invisible on mobile (this app's
+        // primary target). Showing the live balance makes the disabled state
+        // self-explanatory; refreshPushbackUI keeps it current after a buy.
+        const anyUnaffordable = deps.pushbackCatalog.some(p => points < Shop.price(p, {}));
+        const balanceNote = anyUnaffordable
+            ? ` <span class="pushback-balance-note">(you have ${points} pts)</span>`
+            : ` <span class="pushback-balance-note"></span>`;
+
         return `
             <div class="pushback-section">
-                <p class="pushback-label"><strong>Push back this deadline:</strong></p>
+                <p class="pushback-label"><strong>Push back this deadline:</strong>${balanceNote}</p>
                 <div class="pushback-options">${buttons}</div>
             </div>
         `;
@@ -153,10 +163,19 @@ const Popups = (() => {
             if (dueDisplay) dueDisplay.textContent = item.dueDateTime.toLocaleString();
 
             const points = typeof deps.getPlayerPoints === 'function' ? deps.getPlayerPoints() : 0;
+            let anyUnaffordable = false;
             overlay.querySelectorAll('.pushback-btn').forEach(btn => {
                 const p = deps.pushbackCatalog.find(i => i.id === btn.dataset.itemId);
-                if (p) btn.disabled = points < Shop.price(p, {});
+                if (p) {
+                    btn.disabled = points < Shop.price(p, {});
+                    if (btn.disabled) anyUnaffordable = true;
+                }
             });
+
+            // Keep the balance note in sync (appears once a tier becomes
+            // unaffordable, updates as points drop across stacked pushes).
+            const note = overlay.querySelector('.pushback-balance-note');
+            if (note) note.textContent = anyUnaffordable ? `(you have ${points} pts)` : '';
         }
 
         overlay.querySelectorAll('.pushback-btn').forEach(btn => {

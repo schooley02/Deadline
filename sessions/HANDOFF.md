@@ -27,6 +27,8 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 **Docs updated same session:** SHOP_PLAN.md (session 4 checked + pricing-wrinkle section marked RESOLVED), ROADMAP.md (sub-item 4 checked), DECISIONS.md (session 23 entry).
 
+**Post-commit addendum (Jeremy's catch):** pushback tiers had no "not enough points" feedback — added a live "(you have N pts)" note to the section label whenever a tier is unaffordable (popups.js + popups.css; see DECISIONS.md session 23 addendum). Live-verified at 0 points.
+
 **Next — Shop sub-session 5: balance re-tune (Fable, balance-tuning protocol).** The LAST shop sub-session. Re-tune three number sets against real prices now that the whole shop exists: (a) repair-kit base costs + the placeholder `healAmount`s (15/35/75, flagged since session 20), (b) pushback pricing basis — decide whether flat stays or per-run inflation is worth the persistence change (see DECISIONS.md session 23), (c) the `CONFIG.HABIT_RATE_TIERS` multipliers (legibility placeholders pending since session 16). Log every number to DECISIONS.md per the balance-tuning skill. Fable — batch all three judgments in one session.
 
 **Watch out:**

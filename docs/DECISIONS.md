@@ -4,6 +4,12 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 23 addendum: pushback affordability feedback (Jeremy's catch, post-commit)
+
+Jeremy noticed the pushback tiers had no "not enough points" feedback — they just grayed out, unlike the shop Buy button's explicit disabled text. Fix: the "Push back this deadline:" label now carries a live "(you have N pts)" note whenever at least one tier is unaffordable, updated by `refreshPushbackUI` as points drop across stacked pushes. Chose a visible balance note over (a) a `title=` tooltip — invisible on mobile, the primary target — and (b) per-button "need N more" text — too cramped in three side-by-side buttons. Live-verified in Chrome at 0 points: note renders, all tiers disabled. `js/ui/popups.js` + `css/popups.css` only; no logic/pricing change; 407/407 unaffected.
+
+---
+
 ## 2026-07-19 — Session 23: Shop session 4 — pushback items + enemy targeting ([P1-UI-008]) (Cowork session, Opus plan → Sonnet execution)
 
 **Two design calls resolved up front (Jeremy, on Opus):**
