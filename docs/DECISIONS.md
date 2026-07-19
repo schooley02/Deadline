@@ -4,6 +4,62 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 51: [P1-DATA-004] sub-session 5 BUILT — polish, ticket CLOSED (Cowork session, Sonnet)
+
+**Decision — nested completed sub-task rows are DISPLAY-ONLY, deviating from the plan's assumed
+interactive checkbox.** SUBTASKS_PLAN.md's sub-session 5 spec ("Completed subs render nested,
+greyed, under the parent's Completed Today entry") didn't specify interactivity either way; the
+first implementation mirrored the top-level completed-item builder exactly, including its
+uncomplete checkbox. Live-Chrome testing immediately surfaced a real bug: unchecking a nested sub
+called `Items.uncompleteItem`, which re-links a sub to its parent's `subTasks`/`completedSubTasks`
+counters by looking the parent up in the live `activeItems` array — but the parent that's shown in
+Completed Today has, BY DEFINITION, already completed and left `activeItems`. The lookup silently
+no-ops, the sub still gets pushed back into `activeItems` as a live item with a dangling `parentId`,
+and because nested-only rendering excludes anything with a `parentId` from the top-level agenda
+list, it becomes an agenda-invisible, base-damaging orphan — confirmed live (health ticked down
+with zero visible zombie, `document.querySelectorAll('.task-list li')` returned 0 while the sprite
+was on screen). This is the same CLASS of bug sub-session 1 closed for completion/deletion
+(SUBTASKS_PLAN.md session 46/47), but through a path that was structurally UNREACHABLE before this
+session — nothing ever rendered a completed sub to un-check, so the gap in `uncompleteItem` never
+mattered. **Chosen fix: don't render the affordance that reaches it** — the nested row shows a
+static "✓ Completed" badge instead of a checkbox, and `deps.uncompleteItem` is simply never called
+for a nested sub. Alternative rejected: fix `uncompleteItem` itself to guard against or handle a
+missing/already-completed parent — correct in principle, but a mechanics change to items.js's
+completion/undo logic is outside a UI-polish session's scope per CLAUDE.md's refactor rules, and
+would need its own design pass (does un-completing a sub also un-complete/reopen the parent? does it
+restore the parent to `activeItems`? that's a real product question, not a one-line fix). Revisit if
+Jeremy wants sub-level undo from Completed Today — flagged as a follow-up, not filed as a ticket.
+
+**Decision — left-fan off-field guard: clamp, not flip-to-right.** SUBTASKS_PLAN.md offered either
+as acceptable ("flip left-fan subs right ... or clamp x ≥ base width"). Clamp was chosen:
+`Movement.calculateTimelineXWithClustering` floors a sub's final resolved x at `dims.baseWidth`
+(the base's right edge — see `Clock.calculateTimelinePosition`, which already treats `baseWidth` as
+the universal minimum x for any item). This is a one-line floor with no fan-order/index side
+effects and no risk of colliding with a same-side sibling; a sub sitting flush against the base's
+edge instead of its "natural" further-left offset is a fully acceptable visual at that extreme.
+Flip-to-right was rejected as more invasive: it would need to renumber the sibling's fan index
+(changing which "side" it's on mid-approach as the parent nears the base), risking a visible
+side-swap jump and interaction with the alternating right/left assignment that every OTHER sibling's
+offset depends on.
+
+**Decision — progress label total = `completedSubTasks` + live `subTasks.length`, not a separate
+persisted "ever had N subs" counter.** `totalSubTasks` already exists on the schema but (per
+`items.js`/`popups.js`) is kept in sync with the OPEN count, not a lifetime total — a naming
+mismatch that predates this session. Rather than touch schema or reinterpret an existing field
+(out of scope for a polish session, and `totalSubTasks` isn't read anywhere else, so redefining it
+risks nothing currently but would still be a silent semantic change worth its own decision), the
+label derives its own "M" locally as `completedSubTasks + subTasks.length` at render time — correct
+today given how those two fields are actually maintained, and it costs nothing to keep deriving it
+this way going forward.
+
+38 suites (unchanged), 803 → 815 tests. `node --check` clean. Live-verified in Chrome end-to-end:
+2-sub parent grew with progress label tracking 0/1 → 0/2 → 1/2 → 2/2 live through both sub
+completions and back to a 128px box; parent completion moved both subs into Completed Today nested
+and greyed under it with the static badge; a left-fanned sub at the base edge sat flush against the
+church, confirmed via zoomed screenshot, never behind it. Zero app console errors (only
+extension-channel noise, unrelated to the app). **[P1-DATA-004] sub-task hierarchy ticket now fully
+CLOSED** — all 5 sub-sessions built (sessions 47–51).
+
 ## 2026-07-19 — Session 50: [P1-DATA-004] sub-session 4 BUILT — growing/shrinking parent visuals (Cowork session, Sonnet)
 
 **Decision — derive the render width fresh every tick from the live `subTasks` array, instead of

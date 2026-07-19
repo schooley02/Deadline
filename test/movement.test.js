@@ -92,6 +92,45 @@ describe('calculateTimelineXWithClustering', () => {
         const x = Movement.calculateTimelineXWithClustering(sub, now, { activeItems, dims: DIMS });
         expect(x).toBeCloseTo(200 + offset, 6);
     });
+
+    describe('left-fan off-field guard ([P1-DATA-004] sub-session 5)', () => {
+        // sub2 (id 3) is the SECOND sibling → left side, negative offset
+        // (mirrors the "second sub-task alternates to the left" case above).
+        function leftFanSiblings(parentX) {
+            const parent = { id: 1, category: 'relationships', x: parentX, type: 'task', dueDateTime: new Date(Date.now() + 3600000) };
+            const sub1 = { id: 2, parentId: 1, category: 'relationships', type: 'task', dueDateTime: new Date(Date.now() + 3600000) };
+            const sub2 = { id: 3, parentId: 1, category: 'relationships', type: 'task', dueDateTime: new Date(Date.now() + 3600000) };
+            return { parent, sub1, sub2, activeItems: [parent, sub1, sub2] };
+        }
+
+        test('parent flush against the base: a left-fanned sub would go negative of baseWidth — clamped to baseWidth instead', () => {
+            const now = new Date();
+            const { sub2, activeItems } = leftFanSiblings(DIMS.baseWidth); // parent.x == baseWidth (fully arrived)
+            const offset = Movement.getSubTaskClusterOffset(sub2, { activeItems, enemyWidth: DIMS.enemyWidth });
+            expect(DIMS.baseWidth + offset).toBeLessThan(DIMS.baseWidth); // sanity: unclamped math WOULD go behind the base
+
+            const x = Movement.calculateTimelineXWithClustering(sub2, now, { activeItems, dims: DIMS });
+            expect(x).toBe(DIMS.baseWidth); // floored, never behind the base
+        });
+
+        test('parent well clear of the base: the same left-fanned sub is NOT clamped, offset applies normally', () => {
+            const now = new Date();
+            const { sub2, activeItems } = leftFanSiblings(400); // far from base — plenty of room to the left
+            const offset = Movement.getSubTaskClusterOffset(sub2, { activeItems, enemyWidth: DIMS.enemyWidth });
+            const x = Movement.calculateTimelineXWithClustering(sub2, now, { activeItems, dims: DIMS });
+            expect(x).toBeCloseTo(400 + offset, 6);
+            expect(x).toBeGreaterThan(DIMS.baseWidth);
+        });
+
+        test('right-fanned sibling (positive offset) is unaffected by the guard even at the base edge', () => {
+            const now = new Date();
+            const { sub1, activeItems } = leftFanSiblings(DIMS.baseWidth);
+            const offset = Movement.getSubTaskClusterOffset(sub1, { activeItems, enemyWidth: DIMS.enemyWidth });
+            const x = Movement.calculateTimelineXWithClustering(sub1, now, { activeItems, dims: DIMS });
+            expect(x).toBeCloseTo(DIMS.baseWidth + offset, 6);
+            expect(offset).toBeGreaterThan(0);
+        });
+    });
 });
 
 describe('getParentGrowthScale / getParentRenderWidth (growing parent visuals, [P1-DATA-004] sub-session 4)', () => {

@@ -241,11 +241,32 @@ DECISIONS.md.
 - **Live-verify (Chrome):** add 3 subs → parent visibly larger with attached fan; complete subs →
   smooth shrink to 128px; no sprite drift at either extreme.
 
-### Sub-session 5 — polish (Sonnet, OPTIONAL — cut if play data says stop)
-- Parent agenda row progress label ("2/3 sub-tasks", live).
-- Completed subs render (nested, greyed) under the parent's Completed Today entry.
-- Left-fan off-field guard: when the cluster sits at the base edge, flip left-fan subs right (or
-  clamp x ≥ base width) so no sub hides behind the church.
+### Sub-session 5 — polish (Sonnet, OPTIONAL — cut if play data says stop) — BUILT 2026-07-19, session 51
+
+**[P1-DATA-004] now fully CLOSED** — all 5 sub-sessions built.
+
+- Parent agenda row progress label ("2/3 sub-tasks", live) — `AgendaList.createListItem`,
+  `.sub-task-progress` span. N = `completedSubTasks`, M = N + live `subTasks.length`.
+- Completed subs render (nested, greyed) under the parent's Completed Today entry —
+  `AgendaList.buildCompletedSubTaskRow` + `.completed-sub-item` CSS. **Deviated from the plan:
+  DISPLAY-ONLY, no uncomplete checkbox** (the plan assumed one). Live-Chrome testing found that an
+  interactive checkbox reopens a real orphan-hole variant: `Items.uncompleteItem` re-links a sub to
+  its parent by looking the parent up in the live `activeItems` array, but a parent whose own
+  completion is what put this sub in Completed Today has already left that array — the sub comes
+  back as an agenda-invisible, base-damaging zombie. This path was UNREACHABLE before this session
+  (nothing ever rendered a completed sub to un-check). Fixing `uncompleteItem` itself is a mechanics
+  change outside this session's UI-only scope, so the affordance was removed instead. See
+  DECISIONS.md session 51.
+- Left-fan off-field guard: clamp chosen (not flip-to-right) — `Movement.calculateTimelineXWithClustering`
+  floors a sub's final x at `dims.baseWidth`. Live-verified in Chrome: a left-fanned sub sits flush
+  against the church's right edge at the base edge, never behind it.
+
+38 suites (unchanged), 803 → 815 tests (+12: 4 progress-label, 5 completed-nesting incl. the
+display-only regression guard, 3 movement clamp). `node --check` clean on movement.js/agendaList.js/
+script.js. Live-verified in Chrome end-to-end:
+2-sub parent grew and progress label tracked live through both completions; parent completion moved
+both subs into Completed Today nested under it; base-edge left-fan sub sat flush against the church,
+never behind it. Zero app console errors (only extension-channel noise unrelated to the app).
 
 ---
 

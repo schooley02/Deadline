@@ -317,6 +317,29 @@ const AgendaList = (() => {
         }
         itemDetailsContainer.appendChild(itemCategorySpan);
 
+        // Sub-task progress label ([P1-DATA-004] sub-session 5, 2026-07-19):
+        // "N/M sub-tasks" for any task that has EVER had a sub-task, live —
+        // completed count comes from `completedSubTasks` (persists across
+        // completions), open count from the live `subTasks` array; M is their
+        // sum so a sub deleted rather than completed still counts toward the
+        // total it once had. No new hook needed: every path that changes
+        // either number (completeItem, removeItem, popups.js's sub-task
+        // creation, the uncomplete re-link path) already rebuilds the
+        // parent's listItemElement via createListItem, same pattern as the
+        // sub-session-4 growing/shrinking box.
+        if (itemData.type === 'task') {
+            const completedSubTasks = itemData.completedSubTasks || 0;
+            const openSubTasks = (itemData.subTasks || []).length;
+            const totalSubTasksEver = completedSubTasks + openSubTasks;
+            if (totalSubTasksEver > 0) {
+                const subTaskProgressSpan = document.createElement('span');
+                subTaskProgressSpan.classList.add('sub-task-progress');
+                subTaskProgressSpan.style.cssText = 'font-size: 12px; color: var(--color-neutral);';
+                subTaskProgressSpan.textContent = `${completedSubTasks}/${totalSubTasksEver} sub-tasks`;
+                itemDetailsContainer.appendChild(subTaskProgressSpan);
+            }
+        }
+
         // Add streak info for habits
         if (itemData.type === 'habit') {
             const streakSpan = document.createElement('span');
@@ -406,8 +429,89 @@ const AgendaList = (() => {
     }
 
     /**
-     * Render the completed-items list (below the active agenda). Sub-tasks
-     * are never shown here — only top-level completed items.
+     * Build one nested, greyed row for a completed sub-task under its
+     * parent's Completed Today entry ([P1-DATA-004] sub-session 5,
+     * 2026-07-19). DISPLAY-ONLY — no edit button, no uncomplete checkbox.
+     * This wasn't the original design (an interactive checkbox mirroring the
+     * top-level builder was tried first) but live-Chrome testing surfaced a
+     * real orphan-hole variant: Items.uncompleteItem only re-links a sub to
+     * its parent's subTasks/completedSubTasks counters by looking the parent
+     * up in the live `activeItems` array — but a parent whose own
+     * completion is what put this sub in Completed Today has ALREADY been
+     * removed from activeItems, so that lookup fails silently, the sub gets
+     * pushed back into activeItems as a live zombie with a dangling
+     * parentId, and (since nested-only rendering excludes any item with a
+     * parentId from the top-level list) it becomes agenda-invisible while
+     * still damaging the base — the same class of bug sub-session 1 closed
+     * for completion/deletion, just reached through a NEW path this
+     * session's nesting UI is what made reachable at all (no prior surface
+     * ever showed a completed sub to un-check). Fixing uncompleteItem itself
+     * is a mechanics change outside this session's UI-only scope, so the
+     * chosen fix is narrower: don't render the affordance that reaches the
+     * bug. A sub-task's completion is final from this view; only the
+     * top-level item's "Completed" checkbox remains interactive. See
+     * DECISIONS.md.
+     */
+    function buildCompletedSubTaskRow(subItem, deps) {
+        const li = document.createElement('li');
+        li.classList.add('completed-item', 'completed-sub-item');
+        li.classList.add(`category-${subItem.category}`);
+
+        const itemSpriteDiv = document.createElement('div');
+        itemSpriteDiv.classList.add('item-sprite');
+
+        const itemInfoDiv = document.createElement('div');
+        itemInfoDiv.classList.add('item-info');
+
+        const itemNameSpan = document.createElement('span');
+        itemNameSpan.classList.add('item-name');
+        itemNameSpan.textContent = subItem.name;
+
+        const itemCompletedSpan = document.createElement('span');
+        itemCompletedSpan.classList.add('item-completed');
+        itemCompletedSpan.textContent = `Completed: ${subItem.completedAt.toLocaleString([], {
+            dateStyle: 'short',
+            timeStyle: 'short'
+        })}`;
+
+        itemInfoDiv.appendChild(itemNameSpan);
+        itemInfoDiv.appendChild(itemCompletedSpan);
+
+        const itemCategorySpan = document.createElement('span');
+        itemCategorySpan.classList.add('item-category');
+        itemCategorySpan.textContent = subItem.category.charAt(0).toUpperCase() + subItem.category.slice(1);
+
+        const currentCategoryStyle = deps.categoryStyles[subItem.category] || deps.categoryStyles["other"];
+        itemCategorySpan.style.backgroundColor = currentCategoryStyle.bgColor;
+        if (currentCategoryStyle.textColorClass) {
+            itemCategorySpan.classList.add(currentCategoryStyle.textColorClass);
+        }
+        itemInfoDiv.appendChild(itemCategorySpan);
+
+        // Static "Completed" badge — NOT an interactive checkbox. See the
+        // function header comment for why this row deliberately offers no
+        // way to uncomplete a nested sub from this view.
+        const itemStatusDiv = document.createElement('div');
+        itemStatusDiv.classList.add('item-status');
+        itemStatusDiv.style.cssText = 'display: flex; justify-content: flex-end; gap: 10px; align-items: center; height: 100%;';
+
+        const completedBadge = document.createElement('span');
+        completedBadge.classList.add('completed-sub-badge');
+        completedBadge.textContent = '✓ Completed';
+        itemStatusDiv.appendChild(completedBadge);
+
+        li.appendChild(itemSpriteDiv);
+        li.appendChild(itemInfoDiv);
+        li.appendChild(itemStatusDiv);
+
+        return li;
+    }
+
+    /**
+     * Render the completed-items list (below the active agenda). Completed
+     * sub-tasks render nested/greyed directly under their parent's entry
+     * ([P1-DATA-004] sub-session 5, 2026-07-19 — via buildCompletedSubTaskRow)
+     * rather than as their own top-level rows.
      *
      * deps: { completedItems (getter), categoryStyles, showEditTaskModal,
      *         uncompleteItem }
@@ -508,6 +612,19 @@ const AgendaList = (() => {
                 li.appendChild(itemStatusDiv);
 
                 completedItemsList.appendChild(li);
+
+                // Nested completed sub-tasks ([P1-DATA-004] sub-session 5):
+                // pulled from the SAME completedItems list (subs land there
+                // via their own completeItem call, same as any top-level
+                // item — only the top-level render skip at the top of this
+                // forEach kept them from ever being drawn before this
+                // session), matched by parentId, most-recently-completed
+                // first to match the parent list's own sort.
+                sortedCompletedItems
+                    .filter(sub => sub.parentId === item.id)
+                    .forEach(sub => {
+                        completedItemsList.appendChild(buildCompletedSubTaskRow(sub, deps));
+                    });
             });
         } else {
             completedTasksSection.classList.add('hidden');
@@ -537,6 +654,7 @@ const AgendaList = (() => {
         sortAndRenderActiveList,
         resetAllSubTaskCheckboxes,
         renderCompletedItems,
+        buildCompletedSubTaskRow,
         showEditHabitInstanceModal
     };
 })();

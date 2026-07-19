@@ -319,3 +319,24 @@
 .completed-tasks-list .item-category {
     opacity: 0.6;
 }
+
+/* Nested completed sub-tasks ([P1-DATA-004] sub-session 5, 2026-07-19) —
+   sits directly after its parent's <li> in DOM order, indented + extra-greyed
+   so it reads as "belongs to the entry above" rather than a peer top-level
+   completed item. */
+.completed-tasks-list li.completed-sub-item {
+    margin-left: var(--space-6, 24px);
+    margin-top: calc(-1 * var(--space-2));
+    opacity: 0.45;
+    padding-top: var(--space-2);
+    padding-bottom: var(--space-2);
+}
+
+.completed-tasks-list li.completed-sub-item:hover {
+    opacity: 0.7;
+}
+
+.completed-tasks-list li.completed-sub-item .item-sprite {
+    width: 32px;
+    height: 32px;
+}

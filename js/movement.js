@@ -114,12 +114,26 @@ const Movement = (() => {
 
         const offsetCtx = { activeItems, enemyWidth: dims.enemyWidth };
         const parentTask = activeItems.find(p => p.id === item.parentId);
-        if (!parentTask) return ownTimelineX + getSubTaskClusterOffset(item, offsetCtx);
+        // Left-fan off-field guard ([P1-DATA-004] sub-session 5, 2026-07-19):
+        // a left-fanned sub gets a NEGATIVE cluster offset (getSubTaskClusterOffset),
+        // so once the parent nears the base (parentTask.x approaches baseWidth,
+        // the minimum any item can reach — see Clock.calculateTimelinePosition),
+        // parentTask.x + offset can dip below baseWidth and hide the sub's
+        // sprite behind the church graphic. Clamping the FINAL x to baseWidth
+        // is the chosen guard (over flipping the sub to the right side) —
+        // it's a one-line floor with no fan-order/idx side effects, and a sub
+        // sitting flush against the base's right edge instead of slightly
+        // behind it is a fully acceptable visual at that extreme. Right-fan
+        // subs (positive offset) are never affected in practice — their
+        // offset only grows the further right of the base they already are.
+        if (!parentTask) {
+            return Math.max(ownTimelineX + getSubTaskClusterOffset(item, offsetCtx), dims.baseWidth);
+        }
 
         if (parentTask.x - ownTimelineX > CONFIG.SUBTASK_AHEAD_THRESHOLD_PX) {
             return ownTimelineX; // due much earlier than parent — show real urgency
         }
-        return parentTask.x + getSubTaskClusterOffset(item, offsetCtx);
+        return Math.max(parentTask.x + getSubTaskClusterOffset(item, offsetCtx), dims.baseWidth);
     }
 
     // Sub-tasks bottom-align with their parent (feet on the same ground line)

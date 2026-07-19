@@ -324,3 +324,124 @@ describe('AgendaList.createListItem — sub-task rendering', () => {
         expect(() => AgendaList.createListItem(task, makeDeps())).not.toThrow();
     });
 });
+
+describe('AgendaList.createListItem — sub-task progress label ([P1-DATA-004] sub-session 5)', () => {
+    test('a task that never had a sub-task shows no progress label', () => {
+        const task = makeTask(); // subTasks: [], no completedSubTasks field
+        AgendaList.createListItem(task, makeDeps());
+        expect(findByClass(task.listItemElement, 'sub-task-progress')).toHaveLength(0);
+    });
+
+    test('shows "N/M sub-tasks" combining completed + still-open counts', () => {
+        const task = makeTask({ subTasks: ['s1', 's2'], completedSubTasks: 1 });
+        AgendaList.createListItem(task, makeDeps({ activeItems: [] }));
+        const label = findByClass(task.listItemElement, 'sub-task-progress')[0];
+        expect(label.textContent).toBe('1/3 sub-tasks'); // 1 done + 2 still open = 3 ever
+    });
+
+    test('all subs completed and none open still shows the full count, not blank', () => {
+        const task = makeTask({ subTasks: [], completedSubTasks: 3 });
+        AgendaList.createListItem(task, makeDeps());
+        const label = findByClass(task.listItemElement, 'sub-task-progress')[0];
+        expect(label.textContent).toBe('3/3 sub-tasks');
+    });
+
+    test('a habit never renders the progress label even if the field is somehow present', () => {
+        const habit = makeHabit({ completedSubTasks: 2, subTasks: ['x'] });
+        AgendaList.createListItem(habit, makeDeps());
+        expect(findByClass(habit.listItemElement, 'sub-task-progress')).toHaveLength(0);
+    });
+});
+
+describe('AgendaList.renderCompletedItems — nested completed sub-tasks ([P1-DATA-004] sub-session 5)', () => {
+    let completedTasksSection, completedItemsList;
+
+    beforeEach(() => {
+        completedTasksSection = makeElement('div');
+        completedItemsList = makeElement('ul');
+        const elementsById = {
+            completedTasksSection,
+            completedItemsList
+        };
+        global.document.getElementById = jest.fn(id => elementsById[id]);
+    });
+
+    const categoryStyles = { work: { bgColor: '#123456' }, other: { bgColor: '#ccc' } };
+
+    function makeCompletedDeps(items) {
+        return {
+            completedItems: () => items,
+            categoryStyles,
+            showEditTaskModal: jest.fn(),
+            uncompleteItem: jest.fn()
+        };
+    }
+
+    test('a top-level completed item with no completed subs renders just its own row', () => {
+        const parent = { id: 'p1', name: 'Parent', category: 'work', completedAt: new Date('2026-07-19T10:00:00Z') };
+        AgendaList.renderCompletedItems(makeCompletedDeps([parent]));
+
+        expect(completedItemsList.children).toHaveLength(1);
+        expect(findByClass(completedItemsList.children[0], 'completed-sub-item')).toHaveLength(0);
+    });
+
+    test('a completed sub-task renders immediately after its parent, marked completed-sub-item', () => {
+        const parent = { id: 'p1', name: 'Parent', category: 'work', completedAt: new Date('2026-07-19T10:00:00Z') };
+        const sub = { id: 's1', name: 'Sub one', category: 'work', parentId: 'p1', completedAt: new Date('2026-07-19T09:00:00Z') };
+        AgendaList.renderCompletedItems(makeCompletedDeps([parent, sub]));
+
+        expect(completedItemsList.children).toHaveLength(2);
+        expect(completedItemsList.children[0].classList.contains('completed-sub-item')).toBe(false);
+        expect(completedItemsList.children[1].classList.contains('completed-sub-item')).toBe(true);
+        expect(findByText(completedItemsList.children[1], 'Sub one')).toHaveLength(1);
+    });
+
+    test('a completed sub-task never renders as its own top-level row', () => {
+        const parent = { id: 'p1', name: 'Parent', category: 'work', completedAt: new Date('2026-07-19T10:00:00Z') };
+        const sub = { id: 's1', name: 'Sub one', category: 'work', parentId: 'p1', completedAt: new Date('2026-07-19T09:00:00Z') };
+        AgendaList.renderCompletedItems(makeCompletedDeps([parent, sub]));
+
+        // Only ONE row should carry the plain top-level 'completed-item' class
+        // without 'completed-sub-item' — i.e. the sub never gets its own
+        // peer entry alongside the parent.
+        const topLevelOnly = completedItemsList.children.filter(
+            li => li.classList.contains('completed-item') && !li.classList.contains('completed-sub-item')
+        );
+        expect(topLevelOnly).toHaveLength(1);
+    });
+
+    test('multiple completed subs under one parent all nest, most-recent first', () => {
+        const parent = { id: 'p1', name: 'Parent', category: 'work', completedAt: new Date('2026-07-19T12:00:00Z') };
+        const subA = { id: 's1', name: 'Sub A', category: 'work', parentId: 'p1', completedAt: new Date('2026-07-19T10:00:00Z') };
+        const subB = { id: 's2', name: 'Sub B', category: 'work', parentId: 'p1', completedAt: new Date('2026-07-19T11:00:00Z') };
+        AgendaList.renderCompletedItems(makeCompletedDeps([parent, subA, subB]));
+
+        expect(completedItemsList.children).toHaveLength(3);
+        expect(findByText(completedItemsList.children[1], 'Sub B')).toHaveLength(1); // later completion first
+        expect(findByText(completedItemsList.children[2], 'Sub A')).toHaveLength(1);
+    });
+
+    test('a nested sub row is display-only — no uncomplete checkbox, unlike its top-level parent', () => {
+        // Regression guard for a real orphan-hole bug found live in Chrome
+        // (2026-07-19): Items.uncompleteItem re-links a sub to its parent by
+        // looking the parent up in the live activeItems array, but a parent
+        // that has ITSELF already completed is no longer in that array — the
+        // lookup silently fails, and the sub comes back as an
+        // agenda-invisible, base-damaging orphan (nested-only rendering
+        // excludes anything with a parentId from the top-level list). The
+        // fix is not rendering the affordance that reaches it.
+        const parent = { id: 'p1', name: 'Parent', category: 'work', completedAt: new Date('2026-07-19T10:00:00Z') };
+        const sub = { id: 's1', name: 'Sub one', category: 'work', parentId: 'p1', completedAt: new Date('2026-07-19T09:00:00Z') };
+        const deps = makeCompletedDeps([parent, sub]);
+        AgendaList.renderCompletedItems(deps);
+
+        const parentRow = completedItemsList.children[0];
+        const subRow = completedItemsList.children[1];
+
+        expect(findByClass(parentRow, 'completion-checkbox-input')).toHaveLength(1); // parent keeps its checkbox
+        expect(findByClass(subRow, 'completion-checkbox-input')).toHaveLength(0);     // sub does not
+        expect(findByText(subRow, '✓ Completed')).toHaveLength(1);                   // static badge instead
+
+        expect(deps.uncompleteItem).not.toHaveBeenCalled();
+    });
+});

@@ -13,6 +13,64 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 51: [P1-DATA-004] sub-session 5 BUILT — polish, ticket CLOSED (Cowork session, Sonnet)
+
+**Did:** SUBTASKS_PLAN.md sub-session 5, built rather than cut (Jeremy's call at session start).
+Three items: (1) live "N/M sub-tasks" agenda progress label next to a parent's category badge
+(`AgendaList.createListItem`, `.sub-task-progress`) — N = `completedSubTasks`, M = N + live
+`subTasks.length`. (2) Completed sub-tasks now nest, indented and greyed, under their parent's
+Completed Today entry (`AgendaList.buildCompletedSubTaskRow`, `.completed-sub-item` CSS) instead of
+never appearing at all. **Deviated from plan: DISPLAY-ONLY, no uncomplete checkbox** — live-Chrome
+testing found an interactive one reopens a real orphan-hole variant (see Watch out). (3) Left-fan
+off-field guard: `Movement.calculateTimelineXWithClustering` floors a sub's resolved x at
+`dims.baseWidth` so a left-fanned sub can't slide behind the church sprite when the parent's near
+the base — clamp chosen over flip-to-right (simpler, no fan-index side effects). 12 new tests across
+`test/agenda-list.test.js` (+9) and `test/movement.test.js` (+3). Docs: MECHANICS.md ("Sub-tasks"
+polish bullet), UI_UX.md (progress label + Completed Today nesting), SUBTASKS_PLAN.md (sub-session 5
+marked built + the display-only deviation explained), ROADMAP.md (sub-session 5 checked,
+**[P1-DATA-004] closed**), DECISIONS.md (3 decisions: display-only nesting, clamp-not-flip, progress
+label derivation).
+
+**State:** ✅ **38 suites (unchanged), 815/815** (+12 over session 50's 803). `node --check` clean on
+movement.js/agendaList.js/script.js. **Live-verified in Chrome against the real running server:**
+built a 2-sub parent, watched the progress label track 0/1 → 0/2 → 1/2 → 2/2 live through both sub
+completions with the parent box shrinking back to exactly 128px; completed the parent and confirmed
+both subs appeared nested/greyed under it in Completed Today with the static "✓ Completed" badge
+(zoomed screenshot); confirmed a left-fanned sub sitting flush against the church's right edge at the
+base edge, not behind it (zoomed screenshot, before vs. after clamp math sanity-checked). Zero app
+console errors (3 "message channel closed" exceptions are extension-channel noise, unrelated to the
+app — confirmed by pattern-filtering the console for agendaList/movement/Uncaught/TypeError and
+getting nothing). Hit and recovered from the documented `confirm()` freeze on the dev Reset button
+via the `window.confirm` stub + direct `.click()` workaround; dev save reset clean afterward.
+
+**Next:** Next unchecked Milestone 3 item is "Run history + run review screen" — unplanned, needs a
+sequencing/design session first (Opus for first-pass planning, Fable if real design forks show up),
+same pattern as SUBTASKS_PLAN.md/HEROES_PLAN.md/FROZEN_SLOTS_PLAN.md/NEGATIVE_HABITS_PLAN.md before
+it. With [P1-DATA-004] now closed, Milestone 3's only remaining unchecked items are that and the
+already-deferred "Day-advance — LIVE mid-session rollover" (low priority, Jeremy's call from session
+32).
+
+**Watch out:**
+- **A completed sub-task's own "undo" is now a closed door, not a fixed bug.** The orphan-hole
+  variant found this session (uncompleting a sub whose parent already completed silently fails to
+  re-link and produces an agenda-invisible, base-damaging zombie) is real and still exists in
+  `Items.uncompleteItem` — this session only removed the ONE UI affordance that could reach it
+  (the nested Completed-Today checkbox). If any FUTURE UI surface offers "undo" on a completed
+  sub-task (e.g. a future run-history screen, an edit-log undo, anything that calls
+  `uncompleteItem` on an item with a `parentId`), re-check whether that item's parent is still in
+  `activeItems` first, or re-derive this session's fix. Full repro + reasoning in DECISIONS.md
+  session 51.
+- `State.sanitizeOrphanedSubTasks` (session 47) DOES clean up this exact orphan on the next reload —
+  found live this session when a stray orphaned "Sub A" survived a page navigate and came back as a
+  healed standalone top-level task. That's a safety net for the persisted state, not a fix for the
+  live, in-session window where the zombie is invisible and still damaging the base — hence still
+  closing the UI path rather than relying on the sanitizer alone.
+- `totalSubTasks` on the schema is a pre-existing naming trap: it's kept in sync with the OPEN
+  sub-task count (`subTasks.length`), not a lifetime total, despite the name. The new progress label
+  deliberately does NOT read it — it derives its own total as `completedSubTasks + subTasks.length`.
+  If a future session is tempted to use `totalSubTasks` for anything "total"-shaped, re-check its
+  actual semantics first (items.js lines ~505/593/941 sync it, all to the open count).
+
 ## 2026-07-19 — Session 50: [P1-DATA-004] sub-session 4 BUILT — growing/shrinking parent visuals (Cowork session, Sonnet)
 
 **Did:** SUBTASKS_PLAN.md sub-session 4, fully per plan. New `CONFIG.PARENT_GROWTH_PER_SUB`/
