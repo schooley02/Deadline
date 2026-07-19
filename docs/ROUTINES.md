@@ -33,6 +33,25 @@ Routines can be deactivated (vacation/seasonal) and reactivated. Deactivating a 
   1. Edit the habit's details (any change counts; change tracking records what was modified), OR
   2. Successfully avoid the negative habit for 3 consecutive days while it stays active.
 - Daily check-in prompt (morning or first login) asks individual confirmation for each incomplete negative habit, validating avoidance streaks.
+  **BUILT 2026-07-19 (sub-session 4, [P1-DATA-005]):** the check-in SURFACE only
+  (frozen slots themselves remain unbuilt — separate ticket above). At restore-path
+  rollover, the negative habit's lurker instance for the SINGLE most recent prior
+  day is no longer silently auto-resolved — `js/dayRollover.js`'s
+  `isFromPreviousDay` + `state.js`'s rollover routing instead route it to
+  `Items.markPendingCheckIn`, which records an additive `pendingCheckIn:
+  { originalDueDate }` marker on the habit definition (no schema bump — absent on
+  every pre-existing habit/save, same precedent as `definedTasks`) and removes the
+  lurker so today's fresh one spawns without a duplicate. On next page load,
+  `js/ui/checkIn.js`'s `showCheckInModal` renders one card per pending habit:
+  "Did you successfully avoid [name] yesterday?" with **Successfully avoided** /
+  **I indulged** buttons (`Items.resolvePendingCheckIn`, mirroring
+  `settleStaleRecurringInstance`'s avoid path / `indulgeHabit`'s debit path
+  respectively) plus the spec's "I'll check this later" snooze — a plain
+  in-session `setTimeout` (`CONFIG.CHECK_IN_SNOOZE_MS`, 4 hours), NOT persisted
+  across reload (a reload before 4 hours just re-prompts immediately; this ticket
+  built the surface, not a scheduling system). Days OLDER than the previous day
+  still auto-resolve as avoided via the existing `settleStaleRecurringInstance`
+  path (session 26's generous default) — this surface never sees those.
 
 ## Routine A/B Testing
 Run one routine variant for 6 weeks, another for the next 6; compare streaks/performance. Routine View ranks routines by level (top performers first).

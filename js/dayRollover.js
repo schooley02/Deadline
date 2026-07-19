@@ -59,10 +59,24 @@ const DayRollover = (() => {
         );
     }
 
+    // True when `date` falls on the calendar day immediately BEFORE `now`'s
+    // day — the single "yesterday" the check-in surface prompts for
+    // (sub-session 4, [P1-DATA-005], 2026-07-19). Days older than that are
+    // NOT "the previous day" — the caller (state.js) routes those through
+    // the existing auto-avoid path instead (session 26's generous default),
+    // matching NEGATIVE_HABITS_PLAN.md's "days older than the previous day
+    // auto-resolve as avoided."
+    function isFromPreviousDay(date, now) {
+        const previousDayStart = startOfDay(now);
+        previousDayStart.setDate(previousDayStart.getDate() - 1);
+        return startOfDay(date).getTime() === previousDayStart.getTime();
+    }
+
     return {
         startOfDay,
         hasDayRolledOver,
         selectStaleRecurringInstances,
+        isFromPreviousDay,
     };
 })();
 

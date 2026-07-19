@@ -219,6 +219,10 @@ document.addEventListener('DOMContentLoaded', () => {
             generateDailyRoutineTaskInstances,
             // Day-advance mechanism (2026-07-19): restore-path day rollover.
             settleStaleRecurringInstance,
+            // Sub-session 4 ([P1-DATA-005], check-in prompt, 2026-07-19): the
+            // check-in-eligible counterpart, called instead for the single
+            // most-recent prior day's negative-habit lurker.
+            markPendingCheckIn,
             addItemToGame,
             createListItem,
             renderDefinedRoutines,
@@ -455,6 +459,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // prior-day recurring instance at day rollover. Call site: stateDeps().
     function settleStaleRecurringInstance(item) {
         Items.settleStaleRecurringInstance(item, itemsDeps());
+    }
+
+    // Thin wrappers — real implementations live in js/items.js (sub-session 4,
+    // [P1-DATA-005], 2026-07-19, check-in prompt). markPendingCheckIn is
+    // called by state.js's restoreGameState (stateDeps()); resolvePendingCheckIn
+    // is called by js/ui/checkIn.js when the player answers a check-in card
+    // (checkInDeps()).
+    function markPendingCheckIn(item) {
+        Items.markPendingCheckIn(item, itemsDeps());
+    }
+
+    function resolvePendingCheckIn(habitDefId, outcome) {
+        Items.resolvePendingCheckIn(habitDefId, outcome, itemsDeps());
+    }
+
+    // Builds the deps object for js/ui/checkIn.js's showCheckInModal
+    // (sub-session 4, [P1-DATA-005], 2026-07-19). definedHabits is a GETTER
+    // (reassigned on new-game reset / restoreGameState), matching the
+    // itemsDeps() precedent.
+    function checkInDeps() {
+        return {
+            getDefinedHabits: () => definedHabits,
+            resolvePendingCheckIn,
+        };
+    }
+
+    // Shows the check-in modal if restoring the save left any pendingCheckIn
+    // markers (state.js's rollover routing). Safe to call unconditionally —
+    // CheckIn.showCheckInModal no-ops when nothing is pending.
+    function showCheckInIfPending() {
+        if (typeof CheckIn !== 'undefined') {
+            CheckIn.showCheckInModal(checkInDeps());
+        }
     }
 
     function createSubTaskPrompt(parentId) {
@@ -1315,6 +1352,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize the game
     initGame();
     restoreGameState();
+    // Sub-session 4 ([P1-DATA-005], check-in prompt, 2026-07-19): if the
+    // rollover just ran (above) and left any negative-habit pendingCheckIn
+    // markers, prompt for them now.
+    showCheckInIfPending();
 
     // Flush any pending debounced save when the page hides or closes.
     // visibilitychange covers mobile Chrome, where beforeunload is unreliable.

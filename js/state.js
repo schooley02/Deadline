@@ -299,20 +299,35 @@ const State = (() => {
         // spawning today's, then advance currentGameDate so the generators below
         // use today. Without this, currentGameDate stayed frozen at the save's
         // value and today's habit/routine-task instances never spawned (the
-        // whole bug this fixes). Settlement per item lives in
-        // Items.settleStaleRecurringInstance (negative lurker → auto-avoided;
-        // positive habit → already miss-recorded on re-add above, then dropped;
-        // routine task → dropped). Runs AFTER the re-add loop (so a positive
+        // whole bug this fixes). Runs AFTER the re-add loop (so a positive
         // habit's miss is recorded by markAsOverdue) and BEFORE the generators.
         // Skipped for a game-over save (no settling a dead run). Base HP / offline
         // damage / regen / days-survived are unaffected — all derive from real
         // elapsed time, not the game day. LIVE mid-session crossing is a later
         // version; a running tab rolls over on its next reload. See DECISIONS.md.
+        //
+        // Sub-session 4 ([P1-DATA-005], check-in prompt, 2026-07-19): a stale
+        // negative-habit lurker no longer always auto-avoids. The SINGLE most
+        // recent prior day (DayRollover.isFromPreviousDay) routes through
+        // Items.markPendingCheckIn instead — the player answers it via the
+        // check-in surface (js/ui/checkIn.js) rather than a silent
+        // auto-resolve. Everything else — negative lurkers from OLDER days
+        // (session 26's generous default), positive habits (already
+        // miss-recorded above), routine tasks — still goes through
+        // Items.settleStaleRecurringInstance exactly as before.
         if (!save.gameIsOver) {
             const rolloverNow = new Date();
             if (DayRollover.hasDayRolledOver(deps.getCurrentGameDate(), rolloverNow)) {
                 DayRollover.selectStaleRecurringInstances(deps.getActiveItems(), rolloverNow)
-                    .forEach(item => deps.settleStaleRecurringInstance(item));
+                    .forEach(item => {
+                        const isCheckInEligible = item.type === 'habit' && item.isNegative === true &&
+                            DayRollover.isFromPreviousDay(item.originalDueDate, rolloverNow);
+                        if (isCheckInEligible) {
+                            deps.markPendingCheckIn(item);
+                        } else {
+                            deps.settleStaleRecurringInstance(item);
+                        }
+                    });
                 deps.setCurrentGameDate(DayRollover.startOfDay(rolloverNow));
                 // Drop settled (now-removed) items from the catch-up entry set so
                 // runOfflineCatchUp below doesn't animate/position ghosts whose DOM

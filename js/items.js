@@ -304,6 +304,86 @@ const Items = (() => {
     }
 
     /**
+     * deps: { definedHabits (getter), activeItems, updateTaskCountDisplay, saveGame }
+     *
+     * Sub-session 4 ([P1-DATA-005], check-in prompt, 2026-07-19): the
+     * check-in-eligible counterpart to settleStaleRecurringInstance above.
+     * The SINGLE most-recent prior day's negative-habit lurker (state.js
+     * decides eligibility via DayRollover.isFromPreviousDay) is NOT
+     * auto-resolved — instead the habit definition records a `pendingCheckIn`
+     * marker ({ originalDueDate }, additive field, no schema bump needed —
+     * absent on every pre-existing save/habit, same precedent as
+     * definedTasks in state.js's getPersistableState) and the lurker itself
+     * is removed so today's fresh lurker can spawn without a duplicate
+     * (mirrors the double-spawn reasoning in settleStaleRecurringInstance's
+     * header). No points/xp/streak change here — that's
+     * resolvePendingCheckIn's job once the player answers the check-in card
+     * (js/ui/checkIn.js).
+     */
+    function markPendingCheckIn(item, deps) {
+        const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
+        if (habitDef) {
+            habitDef.pendingCheckIn = { originalDueDate: item.originalDueDate };
+        }
+        removeItem(item.id, deps);
+    }
+
+    /**
+     * deps: { definedHabits (getter), xpPerHabitComplete, pointsPerHabit,
+     *         getPlayerXP, setPlayerXP, getPlayerPoints, setPlayerPoints,
+     *         updatePlayerDisplays, checkPlayerLevelUp, saveGame }
+     * Habits (applyHabitCompletion/applyHabitIndulgence) + Economy
+     * (addPoints/applyIndulgenceCost) called as bare globals.
+     *
+     * Sub-session 4 ([P1-DATA-005], 2026-07-19): resolves one pending
+     * check-in card. outcome is 'avoided' | 'indulged' — mirrors
+     * settleStaleRecurringInstance's avoid branch / indulgeHabit's debit
+     * branch respectively, but keyed off the persisted
+     * `pendingCheckIn.originalDueDate` marker since the lurker itself is
+     * long gone (removed at rollover by markPendingCheckIn). No-ops
+     * (defensively) if the habit has no pending check-in — e.g. a stale
+     * double-click on an already-resolved card.
+     */
+    function resolvePendingCheckIn(habitDefId, outcome, deps) {
+        const habitDef = deps.definedHabits().find(def => def.id === habitDefId);
+        if (!habitDef || !habitDef.pendingCheckIn) return;
+
+        const originalDueDate = habitDef.pendingCheckIn.originalDueDate;
+        const config = {
+            xpPerHabitComplete: deps.xpPerHabitComplete,
+            pointsPerHabit: deps.pointsPerHabit,
+            rateWindow: CONFIG.HABIT_RATE_WINDOW,
+            rateMinSample: CONFIG.HABIT_RATE_MIN_SAMPLE,
+            rateTiers: CONFIG.HABIT_RATE_TIERS
+        };
+
+        if (outcome === 'avoided') {
+            const result = Habits.applyHabitCompletion(
+                habitDef.streak, habitDef.occurrenceHistory, habitDef.isNegative, originalDueDate, config
+            );
+            habitDef.streak = result.streak;
+            habitDef.lastCompletionDate = result.lastCompletionDate;
+            habitDef.occurrenceHistory = result.occurrenceHistory;
+            deps.setPlayerXP(deps.getPlayerXP() + result.xpGained);
+            deps.setPlayerPoints(Economy.addPoints(deps.getPlayerPoints(), result.pointsGained));
+            deps.checkPlayerLevelUp();
+        } else if (outcome === 'indulged') {
+            const result = Habits.applyHabitIndulgence(
+                habitDef.streak, habitDef.occurrenceHistory, habitDef.isNegative, originalDueDate, config
+            );
+            if (!result.noOp) {
+                habitDef.streak = result.streak;
+                habitDef.occurrenceHistory = result.occurrenceHistory;
+                deps.setPlayerPoints(Economy.applyIndulgenceCost(deps.getPlayerPoints(), result.pointsLost));
+            }
+        }
+
+        delete habitDef.pendingCheckIn;
+        deps.updatePlayerDisplays();
+        deps.saveGame();
+    }
+
+    /**
      * deps: { isGameOver, activeItems, definedHabits (getter), pointsPerHabit,
      *         getPlayerPoints, setPlayerPoints, updatePlayerDisplays,
      *         updateTaskCountDisplay, saveGame }
@@ -607,6 +687,8 @@ const Items = (() => {
         indulgeHabit,
         removeItem,
         settleStaleRecurringInstance,
+        markPendingCheckIn,
+        resolvePendingCheckIn,
         uncompleteItem,
         markAsOverdue,
         recomputeOverdueStateAfterEdit

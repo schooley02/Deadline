@@ -295,7 +295,7 @@ via the exposed `serialize`/`deserialize`). Live-verified in Chrome: indulging f
 produced exactly "−5 · complete 1 task to break even" in red, persisted correctly across reload, no
 console errors. `docs/ECONOMY.md` updated in the same session.
 
-### Sub-session 4 — daily check-in prompt (Opus plan → Sonnet)
+### Sub-session 4 — daily check-in prompt (Opus plan → Sonnet) — ✅ BUILT 2026-07-19 session 33
 **Goal:** first-open-of-a-new-day prompt: one card per UNRESOLVED negative habit from the previous
 day, binary "Successfully avoided" (→ success occurrence + points + defeat explosion for a still-
 lurking zombie) / "I indulged" (→ retroactive miss via applyHabitIndulgence). Days older than the
@@ -303,6 +303,25 @@ previous day auto-resolve as avoided (generous default, session 26). Spec detail
 cheaply: PROJECT_SPEC.md ~640 (snooze link "I'll check this later"; skip = re-prompt later, not
 auto-resolve). Build ONLY the check-in surface — NOT frozen slots (separate ticket). Depends on
 Sub-session 2.
+
+**BUILT as specified above**, using the lurker itself was already gone by the time the check-in fires
+(it's removed at rollover, not left on the board) — so "defeat explosion for a still-lurking zombie"
+became "no on-board zombie to explode; the card resolves the deferred marker instead," a small,
+acceptable divergence from the literal spec wording that Jeremy didn't need to weigh in on (the
+economics are identical either way). `js/dayRollover.js`'s new `isFromPreviousDay` classifies the
+single most-recent stale day; `state.js`'s rollover routing forks negative-habit lurkers on it —
+previous day → `Items.markPendingCheckIn` (new: additive `habitDef.pendingCheckIn = {
+originalDueDate }` marker, no schema bump, lurker removed so today's spawns clean); older days →
+unchanged `settleStaleRecurringInstance` auto-avoid. `js/ui/checkIn.js` (new) renders the cards on
+boot via `resolvePendingCheckIn(habitDefId, 'avoided'|'indulged')`, which mirrors the existing
+avoid/indulge economics exactly. The snooze IS the spec's "I'll check this later" link, implemented
+as a plain in-session 4-hour `setTimeout` (`CONFIG.CHECK_IN_SNOOZE_MS`) — not persisted across
+reload, a deliberate simplification (this ticket builds the surface, not a scheduling system).
+25 suites, 482/482 (+9 new). Live-verified in Chrome: card appears only for the previous day's
+negative lurker (a same-day-stale positive habit correctly still auto-resolved silently); snooze
+closes without resolving and re-prompts on next reload; avoided awards XP/points/streak/occurrence;
+indulged debits points (non-clamping) and zeroes streak. No duplicate lurkers, no console errors.
+See DECISIONS.md session 33.
 
 ### Sub-session 5 — Cheat Day token (Sonnet; 4→5 schema migration lands here)
 **Goal:** add Cheat Day to `CONFIG.SHOP_ITEMS` (200 pts base — spec face value, unchanged; held-

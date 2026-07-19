@@ -13,6 +13,57 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 33: Sub-session 4 BUILT — daily check-in prompt (Cowork session, Opus plan → Sonnet execute)
+
+**Did:** Built the check-in surface flagged as unblocked in session 32. `js/dayRollover.js` gained
+`isFromPreviousDay(date, now)`. `js/state.js`'s rollover routing now forks: a negative-habit lurker
+from the SINGLE most recent prior day goes to new `Items.markPendingCheckIn` (additive
+`habitDef.pendingCheckIn = { originalDueDate }` marker, no schema bump; lurker removed so today's
+spawns clean) instead of `settleStaleRecurringInstance`'s silent auto-avoid; older stale days and
+everything else (positive habits, routine tasks) are unchanged. New `Items.resolvePendingCheckIn`
+mirrors the existing avoid/indulge economics. New `js/ui/checkIn.js` + `css/checkIn.css`: one card per
+pending habit, "Successfully avoided"/"I indulged" buttons, plus the spec's "I'll check this later"
+snooze (in-session 4-hour `setTimeout`, `CONFIG.CHECK_IN_SNOOZE_MS` — NOT persisted across reload).
+`script.js` wires thin wrappers + `checkInDeps()` + a boot-time `showCheckInIfPending()` call right
+after `restoreGameState()`. `index.html` gains the new script/link tags.
+
+**State:** ✅ **25 suites, 482/482** (+9: 3 new `DayRollover.isFromPreviousDay` cases, 6 new
+`test/items-checkin.test.js` cases). `node --check` clean on all touched files. **Live-verified in
+Chrome** using session 32's backdated-save trick (`Persistence.flush`/`requestSave` no-op'd in
+console, `currentGameDate` + the negative habit's `originalDueDate` set back one day, then reload):
+check-in card appeared for the negative habit only (the positive habit correctly still auto-resolved
+silently, no card); "I'll check this later" closed the modal without resolving, the marker persisted,
+and reloading (before the 4-hour timer) re-prompted immediately as designed; "Successfully avoided"
+raised XP 30→35 and points 0→5, streak 1→2, recorded a success occurrence, cleared the marker;
+re-backdating and choosing "I indulged" debited points 5→0, zeroed the streak, recorded a miss
+occurrence, cleared the marker. No duplicate lurkers spawned in any run, no app-code console errors.
+
+**Docs updated same session:** `docs/MECHANICS.md` (new "Daily Check-in" section + updated Day
+Rollover section for the two-way fork), `docs/ROUTINES.md` (frozen-slots section notes the check-in
+surface is now built), `docs/NEGATIVE_HABITS_PLAN.md` (sub-session 4 marked done with full detail),
+`docs/DECISIONS.md` (session 33), `docs/ROADMAP.md` (sub-session 4 checked).
+
+**Next:** sub-session 5 (Cheat Day token + the 4→5 schema migration) is the last item in the negative-
+habits plan — it needs sub-sessions 2+3 (both done), not sub-session 4, so it's actionable now. After
+that, Milestone 3's remaining open items are: frozen routine slots (now has a real check-in surface to
+build on), [P1-UI-006] hero/routine visuals, [P1-DATA-004] sub-task hierarchy, run history, and the
+deferred LIVE mid-session day-advance rollover. Jeremy's call which.
+
+**Watch out:**
+- **The check-in's snooze is intentionally NOT persisted** — if Jeremy snoozes then closes the tab
+  before the 4-hour timer, the card just reappears immediately on next open rather than waiting out
+  the snooze. This is documented/deliberate, not a bug — flag it if he reports it as unexpected.
+- **Testing this again:** same backdating trick as session 32 — neuter `Persistence.flush` /
+  `Persistence.requestSave` in the console BEFORE writing a hand-edited backdated save, then reload.
+  Set BOTH `currentGameDate` and the target habit instance's `originalDueDate` back exactly one day
+  from real "now" to land in the check-in's "previous day" window (two-plus days back auto-avoids
+  instead, per session 26's design).
+- Dev save still has the session-32 test artifacts (DebtTest-Snacking / PosTest-Water /
+  PushbackTest-Zombie) plus this session's live-verification mutations (points/XP/streak moved
+  during testing). Recommend Reset before real play.
+
+---
+
 ## 2026-07-19 — Session 32: Day-advance mechanism BUILT (restore path) (Cowork session, Opus plan → Sonnet execute)
 
 **Did:** Built the day-advance mechanism flagged in session 30. New pure `js/dayRollover.js`

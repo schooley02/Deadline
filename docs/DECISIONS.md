@@ -4,6 +4,26 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 33: Sub-session 4 BUILT — daily check-in prompt (Cowork session, Opus plan → Sonnet execute)
+
+**Problem:** session 30/32 left the previous day's negative-habit lurker silently auto-resolving as "avoided" at rollover — generous but never actually asked the player. NEGATIVE_HABITS_PLAN.md sub-session 4 (now unblocked by session 32's day-advance mechanism) specs a binary confirmation card instead, for the SINGLE most recent prior day only; older days keep the silent auto-avoid default (session 26).
+
+**Design (no open forks — session 26 already settled the semantics; this was pure execution):**
+- `js/dayRollover.js` gains `isFromPreviousDay(date, now)` — pure date classification, same shape as the file's existing helpers.
+- `js/state.js`'s rollover routing forks per stale item: a negative-habit lurker where `isFromPreviousDay(item.originalDueDate, now)` is true goes to the NEW `Items.markPendingCheckIn`; everything else (older negative lurkers, positive habits, routine tasks) still goes to the existing `Items.settleStaleRecurringInstance`, unchanged.
+- `Items.markPendingCheckIn` records `habitDef.pendingCheckIn = { originalDueDate }` — a plain additive field, no schema/version bump. Precedent: state.js's `definedTasks` handling already establishes "additive field, absent on old saves, no migration needed" for this exact codebase. Also avoids colliding with sub-session 5's planned 4→5 migration. The lurker itself is removed (mirrors the double-spawn reasoning from session 32/30) so today's fresh lurker spawns clean.
+- `Items.resolvePendingCheckIn(habitDefId, outcome, deps)` — `'avoided'` mirrors `settleStaleRecurringInstance`'s avoid branch (`Habits.applyHabitCompletion`, keyed to the marker's `originalDueDate`); `'indulged'` mirrors `indulgeHabit`'s debit branch (`Habits.applyHabitIndulgence` + non-clamping `Economy.applyIndulgenceCost`). Defensive no-op if the habit has no pending marker.
+- `js/ui/checkIn.js` (new, DOM-only, same shared-global pattern as popups.js) — one card per pending habit, binary buttons, plus the spec's "I'll check this later" snooze (PROJECT_SPEC.md ~646).
+- **Snooze is a plain in-session `setTimeout` (`CONFIG.CHECK_IN_SNOOZE_MS`, 4 hours), deliberately NOT persisted across reload** (Jeremy's call via the approved plan): a reload before 4 hours just re-prompts immediately on next restore. Simpler than a scheduling system, and honest — this ticket builds the check-in SURFACE only, not frozen slots or a notification/scheduling layer.
+
+**Structure:** `js/dayRollover.js` (+isFromPreviousDay), `js/items.js` (+markPendingCheckIn, +resolvePendingCheckIn), `js/state.js` (rollover fork), `js/ui/checkIn.js` (new), `css/checkIn.css` (new), `js/config.js` (+CHECK_IN_SNOOZE_MS), `script.js` (thin wrappers + checkInDeps() + boot-time `showCheckInIfPending()` call after restoreGameState), `index.html` (new script/link tags).
+
+**Tests:** 25 suites, 482/482 (+9: 3 new `DayRollover.isFromPreviousDay` cases in `test/dayRollover.test.js`; 6 new in `test/items-checkin.test.js` covering markPendingCheckIn + resolvePendingCheckIn avoided/indulged/no-op-if-missing-marker/no-op-if-habit-not-found). `node --check` clean on all touched files.
+
+**Live-verified in Chrome** (backdated the dev save's `currentGameDate` + the negative habit lurker's `originalDueDate` one day back, per session 32's documented `Persistence.flush`/`requestSave` no-op trick): check-in card appeared for DebtTest-Snacking only (the positive habit PosTest-Water correctly auto-resolved silently, unaffected); snooze closed the modal without resolving, `pendingCheckIn` marker persisted, and reloading before the 4-hour timer re-prompted immediately as designed; "Successfully avoided" awarded XP+points, incremented streak, recorded a success occurrence, cleared the marker; re-backdating and choosing "I indulged" debited points (5→0), zeroed the streak, recorded a miss occurrence, cleared the marker. No duplicate lurkers, no app-code console errors across any of the three runs.
+
+---
+
 ## 2026-07-19 — Session 32: Day-advance mechanism BUILT — restore-path day rollover (Cowork session, Opus plan → Sonnet execute)
 
 **Problem (recon from session 30):** `currentGameDate` was set once at initGame() and restored as-is; nothing advanced it. A session spanning midnight left the game on the old day — daily generators ran with a stale date, today's habit/routine-task instances never spawned, prior-day instances lingered. Base HP / offline damage / regen / days-survived derive from real elapsed time and were never affected — only the game-DAY concept.

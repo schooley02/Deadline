@@ -100,3 +100,24 @@ describe('DayRollover.selectStaleRecurringInstances', () => {
         expect(result).toEqual([priorHabit, priorRoutineTask]);
     });
 });
+
+// Sub-session 4 ([P1-DATA-005], check-in prompt, 2026-07-19): classifies
+// which stale day is "the previous day" (check-in eligible) vs older
+// (still auto-avoids). See state.js's rollover routing.
+describe('DayRollover.isFromPreviousDay', () => {
+    const today = at(2026, 6, 20, 9, 0);
+
+    test('true for yesterday, any time of day', () => {
+        expect(DayRollover.isFromPreviousDay(at(2026, 6, 19, 0, 1), today)).toBe(true);
+        expect(DayRollover.isFromPreviousDay(at(2026, 6, 19, 23, 59), today)).toBe(true);
+    });
+
+    test('false for today', () => {
+        expect(DayRollover.isFromPreviousDay(at(2026, 6, 20, 8, 0), today)).toBe(false);
+    });
+
+    test('false for two days ago or older (session 26 auto-avoid default applies instead)', () => {
+        expect(DayRollover.isFromPreviousDay(at(2026, 6, 18, 12, 0), today)).toBe(false);
+        expect(DayRollover.isFromPreviousDay(at(2026, 6, 10), today)).toBe(false);
+    });
+});

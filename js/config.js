@@ -14,6 +14,10 @@ const CONFIG = {
     // DECISIONS.md. Accelerated time, if ever reintroduced, goes behind a flag.
     MS_PER_REAL_DAY: 24 * 60 * 60 * 1000,
     PERSISTENCE_AUTOSAVE_MS: 5000, // safety-net save cadence (mutations also save directly, debounced)
+    // Daily check-in "I'll check this later" snooze (sub-session 4,
+    // [P1-DATA-005], 2026-07-19; spec PROJECT_SPEC.md ~646). Re-prompts within
+    // THIS session only — not persisted across reload (see js/ui/checkIn.js).
+    CHECK_IN_SNOOZE_MS: 4 * 60 * 60 * 1000,
 
     // --- Base ---
     MAX_BASE_HEALTH: 100,
