@@ -4,6 +4,24 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 24: Shop session 5 — balance re-tune, THEORY pass ([P1-UI-008] CLOSED) (Cowork session, Fable)
+
+**Mode decision (Jeremy):** theory pass now, real-play re-check later — every point in his save so far was injected or earned from seconds-old test tasks, so there was no real earn-rate data to tune against. The balance-tuning skill (Claude Code) isn't available in Cowork; its protocol was followed manually: all numbers in config.js, every number + rationale logged here, tests updated in the same session.
+
+**The yardstick:** a solid day ≈ **75–85 pts** (5 tasks incl. one high-priority = 60, + 4 habits at mid-tier ≈ 24). Every price below is judged against that.
+
+**Verdict 1 — repair kits VALIDATED, no changes (25/50/100 pts → 15/35/75 HP).** HP-per-point improves with tier (0.60/0.70/0.75) — a mild bulk reward that the exponential held-pricing pushes back against if you stockpile. Each tier's heal ≈ undoes 1/3/6 offline-neglected items (12 HP lifetime cap each). Costs ≈ ⅓ / ⅔ / 1.3 days of earnings. Free regen (12 HP/hr) keeps kits an emergency top-up rather than a subscription; even the large kit heals less than full, so kits never trivialize death. Rejected: re-anchoring heals to 12/36/72 (exact neglected-item multiples) — the mapping is invisible in-game and the numbers players see get uglier.
+
+**Verdict 2 — pushback stays FLAT at 50/100/300, no per-run inflation.** The session-23 interim call is now the tuned decision. Core argument: the points economy is CLOSED — points only come from completions, so pushing one item 1hr costs 5 completed tasks' earnings; pushback dependency is self-bankrupting without any added mechanism. Structure documented: stacking 1hr tokens breaks even with the 1-day token at exactly 6 hours, so hourlies serve small slips and the day token (~4 days of earnings) is the emergency parachute. Rejected: discounting the 2hr tier to 90 to give the middle tier a distinct role — diverges from ECONOMY.md's canonical face values for marginal gain. Revisit trigger: real play showing a large-bank player push-spamming a dreaded task daily.
+
+**Verdict 3 — habit rate tiers RE-TUNED (the one change): ≥90% 1.5×→2.0×, ≥70% 1.25×→1.5×.** Payouts move from 8/6/5 to **10/8/5**. Rationale: the old excellence bonus (+3 pts/habit/day) was weak against shop prices (a week of 90%+ on four habits barely bought a large kit), and the new top tier buys a legible anchor — **task parity: "a habit you keep at 90%+ pays like a task" (10 = POINTS_PER_TASK)**. Inflation is modest (+8 pts/day for a 4-habit excellent day). Changed: `CONFIG.HABIT_RATE_TIERS`, pinned values in `test/habits.test.js` (the multiplier tests deliberately pin config values so silent changes fail loudly — updated to pin the NEW values), ECONOMY.md, MECHANICS.md. `HABIT_RATE_WINDOW`/`MIN_SAMPLE` (14/7) unchanged.
+
+**Tests:** 19 suites, **407/407** after the tier/test updates. No live Chrome verification — the change is a pure config multiplier already covered by unit tests end-to-end (`pointsMultiplier` → `applyHabitCompletion` → refund symmetry), and no habit in the dev save has ≥7 recorded occurrences to exercise it live anyway.
+
+**[P1-UI-008] is CLOSED.** Shipped across sessions 20–24: pure core + persistence (v4), UI frame, repair-kit use, pushback targeting, balance pass. Day-tokens ride with [P1-DATA-005]. **Standing follow-up (in ROADMAP):** re-check all session-24 numbers against Jeremy's REAL earn rate after he's played some days — if reality differs much from the 75–85 pts/day yardstick, prices need another look.
+
+---
+
 ## 2026-07-19 — Session 23 addendum: pushback affordability feedback (Jeremy's catch, post-commit)
 
 Jeremy noticed the pushback tiers had no "not enough points" feedback — they just grayed out, unlike the shop Buy button's explicit disabled text. Fix: the "Push back this deadline:" label now carries a live "(you have N pts)" note whenever at least one tier is unaffordable, updated by `refreshPushbackUI` as points drop across stacked pushes. Chose a visible balance note over (a) a `title=` tooltip — invisible on mobile, the primary target — and (b) per-button "need N more" text — too cramped in three side-by-side buttons. Live-verified in Chrome at 0 points: note renders, all tiers disabled. `js/ui/popups.js` + `css/popups.css` only; no logic/pricing change; 407/407 unaffected.

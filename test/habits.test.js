@@ -129,13 +129,16 @@ describe('pointsMultiplier', () => {
     test('1x below the minimum sample, even at 100%', () => {
         expect(Habits.pointsMultiplier(history(6, 0), cfg)).toBe(1);
     });
-    test('1.5x at >= 90% once sample is met', () => {
-        expect(Habits.pointsMultiplier(history(9, 1), cfg)).toBe(1.5); // 90%
-        expect(Habits.pointsMultiplier(history(10, 0), cfg)).toBe(1.5); // 100%
+    // Multipliers re-tuned session 24 (2026-07-19): >=90% is task parity (2.0x
+    // of the 5-pt habit base = 10 = POINTS_PER_TASK); >=70% is 1.5x. Values
+    // pinned here on purpose so a silent config change fails loudly.
+    test('2x (task parity) at >= 90% once sample is met', () => {
+        expect(Habits.pointsMultiplier(history(9, 1), cfg)).toBe(2.0); // 90%
+        expect(Habits.pointsMultiplier(history(10, 0), cfg)).toBe(2.0); // 100%
     });
-    test('1.25x at >= 70% but < 90%', () => {
-        expect(Habits.pointsMultiplier(history(7, 3), cfg)).toBe(1.25); // 70%
-        expect(Habits.pointsMultiplier(history(8, 2), cfg)).toBe(1.25); // 80%
+    test('1.5x at >= 70% but < 90%', () => {
+        expect(Habits.pointsMultiplier(history(7, 3), cfg)).toBe(1.5); // 70%
+        expect(Habits.pointsMultiplier(history(8, 2), cfg)).toBe(1.5); // 80%
     });
     test('1x below 70%', () => {
         expect(Habits.pointsMultiplier(history(6, 4), cfg)).toBe(1); // 60%
@@ -156,10 +159,10 @@ describe('applyHabitCompletion (rate-based)', () => {
     });
 
     test('high success rate multiplies the points award', () => {
-        // 8 prior successes; today's completion makes 9/9 = 100% (>= min sample 7) -> 1.5x
+        // 8 prior successes; today's completion makes 9/9 = 100% (>= min sample 7) -> 2x (task parity)
         const result = Habits.applyHabitCompletion(8, history(8, 0), false, new Date(2026, 6, 18), RATE_CONFIG);
-        expect(result.multiplier).toBe(1.5);
-        expect(result.pointsGained).toBe(Math.round(CONFIG.POINTS_PER_HABIT * 1.5));
+        expect(result.multiplier).toBe(2.0);
+        expect(result.pointsGained).toBe(Math.round(CONFIG.POINTS_PER_HABIT * 2.0));
     });
 
     test('xpGained is always the flat per-completion amount (never multiplied)', () => {
@@ -189,7 +192,7 @@ describe('applyHabitUncompletion (rate-based, symmetric)', () => {
     });
 
     test('refund mirrors the award exactly (symmetric) — complete then uncomplete nets 0', () => {
-        // Start at 8/8 history. Complete today -> 9/9=100% -> 1.5x award.
+        // Start at 8/8 history. Complete today -> 9/9=100% -> 2x award.
         const due = new Date(2026, 6, 18);
         const start = history(8, 0);
         const comp = Habits.applyHabitCompletion(8, start, false, due, RATE_CONFIG);

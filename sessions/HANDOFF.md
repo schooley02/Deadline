@@ -13,6 +13,27 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 24: Shop sub-session 5 — balance THEORY pass — [P1-UI-008] CLOSED (Cowork session, Fable)
+
+**Did:** The final shop sub-session, run as a theory pass (Jeremy's call — no real earn-rate data exists yet; his save points were injected/test-earned). Yardstick derived: solid day ≈ 75–85 pts. Three verdicts, all Jeremy's on Fable (full rationale + rejected alternatives in DECISIONS.md session 24):
+1. **Repair kits validated as-is** (25/50/100 → 15/35/75) — improving HP-per-point, heals ≈ 1/3/6 neglected-item recoveries, free regen keeps them an emergency niche.
+2. **Pushback stays flat** (50/100/300) — closed economy is self-limiting; 6-hr stacking break-even vs the 1-day token documented; no persistence counter added.
+3. **Habit rate tiers re-tuned (the one change): ≥90% → 2.0× (task parity, 10 pts), ≥70% → 1.5× (8 pts)** — was 1.5×/1.25× (8/6). Changed `CONFIG.HABIT_RATE_TIERS` + the deliberately-pinned values in `test/habits.test.js` + ECONOMY.md + MECHANICS.md + config comments (placeholder flags removed).
+
+**State:** ✅ **19 suites, 407/407.** No live Chrome check — pure config multiplier, fully covered by unit tests (`pointsMultiplier` → award → symmetric refund), and no habit in the dev save has ≥7 occurrences to exercise it live anyway. **[P1-UI-008] CLOSED** — ROADMAP parent item checked with a standing follow-up: **re-check all session-24 numbers against Jeremy's real earn rate after real play** (if reality ≠ 75–85 pts/day, re-tune).
+
+**Docs updated same session:** SHOP_PLAN.md (session 5 checked — plan doc now fully complete), ROADMAP.md ([P1-UI-008] + sub-item 5 checked, follow-up noted), ECONOMY.md (tier values + shop balance rationale), MECHANICS.md (tier values), DECISIONS.md (session 24 entry).
+
+**Next:** Milestone 3 continues per the session-19 ordering: **[P1-DATA-005] positive/negative habit distinction** (points loss, negative balance) — entry points are the `occurrenceSuccess` seam (session 16) and `Economy.subtractPoints`'s documented non-clamping path. It's the 3-week-scale ticket; first session should SEQUENCE it into a plan doc (like SHOP_PLAN.md) before building. Opus for the sequencing, then per-session models. After it: frozen routine slots, then heroes/sub-tasks/run history. Day-tokens (cheat/sick/skip, 200 pts each) ride with P1-DATA-005 — cheat-day needs indulgence mechanics.
+
+**Watch out:**
+- **Dev save still holds session-23's synthetic state** (0 pts, ~65 HP, active `PushbackTest-Zombie` due 7/19 9:45am — will be overdue and ticking damage by next open — plus completed `ShopTest-*` debris). Recommend Reset at the start of real play so the balance follow-up gets clean earn-rate data.
+- The habit-tier change is invisible until a habit accumulates `HABIT_RATE_MIN_SAMPLE` (7) occurrences — don't mistake 1× awards in early play for a bug.
+- `test/habits.test.js` pins the tier values ON PURPOSE (silent config drift fails loudly) — if a future session changes `HABIT_RATE_TIERS`, update those pins in the same commit.
+- Sandbox scratch dir this session: `/sessions/great-sharp-franklin/dl-s23` (reused from session 23; config + habits.test.js re-copied before the test run).
+
+---
+
 ## 2026-07-19 — Session 23: Shop sub-session 4 — pushback items + enemy targeting (Cowork session, Opus plan → Sonnet)
 
 **Did:** Built pushback end-to-end per `docs/SHOP_PLAN.md` session 4, after resolving the two design calls on Opus (both Jeremy's): **(1) flat pushback pricing** — base cost every time, which is what `Shop.price` already returns for non-consumables, so zero pricing-code change; per-run inflation deferred to the session-5 balance pass to avoid a persistence migration here. **(2) pushback applies to all enemies** (task/sub-task/habit), uniform mechanic. Then executed on Sonnet:

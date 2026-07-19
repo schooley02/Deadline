@@ -63,14 +63,16 @@ const CONFIG = {
     // HABIT_RATE_WINDOW scheduled occurrences. Points only, never XP. 1× until at
     // least HABIT_RATE_MIN_SAMPLE occurrences are recorded, so a new habit can't
     // instantly max out. Tiers are checked high-to-low; first matching minRate
-    // wins; below the lowest tier the multiplier is 1×. All balance-protocol
-    // tunable — thresholds are legibility placeholders, to be re-tuned against
-    // real shop pricing once Milestone 3's shop exists. ---
+    // wins; below the lowest tier the multiplier is 1×.
+    // Multipliers TUNED 2026-07-19 (session 24 theory pass, Fable — see
+    // DECISIONS.md): the ≥90% tier is anchored to TASK PARITY — a habit kept at
+    // 90%+ pays round(5 × 2.0) = 10 pts, same as POINTS_PER_TASK. "A habit you
+    // keep excellently is worth a task." ≥70% pays round(5 × 1.5) = 8. ---
     HABIT_RATE_WINDOW: 14,
     HABIT_RATE_MIN_SAMPLE: 7,
     HABIT_RATE_TIERS: [
-        { minRate: 0.9, multiplier: 1.5 },
-        { minRate: 0.7, multiplier: 1.25 },
+        { minRate: 0.9, multiplier: 2.0 },
+        { minRate: 0.7, multiplier: 1.5 },
     ],
 
     // --- Progression ---
@@ -83,8 +85,12 @@ const CONFIG = {
     // 1.5^owned) where owned = currently-held count (Jeremy's call session 19).
     // v1 ships repair kits + pushback only; day-tokens (cheat/sick/skip) are
     // deferred until negative habits [P1-DATA-005] exist (see SHOP_PLAN.md).
-    // BALANCE: these are ECONOMY.md's placeholder numbers — the session-5
-    // tuning pass re-tunes them against real play (balance-tuning protocol).
+    // BALANCE: VALIDATED by the session-24 theory pass (2026-07-19, Fable —
+    // see DECISIONS.md): repair HP-per-point improves with tier (0.60/0.70/
+    // 0.75); heals ≈ undo 1/3/6 offline-neglected items (12 HP cap each);
+    // pushback stays FLAT-priced (the closed points economy is self-limiting)
+    // with a 6-hour stacking break-even against the 1-day tier. Re-check
+    // against REAL play data once Jeremy has some (scheduled in ROADMAP).
     //
     // Shape per item:
     //   id        stable key (persisted inventory is keyed by this)
