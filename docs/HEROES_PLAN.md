@@ -117,7 +117,7 @@ the routine-owned habit put `xp: 5` + `routineXpAwarded: 5` stamp in the save (p
 +5 as before); uncompleting refunded to exactly 0/0 with the stamp deleted and the occurrence
 popped. Zero app console errors (only the recurring extension messaging noise).
 
-### Sub-session 2 — routine health damage + KO/revive (Sonnet; escalate to Opus if the loop wiring fights back)
+### Sub-session 2 — routine health damage + KO/revive (Sonnet) — ✅ BUILT 2026-07-19 session 42
 **Goal:** fork 2's teeth. The base-damage tick path (live loop + offline catch-up + live-gap
 catch-up in `js/damage.js`/`js/loop.js`) also damages the breaching item's owning routine (items
 with `routineId`/`definitionId` → routine only; standalone items unchanged). At 0: set

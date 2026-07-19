@@ -52,6 +52,9 @@
  *                                //   Items.isNonThreatening — optional; the
  *                                //   pure catch-up functions fall back to an
  *                                //   inline equivalent if omitted)
+ *   damageRoutineForItem         // (item, amount) -> void  ([P1-UI-006] sub-
+ *                                //   session 2, 2026-07-19 — Items.damageRoutineForItem;
+ *                                //   optional, no-op if omitted)
  * }
  */
 const Damage = (() => {
@@ -263,11 +266,21 @@ const Damage = (() => {
         saveGame();
     }
 
+    // deps.damageRoutineForItem (optional, [P1-UI-006] sub-session 2,
+    // 2026-07-19): also damages the hit item's owning routine — Items loads
+    // AFTER this module, so it arrives as an injected collaborator (the
+    // isNonThreatening precedent already established for this file), same
+    // "collaborator omitted -> no-op" tolerance as every optional deps entry
+    // elsewhere. This one call site covers BOTH offline catch-up (reload) and
+    // live-gap catch-up (suspended loop), since both funnel through here —
+    // decided in-session that offline/gap damage CAN KO a routine, same as it
+    // can damage the base (see DECISIONS.md).
     function applyOfflineDamage(hits, deps) {
         for (const hit of hits) {
             if (deps.isGameOver()) break;
             hit.item.offlineDamageCharged = (hit.item.offlineDamageCharged || 0) + hit.dmg;
             damageBase(hit.dmg, deps);
+            if (deps.damageRoutineForItem) deps.damageRoutineForItem(hit.item, hit.dmg);
         }
     }
 

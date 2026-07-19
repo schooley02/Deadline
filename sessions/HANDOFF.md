@@ -13,6 +13,57 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 42: Orphaned-habit bug FIXED + HEROES_PLAN sub-session 2 BUILT (routine health/KO/revive) (Cowork session, Sonnet throughout)
+
+**Did:** Two chunks. (1) Orphaned-habit Known-bugs item (found session 41): Jeremy's call was
+migrate-to-standalone, matching the existing "removed from a routine → standalone" precedent. New
+`Routines.releaseOrphanedHabits(definedHabits, definedRoutines)` nulls a habit's `routineId` when
+its routine no longer exists; called from `deleteRoutine` (future deletions) and `state.js`'s
+`restoreGameState` (sweep on every load — heals pre-existing orphans, incl. Jeremy's real
+"Mindful Scrolling Check-in"). (2) HEROES_PLAN.md sub-session 2: the base-damage tick path (live
+loop + both catch-up paths) now also damages the breaching item's owning routine
+(`Items.damageRoutineForItem`, built on sub-session 1's unused `Heroes.applyRoutineDamage`/
+`shouldKo`); KO at 0 health auto-deactivates + recalls + fires a one-time notice
+(`FrozenNotice.showRoutineKoNotice`); manual reactivation gated to the day after KO
+(`DayRollover.hasDayRolledOver`), reviving at `HERO_REVIVE_HEALTH` (50). Decided in-session:
+offline/gap catch-up damage CAN KO (same per-item cap reasoning as base damage). Minor UI touch:
+`managementWindows.js`'s Routines popup shows a 💤 card + disabled "Revive" button while gated.
+Docs: ROUTINES.md (two new sections), ROADMAP.md, HEROES_PLAN.md, DECISIONS.md (both fixes).
+
+**State:** ✅ **33 suites, 654/654** (+15 over session 41's 639: 4 orphan-habit + 11 KO/damage).
+`node --check` clean on every touched file (script.js, items.js, damage.js, loop.js, routines.js,
+state.js, ui/frozenNotice.js, ui/managementWindows.js). **Live-verified in Chrome, both fixes, real
+dev save:** orphan fix confirmed via reload (habit's `routineId` now `null` in the actual save,
+zero errors). KO/revive verified END-TO-END through real gameplay code, not a synthetic call —
+seeded a routine at health 5 with a genuinely overdue habit instance, reloaded (hit a known
+save-mutation-vs-live-tab race, worked around with the session-40 neutering trick), watched the
+REAL offline catch-up path floor health at 0, KO the routine, recall its instance, and fire the
+exact notice copy. Routines popup showed the gated 💤/disabled-Revive state; same-day click did
+nothing; bypassing the disabled attribute still hit the backend alert; backdating `koAt` to
+yesterday flipped the button and a real click revived at health 50 with `koState` cleared and
+today's instances respawned. Zero real app console errors (only documented extension noise). Test
+artifacts cleaned from the dev save afterward.
+
+**Next:** HEROES_PLAN sub-session 3 — hero rendering at the base (avatar chips: category emoji,
+star row, level badge, health bar, state styling active/frozen/KO'd/inactive). Pure visuals, no new
+mechanics — Sonnet. `managementWindows.js` already has a KO-card precedent (this session's minor
+UI touch) to extend from.
+
+**Watch out:**
+- The save-mutation-via-`localStorage`-then-reload technique races against the live tab's own
+  `beforeunload`/autosave flush, which re-saves the OLD in-memory state and silently clobbers any
+  direct `localStorage` edit before the reload's restore ever reads it. Fix: stub
+  `Persistence.flush`/`Persistence.requestSave` to no-ops (session-40 precedent) BEFORE writing to
+  `localStorage`, then reload — confirmed working this session.
+- Offline-catch-up's animated path uses `requestAnimationFrame`, which browsers throttle hard in a
+  backgrounded/unfocused tab — a seeded KO can sit for 10+ seconds showing no effect until the tab
+  regains focus/interaction, then resolve instantly. Not a bug; just budget for it when live-testing
+  via automation.
+- Dev save now has a real KO'd-then-revived routine (health 50, `koState: null`) plus the pre-existing
+  session-40 test data — still worth a Reset before real play.
+
+---
+
 ## 2026-07-19 — Session 41: Spawn "bug" closed (not a bug) + [P1-UI-006] sequenced (HEROES_PLAN.md) + sub-session 1 BUILT (Cowork session)
 
 **Did:** Three chunks (Jeremy's calls to continue at each boundary). (1) Session 40's

@@ -209,16 +209,46 @@ const Routines = (() => {
         return { ok: true, routine };
     }
 
+    // Releases any habit whose routineId points at a routine no longer
+    // present in definedRoutines back to standalone (routineId: null).
+    // Mutates definedHabits in place; returns the count changed.
+    //
+    // Orphaned-habit fix (2026-07-19, see DECISIONS.md + ROADMAP.md Known
+    // bugs): a dangling routineId (its routine was deleted) used to leave
+    // the habit's DATA still pointing at a dead routine even though
+    // selectHabitDefsToSpawn's gating already treats it as standalone at
+    // spawn time — Jeremy's call was to make that consistent by actually
+    // clearing routineId, matching the existing "removed from a routine ->
+    // standalone" precedent (removeHabitFromRoutine, session 18). Two call
+    // sites: deleteRoutine (below), for the routine just deleted, and
+    // state.js's restoreGameState, as a defensive sweep on every load that
+    // also heals any orphan created before this fix existed.
+    function releaseOrphanedHabits(definedHabits, definedRoutines) {
+        const routineIds = new Set(definedRoutines.map(r => r.id));
+        let released = 0;
+        definedHabits.forEach(habitDef => {
+            if (habitDef.routineId != null && !routineIds.has(habitDef.routineId)) {
+                habitDef.routineId = null;
+                released++;
+            }
+        });
+        return released;
+    }
+
     // Removes a routine by id (mutates definedRoutines in place). FIRST
     // recalls any of its currently-active habit/task instances from the
     // board (the same clearActiveInstancesForRoutine path deactivation uses
     // — bugfix found live 2026-07-18: deleting a routine used to leave its
     // sprites/agenda rows stranded, pointing at a routine that no longer
     // existed. A delete is a superset of a deactivation, so it gets the same
-    // recall. See DECISIONS.md.). Returns the removed routine, or null if
-    // not found. Caller owns the confirm() dialog before calling and
-    // save/render after.
-    // deps = { definedRoutines, activeItems, removeItem }
+    // recall. See DECISIONS.md.). THEN releases any of its member habits to
+    // standalone via releaseOrphanedHabits (2026-07-19 fix — deps.definedHabits
+    // is OPTIONAL, same "collaborator omitted -> no-op" precedent elsewhere,
+    // so pre-existing callers/tests that don't pass it still work, just
+    // without the release). Returns the removed routine, or null if not
+    // found. Caller owns the confirm() dialog before calling and save/render
+    // after.
+    // deps = { definedRoutines, activeItems, removeItem, definedHabits? }
     function deleteRoutine(routineId, deps) {
         const routineIndex = deps.definedRoutines.findIndex(r => r.id === routineId);
         if (routineIndex === -1) return null;
@@ -226,6 +256,11 @@ const Routines = (() => {
         clearActiveInstancesForRoutine(routineId, deps);
 
         const [removed] = deps.definedRoutines.splice(routineIndex, 1);
+
+        if (deps.definedHabits) {
+            releaseOrphanedHabits(deps.definedHabits, deps.definedRoutines);
+        }
+
         return removed;
     }
 
@@ -499,11 +534,25 @@ const Routines = (() => {
     // deps = {
     //   definedRoutines, routineSlots, activeItems, removeItem, alert,
     //   generateDailyHabitInstances, generateDailyRoutineTaskInstances,
-    //   currentGameDate, saveGame
+    //   currentGameDate, saveGame, now?
     // }
     function toggleRoutineActive(routineId, deps) {
         const routine = deps.definedRoutines.find(r => r.id === routineId);
         if (!routine) return;
+
+        // KO revive gating ([P1-UI-006] sub-session 2, 2026-07-19, HEROES_PLAN.md
+        // fork 2): a knocked-out routine can't be manually reactivated until the
+        // calendar day AFTER the KO (DayRollover.hasDayRolledOver — same
+        // local-midnight discipline as the day-advance mechanism). `deps.now`
+        // is OPTIONAL (defaults to `new Date()`) so tests can backdate without
+        // faking the system clock.
+        if (!routine.isActive && routine.koState) {
+            const now = deps.now ? deps.now() : new Date();
+            if (!DayRollover.hasDayRolledOver(new Date(routine.koState.koAt), now)) {
+                deps.alert(`${routine.name} is knocked out — it can be revived starting tomorrow.`);
+                return;
+            }
+        }
 
         const activeRoutines = deps.definedRoutines.filter(r => r.isActive).length;
 
@@ -518,6 +567,13 @@ const Routines = (() => {
         if (wasActive && !routine.isActive) {
             clearActiveInstancesForRoutine(routineId, deps);
         } else if (!wasActive && routine.isActive) {
+            // Revive: clears the day-gated KO from above and restores health
+            // to CONFIG.HERO_REVIVE_HEALTH (a no-op branch when the routine
+            // was never KO'd — koState is simply absent).
+            if (routine.koState) {
+                routine.koState = null;
+                routine.health = CONFIG.HERO_REVIVE_HEALTH;
+            }
             // Spawning today's due instances immediately on activation is the
             // symmetric counterpart to the immediate recall above (2026-07-18
             // fix — see DECISIONS.md).
@@ -535,6 +591,7 @@ const Routines = (() => {
         generateDailyRoutineTaskInstances,
         createRoutineDefinition,
         deleteRoutine,
+        releaseOrphanedHabits,
         removeHabitFromRoutine,
         removeTaskFromRoutine,
         createNewHabitInRoutine,

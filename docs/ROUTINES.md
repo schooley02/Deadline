@@ -38,6 +38,34 @@ Routines can be deactivated (vacation/seasonal) and reactivated. Deactivating a 
 
 **Reactivating a routine spawns today's due instances immediately** (fixed 2026-07-18, same day as the gating fix above — the first version of this made activation spawn nothing until the next daily pass/reload, which Jeremy hit live: create a routine, add a task, activate it, nothing appeared). `toggleRoutineActive` calls both daily generators on the inactive→active transition, the direct counterpart to the immediate recall on active→inactive.
 
+## Deletion & Orphaned Habits (fixed 2026-07-19)
+Deleting a routine (`Routines.deleteRoutine`) releases its member habits to standalone (`habitDef.routineId = null`) via `Routines.releaseOrphanedHabits`, the same "removal = standalone" behavior single-habit removal already had (see above). This was a gap before 2026-07-19: `selectHabitDefsToSpawn`'s gating already treated a dangling `routineId` as standalone at spawn time, but the underlying data was never actually corrected, so deleted routines left behind habits that still pointed at a dead routine id. `state.js`'s `restoreGameState` also runs `releaseOrphanedHabits` as a sweep on every load, healing any save written before this fix (or any other edge case). Routine TASK definitions have no back-reference (`routineId`) to orphan — they're only referenced via the routine's own `taskDefinitionIds`, so a deleted routine simply drops them with it (unchanged).
+
+## Hero Health, KO, and Revive ([P1-UI-006] sub-session 2, built 2026-07-19)
+Every routine ("hero") has `health` (0-`CONFIG.ROUTINE_MAX_HEALTH`, seeded 100 by the schemaVersion 8
+migration). The base-damage tick path — live loop (`js/loop.js`) AND both catch-up paths (offline
+reload + suspended-loop gap, both funneling through `js/damage.js`'s `applyOfflineDamage`) — also
+damages the breaching item's owning routine, one health point per base-damage point, via
+`Items.damageRoutineForItem` (`js/heroes.js`'s pure `applyRoutineDamage`/`shouldKo` do the math).
+Standalone items (no owning routine) are unaffected. **Decided in-session:** offline/live-gap catch-up
+damage CAN KO a routine, same as it can damage the base — the existing per-item lifetime damage cap
+already bounds how much any single item can contribute, so there's no unbounded-punishment risk from
+being away a long time.
+
+**KO (health hits 0):** the routine is knocked out — `koState: { koAt }` is set, it auto-deactivates
+(`isActive: false` + `clearActiveInstancesForRoutine`, the same recall machinery deactivation already
+uses — a pure removal, no completion/XP/points penalty beyond the KO itself), and a one-time notice
+fires (`FrozenNotice.showRoutineKoNotice`). The `koState` guard makes this idempotent — an already-KO'd
+routine can't be damaged or re-KO'd again.
+
+**Revive:** a KO'd routine can't be manually reactivated (`Routines.toggleRoutineActive`) until the
+calendar day AFTER the KO (`DayRollover.hasDayRolledOver`, the same local-midnight check the day-advance
+mechanism uses) — attempting sooner shows an alert and no-ops, both in the backend gate and in the
+Routines popup UI (`js/ui/managementWindows.js` disables the button and relabels it "Revive" while
+KO'd, showing "revives tomorrow" vs. "ready to revive"). Once the gate clears, reactivating clears
+`koState` and restores health to `CONFIG.HERO_REVIVE_HEALTH` (50) — half, not full — before spawning
+today's due instances as normal.
+
 ## Frozen Routine Slots (canonical spec — from PROJECT_SPEC.md)
 
 **Planning + design forks (2026-07-19, session 35, Fable):** see

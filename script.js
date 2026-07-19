@@ -252,6 +252,8 @@ document.addEventListener('DOMContentLoaded', () => {
             saveGame,
             // [P1-DATA-005] session 27 — negative-habit lurker exclusion
             isNonThreatening: Items.isNonThreatening,
+            // [P1-UI-006] sub-session 2, 2026-07-19 — routine health damage/KO
+            damageRoutineForItem,
         };
     }
 
@@ -347,6 +349,14 @@ document.addEventListener('DOMContentLoaded', () => {
             onRoutineFrozen: (routine, habitDef) => {
                 FrozenNotice.showFrozenRoutineNotice(routine.name, habitDef.name);
             },
+            // Routine health damage + KO ([P1-UI-006] sub-session 2,
+            // 2026-07-19): the recall machinery a KO reuses, and the
+            // one-time notice, same "module called as a bare stable global
+            // from inside a script.js wrapper" pattern as onRoutineFrozen.
+            clearActiveInstancesForRoutine,
+            onRoutineKo: (routine) => {
+                FrozenNotice.showRoutineKoNotice(routine.name);
+            },
             isGameOver: () => gameIsOver,
             getPlayerXP: () => playerXP,
             setPlayerXP: (n) => { playerXP = n; },
@@ -377,6 +387,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // extraction session 10, 2026-07-18). Call site unchanged.
     function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId) {
         return Items.createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, itemsDeps());
+    }
+
+    // Thin wrapper — real implementation lives in js/items.js ([P1-UI-006]
+    // sub-session 2, 2026-07-19). Injected into damageDeps()/loopDeps() below
+    // so js/damage.js and js/loop.js (which load before items.js) can call
+    // it without a forward reference — isNonThreatening's existing pattern.
+    function damageRoutineForItem(item, amount) {
+        Items.damageRoutineForItem(item, amount, itemsDeps());
     }
 
     // Enemy admission (sprite build, positioning, overdue-on-spawn) lives in
@@ -663,6 +681,7 @@ document.addEventListener('DOMContentLoaded', () => {
             getSubTaskClusterOffset,
             calculateTimelineXWithClustering,
             damageBase,
+            damageRoutineForItem,
             healBase,
             updateMidnightLine,
             runLiveGapCatchUp,
@@ -856,7 +875,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Recalls active habit/task instances before removing the routine
             // — see js/routines.js's deleteRoutine for the bugfix rationale
             // and DECISIONS.md.
-            Routines.deleteRoutine(routineId, { definedRoutines, activeItems, removeItem });
+            Routines.deleteRoutine(routineId, { definedRoutines, activeItems, removeItem, definedHabits });
             saveGame();
 
             // Update routines window if open

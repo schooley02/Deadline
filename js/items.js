@@ -201,6 +201,51 @@ const Items = (() => {
         routine.level = result.level;
     }
 
+    // --- Routine health damage + KO ([P1-UI-006] sub-session 2, 2026-07-19;
+    // see docs/HEROES_PLAN.md fork 2). The base-damage tick path (live loop +
+    // both catch-up paths in js/damage.js/js/loop.js) also damages the
+    // breaching item's owning routine — same findRoutineForItem lookup the
+    // XP wiring above uses, so standalone items (no owning routine) are
+    // unaffected. Damage.js/Loop.js load BEFORE this file and can't
+    // reference Items as a bare global, so THEY receive this as an injected
+    // `damageRoutineForItem` collaborator (isNonThreatening precedent);
+    // js/loop.js itself loads AFTER items.js and calls it directly.
+    //
+    // At 0 health the routine is knocked out: `koState` is set, it's
+    // auto-deactivated (decided in-session: reuse `clearActiveInstancesForRoutine`
+    // directly rather than `Routines.toggleRoutineActive` — the toggle
+    // wrapper's slot-limit alert/spawn-generation concerns don't apply to an
+    // automatic KO, and the recall is the actual "existing machinery" the
+    // plan asks to reuse), and a one-time notice fires
+    // (`deps.onRoutineKo`, optional, `onRoutineFrozen` precedent). The
+    // `routine.koState` guard makes this idempotent — a routine already KO'd
+    // can't be damaged or re-KO'd again (its members were just recalled, so
+    // in practice nothing should fire again same-tick, but belt-and-suspenders
+    // matches the frozen-routine "don't re-notify" guard).
+    //
+    // Decided in-session (see DECISIONS.md): offline/live-gap catch-up damage
+    // CAN KO a routine, same as it can damage the base — the per-item
+    // lifetime cap already bounds how much any single item can contribute,
+    // so there's no unbounded-punishment risk from being away a long time.
+    function damageRoutineForItem(item, amount, deps) {
+        const routine = findRoutineForItem(item, deps);
+        if (!routine || routine.koState) return;
+
+        const currentHealth = (typeof routine.health === 'number') ? routine.health : CONFIG.ROUTINE_MAX_HEALTH;
+        routine.health = Heroes.applyRoutineDamage(currentHealth, amount);
+
+        if (Heroes.shouldKo(routine.health)) {
+            routine.koState = { koAt: Date.now() };
+            routine.isActive = false;
+            if (typeof deps.clearActiveInstancesForRoutine === 'function') {
+                deps.clearActiveInstancesForRoutine(routine.id);
+            }
+            if (typeof deps.onRoutineKo === 'function') {
+                deps.onRoutineKo(routine);
+            }
+        }
+    }
+
     /**
      * deps: { getNextId, activeItems, gameScreenWidth, enemyWidth,
      *         calculateTimelineXWithClustering }
@@ -961,7 +1006,9 @@ const Items = (() => {
         useSickDayGlobally,
         uncompleteItem,
         markAsOverdue,
-        recomputeOverdueStateAfterEdit
+        recomputeOverdueStateAfterEdit,
+        findRoutineForItem,
+        damageRoutineForItem
     };
 })();
 

@@ -88,9 +88,39 @@ const FrozenNotice = (() => {
         }, 0);
     }
 
+    // KO notice ([P1-UI-006] sub-session 2, 2026-07-19, docs/HEROES_PLAN.md
+    // fork 2): fires from js/items.js's damageRoutineForItem the moment a
+    // routine's health hits 0 and it auto-deactivates. Same setTimeout(0)
+    // defensive pattern as the other two notices, even though this trigger
+    // site (a damage tick, not a modal-closing button click) doesn't share
+    // their specific closeModal() race — consistency with the precedent
+    // costs nothing and guards against a future trigger site that does.
+    function showRoutineKoNotice(routineName) {
+        setTimeout(() => {
+            if (document.querySelector('.frozen-notice-overlay')) return;
+
+            const modalHtml = `
+                <div class="modal-overlay frozen-notice-overlay">
+                    <div class="modal-content frozen-notice-modal">
+                        <h3>💤 ${routineName} was knocked out</h3>
+                        <p>${routineName}'s health ran out from overdue habits/tasks, so it's been
+                           deactivated — its members are off the board for now, no completion credit
+                           lost. You can revive it starting tomorrow, at half health.</p>
+                        <div class="modal-buttons">
+                            <button class="primary-button" onclick="closeModal()">Got it</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }, 0);
+    }
+
     return {
         showFrozenRoutineNotice,
         showRoutineUnfrozenNotice,
+        showRoutineKoNotice,
     };
 })();
 

@@ -147,6 +147,27 @@ describe('Loop.updateActiveItems', () => {
         expect(deps._state.damageDealt).toBe(DMG);
     });
 
+    // [P1-UI-006] sub-session 2, 2026-07-19 — routine health damage/KO
+    test('a damage tick also calls the optional damageRoutineForItem collaborator with the item + amount', () => {
+        const now = Date.now();
+        const item = makeItem({ isOverdue: true, lastDamageTickTime: now - INTERVAL - 10 });
+        const calls = [];
+        const deps = makeDeps({
+            state: { activeItems: [item] },
+            deps: { damageRoutineForItem: (i, amt) => calls.push([i.id, amt]) },
+        });
+        Loop.updateActiveItems(deps);
+        expect(calls).toEqual([[1, DMG]]);
+    });
+
+    test('damageRoutineForItem omitted -> no throw (existing "optional collaborator" precedent)', () => {
+        const now = Date.now();
+        const item = makeItem({ isOverdue: true, lastDamageTickTime: now - INTERVAL - 10 });
+        const deps = makeDeps({ state: { activeItems: [item] } });
+        expect(() => Loop.updateActiveItems(deps)).not.toThrow();
+        expect(deps._state.damageDealt).toBe(DMG);
+    });
+
     test('overdue item inside its interval deals no damage', () => {
         const item = makeItem({ isOverdue: true, lastDamageTickTime: Date.now() });
         const deps = makeDeps({ state: { activeItems: [item] } });

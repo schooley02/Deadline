@@ -16,6 +16,9 @@ global.FrozenSlots = require('../js/frozenSlots.js');
 // createRoutineDefinition seeds hero fields (health) from CONFIG as of
 // schemaVersion 8 ([P1-UI-006] sub-session 1) — bind it like the browser does.
 global.CONFIG = require('../js/config.js');
+// toggleRoutineActive's KO-revive gating reads DayRollover.hasDayRolledOver
+// ([P1-UI-006] sub-session 2, 2026-07-19) — bind it like the browser does.
+global.DayRollover = require('../js/dayRollover.js');
 const Routines = require('../js/routines.js');
 
 const DAY = new Date(2026, 6, 18); // Sat Jul 18 2026, local
@@ -203,6 +206,46 @@ describe('deleteRoutine', () => {
         const { deps, removed } = makeDeps(routines, activeItems);
         Routines.deleteRoutine('r1', deps);
         expect(removed).toEqual([1]);
+    });
+
+    // Orphaned-habit fix (2026-07-19, see DECISIONS.md + ROADMAP.md Known bugs).
+    test('BUGFIX: releases member habits to standalone when definedHabits is passed', () => {
+        const routines = [routine('r1', { habitDefinitionIds: ['h1'] }), routine('r2')];
+        const definedHabits = [{ id: 'h1', routineId: 'r1' }, { id: 'h2', routineId: 'r2' }];
+        const { deps } = makeDeps(routines);
+        deps.definedHabits = definedHabits;
+        Routines.deleteRoutine('r1', deps);
+        expect(definedHabits.find(h => h.id === 'h1').routineId).toBeNull();
+        expect(definedHabits.find(h => h.id === 'h2').routineId).toBe('r2');
+    });
+
+    test('does not throw when definedHabits is omitted (backward compat)', () => {
+        const routines = [routine('r1', { habitDefinitionIds: ['h1'] })];
+        const { deps } = makeDeps(routines);
+        expect(() => Routines.deleteRoutine('r1', deps)).not.toThrow();
+    });
+});
+
+describe('releaseOrphanedHabits', () => {
+    test('nulls routineId for habits whose routine no longer exists', () => {
+        const definedHabits = [
+            { id: 'h1', routineId: 'r1' },
+            { id: 'h2', routineId: 'ghost' },
+            { id: 'h3', routineId: null },
+        ];
+        const definedRoutines = [routine('r1')];
+        const released = Routines.releaseOrphanedHabits(definedHabits, definedRoutines);
+        expect(released).toBe(1);
+        expect(definedHabits[0].routineId).toBe('r1');
+        expect(definedHabits[1].routineId).toBeNull();
+        expect(definedHabits[2].routineId).toBeNull();
+    });
+
+    test('is a no-op when every routineId resolves', () => {
+        const definedHabits = [{ id: 'h1', routineId: 'r1' }];
+        const definedRoutines = [routine('r1')];
+        expect(Routines.releaseOrphanedHabits(definedHabits, definedRoutines)).toBe(0);
+        expect(definedHabits[0].routineId).toBe('r1');
     });
 });
 
@@ -585,5 +628,59 @@ describe('toggleRoutineActive', () => {
         const { deps, calls } = makeDeps([]);
         Routines.toggleRoutineActive('nope', deps);
         expect(calls.saved).toBe(0);
+    });
+
+    // KO gating + revive ([P1-UI-006] sub-session 2, 2026-07-19, HEROES_PLAN.md fork 2)
+    describe('KO gating + revive', () => {
+        test('blocks reactivation the SAME calendar day as the KO, does not toggle or save', () => {
+            const koAt = new Date(2026, 6, 18, 9, 0).getTime(); // Sat Jul 18, 9am
+            const routines = [routine('r1', { isActive: false, koState: { koAt }, health: 0 })];
+            const { deps, calls } = makeDeps(routines, {
+                now: () => new Date(2026, 6, 18, 23, 0), // same day, 11pm
+            });
+
+            Routines.toggleRoutineActive('r1', deps);
+
+            expect(routines[0].isActive).toBe(false);
+            expect(routines[0].koState).not.toBeNull();
+            expect(calls.alerts).toHaveLength(1);
+            expect(calls.saved).toBe(0);
+        });
+
+        test('allows reactivation the NEXT calendar day, clears koState, revives at HERO_REVIVE_HEALTH', () => {
+            const koAt = new Date(2026, 6, 18, 9, 0).getTime(); // Sat Jul 18
+            const routines = [routine('r1', { isActive: false, koState: { koAt }, health: 0 })];
+            const { deps, calls } = makeDeps(routines, {
+                now: () => new Date(2026, 6, 19, 0, 1), // Sun Jul 19, just past midnight
+            });
+
+            Routines.toggleRoutineActive('r1', deps);
+
+            expect(routines[0].isActive).toBe(true);
+            expect(routines[0].koState).toBeNull();
+            expect(routines[0].health).toBe(CONFIG.HERO_REVIVE_HEALTH);
+            expect(calls.habitsGenerated).toBe(1);
+            expect(calls.saved).toBe(1);
+        });
+
+        test('a routine that was never KO\'d activates normally (koState absent)', () => {
+            const routines = [routine('r1', { isActive: false })];
+            const { deps, calls } = makeDeps(routines);
+
+            Routines.toggleRoutineActive('r1', deps);
+
+            expect(routines[0].isActive).toBe(true);
+            expect(calls.saved).toBe(1);
+        });
+
+        test('deactivating a healthy routine is unaffected by the KO gate', () => {
+            const routines = [routine('r1', { isActive: true, health: 80 })];
+            const { deps, calls } = makeDeps(routines);
+
+            Routines.toggleRoutineActive('r1', deps);
+
+            expect(routines[0].isActive).toBe(false);
+            expect(calls.saved).toBe(1);
+        });
     });
 });

@@ -4,6 +4,90 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 42 (cont'd): HEROES_PLAN sub-session 2 BUILT — routine health damage + KO/revive (Cowork session, Sonnet)
+
+**Built:** the base-damage tick path (live loop in `js/loop.js`, both catch-up paths sharing
+`js/damage.js`'s `applyOfflineDamage`) now also damages the breaching item's owning routine, via a
+new `Items.damageRoutineForItem(item, amount, deps)` built on `js/heroes.js`'s existing pure
+`applyRoutineDamage`/`shouldKo` (already landed sub-session 1, unused until now). Injected into
+damage.js/loop.js as an OPTIONAL `damageRoutineForItem` collaborator (the `isNonThreatening`
+precedent — those two modules load before items.js and can't reference it as a bare global);
+loop.js itself loads after items.js so it could have referenced `Items` directly, but was kept
+consistent with damage.js's injection shape to minimize script.js wiring surface.
+
+**Decided in-session (per HEROES_PLAN's explicit ask):** offline/live-gap catch-up damage CAN KO a
+routine. Rationale: the per-item LIFETIME damage cap (`OFFLINE_DAMAGE_CAP_PER_ITEM`, 12) already
+bounds how much any single item's neglect can contribute regardless of how long the gap was, so
+there's no unbounded-punishment risk from being away a long time — same reasoning that already
+justifies letting the same paths damage the base.
+
+**KO orchestration — decided in-session:** reuses `Routines.clearActiveInstancesForRoutine`
+directly (the actual recall mechanic) rather than routing an automatic KO through
+`Routines.toggleRoutineActive` — the toggle wrapper's slot-limit alert and spawn-generation
+concerns don't apply to an automatic event, and the recall function IS the "existing machinery"
+the plan asked to reuse. `routine.koState` doubles as the idempotency guard (an already-KO'd
+routine can't be damaged or notified again).
+
+**Revive gating:** `Routines.toggleRoutineActive` gates manual reactivation of a KO'd routine on
+`DayRollover.hasDayRolledOver(koAt, now)` (the same local-midnight check the day-advance mechanism
+already uses) — blocks with an alert same-day, clears `koState` + revives at
+`CONFIG.HERO_REVIVE_HEALTH` (50, half not full) once the gate passes. `js/ui/managementWindows.js`
+mirrors the gate client-side (💤 icon, disabled "Revive" button until revivable) as a UX nicety —
+the backend gate is authoritative and was verified independently (bypassing the disabled button via
+console still hits the same alert).
+
+**Tests:** 33 suites, 654/654 (+15: `test/items-routine-damage.test.js` new — damage routing, KO
+exactly at 0, no double-KO, standalone no-op, optional-collaborator no-op; `test/routines.test.js`
++4 — same-day block, next-day revive + health reset, never-KO'd unaffected, healthy-routine
+deactivation unaffected; `test/loop.test.js` +2, `test/damage.test.js` +2 — both catch-up paths'
+shared `applyOfflineDamage` call site, optional-collaborator omission). `node --check` clean on
+every touched file.
+
+**Live-verified in Chrome, full cycle, against Jeremy's real dev save:** seeded a routine at health 5
+with a real overdue habit instance (regular save-mutation + reload hit a known race — the page's own
+`beforeunload`/autosave flush clobbers a raw `localStorage` edit before the reload's restore reads it;
+worked around with the session-40-documented neutering trick, temporarily stubbing
+`Persistence.flush`/`requestSave`). The REAL offline catch-up path (not a synthetic direct call) ran
+the capped damage, floored health at 0, set `koState`, deactivated the routine, recalled its instance,
+and fired the exact KO notice copy — all through actual gameplay code, confirmed via the save. Routines
+popup showed the 💤 card with a disabled "Revive" button and "revives tomorrow"; clicking it did
+nothing (state unchanged). Bypassing the disabled attribute via console still hit the backend gate's
+alert verbatim. Backdating `koState.koAt` to yesterday flipped the button to enabled/"ready to
+revive"; clicking it reactivated the routine, cleared `koState`, set health to 50, and respawned
+today's instances. Zero real app console errors throughout (only the documented extension-messaging
+noise). Test artifacts cleaned from the dev save afterward. See `docs/ROUTINES.md`'s new "Hero
+Health, KO, and Revive" section and `docs/HEROES_PLAN.md`/`docs/ROADMAP.md` (checked off).
+
+## 2026-07-19 — Session 42: Orphaned-habit spawn bug FIXED (Cowork session, Sonnet)
+
+**Decision:** orphaned habits (`routineId` pointing at a deleted routine) migrate to standalone
+(`routineId: null`) rather than staying inert — Jeremy's call. Rationale: this exactly mirrors the
+existing "removed from a routine → standalone" precedent (`removeHabitFromRoutine`, session 18/
+2026-07-18 — see the entry above). Treating orphans as inert instead would leave the habit
+permanently dormant with no UI path to un-orphan it (nothing lets Jeremy reassign or clear
+`routineId` directly), i.e. dead data sitting in the save forever. Alternative (leave inert)
+rejected for that reason.
+
+**Root cause:** `selectHabitDefsToSpawn`'s gating already treated a dangling `routineId` as
+standalone at SPAWN time (by design, per its own header comment) — but nothing ever corrected the
+underlying DATA, and `deleteRoutine` never released its member habits at all (unlike
+`removeHabitFromRoutine`, which already nulls `routineId` on single-habit removal). So a deleted
+routine left its former habits pointing at a dead id indefinitely; runtime behavior looked right
+(habit spawned) but the data was still orphaned.
+
+**Fix:** new pure `Routines.releaseOrphanedHabits(definedHabits, definedRoutines)` nulls
+`routineId` for any habit whose routine no longer exists. Two call sites: (1) `deleteRoutine` now
+calls it for the routine just removed (`deps.definedHabits` is OPTIONAL, same "collaborator
+omitted → no-op" precedent as elsewhere, so existing callers/tests without it still work); (2)
+`state.js`'s `restoreGameState` runs it as a sweep on every load, healing Jeremy's existing
+pre-fix orphan ("Mindful Scrolling Check-in") and any other pre-existing/edge-case orphan. No
+schema bump — data shape unchanged, just a stale value corrected.
+
+**Tests:** 32 suites, 639/639 (+4: `deleteRoutine` releases habits / backward-compat no-op /
+`releaseOrphanedHabits` releases+no-op). `node --check` clean on script.js, routines.js, state.js.
+Not yet live-verified in Chrome (next step). See `docs/ROUTINES.md`'s new "Deletion & Orphaned
+Habits" section and `docs/ROADMAP.md`'s Known bugs (checked off).
+
 ## 2026-07-19 — Session 41: Spawn "bug" resolved (not a bug) + [P1-UI-006] SEQUENCED (HEROES_PLAN.md) + sub-session 1 BUILT (Cowork session; planning on premium model, execution offered to Sonnet)
 
 **Session-40 spawn mystery RESOLVED — not a regression, closed in ~15 minutes:** the dev save had

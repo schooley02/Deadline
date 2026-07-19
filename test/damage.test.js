@@ -464,6 +464,24 @@ describe('applyOfflineDamage', () => {
         expect(deps._state.baseHealth).toBe(0);
         expect(b.offlineDamageCharged).toBe(0); // never charged
     });
+
+    // [P1-UI-006] sub-session 2, 2026-07-19 — routine health damage/KO,
+    // shared by both offline catch-up and live-gap catch-up (both funnel
+    // through this function).
+    test('calls the optional damageRoutineForItem collaborator per hit, with the item + its dmg', () => {
+        const a = item();
+        const b = item();
+        const calls = [];
+        const deps = makeDeps({ deps: { damageRoutineForItem: (i, amt) => calls.push([i, amt]) } });
+        Damage.applyOfflineDamage([{ item: a, dmg: 3 }, { item: b, dmg: 4 }], deps);
+        expect(calls).toEqual([[a, 3], [b, 4]]);
+    });
+
+    test('damageRoutineForItem omitted -> no throw (existing "optional collaborator" precedent)', () => {
+        const a = item();
+        const deps = makeDeps();
+        expect(() => Damage.applyOfflineDamage([{ item: a, dmg: 3 }], deps)).not.toThrow();
+    });
 });
 
 // ---------------------------------------------------------------------------

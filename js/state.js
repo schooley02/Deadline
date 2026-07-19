@@ -202,6 +202,9 @@ const State = (() => {
             // from both catch-up paths' damage/positioning; see damage.js's
             // header comment.
             isNonThreatening: deps.isNonThreatening,
+            // [P1-UI-006] sub-session 2, 2026-07-19 — routine health damage/KO
+            // for both catch-up paths (they share js/damage.js's applyOfflineDamage).
+            damageRoutineForItem: deps.damageRoutineForItem,
             // Regen clock passthrough ([P2-GAME-012], 2026-07-18) — lets
             // runOfflineCatchUp/runLiveGapCatchUp apply offline/suspended-gap
             // regen and reset the live loop's regen clock afterward.
@@ -259,6 +262,13 @@ const State = (() => {
         // Plain-data collections (no DOM refs to rebuild)
         deps.setDefinedHabits(save.definedHabits || []);
         deps.setDefinedRoutines(save.definedRoutines || []);
+        // Orphaned-habit sweep (2026-07-19, see DECISIONS.md + ROADMAP.md
+        // Known bugs): deleteRoutine now releases its own habits to
+        // standalone at delete time, but this heals any save written before
+        // that fix existed (or any other edge case that produced a dangling
+        // routineId) — runs on every load, no schema bump needed (data
+        // shape unchanged, just a stale value corrected).
+        Routines.releaseOrphanedHabits(save.definedHabits || [], save.definedRoutines || []);
         // Saves written before 2026-07-18 have no definedTasks — restore empty
         // rather than leaving whatever the previous page load put on window.
         window.definedTasks = save.definedTasks || [];

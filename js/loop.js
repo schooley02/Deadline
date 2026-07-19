@@ -89,6 +89,15 @@ const Loop = (() => {
             if (item.isOverdue) {
                 if (currentTimeMs >= item.lastDamageTickTime + CONFIG.DAMAGE_INTERVAL_MS) {
                     deps.damageBase(CONFIG.OVERDUE_DAMAGE);
+                    // Also damages the item's owning routine ([P1-UI-006]
+                    // sub-session 2, 2026-07-19) — optional collaborator,
+                    // same "omitted -> no-op" tolerance as isNonThreatening
+                    // above (existing tests/callers that don't pass it are
+                    // unaffected). Items loads BEFORE loop.js so this could
+                    // be a bare `Items.damageRoutineForItem` reference, but
+                    // it's threaded through deps to match damage.js's
+                    // injection pattern for the same collaborator.
+                    if (deps.damageRoutineForItem) deps.damageRoutineForItem(item, CONFIG.OVERDUE_DAMAGE);
                     item.lastDamageTickTime += CONFIG.DAMAGE_INTERVAL_MS;
 
                     if (deps.isGameOver()) break;

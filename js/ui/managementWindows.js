@@ -195,11 +195,23 @@ const ManagementWindows = (() => {
             // Detailed recovery info lives in the Manage modal (routineViews.js),
             // not this compact card.
             const isFrozen = !!routine.frozenState;
+            // KO'd ([P1-UI-006] sub-session 2, 2026-07-19): same "distinct
+            // status, not just off" treatment as frozen. `revivable` uses the
+            // same DayRollover.hasDayRolledOver check Routines.toggleRoutineActive
+            // itself gates on, so a stale disabled button never disagrees with
+            // what clicking it would actually do.
+            const isKod = !!routine.koState;
+            const revivable = isKod && DayRollover.hasDayRolledOver(new Date(routine.koState.koAt), new Date());
             if (isFrozen) li.classList.add('routine-frozen');
-            const statusIcon = isFrozen ? '🥶' : (routine.isActive ? '🟢' : '⚪');
+            if (isKod) li.classList.add('routine-ko');
+            const statusIcon = isKod ? '💤' : (isFrozen ? '🥶' : (routine.isActive ? '🟢' : '⚪'));
             const habitCount = routine.habitDefinitionIds ? routine.habitDefinitionIds.length : 0;
             const taskCount = routine.taskDefinitionIds ? routine.taskDefinitionIds.length : 0;
-            const subtitle = isFrozen ? 'Frozen — see Manage for recovery options' : `${habitCount} habits, ${taskCount} tasks`;
+            const subtitle = isKod
+                ? (revivable ? 'Knocked out — ready to revive' : 'Knocked out — revives tomorrow')
+                : (isFrozen ? 'Frozen — see Manage for recovery options' : `${habitCount} habits, ${taskCount} tasks`);
+            const toggleDisabled = isKod && !revivable;
+            const toggleLabel = isKod ? 'Revive' : (routine.isActive ? 'Deactivate' : 'Activate');
 
             li.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
@@ -209,7 +221,7 @@ const ManagementWindows = (() => {
                     </div>
                     <div style="display: flex; gap: 8px;">
                         <button class="edit-routine-btn" data-routine-id="${routine.id}" style="padding: 4px 8px; font-size: 12px; background: var(--color-accent-teal); color: white; border: none; border-radius: 4px; cursor: pointer;">Manage</button>
-                        <button class="toggle-routine-btn" data-routine-id="${routine.id}" style="padding: 4px 8px; font-size: 12px; background: ${routine.isActive ? 'var(--color-error)' : 'var(--color-success)'}; color: white; border: none; border-radius: 4px; cursor: pointer;">${routine.isActive ? 'Deactivate' : 'Activate'}</button>
+                        <button class="toggle-routine-btn" data-routine-id="${routine.id}" ${toggleDisabled ? 'disabled title="Revives tomorrow"' : ''} style="padding: 4px 8px; font-size: 12px; background: ${routine.isActive ? 'var(--color-error)' : 'var(--color-success)'}; color: white; border: none; border-radius: 4px; cursor: ${toggleDisabled ? 'not-allowed' : 'pointer'}; opacity: ${toggleDisabled ? '0.5' : '1'};">${toggleLabel}</button>
                     </div>
                 </div>
             `;
