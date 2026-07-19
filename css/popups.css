@@ -1,0 +1,190 @@
+/**
+ * popups.css — extracted from the style.css monolith (Milestone 2, style.css split, 2026-07-18).
+ * Task details / edit-task / sub-task creation popups — mirrors js/ui/popups.js.
+ */
+
+/* Task Details Modal Styles */
+.task-details-modal {
+    position: relative;
+}
+
+.close-modal-x {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-4);
+    background: none;
+    border: none;
+    font-size: 32px;
+    font-weight: bold;
+    color: var(--color-neutral);
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.close-modal-x:hover {
+    background: var(--color-error);
+    color: white;
+    transform: scale(1.1);
+}
+
+/* Edit Icon Button Styling */
+.edit-icon-btn {
+    background: transparent;
+    color: var(--color-text-primary);
+    border: none;
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transition: all 0.2s ease;
+    margin: 0;
+    padding: 0;
+}
+
+.edit-icon-btn:hover {
+    background: var(--color-secondary-green-pale);
+    transform: scale(1.1);
+}
+
+/* Task Actions Container */
+.task-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    min-height: 32px; /* Ensure minimum height for proper alignment */
+}
+
+/* Sub-tasks container styling */
+.sub-tasks-container {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0 0;
+    background: var(--color-bg-light);
+    border-radius: 4px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.sub-tasks-container:not(:empty) {
+    max-height: 200px;
+    padding: 8px;
+    border-left: 3px solid var(--color-accent-teal);
+}
+
+.sub-task-item {
+    font-size: 0.9em;
+    color: var(--color-neutral);
+    padding: 4px 0;
+    border-bottom: 1px solid var(--color-secondary-green-pale);
+}
+
+.sub-task-item:last-child {
+    border-bottom: none;
+}
+
+.sub-task-item::before {
+    content: "↳ ";
+    color: var(--color-accent-teal);
+    font-weight: bold;
+}
+
+/* Add sub-task button styling */
+.add-subtask-button {
+    background: linear-gradient(135deg, var(--color-accent-teal), var(--color-secondary-green-light));
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.add-subtask-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 191, 165, 0.3);
+}
+
+.add-subtask-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Item Status Container (for completed items) */
+.item-status {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    height: 100%;
+    min-height: 32px; /* Match task-actions height */
+}
+
+/* Completion Checkbox Styling */
+.completion-checkbox {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-weight: 500;
+    cursor: pointer;
+    margin: 0;
+    height: 32px; /* Match edit button height */
+}
+
+.completion-checkbox-input {
+    width: 24px !important;
+    height: 24px !important;
+    border: 3px solid var(--color-error) !important;
+    border-radius: 4px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background: white;
+    position: relative;
+    transition: all 0.2s ease;
+    margin: 0 !important;
+    transform: none !important;
+}
+
+.completion-checkbox-input:hover {
+    border-color: #c0392b;
+    box-shadow: 0 0 8px rgba(229, 57, 53, 0.3);
+}
+
+.completion-checkbox-input:checked {
+    background: var(--color-error);
+    border-color: var(--color-error);
+}
+
+.completion-checkbox-input:checked::after {
+    content: "✓";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+}
+

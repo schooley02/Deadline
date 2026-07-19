@@ -1,0 +1,321 @@
+/**
+ * agendaList.css — extracted from the style.css monolith (Milestone 2, style.css split, 2026-07-18).
+ * Today's Deadlines list (agenda rows) + completed-tasks section — mirrors js/ui/agendaList.js.
+ */
+
+/* Task Section - Takes remaining space */
+.task-section {
+    flex: 1;
+    min-height: 200px;
+    background: var(--color-bg-white);
+    display: flex;
+    flex-direction: column;
+}
+
+.task-header {
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--color-secondary-green-pale);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--color-bg-light);
+}
+
+.task-header h2 {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-size: var(--text-h2);
+    font-weight: 600;
+}
+
+.task-count {
+    font-size: var(--text-caption);
+    color: var(--color-neutral);
+    font-weight: 500;
+}
+
+.task-list-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-2);
+}
+
+.task-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.task-list li {
+    background: var(--color-bg-white);
+    border: 1px solid var(--color-secondary-green-pale);
+    border-radius: 8px;
+    padding: var(--space-4);
+    margin-bottom: var(--space-2);
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.task-list li:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: var(--color-primary-dark-green);
+}
+
+.task-list li.high-priority-list-item {
+    border-left: 4px solid var(--color-holy-gold);
+    box-shadow: 0 2px 8px rgba(230, 184, 0, 0.2);
+}
+
+.task-list li.high-priority-list-item .item-name::before {
+    content: "★ ";
+    color: var(--color-holy-gold);
+    font-weight: bold;
+    margin-right: 4px;
+}
+
+.task-list li.overdue-list-item {
+    border-left: 4px solid var(--color-error);
+    background: rgba(229, 57, 53, 0.05);
+    animation: urgent-pulse 2s ease-in-out infinite;
+}
+
+@keyframes urgent-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.85; }
+}
+
+.item-info {
+    flex-grow: 1;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.item-name {
+    font-weight: 600;
+    font-size: var(--text-body);
+    display: block;
+    margin-bottom: var(--space-1);
+    color: var(--color-text-primary);
+}
+
+.item-due {
+    font-size: var(--text-caption);
+    color: var(--color-neutral);
+    display: block;
+}
+
+.item-streak {
+    font-size: var(--text-caption);
+    color: var(--color-accent-yellow);
+    margin-left: var(--space-2);
+    font-weight: 500;
+}
+
+.item-category {
+    font-size: var(--text-caption);
+    color: white;
+    padding: var(--space-1) var(--space-2);
+    border-radius: 12px;
+    margin-left: var(--space-2);
+    display: inline-block;
+    font-weight: 500;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+    align-self: flex-start;
+    width: fit-content;
+}
+
+.item-actions button {
+    padding: var(--space-2) var(--space-4);
+    background-color: var(--color-error);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: var(--text-caption);
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.item-actions button:hover {
+    background-color: #c0392b;
+}
+
+.negative-habit-button {
+    background-color: var(--color-warning) !important;
+}
+
+.negative-habit-button:hover {
+    background-color: #e68900 !important;
+}
+
+/* Category Sprites Column in Task List Items */
+.item-sprite {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    width: 50px;
+    height: 50px;
+}
+
+/* Smaller sprite size for subtasks */
+.item-sprite.zombie-subtask {
+    width: 32px;
+    height: 32px;
+    font-size: 20px;
+}
+
+/* Task List Category Sprites - Using background images instead of emoji */
+.task-list li.category-career .item-sprite {
+    background-image: url('../Assets/Zombies/career-zombie.png');
+    background-size: 50px 50px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* Subtask sprites in list view - smaller size */
+.task-list li.category-career .item-sprite.zombie-subtask {
+    background-size: 32px 32px;
+}
+
+.task-list li.category-creativity .item-sprite {
+    background-image: url('../Assets/Zombies/creativity-zombie.png');
+    background-size: 50px 50px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.task-list li.category-creativity .item-sprite.zombie-subtask {
+    background-size: 32px 32px;
+}
+
+.task-list li.category-financial .item-sprite {
+    background-image: url('../Assets/Zombies/financial-zombie.png');
+    background-size: 50px 50px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.task-list li.category-financial .item-sprite.zombie-subtask {
+    background-size: 32px 32px;
+}
+
+.task-list li.category-health .item-sprite {
+    background-image: url('../Assets/Zombies/health-zombie.png');
+    background-size: 50px 50px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.task-list li.category-health .item-sprite.zombie-subtask {
+    background-size: 32px 32px;
+}
+
+.task-list li.category-lifestyle .item-sprite {
+    background-image: url('../Assets/Zombies/lifestyle-zombie.png');
+    background-size: 50px 50px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.task-list li.category-lifestyle .item-sprite.zombie-subtask {
+    background-size: 32px 32px;
+}
+
+.task-list li.category-relationships .item-sprite {
+    background-image: url('../Assets/Zombies/relationships-zombie.png');
+    background-size: 50px 50px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.task-list li.category-relationships .item-sprite.zombie-subtask {
+    background-size: 32px 32px;
+}
+
+.task-list li.category-spirituality .item-sprite {
+    background-image: url('../Assets/Zombies/spiritual-zombie.png');
+    background-size: 50px 50px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.task-list li.category-spirituality .item-sprite.zombie-subtask {
+    background-size: 32px 32px;
+}
+
+.task-list li.category-other .item-sprite {
+    background-image: url('../Assets/Zombies/other-zombie.png');
+    background-size: 50px 50px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.task-list li.category-other .item-sprite.zombie-subtask {
+    background-size: 32px 32px;
+}
+
+/* Hide the pseudo-element content since we're using background images */
+.task-list li .item-sprite::before {
+    display: none;
+}
+
+
+/* Completed Tasks Section */
+.completed-tasks-section {
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-secondary-green-pale);
+}
+
+.completed-tasks-section h3 {
+    font-size: var(--text-body);
+    color: var(--color-neutral);
+    margin: 0 0 var(--space-3) 0;
+    font-weight: 600;
+}
+
+.completed-tasks-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.completed-tasks-list li {
+    display: flex;
+    align-items: center;
+    padding: var(--space-4);
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-secondary-green-pale);
+    border-radius: 8px;
+    margin-bottom: var(--space-2);
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    gap: var(--space-4);
+}
+
+.completed-tasks-list li:hover {
+    opacity: 1;
+}
+
+.completed-tasks-list .item-name {
+    text-decoration: line-through;
+    color: var(--color-neutral);
+}
+
+.completed-tasks-list .item-due {
+    color: var(--color-neutral);
+    opacity: 0.8;
+}
+
+.completed-tasks-list .item-category {
+    opacity: 0.6;
+}

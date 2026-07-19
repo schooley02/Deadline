@@ -1,0 +1,85 @@
+/**
+ * responsive.css — extracted from the style.css monolith (Milestone 2, style.css split, 2026-07-18).
+ * Mobile/desktop @media overrides. MUST be linked LAST in index.html — it overrides base rules from every other file above at equal specificity; loading it earlier silently defeats the responsive behavior. See DECISIONS.md 2026-07-18.
+ */
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .game-canvas {
+        height: 30vh;
+        min-height: 200px;
+    }
+    
+    .stats-overlay {
+        padding: var(--space-2);
+    }
+    
+    .resource-panel {
+        gap: var(--space-2);
+    }
+    
+    .stat-item {
+        padding: var(--space-1) var(--space-2);
+        font-size: 11px;
+    }
+    
+    .attack-button {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+    }
+    
+    .form-row-group {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 1024px) {
+    .game-canvas {
+        height: 33vh;
+        min-height: 300px;
+    }
+    
+    .task-section {
+        max-height: 50vh;
+    }
+    
+    .controls-section {
+        overflow-y: auto;
+        max-height: 40vh;
+    }
+    
+    .routine-section {
+        margin-bottom: var(--space-2);
+    }
+    
+    .negative-habit-button {
+        font-size: 11px !important;
+    }
+    
+    .fab {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+    }
+    
+    .fab-container {
+        bottom: var(--space-4);
+        right: var(--space-4);
+    }
+    
+    .management-window {
+        width: 95%;
+        max-height: 85vh;
+    }
+    
+    .fab-menu-item {
+        min-width: 100px;
+        padding: var(--space-2);
+    }
+    
+    .window-content {
+        padding: var(--space-2);
+    }
+}
+

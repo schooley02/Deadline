@@ -5,7 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deadline - Productivity Tower Defense</title>
     <meta name="description" content="Transform your tasks into a tower defense game. Defeat zombie enemies to complete tasks and protect your base!">
-    <link rel="stylesheet" href="style.css">
+    <!-- style.css split by component 2026-07-18 (Milestone 2) — order matters:
+         responsive.css MUST load last, it overrides base rules from every
+         file above it at equal specificity (see css/responsive.css header
+         + docs/DECISIONS.md). -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/gameCanvas.css">
+    <link rel="stylesheet" href="css/enemySprites.css">
+    <link rel="stylesheet" href="css/enemyStatus.css">
+    <link rel="stylesheet" href="css/agendaList.css">
+    <link rel="stylesheet" href="css/fabMenu.css">
+    <link rel="stylesheet" href="css/managementWindows.css">
+    <link rel="stylesheet" href="css/forms.css">
+    <link rel="stylesheet" href="css/routineViews.css">
+    <link rel="stylesheet" href="css/modal.css">
+    <link rel="stylesheet" href="css/popups.css">
+    <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
     <div class="app-container">

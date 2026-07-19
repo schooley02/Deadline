@@ -13,6 +13,27 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-18 — Session 18: style.css split by component (Cowork session) — Milestone 2 CLOSED
+
+**Did:** Split the 2,095-line `style.css` monolith into 12 files under `css/`, mapped to the existing `js/ui/*.js` cluster boundaries where a natural component match existed (`agendaList.css`, `fabMenu.css`, `managementWindows.css`, `forms.css`, `routineViews.css`, `modal.css`, `popups.css`), plus `base.css`/`gameCanvas.css`/`enemySprites.css`/`enemyStatus.css` for pre-UI-extraction rules and `responsive.css` for the `@media` overrides. Pure mechanical move — verified byte-for-byte content match (non-blank line counts identical, 2,095 = 2,095) before adding provenance header comments. `index.html`'s single `<link>` replaced with 12, in a specific order. Old root `style.css` deleted (asked first — verified working, recoverable via git history).
+
+**Two real bugs found and fixed mid-session, both silent (no console error, just wrong rendering) — see DECISIONS.md session 18 for the full writeup:**
+1. Relative `url('Assets/...')`/`url('icons/...')` paths broke when moved into `css/` (they resolve relative to the CSS file, not the HTML page) — every sprite/icon disappeared. Fixed: rewrote to `../Assets/...`/`../icons/...` (40 occurrences).
+2. The `@media` responsive block is order-sensitive like any CSS rule — it only overrides other files' base rules because it's linked LAST. Gave it its own `responsive.css`, explicitly last in `index.html`, with a header comment warning future editors not to reorder it.
+
+**State:** ✅ **17 suites, 370/370** (unchanged — no JS touched, no CSS test coverage exists). `node --check` N/A this session. **Live-verified in Chrome:** screenshotted main agenda view + FAB menu + Tasks modal before/after — pixel-identical. Confirmed `document.styleSheets` load order matches the intended sequence. Confirmed a desktop-width computed-style check (`.game-canvas` `min-height` reads `300px`, the `responsive.css` override, not `gameCanvas.css`'s base `250px`) to prove the cascade-order fix actually works, not just "looks right." Console clean on a fresh load with `style.css` deleted.
+
+**Docs updated same session:** ARCHITECTURE.md (current-state + target-layout sections), DECISIONS.md (session 18 entry with the full hazard writeup), ROADMAP.md (item checked off, Milestone 2 header marked ✅ CLOSED).
+
+**Next:** Milestone 2 is fully closed (JS + CSS both modularized). Open items: Milestone 3 proper (P1-DATA-005 negative habits, sub-task hierarchy, shop — repair kits and the habit-rate-tier legibility placeholders both wait on the shop existing).
+
+**Watch out:**
+- Never reorder the `css/*.css` `<link>` tags in `index.html` without re-checking selector overlaps first — `responsive.css` MUST stay last. This isn't enforced by anything except the header comments in `index.html` and `css/responsive.css`; a future careless edit could silently break mobile/desktop responsiveness with no error.
+- If any future CSS file references an image via relative `url()`, remember paths resolve relative to the CSS file's location, not `index.html`'s.
+- Sandbox scratch dir this session: same `/sessions/dazzling-practical-tesla/dl-regen` reused from session 17 (Jest suite only — CSS work itself was done directly against the mounted repo since there's no CSS build/test step).
+
+---
+
 ## 2026-07-18 — Session 17: [P2-GAME-012] gradual base regen BUILT (Cowork session)
 
 **Did:** Implemented gradual base healing (design fully decided session 13 — no open questions this session). `js/config.js` gained `BASE_REGEN_HP`/`BASE_REGEN_INTERVAL_MS`. `js/damage.js` gained `computeRegenTicks` (pure), `healBase` (mirrors `damageBase`'s shape, no hit-flash), `applyElapsedRegen` (applies whole-interval regen for an elapsed span then resets the live regen clock) — wired into both `runOfflineCatchUp` branches (after damage) and `runLiveGapCatchUp`. `js/loop.js`'s `updateActiveItems` gained the live per-tick regen check (same remainder-preserving shape as the existing damage tick, base-wide not per-item). `js/state.js` and script.js's `stateDeps()`/`loopDeps()` thread the new `lastRegenTickMs` accessor pair through (same pattern as `lastLoopTickMs`).

@@ -1,0 +1,119 @@
+/**
+ * base.css — extracted from the style.css monolith (Milestone 2, style.css split, 2026-07-18).
+ * Color system tokens, CSS reset, app container, .hidden utility, dev-only reset button.
+ */
+
+/* Color System from PROJECT_SPEC.md */
+:root {
+    /* Primary Colors */
+    --color-primary-white: #F8F9FA;
+    --color-primary-dark-green: #0A5F55;
+    
+    /* Secondary Colors */
+    --color-secondary-green-light: #4CAF94;
+    --color-secondary-green-pale: #E6F4F1;
+    
+    /* Accent Colors */
+    --color-accent-teal: #00BFA5;
+    --color-accent-yellow: #FFD54F;
+    --color-holy-gold: #E6B800;
+    
+    /* Functional Colors */
+    --color-success: #43A047;
+    --color-error: #E53935;
+    --color-warning: #F57C00;
+    --color-neutral: #9E9E9E;
+    --color-text-primary: #424242;
+    --color-sacred-stone: #8B7D74;
+    
+    /* Background Colors */
+    --color-bg-white: #FFFFFF;
+    --color-bg-light: #F5F7F9;
+    --color-bg-dark: #263238;
+    
+    /* Game-specific Colors */
+    --color-base-health-full: #4CAF50;
+    --color-base-health-moderate: #FFC107;
+    --color-base-health-low: #FF9800;
+    --color-base-health-critical: #F44336;
+    --color-emergency-overlay: rgba(229, 57, 53, 0.15);
+
+    /* Typography */
+    --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --text-h1: 28px;
+    --text-h2: 24px;
+    --text-h3: 20px;
+    --text-body: 15px;
+    --text-button: 16px;
+    --text-caption: 12px;
+
+    /* Spacing */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-4: 16px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-12: 48px;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Reset and Base Styles */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-primary);
+    background-color: var(--color-bg-light);
+    color: var(--color-text-primary);
+    line-height: 1.5;
+    overflow-x: hidden;
+}
+
+/* Main App Container */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    max-width: 100vw;
+}
+
+
+/* Dev/testing only: bottom-left reset button */
+.reset-test-button {
+    position: fixed;
+    bottom: var(--space-6);
+    left: var(--space-6);
+    z-index: 1000;
+    padding: var(--space-2) var(--space-4);
+    background: rgba(0, 0, 0, 0.55);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    transition: background-color 0.2s ease;
+}
+
+.reset-test-button:hover {
+    background: var(--color-warning);
+}
+
+@media (max-width: 768px) {
+    .reset-test-button {
+        bottom: var(--space-4);
+        left: var(--space-4);
+    }
+}
+
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+

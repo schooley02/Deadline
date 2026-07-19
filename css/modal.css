@@ -1,0 +1,164 @@
+/**
+ * modal.css — extracted from the style.css monolith (Milestone 2, style.css split, 2026-07-18).
+ * Generic modal-overlay chrome + habit type (positive/negative) toggle — mirrors js/ui/modal.js.
+ */
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1002;
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-content {
+    background: var(--color-bg-white);
+    border-radius: 12px;
+    padding: var(--space-6);
+    max-width: 400px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal-content h3 {
+    margin: 0 0 var(--space-4) 0;
+    color: var(--color-text-primary);
+    font-size: var(--text-h3);
+    font-weight: 600;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+}
+
+.modal-buttons button {
+    flex: 1;
+}
+
+@media (max-width: 768px) {
+    .routine-button-group {
+        flex-direction: column;
+        gap: var(--space-1);
+    }
+    
+    .routine-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-2);
+    }
+    
+    .modal-content {
+        width: 95%;
+        padding: var(--space-4);
+    }
+    
+    .modal-buttons {
+        flex-direction: column;
+    }
+}
+
+/* Habit Type Toggle */
+.habit-type-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+}
+
+.habit-type-toggle input[type="radio"] {
+    display: none;
+}
+
+.habit-type-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--space-4);
+    border: 2px solid var(--color-neutral);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--color-bg-white);
+    text-align: center;
+}
+
+.habit-type-label:hover {
+    border-color: var(--color-primary-dark-green);
+    transform: translateY(-1px);
+}
+
+.habit-type-label.positive {
+    color: var(--color-success);
+}
+
+.habit-type-label.negative {
+    color: var(--color-warning);
+}
+
+.habit-type-toggle input[type="radio"]:checked + .habit-type-label.positive {
+    border-color: var(--color-success);
+    background: rgba(67, 160, 71, 0.1);
+    box-shadow: 0 2px 8px rgba(67, 160, 71, 0.2);
+}
+
+.habit-type-toggle input[type="radio"]:checked + .habit-type-label.negative {
+    border-color: var(--color-warning);
+    background: rgba(245, 124, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(245, 124, 0, 0.2);
+}
+
+.habit-icon {
+    font-size: 24px;
+    margin-bottom: var(--space-1);
+}
+
+.habit-label {
+    font-weight: 600;
+    font-size: var(--text-body);
+    margin-bottom: var(--space-1);
+}
+
+.habit-description {
+    font-size: var(--text-caption);
+    opacity: 0.8;
+    line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+    .habit-type-toggle {
+        grid-template-columns: 1fr;
+    }
+    
+    .habit-type-label {
+        padding: var(--space-2);
+    }
+    
+    .habit-icon {
+        font-size: 20px;
+    }
+}
+

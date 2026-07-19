@@ -1,0 +1,183 @@
+/**
+ * gameCanvas.css — extracted from the style.css monolith (Milestone 2, style.css split, 2026-07-18).
+ * Canvas/stats overlay, base (church) sprite, base-hit-flash animation, midnight line, message overlays (level-up/game-over).
+ */
+
+/* Game Canvas Section - Top 1/3 */
+.game-canvas {
+    height: 33vh;
+    min-height: 250px;
+    position: relative;
+    background: linear-gradient(135deg, var(--color-secondary-green-pale) 0%, var(--color-primary-white) 100%);
+    border-bottom: 2px solid var(--color-secondary-green-light);
+    overflow: visible;
+}
+
+/* Stats Overlay */
+.stats-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: var(--space-4);
+    background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 100%);
+    z-index: 20;
+    pointer-events: none;
+}
+
+.resource-panel {
+    display: flex;
+    gap: var(--space-4);
+    pointer-events: all;
+}
+
+.stat-item {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--color-secondary-green-pale);
+    border-radius: 8px;
+    padding: var(--space-2) var(--space-4);
+    font-weight: 600;
+    font-size: var(--text-caption);
+    color: var(--color-text-primary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.stat-label {
+    color: var(--color-neutral);
+    margin-right: var(--space-1);
+}
+
+.attack-button {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-error) 0%, var(--color-warning) 100%);
+    border: none;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    transition: all 0.2s ease;
+    pointer-events: all;
+}
+
+.attack-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.attack-button.active {
+    animation: pulse-attack 1s infinite;
+    transform: scale(1.1);
+}
+
+@keyframes pulse-attack {
+    0%, 100% { transform: scale(1.1); }
+    50% { transform: scale(1.15); }
+}
+
+/* Game Canvas */
+#gameCanvas {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background: linear-gradient(135deg, #87CEEB 0%, #98D8C8 50%, #8FBC8F 100%);
+    overflow: visible;
+}
+
+/* Base (Church) */
+#base {
+    width: 120px;
+    height: 100%;
+    background-color: var(--color-sacred-stone);
+    background-image: url('../Assets/Base/base_100.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    left: 0;
+    top: 0;
+    border-right: 3px solid var(--color-primary-dark-green);
+    box-sizing: border-box;
+    font-weight: bold;
+    color: var(--color-primary-white);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+
+/* Base Flash Animation */
+.base-hit-flash {
+    animation: flash-damage 0.3s;
+}
+
+@keyframes flash-damage {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.5) hue-rotate(0deg) saturate(2); }
+}
+
+/* Midnight Line */
+#midnightLine {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, #ff6b6b 0%, #ff4757 50%, #ff3838 100%);
+    box-shadow: 0 0 10px rgba(255, 107, 107, 0.6), 0 0 20px rgba(255, 107, 107, 0.4);
+    z-index: 5;
+    opacity: 0.9;
+}
+
+#midnightLine::before {
+    content: "MIDNIGHT";
+    position: absolute;
+    top: 10px;
+    left: 8px;
+    font-size: 10px;
+    font-weight: bold;
+    color: #ff4757;
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+    writing-mode: vertical-lr;
+    text-orientation: mixed;
+}
+
+/* Message Overlays */
+.message-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: var(--space-6) var(--space-8);
+    background-color: rgba(0, 0, 0, 0.9);
+    color: white;
+    font-size: var(--text-h1);
+    font-weight: bold;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    text-align: center;
+}
+
+#levelUpMessage {
+    background-color: var(--color-success);
+    animation: level-up-celebration 2.5s ease-in-out forwards;
+}
+
+#gameOverMessage {
+    background-color: var(--color-error);
+}
+
+@keyframes level-up-celebration {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+}
+

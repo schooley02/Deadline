@@ -1,0 +1,147 @@
+/**
+ * enemyStatus.css — extracted from the style.css monolith (Milestone 2, style.css split, 2026-07-18).
+ * High-priority indicator, habit-enemy sizing, overdue-enemy styling.
+ */
+
+/* High Priority Enemies */
+.enemy.high-priority {
+    outline: 3px solid var(--color-holy-gold);
+    box-shadow: 0 0 15px var(--color-holy-gold), 0 0 25px var(--color-accent-yellow);
+    animation: pulse-priority 1.5s infinite alternate;
+    z-index: 15;
+}
+
+/* High priority star indicator */
+.enemy.high-priority::after {
+    content: "⭐";
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    font-size: 16px;
+    z-index: 4;
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes pulse-priority {
+    from {
+        outline-width: 3px;
+        box-shadow: 0 0 10px var(--color-holy-gold), 0 0 15px var(--color-accent-yellow);
+    }
+    to {
+        outline-width: 4px;
+        box-shadow: 0 0 18px var(--color-holy-gold), 0 0 30px var(--color-accent-yellow);
+    }
+}
+
+/* Responsive icon sizing for mobile */
+@media (max-width: 768px) {
+    .enemy::before {
+        font-size: 24px;
+    }
+    
+    .enemy.category-relationships::before {
+        font-size: 18px;
+    }
+    
+    .enemy.high-priority::after {
+        font-size: 14px;
+        top: -6px;
+        left: -6px;
+    }
+    
+    .enemy.habit-enemy.negative-habit::after {
+        font-size: 10px;
+        width: 14px;
+        height: 14px;
+    }
+}
+
+/* Habit Enemies */
+.enemy.habit-enemy {
+    width: 70px;
+    height: 70px;
+    border-style: dashed;
+}
+
+/* Habit enemy sprite sizing */
+.enemy.habit-enemy.category-career {
+    background-size: 70px 70px !important;
+}
+
+.enemy.habit-enemy.category-creativity {
+    background-size: 70px 70px !important;
+}
+
+.enemy.habit-enemy.category-financial {
+    background-size: 70px 70px !important;
+}
+
+.enemy.habit-enemy.category-health {
+    background-size: 70px 70px !important;
+}
+
+.enemy.habit-enemy.category-lifestyle {
+    background-size: 70px 70px !important;
+}
+
+.enemy.habit-enemy.category-relationships {
+    background-size: 70px 70px !important;
+}
+
+.enemy.habit-enemy.category-spirituality {
+    background-size: 70px 70px !important;
+}
+
+.enemy.habit-enemy.category-other {
+    background-size: 70px 70px !important;
+}
+
+.enemy.habit-enemy.high-streak {
+    box-shadow: 0 0 10px #ff8c00, 0 0 20px #ffa500;
+    animation: pulse-streak 1s infinite alternate;
+}
+
+.enemy.habit-enemy.negative-habit {
+    background-color: var(--color-warning) !important;
+    border-color: #e68900 !important;
+    box-shadow: 0 0 8px var(--color-warning), 0 0 15px rgba(245, 124, 0, 0.3);
+}
+
+.enemy.habit-enemy.negative-habit::after {
+    content: "🚫";
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    font-size: 12px;
+    background: white;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    z-index: 3;
+}
+
+/* Ensure category icons are visible behind negative habit indicator */
+.enemy.habit-enemy.negative-habit::before {
+    z-index: 2;
+}
+
+@keyframes pulse-streak {
+    from { box-shadow: 0 0 8px #ff8c00, 0 0 15px #ffa500; }
+    to { box-shadow: 0 0 15px #ff8c00, 0 0 25px #ffa500; }
+}
+
+/* Overdue Enemies */
+.enemy-at-base {
+    border-color: var(--color-error) !important;
+    animation: pulse-urgent 1s infinite alternate;
+}
+
+@keyframes pulse-urgent {
+    from { box-shadow: 0 0 5px var(--color-error), 0 0 10px var(--color-error); }
+    to { box-shadow: 0 0 10px var(--color-error), 0 0 20px #ff4d4d; }
+}
+
