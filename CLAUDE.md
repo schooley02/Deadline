@@ -49,7 +49,7 @@ At the end of every session, run `/end-session` (append HANDOFF entry, log decis
 
 ## Guardrails (these prevent the July 2025 context failures)
 
-- ONE roadmap task per session. Finish and commit before starting another.
+- ONE roadmap task per session for anything touching persistence, architecture, or balance — finish and commit before starting another. (Revisited 2026-07-18, session 11: the original rule was written for a weaker model losing track of a 3,400-line file; today's models hold context better, so small/independent work — a few doc fixes, minor test cleanup — can be batched into one session without violating the spirit of the rule. Persistence/architecture/balance changes stay strict one-per-session regardless of model: the risk there is blast radius and human playtest bandwidth, not context capacity. See DECISIONS.md 2026-07-18 for the full discussion.)
 - Never rewrite a whole file when an Edit will do.
 - If a design question isn't answered in `docs/` — Grep PROJECT_SPEC.md; if still unclear, ASK Jeremy. Don't invent mechanics.
 - Never change balance numbers silently — use the `balance-tuning` skill and log to DECISIONS.
