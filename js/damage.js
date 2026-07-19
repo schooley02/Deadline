@@ -139,6 +139,14 @@ const Damage = (() => {
     // Stateful / DOM-side-effecting operations
     // ---------------------------------------------------------------------
 
+    // Whole-interval regen ticks elapsed in a span of time (mirrors the
+    // damage-tick shape). Negative/zero elapsedMs yields 0 — never regens
+    // backwards.
+    function computeRegenTicks(elapsedMs, intervalMs) {
+        if (elapsedMs <= 0) return 0;
+        return Math.floor(elapsedMs / intervalMs);
+    }
+
     function updateBaseVisuals(deps) {
         const { baseElement, getBaseHealth } = deps;
         if (!baseElement) return;
@@ -176,6 +184,41 @@ const Damage = (() => {
         if (baseHealth <= 0) {
             gameOver(deps);
         }
+    }
+
+    // Gradual regen ([P2-GAME-012], decided 2026-07-18 Fable session). No
+    // hit-flash (that's damage-specific feedback) — otherwise mirrors
+    // damageBase's shape: clamp, display, visuals, save. No-ops on 0/negative
+    // amounts and once the run is over.
+    function healBase(amount, deps) {
+        const { getBaseHealth, setBaseHealth, isGameOver, baseHealthDisplay, saveGame } = deps;
+        if (isGameOver()) return;
+        if (!amount || amount <= 0) return;
+
+        let baseHealth = getBaseHealth() + amount;
+        if (baseHealth > CONFIG.MAX_BASE_HEALTH) baseHealth = CONFIG.MAX_BASE_HEALTH;
+        setBaseHealth(baseHealth);
+
+        if (baseHealthDisplay) baseHealthDisplay.textContent = baseHealth;
+
+        updateBaseVisuals(deps);
+        saveGame();
+    }
+
+    // Applies regen for a span of elapsed time (offline window, or the gap
+    // since the live loop's last regen tick), then resets the regen clock to
+    // now. Used by both the offline-catch-up (reload) and live-gap-catch-up
+    // (suspended loop) paths — deliberately loses any sub-interval remainder
+    // at the reset point rather than carrying it forward, matching the
+    // "quiet base recovers overnight" design intent rather than damage's
+    // stricter remainder-preserving tick (see MECHANICS.md Offline Catch-up).
+    // Guards on deps.setLastRegenTickMs being present so callers/tests that
+    // don't thread it through (script.js not yet wired, or a deps stub) are
+    // unaffected.
+    function applyElapsedRegen(elapsedMs, deps) {
+        const ticks = computeRegenTicks(elapsedMs, CONFIG.BASE_REGEN_INTERVAL_MS);
+        if (ticks > 0) healBase(ticks * CONFIG.BASE_REGEN_HP, deps);
+        if (deps.setLastRegenTickMs) deps.setLastRegenTickMs(Date.now());
     }
 
     function gameOver(deps) {
@@ -240,6 +283,17 @@ const Damage = (() => {
         });
 
         applyOfflineDamage(hits, deps); // increments offlineDamageCharged + saves via damageBase
+
+        // Regen for the same suspended span, AFTER damage — mirrors the
+        // reload path's order (see MECHANICS.md Base). Uses the gap since the
+        // live loop's own last regen tick, not this function's local nowMs
+        // window, so a long string of short suspensions can't each restart
+        // the clock and lose the remainder repeatedly.
+        if (deps.getLastRegenTickMs) {
+            const lastRegen = deps.getLastRegenTickMs();
+            const elapsed = lastRegen !== null ? nowMs - lastRegen : 0;
+            applyElapsedRegen(elapsed, deps);
+        }
     }
 
     // Spec (PROJECT_SPEC §3.5): on app resume, zombies animate from their saved
@@ -285,6 +339,7 @@ const Damage = (() => {
                 if (e.item.element) e.item.element.style.left = Math.max(baseWidth, e.targetX) + 'px';
             });
             applyOfflineDamage(hits, deps);
+            applyElapsedRegen(offlineMs, deps); // AFTER damage — see MECHANICS.md Base
             return;
         }
 
@@ -310,6 +365,7 @@ const Damage = (() => {
             animatable.forEach(e => e.item.element.classList.remove('catching-up'));
             setOfflineCatchUpActive(false);
             applyOfflineDamage(hits, deps);
+            applyElapsedRegen(offlineMs, deps); // AFTER damage — see MECHANICS.md Base
         }
         requestAnimationFrame(frame);
     }
@@ -321,9 +377,12 @@ const Damage = (() => {
         computeOfflineOverdueDamage,
         computeGapCatchUpHits,
         computeCatchUpDuration,
+        computeRegenTicks,
         // stateful
         updateBaseVisuals,
         damageBase,
+        healBase,
+        applyElapsedRegen,
         gameOver,
         applyOfflineDamage,
         runLiveGapCatchUp,

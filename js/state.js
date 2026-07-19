@@ -53,7 +53,7 @@
  *
  *   // --- damage-deps passthrough (see buildDamageDeps) ---
  *   markAsOverdue, getSubTaskClusterOffset, calculateTimelineXWithClustering,
- *   enableFormControls, saveGame,
+ *   enableFormControls, saveGame, getLastRegenTickMs, setLastRegenTickMs,
  * }
  */
 const State = (() => {
@@ -189,6 +189,11 @@ const State = (() => {
             calculateTimelineXWithClustering: deps.calculateTimelineXWithClustering,
             enableFormControls: deps.enableFormControls,
             saveGame: deps.saveGame,
+            // Regen clock passthrough ([P2-GAME-012], 2026-07-18) — lets
+            // runOfflineCatchUp/runLiveGapCatchUp apply offline/suspended-gap
+            // regen and reset the live loop's regen clock afterward.
+            getLastRegenTickMs: deps.getLastRegenTickMs,
+            setLastRegenTickMs: deps.setLastRegenTickMs,
         };
     }
 

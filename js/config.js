@@ -18,6 +18,14 @@ const CONFIG = {
     // --- Base ---
     MAX_BASE_HEALTH: 100,
     OVERDUE_DAMAGE: 1,
+    // Gradual regen (decided 2026-07-18 Fable session, built [P2-GAME-012]):
+    // the base heals BASE_REGEN_HP every BASE_REGEN_INTERVAL_MS while the run
+    // is alive, and at the same rate for offline/suspended-loop time — applied
+    // AFTER offline overdue damage is back-charged. Clamped at MAX_BASE_HEALTH.
+    // Same values as OVERDUE_DAMAGE/DAMAGE_INTERVAL_MS by design (symmetric
+    // heal/damage rate); balance-protocol tunable independently of damage.
+    BASE_REGEN_HP: 1,
+    BASE_REGEN_INTERVAL_MS: 5 * 60 * 1000,
 
     // --- Offline catch-up (decided 2026-07-17, see DECISIONS.md) ---
     // Per-item cap on back-charged overdue damage for time spent offline.

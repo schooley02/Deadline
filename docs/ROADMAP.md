@@ -69,7 +69,7 @@ Order chosen so each step is small and testable. Tests pass before/after each; c
 - [ ] [P2-UI-009] Streak visual effects (on-fire habits)
 - [ ] [P2-GAME-010] Enemy acceleration mechanics
 - [ ] [P2-UI-011] Management window unification
-- [ ] [P2-GAME-012] Base healing system — **design DECIDED 2026-07-18 (Fable session): gradual regen, 1 HP/5min while alive + same rate offline (applied after offline damage on restore), clamped at 100; repair kits = instant mid-run heals; 0 HP stays run-over; NO daily reset. See MECHANICS.md Base + DECISIONS.md. Implementation only remains.**
+- [x] [P2-GAME-012] Base healing system (2026-07-18, session 17) — gradual regen BUILT: 1 HP/5min while alive (`js/loop.js`) + same rate offline/suspended-gap (`js/damage.js`'s `applyElapsedRegen`, applied after offline damage), clamped at 100; NO daily reset. Repair kits remain unbuilt (ties to the Milestone 3 shop). 17 suites, 370/370. Live-verified in Chrome. See MECHANICS.md Base + DECISIONS.md.
 - [ ] [P2-UI-013] Routine transfer system
 - [ ] Time slider (Today, then Week/Month scopes)
 - [ ] Achievements & badges

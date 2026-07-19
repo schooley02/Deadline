@@ -34,8 +34,10 @@ function makeDeps(overrides = {}) {
         offlineCatchUpActive: false,
         activeItems: [],
         lastLoopTickMs: null,
+        lastRegenTickMs: null,
         lastAutosaveMs: 0,
         damageDealt: 0,
+        healDealt: 0,
         gapCatchUps: 0,
         saves: 0,
         midnightUpdates: 0,
@@ -51,6 +53,8 @@ function makeDeps(overrides = {}) {
         baseWidth: 100,
         getLastLoopTickMs: () => state.lastLoopTickMs,
         setLastLoopTickMs: (n) => { state.lastLoopTickMs = n; },
+        getLastRegenTickMs: () => state.lastRegenTickMs,
+        setLastRegenTickMs: (n) => { state.lastRegenTickMs = n; },
         getLastAutosaveMs: () => state.lastAutosaveMs,
         setLastAutosaveMs: (n) => { state.lastAutosaveMs = n; },
         markAsOverdue: (item, t) => {
@@ -61,6 +65,7 @@ function makeDeps(overrides = {}) {
         getSubTaskClusterOffset: () => 0,
         calculateTimelineXWithClustering: () => 500,
         damageBase: (n) => { state.damageDealt += n; },
+        healBase: (n) => { state.healDealt += n; },
         updateMidnightLine: () => { state.midnightUpdates++; },
         runLiveGapCatchUp: () => { state.gapCatchUps++; },
         saveGame: () => { state.saves++; },
@@ -147,6 +152,35 @@ describe('Loop.updateActiveItems', () => {
         };
         Loop.updateActiveItems(deps);
         expect(deps._state.damageDealt).toBe(DMG); // second item never charged
+    });
+
+    test('[P2-GAME-012] first call plants the regen clock without healing', () => {
+        const deps = makeDeps({ state: { activeItems: [] } });
+        Loop.updateActiveItems(deps);
+        expect(deps._state.healDealt).toBe(0);
+        expect(typeof deps._state.lastRegenTickMs).toBe('number');
+    });
+
+    test('[P2-GAME-012] heals exactly one tick per elapsed regen interval', () => {
+        const REGEN_INTERVAL = CONFIG.BASE_REGEN_INTERVAL_MS;
+        const now = Date.now();
+        const deps = makeDeps({
+            state: { activeItems: [], lastRegenTickMs: now - REGEN_INTERVAL - 10 },
+        });
+        Loop.updateActiveItems(deps);
+        expect(deps._state.healDealt).toBe(CONFIG.BASE_REGEN_HP);
+        // clock advanced by exactly one interval, not snapped to now (remainder preserved)
+        expect(deps._state.lastRegenTickMs).toBe(now - REGEN_INTERVAL - 10 + REGEN_INTERVAL);
+
+        // run again immediately: within the same interval, no second heal
+        Loop.updateActiveItems(deps);
+        expect(deps._state.healDealt).toBe(CONFIG.BASE_REGEN_HP);
+    });
+
+    test('[P2-GAME-012] no regen tick before an elapsed interval', () => {
+        const deps = makeDeps({ state: { activeItems: [], lastRegenTickMs: Date.now() } });
+        Loop.updateActiveItems(deps);
+        expect(deps._state.healDealt).toBe(0);
     });
 });
 

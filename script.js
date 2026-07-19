@@ -52,6 +52,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Wall-clock ms of the previous game-loop tick, used to detect a suspended
     // loop (laptop sleep / throttled tab). See runLiveGapCatchUp.
     let lastLoopTickMs = null;
+    // Wall-clock ms of the last base-regen tick ([P2-GAME-012], 2026-07-18).
+    // null until the loop's first tick after a fresh game/restore plants it;
+    // see js/loop.js's updateActiveItems and js/damage.js's applyElapsedRegen.
+    let lastRegenTickMs = null;
     let attackMode = false;
 
 
@@ -187,6 +191,8 @@ document.addEventListener('DOMContentLoaded', () => {
             setDaysSurvived: (n) => { daysSurvived = n; },
             setRunStartedAtMs: (n) => { runStartedAtMs = n; },
             setLastLoopTickMs: (n) => { lastLoopTickMs = n; },
+            getLastRegenTickMs: () => lastRegenTickMs,
+            setLastRegenTickMs: (n) => { lastRegenTickMs = n; },
             setAttackMode: (v) => { attackMode = v; },
             setCurrentGameDate: (d) => { currentGameDate = d; },
             setGameLoopInterval: (id) => { gameLoopInterval = id; },
@@ -515,12 +521,15 @@ document.addEventListener('DOMContentLoaded', () => {
             baseWidth: BASE_WIDTH,
             getLastLoopTickMs: () => lastLoopTickMs,
             setLastLoopTickMs: (n) => { lastLoopTickMs = n; },
+            getLastRegenTickMs: () => lastRegenTickMs,
+            setLastRegenTickMs: (n) => { lastRegenTickMs = n; },
             getLastAutosaveMs: () => lastAutosaveMs,
             setLastAutosaveMs: (n) => { lastAutosaveMs = n; },
             markAsOverdue,
             getSubTaskClusterOffset,
             calculateTimelineXWithClustering,
             damageBase,
+            healBase,
             updateMidnightLine,
             runLiveGapCatchUp,
             saveGame,
@@ -547,6 +556,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function damageBase(amount) {
         Damage.damageBase(amount, damageDeps());
+    }
+
+    // Gradual base regen ([P2-GAME-012], 2026-07-18) — thin wrapper, call
+    // site unchanged pattern (js/loop.js's updateActiveItems).
+    function healBase(amount) {
+        Damage.healBase(amount, damageDeps());
     }
 
     function gameOver() {

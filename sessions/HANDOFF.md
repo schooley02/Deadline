@@ -13,6 +13,25 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-18 — Session 17: [P2-GAME-012] gradual base regen BUILT (Cowork session)
+
+**Did:** Implemented gradual base healing (design fully decided session 13 — no open questions this session). `js/config.js` gained `BASE_REGEN_HP`/`BASE_REGEN_INTERVAL_MS`. `js/damage.js` gained `computeRegenTicks` (pure), `healBase` (mirrors `damageBase`'s shape, no hit-flash), `applyElapsedRegen` (applies whole-interval regen for an elapsed span then resets the live regen clock) — wired into both `runOfflineCatchUp` branches (after damage) and `runLiveGapCatchUp`. `js/loop.js`'s `updateActiveItems` gained the live per-tick regen check (same remainder-preserving shape as the existing damage tick, base-wide not per-item). `js/state.js` and script.js's `stateDeps()`/`loopDeps()` thread the new `lastRegenTickMs` accessor pair through (same pattern as `lastLoopTickMs`).
+
+**State:** ✅ **17 suites, 370/370** (was 355; +15 damage.test.js regen cases, +3 loop.test.js regen cases). `node --check` clean on config/damage/loop/state/script. **Live-verified in Chrome:** live ticking confirmed by temporarily speeding up `CONFIG.BASE_REGEN_INTERVAL_MS` at runtime — HP climbed steadily. Offline regen confirmed by aging a save's `savedAt` by 25 minutes and reloading — base went 28 → 20 (8 HP legitimate offline damage, 2 items within their per-item cap budgets) → 25 (5 HP regen applied after, exactly `floor(25min / 5min)`), with `offlineDamageCharged` updated correctly per item. Console clean apart from the pre-existing extension noise (documented in prior sessions).
+
+**Methodology gotcha worth flagging for future offline-catch-up testing:** naively editing `localStorage`'s `savedAt` and reloading does NOT simulate offline time in this app — `Persistence`'s flush-on-hide/`beforeunload` handler re-serializes the CURRENT in-memory state (fresh `savedAt`) right before the page unloads, clobbering the injected value every single time regardless of how the reload is triggered (`navigate()`, `location.reload()`, sync or async). Burned ~20 tool calls on this before finding it. **Fix:** in the live console, before editing `savedAt` and reloading, temporarily no-op `Persistence.flush = () => {}` and `Persistence.requestSave = () => {}` — the patch doesn't survive the reload so there's nothing to clean up afterward.
+
+**Docs updated same session:** MECHANICS.md (Base + Offline Catch-up sections marked BUILT), DECISIONS.md (session 17 entry incl. the testing-methodology note above), ROADMAP.md (P2-GAME-012 checked off).
+
+**Next:** no blocker. Open items: the style.css split (last Milestone 2 item), or opening Milestone 3 proper (P1-DATA-005 negative habits, sub-task hierarchy, shop — the shop is also where repair kits and the habit-rate-tier legibility placeholders get re-tuned against real prices).
+
+**Watch out:**
+- Repair kits are still unbuilt — regen is the "slow free" half of Base healing only; the "I need HP now" lever waits on the Milestone 3 shop.
+- The live regen clock resets to "now" immediately after any offline/gap regen application (deliberate — see DECISIONS.md session 17) — don't "fix" this into a remainder-preserving reset without re-reading the rationale.
+- Sandbox scratch dir this session: `/sessions/dazzling-practical-tesla/dl-regen`.
+
+---
+
 ## 2026-07-18 — Session 16: rate-based habit bonus — step (c), design batch COMPLETE (Cowork session)
 
 **Did:** Replaced the flat streak-threshold points bonus with a rolling success-rate multiplier (the last piece of the session-13 design batch). Streak is now visual-only. `js/habits.js` gained pure rate helpers (`recordOccurrence` upsert-by-date + trim, `removeOccurrence`, `successRate`, `pointsMultiplier`, `occurrenceSuccess` polarity seam, `toOccurrenceDate`); `applyHabitCompletion`/`applyHabitUncompletion` rewritten + new `applyHabitOverdue` — they record occurrences and return the new `occurrenceHistory`. `items.js` completion paths wire them in. `config.js`: added `HABIT_RATE_WINDOW/MIN_SAMPLE/TIERS` (balance-tuning protocol), removed `HABIT_STREAK_BONUS_POINTS`, kept `HABIT_STREAK_BONUS_THRESHOLD` as the visual on-fire trigger only. Points-only (never XP); `round(POINTS_PER_HABIT × multiplier)`.

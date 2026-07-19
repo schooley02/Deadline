@@ -12,12 +12,13 @@
  *   - activeItems: plain reference (itemsDeps()/agendaListDeps() precedent;
  *     safe because deps are rebuilt per call, so reassignment can't go stale).
  *   - baseWidth: plain value, rebuilt per call (not resolved until initGame()).
- *   - getLastLoopTickMs/setLastLoopTickMs, getLastAutosaveMs/setLastAutosaveMs:
+ *   - getLastLoopTickMs/setLastLoopTickMs, getLastAutosaveMs/setLastAutosaveMs,
+ *     getLastRegenTickMs/setLastRegenTickMs ([P2-GAME-012], 2026-07-18):
  *     get/set pairs for script.js-owned timing state this module WRITES
  *     (damage.js baseHealth precedent).
  *   - collaborators: markAsOverdue, getSubTaskClusterOffset,
- *     calculateTimelineXWithClustering, damageBase, updateMidnightLine,
- *     runLiveGapCatchUp, saveGame.
+ *     calculateTimelineXWithClustering, damageBase, healBase
+ *     ([P2-GAME-012]), updateMidnightLine, runLiveGapCatchUp, saveGame.
  * CONFIG is read as a bare stable global (movement.js/clock.js precedent).
  */
 const Loop = (() => {
@@ -29,6 +30,21 @@ const Loop = (() => {
 
         const currentTime = new Date();
         const currentTimeMs = currentTime.getTime();
+
+        // Gradual base regen ([P2-GAME-012]) — same remainder-preserving tick
+        // shape as the per-item damage tick below, but base-wide rather than
+        // per-item. First call after a fresh game/restore has no prior tick
+        // to measure from, so it just plants the clock rather than granting
+        // a free heal for elapsed time it never actually covered (that time
+        // is already accounted for separately, via applyElapsedRegen on
+        // restore/gap catch-up).
+        const lastRegen = deps.getLastRegenTickMs();
+        if (lastRegen === null) {
+            deps.setLastRegenTickMs(currentTimeMs);
+        } else if (currentTimeMs >= lastRegen + CONFIG.BASE_REGEN_INTERVAL_MS) {
+            deps.healBase(CONFIG.BASE_REGEN_HP);
+            deps.setLastRegenTickMs(lastRegen + CONFIG.BASE_REGEN_INTERVAL_MS);
+        }
 
         for (let i = deps.activeItems.length - 1; i >= 0; i--) {
             const item = deps.activeItems[i];

@@ -136,6 +136,57 @@ describe('resolveBaseImage', () => {
 });
 
 // ---------------------------------------------------------------------------
+describe('[P2-GAME-012] computeRegenTicks', () => {
+    const REGEN_INTERVAL = CONFIG.BASE_REGEN_INTERVAL_MS;
+
+    test('zero or negative elapsed time regens nothing', () => {
+        expect(Damage.computeRegenTicks(0, REGEN_INTERVAL)).toBe(0);
+        expect(Damage.computeRegenTicks(-1000, REGEN_INTERVAL)).toBe(0);
+    });
+
+    test('floors partial intervals', () => {
+        expect(Damage.computeRegenTicks(REGEN_INTERVAL - 1, REGEN_INTERVAL)).toBe(0);
+        expect(Damage.computeRegenTicks(REGEN_INTERVAL, REGEN_INTERVAL)).toBe(1);
+        expect(Damage.computeRegenTicks(REGEN_INTERVAL * 3.9, REGEN_INTERVAL)).toBe(3);
+    });
+});
+
+// ---------------------------------------------------------------------------
+describe('[P2-GAME-012] healBase', () => {
+    test('heals by the given amount', () => {
+        const deps = makeDeps({ state: { baseHealth: 50 } });
+        Damage.healBase(10, deps);
+        expect(deps._state.baseHealth).toBe(60);
+    });
+
+    test('clamps at MAX_BASE_HEALTH', () => {
+        const deps = makeDeps({ state: { baseHealth: 95 } });
+        Damage.healBase(10, deps);
+        expect(deps._state.baseHealth).toBe(CONFIG.MAX_BASE_HEALTH);
+    });
+
+    test('no-ops once the game is over', () => {
+        const deps = makeDeps({ state: { baseHealth: 50, gameIsOver: true } });
+        Damage.healBase(10, deps);
+        expect(deps._state.baseHealth).toBe(50);
+    });
+
+    test('no-ops on a zero or negative amount', () => {
+        const deps = makeDeps({ state: { baseHealth: 50 } });
+        Damage.healBase(0, deps);
+        Damage.healBase(-5, deps);
+        expect(deps._state.baseHealth).toBe(50);
+    });
+
+    test('saves and updates the display', () => {
+        const deps = makeDeps({ state: { baseHealth: 50 } });
+        Damage.healBase(10, deps);
+        expect(deps._state.saves).toBe(1);
+        expect(deps.baseHealthDisplay.textContent).toBe(60);
+    });
+});
+
+// ---------------------------------------------------------------------------
 describe('computeOfflineOverdueDamage', () => {
     const now = 10_000_000;
 
@@ -424,6 +475,30 @@ describe('runLiveGapCatchUp', () => {
         Damage.runLiveGapCatchUp(deps);
         expect(deps._state.baseHealth).toBe(100 - CAP);
     });
+
+    test('[P2-GAME-012] with no getLastRegenTickMs threaded through, no regen happens (guarded)', () => {
+        // Mirrors production script.js always threading it — this just proves
+        // the guard doesn't crash deps bags that omit it (e.g. older tests).
+        const it = item({ lastDamageTickTime: Date.now() - 10 * 60 * 60 * 1000, offlineDamageCharged: CAP });
+        const deps = makeDeps({ state: { activeItems: [it] } }); // no damage owed, cap already spent
+        Damage.runLiveGapCatchUp(deps);
+        expect(deps._state.baseHealth).toBe(100);
+    });
+
+    test('[P2-GAME-012] heals for the gap since the last regen tick, after damage', () => {
+        const now = Date.now();
+        const it = item({ lastDamageTickTime: now - 10 * 60 * 60 * 1000, offlineDamageCharged: CAP }); // no damage owed
+        const lastRegen = now - 3 * CONFIG.BASE_REGEN_INTERVAL_MS;
+        const deps = makeDeps({
+            state: { activeItems: [it], baseHealth: 50, lastRegenTickMs: lastRegen },
+            deps: {
+                getLastRegenTickMs: () => deps._state.lastRegenTickMs,
+                setLastRegenTickMs: (n) => { deps._state.lastRegenTickMs = n; },
+            },
+        });
+        Damage.runLiveGapCatchUp(deps);
+        expect(deps._state.baseHealth).toBe(50 + 3 * CONFIG.BASE_REGEN_HP);
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -442,11 +517,43 @@ describe('runOfflineCatchUp', () => {
     test('applies damage instantly when nothing needs animating', () => {
         // Long absence, but the item has no element to animate → the
         // instant-apply branch runs and the capped damage lands immediately.
+        // Started below max so the [P2-GAME-012] regen this same offline
+        // window now grants (10 whole BASE_REGEN_INTERVAL_MS ticks, applied
+        // AFTER damage) is actually visible rather than clamped away.
         const it = item({ dueDateTime: new Date(Date.now() - 3 * INTERVAL), element: null });
-        const deps = makeDeps({ state: { activeItems: [it] } });
+        const deps = makeDeps({ state: { activeItems: [it], baseHealth: 50 } });
         Damage.runOfflineCatchUp([{ item: it, savedX: null }], 10 * INTERVAL, deps);
-        expect(deps._state.baseHealth).toBe(100 - 3 * DMG);
+        expect(deps._state.baseHealth).toBe(50 - 3 * DMG + 10 * CONFIG.BASE_REGEN_HP);
         expect(deps._state.offlineCatchUpActive).toBe(false);
+    });
+
+    test('[P2-GAME-012] regen clamps at MAX_BASE_HEALTH even after a long absence', () => {
+        const it = item({ dueDateTime: new Date(Date.now() - 3 * INTERVAL), element: null });
+        const deps = makeDeps({ state: { activeItems: [it] } }); // starts at 100
+        Damage.runOfflineCatchUp([{ item: it, savedX: null }], 10 * INTERVAL, deps);
+        expect(deps._state.baseHealth).toBe(CONFIG.MAX_BASE_HEALTH);
+    });
+
+    test('[P2-GAME-012] resets the live regen clock to now after applying', () => {
+        const it = item({ dueDateTime: new Date(Date.now() - 3 * INTERVAL), element: null });
+        const before = Date.now();
+        const deps = makeDeps({
+            state: { activeItems: [it], lastRegenTickMs: null },
+            deps: {
+                getLastRegenTickMs: () => deps._state.lastRegenTickMs,
+                setLastRegenTickMs: (n) => { deps._state.lastRegenTickMs = n; },
+            },
+        });
+        Damage.runOfflineCatchUp([{ item: it, savedX: null }], 10 * INTERVAL, deps);
+        expect(deps._state.lastRegenTickMs).toBeGreaterThanOrEqual(before);
+    });
+
+    test('[P2-GAME-012] a sub-interval absence heals nothing', () => {
+        const it = item({ dueDateTime: new Date(Date.now() - 3 * INTERVAL), element: null });
+        const deps = makeDeps({ state: { activeItems: [it], baseHealth: 50 } });
+        // offline long enough to skip the animation threshold, short of one regen interval
+        Damage.runOfflineCatchUp([{ item: it, savedX: null }], CONFIG.OFFLINE_ANIMATION_THRESHOLD_MS + 1, deps);
+        expect(deps._state.baseHealth).toBe(50); // item not yet due long enough to owe damage either
     });
 
     test('overdue items keep their existing x; others move to the timeline position', () => {
