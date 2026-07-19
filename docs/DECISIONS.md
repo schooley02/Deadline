@@ -4,6 +4,60 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 40: FIXED — FAB→Routines popup staleness after habit edit (Cowork session, Sonnet execute — small pre-scoped bug fix, Jeremy's pick from session 39's punch list)
+
+**Fix:** `editHabitInRoutine` (script.js wrapper) now mirrors `deleteRoutine`'s existing pattern —
+after a real edit mutates state, it checks whether `managementWindows.routines` (the FAB→Routines
+popup) is open and, if so, calls `populateRoutinesWindow()` via a 100ms `setTimeout` to refresh it.
+Previously the wrapper only called `renderDefinedRoutines()` (the older inline list), which never
+touched this separate windowing system — so a routine unfrozen via recovery path 1 (session 38) mid-
+edit stayed visually stale (greyed/🥶) until the popup was closed and reopened. No design question
+here — `deleteRoutine` already had the exact right pattern sitting a few lines above; this just copies
+it to the other stale call site flagged in session 38's HANDOFF entry.
+
+**Live-verified in Chrome:** created a fresh routine + negative habit, seeded 2 backdated indulged
+occurrence days (localStorage edit + neutered `Persistence.flush`/`requestSave`/`localStorage.setItem`
++ reload — the documented trick, this time needing ALL THREE neutered, not just `setItem`, since a
+plain reload without neutering `Persistence.flush` let the stale in-memory state clobber the direct
+edit on unload; noted below), then directly set `routine.frozenState` (same trick) to reach the frozen
+state without needing the full spawn pipeline (a pre-existing, unrelated local dev-environment quirk —
+see Watch out below — meant real habit instances weren't spawning in this session's browser, so the
+freeze was seeded directly rather than earned via 3 real indulge clicks). Opened FAB→Routines (showed
+🥶 "Frozen — see Manage for recovery options"), drilled into Manage, edited the habit's name (a real
+change), which correctly fired the "routine is unfrozen" notice — and the Routines popup underneath,
+left open the whole time, immediately showed the routine back to normal (green dot, no frozen
+subtitle) without being closed/reopened. Confirmed `frozenState: null` in the save, not just visually.
+Zero app console errors (only the recurring unrelated Chrome-extension messaging noise).
+
+**Tests:** 30 suites, 585/585 (unchanged — UI wiring only, no new pure-core logic to cover).
+
+**Watch out (new gotcha found this session):** the documented backdating trick ("neuter
+`localStorage.setItem`, then reload") is NOT sufficient on its own if you're editing localStorage
+directly and NOT going through the app's own save call — you must also neuter `Persistence.flush` and
+`Persistence.requestSave` (both are bare lexical globals in the page, e.g. `Persistence.flush =
+function(){}`, not `window.Persistence`) before reloading. Otherwise the unload handler's
+`Persistence.flush()` still runs, reads the OLD in-memory state (which never saw your direct edit), and
+its call to `localStorage.setItem` — even the real, un-neutered one — overwrites your edit. Confirmed
+by reproducing the data loss twice: once neutering `setItem` alone lost an entire routine+habit created
+minutes earlier, and once more it silently reset a freshly-set `frozenState` back to `null`. Only
+neutering all three together survived a reload reliably.
+
+**Found, NOT fixed (pre-existing, unrelated, out of scope):** in this session's Cowork Chrome
+playtest environment, no habit or task — including a positive standalone habit already in the dev
+save before this session started — ever spawned a live instance after a fresh page load (`0 tasks`
+always, `activeItems: []` in the save even right after `generateDailyHabitInstances`/
+`generateDailyRoutineTaskInstances` run in `restoreGameState`). No console errors accompany it. Not
+investigated further — this session's fix and verification didn't require live spawning (verified via
+direct `frozenState` seeding instead), but this is worth a look before the next session that depends on
+real spawn behavior. Possibly specific to this dev save's accumulated state (it already had one
+orphaned habit referencing a deleted routine before this session touched anything) rather than a code
+regression — not confirmed either way.
+
+Dev save has a `Session40 Test Routine` + `Test Vice (renamed)` test habit (unfrozen, from this
+session's live verification) plus pre-existing session-39 leftovers. Recommend Reset before real play.
+
+---
+
 ## 2026-07-19 — Session 39: Sub-session 5 BUILT — Sick Day + Skip Day tokens, schemaVersion 6→7 (Cowork session, Sonnet execute — plan already approved in session 35, one mechanic gap resolved live with Jeremy)
 
 **Ticket now CLOSED:** [P1-DATA-005]-adjacent "Frozen routine slots + recovery" ticket, all 5

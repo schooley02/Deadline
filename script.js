@@ -926,6 +926,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         })) {
             renderDefinedRoutines();
+
+            // Update the FAB->Routines popup if open — same staleness fix as
+            // deleteRoutine (it's a separate windowing system from Modal's
+            // overlays, so renderDefinedRoutines() alone doesn't touch it).
+            // See docs/ROADMAP.md Known bugs / DECISIONS.md session 38/40.
+            setTimeout(() => {
+                if (managementWindows.routines && !managementWindows.routines.classList.contains('hidden')) {
+                    populateRoutinesWindow();
+                }
+            }, 100);
         }
     }
 

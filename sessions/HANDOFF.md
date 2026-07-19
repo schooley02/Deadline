@@ -13,6 +13,49 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 40: FIXED — FAB→Routines popup staleness after habit edit (Cowork session, Sonnet execute)
+
+**Did:** Small, pre-scoped bug fix (Jeremy's pick off session 39's punch list). `editHabitInRoutine`
+(script.js wrapper) now mirrors `deleteRoutine`'s existing "refresh the FAB→Routines popup if open"
+`setTimeout` pattern — previously it only called `renderDefinedRoutines()`, which never touched the
+separate `managementWindows.routines` popup, so a routine unfrozen via recovery path 1 (session 38)
+mid-edit stayed stale (greyed/🥶) until the popup was closed and reopened. Updated `docs/ROADMAP.md`
+(known bug now checked off + new unrelated finding logged) and `docs/DECISIONS.md`.
+
+**State:** ✅ **30 suites, 585/585** (unchanged — UI wiring only). `node --check script.js` clean.
+**Live-verified in Chrome:** created a test routine + negative habit, seeded a frozen state (localStorage
+edit + neutered `Persistence.flush`/`requestSave`/`localStorage.setItem` + reload), opened FAB→Routines
+(showed 🥶), drilled into Manage, edited the habit's name (real change) — fired the unfreeze notice AND
+the Routines popup underneath (left open the whole time) immediately showed the routine back to normal
+without closing/reopening. Confirmed `frozenState: null` in the save, not just visually. Zero app
+console errors.
+
+**Found (not fixed — pre-existing, unrelated, logged in ROADMAP.md's Known bugs): in this session's
+Cowork Chrome dev environment, no habit/task ever spawned a live instance after a fresh page load** —
+`0 tasks` / `activeItems: []` always, even for a pre-existing positive standalone habit, no console
+errors. Not diagnosed (didn't block this session's fix — verified via direct `frozenState` seeding
+instead of earning it through real spawns). Worth a look before any session that depends on live
+spawning.
+
+**Next:** Jeremy's call which Milestone 3 item next — candidates per `docs/ROADMAP.md`: [P1-UI-006]
+Hero/routine visual system, [P1-DATA-004] Sub-task hierarchy, or Run history. Consider investigating
+this session's spawn-not-happening finding first if it turns out to be a real regression rather than a
+dev-save quirk.
+
+**Watch out:**
+- **New backdating gotcha:** neutering `localStorage.setItem` alone is NOT enough to protect a direct
+  localStorage edit across a reload if the edit didn't go through the app's own save call — you must
+  ALSO neuter `Persistence.flush` and `Persistence.requestSave` (bare lexical globals, e.g.
+  `Persistence.flush = function(){}`) before reloading, or the unload handler's `flush()` reads the
+  stale in-memory state and overwrites your edit via the real `setItem` before you got a chance to
+  neuter it in time. Confirmed by reproducing the data loss twice this session (lost an entire routine
+  + habit once, silently reset a freshly-set `frozenState` back to `null` a second time) before neutering
+  all three together fixed it reliably.
+- Dev save has `Session40 Test Routine` + `Test Vice (renamed)` test habit (unfrozen) plus pre-existing
+  session-39 leftovers. Recommend Reset before real play.
+
+---
+
 ## 2026-07-19 — Session 39: Sub-session 5 BUILT — Sick Day + Skip Day tokens, schemaVersion 6→7 — TICKET CLOSED (Cowork session, Sonnet execute)
 
 **Did:** Added two Buy-to-hold shop consumables (200 pts, same exponential pricing as Cheat Day):
