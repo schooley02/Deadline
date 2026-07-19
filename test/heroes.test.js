@@ -74,12 +74,88 @@ describe('applyXpDelta', () => {
     });
 });
 
-describe('slotsForLevel — 1 habit + 1 task at L1, +1 of each per level', () => {
-    test('level 1', () => {
-        expect(Heroes.slotsForLevel(1, CONFIG)).toEqual({ habitSlots: 1, taskSlots: 1 });
+describe('Banked slot points ([P1-UI-006] sub-session 4, 2026-07-19) — SUPERSEDES the retired slotsForLevel', () => {
+    describe('totalSlotPointsEarned — 1 point per level from 2-9, capped at ROUTINE_MAX_SLOT_POINTS', () => {
+        test('level 1 has earned nothing yet', () => {
+            expect(Heroes.totalSlotPointsEarned(1, CONFIG)).toBe(0);
+        });
+        test('level 5 has earned 4 points (levels 2,3,4,5)', () => {
+            expect(Heroes.totalSlotPointsEarned(5, CONFIG)).toBe(4);
+        });
+        test('level 9 (max) caps at ROUTINE_MAX_SLOT_POINTS (8)', () => {
+            expect(Heroes.totalSlotPointsEarned(9, CONFIG)).toBe(CONFIG.ROUTINE_MAX_SLOT_POINTS);
+        });
+        test('an out-of-range level never goes negative', () => {
+            expect(Heroes.totalSlotPointsEarned(0, CONFIG)).toBe(0);
+        });
     });
-    test('level 4', () => {
-        expect(Heroes.slotsForLevel(4, CONFIG)).toEqual({ habitSlots: 4, taskSlots: 4 });
+
+    describe('availableSlotPoints — earned minus spent, floored at 0', () => {
+        test('a fresh level-1 routine has 0 available', () => {
+            const routine = { level: 1, boughtHabitSlots: 0, boughtTaskSlots: 0 };
+            expect(Heroes.availableSlotPoints(routine, CONFIG)).toBe(0);
+        });
+        test('level 3 with nothing spent has 2 available', () => {
+            const routine = { level: 3, boughtHabitSlots: 0, boughtTaskSlots: 0 };
+            expect(Heroes.availableSlotPoints(routine, CONFIG)).toBe(2);
+        });
+        test('subtracts BOTH habit and task spend from the shared pool', () => {
+            const routine = { level: 3, boughtHabitSlots: 1, boughtTaskSlots: 1 };
+            expect(Heroes.availableSlotPoints(routine, CONFIG)).toBe(0);
+        });
+        test('never goes negative even if more was spent than currently earned (de-level case)', () => {
+            const routine = { level: 2, boughtHabitSlots: 2, boughtTaskSlots: 2 };
+            expect(Heroes.availableSlotPoints(routine, CONFIG)).toBe(0);
+        });
+        test('DERIVED from level, not incremented — revisiting a level never re-mints a point (the farming exploit a stored pool would allow)', () => {
+            // Level up to 5 (4 earned), spend 3, de-level back to 2 (available
+            // floors at 0 — see the case above), then level back UP to 5.
+            // A stored/incremented pool would grant a 5th point here (the
+            // level-up "deposit" firing again); the derived model doesn't,
+            // because it only ever looks at the CURRENT level.
+            const routine = { level: 5, boughtHabitSlots: 2, boughtTaskSlots: 1 };
+            expect(Heroes.availableSlotPoints(routine, CONFIG)).toBe(1); // 4 earned - 3 spent
+        });
+    });
+
+    describe('slotCapacity — baseline + whatever has actually been bought', () => {
+        test('a fresh routine has the level-1 baseline (1 habit + 1 task)', () => {
+            const routine = { boughtHabitSlots: 0, boughtTaskSlots: 0 };
+            expect(Heroes.slotCapacity(routine, 'habit', CONFIG)).toBe(CONFIG.ROUTINE_HABIT_SLOTS_BASE);
+            expect(Heroes.slotCapacity(routine, 'task', CONFIG)).toBe(CONFIG.ROUTINE_TASK_SLOTS_BASE);
+        });
+        test('bought slots add on top of baseline, independently per type', () => {
+            const routine = { boughtHabitSlots: 2, boughtTaskSlots: 1 };
+            expect(Heroes.slotCapacity(routine, 'habit', CONFIG)).toBe(CONFIG.ROUTINE_HABIT_SLOTS_BASE + 2);
+            expect(Heroes.slotCapacity(routine, 'task', CONFIG)).toBe(CONFIG.ROUTINE_TASK_SLOTS_BASE + 1);
+        });
+        test('a de-level never strands/evicts an already-bought slot (capacity stays bought, per plan recommendation)', () => {
+            const routine = { level: 1, boughtHabitSlots: 3, boughtTaskSlots: 0 };
+            expect(Heroes.slotCapacity(routine, 'habit', CONFIG)).toBe(CONFIG.ROUTINE_HABIT_SLOTS_BASE + 3);
+        });
+    });
+
+    describe('spendSlotPoint — pure "try to spend" (shop.js purchase/consume pattern: result object, no mutation)', () => {
+        test('spends into the requested slot type when a point is available', () => {
+            const routine = { level: 3, boughtHabitSlots: 0, boughtTaskSlots: 0 };
+            const result = Heroes.spendSlotPoint(routine, 'habit', CONFIG);
+            expect(result).toEqual({ ok: true, boughtHabitSlots: 1, boughtTaskSlots: 0 });
+            // Argument untouched — caller applies the mutation.
+            expect(routine.boughtHabitSlots).toBe(0);
+        });
+        test('spending on task increments only boughtTaskSlots', () => {
+            const routine = { level: 3, boughtHabitSlots: 1, boughtTaskSlots: 0 };
+            const result = Heroes.spendSlotPoint(routine, 'task', CONFIG);
+            expect(result).toEqual({ ok: true, boughtHabitSlots: 1, boughtTaskSlots: 1 });
+        });
+        test('refuses when no points are available', () => {
+            const routine = { level: 1, boughtHabitSlots: 0, boughtTaskSlots: 0 };
+            expect(Heroes.spendSlotPoint(routine, 'habit', CONFIG)).toEqual({ ok: false, reason: 'no_points' });
+        });
+        test('refuses once every earned point is already spent', () => {
+            const routine = { level: 2, boughtHabitSlots: 1, boughtTaskSlots: 0 };
+            expect(Heroes.spendSlotPoint(routine, 'task', CONFIG)).toEqual({ ok: false, reason: 'no_points' });
+        });
     });
 });
 

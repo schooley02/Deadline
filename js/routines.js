@@ -203,7 +203,12 @@ const Routines = (() => {
             level: 1,
             health: CONFIG.ROUTINE_MAX_HEALTH,
             createdAt: Date.now(),
-            koState: null
+            koState: null,
+            // Banked slot points (schemaVersion 9, [P1-UI-006] sub-session 4,
+            // 2026-07-19): only the SPENT counts are persisted — available
+            // points are derived from level (js/heroes.js). See DECISIONS.md.
+            boughtHabitSlots: 0,
+            boughtTaskSlots: 0
         };
 
         return { ok: true, routine };

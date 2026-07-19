@@ -107,12 +107,20 @@ const CONFIG = {
     ROUTINE_XP_PER_TASK: 10,
     ROUTINE_XP_PER_HABIT: 5,
     ROUTINE_LEVEL_XP_THRESHOLDS: [0, 50, 125, 250, 400, 600, 850, 1150, 1500],
-    // Member slots: level 1 = 1 habit + 1 task slot; +1 of each per level
-    // (spec gives no numbers — cheapest symmetric reading, revisit with play
-    // data). Enforcement lands in sub-session 4.
+    // Member slots — BANKED SLOT POINTS model (sub-session 4, 2026-07-19;
+    // forks resolved post-session-43, see DECISIONS.md/HEROES_PLAN.md).
+    // Baseline at level 1: 1 habit + 1 task slot. Each level-up from 2-9
+    // deposits ONE point into a shared pool (js/heroes.js's
+    // totalSlotPointsEarned, DERIVED from level rather than stored —
+    // prevents farming points by oscillating level up/down), spent on
+    // EITHER a habit or a task slot at add-time. Max 8 points (levels 2-9),
+    // so per-type ceiling is 1+8 = 9, total slots max out at 10 — HALF the
+    // old symmetric model's 9+9 = 18 budget (Jeremy's original "pick one per
+    // level" intent). Superseded the old ROUTINE_SLOTS_PER_LEVEL_GAIN
+    // (automatic +1/+1 per level, js/heroes.js's retired slotsForLevel).
     ROUTINE_HABIT_SLOTS_BASE: 1,
     ROUTINE_TASK_SLOTS_BASE: 1,
-    ROUTINE_SLOTS_PER_LEVEL_GAIN: 1,
+    ROUTINE_MAX_SLOT_POINTS: 8,
     // Routine health (sub-session 2 wires damage/KO; the max seeds the v8
     // migration NOW so the field exists). KO at 0 -> auto-deactivate, manual
     // revive next calendar day at HERO_REVIVE_HEALTH (fork 2, session 41).

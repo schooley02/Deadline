@@ -36,8 +36,8 @@ const ManagementWindows = (() => {
 
     // deps: { managementWindows, closeFabMenu, activeItems, definedHabits,
     //         definedRoutines, routineSlots, showRoutineManagement,
-    //         toggleRoutineActive, shopCatalog, playerInventory,
-    //         playerPoints, baseHealth, onShopBuy, onShopUse }
+    //         toggleRoutineActive, runStartedAtMs, shopCatalog,
+    //         playerInventory, playerPoints, baseHealth, onShopBuy, onShopUse }
     function openManagementWindow(type, deps) {
         // Close all windows first
         Object.values(deps.managementWindows).forEach(win => {
@@ -72,9 +72,11 @@ const ManagementWindows = (() => {
             } else if (type === 'routines') {
                 populateRoutinesWindow({
                     definedRoutines: deps.definedRoutines,
+                    definedHabits: deps.definedHabits,
                     routineSlots: deps.routineSlots,
                     showRoutineManagement: deps.showRoutineManagement,
                     toggleRoutineActive: deps.toggleRoutineActive,
+                    runStartedAtMs: deps.runStartedAtMs,
                 });
             } else if (type === 'shop') {
                 ShopView.renderShopWindow({
@@ -167,7 +169,12 @@ const ManagementWindows = (() => {
         });
     }
 
-    // deps: { definedRoutines, routineSlots, showRoutineManagement, toggleRoutineActive }
+    // deps: { definedRoutines, routineSlots, showRoutineManagement,
+    //         toggleRoutineActive, definedHabits?, runStartedAtMs? }
+    // definedHabits/runStartedAtMs are OPTIONAL (omitted -> level/star line
+    // still renders off routine.level/xp directly via a zero-collaborator
+    // HeroesView call, same "collaborator omitted -> degrade gracefully"
+    // precedent used throughout this codebase) — see buildLevelStarsLine.
     function populateRoutinesWindow(deps) {
         const routinesList = document.getElementById('routinesWindowList');
         const activeCountDisplay = document.getElementById('windowActiveRoutineCountDisplay');
@@ -213,10 +220,17 @@ const ManagementWindows = (() => {
             const toggleDisabled = isKod && !revivable;
             const toggleLabel = isKod ? 'Revive' : (routine.isActive ? 'Deactivate' : 'Activate');
 
+            // Level + star rating ([P1-UI-006] sub-session 4, 2026-07-19) —
+            // reuses HeroesView.buildChipViewModel (the same pure view model
+            // the base chip renders from) rather than recomputing level/star
+            // math here.
+            const heroVm = HeroesView.buildChipViewModel(routine, deps.definedHabits, CONFIG, deps.runStartedAtMs);
+            const levelStarsLine = `Lv${heroVm.level} ${HeroesView.starsHtml(heroVm.stars)}`;
+
             li.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <div>
-                        <div>${statusIcon} ${routine.name}</div>
+                        <div>${statusIcon} ${routine.name} <span style="font-size: 11px; color: var(--color-neutral);">${levelStarsLine}</span></div>
                         <div style="font-size: 12px; color: var(--color-neutral);">${subtitle}</div>
                     </div>
                     <div style="display: flex; gap: 8px;">

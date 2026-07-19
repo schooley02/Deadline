@@ -13,6 +13,77 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 44: HEROES_PLAN sub-session 4 BUILT — hero management UI + banked slot points (Cowork session, Sonnet throughout)
+
+**Did:** [P1-UI-006] sub-session 4, the last unbuilt mechanic in the ticket (sub-session 5, polish,
+is optional). Forks were already resolved at the end of session 43 (banked slot points, no
+grandfathering — docs/DECISIONS.md session 43). Built: `routine.boughtHabitSlots`/`boughtTaskSlots`
+(schemaVersion 8→9, additive), `js/heroes.js` gained `totalSlotPointsEarned`/`availableSlotPoints`/
+`slotCapacity`/`spendSlotPoint` (pure, shop.js-style result objects) and RETIRED the unused
+sub-session-1 `slotsForLevel` placeholder. `js/ui/routineViews.js` gained a shared
+`ensureRoutineSlotAvailable` gate wired into all three add-to-routine flows (existing-item "Add
+Selected," Create New Habit, Create New Task) — prompts to spend a banked point via `confirm()` when
+at capacity, `alert()`s "level up to earn a point" when none are available. Manage-modal additions:
+a hero stats block (`buildHeroStatsHtml` — level/XP progress/stars/health/slot usage, reusing
+`HeroesView.buildChipViewModel`) and a KO-aware status row (`buildStatusRowHtml` — label/disabled-
+button parity with `managementWindows.js`'s existing compact-card KO treatment, which never had a
+Manage-modal counterpart before). Compact routine card also gained a level+star line. Docs: ROUTINES.md
+("Slot Enforcement — Banked Slot Points" section), DATA_SCHEMA.md (v9 section), HEROES_PLAN.md
+(sub-session 4 marked built), ROADMAP.md, DECISIONS.md, CLAUDE.md (two new Cowork gotchas, see
+Watch out).
+
+**Key implementation call (deviates from session 43's own schema note, logged in DECISIONS.md):**
+available slot points are DERIVED from `routine.level`, never stored/incremented. A stored
+`slotPoints` pool (as session 43 sketched) would let a player farm extra points by de-leveling
+(uncomplete → XP refund) and re-leveling back through the SAME threshold — the deposit would fire
+twice for one level. Deriving from the current level closes that for free. Only the SPENT counts
+(`boughtHabitSlots`/`boughtTaskSlots`) persist.
+
+**State:** ✅ **35 suites, 717/717** (+34 over session 43's 683: new `test/routine-views-slots.test.js`
+(15 cases), `test/heroes.test.js`'s retired `slotsForLevel` block replaced with banked-points
+coverage, `test/persistence-migration.test.js` v8→v9 cases, `test/routines.test.js` +1). `node --check`
+clean on every touched file. **Live-verified in Chrome against a REAL running server** (Jeremy had one
+up already at localhost:8000) **end-to-end through the actual app** (not synthetic unit calls — drove
+the real exposed `window.saveNewHabit`/`window.saveNewTask` handlers after stubbing
+`window.confirm`/`window.alert`, to route around a real environmental finding — see Watch out):
+created a routine + habit at level 1 under baseline (no prompt, confirmed unaffected); seeded level 3
+via the save (session-40 neutering protocol) and confirmed the Manage modal + compact card rendered
+"Lv3 Hero," XP progress, health, and "Habit slots: 1/1 · Task slots: 0/1 · 2 slot points available";
+spent both points across a habit add THEN a task add (confirming the pool is SHARED, not per-type)
+with the exact expected `confirm()` message each time and correct persistence after
+`Persistence.flush()`; verified decline (no mutation) and zero-points (`alert()`, not `confirm()`,
+correct message) branches; verified the KO-aware status row live (seeded `koState`, confirmed
+"💤 Knocked out — revives tomorrow" + disabled Revive button in the Manage modal, matching the
+compact card). Zero real app console errors (only the recurring documented Chrome-extension noise).
+Dev save reset clean afterward (`Persistence.clear()` + neutering protocol).
+
+**Next:** HEROES_PLAN sub-session 5 — polish: interaction visuals + ranking (hero flinch/flash on
+routine damage, celebrate on completion; Routines view ranks by level then star rate). Explicitly
+OPTIONAL/cut-if-play-data-says-otherwise per the plan — this closes out [P1-UI-006]'s required scope
+either way. Otherwise: [P1-DATA-004] sub-task hierarchy system, or run history — both still open in
+Milestone 3.
+
+**Watch out:**
+- **Native `confirm()`/`alert()` dialogs FREEZE Claude-in-Chrome automation** — a real UI click that
+  triggers one hangs CDP (mouse/screenshot calls time out, "renderer may be frozen"). Recovery:
+  navigate the tab away (no partial mutation observed — whatever was paused at the dialog is simply
+  discarded). To actually exercise a confirm/alert-gated flow, stub `window.confirm`/`window.alert`
+  via `javascript_tool` BEFORE triggering it, then drive the real handler directly (often already
+  exposed as `window.<name>` for inline-onclick reasons) rather than clicking through. Logged in
+  CLAUDE.md for future sessions.
+- `Persistence.requestSave()` is debounced — reading `localStorage` immediately after a mutating
+  call can return stale data. Call `Persistence.flush()` first. (Different direction from the
+  session-40/42 trick of stubbing flush/requestSave before a DIRECT localStorage edit — that guards
+  against the live tab clobbering YOUR edit; this is about reading the app's OWN writes promptly.)
+- A local server was already running at localhost:8000 this session (Jeremy must have had it up from
+  before) — Claude-in-Chrome could drive it directly. Don't assume this is always the case; check
+  before assuming Claude can't see the game (CLAUDE.md's old blanket "Claude can't view the running
+  game" note was stale and has been corrected).
+- Dev save is back to a clean fresh-run state (Reset was run at the end) — no cleanup needed next
+  session.
+
+---
+
 ## 2026-07-19 — Session 43: HEROES_PLAN sub-session 3 BUILT — hero rendering at the base (Cowork session, Sonnet throughout)
 
 **Did:** [P1-UI-006] sub-session 3, the ticket's visible payoff. New `js/ui/heroes.js`

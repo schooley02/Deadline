@@ -162,6 +162,12 @@ describe('createRoutineDefinition', () => {
         expect(result.routine.createdAt).toBeGreaterThanOrEqual(before);
         expect(result.routine.koState).toBeNull();
     });
+
+    test('seeds banked slot-point spend counters at zero ([P1-UI-006] sub-session 4, schemaVersion 9)', () => {
+        const result = Routines.createRoutineDefinition('Hero Routine', []);
+        expect(result.routine.boughtHabitSlots).toBe(0);
+        expect(result.routine.boughtTaskSlots).toBe(0);
+    });
 });
 
 describe('deleteRoutine', () => {

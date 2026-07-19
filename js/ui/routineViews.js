@@ -479,6 +479,85 @@ const RoutineViews = (() => {
         `;
     }
 
+    // KO gating explanation for the Manage modal's status row ([P1-UI-006]
+    // sub-session 4, 2026-07-19) — extends the plain Active/Inactive status
+    // sub-session 1-3 left unchanged with the same KO vocabulary
+    // managementWindows.js's compact card already uses (revivable computed
+    // the same way: DayRollover.hasDayRolledOver against routine.koState.koAt).
+    // Frozen status is explained in detail by the banner above this row
+    // (buildFrozenBannerHtml); this row just needs to not silently say
+    // "Inactive" for a frozen or KO'd routine. The toggle button itself
+    // always calls deps.toggleRoutineActive, which already enforces the KO
+    // gate server-side (Routines.toggleRoutineActive) — this only makes the
+    // button's label/disabled state agree with what clicking it would do,
+    // same precedent as managementWindows.js's toggleDisabled.
+    function buildStatusRowHtml(routine) {
+        const isKod = !!routine.koState;
+        const isFrozen = !!routine.frozenState;
+        const revivable = isKod && DayRollover.hasDayRolledOver(new Date(routine.koState.koAt), new Date());
+        const statusLabel = isKod
+            ? (revivable ? '💤 Knocked out — ready to revive' : '💤 Knocked out — revives tomorrow')
+            : (isFrozen ? '🥶 Frozen (see below)' : (routine.isActive ? '🟢 Active' : '⚪ Inactive'));
+        const toggleLabel = isKod ? 'Revive' : (routine.isActive ? 'Deactivate' : 'Activate');
+        const toggleDisabled = isKod && !revivable;
+
+        return `
+            <div style="margin-bottom: 20px; padding: 12px; background: var(--color-bg-light); border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Status: ${statusLabel}</span>
+                    <button id="toggleRoutineStatus" class="secondary-button" ${toggleDisabled ? 'disabled title="Revives tomorrow"' : ''} style="padding: 6px 12px; ${toggleDisabled ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
+                        ${toggleLabel}
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    // Hero stats block ([P1-UI-006] sub-session 4, 2026-07-19) — level, XP
+    // progress, star rating, health, and current slot usage (capacity +
+    // banked points). Reuses HeroesView.buildChipViewModel (the same pure
+    // view model the base chip renders from, js/ui/heroes.js) rather than
+    // recomputing xp/star/health math here, and Heroes.slotCapacity/
+    // availableSlotPoints for the slot line (js/heroes.js sub-session 4
+    // core). `runStartedAtMs` may be omitted by older callers/tests — treated
+    // as 0 (matches HeroesView.buildChipViewModel's own default handling).
+    function buildHeroStatsHtml(routine, definedHabits, runStartedAtMs) {
+        const vm = HeroesView.buildChipViewModel(routine, definedHabits, CONFIG, runStartedAtMs);
+        const xpLabel = vm.xpForNext === null
+            ? `${vm.xp} XP (max level)`
+            : `${vm.xp} / ${vm.xpForNext} XP to Lv${vm.level + 1}`;
+
+        const habitCapacity = Heroes.slotCapacity(routine, 'habit', CONFIG);
+        const taskCapacity = Heroes.slotCapacity(routine, 'task', CONFIG);
+        const habitUsed = (routine.habitDefinitionIds || []).length;
+        const taskUsed = (routine.taskDefinitionIds || []).length;
+        const availablePoints = Heroes.availableSlotPoints(routine, CONFIG);
+        const pointsNote = availablePoints > 0
+            ? ` · ${availablePoints} slot point${availablePoints === 1 ? '' : 's'} available`
+            : '';
+
+        return `
+            <div style="margin-bottom: 20px; padding: 12px; background: var(--color-bg-light); border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <strong>Lv${vm.level} Hero</strong>
+                    <span title="Completion rate over recorded habit occurrences">${HeroesView.starsHtml(vm.stars)}</span>
+                </div>
+                <div style="font-size: 12px; color: var(--color-neutral); margin-bottom: 6px;">${xpLabel}</div>
+                <div style="height: 8px; border-radius: 4px; background: var(--color-bg); overflow: hidden; margin-bottom: 10px;">
+                    <div style="height: 100%; width: ${Math.round(vm.healthPct * 100)}%; background: ${HeroesView.healthColorVar(vm.healthPct)};"></div>
+                </div>
+                <div style="font-size: 12px; color: var(--color-neutral);">
+                    ❤ ${vm.health}/${CONFIG.ROUTINE_MAX_HEALTH} &nbsp;·&nbsp; Habit slots: ${habitUsed}/${habitCapacity} &nbsp;·&nbsp; Task slots: ${taskUsed}/${taskCapacity}${pointsNote}
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * deps: { definedRoutines (getter), definedHabits (getter),
+     *         runStartedAtMs } plus everything attachRoutineManagementListeners
+     *         needs (see that function's own deps note).
+     */
     function showRoutineManagement(routineId, deps) {
         const routine = deps.definedRoutines().find(r => r.id === routineId);
         if (!routine) return;
@@ -499,15 +578,9 @@ const RoutineViews = (() => {
 
                     ${frozenBannerHtml}
 
-                    <!-- Routine Status -->
-                    <div style="margin-bottom: 20px; padding: 12px; background: var(--color-bg-light); border-radius: 8px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span>Status: ${routine.isActive ? '🟢 Active' : '⚪ Inactive'}</span>
-                            <button id="toggleRoutineStatus" class="secondary-button" style="padding: 6px 12px;">
-                                ${routine.isActive ? 'Deactivate' : 'Activate'}
-                            </button>
-                        </div>
-                    </div>
+                    ${buildStatusRowHtml(routine)}
+
+                    ${buildHeroStatsHtml(routine, deps.definedHabits(), deps.runStartedAtMs)}
 
                     <!-- Habits Section -->
                     <div style="margin-bottom: 20px;">
@@ -658,6 +731,52 @@ const RoutineViews = (() => {
         });
     }
 
+    // ---------------------------------------------------------------------
+    // Slot enforcement — BANKED SLOT POINTS ([P1-UI-006] sub-session 4,
+    // 2026-07-19; forks resolved post-session-43, see DECISIONS.md/
+    // HEROES_PLAN.md). Shared by all three add-to-routine flows below
+    // (existing-item "Add Selected", Create New Habit, Create New Task).
+    //
+    // Returns true if the caller should proceed with the add. When the
+    // routine is at capacity and the player has a banked point, a confirm()
+    // prompt offers to spend one to unlock another slot (matching this
+    // codebase's existing confirm()/alert() convention — e.g.
+    // Routines.toggleRoutineActive's slot-limit alert) — accepting spends
+    // the point (mutates the routine + saves) and returns true; declining,
+    // or having zero points available, returns false without mutating
+    // anything. CONFIG/Heroes read as bare stable globals, matching this
+    // file's existing convention (buildFrozenBannerHtml's FrozenSlots/CONFIG
+    // usage).
+    // deps: { saveGame }
+    function ensureRoutineSlotAvailable(routine, itemType, deps) {
+        const label = itemType === 'task' ? 'task' : 'habit';
+        const used = itemType === 'task'
+            ? (routine.taskDefinitionIds || []).length
+            : (routine.habitDefinitionIds || []).length;
+        const capacity = Heroes.slotCapacity(routine, itemType, CONFIG);
+
+        if (used < capacity) return true;
+
+        const available = Heroes.availableSlotPoints(routine, CONFIG);
+        if (available <= 0) {
+            alert(`"${routine.name}" is at its ${label} slot limit (${capacity}). Level up this routine to earn a slot point.`);
+            return false;
+        }
+
+        const wantsToSpend = confirm(
+            `"${routine.name}" is at its ${label} slot limit (${capacity}). Spend 1 slot point to unlock another ${label} slot? (${available} available)`
+        );
+        if (!wantsToSpend) return false;
+
+        const result = Heroes.spendSlotPoint(routine, itemType, CONFIG);
+        if (!result.ok) return false; // shouldn't happen — availableSlotPoints just confirmed > 0
+
+        routine.boughtHabitSlots = result.boughtHabitSlots;
+        routine.boughtTaskSlots = result.boughtTaskSlots;
+        deps.saveGame();
+        return true;
+    }
+
     /**
      * deps: { definedRoutines (getter), definedHabits (getter), saveGame }
      * plus everything showRoutineManagement needs, since the "Add Selected"
@@ -728,6 +847,8 @@ const RoutineViews = (() => {
             addBtn.addEventListener('click', () => {
                 const selectedId = selectEl.value;
                 if (selectedId) {
+                    if (!ensureRoutineSlotAvailable(routine, itemType, deps)) return;
+
                     if (itemType === 'habit') {
                         if (!routine.habitDefinitionIds) routine.habitDefinitionIds = [];
                         routine.habitDefinitionIds.push(selectedId);
@@ -979,7 +1100,7 @@ const RoutineViews = (() => {
     }
 
     /**
-     * deps: { createNewHabitInRoutine }
+     * deps: { definedRoutines (getter), createNewHabitInRoutine, saveGame }
      * Called by script.js's window.saveNewHabit thin wrapper (inline
      * onclick="saveNewHabit(...)" needs the window-level name).
      */
@@ -999,12 +1120,15 @@ const RoutineViews = (() => {
             return;
         }
 
+        const routine = deps.definedRoutines().find(r => r.id === routineId);
+        if (routine && !ensureRoutineSlotAvailable(routine, 'habit', deps)) return;
+
         deps.createNewHabitInRoutine(routineId, { name, category, schedule, timeOfDay, isNegative });
         Modal.closeModal();
     }
 
     /**
-     * deps: { createNewTaskInRoutine }
+     * deps: { definedRoutines (getter), createNewTaskInRoutine, saveGame }
      */
     function saveNewTask(routineId, deps) {
         const name = document.getElementById('newTaskName').value.trim();
@@ -1021,6 +1145,9 @@ const RoutineViews = (() => {
             alert('Please select at least one day.');
             return;
         }
+
+        const routine = deps.definedRoutines().find(r => r.id === routineId);
+        if (routine && !ensureRoutineSlotAvailable(routine, 'task', deps)) return;
 
         deps.createNewTaskInRoutine(routineId, { name, category, defaultDueTime, isHighPriority, schedule });
         Modal.closeModal();
@@ -1108,6 +1235,9 @@ const RoutineViews = (() => {
         populateRoutineTasks,
         renderDefinedRoutines,
         buildFrozenBannerHtml,
+        buildStatusRowHtml,
+        buildHeroStatsHtml,
+        ensureRoutineSlotAvailable,
         showRoutineManagement,
         attachRoutineManagementListeners,
         populateHabitSelectDropdown,

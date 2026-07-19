@@ -31,7 +31,7 @@ const Persistence = (() => {
     // 5) — top-level `sickDayDate` (global, null = no active Sick Day) and
     // habit-def `skipDayDate` (per-habit, null = no active Skip Day). Old
     // saves seed both null.
-    const SCHEMA_VERSION = 8;
+    const SCHEMA_VERSION = 9;
     const DEBOUNCE_MS = 500;
 
     // DOM references on item objects — never serialized, rebuilt on load.
@@ -257,6 +257,24 @@ const Persistence = (() => {
                 if (routine.koState === undefined) routine.koState = null;
             });
             save.schemaVersion = 8;
+        }
+
+        // v8 → v9 (2026-07-19): banked slot points ([P1-UI-006] sub-session 4).
+        // Additive on routines — `boughtHabitSlots`/`boughtTaskSlots` (ints,
+        // 0 = no slots purchased beyond the level-1 baseline). This is the
+        // only persisted state the slot-point model needs: available points
+        // are DERIVED from routine.level (Heroes.availableSlotPoints), never
+        // stored, so there's nothing else to seed. Jeremy reset to a fresh
+        // run before this session (grandfathering fork resolved as moot —
+        // see DECISIONS.md), so in practice this migration seeds zeros for
+        // any routine created before this session's code, same shape as
+        // every other additive bump. See DECISIONS.md.
+        if (save.schemaVersion === 8) {
+            (save.definedRoutines || []).forEach(routine => {
+                if (typeof routine.boughtHabitSlots !== 'number') routine.boughtHabitSlots = 0;
+                if (typeof routine.boughtTaskSlots !== 'number') routine.boughtTaskSlots = 0;
+            });
+            save.schemaVersion = 9;
         }
 
         if (save.schemaVersion !== SCHEMA_VERSION) {

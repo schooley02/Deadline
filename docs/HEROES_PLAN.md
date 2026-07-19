@@ -157,7 +157,7 @@ the real notice end-to-end; deactivating/reactivating updated the chip's state s
 one game-loop tick, no reload needed. Mobile breakpoint verified by reading the loaded stylesheet
 (sandbox couldn't actually resize the remote browser viewport) — see DECISIONS.md session 43.
 
-### Sub-session 4 — hero management UI + slot enforcement, BANKED SLOT POINTS (Sonnet) — forks RESOLVED 2026-07-19 session 43 (Jeremy)
+### Sub-session 4 — hero management UI + slot enforcement, BANKED SLOT POINTS (Sonnet) — forks RESOLVED 2026-07-19 session 43 (Jeremy); ✅ BUILT 2026-07-19 session 44
 **Design forks resolved (post-session-43 discussion, logged in DECISIONS.md):**
 1. **Grandfathering is MOOT — Jeremy reset to a fresh run.** Single-player prototype; no
    pre-enforcement routines exist. Enforcement ships clean: no grandfather logic, no migration of
@@ -187,6 +187,46 @@ state gets its explanation here).
   strand harmlessly, never evict members), add-gating, migration seeding. **Live-verify:** full
   card/modal pass; add-past-limit prompts spend; spend unlocks and persists; out-of-points add
   shows "level up to earn a slot point."
+
+**BUILT as specified, with one structural deviation from the plan text (logged in DECISIONS.md
+session 44):** available points are DERIVED from `routine.level` (`Heroes.totalSlotPointsEarned`/
+`availableSlotPoints`), NOT a stored/incremented `routine.slotPoints` balance as the plan text
+suggested — a stored pool would let a player farm extra points by de-leveling (XP refund) and
+re-leveling back up through the same threshold twice. Only the SPENT counts persist
+(`routine.boughtHabitSlots`/`boughtTaskSlots`, schemaVersion 8→9). `Heroes.slotsForLevel` (the
+sub-session-1 symmetric-model placeholder) is RETIRED, replaced by `totalSlotPointsEarned`/
+`availableSlotPoints`/`slotCapacity`/`spendSlotPoint` — all pure, shop.js `purchase`/`consume`-style
+result objects, no argument mutation. All three add-to-routine flows (existing-item "Add Selected",
+Create New Habit, Create New Task) route through one shared gate,
+`js/ui/routineViews.js`'s `ensureRoutineSlotAvailable` — `confirm()`/`alert()` on the browser's
+native dialogs (matching the codebase's existing convention, e.g.
+`Routines.toggleRoutineActive`'s slot-limit alert). Manage-modal hero stats block
+(`RoutineViews.buildHeroStatsHtml`) reuses `HeroesView.buildChipViewModel` rather than recomputing
+level/XP/star/health math; the Manage modal's status row (`buildStatusRowHtml`) gained the KO
+explanation this sub-session was scoped to add (label/disabled-state parity with
+`managementWindows.js`'s existing compact-card treatment — the toggle button already enforced the
+gate server-side via `Routines.toggleRoutineActive`, this only makes the UI agree with what a click
+would do). managementWindows.js's compact routine card also gained a level+star line, reusing the
+same view model. Tests: 35 suites, 717/717 (+34 — `test/routine-views-slots.test.js` new,
+`test/heroes.test.js`'s retired `slotsForLevel` block replaced with banked-points coverage,
+`test/persistence-migration.test.js` v8→v9 cases, `test/routines.test.js` +1 seeding case).
+`node --check` clean. **Live-verified in Chrome, end-to-end through the REAL app (not synthetic
+unit calls) — routed around native `confirm()`/`alert()` dialogs blocking Claude-in-Chrome's
+automation (a real finding, see DECISIONS.md) by stubbing `window.confirm`/`window.alert` before
+driving the exposed `window.saveNewHabit`/`window.saveNewTask` handlers directly:** created a real
+routine + habit at level 1 (no prompt, under baseline — confirmed unaffected); seeded level 3 via
+the save (2 banked points) and confirmed the Manage modal + compact card rendered "Lv3 Hero," XP
+progress, 0 stars (unrated), health bar, and "Habit slots: 1/1 · Task slots: 0/1 · 2 slot points
+available"; spent both points via the accept path (habit, then task — confirming the pool is
+SHARED, not per-type) with the exact expected confirm() message each time, `boughtHabitSlots`/
+`boughtTaskSlots` persisting correctly after `Persistence.flush()`; verified the decline path
+(confirm() → false) left the routine untouched; verified the zero-points path fired `alert()` with
+"Level up this routine to earn a slot point," not `confirm()`, and blocked the add. Also
+live-verified the KO-aware status row (seeded `koState` via the save, session-40 neutering
+protocol): Manage modal showed "💤 Knocked out — revives tomorrow" with a disabled Revive button,
+matching the compact card. Zero real app console errors (only the recurring documented
+Chrome-extension messaging noise). Reset the dev save clean afterward (`Persistence.clear()`,
+same neutering protocol to dodge the live-tab autosave race documented in session 42's Watch-out).
 
 ### Sub-session 5 — polish: interaction visuals + ranking (Sonnet) — OPTIONAL, cut if play data says otherwise
 **Goal:** the ticket's remaining criteria. Hero reacts when its routine takes damage (flinch/flash)

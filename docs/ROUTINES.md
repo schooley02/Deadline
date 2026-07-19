@@ -9,7 +9,9 @@ Routines are "Heroes" living in the Base, with health, XP, and levels. They orga
 - Routine habits are created/managed under the Routine tab.
 
 ## Slots & Leveling
-- Routine starts at level 1 with 1 habit slot + 1 task slot; each level unlocks more slots.
+- Routine starts at level 1 with 1 habit slot + 1 task slot; each level-up (2-9) deposits ONE
+  **banked slot point** into a pool SHARED across habit and task types (not a symmetric +1/+1 per
+  level — see "Slot Enforcement — Banked Slot Points" below).
 - Routines earn XP when their tasks/habits are completed.
 - PLAYER level-ups unlock additional routine slots (more concurrent routines); base visuals upgrade to house more heroes.
 
@@ -20,10 +22,39 @@ check-in 'avoided', rollover auto-avoid) AFTER the recovery check — so the avo
 routine still earns; a frozen or inactive routine earns nothing (`FrozenSlots.isRoutineSuspended` —
 the session-36 "no XP while frozen" no-op is now real). Uncompletion refunds EXACTLY off an
 `item.routineXpAwarded` stamp, and level is DERIVED from xp (can de-level on refund — perfect
-round-trip by construction). Slots-per-level math (`Heroes.slotsForLevel`: 1+1 at L1, +1 each per
-level) and star ratings (`completionRate`/`starRating`, spec tiers 60-95% → 1-5★, HABIT members
-only in v1 — routine-task misses are recorded nowhere, so no honest task denominator exists) are
-built but NOT yet enforced/rendered — sub-sessions 3-4. Routine health damage/KO is sub-session 2.
+round-trip by construction). Star ratings (`completionRate`/`starRating`, spec tiers 60-95% → 1-5★,
+HABIT members only in v1 — routine-task misses are recorded nowhere, so no honest task denominator
+exists) built in this sub-session; rendered in sub-session 3. Routine health damage/KO is
+sub-session 2. Slot capacity/enforcement (originally sketched here as a symmetric +1/+1 model) was
+SUPERSEDED by banked slot points in sub-session 4 before it ever shipped — see below.
+
+## Slot Enforcement — Banked Slot Points ([P1-UI-006] sub-session 4, built 2026-07-19)
+Forks resolved post-session-43 (Jeremy, logged in DECISIONS.md): grandfathering is moot (fresh-run
+reset, no pre-enforcement routines exist), and the slot model is **banked points**, not the
+sub-session-1 sketch's symmetric +1 habit/+1 task per level. Baseline at level 1: 1 habit slot + 1
+task slot. Each level-up from 2 to 9 deposits **one point** into a pool **shared** across both slot
+types (`CONFIG.ROUTINE_MAX_SLOT_POINTS = 8`, so per-type ceiling is 1+8 = 9 and total slots max out
+at 10 — HALF the old symmetric model's 9+9 = 18 budget, matching Jeremy's original "pick one per
+level" intent). A point is spent — on a habit slot OR a task slot, player's choice at the moment —
+when adding past the routine's current limit: the add flow (existing-item "Add Selected", Create New
+Habit, Create New Task — all three routed through `js/ui/routineViews.js`'s shared
+`ensureRoutineSlotAvailable`) prompts "spend a point to unlock this slot?" instead of a flat refusal.
+Declining, or having zero points, blocks the add (an `alert()` when zero points are available, no
+`confirm()` shown at all — verified live in Chrome via a scripted DOM/console pass, since real
+`confirm()`/`alert()` are BLOCKING native dialogs that freeze Claude-in-Chrome's automation; the
+fully-manual click-through path is untested by this session but the underlying handlers are identical
+to any other button click).
+
+**Available points are DERIVED from `routine.level`, never stored or incremented**
+(`Heroes.totalSlotPointsEarned`/`availableSlotPoints`) — the only persisted state is what's actually
+been SPENT (`routine.boughtHabitSlots`/`boughtTaskSlots`, schemaVersion 9). This is a deliberate
+deviation from the original plan text's "needs `routine.slotPoints` (int)" schema note: a stored,
+incrementally-updated pool would let a player farm extra points by oscillating level up/down
+(complete → level up → deposit; uncomplete → de-level; re-complete → level back up → a SECOND deposit
+for the same level). Deriving from the current level closes that hole for free — revisiting a level
+never re-mints a point. A de-level never claws back an already-spent point or evicts a member from an
+unlocked slot ("strand harmlessly," per the plan's recommendation) — `slotCapacity` is baseline +
+whatever has actually been bought, independent of the routine's current level.
 
 ## Health
 Enemies that get inside the base (item overdue > 1 hour) damage the health of the routine they belong to.

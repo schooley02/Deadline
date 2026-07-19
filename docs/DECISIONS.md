@@ -4,6 +4,61 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 44: HEROES_PLAN sub-session 4 BUILT — hero management UI + banked slot points (Cowork session, Sonnet)
+
+**Decision — available slot points DERIVED from level, not stored (deviates from session 43's
+`routine.slotPoints` schema note).** Session 43's design discussion assumed a stored, incrementally
+deposited `slotPoints` field. Building it turned up a farming exploit a stored pool allows: level up
+(deposit 1 point) → spend it → uncomplete the item that awarded the XP (de-level, refund) → complete
+it again (level back UP through the SAME threshold) → a stored pool deposits a SECOND point for a
+level the routine already banked one for, since the deposit fires on every level-UP event regardless
+of whether that level was visited before. Deriving available points purely from the routine's
+CURRENT level (`Heroes.totalSlotPointsEarned(level, config)` = clamp(level-1, 0, 8)) closes this for
+free — revisiting a level via de-level/re-level never re-mints a point, because the function only
+ever looks at where the routine is NOW, not how it got there. Only the SPENT counts persist
+(`routine.boughtHabitSlots`/`boughtTaskSlots`, schemaVersion 8→9) — mirrors this module's existing
+"level derived from xp" discipline (sub-session 1) rather than introducing a second, riskier
+stateful-pool pattern. A de-level never claws back an already-spent point or evicts a member
+(`slotCapacity` = baseline + bought, independent of current level) — matches session 43's "strand
+harmlessly" recommendation. `Heroes.slotsForLevel` (sub-session 1's symmetric-model placeholder,
+never wired to anything) is retired outright rather than kept alongside the new functions —
+superseded, not deprecated-in-place, since nothing in the codebase called it.
+
+**Finding — native `confirm()`/`alert()` dialogs block Claude-in-Chrome automation.** Triggering the
+real "spend a point?" `confirm()` via a UI click froze the tab: CDP mouse/screenshot calls timed out
+("renderer may be frozen or unresponsive") until the tab was navigated away, which discards whatever
+JS was paused mid-execution at the dialog (confirmed via localStorage: no partial mutation, clean
+state). Live-verify worked around this by stubbing `window.confirm`/`window.alert` via
+`javascript_tool` BEFORE driving the exposed `window.saveNewHabit`/`window.saveNewTask` handlers
+directly (not synthetic unit calls — the real page-global functions, real DOM reads, real
+`Routines`/`Heroes` calls) — this is a legitimate verification technique for THIS session's own
+code, distinct from and not a substitute for a manual click-through pass. Flagging for future
+Cowork sessions that need to live-verify any future `confirm()`/`alert()`-gated flow: expect the
+same freeze, and either avoid triggering the real dialog (stub first) or budget for a navigate-away
+recovery. Also confirmed (same technique) that `Persistence.requestSave()` is debounced, not
+synchronous — a bare `localStorage.getItem` immediately after a mutating call can read stale data;
+`Persistence.flush()` first is required for a same-turn readback (distinct from the existing
+session-40/42 "stub flush/requestSave before a DIRECT localStorage EDIT" precedent, which is the
+opposite direction — this is about reading the app's OWN writes promptly, not injecting an edit).
+
+**Also decided (mechanical, not a design fork):** the Manage-modal hero stats block
+(`RoutineViews.buildHeroStatsHtml`) and the compact routine card's new level+star line both reuse
+`HeroesView.buildChipViewModel` (the base chip's existing view model) rather than recomputing
+level/XP/star/health math a third time — one source of truth for "what does this routine's hero
+state look like." The Manage modal's status row gained KO-awareness (icon/label/disabled-button
+parity with `managementWindows.js`'s existing compact-card treatment) since sub-session 2 left it
+un-explained there — the toggle button already enforced the KO gate server-side, this only makes the
+UI agree with what a click would do, no new mechanic.
+
+Tests: 35 suites, 717/717 (+34: `test/routine-views-slots.test.js` new — 15 cases covering
+`ensureRoutineSlotAvailable`'s accept/decline/zero-point branches and the two new HTML builders;
+`test/heroes.test.js`'s retired `slotsForLevel` block replaced with banked-points coverage;
+`test/persistence-migration.test.js` v8→v9 cases; `test/routines.test.js` +1 seeding case).
+`node --check` clean on every touched file. Live-verified end-to-end in Chrome per the finding above
+— see HEROES_PLAN.md sub-session 4 for the full live-verify writeup.
+
+---
+
 ## 2026-07-19 — Session 43 (cont'd): Sub-session 4 forks RESOLVED — banked slot points, no grandfathering (design discussion, no code)
 
 **Decision 1 — grandfathering is moot: fresh run.** Jeremy reset the game, so no pre-enforcement

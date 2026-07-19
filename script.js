@@ -1016,7 +1016,10 @@ document.addEventListener('DOMContentLoaded', () => {
             toggleRoutineActive, deleteRoutine, removeHabitFromRoutine, removeTaskFromRoutine,
             addHabitToRoutine, populateRoutinesWindow, saveGame,
             createNewHabitInRoutine, createNewTaskInRoutine, editHabitInRoutine, editTaskInRoutine,
-            activeItems, createListItem, sortAndRenderActiveList
+            activeItems, createListItem, sortAndRenderActiveList,
+            // [P1-UI-006] sub-session 4, 2026-07-19 — star-rating window start
+            // for the Manage modal's hero stats block (buildHeroStatsHtml).
+            runStartedAtMs
         };
     }
 
@@ -1189,6 +1192,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ManagementWindows.openManagementWindow(type, {
             managementWindows, closeFabMenu, activeItems, definedHabits,
             definedRoutines, routineSlots, showRoutineManagement, toggleRoutineActive,
+            runStartedAtMs,
             shopCatalog: CONFIG.SHOP_ITEMS, playerInventory, playerPoints, baseHealth,
             onShopBuy: handleShopPurchase, onShopUse: handleShopUse
         });
@@ -1212,7 +1216,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function populateRoutinesWindow() {
         ManagementWindows.populateRoutinesWindow({
-            definedRoutines, routineSlots, showRoutineManagement, toggleRoutineActive
+            definedRoutines, definedHabits, routineSlots, showRoutineManagement, toggleRoutineActive,
+            runStartedAtMs
         });
     }
 

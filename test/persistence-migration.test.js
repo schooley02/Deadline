@@ -477,6 +477,53 @@ describe('migrate v7 → v8: hero/routine progression fields ([P1-UI-006] sub-se
     });
 });
 
+describe('migrate v8 → v9: banked slot points ([P1-UI-006] sub-session 4)', () => {
+    function v8Save(overrides = {}) {
+        return {
+            schemaVersion: 8,
+            sickDayDate: null,
+            runStartedAtMs: 1784484435114,
+            definedHabits: [],
+            definedRoutines: [],
+            ...overrides
+        };
+    }
+
+    test('routines gain boughtHabitSlots 0 / boughtTaskSlots 0', () => {
+        const save = Persistence.migrate(v8Save({
+            definedRoutines: [{ id: 'r1', xp: 0, level: 1, health: 100, createdAt: 1, koState: null }]
+        }));
+        const r = save.definedRoutines[0];
+        expect(r.boughtHabitSlots).toBe(0);
+        expect(r.boughtTaskSlots).toBe(0);
+    });
+
+    test('pre-existing field values are NOT overwritten (idempotent re-run safety)', () => {
+        const save = Persistence.migrate(v8Save({
+            definedRoutines: [{ id: 'r1', boughtHabitSlots: 2, boughtTaskSlots: 1 }]
+        }));
+        const r = save.definedRoutines[0];
+        expect(r.boughtHabitSlots).toBe(2);
+        expect(r.boughtTaskSlots).toBe(1);
+    });
+
+    test('tolerates a save with no definedRoutines at all', () => {
+        const save = Persistence.migrate({ schemaVersion: 8, sickDayDate: null });
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+    });
+
+    test('the full v1 → current chain seeds the slot-point fields too', () => {
+        const save = Persistence.migrate({
+            schemaVersion: 1,
+            definedHabits: [{ id: 'h1', frequency: 'daily' }],
+            definedRoutines: [{ id: 'r1', habitDefinitionIds: ['h1'], isActive: true }]
+        });
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+        expect(save.definedRoutines[0].boughtHabitSlots).toBe(0);
+        expect(save.definedRoutines[0].boughtTaskSlots).toBe(0);
+    });
+});
+
 describe('migrate: version handling', () => {
     test('a current-version save passes through unchanged (same reference)', () => {
         const original = {

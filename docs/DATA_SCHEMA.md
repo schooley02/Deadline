@@ -8,6 +8,18 @@ TARGET schema for the persistence work (Milestone 1) and modularization. The mon
 - `deadline.settings` — user settings (demo clock on/off, etc.) — not yet implemented
 - Save on every state mutation (debounced), load on boot. Cross-tab sync later via `storage` events.
 
+### schemaVersion 9 (2026-07-19): banked slot points — `routine.boughtHabitSlots`/`boughtTaskSlots` landed
+Sub-session 4 of [P1-UI-006] (see docs/HEROES_PLAN.md + docs/ROUTINES.md's "Slot Enforcement —
+Banked Slot Points"). Two new fields on `Routine`, both additive ints, default 0:
+`boughtHabitSlots`/`boughtTaskSlots` — the count of slots actually PURCHASED with a banked point,
+beyond the level-1 baseline of 1 each. Slot capacity = baseline + bought (`Heroes.slotCapacity`).
+Deliberately NOT storing a `slotPoints` balance (the plan text's original suggestion): AVAILABLE
+points are derived on demand from `routine.level` (`Heroes.availableSlotPoints` = min(level-1, 8)
+minus total spent) rather than persisted/incremented, so revisiting a level (via an XP
+uncompletion-refund de-level followed by re-completing back up) can never re-mint a point — see
+DECISIONS.md session 44 for the exploit this closes. v8→v9 migration in `js/persistence.js` just
+seeds both fields to 0 for pre-v9 routines.
+
 ### schemaVersion 8 (2026-07-19): hero/routine progression fields landed
 Sub-session 1 of [P1-UI-006] (see docs/HEROES_PLAN.md session 41 + docs/ROUTINES.md). Five new
 fields on `Routine`, all additive: `xp: number` (earned when member items complete —

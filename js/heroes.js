@@ -63,16 +63,60 @@ const Heroes = (() => {
         };
     }
 
-    // Member slots unlocked at a routine level (docs/ROUTINES.md: "Routine
-    // starts at level 1 with 1 habit slot + 1 task slot; each level unlocks
-    // more slots" — spec gives no numbers; +1 of each per level is the
-    // cheapest symmetric reading, revisit with play data). Enforcement is
-    // sub-session 4; this is just the math.
-    function slotsForLevel(level, config) {
-        const extraLevels = Math.max(0, level - 1);
+    // --- Member slots — BANKED SLOT POINTS (sub-session 4, 2026-07-19;
+    // forks resolved post-session-43 discussion, see DECISIONS.md/
+    // HEROES_PLAN.md). SUPERSEDES the old symmetric +1 habit/+1 task per
+    // level (formerly `slotsForLevel`, retired — see DECISIONS.md): baseline
+    // at level 1 is 1 habit + 1 task slot; each level-up from 2-9 deposits
+    // ONE point into a shared pool, spent on EITHER a habit or a task slot
+    // at add-time (js/ui/routineViews.js's ensureRoutineSlotAvailable).
+    //
+    // DELIBERATE DEVIATION from the plan text's literal schema note ("needs
+    // routine.slotPoints (int)"): available points are DERIVED from
+    // routine.level, not stored/incremented. The only persisted state is
+    // what's actually been SPENT (routine.boughtHabitSlots/boughtTaskSlots)
+    // — mirrors this module's existing "level derived from xp" discipline.
+    // A stored, incrementally-updated pool would let a player farm points:
+    // level up (deposit), spend, uncomplete to de-level (pool clamps at 0,
+    // fine), then re-complete back to the SAME level (deposit AGAIN — a
+    // second point for a level you already banked one for). Deriving from
+    // the current level closes that hole for free: totalSlotPointsEarned
+    // only ever reflects the routine's CURRENT level, so revisiting a level
+    // never re-mints a point. Spent points are never clawed back on a
+    // de-level (nothing evicts an already-unlocked member) — "strand
+    // harmlessly", per the plan's recommendation.
+    function totalSlotPointsEarned(level, config) {
+        return Math.max(0, Math.min(config.ROUTINE_MAX_SLOT_POINTS, (level || 1) - 1));
+    }
+
+    function availableSlotPoints(routine, config) {
+        const earned = totalSlotPointsEarned(routine.level, config);
+        const spent = (routine.boughtHabitSlots || 0) + (routine.boughtTaskSlots || 0);
+        return Math.max(0, earned - spent);
+    }
+
+    // Current unlocked capacity for one slot type ('habit' | 'task').
+    function slotCapacity(routine, itemType, config) {
+        return itemType === 'task'
+            ? config.ROUTINE_TASK_SLOTS_BASE + (routine.boughtTaskSlots || 0)
+            : config.ROUTINE_HABIT_SLOTS_BASE + (routine.boughtHabitSlots || 0);
+    }
+
+    // Pure "try to spend one point" — caller applies the mutation from the
+    // result (matches shop.js's purchase/consume pattern: pure in, result
+    // object out, no argument mutation).
+    //   { ok: true, boughtHabitSlots, boughtTaskSlots }
+    //   { ok: false, reason: 'no_points' }
+    function spendSlotPoint(routine, itemType, config) {
+        if (availableSlotPoints(routine, config) <= 0) {
+            return { ok: false, reason: 'no_points' };
+        }
+        const boughtHabitSlots = routine.boughtHabitSlots || 0;
+        const boughtTaskSlots = routine.boughtTaskSlots || 0;
         return {
-            habitSlots: config.ROUTINE_HABIT_SLOTS_BASE + extraLevels * config.ROUTINE_SLOTS_PER_LEVEL_GAIN,
-            taskSlots: config.ROUTINE_TASK_SLOTS_BASE + extraLevels * config.ROUTINE_SLOTS_PER_LEVEL_GAIN,
+            ok: true,
+            boughtHabitSlots: itemType === 'task' ? boughtHabitSlots : boughtHabitSlots + 1,
+            boughtTaskSlots: itemType === 'task' ? boughtTaskSlots + 1 : boughtTaskSlots,
         };
     }
 
@@ -149,7 +193,10 @@ const Heroes = (() => {
         xpAmountFor,
         levelForXp,
         applyXpDelta,
-        slotsForLevel,
+        totalSlotPointsEarned,
+        availableSlotPoints,
+        slotCapacity,
+        spendSlotPoint,
         completionRate,
         starRating,
         applyRoutineDamage,
