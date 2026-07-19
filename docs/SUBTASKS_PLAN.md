@@ -211,8 +211,27 @@ the recurring extension messaging noise). Dev save reset clean afterward. Docs u
 could NOT be updated this session — flagged for Jeremy or a future Claude Code session to sync the
 "XP: 10 per task defeat, 5 per habit completion" line with the new sub-task numbers.
 
-### Sub-session 4 — growing/shrinking parent visuals (Sonnet)
+### Sub-session 4 — growing/shrinking parent visuals (Sonnet) — BUILT 2026-07-19, session 50
 **Goal:** the resolved fork's visual half.
+
+**Built as:** `CONFIG.PARENT_GROWTH_PER_SUB` (0.15) / `PARENT_GROWTH_MAX_SUBS` (4) in js/config.js.
+Pure `Movement.getParentGrowthScale(item)`/`getParentRenderWidth(item, baseWidth)` in js/movement.js
+(no ctx — reads `item.subTasks`/CONFIG directly). Wired into `Loop.updateActiveItems` (new optional
+`deps.getParentRenderWidth` collaborator, script.js's `loopDeps()`) — sets `item.element.style.width`
+every tick for any top-level task, regardless of overdue state, mirroring the [P1-UI-006] hero-chip
+"no new UI hooks" precedent since `item.subTasks` is already kept in sync by every existing
+completion/cascade/refund path. `getSubTaskClusterOffset` now derives the parent's visible-edge box
+width via `getParentRenderWidth` instead of the fixed `enemyWidth`, so the fan's attachment point
+scales with it. New `parent-scaled` class (js/spawning.js, top-level tasks only) + one CSS rule
+(`enemySprites.css`, placed after the `.category-X` blocks to win the source-order tie-break at
+equal specificity) makes the background sprite scale `100% 100%` with the box instead of the legacy
+fixed 128px — a no-op at 0 open subs (100% of 128px == 128px). The existing `.enemy` `transition: all
+0.2s ease` already animates the width/background-size change; no new transition rule was needed.
+27 new tests (`test/movement.test.js`, `test/loop.test.js`, `test/spawning.test.js`) — 38 suites,
+803/803. Live-verified in Chrome: 3 subs grew the parent with the fan staying attached at every
+step (no gap, no overlap); completing all 3 shrank it back to exactly 128px (`style.width` read via
+devtools), pixel-identical to the pre-growth screenshot. Zero app console errors. See MECHANICS.md/
+DECISIONS.md.
 - Parent render width derived per frame from open-sub count (`PARENT_GROWTH_PER_SUB`, capped);
   CSS transition for smooth shrink on each sub completion; z-index rules unchanged.
 - `getSubTaskClusterOffset`: scale the PARENT's visible-margin contribution by the same factor so

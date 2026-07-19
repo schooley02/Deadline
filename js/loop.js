@@ -23,7 +23,9 @@
  *     ([P2-GAME-012]), updateMidnightLine, runLiveGapCatchUp, saveGame,
  *     isNonThreatening ([P1-DATA-005] session 27 — Items.isNonThreatening,
  *     injected rather than referenced as a bare global since Items loads
- *     AFTER this file; see items.js's header comment).
+ *     AFTER this file; see items.js's header comment),
+ *     getParentRenderWidth ([P1-DATA-004] sub-session 4, 2026-07-19 —
+ *     Movement.getParentRenderWidth wrapper; OPTIONAL, omitted = no-op).
  * CONFIG is read as a bare stable global (movement.js/clock.js precedent).
  */
 const Loop = (() => {
@@ -53,6 +55,19 @@ const Loop = (() => {
 
         for (let i = deps.activeItems.length - 1; i >= 0; i--) {
             const item = deps.activeItems[i];
+
+            // Growing/shrinking parent visuals ([P1-DATA-004] sub-session 4,
+            // 2026-07-19): derived fresh every tick from the item's LIVE open
+            // sub-task count, same "no new UI hooks" pattern as the hero
+            // chips ([P1-UI-006] sub-session 3) — completion/cascade/refund
+            // already keep item.subTasks in sync, so this needs no wiring at
+            // those call sites. Runs regardless of overdue state (a camped
+            // parent can still gain/lose subs) and independent of the
+            // position-update branch below. Optional collaborator — omitted
+            // in deps is a silent no-op (existing tolerance pattern).
+            if (deps.getParentRenderWidth && item.element && item.type === 'task' && !item.parentId) {
+                item.element.style.width = deps.getParentRenderWidth(item) + 'px';
+            }
 
             // [P1-DATA-005] session 27, repositioned session 29 — a
             // negative-habit lurker never advances, never goes overdue,

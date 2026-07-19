@@ -49,6 +49,16 @@ const Spawning = (() => {
         } else {
             width = dims.enemyWidth;
             height = 128;
+            // Growing/shrinking parent visuals ([P1-DATA-004] sub-session 4,
+            // 2026-07-19): only top-level tasks can grow (see
+            // Movement.getParentGrowthScale), so only they get the CSS hook
+            // that scales the background sprite WITH the box (enemySprites.css)
+            // instead of the legacy fixed 128px — needed so the visible
+            // graphic edge tracks the live width Loop.updateActiveItems sets,
+            // keeping getSubTaskClusterOffset's fan attached at any size.
+            // Harmless when the box never grows (0 open subs): 100% of a
+            // 128px box == the old fixed 128px, pixel-identical.
+            classes.push('parent-scaled');
         }
 
         if (itemData.type === 'task' && itemData.isHighPriority) {

@@ -94,6 +94,76 @@ describe('calculateTimelineXWithClustering', () => {
     });
 });
 
+describe('getParentGrowthScale / getParentRenderWidth (growing parent visuals, [P1-DATA-004] sub-session 4)', () => {
+    test('no subTasks field → scale 1 (habits, sub-tasks, or plain objects)', () => {
+        expect(Movement.getParentGrowthScale({ id: 1 })).toBe(1);
+        expect(Movement.getParentGrowthScale(null)).toBe(1);
+    });
+
+    test('empty subTasks → scale 1 (freshly spawned parent, no subs yet)', () => {
+        expect(Movement.getParentGrowthScale({ id: 1, subTasks: [] })).toBe(1);
+    });
+
+    test('scale grows PARENT_GROWTH_PER_SUB per open sub', () => {
+        expect(Movement.getParentGrowthScale({ id: 1, subTasks: ['a'] })).toBeCloseTo(1.15, 6);
+        expect(Movement.getParentGrowthScale({ id: 1, subTasks: ['a', 'b'] })).toBeCloseTo(1.30, 6);
+    });
+
+    test('scale caps at PARENT_GROWTH_MAX_SUBS open subs', () => {
+        const atCap = Movement.getParentGrowthScale({ id: 1, subTasks: ['a', 'b', 'c', 'd'] });
+        const overCap = Movement.getParentGrowthScale({ id: 1, subTasks: ['a', 'b', 'c', 'd', 'e', 'f'] });
+        expect(atCap).toBeCloseTo(1.60, 6);
+        expect(overCap).toBe(atCap); // extra subs beyond the cap don't grow it further
+    });
+
+    test('shrinks back down as the open array loses entries (simulates a sub completing)', () => {
+        const subTasks = ['a', 'b', 'c'];
+        const before = Movement.getParentGrowthScale({ id: 1, subTasks });
+        subTasks.pop(); // completeItem/removeItem splice the completed/removed id out
+        const after = Movement.getParentGrowthScale({ id: 1, subTasks });
+        expect(before).toBeCloseTo(1.45, 6);
+        expect(after).toBeCloseTo(1.30, 6);
+        expect(after).toBeLessThan(before);
+    });
+
+    test('getParentRenderWidth = baseWidth * scale', () => {
+        expect(Movement.getParentRenderWidth({ id: 1, subTasks: [] }, 128)).toBe(128);
+        expect(Movement.getParentRenderWidth({ id: 1, subTasks: ['a'] }, 128)).toBeCloseTo(147.2, 6);
+        expect(Movement.getParentRenderWidth({ id: 1, subTasks: ['a', 'b', 'c', 'd'] }, 128)).toBeCloseTo(204.8, 6);
+    });
+});
+
+describe('getSubTaskClusterOffset accounts for parent growth (sub-session 4)', () => {
+    test('parent with 0 open subs matches the pre-growth (128px box) offset exactly', () => {
+        const parent = { id: 1, category: 'relationships', subTasks: [] };
+        const sub1 = { id: 2, parentId: 1, category: 'relationships' };
+        const activeItems = [parent, sub1];
+        const offset = Movement.getSubTaskClusterOffset(sub1, { activeItems, enemyWidth: 128 });
+        expect(offset).toBeCloseTo(121.984 + GAP - 3.008, 3); // same as the ungrown-parent test above
+    });
+
+    test('parent with 2 open subs: fan attaches to the GROWN visible edge, not the fixed 128px one', () => {
+        // scale = 1 + 2*0.15 = 1.30 → box = 128*1.30 = 166.4
+        // visible right edge = 166.4 * 0.953 = 158.5792
+        const parent = { id: 1, category: 'relationships', subTasks: ['x', 'y'] };
+        const sub1 = { id: 2, parentId: 1, category: 'relationships' };
+        const activeItems = [parent, sub1];
+        const offset = Movement.getSubTaskClusterOffset(sub1, { activeItems, enemyWidth: 128 });
+        expect(offset).toBeCloseTo(158.5792 + GAP - 3.008, 3);
+        // and it's meaningfully further out than the ungrown case — proves scaling actually applies
+        expect(offset).toBeGreaterThan(121.984 + GAP - 3.008);
+    });
+
+    test('growth is capped: 4 and 6 open subs produce the identical offset', () => {
+        const sub1 = { id: 2, parentId: 1, category: 'relationships' };
+        const parentAt4 = { id: 1, category: 'relationships', subTasks: ['a', 'b', 'c', 'd'] };
+        const parentAt6 = { id: 1, category: 'relationships', subTasks: ['a', 'b', 'c', 'd', 'e', 'f'] };
+        const offsetAt4 = Movement.getSubTaskClusterOffset(sub1, { activeItems: [parentAt4, sub1], enemyWidth: 128 });
+        const offsetAt6 = Movement.getSubTaskClusterOffset(sub1, { activeItems: [parentAt6, sub1], enemyWidth: 128 });
+        expect(offsetAt4).toBeCloseTo(offsetAt6, 6);
+    });
+});
+
 describe('getItemTopPosition', () => {
     test('sub-task bottom-aligns with its rendered parent', () => {
         const parent = { id: 1, element: { style: { top: '50px', height: '128px' } } };

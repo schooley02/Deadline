@@ -13,6 +13,59 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 50: [P1-DATA-004] sub-session 4 BUILT — growing/shrinking parent visuals (Cowork session, Sonnet)
+
+**Did:** SUBTASKS_PLAN.md sub-session 4, fully per plan. New `CONFIG.PARENT_GROWTH_PER_SUB`/
+`PARENT_GROWTH_MAX_SUBS` (0.15/4, plan's proposed values). Pure `Movement.getParentGrowthScale`/
+`getParentRenderWidth` (js/movement.js) derive a top-level task's box width from its LIVE open
+`subTasks.length`, capped at 4 subs (+60%). Wired into `Loop.updateActiveItems` as a new optional
+`deps.getParentRenderWidth` collaborator — sets `item.element.style.width` every tick for any
+top-level task regardless of overdue state, so no new hooks were needed at the completion/cascade/
+refund call sites (same "no new UI hooks" pattern as the [P1-UI-006] hero chips). `getSubTaskClusterOffset`
+now derives the parent's visible-edge box width via `getParentRenderWidth` instead of the fixed
+`enemyWidth`, so the fan's attachment point scales with it. New `parent-scaled` class (js/spawning.js,
+top-level tasks only) + one CSS rule in enemySprites.css (`.enemy.parent-scaled { background-size:
+100% 100% !important; }`, placed after the legacy `.category-X` blocks to win the source-order tie)
+makes the background sprite scale WITH the box instead of the fixed 128px — a no-op at 0 open subs.
+Height untouched (only width grows), so bottom-alignment needed no changes. 27 new tests across
+test/movement.test.js, test/loop.test.js, test/spawning.test.js. Docs: MECHANICS.md flipped from
+"not yet built" to BUILT, SUBTASKS_PLAN.md sub-session 4 marked built, ROADMAP.md sub-item checked
+(caught and fixed a misplacement — see Watch out), DECISIONS.md (4 decisions + 1 process note).
+
+**State:** ✅ **38 suites, 803/803** (+18 over session 49's 785). `node --check` clean on config.js/
+movement.js/loop.js/spawning.js/script.js. **Live-verified in Chrome against the real running
+server:** added 3 sub-tasks one at a time — parent box visibly grew with the fan staying attached at
+every step (zoomed screenshots confirmed no gap/overlap/drift); completed all 3 subs one at a time —
+box shrank back smoothly, final `style.width` read via devtools == exactly `"128px"`, zoomed
+screenshot pixel-identical to the pre-growth baseline. XP/Points tracked correctly throughout
+(5/5/5 per sub, matching sub-session 3's economy). Zero app console errors. Hit and recovered from
+the documented `confirm()` freeze on the dev Reset button; completed the reset cleanly via the
+`window.confirm` stub workaround. Dev save reset clean afterward.
+
+**Next:** SUBTASKS_PLAN.md sub-session 5 (Sonnet, OPTIONAL — cut if play data says stop): polish —
+parent agenda row progress label ("2/3 sub-tasks", live), completed subs render nested/greyed under
+the parent's Completed Today entry, left-fan off-field guard (flip left-fan subs right or clamp
+x ≥ base width near the base edge). With sub-session 4 built, [P1-DATA-004]'s core (both resolved-fork
+effects: economy + growing/shrinking visuals) is now fully closed — sub-session 5 is pure polish, not
+required to consider the ticket done. If Jeremy wants to skip straight to "Run history + run review
+screen" (the next unchecked Milestone 3 item after sub-tasks) that's also a reasonable call.
+
+**Watch out:**
+- **ROADMAP.md has near-duplicate boilerplate lines across different tickets** — this session's
+  first edit attempt matched `- [ ] 5. Polish: interaction visuals + ranking (Sonnet, optional)`
+  and landed the sub-task-4 entry inside the WRONG section ([P1-UI-006] Hero sub-session 5, not
+  [P1-DATA-004]'s sub-task hierarchy section) because both use nearly identical "5. Polish...
+  optional" text. Caught by re-reading surrounding context before moving on — worth reading a wider
+  slice around any ROADMAP.md match before trusting it, since Edit's exact-string match doesn't
+  guarantee you're in the right section when boilerplate repeats.
+- The `.enemy.parent-scaled` CSS rule's specificity tie-break depends on SOURCE ORDER (it's placed
+  right after the `.category-X` blocks in enemySprites.css) — if anyone ever reorders that file or
+  adds another equal-specificity `!important` background-size rule, re-check it still wins the
+  cascade for grown parents.
+- Sub-session 5, if built, touches agenda-row rendering (progress label) and Completed Today nesting
+  — different surface than this session's canvas-sprite math, so no overlap risk, but re-Grep before
+  editing per usual.
+
 ## 2026-07-19 — Session 49: [P1-DATA-004] sub-session 3 BUILT — sub-task economy (Cowork session, Sonnet)
 
 **Did:** SUBTASKS_PLAN.md sub-session 3, fully per plan. New `CONFIG.SUBTASK_XP`/`SUBTASK_POINTS`

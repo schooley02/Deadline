@@ -4,6 +4,76 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 50: [P1-DATA-004] sub-session 4 BUILT — growing/shrinking parent visuals (Cowork session, Sonnet)
+
+**Decision — derive the render width fresh every tick from the live `subTasks` array, instead of
+wiring width updates into every mutation site.** Sub-task count changes at several discrete call
+sites (creation, completion, uncompletion/refund, cascade-delete), and hooking all of them would
+mean touching items.js in several places for a purely visual effect. Following the [P1-UI-006]
+hero-chip precedent (session 43 — "renders per-tick so chips stay live across complete/damage/
+freeze/KO/deactivate without new UI hooks"), the new `Movement.getParentGrowthScale`/
+`getParentRenderWidth` are pure functions of `item.subTasks.length` called from
+`Loop.updateActiveItems` every 50ms tick, via a new optional `deps.getParentRenderWidth`
+collaborator (omitted = no-op, matching the existing optional-collaborator tolerance pattern).
+Alternative rejected: hook width recalculation into `completeItem`/`uncompleteItem`/
+`removeItem`/sub-task creation directly — more call sites to keep in sync, more surface area for a
+future sub-session to forget one.
+
+**Decision — growth runs regardless of overdue state.** The position-update branch in
+`updateActiveItems` only touches `item.x`/`style.left` for NON-overdue items (an overdue item is
+camped at the base and its position is frozen by design). Width is a different concern — a camped
+parent can still gain or lose sub-tasks — so the new width-update block sits outside that branch
+and runs for every top-level task every tick, independent of `isOverdue`.
+
+**Decision — scale the background sprite WITH the box, not just the box.** The plan required the
+sub-task fan to "stay attached to the visible graphic edge at any size." `getSubTaskClusterOffset`
+computes edges as fractions of box width (`CONFIG.ZOMBIE_VISIBLE_MARGINS`), which only stays
+correct if the rendered graphic actually scales with the box — the legacy CSS held every category's
+background fixed at 128×128 regardless of container size, which would have left a growing box with
+a static-size sprite adrift inside it and detached the fan. Added a `parent-scaled` class (applied
+only to top-level tasks in `resolveEnemyVisual`, js/spawning.js) plus one new CSS rule
+(`.enemy.parent-scaled { background-size: 100% 100% !important; }`) placed AFTER the legacy
+`.enemy.category-X` blocks in enemySprites.css so it wins the specificity tie-break (both are
+two-class `!important` selectors; equal specificity resolves by source order) — rather than editing
+the 8 existing per-category blocks directly, which would have changed rendering for every enemy
+type (habits, sub-tasks, non-parent tasks) globally instead of just growing parents. No-op at 0
+open subs: 100% of a 128px box == the old fixed 128px, pixel-identical — confirmed live (see below).
+
+**Decision — height never changes, only width.** The plan's bottom-alignment concern
+("feet stay on the ground line") is satisfied for free by only touching width: `getItemTopPosition`
+derives a sub-task's top from the parent's rendered `height`, which is untouched, so no
+bottom-alignment math needed changing.
+
+**Balance-tuning protocol:** `PARENT_GROWTH_PER_SUB` (0.15) / `PARENT_GROWTH_MAX_SUBS` (4) are the
+plan's proposed values (docs/SUBTASKS_PLAN.md, session 46 Fable sequencing) — this session executed
+them, not decided them. Logged in js/config.js with a comment cross-reference.
+
+**Testing:** 27 new tests across `test/movement.test.js` (growth-scale math, cap, shrink-on-array-
+mutation, offset-at-scale), `test/loop.test.js` (per-tick width wiring, optional-collaborator
+omission, sub-task/habit exclusion), `test/spawning.test.js` (parent-scaled class presence/absence)
+— run in the sandbox `$HOME` scratchpad per the Cowork npm rule. 38 suites, 803/803 (+18 net —
+27 added tests, some counted across files; see suite totals). `node --check` clean on config.js,
+movement.js, loop.js, spawning.js, script.js.
+
+**Live-verified in Chrome against the real running server:** created a parent, added 3 sub-tasks one
+at a time — box visibly grew with the fan staying attached at every step (no gap, no overlap, no
+drift), zoomed screenshots confirmed pixel-accurate attachment. Completed all 3 subs one at a time —
+box shrank back smoothly, final `style.width` read via devtools == exactly `"128px"`, and a zoomed
+screenshot was pixel-identical to the pre-growth baseline. Zero app console errors (three
+`[EXCEPTION]` console entries during the session were the known Claude-in-Chrome extension
+message-channel noise, unrelated to the app). Hit the documented `confirm()`-freeze on the dev Reset
+button (CLAUDE.md's known gotcha) — recovered by navigating away (no partial mutation), then
+completed the reset cleanly by stubbing `window.confirm` before the click, per the same doc's
+established workaround.
+
+**Process note (not a design decision):** the first ROADMAP.md edit attempt matched the wrong
+`- [ ] 5. Polish...` line (the [P1-UI-006] Hero sub-session 5 entry, not [P1-DATA-004]'s) because
+both sections use the same "5. Polish... (Sonnet, optional)" boilerplate text — caught before commit
+by re-reading the surrounding lines, moved to the correct section. Worth a search-before-edit habit
+when a ROADMAP string is generic/repeated across milestones.
+
+---
+
 ## 2026-07-19 — Session 49: [P1-DATA-004] sub-session 3 BUILT — sub-task economy (Cowork session, Sonnet, balance-tuning protocol)
 
 **Decision — half-value subs applied via the SAME `Economy.taskPoints` seam parents use, not a

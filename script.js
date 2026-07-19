@@ -656,6 +656,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Growing/shrinking parent visuals ([P1-DATA-004] sub-session 4,
+    // 2026-07-19) — pure math lives in js/movement.js. Thin wrapper, called
+    // per tick from loopDeps().
+    function getParentRenderWidth(item) {
+        return Movement.getParentRenderWidth(item, ENEMY_WIDTH);
+    }
+
     // Sub-task clustering vs own-urgency logic lives in js/movement.js
     // (Milestone 2 extraction, 2026-07-17). Thin wrapper — call site unchanged.
     function calculateTimelineXWithClustering(item, currentTime) {
@@ -720,6 +727,8 @@ document.addEventListener('DOMContentLoaded', () => {
             saveGame,
             // [P1-DATA-005] session 27 — negative-habit lurker exclusion
             isNonThreatening: Items.isNonThreatening,
+            // [P1-DATA-004] sub-session 4, 2026-07-19 — growing parent visuals
+            getParentRenderWidth,
         };
     }
 

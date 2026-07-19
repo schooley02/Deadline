@@ -44,6 +44,28 @@ describe('resolveEnemyVisual', () => {
         expect(classes).not.toContain('high-priority');
     });
 
+    // [P1-DATA-004] sub-session 4, 2026-07-19 — growing/shrinking parent
+    // visuals: only a top-level task can grow, so only it gets the CSS hook
+    // (enemySprites.css's .enemy.parent-scaled) that scales the background
+    // sprite with the box instead of the legacy fixed 128px.
+    test('a top-level task gets the parent-scaled class', () => {
+        const { classes } = Spawning.resolveEnemyVisual(
+            { type: 'task', category: 'other', isHighPriority: false }, DIMS);
+        expect(classes).toContain('parent-scaled');
+    });
+
+    test('a sub-task does NOT get parent-scaled (it never grows)', () => {
+        const { classes } = Spawning.resolveEnemyVisual(
+            { type: 'task', category: 'health', parentId: 7 }, DIMS);
+        expect(classes).not.toContain('parent-scaled');
+    });
+
+    test('a habit does NOT get parent-scaled (it never grows)', () => {
+        const { classes } = Spawning.resolveEnemyVisual(
+            { type: 'habit', category: 'health', streak: 0 }, DIMS);
+        expect(classes).not.toContain('parent-scaled');
+    });
+
     test('high-priority task gets the high-priority class', () => {
         const { classes } = Spawning.resolveEnemyVisual(
             { type: 'task', category: 'career', isHighPriority: true }, DIMS);

@@ -17,6 +17,9 @@
  *   calculateTimelineXWithClustering(item, currentTime, { activeItems, dims })
  *       dims = { gameScreenWidth, baseWidth, enemyWidth, habitEnemyWidth }  (for Clock)
  *   getItemTopPosition(item, itemHeight, { activeItems, canvasHeight, randomFn? })
+ *   getParentGrowthScale(item) -> number       ([P1-DATA-004] sub-session 4, 2026-07-19;
+ *       pure, no ctx — reads item.subTasks/CONFIG directly)
+ *   getParentRenderWidth(item, baseWidth) -> px  (baseWidth * getParentGrowthScale)
  */
 const Movement = (() => {
     // The sprite PNGs have big transparent margins (per-category fractions in
@@ -28,6 +31,28 @@ const Movement = (() => {
             left: boxWidth * m.left,
             right: boxWidth * (1 - m.right)
         };
+    }
+
+    // Growing/shrinking parent visuals ([P1-DATA-004] sub-session 4,
+    // 2026-07-19): a parent task's rendered box grows with its OPEN sub-task
+    // count. `item.subTasks` is the LIVE/open array (items.js splices it as
+    // subs complete or get removed — completion/cascade/uncomplete-relink all
+    // keep it in sync already), so this needs no new event hooks; it's just
+    // read fresh wherever it's called (the per-tick loop — see loop.js).
+    // Capped at CONFIG.PARENT_GROWTH_MAX_SUBS so the box can't grow unbounded.
+    // Non-parents (no subTasks, or a sub-task itself — subs always have an
+    // empty subTasks array since nesting isn't supported) return scale 1.
+    function getParentGrowthScale(item) {
+        if (!item || !item.subTasks || item.subTasks.length === 0) return 1;
+        const openCount = Math.min(item.subTasks.length, CONFIG.PARENT_GROWTH_MAX_SUBS);
+        return 1 + openCount * CONFIG.PARENT_GROWTH_PER_SUB;
+    }
+
+    // baseWidth is the item's UNGROWN box width (CONFIG.ENEMY_WIDTH for a
+    // top-level task — habits/sub-tasks never grow and shouldn't be routed
+    // through this).
+    function getParentRenderWidth(item, baseWidth) {
+        return baseWidth * getParentGrowthScale(item);
     }
 
     // Sub-tasks fan out beside their parent: alternating right/left by creation
@@ -45,7 +70,11 @@ const Movement = (() => {
         const gap = CONFIG.SUBTASK_CLUSTER_GAP_PX;
         const subWidth = CONFIG.SUBTASK_ENEMY_WIDTH;
 
-        const parentEdges = getVisibleEdges(parentTask ? parentTask.category : 'other', enemyWidth);
+        // Sub-session 4: the parent's visible-margin contribution scales with
+        // its CURRENT (possibly grown) box width, not the fixed enemyWidth,
+        // so the fan stays attached to the visible graphic edge at any size.
+        const parentBoxWidth = parentTask ? getParentRenderWidth(parentTask, enemyWidth) : enemyWidth;
+        const parentEdges = getVisibleEdges(parentTask ? parentTask.category : 'other', parentBoxWidth);
         let rightFrontier = parentEdges.right; // visible right edge of the rightmost cluster member so far (px, relative to parent box left)
         let leftFrontier = parentEdges.left;   // visible left edge of the leftmost cluster member so far
 
@@ -115,6 +144,8 @@ const Movement = (() => {
 
     return {
         getVisibleEdges,
+        getParentGrowthScale,
+        getParentRenderWidth,
         getSubTaskClusterOffset,
         calculateTimelineXWithClustering,
         getItemTopPosition

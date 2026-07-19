@@ -190,6 +190,23 @@
     background-repeat: no-repeat !important;
 }
 
+/* Growing/shrinking parent visuals ([P1-DATA-004] sub-session 4, 2026-07-19):
+   only top-level tasks get the 'parent-scaled' class (js/spawning.js). Scales
+   the background sprite WITH the box instead of the legacy fixed 128px, so
+   the visible graphic grows/shrinks in lockstep with the width
+   js/loop.js sets each tick — keeps Movement.getSubTaskClusterOffset's
+   box-fraction edge math (js/movement.js ZOMBIE_VISIBLE_MARGINS) accurate at
+   any size. Equal specificity to the .category-X blocks above (two classes,
+   both !important) — placed AFTER them so it wins the source-order
+   tie-break. Habits/sub-tasks never get this class, so their fixed-size
+   rules below are untouched. No-op at 0 open subs: 100% of a 128px box ==
+   the old fixed 128px, pixel-identical. The existing `.enemy` transition:
+   all 0.2s ease (top of this file) already animates width/background-size
+   changes smoothly — no new transition rule needed. */
+.enemy.parent-scaled {
+    background-size: 100% 100% !important;
+}
+
 /* New zombie sprite system with explicit size classes */
 .zombie-sprite {
     background-position: center;

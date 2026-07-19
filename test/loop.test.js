@@ -267,6 +267,70 @@ describe('Loop.updateActiveItems — negative-habit lurker exclusion ([P1-DATA-0
     });
 });
 
+describe('Loop.updateActiveItems — growing/shrinking parent visuals ([P1-DATA-004] sub-session 4, 2026-07-19)', () => {
+    test('getParentRenderWidth omitted -> no-op (existing "optional collaborator" precedent)', () => {
+        const item = makeItem({ type: 'task' });
+        const deps = makeDeps({ state: { activeItems: [item] } });
+        expect(() => Loop.updateActiveItems(deps)).not.toThrow();
+        expect(item.element.style.width).toBeUndefined();
+    });
+
+    test('a top-level task gets its width set from the collaborator every tick', () => {
+        const item = makeItem({ type: 'task' });
+        const calls = [];
+        const deps = makeDeps({
+            state: { activeItems: [item] },
+            deps: { getParentRenderWidth: (i) => { calls.push(i.id); return 166.4; } },
+        });
+        Loop.updateActiveItems(deps);
+        expect(item.element.style.width).toBe('166.4px');
+        expect(calls).toEqual([1]);
+    });
+
+    test('runs regardless of overdue state — a camped parent can still gain/lose subs', () => {
+        const item = makeItem({ type: 'task', isOverdue: true, lastDamageTickTime: Date.now() });
+        const deps = makeDeps({
+            state: { activeItems: [item] },
+            deps: { getParentRenderWidth: () => 147.2 },
+        });
+        Loop.updateActiveItems(deps);
+        expect(item.element.style.width).toBe('147.2px');
+    });
+
+    test('a sub-task (parentId set) is excluded even if the collaborator is provided', () => {
+        const sub = makeItem({ type: 'task', parentId: 1 });
+        const calls = [];
+        const deps = makeDeps({
+            state: { activeItems: [sub] },
+            deps: { getParentRenderWidth: (i) => { calls.push(i.id); return 999; } },
+        });
+        Loop.updateActiveItems(deps);
+        expect(calls).toEqual([]);
+        expect(sub.element.style.width).toBeUndefined();
+    });
+
+    test('a habit is excluded even if the collaborator is provided', () => {
+        const habit = makeItem({ type: 'habit' });
+        const calls = [];
+        const deps = makeDeps({
+            state: { activeItems: [habit] },
+            deps: { getParentRenderWidth: (i) => { calls.push(i.id); return 999; } },
+        });
+        Loop.updateActiveItems(deps);
+        expect(calls).toEqual([]);
+        expect(habit.element.style.width).toBeUndefined();
+    });
+
+    test('an item with no rendered element is skipped safely (no throw)', () => {
+        const item = makeItem({ type: 'task', element: null });
+        const deps = makeDeps({
+            state: { activeItems: [item] },
+            deps: { getParentRenderWidth: () => 166.4 },
+        });
+        expect(() => Loop.updateActiveItems(deps)).not.toThrow();
+    });
+});
+
 describe('Loop.updateGame', () => {
     test('no-op when game is over', () => {
         const deps = makeDeps({ state: { gameIsOver: true } });

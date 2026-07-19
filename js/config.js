@@ -63,6 +63,15 @@ const CONFIG = {
     // — capped at, never exceeding, a standalone task. See DECISIONS.md.
     SUBTASK_XP: 5,
     SUBTASK_POINTS: 5,
+    // Growing/shrinking parent visuals ([P1-DATA-004] sub-session 4,
+    // 2026-07-19; plan values, docs/SUBTASKS_PLAN.md). A parent task's
+    // rendered box grows 15% per OPEN sub-task (js/movement.js's
+    // getParentGrowthScale), capped at 4 subs (a +60% box at the cap). Not a
+    // balance number in the points/XP sense but follows the same
+    // never-hardcode + log-to-DECISIONS discipline since it's a tunable
+    // gameplay-feel constant.
+    PARENT_GROWTH_PER_SUB: 0.15,
+    PARENT_GROWTH_MAX_SUBS: 4,
     // Streak is now a VISUAL-only concept (decided 2026-07-18, session 13; built
     // session 16). This threshold is the "on-fire" high-streak sprite/badge
     // trigger (spawning.js, items.js) — it NO LONGER awards points. The old flat
