@@ -23,6 +23,12 @@ seeds `frozenState: null` on every routine and `modificationHistory: []` on ever
 Spawn gating (frozen routine stops spawning its OTHER definitions) and the frozen-state UI are
 NOT yet built — later sub-sessions. See DECISIONS.md 2026-07-19.
 
+**Sub-session 4 BUILT 2026-07-19 (session 38):** `modificationHistory` is now actually written.
+`Routines.editHabitInRoutine` appends one entry per real edit (diffs against the habit's current
+values first — a no-op Save appends nothing) and, when the edit is to the habit currently holding
+its routine's freeze, clears `frozenState` as recovery path 1. No schema change — the field and its
+shape were already seeded by sub-session 1's v5→v6 migration above; this just starts populating it.
+
 ### schemaVersion 4 (2026-07-18): shop `inventory` landed
 Top-level `inventory: { [shopItemId]: heldCount }` added for the shop ([P1-UI-008],
 SHOP_PLAN.md session 1). Absent key = 0 held. Owned in script.js (`playerInventory`),

@@ -887,8 +887,18 @@ document.addEventListener('DOMContentLoaded', () => {
         saveGame();
     }
 
+    // Sub-session 4 (2026-07-19): passes definedRoutines + an
+    // onRoutineUnfrozen notifier so a real edit to the habit that froze its
+    // routine clears frozenState and shows the one-time unfreeze notice
+    // (recovery path 1, docs/FROZEN_SLOTS_PLAN.md). Same
+    // "module called as bare stable global" pattern as itemsDeps()'s
+    // onRoutineFrozen.
     function editHabitInRoutine(habitId, updatedData) {
-        if (Routines.editHabitInRoutine(habitId, updatedData, definedHabits)) {
+        if (Routines.editHabitInRoutine(habitId, updatedData, definedHabits, definedRoutines, {
+            onRoutineUnfrozen: (routine, habitDef) => {
+                FrozenNotice.showRoutineUnfrozenNotice(routine.name, habitDef.name);
+            }
+        })) {
             renderDefinedRoutines();
         }
     }

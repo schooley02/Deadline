@@ -71,9 +71,16 @@ it. A one-time notice modal (`js/ui/frozenNotice.js`) fires exactly once at the 
 explaining what happened and both recovery paths. Frozen routines remain fully manageable — habits/
 tasks can still be added/edited/removed while frozen, they just won't spawn (per sub-session 2).
 
-**NOT yet built:** recovery path 1's actual edit-to-unfreeze wiring (the banner explains it, but
-saving an edited habit doesn't yet check/clear a freeze) and Sick/Skip Day tokens — see
-`docs/FROZEN_SLOTS_PLAN.md` sub-sessions 4-5.
+**Sub-session 4 BUILT 2026-07-19:** recovery path 1 (edit-to-unfreeze). `Routines.editHabitInRoutine`
+diffs the incoming edit against the habit's current `name`/`category`/`schedule`/`timeOfDay`/
+`isNegative` and appends `{ timestamp, changedFields }` to `habitDef.modificationHistory` whenever
+something real changed (a no-op Save writes nothing). If the edited habit is the one holding its
+routine's `frozenState`, a real edit clears it immediately — no need to wait out the 3-day avoidance
+window — and a new one-time `FrozenNotice.showRoutineUnfrozenNotice` fires. There's only one save
+path in the UI (the agenda-row "edit" shortcut and the Manage Routine editor both funnel through
+`saveEditedHabit` → `editHabitInRoutine`), so this covers both entry points.
+
+**NOT yet built:** Sick/Skip Day tokens — see `docs/FROZEN_SLOTS_PLAN.md` sub-session 5.
 
 - A NEGATIVE habit streak of 3+ days (indulging 3 days running) FREEZES the associated routine slot.
 - Frozen slots appear greyed out, with a notification explaining the freeze and recovery options. Frozen routines remain viewable so the user can identify needed adjustments.

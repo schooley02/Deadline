@@ -417,6 +417,82 @@ describe('editHabitInRoutine / editTaskInRoutine', () => {
     });
 });
 
+// --- Frozen slots recovery path 1: edit-to-unfreeze + modificationHistory --
+// (sub-session 4, 2026-07-19, docs/FROZEN_SLOTS_PLAN.md)
+
+describe('editHabitInRoutine — modificationHistory + edit-to-unfreeze (sub-session 4)', () => {
+    function fullEdit(overrides = {}) {
+        return { name: 'Meditate', category: 'health', frequency: 'daily', timeOfDay: 'morning', isNegative: false, ...overrides };
+    }
+
+    test('a real change appends { timestamp, changedFields } to modificationHistory', () => {
+        const habits = [habitDef('h1', { name: 'Old', category: 'other', timeOfDay: 'evening', isNegative: false, modificationHistory: [] })];
+        Routines.editHabitInRoutine('h1', fullEdit(), habits);
+        expect(habits[0].modificationHistory).toHaveLength(1);
+        const entry = habits[0].modificationHistory[0];
+        expect(typeof entry.timestamp).toBe('string');
+        expect(entry.changedFields.sort()).toEqual(['category', 'name', 'schedule', 'timeOfDay'].sort());
+    });
+
+    test('a no-op save (identical values) appends nothing', () => {
+        const schedule = { frequency: 'daily', daysOfWeek: [0, 1, 2, 3, 4, 5, 6], dayOfMonth: null };
+        const habits = [habitDef('h1', { name: 'Meditate', category: 'health', timeOfDay: 'morning', isNegative: false, schedule, modificationHistory: [] })];
+        Routines.editHabitInRoutine('h1', fullEdit(), habits);
+        expect(habits[0].modificationHistory).toEqual([]);
+    });
+
+    test('modificationHistory is lazily initialized when absent (pre-existing habit defs)', () => {
+        const habits = [habitDef('h1', { name: 'Old' })];
+        delete habits[0].modificationHistory;
+        Routines.editHabitInRoutine('h1', fullEdit(), habits);
+        expect(habits[0].modificationHistory).toHaveLength(1);
+    });
+
+    test('a real edit to the habit that froze its routine clears frozenState and notifies once', () => {
+        const habits = [habitDef('h1', { name: 'Old', routineId: 'r1' })];
+        const routines = [routine('r1', { frozenState: { frozenBy: 'h1', frozenAt: '2026-07-19T00:00:00.000Z' } })];
+        let notified = null;
+        Routines.editHabitInRoutine('h1', fullEdit(), habits, routines, {
+            onRoutineUnfrozen: (routine, habit) => { notified = { routineId: routine.id, habitId: habit.id }; }
+        });
+        expect(routines[0].frozenState).toBeNull();
+        expect(notified).toEqual({ routineId: 'r1', habitId: 'h1' });
+    });
+
+    test('a no-op save on a frozen routine does NOT unfreeze it', () => {
+        const schedule = { frequency: 'daily', daysOfWeek: [0, 1, 2, 3, 4, 5, 6], dayOfMonth: null };
+        const habits = [habitDef('h1', { name: 'Meditate', category: 'health', timeOfDay: 'morning', isNegative: false, schedule, routineId: 'r1' })];
+        const routines = [routine('r1', { frozenState: { frozenBy: 'h1', frozenAt: '2026-07-19T00:00:00.000Z' } })];
+        let notified = false;
+        Routines.editHabitInRoutine('h1', fullEdit(), habits, routines, { onRoutineUnfrozen: () => { notified = true; } });
+        expect(routines[0].frozenState).not.toBeNull();
+        expect(notified).toBe(false);
+    });
+
+    test('a real edit to a DIFFERENT habit than the one that froze the routine leaves frozenState alone', () => {
+        const habits = [
+            habitDef('h1', { name: 'Old', routineId: 'r1' }),
+            habitDef('h2', { name: 'Other', routineId: 'r1' }),
+        ];
+        const routines = [routine('r1', { frozenState: { frozenBy: 'h2', frozenAt: '2026-07-19T00:00:00.000Z' } })];
+        Routines.editHabitInRoutine('h1', fullEdit(), habits, routines, { onRoutineUnfrozen: () => { throw new Error('should not fire'); } });
+        expect(routines[0].frozenState).toEqual({ frozenBy: 'h2', frozenAt: '2026-07-19T00:00:00.000Z' });
+    });
+
+    test('a real edit on an unfrozen routine is a no-op for frozenState (no crash without onRoutineUnfrozen)', () => {
+        const habits = [habitDef('h1', { name: 'Old', routineId: 'r1' })];
+        const routines = [routine('r1', { frozenState: null })];
+        expect(() => Routines.editHabitInRoutine('h1', fullEdit(), habits, routines)).not.toThrow();
+        expect(routines[0].frozenState).toBeNull();
+    });
+
+    test('omitting definedRoutines entirely still records modificationHistory (back-compat, no unfreeze check)', () => {
+        const habits = [habitDef('h1', { name: 'Old' })];
+        expect(Routines.editHabitInRoutine('h1', fullEdit(), habits)).toBe(true);
+        expect(habits[0].modificationHistory).toHaveLength(1);
+    });
+});
+
 // --- activation / deactivation ----------------------------------------------
 
 describe('clearActiveInstancesForRoutine', () => {

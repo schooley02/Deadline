@@ -59,8 +59,38 @@ const FrozenNotice = (() => {
         }, 0);
     }
 
+    // Recovery path 1 (sub-session 4, 2026-07-19, docs/FROZEN_SLOTS_PLAN.md):
+    // fires from Routines.editHabitInRoutine's onRoutineUnfrozen callback the
+    // moment a REAL edit to the offending habit clears its routine's
+    // frozenState. Same setTimeout(0) defensive pattern as
+    // showFrozenRoutineNotice — the edit-habit modal's save handler
+    // (RoutineViews.saveEditedHabit) calls Modal.closeModal() right after
+    // triggering this, which would otherwise delete the notice before it
+    // painted (the recurring session 21/34/37 DOM-race hazard).
+    function showRoutineUnfrozenNotice(routineName, habitName) {
+        setTimeout(() => {
+            if (document.querySelector('.frozen-notice-overlay')) return;
+
+            const modalHtml = `
+                <div class="modal-overlay frozen-notice-overlay">
+                    <div class="modal-content frozen-notice-modal">
+                        <h3>🎉 ${routineName} is unfrozen</h3>
+                        <p>Editing "${habitName}" counted as a real change, so ${routineName} is back
+                           to normal — its habits and tasks will spawn again.</p>
+                        <div class="modal-buttons">
+                            <button class="primary-button" onclick="closeModal()">Got it</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }, 0);
+    }
+
     return {
         showFrozenRoutineNotice,
+        showRoutineUnfrozenNotice,
     };
 })();
 

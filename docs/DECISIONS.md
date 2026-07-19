@@ -4,6 +4,55 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 38: Sub-session 4 BUILT — recovery path 1, edit-to-unfreeze + modificationHistory (Cowork session, Sonnet execute — plan already approved in session 35)
+
+**Decision:** instrumented the ONE existing save path (`Routines.editHabitInRoutine`, called by both
+the agenda-row "edit" shortcut and the Manage Routine editor via the shared `saveEditedHabit` chain)
+rather than building a separate "standalone editor" path. FROZEN_SLOTS_PLAN.md's sub-session 4 goal
+said "standalone editor + routine editor paths," which read as two save functions to instrument —
+tracing the actual call graph (`agendaList.js`'s `showEditHabitInstanceModal` → `showEditHabitForm` →
+`saveEditedHabit` → `editHabitInRoutine`) showed there's only one, since habits have no per-instance
+editor today (a pre-existing comment in `agendaList.js` already noted this). No design fork needed —
+just confirms the plan's two "paths" are two UI entry points into the same function, not two
+functions.
+
+**Why a real edit unfreezes immediately (no 3-day wait, unlike recovery path 2):** matches
+`FrozenNotice`'s sub-session-3 copy, which already told players "Edit [habit]'s details — any real
+change counts" as an alternative to the 3-day avoidance streak. Diffing against current values (not
+just checking the form was submitted) exists specifically so re-saving unchanged data can't be used
+to cheese an instant unfreeze — `changedFields` must be non-empty.
+
+**Why `definedRoutines` and the notify callback are optional params, not required:** matches the
+`items.js` `findOwningRoutine`/`onRoutineFrozen` precedent — every pre-existing 3-arg call to
+`editHabitInRoutine` (routines.test.js's older cases) keeps working unchanged, just without the
+unfreeze check, rather than forcing every test/call site to be touched for a feature only the
+UI-wired call site needs.
+
+**Alternative rejected:** recording old/new field VALUES in `modificationHistory` (not just field
+NAMES) — FROZEN_SLOTS_PLAN.md's fork 3 (session 35, Fable) already deferred this ("old/new values and
+notes are deferred"); this session didn't revisit that call, just implemented the minimal shape it
+specified.
+
+29 suites, 560/560 (+8). `node --check` clean on `js/routines.js`, `js/ui/frozenNotice.js`,
+`script.js`.
+
+**Live-verified in Chrome:** seeded a frozen routine via the documented localStorage-edit +
+neutered-`setItem` + reload trick (3 backdated indulged days) instead of re-earning it through 3
+real "I indulged" clicks. No-op Save left `frozenState`/`modificationHistory` untouched, no notice.
+A real rename appended `{ timestamp, changedFields: ["name"] }`, cleared `frozenState`, and fired
+the new unfreeze notice — no setTimeout(0) race despite `Modal.closeModal()` running first in
+`saveEditedHabit`. A freshly opened Manage Routine modal showed "Status: Active," no frozen banner.
+Zero app console errors.
+
+**Found, not fixed (pre-existing, out of scope):** the FAB→Routines popup
+(`ManagementWindows.populateRoutinesWindow`, a separate windowing system from `Modal`'s
+`.modal-overlay`s) doesn't live-refresh if left open under a stacked Manage Routine edit —
+`editHabitInRoutine`'s `renderDefinedRoutines()` call only updates the older inline list, not this
+popup's DOM. Closing and reopening it always shows correct data. Would affect any habit edit made
+this way, predates this session. Logged in ROADMAP.md's Known bugs for future scheduling.
+
+---
+
 ## 2026-07-19 — Session 37: Sub-session 3 BUILT — frozen routine UI (Cowork session, Sonnet execute — plan already approved in session 35)
 
 **Problem:** sub-sessions 1-2 made freezing real (state + spawn suspension) but entirely invisible —

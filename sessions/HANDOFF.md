@@ -13,6 +13,57 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 38: Sub-session 4 BUILT — recovery path 1, edit-to-unfreeze + modificationHistory (Cowork session, Sonnet execute)
+
+**Did:** `Routines.editHabitInRoutine` (`js/routines.js`) now diffs an incoming habit edit against the
+habit's CURRENT `name`/`category`/`schedule`/`timeOfDay`/`isNegative` before mutating. A real change
+appends `{ timestamp, changedFields }` to `habitDef.modificationHistory` (a no-op Save writes
+nothing). If the edited habit is the one currently holding its routine's `frozenState`, a real edit
+clears it immediately (no 3-day wait — recovery path 1 doesn't need the avoidance streak) and fires a
+new one-time `FrozenNotice.showRoutineUnfrozenNotice(routineName, habitName)`
+(`js/ui/frozenNotice.js`). Both `definedRoutines` and the `onRoutineUnfrozen` notify callback are
+OPTIONAL params — matches items.js's `onRoutineFrozen`/`definedRoutines` precedent, so the 3
+pre-existing 3-arg test calls to `editHabitInRoutine` needed no changes. Wired in script.js's
+`editHabitInRoutine` wrapper (passes `definedRoutines` + the notify callback, mirroring `itemsDeps()`'s
+`onRoutineFrozen`). Only ONE save path existed to instrument — the agenda-row "edit" shortcut and the
+Manage Routine editor both funnel through the same `showEditHabitForm` → `saveEditedHabit` →
+`editHabitInRoutine` chain (confirmed by tracing the call graph; `agendaList.js` already had a comment
+noting habits have no per-instance editor). Updated `docs/ROUTINES.md`, `docs/DATA_SCHEMA.md`,
+`docs/FROZEN_SLOTS_PLAN.md`, `docs/ROADMAP.md`, `docs/DECISIONS.md`.
+
+**State:** ✅ **29 suites, 560/560** (+8 new cases in `test/routines.test.js`). `node --check` clean on
+`js/routines.js`, `js/ui/frozenNotice.js`, `script.js`. **Live-verified in Chrome:** seeded a frozen
+routine via the documented localStorage-edit + neutered-`setItem` + reload trick (faster than 3 real
+"I indulged" clicks). No-op Save left `frozenState`/`modificationHistory` untouched, no notice shown.
+A real rename correctly appended the modificationHistory entry, cleared `frozenState`, and fired the
+"🎉 ... is unfrozen" notice — no setTimeout(0) DOM-race despite `saveEditedHabit`'s own
+`Modal.closeModal()` running first. A freshly reopened Manage Routine modal showed "Status: Active,"
+no frozen banner. Zero app console errors (only the recurring unrelated Chrome-extension messaging
+noise).
+
+**Found (not fixed — pre-existing, out of scope, logged in ROADMAP.md's Known bugs):** the FAB →
+Routines popup (`js/ui/managementWindows.js`'s `populateRoutinesWindow`) is a separate windowing
+system from `Modal`'s `.modal-overlay`s and doesn't live-refresh if left open underneath a stacked
+Manage Routine edit — `editHabitInRoutine`'s existing `renderDefinedRoutines()` call only updates the
+older inline list (`RoutineViews`/`definedRoutinesListUL`), not this popup's DOM. Closing and
+reopening the popup always shows correct data. Would affect ANY habit edit made this way, not just
+this feature — predates this session.
+
+**Next:** Sub-session 5 (Sick Day global + Skip Day per-habit tokens + 6→7 migration) per
+`docs/FROZEN_SLOTS_PLAN.md` — the last sub-session of the "Frozen routine slots + recovery" ticket.
+Separately, consider scheduling the FAB→Routines popup staleness fix (small: have
+`editHabitInRoutine`'s wrapper also call `ManagementWindows.populateRoutinesWindow` when that window
+is open, same pattern the freeze-trigger path likely already needs to double-check).
+
+**Watch out:**
+- The neutered-`localStorage.setItem` + reload trick (DECISIONS.md 2026-07-19) is the fast way to
+  seed/backdate any frozen/occurrence-history test scenario without real multi-day clicking — write
+  the edit with the REAL `setItem`, then overwrite `setItem` with a no-op before `location.reload()`.
+- `changedFields` records only field NAMES, not old/new values (deliberately deferred, fork 3 of
+  session 35's Fable plan) — don't add values without a fresh design pass.
+
+---
+
 ## 2026-07-19 — Session 37: Sub-session 3 BUILT — frozen routine UI (Cowork session, Sonnet execute)
 
 **Did:** Made frozen routines visible across three surfaces. Compact card (`js/ui/managementWindows.js`'s

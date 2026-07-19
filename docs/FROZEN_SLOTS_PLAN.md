@@ -159,11 +159,54 @@ reopened Manage — progress correctly read "2/3." One real "Successfully avoide
 day cleared `frozenState` to `null`; the Routines card returned to its normal 🟢/ungreyed state with
 no console errors (only the recurring unrelated Chrome-extension messaging noise).
 
-### Sub-session 4 — recovery path 1: edit-to-unfreeze + modificationHistory (Sonnet)
+### Sub-session 4 — recovery path 1: edit-to-unfreeze + modificationHistory (Sonnet) — ✅ BUILT 2026-07-19 session 38
 **Goal:** append `{ timestamp, changedFields }` on every real habit edit (standalone editor + routine
 editor paths — diff the fields, skip no-op saves); if the routine is frozen BY that habit and the
 edit is real → unfreeze + notification. Field landed in sub-session 1's migration, so no schema
 change here.
+
+**BUILT:** `Routines.editHabitInRoutine` (the one pure core both the agenda-row "edit" shortcut and
+the Manage Routine editor funnel through — `agendaList.js`'s `showEditHabitInstanceModal` and
+`routineViews.js`'s Manage-modal path both call the same `showEditHabitForm` → `saveEditedHabit` →
+`editHabitInRoutine` chain, so there was only ever one save path to instrument, not two) now diffs
+`name`/`category`/`schedule`/`timeOfDay`/`isNegative` against the habit's CURRENT values before
+mutating. A no-op Save (nothing actually different) writes nothing to `modificationHistory`, matching
+docs/DATA_SCHEMA.md's spec. A real change appends `{ timestamp: ISOString, changedFields: string[] }`
+and, if the owning routine's `frozenState.frozenBy` is this exact habit id, clears `frozenState` and
+fires a new OPTIONAL `deps.onRoutineUnfrozen(routine, habitDef)` collaborator — same "collaborator
+omitted → no-op" precedent as `items.js`'s `onRoutineFrozen`. `definedRoutines` is also an OPTIONAL
+new parameter (existing 3-arg callers/tests untouched, just skip the unfreeze check).
+
+New `FrozenNotice.showRoutineUnfrozenNotice(routineName, habitName)` — a small, non-triumphant "🎉
+back to normal" modal, wired from script.js's `editHabitInRoutine` wrapper alongside the existing
+`onRoutineFrozen` wiring in `itemsDeps()`. Given the setTimeout(0) DOM-race hazard has now bitten
+sessions 21/34/37, this notice defers its insertion the same way pre-emptively, even though
+`saveEditedHabit`'s `Modal.closeModal()` call happens synchronously right after — untested whether
+it would have hit the same race, not worth finding out live.
+
+29 suites, 560/560 (+8 in `test/routines.test.js`: no-op vs real-edit modificationHistory, unfreeze
+when `frozenBy` matches, no unfreeze when a no-op save or a different habit id, notification fires
+exactly once, back-compat with `definedRoutines` omitted). `node --check` clean on `js/routines.js`,
+`js/ui/frozenNotice.js`, `script.js`.
+
+**Live-verified in Chrome:** seeded a frozen routine directly via the documented localStorage-edit +
+neutered-`setItem` + reload trick (3 backdated indulged days, `frozenState` set) rather than
+re-earning the freeze through 3 real clicks. A no-op "Save Changes" on the offending habit left
+`frozenState` and `modificationHistory` untouched (confirmed via the save) and did NOT show the
+unfreeze notice. A real edit (renamed the habit) correctly appended a `{ timestamp, changedFields:
+["name"] }` entry, cleared `frozenState` to `null`, and fired "🎉 Test Freeze Routine is unfrozen" —
+no setTimeout(0) race despite `saveEditedHabit`'s own `Modal.closeModal()` running first. A freshly
+opened Manage Routine modal showed "Status: Active" with no frozen banner. Zero app console errors
+(only the recurring unrelated Chrome-extension messaging noise).
+
+**Found (not a sub-session-4 bug, a pre-existing UI-sync gap, logged for later):** the FAB → Routines
+popup (`js/ui/managementWindows.js`'s `populateRoutinesWindow`, a DIFFERENT windowing system from
+`Modal`'s `.modal-overlay`s) does NOT live-refresh if left open underneath a stacked Manage Routine
+modal while an edit happens — it keeps showing stale 🥶/greyed content until closed and reopened.
+`editHabitInRoutine`'s existing `renderDefinedRoutines()` call only updates the older inline routine
+list (`RoutineViews`/`definedRoutinesListUL`), not `ManagementWindows.populateRoutinesWindow`'s
+separate DOM target. Same render-call gap would affect ANY habit edit made while that popup is open,
+not just this feature — pre-dates sub-session 4, out of scope here. Worth a small follow-up ticket.
 
 ### Sub-session 5 — Sick Day (global) + Skip Day (per-habit) tokens + 6→7 migration (Sonnet)
 **Goal:** shop entries (200 pts each, held-inventory exponential pricing, `consumable: true`).

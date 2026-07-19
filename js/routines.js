@@ -320,20 +320,62 @@ const Routines = (() => {
     }
 
     // Mutates the matching habit definition in place. Returns true if found.
-    function editHabitInRoutine(habitId, updatedData, definedHabits) {
+    //
+    // Frozen slots recovery path 1 (sub-session 4, 2026-07-19,
+    // docs/FROZEN_SLOTS_PLAN.md): diffs the incoming values against the
+    // habit's CURRENT ones before mutating, and if anything real changed,
+    // appends `{ timestamp, changedFields }` to habit.modificationHistory
+    // (seeded `[]` by sub-session 1's schemaVersion 6 migration — no schema
+    // change here). A no-op Save (form submitted with nothing actually
+    // different) writes nothing, per docs/DATA_SCHEMA.md's spec.
+    //
+    // `definedRoutines` and `deps` are OPTIONAL, same "collaborator omitted
+    // -> no-op" precedent items.js's findOwningRoutine set for
+    // deps.definedRoutines: existing callers/tests that only pass
+    // (habitId, updatedData, definedHabits) still work, just without the
+    // unfreeze check. When `definedRoutines` IS supplied and this edit is
+    // real, a routine this exact habit froze (`frozenState.frozenBy ===
+    // habitId`) is unfrozen — recovery path 1 — and the optional
+    // `deps.onRoutineUnfrozen(routine, habit)` collaborator fires once,
+    // mirroring items.js's onRoutineFrozen notification pattern.
+    function editHabitInRoutine(habitId, updatedData, definedHabits, definedRoutines, deps = {}) {
         const habit = definedHabits.find(h => h.id === habitId);
         if (!habit) return false;
 
-        habit.name = updatedData.name;
-        habit.category = updatedData.category;
         // schemaVersion 3: store recurrence as a schedule. If the edit form
         // passed a full schedule (future UI), use it; otherwise convert its
         // legacy frequency string.
-        habit.schedule = updatedData.schedule
+        const newSchedule = updatedData.schedule
             ? Schedule.normalize(updatedData.schedule)
             : Schedule.fromLegacyFrequency(updatedData.frequency);
+
+        const changedFields = [];
+        if (updatedData.name !== habit.name) changedFields.push('name');
+        if (updatedData.category !== habit.category) changedFields.push('category');
+        if (JSON.stringify(newSchedule) !== JSON.stringify(habit.schedule)) changedFields.push('schedule');
+        if (updatedData.timeOfDay !== habit.timeOfDay) changedFields.push('timeOfDay');
+        if (updatedData.isNegative !== habit.isNegative) changedFields.push('isNegative');
+
+        habit.name = updatedData.name;
+        habit.category = updatedData.category;
+        habit.schedule = newSchedule;
         habit.timeOfDay = updatedData.timeOfDay;
         habit.isNegative = updatedData.isNegative;
+
+        if (changedFields.length > 0) {
+            if (!Array.isArray(habit.modificationHistory)) habit.modificationHistory = [];
+            habit.modificationHistory.push({ timestamp: new Date().toISOString(), changedFields });
+
+            if (definedRoutines) {
+                const routine = definedRoutines.find(r => r.id === habit.routineId);
+                if (routine && routine.frozenState && routine.frozenState.frozenBy === habitId) {
+                    routine.frozenState = null;
+                    if (typeof deps.onRoutineUnfrozen === 'function') {
+                        deps.onRoutineUnfrozen(routine, habit);
+                    }
+                }
+            }
+        }
 
         return true;
     }
