@@ -13,6 +13,64 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 52: Run history SEQUENCED + sub-session 1 BUILT (Cowork session, Fable→Sonnet)
+
+**Did:** Milestone 3's last unchecked item ("Run history + run review screen"). Fable half:
+recon (gameOver/restart/damage call sites — key finding: the restart button calls
+`Persistence.clear()`, so today a dead run is ERASED, which shapes the whole design), 4 design
+forks resolved with Jeremy (full reset on new run, overriding PROJECT_SPEC's carry-over line;
+lean record + per-routine rollup, no event log; Stats FAB tab = current run + history together,
+plus a game-over review card; blame = aggregate per-item map with timestamps, corrected mid-
+session from a wrong 1/30s damage-rate assumption to the real 1/5min), wrote
+`docs/RUN_HISTORY_PLAN.md` (5 sub-sessions, schema 9→10). Sonnet half: sub-session 1 built —
+`js/runStats.js` pure core (blame aggregates by recurring definitionId; `finalizeRun` incl.
+per-routine rollup with end-state frozen/KO flags; capped `appendToHistory`), `CONFIG.
+RUN_HISTORY_MAX` (50), schemaVersion 9→10 migration, full accessor-deps plumbing in state.js/
+script.js, `initGame` resets `currentRunStats` but preserves `runHistory`. Docs: MECHANICS.md
+(new Run history bullet), ROADMAP.md (item sequenced + sub-session 1 checked), DECISIONS.md (5
+forks + the sub-session 1 build + a found bug + a playtest-mechanics finding), CLAUDE.md (new
+flush-timing trap, 3rd case).
+
+**State:** ✅ **39 suites (+1 new file), 841/841** (+26 over session 51's 815). `node --check`
+clean on runStats.js/state.js/persistence.js/config.js/script.js. Live-verified in Chrome:
+fresh load shows schemaVersion 10 with empty `runHistory`/fresh `currentRunStats`; a properly-
+sequenced hand-edited-save round-trip (stub flush → wait out debounce → edit → reload) confirmed
+restore wires both fields correctly; zero app console errors throughout. **Nothing is wired to
+live gameplay yet** — no damage/completion/gameOver call site calls into RunStats, and there's no
+UI. That's sub-sessions 2-4.
+
+**Next:** Sub-session 2 (RUN_HISTORY_PLAN.md) — wire `RunStats.recordDamage` into the live loop's
+`damageBase` call site AND `applyOfflineDamage`'s two catch-up paths (both currently pass only an
+amount, no item — attribution must be captured where `hit.item`/the overdue item is in hand, per
+DECISIONS.md session 52's blame-capture rationale); wire counters at items.js completion/miss
+sites and economy.js points-award sites; `Damage.gameOver` calls `RunStats.finalizeRun` and
+appends to `runHistory`; REWORK the restart button so `Persistence.clear()` doesn't erase the
+history that was just written (currently it would — nothing carries `runHistory` through that
+flow yet, confirmed by this session's recon). This is standard "implement a root-caused/planned
+change" work — Sonnet is right for it.
+
+**Watch out:**
+- **The restart button still erases run history as of this session.** Sub-session 1 only built
+  the data layer; `Persistence.clear()` in the restart handler (script.js ~1609) will wipe
+  `runHistory` from localStorage same as everything else until sub-session 2 explicitly threads
+  it through (hold the in-memory `runHistory` value across the clear+reinit, matching how
+  `definedHabits`/`definedRoutines` already survive that flow).
+- **Dev-Reset gap found+fixed this session — re-check if anyone extends the reset flow.**
+  `resetTestButton`'s handler wipes `definedHabits`/`definedRoutines`/`definedTasks` but hadn't
+  been taught about `runHistory` (fixed: now sets `runHistory = []` too, matching the button's own
+  "wipes EVERYTHING" doc comment). Any FUTURE full-wipe-shaped state addition should default to
+  being cleared by this handler unless there's a specific reason not to (unlike the restart
+  button, which deliberately preserves history).
+- **New flush-timing trap, distinct from the two already in CLAUDE.md:** verifying a hand-edited
+  save actually restores requires stubbing `flush`/`requestSave` BEFORE the edit and reloading
+  WITHOUT calling `flush()` afterward — calling `flush()` post-edit on the same live page
+  re-serializes the (stale, pre-edit) in-memory state over your edit. Full sequence now in
+  CLAUDE.md's Cowork section.
+- Blame rows use `item.type + ':' + item.definitionId` as the aggregation key (or `'item:' + id`
+  for one-offs) — deliberately so a habit def and a task def can't collide even if their ids are
+  the same string. If a future session adds a third recurring item family, make sure it also has
+  a stable, type-prefixed key.
+
 ## 2026-07-19 — Session 51: [P1-DATA-004] sub-session 5 BUILT — polish, ticket CLOSED (Cowork session, Sonnet)
 
 **Did:** SUBTASKS_PLAN.md sub-session 5, built rather than cut (Jeremy's call at session start).

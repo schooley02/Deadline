@@ -73,6 +73,9 @@ const State = (() => {
         deps.setPlayerPoints(0);
         deps.setPlayerInventory({}); // shop inventory — fresh run starts empty
         deps.setSickDayDate(null); // frozen-slots sub-session 5 — fresh run has no active Sick Day
+        // Run stats reset with the run; runHistory is deliberately NOT
+        // touched here — it must survive restart (session 52, RUN_HISTORY_PLAN).
+        deps.setCurrentRunStats(RunStats.freshRunStats());
         deps.setRoutineSlots(CONFIG.ROUTINE_SLOTS_PER_LEVEL[1] || 1);
 
         deps.updatePlayerDisplays();
@@ -142,6 +145,8 @@ const State = (() => {
             playerPoints: deps.getPlayerPoints(),
             inventory: deps.getPlayerInventory(),
             sickDayDate: deps.getSickDayDate(),
+            runHistory: deps.getRunHistory(),
+            currentRunStats: deps.getCurrentRunStats(),
             routineSlots: deps.getRoutineSlots(),
             itemIdCounter: deps.getItemIdCounter(),
             gameIsOver: deps.isGameOver(),
@@ -273,6 +278,17 @@ const State = (() => {
         // migration seeds null on older saves, but guard here too (any
         // non-string, e.g. malformed data) so a bad save can never crash boot.
         deps.setSickDayDate((typeof save.sickDayDate === 'string') ? save.sickDayDate : null);
+        // Run history (session 52, docs/RUN_HISTORY_PLAN.md). The v9→v10
+        // migration seeds both, but guard here too so a malformed save can
+        // never crash boot. currentRunStats keeps accruing across a mid-run
+        // reload; runHistory survives everything (including restart — see
+        // the restart button in script.js).
+        deps.setRunHistory(Array.isArray(save.runHistory) ? save.runHistory : []);
+        deps.setCurrentRunStats(
+            (save.currentRunStats && typeof save.currentRunStats === 'object')
+                ? save.currentRunStats
+                : RunStats.freshRunStats()
+        );
         deps.setRoutineSlots(CONFIG.ROUTINE_SLOTS_PER_LEVEL[restoredLevel] || 1);
         deps.setBaseHealth((typeof save.baseHealth === 'number') ? save.baseHealth : CONFIG.MAX_BASE_HEALTH);
         deps.setItemIdCounter(save.itemIdCounter || 1);

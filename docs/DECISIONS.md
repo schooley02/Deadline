@@ -4,6 +4,88 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 52: Run history + run review SEQUENCED — 4 design forks resolved (Cowork session, Fable)
+
+Design/sequencing session for Milestone 3's last unchecked feature item, producing
+`docs/RUN_HISTORY_PLAN.md` (5 sub-sessions, schema 9→10). Recon first (gameOver/restart/damage
+call-site reading), forks resolved with Jeremy on Fable. Key recon fact anchoring everything:
+the restart button calls `Persistence.clear()`, so today the dead run is ERASED — run history
+requires reworking that flow, not just adding a record.
+
+**Decision — carry-over on new run = FULL RESET; PROJECT_SPEC's "XP and routine slots carry
+over between runs" (~line 125) is OVERRIDDEN.** Codifies what `State.initGame` already does
+(player XP/level/points/inventory reset). Why: the session-44 banked-slot-points economy derives
+available slot points from level — a persisting level would resurrect the level-oscillation
+farming exploit that design closed; and self-contained runs keep the roguelike "fresh start"
+framing GAME_DESIGN.md wants. Routine defs + hero xp/level/health persist across runs (already
+true — heroes are long-lived companions), and `runHistory` persists (that's the feature).
+Rejected: spec-faithful carry-over (would force a slot-economy redesign for no play benefit).
+
+**Decision — run record = lean totals + PER-ROUTINE ROLLUP; no raw event log.** Jeremy's goal is
+comparing new runs and new routines against past ones, so each record snapshots per-routine
+{level, stars, run-window completion rate, member damage, frozen/KO days} alongside run totals +
+blame list. Rejected: lean-only (can't A/B routines); timestamped per-tick event log (only payoff
+is time-of-day analytics, not in v1; ~288 rows/day per camped item; needs compaction policy —
+deferred to its own design session if ever prioritized). Correction made mid-session: damage rate
+is 1 dmg/5min per camped item (CONFIG.DAMAGE_INTERVAL_MS), not 1/30s as first stated — Jeremy
+caught it; the fork was re-presented with honest numbers before he resolved it.
+
+**Decision — review UI = Stats FAB tab (current run + past-run cards together) AND a game-over
+review card.** Jeremy's wording: a tab to "review past stats on runs / routine performance, along
+with the current run / performance." Follows the established management-window pattern (5th FAB
+item). Game-over keeps a reflection moment per GAME_DESIGN principle 2, rendering the
+just-finalized record with encouraging framing. Rejected: game-over-only (no mid-run visibility).
+
+**Decision — blame capture = aggregate per-item map `{name, category, isHabit, routineId,
+totalDamage, firstDamageAt, lastDamageAt}` upserted at the damage CALL SITES (loop.js live tick +
+damage.js applyOfflineDamage), not inside `damageBase`.** The loop call site passes only an
+amount — item identity never reaches damageBase, so attribution must happen where `hit.item`/the
+overdue item is in hand. Bounded size regardless of camp duration; survives item completion/
+removal; first/last timestamps still answer "when did it start going wrong." Rejected: event log
+(above); hybrid events-then-compact (complexity without a v1 consumer).
+
+Scope guards logged in the plan: no charts/trends/AI insights/export in v1 (record shape chosen
+so they're buildable later without re-capture); dev-Reset runs are abandoned, not recorded;
+`runHistory` capped at `CONFIG.RUN_HISTORY_MAX` (50, tunable).
+
+## 2026-07-19 — Session 52: [Run history] sub-session 1 BUILT — pure core + schema 9→10 (Cowork session, Sonnet)
+
+**Built per RUN_HISTORY_PLAN.md sub-session 1, no deviations from the approved shapes.**
+`js/runStats.js` (fresh stats, blame identity/upsert, counters, `finalizeRun`, capped
+`appendToHistory`), `CONFIG.RUN_HISTORY_MAX` (50), schemaVersion 9→10 migration seeding
+`runHistory: []` / fresh `currentRunStats`, full state.js/script.js accessor-deps plumbing
+(`getRunHistory`/`setRunHistory`/`getCurrentRunStats`/`setCurrentRunStats`), `initGame` resets
+`currentRunStats` but explicitly does NOT touch `runHistory`. 39 suites, 841/841 (+26,
+`test/run-stats.test.js` + 3 new migration cases). `node --check` clean on all touched files.
+
+**Decision — blame identity aggregates by recurring definitionId, not per-instance.** A habit
+missed on 3 different days is one blame row, not three (mirrors the plan's "Gym missed across 3
+days = one row" example). One-off tasks (no `definitionId`) key by their own instance id. Habit
+defs and task defs sharing a coincidental id string don't collide — the key is prefixed with
+`item.type`.
+
+**Found + fixed a real gap live in Chrome (not in the original plan): the dev-only Reset Test
+button wiped `definedHabits`/`definedRoutines`/`definedTasks` but NOT the new `runHistory`,
+leaving stale run records behind a fresh empty game.** The restart button (real gameplay path)
+deliberately preserves `runHistory` per the plan — but Reset Test's stated contract in its own
+code comment is "wipes EVERYTHING", so a dev full-wipe silently keeping history was a real
+inconsistency, caught by hand-editing a save, dev-resetting, and finding the fake run still in
+`localStorage`. Fixed: `resetTestButton`'s handler now also sets `runHistory = []`. Re-ran the
+full suite after the fix (still 39/39, 841/841) and repeated the live Chrome check clean before
+closing the session.
+
+**Playtest note for future sessions — flush-timing trap distinct from the two already documented
+in CLAUDE.md.** Editing `localStorage` directly, calling `Persistence.flush()` to "confirm" the
+edit, then navigating away is NOT a valid same-session round-trip check: `flush()` immediately
+re-serializes the LIVE in-memory state (which still holds the pre-edit values) and overwrites the
+hand-edit before the page ever reloads. The correct sequence to verify a hand-edited save
+actually restores: stub `Persistence.requestSave`/`Persistence.flush` to no-ops FIRST, wait out
+any in-flight debounce (>500ms), edit `localStorage` directly, THEN navigate/reload (a real
+`Persistence.load()` on a fresh page has no live-state conflict to clobber it) — confirmed working
+this session. This is the missing piece connecting the two existing CLAUDE.md flush notes (the
+session-40/42 "stub before a direct EDIT" trick and the session-44 "flush before a READBACK"
+trick) — the trap is calling `flush()` AFTER the edit, on the same still-live page.
+
 ## 2026-07-19 — Session 51: [P1-DATA-004] sub-session 5 BUILT — polish, ticket CLOSED (Cowork session, Sonnet)
 
 **Decision — nested completed sub-task rows are DISPLAY-ONLY, deviating from the plan's assumed

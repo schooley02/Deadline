@@ -524,6 +524,37 @@ describe('migrate v8 → v9: banked slot points ([P1-UI-006] sub-session 4)', ()
     });
 });
 
+describe('migrate: v9 -> v10 seeds run history (session 52)', () => {
+    test('a v9 save gains an empty runHistory and fresh currentRunStats', () => {
+        const save = Persistence.migrate({ schemaVersion: 9 });
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+        expect(save.runHistory).toEqual([]);
+        expect(save.currentRunStats).toEqual({
+            tasksCompleted: 0, habitsCompleted: 0, habitsMissed: 0,
+            pointsEarned: 0, blame: {},
+        });
+    });
+
+    test('existing runHistory/currentRunStats are left untouched (idempotent re-run)', () => {
+        const history = [{ runNumber: 1, daysSurvived: 4 }];
+        const stats = { tasksCompleted: 2, habitsCompleted: 0, habitsMissed: 1, pointsEarned: 20, blame: {} };
+        const save = Persistence.migrate({ schemaVersion: 9, runHistory: history, currentRunStats: stats });
+        expect(save.runHistory).toBe(history);
+        expect(save.currentRunStats).toBe(stats);
+    });
+
+    test('the full v1 -> current chain seeds the run-history fields too', () => {
+        const save = Persistence.migrate({
+            schemaVersion: 1,
+            definedHabits: [{ id: 'h1', frequency: 'daily' }],
+            definedRoutines: [{ id: 'r1', habitDefinitionIds: ['h1'], isActive: true }]
+        });
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+        expect(save.runHistory).toEqual([]);
+        expect(save.currentRunStats.blame).toEqual({});
+    });
+});
+
 describe('migrate: version handling', () => {
     test('a current-version save passes through unchanged (same reference)', () => {
         const original = {

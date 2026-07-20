@@ -56,6 +56,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // pattern (owned here, reached via getSickDayDate/setSickDayDate deps).
     // See js/items.js's useSickDayGlobally.
     let sickDayDate = null;
+    // Run history (session 52, docs/RUN_HISTORY_PLAN.md): currentRunStats is
+    // the live run-scoped accumulator (reset by initGame); runHistory is the
+    // across-runs record list (NEVER reset by initGame — it must survive
+    // restart). Both persisted (schemaVersion 10). Pure math: js/runStats.js.
+    let currentRunStats = RunStats.freshRunStats();
+    let runHistory = [];
     let activeItems = [];
     let completedItems = [];
     let definedHabits = [];
@@ -194,6 +200,8 @@ document.addEventListener('DOMContentLoaded', () => {
             getRoutineSlots: () => routineSlots,
             getPlayerInventory: () => playerInventory,
             getSickDayDate: () => sickDayDate,
+            getCurrentRunStats: () => currentRunStats,
+            getRunHistory: () => runHistory,
             getItemIdCounter: () => itemIdCounter,
             getDaysSurvived: () => daysSurvived,
             getRunStartedAtMs: () => runStartedAtMs,
@@ -218,6 +226,8 @@ document.addEventListener('DOMContentLoaded', () => {
             setRoutineSlots: (n) => { routineSlots = n; },
             setPlayerInventory: (obj) => { playerInventory = obj; },
             setSickDayDate: (d) => { sickDayDate = d; },
+            setCurrentRunStats: (obj) => { currentRunStats = obj; },
+            setRunHistory: (arr) => { runHistory = arr; },
             setBaseHealth: (n) => { baseHealth = n; },
             setActiveItems: (arr) => { activeItems = arr; },
             setCompletedItems: (arr) => { completedItems = arr; },
@@ -1628,6 +1638,10 @@ document.addEventListener('DOMContentLoaded', () => {
             definedHabits = [];
             definedRoutines = [];
             window.definedTasks = [];
+            // Dev reset wipes run history too — unlike the restart button,
+            // which deliberately preserves it (session 52, RUN_HISTORY_PLAN:
+            // dev-reset runs are abandoned AND a dev wipe means everything).
+            runHistory = [];
             if (typeof Persistence !== 'undefined') Persistence.clear();
             initGame();
             saveGame();

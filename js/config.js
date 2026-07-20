@@ -272,6 +272,11 @@ const CONFIG = {
         other:         { left: 0.234, right: 0.250 },
     },
     ZOMBIE_VISIBLE_MARGIN_FALLBACK: { left: 0.2, right: 0.2 },
+
+    // Run history (Milestone 3 "Run history + run review", sub-session 1,
+    // session 52 — docs/RUN_HISTORY_PLAN.md). Oldest records drop past the
+    // cap (RunStats.appendToHistory). Tunable via the balance protocol.
+    RUN_HISTORY_MAX: 50,
 };
 
 // Export for Jest/Node; browser picks up the global `CONFIG` via <script> tag.

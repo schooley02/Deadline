@@ -31,7 +31,10 @@ const Persistence = (() => {
     // 5) — top-level `sickDayDate` (global, null = no active Sick Day) and
     // habit-def `skipDayDate` (per-habit, null = no active Skip Day). Old
     // saves seed both null.
-    const SCHEMA_VERSION = 9;
+    // v10 (2026-07-19, session 52): run history — top-level `runHistory`
+    // (persists ACROSS runs; seeded []) and `currentRunStats` (run-scoped
+    // accumulator; seeded fresh). See docs/RUN_HISTORY_PLAN.md + js/runStats.js.
+    const SCHEMA_VERSION = 10;
     const DEBOUNCE_MS = 500;
 
     // DOM references on item objects — never serialized, rebuilt on load.
@@ -275,6 +278,24 @@ const Persistence = (() => {
                 if (typeof routine.boughtTaskSlots !== 'number') routine.boughtTaskSlots = 0;
             });
             save.schemaVersion = 9;
+        }
+
+        // v9 → v10 (2026-07-19, session 52): run history. Literal fresh-stats
+        // shape rather than calling RunStats.freshRunStats() so this stays a
+        // stable historical transform (same convention as the v2→v3 schedule
+        // shapes) — and Persistence deliberately has no module dependencies.
+        if (save.schemaVersion === 9) {
+            if (!Array.isArray(save.runHistory)) save.runHistory = [];
+            if (!save.currentRunStats || typeof save.currentRunStats !== 'object') {
+                save.currentRunStats = {
+                    tasksCompleted: 0,
+                    habitsCompleted: 0,
+                    habitsMissed: 0,
+                    pointsEarned: 0,
+                    blame: {},
+                };
+            }
+            save.schemaVersion = 10;
         }
 
         if (save.schemaVersion !== SCHEMA_VERSION) {
