@@ -257,6 +257,22 @@ const Items = (() => {
         }
     }
 
+    // --- Run-history damage attribution (Run history sub-session 2,
+    // 2026-07-19 session 53; docs/RUN_HISTORY_PLAN.md). Same shape as
+    // damageRoutineForItem immediately above (this precedent), reusing the
+    // same findRoutineForItem lookup so blame rows carry the correct
+    // routineId. Damage.js/loop.js receive this as an injected
+    // `recordRunDamage` collaborator (optional -> no-op, matching every
+    // other collaborator in this file); loop.js itself loads AFTER items.js
+    // and can call it directly.
+    function recordRunDamageForItem(item, amount, nowMs, deps) {
+        if (typeof deps.getCurrentRunStats !== 'function') return;
+        const routine = findRoutineForItem(item, deps);
+        RunStats.recordDamage(
+            deps.getCurrentRunStats(), item, amount, nowMs, routine ? routine.id : null
+        );
+    }
+
     /**
      * deps: { getNextId, activeItems, gameScreenWidth, enemyWidth,
      *         calculateTimelineXWithClustering }
@@ -415,6 +431,27 @@ const Items = (() => {
             // AFTER maybeRecoverRoutine above, so an avoid that just
             // unfroze its routine earns XP for the unfreezing completion.
             awardRoutineXpForItem(item, deps);
+
+            // Run history counters (sub-session 2, 2026-07-19 session 53).
+            // Counts every task-type completion incl. sub-tasks (a real
+            // productivity event, same "task" bucket the plan describes).
+            // NOT corrected for a late completion after markAsOverdue already
+            // recorded a miss (item.isOverdue true here) — deliberately
+            // consistent with js/runStats.js's own documented philosophy
+            // ("counters describe what occurred, not the net ledger", the
+            // same reasoning recordPointsEarned uses for not reversing on
+            // uncompletion). Both the miss and the late completion occurred;
+            // the run record showing both is more informative for routine
+            // comparison than silently erasing the miss.
+            if (typeof deps.getCurrentRunStats === 'function') {
+                const stats = deps.getCurrentRunStats();
+                if (item.type === 'task') {
+                    RunStats.recordTaskCompleted(stats);
+                } else if (item.type === 'habit') {
+                    RunStats.recordHabitCompleted(stats);
+                }
+                RunStats.recordPointsEarned(stats, pointsGained);
+            }
         }
 
         // If this is a sub-task, remove it from parent's sub-task list
@@ -1014,7 +1051,7 @@ const Items = (() => {
     }
 
     /**
-     * deps: { definedHabits (getter), saveGame }
+     * deps: { definedHabits (getter), saveGame, getCurrentRunStats? }
      * Habits (resetStreakOnOverdue) called as a bare stable global.
      */
     function markAsOverdue(item, currentTime, deps) {
@@ -1045,6 +1082,19 @@ const Items = (() => {
                 );
                 habitDef.streak = result.streak;
                 habitDef.occurrenceHistory = result.occurrenceHistory;
+
+                // Run history (sub-session 2, session 53): record the miss
+                // here, mirroring the occurrenceHistory write immediately
+                // above — this is the app's existing "a habit instance
+                // became overdue" recording point. Negative habits never
+                // reach this branch (isNonThreatening excludes them from
+                // ever going overdue), so this only fires for positive
+                // habits. NOT corrected if the instance is later completed
+                // anyway — see completeItem's own comment on why (counters
+                // describe what occurred, not a net ledger).
+                if (typeof deps.getCurrentRunStats === 'function') {
+                    RunStats.recordHabitMissed(deps.getCurrentRunStats());
+                }
 
                 if (result.wasReset) {
                     // Update streak display in list
@@ -1148,7 +1198,8 @@ const Items = (() => {
         markAsOverdue,
         recomputeOverdueStateAfterEdit,
         findRoutineForItem,
-        damageRoutineForItem
+        damageRoutineForItem,
+        recordRunDamageForItem
     };
 })();
 

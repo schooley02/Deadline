@@ -220,6 +220,11 @@
     </div>
 
     <script src="js/config.js"></script>
+    <!-- js/runStats.js has ZERO module dependencies (pure data functions,
+         no bare-global refs at load time) — loaded here, right after
+         config.js, so js/damage.js (below) can call it directly at
+         gameOver() time without a forward-reference problem (session 53). -->
+    <script src="js/runStats.js"></script>
     <script src="js/schedule.js"></script>
     <script src="js/dayRollover.js"></script>
     <script src="js/persistence.js"></script>
@@ -230,7 +235,6 @@
     <script src="js/progression.js"></script>
     <script src="js/heroes.js"></script>
     <script src="js/economy.js"></script>
-    <script src="js/runStats.js"></script>
     <script src="js/shop.js"></script>
     <script src="js/frozenSlots.js"></script>
     <script src="js/habits.js"></script>

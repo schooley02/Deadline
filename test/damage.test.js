@@ -11,6 +11,7 @@
  * a fake deps bag, which is exactly why the deps-object pattern exists.
  */
 global.CONFIG = require('../js/config.js');
+global.RunStats = require('../js/runStats.js'); // loads before damage.js in index.html — session 53
 const Damage = require('../js/damage.js');
 
 const INTERVAL = CONFIG.DAMAGE_INTERVAL_MS;   // 5 min
@@ -441,6 +442,100 @@ describe('gameOver', () => {
         Damage.gameOver(deps);
         expect(deps.restartButton._classes.has('hidden')).toBe(false);
         expect(deps.baseElement.style.backgroundImage).toBe("url('base_000.png')");
+    });
+
+    test('with no run-history collaborators (existing tests above), gameOver still no-ops safely', () => {
+        const deps = makeDeps();
+        expect(() => Damage.gameOver(deps)).not.toThrow();
+    });
+});
+
+// ---------------------------------------------------------------------------
+describe('gameOver — run history finalize (sub-session 2, session 53)', () => {
+    function runHistoryDeps(overrides = {}) {
+        let history = overrides.runHistory || [];
+        const stats = overrides.currentRunStats || RunStats.freshRunStats();
+        return makeDeps({
+            state: { runStartedAtMs: Date.now() - 5 * CONFIG.MS_PER_REAL_DAY },
+            deps: {
+                getCurrentRunStats: () => stats,
+                getRunHistory: () => history,
+                setRunHistory: (arr) => { history = arr; },
+                getDefinedRoutines: () => overrides.definedRoutines || [],
+                getDefinedHabits: () => overrides.definedHabits || [],
+                heroesCompletionRate: overrides.heroesCompletionRate || (() => null),
+                heroesStarRating: overrides.heroesStarRating || (() => null),
+                ...overrides.extraDeps,
+            },
+        });
+    }
+
+    test('appends a finalized record with the frozen totals + days survived + end reason', () => {
+        const stats = RunStats.freshRunStats();
+        RunStats.recordTaskCompleted(stats);
+        RunStats.recordPointsEarned(stats, 20);
+        const deps = runHistoryDeps({ currentRunStats: stats });
+
+        Damage.gameOver(deps);
+
+        const history = deps.getRunHistory();
+        expect(history).toHaveLength(1);
+        expect(history[0]).toMatchObject({
+            runNumber: 1, daysSurvived: 5, endReason: 'base_destroyed',
+            totals: { tasksCompleted: 1, pointsEarned: 20 },
+        });
+    });
+
+    test('runNumber increments off existing history length; newest lands at index 0', () => {
+        const priorRun = { runNumber: 1, daysSurvived: 2 };
+        const deps = runHistoryDeps({ runHistory: [priorRun] });
+
+        Damage.gameOver(deps);
+
+        const history = deps.getRunHistory();
+        expect(history).toHaveLength(2);
+        expect(history[0].runNumber).toBe(2);
+        expect(history[1]).toBe(priorRun);
+    });
+
+    test('history is capped at CONFIG.RUN_HISTORY_MAX, dropping the oldest', () => {
+        const full = Array.from({ length: CONFIG.RUN_HISTORY_MAX }, (_, i) => ({ runNumber: i + 1 }));
+        const deps = runHistoryDeps({ runHistory: full });
+
+        Damage.gameOver(deps);
+
+        const history = deps.getRunHistory();
+        expect(history).toHaveLength(CONFIG.RUN_HISTORY_MAX);
+        expect(history[0].runNumber).toBe(CONFIG.RUN_HISTORY_MAX + 1);
+        // The oldest entry (last in the newest-first `full` fixture, run #50)
+        // is the one dropped by the cap.
+        expect(history[history.length - 1].runNumber).toBe(CONFIG.RUN_HISTORY_MAX - 1);
+        expect(history.some(r => r.runNumber === CONFIG.RUN_HISTORY_MAX)).toBe(false);
+    });
+
+    test('per-routine rollup uses the injected heroesCompletionRate/heroesStarRating', () => {
+        const routine = { id: 'r1', name: 'Morning', level: 3, frozenState: null, koState: null };
+        const deps = runHistoryDeps({
+            definedRoutines: [routine],
+            heroesCompletionRate: (r) => (r.id === 'r1' ? 0.95 : null),
+            heroesStarRating: (rate) => (rate >= 0.9 ? 5 : 0),
+        });
+
+        Damage.gameOver(deps);
+
+        const [rollup] = deps.getRunHistory()[0].routines;
+        expect(rollup).toMatchObject({ routineId: 'r1', completionRate: 0.95, stars: 5 });
+    });
+
+    test('missing getDefinedRoutines/getDefinedHabits/heroes* fields degrade gracefully (empty routines)', () => {
+        const deps = runHistoryDeps({});
+        delete deps.getDefinedRoutines;
+        delete deps.getDefinedHabits;
+        delete deps.heroesCompletionRate;
+        delete deps.heroesStarRating;
+
+        expect(() => Damage.gameOver(deps)).not.toThrow();
+        expect(deps.getRunHistory()[0].routines).toEqual([]);
     });
 });
 

@@ -55,6 +55,18 @@
  *   damageRoutineForItem         // (item, amount) -> void  ([P1-UI-006] sub-
  *                                //   session 2, 2026-07-19 — Items.damageRoutineForItem;
  *                                //   optional, no-op if omitted)
+ *   recordRunDamage              // (item, amount, nowMs) -> void  (Run history
+ *                                //   sub-session 2, session 53 —
+ *                                //   Items.recordRunDamageForItem; optional)
+ *   getCurrentRunStats,          // () -> runStats  (Run history sub-session 2 —
+ *   getRunHistory,               // () -> runRecord[]   all three optional, only
+ *   setRunHistory,               // (arr) -> void        used by gameOver's finalize)
+ *   getDefinedRoutines,          // () -> routine[]  (optional; per-routine rollup)
+ *   getDefinedHabits,            // () -> habitDef[] (optional; per-routine rollup)
+ *   heroesCompletionRate,        // (routine, habits, windowStartMs) -> rate|null
+ *   heroesStarRating,            // (rate) -> stars|null   (both optional — Heroes.*
+ *                                //   pre-bound in script.js since Heroes loads
+ *                                //   after this module)
  * }
  */
 const Damage = (() => {
@@ -253,6 +265,34 @@ const Damage = (() => {
         const daysSurvived = computeDaysSurvived(getRunStartedAtMs(), Date.now(), CONFIG.MS_PER_REAL_DAY);
         setDaysSurvived(daysSurvived);
 
+        // Run history (sub-session 2, 2026-07-19 session 53): finalize the
+        // ending run and append it to history. RunStats loads BEFORE this
+        // module (index.html — it has zero deps, unlike Heroes/Items which
+        // load after and can't be bare-global-referenced here), so it's
+        // called directly; Heroes' completion-rate math still arrives via
+        // injected deps (same forward-reference reasoning as
+        // damageRoutineForItem below). Optional collaborators — omitted on
+        // older/partial deps (every existing test) is a safe no-op, same
+        // tolerance as every other collaborator in this file.
+        if (deps.getCurrentRunStats && deps.getRunHistory && deps.setRunHistory) {
+            const history = deps.getRunHistory();
+            const record = RunStats.finalizeRun(deps.getCurrentRunStats(), {
+                runNumber: (history ? history.length : 0) + 1,
+                startedAtMs: getRunStartedAtMs(),
+                endedAtMs: Date.now(),
+                daysSurvived,
+                endReason: 'base_destroyed',
+                definedRoutines: deps.getDefinedRoutines ? deps.getDefinedRoutines() : [],
+                definedHabits: deps.getDefinedHabits ? deps.getDefinedHabits() : [],
+                completionRate: deps.heroesCompletionRate,
+                starRating: deps.heroesStarRating,
+            });
+            deps.setRunHistory(RunStats.appendToHistory(history, record, CONFIG.RUN_HISTORY_MAX));
+            // The record itself isn't surfaced anywhere yet — sub-sessions
+            // 3-4 build the Stats window / game-over review card, both of
+            // which can just read runHistory[0] (newest-first).
+        }
+
         if (gameOverMessage) {
             const dayLabel = daysSurvived === 1 ? 'Day' : 'Days';
             gameOverMessage.textContent = `GAME OVER! Your Base Survived ${daysSurvived} ${dayLabel}.`;
@@ -279,6 +319,19 @@ const Damage = (() => {
         for (const hit of hits) {
             if (deps.isGameOver()) break;
             hit.item.offlineDamageCharged = (hit.item.offlineDamageCharged || 0) + hit.dmg;
+            // Run-history blame attribution (sub-session 2, session 53) —
+            // MUST run BEFORE damageBase below. damageBase can synchronously
+            // trigger gameOver() at 0 HP, which finalizes the run off
+            // currentRunStats.blame — a hit recorded after damageBase would
+            // miss its own fatal blow's finalized record entirely (found
+            // live in Chrome this session: killing the base via offline
+            // catch-up produced an empty blame list). No per-hit historical
+            // timestamp exists (catch-up batches are computed from
+            // elapsed-time math, not per-tick events), so blame timestamps
+            // land at processing time, same as every other catch-up side
+            // effect (visuals, saves). Same optional-collaborator tolerance
+            // as damageRoutineForItem below.
+            if (deps.recordRunDamage) deps.recordRunDamage(hit.item, hit.dmg, Date.now());
             damageBase(hit.dmg, deps);
             if (deps.damageRoutineForItem) deps.damageRoutineForItem(hit.item, hit.dmg);
         }

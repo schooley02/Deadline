@@ -210,6 +210,17 @@ const State = (() => {
             // [P1-UI-006] sub-session 2, 2026-07-19 — routine health damage/KO
             // for both catch-up paths (they share js/damage.js's applyOfflineDamage).
             damageRoutineForItem: deps.damageRoutineForItem,
+            // Run-history sub-session 2, 2026-07-19 session 53 — blame
+            // attribution for both catch-up paths (same sharing as above).
+            recordRunDamage: deps.recordRunDamage,
+            // Run-history sub-session 2 — gameOver's finalize step.
+            getCurrentRunStats: deps.getCurrentRunStats,
+            getRunHistory: deps.getRunHistory,
+            setRunHistory: deps.setRunHistory,
+            getDefinedRoutines: deps.getDefinedRoutines,
+            getDefinedHabits: deps.getDefinedHabits,
+            heroesCompletionRate: deps.heroesCompletionRate,
+            heroesStarRating: deps.heroesStarRating,
             // Regen clock passthrough ([P2-GAME-012], 2026-07-18) — lets
             // runOfflineCatchUp/runLiveGapCatchUp apply offline/suspended-gap
             // regen and reset the live loop's regen clock afterward.

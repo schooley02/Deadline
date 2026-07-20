@@ -48,6 +48,64 @@ Scope guards logged in the plan: no charts/trends/AI insights/export in v1 (reco
 so they're buildable later without re-capture); dev-Reset runs are abandoned, not recorded;
 `runHistory` capped at `CONFIG.RUN_HISTORY_MAX` (50, tunable).
 
+## 2026-07-19 — Session 53: [Run history] sub-session 2 BUILT — wired to live gameplay (Cowork session, Sonnet)
+
+**Built per RUN_HISTORY_PLAN.md sub-session 2, one real bug found+fixed and one planned step turned out unnecessary.**
+`Items.recordRunDamageForItem` (new, mirrors `damageRoutineForItem`'s shape exactly, reuses
+`findRoutineForItem` for blame routineId), wired into `js/loop.js`'s live overdue-damage tick and
+`js/damage.js`'s `applyOfflineDamage` (shared by reload + live-gap catch-up) via an optional
+`recordRunDamage` collaborator. `Items.completeItem` records `tasksCompleted`/`habitsCompleted`/
+`pointsEarned`; `Items.markAsOverdue` records `habitsMissed` (positive habits only — negative
+habits never reach that branch). `Damage.gameOver` finalizes via `RunStats.finalizeRun` +
+`RunStats.appendToHistory`. 40 suites, 859/859 (+18: `test/items-run-stats.test.js` new,
+`test/damage.test.js` extended).
+
+**Decision — counters are "what occurred," never corrected/reversed.** A habit that goes overdue
+(recording a miss) and is later completed anyway shows BOTH the miss and the completion — no
+decrement logic. Considered and rejected a "correct habitsMissed on late completion" approach
+(mirroring `Habits.recordOccurrence`'s date-keyed overwrite semantics) mid-session, then reverted
+it: `js/runStats.js`'s `recordPointsEarned` already established this philosophy for uncompletion
+refunds ("counters describe what occurred, not the net ledger"), and a habit needing a second
+chance is arguably MORE informative for Jeremy's stated routine-comparison goal than silently
+erasing the miss. Consistency with the already-shipped philosophy won over precision.
+
+**Found + fixed a real ordering bug live in Chrome (not caught by Jest — the mocked deps in
+`damage.test.js` didn't previously exercise a same-call fatal hit).** Both `loop.js`'s tick and
+`damage.js`'s `applyOfflineDamage` called `deps.recordRunDamage` AFTER `deps.damageBase`.
+`damageBase` can synchronously call `gameOver()` at 0 HP, which calls `RunStats.finalizeRun` —
+so a base-killing hit's own damage was recorded into `currentRunStats.blame` one line too late,
+landing in history AFTER the snapshot finalizeRun had already taken. Confirmed live: killing the
+base via a crafted offline-catch-up scenario produced a `runRecord` with an empty `blame: []`
+despite the killing task clearly existing. Fixed by reordering `recordRunDamage` before
+`damageBase` at both call sites; re-verified live afterward — the same scenario now produces
+`blame: [{ name: 'Overdue Test Task 2', totalDamage: 12, ... }]` correctly. Added
+`test/damage.test.js` coverage for `gameOver`'s finalize step (existing tests never passed the
+new optional deps, so they only proved the no-op path).
+
+**Decision — no restart-button code change needed, despite the plan explicitly calling for one.**
+RUN_HISTORY_PLAN.md (written before sub-session 1 existed) assumed `Persistence.clear()` erases
+the run and that `runHistory` would need threading through the restart flow like
+`definedHabits`/`definedRoutines`. Once sub-session 1 actually built `runHistory` as script.js
+in-memory state that `initGame` deliberately excludes from its reset (the same pattern those two
+arrays already use), the flow works correctly by construction: `gameOver` appends to the
+in-memory `runHistory` before the player can ever click restart; `Persistence.clear()` only
+removes the localStorage key, never touching the live variable; the final `saveGame()` in the
+restart handler reserializes the untouched `runHistory` value. Live-verified: real base death →
+restart → `runHistory` still has 1 entry, `currentRunStats` freshly reset, base/points reset to
+100/0. The plan's assumption was reasonable pre-implementation but became moot once sub-session 1
+landed — logged here rather than silently deviating from a written plan without explanation.
+
+**Decision — `js/runStats.js`'s `<script>` tag moved to load right after `config.js`**, well
+before `js/damage.js` (previously positioned after `economy.js`, i.e., after damage.js). Damage.js
+needs to call `RunStats.finalizeRun`/`appendToHistory` as a bare global at `gameOver()` time, but
+loads early (5th script tag) — before Heroes/Economy/Items, all of which already solve this same
+"loads before its collaborator" problem via injected deps instead. `runStats.js` has zero external
+dependencies (confirmed before moving it — no bare-global refs at load time), making it safe to
+hoist rather than needing yet another injected-collaborator threading (which was still necessary
+for `Heroes.completionRate`/`starRating`, pre-bound in script.js as `heroesCompletionRate`/
+`heroesStarRating` since Heroes itself does have load-order dependencies and can't be hoisted the
+same way).
+
 ## 2026-07-19 — Session 52: [Run history] sub-session 1 BUILT — pure core + schema 9→10 (Cowork session, Sonnet)
 
 **Built per RUN_HISTORY_PLAN.md sub-session 1, no deviations from the approved shapes.**

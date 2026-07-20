@@ -13,6 +13,65 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 53: Run history sub-session 2 BUILT — wired to live gameplay (Cowork session, Sonnet)
+
+**Did:** RUN_HISTORY_PLAN.md sub-session 2. `Items.recordRunDamageForItem` (mirrors
+`damageRoutineForItem`) wired into `js/loop.js`'s live overdue-damage tick and `js/damage.js`'s
+`applyOfflineDamage` (both catch-up paths); `Items.completeItem` records tasksCompleted/
+habitsCompleted/pointsEarned; `Items.markAsOverdue` records habitsMissed (positive habits only).
+`Damage.gameOver` finalizes via `RunStats.finalizeRun`/`appendToHistory`, using
+`Heroes.completionRate`/`starRating` pre-bound in script.js. `js/runStats.js`'s script tag moved
+to load right after `config.js` (zero deps, needs to be a bare global inside damage.js). Docs:
+MECHANICS.md (wiring bullet), ROADMAP.md (sub-session 2 checked), DECISIONS.md (counter
+philosophy decision + a found ordering bug + the restart-button non-finding + the script-order
+decision).
+
+**State:** ✅ **40 suites, 859/859** (+18 over session 52's 841 — `test/items-run-stats.test.js`
+new, `test/damage.test.js` extended). `node --check` clean on every touched file. **Live-verified
+in Chrome end-to-end, including a real base death**: crafted an offline-catch-up scenario (baseHealth
+5, one task overdue 2h with a matching offline gap) via the documented hand-edit-then-reload
+protocol, reloaded, and watched the base actually hit 0 and gameOver fire for real through the
+live game loop — not a synthetic deps call. **Found + fixed a real bug this way**: the base-killing
+hit's blame was landing in `currentRunStats` AFTER `gameOver` had already finalized the run
+(`recordRunDamage` ran after `damageBase`, which can synchronously trigger `gameOver`) — first
+attempt produced `blame: []` on the very run the crafted task killed. Reordered `recordRunDamage`
+before `damageBase` at both call sites, re-verified: blame now correctly shows the killing task
+with 12 damage. Also verified: restart preserves `runHistory` (needed no code change — see Watch
+out), mid-run reload keeps `currentRunStats` accruing, dev-Reset still wipes `runHistory`. Zero
+app console errors throughout. (Jeremy also caught that the crafted test item's sprite didn't
+render — confirmed harmless: my fixture used `category: 'chores'`, not a real category, so there's
+no matching `zombie-chores` CSS/sprite. Not an app bug.)
+
+**Next:** Sub-session 3 (RUN_HISTORY_PLAN.md) — Stats window UI: 5th FAB item ("Stats" 📊) →
+`js/ui/statsView.js` + `css/stats.css` via the established `ManagementWindows.openManagementWindow`
+pattern (mind the session-21 `setTimeout(0)` rebuild-after-purchase hazard — same class of bug
+could recur for any button inside this window). Live current-run panel on top (read
+`getCurrentRunStats()`/counters directly — no need to wait for gameOver), past-run cards below
+(`runHistory`, already newest-first). This is planned UI work — Sonnet.
+
+**Watch out:**
+- **`recordRunDamage` MUST be called before `damageBase`, not after, at any future damage call
+  site.** `damageBase` can synchronously trigger `gameOver()` at 0 HP, which reads
+  `currentRunStats.blame` to finalize the run. This bit sub-session 2 for exactly this reason — see
+  DECISIONS.md session 53 for the full repro. If a future session adds a THIRD damage call site
+  (there are currently exactly two: loop.js's live tick, damage.js's shared `applyOfflineDamage`),
+  attribution goes first.
+- **The restart button needed no code change, despite RUN_HISTORY_PLAN.md explicitly calling for
+  one.** That plan step was written before sub-session 1 existed; once `runHistory` became
+  script.js in-memory state that `initGame` deliberately excludes from its reset (mirroring
+  `definedHabits`/`definedRoutines`), `Persistence.clear()` + `initGame()` + `saveGame()` already
+  preserves it correctly. Verified live, not just reasoned about. If a future session is tempted to
+  "finish" this per the plan's original wording, don't — it's already done.
+- **`js/runStats.js` now loads right after `config.js`** (2nd script tag), not after `economy.js`
+  where it was in sub-session 1. This was necessary so `damage.js` (5th tag) can call it as a bare
+  global. If a future RunStats change ever needs a dependency on another module, it can't assume
+  late-load order anymore — check index.html's current position before adding a bare-global
+  reference inside runStats.js.
+- Counters (`tasksCompleted`/`habitsCompleted`/`habitsMissed`/`pointsEarned`) are deliberately NOT
+  corrected/reversed by uncompletion or by a late habit completion after a recorded miss — see
+  DECISIONS.md's philosophy note. If a future session is tempted to "fix" a habit showing up as
+  both missed and completed in the same run, that's working as designed, not a bug.
+
 ## 2026-07-19 — Session 52: Run history SEQUENCED + sub-session 1 BUILT (Cowork session, Fable→Sonnet)
 
 **Did:** Milestone 3's last unchecked item ("Run history + run review screen"). Fable half:

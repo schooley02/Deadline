@@ -103,6 +103,16 @@ const Loop = (() => {
             // Handle damage from overdue items
             if (item.isOverdue) {
                 if (currentTimeMs >= item.lastDamageTickTime + CONFIG.DAMAGE_INTERVAL_MS) {
+                    // Run-history blame attribution (sub-session 2, session
+                    // 53) — MUST run BEFORE deps.damageBase below. damageBase
+                    // can synchronously trigger gameOver() at 0 HP, which
+                    // finalizes the run off currentRunStats.blame — a hit
+                    // recorded after damageBase would miss its own fatal
+                    // blow's finalized record entirely (found live in Chrome
+                    // this session: a base-killing hit produced an empty
+                    // blame list). Same optional-collaborator tolerance as
+                    // damageRoutineForItem below.
+                    if (deps.recordRunDamage) deps.recordRunDamage(item, CONFIG.OVERDUE_DAMAGE, currentTimeMs);
                     deps.damageBase(CONFIG.OVERDUE_DAMAGE);
                     // Also damages the item's owning routine ([P1-UI-006]
                     // sub-session 2, 2026-07-19) — optional collaborator,

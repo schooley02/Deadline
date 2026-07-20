@@ -202,6 +202,14 @@ document.addEventListener('DOMContentLoaded', () => {
             getSickDayDate: () => sickDayDate,
             getCurrentRunStats: () => currentRunStats,
             getRunHistory: () => runHistory,
+            // Run history sub-session 2 (session 53) — Heroes loads AFTER
+            // damage.js in index.html, so gameOver's finalize step reaches
+            // Heroes' math through these pre-bound functions rather than a
+            // bare-global reference (same reasoning as every other
+            // "collaborator from a later-loading module" in damage.js).
+            heroesCompletionRate: (routine, habits, windowStartMs) =>
+                Heroes.completionRate(routine, habits, windowStartMs),
+            heroesStarRating: (rate) => Heroes.starRating(rate, CONFIG.HERO_STAR_TIERS),
             getItemIdCounter: () => itemIdCounter,
             getDaysSurvived: () => daysSurvived,
             getRunStartedAtMs: () => runStartedAtMs,
@@ -282,6 +290,9 @@ document.addEventListener('DOMContentLoaded', () => {
             isNonThreatening: Items.isNonThreatening,
             // [P1-UI-006] sub-session 2, 2026-07-19 — routine health damage/KO
             damageRoutineForItem,
+            // Run history sub-session 2, 2026-07-19 session 53 — blame
+            // attribution for both offline/live-gap catch-up paths.
+            recordRunDamage,
         };
     }
 
@@ -399,6 +410,12 @@ document.addEventListener('DOMContentLoaded', () => {
             setPlayerXP: (n) => { playerXP = n; },
             getPlayerPoints: () => playerPoints,
             setPlayerPoints: (n) => { playerPoints = n; },
+            // Run history (session 53, docs/RUN_HISTORY_PLAN.md sub-session
+            // 2): recordRunDamageForItem/completion-counter call sites read
+            // the live accumulator through this getter (same "owned in
+            // script.js, reached via accessor" pattern as everything else
+            // here — the object itself is mutated in place, no setter needed).
+            getCurrentRunStats: () => currentRunStats,
             // Frozen-slots sub-session 5 (2026-07-19): Items.useSickDayGlobally
             // writes the global Sick Day marker through this setter.
             setSickDayDate: (d) => { sickDayDate = d; },
@@ -432,6 +449,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // it without a forward reference — isNonThreatening's existing pattern.
     function damageRoutineForItem(item, amount) {
         Items.damageRoutineForItem(item, amount, itemsDeps());
+    }
+
+    // Thin wrapper — real implementation lives in js/items.js (run-history
+    // sub-session 2, 2026-07-19 session 53). Same injection reasoning as
+    // damageRoutineForItem immediately above.
+    function recordRunDamage(item, amount, nowMs) {
+        Items.recordRunDamageForItem(item, amount, nowMs, itemsDeps());
     }
 
     // Enemy admission (sprite build, positioning, overdue-on-spawn) lives in
@@ -731,6 +755,9 @@ document.addEventListener('DOMContentLoaded', () => {
             calculateTimelineXWithClustering,
             damageBase,
             damageRoutineForItem,
+            // Run history sub-session 2, 2026-07-19 session 53 — live-tick
+            // blame attribution (loop.js's own overdue-damage call site).
+            recordRunDamage,
             healBase,
             updateMidnightLine,
             runLiveGapCatchUp,
