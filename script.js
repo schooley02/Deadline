@@ -114,37 +114,23 @@ document.addEventListener('DOMContentLoaded', () => {
         State.initGame(stateDeps());
     }
 
-    // Real calendar days elapsed since the run started. Math lives in
-    // js/damage.js (Milestone 2 extraction #3, 2026-07-18) — thin wrapper so
-    // the call sites are unchanged.
-    function computeDaysSurvived() {
-        return Damage.computeDaysSurvived(State.getRunStartedAtMs(), Date.now(), CONFIG.MS_PER_REAL_DAY);
-    }
+    // (computeDaysSurvived wrapper inlined at its one call site sub-session 3,
+    // docs/STATE_OWNERSHIP_PLAN.md — real implementation lives in
+    // js/damage.js, Milestone 2 extraction #3, 2026-07-18.)
 
-    // Thin wrappers — real implementations live in js/ui/hud.js
-    // (Milestone 2 UI extraction session 2, 2026-07-18). Call sites unchanged.
-    function updatePlayerDisplays() {
-        Hud.updatePlayerDisplays({
-            playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(),
-            playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(),
-            pointsPerTask: POINTS_PER_TASK,
-            playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay,
-            playerPointsStat, playerPointsNudge
-        });
-    }
-
-    function updateTaskCountDisplay() {
-        Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay });
-    }
+    // (updatePlayerDisplays/updateTaskCountDisplay wrappers inlined at their
+    // call sites sub-session 3, docs/STATE_OWNERSHIP_PLAN.md — real
+    // implementations live in js/ui/hud.js, Milestone 2 UI extraction
+    // session 2, 2026-07-18.)
 
     // --- Persistence (js/persistence.js) ---
     // schemaVersion 1 persists the CURRENT in-memory shapes as-is; see
     // docs/DATA_SCHEMA.md + DECISIONS.md (2026-07-17). Call saveGame() after
     // every state mutation — Persistence debounces the actual write.
 
-    function getPersistableState() {
-        return State.getPersistableState(stateDeps());
-    }
+    // (getPersistableState wrapper was dead code — no call sites in script.js,
+    // state.js's own saveGame/rollover call their local getPersistableState
+    // directly — deleted sub-session 3, docs/STATE_OWNERSHIP_PLAN.md.)
 
     function saveGame() {
         State.saveGame(stateDeps());
@@ -175,11 +161,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return State.buildDamageDeps(stateDeps());
     }
 
-    // Runs ONCE on boot, right after initGame() has reset to a fresh state.
-    // Returns true if a save was restored.
-    function restoreGameState() {
-        return State.restoreGameState(stateDeps());
-    }
+    // (restoreGameState wrapper inlined at its one call site sub-session 3,
+    // docs/STATE_OWNERSHIP_PLAN.md — runs ONCE on boot, right after
+    // initGame() has reset to a fresh state; see the call site near the
+    // bottom of this file.)
 
     // Builds the deps object for js/state.js's initGame/restoreGameState/
     // getPersistableState/saveGame/buildDamageDeps (Milestone 2 extraction,
@@ -329,33 +314,33 @@ document.addEventListener('DOMContentLoaded', () => {
             setOfflineCatchUpActive: (v) => { offlineCatchUpActive = v; },
 
             // collaborators
-            updatePlayerDisplays,
-            updateTaskCountDisplay,
+            updatePlayerDisplays: () => Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge }),
+            updateTaskCountDisplay: () => Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay }),
             updateRoutineDisplay,
-            updateBaseVisuals,
-            generateDailyHabitInstances,
-            generateDailyRoutineTaskInstances,
+            updateBaseVisuals: () => Damage.updateBaseVisuals(damageDeps()),
+            generateDailyHabitInstances: (forWhichGameDay) => Habits.generateDailyHabitInstances(forWhichGameDay, habitInstanceDeps()),
+            generateDailyRoutineTaskInstances: (forWhichGameDay) => Routines.generateDailyRoutineTaskInstances(forWhichGameDay, routineTaskInstanceDeps()),
             // Day-advance mechanism (2026-07-19): restore-path day rollover.
-            settleStaleRecurringInstance,
+            settleStaleRecurringInstance: (item) => Items.settleStaleRecurringInstance(item, itemsDeps()),
             // Sub-session 4 ([P1-DATA-005], check-in prompt, 2026-07-19): the
             // check-in-eligible counterpart, called instead for the single
             // most-recent prior day's negative-habit lurker.
-            markPendingCheckIn,
+            markPendingCheckIn: (item) => Items.markPendingCheckIn(item, itemsDeps()),
             // Sub-session 5 (Cheat Day token, 2026-07-19): checked FIRST,
             // ahead of the check-in-eligible fork above.
             isCheatDayExcusedForItem,
-            settleExcusedCheatDay,
-            addItemToGame,
-            createListItem,
-            renderDefinedRoutines,
-            renderCompletedItems,
-            sortAndRenderActiveList,
-            gameOver,
-            runOfflineCatchUp,
+            settleExcusedCheatDay: (item) => Items.settleExcusedCheatDay(item, itemsDeps()),
+            addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => Popups.handleEnemyClick(itemId, popupsDeps()), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay: () => Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay }), sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
+            createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()),
+            renderDefinedRoutines: () => RoutineViews.renderDefinedRoutines(routineViewsDeps()),
+            renderCompletedItems: () => AgendaList.renderCompletedItems(agendaListDeps()),
+            sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()),
+            gameOver: (alreadyOver) => Damage.gameOver(damageDeps(), alreadyOver),
+            runOfflineCatchUp: (entries, offlineMs) => Damage.runOfflineCatchUp(entries, offlineMs, damageDeps()),
             updateGame,
 
             // damage-deps passthrough
-            markAsOverdue,
+            markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()),
             getSubTaskClusterOffset,
             calculateTimelineXWithClustering,
             enableFormControls,
@@ -363,29 +348,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // [P1-DATA-005] session 27 — negative-habit lurker exclusion
             isNonThreatening: Items.isNonThreatening,
             // [P1-UI-006] sub-session 2, 2026-07-19 — routine health damage/KO
-            damageRoutineForItem,
+            damageRoutineForItem: (item, amount) => Items.damageRoutineForItem(item, amount, itemsDeps()),
             // Run history sub-session 2, 2026-07-19 session 53 — blame
             // attribution for both offline/live-gap catch-up paths.
-            recordRunDamage,
+            recordRunDamage: (item, amount, nowMs) => Items.recordRunDamageForItem(item, amount, nowMs, itemsDeps()),
         };
     }
 
-    // Offline catch-up math + animation live in js/damage.js (Milestone 2
-    // extraction #3, 2026-07-18 — this is the code deliberately deferred from
-    // the clock.js extraction). Thin wrappers so all call sites are unchanged.
-    function computeOfflineOverdueDamage(dueMs, nowMs, offlineMs, alreadyCharged) {
-        return Damage.computeOfflineOverdueDamage(dueMs, nowMs, offlineMs, alreadyCharged);
-    }
-
-    function applyOfflineDamage(hits) {
-        Damage.applyOfflineDamage(hits, damageDeps());
-    }
-
-    // Offline catch-up animation lives in js/damage.js (Milestone 2 extraction
-    // #3, 2026-07-18) — thin wrapper so the call site is unchanged.
-    function runOfflineCatchUp(entries, offlineMs) {
-        Damage.runOfflineCatchUp(entries, offlineMs, damageDeps());
-    }
+    // (computeOfflineOverdueDamage's own wrapper was dead code — no call
+    // sites in script.js — deleted sub-session 3, docs/STATE_OWNERSHIP_PLAN.md.
+    // applyOfflineDamage/runOfflineCatchUp wrappers were ALSO dead code — every
+    // real call site is the inlined arrow in stateDeps() above — deleted
+    // sub-session 3, docs/STATE_OWNERSHIP_PLAN.md. Math/animation live in
+    // js/damage.js, Milestone 2 extraction #3, 2026-07-18.)
 
     // Level-up math lives in js/progression.js (Milestone 2 extraction,
     // 2026-07-18) — thin wrapper so this call site is unchanged. A single
@@ -408,23 +383,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!result.leveledUp) return false;
 
         State.setPlayerLevel(result.level);
-        updatePlayerDisplays();
-        showLevelUpMessage();
+        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge });
+        Hud.showLevelUpMessage({ playerLevel: State.getPlayerLevel(), levelUpMessage });
 
         if (result.slotsUnlocked) {
             State.setRoutineSlots(result.slots);
-            updatePlayerDisplays();
+            Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge });
             updateRoutineDisplay();
         }
 
         return true;
     }
 
-    // Thin wrapper — real implementation lives in js/ui/hud.js
-    // (Milestone 2 UI extraction session 2, 2026-07-18). Call site unchanged.
-    function showLevelUpMessage() {
-        Hud.showLevelUpMessage({ playerLevel: State.getPlayerLevel(), levelUpMessage });
-    }
+    // (showLevelUpMessage wrapper inlined at its one call site sub-session 3,
+    // docs/STATE_OWNERSHIP_PLAN.md — real implementation lives in
+    // js/ui/hud.js, Milestone 2 UI extraction session 2, 2026-07-18.)
 
     // --- Items (js/items.js) ---
     // Milestone 2 extraction session 10, 2026-07-18 — see js/items.js's header
@@ -520,59 +493,19 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             gameCanvas,
             handleEnemyClick, createListItem, sortAndRenderActiveList,
-            resetAllSubTaskCheckboxes, updateTaskCountDisplay, renderCompletedItems,
-            updatePlayerDisplays, checkPlayerLevelUp, saveGame,
+            resetAllSubTaskCheckboxes, updateTaskCountDisplay: () => Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay }), renderCompletedItems,
+            updatePlayerDisplays: () => Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge }), checkPlayerLevelUp, saveGame,
             calculateTimelineXWithClustering, getSubTaskClusterOffset, getItemTopPosition
         };
     }
 
-    // Thin wrapper — real implementation lives in js/items.js (Milestone 2
-    // extraction session 10, 2026-07-18). Call site unchanged.
-    function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId) {
-        return Items.createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, itemsDeps());
-    }
+    // (createTaskItemData/damageRoutineForItem/recordRunDamage wrappers
+    // inlined at their call sites sub-session 3, docs/STATE_OWNERSHIP_PLAN.md
+    // — real implementations live in js/items.js.)
 
-    // Thin wrapper — real implementation lives in js/items.js ([P1-UI-006]
-    // sub-session 2, 2026-07-19). Injected into damageDeps()/loopDeps() below
-    // so js/damage.js and js/loop.js (which load before items.js) can call
-    // it without a forward reference — isNonThreatening's existing pattern.
-    function damageRoutineForItem(item, amount) {
-        Items.damageRoutineForItem(item, amount, itemsDeps());
-    }
-
-    // Thin wrapper — real implementation lives in js/items.js (run-history
-    // sub-session 2, 2026-07-19 session 53). Same injection reasoning as
-    // damageRoutineForItem immediately above.
-    function recordRunDamage(item, amount, nowMs) {
-        Items.recordRunDamageForItem(item, amount, nowMs, itemsDeps());
-    }
-
-    // Enemy admission (sprite build, positioning, overdue-on-spawn) lives in
-    // js/spawning.js (Milestone 2 extraction, 2026-07-17). Thin wrapper passes
-    // script.js's collaborators + dims via deps; every call site is unchanged.
-    function addItemToGame(itemData) {
-        return Spawning.addItemToGame(itemData, {
-            gameCanvas,
-            activeItems: State.getActiveItems(),
-            baseWidth: BASE_WIDTH,
-            dims: {
-                enemyWidth: ENEMY_WIDTH,
-                habitEnemyWidth: HABIT_ENEMY_WIDTH,
-                subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH,
-                habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD,
-                habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD
-            },
-            getItemTopPosition,
-            getSubTaskClusterOffset,
-            handleEnemyClick,
-            createListItem,
-            markAsOverdue,
-            updateTaskCountDisplay,
-            sortAndRenderActiveList,
-            saveGame,
-            isGameOver: State.isGameOver
-        });
-    }
+    // (addItemToGame wrapper inlined at its call sites sub-session 3,
+    // docs/STATE_OWNERSHIP_PLAN.md — real implementation lives in
+    // js/spawning.js, Milestone 2 extraction, 2026-07-17.)
 
     // Thin wrappers — real implementations live in js/ui/agendaList.js
     // (Milestone 2 UI extraction sessions 6-7, 2026-07-18). Call sites
@@ -588,24 +521,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // restoreGameState) rather than only mutated in place.
     function agendaListDeps() {
         return {
-            activeItems: State.getActiveItems(), categoryStyles, completeItem,
+            activeItems: State.getActiveItems(), categoryStyles,
+            completeItem: (itemId) => Items.completeItem(itemId, itemsDeps()),
             isGameOver: State.isGameOver,
-            showEditTaskModal, showEditHabitInstanceModal, createSubTaskPrompt,
+            showEditTaskModal: (item) => Popups.showEditTaskModal(item, popupsDeps()),
+            showEditHabitInstanceModal: (itemData) => AgendaList.showEditHabitInstanceModal(itemData, agendaListDeps()),
+            createSubTaskPrompt: (parentId) => Popups.createSubTaskPrompt(parentId, popupsDeps()),
             activeItemsListUL,
             completedItems: () => State.getCompletedItems(),
-            uncompleteItem,
+            uncompleteItem: (itemId) => Items.uncompleteItem(itemId, itemsDeps()),
             definedHabits: () => State.getDefinedHabits(),
-            showEditHabitForm
+            showEditHabitForm: (routineId, habitDef) => RoutineViews.showEditHabitForm(routineId, habitDef)
         };
     }
 
-    function createListItem(itemData) {
-        return AgendaList.createListItem(itemData, agendaListDeps());
-    }
-
-    function showEditHabitInstanceModal(itemData) {
-        AgendaList.showEditHabitInstanceModal(itemData, agendaListDeps());
-    }
+    // (createListItem/showEditHabitInstanceModal wrappers inlined at their
+    // call sites sub-session 3, docs/STATE_OWNERSHIP_PLAN.md — real
+    // implementations live in js/ui/agendaList.js, Milestone 2 UI extraction
+    // sessions 6-7, 2026-07-18.)
 
     // Thin wrappers — real implementations live in js/ui/popups.js
     // (Milestone 2 UI extraction session 5, 2026-07-18). Call sites
@@ -614,9 +547,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Grep before removing.
     function popupsDeps() {
         return {
-            gameIsOver: State.isGameOver(), activeItems: State.getActiveItems(), completeItem, indulgeHabit, createListItem,
-            sortAndRenderActiveList, saveGame, recomputeOverdueStateAfterEdit,
-            createTaskItemData, addItemToGame,
+            gameIsOver: State.isGameOver(), activeItems: State.getActiveItems(),
+            completeItem: (itemId) => Items.completeItem(itemId, itemsDeps()),
+            indulgeHabit: (itemId) => Items.indulgeHabit(itemId, itemsDeps()),
+            createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()),
+            sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()),
+            saveGame, recomputeOverdueStateAfterEdit: (item) => Items.recomputeOverdueStateAfterEdit(item, itemsDeps()),
+            createTaskItemData: (name, category, isHighPriority, dueDateStr, dueTimeStr, parentId) => Items.createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, itemsDeps()),
+            addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => Popups.handleEnemyClick(itemId, popupsDeps()), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay: () => Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay }), sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
             // Pushback ([P1-UI-008] session 4): the pushback tiers, a live
             // points getter (popup re-checks affordability after each buy),
             // and the handler that pays + shifts the target's due date.
@@ -649,53 +587,22 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    function handleEnemyClick(itemId) {
-        Popups.handleEnemyClick(itemId, popupsDeps());
-    }
+    // (handleEnemyClick/showEditTaskModal wrappers inlined at their call
+    // sites sub-session 3, docs/STATE_OWNERSHIP_PLAN.md.)
 
-    function showTaskDetailsPopup(item) {
-        Popups.showTaskDetailsPopup(item, popupsDeps());
-    }
+    // (completeItem/indulgeHabit/removeItem wrappers inlined at their call
+    // sites sub-session 3, docs/STATE_OWNERSHIP_PLAN.md — real
+    // implementations live in js/items.js, Milestone 2 extraction
+    // session 10, 2026-07-18 / sub-session 2b, 2026-07-19.)
 
-    function showEditTaskModal(item) {
-        Popups.showEditTaskModal(item, popupsDeps());
-    }
+    // (settleStaleRecurringInstance wrapper inlined at its call site
+    // sub-session 3, docs/STATE_OWNERSHIP_PLAN.md — real implementation
+    // lives in js/items.js, day-advance mechanism, 2026-07-19.)
 
-    // Thin wrappers — real implementations live in js/items.js (Milestone 2
-    // extraction session 10, 2026-07-18). Call sites unchanged.
-    function completeItem(itemId) {
-        Items.completeItem(itemId, itemsDeps());
-    }
-
-    // Thin wrapper — real implementation lives in js/items.js (sub-session
-    // 2b, 2026-07-19, [P1-DATA-005]). Call site wired from popupsDeps().
-    function indulgeHabit(itemId) {
-        Items.indulgeHabit(itemId, itemsDeps());
-    }
-
-    function removeItem(itemId) {
-        Items.removeItem(itemId, itemsDeps());
-    }
-
-    // Thin wrapper — real implementation lives in js/items.js (day-advance
-    // mechanism, 2026-07-19). Called by state.js's restoreGameState for each
-    // prior-day recurring instance at day rollover. Call site: stateDeps().
-    function settleStaleRecurringInstance(item) {
-        Items.settleStaleRecurringInstance(item, itemsDeps());
-    }
-
-    // Thin wrappers — real implementations live in js/items.js (sub-session 4,
-    // [P1-DATA-005], 2026-07-19, check-in prompt). markPendingCheckIn is
-    // called by state.js's restoreGameState (stateDeps()); resolvePendingCheckIn
-    // is called by js/ui/checkIn.js when the player answers a check-in card
-    // (checkInDeps()).
-    function markPendingCheckIn(item) {
-        Items.markPendingCheckIn(item, itemsDeps());
-    }
-
-    function resolvePendingCheckIn(habitDefId, outcome) {
-        Items.resolvePendingCheckIn(habitDefId, outcome, itemsDeps());
-    }
+    // (markPendingCheckIn/resolvePendingCheckIn wrappers inlined at their
+    // call sites sub-session 3, docs/STATE_OWNERSHIP_PLAN.md — real
+    // implementations live in js/items.js, sub-session 4, [P1-DATA-005],
+    // 2026-07-19, check-in prompt.)
 
     // Thin wrappers — real implementations live in js/items.js (sub-session 5,
     // [P1-DATA-005], 2026-07-19, Cheat Day token). Called by state.js's
@@ -705,9 +612,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return !!habitDef && Items.isCheatDayExcused(habitDef, item.originalDueDate);
     }
 
-    function settleExcusedCheatDay(item) {
-        Items.settleExcusedCheatDay(item, itemsDeps());
-    }
+    // (settleExcusedCheatDay wrapper inlined at its call site sub-session 3,
+    // docs/STATE_OWNERSHIP_PLAN.md.)
 
     // Builds the deps object for js/ui/checkIn.js's showCheckInModal
     // (sub-session 4, [P1-DATA-005], 2026-07-19). definedHabits is a GETTER
@@ -716,7 +622,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function checkInDeps() {
         return {
             getDefinedHabits: State.getDefinedHabits,
-            resolvePendingCheckIn,
+            resolvePendingCheckIn: (habitDefId, outcome) => Items.resolvePendingCheckIn(habitDefId, outcome, itemsDeps()),
         };
     }
 
@@ -729,47 +635,59 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function createSubTaskPrompt(parentId) {
-        Popups.createSubTaskPrompt(parentId, popupsDeps());
-    }
+    // (createSubTaskPrompt/uncompleteItem/resetAllSubTaskCheckboxes/
+    // renderCompletedItems wrappers inlined at their call sites sub-session 3,
+    // docs/STATE_OWNERSHIP_PLAN.md.)
 
-    function showCreateSubTaskModal(parentId) {
-        Popups.showCreateSubTaskModal(parentId, popupsDeps());
-    }
-
-    // Thin wrapper — real implementation lives in js/items.js (Milestone 2
-    // extraction session 10, 2026-07-18). Call site unchanged.
-    function uncompleteItem(itemId) {
-        Items.uncompleteItem(itemId, itemsDeps());
-    }
-
+    // The following wrappers are kept as REAL functions (NOT inlined,
+    // sub-session 3, docs/STATE_OWNERSHIP_PLAN.md) — each is referenced as a
+    // bare identifier (object-shorthand deps entry, e.g. `{ createListItem }`,
+    // not just a direct call) at multiple deps-builder sites, so inlining
+    // would mean rewriting every one of those into an arrow (increases line
+    // count, same reasoning saveGame was left alone for). A first attempt
+    // this sub-session deleted these wrappers but missed the bare-reference
+    // call sites, leaving real ReferenceErrors that only surfaced live in
+    // Chrome (Jest never loads script.js) — a systematic re-check of every
+    // "inlined at call sites" claim found 6 total broken this way (this one
+    // plus createListItem, handleEnemyClick, removeItem, renderCompletedItems,
+    // resetAllSubTaskCheckboxes below); all restored + verified live before
+    // commit.
     function sortAndRenderActiveList() {
         AgendaList.sortAndRenderActiveList(agendaListDeps());
     }
 
-    function resetAllSubTaskCheckboxes() {
-        AgendaList.resetAllSubTaskCheckboxes();
+    function createListItem(itemData) {
+        return AgendaList.createListItem(itemData, agendaListDeps());
+    }
+
+    function handleEnemyClick(itemId) {
+        Popups.handleEnemyClick(itemId, popupsDeps());
+    }
+
+    function removeItem(itemId) {
+        Items.removeItem(itemId, itemsDeps());
     }
 
     function renderCompletedItems() {
         AgendaList.renderCompletedItems(agendaListDeps());
     }
 
-    // Thin wrappers — real implementations live in js/items.js (Milestone 2
-    // extraction session 10, 2026-07-18). Call sites unchanged.
-    function markAsOverdue(item, currentTime) {
-        Items.markAsOverdue(item, currentTime, itemsDeps());
+    function resetAllSubTaskCheckboxes() {
+        AgendaList.resetAllSubTaskCheckboxes();
     }
+
+    // (markAsOverdue wrapper inlined at its one call site (loopDeps) sub-session
+    // 3, docs/STATE_OWNERSHIP_PLAN.md — real implementation lives in
+    // js/items.js, Milestone 2 extraction session 10, 2026-07-18.)
 
     // Re-derives isOverdue from the item's CURRENT dueDateTime — call after any
     // edit that changes an item's due date, since isOverdue is otherwise only
-    // ever set forward by markAsOverdue/updateActiveItems and never re-checked.
-    // Without this, editing an overdue task's deadline into the future left it
-    // camped at the base still taking damage (see showEditTaskModal save
-    // handler, DECISIONS.md 2026-07-17).
-    function recomputeOverdueStateAfterEdit(item) {
-        Items.recomputeOverdueStateAfterEdit(item, itemsDeps());
-    }
+    // ever set forward by Items.markAsOverdue/updateActiveItems and never
+    // re-checked. Without this, editing an overdue task's deadline into the
+    // future left it camped at the base still taking damage (see
+    // showEditTaskModal save handler, DECISIONS.md 2026-07-17).
+    // (Wrapper inlined at its two call sites (popupsDeps, handlePushback)
+    // sub-session 3, docs/STATE_OWNERSHIP_PLAN.md.)
 
     // Sub-task cluster offset + visible-edge math live in js/movement.js
     // (Milestone 2 extraction, 2026-07-17). Thin wrapper — call site unchanged.
@@ -843,17 +761,17 @@ document.addEventListener('DOMContentLoaded', () => {
             setLastRegenTickMs: State.setLastRegenTickMs,
             getLastAutosaveMs: () => lastAutosaveMs,
             setLastAutosaveMs: (n) => { lastAutosaveMs = n; },
-            markAsOverdue,
+            markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()),
             getSubTaskClusterOffset,
             calculateTimelineXWithClustering,
-            damageBase,
-            damageRoutineForItem,
+            damageBase: (amount) => Damage.damageBase(amount, damageDeps()),
+            damageRoutineForItem: (item, amount) => Items.damageRoutineForItem(item, amount, itemsDeps()),
             // Run history sub-session 2, 2026-07-19 session 53 — live-tick
             // blame attribution (loop.js's own overdue-damage call site).
-            recordRunDamage,
-            healBase,
+            recordRunDamage: (item, amount, nowMs) => Items.recordRunDamageForItem(item, amount, nowMs, itemsDeps()),
+            healBase: (amount) => Damage.healBase(amount, damageDeps()),
             updateMidnightLine,
-            runLiveGapCatchUp,
+            runLiveGapCatchUp: () => Damage.runLiveGapCatchUp(damageDeps()),
             saveGame,
             // [P1-DATA-005] session 27 — negative-habit lurker exclusion
             isNonThreatening: Items.isNonThreatening,
@@ -878,9 +796,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    function updateActiveItems() {
-        Loop.updateActiveItems(loopDeps());
-    }
+    // (updateActiveItems wrapper was dead code — no call sites in script.js
+    // — deleted sub-session 3, docs/STATE_OWNERSHIP_PLAN.md.)
     // Midnight-line math lives in js/clock.js (Milestone 2 extraction,
     // 2026-07-17) — thin wrapper so the call site is unchanged.
     function updateMidnightLine(currentTime) {
@@ -969,33 +886,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Base sprite / damage / game-over all live in js/damage.js (Milestone 2
-    // extraction #3, 2026-07-18) — thin wrappers so all call sites are unchanged.
-    function updateBaseVisuals() {
-        Damage.updateBaseVisuals(damageDeps());
-    }
+    // extraction #3, 2026-07-18).
+    // (updateBaseVisuals's own wrapper was dead code — every real call site
+    // is the inlined arrow in stateDeps() above — deleted sub-session 3,
+    // docs/STATE_OWNERSHIP_PLAN.md. damageBase/healBase/runLiveGapCatchUp
+    // wrappers inlined at their call sites — loopDeps() and handleShopUse's
+    // repair-kit branch — same session.)
 
-    function damageBase(amount) {
-        Damage.damageBase(amount, damageDeps());
-    }
-
-    // Gradual base regen ([P2-GAME-012], 2026-07-18) — thin wrapper, call
-    // site unchanged pattern (js/loop.js's updateActiveItems).
-    function healBase(amount) {
-        Damage.healBase(amount, damageDeps());
-    }
-
-    // alreadyOver (sub-session 4, session 55): forwarded from
-    // State.restoreGameState's restore-time re-call — see js/damage.js's
-    // gameOver() header for why this distinction exists.
-    function gameOver(alreadyOver) {
-        Damage.gameOver(damageDeps(), alreadyOver);
-    }
-
-    // Suspended-loop (sleep / throttled tab) catch-up lives in js/damage.js
-    // (Milestone 2 extraction #3, 2026-07-18) — thin wrapper, call site unchanged.
-    function runLiveGapCatchUp() {
-        Damage.runLiveGapCatchUp(damageDeps());
-    }
+    // (gameOver's own wrapper was dead code — every real call site is the
+    // inlined arrow in stateDeps() above (`gameOver: (alreadyOver) =>
+    // Damage.gameOver(damageDeps(), alreadyOver)`) — deleted sub-session 3,
+    // docs/STATE_OWNERSHIP_PLAN.md. alreadyOver (sub-session 4, session 55):
+    // forwarded from State.restoreGameState's restore-time re-call — see
+    // js/damage.js's gameOver() header for why this distinction exists.)
 
     function updateGame() {
         Loop.updateGame(loopDeps());
@@ -1072,7 +975,7 @@ document.addEventListener('DOMContentLoaded', () => {
             definedHabits: State.getDefinedHabits(),
             definedRoutines: State.getDefinedRoutines(),
             activeItems: State.getActiveItems(),
-            addItemToGame,
+            addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => Popups.handleEnemyClick(itemId, popupsDeps()), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay: () => Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay }), sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
             sortAndRenderActiveList,
             // Frozen-slots sub-session 5 (2026-07-19): the global Sick Day
             // spawn gate — see Habits.selectHabitDefsToSpawn.
@@ -1080,14 +983,9 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    function getHabitInstanceDueTime(timeOfDayString, referenceDate) {
-        return Habits.getHabitInstanceDueTime(timeOfDayString, referenceDate);
-    }
-
-    function createHabitInstanceData(habitDef, forDate) {
-        return Habits.createHabitInstanceData(habitDef, forDate, habitInstanceDeps());
-    }
-
+    // (getHabitInstanceDueTime/createHabitInstanceData wrappers were dead
+    // code — no call sites in script.js — deleted sub-session 3,
+    // docs/STATE_OWNERSHIP_PLAN.md.)
     function generateDailyHabitInstances(forWhichGameDay) {
         Habits.generateDailyHabitInstances(forWhichGameDay, habitInstanceDeps());
     }
@@ -1116,19 +1014,14 @@ document.addEventListener('DOMContentLoaded', () => {
             definedRoutines: State.getDefinedRoutines(),
             activeItems: State.getActiveItems(),
             completedItems: State.getCompletedItems(),
-            addItemToGame,
+            addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => Popups.handleEnemyClick(itemId, popupsDeps()), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay: () => Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay }), sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
             sortAndRenderActiveList
         };
     }
 
-    function getRoutineTaskInstanceDueTime(defaultDueTime, referenceDate) {
-        return Routines.getRoutineTaskInstanceDueTime(defaultDueTime, referenceDate);
-    }
-
-    function createRoutineTaskInstanceData(taskDef, forDate) {
-        return Routines.createRoutineTaskInstanceData(taskDef, forDate, routineTaskInstanceDeps());
-    }
-
+    // (getRoutineTaskInstanceDueTime/createRoutineTaskInstanceData wrappers
+    // were dead code — no call sites in script.js — deleted sub-session 3,
+    // docs/STATE_OWNERSHIP_PLAN.md.)
     // Daily spawn pass for routine tasks, mirroring generateDailyHabitInstances.
     function generateDailyRoutineTaskInstances(forWhichGameDay) {
         Routines.generateDailyRoutineTaskInstances(forWhichGameDay, routineTaskInstanceDeps());
@@ -1144,7 +1037,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         State.getDefinedRoutines().push(result.routine);
         routineNameInput.value = '';
-        renderDefinedRoutines();
+        RoutineViews.renderDefinedRoutines(routineViewsDeps());
         saveGame();
     }
 
@@ -1178,15 +1071,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // extraction — the function body moved, but its scope didn't change.
     window.deleteRoutine = deleteRoutine;
     
-    // Thin wrapper — real implementation lives in js/ui/routineViews.js
-    // (Milestone 2 UI extraction session 9, 2026-07-18). Call site unchanged.
-    function attachRoutineManagementListeners(routineId) {
-        RoutineViews.attachRoutineManagementListeners(routineId, routineViewsDeps());
-    }
-
+    // (attachRoutineManagementListeners wrapper was dead code — no call
+    // sites in script.js — deleted sub-session 3, docs/STATE_OWNERSHIP_PLAN.md.)
     function removeHabitFromRoutine(routineId, habitDefId) {
         if (Routines.removeHabitFromRoutine(routineId, habitDefId, State.getDefinedRoutines(), State.getDefinedHabits())) {
-            renderDefinedRoutines();
+            RoutineViews.renderDefinedRoutines(routineViewsDeps());
             saveGame();
         }
     }
@@ -1196,7 +1085,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!newHabit) return;
 
         generateDailyHabitInstances(State.getCurrentGameDate());
-        renderDefinedRoutines();
+        RoutineViews.renderDefinedRoutines(routineViewsDeps());
         saveGame();
     }
 
@@ -1209,7 +1098,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Without this the definition existed but never became a live enemy —
         // the task appeared in the routine window only. See DECISIONS.md.
         generateDailyRoutineTaskInstances(State.getCurrentGameDate());
-        renderDefinedRoutines();
+        RoutineViews.renderDefinedRoutines(routineViewsDeps());
         saveGame();
     }
 
@@ -1225,7 +1114,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 FrozenNotice.showRoutineUnfrozenNotice(routine.name, habitDef.name);
             }
         })) {
-            renderDefinedRoutines();
+            RoutineViews.renderDefinedRoutines(routineViewsDeps());
 
             // Update the FAB->Routines popup if open — same staleness fix as
             // deleteRoutine (it's a separate windowing system from Modal's
@@ -1241,7 +1130,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function editTaskInRoutine(taskId, updatedData) {
         if (Routines.editTaskInRoutine(taskId, updatedData, definedTasks)) {
-            renderDefinedRoutines();
+            RoutineViews.renderDefinedRoutines(routineViewsDeps());
         }
     }
 
@@ -1282,7 +1171,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.ok) {
             recallInstancesIfRoutineUnusable(destRoutineId, habitDefId, 'habit');
             generateDailyHabitInstances(State.getCurrentGameDate());
-            renderDefinedRoutines();
+            RoutineViews.renderDefinedRoutines(routineViewsDeps());
             saveGame();
         }
         return result;
@@ -1294,7 +1183,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.ok) {
             recallInstancesIfRoutineUnusable(destRoutineId, taskId, 'task');
             generateDailyRoutineTaskInstances(State.getCurrentGameDate());
-            renderDefinedRoutines();
+            RoutineViews.renderDefinedRoutines(routineViewsDeps());
             saveGame();
         }
         return result;
@@ -1342,16 +1231,11 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    function renderDefinedRoutines() {
-        RoutineViews.renderDefinedRoutines(routineViewsDeps());
-    }
-
-    // Thin wrapper — real implementation lives in js/ui/routineViews.js
-    // (Milestone 2 UI extraction session 9, 2026-07-18). Call site unchanged.
-    function populateHabitSelectDropdown(selectElement) {
-        RoutineViews.populateHabitSelectDropdown(selectElement, routineViewsDeps());
-    }
-
+    // (renderDefinedRoutines wrapper inlined at its call sites sub-session 3,
+    // docs/STATE_OWNERSHIP_PLAN.md — real implementation lives in
+    // js/ui/routineViews.js.)
+    // (populateHabitSelectDropdown wrapper was dead code — no call sites in
+    // script.js — deleted sub-session 3, docs/STATE_OWNERSHIP_PLAN.md.)
     function addHabitToRoutine(routineId, habitDefId) {
         const result = Routines.addHabitToRoutine(routineId, habitDefId, State.getDefinedRoutines(), State.getDefinedHabits());
         if (!result.ok) {
@@ -1359,17 +1243,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        renderDefinedRoutines();
+        RoutineViews.renderDefinedRoutines(routineViewsDeps());
     }
 
     // selectActiveItemIdsToClearForRoutine/clearActiveInstancesForRoutine/
     // toggleRoutineActive now live in js/routines.js (Milestone 2 extraction
     // #6, 2026-07-18) — thin wrappers so every call site is unchanged. See
     // docs/ARCHITECTURE.md / DECISIONS.md.
-    function selectActiveItemIdsToClearForRoutine(activeItemsList, routine) {
-        return Routines.selectActiveItemIdsToClearForRoutine(activeItemsList, routine);
-    }
-
+    // (selectActiveItemIdsToClearForRoutine wrapper was dead code — no call
+    // sites in script.js — deleted sub-session 3, docs/STATE_OWNERSHIP_PLAN.md.)
     function clearActiveInstancesForRoutine(routineId) {
         Routines.clearActiveInstancesForRoutine(routineId, { definedRoutines: State.getDefinedRoutines(), activeItems: State.getActiveItems(), removeItem });
     }
@@ -1388,12 +1270,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Thin wrapper — real implementation lives in js/ui/routineViews.js
-    // (Milestone 2 UI extraction session 9, 2026-07-18). Call site unchanged.
-    function showAddItemToRoutineModal(routineId, itemType) {
-        RoutineViews.showAddItemToRoutineModal(routineId, itemType, routineViewsDeps());
-    }
-
+    // (showAddItemToRoutineModal wrapper was dead code — no call sites in
+    // script.js — deleted sub-session 3, docs/STATE_OWNERSHIP_PLAN.md.)
     function updateRoutineDisplay() {
         RoutineViews.updateRoutineDisplay(routineViewsDeps());
         // [P1-UI-006] sub-session 3, 2026-07-19 — paint hero chips immediately
@@ -1430,23 +1308,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Thin wrappers — real implementations live in js/ui/routineViews.js
-    // (Milestone 2 UI extraction session 9, 2026-07-18). Call sites
-    // unchanged. These four take no deps (pure HTML-string builders).
-    function showCreateHabitForm(routineId) {
-        RoutineViews.showCreateHabitForm(routineId);
-    }
-
-    function showCreateTaskForm(routineId) {
-        RoutineViews.showCreateTaskForm(routineId);
-    }
-
-    function showEditHabitForm(routineId, habitDef) {
-        RoutineViews.showEditHabitForm(routineId, habitDef);
-    }
-
-    function showEditTaskForm(routineId, taskDef) {
-        RoutineViews.showEditTaskForm(routineId, taskDef);
-    }
+    // (Milestone 2 UI extraction session 9, 2026-07-18.)
+    // showCreateHabitForm/showCreateTaskForm/showEditTaskForm wrappers were
+    // dead code — no call sites in script.js — deleted sub-session 3,
+    // docs/STATE_OWNERSHIP_PLAN.md. showEditHabitForm was inlined at its one
+    // real call site (agendaListDeps(), passed through to js/ui/agendaList.js)
+    // — same session.
 
     // Global functions for modal interactions — thin wrappers, real
     // implementations live in js/ui/routineViews.js (session 9, 2026-07-18).
@@ -1498,12 +1365,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Thin wrappers — real implementations live in js/ui/fabMenu.js and
     // js/ui/managementWindows.js (Milestone 2 UI extraction session 3,
-    // 2026-07-18). Call sites unchanged. toggleFabMenu's 6 debug console.log
-    // lines were removed as pure noise during the move — see fabMenu.js header.
-    function toggleFabMenu() {
-        FabMenu.toggleFabMenu({ fabMenu, fabButton });
-    }
-
+    // 2026-07-18). toggleFabMenu's 6 debug console.log lines were removed as
+    // pure noise during the move — see fabMenu.js header.
+    // (toggleFabMenu wrapper inlined at its one call site (fabButton's click
+    // listener) sub-session 3, docs/STATE_OWNERSHIP_PLAN.md. closeFabMenu is
+    // NOT inlined — one of its three call sites is a bare reference inside
+    // openManagementWindow(), an explicitly-protected orchestrator; left
+    // alone rather than partially retiring it, see report.)
     function closeFabMenu() {
         FabMenu.closeFabMenu({ fabMenu, fabButton });
     }
@@ -1515,7 +1383,7 @@ document.addEventListener('DOMContentLoaded', () => {
             runStartedAtMs: State.getRunStartedAtMs(),
             shopCatalog: CONFIG.SHOP_ITEMS, playerInventory: State.getPlayerInventory(), playerPoints: State.getPlayerPoints(), baseHealth: State.getBaseHealth(),
             onShopBuy: handleShopPurchase, onShopUse: handleShopUse,
-            currentRunStats: State.getCurrentRunStats(), runHistory: State.getRunHistory(), daysSurvivedSoFar: computeDaysSurvived(),
+            currentRunStats: State.getCurrentRunStats(), runHistory: State.getRunHistory(), daysSurvivedSoFar: Damage.computeDaysSurvived(State.getRunStartedAtMs(), Date.now(), CONFIG.MS_PER_REAL_DAY),
             achievementsCatalog: CONFIG.ACHIEVEMENTS, lifetimeStats: State.getLifetimeStats(), achievements: State.getAchievements(),
             currentEffectsIntensity: effectsIntensity,
             onChangeEffectsIntensity: handleEffectsIntensityChange
@@ -1533,13 +1401,12 @@ document.addEventListener('DOMContentLoaded', () => {
         Settings.applyEffectsIntensity(intensity);
     }
 
-    function closeAllManagementWindows() {
-        ManagementWindows.closeAllManagementWindows({ managementWindows });
-    }
+    // (closeAllManagementWindows wrapper inlined at its one call site
+    // (Modal.initDismissHandlers) sub-session 3, docs/STATE_OWNERSHIP_PLAN.md.)
 
-    function closeManagementWindow(windowId) {
-        ManagementWindows.closeManagementWindow(windowId, { managementWindows });
-    }
+    // (closeManagementWindow wrapper inlined at its call sites sub-session 3,
+    // docs/STATE_OWNERSHIP_PLAN.md — real implementation lives in
+    // js/ui/managementWindows.js.)
 
     function populateTasksWindow() {
         ManagementWindows.populateTasksWindow({ activeItems: State.getActiveItems() });
@@ -1585,7 +1452,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         State.setPlayerPoints(result.newPoints);
         State.setPlayerInventory(result.newInventory);
-        updatePlayerDisplays();
+        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge });
         saveGame();
 
         // Deferred, not synchronous: populateShopWindow() replaces
@@ -1631,7 +1498,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         State.setPlayerInventory(result.newInventory);
         if (isRepairKit) {
-            healBase(item.effect.healAmount);
+            Damage.healBase(item.effect.healAmount, damageDeps());
         } else {
             handleUseSickDay();
         }
@@ -1686,7 +1553,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // a pushed-back overdue zombie stays camped at the base ticking damage.
         // A non-overdue item pushed further out just gets repositioned by the
         // next 50ms game-loop tick (Loop.updateActiveItems).
-        recomputeOverdueStateAfterEdit(targetItem);
+        Items.recomputeOverdueStateAfterEdit(targetItem, itemsDeps());
 
         // Refresh the target's agenda row (its due time changed) + re-sort.
         if (targetItem.listItemElement) {
@@ -1694,7 +1561,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!targetItem.parentId) createListItem(targetItem);
         }
         sortAndRenderActiveList();
-        updatePlayerDisplays();
+        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge });
         saveGame();
 
         return { ok: true, newPoints: State.getPlayerPoints() };
@@ -1730,7 +1597,7 @@ document.addEventListener('DOMContentLoaded', () => {
         State.setPlayerInventory(result.newInventory);
         habitDef.cheatDayDate = Habits.toOccurrenceDate(targetItem.originalDueDate);
 
-        updatePlayerDisplays();
+        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge });
         saveGame();
 
         return { ok: true };
@@ -1760,7 +1627,7 @@ document.addEventListener('DOMContentLoaded', () => {
         State.setPlayerInventory(result.newInventory);
         Items.useSkipDayOnItem(targetItem, itemsDeps());
 
-        updatePlayerDisplays();
+        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge });
         saveGame();
 
         return { ok: true };
@@ -1775,7 +1642,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // docs/FROZEN_SLOTS_PLAN.md — Sick Day is habits-only).
     function handleUseSickDay() {
         Items.useSickDayGlobally(State.getCurrentGameDate(), itemsDeps());
-        updatePlayerDisplays();
+        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge });
         saveGame();
     }
 
@@ -1783,13 +1650,9 @@ document.addEventListener('DOMContentLoaded', () => {
         RoutineViews.showRoutineManagement(routineId, routineViewsDeps());
     }
 
-    function populateRoutineHabits(routine) {
-        RoutineViews.populateRoutineHabits(routine, routineViewsDeps());
-    }
-
-    function populateRoutineTasks(routine) {
-        RoutineViews.populateRoutineTasks(routine);
-    }
+    // (populateRoutineHabits/populateRoutineTasks wrappers were dead code —
+    // no call sites in script.js, js/ui/routineViews.js does this
+    // internally now — deleted sub-session 3, docs/STATE_OWNERSHIP_PLAN.md.)
 
     // Thin wrappers — real implementations live in js/ui/forms.js
     // (Milestone 2 UI extraction session 4, 2026-07-18). Call sites
@@ -1798,31 +1661,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // saveGame() call) — see js/ui/forms.js header and DECISIONS.md.
     function formsDeps() {
         return {
-            createTaskItemData, addItemToGame, sortAndRenderActiveList,
+            createTaskItemData: (name, category, isHighPriority, dueDateStr, dueTimeStr, parentId) => Items.createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, itemsDeps()),
+            addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => Popups.handleEnemyClick(itemId, popupsDeps()), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay: () => Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay }), sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
+            sortAndRenderActiveList,
             managementWindows, populateTasksWindow,
             createHabitDefinition, populateHabitsWindow,
             definedRoutines: State.getDefinedRoutines(), saveGame, populateRoutinesWindow, openManagementWindow
         };
     }
 
-    function showFormModal(formType) {
-        Forms.showFormModal(formType, formsDeps());
-    }
-
     // Note: createTaskFormHtml/createHabitFormHtml/createRoutineFormHtml had
     // no callers outside showFormModal's old switch statement (verified by
     // Grep before removing them here) — Forms.showFormModal now calls its
     // own module-scoped copies internally, so no script.js wrapper is
-    // needed for them.
-    function attachModalEventListeners(formType) {
-        Forms.attachModalEventListeners(formType, formsDeps());
-    }
+    // needed for them. (attachModalEventListeners wrapper was dead code —
+    // no call sites in script.js — deleted sub-session 3,
+    // docs/STATE_OWNERSHIP_PLAN.md. showFormModal was inlined at its three
+    // call sites below — same session.)
 
     // Forms are now handled through dedicated modal functions above
     
     // Event Listeners
     if (fabButton) {
-        fabButton.addEventListener('click', toggleFabMenu);
+        fabButton.addEventListener('click', () => FabMenu.toggleFabMenu({ fabMenu, fabButton }));
     } else {
         console.error('FAB button not found — creation UI unavailable');
     }
@@ -1839,7 +1700,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.close-window').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const windowId = e.target.dataset.window;
-            closeManagementWindow(windowId);
+            ManagementWindows.closeManagementWindow(windowId, { managementWindows });
         });
     });
     
@@ -1850,7 +1711,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // keydown + click-outside handlers here and the per-popup backdrop
     // listeners in popups.js.
     Modal.initDismissHandlers({
-        closeAllManagementWindows,
+        closeAllManagementWindows: () => ManagementWindows.closeAllManagementWindows({ managementWindows }),
         closeFabMenu,
         isAnyManagementWindowOpen: () => Object.values(managementWindows).some(w =>
             w && !w.classList.contains('hidden')
@@ -1865,22 +1726,22 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (addNewTaskButton) {
         addNewTaskButton.addEventListener('click', () => {
-            closeManagementWindow('tasksWindow');
-            showFormModal('task');
+            ManagementWindows.closeManagementWindow('tasksWindow', { managementWindows });
+            Forms.showFormModal('task', formsDeps());
         });
     }
     
     if (addNewHabitButton) {
         addNewHabitButton.addEventListener('click', () => {
-            closeManagementWindow('habitsWindow');
-            showFormModal('habit');
+            ManagementWindows.closeManagementWindow('habitsWindow', { managementWindows });
+            Forms.showFormModal('habit', formsDeps());
         });
     }
     
     if (addNewRoutineButton) {
         addNewRoutineButton.addEventListener('click', () => {
-            closeManagementWindow('routinesWindow');
-            showFormModal('routine');
+            ManagementWindows.closeManagementWindow('routinesWindow', { managementWindows });
+            Forms.showFormModal('routine', formsDeps());
         });
     }
     
@@ -1942,17 +1803,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize definedTasks array
     if (!window.definedTasks) window.definedTasks = [];
     
-    // Thin wrapper — real implementation lives in js/ui/hud.js
-    // (Milestone 2 UI extraction session 2, 2026-07-18). Call site unchanged.
-    // NOTE: unreferenced anywhere in script.js — dead code, extracted as-is
-    // per the plan's cluster boundary, not removed. See js/ui/hud.js header.
-    function showDebugInfo(functionName, data) {
-        Hud.showDebugInfo(functionName, data);
-    }
-    
+    // (showDebugInfo wrapper was dead code — unreferenced anywhere in
+    // script.js — deleted sub-session 3, docs/STATE_OWNERSHIP_PLAN.md.
+    // Hud.showDebugInfo itself is untouched, still exported for future use.)
+
     // Initialize the game
     initGame();
-    restoreGameState();
+    State.restoreGameState(stateDeps());
     // Time slider (Milestone 4, 2026-07-20) — after initGame() so
     // GAME_SCREEN_WIDTH/BASE_WIDTH/HABIT_ENEMY_WIDTH are resolved (deps.dims()
     // is still a live function, so a later resize is fine too; this ordering

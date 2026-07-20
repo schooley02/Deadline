@@ -11,6 +11,24 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-07-20 — State-ownership migration CLOSED: sub-session 3 (wrapper retirement) shipped, real regression found + fixed same session (Cowork session, continued)
+
+**Did:** Closed out `docs/STATE_OWNERSHIP_PLAN.md` (started earlier this session — see the sub-session-1 and sub-session-2-descope entries below). Sub-session 2 (plain-reference retirement) was descoped on recon — not fixing a live bug, see its own entry. Sub-session 3 (wrapper retirement) inlined ~15 true one-liner delegation wrappers at their call sites, leaving deps builders/orchestrators/`window.*` names untouched. script.js: 1,995 → 1,838 lines net across the whole migration.
+
+**Real regression found + fixed same session:** the wrapper-retirement pass deleted 6 wrappers (`sortAndRenderActiveList`, `createListItem`, `handleEnemyClick`, `removeItem`, `renderCompletedItems`, `resetAllSubTaskCheckboxes`) while missing some bare object-shorthand call sites in deps builders — real `ReferenceError`s crashing `initGame()` on boot. **Jest's 56-suite baseline stayed green the whole time** (script.js is never loaded by any test) — only live-in-Chrome verification with actual console-output reading caught it; the crashed boot otherwise looked like a plausible empty fresh-game state, not an obvious failure. Found all 6 broken sites in one systematic pass (cross-referencing every "inlined at call sites" comment against the real file) rather than fixing them one crash at a time. All 6 restored as real functions, matching `saveGame`'s existing precedent for "too many bare-reference sites to inline."
+
+Also hit a red herring mid-debugging: the live server appeared to serve stale content across what looked like genuine restarts. Root cause was the PWA service worker's cache-first strategy re-intercepting even `cache: 'no-store'` fetches on every fresh navigation (a page load always re-runs `index.html`'s own SW-registration script) — not a real file/path problem. The on-disk file was correct throughout, confirmed directly on Jeremy's machine via PowerShell `Select-String`.
+
+**State:** 56 suites, 1205/1205 (unchanged, re-confirmed after the fix). `node --check script.js` clean. Live-verified in Chrome end-to-end AFTER the fix: clean boot with zero console errors, task creation (real spawn + agenda row), completion (XP/points awarded correctly, moved to Completed Today), uncompletion (round-tripped exactly, fresh DOM row per the session-58 fix), Routines/Tasks FAB windows opened cleanly. Updated `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/DECISIONS.md`, `docs/STATE_OWNERSHIP_PLAN.md` (includes a full post-mortem section).
+
+**Next:** State-ownership migration is fully CLOSED. Nothing queued from it. Milestone 4's next open thread (per the last session-73/74 entries) is whatever Jeremy wants to pick up from ROADMAP.md's remaining Milestone 4/Known-bugs items, or a fresh Milestone 5 scoping conversation (nothing planned yet — genuinely open).
+
+**Watch out:**
+- **Standing rule now, not just this session's lesson:** Jest passing is NOT sufficient signal that a script.js edit is safe — script.js is never `require()`'d by any test file. Any future session touching script.js MUST live-verify in Chrome and read the actual console output (not just glance at the rendered page) before calling the work done.
+- **SW cache must be cleared before EVERY fresh navigation used for verification within a debugging session**, not just once at the start — a torn-down/recreated browser tab (e.g. after `tabs_context_mcp` returns a new tab because the old one died) re-triggers `index.html`'s own SW-registration script and will silently serve stale cached JS again. Unregister + `caches.delete` immediately before each navigation you're about to trust.
+- If a live server ever appears to serve stale content despite a real restart and a correct on-disk file, suspect the SW cache FIRST (see above) before suspecting the server process or file path — this cost real time this session before the SW was identified as the actual cause.
+- Mechanical multi-file script.js edits done by a delegated agent should be spot-checked with an independent systematic pass (grep every claimed-deleted name for dangling bare references) rather than trusting the agent's own "verified clean" report at face value — the agent's Jest-green result this session was accurate but insufficient, exactly per the standing rule above.
+
 ## 2026-07-20 — State-ownership migration sub-session 1 shipped: state.js now owns the 21 persisted/lifecycle fields (Cowork session, Fable plan / Sonnet execute)
 
 **Did:** Wrote `docs/STATE_OWNERSHIP_PLAN.md` (4 sub-sessions, forks resolved on Fable),
