@@ -180,7 +180,14 @@ describe('finalizeRun', () => {
             { id: 'r2', name: 'Evening', level: 1, frozenState: { frozenBy: 'h9' }, koState: null },
         ],
         definedHabits: [],
-        completionRate: (routine) => (routine.id === 'r1' ? 0.92 : null),
+        // Faithful to the REAL Heroes.completionRate contract: returns the
+        // { rate, samples } object (rate null when unrated), NOT a bare number.
+        // The old mock returned a bare number, which is exactly why the
+        // "object passed straight to starRating" bug went uncaught (stars was
+        // silently 0 on every finalized routine in production).
+        completionRate: (routine) => (routine.id === 'r1'
+            ? { rate: 0.92, samples: 10 }
+            : { rate: null, samples: 0 }),
         starRating: (rate) => (rate >= 0.9 ? 4 : 0),
     };
 
@@ -198,14 +205,18 @@ describe('finalizeRun', () => {
     test('per-routine rollup: rate/stars via injected fns, memberDamage summed by routineId, end-state flags', () => {
         const record = RunStats.finalizeRun(buildStats(), ctx);
         const [r1, r2] = record.routines;
+        // starRating receives the unwrapped numeric rate (cr.rate), and the
+        // record stores the whole { rate, samples } object as completionRate
+        // (persistence.js's 10→11 sweep + Steady Hands read `.rate` off it).
         expect(r1).toEqual({
             routineId: 'r1', name: 'Morning', level: 4, stars: 4,
-            completionRate: 0.92, memberDamage: 25,
+            completionRate: { rate: 0.92, samples: 10 }, memberDamage: 25,
             wasFrozenAtEnd: false, wasKOdAtEnd: true,
         });
+        // Unrated routine (rate null): stars null → "—", not a misleading 0★.
         expect(r2).toMatchObject({
-            routineId: 'r2', stars: null, completionRate: null, memberDamage: 0,
-            wasFrozenAtEnd: true, wasKOdAtEnd: false,
+            routineId: 'r2', stars: null, completionRate: { rate: null, samples: 0 },
+            memberDamage: 0, wasFrozenAtEnd: true, wasKOdAtEnd: false,
         });
     });
 

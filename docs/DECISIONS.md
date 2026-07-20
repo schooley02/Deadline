@@ -4,6 +4,54 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-20 — Session 67: Fix finalizeRun stars/completionRate {rate,samples} bug (Cowork)
+
+**The bug (flagged sessions 64/65/66, deferred each time as "its own session"):** the Stats window's
+"Routine Performance" section had silently shown "0★" for stars and "—" for completion on EVERY past run
+since it shipped (session 55). Root cause was a shape mismatch at two sites, both diverging from the canonical
+`HeroesView.buildChipViewModel` convention (which does `Heroes.starRating(rate.rate, tiers)`):
+
+1. **`RunStats.finalizeRun` (js/runStats.js)** passed `Heroes.completionRate`'s raw `{ rate, samples }` OBJECT
+   straight into `ctx.starRating(rate)` instead of `rate.rate`. `Heroes.starRating` then did `object >= minRate`
+   → NaN → returned 0 for every tier, so every finalized routine stored `stars: 0` regardless of real play.
+2. **`StatsView.formatCompletionRate` (js/ui/statsView.js)** did `typeof rate === 'number'` on the record's
+   `completionRate` field — but that field is deliberately the raw `{ rate, samples }` object (documented in
+   persistence.js's 10→11 note; the Steady Hands live path and the migration retro-sweep both correctly read
+   `.rate` off it). So it always fell through to "—".
+
+**Fix — keep the stored object shape, unwrap at the two defect sites.** The `{ rate, samples }` record shape is
+intentional and depended-on (persistence + achievements), so it stays. finalizeRun now unwraps `cr.rate` for
+starRating; formatCompletionRate unwraps `.rate` for display. **Additional refinement:** an unrated routine
+(`cr.rate === null`, no scored habit occurrences) now stores `stars: null` → renders "—", NOT a misleading
+"0★" — matching statsView's documented "unrated → em dash" convention. (Live hero chips show 0 stars for
+unrated, but a past-run summary reads better as "—" = "no data" than "0★" = "performed terribly".)
+
+**Why it went uncaught for 12 sessions:** BOTH tests that exercised this path (`run-stats.test.js` finalizeRun,
+`damage.test.js` gameOver rollup) mocked `completionRate` as returning a BARE NUMBER (`0.92`), not the real
+object. The bare-number mock made the old buggy `starRating(number)` call look correct. Fixed both mocks to be
+faithful to the real `Heroes.completionRate` contract, and added `test/stats-routine-performance.test.js`
+(8 tests) pinning the object-shape unwrap on the real StatsView module — including a negative control that a
+bare number is now REJECTED (renders "—"), so a regression to the old shape fails loudly.
+
+**Scope note:** only NEW finalizations get correct `stars`. Run records already in a save carry the baked-in
+`stars: 0` (can't recompute — the historical occurrence data is gone). But `completionRate` was always stored
+as the object, so the formatCompletionRate fix DOES retroactively show real percentages for old records; only
+old records' stars stay 0. Acceptable — no migration warranted.
+
+**Tests:** 49 suites, 1083/1083 (+8 net). Live-verified in Chrome (localhost:8000): injected a run record with
+one rated routine (`{rate:0.92,samples:10}`, stars 4) and one unrated (`{rate:null,samples:0}`, stars null) via
+the session-52 hand-edit protocol; Stats → Routine Performance rendered "Lv4 4★ 92%" and "Lv1 — —" exactly,
+zero console errors. Save restored to pristine (empty runHistory, schemaVersion 11). NOT committed — git
+commands in chat.
+
+**Cowork sandbox note:** the session-52 "stub Persistence.flush before reload" trick was unavailable —
+`Persistence`/`saveGame`/`requestSave` are all closure-scoped, none exposed on `window`. Worked around the
+pagehide/beforeunload flush (which re-serializes live in-memory state over a hand-edit) by monkeypatching
+`localStorage.setItem` to no-op writes to the `deadline.save` key, THEN reloading: the fresh page restores the
+patched-in value, and the old page's unload-flush is blocked. Same guard used to restore pristine afterward.
+
+---
+
 ## 2026-07-20 — Session 66: Achievements sub-session 3 — Stats window badge grid (Cowork)
 
 **Placement: Achievements section renders LAST in the Stats window (below Routine Performance), not above the

@@ -96,11 +96,16 @@ const StatsView = (() => {
         `;
     }
 
-    // Completion rate is a 0-1 fraction or null (routine not yet rated —
-    // see RunStats.finalizeRun/Heroes.completionRate). '—' matches the
-    // existing "unrated" convention (HeroesView's star display).
-    function formatCompletionRate(rate) {
-        return (typeof rate === 'number') ? `${Math.round(rate * 100)}%` : '—';
+    // A run record's `completionRate` is the RAW { rate, samples } object that
+    // Heroes.completionRate returns (see RunStats.finalizeRun + persistence.js's
+    // 10→11 note), NOT a bare number — unwrap `.rate` (0-1 fraction, or null
+    // when the routine had no scored occurrences). '—' matches the existing
+    // "unrated" convention (HeroesView's star display).
+    function formatCompletionRate(completionRate) {
+        const rate = (completionRate && typeof completionRate.rate === 'number')
+            ? completionRate.rate
+            : null;
+        return (rate !== null) ? `${Math.round(rate * 100)}%` : '—';
     }
 
     function formatStars(stars) {

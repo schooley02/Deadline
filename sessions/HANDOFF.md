@@ -13,6 +13,45 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-20 — Session 67: Fix finalizeRun stars/completionRate {rate,samples} bug (Cowork session)
+
+**Did:** Fixed the oldest known-unfixed item — the `RunStats.finalizeRun` routine-performance shape bug flagged
+in sessions 64/65/66. Two one-line-ish defect sites, both diverging from `HeroesView.buildChipViewModel`'s
+`starRating(rate.rate)` convention: (1) `js/runStats.js` `finalizeRun` passed `Heroes.completionRate`'s raw
+`{rate,samples}` OBJECT into `ctx.starRating(rate)` instead of `rate.rate` (`object >= minRate` → NaN → every
+finalized routine stored `stars: 0`); (2) `js/ui/statsView.js` `formatCompletionRate` did `typeof === 'number'`
+on the record's `completionRate` field, which is deliberately the object (per persistence.js's 10→11 note — the
+Steady Hands live path + migration retro-sweep both read `.rate` off it) → always "—". Fixed by unwrapping
+`.rate` at both sites, KEEPING the stored object shape (untouched persistence/achievements consumers). Added
+refinement: unrated routines (`rate===null`) now store `stars:null`→"—" instead of a misleading "0★". Fixed the
+two bare-number test mocks that hid the bug for 12 sessions (`run-stats.test.js`, `damage.test.js`) + new
+`test/stats-routine-performance.test.js` (8 tests). Docs: DECISIONS.md session 67, ROADMAP.md Known-bugs entry.
+
+**State:** ✅ 49 suites, 1083/1083 (+8 net). `node --check` clean on runStats.js/statsView.js. Live-verified in
+Chrome (localhost:8000): injected a run record with one rated routine (`{rate:0.92,samples:10}`, stars 4) + one
+unrated (`{rate:null,samples:0}`, stars null) via the session-52 hand-edit protocol; Stats → Routine Performance
+rendered "Lv4 4★ 92%" and "Lv1 — —" exactly, zero console errors. Jeremy's save restored to pristine (empty
+runHistory, schemaVersion 11). NOT committed — git commands given in chat.
+
+**Next:** With the finalizeRun bug closed, the open menu is: Achievements sub-session 4 (optional polish:
+near-miss nudges, unlock animation respecting fx-intensity), Run History sub-session 5 (optional polish:
+best-run highlight, vs-last-run deltas), Time Slider Week/Month scope, or the Mobile UX + accessibility pass.
+
+**Watch out:**
+- Scope of the fix: only NEW finalizations get correct `stars`. Run records ALREADY in a save keep their
+  baked-in `stars: 0` (historical occurrence data is gone — can't recompute). `completionRate` was always
+  stored as the object, so the display fix DOES retroactively show real % for old records; only old stars stay 0.
+- Cowork sandbox: `Persistence`/`saveGame`/`requestSave` are NOT on `window` (all closure-scoped), so the
+  session-52 "stub flush before reload" trick was unavailable. Worked around the pagehide/beforeunload flush
+  (which re-serializes live in-memory state over a hand-edit) by monkeypatching `localStorage.setItem` to no-op
+  writes to the `deadline.save` key before reloading. Documented in DECISIONS.md session 67.
+- Sandbox Jest: same as session 66 — copy repo `node_modules` to `$HOME` + `npm install --no-save
+  @unrs/resolver-binding-linux-x64-gnu@<matching version>`, else jest 30 throws the fake "setup.js not found"
+  error. `jest-environment-jsdom` is NOT in the repo's node_modules but the jsdom suites still ran green this
+  session (env resolved regardless).
+
+---
+
 ## 2026-07-20 — Session 66: Achievements sub-session 3 — Stats window badge grid (Cowork session)
 
 **Did:** Built the Achievements badge grid per `docs/ACHIEVEMENTS_PLAN.md` sub-session 3. statsView.js: pure

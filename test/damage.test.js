@@ -517,14 +517,22 @@ describe('gameOver — run history finalize (sub-session 2, session 53)', () => 
         const routine = { id: 'r1', name: 'Morning', level: 3, frozenState: null, koState: null };
         const deps = runHistoryDeps({
             definedRoutines: [routine],
-            heroesCompletionRate: (r) => (r.id === 'r1' ? 0.95 : null),
+            // Faithful to the REAL Heroes.completionRate contract: the { rate,
+            // samples } object, not a bare number. starRating gets the unwrapped
+            // numeric rate. (The old bare-number mock is what let the finalizeRun
+            // stars bug ship — see run-stats.test.js / DECISIONS session 67.)
+            heroesCompletionRate: (r) => (r.id === 'r1'
+                ? { rate: 0.95, samples: 12 }
+                : { rate: null, samples: 0 }),
             heroesStarRating: (rate) => (rate >= 0.9 ? 5 : 0),
         });
 
         Damage.gameOver(deps);
 
         const [rollup] = deps.getRunHistory()[0].routines;
-        expect(rollup).toMatchObject({ routineId: 'r1', completionRate: 0.95, stars: 5 });
+        expect(rollup).toMatchObject({
+            routineId: 'r1', completionRate: { rate: 0.95, samples: 12 }, stars: 5,
+        });
     });
 
     test('missing getDefinedRoutines/getDefinedHabits/heroes* fields degrade gracefully (empty routines)', () => {

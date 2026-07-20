@@ -113,15 +113,23 @@ const RunStats = (() => {
         const windowStartMs = ctx.startedAtMs;
 
         const routines = (ctx.definedRoutines || []).map(routine => {
-            const rate = ctx.completionRate
+            // `cr` is Heroes.completionRate's raw { rate, samples } object (or
+            // null when no collaborator is injected — old damage tests). The
+            // record deliberately stores that whole object as `completionRate`
+            // (persistence.js's 10→11 sweep + the Steady Hands live path read
+            // `.rate` off it). starRating, however, takes the NUMERIC rate —
+            // must unwrap `cr.rate`, matching HeroesView.buildChipViewModel.
+            // The old code passed the object straight in, so `object >= minRate`
+            // was always NaN → every finalized routine stored stars: 0.
+            const cr = ctx.completionRate
                 ? ctx.completionRate(routine, ctx.definedHabits || [], windowStartMs)
                 : null;
             return {
                 routineId: routine.id,
                 name: routine.name,
                 level: typeof routine.level === 'number' ? routine.level : 1,
-                stars: (rate != null && ctx.starRating) ? ctx.starRating(rate) : null,
-                completionRate: rate,
+                stars: (cr != null && cr.rate != null && ctx.starRating) ? ctx.starRating(cr.rate) : null,
+                completionRate: cr,
                 memberDamage: blameRows
                     .filter(row => row.routineId === routine.id)
                     .reduce((sum, row) => sum + row.totalDamage, 0),
