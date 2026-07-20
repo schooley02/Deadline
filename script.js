@@ -55,7 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // described now lives in js/items.js, js/spawning.js, and js/ui/popups.js.
     // See docs/ARCHITECTURE.md for the current module map.)
 
-    let baseHealth, playerXP, playerLevel, playerPoints, routineSlots;
     // [P2-UI-009] session 59: user preference, NOT part of the game save —
     // loaded from js/settings.js's separate `deadline.settings` key at boot
     // and applied to <body> immediately (see DOMContentLoaded below), so it
@@ -64,44 +63,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // script.js loads at the end of <body> (index.html), so document.body
     // already exists here — no need to wait for DOMContentLoaded.
     Settings.applyEffectsIntensity(effectsIntensity);
-    // Shop inventory ([P1-UI-008], 2026-07-18): plain object, item id -> held
-    // count (absent key = 0). Owned in script.js like the other scalars; reached
-    // via getPlayerInventory/setPlayerInventory accessor deps. See js/shop.js.
-    let playerInventory = {};
-    // Sick Day (frozen-slots sub-session 5, 2026-07-19): GLOBAL marker — the
-    // one occurrence date ('YYYY-MM-DD') a Sick Day token is currently
-    // excusing for EVERY habit, or null. Mirrors playerInventory's ownership
-    // pattern (owned here, reached via getSickDayDate/setSickDayDate deps).
-    // See js/items.js's useSickDayGlobally.
-    let sickDayDate = null;
-    // Run history (session 52, docs/RUN_HISTORY_PLAN.md): currentRunStats is
-    // the live run-scoped accumulator (reset by initGame); runHistory is the
-    // across-runs record list (NEVER reset by initGame — it must survive
-    // restart). Both persisted (schemaVersion 10). Pure math: js/runStats.js.
-    let currentRunStats = RunStats.freshRunStats();
-    let runHistory = [];
-    // Achievements & badges (Milestone 4, session 64, docs/ACHIEVEMENTS_PLAN.md):
-    // lifetimeStats is the persisted across-runs accumulator (like runHistory,
-    // NEVER reset by initGame — survives restart); achievements is the
-    // unlocked-tier map, `{ [tierId]: unlockedAtISO }`, never revoked. Both
-    // persisted (schemaVersion 11). Pure math: js/achievements.js.
-    let lifetimeStats = Achievements.freshLifetimeStats();
-    let achievements = Achievements.freshUnlocked();
-    let activeItems = [];
-    let completedItems = [];
-    let definedHabits = [];
-    let definedRoutines = [];
-    let itemIdCounter, gameLoopInterval, gameIsOver, daysSurvived, currentGameDate;
-    // Wall-clock ms when the current run started — "days survived" is derived
-    // from this rather than counted by a timer (see computeDaysSurvived).
-    let runStartedAtMs = null;
-    // Wall-clock ms of the previous game-loop tick, used to detect a suspended
-    // loop (laptop sleep / throttled tab). See runLiveGapCatchUp.
-    let lastLoopTickMs = null;
-    // Wall-clock ms of the last base-regen tick ([P2-GAME-012], 2026-07-18).
-    // null until the loop's first tick after a fresh game/restore plants it;
-    // see js/loop.js's updateActiveItems and js/damage.js's applyElapsedRegen.
-    let lastRegenTickMs = null;
+    // Ownership of baseHealth, playerXP, playerLevel, playerPoints,
+    // routineSlots, playerInventory, sickDayDate, currentRunStats,
+    // runHistory, lifetimeStats, achievements, activeItems, completedItems,
+    // definedHabits, definedRoutines, itemIdCounter, gameIsOver,
+    // daysSurvived, currentGameDate, runStartedAtMs, lastLoopTickMs, and
+    // lastRegenTickMs moved to js/state.js (State.getX/State.setX) —
+    // Sub-session 1, docs/STATE_OWNERSHIP_PLAN.md, 2026-07-20. Every deps
+    // builder below now sources those keys from State.* directly instead of
+    // closing over a local `let`.
+    let gameLoopInterval;
     let attackMode = false;
     // [P1-UI-006] sub-session 3, 2026-07-19 — ephemeral (NOT persisted, no
     // schema bump this session) per-routine star-rating memory for
@@ -147,14 +118,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // js/damage.js (Milestone 2 extraction #3, 2026-07-18) — thin wrapper so
     // the call sites are unchanged.
     function computeDaysSurvived() {
-        return Damage.computeDaysSurvived(runStartedAtMs, Date.now(), CONFIG.MS_PER_REAL_DAY);
+        return Damage.computeDaysSurvived(State.getRunStartedAtMs(), Date.now(), CONFIG.MS_PER_REAL_DAY);
     }
 
     // Thin wrappers — real implementations live in js/ui/hud.js
     // (Milestone 2 UI extraction session 2, 2026-07-18). Call sites unchanged.
     function updatePlayerDisplays() {
         Hud.updatePlayerDisplays({
-            playerXP, playerLevel, playerPoints, routineSlots,
+            playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(),
+            playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(),
             pointsPerTask: POINTS_PER_TASK,
             playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay,
             playerPointsStat, playerPointsNudge
@@ -162,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateTaskCountDisplay() {
-        Hud.updateTaskCountDisplay({ activeItems, taskCountDisplay });
+        Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay });
     }
 
     // --- Persistence (js/persistence.js) ---
@@ -230,10 +202,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // FrozenNotice called as a bare stable global (loads before script.js),
     // same pattern as onRoutineFrozen/onStreakMilestone below.
     function applyLifetimeProgress(mutator) {
+        const lifetimeStats = State.getLifetimeStats();
         mutator(lifetimeStats);
-        const newlyCrossed = Achievements.evaluateAll(CONFIG.ACHIEVEMENTS, lifetimeStats, achievements);
+        const newlyCrossed = Achievements.evaluateAll(CONFIG.ACHIEVEMENTS, lifetimeStats, State.getAchievements());
         if (newlyCrossed.length) {
-            achievements = Achievements.recordUnlocks(achievements, newlyCrossed, new Date().toISOString());
+            State.setAchievements(Achievements.recordUnlocks(State.getAchievements(), newlyCrossed, new Date().toISOString()));
             FrozenNotice.showAchievementUnlockNotice(newlyCrossed);
         }
     }
@@ -261,18 +234,19 @@ document.addEventListener('DOMContentLoaded', () => {
             gameCanvas, baseElement, baseHealthDisplay, gameOverMessage,
             levelUpMessage, restartButton, activeItemsListUL, attackButton,
 
-            // state getters
-            getBaseHealth: () => baseHealth,
-            getPlayerXP: () => playerXP,
-            getPlayerLevel: () => playerLevel,
-            getPlayerPoints: () => playerPoints,
-            getRoutineSlots: () => routineSlots,
-            getPlayerInventory: () => playerInventory,
-            getSickDayDate: () => sickDayDate,
-            getCurrentRunStats: () => currentRunStats,
-            getRunHistory: () => runHistory,
-            getLifetimeStats: () => lifetimeStats,
-            getAchievements: () => achievements,
+            // state getters (State.* — ownership moved to js/state.js,
+            // Sub-session 1, docs/STATE_OWNERSHIP_PLAN.md, 2026-07-20)
+            getBaseHealth: State.getBaseHealth,
+            getPlayerXP: State.getPlayerXP,
+            getPlayerLevel: State.getPlayerLevel,
+            getPlayerPoints: State.getPlayerPoints,
+            getRoutineSlots: State.getRoutineSlots,
+            getPlayerInventory: State.getPlayerInventory,
+            getSickDayDate: State.getSickDayDate,
+            getCurrentRunStats: State.getCurrentRunStats,
+            getRunHistory: State.getRunHistory,
+            getLifetimeStats: State.getLifetimeStats,
+            getAchievements: State.getAchievements,
             // Run history sub-session 2 (session 53) — Heroes loads AFTER
             // damage.js in index.html, so gameOver's finalize step reaches
             // Heroes' math through these pre-bound functions rather than a
@@ -308,49 +282,49 @@ document.addEventListener('DOMContentLoaded', () => {
                     stats.steadyRoutineRuns = (stats.steadyRoutineRuns || 0) + qualifying;
                 }
             }),
-            getItemIdCounter: () => itemIdCounter,
-            getDaysSurvived: () => daysSurvived,
-            getRunStartedAtMs: () => runStartedAtMs,
-            getCurrentGameDate: () => currentGameDate,
-            getActiveItems: () => activeItems,
-            getCompletedItems: () => completedItems,
-            getDefinedHabits: () => definedHabits,
-            getDefinedRoutines: () => definedRoutines,
+            getItemIdCounter: State.getItemIdCounter,
+            getDaysSurvived: State.getDaysSurvived,
+            getRunStartedAtMs: State.getRunStartedAtMs,
+            getCurrentGameDate: State.getCurrentGameDate,
+            getActiveItems: State.getActiveItems,
+            getCompletedItems: State.getCompletedItems,
+            getDefinedHabits: State.getDefinedHabits,
+            getDefinedRoutines: State.getDefinedRoutines,
             getGameLoopInterval: () => gameLoopInterval,
-            isGameOver: () => gameIsOver,
+            isGameOver: State.isGameOver,
             baseWidth: BASE_WIDTH,
             gameScreenWidth: GAME_SCREEN_WIDTH,
 
-            // state setters
+            // state setters (State.* — see getters comment above)
             setGameScreenWidth: (n) => { GAME_SCREEN_WIDTH = n; },
             setBaseWidth: (n) => { BASE_WIDTH = n; },
             setEnemyWidth: (n) => { ENEMY_WIDTH = n; },
             setHabitEnemyWidth: (n) => { HABIT_ENEMY_WIDTH = n; },
-            setPlayerXP: (n) => { playerXP = n; },
-            setPlayerLevel: (n) => { playerLevel = n; },
-            setPlayerPoints: (n) => { playerPoints = n; },
-            setRoutineSlots: (n) => { routineSlots = n; },
-            setPlayerInventory: (obj) => { playerInventory = obj; },
-            setSickDayDate: (d) => { sickDayDate = d; },
-            setCurrentRunStats: (obj) => { currentRunStats = obj; },
-            setRunHistory: (arr) => { runHistory = arr; },
-            setLifetimeStats: (obj) => { lifetimeStats = obj; },
-            setAchievements: (obj) => { achievements = obj; },
-            setBaseHealth: (n) => { baseHealth = n; },
-            setActiveItems: (arr) => { activeItems = arr; },
-            setCompletedItems: (arr) => { completedItems = arr; },
-            setDefinedHabits: (arr) => { definedHabits = arr; },
-            setDefinedRoutines: (arr) => { definedRoutines = arr; },
-            setItemIdCounter: (n) => { itemIdCounter = n; },
-            setGameIsOver: (v) => { gameIsOver = v; },
-            setGameOver: () => { gameIsOver = true; },
-            setDaysSurvived: (n) => { daysSurvived = n; },
-            setRunStartedAtMs: (n) => { runStartedAtMs = n; },
-            setLastLoopTickMs: (n) => { lastLoopTickMs = n; },
-            getLastRegenTickMs: () => lastRegenTickMs,
-            setLastRegenTickMs: (n) => { lastRegenTickMs = n; },
+            setPlayerXP: State.setPlayerXP,
+            setPlayerLevel: State.setPlayerLevel,
+            setPlayerPoints: State.setPlayerPoints,
+            setRoutineSlots: State.setRoutineSlots,
+            setPlayerInventory: State.setPlayerInventory,
+            setSickDayDate: State.setSickDayDate,
+            setCurrentRunStats: State.setCurrentRunStats,
+            setRunHistory: State.setRunHistory,
+            setLifetimeStats: State.setLifetimeStats,
+            setAchievements: State.setAchievements,
+            setBaseHealth: State.setBaseHealth,
+            setActiveItems: State.setActiveItems,
+            setCompletedItems: State.setCompletedItems,
+            setDefinedHabits: State.setDefinedHabits,
+            setDefinedRoutines: State.setDefinedRoutines,
+            setItemIdCounter: State.setItemIdCounter,
+            setGameIsOver: State.setGameIsOver,
+            setGameOver: State.setGameOver,
+            setDaysSurvived: State.setDaysSurvived,
+            setRunStartedAtMs: State.setRunStartedAtMs,
+            setLastLoopTickMs: State.setLastLoopTickMs,
+            getLastRegenTickMs: State.getLastRegenTickMs,
+            setLastRegenTickMs: State.setLastRegenTickMs,
             setAttackMode: (v) => { attackMode = v; },
-            setCurrentGameDate: (d) => { currentGameDate = d; },
+            setCurrentGameDate: State.setCurrentGameDate,
             setGameLoopInterval: (id) => { gameLoopInterval = id; },
             setOfflineCatchUpActive: (v) => { offlineCatchUpActive = v; },
 
@@ -427,18 +401,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function checkPlayerLevelUp() {
         const result = Progression.checkLevelUp(
-            { level: playerLevel, xp: playerXP, slots: routineSlots },
+            { level: State.getPlayerLevel(), xp: State.getPlayerXP(), slots: State.getRoutineSlots() },
             LEVEL_XP_THRESHOLDS, ROUTINE_SLOTS_PER_LEVEL, MAX_PLAYER_LEVEL
         );
 
         if (!result.leveledUp) return false;
 
-        playerLevel = result.level;
+        State.setPlayerLevel(result.level);
         updatePlayerDisplays();
         showLevelUpMessage();
 
         if (result.slotsUnlocked) {
-            routineSlots = result.slots;
+            State.setRoutineSlots(result.slots);
             updatePlayerDisplays();
             updateRoutineDisplay();
         }
@@ -449,7 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Thin wrapper — real implementation lives in js/ui/hud.js
     // (Milestone 2 UI extraction session 2, 2026-07-18). Call site unchanged.
     function showLevelUpMessage() {
-        Hud.showLevelUpMessage({ playerLevel, levelUpMessage });
+        Hud.showLevelUpMessage({ playerLevel: State.getPlayerLevel(), levelUpMessage });
     }
 
     // --- Items (js/items.js) ---
@@ -472,14 +446,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // is called as a bare stable global inside js/items.js, same as Habits/CONFIG.
     function itemsDeps() {
         return {
-            activeItems,
-            completedItems: () => completedItems,
-            definedHabits: () => definedHabits,
+            activeItems: State.getActiveItems(),
+            completedItems: () => State.getCompletedItems(),
+            definedHabits: () => State.getDefinedHabits(),
             // Frozen routine slots ("Frozen routine slots + recovery" ticket,
             // sub-session 1, 2026-07-19): items.js looks up a negative
             // habit's owning routine to check/clear frozenState. GETTER for
             // the same reassignment reason as definedHabits above.
-            definedRoutines: () => definedRoutines,
+            definedRoutines: () => State.getDefinedRoutines(),
             // Sub-session 3 (2026-07-19): notifies the player exactly once
             // when a routine freezes. FrozenNotice is a small dedicated UI
             // module (js/ui/frozenNotice.js), same "module called as a bare
@@ -505,20 +479,20 @@ document.addEventListener('DOMContentLoaded', () => {
             onRoutineCelebrate: (routine) => {
                 (heroFxMemory[routine.id] = heroFxMemory[routine.id] || {}).celebratedAt = Date.now();
             },
-            isGameOver: () => gameIsOver,
-            getPlayerXP: () => playerXP,
-            setPlayerXP: (n) => { playerXP = n; },
-            getPlayerPoints: () => playerPoints,
-            setPlayerPoints: (n) => { playerPoints = n; },
+            isGameOver: State.isGameOver,
+            getPlayerXP: State.getPlayerXP,
+            setPlayerXP: State.setPlayerXP,
+            getPlayerPoints: State.getPlayerPoints,
+            setPlayerPoints: State.setPlayerPoints,
             // Run history (session 53, docs/RUN_HISTORY_PLAN.md sub-session
             // 2): recordRunDamageForItem/completion-counter call sites read
             // the live accumulator through this getter (same "owned in
             // script.js, reached via accessor" pattern as everything else
             // here — the object itself is mutated in place, no setter needed).
-            getCurrentRunStats: () => currentRunStats,
+            getCurrentRunStats: State.getCurrentRunStats,
             // Frozen-slots sub-session 5 (2026-07-19): Items.useSickDayGlobally
             // writes the global Sick Day marker through this setter.
-            setSickDayDate: (d) => { sickDayDate = d; },
+            setSickDayDate: State.setSickDayDate,
             gameScreenWidth: GAME_SCREEN_WIDTH,
             baseWidth: BASE_WIDTH,
             enemyWidth: ENEMY_WIDTH,
@@ -539,7 +513,11 @@ document.addEventListener('DOMContentLoaded', () => {
             xpPerHabitComplete: XP_PER_HABIT_COMPLETE,
             pointsPerTask: POINTS_PER_TASK,
             pointsPerHabit: POINTS_PER_HABIT,
-            getNextId: () => itemIdCounter++,
+            getNextId: () => {
+                const n = State.getItemIdCounter();
+                State.setItemIdCounter(n + 1);
+                return n;
+            },
             gameCanvas,
             handleEnemyClick, createListItem, sortAndRenderActiveList,
             resetAllSubTaskCheckboxes, updateTaskCountDisplay, renderCompletedItems,
@@ -575,7 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function addItemToGame(itemData) {
         return Spawning.addItemToGame(itemData, {
             gameCanvas,
-            activeItems,
+            activeItems: State.getActiveItems(),
             baseWidth: BASE_WIDTH,
             dims: {
                 enemyWidth: ENEMY_WIDTH,
@@ -592,7 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateTaskCountDisplay,
             sortAndRenderActiveList,
             saveGame,
-            isGameOver: () => gameIsOver
+            isGameOver: State.isGameOver
         });
     }
 
@@ -610,13 +588,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // restoreGameState) rather than only mutated in place.
     function agendaListDeps() {
         return {
-            activeItems, categoryStyles, completeItem,
-            isGameOver: () => gameIsOver,
+            activeItems: State.getActiveItems(), categoryStyles, completeItem,
+            isGameOver: State.isGameOver,
             showEditTaskModal, showEditHabitInstanceModal, createSubTaskPrompt,
             activeItemsListUL,
-            completedItems: () => completedItems,
+            completedItems: () => State.getCompletedItems(),
             uncompleteItem,
-            definedHabits: () => definedHabits,
+            definedHabits: () => State.getDefinedHabits(),
             showEditHabitForm
         };
     }
@@ -636,23 +614,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Grep before removing.
     function popupsDeps() {
         return {
-            gameIsOver, activeItems, completeItem, indulgeHabit, createListItem,
+            gameIsOver: State.isGameOver(), activeItems: State.getActiveItems(), completeItem, indulgeHabit, createListItem,
             sortAndRenderActiveList, saveGame, recomputeOverdueStateAfterEdit,
             createTaskItemData, addItemToGame,
             // Pushback ([P1-UI-008] session 4): the pushback tiers, a live
             // points getter (popup re-checks affordability after each buy),
             // and the handler that pays + shifts the target's due date.
             pushbackCatalog: CONFIG.SHOP_ITEMS.filter(i => i.category === 'pushback'),
-            getPlayerPoints: () => playerPoints,
+            getPlayerPoints: State.getPlayerPoints,
             onPushback: handlePushback,
             // Cheat Day targeting ([P1-DATA-005] sub-session 5, 2026-07-19):
             // held count for the popup's "Use Cheat Day (N held)" button,
             // whether THIS lurker's day already has one active (shows the
             // "active" note instead), and the handler that consumes a token
             // + sets the target habit definition's cheatDayDate.
-            getCheatDayHeldCount: () => Shop.heldCount(playerInventory, 'cheat_day'),
+            getCheatDayHeldCount: () => Shop.heldCount(State.getPlayerInventory(), 'cheat_day'),
             isCheatDayActiveForItem: (item) => {
-                const habitDef = definedHabits.find(def => def.id === item.definitionId);
+                const habitDef = State.getDefinedHabits().find(def => def.id === item.definitionId);
                 return !!habitDef && Items.isCheatDayExcused(habitDef, item.originalDueDate);
             },
             onUseCheatDay: handleUseCheatDay,
@@ -661,7 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // (shown for ANY habit type, not just negative — see popups.js's
             // buildSkipDaySectionHtml) and the handler that consumes a token
             // + excuses + removes the targeted instance.
-            getSkipDayHeldCount: () => Shop.heldCount(playerInventory, 'skip_day'),
+            getSkipDayHeldCount: () => Shop.heldCount(State.getPlayerInventory(), 'skip_day'),
             onUseSkipDay: handleUseSkipDay,
             // Dependent due dates ([P1-DATA-004] sub-session 2): after a
             // PARENT's deadline is edited, re-clamp any children now due
@@ -723,7 +701,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // [P1-DATA-005], 2026-07-19, Cheat Day token). Called by state.js's
     // restoreGameState (stateDeps()) ahead of the check-in-eligible fork.
     function isCheatDayExcusedForItem(item) {
-        const habitDef = definedHabits.find(def => def.id === item.definitionId);
+        const habitDef = State.getDefinedHabits().find(def => def.id === item.definitionId);
         return !!habitDef && Items.isCheatDayExcused(habitDef, item.originalDueDate);
     }
 
@@ -737,7 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // itemsDeps() precedent.
     function checkInDeps() {
         return {
-            getDefinedHabits: () => definedHabits,
+            getDefinedHabits: State.getDefinedHabits,
             resolvePendingCheckIn,
         };
     }
@@ -797,7 +775,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // (Milestone 2 extraction, 2026-07-17). Thin wrapper — call site unchanged.
     function getSubTaskClusterOffset(item) {
         return Movement.getSubTaskClusterOffset(item, {
-            activeItems,
+            activeItems: State.getActiveItems(),
             enemyWidth: ENEMY_WIDTH
         });
     }
@@ -813,7 +791,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // (Milestone 2 extraction, 2026-07-17). Thin wrapper — call site unchanged.
     function calculateTimelineXWithClustering(item, currentTime) {
         return Movement.calculateTimelineXWithClustering(item, currentTime, {
-            activeItems,
+            activeItems: State.getActiveItems(),
             dims: {
                 gameScreenWidth: GAME_SCREEN_WIDTH,
                 baseWidth: BASE_WIDTH,
@@ -828,7 +806,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // call site unchanged.
     function getItemTopPosition(item, itemHeight) {
         return Movement.getItemTopPosition(item, itemHeight, {
-            activeItems,
+            activeItems: State.getActiveItems(),
             canvasHeight: gameCanvas.offsetHeight
         });
     }
@@ -851,18 +829,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // initGame via stateDeps().updateGame, offline catch-up) are unchanged.
     function loopDeps() {
         return {
-            isGameOver: () => gameIsOver,
+            isGameOver: State.isGameOver,
             isOfflineCatchUpActive: () => offlineCatchUpActive,
             // Time slider (Milestone 4, 2026-07-20) — REQUIRED, same
             // "one owner at a time" contract as isOfflineCatchUpActive above.
             isTimePreviewActive: () => timePreviewActive,
-            activeItems,
+            activeItems: State.getActiveItems(),
             baseWidth: BASE_WIDTH,
             gameScreenWidth: GAME_SCREEN_WIDTH,
-            getLastLoopTickMs: () => lastLoopTickMs,
-            setLastLoopTickMs: (n) => { lastLoopTickMs = n; },
-            getLastRegenTickMs: () => lastRegenTickMs,
-            setLastRegenTickMs: (n) => { lastRegenTickMs = n; },
+            getLastLoopTickMs: State.getLastLoopTickMs,
+            setLastLoopTickMs: State.setLastLoopTickMs,
+            getLastRegenTickMs: State.getLastRegenTickMs,
+            setLastRegenTickMs: State.setLastRegenTickMs,
             getLastAutosaveMs: () => lastAutosaveMs,
             setLastAutosaveMs: (n) => { lastAutosaveMs = n; },
             markAsOverdue,
@@ -923,7 +901,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
             sliderEl: timeSliderEl,
             labelEl: timeSliderLabelEl,
-            getActiveItems: () => activeItems,
+            getActiveItems: State.getActiveItems,
             isNonThreatening: Items.isNonThreatening,
             calculateTimelineXWithClustering,
             updateMidnightLine,
@@ -938,16 +916,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // Jeremy's follow-up: "the preview also needs to show base
             // damage and freezes"). One optional-collaborator group, see
             // timeSliderView.js's header for the full contract.
-            getBaseHealth: () => baseHealth,
-            getLastRegenTickMs: () => lastRegenTickMs,
+            getBaseHealth: State.getBaseHealth,
+            getLastRegenTickMs: State.getLastRegenTickMs,
             baseElement,
             baseHealthDisplayEl: baseHealthDisplay,
             resolveBaseImage: Damage.resolveBaseImage,
-            getDefinedRoutines: () => definedRoutines,
+            getDefinedRoutines: State.getDefinedRoutines,
             getRoutineIdForItem: (item) => {
                 const routine = Items.findRoutineForItem(item, {
-                    definedHabits: () => definedHabits,
-                    definedRoutines: () => definedRoutines,
+                    definedHabits: State.getDefinedHabits,
+                    definedRoutines: State.getDefinedRoutines,
                 });
                 return routine ? routine.id : null;
             },
@@ -972,13 +950,13 @@ document.addEventListener('DOMContentLoaded', () => {
             activeItemsListEl: activeItemsListUL,
             timeSliderEl,
             weekStripRowEl,
-            getCurrentGameDate: () => currentGameDate,
-            getDefinedHabits: () => definedHabits,
-            getDefinedRoutines: () => definedRoutines,
+            getCurrentGameDate: State.getCurrentGameDate,
+            getDefinedHabits: State.getDefinedHabits,
+            getDefinedRoutines: State.getDefinedRoutines,
             getDefinedTasks: () => window.definedTasks || [],
-            getCompletedItems: () => completedItems,
-            getActiveItems: () => activeItems,
-            getSickDayDate: () => sickDayDate,
+            getCompletedItems: State.getCompletedItems,
+            getActiveItems: State.getActiveItems,
+            getSickDayDate: State.getSickDayDate,
             dims: () => ({
                 gameScreenWidth: GAME_SCREEN_WIDTH,
                 baseWidth: BASE_WIDTH,
@@ -1031,7 +1009,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Habit system functions
     function createHabitDefinition(name, category, scheduleOrFrequency, timeOfDay, isNegative = false) {
         const newHabitDef = {
-            id: `habitDef_${definedHabits.length}_${Date.now()}`,
+            id: `habitDef_${State.getDefinedHabits().length}_${Date.now()}`,
             name,
             category,
             // Recurrence is a `schedule` object as of schemaVersion 3 (2026-07-18).
@@ -1067,8 +1045,8 @@ document.addEventListener('DOMContentLoaded', () => {
             skipDayDate: null
         };
 
-        definedHabits.push(newHabitDef);
-        generateDailyHabitInstances(currentGameDate);
+        State.getDefinedHabits().push(newHabitDef);
+        generateDailyHabitInstances(State.getCurrentGameDate());
         saveGame();
     }
 
@@ -1079,7 +1057,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // deliberately-preserved pre-existing bug (streak-bonus asymmetry).
     function habitInstanceDeps() {
         return {
-            getNextId: () => itemIdCounter++,
+            getNextId: () => {
+                const n = State.getItemIdCounter();
+                State.setItemIdCounter(n + 1);
+                return n;
+            },
             calculateTimelinePosition,
             gameScreenWidth: GAME_SCREEN_WIDTH,
             habitEnemyWidth: HABIT_ENEMY_WIDTH,
@@ -1087,14 +1069,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // habit's fixed lurk x anchors to the far right of the canvas
             // (gameScreenWidth above), not the base.
             negativeLurkRightMarginPx: CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX,
-            definedHabits,
-            definedRoutines,
-            activeItems,
+            definedHabits: State.getDefinedHabits(),
+            definedRoutines: State.getDefinedRoutines(),
+            activeItems: State.getActiveItems(),
             addItemToGame,
             sortAndRenderActiveList,
             // Frozen-slots sub-session 5 (2026-07-19): the global Sick Day
             // spawn gate — see Habits.selectHabitDefsToSpawn.
-            sickDayDate
+            sickDayDate: State.getSickDayDate()
         };
     }
 
@@ -1122,14 +1104,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // unchanged. See docs/ARCHITECTURE.md / DECISIONS.md.
     function routineTaskInstanceDeps() {
         return {
-            getNextId: () => itemIdCounter++,
+            getNextId: () => {
+                const n = State.getItemIdCounter();
+                State.setItemIdCounter(n + 1);
+                return n;
+            },
             gameScreenWidth: GAME_SCREEN_WIDTH,
             enemyWidth: ENEMY_WIDTH,
             calculateTimelineXWithClustering,
             definedTasks: window.definedTasks || (window.definedTasks = []),
-            definedRoutines,
-            activeItems,
-            completedItems,
+            definedRoutines: State.getDefinedRoutines(),
+            activeItems: State.getActiveItems(),
+            completedItems: State.getCompletedItems(),
             addItemToGame,
             sortAndRenderActiveList
         };
@@ -1150,27 +1136,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Routine management functions
     function createRoutineDefinition() {
-        const result = Routines.createRoutineDefinition(routineNameInput.value, definedRoutines);
+        const result = Routines.createRoutineDefinition(routineNameInput.value, State.getDefinedRoutines());
         if (!result.ok) {
             alert(result.reason === 'empty' ? "Please enter a routine name." : "Routine name already exists.");
             return;
         }
 
-        definedRoutines.push(result.routine);
+        State.getDefinedRoutines().push(result.routine);
         routineNameInput.value = '';
         renderDefinedRoutines();
         saveGame();
     }
 
     function deleteRoutine(routineId) {
-        const routine = definedRoutines.find(r => r.id === routineId);
+        const routine = State.getDefinedRoutines().find(r => r.id === routineId);
         if (!routine) return;
 
         if (confirm(`Are you sure you want to delete the routine "${routine.name}"?`)) {
             // Recalls active habit/task instances before removing the routine
             // — see js/routines.js's deleteRoutine for the bugfix rationale
             // and DECISIONS.md.
-            Routines.deleteRoutine(routineId, { definedRoutines, activeItems, removeItem, definedHabits });
+            Routines.deleteRoutine(routineId, { definedRoutines: State.getDefinedRoutines(), activeItems: State.getActiveItems(), removeItem, definedHabits: State.getDefinedHabits() });
             saveGame();
 
             // Update routines window if open
@@ -1199,30 +1185,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function removeHabitFromRoutine(routineId, habitDefId) {
-        if (Routines.removeHabitFromRoutine(routineId, habitDefId, definedRoutines, definedHabits)) {
+        if (Routines.removeHabitFromRoutine(routineId, habitDefId, State.getDefinedRoutines(), State.getDefinedHabits())) {
             renderDefinedRoutines();
             saveGame();
         }
     }
 
     function createNewHabitInRoutine(routineId, habitData) {
-        const newHabit = Routines.createNewHabitInRoutine(routineId, habitData, definedRoutines, definedHabits);
+        const newHabit = Routines.createNewHabitInRoutine(routineId, habitData, State.getDefinedRoutines(), State.getDefinedHabits());
         if (!newHabit) return;
 
-        generateDailyHabitInstances(currentGameDate);
+        generateDailyHabitInstances(State.getCurrentGameDate());
         renderDefinedRoutines();
         saveGame();
     }
 
     function createNewTaskInRoutine(routineId, taskData) {
         if (!window.definedTasks) window.definedTasks = [];
-        const newTaskDef = Routines.createNewTaskInRoutine(routineId, taskData, definedRoutines, definedTasks);
+        const newTaskDef = Routines.createNewTaskInRoutine(routineId, taskData, State.getDefinedRoutines(), definedTasks);
         if (!newTaskDef) return;
 
         // Spawn today's instance immediately, matching createNewHabitInRoutine.
         // Without this the definition existed but never became a live enemy —
         // the task appeared in the routine window only. See DECISIONS.md.
-        generateDailyRoutineTaskInstances(currentGameDate);
+        generateDailyRoutineTaskInstances(State.getCurrentGameDate());
         renderDefinedRoutines();
         saveGame();
     }
@@ -1234,7 +1220,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // "module called as bare stable global" pattern as itemsDeps()'s
     // onRoutineFrozen.
     function editHabitInRoutine(habitId, updatedData) {
-        if (Routines.editHabitInRoutine(habitId, updatedData, definedHabits, definedRoutines, {
+        if (Routines.editHabitInRoutine(habitId, updatedData, State.getDefinedHabits(), State.getDefinedRoutines(), {
             onRoutineUnfrozen: (routine, habitDef) => {
                 FrozenNotice.showRoutineUnfrozenNotice(routine.name, habitDef.name);
             }
@@ -1260,7 +1246,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function removeTaskFromRoutine(routineId, taskId) {
-        Routines.removeTaskFromRoutine(routineId, taskId, definedRoutines);
+        Routines.removeTaskFromRoutine(routineId, taskId, State.getDefinedRoutines());
     }
 
     // ------------------------------------------------------------------
@@ -1280,22 +1266,22 @@ document.addEventListener('DOMContentLoaded', () => {
     //    call unconditionally.
     // ------------------------------------------------------------------
     function recallInstancesIfRoutineUnusable(destRoutineId, definitionId, type) {
-        const dest = definedRoutines.find(r => r.id === destRoutineId);
+        const dest = State.getDefinedRoutines().find(r => r.id === destRoutineId);
         if (!dest) return;
         const usable = type === 'habit'
             ? FrozenSlots.isRoutineUsableForHabit(dest, definitionId)
             : !FrozenSlots.isRoutineSuspended(dest);
         if (usable) return;
-        Routines.selectActiveInstanceIdsForDefinition(activeItems, definitionId, type)
+        Routines.selectActiveInstanceIdsForDefinition(State.getActiveItems(), definitionId, type)
             .forEach(id => removeItem(id));
     }
 
     function transferHabitBetweenRoutines(sourceRoutineId, destRoutineId, habitDefId) {
         const result = Routines.transferHabitBetweenRoutines(
-            sourceRoutineId, destRoutineId, habitDefId, definedRoutines, definedHabits);
+            sourceRoutineId, destRoutineId, habitDefId, State.getDefinedRoutines(), State.getDefinedHabits());
         if (result.ok) {
             recallInstancesIfRoutineUnusable(destRoutineId, habitDefId, 'habit');
-            generateDailyHabitInstances(currentGameDate);
+            generateDailyHabitInstances(State.getCurrentGameDate());
             renderDefinedRoutines();
             saveGame();
         }
@@ -1304,10 +1290,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function transferTaskBetweenRoutines(sourceRoutineId, destRoutineId, taskId) {
         const result = Routines.transferTaskBetweenRoutines(
-            sourceRoutineId, destRoutineId, taskId, definedRoutines);
+            sourceRoutineId, destRoutineId, taskId, State.getDefinedRoutines());
         if (result.ok) {
             recallInstancesIfRoutineUnusable(destRoutineId, taskId, 'task');
-            generateDailyRoutineTaskInstances(currentGameDate);
+            generateDailyRoutineTaskInstances(State.getCurrentGameDate());
             renderDefinedRoutines();
             saveGame();
         }
@@ -1341,18 +1327,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function routineViewsDeps() {
         return {
             definedRoutinesListUL, activeRoutineCountDisplay, managementWindows,
-            definedRoutines: () => definedRoutines,
-            definedHabits: () => definedHabits,
+            definedRoutines: State.getDefinedRoutines,
+            definedHabits: State.getDefinedHabits,
             toggleRoutineActive, deleteRoutine, removeHabitFromRoutine, removeTaskFromRoutine,
             addHabitToRoutine, populateRoutinesWindow, saveGame,
             // [P2-UI-013] session 62 — transfer wrappers (recall/spawn/save
             // reconciliation lives up in the wrappers, not the modal).
             transferHabitBetweenRoutines, transferTaskBetweenRoutines,
             createNewHabitInRoutine, createNewTaskInRoutine, editHabitInRoutine, editTaskInRoutine,
-            activeItems, createListItem, sortAndRenderActiveList,
+            activeItems: State.getActiveItems(), createListItem, sortAndRenderActiveList,
             // [P1-UI-006] sub-session 4, 2026-07-19 — star-rating window start
             // for the Manage modal's hero stats block (buildHeroStatsHtml).
-            runStartedAtMs
+            runStartedAtMs: State.getRunStartedAtMs()
         };
     }
 
@@ -1367,7 +1353,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function addHabitToRoutine(routineId, habitDefId) {
-        const result = Routines.addHabitToRoutine(routineId, habitDefId, definedRoutines, definedHabits);
+        const result = Routines.addHabitToRoutine(routineId, habitDefId, State.getDefinedRoutines(), State.getDefinedHabits());
         if (!result.ok) {
             alert(result.reason === 'not-found' ? 'Error finding routine or habit.' : 'Habit already in routine.');
             return;
@@ -1385,19 +1371,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function clearActiveInstancesForRoutine(routineId) {
-        Routines.clearActiveInstancesForRoutine(routineId, { definedRoutines, activeItems, removeItem });
+        Routines.clearActiveInstancesForRoutine(routineId, { definedRoutines: State.getDefinedRoutines(), activeItems: State.getActiveItems(), removeItem });
     }
 
     function toggleRoutineActive(routineId) {
         Routines.toggleRoutineActive(routineId, {
-            definedRoutines,
-            routineSlots,
-            activeItems,
+            definedRoutines: State.getDefinedRoutines(),
+            routineSlots: State.getRoutineSlots(),
+            activeItems: State.getActiveItems(),
             removeItem,
             alert,
             generateDailyHabitInstances,
             generateDailyRoutineTaskInstances,
-            currentGameDate,
+            currentGameDate: State.getCurrentGameDate(),
             saveGame
         });
     }
@@ -1430,10 +1416,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderHeroesAtBase(routinesOverride) {
         HeroesView.renderHeroesAtBase({
             containerEl: heroBaseZoneEl,
-            definedRoutines: routinesOverride || definedRoutines,
-            definedHabits,
+            definedRoutines: routinesOverride || State.getDefinedRoutines(),
+            definedHabits: State.getDefinedHabits(),
             config: CONFIG,
-            runStartedAtMs,
+            runStartedAtMs: State.getRunStartedAtMs(),
             starMemory: heroStarMemory,
             onStarThresholdCrossed: (routine, stars) => {
                 FrozenNotice.showHeroStarUpNotice(routine.name, stars);
@@ -1524,13 +1510,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function openManagementWindow(type) {
         ManagementWindows.openManagementWindow(type, {
-            managementWindows, closeFabMenu, activeItems, definedHabits,
-            definedRoutines, routineSlots, showRoutineManagement, toggleRoutineActive,
-            runStartedAtMs,
-            shopCatalog: CONFIG.SHOP_ITEMS, playerInventory, playerPoints, baseHealth,
+            managementWindows, closeFabMenu, activeItems: State.getActiveItems(), definedHabits: State.getDefinedHabits(),
+            definedRoutines: State.getDefinedRoutines(), routineSlots: State.getRoutineSlots(), showRoutineManagement, toggleRoutineActive,
+            runStartedAtMs: State.getRunStartedAtMs(),
+            shopCatalog: CONFIG.SHOP_ITEMS, playerInventory: State.getPlayerInventory(), playerPoints: State.getPlayerPoints(), baseHealth: State.getBaseHealth(),
             onShopBuy: handleShopPurchase, onShopUse: handleShopUse,
-            currentRunStats, runHistory, daysSurvivedSoFar: computeDaysSurvived(),
-            achievementsCatalog: CONFIG.ACHIEVEMENTS, lifetimeStats, achievements,
+            currentRunStats: State.getCurrentRunStats(), runHistory: State.getRunHistory(), daysSurvivedSoFar: computeDaysSurvived(),
+            achievementsCatalog: CONFIG.ACHIEVEMENTS, lifetimeStats: State.getLifetimeStats(), achievements: State.getAchievements(),
             currentEffectsIntensity: effectsIntensity,
             onChangeEffectsIntensity: handleEffectsIntensityChange
         });
@@ -1556,17 +1542,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function populateTasksWindow() {
-        ManagementWindows.populateTasksWindow({ activeItems });
+        ManagementWindows.populateTasksWindow({ activeItems: State.getActiveItems() });
     }
 
     function populateHabitsWindow() {
-        ManagementWindows.populateHabitsWindow({ definedHabits });
+        ManagementWindows.populateHabitsWindow({ definedHabits: State.getDefinedHabits() });
     }
 
     function populateRoutinesWindow() {
         ManagementWindows.populateRoutinesWindow({
-            definedRoutines, definedHabits, routineSlots, showRoutineManagement, toggleRoutineActive,
-            runStartedAtMs
+            definedRoutines: State.getDefinedRoutines(), definedHabits: State.getDefinedHabits(), routineSlots: State.getRoutineSlots(), showRoutineManagement, toggleRoutineActive,
+            runStartedAtMs: State.getRunStartedAtMs()
         });
     }
 
@@ -1577,7 +1563,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // of its own to reuse.
     function populateShopWindow() {
         ShopView.renderShopWindow({
-            catalog: CONFIG.SHOP_ITEMS, inventory: playerInventory, playerPoints, baseHealth,
+            catalog: CONFIG.SHOP_ITEMS, inventory: State.getPlayerInventory(), playerPoints: State.getPlayerPoints(), baseHealth: State.getBaseHealth(),
             onBuy: handleShopPurchase, onUse: handleShopUse
         });
     }
@@ -1588,7 +1574,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Pushback targeting is session 4 — buying only fills playerInventory
     // today; repair-kit USE (below) closes the loop for repair kits.
     function handleShopPurchase(itemId) {
-        const result = Shop.purchase(itemId, CONFIG.SHOP_ITEMS, playerInventory, playerPoints);
+        const result = Shop.purchase(itemId, CONFIG.SHOP_ITEMS, State.getPlayerInventory(), State.getPlayerPoints());
         if (!result.ok) {
             // Buy button is disabled whenever unaffordable, so this is a
             // defensive no-op guard (e.g. a stale render) rather than the
@@ -1597,8 +1583,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        playerPoints = result.newPoints;
-        playerInventory = result.newInventory;
+        State.setPlayerPoints(result.newPoints);
+        State.setPlayerInventory(result.newInventory);
         updatePlayerDisplays();
         saveGame();
 
@@ -1635,7 +1621,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isSickDay = item.category === 'sickDay';
         if (!isRepairKit && !isSickDay) return;
 
-        const result = Shop.consume(itemId, playerInventory);
+        const result = Shop.consume(itemId, State.getPlayerInventory());
         if (!result.ok) {
             // Use button is only rendered when held > 0, so this is a
             // defensive no-op guard rather than the expected path.
@@ -1643,7 +1629,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        playerInventory = result.newInventory;
+        State.setPlayerInventory(result.newInventory);
         if (isRepairKit) {
             healBase(item.effect.healAmount);
         } else {
@@ -1674,14 +1660,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!targetItem) return { ok: false };
 
-        const result = Shop.purchase(itemId, CONFIG.SHOP_ITEMS, playerInventory, playerPoints);
+        const result = Shop.purchase(itemId, CONFIG.SHOP_ITEMS, State.getPlayerInventory(), State.getPlayerPoints());
         if (!result.ok) {
             // Tier buttons are disabled when unaffordable, so this is a
             // defensive guard rather than the expected path.
             return { ok: false };
         }
 
-        playerPoints = result.newPoints;
+        State.setPlayerPoints(result.newPoints);
         targetItem.dueDateTime = Shop.pushedBackDueDate(targetItem.dueDateTime, item.effect.pushbackMs);
 
         // Dependent due dates ([P1-DATA-004] sub-session 2): a SUB-TASK can't
@@ -1689,7 +1675,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // parent's (pure Items.clampedSubTaskDueDate). Pushing a PARENT later
         // never touches its children (they're then "earlier", which is legal).
         if (targetItem.parentId) {
-            const pushParent = activeItems.find(i => i.id === targetItem.parentId && i.type === 'task');
+            const pushParent = State.getActiveItems().find(i => i.id === targetItem.parentId && i.type === 'task');
             if (pushParent) {
                 targetItem.dueDateTime = Items.clampedSubTaskDueDate(targetItem.dueDateTime, pushParent);
             }
@@ -1711,7 +1697,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updatePlayerDisplays();
         saveGame();
 
-        return { ok: true, newPoints: playerPoints };
+        return { ok: true, newPoints: State.getPlayerPoints() };
     }
 
     // Cheat Day targeting handler ([P1-DATA-005] sub-session 5, 2026-07-19),
@@ -1731,17 +1717,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!item || item.category !== 'cheatDay') return { ok: false };
         if (!targetItem || targetItem.type !== 'habit' || !targetItem.isNegative) return { ok: false };
 
-        const habitDef = definedHabits.find(def => def.id === targetItem.definitionId);
+        const habitDef = State.getDefinedHabits().find(def => def.id === targetItem.definitionId);
         if (!habitDef) return { ok: false };
 
-        const result = Shop.consume(cheatDayItemId, playerInventory);
+        const result = Shop.consume(cheatDayItemId, State.getPlayerInventory());
         if (!result.ok) {
             // Button is only rendered when held > 0, so this is a defensive
             // guard rather than the expected path.
             return { ok: false };
         }
 
-        playerInventory = result.newInventory;
+        State.setPlayerInventory(result.newInventory);
         habitDef.cheatDayDate = Habits.toOccurrenceDate(targetItem.originalDueDate);
 
         updatePlayerDisplays();
@@ -1764,14 +1750,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!item || item.category !== 'skipDay') return { ok: false };
         if (!targetItem || targetItem.type !== 'habit') return { ok: false };
 
-        const result = Shop.consume(skipDayItemId, playerInventory);
+        const result = Shop.consume(skipDayItemId, State.getPlayerInventory());
         if (!result.ok) {
             // Button is only rendered when held > 0, so this is a defensive
             // guard rather than the expected path.
             return { ok: false };
         }
 
-        playerInventory = result.newInventory;
+        State.setPlayerInventory(result.newInventory);
         Items.useSkipDayOnItem(targetItem, itemsDeps());
 
         updatePlayerDisplays();
@@ -1788,7 +1774,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // "clear immediately" model). Routine tasks are untouched (fork 4,
     // docs/FROZEN_SLOTS_PLAN.md — Sick Day is habits-only).
     function handleUseSickDay() {
-        Items.useSickDayGlobally(currentGameDate, itemsDeps());
+        Items.useSickDayGlobally(State.getCurrentGameDate(), itemsDeps());
         updatePlayerDisplays();
         saveGame();
     }
@@ -1815,7 +1801,7 @@ document.addEventListener('DOMContentLoaded', () => {
             createTaskItemData, addItemToGame, sortAndRenderActiveList,
             managementWindows, populateTasksWindow,
             createHabitDefinition, populateHabitsWindow,
-            definedRoutines, saveGame, populateRoutinesWindow, openManagementWindow
+            definedRoutines: State.getDefinedRoutines(), saveGame, populateRoutinesWindow, openManagementWindow
         };
     }
 
@@ -1936,17 +1922,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (resetTestButton) {
         resetTestButton.addEventListener('click', () => {
             if (!confirm('Reset the game to a fresh state? This clears all tasks, habits, routines, and progress.')) return;
-            definedHabits = [];
-            definedRoutines = [];
+            State.setDefinedHabits([]);
+            State.setDefinedRoutines([]);
             window.definedTasks = [];
             // Dev reset wipes run history too — unlike the restart button,
             // which deliberately preserves it (session 52, RUN_HISTORY_PLAN:
             // dev-reset runs are abandoned AND a dev wipe means everything).
-            runHistory = [];
+            State.setRunHistory([]);
             // Same reasoning extends to achievements (session 64,
             // ACHIEVEMENTS_PLAN.md): lifetime data, wiped only here.
-            lifetimeStats = Achievements.freshLifetimeStats();
-            achievements = Achievements.freshUnlocked();
+            State.setLifetimeStats(Achievements.freshLifetimeStats());
+            State.setAchievements(Achievements.freshUnlocked());
             if (typeof Persistence !== 'undefined') Persistence.clear();
             initGame();
             saveGame();

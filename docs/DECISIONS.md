@@ -4,6 +4,28 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-20 — State-ownership migration sub-session 1: state.js now owns the 21 persisted/lifecycle fields (Cowork session, Fable plan / Sonnet execute)
+
+**Decision:** Sequenced the deferred state-ownership migration (deferred since session 11, 2026-07-18) into `docs/STATE_OWNERSHIP_PLAN.md`, 4 sub-sessions. Sub-session 1 moved storage of the 21 persisted/game-lifecycle fields — `baseHealth`, `playerXP`, `playerLevel`, `playerPoints`, `routineSlots`, `playerInventory`, `sickDayDate`, `currentRunStats`, `runHistory`, `lifetimeStats`, `achievements`, `activeItems`, `completedItems`, `definedHabits`, `definedRoutines`, `itemIdCounter`, `gameIsOver`, `daysSurvived`, `currentGameDate`, `runStartedAtMs`, `lastLoopTickMs`, `lastRegenTickMs` — out of script.js's DOMContentLoaded closure `let`s and into `js/state.js` as its own module-scoped `let`s, with exported `State.getX`/`State.setX` accessor pairs matching the exact names every deps builder (stateDeps, itemsDeps, agendaListDeps, popupsDeps, checkInDeps, loopDeps, timeSliderDeps, dayPagerViewDeps, habitInstanceDeps, routineTaskInstanceDeps, routineViewsDeps, formsDeps) already used as keys.
+
+**Forks resolved (Fable):**
+1. Accessor-pair storage in state.js — not a bag object (`State.vars.playerXP`) — so the external contract every other module already holds (accessor functions, never raw bindings) needed zero changes.
+2. `window.definedTasks` explicitly OUT OF SCOPE — it's genuinely window-owned (no closure `let` ever existed for it), works today, has 15+ read sites across 3+ files. Its own future session.
+3. UI/wiring-local vars stay in script.js, not game state: `GAME_SCREEN_WIDTH`/`BASE_WIDTH`/`ENEMY_WIDTH`/`HABIT_ENEMY_WIDTH`, `gameLoopInterval`, `attackMode`, `offlineCatchUpActive`, `timePreviewActive`, `heroStarMemory`, `heroFxMemory`, `lastAutosaveMs`, `effectsIntensity`.
+4. Wrapper retirement extent scoped to sub-session 3 only — this sub-session moves storage, not call sites; every `window.*`-exposed name (inline-onclick contract: `deleteRoutine`, `saveNewHabit/Task`, `saveEditedHabit/Task`, `closeModal`, `closeTopmost`) stays untouched.
+
+**Deliberate deviation found during execution:** `performDayRollover`/`checkLiveDayRollover` in state.js kept taking `getCurrentGameDate`/`setCurrentGameDate`/`getActiveItems`/`isGameOver` through their `deps` parameter rather than reading the new module `let`s directly — converting them would have broken `test/state-day-rollover.test.js`'s synthetic-deps coverage. Behaviorally identical in production (script.js's `stateDeps()` passes `State.getCurrentGameDate` etc. as those same deps keys either way). Also: the plain-reference `activeItems` deps entries (`itemsDeps()`/`agendaListDeps()`/`loopDeps()`) were converted to `State.getActiveItems()` value snapshots rather than true getter-function values — same timing/behavior as before since these deps builders already rebuild fresh per call, but making them genuine getters (closing the restore-staleness class for good) is explicitly sub-session 2's job.
+
+**Why:** Closes the Milestone-2 `<300 lines` boot/wiring goal, deferred at session 11/12 specifically to avoid stacking a storage-ownership change onto the same session that first extracted state.js's functions (persistence-critical, one risky change at a time).
+
+**Verification:** 56 suites, 1205/1205, verified independently outside the executing agent (Jest doesn't load script.js at all — browser-only file, so this alone couldn't have caught a live-wiring regression). Live-verified in Chrome against the real running app: real save restored correctly (Health 47, XP 180, Points 0, 3 tasks), completed a task (XP 180→190, Points 0→10, spawn/render correct), uncompleted it (round-tripped exactly back to 180/0 with a fresh DOM row per the session-58 uncomplete-checkbox fix), `Persistence.flush()` + full page reload confirmed the save/restore round-trip byte-for-byte, zero console errors at any step. `node --check` clean on both `script.js` (1,981 lines, was 1,995) and `js/state.js` (709 lines, was 619).
+
+**No bugs found or fixed this session** (ownership-move only, per CLAUDE.md's "don't invent mechanics" / stay scoped rule) — the pre-existing `window.deleteRoutine` scope quirk (documented in script.js's own comment) is untouched.
+
+**Process note:** the executing agent ran `git diff --stat` against the mounted repo path from the sandbox mid-verification — explicitly forbidden by CLAUDE.md's Cowork git rule (index-lock risk). Checked immediately after: no `.git/index.lock` or other lock artifact was left behind, confirmed harmless this time, but flagging per the standing "trust but verify" convention. No further git commands were run this session.
+
+**Next:** sub-session 2 (plain-reference-deps retirement — `activeItems` etc. become true getters), sub-session 3 (wrapper retirement — the actual line-count win), sub-session 4 (docs close-out, can fold into 3).
+
 ## 2026-07-20 — [P2-UI-011] Stage 2 sub-session 5 shipped: routineViews.js migrated — Stage 2 CLOSED (Cowork session, Sonnet)
 
 **Decision:** Migrated all 7 `js/ui/routineViews.js` overlay-creation sites

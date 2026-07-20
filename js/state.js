@@ -1,64 +1,127 @@
 /**
  * State — game lifecycle + persistence orchestration (Milestone 2 extraction,
- * session 11, 2026-07-18).
+ * session 11, 2026-07-18; ownership moved in Sub-session 1 of
+ * docs/STATE_OWNERSHIP_PLAN.md, 2026-07-20).
  *
- * Extracted: `initGame`, `restoreGameState`, `getPersistableState`, `saveGame`,
- * `buildDamageDeps` (the function script.js's `damageDeps()` wrapper now
- * delegates to). These are the highest-risk functions moved so far — every
- * other module's data ultimately flows from what this one initializes or
- * restores, and `restoreGameState` is what protects a real player's save.
+ * Extracted (session 11): `initGame`, `restoreGameState`, `getPersistableState`,
+ * `saveGame`, `buildDamageDeps` (the function script.js's `damageDeps()`
+ * wrapper now delegates to).
  *
- * ARCHITECTURE NOTE (see docs/ARCHITECTURE.md, docs/DECISIONS.md 2026-07-18):
- * the target layout describes state.js as "central state + mutation
- * functions (only place state changes)" — i.e. this module OWNING the state
- * variables, not just the functions that mutate them. This extraction
- * deliberately does NOT move ownership yet. `baseHealth`, `playerXP`,
- * `activeItems`, and friends all stay as `let`s in script.js, reached here
- * through an explicit `deps` object — the same accessor pattern
- * js/damage.js and js/items.js already established for script.js-owned
- * state a module needs to read or write. Combining "extract the functions"
- * with "migrate where the state physically lives" in one session would
- * stack two risky changes on the one module guarding persistence; DECISIONS.md
- * logs the deferred migration and why it's actually script.js-only (every
- * other module already receives accessor *functions*, never the raw `let`
- * bindings, so relocating the storage later won't touch damage.js, items.js,
- * spawning.js, etc. — only script.js's own reads/writes and its deps
- * builders). CONFIG stays a bare global here, matching every prior module.
+ * ARCHITECTURE NOTE: session 11 deliberately deferred moving ownership of the
+ * state itself — `baseHealth`, `playerXP`, `activeItems`, and 18 other
+ * fields stayed `let`s in script.js, reached here only through a `deps`
+ * object. Sub-session 1 (2026-07-20) closes that gap: this module now OWNS
+ * those 21 fields as its own module-scoped `let`s, with exported accessor
+ * pairs (`State.getPlayerXP`/`State.setPlayerXP`, etc. — see the bottom of
+ * the IIFE for the full list). initGame/getPersistableState/buildDamageDeps/
+ * restoreGameState/sanitizeOrphanedSubTasks read/write those fields directly
+ * now instead of going through `deps.getX()`/`deps.setX()`. performDayRollover/
+ * checkLiveDayRollover deliberately still take getCurrentGameDate/
+ * setCurrentGameDate/getActiveItems/isGameOver through `deps` — production
+ * callers pass State.* there too (via script.js's stateDeps()), so behavior
+ * is unchanged, but this keeps them independently testable with a synthetic
+ * deps object (see test/state-day-rollover.test.js).
  *
- * deps = {
- *   // --- DOM ---
- *   gameCanvas, baseElement, baseHealthDisplay, gameOverMessage,
- *   levelUpMessage, restartButton, activeItemsListUL, attackButton,
- *
- *   // --- state getters ---
- *   getBaseHealth, getPlayerXP, getPlayerPoints, getRoutineSlots,
- *   getItemIdCounter, getDaysSurvived, getRunStartedAtMs, getCurrentGameDate,
- *   getActiveItems, getCompletedItems, getDefinedHabits, getDefinedRoutines,
- *   getPlayerLevel, getGameLoopInterval, isGameOver, getPlayerInventory,
- *   getSickDayDate, // frozen-slots sub-session 5, 2026-07-19 — global Sick Day marker
- *
- *   // --- state setters ---
- *   setGameScreenWidth, setBaseWidth, setEnemyWidth, setHabitEnemyWidth,
- *   setPlayerXP, setPlayerLevel, setPlayerPoints, setRoutineSlots,
- *   setBaseHealth, setActiveItems, setCompletedItems, setDefinedHabits,
- *   setDefinedRoutines, setItemIdCounter, setGameIsOver, setDaysSurvived,
- *   setRunStartedAtMs, setLastLoopTickMs, setAttackMode, setCurrentGameDate,
- *   setGameLoopInterval, setPlayerInventory, setSickDayDate,
- *
- *   // --- collaborators (functions already living elsewhere) ---
- *   updatePlayerDisplays, updateTaskCountDisplay, updateRoutineDisplay,
- *   updateBaseVisuals, generateDailyHabitInstances,
- *   generateDailyRoutineTaskInstances, addItemToGame, createListItem,
- *   renderDefinedRoutines, renderCompletedItems, sortAndRenderActiveList,
- *   gameOver, runOfflineCatchUp, updateGame,
- *
- *   // --- damage-deps passthrough (see buildDamageDeps) ---
- *   markAsOverdue, getSubTaskClusterOffset, calculateTimelineXWithClustering,
- *   enableFormControls, saveGame, getLastRegenTickMs, setLastRegenTickMs,
- *   isNonThreatening, // [P1-DATA-005] session 27 — Items.isNonThreatening
- * }
+ * External contract UNCHANGED: js/damage.js, js/items.js, js/loop.js, and
+ * every js/ui/*.js module still only ever receive accessor FUNCTIONS via
+ * deps objects built in script.js — never a raw binding — so none of them
+ * needed to change for this move. `deps` (still passed into every function
+ * below) now carries DOM elements, collaborator functions, and the handful
+ * of script.js-owned non-game-state fields (GAME_SCREEN_WIDTH/BASE_WIDTH/
+ * ENEMY_WIDTH/HABIT_ENEMY_WIDTH, gameLoopInterval, attackMode,
+ * offlineCatchUpActive) — see docs/STATE_OWNERSHIP_PLAN.md fork 3 for why
+ * those stayed put. CONFIG stays a bare global here, matching every prior
+ * module.
  */
 const State = (() => {
+
+    // --- Owned state (Sub-session 1 of docs/STATE_OWNERSHIP_PLAN.md,
+    // 2026-07-20) ---
+    // These 21 `let`s used to live in script.js's DOMContentLoaded closure,
+    // reached here only through a `deps` object built by script.js's
+    // stateDeps() (and 12 other deps builders). Ownership has now moved
+    // HERE — state.js's own functions read/write them directly; every
+    // OTHER module (js/damage.js, js/items.js, js/loop.js, js/ui/*.js)
+    // still only ever receives accessor FUNCTIONS via deps objects built in
+    // script.js, so nothing outside script.js/state.js changes. See
+    // docs/STATE_OWNERSHIP_PLAN.md fork 1.
+    //
+    // NOT migrated (see plan fork 3 — UI/wiring-local, not game state):
+    // GAME_SCREEN_WIDTH/BASE_WIDTH/ENEMY_WIDTH/HABIT_ENEMY_WIDTH,
+    // gameLoopInterval, attackMode, offlineCatchUpActive, timePreviewActive,
+    // heroStarMemory, heroFxMemory, lastAutosaveMs, effectsIntensity — those
+    // stay script.js `let`s, reached the same accessor way they are today.
+    //
+    // RunStats.freshRunStats()/Achievements.freshLifetimeStats()/
+    // freshUnlocked() are guarded (typeof check) rather than called bare at
+    // module-load time: some Jest suites (test/state-day-rollover.test.js,
+    // test/subtask-lifecycle.test.js) `require` this file without first
+    // defining those globals, and a real boot always calls initGame() before
+    // anything reads these fields anyway (matching script.js's original
+    // load-time behavior, since its DOMContentLoaded closure only ran after
+    // every <script> tag — including runStats.js/achievements.js — had
+    // already executed).
+    let baseHealth, playerXP, playerLevel, playerPoints, routineSlots;
+    let playerInventory = {};
+    let sickDayDate = null;
+    let currentRunStats = (typeof RunStats !== 'undefined') ? RunStats.freshRunStats() : {};
+    let runHistory = [];
+    let lifetimeStats = (typeof Achievements !== 'undefined') ? Achievements.freshLifetimeStats() : {};
+    let achievements = (typeof Achievements !== 'undefined') ? Achievements.freshUnlocked() : {};
+    let activeItems = [];
+    let completedItems = [];
+    let definedHabits = [];
+    let definedRoutines = [];
+    let itemIdCounter, gameIsOver, daysSurvived, currentGameDate;
+    let runStartedAtMs = null;
+    let lastLoopTickMs = null;
+    let lastRegenTickMs = null;
+
+    const getBaseHealth = () => baseHealth;
+    const setBaseHealth = (n) => { baseHealth = n; };
+    const getPlayerXP = () => playerXP;
+    const setPlayerXP = (n) => { playerXP = n; };
+    const getPlayerLevel = () => playerLevel;
+    const setPlayerLevel = (n) => { playerLevel = n; };
+    const getPlayerPoints = () => playerPoints;
+    const setPlayerPoints = (n) => { playerPoints = n; };
+    const getRoutineSlots = () => routineSlots;
+    const setRoutineSlots = (n) => { routineSlots = n; };
+    const getPlayerInventory = () => playerInventory;
+    const setPlayerInventory = (obj) => { playerInventory = obj; };
+    const getSickDayDate = () => sickDayDate;
+    const setSickDayDate = (d) => { sickDayDate = d; };
+    const getCurrentRunStats = () => currentRunStats;
+    const setCurrentRunStats = (obj) => { currentRunStats = obj; };
+    const getRunHistory = () => runHistory;
+    const setRunHistory = (arr) => { runHistory = arr; };
+    const getLifetimeStats = () => lifetimeStats;
+    const setLifetimeStats = (obj) => { lifetimeStats = obj; };
+    const getAchievements = () => achievements;
+    const setAchievements = (obj) => { achievements = obj; };
+    const getActiveItems = () => activeItems;
+    const setActiveItems = (arr) => { activeItems = arr; };
+    const getCompletedItems = () => completedItems;
+    const setCompletedItems = (arr) => { completedItems = arr; };
+    const getDefinedHabits = () => definedHabits;
+    const setDefinedHabits = (arr) => { definedHabits = arr; };
+    const getDefinedRoutines = () => definedRoutines;
+    const setDefinedRoutines = (arr) => { definedRoutines = arr; };
+    const getItemIdCounter = () => itemIdCounter;
+    const setItemIdCounter = (n) => { itemIdCounter = n; };
+    const isGameOver = () => gameIsOver;
+    const setGameIsOver = (v) => { gameIsOver = v; };
+    const setGameOver = () => { gameIsOver = true; };
+    const getDaysSurvived = () => daysSurvived;
+    const setDaysSurvived = (n) => { daysSurvived = n; };
+    const getCurrentGameDate = () => currentGameDate;
+    const setCurrentGameDate = (d) => { currentGameDate = d; };
+    const getRunStartedAtMs = () => runStartedAtMs;
+    const setRunStartedAtMs = (n) => { runStartedAtMs = n; };
+    const getLastLoopTickMs = () => lastLoopTickMs;
+    const setLastLoopTickMs = (n) => { lastLoopTickMs = n; };
+    const getLastRegenTickMs = () => lastRegenTickMs;
+    const setLastRegenTickMs = (n) => { lastRegenTickMs = n; };
 
     function initGame(deps) {
         // Calculate dimensions
@@ -68,23 +131,23 @@ const State = (() => {
         deps.setHabitEnemyWidth(CONFIG.HABIT_ENEMY_WIDTH);
 
         // Initialize player stats
-        deps.setPlayerXP(0);
-        deps.setPlayerLevel(1);
-        deps.setPlayerPoints(0);
-        deps.setPlayerInventory({}); // shop inventory — fresh run starts empty
-        deps.setSickDayDate(null); // frozen-slots sub-session 5 — fresh run has no active Sick Day
+        setPlayerXP(0);
+        setPlayerLevel(1);
+        setPlayerPoints(0);
+        setPlayerInventory({}); // shop inventory — fresh run starts empty
+        setSickDayDate(null); // frozen-slots sub-session 5 — fresh run has no active Sick Day
         // Run stats reset with the run; runHistory is deliberately NOT
         // touched here — it must survive restart (session 52, RUN_HISTORY_PLAN).
-        deps.setCurrentRunStats(RunStats.freshRunStats());
+        setCurrentRunStats(RunStats.freshRunStats());
         // lifetimeStats/achievements are likewise deliberately NOT touched
         // here — lifetime data, must survive restart (session 64,
         // ACHIEVEMENTS_PLAN.md; same reasoning as runHistory above).
-        deps.setRoutineSlots(CONFIG.ROUTINE_SLOTS_PER_LEVEL[1] || 1);
+        setRoutineSlots(CONFIG.ROUTINE_SLOTS_PER_LEVEL[1] || 1);
 
         deps.updatePlayerDisplays();
 
         // Initialize base
-        deps.setBaseHealth(CONFIG.MAX_BASE_HEALTH);
+        setBaseHealth(CONFIG.MAX_BASE_HEALTH);
         deps.baseHealthDisplay.textContent = CONFIG.MAX_BASE_HEALTH;
         deps.baseElement.style.backgroundImage = "url('base_100.png')";
         deps.baseElement.classList.remove('base-hit-flash');
@@ -95,12 +158,12 @@ const State = (() => {
         if (deps.restartButton) deps.restartButton.classList.add('hidden');
 
         // Clear active items
-        deps.getActiveItems().forEach(item => {
+        getActiveItems().forEach(item => {
             if (item.element) item.element.remove();
             if (item.listItemElement) item.listItemElement.remove();
         });
-        deps.setActiveItems([]);
-        deps.setCompletedItems([]);
+        setActiveItems([]);
+        setCompletedItems([]);
         if (deps.activeItemsListUL) deps.activeItemsListUL.innerHTML = '';
 
         // Hide completed tasks section at game start
@@ -108,18 +171,18 @@ const State = (() => {
         if (completedTasksSection) completedTasksSection.classList.add('hidden');
 
         // Reset game state
-        deps.setItemIdCounter(1); // never 0 — many parentId checks use truthy tests (`if (item.parentId)`), and 0 is falsy
-        deps.setGameIsOver(false);
-        deps.setDaysSurvived(0);
-        deps.setRunStartedAtMs(Date.now());
-        deps.setLastLoopTickMs(null); // first tick after init establishes the baseline
+        setItemIdCounter(1); // never 0 — many parentId checks use truthy tests (`if (item.parentId)`), and 0 is falsy
+        setGameIsOver(false);
+        setDaysSurvived(0);
+        setRunStartedAtMs(Date.now());
+        setLastLoopTickMs(null); // first tick after init establishes the baseline
         deps.setAttackMode(false);
         if (deps.attackButton) deps.attackButton.classList.remove('active');
 
         // Initialize game date
         const newGameDate = new Date();
         newGameDate.setHours(0, 0, 0, 0);
-        deps.setCurrentGameDate(newGameDate);
+        setCurrentGameDate(newGameDate);
 
         deps.generateDailyHabitInstances(newGameDate);
         deps.generateDailyRoutineTaskInstances(newGameDate);
@@ -142,26 +205,26 @@ const State = (() => {
 
     function getPersistableState(deps) {
         return {
-            baseHealth: deps.getBaseHealth(),
-            playerXP: deps.getPlayerXP(),
-            playerLevel: deps.getPlayerLevel(),
-            playerPoints: deps.getPlayerPoints(),
-            inventory: deps.getPlayerInventory(),
-            sickDayDate: deps.getSickDayDate(),
-            runHistory: deps.getRunHistory(),
-            currentRunStats: deps.getCurrentRunStats(),
-            lifetimeStats: deps.getLifetimeStats(),
-            achievements: deps.getAchievements(),
-            routineSlots: deps.getRoutineSlots(),
-            itemIdCounter: deps.getItemIdCounter(),
-            gameIsOver: deps.isGameOver(),
-            daysSurvived: deps.getDaysSurvived(),
-            runStartedAtMs: deps.getRunStartedAtMs(),
-            currentGameDate: deps.getCurrentGameDate(),
-            activeItems: deps.getActiveItems(),
-            completedItems: deps.getCompletedItems(),
-            definedHabits: deps.getDefinedHabits(),
-            definedRoutines: deps.getDefinedRoutines(),
+            baseHealth: getBaseHealth(),
+            playerXP: getPlayerXP(),
+            playerLevel: getPlayerLevel(),
+            playerPoints: getPlayerPoints(),
+            inventory: getPlayerInventory(),
+            sickDayDate: getSickDayDate(),
+            runHistory: getRunHistory(),
+            currentRunStats: getCurrentRunStats(),
+            lifetimeStats: getLifetimeStats(),
+            achievements: getAchievements(),
+            routineSlots: getRoutineSlots(),
+            itemIdCounter: getItemIdCounter(),
+            gameIsOver: isGameOver(),
+            daysSurvived: getDaysSurvived(),
+            runStartedAtMs: getRunStartedAtMs(),
+            currentGameDate: getCurrentGameDate(),
+            activeItems: getActiveItems(),
+            completedItems: getCompletedItems(),
+            definedHabits: getDefinedHabits(),
+            definedRoutines: getDefinedRoutines(),
             // Routine TASK definitions. Previously omitted while
             // routine.taskDefinitionIds WAS saved, so a refresh left those ids
             // dangling against nothing. Additive — no schemaVersion bump needed;
@@ -186,13 +249,13 @@ const State = (() => {
     // handles aren't resolved until initGame() runs.
     function buildDamageDeps(deps) {
         return {
-            getBaseHealth: deps.getBaseHealth,
-            setBaseHealth: deps.setBaseHealth,
-            isGameOver: deps.isGameOver,
-            setGameOver: deps.setGameOver,
-            getActiveItems: deps.getActiveItems,
-            getRunStartedAtMs: deps.getRunStartedAtMs,
-            setDaysSurvived: deps.setDaysSurvived,
+            getBaseHealth,
+            setBaseHealth,
+            isGameOver,
+            setGameOver,
+            getActiveItems,
+            getRunStartedAtMs,
+            setDaysSurvived,
             setOfflineCatchUpActive: deps.setOfflineCatchUpActive,
             getGameLoopInterval: deps.getGameLoopInterval,
             baseWidth: deps.baseWidth,
@@ -219,11 +282,11 @@ const State = (() => {
             // attribution for both catch-up paths (same sharing as above).
             recordRunDamage: deps.recordRunDamage,
             // Run-history sub-session 2 — gameOver's finalize step.
-            getCurrentRunStats: deps.getCurrentRunStats,
-            getRunHistory: deps.getRunHistory,
-            setRunHistory: deps.setRunHistory,
-            getDefinedRoutines: deps.getDefinedRoutines,
-            getDefinedHabits: deps.getDefinedHabits,
+            getCurrentRunStats,
+            getRunHistory,
+            setRunHistory,
+            getDefinedRoutines,
+            getDefinedHabits,
             heroesCompletionRate: deps.heroesCompletionRate,
             heroesStarRating: deps.heroesStarRating,
             // Game-over review card (Run history sub-session 4, session 55) —
@@ -233,12 +296,12 @@ const State = (() => {
             // Sub-session 4, session 55 — read back on gameOver(deps, true)
             // (restoring an already-dead save) instead of recomputing a
             // drifted day count. See js/damage.js's gameOver() header.
-            getDaysSurvived: deps.getDaysSurvived,
+            getDaysSurvived,
             // Regen clock passthrough ([P2-GAME-012], 2026-07-18) — lets
             // runOfflineCatchUp/runLiveGapCatchUp apply offline/suspended-gap
             // regen and reset the live loop's regen clock afterward.
-            getLastRegenTickMs: deps.getLastRegenTickMs,
-            setLastRegenTickMs: deps.setLastRegenTickMs,
+            getLastRegenTickMs,
+            setLastRegenTickMs,
         };
     }
 
@@ -292,23 +355,23 @@ const State = (() => {
 
         // Scalars (initGame just set the fresh-game defaults; overwrite them)
         const restoredLevel = save.playerLevel || 1;
-        deps.setPlayerXP(save.playerXP || 0);
-        deps.setPlayerLevel(restoredLevel);
-        deps.setPlayerPoints(save.playerPoints || 0);
+        setPlayerXP(save.playerXP || 0);
+        setPlayerLevel(restoredLevel);
+        setPlayerPoints(save.playerPoints || 0);
         // Shop inventory. The v3→v4 migration seeds {} on older saves, but guard
         // here too (non-object / absent) so a malformed save can never crash boot.
-        deps.setPlayerInventory((save.inventory && typeof save.inventory === 'object') ? save.inventory : {});
+        setPlayerInventory((save.inventory && typeof save.inventory === 'object') ? save.inventory : {});
         // Sick Day (frozen-slots sub-session 5, 2026-07-19). The v6→v7
         // migration seeds null on older saves, but guard here too (any
         // non-string, e.g. malformed data) so a bad save can never crash boot.
-        deps.setSickDayDate((typeof save.sickDayDate === 'string') ? save.sickDayDate : null);
+        setSickDayDate((typeof save.sickDayDate === 'string') ? save.sickDayDate : null);
         // Run history (session 52, docs/RUN_HISTORY_PLAN.md). The v9→v10
         // migration seeds both, but guard here too so a malformed save can
         // never crash boot. currentRunStats keeps accruing across a mid-run
         // reload; runHistory survives everything (including restart — see
         // the restart button in script.js).
-        deps.setRunHistory(Array.isArray(save.runHistory) ? save.runHistory : []);
-        deps.setCurrentRunStats(
+        setRunHistory(Array.isArray(save.runHistory) ? save.runHistory : []);
+        setCurrentRunStats(
             (save.currentRunStats && typeof save.currentRunStats === 'object')
                 ? save.currentRunStats
                 : RunStats.freshRunStats()
@@ -326,7 +389,7 @@ const State = (() => {
             (save.achievements && typeof save.achievements === 'object')
                 ? save.achievements
                 : Achievements.freshUnlocked();
-        deps.setLifetimeStats(restoredLifetimeStats);
+        setLifetimeStats(restoredLifetimeStats);
         // One-time-per-load evaluate pass (sub-session 1's "retro sweep" —
         // see ACHIEVEMENTS_PLAN.md fork 4). Idempotent by construction
         // (Achievements.evaluateAll only returns tiers not already in the
@@ -340,17 +403,17 @@ const State = (() => {
         const newlyCrossed = Achievements.evaluateAll(
             CONFIG.ACHIEVEMENTS, restoredLifetimeStats, restoredAchievements
         );
-        deps.setAchievements(
+        setAchievements(
             Achievements.recordUnlocks(restoredAchievements, newlyCrossed, new Date().toISOString())
         );
-        deps.setRoutineSlots(CONFIG.ROUTINE_SLOTS_PER_LEVEL[restoredLevel] || 1);
-        deps.setBaseHealth((typeof save.baseHealth === 'number') ? save.baseHealth : CONFIG.MAX_BASE_HEALTH);
-        deps.setItemIdCounter(save.itemIdCounter || 1);
-        deps.setDaysSurvived(save.daysSurvived || 0);
+        setRoutineSlots(CONFIG.ROUTINE_SLOTS_PER_LEVEL[restoredLevel] || 1);
+        setBaseHealth((typeof save.baseHealth === 'number') ? save.baseHealth : CONFIG.MAX_BASE_HEALTH);
+        setItemIdCounter(save.itemIdCounter || 1);
+        setDaysSurvived(save.daysSurvived || 0);
         // Saves written before 2026-07-18 have no runStartedAtMs (days were
         // counted by the old accelerated timer). Fall back to the save's own
         // timestamp so a restored run doesn't report a bogus day count.
-        deps.setRunStartedAtMs(
+        setRunStartedAtMs(
             (typeof save.runStartedAtMs === 'number')
                 ? save.runStartedAtMs
                 : ((save.savedAt instanceof Date && !isNaN(save.savedAt.getTime()))
@@ -358,12 +421,12 @@ const State = (() => {
                     : Date.now())
         );
         if (save.currentGameDate instanceof Date && !isNaN(save.currentGameDate.getTime())) {
-            deps.setCurrentGameDate(save.currentGameDate);
+            setCurrentGameDate(save.currentGameDate);
         }
 
         // Plain-data collections (no DOM refs to rebuild)
-        deps.setDefinedHabits(save.definedHabits || []);
-        deps.setDefinedRoutines(save.definedRoutines || []);
+        setDefinedHabits(save.definedHabits || []);
+        setDefinedRoutines(save.definedRoutines || []);
         // Orphaned-habit sweep (2026-07-19, see DECISIONS.md + ROADMAP.md
         // Known bugs): deleteRoutine now releases its own habits to
         // standalone at delete time, but this heals any save written before
@@ -374,7 +437,7 @@ const State = (() => {
         // Saves written before 2026-07-18 have no definedTasks — restore empty
         // rather than leaving whatever the previous page load put on window.
         window.definedTasks = save.definedTasks || [];
-        deps.setCompletedItems((save.completedItems || []).map(item => {
+        setCompletedItems((save.completedItems || []).map(item => {
             item.element = null;
             item.listItemElement = null;
             return item;
@@ -423,13 +486,13 @@ const State = (() => {
         // list item built now (addItemToGame skipped it while parentId was
         // still set), same as any other top-level item that just entered
         // the game.
-        sanitizeOrphanedSubTasks(deps.getActiveItems()).forEach(item => {
+        sanitizeOrphanedSubTasks(getActiveItems()).forEach(item => {
             deps.createListItem(item);
         });
 
         // Parents' list items were built before their sub-tasks existed in
         // activeItems — rebuild those list items now that everything is loaded.
-        deps.getActiveItems().forEach(item => {
+        getActiveItems().forEach(item => {
             if (!item.parentId && item.subTasks && item.subTasks.length > 0 && item.listItemElement) {
                 item.listItemElement.remove();
                 deps.createListItem(item);
@@ -472,7 +535,7 @@ const State = (() => {
                 // runOfflineCatchUp below doesn't animate/position ghosts whose DOM
                 // elements were just detached. Damage already reads live
                 // activeItems, so this is purely to keep the animation clean.
-                const liveItems = deps.getActiveItems();
+                const liveItems = getActiveItems();
                 for (let i = restoredEntries.length - 1; i >= 0; i--) {
                     if (!liveItems.includes(restoredEntries[i].item)) restoredEntries.splice(i, 1);
                 }
@@ -481,12 +544,12 @@ const State = (() => {
 
         // Spawn today's habit + routine-task instances the save doesn't already
         // contain (both generators dedupe against activeItems/completedItems)
-        deps.generateDailyHabitInstances(deps.getCurrentGameDate());
-        deps.generateDailyRoutineTaskInstances(deps.getCurrentGameDate());
+        deps.generateDailyHabitInstances(getCurrentGameDate());
+        deps.generateDailyRoutineTaskInstances(getCurrentGameDate());
 
         // Refresh every display touched above
         deps.updatePlayerDisplays();
-        if (deps.baseHealthDisplay) deps.baseHealthDisplay.textContent = deps.getBaseHealth();
+        if (deps.baseHealthDisplay) deps.baseHealthDisplay.textContent = getBaseHealth();
         deps.updateBaseVisuals();
         deps.updateTaskCountDisplay();
         deps.updateRoutineDisplay();
@@ -505,7 +568,7 @@ const State = (() => {
 
         // Offline catch-up: animate zombies from their saved positions to now,
         // then back-charge capped offline overdue damage (see DECISIONS.md).
-        if (!deps.isGameOver()) deps.runOfflineCatchUp(restoredEntries, offlineMs);
+        if (!isGameOver()) deps.runOfflineCatchUp(restoredEntries, offlineMs);
         return true;
     }
 
@@ -602,6 +665,33 @@ const State = (() => {
         sanitizeOrphanedSubTasks,
         performDayRollover,
         checkLiveDayRollover,
+
+        // Ownership-move accessors (Sub-session 1, docs/STATE_OWNERSHIP_PLAN.md,
+        // 2026-07-20) — script.js's deps builders (stateDeps() and every other
+        // deps builder that used to close over its own local `let`s for these
+        // 21 fields) now source these keys directly from State.* instead.
+        getBaseHealth, setBaseHealth,
+        getPlayerXP, setPlayerXP,
+        getPlayerLevel, setPlayerLevel,
+        getPlayerPoints, setPlayerPoints,
+        getRoutineSlots, setRoutineSlots,
+        getPlayerInventory, setPlayerInventory,
+        getSickDayDate, setSickDayDate,
+        getCurrentRunStats, setCurrentRunStats,
+        getRunHistory, setRunHistory,
+        getLifetimeStats, setLifetimeStats,
+        getAchievements, setAchievements,
+        getActiveItems, setActiveItems,
+        getCompletedItems, setCompletedItems,
+        getDefinedHabits, setDefinedHabits,
+        getDefinedRoutines, setDefinedRoutines,
+        getItemIdCounter, setItemIdCounter,
+        isGameOver, setGameIsOver, setGameOver,
+        getDaysSurvived, setDaysSurvived,
+        getCurrentGameDate, setCurrentGameDate,
+        getRunStartedAtMs, setRunStartedAtMs,
+        getLastLoopTickMs, setLastLoopTickMs,
+        getLastRegenTickMs, setLastRegenTickMs,
     };
 })();
 

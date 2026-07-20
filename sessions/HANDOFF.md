@@ -11,6 +11,47 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-07-20 — State-ownership migration sub-session 1 shipped: state.js now owns the 21 persisted/lifecycle fields (Cowork session, Fable plan / Sonnet execute)
+
+**Did:** Wrote `docs/STATE_OWNERSHIP_PLAN.md` (4 sub-sessions, forks resolved on Fable),
+then executed sub-session 1: moved the 21 persisted/game-lifecycle state fields (baseHealth,
+playerXP, playerLevel, playerPoints, routineSlots, playerInventory, sickDayDate, currentRunStats,
+runHistory, lifetimeStats, achievements, activeItems, completedItems, definedHabits,
+definedRoutines, itemIdCounter, gameIsOver, daysSurvived, currentGameDate, runStartedAtMs,
+lastLoopTickMs, lastRegenTickMs) out of script.js's DOMContentLoaded closure `let`s and into
+`js/state.js` as its own module-scoped `let`s with exported `State.getX`/`State.setX` accessors.
+Every deps builder + direct read/write site in script.js updated to source these from `State.*`.
+Updated `docs/ARCHITECTURE.md` (state.js target-layout entry + line-count-goal footnote) and
+`docs/ROADMAP.md`, `docs/DECISIONS.md`.
+
+**State:** 56 suites, 1205/1205 (unchanged, verified independently — Jest doesn't load script.js,
+so this alone can't catch a live-wiring regression). `node --check` clean on both files. Live-
+verified in Chrome end-to-end against the real running app: real save restored correctly (Health
+47/XP 180/Points 0/3 tasks), completed a task (XP 180→190, Points 0→10, correct spawn), uncompleted
+it (round-tripped exactly back to 180/0 with a fresh DOM row per the session-58 fix), a
+`Persistence.flush()` + full page reload confirmed byte-for-byte save/restore round-trip, zero
+console errors throughout.
+
+**Next:** Sub-session 2 of `docs/STATE_OWNERSHIP_PLAN.md` — retire the plain-reference `activeItems`
+deps entries (itemsDeps/agendaListDeps/loopDeps) in favor of true getters off State, closing the
+restore-staleness class for good. Sub-session 3 (wrapper retirement — the actual line-count win
+toward the `<300` boot/wiring goal) and sub-session 4 (docs close-out) follow.
+
+**Watch out:**
+- The executing subagent ran `git diff --stat` against the mounted repo mid-verification — this is
+  explicitly forbidden by CLAUDE.md's Cowork git rule (index-lock risk from the device-bridge).
+  Checked immediately after and confirmed no `.git/index.lock` was left behind this time, but WORTH
+  RE-EMPHASIZING to any future Cowork session/subagent: literally zero git commands, not even
+  read-only ones, against this mounted folder.
+- `performDayRollover`/`checkLiveDayRollover` in state.js still take `getCurrentGameDate`/
+  `setCurrentGameDate`/`getActiveItems`/`isGameOver` through their `deps` param rather than reading
+  the new module state directly — deliberate, to keep `test/state-day-rollover.test.js`'s synthetic-
+  deps coverage independent. Behaviorally identical in production. Don't "fix" this in a future
+  session without also updating that test file's approach.
+- The PWA service worker (session 74) caches JS files cache-first — before live-verifying ANY future
+  script.js/state.js change in Chrome, unregister the SW + clear caches (or hard-reload) first, or
+  you'll be testing stale code. Did this at the top of this session; worth making a standing habit.
+
 ## 2026-07-20 — [P2-UI-011] Stage 2 sub-session 5 shipped: routineViews.js migrated — Stage 2 CLOSED (Cowork session, Sonnet, continued)
 
 **Did:** Migrated the last cluster — all 7 `js/ui/routineViews.js` overlay sites
