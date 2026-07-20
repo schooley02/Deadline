@@ -13,6 +13,61 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-20 — Session 63: Time slider (Today scope) BUILT + base/routine HP preview follow-up (Cowork session, Sonnet)
+
+**Did:** Milestone 4's Time slider, Today scope. `js/timeSlider.js` (pure: getDayBounds,
+minutesOfDayToTime/timeToMinutesOfDay, formatLabel, getLurkerPreviewX) + `js/ui/timeSliderView.js`
+(DOM: scrub/release lifecycle, syncHandle live-tick hook) + `css/timeSlider.css` + index.html
+markup on the canvas/list seam. `js/loop.js` gained `isTimePreviewActive()` — a third loop guard
+(offline-catch-up precedent) that stops all position/damage/regen writes during a scrub, any
+length; `updateGame`'s `lastLoopTickMs` keeps advancing regardless so a long scrub is never
+mistaken for a suspended-loop gap. Future-due items for TODAY need no separate ghost logic —
+they're already active (spawned at day start, off-screen right), so re-running the existing pure
+position math at `previewTime` reveals them naturally; lurkers ride the midnight line once on-
+screen instead of their live fixed lurk-post. Mid-session follow-up (Jeremy, unplanned): base HP
++ routine HP now ALSO project forward during a scrub (`TimeSlider.projectBaseHealth`/
+`projectRoutineHealthDeltas`, delta-from-now using the live damage/regen tick constants —
+symmetric for rewind); `script.js`'s `renderHeroesAtBase()` gained an optional `routinesOverride`
+param so the same HeroesView render path draws projected health with zero HeroesView changes.
+"Freezes" needed no new code (day-level trigger, hero chips already re-render live regardless of
+preview state) — confirmed via ROUTINES.md and Jeremy before building. Also moved the time label
+to the left of the slider (Jeremy's call). Docs: UI_UX.md (Time Slider section, expanded twice),
+ARCHITECTURE.md (both new modules), ROADMAP.md (item checked, Week/Month sub-item left open),
+DECISIONS.md session 63 (full design-fork writeup, including the "regen mostly cancels damage"
+playtest finding that initially looked like a bug but wasn't).
+
+**State:** ✅ 45 suites, 1019/1019 (+52 over session 62's 967: 33 timeSlider.js, 17
+timeSliderView.js incl. the damage/HP optional-collaborator group, 2 loop.js guard). `node --check`
+clean on script.js/js/timeSlider.js/js/loop.js/js/ui/timeSliderView.js. Live-verified in Chrome:
+scrub forward/back moves real sprites + midnight-line-riding lurker + rewind-before-8pm returns to
+lurk post; base HP/sprite-tier + hero-chip health bar project correctly (hand-verified against a
+single-overdue-item case AND a two-overdue-item case — the base was ghosted at 0 HP, hero chip
+health bar empty); release snaps back to live instantly, zero drift; zero console errors from game
+code (only pre-existing unrelated Chrome-extension messaging noise, confirmed present before this
+session too). Save reset to pristine before ending. NOT committed — git commands in chat.
+
+**Next:** Achievements & badges (ROADMAP Milestone 4), or the Time Slider's Week/Month scope
+(needs real cross-day ghost-conjuring — `TimeSlider.getDayBounds` is written to extend without a
+rewrite), or Mobile UX + accessibility pass. P2-UI-011 Stage 2 (central Modal.open builder) still
+the unscheduled sub-item from session 61.
+
+**Watch out:**
+- The base/routine HP projection is a DELTA anchored at the current known-correct HP, not a
+  from-scratch simulation — don't "simplify" it to recompute from zero using only currently-active
+  items later; that would silently drop damage/regen history from items no longer on the board
+  (completed, removed) that's already baked into the real HP.
+- `BASE_REGEN_HP`/`BASE_REGEN_INTERVAL_MS` are IDENTICAL to `OVERDUE_DAMAGE`/`DAMAGE_INTERVAL_MS`
+  by design (config.js's own comment) — a SINGLE overdue item's projected damage over a long scrub
+  window will look almost fully offset by the base's own regen trickle. This is correct, not a
+  bug; it surprised me live-verifying this session (see DECISIONS.md session 63) before I traced
+  through the math by hand. Don't "fix" it.
+- `renderHeroesAtBase(routinesOverride)` — the override is a SHALLOW-CLONED array with only
+  `health` patched; anyone adding a new per-routine projected field later needs to patch it in the
+  SAME clone step in `timeSliderView.js`'s `applyDamagePreview`, not assume the override object is
+  interchangeable with a real routine record elsewhere.
+
+---
+
 ## 2026-07-19 — Session 62: [P2-UI-013] Routine transfer BUILT — habits + tasks, TICKET CLOSED (Cowork session, Fable scoping → execution)
 
 **Did:** Scoped the inflated ticket down (Fable; forks resolved by Jeremy: frozen-offender blocked,

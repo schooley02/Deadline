@@ -4,6 +4,75 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-20 — Session 63: Time slider (Today scope) BUILT + damage/routine-HP preview follow-up (Cowork session, Sonnet execute — plan pre-approved; two design forks resolved mid-session via AskUserQuestion, no Fable/Opus needed)
+
+**Forks resolved before building (AskUserQuestion, Jeremy's picks):** (1) preview moves the REAL sprites forward/back
+(not ghost overlays) — one render path, matches spec's "preview which tasks are on the horizon and which are moving
+fastest"; negative-habit lurkers (fixed lurk-post live, A2 model) ride the midnight line once it's on-screen instead,
+per Jeremy's explicit call ("the lurkers will need to move with the midnight line"). (2) Today-scope future spawns
+need NO new ghost category — every one of today's habit/routine-task instances is already active at day start, just
+positioned off-screen right; re-running the existing pure position math at `previewTime` reveals them naturally.
+Week/Month scope (unbuilt) will need real cross-day ghost-conjuring — this session's `TimeSlider.getDayBounds` is
+written to extend to that later without a rewrite. (3) Release snaps back to "now" instantly (not "stay until
+dismissed") — simplest, matches "preview only, no actual time manipulation" (PROJECT_SPEC), and avoids a whole class
+of "is the live loop suppressed correctly" bugs a persistent scrubbed state would risk.
+
+**Architecture:** `js/loop.js` gained a THIRD guard (`isTimePreviewActive()`, same "one owner at a time" contract as
+the existing `isOfflineCatchUpActive()`) — `updateActiveItems` early-returns while scrubbing, so no damage/regen/
+position writes happen live during a preview of any length; `updateGame`'s `lastLoopTickMs` keeps advancing
+regardless (unconditional, before the guard), so a long scrub is never mistaken for a suspended-loop gap on release.
+`js/timeSlider.js` (pure) + `js/ui/timeSliderView.js` (DOM) follow the clock.js/movement.js split precedent exactly.
+
+**Mid-session follow-up (Jeremy, unplanned): "the preview also needs to show base damage and freezes."** Two
+sub-questions resolved via AskUserQuestion before building:
+- **Freezes:** ROUTINES.md confirms freeze triggers on 3+ consecutive INDULGE days, evaluated at occurrence-resolution
+  time (avoid/indulge button, check-in, rollover) — a day-level fact that literally cannot change from scrubbing to a
+  different time of TODAY. Jeremy confirmed: no new code needed. Verified true — `renderHeroesAtBase()` was already
+  called unconditionally every live tick (from `updateGame()`, not gated by any preview guard), so frozen/KO'd hero
+  chip badges stay correctly current through a scrub with zero changes.
+- **Base + routine HP:** Jeremy confirmed a full projection — simulate what base HP (and each owning-routine's HP)
+  WOULD be at the scrubbed time. Rejected a from-scratch simulation (would need to replay every item ever active,
+  including completed/removed ones, to be accurate) in favor of a DELTA anchored at the current known-correct HP:
+  `TimeSlider.projectBaseHealth`/`projectRoutineHealthDeltas` compute ticks-elapsed-since-due at `previewTime` minus
+  ticks-elapsed-at-`now`, using the SAME `CONFIG.DAMAGE_INTERVAL_MS`/`OVERDUE_DAMAGE`/`BASE_REGEN_INTERVAL_MS`/
+  `BASE_REGEN_HP` constants the live loop/regen tick read, so the projection can never disagree with what would
+  actually happen. Symmetric for rewind (negative delta undoes not-yet-applied damage/regen). Routine HP has no regen
+  term (routines only revive-on-KO next day, not a gradual tick) and respects the SAME `routine.koState` guard
+  `items.js`'s real `damageRoutineForItem` uses (no further damage accrues once KO'd).
+- **Rendering:** `script.js`'s `renderHeroesAtBase()` gained an optional `routinesOverride` param — the view passes a
+  shallow-cloned routines array with `health` patched to the projected value; `HeroesView` itself is completely
+  unchanged, it just renders whatever array it's given. Real `definedRoutines`/`routine.health` are never mutated.
+  At `previewTime === now` the delta is mathematically zero, so calling the SAME code path on release naturally
+  restores the exact live values — no separate restore branch needed anywhere in the projection code.
+- **Playtest finding (not a bug, initially looked like one):** live-verifying with a single overdue task showed only
+  a 1-point HP drop scrubbing 14 hours forward — looked wrong until hand-computing revealed `BASE_REGEN_HP`/
+  `BASE_REGEN_INTERVAL_MS` are IDENTICAL to `OVERDUE_DAMAGE`/`DAMAGE_INTERVAL_MS` by design (config.js's own comment),
+  so one overdue item's damage is almost fully offset by the base's own flat regen trickle over a long window — the
+  projection was correct, my expectation wasn't. Adding a SECOND overdue item (one routine-owned) made the effect
+  unambiguous in the live demo (base HP → 0, hero chip health bar → empty) — see session write-up.
+
+**Also this session (Jeremy, mechanical):** time label moved from the right side of the slider to the left
+(`index.html`/`css/timeSlider.css`, `.time-slider-label`'s `text-align` flipped left → matches).
+
+**Alternatives rejected:** ghost OVERLAYS instead of moving real sprites (rejected — doubles the DOM, spec explicitly
+says "preview" implies the real enemies move); simulating routine FREEZE forward in time (rejected — not a coherent
+concept within a single day, confirmed via ROUTINES.md before even asking Jeremy, to avoid inventing a mechanic);
+gating the HP projection's `.time-preview-ghost` opacity behind `fx-off`/`prefers-reduced-motion` like the streak-fire/
+walk-bob effects (rejected — this is a functional "projected, not real" state indicator, not decorative motion; no
+new CSS animation was introduced for it to gate in the first place).
+
+**Tests:** 45 suites, 1019/1019 (+52 over session 62's 967: 33 timeSlider.js pure-function tests, 17
+timeSliderView.js DOM-wiring tests incl. the damage/routine-HP optional-collaborator group, 2 loop.js guard tests).
+`node --check` clean on script.js/js/timeSlider.js/js/loop.js/js/ui/timeSliderView.js. Live-verified end-to-end in
+Chrome: scrub forward/back repositions real sprites + lurker rides the midnight line + rewinds to the lurk post
+before 8pm; base HP/sprite tier + hero chip health bar project correctly (verified against hand-computed expected
+values, including the regen-offset case above); release snaps everything back to live values instantly with zero
+drift; two-overdue-item scenario visually confirmed a fully-drained projected base + routine. Zero console errors
+from game code (only pre-existing, unrelated Chrome-extension messaging noise). Save reset to pristine before
+ending. NOT committed — git commands in chat. See UI_UX.md (Time Slider section, expanded)/ARCHITECTURE.md/ROADMAP.md.
+
+---
+
 ## 2026-07-19 — Session 62: [P2-UI-013] Routine transfer BUILT — habits + tasks, ticket closed (Cowork session, Fable scoping → execution)
 
 **Scope decision (Fable, three forks resolved by Jeremy):** the ticket's AC (drag-and-drop, bulk

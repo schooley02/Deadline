@@ -8,7 +8,10 @@
  * `loopDeps()` accessor object rebuilt fresh on every call.
  *
  * Deps contract (see script.js loopDeps()):
- *   - isGameOver()/isOfflineCatchUpActive(): getters — both flip mid-run.
+ *   - isGameOver()/isOfflineCatchUpActive()/isTimePreviewActive(): getters —
+ *     all three flip mid-run. isTimePreviewActive (time slider, 2026-07-20)
+ *     is REQUIRED, same as isOfflineCatchUpActive — see loop.test.js's
+ *     makeDeps() default.
  *   - activeItems: plain reference (itemsDeps()/agendaListDeps() precedent;
  *     safe because deps are rebuilt per call, so reassignment can't go stale).
  *   - baseWidth: plain value, rebuilt per call (not resolved until initGame()).
@@ -25,7 +28,10 @@
  *     injected rather than referenced as a bare global since Items loads
  *     AFTER this file; see items.js's header comment),
  *     getParentRenderWidth ([P1-DATA-004] sub-session 4, 2026-07-19 —
- *     Movement.getParentRenderWidth wrapper; OPTIONAL, omitted = no-op).
+ *     Movement.getParentRenderWidth wrapper; OPTIONAL, omitted = no-op),
+ *     updateTimeSliderHandle (time slider, 2026-07-20 — TimeSliderView.
+ *     syncHandle wrapper; OPTIONAL, omitted = no-op; only ever called when
+ *     NOT previewing, since isTimePreviewActive() already returned above).
  * CONFIG is read as a bare stable global (movement.js/clock.js precedent).
  * Clock is ALSO read as a bare stable global as of [P2-GAME-010] Stage 1
  * (2026-07-19, session 60) — Clock.getWalkUrgencyTier needs only the item +
@@ -40,6 +46,13 @@ const Loop = (() => {
         if (deps.isGameOver()) return;
         // catch-up animation owns positions/damage until it completes
         if (deps.isOfflineCatchUpActive()) return;
+        // Time-slider preview owns positions until the handle is released
+        // (Milestone 4, time slider, 2026-07-20) — same "one owner at a time"
+        // guard as the offline catch-up check above. No damage/regen ticks
+        // run while previewing either: updateGame() keeps lastLoopTickMs
+        // fresh every 50ms regardless (see below), so a scrub of any real-
+        // world length is never mistaken for a suspended-loop gap on release.
+        if (deps.isTimePreviewActive()) return;
 
         const currentTime = new Date();
         const currentTimeMs = currentTime.getTime();
@@ -156,6 +169,12 @@ const Loop = (() => {
         }
 
         deps.updateMidnightLine(currentTime);
+        // Keeps the slider handle/label creeping forward with live time when
+        // nobody's scrubbing it (time slider, 2026-07-20). Reaching this line
+        // at all means isTimePreviewActive() was false above, so no extra
+        // guard is needed here. Optional collaborator — omitted in deps is a
+        // silent no-op (existing tolerance pattern, e.g. recordRunDamage).
+        if (deps.updateTimeSliderHandle) deps.updateTimeSliderHandle(currentTime);
     }
 
     function updateGame(deps) {

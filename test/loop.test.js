@@ -44,6 +44,7 @@ function makeDeps(overrides = {}) {
     const state = {
         gameIsOver: false,
         offlineCatchUpActive: false,
+        timePreviewActive: false,
         activeItems: [],
         lastLoopTickMs: null,
         lastRegenTickMs: null,
@@ -61,6 +62,9 @@ function makeDeps(overrides = {}) {
         _state: state,
         isGameOver: () => state.gameIsOver,
         isOfflineCatchUpActive: () => state.offlineCatchUpActive,
+        // Time slider, 2026-07-20 — REQUIRED, same contract as
+        // isOfflineCatchUpActive above.
+        isTimePreviewActive: () => state.timePreviewActive,
         activeItems: state.activeItems,
         baseWidth: 100,
         gameScreenWidth: 1200, // [P1-DATA-005] session 29 — lurker's far-right anchor
@@ -110,6 +114,31 @@ describe('Loop.updateActiveItems', () => {
         const deps = makeDeps({ state: { offlineCatchUpActive: true, activeItems: [makeItem()] } });
         Loop.updateActiveItems(deps);
         expect(deps._state.midnightUpdates).toBe(0);
+    });
+
+    // Time slider, 2026-07-20 — same "one owner at a time" contract as the
+    // offline catch-up test above.
+    test('no-op while the time slider is being scrubbed', () => {
+        const item = makeItem();
+        const deps = makeDeps({ state: { timePreviewActive: true, activeItems: [item] } });
+        Loop.updateActiveItems(deps);
+        expect(deps._state.midnightUpdates).toBe(0);
+        expect(item.x).toBe(0); // untouched
+    });
+
+    test('calls the optional updateTimeSliderHandle hook when idle (not previewing)', () => {
+        let synced = null;
+        const deps = makeDeps({
+            state: { activeItems: [makeItem()] },
+            deps: { updateTimeSliderHandle: (t) => { synced = t; } },
+        });
+        Loop.updateActiveItems(deps);
+        expect(synced).toBeInstanceOf(Date);
+    });
+
+    test('omitting updateTimeSliderHandle is a silent no-op', () => {
+        const deps = makeDeps({ state: { activeItems: [makeItem()] } });
+        expect(() => Loop.updateActiveItems(deps)).not.toThrow();
     });
 
     test('positions a future item on the timeline and syncs its element', () => {

@@ -157,6 +157,18 @@ Ordering decided 2026-07-18 session 19 (Fable — see DECISIONS.md): 007 → 008
   habit→inactive-routine transfer with instance recall, frozen-offender block, task transfer with
   point-spend prompt, save round-trip, no console errors. Cut as inflated AC: drag-and-drop, bulk
   ops, optimization suggestions, undo. See ROUTINES.md Routine Transfer + DECISIONS.md session 62.
-- [ ] Time slider (Today, then Week/Month scopes)
+- [x] Time slider — Today scope (2026-07-20, session 63) — 24h range input on the
+  canvas/list seam (`js/timeSlider.js`, `js/ui/timeSliderView.js`), handle tracks live time
+  when idle, scrub previews real sprite positions via the SAME pure position math the live
+  loop uses (future spawns already active for Today, no separate ghost category needed);
+  lurkers ride the midnight line once on-screen (>=8pm) instead of the fixed lurk post;
+  base/routine HP also project forward (delta from now using the live damage/regen tick
+  constants — mid-session follow-up, Jeremy). `js/loop.js` preview guard: no damage/regen/
+  position mutation during a scrub, any length. Release snaps back to live instantly. 45
+  suites, 1019/1019 (+52). Live-verified in Chrome. See UI_UX.md/ARCHITECTURE.md/DECISIONS.md
+  session 63.
+  - [ ] Week/Month scope (unbuilt, unscheduled): needs real cross-day ghost-conjuring for
+    other days' not-yet-spawned instances — `TimeSlider.getDayBounds` is written to extend
+    to this without a rewrite.
 - [ ] Achievements & badges
 - [ ] Mobile UX + accessibility pass; PWA

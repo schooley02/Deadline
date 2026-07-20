@@ -16,7 +16,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const taskCountDisplay = document.getElementById('taskCountDisplay');
     // [P1-UI-006] sub-session 3, 2026-07-19 — hero chips container over the base.
     const heroBaseZoneEl = document.getElementById('heroBaseZone');
-    
+    // Time slider (Milestone 4, 2026-07-20) — canvas/list seam, Today scope.
+    const timeSliderEl = document.getElementById('timeSlider');
+    const timeSliderLabelEl = document.getElementById('timeSliderLabel');
+
     // Routine elements
     const routineNameInput = document.getElementById('routineName');
     const createRoutineButton = document.getElementById('createRoutineButton');
@@ -168,6 +171,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // True while the offline catch-up animation owns enemy positions;
     // updateActiveItems() skips position/damage work until it finishes.
     let offlineCatchUpActive = false;
+
+    // True while the time slider is being scrubbed (Milestone 4, 2026-07-20)
+    // — same "one owner at a time" contract as offlineCatchUpActive above.
+    // updateActiveItems() skips position/damage/regen work until release;
+    // js/ui/timeSliderView.js owns element.style.left directly while this
+    // flag is set.
+    let timePreviewActive = false;
 
     // --- Damage / base health (js/damage.js) ---
     // Milestone 2 extraction #3 (2026-07-18). js/damage.js is the only module so
@@ -765,6 +775,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
             isGameOver: () => gameIsOver,
             isOfflineCatchUpActive: () => offlineCatchUpActive,
+            // Time slider (Milestone 4, 2026-07-20) — REQUIRED, same
+            // "one owner at a time" contract as isOfflineCatchUpActive above.
+            isTimePreviewActive: () => timePreviewActive,
             activeItems,
             baseWidth: BASE_WIDTH,
             gameScreenWidth: GAME_SCREEN_WIDTH,
@@ -790,6 +803,11 @@ document.addEventListener('DOMContentLoaded', () => {
             isNonThreatening: Items.isNonThreatening,
             // [P1-DATA-004] sub-session 4, 2026-07-19 — growing parent visuals
             getParentRenderWidth,
+            // Time slider (Milestone 4, 2026-07-20) — keeps the handle/label
+            // creeping forward with live time when nobody's scrubbing it.
+            // OPTIONAL in loop.js (omitted = no-op) so loop.test.js's
+            // existing deps objects don't need updating for this alone.
+            updateTimeSliderHandle: (time) => TimeSliderView.syncHandle(time),
         };
     }
 
@@ -803,6 +821,50 @@ document.addEventListener('DOMContentLoaded', () => {
             gameScreenWidth: GAME_SCREEN_WIDTH,
             baseWidth: BASE_WIDTH
         });
+    }
+
+    // Time slider (Milestone 4, 2026-07-20) — deps for js/ui/timeSliderView.js.
+    // dims is a FUNCTION, not a plain object, because GAME_SCREEN_WIDTH/
+    // BASE_WIDTH/HABIT_ENEMY_WIDTH aren't resolved until initGame() runs
+    // (same reasoning as loopDeps()'s baseWidth/gameScreenWidth rebuild —
+    // here it has to be re-evaluated on every scrub event too, not just once
+    // at init time, since a window resize between events would otherwise go
+    // stale).
+    function timeSliderDeps() {
+        return {
+            sliderEl: timeSliderEl,
+            labelEl: timeSliderLabelEl,
+            getActiveItems: () => activeItems,
+            isNonThreatening: Items.isNonThreatening,
+            calculateTimelineXWithClustering,
+            updateMidnightLine,
+            dims: () => ({
+                gameScreenWidth: GAME_SCREEN_WIDTH,
+                baseWidth: BASE_WIDTH,
+                habitEnemyWidth: HABIT_ENEMY_WIDTH,
+            }),
+            setTimePreviewActive: (v) => { timePreviewActive = v; },
+
+            // Damage/routine-HP projection (2026-07-20, same session —
+            // Jeremy's follow-up: "the preview also needs to show base
+            // damage and freezes"). One optional-collaborator group, see
+            // timeSliderView.js's header for the full contract.
+            getBaseHealth: () => baseHealth,
+            getLastRegenTickMs: () => lastRegenTickMs,
+            baseElement,
+            baseHealthDisplayEl: baseHealthDisplay,
+            resolveBaseImage: Damage.resolveBaseImage,
+            getDefinedRoutines: () => definedRoutines,
+            getRoutineIdForItem: (item) => {
+                const routine = Items.findRoutineForItem(item, {
+                    definedHabits: () => definedHabits,
+                    definedRoutines: () => definedRoutines,
+                });
+                return routine ? routine.id : null;
+            },
+            renderHeroesAtBase,
+            heroBaseZoneEl,
+        };
     }
 
     // Base sprite / damage / game-over all live in js/damage.js (Milestone 2
@@ -1236,10 +1298,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // hero chips reflect completion/damage/freeze/KO/deactivate within one
     // 50ms tick without threading a UI dependency through items.js/routines.js/
     // damage.js (see js/ui/heroes.js header for the full rationale).
-    function renderHeroesAtBase() {
+    // routinesOverride (Milestone 4 time slider, 2026-07-20, optional):
+    // lets js/ui/timeSliderView.js draw PROJECTED per-routine health during
+    // a scrub by passing a shallow-cloned routines array with `health`
+    // patched — HeroesView itself is unchanged, it just renders whatever
+    // array it's given. Omitted (every existing call site) renders the real
+    // live definedRoutines, unchanged behavior.
+    function renderHeroesAtBase(routinesOverride) {
         HeroesView.renderHeroesAtBase({
             containerEl: heroBaseZoneEl,
-            definedRoutines,
+            definedRoutines: routinesOverride || definedRoutines,
             definedHabits,
             config: CONFIG,
             runStartedAtMs,
@@ -1771,6 +1839,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize the game
     initGame();
     restoreGameState();
+    // Time slider (Milestone 4, 2026-07-20) — after initGame() so
+    // GAME_SCREEN_WIDTH/BASE_WIDTH/HABIT_ENEMY_WIDTH are resolved (deps.dims()
+    // is still a live function, so a later resize is fine too; this ordering
+    // only matters for the initial syncHandle() call inside init()).
+    TimeSliderView.init(timeSliderDeps());
     // Sub-session 4 ([P1-DATA-005], check-in prompt, 2026-07-19): if the
     // rollover just ran (above) and left any negative-habit pendingCheckIn
     // markers, prompt for them now.

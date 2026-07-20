@@ -27,6 +27,7 @@
     <link rel="stylesheet" href="css/settings.css">
     <link rel="stylesheet" href="css/gameOverReview.css">
     <link rel="stylesheet" href="css/heroes.css">
+    <link rel="stylesheet" href="css/timeSlider.css">
     <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
@@ -70,6 +71,15 @@
             <!-- Level Up and Game Over Messages -->
             <div id="levelUpMessage" class="hidden message-overlay">LEVEL UP!</div>
             <div id="gameOverMessage" class="hidden message-overlay">GAME OVER!</div>
+        </div>
+
+        <!-- Time Slider (Milestone 4, 2026-07-20) — sits ON the canvas/list
+             seam per docs/UI_UX.md. Today scope only; Week/Month scope toggle
+             is a later sub-item. Drag/scrub previews enemy positions at that
+             time (js/ui/timeSliderView.js); releasing snaps back to now. -->
+        <div class="time-slider-seam">
+            <div id="timeSliderLabel" class="time-slider-label">12:00 AM</div>
+            <input type="range" id="timeSlider" class="time-slider" aria-label="Preview time of day">
         </div>
 
         <!-- Bottom 40% - Task List Section -->
@@ -287,6 +297,7 @@
     <script src="js/persistence.js"></script>
     <script src="js/clock.js"></script>
     <script src="js/movement.js"></script>
+    <script src="js/timeSlider.js"></script>
     <script src="js/spawning.js"></script>
     <script src="js/damage.js"></script>
     <script src="js/progression.js"></script>
@@ -314,6 +325,7 @@
     <script src="js/ui/agendaList.js"></script>
     <script src="js/ui/routineViews.js"></script>
     <script src="js/ui/heroes.js"></script>
+    <script src="js/ui/timeSliderView.js"></script>
     <script src="js/IdCounter.js"></script>
     <script src="js/TaskManager.js"></script>
     <script src="script.js"></script>

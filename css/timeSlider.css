@@ -1,0 +1,84 @@
+/**
+ * timeSlider.css — 24h preview slider on the canvas/list seam (Milestone 4,
+ * "Time slider (Today, then Week/Month scopes)", 2026-07-20).
+ *
+ * .time-preview-ghost is the ONLY new class touched during a scrub
+ * (js/ui/timeSliderView.js) — a generic opacity dimming rule applies to
+ * every element it's toggled on (#base, #baseHealthDisplay, #heroBaseZone as
+ * ONE container — opacity visually dims all its chip children too with no
+ * per-chip CSS needed), plus a MORE SPECIFIC .enemy variant that adds the
+ * dashed-outline treatment on top. Enemy sprite movement comes for free from
+ * .enemy's existing `transition: all 0.2s ease` (css/enemySprites.css), same
+ * as every other position change in the game, so it's intentionally NOT
+ * re-declared or gated here.
+ */
+
+.time-slider-seam {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-bg-white);
+    border-top: 1px solid var(--color-secondary-green-pale);
+    border-bottom: 1px solid var(--color-secondary-green-pale);
+}
+
+.time-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--color-secondary-green-pale);
+    outline: none;
+    cursor: pointer;
+}
+
+.time-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-sacred-stone);
+    border: 2px solid var(--color-bg-white);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+}
+
+.time-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-sacred-stone);
+    border: 2px solid var(--color-bg-white);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+}
+
+.time-slider::-webkit-slider-thumb:active,
+.time-slider::-moz-range-thumb:active {
+    background: var(--color-primary-dark-green);
+}
+
+.time-slider-label {
+    min-width: 74px;
+    text-align: left;
+    font-size: var(--text-caption);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Ghosted preview state (scrubbing only) — reduced opacity so a previewed
+   value reads as "projected, not real" rather than a live number/sprite. */
+.time-preview-ghost {
+    opacity: 0.55;
+}
+
+/* Enemy sprites additionally get a dashed outline — no new motion, the
+   slide itself is .enemy's existing transition (see file header). */
+.enemy.time-preview-ghost {
+    outline: 2px dashed var(--color-sacred-stone);
+    outline-offset: 2px;
+}
