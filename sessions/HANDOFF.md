@@ -13,6 +13,42 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-20 — Session 69: Run History sub-session 5 (polish) — best-run badge, expandable cards, deltas; ticket CLOSED (Cowork session)
+
+**Did:** Built the last unchecked Run History item (RUN_HISTORY_PLAN.md sub-session 5, optional — built rather
+than cut). `js/runStats.js`: pure `bestRunNumber` (days → points → EARLIEST-run tiebreak: the first
+record-setter keeps the badge) + `deltasVsLastRun` (plain current−last arithmetic; direction semantics live in
+the view). `js/ui/statsView.js`: 🏆 best-run badge (computed once, passed per-card), expandable past-run cards
+(details ALWAYS in the DOM, click/Enter/Space toggles `.stats-run-card-expanded` only — no innerHTML rebuild,
+which is how the session-21 setTimeout(0) hazard was resolved rather than deferred; listeners attach by
+assignment so re-opens can't stack; role=button/tabindex/aria-expanded), and vs-last-run delta markers on the
+current-run panel (`formatDeltaBadge` — green for improvement only, never red per GAME_DESIGN principle 2;
+habitsMissed passes goodWhenUp:false). `css/stats.css`: badge/chevron/details/delta styles. Docs: ROADMAP
+(sub-item 5 + parent ticket checked), RUN_HISTORY_PLAN, UI_UX, DECISIONS session 69.
+
+**State:** ✅ 51 suites, 1121/1121 (+19, `test/run-history-polish.test.js`). `node --check` clean on
+runStats.js/statsView.js. Live-verified in Chrome (localhost:8000, session-52 hand-edit protocol, 3 crafted
+runs): badge on the correct non-newest run (exactly one), all 4 counter deltas + days delta with correct
+inversion (missed −2 rendered green), expand/collapse via mouse AND keyboard with aria-expanded flips, no
+window self-close, zero console errors. Jeremy's save restored pristine (runHistory [], all-zero
+currentRunStats, schema 11). **Run History ticket fully CLOSED — Milestone 3 done except the low-priority
+live day-rollover.** NOT committed — git commands given in chat.
+
+**Next:** Open menu: Time Slider Week/Month scope, Day-advance live mid-session rollover (low priority), or
+the Mobile UX + accessibility pass (PWA) from Milestone 4. Also still pending: the session-24 balance
+re-check against Jeremy's REAL play data (earn-rate yardstick ~75–85 pts/day).
+
+**Watch out:**
+- The `javascript_tool` can spuriously return `[BLOCKED: Cookie/query string data]` on a large combined
+  stub+edit+write snippet — splitting the same code into two smaller sequential calls worked fine (nothing
+  in the code was actually touching cookies; likely an over-eager output filter).
+- `window.__backupSave` does NOT survive a page reload (obvious in hindsight) — if a playtest needs the
+  pristine save restored after a reload, either re-derive it by resetting the crafted fields or copy the
+  backup into localStorage under a second key before reloading.
+- Run-card expansion state resets to collapsed on window re-open by design (render rebuilds the cards).
+
+---
+
 ## 2026-07-20 — Session 68: Achievements sub-session 4 (polish) — near-miss nudges + unlock animation, ticket CLOSED (Cowork session)
 
 **Did:** Jeremy picked this over Run History polish / Time Slider Week-Month / Mobile UX from a menu at

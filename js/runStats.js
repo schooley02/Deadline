@@ -212,6 +212,51 @@ const RunStats = (() => {
         return Array.from(byRoutine.values());
     }
 
+    /**
+     * Sub-session 5 polish: personal-record detection. Best run = most days
+     * survived; ties broken by pointsEarned, then by EARLIEST runNumber (the
+     * first run to set a record keeps the badge — a later tie doesn't steal
+     * it). Returns the best run's runNumber, or null for empty history.
+     * Pure — no mutation.
+     */
+    function bestRunNumber(runHistory) {
+        let best = null;
+        (runHistory || []).forEach(record => {
+            if (!record) return;
+            if (best === null ||
+                record.daysSurvived > best.daysSurvived ||
+                (record.daysSurvived === best.daysSurvived &&
+                    ((record.totals || {}).pointsEarned || 0) > ((best.totals || {}).pointsEarned || 0)) ||
+                (record.daysSurvived === best.daysSurvived &&
+                    ((record.totals || {}).pointsEarned || 0) === ((best.totals || {}).pointsEarned || 0) &&
+                    record.runNumber < best.runNumber)) {
+                best = record;
+            }
+        });
+        return best ? best.runNumber : null;
+    }
+
+    /**
+     * Sub-session 5 polish: current-run-vs-last-run deltas for the live
+     * Stats panel. `lastRecord` is runHistory[0] (newest-first). Returns
+     * null when there's no prior run to compare against; otherwise numeric
+     * deltas (current − last), positive = more than last run. The CALLER
+     * decides which direction reads as improvement (habitsMissed: lower is
+     * better) — this just does arithmetic. Pure.
+     */
+    function deltasVsLastRun(stats, daysSurvivedSoFar, lastRecord) {
+        if (!lastRecord) return null;
+        const s = stats || freshRunStats();
+        const t = lastRecord.totals || {};
+        return {
+            daysSurvived: (daysSurvivedSoFar || 0) - (lastRecord.daysSurvived || 0),
+            tasksCompleted: s.tasksCompleted - (t.tasksCompleted || 0),
+            habitsCompleted: s.habitsCompleted - (t.habitsCompleted || 0),
+            habitsMissed: s.habitsMissed - (t.habitsMissed || 0),
+            pointsEarned: s.pointsEarned - (t.pointsEarned || 0),
+        };
+    }
+
     return {
         freshRunStats,
         blameKeyFor,
@@ -224,6 +269,8 @@ const RunStats = (() => {
         finalizeRun,
         appendToHistory,
         rollupRoutinePerformance,
+        bestRunNumber,
+        deltasVsLastRun,
     };
 })();
 

@@ -4,6 +4,39 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-20 — Session 69: Run History sub-session 5 (polish) — best-run badge, expandable cards, vs-last-run deltas; ticket CLOSED (Cowork)
+
+**Scope:** the last unchecked item on "Run history + run review screen" (`docs/RUN_HISTORY_PLAN.md` sub-session
+5, optional polish) — built rather than cut, closing the ticket. Milestone 3 is now complete except the
+low-priority live day-rollover item.
+
+**Best-run detection.** New pure `RunStats.bestRunNumber(runHistory)`: most days survived wins; ties broken by
+`totals.pointsEarned`, then by EARLIEST runNumber — **decision: the first run to set a record keeps the 🏆
+badge; a later run that merely ties doesn't steal it** (personal-record convention). Exactly one badge, or none
+for empty history. Computed once in `renderStatsWindow`, passed per-card.
+
+**Vs-last-run deltas.** New pure `RunStats.deltasVsLastRun(stats, daysSurvivedSoFar, lastRecord)` — plain
+current−last arithmetic across days/tasks/habits/missed/points; returns null with no prior run (panel renders
+no deltas at all). Direction semantics live in the VIEW: `StatsView.formatDeltaBadge(delta, goodWhenUp)` — 
+habitsMissed passes `goodWhenUp: false` so FEWER misses reads as improvement. **Decision: improvements render
+green, everything else neutral grey — never red** (GAME_DESIGN principle 2, reflection over punishment: deltas
+inform, don't scold).
+
+**Expandable run cards — the session-21 setTimeout(0) hazard was designed AROUND, not deferred around.** The
+statsView.js header had a standing warning to re-check that hazard before adding in-window buttons. Resolution:
+expanded details (started date + end reason, full offender list top-10, per-run routine snapshot rows) are
+ALWAYS in the DOM; a click toggles `.stats-run-card-expanded` only, so the event target never detaches
+mid-bubble and the "click outside closes window" listener can't misfire. Listeners attach by ASSIGNMENT
+(`historyList.onclick = ...`) so re-opening the window replaces rather than stacks handlers. Collapsed top-3
+blame summary and expanded "All offenders" list are CSS-swapped (never both). Cards are `role="button"
+tabindex="0"` with Enter/Space toggling + live `aria-expanded`, extending the session-61 a11y groundwork.
+Expansion state deliberately resets on window re-open (render rebuilds cards).
+
+**Tests:** +19 in `test/run-history-polish.test.js` (51 suites, 1121/1121). Live-verified in Chrome via the
+session-52 hand-edit protocol (3 crafted runs incl. tie-relevant fixtures): badge landed on the correct
+non-newest run, all 4 counter deltas + days delta rendered with correct inversion (missed −2 = green),
+click/keyboard expand-collapse with aria flips, zero console errors, save restored pristine.
+
 ## 2026-07-20 — Session 68: Achievements sub-session 4 (polish) — near-miss nudges + unlock animation, ticket CLOSED (Cowork)
 
 **Scope:** the last unchecked item on Achievements & badges (`docs/ACHIEVEMENTS_PLAN.md`'s "optional, cut-if-

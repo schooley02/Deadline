@@ -131,6 +131,9 @@ memory so the immediate `saveGame()` writes it back.
    across runs — the A/B comparison surface). Live-verify in Chrome (real base death).
 5. **Polish (optional — cut if play data says otherwise).** Best-run highlight/personal record
    badge, expandable run cards, "vs last run" deltas on the current-run panel.
+   **BUILT 2026-07-20 session 69 (Sonnet-tier work) — ticket fully CLOSED.** All three pieces
+   shipped; expansion is a CSS-class toggle (no rebuild — dodges the session-21 setTimeout(0)
+   hazard by design), badge tiebreak = days → points → earliest run. See DECISIONS.md session 69.
 
 Testing per established convention: pure helpers get Jest (sandbox $HOME method); DOM/UI paths
 get live Chrome verification against the real server. Every sub-session ends with the full suite

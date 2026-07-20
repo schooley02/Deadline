@@ -183,6 +183,78 @@
     margin-bottom: 4px;
 }
 
+/* Sub-session 5 polish (2026-07-20 session 69): best-run badge, expandable
+   run cards (class-toggle only — details are always in the DOM, hidden when
+   collapsed; see statsView.js header), vs-last-run deltas. */
+.stats-run-card {
+    cursor: pointer;
+}
+
+.stats-run-card-best {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: var(--color-success);
+    color: white;
+    white-space: nowrap;
+}
+
+.stats-run-card-chevron {
+    display: inline-block;
+    font-size: 11px;
+    color: var(--color-neutral);
+    transition: transform 0.15s ease;
+}
+
+.stats-run-card-expanded .stats-run-card-chevron {
+    transform: rotate(90deg);
+}
+
+.stats-run-card-details {
+    display: none;
+}
+
+.stats-run-card-expanded .stats-run-card-details {
+    display: block;
+    border-top: 1px solid var(--color-secondary-green-pale);
+    margin-top: var(--space-2);
+    padding-top: var(--space-2);
+}
+
+/* The collapsed top-3 blame summary duplicates the expanded "All offenders"
+   list — show one or the other, never both. */
+.stats-run-card-expanded .stats-run-card-summary-blame {
+    display: none;
+}
+
+.stats-run-card-span {
+    font-size: 11px;
+    color: var(--color-neutral);
+    margin-bottom: 4px;
+}
+
+.stats-run-routine-name {
+    font-weight: 500;
+}
+
+.stats-counter-delta {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--color-neutral);
+    margin-left: 3px;
+    vertical-align: super;
+}
+
+.stats-delta-up {
+    color: var(--color-success);
+}
+
+.stats-days-delta {
+    font-size: 11px;
+    color: var(--color-neutral);
+}
+
 /* Routine Performance rollup (sub-session 4, 2026-07-19/20 session 55) —
    mirrors the Past Runs card treatment above. */
 .stats-routine-list {

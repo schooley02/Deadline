@@ -16,9 +16,17 @@
  * Read-only window — no buttons that mutate state, so this sub-session
  * doesn't need the setTimeout(0) rebuild-after-click deferral that
  * shopView.js's Buy/Use buttons need (see managementWindows.js header +
- * script.js's handleShopPurchase comment for that hazard). If a future
- * sub-session (5, optional polish) adds an in-window action button (e.g.
- * an expandable run card), re-check that hazard before wiring it.
+ * script.js's handleShopPurchase comment for that hazard).
+ *
+ * Sub-session 5 (2026-07-20 session 69) added expandable run cards — the
+ * hazard was re-checked and DESIGNED AROUND rather than deferred-around:
+ * expanding never rebuilds innerHTML. The expanded details are always in
+ * the DOM; a click only toggles a `.stats-run-card-expanded` class, so the
+ * event target stays attached mid-bubble and the "click outside closes
+ * window" listener never misfires. Listeners are attached by ASSIGNMENT
+ * (`historyList.onclick = ...`), not addEventListener, so re-opening the
+ * window can't stack duplicates. Expansion state intentionally resets to
+ * collapsed on window re-open (render rebuilds the cards).
  */
 const StatsView = (() => {
 
@@ -68,32 +76,50 @@ const StatsView = (() => {
         `;
     }
 
+    // Sub-session 5: "+3" / "−2" / "±0" marker next to a counter, comparing
+    // the live run against the LAST finished run (RunStats.deltasVsLastRun).
+    // `goodWhenUp` picks the improvement direction (habitsMissed: false —
+    // fewer misses than last run is the win). Improvements get the green
+    // class; everything else stays neutral — never red (GAME_DESIGN
+    // principle 2: reflection over punishment, deltas inform, don't scold).
+    function formatDeltaBadge(delta, goodWhenUp) {
+        if (typeof delta !== 'number') return '';
+        const improved = goodWhenUp ? delta > 0 : delta < 0;
+        const text = delta > 0 ? `+${delta}` : (delta < 0 ? `−${Math.abs(delta)}` : '±0');
+        return `<span class="stats-counter-delta${improved ? ' stats-delta-up' : ''}" title="vs last run">${text}</span>`;
+    }
+
     // deps: { currentRunStats, daysSurvivedSoFar, currentRunNumber,
-    //         achievementsCatalog, lifetimeStats, achievements }
+    //         lastRunRecord, achievementsCatalog, lifetimeStats, achievements }
     function buildCurrentRunPanel(deps) {
         const stats = deps.currentRunStats || RunStats.freshRunStats();
         const blameRows = RunStats.sortedBlame(stats.blame);
         const nearMissHtml = buildNearMissSection(deps.achievementsCatalog, deps.lifetimeStats, deps.achievements);
+        const deltas = RunStats.deltasVsLastRun(stats, deps.daysSurvivedSoFar, deps.lastRunRecord);
+        const d = (key, goodWhenUp) => deltas ? formatDeltaBadge(deltas[key], goodWhenUp) : '';
+        const daysDeltaHtml = deltas
+            ? ` <span class="stats-days-delta">(${formatDeltaBadge(deltas.daysSurvived, true)} vs last run)</span>`
+            : '';
 
         return `
             <div class="stats-current-panel">
                 <h4>Run #${deps.currentRunNumber} — in progress</h4>
-                <div class="stats-days-survived">${deps.daysSurvivedSoFar} day${deps.daysSurvivedSoFar === 1 ? '' : 's'} survived so far</div>
+                <div class="stats-days-survived">${deps.daysSurvivedSoFar} day${deps.daysSurvivedSoFar === 1 ? '' : 's'} survived so far${daysDeltaHtml}</div>
                 <div class="stats-counter-row">
                     <div class="stats-counter">
-                        <span class="stats-counter-value">${stats.tasksCompleted}</span>
+                        <span class="stats-counter-value">${stats.tasksCompleted}${d('tasksCompleted', true)}</span>
                         <span class="stats-counter-label">Tasks done</span>
                     </div>
                     <div class="stats-counter">
-                        <span class="stats-counter-value">${stats.habitsCompleted}</span>
+                        <span class="stats-counter-value">${stats.habitsCompleted}${d('habitsCompleted', true)}</span>
                         <span class="stats-counter-label">Habits done</span>
                     </div>
                     <div class="stats-counter">
-                        <span class="stats-counter-value">${stats.habitsMissed}</span>
+                        <span class="stats-counter-value">${stats.habitsMissed}${d('habitsMissed', false)}</span>
                         <span class="stats-counter-label">Habits missed</span>
                     </div>
                     <div class="stats-counter">
-                        <span class="stats-counter-value">${stats.pointsEarned}</span>
+                        <span class="stats-counter-value">${stats.pointsEarned}${d('pointsEarned', true)}</span>
                         <span class="stats-counter-label">Points earned</span>
                     </div>
                 </div>
@@ -104,20 +130,59 @@ const StatsView = (() => {
         `;
     }
 
+    // Sub-session 5: one routine snapshot row inside an EXPANDED run card
+    // (the record's own frozen `routines[]`, not the cross-run rollup —
+    // buildRoutineEntryRow's "Run #N" prefix would be redundant here).
+    function buildRunRoutineRow(r) {
+        const statusBadges = [
+            r.wasKOdAtEnd ? '<span class="stats-routine-badge stats-routine-badge-ko">KO\'d</span>' : '',
+            r.wasFrozenAtEnd ? '<span class="stats-routine-badge stats-routine-badge-frozen">Frozen</span>' : '',
+        ].join('');
+        return `
+            <li>
+                <span class="stats-routine-metric stats-run-routine-name">${r.name}</span>
+                <span class="stats-routine-metric">Lv${r.level} ${formatStars(r.stars)}</span>
+                <span class="stats-routine-metric">${formatCompletionRate(r.completionRate)}</span>
+                <span class="stats-routine-metric stats-routine-damage">-${r.memberDamage} dmg</span>
+                ${statusBadges}
+            </li>
+        `;
+    }
+
     // One past-run card. `record` is a frozen runRecord (RunStats.finalizeRun
     // shape) — record.blame is already sorted damage-desc.
-    function buildRunCard(record) {
+    //
+    // Sub-session 5: cards are EXPANDABLE (details always rendered, toggled
+    // by CSS class only — see file header for why that dodges the
+    // setTimeout(0) hazard) and the personal-record run gets a 🏆 badge
+    // (`isBest` — RunStats.bestRunNumber, computed once in
+    // renderStatsWindow, not per card).
+    function buildRunCard(record, isBest) {
+        const bestBadge = isBest
+            ? '<span class="stats-run-card-best" title="Personal record">🏆 Best run</span>'
+            : '';
+        const routineRows = (record.routines || []).map(buildRunRoutineRow).join('');
+        const routinesHtml = routineRows
+            ? `<div class="stats-blame-heading">Routines this run</div>
+               <ul class="stats-routine-entry-list">${routineRows}</ul>`
+            : '';
         return `
-            <li class="stats-run-card">
+            <li class="stats-run-card" data-run-number="${record.runNumber}" role="button" tabindex="0" aria-expanded="false">
                 <div class="stats-run-card-header">
-                    <span class="stats-run-card-title">Run #${record.runNumber} — ${record.daysSurvived} day${record.daysSurvived === 1 ? '' : 's'}</span>
-                    <span class="stats-run-card-date">${formatDate(record.endedAtMs)}</span>
+                    <span class="stats-run-card-title">Run #${record.runNumber} — ${record.daysSurvived} day${record.daysSurvived === 1 ? '' : 's'} ${bestBadge}</span>
+                    <span class="stats-run-card-date">${formatDate(record.endedAtMs)} <span class="stats-run-card-chevron" aria-hidden="true">▸</span></span>
                 </div>
                 <div class="stats-run-card-totals">
                     ${record.totals.tasksCompleted} tasks · ${record.totals.habitsCompleted} habits ·
                     ${record.totals.habitsMissed} missed · ${record.totals.pointsEarned} pts
                 </div>
-                ${buildBlameList(record.blame, 3)}
+                <div class="stats-run-card-summary-blame">${buildBlameList(record.blame, 3)}</div>
+                <div class="stats-run-card-details">
+                    <div class="stats-run-card-span">Started ${formatDate(record.startedAtMs)} · ${record.endReason === 'base_destroyed' ? 'Base destroyed' : record.endReason}</div>
+                    <div class="stats-blame-heading">All offenders</div>
+                    ${buildBlameList(record.blame, 10)}
+                    ${routinesHtml}
+                </div>
             </li>
         `;
     }
@@ -257,14 +322,35 @@ const StatsView = (() => {
             currentRunStats: deps.currentRunStats,
             daysSurvivedSoFar: deps.daysSurvivedSoFar,
             currentRunNumber,
+            lastRunRecord: runHistory[0] || null,
             achievementsCatalog: deps.achievementsCatalog,
             lifetimeStats: deps.lifetimeStats,
             achievements: deps.achievements,
         });
 
+        const bestRun = RunStats.bestRunNumber(runHistory);
         historyList.innerHTML = (runHistory.length === 0)
             ? '<div class="stats-empty">No past runs yet — this is your first.</div>'
-            : runHistory.map(buildRunCard).join('');
+            : runHistory.map(record => buildRunCard(record, record.runNumber === bestRun)).join('');
+
+        // Sub-session 5: expand/collapse delegation. ASSIGNED (not
+        // addEventListener) so re-opening the window replaces rather than
+        // stacks the handler; toggles a class only (no rebuild — see file
+        // header). Keyboard: cards are role="button" tabindex="0", Enter/
+        // Space toggle, mirroring the session-61 a11y groundwork.
+        const toggleCard = (target) => {
+            const card = target && target.closest && target.closest('.stats-run-card');
+            if (!card || !historyList.contains(card)) return;
+            const expanded = card.classList.toggle('stats-run-card-expanded');
+            card.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        };
+        historyList.onclick = (e) => toggleCard(e.target);
+        historyList.onkeydown = (e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            if (!e.target.classList || !e.target.classList.contains('stats-run-card')) return;
+            e.preventDefault();
+            toggleCard(e.target);
+        };
 
         if (routineRollup) {
             routineRollup.innerHTML = buildRoutineRollupSection({ runHistory });
@@ -285,8 +371,10 @@ const StatsView = (() => {
         formatCompletionRate,
         formatStars,
         buildBlameList,
+        formatDeltaBadge,
         buildCurrentRunPanel,
         buildRunCard,
+        buildRunRoutineRow,
         buildRoutineEntryRow,
         buildRoutineCard,
         buildRoutineRollupSection,
