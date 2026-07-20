@@ -491,6 +491,107 @@ const Routines = (() => {
     }
 
     // ---------------------------------------------------------------------
+    // Routine transfer ([P2-UI-013], 2026-07-19 session 62)
+    // ---------------------------------------------------------------------
+
+    // Moves a habit from one routine to another ATOMICALLY (single mutation
+    // pass — never leaves the habit stranded between memberships). Pure core;
+    // slot capacity on the DESTINATION is the caller's job
+    // (ensureRoutineSlotAvailable, same split as every add flow), as are
+    // live-instance recall/spawn and saveGame (script.js wrapper).
+    //
+    // Returns { ok: true } or { ok: false, reason }:
+    //   'not-found'          — routine(s)/habit missing, or habit not in source
+    //   'same-routine'       — source === dest (UI shouldn't offer this)
+    //   'frozen-offender'    — the habit holds source.frozenState (Jeremy's
+    //                          call, session 62: a transfer must NOT be a
+    //                          cheap dodge of the freeze penalty — same
+    //                          philosophy as "tokens can't dodge a freeze").
+    //                          OTHER habits in a frozen routine move freely
+    //                          ("frozen routines remain fully manageable").
+    //   'already-in-routine' — dest already contains the habit
+    //
+    // A real transfer appends { timestamp, changedFields: ['routineId'] } to
+    // habitDef.modificationHistory (same shape as editHabitInRoutine's
+    // change tracking) — but deliberately does NOT run the edit-to-unfreeze
+    // recovery check: transfer isn't recovery path 1, and the offender is
+    // blocked above anyway.
+    function transferHabitBetweenRoutines(sourceRoutineId, destRoutineId, habitDefId, definedRoutines, definedHabits) {
+        const source = definedRoutines.find(r => r.id === sourceRoutineId);
+        const dest = definedRoutines.find(r => r.id === destRoutineId);
+        const habitDef = definedHabits.find(h => h.id === habitDefId);
+
+        if (!source || !dest || !habitDef) return { ok: false, reason: 'not-found' };
+        if (sourceRoutineId === destRoutineId) return { ok: false, reason: 'same-routine' };
+
+        const habitIndex = (source.habitDefinitionIds || []).indexOf(habitDefId);
+        if (habitIndex === -1) return { ok: false, reason: 'not-found' };
+
+        if (source.frozenState && source.frozenState.frozenBy === habitDefId) {
+            return { ok: false, reason: 'frozen-offender' };
+        }
+
+        if ((dest.habitDefinitionIds || []).includes(habitDefId)) {
+            return { ok: false, reason: 'already-in-routine' };
+        }
+
+        source.habitDefinitionIds.splice(habitIndex, 1);
+        dest.habitDefinitionIds.push(habitDefId);
+        habitDef.routineId = destRoutineId;
+
+        if (!Array.isArray(habitDef.modificationHistory)) habitDef.modificationHistory = [];
+        habitDef.modificationHistory.push({ timestamp: new Date().toISOString(), changedFields: ['routineId'] });
+
+        return { ok: true };
+    }
+
+    // Task counterpart. Simpler by construction: task definitions have no
+    // back-reference (routineId) — membership lives ONLY in the routines'
+    // taskDefinitionIds arrays (see ROUTINES.md "Deletion & Orphaned
+    // Habits") — and tasks can never be a freeze offender (only negative
+    // habits freeze), so no 'frozen-offender' arm exists here.
+    function transferTaskBetweenRoutines(sourceRoutineId, destRoutineId, taskId, definedRoutines) {
+        const source = definedRoutines.find(r => r.id === sourceRoutineId);
+        const dest = definedRoutines.find(r => r.id === destRoutineId);
+
+        if (!source || !dest) return { ok: false, reason: 'not-found' };
+        if (sourceRoutineId === destRoutineId) return { ok: false, reason: 'same-routine' };
+
+        const taskIndex = (source.taskDefinitionIds || []).indexOf(taskId);
+        if (taskIndex === -1) return { ok: false, reason: 'not-found' };
+
+        if ((dest.taskDefinitionIds || []).includes(taskId)) {
+            return { ok: false, reason: 'already-in-routine' };
+        }
+
+        source.taskDefinitionIds.splice(taskIndex, 1);
+        if (!dest.taskDefinitionIds) dest.taskDefinitionIds = [];
+        dest.taskDefinitionIds.push(taskId);
+
+        return { ok: true };
+    }
+
+    // Selection half of the post-transfer recall (script.js wrapper): the
+    // live instance ids spawned from ONE definition, with sub-tasks cascaded
+    // ahead of their parent — the per-definition analogue of
+    // selectActiveItemIdsToClearForRoutine above, kept pure/testable the
+    // same way. Used when a transfer lands a definition in a routine that
+    // wouldn't spawn it (inactive/frozen/KO'd): the board should match what
+    // the destination routine's gating would have produced.
+    function selectActiveInstanceIdsForDefinition(activeItemsList, definitionId, type) {
+        const rootIds = activeItemsList
+            .filter(item => item.type === type && item.definitionId === definitionId)
+            .map(item => item.id);
+
+        const rootIdSet = new Set(rootIds);
+        const subTaskIds = activeItemsList
+            .filter(item => item.parentId !== undefined && rootIdSet.has(item.parentId))
+            .map(item => item.id);
+
+        return [...subTaskIds, ...rootIds];
+    }
+
+    // ---------------------------------------------------------------------
     // Activation / deactivation + deactivation recall
     // ---------------------------------------------------------------------
 
@@ -604,6 +705,9 @@ const Routines = (() => {
         editHabitInRoutine,
         editTaskInRoutine,
         addHabitToRoutine,
+        transferHabitBetweenRoutines,
+        transferTaskBetweenRoutines,
+        selectActiveInstanceIdsForDefinition,
         selectActiveItemIdsToClearForRoutine,
         clearActiveInstancesForRoutine,
         toggleRoutineActive,

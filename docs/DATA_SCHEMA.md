@@ -40,6 +40,10 @@ needed — absent means "nothing awarded"): `routineXpAwarded: number` — a sta
 leaves on a routine-owned item recording exactly what its routine earned, which
 `Items.uncompleteItem` refunds off (stamp beats re-checking conditions — a freeze/deactivation
 between complete and uncomplete can't break refund symmetry; the streak-bonus-asymmetry lesson).
+Session 62 ([P2-UI-013]) added a sibling stamp, same additive/no-migration pattern:
+`routineXpRoutineId: string` — WHICH routine earned it, so the refund debits the earner even if
+the definition was transferred to another routine in between; refund falls back to re-resolving
+ownership when the id stamp is absent (pre-transfer-era saves).
 Star ratings (`Heroes.completionRate`/`starRating`, spec tiers 60/70/80/90/95% → 1-5★) are
 computed fresh from habit `occurrenceHistory`, never persisted. v7→v8 migration in
 `js/persistence.js`. See DECISIONS.md session 41.

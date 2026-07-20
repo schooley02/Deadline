@@ -193,6 +193,14 @@ const Items = (() => {
         routine.xp = result.xp;
         routine.level = result.level;
         item.routineXpAwarded = amount;
+        // [P2-UI-013] session 62: also stamp WHICH routine earned it, so the
+        // refund stays symmetric even if the definition is transferred to
+        // another routine between complete and uncomplete (findRoutineForItem
+        // re-resolves at refund time and would otherwise debit the NEW owner,
+        // which never earned this XP). Additive field, no schema bump —
+        // absent on pre-existing stamps, with a findRoutineForItem fallback
+        // in refundRoutineXpForItem.
+        item.routineXpRoutineId = routine.id;
         // Celebrate FX ([P1-UI-006] sub-session 5): optional, DOM-free —
         // script.js stamps an ephemeral timestamp HeroesView reads at render
         // time. Same optional-collaborator pattern as onRoutineKo below.
@@ -205,8 +213,15 @@ const Items = (() => {
     function refundRoutineXpForItem(item, deps) {
         const amount = item.routineXpAwarded;
         if (!amount) return;
+        // Prefer the earning routine's id stamped at award time ([P2-UI-013]
+        // session 62) — see awardRoutineXpForItem. Fall back to re-resolving
+        // ownership for stamps written before the id existed.
+        const stampedRoutineId = item.routineXpRoutineId;
         delete item.routineXpAwarded;
-        const routine = findRoutineForItem(item, deps);
+        delete item.routineXpRoutineId;
+        const definedRoutines = typeof deps.definedRoutines === 'function' ? (deps.definedRoutines() || []) : [];
+        const routine = (stampedRoutineId && definedRoutines.find(r => r.id === stampedRoutineId))
+            || findRoutineForItem(item, deps);
         if (!routine) return;
         const result = Heroes.applyXpDelta(routine.xp || 0, -amount, CONFIG.ROUTINE_LEVEL_XP_THRESHOLDS);
         routine.xp = result.xp;

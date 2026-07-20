@@ -1078,6 +1078,57 @@ document.addEventListener('DOMContentLoaded', () => {
         Routines.removeTaskFromRoutine(routineId, taskId, definedRoutines);
     }
 
+    // ------------------------------------------------------------------
+    // Routine transfer ([P2-UI-013], session 62). Pure move lives in
+    // js/routines.js; these wrappers own the board reconciliation:
+    //
+    // 1. If the DESTINATION wouldn't spawn the definition (inactive, frozen,
+    //    KO'd), its live instances are recalled — same pure-removal
+    //    semantics as deactivation's recall (no XP/streak/damage change),
+    //    via the same removeItem path. Habits use isRoutineUsableForHabit
+    //    (a frozen dest still spawns its own offender's lurker); tasks use
+    //    the no-exception isRoutineSuspended.
+    // 2. Then BOTH daily generators run — if the destination IS active and
+    //    the source wasn't, today's due instance should appear now, the
+    //    same immediate-spawn courtesy toggleRoutineActive gives
+    //    reactivation. Both generators dedupe per day, so this is safe to
+    //    call unconditionally.
+    // ------------------------------------------------------------------
+    function recallInstancesIfRoutineUnusable(destRoutineId, definitionId, type) {
+        const dest = definedRoutines.find(r => r.id === destRoutineId);
+        if (!dest) return;
+        const usable = type === 'habit'
+            ? FrozenSlots.isRoutineUsableForHabit(dest, definitionId)
+            : !FrozenSlots.isRoutineSuspended(dest);
+        if (usable) return;
+        Routines.selectActiveInstanceIdsForDefinition(activeItems, definitionId, type)
+            .forEach(id => removeItem(id));
+    }
+
+    function transferHabitBetweenRoutines(sourceRoutineId, destRoutineId, habitDefId) {
+        const result = Routines.transferHabitBetweenRoutines(
+            sourceRoutineId, destRoutineId, habitDefId, definedRoutines, definedHabits);
+        if (result.ok) {
+            recallInstancesIfRoutineUnusable(destRoutineId, habitDefId, 'habit');
+            generateDailyHabitInstances(currentGameDate);
+            renderDefinedRoutines();
+            saveGame();
+        }
+        return result;
+    }
+
+    function transferTaskBetweenRoutines(sourceRoutineId, destRoutineId, taskId) {
+        const result = Routines.transferTaskBetweenRoutines(
+            sourceRoutineId, destRoutineId, taskId, definedRoutines);
+        if (result.ok) {
+            recallInstancesIfRoutineUnusable(destRoutineId, taskId, 'task');
+            generateDailyRoutineTaskInstances(currentGameDate);
+            renderDefinedRoutines();
+            saveGame();
+        }
+        return result;
+    }
+
     // Thin wrappers — real implementations live in js/ui/routineViews.js
     // (Milestone 2 UI extraction sessions 8-9, 2026-07-18). Call sites
     // unchanged.
@@ -1109,6 +1160,9 @@ document.addEventListener('DOMContentLoaded', () => {
             definedHabits: () => definedHabits,
             toggleRoutineActive, deleteRoutine, removeHabitFromRoutine, removeTaskFromRoutine,
             addHabitToRoutine, populateRoutinesWindow, saveGame,
+            // [P2-UI-013] session 62 — transfer wrappers (recall/spawn/save
+            // reconciliation lives up in the wrappers, not the modal).
+            transferHabitBetweenRoutines, transferTaskBetweenRoutines,
             createNewHabitInRoutine, createNewTaskInRoutine, editHabitInRoutine, editTaskInRoutine,
             activeItems, createListItem, sortAndRenderActiveList,
             // [P1-UI-006] sub-session 4, 2026-07-19 — star-rating window start

@@ -4,7 +4,29 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
-## 2026-07-19 — Session 61: [P2-UI-011] re-scoped + Stage 1 BUILT — unified window/modal behavior layer (Cowork session, Fable scoping → execution)
+## 2026-07-19 — Session 62: [P2-UI-013] Routine transfer BUILT — habits + tasks, ticket closed (Cowork session, Fable scoping → execution)
+
+**Scope decision (Fable, three forks resolved by Jeremy):** the ticket's AC (drag-and-drop, bulk
+ops, "optimization suggestions", undo history — a 3-week estimate from the old audit) was inflated;
+v1 is a Move button + stacked destination picker composing existing primitives. Forks: (1)
+**frozen-offender block** — the habit holding `frozenState` can't transfer while frozen (prevents
+dodging the penalty; consistent with "tokens can't dodge a freeze"); rejected: freeze-follows-habit
+(punishes an innocent routine), transfer-counts-as-edit-unfreeze (cheap escape hatch). (2) Scope
+initially habits-only, widened by Jeremy mid-session to **habits + tasks** — task side is simpler
+by construction (no back-reference, no offender arm). (3) **Destination capacity reuses the
+banked-point prompt** (`ensureRoutineSlotAvailable`), not a flat block — consistency with all add
+flows. Transfer deliberately does NOT run the edit-to-unfreeze recovery check and logs
+`changedFields: ['routineId']` to modificationHistory.
+
+**In-session judgment calls (logged, not user-forked):** (a) board reconciliation = recall live
+instances iff the DESTINATION wouldn't spawn the definition (inactive/frozen/KO'd), then run both
+daily generators unconditionally (they dedupe) so transfer-into-active spawns today's instance
+immediately — mirrors deactivation-recall + reactivation-spawn precedents exactly. (b) Found and
+fixed a latent refund asymmetry the transfer feature would have exposed: `refundRoutineXpForItem`
+re-resolves ownership at refund time, so uncompleting after a transfer would debit the NEW owner;
+`completeItem` now stamps `item.routineXpRoutineId` and the refund prefers it (additive field, no
+schema bump, fallback for old saves) — same stamp-beats-re-checking philosophy as
+`routineXpAwarded` itself.
 
 **Re-scope decision (Fable):** the ticket as written ("standardize Root vs MPE variants") is STALE —
 Deadline-MPE is the dead May 2025 prototype (reference-only per CLAUDE.md). Modern reading adopted:

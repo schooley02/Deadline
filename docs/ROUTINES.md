@@ -251,5 +251,29 @@ before that (never conflated with a real 0%).
 Ticket [P1-UI-006] (hero/routine visual system) is now fully CLOSED — all required scope plus this
 optional polish sub-session shipped.
 
+## Routine Transfer ([P2-UI-013], BUILT 2026-07-19 session 62 — TICKET CLOSED)
+Habits AND tasks can be moved between routines via a "Move" button on each row of the Manage
+Routine modal → a stacked destination picker (Cancel = `closeTopmost`, same as addItemModal).
+Pure cores: `Routines.transferHabitBetweenRoutines` / `transferTaskBetweenRoutines` (atomic
+membership move; habit transfer reassigns `habitDef.routineId` and appends `{ timestamp,
+changedFields: ['routineId'] }` to `modificationHistory`; streak untouched). Rules (forks
+resolved by Jeremy, session 62):
+- **Frozen-offender block**: the habit holding its routine's `frozenState` can't be moved while
+  frozen — a transfer must not be a cheap dodge of the penalty (same philosophy as "tokens can't
+  dodge a freeze"). Other habits/tasks in a frozen routine move freely; transfer is NOT recovery
+  path 1 (the freeze stays). Tasks are never offenders (only negative habits freeze).
+- **Destination slot capacity** goes through the same `ensureRoutineSlotAvailable` banked-point
+  prompt as every add flow (spend a point to unlock, or blocked at zero points).
+- **Board reconciliation** (script.js wrappers): if the destination wouldn't spawn the definition
+  (inactive/frozen/KO'd — `isRoutineUsableForHabit` / `isRoutineSuspended`), its live instances
+  are recalled (pure removal via `selectActiveInstanceIdsForDefinition`, sub-tasks cascaded);
+  then both daily generators run so a transfer INTO an active routine spawns today's due instance
+  immediately (same courtesy as reactivation). Generators dedupe per day — safe unconditionally.
+- **XP refund attribution**: `completeItem` now also stamps `item.routineXpRoutineId` so
+  `uncompleteItem` refunds the routine that EARNED the XP even if the definition was transferred
+  in between (falls back to re-resolving ownership for pre-stamp saves). Additive, no schema bump.
+Not built (cut from the stale ticket's inflated AC, logged session 62): drag-and-drop, bulk
+transfer, optimization suggestions, undo history.
+
 ## Routine A/B Testing
 Run one routine variant for 6 weeks, another for the next 6; compare streaks/performance. Routine View ranks routines by level (top performers first, then completion rate — [P1-UI-006] sub-session 5).

@@ -13,7 +13,48 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
-## 2026-07-19 — Session 61: [P2-UI-011] re-scoped + Stage 1 BUILT — unified window/modal behavior layer (Cowork session, Fable scoping → execution)
+## 2026-07-19 — Session 62: [P2-UI-013] Routine transfer BUILT — habits + tasks, TICKET CLOSED (Cowork session, Fable scoping → execution)
+
+**Did:** Scoped the inflated ticket down (Fable; forks resolved by Jeremy: frozen-offender blocked,
+habits + tasks both in v1, destination capacity via the banked-point prompt; cut: drag-and-drop,
+bulk, suggestions, undo), then built it. `js/routines.js`: `transferHabitBetweenRoutines` /
+`transferTaskBetweenRoutines` (atomic, reasons: not-found/same-routine/frozen-offender/
+already-in-routine; habit side reassigns `routineId` + logs modificationHistory) +
+`selectActiveInstanceIdsForDefinition` (per-definition recall selection, sub-tasks cascaded).
+`script.js`: transfer wrappers — recall live instances iff dest wouldn't spawn them
+(inactive/frozen/KO'd), then both daily generators (dedupe → transfer-into-active spawns today's
+instance immediately), render + save; deps added to `routineViewsDeps()`.
+`js/ui/routineViews.js`: Move buttons on habit AND task rows (`populateRoutineHabits/Tasks`),
+`showTransferItemModal` stacked picker (closeTopmost Cancel, frozen-offender pre-alert, confirm
+before move). `js/items.js`: `routineXpRoutineId` stamp so uncompletion refunds the EARNING
+routine across a transfer (fallback re-resolve for old saves). Docs: ROUTINES.md (new Routine
+Transfer section), DATA_SCHEMA.md (stamp note), ROADMAP.md (ticket checked), DECISIONS.md
+session 62. New test/routine-transfer.test.js (22 tests).
+
+**State:** ✅ 43 suites, 967/967 (+22 over session 61's 945). `node --check` clean on all four
+touched JS files. Live-verified in Chrome end-to-end (seeded save, session-52 protocol, dialogs
+stubbed): habit→inactive-routine move (membership/ownership/history correct, streak kept, live
+instance recalled 5→4), slot-limit alert on full dest with zero points, point-spend confirm chain
+on full dest WITH points (`boughtTaskSlots` persisted), frozen-offender pre-alert (picker never
+opens), task transfer out of a frozen routine allowed with freeze intact, save→reload round-trip
+consistent, zero console errors. Save reset to pristine before ending. NOT committed — git
+commands in chat.
+
+**Next:** Time slider (Today, then Week/Month scopes) is next in ROADMAP.md Milestone 4, then
+achievements/badges, mobile UX + accessibility pass. P2-UI-011 Stage 2 (central Modal.open
+builder) remains the unscheduled sub-item.
+
+**Watch out:**
+- The transfer picker excludes only the SOURCE routine — inactive/frozen/KO'd destinations are
+  legal on purpose (routines stay manageable in those states); the wrapper's recall keeps the
+  board consistent. Don't "helpfully" filter them out of the dropdown later without revisiting
+  that decision.
+- `transferHabitBetweenRoutines` deliberately does NOT trigger edit-to-unfreeze — if someone
+  later routes transfers through `editHabitInRoutine`, that would silently become an unfreeze
+  escape hatch.
+- The addItemModal "Add Selected" path still duplicates `Routines.addHabitToRoutine` inline
+  (pre-existing, flagged in code); the transfer modal does NOT copy that pattern — it calls the
+  wrappers. Reconcile the duplicate when P2-UI-011 Stage 2 centralizes modals.
 
 **Did:** Two parts. (1) Re-scoped the stale ticket (its "Root vs MPE" framing is dead — MPE is the
 May 2025 prototype): unified the CURRENT app's two window systems instead, staged as behavior layer

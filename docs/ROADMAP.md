@@ -148,7 +148,15 @@ Ordering decided 2026-07-18 session 19 (Fable — see DECISIONS.md): 007 → 008
     modal HTML strings onto it; drop forms.js's 50ms setTimeout listener wiring; full keyboard-nav
     pass folds into the Milestone 4 accessibility item.
 - [x] [P2-GAME-012] Base healing system (2026-07-18, session 17) — gradual regen BUILT: 1 HP/5min while alive (`js/loop.js`) + same rate offline/suspended-gap (`js/damage.js`'s `applyElapsedRegen`, applied after offline damage), clamped at 100; NO daily reset. Repair kits remain unbuilt (ties to the Milestone 3 shop). 17 suites, 370/370. Live-verified in Chrome. See MECHANICS.md Base + DECISIONS.md.
-- [ ] [P2-UI-013] Routine transfer system
+- [x] [P2-UI-013] Routine transfer system (2026-07-19, session 62) — Move button on habit AND task
+  rows of the Manage Routine modal → stacked destination picker. Pure cores in js/routines.js
+  (atomic membership move, frozen-offender block, modificationHistory logging); script.js wrappers
+  reconcile the board (recall if dest inactive/frozen/KO'd, immediate spawn if active) and
+  destination capacity reuses the banked-point prompt. `item.routineXpRoutineId` stamp keeps XP
+  refunds symmetric across a transfer. 43 suites, 967/967 (+22). Live-verified in Chrome:
+  habit→inactive-routine transfer with instance recall, frozen-offender block, task transfer with
+  point-spend prompt, save round-trip, no console errors. Cut as inflated AC: drag-and-drop, bulk
+  ops, optimization suggestions, undo. See ROUTINES.md Routine Transfer + DECISIONS.md session 62.
 - [ ] Time slider (Today, then Week/Month scopes)
 - [ ] Achievements & badges
 - [ ] Mobile UX + accessibility pass; PWA

@@ -172,6 +172,7 @@ const RoutineViews = (() => {
                     <span>${habit.name} (${habit.category})${habitTypeIcon}</span>
                     <div style="display: flex; gap: 6px;">
                         <button class="edit-habit-btn" data-habit-id="${habit.id}" style="padding: 4px 8px; font-size: 11px; background: var(--color-accent-teal); color: white; border: none; border-radius: 3px; cursor: pointer;">Edit</button>
+                        <button class="move-habit-btn" data-habit-id="${habit.id}" title="Move to another routine" style="padding: 4px 8px; font-size: 11px; background: var(--color-neutral); color: white; border: none; border-radius: 3px; cursor: pointer;">Move</button>
                         <button class="remove-habit-btn" data-habit-id="${habit.id}" style="padding: 4px 8px; font-size: 11px; background: var(--color-error); color: white; border: none; border-radius: 3px; cursor: pointer;">Remove</button>
                     </div>
                 `;
@@ -206,6 +207,7 @@ const RoutineViews = (() => {
                     <span>${task.name} (${task.category})${task.isHighPriority ? ' ⭐' : ''}</span>
                     <div style="display: flex; gap: 6px;">
                         <button class="edit-task-btn" data-task-id="${task.id}" style="padding: 4px 8px; font-size: 11px; background: var(--color-accent-teal); color: white; border: none; border-radius: 3px; cursor: pointer;">Edit</button>
+                        <button class="move-task-btn" data-task-id="${task.id}" title="Move to another routine" style="padding: 4px 8px; font-size: 11px; background: var(--color-neutral); color: white; border: none; border-radius: 3px; cursor: pointer;">Move</button>
                         <button class="remove-task-btn" data-task-id="${task.id}" style="padding: 4px 8px; font-size: 11px; background: var(--color-error); color: white; border: none; border-radius: 3px; cursor: pointer;">Remove</button>
                     </div>
                 `;
@@ -690,6 +692,18 @@ const RoutineViews = (() => {
             });
         });
 
+        // Move (transfer) buttons — [P2-UI-013] session 62
+        document.querySelectorAll('.move-habit-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                showTransferItemModal(routineId, 'habit', e.target.dataset.habitId, deps);
+            });
+        });
+        document.querySelectorAll('.move-task-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                showTransferItemModal(routineId, 'task', e.target.dataset.taskId, deps);
+            });
+        });
+
         // Remove task buttons
         document.querySelectorAll('.remove-task-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -903,6 +917,114 @@ const RoutineViews = (() => {
                     } else {
                         showCreateTaskForm(routineId);
                     }
+                }, 100);
+            });
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Routine transfer picker ([P2-UI-013], session 62). Stacks on the
+    // Manage Routine modal like addItemModal — Cancel is closeTopmost so the
+    // Manage modal survives underneath. Destination slot capacity goes
+    // through the SAME ensureRoutineSlotAvailable prompt as every add flow
+    // (Jeremy's fork call: spend a banked point rather than a flat block).
+    // The actual move + live-instance reconciliation + save live in the
+    // script.js wrappers (deps.transferHabitBetweenRoutines /
+    // deps.transferTaskBetweenRoutines) — this modal only picks and confirms.
+    // deps: everything showRoutineManagement needs, plus the two transfer
+    // wrappers and saveGame (for ensureRoutineSlotAvailable).
+    function showTransferItemModal(sourceRoutineId, itemType, itemId, deps) {
+        const source = deps.definedRoutines().find(r => r.id === sourceRoutineId);
+        if (!source) return;
+
+        const label = itemType === 'task' ? 'task' : 'habit';
+        let itemName = itemId;
+        if (itemType === 'habit') {
+            const habitDef = deps.definedHabits().find(h => h.id === itemId);
+            if (habitDef) itemName = habitDef.name;
+            // Frozen-offender: blocked in the core too, but catching it here
+            // gives a decent message instead of a dead-end picker.
+            if (source.frozenState && source.frozenState.frozenBy === itemId) {
+                alert(`"${itemName}" is the habit that froze "${source.name}" — it can't be moved until the routine recovers (edit the habit or avoid it 3 days running).`);
+                return;
+            }
+        } else {
+            if (!window.definedTasks) window.definedTasks = [];
+            const taskDef = window.definedTasks.find(t => t.id === itemId);
+            if (taskDef) itemName = taskDef.name;
+        }
+
+        const destinations = deps.definedRoutines().filter(r => r.id !== sourceRoutineId);
+        if (destinations.length === 0) {
+            alert('No other routines to move to. Create another routine first.');
+            return;
+        }
+
+        const optionsHtml = destinations
+            .map(r => `<option value="${r.id}">${r.name}${r.isActive ? '' : ' (inactive)'}${r.frozenState ? ' 🥶' : ''}${r.koState ? ' 💤' : ''}</option>`)
+            .join('');
+
+        const modalHtml = `
+            <div class="modal-overlay" id="transferItemModal">
+                <div class="modal-content">
+                    <h3>Move ${label === 'task' ? 'Task' : 'Habit'} to Another Routine</h3>
+                    <p style="margin-bottom: 12px;">Move <strong>${itemName}</strong> from <strong>${source.name}</strong> to:</p>
+                    <div class="form-row">
+                        <select id="transferDestSelect">
+                            <option value="">-- Select routine --</option>
+                            ${optionsHtml}
+                        </select>
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="confirmTransferBtn" class="primary-button">Move</button>
+                        <button class="secondary-button" onclick="closeTopmost()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        const confirmBtn = document.getElementById('confirmTransferBtn');
+        const selectEl = document.getElementById('transferDestSelect');
+
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => {
+                const destId = selectEl.value;
+                if (!destId) {
+                    alert(`Please select a routine to move this ${label} to.`);
+                    return;
+                }
+                const dest = deps.definedRoutines().find(r => r.id === destId);
+                if (!dest) return;
+
+                // Destination capacity first — may spend a banked point.
+                if (!ensureRoutineSlotAvailable(dest, itemType, deps)) return;
+
+                if (!confirm(`Move "${itemName}" from "${source.name}" to "${dest.name}"?`)) return;
+
+                const result = itemType === 'habit'
+                    ? deps.transferHabitBetweenRoutines(sourceRoutineId, destId, itemId)
+                    : deps.transferTaskBetweenRoutines(sourceRoutineId, destId, itemId);
+
+                if (!result.ok) {
+                    const messages = {
+                        'frozen-offender': `"${itemName}" is the habit that froze "${source.name}" — it can't be moved until the routine recovers.`,
+                        'already-in-routine': `"${dest.name}" already contains this ${label}.`,
+                        'same-routine': `That's the same routine.`,
+                        'not-found': `Couldn't complete the move — please close and reopen this window.`,
+                    };
+                    alert(messages[result.reason] || messages['not-found']);
+                    return;
+                }
+
+                // No saveGame here — the script.js transfer wrapper already
+                // saved as part of its reconciliation (see module note above).
+                Modal.closeModal();
+                // Refresh the routine management modal (same pattern as
+                // addItemModal's "Add Selected").
+                setTimeout(() => {
+                    showRoutineManagement(sourceRoutineId, deps);
                 }, 100);
             });
         }
