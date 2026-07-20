@@ -1,0 +1,215 @@
+/**
+ * dayPager.css — Time Slider Week scope, sub-session 2 (day pager UI +
+ * future-day ghost rendering). `docs/TIME_SLIDER_WEEK_PLAN.md` /
+ * DECISIONS.md session 71. Mirrors js/ui/dayPagerView.js. Linked before
+ * responsive.css (see index.html header comment — responsive.css must
+ * always load last).
+ */
+
+/* Week strip (sub-session 4, phase 2, 2026-07-20 session 73) — 7 tappable
+   cells (offset 0..+6), one per day, above the day pager row. */
+.week-strip-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    padding: var(--space-2) var(--space-4) 0 var(--space-4);
+    background: var(--color-bg-white);
+}
+
+.week-strip-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 2px;
+    border-radius: 6px;
+    border: 1px solid var(--color-secondary-green-pale);
+    background: var(--color-bg-white);
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--color-text-primary);
+}
+
+.week-strip-cell:hover {
+    background: var(--color-bg-light);
+}
+
+.week-strip-cell.week-strip-today {
+    border-color: var(--color-sacred-stone);
+    border-width: 2px;
+}
+
+.week-strip-cell.week-strip-active {
+    background: var(--color-secondary-green-pale);
+}
+
+/* Heavy = more loaded than this week's own average (relative, not a fixed
+   threshold — Jeremy's call, session 73). */
+.week-strip-cell.week-strip-heavy {
+    background: var(--color-bg-light);
+    border-color: var(--color-warning);
+    border-width: 2px;
+}
+
+.week-strip-weekday {
+    font-weight: 600;
+    color: var(--color-neutral);
+}
+
+.week-strip-count {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.week-strip-priority {
+    font-size: 10px;
+    color: var(--color-error);
+    font-weight: 600;
+}
+
+.day-pager-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-4);
+    background: var(--color-bg-white);
+    border-top: 1px solid var(--color-secondary-green-pale);
+}
+
+.day-pager-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid var(--color-secondary-green-pale);
+    background: var(--color-bg-white);
+    color: var(--color-text-primary);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.day-pager-btn:hover:not(:disabled) {
+    background: var(--color-bg-light);
+}
+
+.day-pager-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.day-pager-label {
+    min-width: 160px;
+    text-align: center;
+    font-size: var(--text-caption);
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+/* Non-today: hide real board sprites, show only conjured ghosts. Base and
+   hero chips are DELIBERATELY untouched (fork 4, session 70 — HP projection
+   stays today-only, so nothing about the base's real state should look
+   different while paging). */
+.viewing-other-day .enemy:not(.day-pager-ghost) {
+    display: none;
+}
+
+.day-pager-ghost {
+    pointer-events: none;
+    /* NOT `position: relative` — .enemy already sets position: absolute
+       (css/enemySprites.css), which is itself a valid positioning context
+       for the outcome-icon child below; overriding it here would break the
+       inline left/top placement buildGhostSprite sets. */
+}
+
+/* Read-only ghost rows in the agenda list — no complete/edit affordances,
+   so no button/checkbox styling needed, just enough to read the schedule. */
+.ghost-agenda-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--color-secondary-green-pale);
+    opacity: 0.75;
+}
+
+.ghost-agenda-row:last-child {
+    border-bottom: none;
+}
+
+.ghost-agenda-name {
+    font-weight: 500;
+    color: var(--color-text-primary);
+}
+
+.ghost-agenda-meta {
+    font-size: 11px;
+    color: var(--color-neutral);
+}
+
+.ghost-agenda-time {
+    font-size: 12px;
+    color: var(--color-neutral);
+    white-space: nowrap;
+}
+
+.ghost-agenda-empty {
+    padding: var(--space-4);
+    text-align: center;
+    color: var(--color-neutral);
+    font-style: italic;
+    font-size: 13px;
+}
+
+/* Yesterday snapshot outcome badges (sub-session 3, 2026-07-20 session 72).
+   'unknown' (no occurrenceHistory entry) stays neutral grey — an absent
+   record isn't a failure, so it shouldn't read as one. */
+.day-pager-outcome-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
+.day-pager-outcome-badge.outcome-completed {
+    background: var(--color-secondary-green-pale);
+    color: var(--color-primary-dark-green);
+}
+
+.day-pager-outcome-badge.outcome-missed {
+    background: #FCEBEB;
+    color: var(--color-error);
+}
+
+.day-pager-outcome-badge.outcome-unknown {
+    background: var(--color-bg-light);
+    color: var(--color-neutral);
+}
+
+/* Same outcome coloring on the canvas ghost sprites, as a small icon badge
+   rather than the agenda's text pill. */
+.day-pager-outcome-icon {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 10px;
+    line-height: 16px;
+    text-align: center;
+    background: var(--color-bg-white);
+    border: 1px solid var(--color-secondary-green-pale);
+}
+
+.day-pager-ghost.outcome-completed .day-pager-outcome-icon {
+    color: var(--color-primary-dark-green);
+    border-color: var(--color-primary-dark-green);
+}
+
+.day-pager-ghost.outcome-missed .day-pager-outcome-icon {
+    color: var(--color-error);
+    border-color: var(--color-error);
+}

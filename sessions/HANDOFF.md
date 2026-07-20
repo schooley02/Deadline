@@ -13,6 +13,66 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-20 — Sessions 70-73: Time Slider Week scope — day pager, future-day ghosts, Yesterday snapshot, week strip; ticket CLOSED (Cowork session)
+
+**Did:** Jeremy asked to design and build the Time Slider's Week scope (day-pager + week-strip direction
+chosen over a week-scale slider, Month scope CUT). Sequenced in `docs/TIME_SLIDER_WEEK_PLAN.md` (session 70,
+Fable fork), then built across 3 sub-sessions in this same Cowork thread:
+- **Sub-session 1** (pure core): `js/dayPager.js` — day-offset clamping (-1..+6), ghost conjuring for future
+  days by reusing the EXISTING `Habits.selectHabitDefsToSpawn`/`Routines.selectTaskDefsToSpawn` (freezes/
+  Sick-Skip-Cheat markers respected for free). One-off tasks/sub-tasks need NO conjuring — they already live
+  in `activeItems` regardless of day.
+- **Sub-session 2** (pager UI): `js/ui/dayPagerView.js` + `css/dayPager.css` — ‹ › pager, ghost sprites +
+  read-only agenda for future days, real board hidden via `.viewing-other-day`. Reused the EXISTING
+  `isTimePreviewActive` flag for the non-mutating contract (no loop.js guard changes needed); added ONE new
+  unconditional `checkDayPagerRollover` hook at the top of `Loop.updateGame` so a session parked on a future
+  day snaps back to Today on a real midnight crossing.
+- **Sub-session 3** (Yesterday snapshot): offset -1 is a STATIC "battlefield aftermath" — outcome badges
+  (✓ Completed/Avoided, ✕ Missed/Indulged, neutral "No record") sourced from habit `occurrenceHistory` and
+  `completedItems` membership for tasks. Hour slider disabled only at this offset (completion times were
+  never recorded). Known accepted gap: `occurrenceSuccess` collapses lapsed-vs-indulged to one boolean, so a
+  negative habit's miss always reads "Indulged."
+- **Sub-session 4** (week strip, phase 2): 7-cell overview row above the pager — per-day total count, ★N
+  high-priority badge, and a RELATIVE "heavier than this week's own average" flag (Jeremy's call, no fixed
+  threshold). Tap a cell to jump the pager there. Caught a real bug via the tests before it shipped: Today's
+  cell must count real `activeItems` (matching `Hud.updateTaskCountDisplay`'s convention), NOT conjured
+  ghosts, which would under-count anything already spawned.
+
+Docs updated same-session throughout: `docs/TIME_SLIDER_WEEK_PLAN.md` (new), `docs/ROADMAP.md` (all 4
+sub-items + parent ticket checked off — Milestone 4's "Time Slider Week/Month scope" now fully CLOSED),
+`docs/UI_UX.md` (Day Pager + Week Strip entries), `docs/DECISIONS.md` (sessions 70-73, one entry per
+sub-session).
+
+**State:** ✅ 55 suites, 1184/1184 (+37 across the 4 sub-sessions: `test/day-pager.test.js`,
+`test/day-pager-view.test.js`, `test/day-pager-yesterday.test.js`, `test/day-pager-week-strip.test.js`).
+`node --check` clean on every touched file (`js/dayPager.js`, `js/ui/dayPagerView.js`, `js/loop.js`,
+`script.js`). Live-verified in Chrome end-to-end each sub-session: real habits ghosted correctly on future
+days through the +6 ceiling; zero mutation of the save confirmed byte-for-byte while parked off Today;
+hand-crafted `occurrenceHistory` rendered the exact outcome badges on Yesterday; a crafted heavy week showed
+correct relative flagging + priority counts + tap-to-jump. Save restored to pristine after every excursion.
+NOT committed — git commands given in chat.
+
+**Next:** Milestone 4 (Polish) open items: Day-advance LIVE mid-session rollover (low priority, deferred
+session 32), Mobile UX + accessibility pass (PWA). Also still pending from Milestone 3: the session-24
+balance re-check against Jeremy's REAL play data (earn-rate yardstick ~75–85 pts/day).
+
+**Watch out:**
+- One reload during sub-session 4's hand-edit testing logged a one-time "load failed — starting fresh" in
+  `persistence.js` (pre-existing defensive JSON-parse error handling, unrelated to any code touched this
+  session) — save was healthy immediately before and after; treated as a test-harness flake, not a bug, but
+  noted in case it recurs.
+- Ghost sprites are NOT sub-task-cluster-aware (known v1 simplification — clustering math needs live
+  siblings already positioned in `activeItems`, which conjured ghosts aren't part of).
+- Future-day preview uses a single fixed noon anchor per day, not full hour-by-hour scrubbing — the
+  `#timeSlider` input isn't yet rebound to reinterpret its minutes against a non-Today day (deliberately
+  deferred to avoid destabilizing the well-tested Today-scope scrub contract in the same session that
+  changed the guard it depends on).
+- The mistaken-edit gotcha from this session's own playtesting: `definedTasks` lives in the save as
+  `save.definedTasks`, NOT `window.definedTasks` — writing to the wrong one silently produces a
+  valid-but-incomplete save (caught only because the week strip's counts didn't match expectations).
+
+---
+
 ## 2026-07-20 — Session 69: Run History sub-session 5 (polish) — best-run badge, expandable cards, deltas; ticket CLOSED (Cowork session)
 
 **Did:** Built the last unchecked Run History item (RUN_HISTORY_PLAN.md sub-session 5, optional — built rather

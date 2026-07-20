@@ -4,6 +4,163 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-20 — Session 73: Time Slider Week scope sub-session 4 BUILT — Week strip; ticket fully CLOSED
+
+**Jeremy's brief (asked at build time, per the plan's own note that placement/heavy-day-marker needed his
+call):** strip goes above the day pager (always visible — "shape of my week" before drilling into a day);
+highlight high-priority items with a COUNT, not just a dot; and only flag a day as heavy when it's more
+loaded than the player's OWN average for the week being shown, not a fixed number ("what counts as a lot
+depends on how busy this week already is").
+
+**Real bug caught before it shipped, not by inspection but by writing the tests:** the natural instinct was
+to reuse `conjureGhostsForDay` for every one of the 7 cells including Today. That's wrong — `Habits.
+selectHabitDefsToSpawn`/`Routines.selectTaskDefsToSpawn` (which `conjureGhostsForDay` calls) deliberately
+EXCLUDE anything that already has a live instance for that day, so counting Today via conjuring would show
+0 for every recurring habit/task actually sitting on the real board. Today's cell counts `activeItems`
+directly instead — matching `Hud.updateTaskCountDisplay`'s own established convention (which, in turn,
+surfaced a second real finding: that counter has ALWAYS counted "everything currently active," not "items
+due today" — a one-off task due three days out is a real `activeItems` entry sitting off-screen today and
+counts toward BOTH days. Not a new bug, just a pre-existing, previously-undocumented app behavior the week
+strip's tests happened to make visible for the first time.)
+
+**`isHeavy` is relative, computed after all 7 counts are known** (mean of the 7, strictly-greater-than so a
+perfectly even week flags nothing) — sub-tasks are excluded from every count (parent+subs reads as one item,
+same Hud convention) and `isHighPriority` only exists on tasks (habits have no priority concept, so they
+never contribute to the badge).
+
+**Live-verified in Chrome:** 2 daily habits + 1 high-priority routine task (all spawning every day) + 3
+one-off tasks piled onto a single future day. Strip rendered 6/3/3/6/3/3/3 with BOTH the loaded day and
+Today itself correctly flagged heavy (Today's count includes the future one-off tasks too, per the
+convention above — the relative-average math handled this correctly without any special-casing), ★1 on
+every cell, and the real "Submit report" item showed its own ★ marker in the live Today agenda. Tap-to-jump
+landed exactly on the tapped day. Save confirmed byte-for-byte unchanged throughout. 55 suites, 1184/1184
+(+11, `test/day-pager-week-strip.test.js`).
+
+**Observed but not investigated further:** one reload during this session's hand-edit testing logged a
+"load failed — starting fresh" (JSON.parse on the literal string `"undefined"`) in `persistence.js` — the
+save was healthy immediately before and after, and this code path is pre-existing defensive error handling,
+not anything the day-pager/week-strip feature touches. Treated as a one-time test-harness flake (likely a
+save-write/navigate race in the manual verification steps, not a code defect) rather than a bug — logged
+here in case it recurs.
+
+**Milestone status:** the "Time Slider Week/Month scope" ROADMAP item is now fully CLOSED (Month was cut at
+the design-fork stage, session 70). All 4 sub-sessions built sessions 71-73.
+
+## 2026-07-20 — Session 72: Time Slider Week scope sub-session 3 BUILT — Yesterday static snapshot
+
+Lifted the day pager's floor from 0 to -1 (`DayPager.MIN_OFFSET` already allowed it since sub-session 1 —
+only the VIEW's own `Math.max(0, ...)` clamp was tightening it further, exactly so this sub-session could
+lift a floor rather than touch the pure module).
+
+**Design realization while building:** the future-day ghost conjurers (`conjureHabitGhosts`/
+`conjureTaskGhosts`) can't be reused as-is for yesterday, because they call `selectHabitDefsToSpawn`/
+`selectTaskDefsToSpawn`, which deliberately EXCLUDE anything already resolved for that day — exactly the
+opposite of what a snapshot needs (a resolved day is the whole point). So sub-session 3 duplicates just the
+SCHEDULING half of that gating logic (`isHabitScheduledAndUsable`/`isTaskScheduledAndActive` — same
+recurrence + routine-usability checks, no dedup) rather than reusing the spawn-selection functions directly.
+
+**Outcome sourcing differs by item type, which the plan didn't fully anticipate:** habits carry
+`occurrenceHistory` (a `{date, success}` array) so their outcome is a direct lookup. Routine tasks and
+one-off tasks have NO such field — their outcome is INFERRED from `completedItems` membership (found there
+= completed, still elsewhere/absent = missed). This is weaker evidence than a habit's explicit record (a
+one-off task still sitting in `activeItems` past its due day reads identically whether it was "missed
+yesterday" or "still actively overdue today" — no separate state exists to tell those apart), which the
+plan's scope guards already flagged as an accepted limit for one-off tasks specifically.
+
+**`occurrenceSuccess`'s existing lapsed-vs-indulged collapse (habits.js, session 16) surfaces here as a
+real, accepted gap:** a negative habit's stored occurrence is a single boolean — there's no way to tell
+after the fact whether a `false` entry means "the day passed with no action" (lapsed) or "explicitly tapped
+I indulged." Both render as 'indulged' in the snapshot. Not fixed this session (would need a schema change
+to store which event produced the entry) — logged as a known limitation, not a bug.
+
+**Non-mutating contract needed no new work:** offset -1 already falls under "any non-Today offset" in
+`dayPagerView.js`'s `render()`, so it reuses the same `isTimePreviewActive` freeze sub-session 2 wired. The
+only offset-specific UI change is disabling the hour slider (`deps.timeSliderEl.disabled`) — yesterday has no
+preview-time concept at all (completion TIMES were never recorded, only which day), so scrubbing it would be
+pure fiction rather than a simplification.
+
+**Live-verified in Chrome:** hand-crafted `occurrenceHistory` for a positive habit (`success: true` →
+"Completed") and a negative habit (`success: false` → "Indulged") via the session-52 save-edit protocol
+(edit while Persistence is stubbed, reload, re-stub for the excursion). Both badges rendered correctly on
+the ghost sprite (small icon, colored border) and the agenda row (text pill). `‹` correctly disabled at the
+floor, hour slider disabled ONLY at Yesterday, round-trip back to Today restored the real board with zero
+drift, and the on-disk save was confirmed unchanged throughout the whole excursion. 54 suites, 1173/1173
+(+18: `test/day-pager-yesterday.test.js`, plus one `formatDayLabel` case).
+
+## 2026-07-20 — Session 71: Time Slider Week scope sub-sessions 1-2 BUILT — ghost conjuring + day pager UI
+
+**Sub-session 1 (pure core, `js/dayPager.js`).** Confirmed the plan's prediction that ghost-conjuring is
+"mostly assembly": `conjureHabitGhosts`/`conjureTaskGhosts` are thin wrappers over `Habits.
+selectHabitDefsToSpawn`/`Routines.selectTaskDefsToSpawn` — calling them with a future date instead of today
+gets frozen/suspended-routine gating and Sick/Skip/Cheat-day exclusion for free (sessions 36/39 built those
+checks for spawn gating, not knowing they'd be reused here). **Real finding while building:** one-off tasks
+and sub-tasks need NO conjuring at all — they aren't respawned daily from a definition (`items.js`'s
+`createTaskItemData`), so a task due 3 days out already exists in `activeItems` today, just far off in the
+timeline (the same insight session 63 used for Today scope: "already spawned, just far away"). `existingItemsForDay`
+just filters the real array by due-date-in-range. 52 suites, 1147/1147 (+26).
+
+**Sub-session 2 (pager UI, `js/ui/dayPagerView.js` + `css/dayPager.css`).** Floored the pager interaction at
+0..+6 this session (yesterday/-1 is sub-session 3, though `DayPager.clampDayOffset` already supports it — the
+VIEW clamps tighter than the pure core on purpose, so sub-session 3 only has to lift a floor, not touch the
+pure module). Two design calls made while building, not pre-planned:
+1. **Reused the existing `isTimePreviewActive` flag for the non-mutating contract** instead of adding a
+   parallel guard. Paging off Today sets the SAME flag the hour-scrub slider sets, so `js/loop.js`'s
+   `updateActiveItems` early-return already covers the day pager with zero changes to that guard.
+2. **`checkDayPagerRollover` had to be a NEW hook, unconditional, at the very top of `Loop.updateGame`** —
+   not inside `updateActiveItems`. Reusing `isTimePreviewActive` (decision 1) means a session parked on a
+   future-day page IS "previewing" by the existing guard's definition, so any rollover-detection hook placed
+   after that guard would never fire while parked there — exactly the case it needs to catch. One-line,
+   optional-collaborator, backward-compatible addition to loop.js.
+3. **HP projection suppression needed no explicit guard** — it falls out naturally, since `dayPagerView.js`
+   never calls `TimeSliderView`'s damage-preview path at all; only the hour-scrub slider does, and it isn't
+   wired to reinterpret its minutes against a non-Today day yet (known simplification, see below).
+
+**Known v1 simplifications (logged, not blocking):** ghost sprites use plain `Clock.calculateTimelinePosition`
+rather than the sub-task clustering math (which needs live siblings already positioned in `activeItems` —
+ghosts aren't part of that array), so a future day's sub-task ghosts don't fan next to their parent ghost.
+Each future-day page previews a single fixed anchor (noon) rather than full hour-by-hour scrubbing — the
+existing `#timeSlider` input isn't yet rebound to interpret its minutes against the viewed day; that
+integration was scoped out to avoid destabilizing the well-tested Today-scope scrub/release contract in the
+same session that changed the guard it depends on.
+
+**Live-verified in Chrome:** created a real "Stretch" habit, paged Today → Tomorrow → Day+6 (button correctly
+disables at the ceiling), confirmed ghost-only rendering via computed classlist (`viewing-other-day` hides
+real sprites, `.day-pager-ghost` renders instead, base/hero HUD untouched), confirmed BYTE-FOR-BYTE that
+`localStorage` never changed while parked off Today across the whole excursion, and confirmed full
+restoration on return (real sprite/agenda back, zero leftover ghost classes). Save restored to pristine
+after. 53 suites, 1151/1151 (+4 pure `formatDayLabel` tests — DOM rendering stays live-verified per the
+statsView.js/shopView.js precedent this codebase already established for UI modules).
+
+## 2026-07-20 — Session 70: Time Slider Week scope SEQUENCED (Fable fork session) — day pager + week strip; Month cut
+
+**Context:** Jeremy's stated use cases: evening review of tomorrow; seeing big items later in the week; light
+review of the recent past. He suspected Month was too far out and floated day-toggling as an alternative to
+stretching the slider. Full sequencing in `docs/TIME_SLIDER_WEEK_PLAN.md`; summary of the four verdicts:
+
+**1. Day pager + week strip (phased), NOT a week-scale slider.** ‹ › pages between days; the existing 24h
+slider stays a within-day scrubber for the viewed day. 7-day overview strip (counts + big-deadline flags,
+tap-to-jump) lands as phase 2 — it's the only surface that answers "shape of my week" at a glance, while the
+pager owns "walk through tomorrow." REJECTED: 7-day slider range (thumb-pixel ≈ 3.5h on mobile kills
+precision; a week of enemies on one canvas destroys distance-=-urgency).
+
+**2. Month scope CUT.** No mechanic operates at month scale; the spec's Today/Week/Month triple treated as
+big-dream boilerplate. A month planner is a calendar's job.
+
+**3. Yesterday = static "battlefield aftermath" snapshot, one page back only (range −1..+6).** Scheduled set
+re-derived from defs (same pure selection functions as future ghosts), outcomes overlaid from
+occurrenceHistory. NOT hour-scrubbable — completion times aren't stored; animating yesterday would be
+fiction. Accepted fidelity limit: one-off tasks have weaker post-rollover records. Older days stay in the
+Stats window's list-based review.
+
+**4. HP projection stays today-only.** Future pages show scheduled ghosts, no multi-day "base dies Thursday"
+forecast (GAME_DESIGN principle 2 — a doom-meter scolds rather than informs). Deferred idea: a gentle
+"heavy day" flag on the week strip.
+
+**Implementation insight that shaped the plan:** `selectHabitDefsToSpawn`/`selectTaskDefsToSpawn` already
+take a target day and respect frozen/suspended routines + Sick/Skip/Cheat markers (built sessions 36/39) —
+ghost conjuring is calling existing pure code with a future date, so the feature is mostly assembly. NO
+schema bump; viewed-day offset is session-only, resets to today on reload and on midnight rollover.
+
 ## 2026-07-20 — Session 69: Run History sub-session 5 (polish) — best-run badge, expandable cards, vs-last-run deltas; ticket CLOSED (Cowork)
 
 **Scope:** the last unchecked item on "Run history + run review screen" (`docs/RUN_HISTORY_PLAN.md` sub-session

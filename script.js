@@ -19,6 +19,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Time slider (Milestone 4, 2026-07-20) — canvas/list seam, Today scope.
     const timeSliderEl = document.getElementById('timeSlider');
     const timeSliderLabelEl = document.getElementById('timeSliderLabel');
+    // Day pager (Week scope sub-session 2, 2026-07-20).
+    const dayPagerPrevBtn = document.getElementById('dayPagerPrev');
+    const dayPagerNextBtn = document.getElementById('dayPagerNext');
+    const dayPagerLabelEl = document.getElementById('dayPagerLabel');
+    const taskSectionTitleEl = document.getElementById('taskSectionTitle');
+    // Week strip (sub-session 4, phase 2, 2026-07-20).
+    const weekStripRowEl = document.getElementById('weekStripRow');
 
     // Routine elements
     const routineNameInput = document.getElementById('routineName');
@@ -879,6 +886,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // OPTIONAL in loop.js (omitted = no-op) so loop.test.js's
             // existing deps objects don't need updating for this alone.
             updateTimeSliderHandle: (time) => TimeSliderView.syncHandle(time),
+            // Day pager (Week scope sub-session 2, 2026-07-20) — MUST run
+            // even while previewing (see js/loop.js's updateGame comment for
+            // why); OPTIONAL so loop.test.js's existing deps objects don't
+            // need updating for this alone.
+            checkDayPagerRollover: () => DayPagerView.checkRolloverReset(),
         };
     }
 
@@ -935,6 +947,40 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             renderHeroesAtBase,
             heroBaseZoneEl,
+        };
+    }
+
+    // Day pager (Week scope sub-session 2, 2026-07-20) — deps for
+    // js/ui/dayPagerView.js. Every def/item collection arrives as a GETTER
+    // (definedHabits/definedRoutines/completedItems are REASSIGNED on
+    // restore/reset; activeItems is a getter here too for symmetry, though
+    // it's actually a stable reference — matches agendaListDeps()'s own
+    // getter-vs-plain-reference split reasoning).
+    function dayPagerViewDeps() {
+        return {
+            prevBtn: dayPagerPrevBtn,
+            nextBtn: dayPagerNextBtn,
+            labelEl: dayPagerLabelEl,
+            taskSectionTitleEl,
+            gameCanvasEl: gameCanvas,
+            activeItemsListEl: activeItemsListUL,
+            timeSliderEl,
+            weekStripRowEl,
+            getCurrentGameDate: () => currentGameDate,
+            getDefinedHabits: () => definedHabits,
+            getDefinedRoutines: () => definedRoutines,
+            getDefinedTasks: () => window.definedTasks || [],
+            getCompletedItems: () => completedItems,
+            getActiveItems: () => activeItems,
+            getSickDayDate: () => sickDayDate,
+            dims: () => ({
+                gameScreenWidth: GAME_SCREEN_WIDTH,
+                baseWidth: BASE_WIDTH,
+                enemyWidth: ENEMY_WIDTH,
+                habitEnemyWidth: HABIT_ENEMY_WIDTH,
+            }),
+            setTimePreviewActive: (v) => { timePreviewActive = v; },
+            renderTodayAgenda: () => sortAndRenderActiveList(),
         };
     }
 
@@ -1920,6 +1966,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // is still a live function, so a later resize is fine too; this ordering
     // only matters for the initial syncHandle() call inside init()).
     TimeSliderView.init(timeSliderDeps());
+    // Day pager (Week scope sub-session 2, 2026-07-20) — after
+    // restoreGameState() so getCurrentGameDate()/getDefinedHabits() etc.
+    // read POST-restore state on their first render, not fresh-boot
+    // defaults (mirrors TimeSliderView.init's own ordering note above).
+    DayPagerView.init(dayPagerViewDeps());
     // Sub-session 4 ([P1-DATA-005], check-in prompt, 2026-07-19): if the
     // rollover just ran (above) and left any negative-habit pendingCheckIn
     // markers, prompt for them now.

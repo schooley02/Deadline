@@ -178,6 +178,16 @@ const Loop = (() => {
     }
 
     function updateGame(deps) {
+        // Day pager rollover check (Week scope sub-session 2, 2026-07-20) —
+        // MUST run unconditionally, every tick, before any early return
+        // below (including the isTimePreviewActive-driven one inside
+        // updateActiveItems) — a session parked on a future-day page IS
+        // "previewing" by design (DayPagerView reuses that same flag), so a
+        // guard placed after it would never fire while parked there, which
+        // is exactly the case this needs to catch. Optional collaborator —
+        // omitted in deps is a silent no-op (existing tolerance pattern).
+        if (deps.checkDayPagerRollover) deps.checkDayPagerRollover();
+
         if (deps.isGameOver()) return;
 
         const nowMs = Date.now();

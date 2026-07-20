@@ -28,6 +28,7 @@
     <link rel="stylesheet" href="css/gameOverReview.css">
     <link rel="stylesheet" href="css/heroes.css">
     <link rel="stylesheet" href="css/timeSlider.css">
+    <link rel="stylesheet" href="css/dayPager.css">
     <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
@@ -73,6 +74,21 @@
             <div id="gameOverMessage" class="hidden message-overlay">GAME OVER!</div>
         </div>
 
+        <!-- Week Strip (Week scope sub-session 4, phase 2, 2026-07-20 — see
+             docs/TIME_SLIDER_WEEK_PLAN.md). 7-day "shape of my week" overview
+             above the pager; tap a cell to jump the pager there. Built
+             entirely in JS (js/ui/dayPagerView.js's renderWeekStrip). -->
+        <div id="weekStripRow" class="week-strip-row"></div>
+
+        <!-- Day Pager (Week scope sub-session 2, 2026-07-20 — see
+             docs/TIME_SLIDER_WEEK_PLAN.md). offset -1..+6; yesterday's the
+             static snapshot (sub-session 3). js/ui/dayPagerView.js. -->
+        <div class="day-pager-row">
+            <button id="dayPagerPrev" class="day-pager-btn" aria-label="Previous day">‹</button>
+            <span id="dayPagerLabel" class="day-pager-label">Today</span>
+            <button id="dayPagerNext" class="day-pager-btn" aria-label="Next day">›</button>
+        </div>
+
         <!-- Time Slider (Milestone 4, 2026-07-20) — sits ON the canvas/list
              seam per docs/UI_UX.md. Today scope only; Week/Month scope toggle
              is a later sub-item. Drag/scrub previews enemy positions at that
@@ -85,7 +101,7 @@
         <!-- Bottom 40% - Task List Section -->
         <div class="task-section">
             <div class="task-header">
-                <h2>Today's Deadlines</h2>
+                <h2 id="taskSectionTitle">Today's Deadlines</h2>
                 <div class="task-count">
                     <span id="taskCountDisplay">0 tasks</span>
                 </div>
@@ -315,6 +331,10 @@
     <script src="js/frozenSlots.js"></script>
     <script src="js/habits.js"></script>
     <script src="js/routines.js"></script>
+    <!-- js/dayPager.js needs Habits/Routines/TimeSlider all loaded first
+         (see its header — pure ghost conjuring built on top of their
+         existing spawn-selection + day-bounds functions). -->
+    <script src="js/dayPager.js"></script>
     <script src="js/items.js"></script>
     <script src="js/state.js"></script>
     <script src="js/loop.js"></script>
@@ -334,6 +354,9 @@
     <script src="js/ui/routineViews.js"></script>
     <script src="js/ui/heroes.js"></script>
     <script src="js/ui/timeSliderView.js"></script>
+    <!-- js/ui/dayPagerView.js needs DayPager (pure ghost conjuring) + Movement
+         (top-position math) already loaded — see its header. -->
+    <script src="js/ui/dayPagerView.js"></script>
     <script src="js/IdCounter.js"></script>
     <script src="js/TaskManager.js"></script>
     <script src="script.js"></script>
