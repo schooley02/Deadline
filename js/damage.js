@@ -328,6 +328,17 @@ const Damage = (() => {
                 starRating: deps.heroesStarRating,
             });
             deps.setRunHistory(RunStats.appendToHistory(history, record, CONFIG.RUN_HISTORY_MAX));
+
+            // Achievements sub-session 2 (session 65): run-end lifetime bump
+            // (bestRunDaysSurvived high-water mark + Steady Hands qualifying
+            // count — script.js owns the math). INSIDE this else-branch on
+            // purpose: `alreadyOver` restores (a reloaded dead save) re-render
+            // the run-over UI but must never re-fire unlock checks — the
+            // session-55 duplicate-finalize trap, applied to achievements
+            // exactly as ACHIEVEMENTS_PLAN.md's hazard list predicts.
+            if (typeof deps.recordLifetimeRunEnd === 'function') {
+                deps.recordLifetimeRunEnd(record, daysSurvived);
+            }
         }
 
         // Game-over review card (sub-session 4, session 55): renderGameOverReview

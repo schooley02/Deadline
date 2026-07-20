@@ -181,12 +181,82 @@ const FrozenNotice = (() => {
         }, 0);
     }
 
+    // Achievement unlock notice (Milestone 4 achievements sub-session 2,
+    // session 65, docs/ACHIEVEMENTS_PLAN.md). Two deliberate departures from
+    // the plain pattern above, both driven by the plan's toast-stacking
+    // hazard:
+    //
+    // 1. QUEUE, don't dedupe-and-drop. Every other notice here treats an
+    //    existing `.frozen-notice-overlay` as "skip me" — fine for them
+    //    (their trigger re-fires or is cosmetic), but an unlock notice is
+    //    ONE-TIME (the unlock is already persisted; a dropped toast never
+    //    returns). A 7-day streak completion fires the streak milestone
+    //    notice AND an On Fire unlock from the same click: the streak
+    //    notice's setTimeout(0) is registered first (items.js calls
+    //    notifyStreakMilestone before recordLifetime), so it paints first,
+    //    and this notice POLLS until the player dismisses it — the plan's
+    //    "queue, streak notice first" ordering.
+    // 2. BATCH. All unlocks arriving before the queue drains (same
+    //    synchronous turn or while waiting behind another overlay) render as
+    //    ONE modal — a task completion crossing two families' tiers at once
+    //    shows a single celebration, not two stacked ones.
+    //
+    // The initial setTimeout(0) also keeps the standard defensive deferral
+    // (the sessions 21/34/37 closeModal-same-tick hazard).
+    let pendingUnlocks = [];
+    let unlockWaiterId = null;
+
+    function showAchievementUnlockNotice(newlyCrossed) {
+        if (!Array.isArray(newlyCrossed) || !newlyCrossed.length) return;
+        pendingUnlocks.push(...newlyCrossed);
+        if (unlockWaiterId !== null) return; // a waiter is already draining
+
+        const tryShow = () => {
+            if (document.querySelector('.frozen-notice-overlay')) {
+                unlockWaiterId = setTimeout(tryShow, 400);
+                return;
+            }
+            const unlocks = pendingUnlocks;
+            pendingUnlocks = [];
+            unlockWaiterId = null;
+            if (!unlocks.length) return;
+
+            // label is null for single-badge families (back_in_black — the
+            // catalog convention for a family with one unnamed tier), so it
+            // only renders when present. Found live in session 65's playtest:
+            // the first Back in Black unlock toasted as "Back in Black (null)".
+            const rows = unlocks.map(u =>
+                `<li><strong>${u.familyName}</strong>${u.label ? ` — ${u.label}` : ''}</li>`
+            ).join('');
+            const headline = unlocks.length === 1
+                ? `Achievement unlocked: ${unlocks[0].familyName}${unlocks[0].label ? ` (${unlocks[0].label})` : ''}`
+                : `${unlocks.length} achievements unlocked`;
+
+            const modalHtml = `
+                <div class="modal-overlay frozen-notice-overlay">
+                    <div class="modal-content frozen-notice-modal">
+                        <h3>🏆 ${headline}</h3>
+                        <ul class="frozen-notice-recovery-list">${rows}</ul>
+                        <div class="modal-buttons">
+                            <button class="primary-button" onclick="closeModal()">Nice</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        };
+
+        unlockWaiterId = setTimeout(tryShow, 0);
+    }
+
     return {
         showFrozenRoutineNotice,
         showRoutineUnfrozenNotice,
         showRoutineKoNotice,
         showHeroStarUpNotice,
         showStreakMilestoneNotice,
+        showAchievementUnlockNotice,
     };
 })();
 

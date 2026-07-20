@@ -13,6 +13,50 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-20 — Session 65: Achievements sub-session 2 — live wiring + unlock toast (Cowork session)
+
+**Did:** Wired lifetimeStats to the live seams per `docs/ACHIEVEMENTS_PLAN.md` sub-session 2. items.js: optional
+`recordLifetime(event, value)` collaborator dispatched from completeItem (task/habit +1 at the currentRunStats
+seam; streakReached with the new streak), uncompleteItem (symmetric −1, clamped; badges never revoked), check-in
+'avoided' (streakReached only — no habit-count bump, mirroring currentRunStats), and Back in Black crossing
+(old<0 && new≥0) around both live `Economy.addPoints` sites. damage.js: `recordLifetimeRunEnd(record, days)`
+fired ONLY inside gameOver's `!alreadyOver` finalize branch. script.js: `recordLifetime` dispatcher +
+`applyLifetimeProgress` (mutate → evaluateAll → recordUnlocks → toast; callers' own saveGame persists after) +
+`recordLifetimeRunEnd` impl (bestRunDaysSurvived max; Steady Hands count via CONFIG.STEADY_HANDS_MIN_RATE/
+_MIN_DAYS, unwrapping the raw `{rate,samples}` completionRate shape). frozenNotice.js:
+`showAchievementUnlockNotice` — queues behind any open `.frozen-notice-overlay` (400ms poll) instead of the
+module's usual drop-if-present dedupe, and batches all same-turn unlocks into ONE modal; streak-milestone toast
+always paints first for free (its setTimeout(0) registers before recordLifetime runs). Docs: ECONOMY.md wiring
+paragraph, ROADMAP.md sub-item 2 checked, DECISIONS.md session 65.
+
+**State:** ✅ 47 suites, 1063/1063 (+17: test/achievements-wiring.test.js — dispatch contract for every seam,
+crossing edge cases, alreadyOver gating). `node --check` clean on items.js/damage.js/frozenNotice.js/script.js.
+Live-verified in Chrome (localhost:8000, real UI clicks): Task Slayer Bronze toast on the exact 10th lifetime
+completion; 7-streak habit completion → blazing streak toast FIRST, then one batched "2 achievements unlocked"
+modal (On Fire + Habit Hero); uncomplete decremented 10→9 with badge kept; reload re-fired nothing; Back in
+Black on a real −5→+5 crossing. ONE live bug found+fixed: null-label tier (back_in_black) rendered
+"(null)" in the toast — fixed to omit falsy labels, re-verified live. Jeremy's save restored to pristine
+(verified empty v11 boot, zero app console errors). NOT committed — git commands given in chat.
+
+**Next:** Achievements sub-session 3 — Stats window badge grid (locked cards with progress bars off
+lifetimeStats + live state, unlocked cards with dates; `js/ui/statsView.js` + `css/stats.css`; read-only, no
+setTimeout(0) rebuild hazard per the plan). Straight Sonnet execution. Or: Time Slider Week/Month scope, Mobile
+UX + accessibility pass, or the session-64 finalizeRun stars/completionRate bug (own session).
+
+**Watch out:**
+- The **finalizeRun `{rate,samples}` bug is STILL unfixed** — session 65's run-end reader unwraps defensively
+  (as does the migration), so achievements are immune, but the Stats window Routine Performance "—" display bug
+  remains. Sub-session 3 touches statsView.js — do NOT driveby-fix it there; it stays its own session.
+- `showAchievementUnlockNotice` polls every 400ms while ANY `.frozen-notice-overlay` is up — if sub-session 4
+  adds long-lived notices, pending unlocks just wait (by design; they can't be lost, only delayed).
+- Steady Hands thresholds now live in TWO places by convention: CONFIG.STEADY_HANDS_* (script.js reads) and
+  inline literals in persistence.js's v10→v11 sweep (no-module-deps rule). Change both or neither.
+- The habit agenda row's "Streak: N" chip renders the ITEM's cached streak, not the habitDef's — a hand-edited
+  def streak shows stale on already-spawned instances until respawn (cosmetic, pre-existing; noticed while
+  playtesting, not introduced this session).
+
+---
+
 ## 2026-07-20 — Session 64: Achievements & badges — scoped (Fable) + sub-session 1 BUILT (Cowork session, Sonnet)
 
 **Did:** Scoped the Milestone 4 "Achievements & badges" item — `docs/ACHIEVEMENTS_PLAN.md` (4 forks resolved via

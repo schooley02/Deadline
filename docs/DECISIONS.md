@@ -4,6 +4,55 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-20 — Session 65: Achievements sub-session 2 — live wiring + unlock toast (Cowork, Sonnet)
+
+**Dispatch shape: ONE optional `recordLifetime(event, value)` collaborator, not four named deps.** items.js
+dispatches events ('taskCompleted'/'habitCompleted' ±1, 'streakReached' value = new streak, 'pointsRecovered');
+script.js's `recordLifetime` switch owns the semantics, and `applyLifetimeProgress` is the single owner-side
+seam (mutate → evaluate → recordUnlocks → toast, in that order so an unlock can never persist without its
+one-time notice). Rejected: four separate collaborators (deps-surface noise for one feature), and letting
+items.js mutate lifetimeStats directly through a getter (evaluation/toast policy belongs to the owner —
+same reasoning that keeps currentRunStats mutation behind RunStats helpers).
+
+**Seam choices (all mirror ACHIEVEMENTS_PLAN.md's fork verdicts):**
+- Task/habit counters bump at the SAME completeItem seam as currentRunStats (sub-tasks count as tasks), but
+  UNLIKE currentRunStats they reverse on uncompletion (plan's symmetric-decrement scope guard, clamped at 0).
+  An already-fired unlock stays — never revoked.
+- `bestHabitStreak` high-water-marks at BOTH live streak-update sites (completeItem habit branch, check-in
+  'avoided'). The silent restore-time settle path (settleStaleRecurringInstance) got NO wiring — it already
+  skips notifyStreakMilestone to stay quiet, and a streak it advances self-heals into the high-water mark at
+  the next live completion. 'avoided' does NOT bump habitsCompleted (currentRunStats doesn't either; the
+  lifetime counters mirror its seams exactly).
+- Back in Black: crossing detected as (old < 0 && new >= 0) around the two LIVE `Economy.addPoints` sites.
+  `pointsRecoveries` is never decremented — a later dip negative is a new economy event, not an undo, and the
+  family is single-tier so the counter can't be farmed into more badges. Rejected: central detection in the
+  shared setPlayerPoints setter (initGame's reset-to-0 after a negative-balance death would false-positive).
+- Run-end (`bestRunDaysSurvived` max, Steady Hands qualifying count) fires via `recordLifetimeRunEnd` from
+  damage.js's gameOver INSIDE the `!alreadyOver` finalize branch — a reloaded dead save re-renders the UI but
+  never re-fires unlock checks (the session-55 duplicate-finalize trap, pre-empted as the plan predicted).
+  Steady Hands reads `CONFIG.STEADY_HANDS_MIN_RATE`/`_MIN_DAYS` (added session 64; the v10→v11 migration
+  inlines the same values as literals per Persistence's no-module-deps rule — change both or neither). The
+  routine-rollup `completionRate` unwrap handles the raw `{rate, samples}` shape — the session-64 finalizeRun
+  bug is still unfixed (own session), so the reader stays defensive.
+
+**Toast: queue + batch, deliberately unlike the other FrozenNotice notices.** Every other notice drops itself
+if an overlay is already up (fine — their triggers re-fire). An unlock notice is one-time, so
+`showAchievementUnlockNotice` QUEUES (400ms poll until the overlay clears) and BATCHES everything pending into
+one modal. Ordering with the streak-milestone toast comes free: items.js calls notifyStreakMilestone before
+recordLifetime, so the streak notice's setTimeout(0) always registers (and paints) first — plan's "streak
+notice first" with no explicit coordination code.
+
+**Live playtest found 1 real bug, fixed same session:** single-badge families have `label: null` in the
+catalog (back_in_black), and the toast rendered "Back in Black (null)". Fixed to omit the label when falsy;
+re-verified live with a re-armed save. Also verified live: exact-threshold firing (10th completion), streak
+toast → batched 2-family modal sequencing, symmetric decrement keeping the badge, zero re-fires on reload,
+pristine save restored after testing. 47 suites, 1063/1063 (+17 wiring tests in test/achievements-wiring.test.js).
+
+**No balance numbers changed.** Achievement thresholds untouched; STEADY_HANDS_* keys were session 64's values,
+now merely referenced instead of duplicated.
+
+---
+
 ## 2026-07-20 — Session 64: Achievements & badges — scoped (Fable) + sub-session 1 BUILT (Sonnet execute)
 
 **Forks resolved before building (AskUserQuestion, Jeremy's picks), full plan in `docs/ACHIEVEMENTS_PLAN.md`:**

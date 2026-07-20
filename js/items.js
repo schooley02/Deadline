@@ -389,7 +389,12 @@ const Items = (() => {
      *         getPlayerXP, setPlayerXP, getPlayerPoints, setPlayerPoints,
      *         updatePlayerDisplays, checkPlayerLevelUp, createListItem,
      *         sortAndRenderActiveList, completedItems (getter), saveGame,
-     *         renderCompletedItems }
+     *         renderCompletedItems, getCurrentRunStats?, onStreakMilestone?,
+     *         recordLifetime? }
+     * recordLifetime(event, value) — optional achievements collaborator
+     * (session 65): events 'taskCompleted'/'habitCompleted' (value ±1),
+     * 'streakReached' (value = new streak), 'pointsRecovered' (value 1).
+     * script.js owns the semantics (bump lifetimeStats → evaluate → toast).
      * Habits (applyHabitCompletion) called as a bare stable global.
      */
     function completeItem(itemId, deps) {
@@ -455,12 +460,32 @@ const Items = (() => {
                 // "Successfully avoided" path — check recovery path 2.
                 maybeRecoverRoutine(habitDef, deps);
                 notifyStreakMilestone(habitDef, oldStreak, deps);
+                // Achievements sub-session 2 (session 65): high-water-mark the
+                // lifetime best streak at the same LIVE streak-update site the
+                // milestone toast uses. Called BEFORE the habitCompleted bump
+                // below on purpose: both land synchronously in the same turn,
+                // so the unlock notice queue batches them into one modal —
+                // and notifyStreakMilestone's setTimeout(0) is already
+                // registered, so a streak toast always paints first (the
+                // plan's "streak notice first" ordering, for free).
+                if (typeof deps.recordLifetime === 'function') {
+                    deps.recordLifetime('streakReached', habitDef.streak);
+                }
             }
         }
 
         if (xpGained > 0) {
             deps.setPlayerXP(deps.getPlayerXP() + xpGained);
-            deps.setPlayerPoints(Economy.addPoints(deps.getPlayerPoints(), pointsGained));
+            // Achievements sub-session 2 (session 65): detect the Back in
+            // Black crossing (negative → ≥0) around this award. Old/new pair
+            // read here — Economy.addPoints is the only thing that raises the
+            // balance on a live player action.
+            const prevPoints = deps.getPlayerPoints();
+            const newPoints = Economy.addPoints(prevPoints, pointsGained);
+            deps.setPlayerPoints(newPoints);
+            if (prevPoints < 0 && newPoints >= 0 && typeof deps.recordLifetime === 'function') {
+                deps.recordLifetime('pointsRecovered', 1);
+            }
             deps.updatePlayerDisplays();
             deps.checkPlayerLevelUp();
             // Hero/routine XP ([P1-UI-006]): the owning routine levels too.
@@ -487,6 +512,22 @@ const Items = (() => {
                     RunStats.recordHabitCompleted(stats);
                 }
                 RunStats.recordPointsEarned(stats, pointsGained);
+            }
+
+            // Achievements sub-session 2 (session 65): bump lifetime counters
+            // at the SAME seam as the currentRunStats bumps above (the plan's
+            // fork 2/4 verdict), same sub-task philosophy (a sub counts as a
+            // task completion). Unlike currentRunStats these DO reverse on
+            // uncompletion (see uncompleteItem) — the plan's symmetric-
+            // decrement scope guard, so complete→uncomplete can't farm badge
+            // progress. Optional collaborator, same tolerance as everything
+            // else in this deps shape.
+            if (typeof deps.recordLifetime === 'function') {
+                if (item.type === 'task') {
+                    deps.recordLifetime('taskCompleted', 1);
+                } else if (item.type === 'habit') {
+                    deps.recordLifetime('habitCompleted', 1);
+                }
             }
         }
 
@@ -815,7 +856,15 @@ const Items = (() => {
             habitDef.lastCompletionDate = result.lastCompletionDate;
             habitDef.occurrenceHistory = result.occurrenceHistory;
             deps.setPlayerXP(deps.getPlayerXP() + result.xpGained);
-            deps.setPlayerPoints(Economy.addPoints(deps.getPlayerPoints(), result.pointsGained));
+            // Achievements sub-session 2 (session 65): same Back in Black
+            // crossing detection as completeItem — a live "Successfully
+            // avoided" award can also lift a negative balance back to ≥0.
+            const prevPoints = deps.getPlayerPoints();
+            const newPoints = Economy.addPoints(prevPoints, result.pointsGained);
+            deps.setPlayerPoints(newPoints);
+            if (prevPoints < 0 && newPoints >= 0 && typeof deps.recordLifetime === 'function') {
+                deps.recordLifetime('pointsRecovered', 1);
+            }
             deps.checkPlayerLevelUp();
             // Frozen routine slots: 'avoided' is a success occurrence for a
             // negative habit — check recovery path 2.
@@ -824,6 +873,18 @@ const Items = (() => {
             // ordering rationale as completeItem.
             awardRoutineXpForHabitDef(habitDef, deps);
             notifyStreakMilestone(habitDef, oldStreak, deps);
+            // Achievements sub-session 2 (session 65): live streak seam, same
+            // as completeItem's habit branch. Deliberately NO habitCompleted
+            // bump here — currentRunStats doesn't count an 'avoided' outcome
+            // as a habit completion, and lifetimeStats mirrors its seams
+            // exactly. (The silent restore-time twin of this path,
+            // settleStaleRecurringInstance, gets NO lifetime wiring at all —
+            // it already skips notifyStreakMilestone to stay quiet, and a
+            // streak it advances self-heals into bestHabitStreak at the next
+            // LIVE completion, which passes the then-current streak.)
+            if (typeof deps.recordLifetime === 'function') {
+                deps.recordLifetime('streakReached', habitDef.streak);
+            }
         } else if (outcome === 'indulged') {
             if (isCheatDayExcused(habitDef, originalDueDate)) {
                 habitDef.cheatDayDate = null;
@@ -1096,6 +1157,17 @@ const Items = (() => {
 
             deps.setPlayerXP(Math.max(0, deps.getPlayerXP() - xpLost));
             deps.setPlayerPoints(Economy.subtractPoints(deps.getPlayerPoints(), pointsLost));
+            // Achievements sub-session 2 (session 65): symmetric lifetime
+            // decrement (plan scope guard — complete→uncomplete can't farm
+            // badge progress). An unlock already fired stays unlocked
+            // (never revoked); only the counter reverses. pointsRecoveries
+            // is deliberately NOT decremented when this subtract dips the
+            // balance negative again — dipping negative is a new economy
+            // event, not an undo of the earlier recovery, and Back in Black
+            // is single-tier so the counter can't be farmed into more badges.
+            if (typeof deps.recordLifetime === 'function') {
+                deps.recordLifetime('taskCompleted', -1);
+            }
         } else if (item.type === 'habit') {
             const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
             if (habitDef) {
@@ -1113,6 +1185,14 @@ const Items = (() => {
 
                 deps.setPlayerXP(Math.max(0, deps.getPlayerXP() - result.xpLost));
                 deps.setPlayerPoints(Economy.subtractPoints(deps.getPlayerPoints(), result.pointsLost));
+                // Achievements sub-session 2 (session 65): symmetric lifetime
+                // decrement, same reasoning as the task branch above.
+                // bestHabitStreak is a high-water mark — applyHabitUncompletion
+                // already rolled the live streak back, and the recorded best
+                // deliberately does NOT roll back with it.
+                if (typeof deps.recordLifetime === 'function') {
+                    deps.recordLifetime('habitCompleted', -1);
+                }
             }
         }
 

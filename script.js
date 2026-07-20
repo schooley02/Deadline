@@ -212,6 +212,42 @@ document.addEventListener('DOMContentLoaded', () => {
     // as get/set accessor pairs rather than plain values — extending the
     // js/damage.js precedent for script.js-owned state a module needs to
     // both read and write.
+    // Achievements sub-session 2 (session 65, docs/ACHIEVEMENTS_PLAN.md):
+    // the single owner-side seam every live lifetime-stats bump funnels
+    // through. Mutate → evaluate → record → toast, in that order, so an
+    // unlock can never be persisted without having fired its one-time
+    // notice (and vice versa). Callers (completeItem/uncompleteItem/
+    // resolvePendingCheckIn/gameOver) all call saveGame() themselves after
+    // their seam fires, so the mutated lifetimeStats/achievements are
+    // picked up by the very next collectGameState — no save call here.
+    // FrozenNotice called as a bare stable global (loads before script.js),
+    // same pattern as onRoutineFrozen/onStreakMilestone below.
+    function applyLifetimeProgress(mutator) {
+        mutator(lifetimeStats);
+        const newlyCrossed = Achievements.evaluateAll(CONFIG.ACHIEVEMENTS, lifetimeStats, achievements);
+        if (newlyCrossed.length) {
+            achievements = Achievements.recordUnlocks(achievements, newlyCrossed, new Date().toISOString());
+            FrozenNotice.showAchievementUnlockNotice(newlyCrossed);
+        }
+    }
+
+    // The items.js-facing dispatcher (see completeItem's deps doc for the
+    // event vocabulary). Counters clamp at 0 on symmetric decrements;
+    // bestHabitStreak is a high-water mark and never rolls back.
+    function recordLifetime(event, value) {
+        applyLifetimeProgress((stats) => {
+            if (event === 'taskCompleted') {
+                stats.tasksCompleted = Math.max(0, (stats.tasksCompleted || 0) + value);
+            } else if (event === 'habitCompleted') {
+                stats.habitsCompleted = Math.max(0, (stats.habitsCompleted || 0) + value);
+            } else if (event === 'streakReached') {
+                stats.bestHabitStreak = Math.max(stats.bestHabitStreak || 0, value || 0);
+            } else if (event === 'pointsRecovered') {
+                stats.pointsRecoveries = (stats.pointsRecoveries || 0) + 1;
+            }
+        });
+    }
+
     function stateDeps() {
         return {
             // DOM
@@ -244,6 +280,27 @@ document.addEventListener('DOMContentLoaded', () => {
             // forward-reference reasoning as heroesCompletionRate/
             // heroesStarRating above.
             renderGameOverReview: (deps) => GameOverView.renderReviewCard(deps),
+            // Achievements sub-session 2 (session 65): run-end lifetime bump,
+            // called by js/damage.js's gameOver ONLY on a real death (never
+            // on an alreadyOver restore — gating lives at the call site).
+            // Steady Hands rule (CONFIG.STEADY_HANDS_MIN_DAYS survived,
+            // routine rate ≥ CONFIG.STEADY_HANDS_MIN_RATE) and the
+            // {rate, samples} unwrap MIRROR the v10→v11 retro sweep in
+            // js/persistence.js — if one changes, change both (the migration
+            // inlines the same values as literals by Persistence's
+            // no-module-deps convention).
+            recordLifetimeRunEnd: (record, days) => applyLifetimeProgress((stats) => {
+                stats.bestRunDaysSurvived = Math.max(stats.bestRunDaysSurvived || 0, days || 0);
+                if ((days || 0) >= CONFIG.STEADY_HANDS_MIN_DAYS) {
+                    const qualifying = ((record && record.routines) || []).filter((r) => {
+                        const rate = r.completionRate && typeof r.completionRate.rate === 'number'
+                            ? r.completionRate.rate
+                            : null;
+                        return rate !== null && rate >= CONFIG.STEADY_HANDS_MIN_RATE;
+                    }).length;
+                    stats.steadyRoutineRuns = (stats.steadyRoutineRuns || 0) + qualifying;
+                }
+            }),
             getItemIdCounter: () => itemIdCounter,
             getDaysSurvived: () => daysSurvived,
             getRunStartedAtMs: () => runStartedAtMs,
@@ -468,6 +525,9 @@ document.addEventListener('DOMContentLoaded', () => {
             onStreakMilestone: (habitName, streak, tier) => {
                 FrozenNotice.showStreakMilestoneNotice(habitName, streak, tier);
             },
+            // Achievements sub-session 2 (session 65): the lifetime-stats
+            // dispatcher (see recordLifetime above / completeItem's deps doc).
+            recordLifetime,
             xpPerTaskDefeat: XP_PER_TASK_DEFEAT,
             xpPerHabitComplete: XP_PER_HABIT_COMPLETE,
             pointsPerTask: POINTS_PER_TASK,
