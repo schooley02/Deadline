@@ -11,17 +11,32 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
-## 2026-07-20 — Session 74: Mobile UX + accessibility + PWA — sequenced + sub-sessions 1 & 2 BUILT (Cowork session)
+## 2026-07-20 — Session 74: Mobile UX + accessibility + PWA — ALL 3 sub-sessions BUILT, ticket CLOSED (Cowork session)
 
-**Sub-session 2 (accessibility, added after sub-session 1):** Audited on Opus; found the plan
-over-estimated the gaps — day pager `‹ ›`, week-strip cells, and time slider were ALREADY real
-`<button>`/`<input>` with `aria-label`s + focus rings. Three real fixes: darkened
-`--color-neutral` #9E9E9E→#757575 (WCAG AA text contrast, base.css); `role="status"`/
-`aria-live="polite"`/`aria-atomic` on `#dayPagerLabel` (index.html) so `‹ ›` day changes are
-announced; `aria-current="true"` on the active week-strip cell (dayPagerView.js). 55 suites,
-1184/1184; `node --check` clean; live-verified in Chrome (computed #757575, label announces,
-aria-current tracks the viewed cell). **Only sub-session 3 (PWA installable shell) remains on
-the mobile ticket.** Details below cover sub-session 1; see DECISIONS.md session 74 for both.
+**Sub-session 2 (accessibility):** Audited on Opus; found the plan over-estimated the gaps — day
+pager `‹ ›`, week-strip cells, and time slider were ALREADY real `<button>`/`<input>` with
+`aria-label`s + focus rings. Three real fixes: darkened `--color-neutral` #9E9E9E→#757575 (WCAG
+AA text contrast, base.css); `role="status"`/`aria-live="polite"`/`aria-atomic` on
+`#dayPagerLabel` (index.html) so `‹ ›` day changes are announced; `aria-current="true"` on the
+active week-strip cell (dayPagerView.js). 55 suites, 1184/1184; `node --check` clean;
+live-verified in Chrome (computed #757575, label announces, aria-current tracks the viewed cell).
+
+**Sub-session 3 (PWA installable shell, built on Sonnet):** `manifest.json` + `sw.js`
+(cache-first SW, explicit 88-URL app-shell list, NOT a blanket `Assets/*` glob) + two new icon
+files (`Assets/icons/icon-192.png`/`icon-512.png`, cropped from the existing church base sprite).
+Wired into `index.html` (manifest link, theme-color meta, feature-detected SW registration).
+Found+fixed a real bug: `server.js` had no `.json` MIME mapping, so `manifest.json` fell back to
+`application/octet-stream` — added `'.json': 'application/manifest+json'`. 55 suites, 1184/1184
+(unchanged); `node --check` clean; `manifest.json` valid JSON. Live-verified in Chrome: all 88
+shell URLs 200 before wiring, SW reaches `activated`, manifest serves correct MIME post-restart,
+cache holds all 90 real entries, cached `index.html` confirmed byte-current (contains today's
+`day-pager-row` markup). No tool available to flip real network offline — verified the offline
+PATH by directly exercising the same `caches.match` fallback the fetch handler uses, not a literal
+airplane-mode reload.
+
+**[Mobile UX + accessibility pass; PWA] now fully CLOSED — all 3 sub-sessions (layout,
+accessibility, PWA) built in one day.** Details below cover sub-session 1's recon+build; see
+DECISIONS.md session 74 for the full breakdown of all three.
 
 ---
 
@@ -51,11 +66,11 @@ first). `docs/ROADMAP.md`/`docs/UI_UX.md`/`docs/DECISIONS.md` all updated same-s
 changed selector's real computed size in Chrome at 390×844 (iframe workaround) — all now
 ≥44×44px. NOT committed — git commands given below.
 
-**Next (updated — sub-session 2 now also done, see top block):** MOBILE_PWA_PLAN.md sub-session 3
-— PWA installable shell (manifest.json + icons from Assets/, a cache-first service worker for the
-app shell, register it from index.html, add the theme-color meta). Pure additive, Sonnet-tier;
-the plan doc has the file list. Live-verify via Chrome's Application panel (manifest + activated
-SW + offline reload still loads the shell).
+**Next (updated — all 3 sub-sessions now built, see top block):** ROADMAP has no open Milestone 4
+items left after this ticket. Time to look at what's next overall — Milestone 3's still-pending
+"real-play balance re-check" follow-up (session 24's yardstick, ~75–85 pts/day) is the only other
+loose thread mentioned in recent HANDOFF entries; otherwise it may be worth a fresh ROADMAP
+read-through with Jeremy to pick the next priority.
 
 **Watch out:**
 - `mcp__claude-in-chrome__resize_window` reported success but never actually changed the live
@@ -78,6 +93,14 @@ SW + offline reload still loads the shell).
   under the `min-width:1024px` query was correct (no base-rule evidence they were misplaced,
   unlike the ones that got moved) — worth a second look if the desktop layout ever looks off in
   those areas.
+- **Sub-session 3 addendum:** `Assets/icons/icon-crop.png` (an intermediate file from generating
+  the PWA icons) is sitting unreferenced in the repo — couldn't be deleted from the Cowork sandbox
+  (mounted folder allows writes, not deletes, for the sandbox user; same restriction class as the
+  git-index-lock/npm issues in CLAUDE.md). Harmless, safe to delete from your own filesystem
+  whenever. Also: a service worker's cache-first behavior can mask a server-side fix even after a
+  real restart, if the SW cached the OLD response before the fix landed — hit this exact thing
+  verifying the `manifest.json` MIME fix mid-session. If `sw.js` is ever suspected of serving stale
+  content, unregister + `caches.delete()` before concluding a fix didn't work.
 
 ---
 

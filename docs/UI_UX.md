@@ -3,6 +3,15 @@
 ## Platform
 Mobile-first web app; prioritize Chrome/Android. Must be responsive so it works in any browser. Game canvas in the top portion of the screen; task/habit agenda list stacked below it.
 
+**Installable PWA shell (2026-07-20, MOBILE_PWA_PLAN.md sub-session 3):** `manifest.json` +
+`sw.js` (cache-first service worker over an explicit app-shell file list — not a blanket
+`Assets/*` glob) make the app installable ("Add to Home Screen") and load offline. Icons
+(`Assets/icons/icon-192.png`/`icon-512.png`) are a square crop of the existing church base
+sprite. Scope is deliberately shallow (installable shell only, per Jeremy's call) — no offline
+game-state sync or write reconciliation; the game's actual data stays exactly as it was,
+localStorage-only. Bump `sw.js`'s `CACHE_NAME` on any future shell-file change (new/removed
+`<script>`/`<link>`, edited CSS/JS) so returning installs pick up the update.
+
 ## Main Screen
 - **Canvas (top):** base on the left, enemies advancing from the right. Defaults to showing the CURRENT DAY's tasks and habits. Only active (non-repeating-future) items render.
 - **Base Zone heroes ([P1-UI-006] sub-session 3, built 2026-07-19):** one small avatar chip per routine renders over the base's leftmost 120px (`js/ui/heroes.js`) — category emoji, level badge, star row, health bar, state styling (active/frozen 🥶/KO'd 💤/inactive greyed). CSS/emoji placeholders for v1 (no hero sprite assets exist); capped display with a "+N" overflow chip. See docs/ROUTINES.md's "Hero Rendering" section for the full mechanic.

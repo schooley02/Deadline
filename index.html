@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deadline - Productivity Tower Defense</title>
     <meta name="description" content="Transform your tasks into a tower defense game. Defeat zombie enemies to complete tasks and protect your base!">
+    <!-- PWA installable shell (2026-07-20, MOBILE_PWA_PLAN.md sub-session 3) —
+         manifest + theme-color + icons. See sw.js's header for cache scope
+         (app shell only, no game-state caching — that's localStorage's job). -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0A5F55">
+    <link rel="icon" href="Assets/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="Assets/icons/icon-192.png">
     <!-- style.css split by component 2026-07-18 (Milestone 2) — order matters:
          responsive.css MUST load last, it overrides base rules from every
          file above it at equal specificity (see css/responsive.css header
@@ -363,5 +370,19 @@
     <script src="js/IdCounter.js"></script>
     <script src="js/TaskManager.js"></script>
     <script src="script.js"></script>
+    <!-- PWA installable shell (2026-07-20, MOBILE_PWA_PLAN.md sub-session 3):
+         register sw.js after everything else loads. Feature-detected +
+         wrapped so a browser without SW support (or a dev environment that
+         blocks it) degrades to the plain, always-worked online experience —
+         nothing here is load-bearing for the game itself. -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch((err) => {
+                    console.warn('Service worker registration failed (app still works online):', err);
+                });
+            });
+        }
+    </script>
 </body>
 </html>

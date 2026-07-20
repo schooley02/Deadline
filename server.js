@@ -14,7 +14,11 @@ const mimeTypes = {
   '.jpeg': 'image/jpeg',
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon'
+  '.ico': 'image/x-icon',
+  // .json added 2026-07-20 (MOBILE_PWA_PLAN.md sub-session 3) — manifest.json
+  // was falling back to application/octet-stream, which some browsers'
+  // install-prompt logic rejects for the Web App Manifest.
+  '.json': 'application/manifest+json'
 };
 
 const server = http.createServer((req, res) => {

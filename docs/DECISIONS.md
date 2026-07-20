@@ -42,6 +42,61 @@ back to offset 0 on return.
 **Next:** MOBILE_PWA_PLAN.md sub-session 3 (PWA installable shell — manifest, service worker,
 theme-color). Pure additive/mechanical, Sonnet-appropriate.
 
+## 2026-07-20 — Session 74 (continued): Mobile UX sub-session 3 BUILT — PWA installable shell; ticket fully CLOSED
+
+Built on Sonnet (Jeremy switched down after the a11y audit, per plan). `manifest.json`
+(standalone display, theme/background colors matching the app's actual palette —
+`--color-primary-dark-green` #0A5F55 / `--color-bg-light` #F5F7F9) + icons cropped from the
+existing `Assets/Base/base_100.png` church sprite via ImageMagick (600×600 crop of the
+steeple/body, resized to 192/512). `sw.js`: cache-first service worker with an EXPLICIT 88-URL
+app-shell list (every `<link>`/`<script>` in index.html, plus the Zombies/Base sprites + the two
+new icons) rather than globbing `Assets/*` — that folder also holds `.psd`/reference files
+CLAUDE.md already says never to open, and there's no reason to ship them to every install.
+Registration is feature-detected and swallows its own failure (`console.warn`, not throw) so a
+browser without SW support degrades to the plain always-worked online experience — nothing about
+the base game depends on this file.
+
+**Real bug found and fixed along the way:** `server.js` had no `.json` MIME mapping, so
+`manifest.json` fell back to `application/octet-stream` — some browsers' install-prompt logic
+rejects that for the Web App Manifest. Added `'.json': 'application/manifest+json'` (verified no
+other runtime `.json` fetch exists in `js/`, so this is a safe blanket mapping, not just a
+manifest-specific hack).
+
+**Verification hazard (worth remembering for future sw.js work):** after fixing the MIME
+mapping and asking Jeremy to restart `node server.js`, the browser kept reporting the OLD
+`application/octet-stream` content-type even post-restart. Root cause: the service worker's own
+cache-first fetch handler had already cached `manifest.json` (with the stale content-type) during
+its first install, BEFORE the fix — so it kept serving that stale cached response regardless of
+what the server now returned. Not a real bug in the shipped fix; an artifact of testing a
+cache-first SW against a server that changed underneath it mid-session. Resolved by unregistering
+the SW + clearing all caches + a fresh fresh reload. Lesson for next time: verify server-side
+fixes via a fetch BEFORE the SW is installed/wired in (which is what sub-session 3 actually did
+first, catching zero 404s across all 88 URLs pre-registration — the MIME issue only surfaced
+because of the coincidental mid-session server-restart timing, not the shell-list verification
+step itself).
+
+**Verification:** all 88 shell URLs fetched 200 before wiring (via the real page's `fetch`, not
+sandbox `curl` — the sandbox can't reach Jeremy's `localhost:8000` directly, only the
+Claude-in-Chrome extension can). Post-fix: `manifest.json` serves as `application/manifest+json`,
+SW registers and reaches `activated`, cache holds all 90 real entries (88 explicit + 2
+browser-added, e.g. favicon), and `caches.match('index.html')` returns the byte-current real
+shell (confirmed it contains `day-pager-row` — today's actual markup, not a stale snapshot). No
+tool was available to flip real network offline, so the offline PATH itself was verified by
+directly exercising the same `caches.match` fallback `sw.js`'s fetch listener uses on a failed
+request, rather than by an actual airplane-mode reload — worth a manual phone test if Jeremy
+wants belt-and-suspenders confidence beyond this. 55 suites, 1184/1184 (unchanged — no
+test-covered `.js` touched); `node --check` clean on `sw.js`/`server.js`; `manifest.json`
+validated as JSON.
+
+**Leftover, not cleaned up:** `Assets/icons/icon-crop.png` (the intermediate crop before the
+192/512 resizes) — harmless, unreferenced anywhere, but couldn't be deleted from the Cowork
+sandbox (the mounted folder allows writes but not deletes/renames for the sandbox user, same
+class of restriction as the git-index-lock/npm-ENOTEMPTY issues in CLAUDE.md). Safe for Jeremy to
+delete from his own filesystem whenever convenient.
+
+**[Mobile UX + accessibility pass; PWA] ticket now fully CLOSED** — all 3 sub-sessions
+(layout, accessibility, PWA) built same day.
+
 ---
 
 ## 2026-07-20 — Session 74: Mobile UX + accessibility + PWA — sequenced, not built

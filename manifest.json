@@ -1,0 +1,25 @@
+{
+  "name": "Deadline - Productivity Tower Defense",
+  "short_name": "Deadline",
+  "description": "Transform your tasks into a tower defense game. Defeat zombie enemies to complete tasks and protect your base!",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F5F7F9",
+  "theme_color": "#0A5F55",
+  "icons": [
+    {
+      "src": "Assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "Assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
