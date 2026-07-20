@@ -626,7 +626,9 @@ const RoutineViews = (() => {
             </div>
         `;
 
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        // [P2-UI-011] Stage 2 sub-session 5: Modal.open() instead of raw
+        // insertAdjacentHTML — see docs/MODAL_STAGE2_PLAN.md.
+        Modal.open(modalHtml);
 
         // Populate the routine content (module-internal calls, same file)
         populateRoutineHabits(routine, { definedHabits: deps.definedHabits });
@@ -869,7 +871,7 @@ const RoutineViews = (() => {
             </div>
         `;
 
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        Modal.open(modalHtml);
 
         // Attach event listeners
         const addBtn = document.getElementById('addSelectedItemBtn');
@@ -983,7 +985,7 @@ const RoutineViews = (() => {
             </div>
         `;
 
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        Modal.open(modalHtml);
 
         const confirmBtn = document.getElementById('confirmTransferBtn');
         const selectEl = document.getElementById('transferDestSelect');
@@ -1089,7 +1091,7 @@ const RoutineViews = (() => {
                 </div>
             </div>
         `;
-        document.body.insertAdjacentHTML('beforeend', formHtml);
+        Modal.open(formHtml);
         wireScheduleFieldsToggle('newHabit');
     }
 
@@ -1132,7 +1134,7 @@ const RoutineViews = (() => {
                 </div>
             </div>
         `;
-        document.body.insertAdjacentHTML('beforeend', formHtml);
+        Modal.open(formHtml);
         wireScheduleFieldsToggle('newTask');
     }
 
@@ -1193,7 +1195,7 @@ const RoutineViews = (() => {
                 </div>
             </div>
         `;
-        document.body.insertAdjacentHTML('beforeend', formHtml);
+        Modal.open(formHtml);
         wireScheduleFieldsToggle('editHabit');
     }
 
@@ -1236,7 +1238,7 @@ const RoutineViews = (() => {
                 </div>
             </div>
         `;
-        document.body.insertAdjacentHTML('beforeend', formHtml);
+        Modal.open(formHtml);
         wireScheduleFieldsToggle('editTask');
     }
 

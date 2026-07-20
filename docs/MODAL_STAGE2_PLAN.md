@@ -1,4 +1,4 @@
-# [P2-UI-011] Stage 2 — central Modal.open() builder — SEQUENCED 2026-07-20 (Cowork session, Opus)
+# [P2-UI-011] Stage 2 — central Modal.open() builder — CLOSED 2026-07-20 (SEQUENCED 2026-07-20, Cowork session, Opus)
 
 Mirrors the format of NEGATIVE_HABITS_PLAN.md / FROZEN_SLOTS_PLAN.md / HEROES_PLAN.md /
 TIME_SLIDER_WEEK_PLAN.md. Lighter-weight than those — this is pure engineering (how overlay
@@ -116,9 +116,22 @@ count last — see Sub-sessions below.
    instant modal open + wiring, real zombie spawn/window-refresh behavior unchanged, zero new
    console errors. No new tests (module has no dedicated unit coverage, same as before). 56
    suites, 1205/1205 (unchanged). See DECISIONS.md.
-5. **routineViews.js (7 sites)** — largest cluster AND the only one with stacked overlays
-   (`addItemModal`/`transferItemModal` over `routineManagementModal`), so it goes last, once
-   `closeTopmost()` interaction has nothing left to surprise it.
+5. **routineViews.js (7 sites)** — DONE 2026-07-20 (Cowork session, Sonnet). **Stage 2 CLOSED.**
+   All 7 sites (`routineManagementModal`, `addItemModal`, `transferItemModal`, `habitFormModal`,
+   `taskFormModal`, `editHabitFormModal`, `editTaskFormModal`) switched from
+   `document.body.insertAdjacentHTML('beforeend', ...)` to `Modal.open(...)`. No options needed
+   anywhere — every site here inserts synchronously with no dedupe requirement, same as
+   popups.js. Live-verified the stacked-overlay case this cluster exists to stress: opened Manage
+   Routine → Add Habit (stacked) → Create New Habit (3 deep), confirmed `closeTopmost()` (via ESC)
+   unwinds exactly one overlay per press while the ones underneath stay intact and dimmed; created
+   a real habit through the stack and confirmed `showRoutineManagement` correctly rebuilds in
+   place afterward (pre-existing `Modal.closeModal()` + `setTimeout(100)` pattern, untouched);
+   Edit Habit stacked + closed via ESC without disturbing Manage Routine underneath; Move/transfer
+   between two real routines (stacked `transferItemModal`, hit the documented native-`confirm()`
+   CDP-freeze gotcha once when clicking Move with only one routine in existence — recovered by
+   navigating away, created a second routine, and re-ran with `confirm`/`alert` stubbed before
+   triggering). 56 suites, 1205/1205 (unchanged — this module has no dedicated unit coverage).
+   Zero new console errors. See DECISIONS.md.
 
 Each sub-session: tests green before/after, live-verify in Chrome, commit. `js/TaskManager.js`'s
 lone modal-overlay site is explicitly OUT of scope (dead/parallel path, not the live UI).

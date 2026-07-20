@@ -11,6 +11,40 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-07-20 — [P2-UI-011] Stage 2 sub-session 5 shipped: routineViews.js migrated — Stage 2 CLOSED (Cowork session, Sonnet, continued)
+
+**Did:** Migrated the last cluster — all 7 `js/ui/routineViews.js` overlay sites
+(`routineManagementModal`, `addItemModal`, `transferItemModal`, `habitFormModal`, `taskFormModal`,
+`editHabitFormModal`, `editTaskFormModal`) — from raw `insertAdjacentHTML` onto `Modal.open()`.
+This closes the whole `Modal.open()` migration (`docs/MODAL_STAGE2_PLAN.md`, 5/5 sub-sessions).
+Updated `docs/ROADMAP.md`, `docs/MODAL_STAGE2_PLAN.md`, `docs/DECISIONS.md`.
+
+**State:** 56 suites, 1205/1205 (unchanged). `node --check` clean. Live-verified in Chrome against
+the real running app, exercising the hardest case in the whole plan (stacked overlays, which is
+why this cluster went last): built a 3-deep stack (Manage Routine → Add Habit → Create New Habit),
+confirmed ESC (`closeTopmost()`) unwinds one overlay per press with the rest staying intact
+underneath; created a real habit through the stack (routine correctly rebuilt in place after);
+Edit Habit stacked + ESC-closed cleanly; created a second routine and moved a habit between them
+via the stacked `transferItemModal` (real transfer, not mocked). Zero new console errors.
+
+**Next:** Stage 2 of [P2-UI-011] is fully closed — no more sub-sessions queued for it. Milestone 4
+still has the folded-in keyboard-nav/accessibility pass (mentioned in the Stage 2 scope note as
+explicitly deferred to that item, not part of this migration) as the next open thread on this
+ticket family, plus whatever Jeremy wants to pick up next from ROADMAP.md's Milestone 4 list.
+
+**Watch out:**
+- Hit the native-`confirm()`/`alert()` CDP-freeze gotcha again this session (clicking "Move" on a
+  habit when only one routine existed triggers a synchronous `alert('No other routines to move
+  to...')`, which hangs CDP exactly like the documented `confirm()` case). Recovery was the same:
+  navigate the tab to any URL, then re-approach with `window.confirm`/`window.alert` stubbed via
+  `javascript_tool` BEFORE clicking the button that triggers them. Worth generalizing the CLAUDE.md
+  gotcha note from "confirm()/alert() dialogs" (already covers both) — no doc change needed, just
+  flagging that `alert()`-only paths (no `confirm()` involved) trigger it too, not just the
+  confirm-then-act flows documented so far.
+- `find`-tool refs continue to go stale across a FAB-menu-then-window-open sequence (same gotcha
+  as sub-session 3/4's handoff notes) — re-`find` (or click fresh screenshot coordinates) right
+  before each click rather than reusing a ref from an earlier step in the same flow.
+
 ## 2026-07-20 — [P2-UI-011] Stage 2 sub-session 4 shipped: forms.js migrated, 50ms delay dropped (Cowork session, Sonnet)
 
 **Did:** Migrated `js/ui/forms.js`'s single overlay site (`showFormModal`, the FAB task/habit/

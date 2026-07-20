@@ -4,6 +4,45 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-20 — [P2-UI-011] Stage 2 sub-session 5 shipped: routineViews.js migrated — Stage 2 CLOSED (Cowork session, Sonnet)
+
+**Decision:** Migrated all 7 `js/ui/routineViews.js` overlay-creation sites
+(`routineManagementModal`, `addItemModal`, `transferItemModal`, `habitFormModal`, `taskFormModal`,
+`editHabitFormModal`, `editTaskFormModal`) from `document.body.insertAdjacentHTML('beforeend',
+...)` onto `Modal.open(...)`, closing out the `Modal.open()` migration begun in sub-session 1. This
+was deliberately the LAST sub-session because it's both the largest cluster and the only one with
+stacked overlays (`addItemModal`/`transferItemModal` opening on top of `routineManagementModal`),
+so `closeTopmost()` had nothing left to surprise it by the time it got here.
+
+**What changed:** Every site was a mechanical swap — no `dedupeSelector` or `defer` option needed
+anywhere in this cluster, matching popups.js's pattern (all synchronous, click-triggered inserts,
+no sibling-dedupe requirement). The three "rebuild-in-place" `setTimeout(100)` call sites (habit
+add / item transfer / routine-status-toggle each calling `Modal.closeModal()` then reopening
+`showRoutineManagement` a tick later) were left untouched — that's the same "refresh the window
+underneath after a modal action" pattern already confirmed out-of-scope in forms.js and popups.js,
+a different hazard class than what `Modal.open()`'s `defer` option guards against.
+
+**Verification:** 56 suites, 1205/1205 (unchanged — routineViews.js has no dedicated unit
+coverage). `node --check` clean. Live-verified in Chrome against the real running app: built a
+3-deep overlay stack (Manage Routine → Add Habit → Create New Habit) and confirmed `closeTopmost()`
+(via ESC) closes exactly one overlay per press while the ones underneath stay in the DOM, dimmed,
+and interactive; created a real habit through that stack and confirmed `showRoutineManagement`
+correctly rebuilds in place; opened Edit Habit stacked on Manage Routine and closed it via ESC
+without disturbing the modal underneath; created a second routine and moved a habit between them
+via the stacked `transferItemModal` (real `transferHabitBetweenRoutines` call, not a mock). Hit the
+documented native-`confirm()`/`alert()` CDP-freeze gotcha once (clicked Move while only one routine
+existed, triggering the "no other routines" `alert()`) — recovered by navigating the tab away, then
+re-ran with `window.confirm`/`window.alert` stubbed via `javascript_tool` before triggering Move
+again, per the established workaround. Zero new console errors (only the pre-existing Chrome-
+extension message-channel noise).
+
+**Rejected:** Nothing new here — every fork this plan needed was already resolved in earlier
+sub-sessions (Fork 1/2 in sub-session 1-2, Fork 3 in sub-session 4). This session was pure
+mechanical migration validating the pattern held under the hardest case (stacking) rather than a
+decision point.
+
+---
+
 ## 2026-07-20 — [P2-UI-011] Stage 2 sub-session 4 shipped: forms.js migrated, 50ms delay dropped (Cowork session, Sonnet)
 
 **Decision:** Migrated `js/ui/forms.js`'s single overlay site (`showFormModal`, the FAB task/habit/
