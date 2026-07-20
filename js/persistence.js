@@ -34,7 +34,11 @@ const Persistence = (() => {
     // v10 (2026-07-19, session 52): run history — top-level `runHistory`
     // (persists ACROSS runs; seeded []) and `currentRunStats` (run-scoped
     // accumulator; seeded fresh). See docs/RUN_HISTORY_PLAN.md + js/runStats.js.
-    const SCHEMA_VERSION = 10;
+    // v11 (2026-07-20, session 64): achievements & badges — top-level
+    // `lifetimeStats` (persists ACROSS runs, retro-derived from existing
+    // save data below) and `achievements` (unlocked-tier map; seeded {}).
+    // See docs/ACHIEVEMENTS_PLAN.md + js/achievements.js.
+    const SCHEMA_VERSION = 11;
     const DEBOUNCE_MS = 500;
 
     // DOM references on item objects — never serialized, rebuilt on load.
@@ -296,6 +300,77 @@ const Persistence = (() => {
                 };
             }
             save.schemaVersion = 10;
+        }
+
+        // v10 → v11 (2026-07-20, session 64): achievements & badges.
+        // lifetimeStats + achievements (unlocked-tier map) are lifetime
+        // data — persisted, never reset by initGame, wiped only by
+        // dev-Reset (mirrors runHistory's lifecycle). Retro sweep
+        // (ACHIEVEMENTS_PLAN.md fork 4): derive a best-effort lifetimeStats
+        // snapshot from data ALREADY in this save so upgrading players
+        // aren't credited zero. Literal inline math, NOT
+        // Achievements.freshLifetimeStats()/module calls — Persistence
+        // deliberately has no module dependencies (same reasoning as
+        // v9→v10 inlining currentRunStats's fresh shape instead of calling
+        // RunStats.freshRunStats()). The actual badge-unlock evaluation
+        // against CONFIG.ACHIEVEMENTS happens once in state.js's
+        // restoreGameState (which already has module deps), not here.
+        if (save.schemaVersion === 10) {
+            if (!save.lifetimeStats || typeof save.lifetimeStats !== 'object') {
+                const pastRuns = Array.isArray(save.runHistory) ? save.runHistory : [];
+                const current = (save.currentRunStats && typeof save.currentRunStats === 'object')
+                    ? save.currentRunStats
+                    : { tasksCompleted: 0, habitsCompleted: 0 };
+                const habits = Array.isArray(save.definedHabits) ? save.definedHabits : [];
+
+                const pastTasksCompleted = pastRuns.reduce(
+                    (sum, r) => sum + ((r.totals && r.totals.tasksCompleted) || 0), 0
+                );
+                const pastHabitsCompleted = pastRuns.reduce(
+                    (sum, r) => sum + ((r.totals && r.totals.habitsCompleted) || 0), 0
+                );
+                const pastBestDays = pastRuns.reduce(
+                    (max, r) => Math.max(max, r.daysSurvived || 0), 0
+                );
+                // NOTE: record.routines[].completionRate is the RAW
+                // { rate, samples } object returned by Heroes.completionRate
+                // (RunStats.finalizeRun stores it as-is) — not a bare number.
+                // Unwrap .rate here; a bare-number read would silently always
+                // read undefined and never qualify. (Separately: statsView.js's
+                // Routine Performance section does `typeof completionRate ===
+                // 'number'`, which is never true against this real shape — a
+                // pre-existing display bug, found via this recon, logged in
+                // DECISIONS.md session 64, NOT fixed here — out of scope.)
+                const steadyRoutineRuns = pastRuns.reduce((count, r) => {
+                    if ((r.daysSurvived || 0) < 7) return count;
+                    const qualifying = (r.routines || []).filter(routine => {
+                        const rate = routine.completionRate && typeof routine.completionRate.rate === 'number'
+                            ? routine.completionRate.rate
+                            : null;
+                        return rate !== null && rate >= 0.9;
+                    }).length;
+                    return count + qualifying;
+                }, 0);
+                const bestHabitStreak = habits.reduce(
+                    (max, h) => Math.max(max, (typeof h.streak === 'number') ? h.streak : 0), 0
+                );
+
+                save.lifetimeStats = {
+                    tasksCompleted: pastTasksCompleted + (current.tasksCompleted || 0),
+                    habitsCompleted: pastHabitsCompleted + (current.habitsCompleted || 0),
+                    bestRunDaysSurvived: Math.max(pastBestDays, save.daysSurvived || 0),
+                    bestHabitStreak: bestHabitStreak,
+                    steadyRoutineRuns: steadyRoutineRuns,
+                    // No historical record of point-balance crossings exists
+                    // to sweep retroactively — starts at 0 for every save,
+                    // new or old, until sub-session 2 wires live detection.
+                    pointsRecoveries: 0,
+                };
+            }
+            if (!save.achievements || typeof save.achievements !== 'object') {
+                save.achievements = {};
+            }
+            save.schemaVersion = 11;
         }
 
         if (save.schemaVersion !== SCHEMA_VERSION) {

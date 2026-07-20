@@ -73,6 +73,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // restart). Both persisted (schemaVersion 10). Pure math: js/runStats.js.
     let currentRunStats = RunStats.freshRunStats();
     let runHistory = [];
+    // Achievements & badges (Milestone 4, session 64, docs/ACHIEVEMENTS_PLAN.md):
+    // lifetimeStats is the persisted across-runs accumulator (like runHistory,
+    // NEVER reset by initGame — survives restart); achievements is the
+    // unlocked-tier map, `{ [tierId]: unlockedAtISO }`, never revoked. Both
+    // persisted (schemaVersion 11). Pure math: js/achievements.js.
+    let lifetimeStats = Achievements.freshLifetimeStats();
+    let achievements = Achievements.freshUnlocked();
     let activeItems = [];
     let completedItems = [];
     let definedHabits = [];
@@ -221,6 +228,8 @@ document.addEventListener('DOMContentLoaded', () => {
             getSickDayDate: () => sickDayDate,
             getCurrentRunStats: () => currentRunStats,
             getRunHistory: () => runHistory,
+            getLifetimeStats: () => lifetimeStats,
+            getAchievements: () => achievements,
             // Run history sub-session 2 (session 53) — Heroes loads AFTER
             // damage.js in index.html, so gameOver's finalize step reaches
             // Heroes' math through these pre-bound functions rather than a
@@ -261,6 +270,8 @@ document.addEventListener('DOMContentLoaded', () => {
             setSickDayDate: (d) => { sickDayDate = d; },
             setCurrentRunStats: (obj) => { currentRunStats = obj; },
             setRunHistory: (arr) => { runHistory = arr; },
+            setLifetimeStats: (obj) => { lifetimeStats = obj; },
+            setAchievements: (obj) => { achievements = obj; },
             setBaseHealth: (n) => { baseHealth = n; },
             setActiveItems: (arr) => { activeItems = arr; },
             setCompletedItems: (arr) => { completedItems = arr; },
@@ -1819,6 +1830,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // which deliberately preserves it (session 52, RUN_HISTORY_PLAN:
             // dev-reset runs are abandoned AND a dev wipe means everything).
             runHistory = [];
+            // Same reasoning extends to achievements (session 64,
+            // ACHIEVEMENTS_PLAN.md): lifetime data, wiped only here.
+            lifetimeStats = Achievements.freshLifetimeStats();
+            achievements = Achievements.freshUnlocked();
             if (typeof Persistence !== 'undefined') Persistence.clear();
             initGame();
             saveGame();

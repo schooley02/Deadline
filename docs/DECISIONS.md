@@ -4,6 +4,58 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-20 — Session 64: Achievements & badges — scoped (Fable) + sub-session 1 BUILT (Sonnet execute)
+
+**Forks resolved before building (AskUserQuestion, Jeremy's picks), full plan in `docs/ACHIEVEMENTS_PLAN.md`:**
+1. **Badge-only v1 — no point payouts.** Session 24's balance theory pass tuned shop pricing against an earn rate
+   with zero achievement income; a new income stream would silently undercut it before real-play data exists to
+   re-tune against. Reward = one-time toast + gallery entry only. Revisit if/when the balance re-check happens.
+2. **Lifetime scope, new `lifetimeStats` object.** Unlocks and their backing counters survive game-over/restart —
+   same lifecycle as `runHistory` (deliberately NOT touched by `initGame`, wiped only by dev-Reset). Rejected
+   per-run-only: badges like "1000 lifetime tasks" would be structurally impossible, and every death would erase
+   real progress toward them — feels punishing, contrary to GAME_DESIGN's "reflection over punishment" principle.
+   `currentRunStats` (resets per run) and the capped 50-entry `runHistory` both make poor lifetime-counter sources
+   on their own, hence a dedicated object rather than deriving one at read time.
+3. **UI = Stats window section, not a new FAB item/window.** Badge grid appended to the existing Stats window
+   (session 54's `js/ui/statsView.js`) — no new navigation surface to build/maintain. Cut from v1: achievement
+   browser, hint system, social sharing, reward-claim UI (PROJECT_SPEC's "big dream" version).
+4. **Detection = event-driven at existing recording seams + ONE-TIME retro sweep on migration.** Matches
+   ECONOMY.md's existing "Achievements & Badges" line and this codebase's existing architecture (no new polling).
+   The retro sweep exists so Jeremy's real save — which already has weeks of history — isn't unfairly credited
+   zero lifetime progress the day this feature ships.
+
+**Sub-session 1 (pure core + schema 10→11 + retro sweep) built same session.** `js/achievements.js`: pure
+`evaluateFamily`/`evaluateAll`/`recordUnlocks`, catalog passed as an explicit param (never reads a global CONFIG
+inside the module — matches heroes.js/runStats.js convention). `evaluateAll` is idempotent by construction (filters
+out tiers already in the unlocked map), which let the retro-sweep evaluation and the ongoing per-load safety-net
+check be THE SAME call site in `state.js`'s `restoreGameState` — no separate "have I swept already" flag needed.
+`CONFIG.ACHIEVEMENTS`: 6 tiered families (Survivor/Task Slayer/Habit Hero/On Fire/Steady Hands/Back in Black),
+thresholds are DATA (not gameplay balance in the shop-pricing sense — badge-only, zero economy impact — but still
+logged here per the "never change balance numbers silently" guardrail, and easy to retune later).
+
+**Migration constraint discovered/respected:** `js/persistence.js` has a standing "no module dependencies" rule
+(v9→v10 already established this, inlining `RunStats.freshRunStats()`'s shape rather than calling it). The v10→v11
+migration's retro-derivation is therefore LITERAL inline math over `save.runHistory`/`save.currentRunStats`/
+`save.definedHabits` — it cannot call `Achievements.*` or read `CONFIG.ACHIEVEMENTS`. The actual badge-unlock
+EVALUATION against the catalog happens once in `state.js`'s `restoreGameState` instead, which already has module
+access. Existence-guarded (`if (!save.lifetimeStats...)`) matching the v9→v10 idempotence convention exactly —
+covered by a "re-running migrate doesn't clobber real data" test, mirroring the existing runHistory test.
+
+**Found, NOT fixed (out of scope for this session — logged for a future bug-fix session):** while building the
+retro sweep's `steadyRoutineRuns` derivation, found that `RunStats.finalizeRun` (session 55) assigns
+`ctx.completionRate(...)`'s raw return value — `Heroes.completionRate` returns `{ rate, samples }`, NOT a bare
+number — directly into both `stars` (fed into `Heroes.starRating`, which expects a number) and `completionRate` on
+every frozen run record. Every real UI caller of `Heroes.completionRate` elsewhere in the codebase (js/ui/heroes.js)
+correctly unwraps `.rate` first; `finalizeRun` does not. Consequence: `statsView.js`'s `formatStars`/
+`formatCompletionRate` both guard on `typeof x === 'number'`, which is never true against the real shape — the
+Stats window's "Routine Performance" section (built session 55, "live-verified") has likely been silently showing
+"—" for both fields on every real entry since it shipped. This session's own migration code correctly unwraps
+`routine.completionRate.rate` (with a null-safety check) so it doesn't propagate the same mistake, but the
+underlying `finalizeRun`/`statsView.js` bug itself was left untouched — unplanned scope, its own session. Added to
+ROADMAP's Achievements sub-session 1 entry.
+
+---
+
 ## 2026-07-20 — Session 63: Time slider (Today scope) BUILT + damage/routine-HP preview follow-up (Cowork session, Sonnet execute — plan pre-approved; two design forks resolved mid-session via AskUserQuestion, no Fable/Opus needed)
 
 **Forks resolved before building (AskUserQuestion, Jeremy's picks):** (1) preview moves the REAL sprites forward/back

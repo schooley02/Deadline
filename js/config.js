@@ -290,6 +290,71 @@ const CONFIG = {
     // section (RunStats.rollupRoutinePerformance). Display cap, not gameplay
     // balance — same category as HERO_CHIP_MAX_DISPLAY above.
     ROUTINE_ROLLUP_MAX_RUNS: 5,
+
+    // Achievements & badges (Milestone 4, session 64 — docs/ACHIEVEMENTS_PLAN.md).
+    // Badge-only v1 (fork 1): no point payouts, so these thresholds carry no
+    // economy risk the way shop pricing does — but still logged in
+    // DECISIONS.md per the "never change balance numbers silently" guardrail,
+    // and still DATA (not hardcoded), so they're easy to retune once real
+    // play data exists. `metric` keys index into `lifetimeStats`
+    // (Achievements.freshLifetimeStats shape, js/achievements.js). Tiers are
+    // authored ascending; `id` is the persisted key in the unlocked-tier map.
+    ACHIEVEMENTS: [
+        {
+            id: 'survivor', name: 'Survivor', metric: 'bestRunDaysSurvived',
+            tiers: [
+                { id: 'survivor_1', label: 'Bronze', threshold: 3 },
+                { id: 'survivor_2', label: 'Silver', threshold: 7 },
+                { id: 'survivor_3', label: 'Gold', threshold: 14 },
+                { id: 'survivor_4', label: 'Platinum', threshold: 30 },
+            ],
+        },
+        {
+            id: 'task_slayer', name: 'Task Slayer', metric: 'tasksCompleted',
+            tiers: [
+                { id: 'task_slayer_1', label: 'Bronze', threshold: 10 },
+                { id: 'task_slayer_2', label: 'Silver', threshold: 50 },
+                { id: 'task_slayer_3', label: 'Gold', threshold: 250 },
+                { id: 'task_slayer_4', label: 'Platinum', threshold: 1000 },
+            ],
+        },
+        {
+            id: 'habit_hero', name: 'Habit Hero', metric: 'habitsCompleted',
+            tiers: [
+                { id: 'habit_hero_1', label: 'Bronze', threshold: 10 },
+                { id: 'habit_hero_2', label: 'Silver', threshold: 50 },
+                { id: 'habit_hero_3', label: 'Gold', threshold: 250 },
+                { id: 'habit_hero_4', label: 'Platinum', threshold: 1000 },
+            ],
+        },
+        {
+            id: 'on_fire', name: 'On Fire', metric: 'bestHabitStreak',
+            tiers: [
+                { id: 'on_fire_1', label: 'Bronze', threshold: 7 },
+                { id: 'on_fire_2', label: 'Silver', threshold: 14 },
+                { id: 'on_fire_3', label: 'Gold', threshold: 30 },
+            ],
+        },
+        {
+            id: 'steady_hands', name: 'Steady Hands', metric: 'steadyRoutineRuns',
+            tiers: [
+                { id: 'steady_hands_1', label: 'Bronze', threshold: 1 },
+                { id: 'steady_hands_2', label: 'Silver', threshold: 5 },
+                { id: 'steady_hands_3', label: 'Gold', threshold: 25 },
+            ],
+        },
+        {
+            id: 'back_in_black', name: 'Back in Black', metric: 'pointsRecoveries',
+            tiers: [
+                { id: 'back_in_black_1', label: null, threshold: 1 },
+            ],
+        },
+    ],
+    // "Steady Hands" qualifying-run definition (sub-session 2 wiring +
+    // migration retro-sweep both use these): a routine's completion rate at
+    // run end, and the run's minimum length for the sample to be meaningful.
+    STEADY_HANDS_MIN_RATE: 0.9,
+    STEADY_HANDS_MIN_DAYS: 7,
 };
 
 // Export for Jest/Node; browser picks up the global `CONFIG` via <script> tag.

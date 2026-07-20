@@ -38,5 +38,7 @@ Points math + this pricing formula live in `js/economy.js` (built 2026-07-18 ses
 ## Achievements & Badges
 Based on run length (days survived), routine completion rates, and streak rates on individual tasks/habits. Level-up animations + milestone celebrations.
 
+**Implementation (Milestone 4, sequenced in `docs/ACHIEVEMENTS_PLAN.md`):** badge-only v1 — no point payouts (keeps the session-24 balance pass intact until a real-play re-check). Lifetime (survive restart/game-over, wiped only by dev-Reset), tracked in a persisted `lifetimeStats` object separate from the per-run `currentRunStats`. Unlocks never revoke. v1 catalog (6 tiered families: Survivor, Task Slayer, Habit Hero, On Fire, Steady Hands, Back in Black) lives in `CONFIG.ACHIEVEMENTS` — data, not code, so thresholds retune without a code change. Sub-session 1 (2026-07-20, session 64) shipped the pure core (`js/achievements.js`), schemaVersion 10→11, and a retro sweep so upgrading saves aren't credited zero. NOT yet wired to live completion/streak/economy events or a UI (sub-sessions 2-3).
+
 ## Future monetization (spec'd, NOT for prototype)
 Premium tier (unlimited routine slots, skins, analytics, cloud sync), token bundles.

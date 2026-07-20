@@ -76,6 +76,9 @@ const State = (() => {
         // Run stats reset with the run; runHistory is deliberately NOT
         // touched here — it must survive restart (session 52, RUN_HISTORY_PLAN).
         deps.setCurrentRunStats(RunStats.freshRunStats());
+        // lifetimeStats/achievements are likewise deliberately NOT touched
+        // here — lifetime data, must survive restart (session 64,
+        // ACHIEVEMENTS_PLAN.md; same reasoning as runHistory above).
         deps.setRoutineSlots(CONFIG.ROUTINE_SLOTS_PER_LEVEL[1] || 1);
 
         deps.updatePlayerDisplays();
@@ -147,6 +150,8 @@ const State = (() => {
             sickDayDate: deps.getSickDayDate(),
             runHistory: deps.getRunHistory(),
             currentRunStats: deps.getCurrentRunStats(),
+            lifetimeStats: deps.getLifetimeStats(),
+            achievements: deps.getAchievements(),
             routineSlots: deps.getRoutineSlots(),
             itemIdCounter: deps.getItemIdCounter(),
             gameIsOver: deps.isGameOver(),
@@ -307,6 +312,36 @@ const State = (() => {
             (save.currentRunStats && typeof save.currentRunStats === 'object')
                 ? save.currentRunStats
                 : RunStats.freshRunStats()
+        );
+        // Achievements & badges (session 64, docs/ACHIEVEMENTS_PLAN.md). The
+        // v10→v11 migration seeds both on older saves, but guard here too so
+        // a malformed save can never crash boot (same convention as every
+        // other field above). lifetimeStats/achievements survive everything
+        // (including restart) — never touched by initGame.
+        const restoredLifetimeStats =
+            (save.lifetimeStats && typeof save.lifetimeStats === 'object')
+                ? save.lifetimeStats
+                : Achievements.freshLifetimeStats();
+        const restoredAchievements =
+            (save.achievements && typeof save.achievements === 'object')
+                ? save.achievements
+                : Achievements.freshUnlocked();
+        deps.setLifetimeStats(restoredLifetimeStats);
+        // One-time-per-load evaluate pass (sub-session 1's "retro sweep" —
+        // see ACHIEVEMENTS_PLAN.md fork 4). Idempotent by construction
+        // (Achievements.evaluateAll only returns tiers not already in the
+        // unlocked map), so running it on every restore is safe and needs
+        // no separate "have I swept already" flag: it fires real unlocks
+        // right after the migration derives retroactive lifetimeStats, and
+        // is a no-op on every subsequent load until sub-session 2 wires
+        // live bumps to lifetimeStats. Deliberately NO toast/notification
+        // here — that's sub-session 2's event-driven wiring; this session
+        // only persists the unlock, silently.
+        const newlyCrossed = Achievements.evaluateAll(
+            CONFIG.ACHIEVEMENTS, restoredLifetimeStats, restoredAchievements
+        );
+        deps.setAchievements(
+            Achievements.recordUnlocks(restoredAchievements, newlyCrossed, new Date().toISOString())
         );
         deps.setRoutineSlots(CONFIG.ROUTINE_SLOTS_PER_LEVEL[restoredLevel] || 1);
         deps.setBaseHealth((typeof save.baseHealth === 'number') ? save.baseHealth : CONFIG.MAX_BASE_HEALTH);

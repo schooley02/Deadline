@@ -555,6 +555,104 @@ describe('migrate: v9 -> v10 seeds run history (session 52)', () => {
     });
 });
 
+describe('migrate: v10 -> v11 seeds achievements + retro-derived lifetimeStats (session 64)', () => {
+    test('a bare v10 save gains zeroed lifetimeStats and an empty achievements map', () => {
+        const save = Persistence.migrate({ schemaVersion: 10 });
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+        expect(save.achievements).toEqual({});
+        expect(save.lifetimeStats).toEqual({
+            tasksCompleted: 0, habitsCompleted: 0, bestRunDaysSurvived: 0,
+            bestHabitStreak: 0, steadyRoutineRuns: 0, pointsRecoveries: 0,
+        });
+    });
+
+    test('sums tasksCompleted/habitsCompleted across past runHistory totals + the in-progress currentRunStats', () => {
+        const save = Persistence.migrate({
+            schemaVersion: 10,
+            runHistory: [
+                { daysSurvived: 5, totals: { tasksCompleted: 3, habitsCompleted: 2 }, routines: [] },
+                { daysSurvived: 9, totals: { tasksCompleted: 7, habitsCompleted: 1 }, routines: [] },
+            ],
+            currentRunStats: { tasksCompleted: 2, habitsCompleted: 0 },
+        });
+        expect(save.lifetimeStats.tasksCompleted).toBe(12); // 3 + 7 + 2
+        expect(save.lifetimeStats.habitsCompleted).toBe(3); // 2 + 1 + 0
+    });
+
+    test('bestRunDaysSurvived is the max across past runs AND the live in-progress save', () => {
+        const save = Persistence.migrate({
+            schemaVersion: 10,
+            daysSurvived: 20,
+            runHistory: [{ daysSurvived: 5, routines: [] }, { daysSurvived: 9, routines: [] }],
+        });
+        expect(save.lifetimeStats.bestRunDaysSurvived).toBe(20);
+    });
+
+    test('bestHabitStreak is the max live streak across definedHabits', () => {
+        const save = Persistence.migrate({
+            schemaVersion: 10,
+            definedHabits: [{ id: 'h1', streak: 3 }, { id: 'h2', streak: 11 }, { id: 'h3' }],
+        });
+        expect(save.lifetimeStats.bestHabitStreak).toBe(11);
+    });
+
+    test('steadyRoutineRuns counts routines at >=90% completionRate.rate in a run that lasted >=7 days', () => {
+        const save = Persistence.migrate({
+            schemaVersion: 10,
+            runHistory: [
+                {
+                    daysSurvived: 8,
+                    routines: [
+                        { routineId: 'r1', completionRate: { rate: 0.95, samples: 20 } }, // qualifies
+                        { routineId: 'r2', completionRate: { rate: 0.5, samples: 20 } },  // rate too low
+                        { routineId: 'r3', completionRate: null },                        // no samples
+                    ],
+                },
+                {
+                    daysSurvived: 3, // run too short, doesn't count even at 100%
+                    routines: [{ routineId: 'r1', completionRate: { rate: 1, samples: 5 } }],
+                },
+            ],
+        });
+        expect(save.lifetimeStats.steadyRoutineRuns).toBe(1);
+    });
+
+    test('a bare-number completionRate (not the real {rate,samples} shape) does not qualify (defensive, not the expected shape)', () => {
+        const save = Persistence.migrate({
+            schemaVersion: 10,
+            runHistory: [{ daysSurvived: 8, routines: [{ routineId: 'r1', completionRate: 0.95 }] }],
+        });
+        expect(save.lifetimeStats.steadyRoutineRuns).toBe(0);
+    });
+
+    test('pointsRecoveries always starts at 0 (no historical data to sweep)', () => {
+        const save = Persistence.migrate({ schemaVersion: 10, runHistory: [{ daysSurvived: 30, routines: [] }] });
+        expect(save.lifetimeStats.pointsRecoveries).toBe(0);
+    });
+
+    test('existing lifetimeStats/achievements are left untouched (idempotent re-run)', () => {
+        const stats = { tasksCompleted: 5, habitsCompleted: 5, bestRunDaysSurvived: 5, bestHabitStreak: 5, steadyRoutineRuns: 5, pointsRecoveries: 5 };
+        const unlocked = { survivor_1: '2026-01-01T00:00:00.000Z' };
+        const save = Persistence.migrate({ schemaVersion: 10, lifetimeStats: stats, achievements: unlocked });
+        expect(save.lifetimeStats).toBe(stats);
+        expect(save.achievements).toBe(unlocked);
+    });
+
+    test('the full v1 -> current chain seeds the achievements fields too', () => {
+        const save = Persistence.migrate({
+            schemaVersion: 1,
+            definedHabits: [{ id: 'h1', frequency: 'daily' }],
+            definedRoutines: [{ id: 'r1', habitDefinitionIds: ['h1'], isActive: true }]
+        });
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+        expect(save.achievements).toEqual({});
+        expect(save.lifetimeStats).toEqual({
+            tasksCompleted: 0, habitsCompleted: 0, bestRunDaysSurvived: 0,
+            bestHabitStreak: 0, steadyRoutineRuns: 0, pointsRecoveries: 0,
+        });
+    });
+});
+
 describe('migrate: version handling', () => {
     test('a current-version save passes through unchanged (same reference)', () => {
         const original = {

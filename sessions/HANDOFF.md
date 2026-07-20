@@ -13,6 +13,51 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-20 — Session 64: Achievements & badges — scoped (Fable) + sub-session 1 BUILT (Cowork session, Sonnet)
+
+**Did:** Scoped the Milestone 4 "Achievements & badges" item — `docs/ACHIEVEMENTS_PLAN.md` (4 forks resolved via
+AskUserQuestion: badge-only v1 no point payouts; lifetime scope via new `lifetimeStats`; Stats window section, no
+new FAB item; event-driven detection + one-time retro sweep). Then built sub-session 1 same session: `js/achievements.js`
+(pure `evaluateFamily`/`evaluateAll`/`recordUnlocks`, idempotent by construction), `CONFIG.ACHIEVEMENTS` (6 tiered
+families: Survivor/Task Slayer/Habit Hero/On Fire/Steady Hands/Back in Black — data, not code), persistence
+schemaVersion 10→11 (seeds `lifetimeStats` via a literal-math retro sweep over existing runHistory/currentRunStats/
+definedHabits — no module deps, matching Persistence's standing convention — plus an empty `achievements` unlocked-
+tier map), and a one-time-per-load evaluate pass in `state.js`'s `restoreGameState` (silent, no toast yet).
+`lifetimeStats`/`achievements` never touched by `initGame` (survive restart like `runHistory`), wiped only by
+dev-Reset. NOT wired to live completion/streak/economy events or any UI — that's sub-sessions 2-3. Docs: ECONOMY.md
+(Achievements & Badges section expanded), ROADMAP.md (sub-session 1 checked, 2-4 sequenced), DECISIONS.md session 64.
+
+**State:** ✅ 46 suites, 1046/1046 (+27 over session 63's 1019: ~20 achievements.js, ~9 persistence migration).
+`node --check` clean on config.js/achievements.js/persistence.js/state.js/script.js. Live-verified in Chrome: real
+save (already schemaVersion 11, empty history) round-tripped the migration cleanly; a hand-crafted v10 save with
+real run history + a habit streak correctly derived all 6 lifetimeStats values AND unlocked exactly the 6 predicted
+tiers on reload (survivor_1/2, task_slayer_1, habit_hero_1, on_fire_1, steady_hands_1), zero app console errors.
+Real save reset to pristine (dev-Reset, confirm() stubbed per the CLAUDE.md hazard note) and re-verified clean on a
+fresh boot before ending. NOT committed — git commands below.
+
+**Next:** Achievements sub-session 2 (wiring: bump `lifetimeStats` at the items.js completion/streak seams, economy
+negative→positive crossing, `finalizeRun`; unlock toast coordinated with the existing streak-milestone toast — watch
+the session-55 `alreadyOver` gating trap, a dead-save reload must NOT re-fire unlock checks). Or Time Slider Week/
+Month scope, or Mobile UX + accessibility pass (both still open, see ROADMAP.md).
+
+**Watch out:**
+- **Found, not fixed:** `RunStats.finalizeRun` (session 55) stores `Heroes.completionRate`'s raw `{rate, samples}`
+  return value directly as `completionRate` on every frozen run record, and passes it un-unwrapped into
+  `Heroes.starRating` for `stars` too — every real caller elsewhere (js/ui/heroes.js) unwraps `.rate` first;
+  `finalizeRun` doesn't. `statsView.js`'s `formatStars`/`formatCompletionRate` both guard on `typeof x === 'number'`,
+  which is never true against the real shape — the Stats window's "Routine Performance" section has likely been
+  silently showing "—" for both fields since it shipped in session 55. This session's migration code correctly
+  unwraps `.rate` so it doesn't inherit the bug, but the underlying bug itself is untouched. Own session to fix
+  (touches shipped, "live-verified" code — needs a deliberate look, not a driveby). Logged in DECISIONS.md/ROADMAP.md.
+- `Achievements.evaluateAll` is idempotent (skips tiers already in the unlocked map) — this is WHY the retro sweep
+  and the ongoing per-load safety check are the same call site with no separate flag. Don't add a "already swept"
+  flag later without removing the redundant safety-net reasoning in the comment, or the two will drift.
+- Persistence's "no module dependencies" rule is now load-bearing for a SECOND migration (v9→v10 was the first) —
+  any future schema bump needing retroactive derivation from existing data must stay literal/inline in persistence.js,
+  with the actual catalog-aware evaluation done downstream in state.js.
+
+---
+
 ## 2026-07-20 — Session 63: Time slider (Today scope) BUILT + base/routine HP preview follow-up (Cowork session, Sonnet)
 
 **Did:** Milestone 4's Time slider, Today scope. `js/timeSlider.js` (pure: getDayBounds,
