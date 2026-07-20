@@ -11,6 +11,49 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-07-20 — [P2-UI-011] Stage 2 sub-session 3 shipped: popups.js migrated, pushback/Cheat Day hazards re-verified (Cowork session, continued)
+
+**Did:** Continued Stage 2 (sub-session 3 of `docs/MODAL_STAGE2_PLAN.md`). Migrated all 3
+`js/ui/popups.js` overlay sites (`showTaskDetailsPopup`, `showEditTaskModal`,
+`showCreateSubTaskModal`) onto `Modal.open()` — no options needed (no sibling dedupe, all
+synchronous click-response inserts). `showCreateSubTaskModal`'s debug logging (historic
+sub-task-duplication bug site) left completely untouched per the file's standing carve-out.
+
+**State:** 56 suites, 1205/1205 (unchanged — `test/popups-prefill.test.js` passed with zero
+changes needed). `node --check` clean. Live-verified in Chrome: real pushback popup + stacking +
+in-place refresh + unaffordable-state via the actual UI (loaded `dev-save-economy-shop.json`);
+Cheat Day rebuild-in-place, Edit Task save, and sub-task creation verified by calling the real
+exported `Popups.*` functions directly against synthetic items/deps — a live negative-habit spawn
+repro (hand-injected `activeItems`/`definedHabits` entries) proved flaky (sprite never rendered
+on restore, root cause not chased since it's a fixture-authoring issue, not a `Modal.open()` one),
+so the direct-call approach substituted without losing real-code coverage. Hit the documented
+native-`alert()`-freezes-CDP gotcha once (a synthetic parent item was missing `type: 'task'`,
+tripping a validation alert) — recovered via navigate-away, re-ran with `alert`/`confirm` stubbed.
+Zero app console errors throughout.
+
+**Next:** [P2-UI-011] Stage 2 sub-session 4 — migrate `forms.js`'s single site (the FAB
+task/habit/routine creation modal). This is the sub-session where the ROADMAP's headline ask
+(drop the 50ms `setTimeout` before `attachModalEventListeners`/`wireScheduleFieldsToggle`)
+actually happens — flagged in the plan doc as the one real behavior change in the whole Stage 2
+migration (every other sub-session has been a pure refactor). Investigate whether the delay is
+truly load-bearing before removing it (the plan doc's Fork 3 found no technical reason for it,
+but that was a read-through, not a live-tested claim).
+
+**Watch out:**
+- Hand-injecting a habit into `activeItems`/`definedHabits` directly (bypassing the FAB form) and
+  expecting it to spawn a live sprite on reload did NOT work this session — worth investigating
+  properly in a future session if this shortcut is needed again, rather than re-discovering the
+  flakiness. The FAB form itself also proved fiddly to drive via pixel-coordinate clicks (viewport
+  size apparently shifted between screenshots, causing a stray backdrop-click that closed the
+  modal) — `find`-tool element refs worked better, but a mid-form ref (`ref_118` for the name
+  input) went stale between calls; re-`find` immediately before each click rather than reusing
+  refs across multiple tool calls.
+- Confirmed again: calling a module's real exported functions directly via console (synthetic
+  item/deps) is a solid fallback for live-verifying DOM logic when a full through-the-UI repro is
+  unreliable — still real production code, just entered from a different point. Worth defaulting
+  to this sooner next time a live spawn/trigger proves fiddly, rather than spending several
+  rounds fighting pixel coordinates first.
+
 ## 2026-07-20 — [P2-UI-011] Stage 2 sub-session 2 shipped: frozenNotice.js migrated, `defer` path production-validated (Cowork session, continued)
 
 **Did:** Continued Stage 2 per its own plan (sub-session 2 of `docs/MODAL_STAGE2_PLAN.md`).

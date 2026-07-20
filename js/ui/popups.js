@@ -27,6 +27,21 @@
  * the project's guardrail against opening that file). Second-guessing
  * diagnostic logging left behind from that bug hunt is a separate decision
  * from moving the code, not made here.
+ *
+ * [P2-UI-011] Stage 2 sub-session 3 (2026-07-20, docs/MODAL_STAGE2_PLAN.md):
+ * all three overlay-creation call sites (showTaskDetailsPopup,
+ * showEditTaskModal, showCreateSubTaskModal) now insert via `Modal.open()`
+ * instead of a raw `document.body.insertAdjacentHTML` + follow-up
+ * `document.querySelector('.modal-overlay')` pair — no `dedupeSelector`/
+ * `defer` needed at any of the three (none dedupe against a same-class
+ * sibling the way checkIn.js/frozenNotice.js do, and all three insert
+ * synchronously in direct response to a click, not a callback that might
+ * race a `closeModal()`). The Cheat Day rebuild-in-place dance in
+ * showTaskDetailsPopup (its own `setTimeout(0)`, a DIFFERENT hazard than
+ * Modal.open's `defer` guards — the click handler's own event is still
+ * bubbling when it fires, not a closeModal()-then-insert race) is
+ * UNCHANGED: it wraps the whole close+reopen pair, and reopening still
+ * calls the (now Modal.open-based) showTaskDetailsPopup internally.
  */
 const Popups = (() => {
 
@@ -195,7 +210,7 @@ const Popups = (() => {
             </div>
         `;
 
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const overlay = Modal.open(modalHtml);
 
         // Add event listeners
         const completeCheckbox = document.getElementById('completeTaskCheck');
@@ -279,8 +294,8 @@ const Popups = (() => {
         // sidesteps the click-event-bubbling hazard that bit the shop Buy/Use
         // buttons (see SHOP_PLAN.md hazards / DECISIONS.md session 21); no
         // setTimeout(0) needed here. Stacking multiple pushbacks in one popup
-        // session is supported (ECONOMY.md "stacking allowed").
-        const overlay = document.querySelector('.modal-overlay');
+        // session is supported (ECONOMY.md "stacking allowed"). `overlay` is
+        // the element Modal.open() returned above, not a fresh query.
 
         function refreshPushbackUI() {
             const dueDisplay = overlay.querySelector('.task-due-display');
@@ -374,7 +389,7 @@ const Popups = (() => {
             </div>
         `;
 
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        Modal.open(modalHtml);
 
         // Add save functionality
         const saveButton = document.getElementById('saveTaskChanges');
@@ -526,7 +541,7 @@ const Popups = (() => {
             </div>
         `;
 
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        Modal.open(modalHtml);
 
         // Add create functionality
         const createButton = document.getElementById('createSubTaskBtn');

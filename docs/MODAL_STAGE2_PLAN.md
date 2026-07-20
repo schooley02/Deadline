@@ -98,9 +98,15 @@ count last — see Sub-sessions below.
    No new tests (module has never had dedicated unit coverage); dedupe + achievement-batching
    verified live via console, the hazard scenario verified live via the real UI. See
    DECISIONS.md.
-3. **popups.js (3 sites)** — medium risk: heaviest listener wiring, the pushback in-place-refresh
-   pattern, and the Cheat Day `setTimeout(0)` rebuild-in-place dance all need re-verification
-   against `Modal.open()`'s returned element before/after this migration.
+3. **popups.js (3 sites)** — DONE 2026-07-20. No options needed at any of the three sites (no
+   sibling dedupe, all synchronous click-response inserts). The pushback in-place-refresh and
+   Cheat Day `setTimeout(0)` rebuild-in-place dance were re-verified and confirmed unaffected —
+   both are a different hazard class than `defer` guards against, so both stayed hand-written on
+   top of `Modal.open()`'s returned element. `showCreateSubTaskModal`'s debug logging untouched
+   per the file's standing carve-out. No new tests (existing `test/popups-prefill.test.js`
+   unchanged). Live-verified: real pushback stacking via the UI; Cheat Day/Edit Task/sub-task
+   creation via direct calls to the real exported functions (a live negative-habit spawn repro
+   proved flaky, worked around rather than chased down). See DECISIONS.md.
 4. **forms.js (1 site)** — where the ROADMAP's headline ask (drop the 50ms delay) actually
    happens. Deliberately AFTER 1-3 prove the pattern is solid, since dropping the delay is the one
    real behavior change in the whole plan (vs. every other sub-session being a pure refactor).

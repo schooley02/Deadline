@@ -153,7 +153,7 @@ Ordering decided 2026-07-18 session 19 (Fable — see DECISIONS.md): 007 → 008
     directly at Opus). `js/TaskManager.js`'s lone overlay site excluded (dead/parallel path).
     - [x] 1. `Modal.open()` core + tests + checkIn.js pilot (2026-07-20)
     - [x] 2. frozenNotice.js (6 sites, validates the `defer` path) (2026-07-20)
-    - [ ] 3. popups.js (3 sites, heaviest listener wiring)
+    - [x] 3. popups.js (3 sites, heaviest listener wiring) (2026-07-20)
     - [ ] 4. forms.js (1 site, drops the 50ms delay — the one real behavior change)
     - [ ] 5. routineViews.js (7 sites, only cluster with stacked overlays)
 - [x] [P2-GAME-012] Base healing system (2026-07-18, session 17) — gradual regen BUILT: 1 HP/5min while alive (`js/loop.js`) + same rate offline/suspended-gap (`js/damage.js`'s `applyElapsedRegen`, applied after offline damage), clamped at 100; NO daily reset. Repair kits remain unbuilt (ties to the Milestone 3 shop). 17 suites, 370/370. Live-verified in Chrome. See MECHANICS.md Base + DECISIONS.md.
