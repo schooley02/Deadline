@@ -11,6 +11,59 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-07-20 — Day-advance LIVE mid-session rollover CLOSED (Cowork session)
+
+**Did:** Picked up the deferred "Day-advance — LIVE mid-session rollover" ROADMAP line (session 32
+had shipped the restore-path-only version). Extracted the settle-and-advance fork out of
+`js/state.js`'s `restoreGameState` into a shared `State.performDayRollover(deps, now)`, added
+`State.checkLiveDayRollover(deps)` (spawns today's generators, refreshes displays, saves
+immediately) called every tick from `js/loop.js`'s `updateGame` as an optional collaborator, and
+wired `script.js`'s `loopDeps()` to it (reuses the existing `stateDeps()` builder — no new deps
+plumbing needed). `docs/MECHANICS.md`/`docs/ROADMAP.md`/`docs/DECISIONS.md` updated same-session.
+Also built `test/fixtures/dev-save.json` + `README.md` (Jeremy asked for a reusable save mid-session).
+
+**State:** 56 suites, 1198/1198 (+14 new: `test/state-day-rollover.test.js`, 4 new cases in
+`test/loop.test.js`). `node --check` clean on script.js/state.js/loop.js. Live-verified in Chrome
+end-to-end through the real running app — see DECISIONS.md for the full method (a `Proxy`-based
+`Date` patch that fakes "tomorrow" without breaking `instanceof Date` checks, unlike a naive
+subclass). NOT committed — git commands below.
+
+**Next:** ROADMAP has no open Milestone 4 items after this. Milestone 3's "real-play balance
+re-check" follow-up ([P1-UI-008], ~75–85 pts/day yardstick) is still the other loose thread — I
+tried to start this session but Jeremy's Cowork-connected save had zero play history (a fresh
+run, not his real one), so it was deferred rather than run against empty data. Worth checking
+where his real save actually lives (phone/PWA? a different browser profile?) before the next
+attempt — see the "Data source" fork resolved this session. Otherwise: fresh ROADMAP read-through
+with Jeremy to pick what's next, or start on the still-deferred `script.js` state-ownership
+migration mentioned in session 12's HANDOFF entry.
+
+**Watch out:**
+- **PWA service-worker cache-first can mask a `js/` source-file change, not just a server
+  restart** (session 74's HANDOFF addendum already flagged the server-restart case). Mid-session,
+  `State.checkLiveDayRollover` read as `undefined` on the live page well after the edit landed on
+  disk — the SW was serving a stale cached `state.js`. Fix: `navigator.serviceWorker
+  .getRegistrations()` → `unregister()` each + `caches.keys()` → `caches.delete()` each, then a
+  fresh navigate. Check `typeof <ExpectedNewThing>` early in any future live-Chrome verification
+  touching `js/`/`script.js` rather than assuming a reload always picks up source changes.
+- **Faking "now" via `window.Date = class extends Date {...}` silently breaks `instanceof Date`**
+  against any Date object created before the patch (a pre-existing real `Date` instance is never
+  `instanceof` a NEW subclass, even one assigned to the global `Date` name) — this cost real time
+  before the root cause was found (`DayRollover.hasDayRolledOver`'s `savedGameDate instanceof
+  Date` guard silently short-circuited to `false`). Use a `Proxy` wrapping the real `Date`
+  constructor instead (`construct`/`apply`/`get` traps shifting `now()`), which preserves the
+  original prototype chain — documented in DECISIONS.md with the working snippet.
+- **A second real Chrome tab/window on `localhost:8000` (outside this session's automation
+  group) appears to still be live** — `localStorage.clear()` + hard navigation kept getting
+  overwritten by an autosave a few seconds later, matching exactly the dev-save fixture's item
+  set. Couldn't close it from this session (not in the MCP tab group). Harmless (it's just
+  autosaving real in-memory state), but if Jeremy sees the game come back with the "Drink
+  Water"/"Skip Junk Food"/"Write weekly report"/"Stretch" test items after closing a tab, that's
+  why — safe to Reset from whichever tab is actually live, or close the stray tab first.
+- `test/fixtures/dev-save.json`'s dates are absolute (frozen 2026-07-20), not relative to load
+  time — loading it on a later real date immediately triggers the day-rollover path on restore
+  (arguably useful for testing that flow, but surprising if you just wanted a quiet baseline).
+  See `test/fixtures/README.md`.
+
 ## 2026-07-20 — Session 74: Mobile UX + accessibility + PWA — ALL 3 sub-sessions BUILT, ticket CLOSED (Cowork session)
 
 **Sub-session 2 (accessibility):** Audited on Opus; found the plan over-estimated the gaps — day

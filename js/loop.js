@@ -32,6 +32,12 @@
  *     updateTimeSliderHandle (time slider, 2026-07-20 — TimeSliderView.
  *     syncHandle wrapper; OPTIONAL, omitted = no-op; only ever called when
  *     NOT previewing, since isTimePreviewActive() already returned above).
+ *   - checkDayPagerRollover, checkLiveDayRollover (day-advance, 2026-07-20):
+ *     both OPTIONAL, both called unconditionally at the top of updateGame
+ *     (before the isGameOver early return) — see that function's inline
+ *     comments for why. checkLiveDayRollover is State.checkLiveDayRollover
+ *     bound to stateDeps(), the live-loop twin of restoreGameState's
+ *     rollover branch (State.performDayRollover is the shared core).
  * CONFIG is read as a bare stable global (movement.js/clock.js precedent).
  * Clock is ALSO read as a bare stable global as of [P2-GAME-010] Stage 1
  * (2026-07-19, session 60) — Clock.getWalkUrgencyTier needs only the item +
@@ -187,6 +193,18 @@ const Loop = (() => {
         // is exactly the case this needs to catch. Optional collaborator —
         // omitted in deps is a silent no-op (existing tolerance pattern).
         if (deps.checkDayPagerRollover) deps.checkDayPagerRollover();
+
+        // LIVE mid-session day rollover (deferred from session 32, built
+        // 2026-07-20) — settles yesterday's stale recurring instances and
+        // spawns today's the moment real time crosses midnight, instead of
+        // waiting for the next reload (State.performDayRollover, restore
+        // path's twin). Runs here (before the isGameOver early return, same
+        // placement reasoning as checkDayPagerRollover above) so it isn't
+        // skipped just because the tab happens to be parked on a future-day
+        // preview — checkLiveDayRollover guards isGameOver itself. Optional
+        // collaborator — omitted in deps is a silent no-op (existing
+        // tolerance pattern, e.g. checkDayPagerRollover).
+        if (deps.checkLiveDayRollover) deps.checkLiveDayRollover();
 
         if (deps.isGameOver()) return;
 

@@ -489,4 +489,46 @@ describe('Loop.updateGame', () => {
         Loop.updateGame(deps);
         expect(deps._state.saves).toBe(1);
     });
+
+    // Day-advance, LIVE mid-session rollover (2026-07-20) — State.checkLiveDayRollover
+    // is an OPTIONAL collaborator, same tolerance as checkDayPagerRollover.
+    describe('checkLiveDayRollover / checkDayPagerRollover optional collaborators', () => {
+        test('omitting both is a silent no-op', () => {
+            const deps = makeDeps({ state: { lastAutosaveMs: Date.now() } });
+            expect(() => Loop.updateGame(deps)).not.toThrow();
+        });
+
+        test('checkLiveDayRollover is called even when the game is over (it must guard isGameOver itself)', () => {
+            let calls = 0;
+            const deps = makeDeps({
+                state: { gameIsOver: true },
+                deps: { checkLiveDayRollover: () => { calls++; } },
+            });
+            Loop.updateGame(deps);
+            expect(calls).toBe(1);
+        });
+
+        test('both checkDayPagerRollover and checkLiveDayRollover run before the isGameOver early return', () => {
+            const order = [];
+            const deps = makeDeps({
+                state: { gameIsOver: true },
+                deps: {
+                    checkDayPagerRollover: () => order.push('pager'),
+                    checkLiveDayRollover: () => order.push('day'),
+                },
+            });
+            Loop.updateGame(deps);
+            expect(order).toEqual(['pager', 'day']);
+        });
+
+        test('checkLiveDayRollover runs on a normal (not game-over) tick too', () => {
+            let calls = 0;
+            const deps = makeDeps({
+                state: { lastAutosaveMs: Date.now() },
+                deps: { checkLiveDayRollover: () => { calls++; } },
+            });
+            Loop.updateGame(deps);
+            expect(calls).toBe(1);
+        });
+    });
 });

@@ -891,6 +891,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // why); OPTIONAL so loop.test.js's existing deps objects don't
             // need updating for this alone.
             checkDayPagerRollover: () => DayPagerView.checkRolloverReset(),
+            // LIVE mid-session day rollover (2026-07-20) — stateDeps()
+            // already carries every field State.checkLiveDayRollover needs
+            // (it's the same deps shape restoreGameState's rollover branch
+            // uses), so this reuses the existing builder rather than
+            // duplicating fields here. See js/loop.js's updateGame comment.
+            checkLiveDayRollover: () => State.checkLiveDayRollover(stateDeps()),
         };
     }
 

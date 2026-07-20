@@ -467,22 +467,7 @@ const State = (() => {
         // "the check-in card for that day auto-resolves as excused."
         if (!save.gameIsOver) {
             const rolloverNow = new Date();
-            if (DayRollover.hasDayRolledOver(deps.getCurrentGameDate(), rolloverNow)) {
-                DayRollover.selectStaleRecurringInstances(deps.getActiveItems(), rolloverNow)
-                    .forEach(item => {
-                        const isExcusedCheatDay = item.type === 'habit' && item.isNegative === true &&
-                            deps.isCheatDayExcusedForItem(item);
-                        const isCheckInEligible = !isExcusedCheatDay && item.type === 'habit' && item.isNegative === true &&
-                            DayRollover.isFromPreviousDay(item.originalDueDate, rolloverNow);
-                        if (isExcusedCheatDay) {
-                            deps.settleExcusedCheatDay(item);
-                        } else if (isCheckInEligible) {
-                            deps.markPendingCheckIn(item);
-                        } else {
-                            deps.settleStaleRecurringInstance(item);
-                        }
-                    });
-                deps.setCurrentGameDate(DayRollover.startOfDay(rolloverNow));
+            if (performDayRollover(deps, rolloverNow)) {
                 // Drop settled (now-removed) items from the catch-up entry set so
                 // runOfflineCatchUp below doesn't animate/position ghosts whose DOM
                 // elements were just detached. Damage already reads live
@@ -524,6 +509,90 @@ const State = (() => {
         return true;
     }
 
+    /**
+     * performDayRollover — the settle-and-advance fork shared by the
+     * restore path (above) and LIVE mid-session rollover (loop.js, via
+     * checkLiveDayRollover below). Day-advance mechanism, restore-path-only
+     * originally (2026-07-19); extracted 2026-07-20 so the live path can't
+     * drift from the restore path's settlement rules (cheat-day-excused →
+     * check-in-eligible → auto-avoid). Pure orchestration — no DOM, no
+     * caller-specific cleanup (restoredEntries pruning stays in
+     * restoreGameState, since live rollover has no such list).
+     *
+     * Returns true if a rollover happened (caller should treat the day as
+     * having just advanced — spawn today's instances, refresh displays,
+     * save), false if `now` is still the same calendar day as
+     * deps.getCurrentGameDate() (the common case, almost every tick).
+     *
+     * deps (subset of restoreGameState's / loopDeps' contract): getCurrentGameDate,
+     * getActiveItems, isCheatDayExcusedForItem, settleExcusedCheatDay,
+     * markPendingCheckIn, settleStaleRecurringInstance, setCurrentGameDate.
+     */
+    function performDayRollover(deps, now) {
+        if (!DayRollover.hasDayRolledOver(deps.getCurrentGameDate(), now)) return false;
+        DayRollover.selectStaleRecurringInstances(deps.getActiveItems(), now)
+            .forEach(item => {
+                const isExcusedCheatDay = item.type === 'habit' && item.isNegative === true &&
+                    deps.isCheatDayExcusedForItem(item);
+                const isCheckInEligible = !isExcusedCheatDay && item.type === 'habit' && item.isNegative === true &&
+                    DayRollover.isFromPreviousDay(item.originalDueDate, now);
+                if (isExcusedCheatDay) {
+                    deps.settleExcusedCheatDay(item);
+                } else if (isCheckInEligible) {
+                    deps.markPendingCheckIn(item);
+                } else {
+                    deps.settleStaleRecurringInstance(item);
+                }
+            });
+        deps.setCurrentGameDate(DayRollover.startOfDay(now));
+        return true;
+    }
+
+    /**
+     * checkLiveDayRollover — LIVE mid-session midnight crossing (deferred
+     * from session 32, built 2026-07-20; see ROADMAP.md/DECISIONS.md). A
+     * session left running past midnight previously only rolled over on its
+     * NEXT reload (restore path above); this closes that gap by running the
+     * same performDayRollover fork from loop.js's per-tick updateGame, so a
+     * tab left open overnight sees yesterday's recurring instances settle
+     * and today's spawn without a reload.
+     *
+     * Called as an OPTIONAL loop.js collaborator (omitted = no-op, matching
+     * checkDayPagerRollover's existing tolerance) so loop.test.js's existing
+     * deps objects don't need updating for this alone. Guards isGameOver
+     * itself for clarity/defense-in-depth even though a dead run's
+     * gameLoopInterval is already cleared (damage.js's gameOver), so this
+     * can't actually fire post-death in practice — matches the restore
+     * path's explicit "skipped for a game-over save" comment.
+     *
+     * No offline-catch-up animation here (nothing was offline — the tab was
+     * live the whole time); instead spawns today's instances and refreshes
+     * the same displays the restore path's rollover branch feeds into,
+     * then saves immediately (autosave's 5s window could otherwise lose a
+     * rollover that happens right before a crash/close).
+     *
+     * deps: everything performDayRollover needs, plus isGameOver,
+     * generateDailyHabitInstances, generateDailyRoutineTaskInstances,
+     * updateTaskCountDisplay, updateRoutineDisplay, renderDefinedRoutines,
+     * renderCompletedItems, sortAndRenderActiveList, saveGame.
+     */
+    function checkLiveDayRollover(deps) {
+        if (deps.isGameOver()) return;
+        const now = new Date();
+        if (!performDayRollover(deps, now)) return;
+
+        deps.generateDailyHabitInstances(deps.getCurrentGameDate());
+        deps.generateDailyRoutineTaskInstances(deps.getCurrentGameDate());
+
+        deps.updateTaskCountDisplay();
+        deps.updateRoutineDisplay();
+        deps.renderDefinedRoutines();
+        deps.renderCompletedItems();
+        deps.sortAndRenderActiveList();
+
+        deps.saveGame();
+    }
+
     return {
         initGame,
         getPersistableState,
@@ -531,6 +600,8 @@ const State = (() => {
         buildDamageDeps,
         restoreGameState,
         sanitizeOrphanedSubTasks,
+        performDayRollover,
+        checkLiveDayRollover,
     };
 })();
 
