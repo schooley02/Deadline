@@ -350,6 +350,19 @@ const State = (() => {
         (save.activeItems || []).forEach(item => {
             item.element = null;
             item.listItemElement = null;
+            // [P2-GAME-010] Stage 1 (2026-07-19, session 60): urgencyTier is
+            // a live render-diff cache (loop.js only touches classList when
+            // the computed tier CHANGES from this field), not real game
+            // state — but persistence.js only strips element/listItemElement,
+            // so the plain string value survives the save/restore round trip
+            // while the DOM element above does NOT (it's rebuilt fresh by
+            // addItemToGame below). Found live in Chrome: a restored item
+            // whose tier happened to compute the SAME on the first post-
+            // restore tick never got its class applied to the new element at
+            // all, since the stale cached value made the diff check think
+            // nothing had changed. Reset alongside the DOM refs so the next
+            // tick always (re)applies the class to the fresh element.
+            item.urgencyTier = null;
             const savedX = (typeof item.x === 'number') ? item.x : null;
             deps.addItemToGame(item);
             restoredEntries.push({ item, savedX });

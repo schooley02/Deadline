@@ -4,6 +4,98 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 60 (part 2): [P2-GAME-010] Stage 1 BUILT — CSS walk-speed-up (Cowork session, Sonnet — plan pre-approved as part of the scoping pass earlier this session)
+
+**Built:** `Clock.getWalkUrgencyTier(item, currentTime)` (js/clock.js) — pure, reuses the existing
+TWO_HOURS_MS/FOUR_HOURS_MS zone boundaries `calculateTimelinePosition` already uses, returns
+`'calm'|'approaching'|'urgent'|null` (null once overdue). `js/loop.js`'s `updateActiveItems` sets one
+`urgency-*` class per tick on an actual tier CHANGE only (same perf discipline as session 59's streak
+classes — no per-tick classList churn). CSS (`css/enemyStatus.css`): a single `@keyframes
+enemy-walk-bob` (translateY + rotate) with three classes differing only in `animation-duration`
+(1.4s/0.9s/0.5s) — deliberately no color/glow/box-shadow, motion-only per Jeremy's explicit call
+this session. `css/enemySprites.css`: `.enemy:hover` gets `animation-play-state: paused` so the
+bob's continuous `transform` doesn't fight the existing hover-scale transition (desktop-only
+concern — no real `:hover` on touch, so mobile is unaffected either way).
+
+**Two real bugs found live in Chrome and fixed before merge (not caught by unit tests written
+first — both are integration-shaped, DOM-element-identity bugs):**
+
+1. **Edit-triggered overdue transition left a stale urgency class.** `recomputeOverdueStateAfterEdit`
+   (js/items.js) calls `markAsOverdue` directly when an edit pulls a due date into the past — a
+   SEPARATE call site from loop.js's own tick-transition branch, which is where the clear was
+   originally (and only) written. Fix: moved the clear INTO `markAsOverdue` itself, so both call
+   sites get it for free. Repro'd live: edited "Approaching Test"'s due time into the past, watched
+   `urgency-approaching` incorrectly persist alongside the new `enemy-at-base` pulse; confirmed fixed
+   post-patch with the same edit.
+2. **A restored item never got its class applied to the rebuilt DOM element.** `persistence.js` only
+   strips `element`/`listItemElement` from the save (the only genuinely unserializable fields); a
+   plain string field like `urgencyTier` survives the round trip. `state.js`'s restore loop rebuilds
+   the DOM element fresh (`addItemToGame`) but left the OLD cached `urgencyTier` value on the item —
+   so if the freshly-computed tier happened to match the stale cached one (the common case: nothing
+   about the due date changed across a reload), loop.js's change-diff optimization concluded "no
+   change" and never applied the class to the new element at all. Fix: `state.js`'s restore loop now
+   resets `item.urgencyTier = null` alongside the existing `element = null` / `listItemElement = null`
+   resets, right where that DOM-rebuild invariant is already being established. Repro'd live: reloaded
+   a live 3-task test board, confirmed 2 of 3 non-overdue items had NO urgency class despite visibly
+   still advancing on the timeline; fixed, reloaded again, confirmed all three tiers correctly present.
+
+**Not unit-tested: `restoreGameState` itself** (bug #2's actual call site) — per state.js's own header
+comment, no current test exercises it directly (too DOM-heavy; the established precedent here is live
+Chrome verification instead, which is exactly how this bug was caught). Bug #1 IS covered by new
+tests in `test/items-lurker.test.js` (`Items.markAsOverdue` / `Items.recomputeOverdueStateAfterEdit`
+describe blocks) against the real module.
+
+**Tests:** 41 suites, 926/926 (900 prior-session + 8 clock.test.js + 5 loop.test.js + 4 new + 1
+adjusted in items-lurker.test.js; loop.test.js's own "clears on overdue" test was rewritten to assert
+loop.js does NOT touch the field itself, since that responsibility moved to items.js). `node --check`
+clean on every touched file (clock.js, loop.js, items.js, state.js).
+
+**Unrelated tangent investigated same session, NOT a bug:** Jeremy noticed the base wasn't taking
+damage from an overdue test task over a few minutes of live observation. Traced to
+`CONFIG.BASE_REGEN_HP`/`BASE_REGEN_INTERVAL_MS` being numerically IDENTICAL to
+`OVERDUE_DAMAGE`/`DAMAGE_INTERVAL_MS` (both 1 HP / 5 min, "symmetric heal/damage rate by design" per
+config.js's own comment) — both clocks (`getLastRegenTickMs`, an item's `lastDamageTickTime`) get
+freshly seeded to "now" at/near the same reload moment during this session's live testing, so they
+crossed their respective 5-minute thresholds within the same tick and canceled out (+1 heal, -1
+damage, net 0), reading as "nothing happened." Confirmed the damage-tick code path itself is
+untouched by this session's changes (loop.js's damage block, below the position/tier section this
+session edited, is unmodified). Not investigated further — a coincidental clock-alignment artifact of
+THIS session's specific test sequence (multiple reloads in quick succession), not a general gameplay
+bug; worth a dedicated live-play sanity check outside a testing session if Jeremy wants full
+confidence in the regen/damage interaction.
+
+## 2026-07-19 — Session 60 (part 1): [P2-GAME-010] Enemy acceleration — design + sprite-effort scoping (Cowork session, Fable — design calls only, no code)
+
+**Decision:** Urgency mechanism is **walk-animation speed-up at the existing urgency thresholds**
+(the 4h/2h timeline zones in `Clock.calculateTimelinePosition`) — Jeremy explicitly likes sped-up
+walking as urgency rises. `Assets/Zombies/` has one static PNG per category (no walk-cycle frames),
+so the effort was scoped into a **two-stage plan** (Jeremy picked both):
+
+- **Stage 1 — CSS-only "fake walk" now:** bob/sway transform keyframes on the existing static
+  sprites, urgency-tier classes driving `animation-duration`, CONFIG-tunable thresholds, gated by
+  the session-59 effects-intensity setting. Zero new art; unblocks the ticket immediately.
+- **Stage 2 — real art later, 4-frame walk cycles** (Jeremy's choice over 2 or 6–8 frames) × 8
+  categories, delivered as horizontal sprite sheets; code swaps the bob keyframes for `steps(4)`
+  `background-position` cycles. The tier/speed wiring from Stage 1 carries over unchanged, so the
+  art is a drop-in upgrade on Jeremy's own timeline (production route open — hand-drawn Aseprite,
+  AI-gen, or asset pack; deliberately not committed yet).
+
+**Rejected:** waiting on real frames before shipping any acceleration (blocks a P2 on an
+unscheduled art task for no mechanical gain — the speed-tier mechanism is identical either way).
+
+**Glow/color-shift urgency indicators → REJECTED** (spec's "glowing, faster animations" and
+color-temperature-shift language notwithstanding): the streak fire effect (session 59) already owns
+glow on enemies, and stacking a second glow vocabulary would muddy what glow means. Urgency will be
+communicated by motion (walk speed), not light.
+
+**Position math stays untouched.** The ticket was written for velocity-based movement, but position
+is a pure function of time-to-deadline; the piecewise mapping (>4h = 75–100% of screen, 2–4h =
+50–75%, <2h = 0–50%) already accelerates screen-space movement near the deadline. No curve change
+now or when the ticket is picked back up.
+
+**"Consistent across both variants" criterion is moot** — Deadline-MPE is frozen reference; when
+built, "both" means tasks + habits.
+
 ## 2026-07-19 — Session 59: [P2-UI-009] Streak visual effects — Milestone 4 opener (Cowork session, Sonnet — plan approved by Jeremy up front, no mid-session design fork)
 
 **Scope, confirmed with Jeremy before building:** two-tier fire effect (existing 3+ "on fire" tier

@@ -116,7 +116,22 @@ Ordering decided 2026-07-18 session 19 (Fable — see DECISIONS.md): 007 → 008
   reload and correctly suppresses the glow, and a real habit completion crossing the base threshold
   fired the exact expected "🔥 ... is on fire!" toast with no console errors and no duplicate-on-
   reload. See MECHANICS.md/UI_UX.md/DATA_SCHEMA.md/DECISIONS.md.
-- [ ] [P2-GAME-010] Enemy acceleration mechanics
+- [x] [P2-GAME-010] Stage 1 — CSS-only walk-speed-up (2026-07-19, session 60) — bob/sway `transform`
+  keyframes (`enemy-walk-bob`, `css/enemyStatus.css`) on the existing static sprites; three
+  `urgency-{calm,approaching,urgent}` classes (`Clock.getWalkUrgencyTier`, `js/clock.js`) drive
+  `animation-duration`, reusing the SAME 2h/4h zone boundaries the position math already uses; tier
+  cleared once an item goes overdue (`Items.markAsOverdue`, `js/items.js` — centralized there, not
+  loop.js, since `recomputeOverdueStateAfterEdit` calls markAsOverdue directly too); restored items
+  reset `urgencyTier` to null (`js/state.js`) so a stale cached value can't suppress the class on a
+  freshly-rebuilt DOM element. No new glow (streak fire owns glow); gated by the session-59
+  fx-off/fx-reduced setting + `prefers-reduced-motion`. 41 suites, 926/926 (+16: 8 clock, 5 loop, 3
+  items). Live-verified in Chrome: all three tiers render at visually distinct speeds; two REAL bugs
+  found and fixed live before merge (stale urgency class surviving an edit-triggered overdue
+  transition; stale urgency class surviving a save/restore because the DOM element rebuilds but the
+  cached tier value doesn't) — see DECISIONS.md session 60.
+  - [ ] Stage 2 (art task, Jeremy's timeline, unscheduled): real 4-frame walk cycles × 8 categories
+    as horizontal sprite sheets; code swaps the bob keyframes for `steps(4)` background-position
+    cycles — the tier/speed wiring from Stage 1 carries over unchanged.
 - [ ] [P2-UI-011] Management window unification
 - [x] [P2-GAME-012] Base healing system (2026-07-18, session 17) — gradual regen BUILT: 1 HP/5min while alive (`js/loop.js`) + same rate offline/suspended-gap (`js/damage.js`'s `applyElapsedRegen`, applied after offline damage), clamped at 100; NO daily reset. Repair kits remain unbuilt (ties to the Milestone 3 shop). 17 suites, 370/370. Live-verified in Chrome. See MECHANICS.md Base + DECISIONS.md.
 - [ ] [P2-UI-013] Routine transfer system

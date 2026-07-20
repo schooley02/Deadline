@@ -212,3 +212,63 @@
     to { box-shadow: 0 0 10px var(--color-error), 0 0 20px #ff4d4d; }
 }
 
+/* [P2-GAME-010] Stage 1, Milestone 4, session 60 (2026-07-19): "fake walk"
+   speed-up ahead of real animated sprite sheets (Stage 2, unscheduled — see
+   ROADMAP.md/DECISIONS.md). A subtle bob+sway on transform simulates gait on
+   the existing static sprites; only animation-duration changes per tier, so
+   swapping in a real steps() sprite-sheet walk later is a drop-in change to
+   these three rules, not a rewrite. Deliberately NO glow/color/box-shadow
+   here — the streak fire effect (session 59) already owns glow, urgency is
+   communicated by motion only (Jeremy's call). No ::before/::after used
+   (both already claimed on habit enemies), and no new DOM nodes — same
+   transform-only, GPU-composited approach as the streak effect. js/loop.js
+   sets one of these three classes (mutually exclusive, cleared once an item
+   goes overdue — `.enemy-at-base` above takes over from that point). */
+@keyframes enemy-walk-bob {
+    0%   { transform: translateY(0) rotate(0deg); }
+    25%  { transform: translateY(-3px) rotate(-1.5deg); }
+    50%  { transform: translateY(0) rotate(0deg); }
+    75%  { transform: translateY(-2px) rotate(1.5deg); }
+    100% { transform: translateY(0) rotate(0deg); }
+}
+
+.enemy.urgency-calm {
+    animation: enemy-walk-bob 1.4s ease-in-out infinite;
+}
+
+.enemy.urgency-approaching {
+    animation: enemy-walk-bob 0.9s ease-in-out infinite;
+}
+
+.enemy.urgency-urgent {
+    animation: enemy-walk-bob 0.5s ease-in-out infinite;
+}
+
+/* Same accessibility/settings gating as the streak effect (session 59).
+   Walk bob's entire effect IS motion (unlike the fire glow, there's no
+   static fallback that still reads as "urgent"), so 'reduced' settles every
+   tier to one gentle, uniform pace instead of a tier-specific speed — some
+   life without the flicker; 'off' and prefers-reduced-motion drop it
+   entirely, matching the pre-session-60 static look. */
+@media (prefers-reduced-motion: reduce) {
+    .enemy.urgency-calm,
+    .enemy.urgency-approaching,
+    .enemy.urgency-urgent {
+        animation: none;
+        transform: none;
+    }
+}
+
+.fx-off .enemy.urgency-calm,
+.fx-off .enemy.urgency-approaching,
+.fx-off .enemy.urgency-urgent {
+    animation: none;
+    transform: none;
+}
+
+.fx-reduced .enemy.urgency-calm,
+.fx-reduced .enemy.urgency-approaching,
+.fx-reduced .enemy.urgency-urgent {
+    animation-duration: 1.6s;
+}
+

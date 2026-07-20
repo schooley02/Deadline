@@ -77,6 +77,38 @@ describe('Items.markAsOverdue — lurker guard', () => {
     });
 });
 
+// [P2-GAME-010] Stage 1, session 60. Found live in Chrome: editing a task's
+// due date into the past left the walk-urgency class stuck on the element
+// alongside the new enemy-at-base pulse, because recomputeOverdueStateAfterEdit
+// calls markAsOverdue directly (bypassing loop.js's own tick-transition
+// branch, which is where the clear was originally — and only — written).
+// Centralizing the clear inside markAsOverdue itself covers both call sites.
+describe('Items.markAsOverdue — walk-urgency tier clearing ([P2-GAME-010] Stage 1)', () => {
+    test('drops the urgency-tier class and item.urgencyTier when an item goes overdue', () => {
+        const item = {
+            type: 'task', isOverdue: false,
+            dueDateTime: new Date(Date.now() - 1000),
+            urgencyTier: 'urgent',
+            element: fakeEl(), listItemElement: fakeEl(),
+        };
+        item.element._classes.add('urgency-urgent');
+        Items.markAsOverdue(item, new Date(), makeDeps());
+        expect(item.urgencyTier).toBeNull();
+        expect(item.element._classes.has('urgency-urgent')).toBe(false);
+        expect(item.element._classes.has('enemy-at-base')).toBe(true);
+    });
+
+    test('no-op when the item never had a tier (nothing to clear, no throw)', () => {
+        const item = {
+            type: 'task', isOverdue: false,
+            dueDateTime: new Date(Date.now() - 1000),
+            element: fakeEl(), listItemElement: fakeEl(),
+        };
+        expect(() => Items.markAsOverdue(item, new Date(), makeDeps())).not.toThrow();
+        expect(item.urgencyTier).toBeFalsy();
+    });
+});
+
 describe('Items.recomputeOverdueStateAfterEdit — lurker guard', () => {
     test('a negative habit instance is skipped entirely — its x is left untouched', () => {
         const item = {
@@ -98,5 +130,24 @@ describe('Items.recomputeOverdueStateAfterEdit — lurker guard', () => {
         Items.recomputeOverdueStateAfterEdit(item, makeDeps());
         expect(item.isOverdue).toBe(true);
         expect(item.x).toBe(100); // baseWidth + 0 cluster offset, from markAsOverdue's branch
+    });
+
+    // [P2-GAME-010] Stage 1, session 60 — the exact live-Chrome repro: an
+    // edit pulls a still-future, walking (urgency-tiered) task's due date
+    // into the past. This path calls markAsOverdue directly, not through
+    // loop.js, so the tier clear must live in markAsOverdue itself.
+    test('pulling a walking task\'s due date into the past clears its urgency-tier class too', () => {
+        const item = {
+            type: 'task', isOverdue: false,
+            dueDateTime: new Date(Date.now() - 1000),
+            urgencyTier: 'urgent',
+            x: 999, element: fakeEl(), listItemElement: fakeEl(),
+        };
+        item.element._classes.add('urgency-urgent');
+        Items.recomputeOverdueStateAfterEdit(item, makeDeps());
+        expect(item.isOverdue).toBe(true);
+        expect(item.urgencyTier).toBeNull();
+        expect(item.element._classes.has('urgency-urgent')).toBe(false);
+        expect(item.element._classes.has('enemy-at-base')).toBe(true);
     });
 });

@@ -55,6 +55,12 @@
     transform: scale(1.1);
     z-index: 20;
     box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+    /* [P2-GAME-010] Stage 1, session 60: the walk-bob animation (enemyStatus.css)
+       also targets `transform` continuously, which would fight this hover
+       scale every frame. Pausing it on hover lets the transition below take
+       over cleanly; desktop-only concern (no real :hover on touch), so the
+       primary mobile audience never sees this at all. */
+    animation-play-state: paused;
 }
 
 /* Category-specific Enemy Colors removed - using transparent background */

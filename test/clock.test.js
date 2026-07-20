@@ -89,6 +89,56 @@ describe('calculateTimelinePosition', () => {
     });
 });
 
+describe('getWalkUrgencyTier ([P2-GAME-010] Stage 1, session 60)', () => {
+    test('overdue (due in the past) returns null — enemy-at-base owns that state', () => {
+        const now = new Date('2026-07-19T12:00:00');
+        const item = makeItem(new Date('2026-07-19T11:59:59'));
+        expect(Clock.getWalkUrgencyTier(item, now)).toBeNull();
+    });
+
+    test('due exactly now returns null', () => {
+        const now = new Date('2026-07-19T12:00:00');
+        const item = makeItem(new Date('2026-07-19T12:00:00'));
+        expect(Clock.getWalkUrgencyTier(item, now)).toBeNull();
+    });
+
+    test('due within 2 hours is "urgent"', () => {
+        const now = new Date('2026-07-19T12:00:00');
+        const item = makeItem(new Date('2026-07-19T13:59:59'));
+        expect(Clock.getWalkUrgencyTier(item, now)).toBe('urgent');
+    });
+
+    test('due at exactly 2 hours is "urgent" (boundary is inclusive, matches calculateTimelinePosition)', () => {
+        const now = new Date('2026-07-19T12:00:00');
+        const item = makeItem(new Date('2026-07-19T14:00:00'));
+        expect(Clock.getWalkUrgencyTier(item, now)).toBe('urgent');
+    });
+
+    test('due between 2 and 4 hours is "approaching"', () => {
+        const now = new Date('2026-07-19T12:00:00');
+        const item = makeItem(new Date('2026-07-19T15:00:00'));
+        expect(Clock.getWalkUrgencyTier(item, now)).toBe('approaching');
+    });
+
+    test('due at exactly 4 hours is "approaching"', () => {
+        const now = new Date('2026-07-19T12:00:00');
+        const item = makeItem(new Date('2026-07-19T16:00:00'));
+        expect(Clock.getWalkUrgencyTier(item, now)).toBe('approaching');
+    });
+
+    test('due more than 4 hours out is "calm"', () => {
+        const now = new Date('2026-07-19T12:00:00');
+        const item = makeItem(new Date('2026-07-19T18:00:01'));
+        expect(Clock.getWalkUrgencyTier(item, now)).toBe('calm');
+    });
+
+    test('applies the same to habit items — no type special-casing', () => {
+        const now = new Date('2026-07-19T12:00:00');
+        const item = makeItem(new Date('2026-07-19T13:00:00'), 'habit');
+        expect(Clock.getWalkUrgencyTier(item, now)).toBe('urgent');
+    });
+});
+
 describe('shouldShowMidnightLine', () => {
     test('hidden before 8pm', () => {
         expect(Clock.shouldShowMidnightLine(new Date('2026-07-17T19:59:00'))).toBe(false);

@@ -7,13 +7,25 @@
  * deps bag — same approach as damage.test.js, not a hand-maintained mirror.
  */
 global.CONFIG = require('../js/config.js');
+global.Clock = require('../js/clock.js'); // [P2-GAME-010] Stage 1, session 60 — loop.js reads Clock as a bare global
 const Loop = require('../js/loop.js');
 
 const INTERVAL = CONFIG.DAMAGE_INTERVAL_MS;
 const DMG = CONFIG.OVERDUE_DAMAGE;
 
+// Minimal classList shim (Set-backed) so urgency-tier class add/remove is
+// assertable without a real DOM ([P2-GAME-010] Stage 1, session 60).
 function fakeEl() {
-    return { style: {} };
+    const classes = new Set();
+    return {
+        style: {},
+        classList: {
+            add: (c) => classes.add(c),
+            remove: (c) => classes.delete(c),
+            contains: (c) => classes.has(c),
+            _classes: classes,
+        },
+    };
 }
 
 function makeItem(overrides = {}) {
@@ -128,6 +140,77 @@ describe('Loop.updateActiveItems', () => {
         expect(item.isOverdue).toBe(true);
         expect(item.x).toBe(100); // baseWidth + 0 cluster offset
         expect(deps._state.overdueMarks).toEqual([1]);
+    });
+
+    // [P2-GAME-010] Stage 1, session 60
+    describe('urgency-tier class wiring', () => {
+        test('assigns urgency-urgent for an item due within 2 hours', () => {
+            const item = makeItem({ dueDateTime: new Date(Date.now() + 60 * 60 * 1000) });
+            const deps = makeDeps({ state: { activeItems: [item] } });
+            Loop.updateActiveItems(deps);
+            expect(item.urgencyTier).toBe('urgent');
+            expect(item.element.classList.contains('urgency-urgent')).toBe(true);
+        });
+
+        test('assigns urgency-calm for an item due more than 4 hours out', () => {
+            const item = makeItem({ dueDateTime: new Date(Date.now() + 6 * 60 * 60 * 1000) });
+            const deps = makeDeps({ state: { activeItems: [item] } });
+            Loop.updateActiveItems(deps);
+            expect(item.urgencyTier).toBe('calm');
+            expect(item.element.classList.contains('urgency-calm')).toBe(true);
+        });
+
+        test('swaps the class (not stacks) as the tier changes tick to tick', () => {
+            const dueDateTime = new Date(Date.now() + 3 * 60 * 60 * 1000); // 'approaching'
+            const item = makeItem({ dueDateTime });
+            const deps = makeDeps({ state: { activeItems: [item] } });
+            Loop.updateActiveItems(deps);
+            expect(item.urgencyTier).toBe('approaching');
+            expect(item.element.classList.contains('urgency-approaching')).toBe(true);
+
+            // due date doesn't move, but "now" does — simulate crossing into 'urgent'
+            // by rewriting dueDateTime relative to "now" at call time instead of
+            // faking timers: 90 minutes out is within the 2h urgent band.
+            item.dueDateTime = new Date(Date.now() + 90 * 60 * 1000);
+            Loop.updateActiveItems(deps);
+            expect(item.urgencyTier).toBe('urgent');
+            expect(item.element.classList.contains('urgency-urgent')).toBe(true);
+            expect(item.element.classList.contains('urgency-approaching')).toBe(false);
+        });
+
+        test('no urgency class churn on unchanged tier across repeated ticks', () => {
+            const item = makeItem({ dueDateTime: new Date(Date.now() + 60 * 60 * 1000) });
+            const deps = makeDeps({ state: { activeItems: [item] } });
+            Loop.updateActiveItems(deps);
+            const addSpy = jest.spyOn(item.element.classList, 'add');
+            Loop.updateActiveItems(deps);
+            expect(addSpy).not.toHaveBeenCalled();
+        });
+
+        // Clearing the urgency-tier class on the overdue transition is
+        // markAsOverdue's job (js/items.js), not loop.js's — centralized
+        // there because recomputeOverdueStateAfterEdit calls markAsOverdue
+        // directly too, bypassing this module entirely (found live in
+        // Chrome, session 60: an edit-triggered overdue transition left a
+        // stale urgency class on the element when the clear lived only
+        // here). This module's fake markAsOverdue collaborator intentionally
+        // does NOT mimic that clearing — real coverage is in
+        // items-lurker.test.js's markAsOverdue/recomputeOverdueStateAfterEdit
+        // describe blocks, against the actual module.
+        test('does not itself touch the urgency-tier class on the overdue transition — that is markAsOverdue\'s job', () => {
+            const item = makeItem({ dueDateTime: new Date(Date.now() + 500) }); // about to cross over
+            const deps = makeDeps({ state: { activeItems: [item] } });
+            Loop.updateActiveItems(deps); // still future — gets a tier
+            const tierBeforeOverdue = item.urgencyTier;
+            expect(tierBeforeOverdue).not.toBeNull();
+            item.dueDateTime = new Date(Date.now() - 1000); // now overdue
+            Loop.updateActiveItems(deps);
+            expect(item.isOverdue).toBe(true);
+            // the fake markAsOverdue in this file's makeDeps() doesn't clear
+            // it, so if it's STILL set that just confirms loop.js left the
+            // field alone rather than clearing (or double-clearing) it itself
+            expect(item.urgencyTier).toBe(tierBeforeOverdue);
+        });
     });
 
     test('overdue item deals exactly one damage hit per elapsed interval tick', () => {

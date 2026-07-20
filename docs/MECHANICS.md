@@ -2,7 +2,7 @@
 
 ## Enemies (Tasks & Habits)
 
-- Enemies spawn on the right and advance left toward the base. Position/speed is tied to real due date/time: closer due = closer to base and more menacing (faster animation, even if actual speed is unchanged).
+- Enemies spawn on the right and advance left toward the base. Position/speed is tied to real due date/time: closer due = closer to base and more menacing (faster animation, even if actual speed is unchanged). **BUILT ([P2-GAME-010] Stage 1, Milestone 4, session 60, 2026-07-19):** a CSS-only "fake walk" — a subtle bob/sway (`transform`, `@keyframes enemy-walk-bob`) whose `animation-duration` speeds up across three tiers keyed to the SAME 2h/4h zone boundaries the position math already uses (`Clock.getWalkUrgencyTier`): calm (>4h, 1.4s) → approaching (2-4h, 0.9s) → urgent (<2h, 0.5s). Once an item goes overdue the tier class is dropped — `enemy-at-base`'s existing red pulse (border + box-shadow) owns that state instead, so the two visuals never compete. Deliberately NO new glow/color — the streak fire effect (session 59) already owns glow, so urgency here is communicated by motion only. Gated by the same `fx-off`/`fx-reduced`/`prefers-reduced-motion` settings as the streak effect. **Stage 2 (unscheduled, blocked on real animated sprites — currently one static PNG per category):** swap the bob keyframes for real 4-frame `steps()` walk-cycle sprite sheets; the tier/speed wiring carries over unchanged. See DECISIONS.md session 60, ROADMAP.md.
 - Max 20 enemies on screen; overflow waits offscreen right, scrollable.
 - Appearance by category — see ART_STYLE.md for the 8 zombie skins.
 - High-priority task: glowing/bright outline.

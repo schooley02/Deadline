@@ -19,6 +19,9 @@
  * Usage (see script.js):
  *   Clock.calculateTimelinePosition(item, currentTime, dims)
  *   Clock.updateMidnightLine(currentTime, dims, midnightLineElement?)
+ *   Clock.getWalkUrgencyTier(item, currentTime) -> 'calm'|'approaching'|'urgent'|null
+ *       ([P2-GAME-010] Stage 1, 2026-07-19 session 60 — CSS-only "fake walk"
+ *       ahead of real animated sprites; see DECISIONS.md.)
  */
 const Clock = (() => {
     const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
@@ -68,6 +71,26 @@ const Clock = (() => {
         }
     }
 
+    // [P2-GAME-010] Stage 1 (2026-07-19, session 60): urgency tier for the
+    // CSS-only walk-speed-up, reusing the SAME 2h/4h zone boundaries
+    // calculateTimelinePosition already uses, so "walking faster" always
+    // agrees with "closer to the base." Deliberately returns null once an
+    // item is overdue/arrived — items.js's markAsOverdue already adds
+    // `.enemy-at-base` (border + pulse glow) for that state, and a "walking"
+    // animation on an item that has stopped advancing (position is clamped
+    // at baseWidth once overdue — see loop.js) doesn't read as walking
+    // anymore. Pure — no DOM, no ctx object needed (only needs the item's
+    // own due date + current time, unlike position which needs screen dims).
+    function getWalkUrgencyTier(item, currentTime) {
+        const dueMs = item.dueDateTime.getTime();
+        const currentTimeMs = currentTime.getTime();
+        if (dueMs <= currentTimeMs) return null; // overdue/arrived — enemy-at-base owns this state instead
+        const timeToDue = dueMs - currentTimeMs;
+        if (timeToDue <= TWO_HOURS_MS) return 'urgent';
+        if (timeToDue <= FOUR_HOURS_MS) return 'approaching';
+        return 'calm';
+    }
+
     // Pure position math for the 8pm+ "midnight approaching" line.
     function calculateMidnightLinePosition(currentTime, dims) {
         const { gameScreenWidth, baseWidth } = dims;
@@ -110,6 +133,7 @@ const Clock = (() => {
 
     return {
         calculateTimelinePosition,
+        getWalkUrgencyTier,
         calculateMidnightLinePosition,
         shouldShowMidnightLine,
         updateMidnightLine

@@ -13,6 +13,51 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 60: [P2-GAME-010] Enemy acceleration — scoped + Stage 1 BUILT (Cowork session, Fable then Sonnet)
+
+**Did:** Two parts. (1) Scoped the ticket into a two-stage plan: urgency = walk-animation
+speed-up (not glow — session 59's streak fire already owns glow), position math untouched. Stage 1
+= CSS-only "fake walk" on the existing static sprites; Stage 2 = real 4-frame walk-cycle sprite
+sheets, unscheduled art task. (2) Built Stage 1: `Clock.getWalkUrgencyTier` (js/clock.js, reuses the
+existing 2h/4h zone boundaries), `js/loop.js` sets one `urgency-{calm,approaching,urgent}` class per
+tick on change, `enemy-walk-bob` CSS keyframes (`css/enemyStatus.css`) with per-tier
+`animation-duration`, `.enemy:hover` gets `animation-play-state: paused` (css/enemySprites.css) so
+the bob doesn't fight the hover-scale transition. Docs: MECHANICS.md, ROADMAP.md (ticket checked
+off, Stage 2 left open), DECISIONS.md (both parts logged).
+
+**State:** ✅ 41 suites, 926/926 (+16 over session 59's 910: 8 clock, 5 loop, 3 items). `node --check`
+clean on clock.js/loop.js/items.js/state.js. Live-verified in Chrome end-to-end: all three tiers
+render at visibly distinct bob speeds; fx-off correctly disables the animation. Found + fixed TWO
+real bugs live before merge (both DOM-element-identity issues, not caught by unit tests written
+first): (1) editing a task's due date into the past left a stale urgency class stuck alongside the
+new `enemy-at-base` pulse — `recomputeOverdueStateAfterEdit` calls `markAsOverdue` directly, a
+separate call site from loop.js's own clear; fixed by centralizing the clear inside `markAsOverdue`
+(items.js). (2) a reloaded/restored item could keep NO urgency class at all — `urgencyTier` (a plain
+string) survives the save/restore round trip while the DOM element is rebuilt fresh, so if the
+freshly-computed tier happened to match the stale cached value, loop.js's change-diff optimization
+never applied the class to the new element; fixed by resetting `item.urgencyTier = null` in
+state.js's restore loop alongside the existing `element = null` reset. Save reset to pristine (dev
+Reset, stubbed confirm/alert first per the known dialog-freeze gotcha) before ending.
+NOT committed — git commands in chat.
+
+**Next:** [P2-UI-011] Management window unification is next in ROADMAP.md's Milestone 4 list (8
+points — the biggest remaining ticket), then [P2-UI-013] routine transfer, time slider,
+achievements/badges, mobile UX + accessibility pass. P2-GAME-010 Stage 2 (real animated sprites) has
+no owner/timeline yet — pick up whenever Jeremy produces the art.
+
+**Watch out:**
+- `item.urgencyTier` is a plain data field that DOES get persisted (persistence.js's STRIP_KEYS only
+  covers `element`/`listItemElement`) — any FUTURE per-tick "only touch the DOM on a change" cache
+  field needs the same restore-time reset state.js just got for `urgencyTier`, or it'll silently miss
+  applying its class/style to the freshly-rebuilt element after a reload. Worth grep'ing for this
+  pattern if another such cache field gets added.
+- `BASE_REGEN_HP`/`BASE_REGEN_INTERVAL_MS` are numerically identical to `OVERDUE_DAMAGE`/
+  `DAMAGE_INTERVAL_MS` (1 HP/5 min each, by design). Both clocks get freshly seeded near the same
+  moment on a reload, so repeated quick reloads during a test session can make them cancel out
+  (+1 heal, -1 damage, same tick) and LOOK like damage isn't firing when it actually is, offset by
+  regen. Not a bug — but confusing during exactly the kind of rapid-reload manual testing this
+  session did. A longer, single-session live-play check would show real net damage over time.
+
 ## 2026-07-19 — Session 59: [P2-UI-009] Streak visual effects BUILT — Milestone 4 opener (Cowork session, Sonnet)
 
 **Did:** Milestone 4's first ticket, full acceptance-criteria scope agreed with Jeremy up front.

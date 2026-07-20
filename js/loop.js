@@ -27,6 +27,12 @@
  *     getParentRenderWidth ([P1-DATA-004] sub-session 4, 2026-07-19 —
  *     Movement.getParentRenderWidth wrapper; OPTIONAL, omitted = no-op).
  * CONFIG is read as a bare stable global (movement.js/clock.js precedent).
+ * Clock is ALSO read as a bare stable global as of [P2-GAME-010] Stage 1
+ * (2026-07-19, session 60) — Clock.getWalkUrgencyTier needs only the item +
+ * currentTime already in scope here, no ctx/dims, so it doesn't need the
+ * deps-injection treatment calculateTimelineXWithClustering gets (that one
+ * needs screen dims bound in script.js's closure). Tests must set
+ * global.Clock before requiring this module (loop.test.js).
  */
 const Loop = (() => {
 
@@ -86,12 +92,31 @@ const Loop = (() => {
 
             if (!item.isOverdue) {
                 if (item.dueDateTime <= currentTime) {
-                    // Item just became overdue
+                    // Item just became overdue. markAsOverdue (items.js) also
+                    // clears any walk-urgency tier class — [P2-GAME-010]
+                    // Stage 1, centralized there rather than duplicated here
+                    // since recomputeOverdueStateAfterEdit's edit-triggered
+                    // overdue transition calls markAsOverdue directly too,
+                    // bypassing this branch entirely (see items.js comment).
                     item.x = deps.baseWidth + deps.getSubTaskClusterOffset(item);
                     deps.markAsOverdue(item, currentTime);
                 } else {
                     // Calculate position based on timeline
                     item.x = deps.calculateTimelineXWithClustering(item, currentTime);
+
+                    // [P2-GAME-010] Stage 1 (2026-07-19, session 60): CSS-only
+                    // walk-speed-up ahead of real animated sprites (see
+                    // DECISIONS.md). Only touch classList on an actual tier
+                    // change, not every 50ms tick — same perf discipline as
+                    // the streak-effect classes (session 59).
+                    const tier = Clock.getWalkUrgencyTier(item, currentTime);
+                    if (tier !== item.urgencyTier) {
+                        if (item.element) {
+                            if (item.urgencyTier) item.element.classList.remove('urgency-' + item.urgencyTier);
+                            if (tier) item.element.classList.add('urgency-' + tier);
+                        }
+                        item.urgencyTier = tier;
+                    }
                 }
 
                 // Update visual position

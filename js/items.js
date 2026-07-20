@@ -1129,6 +1129,20 @@ const Items = (() => {
         if (item.element) item.element.classList.add('enemy-at-base');
         if (item.listItemElement) item.listItemElement.classList.add('overdue-list-item');
 
+        // [P2-GAME-010] Stage 1 (2026-07-19, session 60): drop any walk-
+        // urgency tier class — the item has arrived, `enemy-at-base` above
+        // owns its visual from here. Centralized HERE (not just loop.js's
+        // tick-transition call site) because recomputeOverdueStateAfterEdit
+        // also calls markAsOverdue directly when an edit pulls a due date
+        // into the past — found live in Chrome this session: editing
+        // "Urgent Test"'s due time into the past left `urgency-urgent`
+        // stuck on the element alongside the new `enemy-at-base` pulse,
+        // since that edit path never went through loop.js's own clear.
+        if (item.element && item.urgencyTier) {
+            item.element.classList.remove('urgency-' + item.urgencyTier);
+            item.urgencyTier = null;
+        }
+
         // Reset habit streak (visual) AND record a miss occurrence for the
         // rate-based bonus (session 16). occurrenceHistory keys off the
         // instance's originalDueDate — the scheduled day this miss belongs to.
