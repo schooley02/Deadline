@@ -19,7 +19,7 @@ Replaces the agenda list with routines ranked by level (top performers first). M
 - Add/Edit screens for tasks, habits, routines.
 - Overview screens: all current tasks / all habits / all routines.
 - Recently Defeated view (undo accidental completes).
-- Run history / run review screen (post-game-over and on demand). On-demand half BUILT 2026-07-19 (session 54, RUN_HISTORY_PLAN.md sub-session 3): Stats window, 5th FAB item — live current-run panel (days survived, counters, top-3 blame) + past-run cards. Post-game-over review card is still open (sub-session 4).
+- Run history / run review screen (post-game-over and on demand). On-demand half BUILT 2026-07-19 (session 54, RUN_HISTORY_PLAN.md sub-session 3): Stats window, 5th FAB item — live current-run panel (days survived, counters, top-3 blame) + past-run cards. Post-game-over half BUILT 2026-07-19/20 (session 55, sub-session 4): the game-over screen is now a review card (framing copy + totals + top-5 blame) instead of one line; the Stats window also gained a per-routine "Routine Performance" rollup across recent runs.
 
 ## Visual Feedback
 - Urgent task: glow / bright border (enemy and list item).

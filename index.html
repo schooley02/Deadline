@@ -24,6 +24,7 @@
     <link rel="stylesheet" href="css/frozenNotice.css">
     <link rel="stylesheet" href="css/shop.css">
     <link rel="stylesheet" href="css/stats.css">
+    <link rel="stylesheet" href="css/gameOverReview.css">
     <link rel="stylesheet" href="css/heroes.css">
     <link rel="stylesheet" href="css/responsive.css">
 </head>
@@ -210,6 +211,12 @@
                 <ul id="statsHistoryList" class="stats-history-list">
                     <!-- Past-run cards populated by js/ui/statsView.js -->
                 </ul>
+                <!-- RUN_HISTORY_PLAN.md sub-session 4: per-routine rollup
+                     across runs (the A/B comparison surface). -->
+                <h4 class="stats-history-heading">Routine Performance</h4>
+                <div id="statsRoutineRollup">
+                    <!-- Routine rollup cards populated by js/ui/statsView.js -->
+                </div>
             </div>
         </div>
 
@@ -272,6 +279,7 @@
     <script src="js/ui/managementWindows.js"></script>
     <script src="js/ui/shopView.js"></script>
     <script src="js/ui/statsView.js"></script>
+    <script src="js/ui/gameOverView.js"></script>
     <script src="js/ui/forms.js"></script>
     <script src="js/ui/popups.js"></script>
     <script src="js/ui/checkIn.js"></script>

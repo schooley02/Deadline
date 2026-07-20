@@ -210,6 +210,12 @@ document.addEventListener('DOMContentLoaded', () => {
             heroesCompletionRate: (routine, habits, windowStartMs) =>
                 Heroes.completionRate(routine, habits, windowStartMs),
             heroesStarRating: (rate) => Heroes.starRating(rate, CONFIG.HERO_STAR_TIERS),
+            // Game-over review card (Run history sub-session 4, session 55):
+            // GameOverView (js/ui/gameOverView.js) loads after js/damage.js,
+            // so it's reached through this pre-bound function — same
+            // forward-reference reasoning as heroesCompletionRate/
+            // heroesStarRating above.
+            renderGameOverReview: (deps) => GameOverView.renderReviewCard(deps),
             getItemIdCounter: () => itemIdCounter,
             getDaysSurvived: () => daysSurvived,
             getRunStartedAtMs: () => runStartedAtMs,
@@ -797,8 +803,11 @@ document.addEventListener('DOMContentLoaded', () => {
         Damage.healBase(amount, damageDeps());
     }
 
-    function gameOver() {
-        Damage.gameOver(damageDeps());
+    // alreadyOver (sub-session 4, session 55): forwarded from
+    // State.restoreGameState's restore-time re-call — see js/damage.js's
+    // gameOver() header for why this distinction exists.
+    function gameOver(alreadyOver) {
+        Damage.gameOver(damageDeps(), alreadyOver);
     }
 
     // Suspended-loop (sleep / throttled tab) catch-up lives in js/damage.js

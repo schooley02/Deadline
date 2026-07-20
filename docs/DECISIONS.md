@@ -4,6 +4,51 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19/20 — Session 55: Run history sub-session 4 — game-over review card + routine rollup; a real duplicate-history bug found + fixed (Cowork session, Sonnet)
+
+RUN_HISTORY_PLAN.md's last two pieces: the game-over review card (`js/ui/gameOverView.js`) and the
+Stats window's "Routine Performance" rollup (`RunStats.rollupRoutinePerformance`). Both built per
+plan with no open design questions — logged here mainly for the bug found live.
+
+**Found + fixed a real bug live in Chrome (not caught by Jest — no existing test reloaded an
+already-dead save more than once).** `State.restoreGameState` has always had `if
+(save.gameIsOver) deps.gameOver();` (predates this session, likely present since early gameOver
+existed) — its job is to re-show the game-over screen when the player reloads a save that already
+ended. Nothing distinguished this "re-display" call from a genuine new death, so `gameOver()`'s
+finalize-and-append block (added session 53) ran again on EVERY such reload, silently appending a
+duplicate `runHistory` record for the same death each time. Confirmed live: reloaded a crafted dead
+save (baseHealth 5, one real overdue task, offline catch-up) twice before the fix and watched
+`runHistory.length` grow from 2 to 3 with two byte-identical "Sub-session 4 Death Test, -12 dmg"
+entries; after the fix, three more reloads left it at 3.
+
+**Decision — `gameOver(deps, alreadyOver)`: a new second parameter, threaded through the script.js
+wrapper and state.js's restore call site (`deps.gameOver(true)`).** When `alreadyOver` is true, the
+function skips `RunStats.finalizeRun`/`appendToHistory` entirely and instead reads back
+`runHistory[0]` (the record the REAL death already appended) to feed the review-card render; it
+also reads `getDaysSurvived()` (the value already frozen and persisted at the real death) instead
+of recomputing `computeDaysSurvived(runStartedAtMs, Date.now(), ...)`, which would otherwise DRIFT
+upward the longer the save sits before being reloaded (e.g. a week-old dead save would start
+reporting "7 Days" for a run that actually died on day 0). Required adding `getDaysSurvived` to
+`buildDamageDeps`'s passthrough (script.js's `stateDeps()` already had the accessor; damage.js's
+deps bag just never received it since nothing needed it before). Rejected: (a) have
+`restoreGameState` build its own separate lightweight re-display path instead of reusing
+`gameOver()` — more code, and would need to duplicate the review-card-vs-plain-text fallback logic
+gameOver() already has; (b) de-dupe `runHistory` by content/timestamp on append instead of
+preventing the double-call — treats the symptom, and a legitimate scenario (identical stats on two
+genuinely different runs) could theoretically collide.
+
+**Also found + fixed: a CSS bug, not a logic bug.** The game-over card's own background is
+`var(--color-error)` (a red); `StatsView.buildBlameList`'s damage text is ALSO styled
+`var(--color-error)` — reused verbatim on the review card, this rendered the "-12 dmg" text
+invisible (red-on-red). Fixed with a `.game-over-review-active .stats-blame-damage { color: white;
+}` override in the new `css/gameOverReview.css`. Caught only by actually looking at the live
+screenshot, not by any test (no Jest coverage exists or is planned for CSS color contrast).
+
+**Resolves:** RUN_HISTORY_PLAN.md now fully CLOSED except optional sub-session 5 polish
+(best-run highlight, vs-last-run deltas) — cut unless play data says otherwise.
+
+---
+
 ## 2026-07-19 — Session 52: Run history + run review SEQUENCED — 4 design forks resolved (Cowork session, Fable)
 
 Design/sequencing session for Milestone 3's last unchecked feature item, producing

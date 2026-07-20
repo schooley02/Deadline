@@ -67,6 +67,17 @@
  *   heroesStarRating,            // (rate) -> stars|null   (both optional — Heroes.*
  *                                //   pre-bound in script.js since Heroes loads
  *                                //   after this module)
+ *   renderGameOverReview,        // ({gameOverMessage, record, daysSurvived}) -> void
+ *                                //   (Run history sub-session 4, session 55 —
+ *                                //   GameOverView.renderReviewCard, pre-bound in
+ *                                //   script.js since js/ui/*.js loads after this
+ *                                //   module; optional — gameOver() falls back to
+ *                                //   the old plain-text message when omitted, so
+ *                                //   every existing damage test is unaffected)
+ *   getDaysSurvived,             // () -> number  (sub-session 4, session 55 —
+ *                                //   optional; used only when gameOver's 2nd
+ *                                //   arg `alreadyOver` is true, to avoid
+ *                                //   recomputing a drifted day count on restore)
  * }
  */
 const Damage = (() => {
@@ -251,7 +262,22 @@ const Damage = (() => {
         if (deps.setLastRegenTickMs) deps.setLastRegenTickMs(Date.now());
     }
 
-    function gameOver(deps) {
+    // `alreadyOver` (sub-session 4, session 55): true when this call is
+    // RESTORING an already-finished run rather than ending a live one —
+    // js/state.js's restoreGameState calls `deps.gameOver()` to re-establish
+    // the game-over UI whenever `save.gameIsOver` is true (e.g. the player
+    // reloads the game-over screen before clicking Restart). That path
+    // pre-dates this session (sub-session 2, session 53), but was never
+    // previously distinguished from a REAL new death — every such reload
+    // re-ran the finalize-and-append block below, silently appending a
+    // duplicate record to runHistory for the same death. Found live in
+    // Chrome this session (reloading a crafted dead save twice produced two
+    // identical "Run #N" entries with the same blame). When `alreadyOver` is
+    // true, this function re-renders the SAME already-appended record
+    // (runHistory[0] — the finalize call that actually ended the run always
+    // ran first, live, before any restore could see gameIsOver:true) instead
+    // of computing a new one.
+    function gameOver(deps, alreadyOver) {
         const {
             setGameOver, getGameLoopInterval, getRunStartedAtMs, setDaysSurvived,
             gameOverMessage, restartButton, baseElement, enableFormControls, saveGame
@@ -261,9 +287,16 @@ const Damage = (() => {
         clearInterval(getGameLoopInterval());
 
         // Freeze the real-time day count at the moment of death, so the
-        // message and the saved run history agree afterwards.
-        const daysSurvived = computeDaysSurvived(getRunStartedAtMs(), Date.now(), CONFIG.MS_PER_REAL_DAY);
-        setDaysSurvived(daysSurvived);
+        // message and the saved run history agree afterwards. On a restore
+        // (alreadyOver), re-deriving this from getRunStartedAtMs()/Date.now()
+        // would DRIFT with however much real time has passed since the run
+        // actually ended (e.g. reloading a week-old dead save would report
+        // "7 Days" for a run that died on day 0) — read the value already
+        // frozen at the real death instead, when available.
+        const daysSurvived = (alreadyOver && deps.getDaysSurvived)
+            ? deps.getDaysSurvived()
+            : computeDaysSurvived(getRunStartedAtMs(), Date.now(), CONFIG.MS_PER_REAL_DAY);
+        if (!alreadyOver) setDaysSurvived(daysSurvived);
 
         // Run history (sub-session 2, 2026-07-19 session 53): finalize the
         // ending run and append it to history. RunStats loads BEFORE this
@@ -274,9 +307,16 @@ const Damage = (() => {
         // damageRoutineForItem below). Optional collaborators — omitted on
         // older/partial deps (every existing test) is a safe no-op, same
         // tolerance as every other collaborator in this file.
-        if (deps.getCurrentRunStats && deps.getRunHistory && deps.setRunHistory) {
+        // `record` is lifted to this outer scope (sub-session 4, session 55)
+        // so the game-over review card below can render it — previously it
+        // only lived inside this `if` block since nothing else needed it.
+        let record = null;
+        if (alreadyOver) {
+            const history = deps.getRunHistory ? deps.getRunHistory() : null;
+            record = (history && history[0]) || null;
+        } else if (deps.getCurrentRunStats && deps.getRunHistory && deps.setRunHistory) {
             const history = deps.getRunHistory();
-            const record = RunStats.finalizeRun(deps.getCurrentRunStats(), {
+            record = RunStats.finalizeRun(deps.getCurrentRunStats(), {
                 runNumber: (history ? history.length : 0) + 1,
                 startedAtMs: getRunStartedAtMs(),
                 endedAtMs: Date.now(),
@@ -288,15 +328,21 @@ const Damage = (() => {
                 starRating: deps.heroesStarRating,
             });
             deps.setRunHistory(RunStats.appendToHistory(history, record, CONFIG.RUN_HISTORY_MAX));
-            // The record itself isn't surfaced anywhere yet — sub-sessions
-            // 3-4 build the Stats window / game-over review card, both of
-            // which can just read runHistory[0] (newest-first).
         }
 
+        // Game-over review card (sub-session 4, session 55): renderGameOverReview
+        // is GameOverView.renderReviewCard, pre-bound in script.js (see deps
+        // doc above). Falls back to the original plain-text message when the
+        // dep is omitted — every existing damage test, plus any future caller
+        // that doesn't wire the UI layer in.
         if (gameOverMessage) {
-            const dayLabel = daysSurvived === 1 ? 'Day' : 'Days';
-            gameOverMessage.textContent = `GAME OVER! Your Base Survived ${daysSurvived} ${dayLabel}.`;
-            gameOverMessage.classList.remove('hidden');
+            if (deps.renderGameOverReview) {
+                deps.renderGameOverReview({ gameOverMessage, record, daysSurvived });
+            } else {
+                const dayLabel = daysSurvived === 1 ? 'Day' : 'Days';
+                gameOverMessage.textContent = `GAME OVER! Your Base Survived ${daysSurvived} ${dayLabel}.`;
+                gameOverMessage.classList.remove('hidden');
+            }
         }
 
         if (restartButton) restartButton.classList.remove('hidden');

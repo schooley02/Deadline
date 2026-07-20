@@ -1,0 +1,81 @@
+/**
+ * gameOverReview.css — the game-over review card (RUN_HISTORY_PLAN.md
+ * sub-session 4, 2026-07-19/20 session 55). Mirrors js/ui/gameOverView.js.
+ *
+ * #gameOverMessage's base look (position/centering/dark backdrop/shadow) is
+ * .message-overlay (css/gameCanvas.css) — built for a short bold one-liner
+ * ("GAME OVER!"/"LEVEL UP!"). `.game-over-review-active` is added ONLY when
+ * GameOverView has populated it with the richer review card, and overrides
+ * just the sizing/typography/alignment needed for that content; it leaves
+ * position/background/shadow/border-radius from .message-overlay untouched
+ * so #levelUpMessage (which never gets this class) is unaffected.
+ *
+ * Linked before responsive.css in index.html (see that file's header
+ * comment — responsive.css must always load last).
+ */
+
+#gameOverMessage.game-over-review-active {
+    width: 90%;
+    max-width: 420px;
+    max-height: 80vh;
+    overflow-y: auto;
+    font-size: var(--text-body);
+    font-weight: normal;
+    text-align: left;
+    padding: var(--space-6);
+}
+
+.game-over-heading {
+    font-size: var(--text-h3);
+    font-weight: 700;
+    margin-bottom: var(--space-2);
+    text-align: center;
+}
+
+.game-over-prompt {
+    font-size: 13px;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.85);
+    text-align: center;
+    margin-bottom: var(--space-4);
+}
+
+.game-over-totals {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    text-align: center;
+    margin-bottom: var(--space-4);
+}
+
+.game-over-blame-heading {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+/* The reused StatsView.buildBlameList markup renders white-on-dark here
+   (it's normally black-on-light inside the Stats window) — override just
+   the text colors, keep the layout/spacing from stats.css. */
+.game-over-review-active .stats-blame-name {
+    color: white;
+}
+
+.game-over-review-active .stats-blame-meta {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.game-over-review-active .stats-blame-list li {
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+}
+
+/* stats-blame-damage's default color (--color-error, a red) is invisible
+   against this card's own red background (#gameOverMessage's base color is
+   the SAME --color-error) — found live in Chrome this session. White stands
+   out against the red card without needing a whole new palette. */
+.game-over-review-active .stats-blame-damage {
+    color: white;
+}
+
+.game-over-review-active .stats-empty {
+    color: rgba(255, 255, 255, 0.6);
+}

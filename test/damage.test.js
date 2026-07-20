@@ -540,6 +540,91 @@ describe('gameOver — run history finalize (sub-session 2, session 53)', () => 
 });
 
 // ---------------------------------------------------------------------------
+describe('gameOver(deps, alreadyOver) — restoring an already-dead save (sub-session 4, session 55)', () => {
+    // Reproduces the exact bug found live in Chrome: State.restoreGameState
+    // re-calls deps.gameOver() whenever save.gameIsOver is true, to
+    // re-establish the game-over UI. Without the alreadyOver distinction,
+    // every such reload re-ran the finalize+append block, silently
+    // duplicating the just-ended run in history.
+    function runHistoryDeps(overrides = {}) {
+        let history = overrides.runHistory || [];
+        const stats = overrides.currentRunStats || RunStats.freshRunStats();
+        return makeDeps({
+            state: { runStartedAtMs: Date.now() - 5 * CONFIG.MS_PER_REAL_DAY, daysSurvived: 5 },
+            deps: {
+                getCurrentRunStats: () => stats,
+                getRunHistory: () => history,
+                setRunHistory: (arr) => { history = arr; },
+                getDaysSurvived: () => overrides.persistedDaysSurvived,
+                ...overrides.extraDeps,
+            },
+        });
+    }
+
+    test('does NOT append a second record — reuses runHistory[0] instead of re-finalizing', () => {
+        const record = { runNumber: 1, daysSurvived: 5, totals: { tasksCompleted: 3 }, blame: [] };
+        const deps = runHistoryDeps({ runHistory: [record], persistedDaysSurvived: 5 });
+
+        Damage.gameOver(deps, true);
+
+        const history = deps.getRunHistory();
+        expect(history).toHaveLength(1); // NOT 2
+        expect(history[0]).toBe(record); // same object, not a new finalize
+    });
+
+    test('renders the review card using the already-appended record, not a freshly finalized one', () => {
+        const record = { runNumber: 1, daysSurvived: 5, totals: { tasksCompleted: 3 }, blame: [] };
+        let rendered = null;
+        const deps = runHistoryDeps({
+            runHistory: [record], persistedDaysSurvived: 5,
+            extraDeps: { renderGameOverReview: (args) => { rendered = args; } },
+        });
+
+        Damage.gameOver(deps, true);
+
+        expect(rendered.record).toBe(record);
+        expect(rendered.daysSurvived).toBe(5);
+    });
+
+    test('uses getDaysSurvived (the persisted, frozen value) instead of recomputing from elapsed wall-clock time', () => {
+        // runStartedAtMs is 5 days ago (see runHistoryDeps), which would
+        // recompute to 5 if daysSurvived were freshly derived — but this run
+        // actually died on day 0. The persisted value must win.
+        let rendered = null;
+        const deps = runHistoryDeps({
+            runHistory: [{ runNumber: 1 }], persistedDaysSurvived: 0,
+            extraDeps: { renderGameOverReview: (args) => { rendered = args; } },
+        });
+
+        Damage.gameOver(deps, true);
+
+        expect(rendered.daysSurvived).toBe(0); // NOT the recomputed 5
+    });
+
+    test('does not call setDaysSurvived at all (the persisted value from restore is left untouched)', () => {
+        const deps = runHistoryDeps({ runHistory: [{ runNumber: 1 }], persistedDaysSurvived: 2 });
+        const before = deps._state.daysSurvived;
+
+        Damage.gameOver(deps, true);
+
+        expect(deps._state.daysSurvived).toBe(before);
+    });
+
+    test('a plain (non-alreadyOver) call still finalizes and appends normally — no regression', () => {
+        const deps = runHistoryDeps({ runHistory: [{ runNumber: 1 }] });
+
+        Damage.gameOver(deps); // alreadyOver omitted
+
+        expect(deps.getRunHistory()).toHaveLength(2);
+    });
+
+    test('falls back gracefully when getRunHistory is missing (defensive)', () => {
+        const deps = makeDeps({ state: { runStartedAtMs: Date.now() - CONFIG.MS_PER_REAL_DAY } });
+        expect(() => Damage.gameOver(deps, true)).not.toThrow();
+    });
+});
+
+// ---------------------------------------------------------------------------
 describe('applyOfflineDamage', () => {
     test('charges each hit and accumulates offlineDamageCharged', () => {
         const a = item();

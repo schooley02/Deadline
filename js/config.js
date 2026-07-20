@@ -277,6 +277,11 @@ const CONFIG = {
     // session 52 — docs/RUN_HISTORY_PLAN.md). Oldest records drop past the
     // cap (RunStats.appendToHistory). Tunable via the balance protocol.
     RUN_HISTORY_MAX: 50,
+    // Per-routine rollup (sub-session 4, session 55): how many past-run rows
+    // to show per routine in the Stats window's "Routine Performance"
+    // section (RunStats.rollupRoutinePerformance). Display cap, not gameplay
+    // balance — same category as HERO_CHIP_MAX_DISPLAY above.
+    ROUTINE_ROLLUP_MAX_RUNS: 5,
 };
 
 // Export for Jest/Node; browser picks up the global `CONFIG` via <script> tag.

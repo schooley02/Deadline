@@ -152,3 +152,76 @@
     color: var(--color-neutral);
     margin-bottom: 4px;
 }
+
+/* Routine Performance rollup (sub-session 4, 2026-07-19/20 session 55) —
+   mirrors the Past Runs card treatment above. */
+.stats-routine-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.stats-routine-card {
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-secondary-green-pale);
+    border-radius: 8px;
+    padding: var(--space-2) var(--space-4);
+    margin-bottom: var(--space-2);
+}
+
+.stats-routine-card-title {
+    font-weight: 600;
+    color: var(--color-text-primary);
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.stats-routine-entry-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.stats-routine-entry-list li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 3px 0;
+    font-size: 12px;
+    border-bottom: 1px solid var(--color-secondary-green-pale);
+    flex-wrap: wrap;
+}
+
+.stats-routine-entry-list li:last-child {
+    border-bottom: none;
+}
+
+.stats-routine-run {
+    color: var(--color-neutral);
+    min-width: 52px;
+}
+
+.stats-routine-metric {
+    color: var(--color-text-primary);
+}
+
+.stats-routine-damage {
+    color: var(--color-error);
+    margin-left: auto;
+}
+
+.stats-routine-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 10px;
+    color: white;
+}
+
+.stats-routine-badge-ko {
+    background: var(--color-error);
+}
+
+.stats-routine-badge-frozen {
+    background: var(--color-neutral);
+}

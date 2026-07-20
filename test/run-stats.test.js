@@ -249,3 +249,87 @@ describe('appendToHistory', () => {
             .toHaveLength(2);
     });
 });
+
+describe('rollupRoutinePerformance — per-routine rollup across runs (sub-session 4)', () => {
+    function routineRow(over = {}) {
+        return {
+            routineId: 'r1', name: 'Morning', level: 3, stars: 3,
+            completionRate: 0.8, memberDamage: 10,
+            wasFrozenAtEnd: false, wasKOdAtEnd: false, ...over,
+        };
+    }
+    function record(over = {}) {
+        return { runNumber: 1, endedAtMs: T0, routines: [routineRow()], ...over };
+    }
+
+    test('empty/missing history -> empty array', () => {
+        expect(RunStats.rollupRoutinePerformance([], 5)).toEqual([]);
+        expect(RunStats.rollupRoutinePerformance(null, 5)).toEqual([]);
+    });
+
+    test('groups by routineId across multiple runs, entries newest-first (input order preserved)', () => {
+        const history = [
+            record({ runNumber: 3, endedAtMs: T0 + 2, routines: [routineRow({ level: 5 })] }),
+            record({ runNumber: 2, endedAtMs: T0 + 1, routines: [routineRow({ level: 4 })] }),
+            record({ runNumber: 1, endedAtMs: T0, routines: [routineRow({ level: 3 })] }),
+        ];
+        const [group] = RunStats.rollupRoutinePerformance(history, 10);
+        expect(group.routineId).toBe('r1');
+        expect(group.entries.map(e => e.runNumber)).toEqual([3, 2, 1]);
+        expect(group.entries.map(e => e.level)).toEqual([5, 4, 3]);
+    });
+
+    test('name uses the most-recently-seen record (newest-first input)', () => {
+        const history = [
+            record({ runNumber: 2, routines: [routineRow({ name: 'Morning Ritual (renamed)' })] }),
+            record({ runNumber: 1, routines: [routineRow({ name: 'Morning' })] }),
+        ];
+        const [group] = RunStats.rollupRoutinePerformance(history, 10);
+        expect(group.name).toBe('Morning Ritual (renamed)');
+    });
+
+    test('two different routines in the same run produce two groups', () => {
+        const history = [record({
+            routines: [routineRow({ routineId: 'r1' }), routineRow({ routineId: 'r2', name: 'Evening' })],
+        })];
+        const groups = RunStats.rollupRoutinePerformance(history, 10);
+        expect(groups.map(g => g.routineId)).toEqual(['r1', 'r2']);
+    });
+
+    test('caps entries per routine at maxRunsPerRoutine, keeping the newest', () => {
+        const history = [3, 2, 1].map(n => record({ runNumber: n, routines: [routineRow()] }));
+        const [group] = RunStats.rollupRoutinePerformance(history, 2);
+        expect(group.entries.map(e => e.runNumber)).toEqual([3, 2]);
+    });
+
+    test('a non-positive/missing cap is treated as unlimited', () => {
+        const history = [3, 2, 1].map(n => record({ runNumber: n, routines: [routineRow()] }));
+        expect(RunStats.rollupRoutinePerformance(history, 0)[0].entries).toHaveLength(3);
+        expect(RunStats.rollupRoutinePerformance(history, undefined)[0].entries).toHaveLength(3);
+    });
+
+    test('runs with no routines (older records / no routines defined) contribute nothing', () => {
+        const history = [{ runNumber: 1, endedAtMs: T0, routines: [] }, { runNumber: 2, endedAtMs: T0 }];
+        expect(RunStats.rollupRoutinePerformance(history, 5)).toEqual([]);
+    });
+
+    test('entry shape carries level/stars/completionRate/memberDamage/frozen/KO + run identity', () => {
+        const history = [record({
+            routines: [routineRow({
+                stars: null, completionRate: null, wasFrozenAtEnd: true, wasKOdAtEnd: false,
+            })],
+        })];
+        const [group] = RunStats.rollupRoutinePerformance(history, 5);
+        expect(group.entries[0]).toEqual({
+            runNumber: 1, endedAtMs: T0, level: 3, stars: null, completionRate: null,
+            memberDamage: 10, wasFrozenAtEnd: true, wasKOdAtEnd: false,
+        });
+    });
+
+    test('does not mutate the input runHistory', () => {
+        const history = [record()];
+        const snapshot = JSON.stringify(history);
+        RunStats.rollupRoutinePerformance(history, 5);
+        expect(JSON.stringify(history)).toBe(snapshot);
+    });
+});

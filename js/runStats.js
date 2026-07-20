@@ -157,6 +157,53 @@ const RunStats = (() => {
         return (max > 0 && next.length > max) ? next.slice(0, max) : next;
     }
 
+    /**
+     * Per-routine rollup ACROSS RUNS (sub-session 4, RUN_HISTORY_PLAN.md —
+     * the A/B comparison surface fork 2 anticipated). `runHistory` is
+     * already newest-first (appendToHistory); this groups each run's frozen
+     * `record.routines[]` rows by routineId, preserving that newest-first
+     * order both across routines (a routine's group appears where it was
+     * FIRST encountered scanning newest-to-oldest, i.e. by recency) and
+     * within a routine's own entries. `maxRunsPerRoutine` caps entries per
+     * routine (CONFIG.ROUTINE_ROLLUP_MAX_RUNS) — a long-lived routine could
+     * otherwise carry up to CONFIG.RUN_HISTORY_MAX (50) rows into the UI.
+     * `name` uses the routine's most-recently-seen name (routine names are
+     * frozen per-record at finalizeRun time, same as every other routine
+     * field here — a later rename doesn't rewrite old records).
+     *
+     * Pure — no DOM, no mutation of runHistory. Returns a NEW array of
+     * { routineId, name, entries: [{runNumber, endedAtMs, level, stars,
+     * completionRate, memberDamage, wasFrozenAtEnd, wasKOdAtEnd}, ...] }.
+     */
+    function rollupRoutinePerformance(runHistory, maxRunsPerRoutine) {
+        const cap = maxRunsPerRoutine > 0 ? maxRunsPerRoutine : Infinity;
+        const byRoutine = new Map();
+
+        (runHistory || []).forEach(record => {
+            (record.routines || []).forEach(r => {
+                let group = byRoutine.get(r.routineId);
+                if (!group) {
+                    group = { routineId: r.routineId, name: r.name, entries: [] };
+                    byRoutine.set(r.routineId, group);
+                }
+                if (group.entries.length < cap) {
+                    group.entries.push({
+                        runNumber: record.runNumber,
+                        endedAtMs: record.endedAtMs,
+                        level: r.level,
+                        stars: r.stars,
+                        completionRate: r.completionRate,
+                        memberDamage: r.memberDamage,
+                        wasFrozenAtEnd: r.wasFrozenAtEnd,
+                        wasKOdAtEnd: r.wasKOdAtEnd,
+                    });
+                }
+            });
+        });
+
+        return Array.from(byRoutine.values());
+    }
+
     return {
         freshRunStats,
         blameKeyFor,
@@ -168,6 +215,7 @@ const RunStats = (() => {
         sortedBlame,
         finalizeRun,
         appendToHistory,
+        rollupRoutinePerformance,
     };
 })();
 

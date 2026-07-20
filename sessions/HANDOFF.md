@@ -13,6 +13,68 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19/20 — Session 55: Run history sub-session 4 BUILT — game-over review card + routine rollup + a real duplicate-history bug fixed (Cowork session, Sonnet)
+
+**Did:** RUN_HISTORY_PLAN.md sub-session 4 (the last non-optional item). `js/ui/gameOverView.js`:
+replaces the one-line "GAME OVER!" text with a card — the GAME_DESIGN/UI_UX-documented framing
+line ("What adjustments can you make to have a stronger Base in your life?") is FINALLY wired in
+(written in the docs since the original spec, never actually rendered until now), plus run totals
+and a top-5 blame list (reuses `StatsView.buildBlameList`). Wired into `damage.js`'s `gameOver()`
+as an injected `renderGameOverReview` dep (optional — falls back to the old plain-text message, so
+every existing damage test is untouched). New `RunStats.rollupRoutinePerformance` (js/runStats.js):
+groups `runHistory`'s per-record `routines[]` by routineId, newest-first, capped per routine at new
+`CONFIG.ROUTINE_ROLLUP_MAX_RUNS` (5) — rendered as a new "Routine Performance" section in the Stats
+window (statsView.js). New `css/gameOverReview.css` + stats.css additions. Docs: MECHANICS.md,
+UI_UX.md, ROADMAP.md (item 4 checked, RUN_HISTORY_PLAN.md now closed except optional polish),
+DECISIONS.md.
+
+**Found + fixed two real bugs live in Chrome (neither caught by Jest going in):**
+1. **Duplicate run-history records on every reload of a dead save.** `State.restoreGameState` has
+   long called `deps.gameOver()` to re-display the game-over screen whenever `save.gameIsOver` is
+   true — but nothing distinguished that from a genuine new death, so gameOver()'s finalize+append
+   block (added session 53) silently ran AGAIN each time, duplicating the just-ended run. Fixed
+   with a new `alreadyOver` param (`gameOver(deps, alreadyOver)`, threaded through the script.js
+   wrapper and state.js's call site as `deps.gameOver(true)`): when true, it reads back
+   `runHistory[0]` and the persisted `getDaysSurvived()` instead of re-finalizing / recomputing a
+   wall-clock-drifted day count. Added `getDaysSurvived` to `buildDamageDeps`'s passthrough.
+   Confirmed live: `runHistory.length` grew 2→3 across two reloads before the fix (identical
+   duplicate blame entries), stayed at 3 across three more reloads after.
+2. **Red-on-red CSS bug.** The game-over card's own background and `StatsView.buildBlameList`'s
+   damage-text color are BOTH `var(--color-error)` — the blame damage ("-12 dmg") was invisible on
+   the card. Fixed with a white-text override in `css/gameOverReview.css`, scoped to the card.
+
+**State:** ✅ **41 suites, 874/874** (+15 over session 54: 9 for `rollupRoutinePerformance`, 6 for
+the `alreadyOver` fix). `node --check` clean on every touched file. **Live-verified in Chrome
+end-to-end, including a real base death**: created a real overdue task via the Add Task UI (correct
+schema, no hand-typed item shape), then hand-edited baseHealth=5 + backdated its due date/savedAt
+by 3h to trigger a REAL offline-catch-up death through the actual game loop. Review card rendered
+correctly (framing copy, totals, blame — after the CSS fix); Stats window showed Past Runs (a
+seeded fake prior run + the new real one) and Routine Performance (from the seeded run's routines
+data). Restored the local save to its original empty state afterward.
+
+**Next:** RUN_HISTORY_PLAN.md is fully closed except optional sub-session 5 (best-run
+highlight/personal-record badge, expandable run cards, "vs last run" deltas) — cut unless play
+data says a comparison surface is actually wanted. Check ROADMAP.md for Milestone 3's remaining
+items / what Milestone 4 starts with.
+
+**Watch out:**
+- **Any FUTURE call site that invokes `Damage.gameOver()` (or the script.js wrapper) to
+  RE-DISPLAY an already-ended run — as opposed to ending a new one — MUST pass `alreadyOver: true`
+  (2nd positional arg).** Forgetting this silently re-finalizes and duplicates the run in history
+  again, exactly like the bug this session fixed. There is currently exactly one such call site
+  (`js/state.js` restoreGameState's `if (save.gameIsOver) deps.gameOver(true)`); if a second one is
+  ever added (e.g. a future "review a past run" button), it needs the same flag.
+- **A reused CSS custom property can silently collide across contexts with different backgrounds.**
+  `StatsView.buildBlameList`'s markup is shared between the Stats window (light card, red text
+  reads fine) and the game-over review card (red card, same red text = invisible) — any FUTURE
+  reuse of that markup on another colored background needs the same kind of override check, not an
+  assumption that a shared component's default colors always work.
+- Reproducing a real death for live-testing: creating a task via the Add Task form's due-TIME field
+  did NOT reliably accept a typed past time this session (it silently kept ~5 min from now instead
+  of the typed 10:00 AM) — don't rely on the form to produce an already-overdue task directly.
+  Create it normally (guarantees correct schema), then hand-edit `dueDateTime` on the already-saved
+  JSON — same safety as using the real form, full control over timing.
+
 ## 2026-07-19 — Session 54: Run history sub-session 3 BUILT — Stats window UI (Cowork session, Sonnet)
 
 **Did:** RUN_HISTORY_PLAN.md sub-session 3. New `js/ui/statsView.js` + `css/stats.css`: 5th FAB

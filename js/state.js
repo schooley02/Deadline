@@ -221,6 +221,14 @@ const State = (() => {
             getDefinedHabits: deps.getDefinedHabits,
             heroesCompletionRate: deps.heroesCompletionRate,
             heroesStarRating: deps.heroesStarRating,
+            // Game-over review card (Run history sub-session 4, session 55) —
+            // GameOverView.renderReviewCard, pre-bound in script.js since
+            // js/ui/*.js loads after js/damage.js.
+            renderGameOverReview: deps.renderGameOverReview,
+            // Sub-session 4, session 55 — read back on gameOver(deps, true)
+            // (restoring an already-dead save) instead of recomputing a
+            // drifted day count. See js/damage.js's gameOver() header.
+            getDaysSurvived: deps.getDaysSurvived,
             // Regen clock passthrough ([P2-GAME-012], 2026-07-18) — lets
             // runOfflineCatchUp/runLiveGapCatchUp apply offline/suspended-gap
             // regen and reset the live loop's regen clock afterward.
@@ -453,7 +461,14 @@ const State = (() => {
         deps.renderCompletedItems();
         deps.sortAndRenderActiveList();
 
-        if (save.gameIsOver) deps.gameOver();
+        // `true` = alreadyOver (sub-session 4, session 55): this restores an
+        // ALREADY-finished run's UI, it doesn't end a new one — the actual
+        // finalize+append into runHistory happened the first time this run
+        // died, live. Without this flag, every reload of a dead save (before
+        // clicking Restart) re-finalized and appended a duplicate history
+        // record — found live in Chrome this session. See js/damage.js's
+        // gameOver() header comment for the full explanation.
+        if (save.gameIsOver) deps.gameOver(true);
 
         // Offline catch-up: animate zombies from their saved positions to now,
         // then back-charge capped offline overdue damage (see DECISIONS.md).
