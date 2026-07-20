@@ -22,7 +22,11 @@
     --color-success: #43A047;
     --color-error: #E53935;
     --color-warning: #F57C00;
-    --color-neutral: #9E9E9E;
+    --color-neutral: #757575; /* was #9E9E9E — darkened 2026-07-20 (MOBILE_PWA_PLAN.md
+                                 sub-session 2) for WCAG AA: #9E9E9E was only ~2.85:1 on
+                                 white (fails AA for text). #757575 is ~4.6:1 (passes AA).
+                                 Only non-text uses are disabled-button/badge/progress-fill
+                                 backgrounds, which only benefit from the darker value. */
     --color-text-primary: #424242;
     --color-sacred-stone: #8B7D74;
     

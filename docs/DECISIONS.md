@@ -4,6 +4,46 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-20 — Session 74 (continued): Mobile UX sub-session 2 BUILT — accessibility pass
+
+Audit run on Opus (per model strategy — first-pass a11y audit is judgment work), fixes executed
+same session. **Key finding: the plan over-estimated the gaps.** The recon plan assumed the day
+pager `‹ ›` buttons, week-strip cells, and time slider needed keyboard/ARIA work — but they were
+ALREADY real `<button>`/`<input>` elements carrying `aria-label`s (checked index.html +
+dayPagerView.js's renderWeekStrip, which emits `<button type="button" aria-label="…">` cells) with
+browser-default focus rings, and form inputs already swap their removed outline for a
+border+box-shadow focus ring (managementWindows.css). So the pass came down to three real gaps:
+
+1. **Contrast (WCAG AA):** `--color-neutral` was #9E9E9E ≈ 2.85:1 on white — fails AA for text, and
+   it's the color for a lot of secondary text (ghost-agenda meta/time/empty rows, week-strip
+   weekday labels, etc.). Darkened to #757575 (≈4.6:1, passes AA). Verified safe for its only three
+   NON-text uses first (grepped): `.shop-buy-button:disabled`, `.stats-routine-badge-frozen`,
+   `.stats-badge-progress-fill` — all backgrounds with no dark text on them, so a darker value only
+   helps or is cosmetically neutral. Changed the TOKEN rather than adding targeted overrides — the
+   whole point of the token is one accessible value everywhere; blast radius is purely visual (no
+   logic), appropriate for an a11y pass. Rejected micro-tuning `--color-error` for the small red
+   `.week-strip-priority ★N` badge (~4.0:1, just under AA-normal): it's supplementary info also
+   encoded in the cell's aria-label, and `--color-error` is a brand red used app-wide including as
+   a background under white text, so a global shift there carries real regression risk for a
+   non-color-only-dependent detail.
+2. **Day-pager changes silent to AT:** `#dayPagerLabel` had its text swapped by dayPagerView.js
+   with no announcement. Added `role="status"` + `aria-live="polite"` + `aria-atomic="true"`
+   (index.html) so pressing `‹ ›` announces "Tomorrow" / "Wed · Jul 22" / etc.
+3. **Week-strip selection CSS-only:** the viewed day was marked only by `.week-strip-active`.
+   Added `aria-current="true"` to the matching cell in renderWeekStrip.
+
+Verification: 55 suites, 1184/1184 (day-pager-view.test.js only covers the pure `formatDayLabel`,
+so the renderWeekStrip HTML change needed no test update); `node --check` clean on dayPagerView.js.
+Live-verified in Chrome on the real page (not the iframe this time — no viewport-width dependence):
+computed `--color-neutral` = #757575, `#dayPagerLabel` role/aria-live present and text cycled
+Today→Tomorrow→Today via the buttons, `aria-current` moved to offset 1 when stepped forward and
+back to offset 0 on return.
+
+**Next:** MOBILE_PWA_PLAN.md sub-session 3 (PWA installable shell — manifest, service worker,
+theme-color). Pure additive/mechanical, Sonnet-appropriate.
+
+---
+
 ## 2026-07-20 — Session 74: Mobile UX + accessibility + PWA — sequenced, not built
 
 Sequenced the last open Milestone 4 line into `docs/MOBILE_PWA_PLAN.md` (3 sub-sessions), same

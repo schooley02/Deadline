@@ -11,7 +11,21 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
-## 2026-07-20 — Session 74: Mobile UX + accessibility + PWA — sequenced + sub-session 1 BUILT (Cowork session)
+## 2026-07-20 — Session 74: Mobile UX + accessibility + PWA — sequenced + sub-sessions 1 & 2 BUILT (Cowork session)
+
+**Sub-session 2 (accessibility, added after sub-session 1):** Audited on Opus; found the plan
+over-estimated the gaps — day pager `‹ ›`, week-strip cells, and time slider were ALREADY real
+`<button>`/`<input>` with `aria-label`s + focus rings. Three real fixes: darkened
+`--color-neutral` #9E9E9E→#757575 (WCAG AA text contrast, base.css); `role="status"`/
+`aria-live="polite"`/`aria-atomic` on `#dayPagerLabel` (index.html) so `‹ ›` day changes are
+announced; `aria-current="true"` on the active week-strip cell (dayPagerView.js). 55 suites,
+1184/1184; `node --check` clean; live-verified in Chrome (computed #757575, label announces,
+aria-current tracks the viewed cell). **Only sub-session 3 (PWA installable shell) remains on
+the mobile ticket.** Details below cover sub-session 1; see DECISIONS.md session 74 for both.
+
+---
+
+## 2026-07-20 — Session 74 (part 1): Mobile UX — sequenced + sub-session 1 BUILT
 
 **Did:** Took on the last open Milestone 4 line ("Mobile UX + accessibility pass; PWA"). Read
 `docs/UI_UX.md`'s Accessibility section + `ACTIONABLE_TICKETS.md` mobile/a11y lines, then did a
@@ -37,10 +51,11 @@ first). `docs/ROADMAP.md`/`docs/UI_UX.md`/`docs/DECISIONS.md` all updated same-s
 changed selector's real computed size in Chrome at 390×844 (iframe workaround) — all now
 ≥44×44px. NOT committed — git commands given below.
 
-**Next:** MOBILE_PWA_PLAN.md sub-session 2 — accessibility pass (day pager `‹ ›` accessible
-names, week-strip cell keyboard+ARIA mirroring the session-69 expandable-run-card pattern,
-agenda checkbox keyboard-operability check, contrast pass on anything borderline found along the
-way). Opus-tier is fine for the first-pass audit portion; execution is Sonnet.
+**Next (updated — sub-session 2 now also done, see top block):** MOBILE_PWA_PLAN.md sub-session 3
+— PWA installable shell (manifest.json + icons from Assets/, a cache-first service worker for the
+app shell, register it from index.html, add the theme-color meta). Pure additive, Sonnet-tier;
+the plan doc has the file list. Live-verify via Chrome's Application panel (manifest + activated
+SW + offline reload still loads the shell).
 
 **Watch out:**
 - `mcp__claude-in-chrome__resize_window` reported success but never actually changed the live

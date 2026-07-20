@@ -55,6 +55,10 @@ edit-pencil button (`.edit-icon-btn`, was 32×32px), the completion checkbox's c
 and the week-strip day cells (`.week-strip-cell`, was 42px tall) are all now ≥44×44px. Also fixed:
 `css/responsive.css`'s two `@media` breakpoints had FAB/management-window/fab-menu compacting
 rules living under `min-width: 1024px` (desktop) instead of `max-width: 768px` (mobile) — moved to
-where they actually apply. See DECISIONS.md session 74 for the full breakdown. Remaining
-accessibility work (keyboard/ARIA on the day pager and week strip, contrast pass) is
-MOBILE_PWA_PLAN.md sub-session 2.
+where they actually apply. See DECISIONS.md session 74 for the full breakdown. Accessibility
+pass done same day (MOBILE_PWA_PLAN.md sub-session 2): most controls were already
+keyboard-accessible with `aria-label`s (day pager `‹ ›`, week-strip cells, time slider are all
+real `<button>`/`<input>`), so the fixes were narrow — darkened `--color-neutral` (#9E9E9E→#757575)
+for WCAG AA text contrast, `role="status"`/`aria-live` on `#dayPagerLabel` so day changes are
+announced, and `aria-current="true"` on the active week-strip cell. Remaining Mobile UX work is
+MOBILE_PWA_PLAN.md sub-session 3 (PWA installable shell).

@@ -85,7 +85,10 @@
              static snapshot (sub-session 3). js/ui/dayPagerView.js. -->
         <div class="day-pager-row">
             <button id="dayPagerPrev" class="day-pager-btn" aria-label="Previous day">‹</button>
-            <span id="dayPagerLabel" class="day-pager-label">Today</span>
+            <!-- role=status + aria-live so pressing the ‹ › buttons announces the
+                 newly-viewed day to screen readers (MOBILE_PWA_PLAN.md sub-session 2) —
+                 the label text is swapped silently by dayPagerView.js otherwise. -->
+            <span id="dayPagerLabel" class="day-pager-label" role="status" aria-live="polite" aria-atomic="true">Today</span>
             <button id="dayPagerNext" class="day-pager-btn" aria-label="Next day">›</button>
         </div>
 
