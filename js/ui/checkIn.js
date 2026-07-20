@@ -55,10 +55,6 @@ const CheckIn = (() => {
         const pending = collectPendingCheckIns(deps.getDefinedHabits());
         if (pending.length === 0) return;
 
-        // Don't stack a second check-in overlay (e.g. a snooze timer firing
-        // while one is somehow already open).
-        if (document.querySelector('.check-in-overlay')) return;
-
         const cardsHtml = pending.map(buildCardHtml).join('');
         const modalHtml = `
             <div class="modal-overlay check-in-overlay">
@@ -69,9 +65,11 @@ const CheckIn = (() => {
                 </div>
             </div>
         `;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-        const overlay = document.querySelector('.check-in-overlay');
+        // Modal.open's dedupeSelector replaces the old hand-written "don't
+        // stack a second check-in overlay" guard (e.g. a snooze timer firing
+        // while one is somehow already open) — [P2-UI-011] Stage 2 sub-session 1.
+        const overlay = Modal.open(modalHtml, { dedupeSelector: '.check-in-overlay' });
+        if (!overlay) return;
 
         overlay.querySelectorAll('.check-in-card').forEach(card => {
             const habitDefId = card.getAttribute('data-habit-id');

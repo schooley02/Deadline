@@ -145,9 +145,17 @@ Ordering decided 2026-07-18 session 19 (Fable — see DECISIONS.md): 007 → 008
   jest-environment-jsdom added). Live-verified in Chrome: stacked ESC unwind, Cancel/backdrop
   topmost-only, Tab trap wrap, focus return, full create-task flow, no new console errors. See
   UI_UX.md/ARCHITECTURE.md/DECISIONS.md session 61.
-  - [ ] Stage 2 (unscheduled): central `Modal.open()` builder; migrate the per-cluster inline
-    modal HTML strings onto it; drop forms.js's 50ms setTimeout listener wiring; full keyboard-nav
-    pass folds into the Milestone 4 accessibility item.
+  - [~] Stage 2 — **SEQUENCED 2026-07-20 (Cowork session, Opus): `docs/MODAL_STAGE2_PLAN.md`.**
+    Central `Modal.open()` builder; migrate the per-cluster inline modal HTML strings onto it;
+    drop forms.js's 50ms setTimeout listener wiring; full keyboard-nav pass stays folded into the
+    Milestone 4 accessibility item. 5 sub-sessions (checkIn.js pilot → frozenNotice.js →
+    popups.js → forms.js → routineViews.js), no product/UX forks (pure engineering, scoped
+    directly at Opus). `js/TaskManager.js`'s lone overlay site excluded (dead/parallel path).
+    - [ ] 1. `Modal.open()` core + tests + checkIn.js pilot
+    - [ ] 2. frozenNotice.js (6 sites, validates the `defer` path)
+    - [ ] 3. popups.js (3 sites, heaviest listener wiring)
+    - [ ] 4. forms.js (1 site, drops the 50ms delay — the one real behavior change)
+    - [ ] 5. routineViews.js (7 sites, only cluster with stacked overlays)
 - [x] [P2-GAME-012] Base healing system (2026-07-18, session 17) — gradual regen BUILT: 1 HP/5min while alive (`js/loop.js`) + same rate offline/suspended-gap (`js/damage.js`'s `applyElapsedRegen`, applied after offline damage), clamped at 100; NO daily reset. Repair kits remain unbuilt (ties to the Milestone 3 shop). 17 suites, 370/370. Live-verified in Chrome. See MECHANICS.md Base + DECISIONS.md.
 - [x] [P2-UI-013] Routine transfer system (2026-07-19, session 62) — Move button on habit AND task
   rows of the Manage Routine modal → stacked destination picker. Pure cores in js/routines.js

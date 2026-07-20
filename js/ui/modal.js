@@ -10,15 +10,20 @@
  * `.management-window` panels, the latter via deps callbacks so this file
  * still has no dependency on managementWindows.js internals).
  *
- * Overlay CREATION is still NOT in scope (Stage 2): each form/popup
- * cluster builds its own `<div class="modal-overlay">...` HTML string and
- * inserts it as a DIRECT CHILD of document.body (verified by grep across
+ * Overlay CREATION: centralized via `Modal.open()` ([P2-UI-011] Stage 2,
+ * docs/MODAL_STAGE2_PLAN.md, sequenced 2026-07-20). Every cluster still
+ * builds its own `<div class="modal-overlay">...` HTML string — `open()`
+ * doesn't template content, only inserts it — as a DIRECT CHILD of
+ * document.body (verified by grep across
  * forms.js/checkIn.js/frozenNotice.js/popups.js/routineViews.js — every
  * insertion site targets body). That invariant is what lets the
- * MutationObserver below attach behavior without touching 18 call sites:
- * it watches body's childList only, NOT the whole subtree. If a future
- * cluster nests an overlay deeper, it will silently miss the observer —
- * keep overlays on body until Stage 2 centralizes creation.
+ * MutationObserver below attach behavior without any cluster-specific
+ * code: it watches body's childList only, NOT the whole subtree. If a
+ * future cluster nests an overlay deeper, it will silently miss the
+ * observer — keep overlays on body. Migration is sequenced across 5
+ * sub-sessions (see the plan doc); sub-session 1 (this one) ships
+ * `open()` itself plus a checkIn.js pilot — the other clusters still
+ * insert directly until their own sub-session lands.
  *
  * Semantics kept deliberately distinct:
  *   - closeModal()   — close ALL overlays. Pre-existing behavior; ~18
@@ -60,6 +65,49 @@ const Modal = (() => {
     function getTopmostOverlay() {
         const overlays = getOverlays();
         return overlays.length ? overlays[overlays.length - 1] : null;
+    }
+
+    // ---------------------------------------------------------------------
+    // Overlay creation ([P2-UI-011] Stage 2, docs/MODAL_STAGE2_PLAN.md)
+    // ---------------------------------------------------------------------
+
+    // Inserts a caller-built `.modal-overlay` HTML string as the last child
+    // of document.body and returns the inserted element — matching every
+    // surveyed call site's existing next-line `document.querySelector(...)`,
+    // so migrating a cluster is mechanical: `insertAdjacentHTML(...); const
+    // overlay = document.querySelector(...)` becomes `const overlay =
+    // Modal.open(html)`. Does NOT template content — html must already be a
+    // full `<div class="modal-overlay">...` string, same as today.
+    //
+    // options.dedupeSelector: if an element matching this selector already
+    // exists in the DOM, no-op and return null. Replaces the repeated
+    // `if (document.querySelector('.foo-overlay')) return;` guards
+    // hand-written at several call sites (checkIn.js, frozenNotice.js).
+    //
+    // options.defer: true schedules the insert one tick later via
+    // setTimeout(0) instead of inserting synchronously, and returns
+    // undefined (fire-and-forget) rather than the element — for callers
+    // whose trigger site runs Modal.closeModal() (nuke-all) synchronously
+    // right after firing them, which would otherwise delete a
+    // same-tick-inserted overlay before it ever painted (the sessions
+    // 21/34/37 hazard). Every current deferred caller only wires a static
+    // inline onclick="closeModal()" already baked into the html string —
+    // never addEventListener after insertion — so the missing return value
+    // is a non-issue in practice; a future deferred caller needing
+    // post-insert wiring would need a different option, not yet built.
+    function open(html, options = {}) {
+        const insert = () => {
+            if (options.dedupeSelector && document.querySelector(options.dedupeSelector)) {
+                return null;
+            }
+            document.body.insertAdjacentHTML('beforeend', html);
+            return getTopmostOverlay();
+        };
+        if (options.defer) {
+            setTimeout(insert, 0);
+            return undefined;
+        }
+        return insert();
     }
 
     // ---------------------------------------------------------------------
@@ -266,6 +314,7 @@ const Modal = (() => {
     }
 
     return {
+        open,
         closeModal,
         closeTopmost,
         getTopmostOverlay,

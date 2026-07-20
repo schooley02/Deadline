@@ -11,6 +11,49 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-07-20 — [P2-UI-011] Stage 2 sequenced + sub-session 1 shipped (Cowork session, Opus plan / Sonnet execute)
+
+**Did:** Jeremy asked to work on Modal.open() Stage 2, which had sat "unscheduled" since session 61
+with no plan doc — unlike every other comparably-sized ticket in this repo. Surveyed all 17
+`.modal-overlay` insertion sites (5 active files: checkIn.js×1, frozenNotice.js×6, popups.js×3,
+forms.js×1, routineViews.js×7; `js/TaskManager.js`'s 1 site is dead/parallel, excluded), designed
+`Modal.open(html, {dedupeSelector, defer})` against that survey, and wrote
+`docs/MODAL_STAGE2_PLAN.md` sequencing 5 sub-sessions (checkIn.js pilot → frozenNotice.js →
+popups.js → forms.js → routineViews.js). Jeremy confirmed plan-first scope and switched to Opus.
+Shipped sub-session 1: `Modal.open()` itself in `js/ui/modal.js` (returns the inserted overlay
+synchronously — matches every surveyed call site's existing next-line `querySelector`;
+`dedupeSelector` replaces hand-written stacking guards; `defer` replaces the `setTimeout(0)`
+closeModal-race dance from sessions 21/34/37) + migrated `checkIn.js`'s single site as the pilot.
+
+**State:** 56 suites, 1205/1205 (+7, `test/modal-behavior.test.js`). `node --check` clean.
+Live-verified in Chrome: two-card check-in modal (loaded via a hand-set `pendingCheckIn` fixture)
+rendered through `Modal.open()`, both cards resolved correctly (points/XP awarded), overlay
+auto-closed on last resolution, dedupe guard confirmed live via a direct second
+`CheckIn.showCheckInModal` call. Zero app console errors.
+
+**Next:** [P2-UI-011] Stage 2 sub-session 2 — migrate `frozenNotice.js`'s 6 notice functions onto
+`Modal.open(html, {dedupeSelector: '.frozen-notice-overlay', defer: true})`. This validates the
+`defer` path for the first time against a real production call site (the pilot only exercised it
+via the modal-behavior test file, not live). All 6 wire only a static inline
+`onclick="closeModal()"` — no `addEventListener` — so it should be low-risk, but the achievement-
+notice queue/batch/poll wrapper (`showAchievementUnlockNotice`) needs care: it stays caller-side
+per the plan's Fork 2, just calling `Modal.open()` instead of hand-rolling the insert. See
+`docs/MODAL_STAGE2_PLAN.md` for the full sub-session order and reasoning.
+
+**Watch out:**
+- The service-worker cache-first gotcha (first hit session ~55-ish, re-confirmed this session)
+  struck again: after editing `js/ui/modal.js`/`checkIn.js`, the live Chrome tab kept serving
+  stale cached copies until `navigator.serviceWorker.getRegistrations()` → `unregister()` +
+  `caches.keys()` → `caches.delete()` + a fresh navigate. Do this FIRST on any session touching
+  `js/`/`script.js`, before assuming a reload picked up the change — cheaper than chasing a
+  phantom bug.
+- `Modal.open()`'s `defer:true` path returns `undefined`, not the element — confirmed safe only
+  because every CURRENT deferred caller (all of `frozenNotice.js`) wires nothing but a static
+  inline `onclick` already baked into the HTML string. A future deferred caller needing
+  post-insert `addEventListener` wiring will need a different option — not yet designed, flag it
+  if sub-session 2 turns up such a case (unlikely per the survey, but worth double-checking against
+  the real file, not just this session's read-through).
+
 ## 2026-07-20 — Balance re-check RESOLVED via empirical live playtest — no retune (Cowork session, Fable)
 
 **Did:** Closed the long-open [P1-UI-008] follow-up ("re-check session-24 balance numbers vs real

@@ -67,6 +67,57 @@ afterEach(async () => {
     await flush();
 });
 
+describe('Modal.open ([P2-UI-011] Stage 2 sub-session 1)', () => {
+    const html = (id) => `<div class="modal-overlay" id="${id}"><div class="modal-content"><h3>T</h3></div></div>`;
+
+    test('inserts the overlay as the last child of body and returns it', () => {
+        const overlay = Modal.open(html('x'));
+        expect(overlay).toBe(document.getElementById('x'));
+        expect(document.body.lastElementChild).toBe(overlay);
+    });
+
+    test('returned element matches getTopmostOverlay (DOM order = stacking order)', () => {
+        Modal.open(html('a'));
+        const b = Modal.open(html('b'));
+        expect(Modal.getTopmostOverlay()).toBe(b);
+    });
+
+    test('dedupeSelector: no-ops and returns null if a match already exists', () => {
+        Modal.open(html('first'), { dedupeSelector: '.dedupe-me' });
+        document.getElementById('first').classList.add('dedupe-me');
+        const second = Modal.open(html('second'), { dedupeSelector: '.dedupe-me' });
+        expect(second).toBeNull();
+        expect(document.getElementById('second')).toBeNull();
+        expect(document.getElementById('first')).not.toBeNull();
+    });
+
+    test('dedupeSelector: inserts normally when nothing matches', () => {
+        const overlay = Modal.open(html('y'), { dedupeSelector: '.nothing-has-this' });
+        expect(overlay).toBe(document.getElementById('y'));
+    });
+
+    test('defer: does not insert synchronously and returns undefined', () => {
+        const result = Modal.open(html('later'), { defer: true });
+        expect(result).toBeUndefined();
+        expect(document.getElementById('later')).toBeNull();
+    });
+
+    test('defer: inserts one tick later', async () => {
+        Modal.open(html('later2'), { defer: true });
+        await flush();
+        expect(document.getElementById('later2')).not.toBeNull();
+    });
+
+    test('defer + dedupeSelector: skips the deferred insert if a match landed before the tick fires', async () => {
+        Modal.open(html('winner'), { dedupeSelector: '.race' });
+        document.getElementById('winner').classList.add('race');
+        Modal.open(html('loser'), { dedupeSelector: '.race', defer: true });
+        await flush();
+        expect(document.getElementById('loser')).toBeNull();
+        expect(document.getElementById('winner')).not.toBeNull();
+    });
+});
+
 describe('closeTopmost / closeModal semantics', () => {
     test('closeTopmost removes only the most recently opened overlay and returns true', () => {
         addOverlay('a');
