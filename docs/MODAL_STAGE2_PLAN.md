@@ -86,13 +86,18 @@ count last — see Sub-sessions below.
 
 ## Sub-sessions (5, one system/cluster per session per CLAUDE.md's architecture guardrail)
 
-1. **`Modal.open()` core + tests + checkIn.js pilot** (2026-07-20, THIS session) — smallest
-   cluster (1 site), already 100% synchronous wiring, validates the non-deferred + dedupeSelector
-   path with the lowest possible blast radius.
-2. **frozenNotice.js (6 sites)** — validates the `defer` path; all six wire only a static
-   `onclick`, so this is next-lowest risk. The achievement-queue wrapper stays caller-side per
-   Fork 2 but now calls `Modal.open(html, { dedupeSelector: '.frozen-notice-overlay', defer: true })`
-   instead of hand-rolling the insert.
+1. **`Modal.open()` core + tests + checkIn.js pilot** — DONE 2026-07-20. Smallest cluster
+   (1 site), already 100% synchronous wiring, validated the non-deferred + dedupeSelector path
+   with the lowest possible blast radius. +7 tests (test/modal-behavior.test.js).
+2. **frozenNotice.js (6 sites)** — DONE 2026-07-20. Validated the `defer` path for the first
+   time against a REAL production trigger (live-reproduced the closeModal-same-tick hazard via
+   the actual "I indulged" UI flow, not just a test). All six wire only a static `onclick`. The
+   achievement-queue wrapper stays caller-side per Fork 2, now calling
+   `Modal.open(html, { dedupeSelector: '.frozen-notice-overlay', defer: true })` (or a bare
+   `Modal.open(html)` for its own already-deduped final insert) instead of hand-rolling either.
+   No new tests (module has never had dedicated unit coverage); dedupe + achievement-batching
+   verified live via console, the hazard scenario verified live via the real UI. See
+   DECISIONS.md.
 3. **popups.js (3 sites)** — medium risk: heaviest listener wiring, the pushback in-place-refresh
    pattern, and the Cheat Day `setTimeout(0)` rebuild-in-place dance all need re-verification
    against `Modal.open()`'s returned element before/after this migration.

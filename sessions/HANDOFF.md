@@ -11,6 +11,41 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-07-20 — [P2-UI-011] Stage 2 sub-session 2 shipped: frozenNotice.js migrated, `defer` path production-validated (Cowork session, continued)
+
+**Did:** Continued Stage 2 per its own plan (sub-session 2 of `docs/MODAL_STAGE2_PLAN.md`).
+Migrated all 6 `js/ui/frozenNotice.js` functions onto `Modal.open(html, {dedupeSelector:
+'.frozen-notice-overlay', defer: true})`, replacing each function's hand-rolled `setTimeout(fn, 0)`
++ manual dedupe-guard pair. `showAchievementUnlockNotice`'s queue/batch/poll wrapper stays
+caller-side (Fork 2, unchanged design) but its final insert now calls `Modal.open()` too. Cleaned
+up 5 stale in-code comments still saying "setTimeout(0)" to instead reference the new
+`defer:true`/`dedupeSelector` mechanism.
+
+**State:** 56 suites, 1205/1205 (unchanged — frozenNotice.js has no dedicated unit tests, by
+design, same as before). `node --check` clean. Live-verified in Chrome, THREE separate checks:
+(1) the real hazard — loaded `dev-save-frozen-slots.json`, clicked the real "Snooze Alarm"
+sprite, clicked "I indulged" through the actual popup, confirmed the frozen-routine notice
+survived the synchronous post-indulge `closeModal()` race and painted; (2) dedupe — two notices
+fired back-to-back via console left exactly one overlay (first winner); (3) achievement
+batching — two unlock calls before the queue drains rendered as one modal with both families.
+Zero app console errors (only pre-existing Chrome-extension noise).
+
+**Next:** [P2-UI-011] Stage 2 sub-session 3 — migrate `popups.js`'s 3 overlay sites
+(`showTaskDetailsPopup`, `showEditTaskModal`, + a third at ~line 487). Flagged as medium risk in
+the plan doc: heaviest listener wiring of any cluster, plus the pushback in-place-refresh pattern
+and the Cheat Day `setTimeout(0)` rebuild-in-place dance both need re-verification against
+`Modal.open()`'s returned element. See `docs/MODAL_STAGE2_PLAN.md`.
+
+**Watch out:**
+- Same service-worker cache-first gotcha as sub-session 1 — clear SW registrations + caches
+  BEFORE any live-Chrome check this sub-session/session, don't wait to hit a phantom bug first.
+- Locating a specific negative-habit sprite to click for a live hazard reproduction is fiddly —
+  `getBoundingClientRect()` coordinates from `javascript_tool` didn't line up with screenshot
+  pixel coordinates this session (unclear why, possibly a scroll/DPR mismatch specific to this
+  environment). Workaround that worked: match `localStorage`'s `activeItems[].id` to the DOM's
+  `data-item-id` attribute, then `dispatchEvent(new MouseEvent('click', ...))` directly on that
+  element via `javascript_tool` instead of pixel-clicking — reliable, skip the guessing next time.
+
 ## 2026-07-20 — [P2-UI-011] Stage 2 sequenced + sub-session 1 shipped (Cowork session, Opus plan / Sonnet execute)
 
 **Did:** Jeremy asked to work on Modal.open() Stage 2, which had sat "unscheduled" since session 61

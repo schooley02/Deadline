@@ -15,106 +15,104 @@
  * what to do about it. Both recovery paths (ROUTINES.md) are listed so the
  * player isn't left guessing.
  *
- * THE setTimeout(0) HAZARD (found live-verifying this session — same class
- * of bug as session 21's shop bug / session 34's Cheat Day popup rebuild):
- * the trigger site is the "I indulged" button inside popups.js's enemy-click
+ * THE setTimeout(0) HAZARD (found live-verifying session 37 — same class of
+ * bug as session 21's shop bug / session 34's Cheat Day popup rebuild): the
+ * trigger site is the "I indulged" button inside popups.js's enemy-click
  * popup, whose handler calls `deps.indulgeHabit(item.id)` (which fires this
  * notice SYNCHRONOUSLY via items.js's onRoutineFrozen callback) and THEN
  * `Modal.closeModal()` — which removes ALL `.modal-overlay` elements, not
  * just the popup that opened it. Inserting this notice synchronously meant
  * closeModal() deleted it in the same tick, before it ever painted. Fix:
- * defer the insertion one tick via setTimeout(0), so it lands AFTER the
- * click handler's closeModal() call has already run.
+ * defer the insertion one tick, so it lands AFTER the click handler's
+ * closeModal() call has already run.
+ *
+ * [P2-UI-011] Stage 2 sub-session 2 (2026-07-20, docs/MODAL_STAGE2_PLAN.md):
+ * all six notices below now go through `Modal.open(html, { dedupeSelector:
+ * '.frozen-notice-overlay', defer: true })` instead of hand-rolling
+ * `setTimeout(fn, 0)` + a manual `querySelector` dedupe guard — `open()`'s
+ * `defer` option IS that same one-tick deferral, and `dedupeSelector` IS
+ * that same guard, just centralized. Behavior is unchanged; this is a pure
+ * refactor (first production validation of the `defer` path — the pilot in
+ * sub-session 1, checkIn.js, only exercised the synchronous path live).
+ * `showAchievementUnlockNotice` keeps its own queue/batch/poll wrapper
+ * (Fork 2 in the plan doc: that's a genuinely different concern, layered on
+ * TOP of `open()`, not absorbed into it) but its final insert now also goes
+ * through `Modal.open()` rather than a raw `insertAdjacentHTML` call.
  */
 const FrozenNotice = (() => {
     function showFrozenRoutineNotice(routineName, habitName) {
-        setTimeout(() => {
-            // Don't stack a second notice (e.g. two habits in the same
-            // routine both crossing their freeze threshold in the same tick
-            // — the routine can only be frozen by one of them, but
-            // belt-and-suspenders matches checkIn.js's precedent).
-            if (document.querySelector('.frozen-notice-overlay')) return;
-
-            const modalHtml = `
-                <div class="modal-overlay frozen-notice-overlay">
-                    <div class="modal-content frozen-notice-modal">
-                        <h3>🥶 ${routineName} is frozen</h3>
-                        <p>"${habitName}" has been indulged 3 days in a row, so ${routineName} is
-                           taking a break — its other habits and tasks won't spawn until it recovers.
-                           This isn't a punishment, just a signal that something about this habit
-                           might be worth adjusting.</p>
-                        <p><strong>Two ways to unfreeze it:</strong></p>
-                        <ul class="frozen-notice-recovery-list">
-                            <li>Successfully avoid "${habitName}" for 3 days in a row, or</li>
-                            <li>Edit "${habitName}"'s details — any real change counts</li>
-                        </ul>
-                        <div class="modal-buttons">
-                            <button class="primary-button" onclick="closeModal()">Got it</button>
-                        </div>
+        // dedupeSelector: don't stack a second notice (e.g. two habits in
+        // the same routine both crossing their freeze threshold in the same
+        // tick — the routine can only be frozen by one of them, but
+        // belt-and-suspenders matches checkIn.js's precedent).
+        const modalHtml = `
+            <div class="modal-overlay frozen-notice-overlay">
+                <div class="modal-content frozen-notice-modal">
+                    <h3>🥶 ${routineName} is frozen</h3>
+                    <p>"${habitName}" has been indulged 3 days in a row, so ${routineName} is
+                       taking a break — its other habits and tasks won't spawn until it recovers.
+                       This isn't a punishment, just a signal that something about this habit
+                       might be worth adjusting.</p>
+                    <p><strong>Two ways to unfreeze it:</strong></p>
+                    <ul class="frozen-notice-recovery-list">
+                        <li>Successfully avoid "${habitName}" for 3 days in a row, or</li>
+                        <li>Edit "${habitName}"'s details — any real change counts</li>
+                    </ul>
+                    <div class="modal-buttons">
+                        <button class="primary-button" onclick="closeModal()">Got it</button>
                     </div>
                 </div>
-            `;
-
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-        }, 0);
+            </div>
+        `;
+        Modal.open(modalHtml, { dedupeSelector: '.frozen-notice-overlay', defer: true });
     }
 
     // Recovery path 1 (sub-session 4, 2026-07-19, docs/FROZEN_SLOTS_PLAN.md):
     // fires from Routines.editHabitInRoutine's onRoutineUnfrozen callback the
     // moment a REAL edit to the offending habit clears its routine's
-    // frozenState. Same setTimeout(0) defensive pattern as
+    // frozenState. Same defer:true defensive pattern as
     // showFrozenRoutineNotice — the edit-habit modal's save handler
     // (RoutineViews.saveEditedHabit) calls Modal.closeModal() right after
     // triggering this, which would otherwise delete the notice before it
     // painted (the recurring session 21/34/37 DOM-race hazard).
     function showRoutineUnfrozenNotice(routineName, habitName) {
-        setTimeout(() => {
-            if (document.querySelector('.frozen-notice-overlay')) return;
-
-            const modalHtml = `
-                <div class="modal-overlay frozen-notice-overlay">
-                    <div class="modal-content frozen-notice-modal">
-                        <h3>🎉 ${routineName} is unfrozen</h3>
-                        <p>Editing "${habitName}" counted as a real change, so ${routineName} is back
-                           to normal — its habits and tasks will spawn again.</p>
-                        <div class="modal-buttons">
-                            <button class="primary-button" onclick="closeModal()">Got it</button>
-                        </div>
+        const modalHtml = `
+            <div class="modal-overlay frozen-notice-overlay">
+                <div class="modal-content frozen-notice-modal">
+                    <h3>🎉 ${routineName} is unfrozen</h3>
+                    <p>Editing "${habitName}" counted as a real change, so ${routineName} is back
+                       to normal — its habits and tasks will spawn again.</p>
+                    <div class="modal-buttons">
+                        <button class="primary-button" onclick="closeModal()">Got it</button>
                     </div>
                 </div>
-            `;
-
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-        }, 0);
+            </div>
+        `;
+        Modal.open(modalHtml, { dedupeSelector: '.frozen-notice-overlay', defer: true });
     }
 
     // KO notice ([P1-UI-006] sub-session 2, 2026-07-19, docs/HEROES_PLAN.md
     // fork 2): fires from js/items.js's damageRoutineForItem the moment a
-    // routine's health hits 0 and it auto-deactivates. Same setTimeout(0)
+    // routine's health hits 0 and it auto-deactivates. Same defer:true
     // defensive pattern as the other two notices, even though this trigger
     // site (a damage tick, not a modal-closing button click) doesn't share
     // their specific closeModal() race — consistency with the precedent
     // costs nothing and guards against a future trigger site that does.
     function showRoutineKoNotice(routineName) {
-        setTimeout(() => {
-            if (document.querySelector('.frozen-notice-overlay')) return;
-
-            const modalHtml = `
-                <div class="modal-overlay frozen-notice-overlay">
-                    <div class="modal-content frozen-notice-modal">
-                        <h3>💤 ${routineName} was knocked out</h3>
-                        <p>${routineName}'s health ran out from overdue habits/tasks, so it's been
-                           deactivated — its members are off the board for now, no completion credit
-                           lost. You can revive it starting tomorrow, at half health.</p>
-                        <div class="modal-buttons">
-                            <button class="primary-button" onclick="closeModal()">Got it</button>
-                        </div>
+        const modalHtml = `
+            <div class="modal-overlay frozen-notice-overlay">
+                <div class="modal-content frozen-notice-modal">
+                    <h3>💤 ${routineName} was knocked out</h3>
+                    <p>${routineName}'s health ran out from overdue habits/tasks, so it's been
+                       deactivated — its members are off the board for now, no completion credit
+                       lost. You can revive it starting tomorrow, at half health.</p>
+                    <div class="modal-buttons">
+                        <button class="primary-button" onclick="closeModal()">Got it</button>
                     </div>
                 </div>
-            `;
-
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-        }, 0);
+            </div>
+        `;
+        Modal.open(modalHtml, { dedupeSelector: '.frozen-notice-overlay', defer: true });
     }
 
     // Star-threshold-crossed notice ([P1-UI-006] sub-session 3, 2026-07-19,
@@ -122,26 +120,21 @@ const FrozenNotice = (() => {
     // first time a routine's live star rating actually increases (tracked in
     // an ephemeral, non-persisted per-session memory — see heroes.js's header
     // for why). Trigger site is a render call inside a 50ms game-loop tick,
-    // not a modal-closing click, but the setTimeout(0) defensive pattern
+    // not a modal-closing click, but the defer:true defensive pattern
     // costs nothing and matches every other notice here.
     function showHeroStarUpNotice(routineName, stars) {
-        setTimeout(() => {
-            if (document.querySelector('.frozen-notice-overlay')) return;
-
-            const modalHtml = `
-                <div class="modal-overlay frozen-notice-overlay">
-                    <div class="modal-content frozen-notice-modal">
-                        <h3>${'★'.repeat(stars)} ${routineName} leveled up its rating</h3>
-                        <p>${routineName} is now rated ${stars} star${stars === 1 ? '' : 's'} — keep it up!</p>
-                        <div class="modal-buttons">
-                            <button class="primary-button" onclick="closeModal()">Nice</button>
-                        </div>
+        const modalHtml = `
+            <div class="modal-overlay frozen-notice-overlay">
+                <div class="modal-content frozen-notice-modal">
+                    <h3>${'★'.repeat(stars)} ${routineName} leveled up its rating</h3>
+                    <p>${routineName} is now rated ${stars} star${stars === 1 ? '' : 's'} — keep it up!</p>
+                    <div class="modal-buttons">
+                        <button class="primary-button" onclick="closeModal()">Nice</button>
                     </div>
                 </div>
-            `;
-
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-        }, 0);
+            </div>
+        `;
+        Modal.open(modalHtml, { dedupeSelector: '.frozen-notice-overlay', defer: true });
     }
 
     // Streak milestone notice ([P2-UI-009], Milestone 4, session 59,
@@ -150,35 +143,30 @@ const FrozenNotice = (() => {
     // HABIT_STREAK_BONUS_THRESHOLD = "fire", HABIT_STREAK_STRONG_THRESHOLD =
     // "blazing") via a LIVE player action — never on the silent restore-time
     // auto-resolve path (see items.js's notifyStreakMilestone comment). Same
-    // setTimeout(0) + `.frozen-notice-overlay` dedupe pattern as every other
-    // notice in this module.
+    // defer:true + `.frozen-notice-overlay` dedupeSelector pattern as every
+    // other notice in this module.
     function showStreakMilestoneNotice(habitName, streak, tier) {
-        setTimeout(() => {
-            if (document.querySelector('.frozen-notice-overlay')) return;
+        const isBlazing = tier === 'blazing';
+        const emoji = isBlazing ? '🔥🔥' : '🔥';
+        const headline = isBlazing
+            ? `${habitName} is blazing!`
+            : `${habitName} is on fire!`;
+        const body = isBlazing
+            ? `${streak}-day streak — that's serious consistency. Keep it going!`
+            : `${streak}-day streak — this habit is heating up.`;
 
-            const isBlazing = tier === 'blazing';
-            const emoji = isBlazing ? '🔥🔥' : '🔥';
-            const headline = isBlazing
-                ? `${habitName} is blazing!`
-                : `${habitName} is on fire!`;
-            const body = isBlazing
-                ? `${streak}-day streak — that's serious consistency. Keep it going!`
-                : `${streak}-day streak — this habit is heating up.`;
-
-            const modalHtml = `
-                <div class="modal-overlay frozen-notice-overlay">
-                    <div class="modal-content frozen-notice-modal">
-                        <h3>${emoji} ${headline}</h3>
-                        <p>${body}</p>
-                        <div class="modal-buttons">
-                            <button class="primary-button" onclick="closeModal()">Nice</button>
-                        </div>
+        const modalHtml = `
+            <div class="modal-overlay frozen-notice-overlay">
+                <div class="modal-content frozen-notice-modal">
+                    <h3>${emoji} ${headline}</h3>
+                    <p>${body}</p>
+                    <div class="modal-buttons">
+                        <button class="primary-button" onclick="closeModal()">Nice</button>
                     </div>
                 </div>
-            `;
-
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-        }, 0);
+            </div>
+        `;
+        Modal.open(modalHtml, { dedupeSelector: '.frozen-notice-overlay', defer: true });
     }
 
     // Achievement unlock notice (Milestone 4 achievements sub-session 2,
@@ -201,7 +189,9 @@ const FrozenNotice = (() => {
     //    ONE modal — a task completion crossing two families' tiers at once
     //    shows a single celebration, not two stacked ones.
     //
-    // The initial setTimeout(0) also keeps the standard defensive deferral
+    // The initial setTimeout(0) (kept here as the queue's OWN polling
+    // primitive, distinct from Modal.open's `defer` — see the module
+    // docblock's Fork 2 note) also keeps the standard defensive deferral
     // (the sessions 21/34/37 closeModal-same-tick hazard).
     //
     // Sub-session 4 polish (session 68): the 🏆 icon wraps in
@@ -250,7 +240,12 @@ const FrozenNotice = (() => {
                 </div>
             `;
 
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            // tryShow's own poll loop already confirmed no `.frozen-notice-
+            // overlay` exists at this point, so a plain Modal.open() (no
+            // options) is sufficient here — the dedupe/defer machinery
+            // belongs to the queue wrapper above, not duplicated into the
+            // insert itself. See the module docblock (Fork 2).
+            Modal.open(modalHtml);
         };
 
         unlockWaiterId = setTimeout(tryShow, 0);

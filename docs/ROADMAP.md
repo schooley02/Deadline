@@ -151,8 +151,8 @@ Ordering decided 2026-07-18 session 19 (Fable — see DECISIONS.md): 007 → 008
     Milestone 4 accessibility item. 5 sub-sessions (checkIn.js pilot → frozenNotice.js →
     popups.js → forms.js → routineViews.js), no product/UX forks (pure engineering, scoped
     directly at Opus). `js/TaskManager.js`'s lone overlay site excluded (dead/parallel path).
-    - [ ] 1. `Modal.open()` core + tests + checkIn.js pilot
-    - [ ] 2. frozenNotice.js (6 sites, validates the `defer` path)
+    - [x] 1. `Modal.open()` core + tests + checkIn.js pilot (2026-07-20)
+    - [x] 2. frozenNotice.js (6 sites, validates the `defer` path) (2026-07-20)
     - [ ] 3. popups.js (3 sites, heaviest listener wiring)
     - [ ] 4. forms.js (1 site, drops the 50ms delay — the one real behavior change)
     - [ ] 5. routineViews.js (7 sites, only cluster with stacked overlays)
