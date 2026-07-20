@@ -4,6 +4,49 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 58: Stale "Mark as Complete" checkbox bug fixed (Cowork session, Sonnet — fully root-caused going in, no design fork)
+
+**The session-7 Known bug**, closed exactly as originally sketched in ROADMAP.md. `uncompleteItem`
+(js/items.js) has always rebuilt the OWNING PARENT's row when un-completing a sub-task (`if
+(item.parentId) { ... parentTask.listItemElement.remove(); deps.createListItem(parentTask); ...
+}`), but had no corresponding branch for a TOP-LEVEL item's own row — `sortAndRenderActiveList`
+simply re-appended whatever `item.listItemElement` already pointed at. That node is the exact DOM
+element built (unchecked) back when the item was first created; nothing in code ever sets its
+checkbox to `checked = true` — that happens only via the native browser click that originally
+completed it. Since the node is never discarded (just detached from the DOM while the item lives
+in `completedItems`), reusing it on uncomplete re-inserted a pre-checked "Mark as Complete" box for
+an item that was, in every other respect, freshly active again.
+
+**Fix:** a new `else` branch, structurally identical to the existing parent-rebuild branch:
+`if (item.listItemElement) item.listItemElement.remove(); deps.createListItem(item);` for any item
+with no `parentId`. No design call needed — `createListItem` already existed as exactly the right
+tool (it's in `uncompleteItem`'s own deps list already, used one branch above), and the fix is a
+straight application of a pattern the file already uses for the identical reason. Sub-tasks
+deliberately get NO such branch — per the pre-existing comment just below ("sub-tasks should never
+get their own main list item"), they render nested inside their parent's row, so there is no
+top-level node of their own to rebuild.
+
+**Verification:** +3 tests in `test/subtask-lifecycle.test.js`'s new "stale-checkbox fix (session
+58)" describe: (1) a top-level item's old element gets `.remove()`d and `createListItem` is called
+with it; (2) a sub-task's own element is left untouched (only the parent's is rebuilt — regression
+guard against ever "fixing" this the wrong way for subs); (3) a defensive null-`listItemElement`
+case doesn't throw. 40 suites, 886/886 (883 + 3). `node --check` clean. **Live-verified in Chrome
+end-to-end:** created a real task via the Add Task form, completed it (XP 0→10, points 0→10,
+correct), unchecked it from the Completed Today card, and confirmed via
+`document.querySelector('.completion-checkbox-input').checked === false` — the DOM's actual
+checkbox state, not just a visual read — that the re-inserted row is a genuinely fresh, unchecked
+element; XP/points refunded back to 0 exactly (unaffected by this session, confirming the
+underlying economy was never the bug, only the stale DOM node). No app console errors (only the
+standard Chrome-extension "message channel closed" noise, unrelated to the app). Save restored to
+pristine afterward.
+
+**No open design questions; nothing deferred.** This closes the last item in ROADMAP's "Known
+bugs" section that had a plan — Milestone 3 is now fully closed (both respawn bugs from sessions
+56–57, and this cosmetic bug) except the two optional polish sub-sessions (run-history, heroes)
+still cut pending real play data.
+
+---
+
 ## 2026-07-19 — Session 57: Cheat-day-excused respawn variant — design fork resolved (Fable) + fix built: "the marker lives all day"
 
 **The session-56 follow-up bug.** An excused indulge records NO occurrence (session 26: excused ≠

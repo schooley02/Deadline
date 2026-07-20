@@ -13,6 +13,32 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 58: Stale "Mark as Complete" checkbox bug FIXED (Cowork session, Sonnet)
+
+**Did:** The session-7 Known bug, root-caused going in (ROADMAP already had the diagnosis).
+`uncompleteItem` (js/items.js) rebuilt the PARENT's row when un-completing a sub-task but never a
+top-level item's own row — the reused DOM node's checkbox read `checked` from the original native
+click that completed it. Fix: a new `else` branch mirrors the existing parent-rebuild pattern
+(`item.listItemElement.remove()` + `deps.createListItem(item)`) for any item with no `parentId`.
++3 tests in `test/subtask-lifecycle.test.js`. Docs: ROADMAP (bug checked off), DECISIONS.md
+session 58.
+
+**State:** ✅ 40 suites, 886/886 (883 + 3). `node --check` clean. Live-verified in Chrome:
+created a real task, completed it (XP/points correctly awarded), unchecked it from Completed
+Today, confirmed via `document.querySelector('.completion-checkbox-input').checked === false`
+that the row is genuinely fresh (not just visually — read the actual DOM property). XP/points
+refunded to 0 exactly. No app console errors. Save restored to pristine. NOT committed — git
+commands in chat.
+
+**Next:** Milestone 3 is now fully closed except two optional polish sub-sessions (run-history,
+heroes — both cut pending real play data). Remaining open items: live mid-session midnight
+rollover (deferred, low priority) and the session-24 balance re-check pending real play data.
+Otherwise Milestone 4 starts: P2-UI-009 streak visual effects is first.
+
+**Watch out:**
+- No new gotchas this session — straightforward application of an existing in-file pattern.
+  Nothing deferred, no open design questions.
+
 ## 2026-07-19 — Session 57: Cheat-day respawn variant FIXED — "marker lives all day" (Cowork session, Fable design + build)
 
 **Did:** The session-56 follow-up bug. Design fork resolved on Fable (Option A): `indulgeHabit`'s

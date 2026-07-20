@@ -1009,6 +1009,25 @@ const Items = (() => {
                     }
                 }
             }
+        } else {
+            // Top-level item: rebuild its own agenda row from scratch (fixed
+            // 2026-07-19 session 58 — the "stale checkbox" bug found session
+            // 7 live playtest, ROADMAP known bugs). Nothing here ever sets
+            // `checked = true` in code — createListItem always builds the
+            // "Mark as Complete" checkbox unchecked; it becomes checked only
+            // via the native browser click that originally completed the
+            // item. That old DOM node (with checked now baked in) was never
+            // discarded: it stayed on `item.listItemElement`, detached but
+            // intact, while the item lived in completedItems. Reusing it here
+            // — as sortAndRenderActiveList does with whatever
+            // item.listItemElement currently points at — re-inserted a
+            // pre-checked checkbox for a freshly-active item. Rebuilding via
+            // createListItem (same helper the parent-rebuild branch above
+            // already uses for the identical reason) guarantees a fresh,
+            // unchecked row. Cosmetic only — confirmed XP/points/task-count
+            // already round-tripped correctly without this.
+            if (item.listItemElement) item.listItemElement.remove();
+            deps.createListItem(item);
         }
         // Note: Sub-tasks should never get their own main list item,
         // they are only displayed within their parent's list item

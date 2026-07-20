@@ -305,3 +305,52 @@ describe('uncompleteItem: parent relink is unchanged by this session (regression
         expect(parent.completedSubTasks).toBe(0);
     });
 });
+
+// Session 58: the "stale checkbox" bug (found session 7 live playtest,
+// ROADMAP known bugs) — uncompleteItem reused whatever DOM node
+// item.listItemElement pointed at instead of rebuilding it. That node's
+// "Mark as Complete" checkbox reads checked because the ORIGINAL completion
+// was a native browser click (nothing in code ever sets checked = true), and
+// the node was never discarded when the item moved to completedItems. Fix:
+// a top-level item (no parentId) now gets its own row rebuilt via
+// createListItem, exactly like the pre-existing parent-rebuild branch for
+// sub-tasks.
+describe('uncompleteItem: stale-checkbox fix (session 58)', () => {
+    test('un-completing a TOP-LEVEL item discards the old row and rebuilds a fresh one', () => {
+        const staleElement = { ...fakeEl(), remove: jest.fn() };
+        const task = taskItem({ id: 1, listItemElement: staleElement });
+        const createListItem = jest.fn();
+        const deps = makeDeps({ activeItems: [], completedItems: [task], createListItem });
+
+        Items.uncompleteItem(1, deps);
+
+        expect(staleElement.remove).toHaveBeenCalledTimes(1);
+        expect(createListItem).toHaveBeenCalledWith(task);
+    });
+
+    test('un-completing a SUB-TASK does not rebuild its own row (no top-level list item exists for it)', () => {
+        const parent = taskItem({ id: 1, subTasks: [], totalSubTasks: 1, completedSubTasks: 1 });
+        const subStaleElement = { ...fakeEl(), remove: jest.fn() };
+        const sub = taskItem({ id: 2, parentId: 1, listItemElement: subStaleElement });
+        const createListItem = jest.fn();
+        const deps = makeDeps({ activeItems: [parent], completedItems: [sub], createListItem });
+
+        Items.uncompleteItem(2, deps);
+
+        // The parent's row IS rebuilt (pre-existing behavior); the sub's own
+        // stale element is left alone — subs are rendered inline inside the
+        // parent's row, not as their own top-level <li>.
+        expect(createListItem).toHaveBeenCalledWith(parent);
+        expect(createListItem).not.toHaveBeenCalledWith(sub);
+        expect(subStaleElement.remove).not.toHaveBeenCalled();
+    });
+
+    test('a top-level item with no listItemElement yet (defensive) does not throw and still calls createListItem', () => {
+        const task = taskItem({ id: 1, listItemElement: null });
+        const createListItem = jest.fn();
+        const deps = makeDeps({ activeItems: [], completedItems: [task], createListItem });
+
+        expect(() => Items.uncompleteItem(1, deps)).not.toThrow();
+        expect(createListItem).toHaveBeenCalledWith(task);
+    });
+});
