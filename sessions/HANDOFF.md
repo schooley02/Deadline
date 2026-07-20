@@ -13,6 +13,44 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 56: Same-day lurker-respawn-after-indulge bug FIXED (Cowork session)
+
+**Did:** The session-30 Known bug (ROADMAP). One-line-of-logic fix in `js/habits.js`
+`selectHabitDefsToSpawn`: a third dedupe condition — any `occurrenceHistory` entry for the spawn
+day (completed/overdue/indulged) marks the day resolved and blocks a fresh spawn. No new state, no
+schema bump; uncompletion pops the entry so it self-heals. +5 tests in
+`test/routine-active-gating.test.js` (new "occurrenceHistory gating" describe). Docs: ROADMAP
+(bug checked off + 1 new bug logged), MECHANICS.md lurker bullet, DECISIONS.md session 56.
+
+**State:** ✅ 40 suites, 879/879 (874 baseline + 5 — session 55's "41 suites" was a miscount, the
+repo has exactly 40 test files; test COUNT matched baseline exactly). `node --check` clean on
+habits.js. Live-verified in Chrome end-to-end: real negative habit via the Add Habit form →
+indulged via the lurker popup (occurrence recorded, -5 debt) → THREE same-day reloads, zero
+respawn, zero console errors → negative control (hand-popped the occurrence entry via the
+session-52 stub protocol) → lurker correctly respawned. Save restored to pristine afterward. NOT
+committed yet — git commands below in chat for Jeremy.
+
+**Next:** Milestone 3 is now fully closed except optional polish (run-history sub-5, heroes sub-5
+— both cut pending real play data). Best candidates: the NEW cheat-day respawn bug logged this
+session (needs a small design call first — see Watch out), the cosmetic uncomplete-checkbox bug
+(session 7, root-caused, pure Sonnet), or start Milestone 4 (P2-UI-009 streak visual effects is
+first). The session-24 balance re-check against real play data is still pending too.
+
+**Watch out:**
+- **NEW known bug (found this session, logged in ROADMAP): cheat-day-excused indulge + same-day
+  reload respawns the lurker with its cheat cover gone** (excused branch records no occurrence AND
+  nulls `cheatDayDate`, so nothing marks the day resolved; a second indulge then debits for real).
+  Fix needs a design call — keep `cheatDayDate` until rollover vs. write `skipDayDate` on excuse —
+  both touch session-34 token semantics. Ask Jeremy before building.
+- **`window.Persistence` does NOT exist** — persistence.js uses a top-level `const`, which creates
+  no window property. Chrome-session stubs guarded with `if (window.Persistence)` silently no-op
+  (this bit this session: the 5s autosave overwrote a hand-edited save through the un-stubbed
+  requestSave). Use the bare lexical name `Persistence` (guard with `typeof` if needed). Applies
+  to ALL const-declared module globals in js/.
+- Dev Reset button observation (unverified, could have been a missed click): appeared to leave
+  `definedHabits` + the active instance in place. Check deliberately next time before trusting it
+  for cleanup; `localStorage.removeItem('deadline.save')` + reload is the reliable full wipe.
+
 ## 2026-07-19/20 — Session 55: Run history sub-session 4 BUILT — game-over review card + routine rollup + a real duplicate-history bug fixed (Cowork session, Sonnet)
 
 **Did:** RUN_HISTORY_PLAN.md sub-session 4 (the last non-optional item). `js/ui/gameOverView.js`:

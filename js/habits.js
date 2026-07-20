@@ -83,9 +83,16 @@ const Habits = (() => {
     // routine", which was aimed at orphaned definitions but also silently
     // blocked every standalone habit — the bug this replaces.
     //
-    // Dedupes against both "already completed today"
-    // (habitDef.lastCompletionDate) and "already has a live instance for
-    // today" (activeItems scan).
+    // Dedupes against "already completed today" (habitDef.lastCompletionDate),
+    // "already has a live instance for today" (activeItems scan), and "already
+    // has a recorded occurrence for today" (occurrenceHistory scan — added
+    // 2026-07-19 session 56 for the same-day indulge-then-reload respawn bug:
+    // indulging records an 'indulged' occurrence and removes the instance, but
+    // deliberately never sets lastCompletionDate, so neither older check
+    // caught it). An occurrence entry for the day means the day is RESOLVED
+    // (completed/overdue/indulged); uncompletion pops the entry via
+    // removeOccurrence, so this can never wrongly block a genuinely
+    // un-resolved day.
     //
     // `sickDayDate` (frozen-slots sub-session 5, 2026-07-19) is OPTIONAL —
     // every pre-existing 4-arg caller (tests, and any call site that never
@@ -147,7 +154,16 @@ const Habits = (() => {
                 new Date(item.originalDueDate).toDateString() === forWhichGameDayString
             );
 
-            return !alreadyCompletedForThisGameDay && !existingActiveInstance;
+            // Session 56: a recorded occurrence for this day (completed /
+            // overdue / indulged) means the day is already resolved — don't
+            // spawn a fresh instance. Catches the indulged case the two
+            // checks above miss (see header comment).
+            const alreadyResolvedForThisGameDay = (habitDef.occurrenceHistory || []).some(
+                o => o.date === forWhichGameDayOccurrence
+            );
+
+            return !alreadyCompletedForThisGameDay && !existingActiveInstance &&
+                !alreadyResolvedForThisGameDay;
         });
     }
 

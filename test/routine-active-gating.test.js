@@ -210,6 +210,51 @@ describe('selectHabitDefsToSpawn — isActive gating', () => {
             expect(selectHabitDefsToSpawn(defs, [], [], DAY)).toHaveLength(1);
         });
     });
+
+    // Session 56: same-day indulge-then-reload respawn bug. Indulging records
+    // an 'indulged' occurrence in occurrenceHistory and removes the instance,
+    // but deliberately never sets lastCompletionDate — so the dedupe must
+    // also consult occurrenceHistory: any recorded occurrence for the day
+    // (completed / overdue / indulged) means the day is resolved.
+    describe('occurrenceHistory gating (same-day indulge respawn guard)', () => {
+        const DAY_OCCURRENCE = Habits.toOccurrenceDate(DAY);
+
+        test('an indulged negative habit (occurrence for DAY, no instance, no lastCompletionDate) does not respawn', () => {
+            const defs = [habitDef('h1', {
+                isNegative: true,
+                occurrenceHistory: [{ date: DAY_OCCURRENCE, success: false }]
+            })];
+            expect(selectHabitDefsToSpawn(defs, [], [], DAY)).toHaveLength(0);
+        });
+
+        test('an occurrence recorded for a DIFFERENT day does not block spawning', () => {
+            const defs = [habitDef('h1', {
+                isNegative: true,
+                occurrenceHistory: [{ date: '2020-01-01', success: false }]
+            })];
+            expect(selectHabitDefsToSpawn(defs, [], [], DAY)).toHaveLength(1);
+        });
+
+        test('a success occurrence for DAY also blocks (day resolved, polarity-agnostic)', () => {
+            const defs = [habitDef('h1', {
+                occurrenceHistory: [{ date: DAY_OCCURRENCE, success: true }]
+            })];
+            expect(selectHabitDefsToSpawn(defs, [], [], DAY)).toHaveLength(0);
+        });
+
+        test('empty or missing occurrenceHistory is unaffected (back-compat)', () => {
+            const defs = [habitDef('h1', { occurrenceHistory: [] }), habitDef('h2')];
+            expect(selectHabitDefsToSpawn(defs, [], [], DAY)).toHaveLength(2);
+        });
+
+        test('uncompletion round-trip: popping the occurrence (removeOccurrence) makes the habit spawnable again', () => {
+            const history = Habits.recordOccurrence([], DAY_OCCURRENCE, true, 14);
+            const defs = [habitDef('h1', { occurrenceHistory: history })];
+            expect(selectHabitDefsToSpawn(defs, [], [], DAY)).toHaveLength(0);
+            defs[0].occurrenceHistory = Habits.removeOccurrence(history, DAY_OCCURRENCE);
+            expect(selectHabitDefsToSpawn(defs, [], [], DAY)).toHaveLength(1);
+        });
+    });
 });
 
 // --- selectActiveItemIdsToClearForRoutine -----------------------------------

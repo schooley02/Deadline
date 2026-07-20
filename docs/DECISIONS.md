@@ -4,6 +4,58 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 56: Same-day lurker-respawn-after-indulge bug fixed via occurrenceHistory dedupe (Cowork session; planned on Fable, mechanical fix)
+
+**The scheduled Known bug from session 30, root cause exactly as sketched there.** `indulgeHabit`
+records an `'indulged'` occurrence and removes the instance, but deliberately never sets
+`lastCompletionDate` (a lapse isn't a completion) — and `Habits.selectHabitDefsToSpawn`'s dedupe
+consulted only `lastCompletionDate` + a live-instance scan, so a same-day reload spawned a fresh
+lurker.
+
+**Decision — third dedupe condition, not a new marker field:** any `occurrenceHistory` entry for
+the spawn day (`o.date === toOccurrenceDate(forWhichGameDay)`) means the day is RESOLVED
+(completed / overdue / indulged — polarity-agnostic) and blocks the spawn. Why this over
+alternatives: (a) the entry is ALREADY recorded by every resolution path, so no new state, no
+schema bump, no new write sites; (b) it's self-healing — `applyHabitUncompletion` pops the day's
+entry via `removeOccurrence`, so a complete→uncomplete round-trip can't leave a habit wrongly
+blocked; (c) a positive habit's overdue-recorded miss coexists with its still-active camping
+instance, which the instance-scan already blocks, so the new condition changes nothing for
+positive habits in practice. Rejected: a dedicated `indulgedDate` marker field (new state
+duplicating information the history already holds — the same shape as `skipDayDate`, but with no
+reason to exist). Cap-displacement is impossible same-day: occurrence entries are one-per-date and
+the window (14) only drops OLDER dates.
+
+**Verification:** +5 tests in `test/routine-active-gating.test.js` (new "occurrenceHistory gating"
+describe): indulged-blocks, different-day-doesn't, success-blocks-too, empty-history back-compat,
+and the uncompletion round-trip. 40 suites, 879/879 (874 baseline + 5; note session 55's handoff
+said "41 suites" — the repo has exactly 40 `*.test.js` files, so that was a miscount, the TEST
+count matched exactly). Live in Chrome: created a real negative habit via the Add Habit form,
+indulged via the lurker popup (occurrence `{2026-07-19, success:false}` recorded, points → -5),
+then THREE same-day reloads → zero respawn, zero console errors; negative control hand-popped the
+occurrence entry (session-52 stub protocol) → lurker correctly respawned. Save restored to its
+pristine pre-session state afterward.
+
+**Found, logged, NOT fixed (needs a small design call): the cheat-day-excused variant.** The
+excused branch of `indulgeHabit` records no occurrence by design (session 26: excused ≠
+success/miss) AND nulls `cheatDayDate` (one use per token) — so after its instance is removed,
+nothing the dedupe consults marks the day resolved and a same-day reload respawns the lurker WITH
+ITS CHEAT COVER GONE (a second indulge debits for real). Candidate fixes (keep `cheatDayDate` set
+until rollover vs. write `skipDayDate` on excuse) both touch session-34 token semantics — logged
+under ROADMAP Known bugs for its own session. Code-only finding, not live-reproduced.
+
+**Tooling gotcha for future Chrome sessions (cost one confused negative-control round):**
+`persistence.js` declares `const Persistence = ...` at top level — a top-level `const` creates NO
+`window` property, so `if (window.Persistence) Persistence.flush()`-style guards SILENTLY no-op.
+Every stub/flush in the session-40/44/52 protocols must use the BARE lexical name (`typeof
+Persistence !== 'undefined'` if a guard is needed). My first guarded stub attempt didn't apply,
+and the 5s autosave (which routes through the un-stubbed `Persistence.requestSave`) overwrote the
+hand-edited save before the reload. Same trap applies to every other `const`-declared module
+global in js/ (all of them). Also observed once, unverified: the dev Reset button appeared to
+leave `definedHabits` + the active instance in place (only points visibly reset) — could equally
+have been a missed click; worth a deliberate check next time it's used.
+
+---
+
 ## 2026-07-19/20 — Session 55: Run history sub-session 4 — game-over review card + routine rollup; a real duplicate-history bug found + fixed (Cowork session, Sonnet)
 
 RUN_HISTORY_PLAN.md's last two pieces: the game-over review card (`js/ui/gameOverView.js`) and the
