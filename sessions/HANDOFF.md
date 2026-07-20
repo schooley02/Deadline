@@ -11,6 +11,38 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-07-20 — Balance re-check RESOLVED via empirical live playtest — no retune (Cowork session, Fable)
+
+**Did:** Closed the long-open [P1-UI-008] follow-up ("re-check session-24 balance numbers vs real
+play data"). Jeremy confirmed NO real long-term save exists, so the re-check was reframed (Fable
+judgment) as an empirical live-playtest validation: loaded `dev-save-heroes-run-history.json`,
+hand-extended Gym Session (13 successes) and Read 30 Min (11/13) `occurrenceHistory` so today's
+completions land in the 2× and 1.5× tiers, then played a full realistic day through the REAL UI —
+both habits, a plain task, a sub-tasked task (sub then parent), a high-priority task, a fresh
+1×-tier habit, and an indulged negative habit. Every payout was exact vs config: 10/8/5 habit
+tiers, 10 task, 20 high-priority (XP stayed 10 — points-only multiplier), 5 sub-task, −5 indulge.
+Zero console errors; persistence round-tripped. Judgment: solid day = 82–90 pts vs the 75–85
+yardstick, first-week ≈ 70; token/pushback save-up cadence (~3–4 days) as intended. **No numbers
+changed.** ROADMAP follow-up checked off with a reopen trigger; full entry in DECISIONS.md.
+
+**State:** No code changes — docs only (ROADMAP.md, DECISIONS.md, this file). Suite untouched at
+56 suites / 1198 (not re-run — zero .js files modified). Dev localStorage holds the heroes fixture
++ playtest residue (see DECISIONS.md hygiene note) — Reset or reload a fixture before tests
+needing pristine state.
+
+**Next:** No flagged follow-ups remain from the balance track. Open candidates: P2-UI-011 Stage 2
+(central `Modal.open()` builder), the deferred state-ownership migration (script.js <300), heroes
+sub-session 5 checkbox reconciliation in ROADMAP (line shows unchecked but ticket says shipped —
+verify which is true before working it), or [P2-GAME-010] Stage 2 walk-cycle art (Jeremy's task).
+
+**Watch out:**
+- When hand-extending `occurrenceHistory` for rate-tier tests: dates must all be BEFORE today
+  (a today-dated entry trips the session-56 spawn-dedupe and blocks the habit from spawning),
+  and remember the multiplier is computed AFTER recording today's occurrence — a 13/13 history
+  becomes 14/14 on completion, a 11/13 becomes 12/14 (85.7% → still 1.5×, not 2×).
+- The fixture-loader 404-page procedure (test/fixtures/README.md) worked flawlessly again;
+  no autosave race when followed exactly.
+
 ## 2026-07-20 — Three more dev-save fixtures: overdue/offline-damage, heroes/run-history, economy/shop (Cowork session, continued)
 
 **Did:** Jeremy asked to continue with the remaining scenario fixtures from the earlier menu.

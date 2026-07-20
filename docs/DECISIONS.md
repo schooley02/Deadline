@@ -4,6 +4,20 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-20 — Shop/economy balance re-check RESOLVED as empirical live-playtest validation (Cowork session, Fable) — no retune
+
+**Decision:** The [P1-UI-008] follow-up ("re-check session-24 balance numbers against REAL play data") is resolved and checked off. Jeremy confirmed no real long-term save exists — he hasn't accumulated organic play history — so the follow-up's precondition can never be satisfied as written. Instead, every economy seam was measured empirically through the REAL UI in Chrome (not unit mocks): loaded `dev-save-heroes-run-history.json`, hand-extended two habits' `occurrenceHistory` (13 backfilled pre-today days each, dated before today so the session-56 spawn-dedupe guard isn't tripped) to land one habit in the ≥90% tier and one in the 70–89% tier after today's completion, then played a full realistic day: completed both fixture habits, created + completed a task, a sub-tasked task (sub then parent), a high-priority task, and a fresh 1×-tier habit, and indulged a newly created negative habit.
+
+**Measured (all EXACT vs config, zero implementation drift):** habit ≥90% → +10 (2×, task parity); habit 70–89% → +8 (1.5×); habit below min-sample → +5 (1×); task → +10; high-priority task → +20 points but +10 XP (points-only multiplier confirmed); sub-task → +5; parent after subs → full +10; indulge → −5. Zero console errors across the whole run; save round-tripped through a reload with all values intact.
+
+**Judgment:** a solid established-player day (5 tasks + 4 well-kept habits) pays 82–90 pts — at/just above the session-24 yardstick of 75–85, which that pass computed with mid-tier habits. A first-week player (all habits below min-sample) earns ~70/day, making the 200-pt day tokens a ~3-day save-up and the 300-pt 1-day pushback ~4 days — both match the intended "emergency parachute, not subscription" cadence. Nothing in the empirical pass contradicts any session-24 number. **No prices, tiers, or point values changed.**
+
+**Rejected:** Leaving the follow-up open indefinitely (its precondition is unfalsifiable given Jeremy's stated play pattern — an eternally-open item is noise); retuning based on simulated-day arithmetic alone (the theory pass already did that math; today's session adds implementation verification, not new evidence of mispricing).
+
+**Reopen trigger:** if Jeremy ever accumulates real multi-day play history, compare actual pts/day earn rate against 75–85 and revisit — the original yardstick logic in ECONOMY.md still applies.
+
+**Session hygiene note:** the dev environment's localStorage now holds the heroes fixture plus this session's playtest residue (extra completed tasks/habits, an indulged negative habit "Impulse Snacking", extended occurrenceHistory on Gym Session / Read 30 Min). Use the dev Reset button or reload a clean fixture before any test that needs pristine state.
+
 ## 2026-07-20 — Day-advance LIVE mid-session rollover CLOSED (Cowork session) — shared core, not a parallel implementation
 
 **Decision:** Rather than write a second, live-tick copy of the day-rollover settle logic, extracted the existing restore-path fork (cheat-day-excused → check-in-eligible → auto-avoid, `js/state.js`'s `restoreGameState`) into a standalone `State.performDayRollover(deps, now)`. Both `restoreGameState` (unchanged behavior — same call, now delegating) and a new `State.checkLiveDayRollover(deps)` (called every tick from `js/loop.js`'s `updateGame`, optional collaborator, same "omitted = no-op" pattern as the existing `checkDayPagerRollover`) now run the identical fork. `checkLiveDayRollover` additionally spawns today's generators, refreshes the same displays the restore path feeds, and saves immediately (doesn't wait for the 5s autosave window — a rollover right before a crash/close shouldn't be lost).
