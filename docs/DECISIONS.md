@@ -4,6 +4,38 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-20 — [P2-UI-011] Stage 2 sub-session 4 shipped: forms.js migrated, 50ms delay dropped (Cowork session, Sonnet)
+
+**Decision:** Migrated `js/ui/forms.js`'s single overlay site (`showFormModal`, the FAB task/habit/
+routine creation modal) onto `Modal.open()` and removed the `setTimeout(50)` that previously
+deferred `attachModalEventListeners`/`wireScheduleFieldsToggle` after insertion. This was the one
+sub-session in the whole Stage 2 plan with a real behavior change (every other sub-session was a
+pure refactor) — Fork 3 in `docs/MODAL_STAGE2_PLAN.md` had already found no technical reason for
+the delay (both `createElement`+`appendChild` and `insertAdjacentHTML` are synchronous; the CSS
+slide-in animation has no JS coordination requirement) but flagged that finding as a read-through,
+not a live-tested claim, so this session existed specifically to test it in isolation.
+
+**What changed:** `showFormModal` now builds one `.modal-overlay` HTML string (previously built via
+`document.createElement('div')` + manual `className`/`id`/`innerHTML` + `appendChild`) and calls
+`Modal.open(html)`, then calls `attachModalEventListeners(formType, deps)` and (for habits)
+`wireScheduleFieldsToggle('modalHabit')` immediately on the same tick — no `setTimeout` at all.
+
+**Verification:** 56 suites, 1205/1205 (unchanged — this module has never had dedicated unit
+coverage). `node --check` clean. Live-verified in Chrome against the real running app (`node
+server.js` on :8000): opened the FAB's Task/Habit/Routine creation modals, confirmed each opens
+instantly with no visible delay; created a real task (spawned a real zombie sprite, appeared in
+Today's Deadlines); toggled the habit form's Frequency select to `monthly` and confirmed
+`wireScheduleFieldsToggle` still correctly swaps "Repeat on" days for "Day of Month" with no delay;
+created a real routine (appeared correctly in the Routines management window, 0/1 active). Zero
+new console errors (only the pre-existing Chrome-extension message-channel noise already
+documented in prior sessions).
+
+**Rejected:** Keeping the delay "just in case" — the plan doc gave this sub-session its own
+dedicated slot precisely so a real timing bug, if one existed, would surface in isolation; none
+did, across all three form types.
+
+---
+
 ## 2026-07-20 — [P2-UI-011] Stage 2 sequenced + sub-session 1 shipped: `Modal.open()` core + checkIn.js pilot (Cowork session, Opus plan / Sonnet-tier execute)
 
 **Decision:** Rather than diving straight into migrating all 17 overlay-creation call sites in one sitting (the literal ask — "work on Modal.open() Stage 2" — with no existing plan doc, unlike every other comparably-sized ticket in this repo), scoped it first: surveyed every `.modal-overlay` insertion site (17 across 5 active files + 1 dead/excluded site in `js/TaskManager.js`), designed `Modal.open(html, options)`'s API against that survey, and wrote `docs/MODAL_STAGE2_PLAN.md` sequencing the migration into 5 sub-sessions (checkIn.js pilot → frozenNotice.js → popups.js → forms.js → routineViews.js), mirroring NEGATIVE_HABITS_PLAN.md/FROZEN_SLOTS_PLAN.md/HEROES_PLAN.md's format. Jeremy confirmed this scope (plan-first, recommended option) via the session's clarifying question and switched to Opus for it.

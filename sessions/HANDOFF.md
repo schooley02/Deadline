@@ -11,6 +11,43 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-07-20 — [P2-UI-011] Stage 2 sub-session 4 shipped: forms.js migrated, 50ms delay dropped (Cowork session, Sonnet)
+
+**Did:** Migrated `js/ui/forms.js`'s single overlay site (`showFormModal`, the FAB task/habit/
+routine creation modal) onto `Modal.open()` and removed the `setTimeout(50)` that used to defer
+`attachModalEventListeners`/`wireScheduleFieldsToggle`. This was the ROADMAP's headline ask and the
+one sub-session in Stage 2 with a real behavior change (every other sub-session was pure refactor).
+Fork 3 in `docs/MODAL_STAGE2_PLAN.md` had already found no technical reason for the delay; this
+session tested that live. Updated `docs/ROADMAP.md`, `docs/MODAL_STAGE2_PLAN.md`, and
+`docs/DECISIONS.md`.
+
+**State:** 56 suites, 1205/1205 (unchanged). `node --check` clean. Live-verified in Chrome against
+the real running app: task creation (real zombie spawn + Today's Deadlines entry), habit creation
+including the monthly/weekly `wireScheduleFieldsToggle` swap, and routine creation (appeared
+correctly in Routines management window) all worked identically with instant (no-delay) modal open
++ synchronous listener wiring. Zero new console errors (only the pre-existing Chrome-extension
+message-channel noise). Stage 2 is now 4/5 sub-sessions done — only routineViews.js (7 sites,
+stacked overlays) remains.
+
+**Next:** [P2-UI-011] Stage 2 sub-session 5 (LAST) — migrate `routineViews.js`'s 7 overlay sites
+onto `Modal.open()`. This is the largest cluster and the ONLY one with stacked overlays
+(`addItemModal`/`transferItemModal` opening on top of `routineManagementModal`), so it's ordered
+last per the plan doc — `closeTopmost()` interaction should have nothing left to surprise it once
+this ships. Closing this sub-session closes Stage 2 and the whole `Modal.open()` migration.
+
+**Watch out:**
+- Element refs from `find` went stale again mid-flow this session (clicking a `find`-returned ref
+  after the FAB menu/window had re-rendered silently no-opped instead of erroring) — same gotcha
+  noted in the sub-session 3 handoff entry. Re-`find` (or use direct coordinate clicks against a
+  fresh screenshot) immediately before each click rather than reusing refs across calls, especially
+  after any modal/window open-close cycle.
+- Background shell processes do NOT survive between separate `mcp__workspace__bash` calls (each
+  call gets a fresh PID namespace) — backgrounding `npm install &` and checking on it in a later
+  call found no running process and an empty log. Filesystem state (npm cache, downloaded
+  packages) DOES persist across calls though, so the workaround is `timeout 40 npm install` run
+  synchronously per call; it completed in ~33s well within one call's budget, no multi-call
+  resumption was actually needed this session.
+
 ## 2026-07-20 — [P2-UI-011] Stage 2 sub-session 3 shipped: popups.js migrated, pushback/Cheat Day hazards re-verified (Cowork session, continued)
 
 **Did:** Continued Stage 2 (sub-session 3 of `docs/MODAL_STAGE2_PLAN.md`). Migrated all 3

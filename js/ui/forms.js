@@ -294,22 +294,24 @@ const Forms = (() => {
             return;
         }
 
-        const modalElement = document.createElement('div');
-        modalElement.className = 'modal-overlay';
-        modalElement.id = `${formType}FormModal`;
-        modalElement.innerHTML = `
-            <div class="modal-content">
-                ${formHtml}
+        const html = `
+            <div class="modal-overlay" id="${formType}FormModal">
+                <div class="modal-content">
+                    ${formHtml}
+                </div>
             </div>
         `;
 
-        document.body.appendChild(modalElement);
+        // [P2-UI-011] Stage 2 sub-session 4: migrated onto Modal.open() and
+        // dropped the setTimeout(50) defer. Fork 3 in docs/MODAL_STAGE2_PLAN.md
+        // found no technical reason for the delay (createElement/appendChild
+        // is synchronous, same as insertAdjacentHTML; modalSlideIn is pure CSS
+        // with no JS coordination requirement) — live-verified synchronous
+        // wiring works identically. See DECISIONS.md.
+        Modal.open(html);
 
-        // Small delay to ensure DOM is updated
-        setTimeout(() => {
-            attachModalEventListeners(formType, deps);
-            if (formType === 'habit') wireScheduleFieldsToggle('modalHabit');
-        }, 50);
+        attachModalEventListeners(formType, deps);
+        if (formType === 'habit') wireScheduleFieldsToggle('modalHabit');
     }
 
     // deps: {

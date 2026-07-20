@@ -107,9 +107,15 @@ count last — see Sub-sessions below.
    unchanged). Live-verified: real pushback stacking via the UI; Cheat Day/Edit Task/sub-task
    creation via direct calls to the real exported functions (a live negative-habit spawn repro
    proved flaky, worked around rather than chased down). See DECISIONS.md.
-4. **forms.js (1 site)** — where the ROADMAP's headline ask (drop the 50ms delay) actually
-   happens. Deliberately AFTER 1-3 prove the pattern is solid, since dropping the delay is the one
-   real behavior change in the whole plan (vs. every other sub-session being a pure refactor).
+4. **forms.js (1 site)** — DONE 2026-07-20 (Cowork session, Sonnet). `showFormModal` switched from
+   `document.createElement`+`appendChild`+`setTimeout(50)` to building one `.modal-overlay` html
+   string and calling `Modal.open(html)` synchronously, then wiring `attachModalEventListeners` +
+   (for habits) `wireScheduleFieldsToggle` immediately after — no defer. Fork 3's finding (no
+   technical reason for the delay) confirmed live: task creation, habit creation (including the
+   monthly/weekly schedule-fields toggle), and routine creation all worked identically with
+   instant modal open + wiring, real zombie spawn/window-refresh behavior unchanged, zero new
+   console errors. No new tests (module has no dedicated unit coverage, same as before). 56
+   suites, 1205/1205 (unchanged). See DECISIONS.md.
 5. **routineViews.js (7 sites)** — largest cluster AND the only one with stacked overlays
    (`addItemModal`/`transferItemModal` over `routineManagementModal`), so it goes last, once
    `closeTopmost()` interaction has nothing left to surprise it.
