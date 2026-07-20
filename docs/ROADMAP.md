@@ -132,7 +132,21 @@ Ordering decided 2026-07-18 session 19 (Fable — see DECISIONS.md): 007 → 008
   - [ ] Stage 2 (art task, Jeremy's timeline, unscheduled): real 4-frame walk cycles × 8 categories
     as horizontal sprite sheets; code swaps the bob keyframes for `steps(4)` background-position
     cycles — the tier/speed wiring from Stage 1 carries over unchanged.
-- [ ] [P2-UI-011] Management window unification
+- [x] [P2-UI-011] Stage 1 — unified window/modal behavior layer (2026-07-19, session 61) — ticket
+  re-scoped (its "Root vs MPE" framing is stale; MPE is dead): unified the CURRENT app's two window
+  systems instead. `js/ui/modal.js` is now the shared behavior layer: ESC closes the topmost overlay
+  only (stacked modals unwind one per press — previously one ESC nuked ALL overlays, killing e.g.
+  the routine Manage modal under the Add Habit modal), backdrop-click closes only the clicked
+  overlay, Tab trap in topmost overlay, focus into windows/overlays on open + focus return to
+  opener/FAB on close, auto role/aria-modal/aria-label on overlays (MutationObserver — no changes
+  to the 18 inline modal builders), static ARIA on the six management windows. addItemModal's
+  Cancel fixed (`closeTopmost`). 42 suites, 945/945 (+19; first jsdom test file —
+  jest-environment-jsdom added). Live-verified in Chrome: stacked ESC unwind, Cancel/backdrop
+  topmost-only, Tab trap wrap, focus return, full create-task flow, no new console errors. See
+  UI_UX.md/ARCHITECTURE.md/DECISIONS.md session 61.
+  - [ ] Stage 2 (unscheduled): central `Modal.open()` builder; migrate the per-cluster inline
+    modal HTML strings onto it; drop forms.js's 50ms setTimeout listener wiring; full keyboard-nav
+    pass folds into the Milestone 4 accessibility item.
 - [x] [P2-GAME-012] Base healing system (2026-07-18, session 17) — gradual regen BUILT: 1 HP/5min while alive (`js/loop.js`) + same rate offline/suspended-gap (`js/damage.js`'s `applyElapsedRegen`, applied after offline damage), clamped at 100; NO daily reset. Repair kits remain unbuilt (ties to the Milestone 3 shop). 17 suites, 370/370. Live-verified in Chrome. See MECHANICS.md Base + DECISIONS.md.
 - [ ] [P2-UI-013] Routine transfer system
 - [ ] Time slider (Today, then Week/Month scopes)

@@ -73,6 +73,11 @@ const ManagementWindows = (() => {
         if (win) {
             win.classList.remove('hidden');
 
+            // [P2-UI-011] Stage 1 (session 61): move keyboard focus into the
+            // window on open. index.html gives every .management-window
+            // role="dialog" + aria-labelledby + tabindex="-1".
+            win.focus();
+
             // Populate the window with current data
             if (type === 'tasks') {
                 populateTasksWindow({ activeItems: deps.activeItems });
@@ -113,6 +118,22 @@ const ManagementWindows = (() => {
         }
     }
 
+    // [P2-UI-011] Stage 1 (session 61): after the last window closes, put
+    // keyboard focus back on the FAB — but only if focus is STRANDED (on
+    // <body>, or inside a now-hidden window — a display:none'd focused
+    // element drops focus to body in real browsers, but jsdom keeps it in
+    // place, hence both checks). Never yank focus from something the user
+    // just clicked. Queries #fabButton directly with a null-guard, same
+    // precedent as this file's document-level backdrop queries.
+    function restoreFocusToFab() {
+        const active = document.activeElement;
+        const stranded = !active || active === document.body ||
+            (active.closest && active.closest('.management-window'));
+        if (!stranded) return;
+        const fab = document.getElementById('fabButton');
+        if (fab) fab.focus();
+    }
+
     // deps: { managementWindows }
     function closeAllManagementWindows(deps) {
         Object.values(deps.managementWindows).forEach(win => {
@@ -123,6 +144,8 @@ const ManagementWindows = (() => {
         if (backdrop) {
             backdrop.classList.remove('show');
         }
+
+        restoreFocusToFab();
     }
 
     // deps: { managementWindows }
@@ -142,6 +165,7 @@ const ManagementWindows = (() => {
             if (backdrop) {
                 backdrop.classList.remove('show');
             }
+            restoreFocusToFab();
         }
     }
 

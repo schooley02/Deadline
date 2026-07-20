@@ -4,6 +4,49 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 61: [P2-UI-011] re-scoped + Stage 1 BUILT — unified window/modal behavior layer (Cowork session, Fable scoping → execution)
+
+**Re-scope decision (Fable):** the ticket as written ("standardize Root vs MPE variants") is STALE —
+Deadline-MPE is the dead May 2025 prototype (reference-only per CLAUDE.md). Modern reading adopted:
+unify the CURRENT app's two parallel window systems — the FAB-opened `.management-window` panels
+(backdrop-click close, no ESC-per-se, no focus mgmt) and the ad-hoc `.modal-overlay` form/popup
+clusters (18 inline HTML-string builders, `closeModal()` nukes ALL overlays, per-popup backdrop
+listeners in popups.js, zero ARIA/focus). Two stages: Stage 1 (this session) = shared behavior
+layer, form markup untouched; Stage 2 (unscheduled) = central `Modal.open()` builder + cluster
+migration. Alternative rejected: implementing the ticket's literal MPE acceptance criteria
+(pointless — MPE is never shipping).
+
+**Built (execution):** js/ui/modal.js grew `closeTopmost` (closeModal KEEPS close-all semantics —
+flows like "Add Selected"→reopen depend on it; the two functions are deliberately distinct),
+`initDismissHandlers` (ESC closes topmost overlay first, ONE per press, then falls through to
+windows+FAB; backdrop click closes only the clicked overlay; replaces two inline script.js handlers
++ 3 redundant per-popup listeners in popups.js), `initFocusManagement` (MutationObserver on body
+childList — leans on the verified invariant that every overlay is inserted as a DIRECT child of
+body; auto-ARIA + focus content on open, restore focus to recorded opener on close; chained
+same-tick close+reopen degrades gracefully to fallback focus — perfect chained return is a Stage 2
+property), `trapTab`. addItemModal's Cancel switched to `closeTopmost()` — it stacks on the routine
+management modal and previously killed BOTH (real UX bug, fixed). Management windows: static
+role="dialog"/aria-labelledby/tabindex="-1" in index.html, win.focus() on open,
+restore-focus-to-FAB-when-stranded on last close (never steals focus the user placed elsewhere).
+
+**Testing decision:** added `jest-environment-jsdom` (^30.4.1 — 30.4.2 doesn't exist for the env
+package even though jest core has it) as a devDependency; test/modal-behavior.test.js is the suite's
+FIRST jsdom file (per-file `@jest-environment jsdom` docblock; global testEnvironment stays 'node').
+19 tests. Two jsdom gotchas worth remembering: (1) MutationObserver callbacks queued by a test's
+last DOM mutation fire during environment teardown and crash jsdom's error reporter — drain with an
+afterEach macrotask flush, plus a cheap `!document.body` guard in the handler itself; (2) init the
+document-level listeners ONCE per file, not per test, or ESC handlers stack and close two overlays
+per press.
+
+**Live-verified in Chrome end-to-end:** stacked ESC unwind (Add Habit modal closes, Manage modal
+survives, focus returns inside it), Cancel topmost-only, backdrop topmost-only, Tab trap wraps both
+directions, window focus in/out (fabButton), full create-task flow still works (enemy spawned), no
+new console errors. Pre-existing non-bug noted: forms.js wires modal listeners on a 50ms setTimeout —
+closing within that window logs "Modal not found" harmlessly (automation-speed only; candidate for
+removal in Stage 2). Save reset to pristine before ending.
+
+---
+
 ## 2026-07-19 — Session 60 (part 2): [P2-GAME-010] Stage 1 BUILT — CSS walk-speed-up (Cowork session, Sonnet — plan pre-approved as part of the scoping pass earlier this session)
 
 **Built:** `Clock.getWalkUrgencyTier(item, currentTime)` (js/clock.js) — pure, reuses the existing

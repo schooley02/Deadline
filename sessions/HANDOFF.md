@@ -13,6 +13,50 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 61: [P2-UI-011] re-scoped + Stage 1 BUILT — unified window/modal behavior layer (Cowork session, Fable scoping → execution)
+
+**Did:** Two parts. (1) Re-scoped the stale ticket (its "Root vs MPE" framing is dead — MPE is the
+May 2025 prototype): unified the CURRENT app's two window systems instead, staged as behavior layer
+now / `Modal.open()` builder later. (2) Built Stage 1: `js/ui/modal.js` grew `closeTopmost`
+(`closeModal` KEEPS close-all — existing flows rely on it), `initDismissHandlers` (ESC topmost-first
+one-per-press then windows/FAB; backdrop click closes only the clicked overlay; replaces two inline
+script.js handlers + 3 redundant per-popup listeners in popups.js), `initFocusManagement`
+(MutationObserver on body childList — auto role/aria-modal/aria-label + focus content on open,
+focus return to opener on close; zero changes to the 18 inline modal builders), `trapTab`.
+addItemModal Cancel → `closeTopmost()` (it stacks on the Manage modal; Cancel used to kill both —
+real bug, fixed). Management windows: static ARIA + tabindex="-1" (index.html), `win.focus()` on
+open, restore-focus-to-FAB-when-stranded on last close (managementWindows.js). Small CSS: `:focus`
+outline suppression (modal.css, managementWindows.css). Docs: UI_UX.md (new Windows & Modals
+section), ARCHITECTURE.md (modal.js entry), ROADMAP.md (Stage 1 checked, Stage 2 sub-item open),
+DECISIONS.md session 61.
+
+**State:** ✅ 42 suites, 945/945 (+19 over session 60's 926: test/modal-behavior.test.js — the
+suite's FIRST jsdom file; `jest-environment-jsdom` ^30.4.1 added as devDependency, so Jeremy's next
+local `npm test` needs a fresh `npm install`). `node --check` clean on script.js + all touched
+modules. Live-verified in Chrome end-to-end: stacked ESC unwind (Add Habit closes, Manage survives,
+focus returns inside it), Cancel/backdrop topmost-only, Tab trap wraps both directions, focus
+in/out of management windows (fabButton), full create-task flow (enemy spawned), no new console
+errors. Save reset to pristine before ending. NOT committed — git commands in chat (may also
+include session 60's changes if those weren't committed).
+
+**Next:** [P2-UI-013] Routine transfer system is next in ROADMAP.md Milestone 4, then time slider,
+achievements/badges, mobile UX + accessibility pass. P2-UI-011 Stage 2 (central `Modal.open()`
+builder, migrate the 18 inline modal HTML strings, drop forms.js's 50ms setTimeout wiring) is
+logged as an unscheduled sub-item.
+
+**Watch out:**
+- The MutationObserver behavior layer DEPENDS on every `.modal-overlay` being a DIRECT child of
+  `document.body` (verified across all current builders). A future overlay nested deeper silently
+  gets no ARIA/focus behavior — keep overlays on body until Stage 2 centralizes creation.
+- `closeModal` (close ALL) vs `closeTopmost` (top only) is a deliberate split — do NOT "fix"
+  closeModal to topmost-only; flows like addItemModal's "Add Selected" → reopen depend on nuke-all.
+  In stacked contexts, new Cancel/close buttons should use `closeTopmost()`.
+- jsdom testing gotchas (first jsdom file in the suite): drain MutationObserver callbacks with an
+  afterEach macrotask flush or they fire during env teardown and crash jsdom's error reporter; and
+  init document-level listeners ONCE per file, not per test, or ESC handlers stack.
+- Pre-existing, harmless, automation-only: forms.js wires modal listeners on a 50ms setTimeout, so
+  closing a form modal within 50ms of opening logs "Modal not found". Goes away in Stage 2.
+
 ## 2026-07-19 — Session 60: [P2-GAME-010] Enemy acceleration — scoped + Stage 1 BUILT (Cowork session, Fable then Sonnet)
 
 **Did:** Two parts. (1) Scoped the ticket into a two-stage plan: urgency = walk-animation

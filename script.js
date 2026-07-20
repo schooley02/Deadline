@@ -1241,24 +1241,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Thin wrapper — real implementation lives in js/ui/modal.js
     // (Milestone 2 UI extraction session 1, 2026-07-18). Call site unchanged.
     window.closeModal = Modal.closeModal;
-    
-    // Add escape key listener for closing modals and windows
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            // Close any open modals first
-            const modals = document.querySelectorAll('.modal-overlay');
-            if (modals.length > 0) {
-                closeModal();
-                return;
-            }
-            
-            // Close any open management windows
-            closeAllManagementWindows();
-            
-            // Close FAB menu
-            closeFabMenu();
-        }
-    });
+    // closeTopmost is for stacked-context Cancel buttons (e.g. the routine
+    // addItemModal, which sits ON TOP of the routine management modal —
+    // closeModal() there killed both). [P2-UI-011] Stage 1, session 61.
+    window.closeTopmost = Modal.closeTopmost;
+
+    // ESC / backdrop-click / Tab-trap / focus handling all live in
+    // js/ui/modal.js now ([P2-UI-011] Stage 1, session 61) — wired below,
+    // after managementWindows/closeFabMenu are defined (see
+    // Modal.initDismissHandlers call near the event-listener block).
 
     // Floating Action Button and Window Management
     const fabButton = document.getElementById('fabButton');
@@ -1620,26 +1611,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     
-    // Close windows when clicking outside
-    document.addEventListener('click', (e) => {
-        // Handle clicking outside management windows
-        const anyWindowOpen = Object.values(managementWindows).some(w => 
+    // Unified dismiss + focus behavior ([P2-UI-011] Stage 1, session 61):
+    // ESC (topmost overlay first, then windows/FAB), backdrop click
+    // (clicked overlay only), Tab trap, focus return, role/aria on open —
+    // all centralized in js/ui/modal.js. Replaces the previous inline ESC
+    // keydown + click-outside handlers here and the per-popup backdrop
+    // listeners in popups.js.
+    Modal.initDismissHandlers({
+        closeAllManagementWindows,
+        closeFabMenu,
+        isAnyManagementWindowOpen: () => Object.values(managementWindows).some(w =>
             w && !w.classList.contains('hidden')
-        );
-        
-        if (anyWindowOpen && !e.target.closest('.management-window') && !e.target.closest('.fab-container')) {
-            // Don't close if clicking on a modal
-            if (!e.target.closest('.modal-overlay')) {
-                closeAllManagementWindows();
-            }
-        }
-        
-        // Close modals when clicking outside
-        const modal = e.target.closest('.modal-overlay');
-        if (e.target.classList.contains('modal-overlay')) {
-            closeModal();
-        }
+        ),
     });
+    Modal.initFocusManagement();
     
     // Add new item button listeners
     const addNewTaskButton = document.getElementById('addNewTaskButton');

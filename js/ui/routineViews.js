@@ -846,7 +846,10 @@ const RoutineViews = (() => {
                     </div>
                     <div class="modal-buttons">
                         <button id="addSelectedItemBtn" class="primary-button">Add Selected</button>
-                        <button class="secondary-button" onclick="closeModal()">Cancel</button>
+                        <!-- closeTopmost, NOT closeModal: this modal stacks on
+                             the routine management modal — Cancel should return
+                             to it, not kill both ([P2-UI-011] Stage 1). -->
+                        <button class="secondary-button" onclick="closeTopmost()">Cancel</button>
                     </div>
                 </div>
             </div>

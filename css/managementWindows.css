@@ -30,6 +30,12 @@
     pointer-events: none;
 }
 
+/* [P2-UI-011] Stage 1: windows receive programmatic focus (tabindex="-1")
+   on open — they're not Tab-reachable, so no visible ring needed. */
+.management-window:focus {
+    outline: none;
+}
+
 .management-window::backdrop {
     background: rgba(0, 0, 0, 0.3);
 }

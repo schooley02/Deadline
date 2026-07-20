@@ -19,6 +19,12 @@
     visibility: visible;
 }
 
+/* [P2-UI-011] Stage 1: modal content receives programmatic focus
+   (tabindex="-1" set by js/ui/modal.js) on open — not Tab-reachable. */
+.modal-content:focus {
+    outline: none;
+}
+
 .modal-content {
     background: var(--color-bg-white);
     border-radius: 12px;

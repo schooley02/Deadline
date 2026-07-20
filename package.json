@@ -14,7 +14,8 @@
     "test:visual:baseline": "node test/visual-tests.js --baseline"
   },
   "devDependencies": {
-    "jest": "^30.4.2"
+    "jest": "^30.4.2",
+    "jest-environment-jsdom": "^30.4.1"
   },
   "optionalDependencies": {
     "puppeteer": "^24.0.0",

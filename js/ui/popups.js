@@ -309,10 +309,10 @@ const Popups = (() => {
             });
         });
 
-        // Close modal when clicking overlay
-        overlay.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal-overlay')) Modal.closeModal();
-        });
+        // Backdrop-click dismissal is handled centrally by
+        // Modal.initDismissHandlers ([P2-UI-011] Stage 1, session 61) —
+        // the per-popup listener that lived here was redundant with the
+        // document-level handler and used nuke-all closeModal().
     }
 
     // deps: { activeItems, recomputeOverdueStateAfterEdit, createListItem,
@@ -454,10 +454,8 @@ const Popups = (() => {
             });
         }
 
-        // Close modal when clicking overlay
-        document.querySelector('.modal-overlay').addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal-overlay')) Modal.closeModal();
-        });
+        // Backdrop-click dismissal handled centrally by
+        // Modal.initDismissHandlers ([P2-UI-011] Stage 1, session 61).
     }
 
     // deps: passed straight through to showCreateSubTaskModal
@@ -607,10 +605,8 @@ const Popups = (() => {
             });
         }
 
-        // Close modal when clicking overlay
-        document.querySelector('.modal-overlay').addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal-overlay')) Modal.closeModal();
-        });
+        // Backdrop-click dismissal handled centrally by
+        // Modal.initDismissHandlers ([P2-UI-011] Stage 1, session 61).
     }
 
     return {

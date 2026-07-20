@@ -31,6 +31,15 @@ Replaces the agenda list with routines ranked by level (top performers first). M
 ## Navigation
 Plus icon / hamburger menu opens options. Keep taps-to-action minimal — completing a task should be 1-2 taps.
 
+## Windows & Modals — unified behavior ([P2-UI-011] Stage 1, session 61, 2026-07-19)
+Two window systems share one behavior layer (`js/ui/modal.js`, wired via `Modal.initDismissHandlers`/`initFocusManagement` in script.js):
+- **Management windows** (FAB-opened Tasks/Habits/Routines/Shop/Stats/Settings panels) and **modal overlays** (form/popup `.modal-overlay`s) both close on ESC and outside/backdrop click.
+- **ESC order:** topmost modal overlay first (ONE per press — stacked modals unwind one at a time), then management windows + FAB menu.
+- **Backdrop click** closes only the clicked overlay. **Stacked-context Cancel buttons** use `closeTopmost()` (returns to the modal beneath); other close buttons keep `closeModal()` close-all.
+- **Focus:** opening a window/overlay moves focus into it (`tabindex="-1"` containers); closing returns focus to the opener (FAB for windows). Tab is trapped inside the topmost overlay.
+- **ARIA:** overlays get `role="dialog"`/`aria-modal`/`aria-label` (auto, from their heading) at open; management windows carry them statically in index.html.
+Stage 2 (unscheduled): migrate per-cluster inline modal HTML onto a central `Modal.open()` builder.
+
 ## Canonical Wireframes (image-only PDFs — do NOT open in Claude; ask Jeremy)
 In `OneDrive\Documents\Baseline - Old\Deadline\`: `Tasks.pdf` (task input fields), `Habits.pdf` (habit input fields), `Routines.pdf` (routine screens), `Agenda-view.pdf` (main screen layout), `wireframe1.pdf`. Also `Deadline-Mockup-1.jpg` and `Base-View-Mockup-v1.png` there (safe to view), and `UI_Inspiration/` in this repo. Deep UI detail: Grep PROJECT_SPEC.md section 7 (UI Specifications).
 

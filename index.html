@@ -136,10 +136,14 @@
         <button id="resetTestButton" class="reset-test-button" title="Reset game state (for testing)">↺ Reset</button>
 
         <!-- Management Windows -->
-        <div id="tasksWindow" class="management-window hidden">
+        <!-- role/aria-labelledby/tabindex on every .management-window +
+             aria-label on close buttons: [P2-UI-011] Stage 1, session 61.
+             tabindex="-1" lets ManagementWindows.openManagementWindow move
+             keyboard focus into the window on open. -->
+        <div id="tasksWindow" class="management-window hidden" role="dialog" aria-labelledby="tasksWindowTitle" tabindex="-1">
             <div class="window-header">
-                <h3>Tasks</h3>
-                <button class="close-window" data-window="tasksWindow">×</button>
+                <h3 id="tasksWindowTitle">Tasks</h3>
+                <button class="close-window" data-window="tasksWindow" aria-label="Close Tasks window">×</button>
             </div>
             <div class="window-content">
                 <button id="addNewTaskButton" class="primary-button window-add-button">+ Add New Task</button>
@@ -152,10 +156,10 @@
             </div>
         </div>
         
-        <div id="habitsWindow" class="management-window hidden">
+        <div id="habitsWindow" class="management-window hidden" role="dialog" aria-labelledby="habitsWindowTitle" tabindex="-1">
             <div class="window-header">
-                <h3>Habits</h3>
-                <button class="close-window" data-window="habitsWindow">×</button>
+                <h3 id="habitsWindowTitle">Habits</h3>
+                <button class="close-window" data-window="habitsWindow" aria-label="Close Habits window">×</button>
             </div>
             <div class="window-content">
                 <button id="addNewHabitButton" class="primary-button window-add-button">+ Add New Habit</button>
@@ -168,10 +172,10 @@
             </div>
         </div>
         
-        <div id="routinesWindow" class="management-window hidden">
+        <div id="routinesWindow" class="management-window hidden" role="dialog" aria-labelledby="routinesWindowTitle" tabindex="-1">
             <div class="window-header">
-                <h3>Routines</h3>
-                <button class="close-window" data-window="routinesWindow">×</button>
+                <h3 id="routinesWindowTitle">Routines</h3>
+                <button class="close-window" data-window="routinesWindow" aria-label="Close Routines window">×</button>
             </div>
             <div class="window-content">
                 <button id="addNewRoutineButton" class="primary-button window-add-button">+ Add New Routine</button>
@@ -184,10 +188,10 @@
             </div>
         </div>
 
-        <div id="shopWindow" class="management-window hidden">
+        <div id="shopWindow" class="management-window hidden" role="dialog" aria-labelledby="shopWindowTitle" tabindex="-1">
             <div class="window-header">
-                <h3>Shop</h3>
-                <button class="close-window" data-window="shopWindow">×</button>
+                <h3 id="shopWindowTitle">Shop</h3>
+                <button class="close-window" data-window="shopWindow" aria-label="Close Shop window">×</button>
             </div>
             <div class="window-content">
                 <!-- [P1-UI-008] SHOP_PLAN.md session 2: catalog grid only.
@@ -200,10 +204,10 @@
             </div>
         </div>
 
-        <div id="statsWindow" class="management-window hidden">
+        <div id="statsWindow" class="management-window hidden" role="dialog" aria-labelledby="statsWindowTitle" tabindex="-1">
             <div class="window-header">
-                <h3>Stats</h3>
-                <button class="close-window" data-window="statsWindow">×</button>
+                <h3 id="statsWindowTitle">Stats</h3>
+                <button class="close-window" data-window="statsWindow" aria-label="Close Stats window">×</button>
             </div>
             <div class="window-content">
                 <!-- RUN_HISTORY_PLAN.md sub-session 3: live current-run panel
@@ -225,10 +229,10 @@
             </div>
         </div>
 
-        <div id="settingsWindow" class="management-window hidden">
+        <div id="settingsWindow" class="management-window hidden" role="dialog" aria-labelledby="settingsWindowTitle" tabindex="-1">
             <div class="window-header">
-                <h3>Settings</h3>
-                <button class="close-window" data-window="settingsWindow">×</button>
+                <h3 id="settingsWindowTitle">Settings</h3>
+                <button class="close-window" data-window="settingsWindow" aria-label="Close Settings window">×</button>
             </div>
             <div class="window-content">
                 <!-- [P2-UI-009] session 59: first entry in what's meant to grow
