@@ -11,29 +11,36 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
-## 2026-07-20 — Session 74: Mobile UX + accessibility + PWA — sequenced (Cowork session)
+## 2026-07-20 — Session 74: Mobile UX + accessibility + PWA — sequenced + sub-session 1 BUILT (Cowork session)
 
 **Did:** Took on the last open Milestone 4 line ("Mobile UX + accessibility pass; PWA"). Read
 `docs/UI_UX.md`'s Accessibility section + `ACTIONABLE_TICKETS.md` mobile/a11y lines, then did a
 live recon audit in Claude-in-Chrome at a 390×844 mobile viewport (real rendering, via an
 in-page iframe workaround — see Watch out). Found concrete issues: edit-pencil icon 32×32px,
-completion checkbox 24×24px, week-strip day cell 42px tall (all under the 44px floor UI_UX.md
-already commits to); `css/responsive.css`'s two breakpoints have FAB/management-window sizing
-backwards — that styling sits in the `min-width:1024px` (desktop) query, not the
-`max-width:768px` (mobile) one; and zero PWA scaffolding exists (no manifest, no service worker,
-no theme-color — clean slate). Resolved 3 forks with Jeremy (PWA = installable shell only, no
-offline sync; sequencing = layout → a11y → PWA; a11y = practical pass, not full WCAG audit) and
-wrote `docs/MOBILE_PWA_PLAN.md` (3 sub-sessions) mirroring the existing plan-doc pattern.
-`docs/ROADMAP.md` updated with the sequenced sub-items; `docs/DECISIONS.md` logged. NO CODE
-CHANGED this session — planning + recon only.
+completion checkbox 24×24px, week-strip day cell 42px tall, management-window close button 28px
+(all under the 44px floor UI_UX.md already commits to); `css/responsive.css`'s two breakpoints
+have FAB/management-window sizing backwards — that styling sat in the `min-width:1024px`
+(desktop) query, not the `max-width:768px` (mobile) one; and zero PWA scaffolding exists (no
+manifest, no service worker, no theme-color — clean slate). Resolved 3 forks with Jeremy (PWA =
+installable shell only, no offline sync; sequencing = layout → a11y → PWA; a11y = practical
+pass, not full WCAG audit) and wrote `docs/MOBILE_PWA_PLAN.md` (3 sub-sessions).
 
-**State:** App unmodified. Test suite not run (no code touched). One real task ("Mobile audit
-task", due today 5pm) exists in Jeremy's live dev save from the recon click-through — see Watch
-out, deliberately not removed.
+Jeremy then said "continue," so **also BUILT sub-session 1 (layout fixes)** same session: bumped
+`.edit-icon-btn`, `.completion-checkbox` (label), `.close-window` (removed a redundant
+shrinking override rather than re-bumping it), `.day-pager-btn`, and `.week-strip-cell` all to
+≥44×44px (`css/popups.css`, `css/managementWindows.css`, `css/dayPager.css`); un-swapped
+`css/responsive.css`'s two breakpoints (moved FAB/management-window/fab-menu/negative-habit-button
+sizing into the mobile query where it actually applies, verified against each rule's base value
+first). `docs/ROADMAP.md`/`docs/UI_UX.md`/`docs/DECISIONS.md` all updated same-session.
 
-**Next:** Sub-session 1 of `docs/MOBILE_PWA_PLAN.md` — layout fixes (tap-target sizing on the
-edit-pencil/completion-checkbox/week-strip-cell, and un-swapping the responsive.css breakpoints).
-Sonnet-appropriate; the plan doc has exact target sizes and the specific CSS rules to move.
+**State:** 55 suites, 1184/1184 (unchanged — CSS-only, no `.js` touched). Live-verified every
+changed selector's real computed size in Chrome at 390×844 (iframe workaround) — all now
+≥44×44px. NOT committed — git commands given below.
+
+**Next:** MOBILE_PWA_PLAN.md sub-session 2 — accessibility pass (day pager `‹ ›` accessible
+names, week-strip cell keyboard+ARIA mirroring the session-69 expandable-run-card pattern,
+agenda checkbox keyboard-operability check, contrast pass on anything borderline found along the
+way). Opus-tier is fine for the first-pass audit portion; execution is Sonnet.
 
 **Watch out:**
 - `mcp__claude-in-chrome__resize_window` reported success but never actually changed the live
@@ -42,15 +49,20 @@ Sonnet-appropriate; the plan doc has exact target sizes and the specific CSS rul
   driving/screenshotting inside it — genuine mobile rendering, just scoped to the iframe. Try the
   direct tool again fresh next session in case it was a one-off; the iframe trick is a known-good
   fallback either way.
-- A real "Mobile audit task" (due 7/20/26 5:00 PM, category Other) got created in Jeremy's actual
-  dev save during the audit click-through, to see a live agenda row's tap targets. NOT removed —
-  there's no delete-task affordance in the app (a known, pre-existing gap — see ROADMAP.md's
-  sub-task cascade note) and hand-editing localStorage carries the flush/debounce hazards logged
-  in CLAUDE.md, not worth the risk for one harmless test task. Safe to complete or ignore next
-  session.
-- The `css/responsive.css` breakpoint-swap finding is a real latent bug, not just a naming nit —
-  next session's fix should re-verify the `min-width:1024px` query still makes sense for ACTUAL
-  desktop once the mobile-appropriate rules are moved out of it.
+- A scripted `input`/`click` sequence via `javascript_tool` froze the Chrome tab mid-verification
+  (CDP `Runtime.evaluate` timeout) — same symptom as CLAUDE.md's documented native-dialog-freeze
+  gotcha, though no dialog was deliberately triggered. Navigating to a fresh URL recovered it
+  cleanly, same as the documented recovery. Switched to real `computer` clicks/typing for the rest
+  of verification with no further issues — prefer that over scripted form-filling in this app if
+  it recurs.
+- Two harmless real tasks ("Mobile audit task" from the recon audit, "Tap target check" from the
+  layout-fix verification) may exist in Jeremy's actual dev save depending on which reload survived
+  — NOT removed, since there's no delete-task affordance in the app and hand-editing localStorage
+  carries the flush/debounce hazards logged in CLAUDE.md. Safe to complete or ignore.
+- Sub-session 1's CSS fix assumed `.task-section`/`.controls-section`/`.routine-section` staying
+  under the `min-width:1024px` query was correct (no base-rule evidence they were misplaced,
+  unlike the ones that got moved) — worth a second look if the desktop layout ever looks off in
+  those areas.
 
 ---
 

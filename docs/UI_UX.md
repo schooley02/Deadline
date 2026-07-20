@@ -47,3 +47,14 @@ In `OneDrive\Documents\Baseline - Old\Deadline\`: `Tasks.pdf` (task input fields
 
 ## Accessibility
 Keyboard operable, adequate contrast, tap targets ≥44px, works one-handed on a phone.
+
+**Tap targets fixed 2026-07-20 ([P2] Mobile UX pass, MOBILE_PWA_PLAN.md sub-session 1):** the
+edit-pencil button (`.edit-icon-btn`, was 32×32px), the completion checkbox's clickable label
+(`.completion-checkbox`, was 32px tall), the management-window close button (`.close-window`, was
+28×28px via a since-removed override), the day-pager `‹ ›` buttons (`.day-pager-btn`, was 32×32px),
+and the week-strip day cells (`.week-strip-cell`, was 42px tall) are all now ≥44×44px. Also fixed:
+`css/responsive.css`'s two `@media` breakpoints had FAB/management-window/fab-menu compacting
+rules living under `min-width: 1024px` (desktop) instead of `max-width: 768px` (mobile) — moved to
+where they actually apply. See DECISIONS.md session 74 for the full breakdown. Remaining
+accessibility work (keyboard/ARIA on the day pager and week strip, contrast pass) is
+MOBILE_PWA_PLAN.md sub-session 2.

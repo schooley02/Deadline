@@ -31,6 +31,43 @@ same-origin `<iframe>` (390×844) into the live page and driving/screenshotting 
 rendering, real media queries, just scoped to the iframe. Worth trying `resize_window` again fresh
 next time in case it was session-specific, but the iframe trick is a reliable fallback.
 
+## 2026-07-20 — Session 74 (continued): Mobile UX sub-session 1 BUILT — layout fixes
+
+Same session, continued after Jeremy said "continue." Built MOBILE_PWA_PLAN.md sub-session 1
+(Sonnet-tier execution, plan already resolved). Bumped every tap target the recon audit flagged
+to ≥44×44px: `.edit-icon-btn` (32→44), `.completion-checkbox` label (32→44 tall; the checkbox
+glyph itself only went 24→28, since the whole label — checkbox + "Mark as Complete" text — is
+the real click target), `.day-pager-btn` (32→44), `.week-strip-cell` (42→44 min-height, width
+left at ~47px). Also found and fixed one MORE instance of the same bug live-testing, not in the
+original plan doc: the management-window `.close-window` button was 32px at its base rule with a
+more-specific `.window-header .close-window` override shrinking it further to 28px — removed the
+override entirely (same size-drift pattern as the responsive.css breakpoint swap this session
+already found) rather than bumping both declarations.
+
+**`css/responsive.css` breakpoint fix:** moved `.fab`/`.fab-container`/`.management-window`/
+`.fab-menu-item`/`.window-content`/`.negative-habit-button` out of the `min-width:1024px` query
+into `max-width:768px`. Verified each was mobile-appropriate by checking its base (unscoped) rule
+first — e.g. `.management-window`'s base is `width:90%; max-height:80vh`; a `min-width:1024px`
+override to 95%/85vh is a no-op on any real desktop screen (already capped at
+`max-width:500px`), so it could only ever have mattered on a NARROW screen, confirming the swap.
+Left `.task-section`/`.controls-section`/`.routine-section` under the desktop query — no base-rule
+evidence they were misplaced (scrollable side panels are a plausible genuine wide-screen
+enhancement).
+
+**Verification:** 55 suites, 1184/1184 (unchanged — CSS-only session, no `.js` touched, so no
+`node --check` needed either). Live-verified every changed selector's real computed size in
+Chrome at 390×844 via the iframe-injection workaround (`.fab` 48×48, `.day-pager-btn` 44×44,
+`.week-strip-cell` 47×44, `.close-window` 44×44, `.edit-icon-btn` 44×44,
+`.completion-checkbox-input` 28×28 inside a 140×44 label). One real-world hazard hit and
+recovered from: a scripted `input`/`click` sequence via `javascript_tool` froze the Chrome tab
+(CDP timeout) — matches the documented native-dialog-freeze failure mode in CLAUDE.md, though no
+dialog was intentionally triggered; navigating the tab to a fresh URL recovered it cleanly with
+no partial mutation, same as the documented recovery. Switched to real `computer` clicks/typing
+for the rest of the verification and had no further issues.
+
+**Next:** MOBILE_PWA_PLAN.md sub-session 2 (accessibility pass — day pager/week strip
+keyboard+ARIA, contrast check), then sub-session 3 (PWA installable shell).
+
 ## 2026-07-20 — Session 73: Time Slider Week scope sub-session 4 BUILT — Week strip; ticket fully CLOSED
 
 **Jeremy's brief (asked at build time, per the plan's own note that placement/heavy-day-marker needed his

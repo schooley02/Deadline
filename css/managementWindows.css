@@ -57,6 +57,12 @@
     font-weight: 600;
 }
 
+/* 32px base bumped to 44px (2026-07-20, MOBILE_PWA_PLAN.md sub-session 1) —
+   found live-testing the same tap-target issue as edit-icon-btn/
+   completion-checkbox. The .window-header override below used to shrink
+   this further to 28px; removed rather than re-bumped, since two competing
+   size declarations for the same button is exactly the kind of drift that
+   caused the responsive.css breakpoint mismatch this same session found. */
 .close-window {
     background: none;
     border: none;
@@ -64,8 +70,8 @@
     cursor: pointer;
     color: var(--color-neutral);
     padding: 0;
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -76,18 +82,6 @@
 .close-window:hover {
     background: var(--color-error);
     color: white;
-}
-
-/* Close button enhancement */
-.window-header .close-window {
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    line-height: 1;
 }
 
 /* Overlay backdrop for windows */

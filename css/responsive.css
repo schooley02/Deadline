@@ -4,33 +4,76 @@
  */
 
 /* Responsive Design */
+/* 2026-07-20 (MOBILE_PWA_PLAN.md sub-session 1): the two breakpoints below
+   used to have their rules swapped from what their names imply — FAB/
+   management-window/fab-menu sizing (all of it visibly SMALLER/more compact
+   than the unscoped base rules — a mobile-appropriate direction) lived under
+   `min-width: 1024px` (desktop), while the `max-width: 768px` (mobile) block
+   never touched them. Confirmed via the base rules each overrides: e.g.
+   `.management-window`'s base is `width:90%; max-height:80vh` (managementWindows.css)
+   — a `min-width:1024px` override to 95%/85vh is a functional no-op there
+   (already capped by `max-width:500px` on any wide screen) but a real,
+   visible size change on an actual phone. Moved the compacting rules into
+   the mobile query where they actually do something; left `.task-section`/
+   `.controls-section`/`.routine-section` under the desktop query since
+   those (scrollable side panels) are plausibly genuine wide-screen
+   enhancements. See DECISIONS.md. */
 @media (max-width: 768px) {
     .game-canvas {
         height: 30vh;
         min-height: 200px;
     }
-    
+
     .stats-overlay {
         padding: var(--space-2);
     }
-    
+
     .resource-panel {
         gap: var(--space-2);
     }
-    
+
     .stat-item {
         padding: var(--space-1) var(--space-2);
         font-size: 11px;
     }
-    
+
     .attack-button {
         width: 48px;
         height: 48px;
         font-size: 20px;
     }
-    
+
     .form-row-group {
         grid-template-columns: 1fr;
+    }
+
+    .negative-habit-button {
+        font-size: 11px !important;
+    }
+
+    .fab {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+    }
+
+    .fab-container {
+        bottom: var(--space-4);
+        right: var(--space-4);
+    }
+
+    .management-window {
+        width: 95%;
+        max-height: 85vh;
+    }
+
+    .fab-menu-item {
+        min-width: 100px;
+        padding: var(--space-2);
+    }
+
+    .window-content {
+        padding: var(--space-2);
     }
 }
 
@@ -39,47 +82,18 @@
         height: 33vh;
         min-height: 300px;
     }
-    
+
     .task-section {
         max-height: 50vh;
     }
-    
+
     .controls-section {
         overflow-y: auto;
         max-height: 40vh;
     }
-    
+
     .routine-section {
         margin-bottom: var(--space-2);
-    }
-    
-    .negative-habit-button {
-        font-size: 11px !important;
-    }
-    
-    .fab {
-        width: 48px;
-        height: 48px;
-        font-size: 20px;
-    }
-    
-    .fab-container {
-        bottom: var(--space-4);
-        right: var(--space-4);
-    }
-    
-    .management-window {
-        width: 95%;
-        max-height: 85vh;
-    }
-    
-    .fab-menu-item {
-        min-width: 100px;
-        padding: var(--space-2);
-    }
-    
-    .window-content {
-        padding: var(--space-2);
     }
 }
 

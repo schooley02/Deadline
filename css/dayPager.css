@@ -20,8 +20,12 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 2px;
     padding: 4px 2px;
+    min-height: 44px; /* 2026-07-20, MOBILE_PWA_PLAN.md sub-session 1: was 42px, under
+                         the 44px tap-target floor. Width (~47px at 390px viewport)
+                         was already acceptable, left as-is. */
     border-radius: 6px;
     border: 1px solid var(--color-secondary-green-pale);
     background: var(--color-bg-white);
@@ -78,8 +82,9 @@
 }
 
 .day-pager-btn {
-    width: 32px;
-    height: 32px;
+    /* 44px, 2026-07-20 MOBILE_PWA_PLAN.md sub-session 1 (was 32px). */
+    width: 44px;
+    height: 44px;
     border-radius: 6px;
     border: 1px solid var(--color-secondary-green-pale);
     background: var(--color-bg-white);
