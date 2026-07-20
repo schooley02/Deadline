@@ -255,6 +255,30 @@ describe('selectHabitDefsToSpawn — isActive gating', () => {
             expect(selectHabitDefsToSpawn(defs, [], [], DAY)).toHaveLength(1);
         });
     });
+
+    // Session 57: cheatDayDate gating — the excused-indulge variant of the
+    // session-56 respawn bug. An excused indulge records NO occurrence (by
+    // design, session 26), so the marker itself must gate the same-day
+    // respawn; indulgeHabit's excused branch now keeps it set for the rest
+    // of the day (it self-expires next calendar day by date comparison).
+    describe('cheatDayDate gating (excused-indulge same-day respawn guard)', () => {
+        const DAY_OCCURRENCE = Habits.toOccurrenceDate(DAY);
+
+        test('a habit whose cheatDayDate matches DAY does not spawn', () => {
+            const defs = [habitDef('h1', { isNegative: true, cheatDayDate: DAY_OCCURRENCE })];
+            expect(selectHabitDefsToSpawn(defs, [], [], DAY)).toHaveLength(0);
+        });
+
+        test("a cheatDayDate for a DIFFERENT day (e.g. yesterday's spent marker) does not block spawning", () => {
+            const defs = [habitDef('h1', { isNegative: true, cheatDayDate: '2020-01-01' })];
+            expect(selectHabitDefsToSpawn(defs, [], [], DAY)).toHaveLength(1);
+        });
+
+        test('a habit with no cheatDayDate (null/undefined) is unaffected', () => {
+            const defs = [habitDef('h1', { cheatDayDate: null }), habitDef('h2')];
+            expect(selectHabitDefsToSpawn(defs, [], [], DAY)).toHaveLength(2);
+        });
+    });
 });
 
 // --- selectActiveItemIdsToClearForRoutine -----------------------------------

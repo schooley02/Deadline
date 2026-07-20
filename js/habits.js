@@ -111,6 +111,14 @@ const Habits = (() => {
         return definedHabits.filter(habitDef => {
             if (habitDef.skipDayDate === forWhichGameDayOccurrence) return false;
             if (sickDayDate && sickDayDate === forWhichGameDayOccurrence) return false;
+            // Cheat Day marker (session 57): an active cheatDayDate for this
+            // day blocks respawn — an excused indulge records NO occurrence
+            // by design (session 26), so without this the occurrenceHistory
+            // check below never fires and a same-day reload respawned the
+            // lurker with its cheat cover gone. indulgeHabit's excused branch
+            // keeps the marker set for exactly this reason; it self-expires
+            // next calendar day (date comparison, same pattern as skipDayDate).
+            if (habitDef.cheatDayDate === forWhichGameDayOccurrence) return false;
 
             // A habit is owned by a routine if that routine lists it OR the
             // habit points at it. Both are checked so the two representations

@@ -838,8 +838,18 @@ const Items = (() => {
      * for THIS lurker's day (isCheatDayExcused), the debit is skipped
      * entirely and no occurrence is recorded — the day is EXCUSED, not a
      * success or a miss, so streak/occurrenceHistory are left untouched
-     * (session 26, Fable). The marker is cleared either way (one use per
-     * token). Still exits with the same fade animation either path.
+     * (session 26, Fable). The marker is deliberately NOT cleared here
+     * (changed 2026-07-19 session 57): since an excused indulge records no
+     * occurrence, the marker is the ONLY state that tells the spawn dedupe
+     * (Habits.selectHabitDefsToSpawn) the day is resolved — nulling it let a
+     * same-day reload respawn the lurker with its cheat cover gone, so a
+     * second indulge debited for real (the session-56 bug's excused-branch
+     * variant). The marker is date-scoped, so it self-expires next calendar
+     * day by comparison; "one use per token" is enforced structurally by the
+     * spawn gate (at most one instance per day = at most one excused indulge
+     * per token). Rollover (settleExcusedCheatDay) and check-in
+     * (resolvePendingCheckIn) still clear it — by then the day is over.
+     * Still exits with the same fade animation either path.
      */
     function indulgeHabit(itemId, deps) {
         if (deps.isGameOver()) return;
@@ -851,7 +861,7 @@ const Items = (() => {
         if (!habitDef || !habitDef.isNegative) return;
 
         if (isCheatDayExcused(habitDef, item.originalDueDate)) {
-            habitDef.cheatDayDate = null;
+            // Marker intentionally kept — see the header comment (session 57).
             deps.updatePlayerDisplays();
             deps.saveGame();
         } else {

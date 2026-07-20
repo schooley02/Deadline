@@ -4,6 +4,55 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 57: Cheat-day-excused respawn variant — design fork resolved (Fable) + fix built: "the marker lives all day"
+
+**The session-56 follow-up bug.** An excused indulge records NO occurrence (session 26: excused ≠
+success/miss — must not touch the rate history) and, per session 34, nulled `cheatDayDate` ("one
+use per token"). Net effect: after the excused instance was removed, no state the spawn dedupe
+consults marked the day resolved, so a same-day reload respawned the lurker — with its cheat cover
+gone, meaning a second "I indulged" click debited for real. The player pays 200 points for a token
+and can still eat the full punishment. Quiet variant: leave the respawned lurker alone and the
+next morning's check-in asks about a day that was excused (answer "avoided" = undeserved reward,
+"indulged" = real debit — wrong both ways).
+
+**Decision (Fable fork, this session) — Option A, "marker lives all day":** `indulgeHabit`'s
+excused branch keeps `cheatDayDate` set; `selectHabitDefsToSpawn` gains a
+`cheatDayDate === spawn-day` gate parallel to `skipDayDate`. Why: (1) the marker is already
+date-scoped, so it self-expires next calendar day by comparison — no clearing logic needed for
+correctness, a stale past-date marker is inert everywhere (all consumers date-compare) and the
+next token use overwrites it; (2) "one use per token" survives structurally — the gate guarantees
+at most one instance per day, hence at most one excused indulge per token, so eager nulling was
+never load-bearing; (3) defense in depth — if an instance ever appears through a future hole, its
+popup still shows cheat-active and indulges free instead of silently debiting; (4) each token's
+state stays in its own field. Rollover (`settleExcusedCheatDay`) and check-in
+(`resolvePendingCheckIn`) still clear the marker — by then the day is over, and those paths cover
+the un-indulged case. **Rejected — Option B, write `skipDayDate` on excuse:** identical player
+outcome and no new gate condition, but records a Cheat event in Skip Day's field — fine while only
+the spawn gate reads it, misleading the moment any UI/stats/migration treats `skipDayDate` as "a
+Skip Day was used." **Rejected — an 'excused' occurrence type:** reverses session 26, and
+`success` is a boolean feeding `successRate` — a third state ripples through the rate math.
+
+**Changes:** `js/items.js` (excused branch keeps marker; header comment), `js/habits.js` (gate +
+comment). Tests: `items-cheatday.test.js` live-indulge test flipped from `toBeNull` to
+marker-kept + a new end-to-end regression (indulge → instance gone → selectHabitDefsToSpawn
+returns nothing); `routine-active-gating.test.js` +3 pure gate cases (matches-day blocks,
+spent-yesterday marker doesn't, null unaffected). **40 suites, 883/883** (879 + 4). `node --check`
+clean. **Live-verified in Chrome through the real flow end-to-end:** points hand-set to 500
+(bare-`Persistence` stub protocol per session 56's lesson — worked first try this time), real shop
+purchase (→300 pts, `inventory.cheat_day: 1`), token applied via the lurker popup ("🎟️ Cheat Day active" note rendered), free indulge (points unchanged at 300, `occurrenceHistory`
+still `[]`, streak untouched, marker KEPT at `2026-07-19`), two same-day reloads → zero respawn,
+zero console errors; negative control hand-nulled the marker → lurker correctly respawned. Save
+restored to pristine afterward.
+
+**Residual (accepted, by design):** a marker applied but never indulged still blocks a re-spawn
+only via the restored live instance (unchanged behavior); and after rollover the OLD marker is
+cleared by settlement paths as before. The only new lingering state is a spent marker on a habit
+whose excused day ended without a rollover settlement (indulged live, then never reloaded until
+days later) — it's a past date, inert by comparison, overwritten by the next token. No migration
+needed; no schema bump.
+
+---
+
 ## 2026-07-19 — Session 56: Same-day lurker-respawn-after-indulge bug fixed via occurrenceHistory dedupe (Cowork session; planned on Fable, mechanical fix)
 
 **The scheduled Known bug from session 30, root cause exactly as sketched there.** `indulgeHabit`

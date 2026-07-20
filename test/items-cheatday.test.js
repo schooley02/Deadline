@@ -103,7 +103,7 @@ describe('Items.settleExcusedCheatDay', () => {
 });
 
 describe('Items.indulgeHabit — Cheat Day excused path', () => {
-    test('active cheat day for this lurker: no debit, streak/occurrenceHistory untouched, marker cleared', () => {
+    test('active cheat day for this lurker: no debit, streak/occurrenceHistory untouched, marker KEPT', () => {
         const y = yesterday();
         const item = { id: 1, type: 'habit', definitionId: 'd1', isNegative: true,
             originalDueDate: y, element: fakeEl() };
@@ -117,7 +117,32 @@ describe('Items.indulgeHabit — Cheat Day excused path', () => {
         expect(deps.getPoints()).toBe(50); // no debit
         expect(habitDef.streak).toBe(4);   // untouched (not zeroed, unlike a normal indulge)
         expect(habitDef.occurrenceHistory.length).toBe(0); // no occurrence recorded
-        expect(habitDef.cheatDayDate).toBeNull(); // one use per token
+        // Session 57 (was: toBeNull, "one use per token"): the marker now
+        // survives the live excused indulge — with no occurrence recorded, it
+        // is the ONLY state telling the spawn dedupe the day is resolved;
+        // nulling it here let a same-day reload respawn the lurker with its
+        // cheat cover gone. It self-expires next calendar day (date-scoped);
+        // rollover/check-in still clear it.
+        expect(habitDef.cheatDayDate).toBe(occurrenceDateStr(y));
+    });
+
+    test('excused indulge + same-day respawn attempt: the kept marker blocks selectHabitDefsToSpawn (session-57 regression)', () => {
+        const y = yesterday();
+        const item = { id: 1, type: 'habit', definitionId: 'd1', isNegative: true,
+            originalDueDate: y, element: fakeEl() };
+        const habitDef = { id: 'd1', name: 'Lurker', category: 'other', frequency: 'daily',
+            timeOfDay: 'anytime', isNegative: true, streak: 4, occurrenceHistory: [],
+            routineId: null, cheatDayDate: occurrenceDateStr(y) };
+        const deps = makeDeps({ activeItems: [item], definedHabits: [habitDef] });
+
+        Items.indulgeHabit(1, deps);
+        deps.activeItems.length = 0; // removeItem is setTimeout-deferred; simulate the post-removal state a same-day reload sees
+
+        // The end-to-end assertion: with no occurrence and no instance, the
+        // KEPT marker is what stops a fresh same-day spawn.
+        global.FrozenSlots = global.FrozenSlots || require('../js/frozenSlots.js');
+        const toSpawn = Habits.selectHabitDefsToSpawn([habitDef], [], [], y);
+        expect(toSpawn).toHaveLength(0);
     });
 
     test('no active cheat day: falls through to the normal debit/streak-zero path unchanged', () => {

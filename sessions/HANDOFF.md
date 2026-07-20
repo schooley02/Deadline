@@ -13,6 +13,37 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 57: Cheat-day respawn variant FIXED — "marker lives all day" (Cowork session, Fable design + build)
+
+**Did:** The session-56 follow-up bug. Design fork resolved on Fable (Option A): `indulgeHabit`'s
+excused branch no longer nulls `cheatDayDate` — the marker lives out its day (date-scoped, so it
+self-expires next calendar day) and `Habits.selectHabitDefsToSpawn` gained a `cheatDayDate` gate
+parallel to `skipDayDate`. "One use per token" is now enforced structurally (spawn gate = max one
+instance/day = max one excused indulge/token). Rollover + check-in clears unchanged. Rejected:
+writing `skipDayDate` on excuse (state leak across token fields) and an 'excused' occurrence type
+(reverses session 26; booleans feed the rate math). Files: js/items.js, js/habits.js,
+test/items-cheatday.test.js (one assertion flipped + 1 new e2e regression),
+test/routine-active-gating.test.js (+3 gate cases). Docs: MECHANICS.md (Cheat Day section +
+session-56 caveat), ROADMAP (bug checked off), DECISIONS.md session 57.
+
+**State:** ✅ 40 suites, 883/883 (879 + 4). `node --check` clean. Live-verified in Chrome through
+the REAL flow: shop purchase (500→300 pts), token applied via lurker popup, free indulge (no
+debit, no occurrence, marker KEPT), two same-day reloads → zero respawn, zero console errors;
+negative control (hand-nulled marker) → correct respawn. Save restored to pristine. NOT committed
+— git commands in chat.
+
+**Next:** Both respawn bugs are now closed. Remaining small items: cosmetic uncomplete-checkbox
+bug (session 7, root-caused, pure Sonnet), live mid-session midnight rollover (deferred, low
+priority), session-24 balance re-check pending real play data. Otherwise Milestone 4 starts:
+P2-UI-009 streak visual effects.
+
+**Watch out:**
+- If a future feature adds ANY new path that removes a cheat-covered lurker instance, the kept
+  marker (not an occurrence) is what prevents its same-day respawn — don't "clean up" the marker
+  in new code paths before the day is over; rollover/check-in own the clearing.
+- The bare-`Persistence` stub protocol (session 56's lesson) worked first-try this session —
+  keep using bare lexical names, never `window.Persistence`.
+
 ## 2026-07-19 — Session 56: Same-day lurker-respawn-after-indulge bug FIXED (Cowork session)
 
 **Did:** The session-30 Known bug (ROADMAP). One-line-of-logic fix in `js/habits.js`
