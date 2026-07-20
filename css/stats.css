@@ -225,3 +225,93 @@
 .stats-routine-badge-frozen {
     background: var(--color-neutral);
 }
+
+/* Achievements badge grid (ACHIEVEMENTS_PLAN.md sub-session 3, session 66) —
+   family blocks each holding a responsive card grid; locked cards are greyed
+   with a progress bar, unlocked cards show the badge + unlock date. */
+.stats-badge-family-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.stats-badge-family {
+    margin-bottom: var(--space-2);
+}
+
+.stats-badge-family-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 4px;
+}
+
+.stats-badge-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: var(--space-2);
+}
+
+.stats-badge-card {
+    border-radius: 8px;
+    padding: var(--space-2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 3px;
+}
+
+.stats-badge-unlocked {
+    background: var(--color-bg-white);
+    border: 1px solid var(--color-success);
+}
+
+.stats-badge-locked {
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-secondary-green-pale);
+    opacity: 0.65;
+}
+
+.stats-badge-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.stats-badge-icon-locked {
+    filter: grayscale(1);
+}
+
+.stats-badge-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.stats-badge-date {
+    font-size: 10px;
+    color: var(--color-neutral);
+}
+
+.stats-badge-progress-track {
+    width: 100%;
+    height: 6px;
+    background: var(--color-secondary-green-pale);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.stats-badge-progress-fill {
+    display: block;
+    height: 100%;
+    background: var(--color-neutral);
+    border-radius: 3px;
+}
+
+.stats-badge-progress-label {
+    font-size: 10px;
+    color: var(--color-neutral);
+}

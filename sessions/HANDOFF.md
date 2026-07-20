@@ -13,6 +13,46 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-20 — Session 66: Achievements sub-session 3 — Stats window badge grid (Cowork session)
+
+**Did:** Built the Achievements badge grid per `docs/ACHIEVEMENTS_PLAN.md` sub-session 3. statsView.js: pure
+builders `badgeTitle` (falsy labels omitted, session-65 rule) / `buildAchievementCard` (unlocked = 🏅 + green
+border + "Unlocked <date>"; locked = greyed 🔒 + progress bar floored-and-clamped 0–100% + "value/threshold"
+label, non-numeric metric → 0) / `buildAchievementFamily` / `buildAchievementsSection`; renderStatsWindow
+populates a new null-guarded `#statsAchievements` container (index.html, below Routine Performance — lifetime
+scope anchors the bottom). Deps (`achievementsCatalog`/`lifetimeStats`/`achievements`) ride the existing
+`openManagementWindow` → managementWindows.js stats dispatch; builders never read CONFIG (achievements.js
+rule), so tests exercise the real module with fixture catalogs. css/stats.css: family blocks + responsive
+auto-fill card grid. Docs: ECONOMY.md badge-grid paragraph, ROADMAP.md sub-item 3 checked, DECISIONS.md
+session 66 (includes a new sandbox note: copied Windows node_modules needs the Linux `@unrs/resolver-binding`
+or jest 30 fails with a fake "setup.js not found" error).
+
+**State:** ✅ 48 suites, 1075/1075 (+12: test/stats-achievements.test.js — progress math floor/clamp/defaults,
+unlock dates, null-label negative control, family ordering, empty catalog). `node --check` clean on
+statsView.js/managementWindows.js/script.js. Live-verified in Chrome (localhost:8000): pristine save → all 6
+families/19 tiers locked at 0/N, Back in Black clean (no "(null)"); hand-edited save (tasksCompleted=184,
+bestRunDaysSurvived=4, session-52 protocol) → restore-time evaluateAll REALLY unlocked survivor_1 +
+task_slayer_1/2 with today's date, Task Slayer Gold showed the plan's exact "184/250" (~73% bar), Survivor
+Silver "4/7"; zero app console errors both loads. Jeremy's save restored to pristine (all-zero lifetimeStats,
+empty achievements, schemaVersion 11) and re-verified across a natural reload. NOT committed — git commands
+given in chat.
+
+**Next:** Achievements sub-session 4 (optional polish: near-miss nudges, unlock animation respecting
+fx-intensity) — or skip it and take the session-64 finalizeRun stars/completionRate bug (own session, now the
+oldest known-unfixed item), Time Slider Week/Month scope, or the Mobile UX + accessibility pass.
+
+**Watch out:**
+- The **finalizeRun `{rate,samples}` bug is STILL unfixed** (Routine Performance "—" display). Session 66
+  touched statsView.js and deliberately did NOT driveby-fix it. It stays its own session.
+- The badge grid is read-only BY DESIGN — if sub-session 4 adds any in-window action (e.g. a "claim
+  animation" button), the shopView setTimeout(0) rebuild hazard applies from that moment.
+- Locked-card progress reads `lifetimeStats[family.metric]` at window-open time; it does NOT live-refresh
+  while the window sits open (same staleness model as every other management window — reopen to refresh).
+- Sandbox Jest: copy the repo's node_modules to `$HOME` + install the Linux unrs-resolver binding (see
+  DECISIONS.md session 66) — full npm install from the registry was pathologically slow this session.
+
+---
+
 ## 2026-07-20 — Session 65: Achievements sub-session 2 — live wiring + unlock toast (Cowork session)
 
 **Did:** Wired lifetimeStats to the live seams per `docs/ACHIEVEMENTS_PLAN.md` sub-session 2. items.js: optional

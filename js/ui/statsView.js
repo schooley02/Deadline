@@ -146,7 +146,73 @@ const StatsView = (() => {
         return `<ul class="stats-routine-list">${groups.map(buildRoutineCard).join('')}</ul>`;
     }
 
-    // deps: { currentRunStats, runHistory, daysSurvivedSoFar }
+    // ---- Achievements badge grid (ACHIEVEMENTS_PLAN.md sub-session 3,
+    // 2026-07-20 session 66). Read-only cards from the catalog
+    // (CONFIG.ACHIEVEMENTS) + lifetimeStats + the persisted unlocked-tier
+    // map — all passed in via deps, never read from globals inside the
+    // builders (same rule js/achievements.js follows). Falsy tier labels
+    // (back_in_black's single unnamed tier) are omitted, not rendered —
+    // same fix as session 65's unlock toast.
+
+    function badgeTitle(familyName, label) {
+        return label ? `${familyName} — ${label}` : familyName;
+    }
+
+    // One tier = one card. Unlocked: badge + date. Locked: greyed +
+    // progress bar off the family's lifetimeStats metric ("184/250").
+    function buildAchievementCard(family, tier, statValue, unlockedIso) {
+        const value = (typeof statValue === 'number') ? statValue : 0;
+        const title = badgeTitle(family.name, tier.label);
+        if (unlockedIso) {
+            return `
+                <li class="stats-badge-card stats-badge-unlocked">
+                    <span class="stats-badge-icon">🏅</span>
+                    <span class="stats-badge-title">${title}</span>
+                    <span class="stats-badge-date">Unlocked ${formatDate(Date.parse(unlockedIso))}</span>
+                </li>
+            `;
+        }
+        const threshold = tier.threshold || 1;
+        const pct = Math.max(0, Math.min(100, Math.floor((value / threshold) * 100)));
+        return `
+            <li class="stats-badge-card stats-badge-locked">
+                <span class="stats-badge-icon stats-badge-icon-locked">🔒</span>
+                <span class="stats-badge-title">${title}</span>
+                <span class="stats-badge-progress-track"><span class="stats-badge-progress-fill" style="width: ${pct}%"></span></span>
+                <span class="stats-badge-progress-label">${value}/${tier.threshold}</span>
+            </li>
+        `;
+    }
+
+    // One family block: name heading + one card per tier (authored
+    // ascending in the catalog, rendered in that order).
+    function buildAchievementFamily(family, lifetimeStats, unlocked) {
+        const stats = lifetimeStats || {};
+        const seen = unlocked || {};
+        const cards = (family.tiers || []).map(tier =>
+            buildAchievementCard(family, tier, stats[family.metric], seen[tier.id])
+        ).join('');
+        return `
+            <li class="stats-badge-family">
+                <div class="stats-badge-family-name">${family.name}</div>
+                <ul class="stats-badge-grid">${cards}</ul>
+            </li>
+        `;
+    }
+
+    // deps: { catalog, lifetimeStats, achievements }
+    function buildAchievementsSection(deps) {
+        const catalog = deps.catalog || [];
+        if (catalog.length === 0) {
+            return '<div class="stats-empty">No achievements defined.</div>';
+        }
+        return `<ul class="stats-badge-family-list">${catalog.map(family =>
+            buildAchievementFamily(family, deps.lifetimeStats, deps.achievements)
+        ).join('')}</ul>`;
+    }
+
+    // deps: { currentRunStats, runHistory, daysSurvivedSoFar,
+    //         achievementsCatalog, lifetimeStats, achievements }
     function renderStatsWindow(deps) {
         const currentPanel = document.getElementById('statsCurrentPanel');
         const historyList = document.getElementById('statsHistoryList');
@@ -169,6 +235,15 @@ const StatsView = (() => {
         if (routineRollup) {
             routineRollup.innerHTML = buildRoutineRollupSection({ runHistory });
         }
+
+        const achievementsEl = document.getElementById('statsAchievements');
+        if (achievementsEl) {
+            achievementsEl.innerHTML = buildAchievementsSection({
+                catalog: deps.achievementsCatalog,
+                lifetimeStats: deps.lifetimeStats,
+                achievements: deps.achievements,
+            });
+        }
     }
 
     return {
@@ -181,6 +256,10 @@ const StatsView = (() => {
         buildRoutineEntryRow,
         buildRoutineCard,
         buildRoutineRollupSection,
+        badgeTitle,
+        buildAchievementCard,
+        buildAchievementFamily,
+        buildAchievementsSection,
         renderStatsWindow,
     };
 })();

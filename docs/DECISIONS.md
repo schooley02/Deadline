@@ -4,6 +4,49 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-20 — Session 66: Achievements sub-session 3 — Stats window badge grid (Cowork)
+
+**Placement: Achievements section renders LAST in the Stats window (below Routine Performance), not above the
+run panels.** The Stats window's existing order is run-scoped → routine-scoped; achievements are lifetime-scoped
+and read-least-often, so they anchor the bottom. New `#statsAchievements` container follows the exact
+`#statsRoutineRollup` pattern (null-guarded in renderStatsWindow, so old markup can't crash the render).
+Rejected: a separate FAB item (fork 3 of the plan already rejected it) and inserting above Past Runs (pushes the
+live run panel's blame list below the fold for zero benefit).
+
+**Card grouping: one block per family with a heading, one card per tier — not one flat grid of 19 cards.**
+Family blocks read as progressions (Bronze → Platinum left to right); a flat grid interleaves families once
+card heights wrap. Locked cards show a progress bar + "value/threshold" (the plan's "184/250") computed from
+the family's `lifetimeStats` metric, floored to whole percent and CLAMPED at 100 (a hand-edited save can hold
+value > threshold with the unlock map wiped — the bar must not overflow). Non-numeric/missing metric renders
+as 0 progress, not a crash. Unlocked cards show 🏅 + "Unlocked <date>" from the persisted ISO in the
+unlocked-tier map (formatDate reused). Falsy tier labels omitted via `badgeTitle` (session-65 null-label rule,
+now covered by tests: "Back in Black", never "Back in Black — null").
+
+**Deps: catalog/lifetimeStats/achievements flow through the existing `openManagementWindow` pass-through**
+(script.js reads the closure vars at call time, so a dev-Reset or restore mid-session shows fresh values on
+next open — same freshness argument as the other five windows). No new globals, no new event wiring; builders
+never read CONFIG inside (mirrors js/achievements.js's rule) so the test file exercises the REAL module with a
+fixture catalog.
+
+**Tests: 12 new (test/stats-achievements.test.js) against the real StatsView** — locked progress math (floor,
+clamp, 0-default), unlocked date rendering, null-label negative control, family ordering, empty-catalog
+placeholder. 48 suites, 1075/1075. DOM wiring live-verified in Chrome instead (statsView convention,
+sessions 54/55): pristine save → all 19 tiers locked at 0/N; hand-edited lifetimeStats (184 tasks, 4 best days,
+session-52 stub-wait-edit-reload protocol) → the restore-time evaluateAll pass REALLY unlocked
+survivor_1/task_slayer_1/task_slayer_2 with today's date and the grid showed 184/250 + 4/7 bars exactly as
+predicted; zero app console errors; save restored to pristine and re-verified over a natural reload.
+
+**Deliberately untouched:** the finalizeRun `{rate,samples}` bug (HANDOFF 65's do-not-driveby rule — this
+session touched statsView.js and did NOT fix it; it stays its own session). Sub-session 4 (near-miss nudges,
+unlock animation) remains optional.
+
+**Sandbox note (adds to the session-43 npm rule):** the mounted repo's `node_modules` can be COPIED to `$HOME`
+in the sandbox instead of npm-installing there — much faster when the registry path is slow — but jest 30's
+resolver (`unrs-resolver`) ships a PLATFORM-NATIVE binding, so Jeremy's Windows install dies in the Linux
+sandbox with a misleading "Module <rootDir>/test/setup.js was not found" validation error. Fix: after copying,
+`npm install @unrs/resolver-binding-linux-x64-gnu@<version-matching-unrs-resolver> --no-save` (13s). The error
+looks like a missing file; it's a missing native binding.
+
 ## 2026-07-20 — Session 65: Achievements sub-session 2 — live wiring + unlock toast (Cowork, Sonnet)
 
 **Dispatch shape: ONE optional `recordLifetime(event, value)` collaborator, not four named deps.** items.js

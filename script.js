@@ -1478,6 +1478,7 @@ document.addEventListener('DOMContentLoaded', () => {
             shopCatalog: CONFIG.SHOP_ITEMS, playerInventory, playerPoints, baseHealth,
             onShopBuy: handleShopPurchase, onShopUse: handleShopUse,
             currentRunStats, runHistory, daysSurvivedSoFar: computeDaysSurvived(),
+            achievementsCatalog: CONFIG.ACHIEVEMENTS, lifetimeStats, achievements,
             currentEffectsIntensity: effectsIntensity,
             onChangeEffectsIntensity: handleEffectsIntensityChange
         });

@@ -106,6 +106,10 @@ const ManagementWindows = (() => {
                     currentRunStats: deps.currentRunStats,
                     runHistory: deps.runHistory,
                     daysSurvivedSoFar: deps.daysSurvivedSoFar,
+                    // Achievements badge grid (sub-session 3, session 66)
+                    achievementsCatalog: deps.achievementsCatalog,
+                    lifetimeStats: deps.lifetimeStats,
+                    achievements: deps.achievements,
                 });
             } else if (type === 'settings') {
                 // [P2-UI-009] session 59 — same pass-through-deps-only shape
