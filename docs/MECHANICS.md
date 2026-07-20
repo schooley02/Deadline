@@ -7,7 +7,7 @@
 - Appearance by category — see ART_STYLE.md for the 8 zombie skins.
 - High-priority task: glowing/bright outline.
 - Task with sub-tasks: appears LARGER; shrinks toward normal size as sub-tasks are completed. Completing sub-tasks weakens the parent.
-- Habits render smaller than tasks. Habits with high streaks appear ON FIRE.
+- Habits render smaller than tasks. Habits with high streaks appear ON FIRE. **BUILT ([P2-UI-009], Milestone 4, session 59, 2026-07-19):** two visual tiers, both purely cosmetic (no points/XP effect — streak has been visual-only since session 16). At `CONFIG.HABIT_STREAK_BONUS_THRESHOLD` (3) the enemy sprite gets an animated flame glow (`high-streak` class, `css/enemyStatus.css`'s `flame-flicker` keyframes). At `CONFIG.HABIT_STREAK_STRONG_THRESHOLD` (7) a second, hotter/bigger "blazing" layer stacks ADDITIVELY on top (`super-streak` — always paired with `high-streak`, never alone; `flame-flicker-strong` keyframes). Deliberately box-shadow/filter/transform on the element itself, no extra DOM nodes or `::before`/`::after` (both pseudo-elements are already spoken for — category icon and the negative-habit 🚫 badge) — a cheap "illusion of fire" that stays performant with many concurrent enemies on mobile. A one-time toast (`FrozenNotice.showStreakMilestoneNotice`) fires the moment a habit's streak CROSSES either tier via a live player action (`Items.completeItem`, or the check-in "avoided" outcome) — never from the silent restore-time auto-resolve path, so it can't spuriously re-fire on reload. Effects intensity (full/reduced/off) is a new player preference — see UI_UX.md's "Settings window" and DATA_SCHEMA.md.
 
 ## Defeating Enemies
 

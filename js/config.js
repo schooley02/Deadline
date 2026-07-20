@@ -78,6 +78,14 @@ const CONFIG = {
     // HABIT_STREAK_BONUS_POINTS was removed when the rate-based bonus below
     // replaced it. See DECISIONS.md.
     HABIT_STREAK_BONUS_THRESHOLD: 3,
+    // Second, stronger visual tier for [P2-UI-009] (Milestone 4, session 59,
+    // 2026-07-19) — a "blazing" effect layered on top of the base on-fire
+    // look at a much higher streak. Purely visual, same as the threshold
+    // above (no points/XP impact), so this is a net-new tunable rather than
+    // a change to an existing balance number — no balance-tuning protocol
+    // invocation needed, but logged in DECISIONS.md per the "new balance
+    // numbers" rule anyway. 7 chosen as roughly a full week of a daily habit.
+    HABIT_STREAK_STRONG_THRESHOLD: 7,
 
     // --- Frozen routine slots ("Frozen routine slots + recovery" ticket,
     // sub-session 1, 2026-07-19; docs/ROUTINES.md + docs/FROZEN_SLOTS_PLAN.md

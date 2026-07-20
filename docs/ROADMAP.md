@@ -106,7 +106,16 @@ Ordering decided 2026-07-18 session 19 (Fable — see DECISIONS.md): 007 → 008
   - [ ] 5. Polish: best-run highlight, vs-last-run deltas (Sonnet, optional)
 
 ## Milestone 4 — Polish (P2 tickets)
-- [ ] [P2-UI-009] Streak visual effects (on-fire habits)
+- [x] [P2-UI-009] Streak visual effects (on-fire habits) (2026-07-19, session 59) — two-tier CSS
+  flame (3+ streak "on fire", 7+ "blazing", additive) on `.high-streak`/`.super-streak`
+  (`css/enemyStatus.css`), a one-time crossing notification (`FrozenNotice.showStreakMilestoneNotice`),
+  and a new Settings window (6th FAB item) with a full/reduced/off effects-intensity preference
+  (`js/settings.js`, separate `deadline.settings` key). No particle-system DOM overhead — box-shadow/
+  filter/transform only, for mobile performance with many concurrent enemies. 41 suites, 910/910
+  (+24). Live-verified in Chrome: both fire tiers render correctly, intensity toggle persists across
+  reload and correctly suppresses the glow, and a real habit completion crossing the base threshold
+  fired the exact expected "🔥 ... is on fire!" toast with no console errors and no duplicate-on-
+  reload. See MECHANICS.md/UI_UX.md/DATA_SCHEMA.md/DECISIONS.md.
 - [ ] [P2-GAME-010] Enemy acceleration mechanics
 - [ ] [P2-UI-011] Management window unification
 - [x] [P2-GAME-012] Base healing system (2026-07-18, session 17) — gradual regen BUILT: 1 HP/5min while alive (`js/loop.js`) + same rate offline/suspended-gap (`js/damage.js`'s `applyElapsedRegen`, applied after offline damage), clamped at 100; NO daily reset. Repair kits remain unbuilt (ties to the Milestone 3 shop). 17 suites, 370/370. Live-verified in Chrome. See MECHANICS.md Base + DECISIONS.md.

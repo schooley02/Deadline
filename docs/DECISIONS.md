@@ -4,6 +4,81 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-19 — Session 59: [P2-UI-009] Streak visual effects — Milestone 4 opener (Cowork session, Sonnet — plan approved by Jeremy up front, no mid-session design fork)
+
+**Scope, confirmed with Jeremy before building:** two-tier fire effect (existing 3+ "on fire" tier
+plus a new stronger 7+ "blazing" tier, additive not exclusive), a one-time streak-crossing
+notification, and an effects-intensity preference toggle (full/reduced/off) per the ticket's
+acceptance criteria (ACTIONABLE_TICKETS.md [P2-UI-009]).
+
+**Particle system → rejected in favor of layered CSS.** The ticket asks for a "particle system" and
+explicit "performance optimization for multiple concurrent effects" / "mobile devices" — read
+together, those are in tension: a real DOM/canvas particle system is the thing MOST likely to hurt
+on mobile with several habits on screen at once. Built instead as a pure box-shadow/filter/transform
+animation on the existing enemy element (`css/enemyStatus.css`'s `flame-flicker`/
+`flame-flicker-strong` keyframes) — no extra DOM nodes, GPU-composited. Deliberately avoids
+`::before`/`::after` too: both are already claimed on `.enemy.habit-enemy` (`::before` = category
+icon, `enemySprites.css`; `::after` = the negative-habit 🚫 badge, which CAN coexist with high-streak
+on the same element for a negative habit being successfully avoided repeatedly).
+
+**Stronger tier threshold: 7, chosen as roughly a week of a daily habit.** New `CONFIG.
+HABIT_STREAK_STRONG_THRESHOLD`. Net-new tunable, not a change to an existing balance number
+(`HABIT_STREAK_BONUS_THRESHOLD` untouched) — both are purely visual (streak has awarded zero points/
+XP since session 16's rate-based bonus replaced the old flat streak bonus), so no economy impact and
+no balance-tuning protocol invocation, logged here per config.js's "new balance numbers" convention
+anyway.
+
+**Notification fires on crossing, from LIVE player actions only.** New pure `Habits.
+crossedStreakThreshold(oldStreak, newStreak, thresholds)` returns the highest threshold newly
+crossed (or null) — kept separate from `applyHabitCompletion` so the points/XP math stays untouched
+by a purely-visual concern. Wired into `Items.completeItem` and `resolvePendingCheckIn`'s 'avoided'
+branch (both real player actions) via a new optional `deps.onStreakMilestone` collaborator —
+`FrozenNotice.showStreakMilestoneNotice`, same shared-module/setTimeout(0) pattern as every other
+notice in that file. Deliberately NOT wired into `settleStaleRecurringInstance` (the silent
+restore-time auto-resolve for negative habits) — same reasoning as every prior notice in
+frozenNotice.js: a silent/automatic path re-fires on every reload/restore, which is exactly the
+session-55 duplicate-run-history class of bug. Live-verified this doesn't re-fire on reload (see
+ROADMAP.md entry).
+
+**Settings window is new — first content in a UI surface that's existed only as a forward-declared
+schema note ("`deadline.settings` — not yet implemented", DATA_SCHEMA.md since Milestone 1).** Built
+as a 6th FAB item / management-window type, following the exact shop/stats precedent
+(`ManagementWindows.openManagementWindow`'s dispatch, deps-object-only, no closures) —
+`js/settings.js` (load/save/validate against a SEPARATE `deadline.settings` localStorage key, not a
+schemaVersion-bumped field on the main save — preferences aren't run state, shouldn't be wiped by a
+dev Reset or a fresh run) + `js/ui/settingsView.js` (DOM-only render). Applied to the live DOM as a
+`<body>` class (`fx-reduced`/`fx-off`) that `enemyStatus.css` keys off; `prefers-reduced-motion` is
+honored unconditionally regardless of the in-app setting.
+
+**Verification:** +24 tests (41 suites, 910/910) — `spawning.test.js` (super-streak additive-tier
+cases), `habits.test.js` (`crossedStreakThreshold`, incl. no-op on decrease/re-completion-at-high-
+streak/empty-thresholds), new `settings.test.js` (load/save/validation/fallback + the pure
+`bodyClassesForIntensity` mapping + the DOM wrapper, using an in-memory `localStorage` stub since
+`testEnvironment: 'node'` has no ambient one — per test/setup.js's documented per-file-binds-its-own-
+globals convention). `node --check` clean on every touched file. **Live-verified in Chrome** (server
+already running, session per CLAUDE.md's Cowork playtesting note): Settings window renders and
+persists the toggle across reload (`fx-off` survived a full page navigate); manually toggling both
+CSS classes on a live enemy element confirmed the base tier (bright orange glow) and stronger tier
+(visibly hotter/bigger/faster) both render, and `fx-off` correctly suppresses the glow entirely; a
+REAL habit completion (hand-set `habitDef.streak` to 2 via the documented hand-edit-save protocol,
+then clicked "Mark as Complete" for real) crossed 2→3 and produced the exact expected toast — "🔥
+Streak Test is on fire! 3-day streak — this habit is heating up." — with correct XP/points award and
+no console errors; reloading afterward confirmed the toast does NOT re-fire (no duplicate-notice
+bug). Save restored to pristine (dev Reset + cleared `deadline.settings`) before ending. NOT
+committed — git commands in chat.
+
+**Known gap, not a regression:** hand-editing an EXISTING active item instance's own `streak` field
+in `deadline.save` and reloading did not visually apply high-streak (the instance's `.streak` reverted
+to its original value across the reload in this manual test) — pre-existing behavior around how/when
+habit instances get regenerated at boot, unrelated to anything touched this session (grep-confirmed:
+no code anywhere sets `item.streak` after instance creation; only `habitDef.streak` is ever mutated,
+and `Spawning.addItemToGame` pushes the restored item object as-is). Not investigated further —
+out of scope for this ticket; the class-assignment logic itself (`Spawning.resolveEnemyVisual`) is
+unit-tested and was separately confirmed live by toggling the classes directly on a real DOM element.
+Worth a look if a future session touches habit-instance restore/regeneration.
+
+---
+
 ## 2026-07-19 — Session 58: Stale "Mark as Complete" checkbox bug fixed (Cowork session, Sonnet — fully root-caused going in, no design fork)
 
 **The session-7 Known bug**, closed exactly as originally sketched in ROADMAP.md. `uncompleteItem`

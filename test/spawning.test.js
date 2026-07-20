@@ -11,7 +11,8 @@ const DIMS = {
     enemyWidth: 128,
     habitEnemyWidth: 128,
     subtaskEnemyWidth: 64,
-    habitStreakBonusThreshold: 3
+    habitStreakBonusThreshold: 3,
+    habitStreakStrongThreshold: 7
 };
 
 describe('resolveEnemyVisual', () => {
@@ -93,5 +94,36 @@ describe('resolveEnemyVisual', () => {
         expect(at.classes).toContain('high-streak');
         const below = Spawning.resolveEnemyVisual({ type: 'habit', category: 'health', streak: 2 }, DIMS);
         expect(below.classes).not.toContain('high-streak');
+    });
+
+    // [P2-UI-009] Milestone 4, session 59 — second, stronger visual tier.
+    describe('super-streak (stronger tier)', () => {
+        test('below the base threshold: neither class', () => {
+            const { classes } = Spawning.resolveEnemyVisual({ type: 'habit', category: 'health', streak: 2 }, DIMS);
+            expect(classes).not.toContain('high-streak');
+            expect(classes).not.toContain('super-streak');
+        });
+
+        test('between the base and strong threshold: high-streak only', () => {
+            const { classes } = Spawning.resolveEnemyVisual({ type: 'habit', category: 'health', streak: 5 }, DIMS);
+            expect(classes).toContain('high-streak');
+            expect(classes).not.toContain('super-streak');
+        });
+
+        test('at/above the strong threshold: BOTH classes (additive, not exclusive)', () => {
+            const at = Spawning.resolveEnemyVisual({ type: 'habit', category: 'health', streak: 7 }, DIMS);
+            expect(at.classes).toContain('high-streak');
+            expect(at.classes).toContain('super-streak');
+
+            const above = Spawning.resolveEnemyVisual({ type: 'habit', category: 'health', streak: 12 }, DIMS);
+            expect(above.classes).toContain('high-streak');
+            expect(above.classes).toContain('super-streak');
+        });
+
+        test('a missing habitStreakStrongThreshold in dims never adds super-streak (defensive)', () => {
+            const dimsNoStrong = { ...DIMS, habitStreakStrongThreshold: undefined };
+            const { classes } = Spawning.resolveEnemyVisual({ type: 'habit', category: 'health', streak: 99 }, dimsNoStrong);
+            expect(classes).not.toContain('super-streak');
+        });
     });
 });

@@ -144,11 +144,49 @@ const FrozenNotice = (() => {
         }, 0);
     }
 
+    // Streak milestone notice ([P2-UI-009], Milestone 4, session 59,
+    // 2026-07-19): fires from js/items.js's notifyStreakMilestone the moment
+    // a habit's streak crosses one of the two visual tiers (config.js
+    // HABIT_STREAK_BONUS_THRESHOLD = "fire", HABIT_STREAK_STRONG_THRESHOLD =
+    // "blazing") via a LIVE player action — never on the silent restore-time
+    // auto-resolve path (see items.js's notifyStreakMilestone comment). Same
+    // setTimeout(0) + `.frozen-notice-overlay` dedupe pattern as every other
+    // notice in this module.
+    function showStreakMilestoneNotice(habitName, streak, tier) {
+        setTimeout(() => {
+            if (document.querySelector('.frozen-notice-overlay')) return;
+
+            const isBlazing = tier === 'blazing';
+            const emoji = isBlazing ? '🔥🔥' : '🔥';
+            const headline = isBlazing
+                ? `${habitName} is blazing!`
+                : `${habitName} is on fire!`;
+            const body = isBlazing
+                ? `${streak}-day streak — that's serious consistency. Keep it going!`
+                : `${streak}-day streak — this habit is heating up.`;
+
+            const modalHtml = `
+                <div class="modal-overlay frozen-notice-overlay">
+                    <div class="modal-content frozen-notice-modal">
+                        <h3>${emoji} ${headline}</h3>
+                        <p>${body}</p>
+                        <div class="modal-buttons">
+                            <button class="primary-button" onclick="closeModal()">Nice</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }, 0);
+    }
+
     return {
         showFrozenRoutineNotice,
         showRoutineUnfrozenNotice,
         showRoutineKoNotice,
         showHeroStarUpNotice,
+        showStreakMilestoneNotice,
     };
 })();
 

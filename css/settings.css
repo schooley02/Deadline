@@ -1,0 +1,53 @@
+/**
+ * settings.css — Settings window ([P2-UI-009], Milestone 4, session 59,
+ * 2026-07-19). Mirrors js/ui/settingsView.js. Linked before responsive.css
+ * in index.html (see responsive.css's header — it must always load last).
+ */
+
+.settings-section {
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-secondary-green-pale);
+    border-radius: 8px;
+    padding: var(--space-4);
+}
+
+.settings-section h4 {
+    margin: 0 0 var(--space-2) 0;
+    color: var(--color-text-primary);
+    font-size: var(--text-body);
+    font-weight: 600;
+}
+
+.settings-section-hint {
+    font-size: 13px;
+    color: var(--color-neutral);
+    margin: 0 0 var(--space-3) 0;
+}
+
+.settings-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.settings-radio-row {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    align-items: center;
+    gap: var(--space-2);
+    background: var(--color-bg-white);
+    border: 1px solid var(--color-secondary-green-pale);
+    border-radius: 6px;
+    padding: var(--space-2);
+    cursor: pointer;
+}
+
+.settings-radio-label {
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.settings-radio-hint {
+    font-size: 12px;
+    color: var(--color-neutral);
+}

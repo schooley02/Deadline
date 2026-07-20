@@ -121,6 +121,25 @@ const Items = (() => {
         }
     }
 
+    // [P2-UI-009] session 59: call after a habit definition's streak has
+    // just been updated by a LIVE player action (completeItem, or the
+    // check-in "avoided" outcome) — never from the silent restore-time
+    // auto-resolve path (settleStaleRecurringInstance), which stays quiet by
+    // simply not calling this, same as it already skips onRoutineFrozen-style
+    // notices. Habits.crossedStreakThreshold does the actual pure detection;
+    // this is just the deps-collaborator dispatch, mirroring
+    // deps.onRoutineFrozen above (optional — omitted in tests, no-op).
+    function notifyStreakMilestone(habitDef, oldStreak, deps) {
+        if (typeof deps.onStreakMilestone !== 'function') return;
+        const crossed = Habits.crossedStreakThreshold(
+            oldStreak, habitDef.streak,
+            [CONFIG.HABIT_STREAK_BONUS_THRESHOLD, CONFIG.HABIT_STREAK_STRONG_THRESHOLD]
+        );
+        if (crossed == null) return;
+        const tier = crossed >= CONFIG.HABIT_STREAK_STRONG_THRESHOLD ? 'blazing' : 'fire';
+        deps.onStreakMilestone(habitDef.name, habitDef.streak, tier);
+    }
+
     // Call after recording a SUCCESS (avoided) occurrence for a negative
     // habit — recovery path 2 (docs/ROUTINES.md): checks whether it just hit
     // the avoidance-recovery threshold and, if so, clears frozenState. Only
@@ -403,6 +422,7 @@ const Items = (() => {
         } else if (item.type === 'habit') {
             const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
             if (habitDef) {
+                const oldStreak = habitDef.streak;
                 const result = Habits.applyHabitCompletion(
                     habitDef.streak, habitDef.occurrenceHistory, habitDef.isNegative, item.originalDueDate, {
                         xpPerHabitComplete: deps.xpPerHabitComplete,
@@ -419,6 +439,7 @@ const Items = (() => {
                 // Frozen routine slots: for a negative habit this is the
                 // "Successfully avoided" path — check recovery path 2.
                 maybeRecoverRoutine(habitDef, deps);
+                notifyStreakMilestone(habitDef, oldStreak, deps);
             }
         }
 
@@ -771,6 +792,7 @@ const Items = (() => {
         };
 
         if (outcome === 'avoided') {
+            const oldStreak = habitDef.streak;
             const result = Habits.applyHabitCompletion(
                 habitDef.streak, habitDef.occurrenceHistory, habitDef.isNegative, originalDueDate, config
             );
@@ -786,6 +808,7 @@ const Items = (() => {
             // Hero/routine XP ([P1-UI-006]): after the recovery check, same
             // ordering rationale as completeItem.
             awardRoutineXpForHabitDef(habitDef, deps);
+            notifyStreakMilestone(habitDef, oldStreak, deps);
         } else if (outcome === 'indulged') {
             if (isCheatDayExcused(habitDef, originalDueDate)) {
                 habitDef.cheatDayDate = null;
@@ -900,7 +923,8 @@ const Items = (() => {
 
     /**
      * deps: { completedItems (getter), baseWidth, gameCanvas, enemyWidth,
-     *         habitEnemyWidth, habitStreakBonusThreshold, handleEnemyClick,
+     *         habitEnemyWidth, habitStreakBonusThreshold,
+     *         habitStreakStrongThreshold, handleEnemyClick,
      *         activeItems, createListItem, sortAndRenderActiveList,
      *         resetAllSubTaskCheckboxes, updateTaskCountDisplay,
      *         renderCompletedItems, xpPerTaskDefeat, pointsPerTask,
@@ -960,6 +984,12 @@ const Items = (() => {
             }
             if (item.streak >= deps.habitStreakBonusThreshold) {
                 itemElement.classList.add('high-streak');
+            }
+            // Stronger tier ([P2-UI-009], session 59) — mirrors
+            // spawning.js's resolveEnemyVisual (additive, not exclusive).
+            if (deps.habitStreakStrongThreshold != null &&
+                item.streak >= deps.habitStreakStrongThreshold) {
+                itemElement.classList.add('super-streak');
             }
         }
 
@@ -1132,8 +1162,12 @@ const Items = (() => {
                         if (streakSpan) streakSpan.textContent = 'Streak: 0';
                     }
 
-                    // Remove high-streak visual effects
-                    if (item.element) item.element.classList.remove('high-streak');
+                    // Remove high-streak visual effects (both tiers —
+                    // [P2-UI-009] session 59 added the stronger one).
+                    if (item.element) {
+                        item.element.classList.remove('high-streak');
+                        item.element.classList.remove('super-streak');
+                    }
                 }
             }
         }

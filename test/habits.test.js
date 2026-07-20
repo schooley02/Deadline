@@ -269,6 +269,45 @@ describe('applyHabitIndulgence ([P1-DATA-005] session 25, pure core only)', () =
     });
 });
 
+describe('crossedStreakThreshold ([P2-UI-009] Milestone 4, session 59)', () => {
+    const THRESHOLDS = [3, 7];
+
+    test('no crossing when the streak stays below every threshold', () => {
+        expect(Habits.crossedStreakThreshold(0, 1, THRESHOLDS)).toBeNull();
+        expect(Habits.crossedStreakThreshold(1, 2, THRESHOLDS)).toBeNull();
+    });
+
+    test('crossing the base threshold returns it', () => {
+        expect(Habits.crossedStreakThreshold(2, 3, THRESHOLDS)).toBe(3);
+    });
+
+    test('moving between thresholds (already past the base one) returns null', () => {
+        expect(Habits.crossedStreakThreshold(4, 5, THRESHOLDS)).toBeNull();
+    });
+
+    test('crossing the strong threshold returns it (not the base one)', () => {
+        expect(Habits.crossedStreakThreshold(6, 7, THRESHOLDS)).toBe(7);
+    });
+
+    test('jumping past both thresholds in one call returns the HIGHEST crossed', () => {
+        expect(Habits.crossedStreakThreshold(0, 10, THRESHOLDS)).toBe(7);
+    });
+
+    test('re-completing at an already-high streak never re-fires', () => {
+        expect(Habits.crossedStreakThreshold(8, 9, THRESHOLDS)).toBeNull();
+    });
+
+    test('a streak decrease (uncompletion) never fires — oldStreak > newStreak', () => {
+        expect(Habits.crossedStreakThreshold(5, 4, THRESHOLDS)).toBeNull();
+        expect(Habits.crossedStreakThreshold(7, 0, THRESHOLDS)).toBeNull();
+    });
+
+    test('empty/missing thresholds array is a safe no-op', () => {
+        expect(Habits.crossedStreakThreshold(0, 10, [])).toBeNull();
+        expect(Habits.crossedStreakThreshold(0, 10, undefined)).toBeNull();
+    });
+});
+
 describe('resetStreakOnOverdue (streak-only, retained)', () => {
     test('resetting a positive streak returns streak 0 and wasReset: true', () => {
         const result = Habits.resetStreakOnOverdue(5);

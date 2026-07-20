@@ -14,7 +14,8 @@
  *   gameCanvas,                 // DOM container to append the enemy to
  *   activeItems,                // shared array; the new item is pushed onto it
  *   baseWidth,                  // BASE_WIDTH (overdue-on-spawn position)
- *   dims: { enemyWidth, habitEnemyWidth, subtaskEnemyWidth, habitStreakBonusThreshold },
+ *   dims: { enemyWidth, habitEnemyWidth, subtaskEnemyWidth, habitStreakBonusThreshold,
+ *           habitStreakStrongThreshold },
  *   getItemTopPosition,         // (item, height) -> px   (script.js Movement wrapper)
  *   getSubTaskClusterOffset,    // (item) -> px           (script.js Movement wrapper)
  *   handleEnemyClick,           // (itemId) -> void
@@ -70,6 +71,14 @@ const Spawning = (() => {
             }
             if (itemData.streak >= dims.habitStreakBonusThreshold) {
                 classes.push('high-streak');
+            }
+            // Stronger tier ([P2-UI-009], session 59): ADDITIVE on top of
+            // high-streak (never instead of it) — a strong-tier habit is
+            // still >= the base threshold, so both classes apply and the
+            // CSS layers the blazing effect over the base flame.
+            if (dims.habitStreakStrongThreshold != null &&
+                itemData.streak >= dims.habitStreakStrongThreshold) {
+                classes.push('super-streak');
             }
         }
 

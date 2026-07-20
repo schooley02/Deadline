@@ -286,6 +286,23 @@ const Habits = (() => {
         };
     }
 
+    // [P2-UI-009] session 59: pure crossing-detection for the two visual
+    // streak tiers (config.js HABIT_STREAK_BONUS_THRESHOLD/STRONG_THRESHOLD).
+    // Returns the HIGHEST threshold newly crossed by oldStreak -> newStreak
+    // (ascending thresholds array), or null if none was crossed this call.
+    // "Crossed" means oldStreak was below it and newStreak is at/above it —
+    // so re-completing at an already-high streak (or any streak decrease)
+    // never re-fires. Kept separate from applyHabitCompletion itself so the
+    // points/XP math stays untouched by a purely-visual concern, matching
+    // the file's existing separation of streak-visual vs rate-based-points.
+    function crossedStreakThreshold(oldStreak, newStreak, thresholds) {
+        let crossed = null;
+        (thresholds || []).forEach((t) => {
+            if (oldStreak < t && newStreak >= t) crossed = t;
+        });
+        return crossed;
+    }
+
     // An overdue habit instance zeroes its definition's streak (visual) AND
     // records a miss occurrence for the rate bonus. Pure: returns the new streak,
     // whether the streak actually changed (so items.js only touches the DOM when
@@ -444,6 +461,7 @@ const Habits = (() => {
         successRate,
         pointsMultiplier,
         applyHabitCompletion,
+        crossedStreakThreshold,
         applyHabitUncompletion,
         applyHabitOverdue,
         applyHabitIndulgence,

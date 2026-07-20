@@ -45,7 +45,8 @@ const ManagementWindows = (() => {
     //         definedRoutines, routineSlots, showRoutineManagement,
     //         toggleRoutineActive, runStartedAtMs, shopCatalog,
     //         playerInventory, playerPoints, baseHealth, onShopBuy, onShopUse,
-    //         currentRunStats, runHistory, daysSurvivedSoFar }
+    //         currentRunStats, runHistory, daysSurvivedSoFar,
+    //         currentEffectsIntensity, onChangeEffectsIntensity }
     function openManagementWindow(type, deps) {
         // Close all windows first
         Object.values(deps.managementWindows).forEach(win => {
@@ -100,6 +101,13 @@ const ManagementWindows = (() => {
                     currentRunStats: deps.currentRunStats,
                     runHistory: deps.runHistory,
                     daysSurvivedSoFar: deps.daysSurvivedSoFar,
+                });
+            } else if (type === 'settings') {
+                // [P2-UI-009] session 59 — same pass-through-deps-only shape
+                // as the shop/stats dispatches above.
+                SettingsView.renderSettingsWindow({
+                    currentIntensity: deps.currentEffectsIntensity,
+                    onChangeIntensity: deps.onChangeEffectsIntensity,
                 });
             }
         }

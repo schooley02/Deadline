@@ -20,6 +20,7 @@ Replaces the agenda list with routines ranked by level (top performers first). M
 - Overview screens: all current tasks / all habits / all routines.
 - Recently Defeated view (undo accidental completes).
 - Run history / run review screen (post-game-over and on demand). On-demand half BUILT 2026-07-19 (session 54, RUN_HISTORY_PLAN.md sub-session 3): Stats window, 5th FAB item — live current-run panel (days survived, counters, top-3 blame) + past-run cards. Post-game-over half BUILT 2026-07-19/20 (session 55, sub-session 4): the game-over screen is now a review card (framing copy + totals + top-5 blame) instead of one line; the Stats window also gained a per-routine "Routine Performance" rollup across recent runs.
+- **Settings window BUILT ([P2-UI-009], Milestone 4, session 59, 2026-07-19):** 6th FAB item, `js/ui/settingsView.js`. First real content in what's meant to grow into a general settings surface (DATA_SCHEMA.md's long-forward-declared `deadline.settings` key) — today just a "Streak Fire Effects" radio group (Full / Reduced / Off), persisted separately from the game save via `js/settings.js` and applied as a `<body>` class (`fx-reduced`/`fx-off`) that CSS keys off. `prefers-reduced-motion` is honored unconditionally regardless of the in-app setting.
 
 ## Visual Feedback
 - Urgent task: glow / bright border (enemy and list item).

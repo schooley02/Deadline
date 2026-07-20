@@ -46,6 +46,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // See docs/ARCHITECTURE.md for the current module map.)
 
     let baseHealth, playerXP, playerLevel, playerPoints, routineSlots;
+    // [P2-UI-009] session 59: user preference, NOT part of the game save —
+    // loaded from js/settings.js's separate `deadline.settings` key at boot
+    // and applied to <body> immediately (see DOMContentLoaded below), so it
+    // survives a dev Reset / fresh run the same as any other browser setting.
+    let effectsIntensity = Settings.load().effectsIntensity;
+    // script.js loads at the end of <body> (index.html), so document.body
+    // already exists here — no need to wait for DOMContentLoaded.
+    Settings.applyEffectsIntensity(effectsIntensity);
     // Shop inventory ([P1-UI-008], 2026-07-18): plain object, item id -> held
     // count (absent key = 0). Owned in script.js like the other scalars; reached
     // via getPlayerInventory/setPlayerInventory accessor deps. See js/shop.js.
@@ -97,6 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const POINTS_PER_TASK = CONFIG.POINTS_PER_TASK;
     const POINTS_PER_HABIT = CONFIG.POINTS_PER_HABIT;
     const HABIT_STREAK_BONUS_THRESHOLD = CONFIG.HABIT_STREAK_BONUS_THRESHOLD;
+    const HABIT_STREAK_STRONG_THRESHOLD = CONFIG.HABIT_STREAK_STRONG_THRESHOLD;
     const LEVEL_XP_THRESHOLDS = CONFIG.LEVEL_XP_THRESHOLDS;
     const ROUTINE_SLOTS_PER_LEVEL = CONFIG.ROUTINE_SLOTS_PER_LEVEL;
     const MAX_PLAYER_LEVEL = LEVEL_XP_THRESHOLDS.length;
@@ -430,6 +439,14 @@ document.addEventListener('DOMContentLoaded', () => {
             enemyWidth: ENEMY_WIDTH,
             habitEnemyWidth: HABIT_ENEMY_WIDTH,
             habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD,
+            habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD,
+            // [P2-UI-009] session 59: fires a one-time toast the moment a
+            // habit's streak crosses a visual tier (3 = on-fire, 7 =
+            // blazing). Optional dep — tests that don't pass it simply skip
+            // the notification (items.js guards with typeof === 'function').
+            onStreakMilestone: (habitName, streak, tier) => {
+                FrozenNotice.showStreakMilestoneNotice(habitName, streak, tier);
+            },
             xpPerTaskDefeat: XP_PER_TASK_DEFEAT,
             xpPerHabitComplete: XP_PER_HABIT_COMPLETE,
             pointsPerTask: POINTS_PER_TASK,
@@ -476,7 +493,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 enemyWidth: ENEMY_WIDTH,
                 habitEnemyWidth: HABIT_ENEMY_WIDTH,
                 subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH,
-                habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD
+                habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD,
+                habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD
             },
             getItemTopPosition,
             getSubTaskClusterOffset,
@@ -1252,7 +1270,8 @@ document.addEventListener('DOMContentLoaded', () => {
         habits: document.getElementById('habitsWindow'),
         routines: document.getElementById('routinesWindow'),
         shop: document.getElementById('shopWindow'),
-        stats: document.getElementById('statsWindow')
+        stats: document.getElementById('statsWindow'),
+        settings: document.getElementById('settingsWindow')
     };
     
     // Thin wrappers — real implementations live in js/ui/fabMenu.js and
@@ -1274,8 +1293,21 @@ document.addEventListener('DOMContentLoaded', () => {
             runStartedAtMs,
             shopCatalog: CONFIG.SHOP_ITEMS, playerInventory, playerPoints, baseHealth,
             onShopBuy: handleShopPurchase, onShopUse: handleShopUse,
-            currentRunStats, runHistory, daysSurvivedSoFar: computeDaysSurvived()
+            currentRunStats, runHistory, daysSurvivedSoFar: computeDaysSurvived(),
+            currentEffectsIntensity: effectsIntensity,
+            onChangeEffectsIntensity: handleEffectsIntensityChange
         });
+    }
+
+    // [P2-UI-009] session 59: SettingsView's onChangeIntensity callback —
+    // persist (js/settings.js, separate key from the game save), apply to
+    // the live DOM immediately, and update the in-memory var so the next
+    // openManagementWindow('settings') re-render shows the right radio
+    // checked without needing a page reload.
+    function handleEffectsIntensityChange(intensity) {
+        effectsIntensity = intensity;
+        Settings.save({ effectsIntensity: intensity });
+        Settings.applyEffectsIntensity(intensity);
     }
 
     function closeAllManagementWindows() {

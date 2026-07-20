@@ -5,7 +5,12 @@ TARGET schema for the persistence work (Milestone 1) and modularization. The mon
 ## Storage
 - `localStorage`, key prefix `deadline.`
 - `deadline.save` — full serialized state (JSON) with `schemaVersion` for migrations
-- `deadline.settings` — user settings (demo clock on/off, etc.) — not yet implemented
+- `deadline.settings` — user preferences, SEPARATE from `deadline.save`/`schemaVersion` (not run
+  state — survives dev Reset and fresh runs; synchronous read/write, no debounce). First field
+  landed ([P2-UI-009], Milestone 4, session 59, 2026-07-19): `effectsIntensity`
+  (`'full' | 'reduced' | 'off'`, default `'full'`) gates the streak fire visual — see
+  MECHANICS.md/UI_UX.md. `js/settings.js` owns load/save/validation (bad or missing data always
+  falls back to `'full'`, never throws).
 - Save on every state mutation (debounced), load on boot. Cross-tab sync later via `storage` events.
 
 ### schemaVersion 9 (2026-07-19): banked slot points — `routine.boughtHabitSlots`/`boughtTaskSlots` landed

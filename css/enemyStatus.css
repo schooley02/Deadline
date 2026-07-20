@@ -96,9 +96,76 @@
     background-size: 70px 70px !important;
 }
 
+/* [P2-UI-009] Milestone 4, session 59: on-fire visual for a habit at/above
+   CONFIG.HABIT_STREAK_BONUS_THRESHOLD. Deliberately NO ::before/::after here
+   — both are already spoken for on this element (::before is the category
+   icon, enemySprites.css; ::after is the negative-habit 🚫 badge, which CAN
+   coexist with high-streak on the same element for a negative habit that's
+   being successfully avoided repeatedly). Everything is box-shadow/filter/
+   transform on the element itself: no extra DOM nodes, GPU-composited,
+   cheap enough for many concurrent enemies on mobile — a deliberate
+   "illusion of fire" over a real particle system, which is the actual
+   answer to the ticket's own "optimize for multiple concurrent effects /
+   mobile devices" requirement. */
 .enemy.habit-enemy.high-streak {
+    animation: flame-flicker 1.4s infinite;
+}
+
+@keyframes flame-flicker {
+    0%   { box-shadow: 0 0 8px  #ff8c00, 0 0 16px #ffa500, 0 0 2px  #fff5cc; filter: brightness(1); }
+    25%  { box-shadow: 0 0 14px #ff6f00, 0 0 26px #ffb300, 0 0 4px  #fff5cc; filter: brightness(1.08); }
+    50%  { box-shadow: 0 0 10px #ff8c00, 0 0 20px #ffa500, 0 0 3px  #fff5cc; filter: brightness(1.02); }
+    75%  { box-shadow: 0 0 16px #ff5722, 0 0 28px #ff9800, 0 0 5px  #fff5cc; filter: brightness(1.1); }
+    100% { box-shadow: 0 0 8px  #ff8c00, 0 0 16px #ffa500, 0 0 2px  #fff5cc; filter: brightness(1); }
+}
+
+/* Stronger tier (session 59) — CONFIG.HABIT_STREAK_STRONG_THRESHOLD.
+   ADDITIVE: spawning.js/items.js always pair this with .high-streak (never
+   alone), so this just layers a bigger, hotter, faster flicker + a subtle
+   breathing scale on top of the base flame rather than replacing it. */
+.enemy.habit-enemy.super-streak {
+    animation: flame-flicker-strong 0.9s infinite;
+    z-index: 16;
+}
+
+@keyframes flame-flicker-strong {
+    0%   { box-shadow: 0 0 14px #ff5722, 0 0 28px #ff3d00, 0 0 40px rgba(255, 87, 34, 0.5), 0 0 6px #fff8e1; filter: brightness(1.05); transform: scale(1); }
+    30%  { box-shadow: 0 0 20px #ff3d00, 0 0 38px #ff6f00, 0 0 55px rgba(255, 61, 0, 0.6),  0 0 9px #fff8e1; filter: brightness(1.18); transform: scale(1.03); }
+    60%  { box-shadow: 0 0 16px #ff5722, 0 0 32px #ff5722, 0 0 45px rgba(255, 87, 34, 0.5), 0 0 7px #fff8e1; filter: brightness(1.1); transform: scale(1); }
+    100% { box-shadow: 0 0 14px #ff5722, 0 0 28px #ff3d00, 0 0 40px rgba(255, 87, 34, 0.5), 0 0 6px #fff8e1; filter: brightness(1.05); transform: scale(1); }
+}
+
+/* Accessibility + the ticket's "user preference toggle for visual effects
+   intensity" (js/settings.js sets one of these classes on <body>; default
+   'full' adds neither, so existing behavior is unchanged for anyone who
+   never opens the new Settings window). 'reduced' keeps a static colored
+   glow (still readable as "this habit is special") without any animation
+   cost; 'off' drops back to the plain pre-session-59 look. prefers-reduced-
+   motion is honored unconditionally regardless of the in-app setting. */
+@media (prefers-reduced-motion: reduce) {
+    .enemy.habit-enemy.high-streak,
+    .enemy.habit-enemy.super-streak {
+        animation: none;
+        transform: none;
+        filter: none;
+        box-shadow: 0 0 10px #ff8c00, 0 0 20px #ffa500;
+    }
+}
+
+.fx-reduced .enemy.habit-enemy.high-streak,
+.fx-reduced .enemy.habit-enemy.super-streak {
+    animation: none;
+    transform: none;
+    filter: none;
     box-shadow: 0 0 10px #ff8c00, 0 0 20px #ffa500;
-    animation: pulse-streak 1s infinite alternate;
+}
+
+.fx-off .enemy.habit-enemy.high-streak,
+.fx-off .enemy.habit-enemy.super-streak {
+    animation: none;
+    transform: none;
+    filter: none;
+    box-shadow: none;
 }
 
 /* [P1-DATA-005] session 29 (Jeremy's call): border only, no fill — a solid
@@ -132,11 +199,6 @@
 /* Ensure category icons are visible behind negative habit indicator */
 .enemy.habit-enemy.negative-habit::before {
     z-index: 2;
-}
-
-@keyframes pulse-streak {
-    from { box-shadow: 0 0 8px #ff8c00, 0 0 15px #ffa500; }
-    to { box-shadow: 0 0 15px #ff8c00, 0 0 25px #ffa500; }
 }
 
 /* Overdue Enemies */

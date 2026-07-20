@@ -13,6 +13,48 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 59: [P2-UI-009] Streak visual effects BUILT — Milestone 4 opener (Cowork session, Sonnet)
+
+**Did:** Milestone 4's first ticket, full acceptance-criteria scope agreed with Jeremy up front.
+Two-tier CSS fire effect (3+ "on fire" / 7+ "blazing", additive, box-shadow/filter/transform only —
+no particle-system DOM overhead, deliberately, for mobile perf with many concurrent enemies) on
+`.high-streak`/`.super-streak` (`css/enemyStatus.css`); new `CONFIG.HABIT_STREAK_STRONG_THRESHOLD`
+(7); new pure `Habits.crossedStreakThreshold` wired into `Items.completeItem`/
+`resolvePendingCheckIn` via an optional `deps.onStreakMilestone`; new `FrozenNotice.
+showStreakMilestoneNotice` one-time toast; new Settings window (6th FAB item) with a full/reduced/
+off effects-intensity toggle — `js/settings.js` (new, separate `deadline.settings` key, not part of
+the main save/schemaVersion) + `js/ui/settingsView.js` (new) + `css/settings.css` (new). Docs:
+MECHANICS.md, UI_UX.md, DATA_SCHEMA.md, ROADMAP.md (ticket checked off), DECISIONS.md session 59.
+
+**State:** ✅ 41 suites, 910/910 (886 + 24: spawning super-streak cases, habits
+`crossedStreakThreshold`, new settings.test.js). `node --check` clean on every touched file.
+Live-verified in Chrome end-to-end: Settings toggle persists across reload and correctly gates the
+CSS; both fire tiers confirmed rendering (visually distinct — tier 2 is clearly hotter/bigger); a
+REAL habit completion crossing the base threshold produced the exact expected "🔥 ... is on fire!"
+toast with correct XP/points and no console errors; confirmed no duplicate-toast-on-reload. Save
+restored to pristine (dev Reset + cleared `deadline.settings`) before ending. NOT committed — git
+commands in chat.
+
+**Next:** Milestone 4 continues — [P2-GAME-010] Enemy acceleration mechanics is next in ROADMAP.md's
+list, then [P2-UI-011] Management window unification, [P2-UI-013] Routine transfer system, time
+slider, achievements/badges, mobile UX + accessibility pass. [P2-GAME-012] Base healing is already
+built (session 17). Milestone 3's two optional polish sub-sessions (run-history best-run highlight,
+heroes) remain cut pending real play data, as does the session-24 balance re-check.
+
+**Watch out:**
+- A hand-edited ACTIVE item instance's own `streak` field does NOT survive a reload the way
+  `habitDef.streak` does (confirmed: only `habitDef.streak` is ever mutated by any code path; no
+  code sets `item.streak` after instance creation, and `Spawning.addItemToGame` pushes the restored
+  item through as-is) — some part of the boot/restore path resets it. Not investigated (out of scope
+  this session, and the class-assignment logic itself is unit-tested + separately confirmed live by
+  toggling classes directly on a real DOM element) — worth a look if a future session touches habit-
+  instance restore/regeneration. Don't rely on hand-editing an existing instance's `.streak` for a
+  future live test; hand-edit `habitDef.streak` and drive a REAL completion instead (what this
+  session did for the notification verification).
+- `::before`/`::after` are both already claimed on `.enemy.habit-enemy` (category icon, negative-habit
+  badge) — any future enemy-visual addition needs a box-shadow/filter/transform approach or a real
+  extra DOM node, not a third pseudo-element.
+
 ## 2026-07-19 — Session 58: Stale "Mark as Complete" checkbox bug FIXED (Cowork session, Sonnet)
 
 **Did:** The session-7 Known bug, root-caused going in (ROADMAP already had the diagnosis).
