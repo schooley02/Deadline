@@ -1,0 +1,79 @@
+{
+    "schemaVersion": 11,
+    "savedAt": "2026-07-20T19:30:00.000Z",
+    "baseHealth": 40,
+    "playerXP": 180,
+    "playerLevel": 2,
+    "playerPoints": 350,
+    "inventory": {
+        "repair_small": 2,
+        "repair_medium": 1,
+        "cheat_day": 1,
+        "skip_day": 3
+    },
+    "sickDayDate": null,
+    "runHistory": [],
+    "currentRunStats": {
+        "tasksCompleted": 0,
+        "habitsCompleted": 0,
+        "habitsMissed": 0,
+        "pointsEarned": 0,
+        "blame": {}
+    },
+    "lifetimeStats": {
+        "tasksCompleted": 0,
+        "habitsCompleted": 0,
+        "bestRunDaysSurvived": 0,
+        "bestHabitStreak": 0,
+        "steadyRoutineRuns": 0,
+        "pointsRecoveries": 0
+    },
+    "achievements": {},
+    "routineSlots": 1,
+    "itemIdCounter": 3,
+    "gameIsOver": false,
+    "daysSurvived": 1,
+    "runStartedAtMs": 1784500000000,
+    "currentGameDate": "2026-07-20T05:00:00.000Z",
+    "activeItems": [
+        {
+            "id": 1,
+            "type": "task",
+            "name": "Pushback Target Practice",
+            "category": "other",
+            "isHighPriority": false,
+            "dueDateTime": "2026-07-21T01:00:00.000Z",
+            "creationTime": "2026-07-20T19:00:00.000Z",
+            "timeToDueAtCreationMs": 21600000,
+            "x": 900,
+            "isOverdue": false,
+            "lastDamageTickTime": null,
+            "subTasks": [],
+            "completedSubTasks": 0,
+            "totalSubTasks": 0,
+            "offlineDamageCharged": 0,
+            "urgencyTier": "approaching"
+        },
+        {
+            "id": 2,
+            "type": "task",
+            "name": "Overdue Chore",
+            "category": "other",
+            "isHighPriority": false,
+            "dueDateTime": "2026-07-20T16:00:00.000Z",
+            "creationTime": "2026-07-20T09:00:00.000Z",
+            "timeToDueAtCreationMs": 25200000,
+            "x": 100,
+            "isOverdue": true,
+            "lastDamageTickTime": 1784656800000,
+            "subTasks": [],
+            "completedSubTasks": 0,
+            "totalSubTasks": 0,
+            "offlineDamageCharged": 4
+        }
+    ],
+    "completedItems": [],
+    "definedHabits": [],
+    "definedRoutines": [],
+    "definedTasks": []
+}

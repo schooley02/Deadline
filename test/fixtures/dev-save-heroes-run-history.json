@@ -1,0 +1,306 @@
+{
+    "schemaVersion": 11,
+    "savedAt": "2026-07-20T19:00:00.000Z",
+    "baseHealth": 87,
+    "playerXP": 420,
+    "playerLevel": 3,
+    "playerPoints": 65,
+    "inventory": {},
+    "sickDayDate": null,
+    "runHistory": [
+        {
+            "runNumber": 2,
+            "startedAtMs": 1784150000000,
+            "endedAtMs": 1784400000000,
+            "daysSurvived": 3,
+            "endReason": "base_destroyed",
+            "totals": {
+                "tasksCompleted": 12,
+                "habitsCompleted": 9,
+                "habitsMissed": 4,
+                "pointsEarned": 145
+            },
+            "blame": [
+                {
+                    "name": "Late Night Scrolling",
+                    "category": "health",
+                    "isHabit": true,
+                    "routineId": "routine_H3_burnedout",
+                    "totalDamage": 22,
+                    "firstDamageAt": 1784300000000,
+                    "lastDamageAt": 1784390000000
+                },
+                {
+                    "name": "Client Deliverable",
+                    "category": "career",
+                    "isHabit": false,
+                    "routineId": null,
+                    "totalDamage": 9,
+                    "firstDamageAt": 1784250000000,
+                    "lastDamageAt": 1784250000000
+                }
+            ],
+            "routines": [
+                {
+                    "routineId": "routine_H1_fitness",
+                    "name": "Fitness Squad",
+                    "level": 4,
+                    "stars": 5,
+                    "completionRate": { "rate": 1, "samples": 8 },
+                    "memberDamage": 0,
+                    "wasFrozenAtEnd": false,
+                    "wasKOdAtEnd": false
+                },
+                {
+                    "routineId": "routine_H2_study",
+                    "name": "Study Grind",
+                    "level": 2,
+                    "stars": 2,
+                    "completionRate": { "rate": 0.7, "samples": 10 },
+                    "memberDamage": 0,
+                    "wasFrozenAtEnd": false,
+                    "wasKOdAtEnd": false
+                },
+                {
+                    "routineId": "routine_H3_burnedout",
+                    "name": "Burned Out",
+                    "level": 2,
+                    "stars": 0,
+                    "completionRate": { "rate": 0.2, "samples": 5 },
+                    "memberDamage": 22,
+                    "wasFrozenAtEnd": false,
+                    "wasKOdAtEnd": true
+                }
+            ]
+        },
+        {
+            "runNumber": 1,
+            "startedAtMs": 1783900000000,
+            "endedAtMs": 1784100000000,
+            "daysSurvived": 2,
+            "endReason": "base_destroyed",
+            "totals": {
+                "tasksCompleted": 6,
+                "habitsCompleted": 5,
+                "habitsMissed": 3,
+                "pointsEarned": 78
+            },
+            "blame": [
+                {
+                    "name": "Morning Chaos",
+                    "category": "other",
+                    "isHabit": false,
+                    "routineId": null,
+                    "totalDamage": 15,
+                    "firstDamageAt": 1783950000000,
+                    "lastDamageAt": 1784050000000
+                }
+            ],
+            "routines": []
+        }
+    ],
+    "currentRunStats": {
+        "tasksCompleted": 1,
+        "habitsCompleted": 1,
+        "habitsMissed": 0,
+        "pointsEarned": 15,
+        "blame": {}
+    },
+    "lifetimeStats": {
+        "tasksCompleted": 18,
+        "habitsCompleted": 14,
+        "bestRunDaysSurvived": 3,
+        "bestHabitStreak": 8,
+        "steadyRoutineRuns": 1,
+        "pointsRecoveries": 0
+    },
+    "achievements": {},
+    "routineSlots": 3,
+    "itemIdCounter": 3,
+    "gameIsOver": false,
+    "daysSurvived": 3,
+    "runStartedAtMs": 1784350800000,
+    "currentGameDate": "2026-07-20T05:00:00.000Z",
+    "activeItems": [
+        {
+            "id": 1,
+            "type": "habit",
+            "definitionId": "habitDef_H1a_gym",
+            "name": "Gym Session",
+            "category": "health",
+            "isHighPriority": false,
+            "dueDateTime": "2026-07-21T04:59:00.000Z",
+            "creationTime": "2026-07-10T09:00:00.000Z",
+            "timeToDueAtCreationMs": 864000000,
+            "x": 1826.6635047059033,
+            "isOverdue": false,
+            "lastDamageTickTime": null,
+            "streak": 6,
+            "isNegative": false,
+            "originalDueDate": "2026-07-21T04:59:00.000Z",
+            "offlineDamageCharged": 0,
+            "urgencyTier": "calm"
+        },
+        {
+            "id": 2,
+            "type": "habit",
+            "definitionId": "habitDef_H2a_read",
+            "name": "Read 30 Min",
+            "category": "creativity",
+            "isHighPriority": false,
+            "dueDateTime": "2026-07-21T04:59:00.000Z",
+            "creationTime": "2026-07-12T09:00:00.000Z",
+            "timeToDueAtCreationMs": 691200000,
+            "x": 1808,
+            "isOverdue": false,
+            "lastDamageTickTime": null,
+            "streak": 1,
+            "isNegative": false,
+            "originalDueDate": "2026-07-21T04:59:00.000Z",
+            "offlineDamageCharged": 0,
+            "urgencyTier": "calm"
+        }
+    ],
+    "completedItems": [],
+    "definedHabits": [
+        {
+            "id": "habitDef_H1a_gym",
+            "name": "Gym Session",
+            "category": "health",
+            "schedule": {
+                "frequency": "daily",
+                "daysOfWeek": [0, 1, 2, 3, 4, 5, 6],
+                "dayOfMonth": null
+            },
+            "timeOfDay": "anytime",
+            "isNegative": false,
+            "routineId": "routine_H1_fitness",
+            "streak": 6,
+            "lastCompletionDate": "2026-07-19T13:00:00.000Z",
+            "occurrenceHistory": [
+                { "date": "2026-07-18", "success": true },
+                { "date": "2026-07-19", "success": true },
+                { "date": "2026-07-20", "success": true }
+            ],
+            "cheatDayDate": null,
+            "modificationHistory": [],
+            "skipDayDate": null
+        },
+        {
+            "id": "habitDef_H1b_mealprep",
+            "name": "Meal Prep",
+            "category": "health",
+            "schedule": {
+                "frequency": "daily",
+                "daysOfWeek": [0, 1, 2, 3, 4, 5, 6],
+                "dayOfMonth": null
+            },
+            "timeOfDay": "anytime",
+            "isNegative": false,
+            "routineId": "routine_H1_fitness",
+            "streak": 3,
+            "lastCompletionDate": "2026-07-19T13:00:00.000Z",
+            "occurrenceHistory": [
+                { "date": "2026-07-19", "success": true },
+                { "date": "2026-07-20", "success": true }
+            ],
+            "cheatDayDate": null,
+            "modificationHistory": [],
+            "skipDayDate": null
+        },
+        {
+            "id": "habitDef_H2a_read",
+            "name": "Read 30 Min",
+            "category": "creativity",
+            "schedule": {
+                "frequency": "daily",
+                "daysOfWeek": [0, 1, 2, 3, 4, 5, 6],
+                "dayOfMonth": null
+            },
+            "timeOfDay": "anytime",
+            "isNegative": false,
+            "routineId": "routine_H2_study",
+            "streak": 1,
+            "lastCompletionDate": "2026-07-19T13:00:00.000Z",
+            "occurrenceHistory": [
+                { "date": "2026-07-18", "success": true },
+                { "date": "2026-07-19", "success": false },
+                { "date": "2026-07-20", "success": true }
+            ],
+            "cheatDayDate": null,
+            "modificationHistory": [],
+            "skipDayDate": null
+        },
+        {
+            "id": "habitDef_H3a_scroll",
+            "name": "Late Night Scrolling",
+            "category": "health",
+            "schedule": {
+                "frequency": "daily",
+                "daysOfWeek": [0, 1, 2, 3, 4, 5, 6],
+                "dayOfMonth": null
+            },
+            "timeOfDay": "anytime",
+            "isNegative": true,
+            "routineId": "routine_H3_burnedout",
+            "streak": 0,
+            "lastCompletionDate": null,
+            "occurrenceHistory": [
+                { "date": "2026-07-18", "success": false },
+                { "date": "2026-07-19", "success": false },
+                { "date": "2026-07-20", "success": true }
+            ],
+            "cheatDayDate": null,
+            "modificationHistory": [],
+            "skipDayDate": null
+        }
+    ],
+    "definedRoutines": [
+        {
+            "id": "routine_H1_fitness",
+            "name": "Fitness Squad",
+            "habitDefinitionIds": ["habitDef_H1a_gym", "habitDef_H1b_mealprep"],
+            "taskDefinitionIds": [],
+            "isActive": true,
+            "frozenState": null,
+            "xp": 260,
+            "level": 4,
+            "health": 100,
+            "createdAt": 1784350800000,
+            "koState": null,
+            "boughtHabitSlots": 2,
+            "boughtTaskSlots": 0
+        },
+        {
+            "id": "routine_H2_study",
+            "name": "Study Grind",
+            "habitDefinitionIds": ["habitDef_H2a_read"],
+            "taskDefinitionIds": [],
+            "isActive": true,
+            "frozenState": null,
+            "xp": 60,
+            "level": 2,
+            "health": 100,
+            "createdAt": 1784350800000,
+            "koState": null,
+            "boughtHabitSlots": 0,
+            "boughtTaskSlots": 0
+        },
+        {
+            "id": "routine_H3_burnedout",
+            "name": "Burned Out",
+            "habitDefinitionIds": ["habitDef_H3a_scroll"],
+            "taskDefinitionIds": [],
+            "isActive": false,
+            "frozenState": null,
+            "xp": 60,
+            "level": 2,
+            "health": 0,
+            "createdAt": 1784350800000,
+            "koState": { "koAt": 1784500000000 },
+            "boughtHabitSlots": 0,
+            "boughtTaskSlots": 0
+        }
+    ],
+    "definedTasks": []
+}

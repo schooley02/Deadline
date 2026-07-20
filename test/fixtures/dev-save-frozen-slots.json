@@ -1,0 +1,308 @@
+{
+    "schemaVersion": 11,
+    "savedAt": "2026-07-20T20:00:00.000Z",
+    "baseHealth": 100,
+    "playerXP": 0,
+    "playerLevel": 1,
+    "playerPoints": 50,
+    "inventory": {},
+    "sickDayDate": null,
+    "runHistory": [],
+    "currentRunStats": {
+        "tasksCompleted": 0,
+        "habitsCompleted": 0,
+        "habitsMissed": 0,
+        "pointsEarned": 0,
+        "blame": {}
+    },
+    "lifetimeStats": {
+        "tasksCompleted": 0,
+        "habitsCompleted": 0,
+        "bestRunDaysSurvived": 0,
+        "bestHabitStreak": 0,
+        "steadyRoutineRuns": 0,
+        "pointsRecoveries": 0
+    },
+    "achievements": {},
+    "routineSlots": 3,
+    "itemIdCounter": 5,
+    "gameIsOver": false,
+    "daysSurvived": 3,
+    "runStartedAtMs": 1784350000000,
+    "currentGameDate": "2026-07-20T05:00:00.000Z",
+    "activeItems": [
+        {
+            "id": 1,
+            "type": "habit",
+            "definitionId": "habitDef_A1_doomscroll",
+            "name": "Doomscroll Before Bed",
+            "category": "health",
+            "isHighPriority": false,
+            "dueDateTime": "2026-07-21T04:59:00.000Z",
+            "creationTime": "2026-07-17T19:00:00.000Z",
+            "timeToDueAtCreationMs": 302340000,
+            "x": 1826.6635047059033,
+            "isOverdue": false,
+            "lastDamageTickTime": null,
+            "streak": 0,
+            "isNegative": true,
+            "originalDueDate": "2026-07-21T04:59:00.000Z",
+            "offlineDamageCharged": 0
+        },
+        {
+            "id": 2,
+            "type": "habit",
+            "definitionId": "habitDef_B1_snooze",
+            "name": "Snooze Alarm",
+            "category": "health",
+            "isHighPriority": false,
+            "dueDateTime": "2026-07-21T04:59:00.000Z",
+            "creationTime": "2026-07-18T07:00:00.000Z",
+            "timeToDueAtCreationMs": 216840000,
+            "x": 1808,
+            "isOverdue": false,
+            "lastDamageTickTime": null,
+            "streak": 0,
+            "isNegative": true,
+            "originalDueDate": "2026-07-21T04:59:00.000Z",
+            "offlineDamageCharged": 0
+        },
+        {
+            "id": 3,
+            "type": "habit",
+            "definitionId": "habitDef_B2_morningwalk",
+            "name": "Morning Walk",
+            "category": "health",
+            "isHighPriority": false,
+            "dueDateTime": "2026-07-21T04:59:00.000Z",
+            "creationTime": "2026-07-18T07:00:00.000Z",
+            "timeToDueAtCreationMs": 216840000,
+            "x": 1826.6635047059033,
+            "isOverdue": false,
+            "lastDamageTickTime": null,
+            "streak": 2,
+            "isNegative": false,
+            "originalDueDate": "2026-07-21T04:59:00.000Z",
+            "offlineDamageCharged": 0,
+            "urgencyTier": "calm"
+        },
+        {
+            "id": 4,
+            "type": "habit",
+            "definitionId": "habitDef_C1_phoneinbed",
+            "name": "Phone in Bed",
+            "category": "health",
+            "isHighPriority": false,
+            "dueDateTime": "2026-07-21T04:59:00.000Z",
+            "creationTime": "2026-07-13T21:00:00.000Z",
+            "timeToDueAtCreationMs": 648840000,
+            "x": 1826.6635047059033,
+            "isOverdue": false,
+            "lastDamageTickTime": null,
+            "streak": 0,
+            "isNegative": true,
+            "originalDueDate": "2026-07-21T04:59:00.000Z",
+            "offlineDamageCharged": 0
+        }
+    ],
+    "completedItems": [],
+    "definedHabits": [
+        {
+            "id": "habitDef_A1_doomscroll",
+            "name": "Doomscroll Before Bed",
+            "category": "health",
+            "schedule": {
+                "frequency": "daily",
+                "daysOfWeek": [0, 1, 2, 3, 4, 5, 6],
+                "dayOfMonth": null
+            },
+            "timeOfDay": "anytime",
+            "isNegative": true,
+            "routineId": "routine_A_latenight",
+            "streak": 0,
+            "lastCompletionDate": null,
+            "occurrenceHistory": [
+                { "date": "2026-07-17", "success": false },
+                { "date": "2026-07-18", "success": false },
+                { "date": "2026-07-19", "success": false }
+            ],
+            "cheatDayDate": null,
+            "modificationHistory": [],
+            "skipDayDate": null
+        },
+        {
+            "id": "habitDef_A2_readbeforebed",
+            "name": "Read Before Bed",
+            "category": "health",
+            "schedule": {
+                "frequency": "daily",
+                "daysOfWeek": [0, 1, 2, 3, 4, 5, 6],
+                "dayOfMonth": null
+            },
+            "timeOfDay": "anytime",
+            "isNegative": false,
+            "routineId": "routine_A_latenight",
+            "streak": 0,
+            "lastCompletionDate": null,
+            "occurrenceHistory": [],
+            "cheatDayDate": null,
+            "modificationHistory": [],
+            "skipDayDate": null
+        },
+        {
+            "id": "habitDef_B1_snooze",
+            "name": "Snooze Alarm",
+            "category": "health",
+            "schedule": {
+                "frequency": "daily",
+                "daysOfWeek": [0, 1, 2, 3, 4, 5, 6],
+                "dayOfMonth": null
+            },
+            "timeOfDay": "anytime",
+            "isNegative": true,
+            "routineId": "routine_B_morningdiscipline",
+            "streak": 0,
+            "lastCompletionDate": null,
+            "occurrenceHistory": [
+                { "date": "2026-07-18", "success": false },
+                { "date": "2026-07-19", "success": false }
+            ],
+            "cheatDayDate": null,
+            "modificationHistory": [],
+            "skipDayDate": null
+        },
+        {
+            "id": "habitDef_B2_morningwalk",
+            "name": "Morning Walk",
+            "category": "health",
+            "schedule": {
+                "frequency": "daily",
+                "daysOfWeek": [0, 1, 2, 3, 4, 5, 6],
+                "dayOfMonth": null
+            },
+            "timeOfDay": "anytime",
+            "isNegative": false,
+            "routineId": "routine_B_morningdiscipline",
+            "streak": 2,
+            "lastCompletionDate": "2026-07-19T13:00:00.000Z",
+            "occurrenceHistory": [
+                { "date": "2026-07-18", "success": true },
+                { "date": "2026-07-19", "success": true }
+            ],
+            "cheatDayDate": null,
+            "modificationHistory": [],
+            "skipDayDate": null
+        },
+        {
+            "id": "habitDef_C1_phoneinbed",
+            "name": "Phone in Bed",
+            "category": "health",
+            "schedule": {
+                "frequency": "daily",
+                "daysOfWeek": [0, 1, 2, 3, 4, 5, 6],
+                "dayOfMonth": null
+            },
+            "timeOfDay": "anytime",
+            "isNegative": true,
+            "routineId": "routine_C_screentime",
+            "streak": 0,
+            "lastCompletionDate": "2026-07-17T00:00:00.000Z",
+            "occurrenceHistory": [
+                { "date": "2026-07-13", "success": false },
+                { "date": "2026-07-14", "success": false },
+                { "date": "2026-07-15", "success": false },
+                { "date": "2026-07-16", "success": true },
+                { "date": "2026-07-17", "success": true }
+            ],
+            "cheatDayDate": null,
+            "modificationHistory": [],
+            "skipDayDate": null
+        },
+        {
+            "id": "habitDef_C2_notvafterdinner",
+            "name": "No TV After Dinner",
+            "category": "health",
+            "schedule": {
+                "frequency": "daily",
+                "daysOfWeek": [0, 1, 2, 3, 4, 5, 6],
+                "dayOfMonth": null
+            },
+            "timeOfDay": "anytime",
+            "isNegative": false,
+            "routineId": "routine_C_screentime",
+            "streak": 0,
+            "lastCompletionDate": null,
+            "occurrenceHistory": [],
+            "cheatDayDate": null,
+            "modificationHistory": [],
+            "skipDayDate": null
+        }
+    ],
+    "definedRoutines": [
+        {
+            "id": "routine_A_latenight",
+            "name": "Late Night Habits",
+            "habitDefinitionIds": ["habitDef_A1_doomscroll", "habitDef_A2_readbeforebed"],
+            "taskDefinitionIds": ["taskDef_A3_skincare"],
+            "isActive": true,
+            "frozenState": {
+                "frozenBy": "habitDef_A1_doomscroll",
+                "frozenAt": "2026-07-19T23:59:00.000Z"
+            },
+            "xp": 30,
+            "level": 1,
+            "health": 100,
+            "createdAt": 1784350000000,
+            "koState": null,
+            "boughtHabitSlots": 0,
+            "boughtTaskSlots": 0
+        },
+        {
+            "id": "routine_B_morningdiscipline",
+            "name": "Morning Discipline",
+            "habitDefinitionIds": ["habitDef_B1_snooze", "habitDef_B2_morningwalk"],
+            "taskDefinitionIds": [],
+            "isActive": true,
+            "frozenState": null,
+            "xp": 40,
+            "level": 1,
+            "health": 100,
+            "createdAt": 1784400000000,
+            "koState": null,
+            "boughtHabitSlots": 0,
+            "boughtTaskSlots": 0
+        },
+        {
+            "id": "routine_C_screentime",
+            "name": "Screen Time",
+            "habitDefinitionIds": ["habitDef_C1_phoneinbed", "habitDef_C2_notvafterdinner"],
+            "taskDefinitionIds": [],
+            "isActive": true,
+            "frozenState": {
+                "frozenBy": "habitDef_C1_phoneinbed",
+                "frozenAt": "2026-07-15T23:59:00.000Z"
+            },
+            "xp": 20,
+            "level": 1,
+            "health": 100,
+            "createdAt": 1784200000000,
+            "koState": null,
+            "boughtHabitSlots": 0,
+            "boughtTaskSlots": 0
+        }
+    ],
+    "definedTasks": [
+        {
+            "id": "taskDef_A3_skincare",
+            "name": "Skincare Routine",
+            "category": "health",
+            "isHighPriority": false,
+            "defaultDueTime": "22:00",
+            "schedule": {
+                "frequency": "daily",
+                "daysOfWeek": [0, 1, 2, 3, 4, 5, 6],
+                "dayOfMonth": null
+            }
+        }
+    ]
+}

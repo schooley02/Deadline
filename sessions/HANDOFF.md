@@ -11,6 +11,74 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-07-20 — Three more dev-save fixtures: overdue/offline-damage, heroes/run-history, economy/shop (Cowork session, continued)
+
+**Did:** Jeremy asked to continue with the remaining scenario fixtures from the earlier menu.
+Built all three: `test/fixtures/dev-save-overdue-damage.json` (offline-damage cap: 3 items at
+0/10/12 already-charged, all converge to 12/12 on load, proving the LIFETIME cap works regardless
+of how many times you reload), `test/fixtures/dev-save-heroes-run-history.json` (3 routines at
+Lv4/5★, Lv2/1★, and a revivable KO'd Lv2/0★, plus 2 finalized `runHistory` records feeding the
+Stats modal's Past Runs + Routine Performance table), and `test/fixtures/dev-save-economy-shop.json`
+(350 points + a pre-stocked inventory, prices verified exactly against `Economy.shopPrice`
+including one item deliberately priced out of reach). Every fixture was checked against the real
+pure functions (`Damage.computeOfflineOverdueDamage`, `Heroes.levelForXp`/`completionRate`/
+`starRating`, `Economy.shopPrice`) via a throwaway `node -e` BEFORE touching Chrome, then
+live-verified end to end — including an actual repair-kit purchase/use cycle on the economy
+fixture (health +15, held count -1, price recalculated correctly). `test/fixtures/README.md`
+updated with all three.
+
+**State:** Zero console errors across all three live-verification passes. No code changes —
+fixtures + docs only.
+
+**Next:** All 5 planned fixture scenarios are now built (rollover, frozen-slots, overdue-damage,
+heroes/run-history, economy/shop). Balance re-check still needs Jeremy's real save location. No
+other fixture ideas pending unless something new comes up.
+
+**Watch out:**
+- Confirmed the earlier README warning about `windowStartMs` really matters: `Heroes.completionRate`
+  filters `occurrenceHistory` by `max(routine.createdAt, runStartedAtMs)`, NOT `routine.createdAt`
+  alone — a first draft of the heroes fixture used the wrong formula in its verification script,
+  got misleadingly different numbers than what actually rendered live, and had to be corrected
+  (dates shifted so all occurrenceHistory entries fall after the effective window start). If you
+  hand-author `occurrenceHistory` for any future routine-scoped fixture, verify against the exact
+  formula the LIVE render path uses (`js/ui/heroes.js`'s `windowStartMs = Math.max(...)`), not
+  just the routine's own `createdAt`.
+- The overdue-damage fixture's `baseHealth` value is a snapshot, not a floor — offline regen isn't
+  capped the way offline damage is, so the "partially damaged base" visual will fade if the
+  fixture sits unloaded for more than a few hours. The item-level `offlineDamageCharged` values are
+  the durable part of that fixture; documented in the README.
+
+## 2026-07-20 — Day-advance LIVE mid-session rollover CLOSED + frozen-slots dev-save fixture (Cowork session, continued)
+
+**Did:** Jeremy asked for the reusable-save idea to extend to a few different test scenarios
+(building state through the UI every reset is repetitive). Built `test/fixtures/dev-save-frozen-slots.json`
+— three routines covering the [P1-DATA-005] frozen-slots system: one FROZEN (offending negative
+habit at 3/3 indulged, sibling habit + task correctly suspended), one NOT-yet-frozen at 2/3
+indulged (for testing the live trigger itself), one FROZEN but 2/3 through avoidance recovery.
+Verified the occurrenceHistory shapes against the real `js/frozenSlots.js` pure functions
+(`shouldFreeze`/`avoidanceProgress`) via node before touching Chrome, then live-verified full
+UI behavior: Manage Routine banners read correctly ("2/3 days successfully avoided" etc.), hero
+chips show the frozen badge on the right two routines only, and the suspended sibling
+habit/task genuinely don't spawn as board items. `test/fixtures/README.md` updated with both
+fixtures' contents and a corrected loader procedure (see Watch out).
+
+**State:** Zero console errors on load. No code changes this sub-session, fixtures + docs only.
+
+**Next:** Same as below — balance re-check still needs Jeremy's real save location, and there's
+appetite for more scenario fixtures (overdue/offline-damage, heroes+run-history, economy/shop)
+if useful in a future session.
+
+**Watch out:**
+- **Setting `localStorage` from an ALREADY-LOADED game tab doesn't actually load the fixture** —
+  cost real time this sub-session. The live tab's in-memory state is untouched by a direct
+  `localStorage.setItem`, and its autosave (fires almost immediately if `lastAutosaveMs` is
+  stale) silently re-serializes the OLD state back over your write within about a second, so a
+  subsequent reload of the SAME tab still shows the old data. Looked exactly like a phantom
+  second tab racing (and I spent time chasing that theory first) — it wasn't. Fix: navigate to a
+  same-origin 404 first (kills the running game loop/autosave in that tab), set `localStorage`
+  from THAT page's console, then navigate to `localhost:8000` fresh. Documented in
+  `test/fixtures/README.md`'s loader section — read it before loading either fixture.
+
 ## 2026-07-20 — Day-advance LIVE mid-session rollover CLOSED (Cowork session)
 
 **Did:** Picked up the deferred "Day-advance — LIVE mid-session rollover" ROADMAP line (session 32
@@ -52,13 +120,12 @@ migration mentioned in session 12's HANDOFF entry.
   Date` guard silently short-circuited to `false`). Use a `Proxy` wrapping the real `Date`
   constructor instead (`construct`/`apply`/`get` traps shifting `now()`), which preserves the
   original prototype chain — documented in DECISIONS.md with the working snippet.
-- **A second real Chrome tab/window on `localhost:8000` (outside this session's automation
-  group) appears to still be live** — `localStorage.clear()` + hard navigation kept getting
-  overwritten by an autosave a few seconds later, matching exactly the dev-save fixture's item
-  set. Couldn't close it from this session (not in the MCP tab group). Harmless (it's just
-  autosaving real in-memory state), but if Jeremy sees the game come back with the "Drink
-  Water"/"Skip Junk Food"/"Write weekly report"/"Stretch" test items after closing a tab, that's
-  why — safe to Reset from whichever tab is actually live, or close the stray tab first.
+- **CORRECTION (found later this session, see the entry above):** originally logged here as "a
+  second real Chrome tab appears to still be live" — that diagnosis was WRONG. `localStorage.clear()`
+  + hard navigation kept getting overwritten because the reload lands back in a tab whose OWN
+  in-memory state (from before the clear) still autosaves; there was no second tab. Root cause
+  and the actual fix (navigate to a 404 first) are in the entry above and in
+  `test/fixtures/README.md`.
 - `test/fixtures/dev-save.json`'s dates are absolute (frozen 2026-07-20), not relative to load
   time — loading it on a later real date immediately triggers the day-rollover path on restore
   (arguably useful for testing that flow, but surprising if you just wanted a quiet baseline).
