@@ -46,3 +46,44 @@
 .routine-frozen-banner .routine-frozen-progress {
     font-weight: 500;
 }
+
+/* Achievement unlock animation (ACHIEVEMENTS_PLAN.md sub-session 4, session
+   68): a brief badge pop/glow on the trophy icon when
+   FrozenNotice.showAchievementUnlockNotice's modal paints. CSS-only (no
+   particle system, matching session 59's mobile-perf precedent), gated by
+   the same fx-off/fx-reduced <body> classes js/settings.js applies for the
+   streak-fire effect, plus prefers-reduced-motion unconditionally (both
+   patterns copied from css/enemyStatus.css). 'full' (default) animates;
+   'reduced' shows a static glow, no motion; 'off' is the plain trophy with
+   no glow at all. */
+.achievement-unlock-icon {
+    display: inline-block;
+    animation: achievement-unlock-pop 0.6s ease-out;
+    text-shadow: 0 0 10px #ffd54f, 0 0 20px #ffca28;
+}
+
+@keyframes achievement-unlock-pop {
+    0%   { transform: scale(0.4); opacity: 0; }
+    60%  { transform: scale(1.25); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .achievement-unlock-icon {
+        animation: none;
+        transform: none;
+        text-shadow: 0 0 10px #ffd54f, 0 0 20px #ffca28;
+    }
+}
+
+.fx-reduced .achievement-unlock-icon {
+    animation: none;
+    transform: none;
+    text-shadow: 0 0 10px #ffd54f, 0 0 20px #ffca28;
+}
+
+.fx-off .achievement-unlock-icon {
+    animation: none;
+    transform: none;
+    text-shadow: none;
+}

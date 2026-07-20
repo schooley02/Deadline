@@ -45,10 +45,35 @@ const StatsView = (() => {
         return `<ul class="stats-blame-list">${items}</ul>`;
     }
 
-    // deps: { currentRunStats, daysSurvivedSoFar, currentRunNumber }
+    // Sub-session 4 polish (session 68): "Almost there" nudge list for the
+    // current-run panel. One line per family whose NEXT locked tier is
+    // within CONFIG.NEAR_MISS_THRESHOLD_PCT of its threshold
+    // (Achievements.nearMissNudges — pure, catalog/lifetimeStats/unlocked
+    // passed in explicitly, same rule as the badge grid above). Empty
+    // string (nothing rendered) when there's nothing close, same convention
+    // as buildRoutineRollupSection's empty-state guard.
+    function buildNearMissSection(catalog, lifetimeStats, unlocked) {
+        const nudges = Achievements.nearMissNudges(catalog, lifetimeStats, unlocked, CONFIG.NEAR_MISS_THRESHOLD_PCT);
+        if (!nudges.length) return '';
+        const rows = nudges.map(n => {
+            const title = badgeTitle(n.familyName, n.tierLabel);
+            const unit = n.unit ? ` ${n.unit}${n.remaining === 1 ? '' : 's'}` : '';
+            return `<li>🎯 ${n.remaining}${unit} to ${title}</li>`;
+        }).join('');
+        return `
+            <div class="stats-near-miss">
+                <div class="stats-near-miss-heading">Almost there</div>
+                <ul class="stats-near-miss-list">${rows}</ul>
+            </div>
+        `;
+    }
+
+    // deps: { currentRunStats, daysSurvivedSoFar, currentRunNumber,
+    //         achievementsCatalog, lifetimeStats, achievements }
     function buildCurrentRunPanel(deps) {
         const stats = deps.currentRunStats || RunStats.freshRunStats();
         const blameRows = RunStats.sortedBlame(stats.blame);
+        const nearMissHtml = buildNearMissSection(deps.achievementsCatalog, deps.lifetimeStats, deps.achievements);
 
         return `
             <div class="stats-current-panel">
@@ -72,6 +97,7 @@ const StatsView = (() => {
                         <span class="stats-counter-label">Points earned</span>
                     </div>
                 </div>
+                ${nearMissHtml}
                 <div class="stats-blame-heading">Top offenders so far</div>
                 ${buildBlameList(blameRows, 3)}
             </div>
@@ -231,6 +257,9 @@ const StatsView = (() => {
             currentRunStats: deps.currentRunStats,
             daysSurvivedSoFar: deps.daysSurvivedSoFar,
             currentRunNumber,
+            achievementsCatalog: deps.achievementsCatalog,
+            lifetimeStats: deps.lifetimeStats,
+            achievements: deps.achievements,
         });
 
         historyList.innerHTML = (runHistory.length === 0)
@@ -265,6 +294,7 @@ const StatsView = (() => {
         buildAchievementCard,
         buildAchievementFamily,
         buildAchievementsSection,
+        buildNearMissSection,
         renderStatsWindow,
     };
 })();

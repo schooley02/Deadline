@@ -4,6 +4,63 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-20 — Session 68: Achievements sub-session 4 (polish) — near-miss nudges + unlock animation, ticket CLOSED (Cowork)
+
+**Scope:** the last unchecked item on Achievements & badges (`docs/ACHIEVEMENTS_PLAN.md`'s "optional, cut-if-
+time-says-so" sub-session 4). Jeremy picked it directly (over Run History polish / Time Slider Week-Month /
+Mobile UX) from an AskUserQuestion menu at session start; built rather than cut, closing the ticket.
+
+**Near-miss nudges.** New pure `Achievements.nextLockedTier(family, unlocked)` + `Achievements.nearMissNudges
+(catalog, lifetimeStats, unlocked, thresholdPct)` in js/achievements.js — for each family, looks only at its
+NEXT locked tier (one nudge per family, matching the badge grid's "next milestone" framing, not every
+qualifying tier) and includes it once progress crosses `thresholdPct` (default 0.8; caller-supplied, module
+never reads CONFIG itself — same rule the rest of the file follows). Added `CONFIG.NEAR_MISS_THRESHOLD_PCT`
+(0.8) and a `nearMissUnit` string per catalog family (`'day'`/`'task'`/`'habit'`/`'run'`, `null` for Back in
+Black). **Decision: these are UI/presentation constants, not balance numbers** — they don't touch XP/points/
+economy, so they're NOT gated by the balance-tuning skill (unlike ACHIEVEMENTS thresholds themselves, which
+are balance and were already logged as such in session 64). Rendered via `StatsView.buildNearMissSection` as
+an "Almost there" block on the Stats window's **current-run panel only** — past-run cards are frozen history,
+nothing to nudge toward.
+
+**Float-boundary hazard found while writing tests:** `progress >= pct` at an exact 80% boundary (e.g. `4/5`)
+can land on either side of the literal `0.8` depending on how the division rounds vs. the literal's own
+rounding to the nearest representable double — occasionally opposite sides even for "clean" fractions.
+Fixed with a `1e-9` epsilon (`progress >= pct - 1e-9`) rather than picking test fixtures that dodge the issue,
+since real lifetimeStats/threshold pairs will hit the same boundary in play. Cosmetic-only value (a nudge
+firing/not-firing one tick early), so the slack costs nothing.
+
+**Unlock animation.** `FrozenNotice.showAchievementUnlockNotice`'s 🏆 now wraps in `.achievement-unlock-icon`
+for a CSS-only pop/glow (`@keyframes achievement-unlock-pop`, css/frozenNotice.css) — no particle system,
+matching session 59's mobile-perf precedent. Gated by the SAME `fx-off`/`fx-reduced` `<body>` classes
+js/settings.js already applies for the streak-fire effect, plus `prefers-reduced-motion` unconditionally
+(copied both patterns from css/enemyStatus.css rather than inventing a new convention).
+
+**Live verification (Chrome, localhost:8000):** hand-edited Jeremy's save via the session-52/67 protocol
+(monkeypatch `localStorage.setItem` to no-op the `deadline.save` key, write directly via
+`Object.getPrototypeOf(localStorage).setItem`, reload) to `lifetimeStats.tasksCompleted: 8` (exactly 80% of
+Task Slayer Bronze's threshold of 10) and `bestRunDaysSurvived: 3` (crosses Survivor Bronze). Reload showed
+the restore-time silent sweep (session 64's documented "no toast on restore" behavior) had already unlocked
+Survivor Bronze, and the Stats current-run panel showed "Almost there — 🎯 2 tasks to Task Slayer — Bronze"
+exactly as designed. Created 2 real tasks via the UI and completed both live (8→9→10): the 10th completion
+fired the REAL unlock toast ("🏆 Achievement unlocked: Task Slayer (Bronze)") with the animated trophy
+visible, zero console errors. Confirmed the fx-gating via a computed-style check
+(`getComputedStyle(icon).animationName`): `'achievement-unlock-pop'` under the default fx-full body, `'none'`
+under both `fx-off` and `fx-reduced`. **Hit the documented `confirm()`/`alert()` CDP-freeze hazard** clicking
+the dev Reset button (native `confirm()` on click) — recovered via the documented fix (navigate the tab to
+discard the frozen dialog state), then restored the save to pristine via the SAME no-op-stub protocol used to
+set it up (`localStorage.removeItem('deadline.save')` through the stub, then reload) rather than fighting the
+Reset button a second time. Confirmed pristine: `lifetimeStats` all-zero, `achievements: {}`, `playerXP`/
+`playerPoints` both 0.
+
+**Tests:** 50 suites, 1102/1102 (+27: `test/achievements.test.js` `nextLockedTier`/`nearMissNudges` describe
+blocks, new `test/stats-near-miss.test.js` for `StatsView.buildNearMissSection`). `node --check` clean on
+config.js/achievements.js/statsView.js/frozenNotice.js.
+
+**[Achievements & badges] ticket now fully CLOSED** (all 4 sub-sessions built, none cut). See ECONOMY.md/
+ROADMAP.md.
+
+---
+
 ## 2026-07-20 — Session 67: Fix finalizeRun stars/completionRate {rate,samples} bug (Cowork)
 
 **The bug (flagged sessions 64/65/66, deferred each time as "its own session"):** the Stats window's

@@ -81,12 +81,61 @@ const Achievements = (() => {
         return next;
     }
 
+    // The first tier in a family NOT yet in `unlocked` (tiers are authored
+    // ascending in the catalog — see config.js's ACHIEVEMENTS comment).
+    // null if every tier in the family is already unlocked.
+    function nextLockedTier(family, unlocked) {
+        const seen = unlocked || {};
+        return (family && Array.isArray(family.tiers))
+            ? (family.tiers.find(tier => !seen[tier.id]) || null)
+            : null;
+    }
+
+    // Sub-session 4 polish (ACHIEVEMENTS_PLAN.md, session 68): "N to go"
+    // nudges for the Stats current-run panel. For each family, looks only
+    // at its NEXT locked tier (not every qualifying tier — one nudge per
+    // family, matching the badge grid's "next milestone" framing) and
+    // includes it once progress crosses `thresholdPct` (default 0.8, see
+    // CONFIG.NEAR_MISS_THRESHOLD_PCT — a UI constant, not passed
+    // implicitly: this module never reads CONFIG itself, matching the rest
+    // of the file). Pure — no DOM, no catalog/lifetimeStats mutation.
+    function nearMissNudges(catalog, lifetimeStats, unlocked, thresholdPct) {
+        const pct = (typeof thresholdPct === 'number') ? thresholdPct : 0.8;
+        const stats = lifetimeStats || {};
+        const nudges = [];
+        (catalog || []).forEach(family => {
+            const tier = nextLockedTier(family, unlocked);
+            if (!tier) return;
+            const value = (typeof stats[family.metric] === 'number') ? stats[family.metric] : 0;
+            const threshold = tier.threshold || 1;
+            const progress = value / threshold;
+            // Tiny epsilon guards against float-division edge cases at the
+            // exact boundary (e.g. 4/5 vs. the literal 0.8) rounding to
+            // opposite sides of `pct` — cosmetic-only nudge, so a hair of
+            // slack costs nothing.
+            if (progress >= pct - 1e-9 && progress < 1) {
+                nudges.push({
+                    familyId: family.id,
+                    familyName: family.name,
+                    tierLabel: tier.label,
+                    unit: family.nearMissUnit || null,
+                    value,
+                    threshold,
+                    remaining: Math.max(0, threshold - value),
+                });
+            }
+        });
+        return nudges;
+    }
+
     return {
         freshLifetimeStats,
         freshUnlocked,
         evaluateFamily,
         evaluateAll,
         recordUnlocks,
+        nextLockedTier,
+        nearMissNudges,
     };
 })();
 

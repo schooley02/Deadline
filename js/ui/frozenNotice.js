@@ -203,6 +203,12 @@ const FrozenNotice = (() => {
     //
     // The initial setTimeout(0) also keeps the standard defensive deferral
     // (the sessions 21/34/37 closeModal-same-tick hazard).
+    //
+    // Sub-session 4 polish (session 68): the 🏆 icon wraps in
+    // .achievement-unlock-icon for a CSS-only pop animation
+    // (css/frozenNotice.css), gated by the fx-off/fx-reduced <body> classes
+    // js/settings.js applies + prefers-reduced-motion — same convention as
+    // session 59's streak fire effect.
     let pendingUnlocks = [];
     let unlockWaiterId = null;
 
@@ -234,8 +240,8 @@ const FrozenNotice = (() => {
 
             const modalHtml = `
                 <div class="modal-overlay frozen-notice-overlay">
-                    <div class="modal-content frozen-notice-modal">
-                        <h3>🏆 ${headline}</h3>
+                    <div class="modal-content frozen-notice-modal achievement-unlock-modal">
+                        <h3><span class="achievement-unlock-icon">🏆</span> ${headline}</h3>
                         <ul class="frozen-notice-recovery-list">${rows}</ul>
                         <div class="modal-buttons">
                             <button class="primary-button" onclick="closeModal()">Nice</button>

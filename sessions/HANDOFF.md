@@ -13,6 +13,49 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-20 — Session 68: Achievements sub-session 4 (polish) — near-miss nudges + unlock animation, ticket CLOSED (Cowork session)
+
+**Did:** Jeremy picked this over Run History polish / Time Slider Week-Month / Mobile UX from a menu at
+session start. Built the last unchecked Achievements item (ACHIEVEMENTS_PLAN.md sub-session 4, "optional,
+cut-if-time-says-so" — built rather than cut). `js/achievements.js`: pure `nextLockedTier`/`nearMissNudges`
+(next-locked-tier-per-family, 80% threshold via new `CONFIG.NEAR_MISS_THRESHOLD_PCT` — a UI constant, not
+balance, so no balance-tuning-skill gate). `js/ui/statsView.js`: `buildNearMissSection` renders an "Almost
+there" block on the Stats current-run panel only. Catalog families (config.js) gained a `nearMissUnit`
+string. `js/ui/frozenNotice.js`: unlock toast's 🏆 wraps in `.achievement-unlock-icon` for a CSS-only
+pop/glow (`css/frozenNotice.css`), gated by the existing session-59 fx-off/fx-reduced body classes +
+prefers-reduced-motion. Docs: ECONOMY.md Achievements section, ROADMAP.md sub-item 4 + parent ticket
+checked off, DECISIONS.md session 68 (incl. a float-boundary epsilon fix found writing tests).
+
+**State:** ✅ 50 suites, 1102/1102 (+27). `node --check` clean on config.js/achievements.js/statsView.js/
+frozenNotice.js. Live-verified in Chrome (localhost:8000): hand-edited save (session-52/67 protocol) set
+`tasksCompleted:8` (exact 80% near-miss boundary) + `bestRunDaysSurvived:3` (crosses Survivor Bronze);
+reload showed the restore-time silent sweep already unlocked Survivor Bronze and the current-run panel
+showed "🎯 2 tasks to Task Slayer — Bronze" exactly as designed. Created + completed 2 real tasks live
+(8→9→10 tasksCompleted), 10th completion fired the REAL animated unlock toast ("🏆 Achievement unlocked:
+Task Slayer (Bronze)"), zero console errors. Computed-style check confirmed `animation-name:
+achievement-unlock-pop` under default fx-full, `none` under fx-off/fx-reduced. Jeremy's save restored to
+pristine (all-zero lifetimeStats, empty achievements, XP/points 0). **[Achievements & badges] now fully
+CLOSED.** NOT committed — git commands given in chat.
+
+**Next:** With Achievements fully closed, the open menu is: Run History sub-session 5 (optional polish:
+best-run highlight, vs-last-run deltas), Time Slider Week/Month scope, Day-advance live mid-session
+rollover, or the Mobile UX + accessibility pass (PWA).
+
+**Watch out:**
+- Restore-time achievement unlocks are SILENT by design (session 64 decision) — a hand-edited save that
+  crosses a threshold unlocks it on reload with no toast. Only a LIVE completion event (sub-session 2's
+  wiring) fires the toast+animation. If you want to see the toast live, the save must be edited to sit
+  BELOW a threshold, then crossed via a real in-app action.
+- The dev Reset button's native `confirm()` still freezes Claude-in-Chrome CDP on click (documented
+  hazard, CLAUDE.md). This session's workaround for restoring a pristine save: skip Reset entirely, use
+  the same no-op-`localStorage.setItem`-stub protocol used to hand-edit saves, but call `removeItem`
+  instead of writing a JSON blob, then reload.
+- Float boundary: `progress >= pct` at an exact-looking 80% (e.g. `4/5`) can round to either side of the
+  literal `0.8` depending on the division's rounding path vs. the literal's — fixed with a `1e-9` epsilon
+  in `nearMissNudges`, not by avoiding the boundary in tests, since real gameplay data will hit it too.
+
+---
+
 ## 2026-07-20 — Session 67: Fix finalizeRun stars/completionRate {rate,samples} bug (Cowork session)
 
 **Did:** Fixed the oldest known-unfixed item — the `RunStats.finalizeRun` routine-performance shape bug flagged

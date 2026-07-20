@@ -301,7 +301,7 @@ const CONFIG = {
     // authored ascending; `id` is the persisted key in the unlocked-tier map.
     ACHIEVEMENTS: [
         {
-            id: 'survivor', name: 'Survivor', metric: 'bestRunDaysSurvived',
+            id: 'survivor', name: 'Survivor', metric: 'bestRunDaysSurvived', nearMissUnit: 'day',
             tiers: [
                 { id: 'survivor_1', label: 'Bronze', threshold: 3 },
                 { id: 'survivor_2', label: 'Silver', threshold: 7 },
@@ -310,7 +310,7 @@ const CONFIG = {
             ],
         },
         {
-            id: 'task_slayer', name: 'Task Slayer', metric: 'tasksCompleted',
+            id: 'task_slayer', name: 'Task Slayer', metric: 'tasksCompleted', nearMissUnit: 'task',
             tiers: [
                 { id: 'task_slayer_1', label: 'Bronze', threshold: 10 },
                 { id: 'task_slayer_2', label: 'Silver', threshold: 50 },
@@ -319,7 +319,7 @@ const CONFIG = {
             ],
         },
         {
-            id: 'habit_hero', name: 'Habit Hero', metric: 'habitsCompleted',
+            id: 'habit_hero', name: 'Habit Hero', metric: 'habitsCompleted', nearMissUnit: 'habit',
             tiers: [
                 { id: 'habit_hero_1', label: 'Bronze', threshold: 10 },
                 { id: 'habit_hero_2', label: 'Silver', threshold: 50 },
@@ -328,7 +328,7 @@ const CONFIG = {
             ],
         },
         {
-            id: 'on_fire', name: 'On Fire', metric: 'bestHabitStreak',
+            id: 'on_fire', name: 'On Fire', metric: 'bestHabitStreak', nearMissUnit: 'day',
             tiers: [
                 { id: 'on_fire_1', label: 'Bronze', threshold: 7 },
                 { id: 'on_fire_2', label: 'Silver', threshold: 14 },
@@ -336,7 +336,7 @@ const CONFIG = {
             ],
         },
         {
-            id: 'steady_hands', name: 'Steady Hands', metric: 'steadyRoutineRuns',
+            id: 'steady_hands', name: 'Steady Hands', metric: 'steadyRoutineRuns', nearMissUnit: 'run',
             tiers: [
                 { id: 'steady_hands_1', label: 'Bronze', threshold: 1 },
                 { id: 'steady_hands_2', label: 'Silver', threshold: 5 },
@@ -344,7 +344,7 @@ const CONFIG = {
             ],
         },
         {
-            id: 'back_in_black', name: 'Back in Black', metric: 'pointsRecoveries',
+            id: 'back_in_black', name: 'Back in Black', metric: 'pointsRecoveries', nearMissUnit: null,
             tiers: [
                 { id: 'back_in_black_1', label: null, threshold: 1 },
             ],
@@ -355,6 +355,11 @@ const CONFIG = {
     // run end, and the run's minimum length for the sample to be meaningful.
     STEADY_HANDS_MIN_RATE: 0.9,
     STEADY_HANDS_MIN_DAYS: 7,
+    // Achievements sub-session 4 (polish, 2026-07-20 session 68): how close
+    // (as a fraction of a locked tier's threshold) a family's next tier has
+    // to be before the Stats current-run panel nudges it. UI-only constant
+    // (no economy/balance effect), not gated by the balance-tuning skill.
+    NEAR_MISS_THRESHOLD_PCT: 0.8,
 };
 
 // Export for Jest/Node; browser picks up the global `CONFIG` via <script> tag.

@@ -11,7 +11,7 @@ const Achievements = require('../js/achievements.js');
 
 function family(over = {}) {
     return {
-        id: 'survivor', name: 'Survivor', metric: 'bestRunDaysSurvived',
+        id: 'survivor', name: 'Survivor', metric: 'bestRunDaysSurvived', nearMissUnit: 'day',
         tiers: [
             { id: 'survivor_1', label: 'Bronze', threshold: 3 },
             { id: 'survivor_2', label: 'Silver', threshold: 7 },
@@ -148,5 +148,93 @@ describe('recordUnlocks', () => {
     test('a missing existing map defaults to {}', () => {
         const result = Achievements.recordUnlocks(undefined, [{ tierId: 'survivor_1' }], '2026-07-20T00:00:00.000Z');
         expect(result).toEqual({ survivor_1: '2026-07-20T00:00:00.000Z' });
+    });
+});
+
+describe('nextLockedTier', () => {
+    test('first tier not yet in unlocked', () => {
+        expect(Achievements.nextLockedTier(family(), {}).id).toBe('survivor_1');
+    });
+
+    test('skips already-unlocked tiers', () => {
+        expect(Achievements.nextLockedTier(family(), { survivor_1: '2026-01-01T00:00:00.000Z' }).id).toBe('survivor_2');
+    });
+
+    test('every tier unlocked: returns null', () => {
+        const unlocked = { survivor_1: 'x', survivor_2: 'x', survivor_3: 'x' };
+        expect(Achievements.nextLockedTier(family(), unlocked)).toBeNull();
+    });
+
+    test('malformed family: returns null, no throw', () => {
+        expect(Achievements.nextLockedTier({ id: 'x' }, {})).toBeNull();
+        expect(Achievements.nextLockedTier(null, {})).toBeNull();
+    });
+});
+
+describe('nearMissNudges (sub-session 4 polish, session 68)', () => {
+    const catalog = [
+        family(), // survivor: Bronze @3, Silver @7, Gold @14
+        {
+            id: 'task_slayer', name: 'Task Slayer', metric: 'tasksCompleted', nearMissUnit: 'task',
+            tiers: [{ id: 'task_slayer_1', label: 'Bronze', threshold: 10 }],
+        },
+    ];
+
+    test('default 0.8 threshold: exactly 80% of the next locked tier is included (inclusive boundary)', () => {
+        const unlocked = { survivor_1: '2026-01-01T00:00:00.000Z', survivor_2: '2026-01-01T00:00:00.000Z' }; // next locked = Gold@14
+        const result = Achievements.nearMissNudges(catalog, { bestRunDaysSurvived: 11.2 }, unlocked); // 11.2/14 = exactly 0.8
+        expect(result.find(n => n.familyId === 'survivor')).toBeDefined();
+    });
+
+    test('a value that already crossed a tier no one has unlocked yet is NOT a near-miss (progress must stay below 1)', () => {
+        // next locked tier is Bronze@3 (nothing recorded unlocked); value 8 already blows past it
+        const result = Achievements.nearMissNudges(catalog, { bestRunDaysSurvived: 8 }, {});
+        expect(result.find(n => n.familyId === 'survivor')).toBeUndefined();
+    });
+
+    test('near-miss: value at or above threshold * pct but below threshold', () => {
+        const unlocked = { survivor_1: '2026-01-01T00:00:00.000Z', survivor_2: '2026-01-01T00:00:00.000Z' }; // next locked = Gold@14
+        const result = Achievements.nearMissNudges(catalog, { bestRunDaysSurvived: 12 }, unlocked); // 12/14 = 0.857
+        const nudge = result.find(n => n.familyId === 'survivor');
+        expect(nudge).toMatchObject({ familyName: 'Survivor', tierLabel: 'Gold', unit: 'day', remaining: 2, threshold: 14, value: 12 });
+    });
+
+    test('below the threshold pct: excluded', () => {
+        const unlocked = { survivor_1: '2026-01-01T00:00:00.000Z', survivor_2: '2026-01-01T00:00:00.000Z' };
+        const result = Achievements.nearMissNudges(catalog, { bestRunDaysSurvived: 5 }, unlocked); // 5/14 well below 0.8
+        expect(result.find(n => n.familyId === 'survivor')).toBeUndefined();
+    });
+
+    test('already crossed but not yet recorded unlocked (progress >= 1): excluded, not a near-miss', () => {
+        const unlocked = { survivor_1: '2026-01-01T00:00:00.000Z', survivor_2: '2026-01-01T00:00:00.000Z' };
+        const result = Achievements.nearMissNudges(catalog, { bestRunDaysSurvived: 14 }, unlocked);
+        expect(result.find(n => n.familyId === 'survivor')).toBeUndefined();
+    });
+
+    test('every tier in a family already unlocked: no nudge, no throw', () => {
+        const unlocked = { survivor_1: 'x', survivor_2: 'x', survivor_3: 'x' };
+        const result = Achievements.nearMissNudges(catalog, { bestRunDaysSurvived: 14 }, unlocked);
+        expect(result.find(n => n.familyId === 'survivor')).toBeUndefined();
+    });
+
+    test('custom thresholdPct is respected', () => {
+        const unlocked = { survivor_1: '2026-01-01T00:00:00.000Z' }; // next locked = Silver@7
+        const lenient = Achievements.nearMissNudges(catalog, { bestRunDaysSurvived: 4 }, unlocked, 0.5); // 4/7 = 0.571
+        expect(lenient.find(n => n.familyId === 'survivor')).toBeDefined();
+        const strict = Achievements.nearMissNudges(catalog, { bestRunDaysSurvived: 4 }, unlocked, 0.9);
+        expect(strict.find(n => n.familyId === 'survivor')).toBeUndefined();
+    });
+
+    test('family with no nearMissUnit (back_in_black-style): unit is null, no throw', () => {
+        const binaryCatalog = [{
+            id: 'back_in_black', name: 'Back in Black', metric: 'pointsRecoveries', nearMissUnit: null,
+            tiers: [{ id: 'back_in_black_1', label: null, threshold: 1 }],
+        }];
+        expect(Achievements.nearMissNudges(binaryCatalog, { pointsRecoveries: 0 }, {})).toEqual([]);
+    });
+
+    test('empty/missing catalog or stats: returns []', () => {
+        expect(Achievements.nearMissNudges([], {}, {})).toEqual([]);
+        expect(Achievements.nearMissNudges(null, null, null)).toEqual([]);
     });
 });

@@ -54,6 +54,36 @@
     color: var(--color-neutral);
 }
 
+/* Near-miss nudges (ACHIEVEMENTS_PLAN.md sub-session 4, session 68):
+   "Almost there" line above the blame list on the current-run panel only —
+   past-run cards are frozen history, nothing to nudge toward. */
+.stats-near-miss {
+    margin: var(--space-2) 0;
+    padding: var(--space-2);
+    background: var(--color-bg-white);
+    border: 1px dashed var(--color-secondary-green-pale);
+    border-radius: 6px;
+}
+
+.stats-near-miss-heading {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 4px;
+}
+
+.stats-near-miss-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.stats-near-miss-list li {
+    font-size: 13px;
+    color: var(--color-text-primary);
+    padding: 2px 0;
+}
+
 .stats-blame-heading {
     font-size: 12px;
     font-weight: 600;
