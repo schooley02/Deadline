@@ -4,6 +4,33 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-20 — Session 74: Mobile UX + accessibility + PWA — sequenced, not built
+
+Sequenced the last open Milestone 4 line into `docs/MOBILE_PWA_PLAN.md` (3 sub-sessions), same
+pattern as TIME_SLIDER_WEEK_PLAN.md/RUN_HISTORY_PLAN.md/ACHIEVEMENTS_PLAN.md/HEROES_PLAN.md. No
+code changed this session — planning + a live recon audit only.
+
+**PWA scope: installable shell only** (Jeremy) — manifest + icons + a cache-first service worker
+for the app shell. No background sync, no offline-write reconciliation. The game is already
+localStorage-only client-side, so this is packaging, not new architecture. Rejected: deeper
+offline-aware UX (online/offline banner, save-safety hardening) — descoped to keep this ticket
+additive and independent of the rest of the app.
+
+**Sequencing: layout → accessibility → PWA** (Jeremy) — layout fixes are quick/low-risk and give
+a real device to test the rest against; accessibility touches more surface (extends session-61's
+Modal.js focus/ARIA layer); PWA last since nothing else depends on it.
+
+**Accessibility depth: practical pass, not full WCAG 2.1 AA** (Jeremy) — fix what the audit found
+plus extend the existing focus/ARIA layer to day pager/week strip/agenda checkboxes. Full audit
+descoped unless the app goes public.
+
+**Tooling note:** `resize_window` on the Claude-in-Chrome MCP reported success but never changed
+the real page's `innerWidth` in this session (stayed desktop-sized through multiple resize
+attempts and Jeremy manually narrowing/re-narrowing the window). Worked around by injecting a
+same-origin `<iframe>` (390×844) into the live page and driving/screenshotting inside that — real
+rendering, real media queries, just scoped to the iframe. Worth trying `resize_window` again fresh
+next time in case it was session-specific, but the iframe trick is a reliable fallback.
+
 ## 2026-07-20 — Session 73: Time Slider Week scope sub-session 4 BUILT — Week strip; ticket fully CLOSED
 
 **Jeremy's brief (asked at build time, per the plan's own note that placement/heavy-day-marker needed his

@@ -11,6 +11,47 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-07-20 — Session 74: Mobile UX + accessibility + PWA — sequenced (Cowork session)
+
+**Did:** Took on the last open Milestone 4 line ("Mobile UX + accessibility pass; PWA"). Read
+`docs/UI_UX.md`'s Accessibility section + `ACTIONABLE_TICKETS.md` mobile/a11y lines, then did a
+live recon audit in Claude-in-Chrome at a 390×844 mobile viewport (real rendering, via an
+in-page iframe workaround — see Watch out). Found concrete issues: edit-pencil icon 32×32px,
+completion checkbox 24×24px, week-strip day cell 42px tall (all under the 44px floor UI_UX.md
+already commits to); `css/responsive.css`'s two breakpoints have FAB/management-window sizing
+backwards — that styling sits in the `min-width:1024px` (desktop) query, not the
+`max-width:768px` (mobile) one; and zero PWA scaffolding exists (no manifest, no service worker,
+no theme-color — clean slate). Resolved 3 forks with Jeremy (PWA = installable shell only, no
+offline sync; sequencing = layout → a11y → PWA; a11y = practical pass, not full WCAG audit) and
+wrote `docs/MOBILE_PWA_PLAN.md` (3 sub-sessions) mirroring the existing plan-doc pattern.
+`docs/ROADMAP.md` updated with the sequenced sub-items; `docs/DECISIONS.md` logged. NO CODE
+CHANGED this session — planning + recon only.
+
+**State:** App unmodified. Test suite not run (no code touched). One real task ("Mobile audit
+task", due today 5pm) exists in Jeremy's live dev save from the recon click-through — see Watch
+out, deliberately not removed.
+
+**Next:** Sub-session 1 of `docs/MOBILE_PWA_PLAN.md` — layout fixes (tap-target sizing on the
+edit-pencil/completion-checkbox/week-strip-cell, and un-swapping the responsive.css breakpoints).
+Sonnet-appropriate; the plan doc has exact target sizes and the specific CSS rules to move.
+
+**Watch out:**
+- `mcp__claude-in-chrome__resize_window` reported success but never actually changed the live
+  page's `innerWidth` this session, even after Jeremy manually resized/narrowed the real Chrome
+  window twice. Worked around by injecting a same-origin `<iframe>` (390×844) into the page and
+  driving/screenshotting inside it — genuine mobile rendering, just scoped to the iframe. Try the
+  direct tool again fresh next session in case it was a one-off; the iframe trick is a known-good
+  fallback either way.
+- A real "Mobile audit task" (due 7/20/26 5:00 PM, category Other) got created in Jeremy's actual
+  dev save during the audit click-through, to see a live agenda row's tap targets. NOT removed —
+  there's no delete-task affordance in the app (a known, pre-existing gap — see ROADMAP.md's
+  sub-task cascade note) and hand-editing localStorage carries the flush/debounce hazards logged
+  in CLAUDE.md, not worth the risk for one harmless test task. Safe to complete or ignore next
+  session.
+- The `css/responsive.css` breakpoint-swap finding is a real latent bug, not just a naming nit —
+  next session's fix should re-verify the `min-width:1024px` query still makes sense for ACTUAL
+  desktop once the mobile-appropriate rules are moved out of it.
+
 ---
 
 ## 2026-07-20 — Sessions 70-73: Time Slider Week scope — day pager, future-day ghosts, Yesterday snapshot, week strip; ticket CLOSED (Cowork session)
