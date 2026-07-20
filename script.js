@@ -1242,7 +1242,8 @@ document.addEventListener('DOMContentLoaded', () => {
         tasks: document.getElementById('tasksWindow'),
         habits: document.getElementById('habitsWindow'),
         routines: document.getElementById('routinesWindow'),
-        shop: document.getElementById('shopWindow')
+        shop: document.getElementById('shopWindow'),
+        stats: document.getElementById('statsWindow')
     };
     
     // Thin wrappers — real implementations live in js/ui/fabMenu.js and
@@ -1263,7 +1264,8 @@ document.addEventListener('DOMContentLoaded', () => {
             definedRoutines, routineSlots, showRoutineManagement, toggleRoutineActive,
             runStartedAtMs,
             shopCatalog: CONFIG.SHOP_ITEMS, playerInventory, playerPoints, baseHealth,
-            onShopBuy: handleShopPurchase, onShopUse: handleShopUse
+            onShopBuy: handleShopPurchase, onShopUse: handleShopUse,
+            currentRunStats, runHistory, daysSurvivedSoFar: computeDaysSurvived()
         });
     }
 

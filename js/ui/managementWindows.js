@@ -27,6 +27,13 @@
  * file still has zero hard dependency on shopView.js's internal shape beyond
  * calling one function.
  *
+ * Stats dispatch (RUN_HISTORY_PLAN.md sub-session 3, 2026-07-19): the
+ * 'stats' branch calls StatsView.renderStatsWindow — same
+ * pass-through-deps-only shape as the shop dispatch above. deps.currentRunStats
+ * / deps.runHistory / deps.daysSurvivedSoFar are read-only run data owned by
+ * script.js; this window has no buttons that mutate state, so (unlike shop)
+ * there's no setTimeout(0) rebuild hazard to guard against here.
+ *
  * populateRoutinesWindow's re-render-after-toggle call is a direct
  * module-internal reference (calls this file's own populateRoutinesWindow
  * again), not a deps callback — it's the same function, not a cross-module
@@ -37,7 +44,8 @@ const ManagementWindows = (() => {
     // deps: { managementWindows, closeFabMenu, activeItems, definedHabits,
     //         definedRoutines, routineSlots, showRoutineManagement,
     //         toggleRoutineActive, runStartedAtMs, shopCatalog,
-    //         playerInventory, playerPoints, baseHealth, onShopBuy, onShopUse }
+    //         playerInventory, playerPoints, baseHealth, onShopBuy, onShopUse,
+    //         currentRunStats, runHistory, daysSurvivedSoFar }
     function openManagementWindow(type, deps) {
         // Close all windows first
         Object.values(deps.managementWindows).forEach(win => {
@@ -86,6 +94,12 @@ const ManagementWindows = (() => {
                     baseHealth: deps.baseHealth,
                     onBuy: deps.onShopBuy,
                     onUse: deps.onShopUse,
+                });
+            } else if (type === 'stats') {
+                StatsView.renderStatsWindow({
+                    currentRunStats: deps.currentRunStats,
+                    runHistory: deps.runHistory,
+                    daysSurvivedSoFar: deps.daysSurvivedSoFar,
                 });
             }
         }

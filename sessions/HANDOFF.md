@@ -13,6 +13,50 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 ---
 
+## 2026-07-19 — Session 54: Run history sub-session 3 BUILT — Stats window UI (Cowork session, Sonnet)
+
+**Did:** RUN_HISTORY_PLAN.md sub-session 3. New `js/ui/statsView.js` + `css/stats.css`: 5th FAB
+item ("Stats" 📊, `data-type="stats"`) → `statsWindow` management-window div in index.html →
+`ManagementWindows.openManagementWindow('stats')` dispatches to `StatsView.renderStatsWindow`,
+same pass-through-deps pattern as the shop dispatch. Live current-run panel (`Run #N — in
+progress`, days survived so far via `computeDaysSurvived()`, 4 counters, top-3 blame via
+`RunStats.sortedBlame`); past-run cards below from `runHistory` (already newest-first), each with
+totals + top-3 blame + formatted end date. `script.js`'s `openManagementWindow` now also passes
+`currentRunStats`/`runHistory`/`daysSurvivedSoFar` through. Docs: ROADMAP.md (sub-session 3
+checked with detail), UI_UX.md (Run history bullet notes the on-demand half is built).
+
+**State:** ✅ **40 suites, 859/859**, unchanged from session 53 — no new pure logic needed (this
+window is DOM-only, same as shopView.js, which also has no dedicated Jest file; math it displays
+is already covered by run-stats.test.js/items-run-stats.test.js). `node --check` clean on
+script.js, managementWindows.js, statsView.js. **Live-verified in Chrome**, both states: fresh
+game (Run #1 — in progress, 0/0/0/0, "No damage taken yet", "No past runs yet — this is your
+first"), and a hand-edited save with fake current-run blame (3 entries) + one past-run record —
+counters, damage-desc sorting, and date formatting all rendered correctly, zero app console
+errors either time. Restored the local save to its original empty state afterward (see Watch out).
+
+**Next:** Sub-session 4 (RUN_HISTORY_PLAN.md) — Game-over review card (replace the one-line
+game-over text with a card rendering the just-finalized record: blame list + encouraging
+GAME_DESIGN framing + "Start New Base" CTA) + per-routine rollup view added to the Stats window
+(routine rows across runs — the A/B comparison surface `record.routines` already carries but
+nothing renders yet). Live-verify in Chrome with a real base death. Planned UI work — Sonnet.
+
+**Watch out:**
+- **The stub-before-edit protocol (CLAUDE.md's third bullet) is PAGE-INSTANCE scoped — it does
+  NOT survive a reload.** Hit this live this session: stubbed `Persistence.requestSave`/`flush`,
+  edited localStorage to fake data, reloaded to verify rendering (correct) — then tried to restore
+  clean data by editing localStorage again WITHOUT re-stubbing on the reloaded page. The live
+  game's damage tick fired a real (unstubbed) save using the still-fake in-memory state and
+  clobbered the clean write before the next reload. Fix: re-ran the stub → wait → edit → reload
+  sequence in full on the reloaded page, which stuck correctly. If a future session edits
+  localStorage more than once in a row, re-stub every time, not just the first.
+- Stats window has no in-window buttons (read-only), so it doesn't need shop's setTimeout(0)
+  rebuild-after-click deferral — flagged in statsView.js's header for whoever adds sub-session
+  4/5's interactive elements (expandable cards, etc.), since that's exactly the shape that would
+  reintroduce the hazard.
+- `currentRunNumber` for the live panel is computed as `runHistory.length + 1` (same formula
+  `Damage.gameOver` uses for `finalizeRun`'s `ctx.runNumber`) rather than tracked as its own piece
+  of state — if a future session adds a stored run counter, reconcile against this or it'll drift.
+
 ## 2026-07-19 — Session 53: Run history sub-session 2 BUILT — wired to live gameplay (Cowork session, Sonnet)
 
 **Did:** RUN_HISTORY_PLAN.md sub-session 2. `Items.recordRunDamageForItem` (mirrors

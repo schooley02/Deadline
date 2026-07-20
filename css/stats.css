@@ -1,0 +1,154 @@
+/**
+ * stats.css — Stats window ([P1-DATA-006]? RUN_HISTORY_PLAN.md sub-session 3,
+ * 2026-07-19). Mirrors js/ui/statsView.js. Linked before responsive.css in
+ * index.html (see that file's header comment — responsive.css must always
+ * load last).
+ */
+
+.stats-current-panel {
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-secondary-green-pale);
+    border-radius: 8px;
+    padding: var(--space-4);
+    margin-bottom: var(--space-4);
+}
+
+.stats-current-panel h4 {
+    margin: 0 0 var(--space-2) 0;
+    color: var(--color-text-primary);
+    font-size: var(--text-body);
+    font-weight: 600;
+}
+
+.stats-days-survived {
+    font-size: 13px;
+    color: var(--color-neutral);
+    margin-bottom: var(--space-2);
+}
+
+.stats-counter-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+}
+
+.stats-counter {
+    background: var(--color-bg-white);
+    border: 1px solid var(--color-secondary-green-pale);
+    border-radius: 6px;
+    padding: var(--space-2);
+    text-align: center;
+}
+
+.stats-counter-value {
+    display: block;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.stats-counter-label {
+    display: block;
+    font-size: 11px;
+    color: var(--color-neutral);
+}
+
+.stats-blame-heading {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: var(--space-2) 0 4px 0;
+}
+
+.stats-blame-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.stats-blame-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 13px;
+    border-bottom: 1px solid var(--color-secondary-green-pale);
+}
+
+.stats-blame-list li:last-child {
+    border-bottom: none;
+}
+
+.stats-blame-name {
+    color: var(--color-text-primary);
+    font-weight: 500;
+}
+
+.stats-blame-meta {
+    font-size: 11px;
+    color: var(--color-neutral);
+    margin-left: var(--space-2);
+    flex: 1;
+}
+
+.stats-blame-damage {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-error);
+    white-space: nowrap;
+}
+
+.stats-empty {
+    font-size: 13px;
+    color: var(--color-neutral);
+    font-style: italic;
+    padding: var(--space-2) 0;
+}
+
+.stats-history-heading {
+    margin: 0 0 var(--space-2) 0;
+    color: var(--color-text-primary);
+    font-size: var(--text-body);
+    font-weight: 600;
+}
+
+.stats-history-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 340px;
+    overflow-y: auto;
+}
+
+.stats-run-card {
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-secondary-green-pale);
+    border-radius: 8px;
+    padding: var(--space-2) var(--space-4);
+    margin-bottom: var(--space-2);
+}
+
+.stats-run-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+}
+
+.stats-run-card-title {
+    font-weight: 600;
+    color: var(--color-text-primary);
+    font-size: 13px;
+}
+
+.stats-run-card-date {
+    font-size: 11px;
+    color: var(--color-neutral);
+}
+
+.stats-run-card-totals {
+    font-size: 12px;
+    color: var(--color-neutral);
+    margin-bottom: 4px;
+}

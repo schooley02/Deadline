@@ -23,6 +23,7 @@
     <link rel="stylesheet" href="css/checkIn.css">
     <link rel="stylesheet" href="css/frozenNotice.css">
     <link rel="stylesheet" href="css/shop.css">
+    <link rel="stylesheet" href="css/stats.css">
     <link rel="stylesheet" href="css/heroes.css">
     <link rel="stylesheet" href="css/responsive.css">
 </head>
@@ -118,6 +119,10 @@
                     <span class="fab-menu-icon">🛒</span>
                     <span class="fab-menu-label">Shop</span>
                 </button>
+                <button class="fab-menu-item" data-type="stats">
+                    <span class="fab-menu-icon">📊</span>
+                    <span class="fab-menu-label">Stats</span>
+                </button>
             </div>
         </div>
 
@@ -189,6 +194,25 @@
             </div>
         </div>
 
+        <div id="statsWindow" class="management-window hidden">
+            <div class="window-header">
+                <h3>Stats</h3>
+                <button class="close-window" data-window="statsWindow">×</button>
+            </div>
+            <div class="window-content">
+                <!-- RUN_HISTORY_PLAN.md sub-session 3: live current-run panel
+                     on top, past-run cards below. Populated by
+                     js/ui/statsView.js -->
+                <div id="statsCurrentPanel">
+                    <!-- Live current-run panel populated by js/ui/statsView.js -->
+                </div>
+                <h4 class="stats-history-heading">Past Runs</h4>
+                <ul id="statsHistoryList" class="stats-history-list">
+                    <!-- Past-run cards populated by js/ui/statsView.js -->
+                </ul>
+            </div>
+        </div>
+
         <!-- Hidden Forms (for modal use) -->
         <!-- Task Form and Habit Form removed 2026-07-18 (dead legacy inline
              forms, unreachable since the showForm shadowing bug predating this
@@ -247,6 +271,7 @@
     <script src="js/ui/fabMenu.js"></script>
     <script src="js/ui/managementWindows.js"></script>
     <script src="js/ui/shopView.js"></script>
+    <script src="js/ui/statsView.js"></script>
     <script src="js/ui/forms.js"></script>
     <script src="js/ui/popups.js"></script>
     <script src="js/ui/checkIn.js"></script>
