@@ -4,6 +4,16 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-20 — Phone deployment: GitHub Pages, public repo (Cowork session)
+
+**Decision (Jeremy's call via AskUserQuestion):** Host beyond localhost via GitHub Pages (main branch, root) rather than Cloudflare Pages + private repo. Free-tier GitHub Pages requires the repo be public; Jeremy considered the exposure (full source, design docs, PROJECT_SPEC.md, session handoffs all become publicly fetchable) and decided to proceed as-is for now rather than trim a `gh-pages`-only branch or switch hosts. No secrets found in a repo-wide grep before this decision (`${{ secrets.GITHUB_TOKEN }}` in PROJECT_SPEC.md is a GH Actions placeholder, not a real credential).
+
+**Implementation:** No code changes — a full repo audit (index.html, script.js, js/**, css/**, sw.js, manifest.json) found every asset/script/fetch reference already relative-path-safe for serving from a `/Deadline/` subpath (`sw.js` registers as `'sw.js'`, manifest `scope`/`start_url` are `./`, offline fallback is `caches.match('index.html')`). Jeremy enabled Pages in repo settings (Settings → Pages → Deploy from branch → main / root).
+
+**Verification:** Live-tested in Chrome at `https://schooley02.github.io/Deadline/`: SW reaches `activated`, manifest.json fetches, real task create→spawn→complete round-trip (XP 0→10, Points 0→10) with week-strip live update, zero real app console errors. Hit the standing `confirm()`/CDP-freeze issue (CLAUDE.md) clicking the Reset button — recovered via navigate-away, then re-verified Reset works correctly by stubbing `window.confirm` first, confirming the save returns to a genuine pristine first-run state (onboarding empty-state from the prior session correctly reappears).
+
+**Alternative considered:** Cloudflare Pages with a private GitHub repo — same free hosting, zero public exposure, no code changes needed either way. Declined for now; revisit if Jeremy decides the exposure matters more once the game is closer to a real launch.
+
 ## 2026-07-20 — First-run/onboarding pass shipped, scoped to "Empty-state + FAB hint" (Cowork session)
 
 **Decision (scope, Jeremy's pick via AskUserQuestion before building):** Of four options offered — empty-state + FAB hint / + sample starter content / a guided step-by-step tutorial / something else — Jeremy chose the first, matching PROJECT_SPEC's existing "Empty State" spec (Dynamic Task List section) at MVP fidelity: real "no tasks yet" messaging + a primary CTA + a subtle FAB pointer, using only existing CSS/assets (no new illustrations, no particle animations from the fuller spec vision). Sample-content seeding and the guided tutorial were explicitly deferred, not built.

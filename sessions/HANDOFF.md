@@ -11,6 +11,19 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-07-20 — Phone deployment shipped: GitHub Pages live (Cowork session, Sonnet)
+
+**Did:** Closed Milestone 5's last open candidate, phone deployment. Jeremy chose GitHub Pages over Cloudflare Pages (public repo, free tier — exposure tradeoff discussed and accepted, see DECISIONS.md). No code changes: a full repo audit found every URL already relative-path-safe for the `/Deadline/` subpath. Jeremy enabled Pages (main/root) himself. Updated docs/ROADMAP.md (checked off, Milestone 5 candidate list resolved) and docs/DECISIONS.md.
+
+**State:** Live at `https://schooley02.github.io/Deadline/`, verified end-to-end in Chrome: SW `activated`, manifest fetches correctly, real task create→spawn→week-strip-update→complete→XP/points round-trip clean, zero real app console errors. Code/tests unchanged from the prior session (58 suites, 1237/1237 — not re-run this session since no `.js` was touched). Live save reset to pristine after verification (onboarding empty-state correctly reappears on a true first-run save) — this is now Jeremy's real phone-accessible save going forward, not a dev save.
+
+**Next:** Milestone 5 is now fully closed (onboarding, UX fixes batch, Export/Import, phone deployment). Time for a fresh Milestone 6 scoping session, or start generating real daily-play data on the phone and see what surfaces.
+
+**Watch out:**
+- **Repo is public.** PROJECT_SPEC.md, all docs/, and session handoffs are now publicly fetchable at the raw GitHub URL, not just the game itself. No secrets found in a repo-wide grep, but don't add any real credentials to this repo without switching to a private-repo host first.
+- Reused the documented `confirm()`-freezes-CDP recovery (navigate-away) when testing the Reset button live, then the `window.confirm` stub trick to actually drive it — both already in CLAUDE.md, no new gotcha, just confirms they hold on the real GitHub Pages deployment too (not just localhost).
+- If Jeremy wants offline installability tested for real (not just SW registration), that's still open — this session verified the SW activates and caches load, not a real airplane-mode install-and-play test.
+
 ## 2026-07-20 — First-run/onboarding pass shipped: "Empty-state + FAB hint" scope (Cowork session, Sonnet)
 
 **Did:** Milestone 5's onboarding item, scoped live with Jeremy via AskUserQuestion to "Empty-state + FAB hint" (PROJECT_SPEC's existing Empty State spec at MVP fidelity — no new illustrations, sample-content seeding and a guided tutorial both explicitly deferred). New pure `AgendaList.isFirstRunEmpty(state)` (`js/ui/agendaList.js`) — true only when activeItems/completedItems/definedHabits/definedRoutines are ALL empty, i.e. genuinely never-engaged. Deliberately not a persisted flag (no schema bump) — fully derived, self-clearing. `sortAndRenderActiveList` renders a welcome block + "+ Add Your First Task" CTA (opens the Tasks window directly) in place of an empty list when true, plus a `prefers-reduced-motion`-gated CSS pulse on the FAB. Updated docs/ROADMAP.md (checked off), docs/UI_UX.md, docs/DECISIONS.md.
