@@ -69,6 +69,7 @@ const Settings = (() => {
     }
 
     return {
+        SETTINGS_KEY, // exposed for export/import's pre-import backup (js/exportImport.js wiring in script.js)
         load,
         save,
         bodyClassesForIntensity,

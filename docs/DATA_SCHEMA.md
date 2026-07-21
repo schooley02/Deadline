@@ -12,6 +12,51 @@ TARGET schema for the persistence work (Milestone 1) and modularization. The mon
   MECHANICS.md/UI_UX.md. `js/settings.js` owns load/save/validation (bad or missing data always
   falls back to `'full'`, never throws).
 - Save on every state mutation (debounced), load on boot. Cross-tab sync later via `storage` events.
+- `deadline.backup.preImport` — one-shot pre-import safety net written by `handleConfirmImport`
+  (script.js) the moment an import is confirmed: `{ backedUpAt, save: <raw deadline.save string>,
+  settings: <raw deadline.settings string> }`. Overwritten by the NEXT import, not rotated/kept as
+  history — recovery only, not a version log. See Export/Import below.
+
+## Export/Import ("Backup & Transfer", Milestone 5 first item, 2026-07-20)
+Cross-device / cross-build-version save portability (Jeremy: play/test across desktop and phone,
+and across in-development builds — no cloud sync, see DECISIONS.md). `js/exportImport.js` (pure
+build/validate) + `js/ui/settingsView.js` (Settings window UI + confirm dialog) + script.js's
+`handleConfirmImport` (the one stateful step). Full replace, no merge.
+
+Envelope shape (wraps BOTH `deadline.save` and `deadline.settings` as one portable blob):
+```js
+{
+  exportFormatVersion: 1,       // versions the ENVELOPE shape, separate from schemaVersion
+  exportedAt: "2026-07-20T...", // ISO
+  appSchemaVersion: 11,         // mirrors save.schemaVersion
+  summary: {                    // display-only, for the confirm-replace compare — not validated
+    daysSurvived, playerLevel, playerXP, playerPoints,
+    activeItemCount, habitCount, routineCount,
+  },
+  save: { schemaVersion: 11, savedAt: "...", ...every deadline.save field },
+  settings: { effectsIntensity: "full" },
+  checksum: "a1b2c3d4",         // FNV-1a hex over the envelope minus this field — corruption
+                                 // detection (catches a truncated paste), NOT cryptographic
+}
+```
+
+Rules:
+- **A newer `save.schemaVersion` (or `exportFormatVersion`) than this build supports is REJECTED
+  outright** — never downgrade-mangled. An OLDER schema imports fine: `handleConfirmImport` writes
+  `envelope.save` to `deadline.save` RAW (bypassing `Persistence.serialize`, which would re-stamp
+  the CURRENT schemaVersion) and reloads, so the exact same migration chain that runs on every
+  normal page load runs on the import too.
+- Importing a save from a save that's AHEAD in wall-clock time is NOT special-cased — normal
+  offline catch-up (js/damage.js) runs exactly as it would after closing the app for that long,
+  same per-item lifetime cap as always (Jeremy's call).
+- Reload, not hot-swap: `handleConfirmImport` writes localStorage then `window.location.reload()`s
+  so `restoreGameState`/migrate/offline-catch-up/achievements-sweep all run through their one real
+  code path. **Found live in Chrome:** `reload()` is async — a pending debounced
+  `Persistence.requestSave`/the 5s autosave/the beforeunload flush can fire in the gap and
+  re-serialize the LIVE pre-import state right over the just-written import. Fixed by neutering
+  `Persistence.requestSave`/`Persistence.flush` to no-ops immediately before the write (module
+  state is thrown away by the reload regardless — same class of hazard as the session-52
+  stub-before-edit trick, see CLAUDE.md's Cowork section).
 
 ### schemaVersion 9 (2026-07-19): banked slot points — `routine.boughtHabitSlots`/`boughtTaskSlots` landed
 Sub-session 4 of [P1-UI-006] (see docs/HEROES_PLAN.md + docs/ROUTINES.md's "Slot Enforcement —

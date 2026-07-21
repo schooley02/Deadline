@@ -42,6 +42,14 @@ Replaces the agenda list with routines ranked by level (top performers first). M
 ## Navigation
 Plus icon / hamburger menu opens options. Keep taps-to-action minimal — completing a task should be 1-2 taps.
 
+## Settings window — "Backup & Transfer" (Milestone 5 first item, 2026-07-20)
+FAB → Settings gained a second section below Streak Fire Effects: Export (Download file / Copy to
+clipboard) and Import (file picker / paste textarea → "Import pasted text"). A bad/corrupt/
+newer-than-supported paste shows an inline red status line under Import, no modal. A valid paste
+opens a stacked confirm-replace modal (`Modal.open`, dedupeSelector-guarded) with a side-by-side
+Current-vs-Incoming compare (days survived/level/XP/points/active items/habits/routines) before
+anything is written — see docs/DATA_SCHEMA.md's Export/Import section for the full contract.
+
 ## Windows & Modals — unified behavior ([P2-UI-011] Stage 1, session 61, 2026-07-19)
 Two window systems share one behavior layer (`js/ui/modal.js`, wired via `Modal.initDismissHandlers`/`initFocusManagement` in script.js):
 - **Management windows** (FAB-opened Tasks/Habits/Routines/Shop/Stats/Settings panels) and **modal overlays** (form/popup `.modal-overlay`s) both close on ESC and outside/backdrop click.

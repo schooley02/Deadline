@@ -117,6 +117,11 @@ const ManagementWindows = (() => {
                 SettingsView.renderSettingsWindow({
                     currentIntensity: deps.currentEffectsIntensity,
                     onChangeIntensity: deps.onChangeEffectsIntensity,
+                    // Export/Import (Milestone 5, 2026-07-20) — same
+                    // pass-through-deps-only shape as everything else here.
+                    buildExportEnvelope: deps.buildExportEnvelope,
+                    currentSummary: deps.currentSummary,
+                    onConfirmImport: deps.onConfirmImport,
                 });
             }
         }

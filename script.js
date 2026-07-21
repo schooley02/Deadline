@@ -1386,8 +1386,61 @@ document.addEventListener('DOMContentLoaded', () => {
             currentRunStats: State.getCurrentRunStats(), runHistory: State.getRunHistory(), daysSurvivedSoFar: Damage.computeDaysSurvived(State.getRunStartedAtMs(), Date.now(), CONFIG.MS_PER_REAL_DAY),
             achievementsCatalog: CONFIG.ACHIEVEMENTS, lifetimeStats: State.getLifetimeStats(), achievements: State.getAchievements(),
             currentEffectsIntensity: effectsIntensity,
-            onChangeEffectsIntensity: handleEffectsIntensityChange
+            onChangeEffectsIntensity: handleEffectsIntensityChange,
+            // Export/Import (Milestone 5 first item, 2026-07-20) — see
+            // js/exportImport.js header + handleConfirmImport below.
+            buildExportEnvelope: () => ExportImport.buildEnvelope({
+                getPersistableState: () => State.getPersistableState(),
+                getSettings: () => Settings.load(),
+            }),
+            currentSummary: ExportImport.buildSummary(State.getPersistableState()),
+            onConfirmImport: handleConfirmImport,
         });
+    }
+
+    // [Milestone 5, 2026-07-20] SettingsView's onConfirmImport — the one
+    // truly stateful step of export/import (everything else in
+    // js/exportImport.js/js/ui/settingsView.js is pure build/validate/DOM).
+    // Full replace, no merge (Jeremy's call, see js/exportImport.js header):
+    // back up whatever's currently on this device first (one-shot, not
+    // rotated — a second import overwrites the previous backup, which is
+    // fine for "oops, wrong file" recovery, not a version history), write
+    // the imported save/settings RAW (NOT re-run through
+    // Persistence.serialize, which would re-stamp the CURRENT schemaVersion
+    // and defeat importing an older export through the normal migration
+    // chain on load), then hard-reload so restoreGameState/migrate/offline
+    // catch-up/achievements-sweep all run exactly as they do on any other
+    // page load — no separate hot-swap code path to maintain or trust.
+    function handleConfirmImport(envelope) {
+        try {
+            const currentSaveRaw = localStorage.getItem(Persistence.SAVE_KEY);
+            const currentSettingsRaw = localStorage.getItem(Settings.SETTINGS_KEY);
+            localStorage.setItem('deadline.backup.preImport', JSON.stringify({
+                backedUpAt: new Date().toISOString(),
+                save: currentSaveRaw,
+                settings: currentSettingsRaw,
+            }));
+        } catch (e) {
+            console.error('Deadline: pre-import backup failed (continuing with import anyway)', e);
+        }
+
+        // Found live in Chrome (2026-07-20): window.location.reload() is
+        // ASYNC — JS keeps running for a few more ms, long enough for a
+        // pending debounced Persistence.requestSave, the 5s
+        // CONFIG.PERSISTENCE_AUTOSAVE_MS safety net, or the beforeunload/
+        // visibilitychange flush hook to fire and re-serialize the LIVE
+        // (pre-import) in-memory state right over our just-written import —
+        // the save silently reverted to the old data every time. Same class
+        // of hazard as the session-52 "stub flush/requestSave before a
+        // direct localStorage edit" trick documented in CLAUDE.md; applying
+        // it here too. Module state is thrown away by the reload regardless,
+        // so neutering these is safe.
+        Persistence.requestSave = function () {};
+        Persistence.flush = function () {};
+
+        localStorage.setItem(Persistence.SAVE_KEY, JSON.stringify(envelope.save));
+        Settings.save(envelope.settings || Settings.DEFAULTS);
+        window.location.reload();
     }
 
     // [P2-UI-009] session 59: SettingsView's onChangeIntensity callback —
