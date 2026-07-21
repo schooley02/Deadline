@@ -4,6 +4,17 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-21 — Art direction locked: pixel art stays; slider-coupled parallax in; camera tilt out (Cowork session, Fable)
+
+**Decision (three calls, made together):**
+1. **Pixel art is the locked style.** The finished 64×64 zombies stay; all future assets (church damage states, hero sprites, props) match them. This resolves the V4 blocker: church art source = **AI-generate in pixel style** (Retro Diffusion for base generation — feed the current painterly renders as reference; PixelLab if animation/rotation frames are needed later). Same 5 filenames, zero code churn. Current AI tool landscape (researched this session): Retro Diffusion + PixelLab is the de facto pixel stack and pixel art's low resolution hides AI frame-consistency flaws — the animation problem that blocked Jeremy's 2025 attempt is now solved *for pixel art specifically*, weakest for high-detail styles.
+2. **Slider-coupled parallax background layers join V1's scope.** Layered scene (sky/clouds/far silhouettes/ground) where each layer's `translateX` is driven off the time-slider value at a different rate (clouds fastest, ground fixed) — scrub direction becomes visually legible and the layers give depth. Idle ambient cloud drift gated behind fx-intensity + `prefers-reduced-motion`, like the fog.
+3. **Camera tilt on slider movement: rejected.** Rotating pixel art breaks the pixel grid (shimmer/artifacting at even small angles), portrait's glance strip has no scene to tilt, and the parallax differential already delivers the "world responds to scrubbing" feel. Revisit only after V1 ships, and then only ≤1.5° on background layers, never sprites.
+
+**Why:** Jeremy's instinct to abandon pixel art came from a visibility worry (sprites lost over a pixel background) — diagnosed as a contrast problem, not a style problem, and V1's dark low-detail silhouette background already solves it. Switching styles would mean regenerating 8 zombies + sub-task variants + 5 base states + future heroes while unblocking nothing.
+
+**Rejected:** Non-pixel cartoon restyle (cost above; also AI animation consistency is weakest there); vector/SVG sprites (pipeline is raster PNG + DOM/CSS, AI tools output raster, pixel art is inherently raster — SVG stays scene-props-only per V1); camera tilt (above).
+
 ## 2026-07-20 — Visual design direction + VISUAL_DESIGN_PLAN.md (Cowork session, Fable)
 
 **Decision:** Ran a live screenshot audit of the GitHub Pages build (desktop + real 390px mobile render via a same-origin iframe, seeded dev data across all state classes) against ART_STYLE.md's "pixel art, playful, slightly eerie graveyard" direction, and wrote `docs/VISUAL_DESIGN_PLAN.md` — audit findings, five direction calls, and execution sliced into Sonnet-sized sessions (V1 graveyard atmosphere → V2 sprite-hugging state indicators → V3a/b/c mobile → V4 pixel church → V5 token enforcement → V6 juice). Direction highlights: the graveyard gets built CSS/SVG-first (no new binary assets needed for the mood); every rectangle-border state indicator moves onto the sprite silhouettes via `drop-shadow` (V2 will formally supersede the session-73 "habit dashed border is intentional" note when it executes); app chrome enforces the EXISTING base.css token system rather than inventing a new one (two competing primary greens in live use — pick one); theming stays light because this is a daily-use productivity app.

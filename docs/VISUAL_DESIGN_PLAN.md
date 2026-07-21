@@ -64,6 +64,12 @@ Nothing broken; zero game identity. Category chips already use ART_STYLE.md's pa
    silhouette props (tombstones, fence, bare tree, moon), optional slow fog drift gated by
    the existing fx-intensity setting + `prefers-reduced-motion`. No new binary assets
    required to get 80% of the mood; pixel-art props can replace silhouettes later.
+   **Parallax (added 2026-07-21, decided):** the layers are slider-coupled — each layer's
+   `translateX` driven off the time-slider value at a different rate (clouds fastest, far
+   silhouettes slower, ground fixed) so scrub direction reads visually and the scene gains
+   depth. Idle cloud drift fx-gated like the fog. Camera TILT on scrub was considered and
+   REJECTED (rotation breaks the pixel grid; parallax alone delivers the feel — see
+   DECISIONS.md 2026-07-21); don't add rotate transforms to the scene.
 2. **State indicators move onto the sprites.** The zombie PNGs have transparent backgrounds,
    so CSS `filter: drop-shadow()` produces silhouette-hugging glows for free. Rectangles
    retire: priority = gold silhouette glow + corner badge; overdue = red glow + existing
@@ -128,8 +134,9 @@ Nothing broken; zero game identity. Category chips already use ART_STYLE.md's pa
   mid-scrub/mid-pager-preview cleanly releases or preserves the non-mutating preview state.
 - [ ] **V4 — Pixel church + base integration** (art task + `css/gameCanvas.css`): regenerate
   `Assets/Base/base_000..100.png` in pixel style (5 damage states, same filenames — zero
-  code churn), remove the CHURCH label, blend base into the V1 ground band. **Blocked on
-  the art source decision (Jeremy):** commission / AI-generate / pixelate existing.
+  code churn), remove the CHURCH label, blend base into the V1 ground band. **UNBLOCKED
+  2026-07-21: art source = AI-generate** (Retro Diffusion, current renders as style
+  reference; PixelLab for any animation frames). See DECISIONS.md 2026-07-21.
 - [ ] **V5 — Design tokens + app chrome** (`css/base.css` already defines a full `:root`
   palette + Inter — this session ENFORCES it, not builds it): decide one primary action
   color (`--color-primary-dark-green` vs `--color-accent-teal` are both in live use as
@@ -141,8 +148,8 @@ Nothing broken; zero game identity. Category chips already use ART_STYLE.md's pa
   Coordinate with whatever Milestone 6 scoping decides; don't pre-build.
 
 Suggested order: V3a (functional bug) can go first or batch with V1; then V1 → V2 → V3b →
-V3c (V3c wants V1's scene done); V4 whenever the art call is made; V5 anytime; V6 waits
-for play data. V1's graveyard primarily serves desktop/landscape — the portrait strip
+V3c (V3c wants V1's scene done); V4 anytime (art call made 2026-07-21: AI-generate pixel);
+V5 anytime; V6 waits for play data. V1's graveyard primarily serves desktop/landscape — the portrait strip
 gets at most a minimal sky/ground backdrop, no props.
 
 ## Hazards (audit-discovered, for the executing sessions)

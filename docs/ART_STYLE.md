@@ -3,6 +3,14 @@
 ## Style
 Pixel art / cartoonish. Playful, slightly eerie (graveyard setting) but never grim. Suitable for a younger audience.
 
+**LOCKED 2026-07-21** (DECISIONS.md): pixel art is confirmed as the permanent style — all future assets match the existing 64×64 zombies. Sprite visibility over the background is handled by contrast (dark, low-detail silhouette background layers; bright saturated sprites — see VISUAL_DESIGN_PLAN.md V1), not by changing sprite style.
+
+## AI Asset Pipeline (decided 2026-07-21)
+- **Base sprite generation:** Retro Diffusion (true grid-aligned pixel art; use existing assets/renders as style reference).
+- **Animation / rotations:** PixelLab (text-prompted cycles, 4/8-direction rotations, Aseprite extension).
+- **Format:** raster PNG only — the pipeline is PNG sprites positioned by DOM/CSS; no vector sprites. SVG is used only for scene silhouette props (V1).
+- Background is layered with slider-coupled parallax (clouds fastest → ground fixed); camera tilt rejected — never rotate pixel sprites.
+
 ## Canvas & Sprite Dimensions (from base view notes)
 - Game canvas reference: **720 × 368**
 - Character sprite sizing reference: **1290 × 720** scene basis (confirm exact per-sprite dimensions with Jeremy)
