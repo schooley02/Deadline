@@ -4,6 +4,36 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-20 — Visual design direction + VISUAL_DESIGN_PLAN.md (Cowork session, Fable)
+
+**Decision:** Ran a live screenshot audit of the GitHub Pages build (desktop + real 390px mobile render via a same-origin iframe, seeded dev data across all state classes) against ART_STYLE.md's "pixel art, playful, slightly eerie graveyard" direction, and wrote `docs/VISUAL_DESIGN_PLAN.md` — audit findings, five direction calls, and execution sliced into Sonnet-sized sessions (V1 graveyard atmosphere → V2 sprite-hugging state indicators → V3a/b/c mobile → V4 pixel church → V5 token enforcement → V6 juice). Direction highlights: the graveyard gets built CSS/SVG-first (no new binary assets needed for the mood); every rectangle-border state indicator moves onto the sprite silhouettes via `drop-shadow` (V2 will formally supersede the session-73 "habit dashed border is intentional" note when it executes); app chrome enforces the EXISTING base.css token system rather than inventing a new one (two competing primary greens in live use — pick one); theming stays light because this is a daily-use productivity app.
+
+**Why:** Jeremy is spending a week generating real daily-play data before scoping Milestone 6 functionality; visuals are the parallel track that never touches persistence/architecture/balance, so the sessions can interleave with the play week. The audit's core finding: the finished pixel zombie sprites carry the entire game feel alone — flat gradient battlefield, painterly church with a placeholder "CHURCH" label, debug-looking rectangle indicators, and a mobile canvas that becomes a sprite pileup.
+
+**Rejected:** Doing a single big visual overhaul session (violates one-system-per-session spirit and can't interleave with playtesting); pixel-art asset production as the first step (CSS/SVG silhouettes deliver ~80% of the atmosphere with zero new assets and no art-source decision needed).
+
+**Open (blocks V4 only):** church art source — commission / AI-generate / pixelate the existing renders. Jeremy's call, no rush.
+
+## 2026-07-20 — Mobile design: portrait = glance strip, landscape = full scene (Jeremy's design, Cowork session, Fable)
+
+**Decision (Jeremy's proposal, refined together):** Portrait phone stops trying to render the full battlefield. The canvas collapses to a thin (~64-80px) "threat strip": church icon at the left edge (reusing `Assets/icons/icon-192.png`), category-colored dot/icon markers positioned by the same `Clock.calculateTimelinePosition` math, cluster count badges, midnight line when on-screen — and anything OVERDUE renders as the actual small zombie sprite pulsing at the base edge (markers stay abstract until the threat is real). Below the strip: week strip + day pager stay prominent, hour slider slims to a thin scrubber; the agenda list owns the rest of the screen — portrait's focus IS the list. Rotating to landscape shows the full desktop scene (V1 graveyard) down to the slider, with tap-to-interact: hero chip → that routine's management window, enemy tap → the existing popup (complete/edit/pushback from the game view). Both tap behaviors also ship on desktop. Implementation rule: the strip is a CSS/render VARIANT of the same DOM and state — never a second component.
+
+**Why:** The audit proved that at 390px no shrunken version of the desktop scene is both a readable tower-defense timeline and out of the list's way (church ate ~40% of canvas width; lurk post landed mid-canvas; two overdue clusters = total pileup). Redefining the modes matches real usage: on a phone during the day you're checking off tasks (glance + list); the game-watching mode is a rotation away.
+
+**Rejected:** Capping desktop-scene proportions on mobile (the original V3 scope — splits the difference, wins neither); tiny scaled sprites for all portrait markers (pixel art degrades below ~32px and clusters go muddy again); pure abstract markers with no sprites ever (loses all personality on the most-used screen — hence the overdue-zombie exception); collapsing pager/slider behind a toggle (day-paging is too core to cost an extra tap).
+
+## 2026-07-20 — Overdue-damage bug root-caused: edit-into-past back-charges uncapped; both design forks resolved (Cowork session, Fable)
+
+**Context:** During the visual audit, editing a task's due time from ~10 PM back to 9 AM dealt −92 HP (100→8) in seconds. Jeremy confirmed intent: 1 HP per 5 min overdue, capped at 12 per item — so this is a bug, not balance.
+
+**Root cause (confirmed in code, fix NOT implemented this session):** `recomputeOverdueStateAfterEdit`'s pulled-into-the-past branch calls `markAsOverdue` (items.js:1211), which parks `lastDamageTickTime = dueDateTime.getTime()` (line 1222) — ~13h in the past = ~157 pending `CONFIG.DAMAGE_INTERVAL_MS` intervals, and loop.js:148-173 pays one per game tick, uncapped, until caught up. This is the LAST unguarded entry of the 2026-07-18 far-past-clock bug family: create-already-overdue (spawning.js:145 → clock at spawn), restore (state.js:478 → Date.now() + capped offline path; its comment names this exact hazard), and suspended-loop gaps (`runLiveGapCatchUp`, capped) are all guarded. None of the 1237 green tests exercise the edit-into-past path — that's how it survived.
+
+**Design forks resolved (Jeremy, via AskUserQuestion):**
+1. **Edit-into-past back-charges NOTHING** — the damage clock starts at `Date.now()` when the edit lands, matching the created-already-overdue precedent. An edit is a bookkeeping correction, not evidence the base was under attack. (Rejected: capped-12 back-charge per the reload precedent — same player-facing rule everywhere was considered and declined in favor of no surprise spikes on an interactive action.)
+2. **Live page-open overdue damage deliberately stays UNBOUNDED** — the 12 cap is an anti-frustration guard for time you weren't playing (offline/gap catch-up only); sustained pressure while actively playing is intended. The fix must NOT add a live cap. (Rejected: cap everywhere.)
+
+**Follow-up:** Fix is queued in ROADMAP Known bugs — pure Sonnet execution now (guard the edit path, regression test covering edit-into-past directly). Until fixed, Jeremy should avoid editing due dates backwards on his real save; a big enough pull can insta-kill a run.
+
 ## 2026-07-20 — Phone deployment: GitHub Pages, public repo (Cowork session)
 
 **Decision (Jeremy's call via AskUserQuestion):** Host beyond localhost via GitHub Pages (main branch, root) rather than Cloudflare Pages + private repo. Free-tier GitHub Pages requires the repo be public; Jeremy considered the exposure (full source, design docs, PROJECT_SPEC.md, session handoffs all become publicly fetchable) and decided to proceed as-is for now rather than trim a `gh-pages`-only branch or switch hosts. No secrets found in a repo-wide grep before this decision (`${{ secrets.GITHUB_TOKEN }}` in PROJECT_SPEC.md is a GH Actions placeholder, not a real credential).

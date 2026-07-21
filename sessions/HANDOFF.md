@@ -11,6 +11,20 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-07-20 — Visual audit + VISUAL_DESIGN_PLAN.md; overdue-edit bug root-caused, forks resolved (Cowork session, Fable)
+
+**Did:** Design/scoping session, NO code changes. Jeremy's plan: a week of real daily play feeds Milestone 6 scoping; visuals run as the parallel track meanwhile. (1) Live screenshot audit of the Pages build via Claude-in-Chrome — desktop 1372px + a REAL 390px mobile-breakpoint render via a same-origin iframe injected into the page (the `resize_window` tool would not shrink the actual viewport; the iframe trick works and is reusable). Seeded dev data through the real UI (4 tasks incl. high-priority + overdue-via-edit, 2 positive habits, 1 negative lurker, 1 sub-task). (2) Wrote `docs/VISUAL_DESIGN_PLAN.md`: full audit, five direction calls, execution sliced V1-V6 (all Sonnet-sized, none touch persistence/architecture/balance). (3) Jeremy designed the mobile split live: portrait = thin glance strip (markers + overdue-zombie exception) with the list as the focus; landscape = full desktop scene + hero/enemy tap-to-interact — plan's V3a/b/c, full rationale in DECISIONS.md. (4) The audit's "balance observation" got reclassified to a real BUG when Jeremy stated intent (1 HP/5min, cap 12; observed −92 in seconds): edit-into-past parks `lastDamageTickTime` at the old due time (items.js:1222) and loop.js back-pays uncapped per game tick — the last unguarded entry of the 2026-07-18 far-past-clock family. Root-caused in code, both design forks resolved (no back-charge, clock starts at edit; live damage intentionally uncapped — cap is catch-up-only). Queued in ROADMAP Known bugs, NOT fixed. Docs updated: VISUAL_DESIGN_PLAN.md (new), ROADMAP.md (Known bugs entry), DECISIONS.md (3 entries).
+
+**State:** Code untouched — still 58 suites / 1237/1237 from the prior session (not re-run, no `.js`/`.css` edited). Live Pages build untouched. The Cowork Chrome profile's Pages-origin localStorage now holds this session's seeded dev save (7 items, base ~9HP after the bug demo) — useful fixture for V1-V3 live-verification, reset freely; Jeremy's phone save unaffected (localStorage is per-device).
+
+**Next:** All queued work is Sonnet execution: the overdue-edit bugfix (small, fully specified in ROADMAP — good session opener), then VISUAL_DESIGN_PLAN.md order: V3a (agenda rows CLIP at 390px — functional bug, ship early) → V1 graveyard → V2 indicators → V3b strip → V3c landscape. V4 blocked on Jeremy's church-art-source call; V6 waits for the play week's notes.
+
+**Watch out:**
+- **Mobile-width live verification recipe:** inject `<iframe src="https://schooley02.github.io/Deadline/" style="width:390px;height:844px">` into any same-origin page — media queries respond to the iframe viewport, and `contentDocument` is scriptable for driving the UI. `resize_window` does NOT shrink a maximized Chrome window's viewport.
+- Possible bug spotted, not chased: Day Pager on Tomorrow listed 3 scheduled habits in the agenda but rendered NO ghost sprites on the canvas (UI_UX.md says conjured ghosts should show). Worth a look in a normal session — could be ghost position math rendering off-screen.
+- Until the overdue-edit fix ships, editing a due date backwards on a REAL save can insta-kill a run (uncapped back-charge at game-tick speed).
+- Seeding quirk (harmless, dev-only): the Add Task form ignored a JS-set past due-time on create (came out 10:06 PM, not 09:00) — the overdue camper had to be made via EDIT, which is exactly what exposed the bug.
+
 ## 2026-07-20 — Phone deployment shipped: GitHub Pages live (Cowork session, Sonnet)
 
 **Did:** Closed Milestone 5's last open candidate, phone deployment. Jeremy chose GitHub Pages over Cloudflare Pages (public repo, free tier — exposure tradeoff discussed and accepted, see DECISIONS.md). No code changes: a full repo audit found every URL already relative-path-safe for the `/Deadline/` subpath. Jeremy enabled Pages (main/root) himself. Updated docs/ROADMAP.md (checked off, Milestone 5 candidate list resolved) and docs/DECISIONS.md.
