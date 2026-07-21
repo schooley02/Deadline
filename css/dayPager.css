@@ -6,6 +6,17 @@
  * always load last).
  */
 
+/* Milestone 5 UX batch, playtest finding #4 (2026-07-20): hides the
+   "Completed Today" section while viewing a non-Today pager page, so it
+   doesn't read as belonging to whatever day is being previewed. A DEDICATED
+   class, not the shared .hidden utility (base.css) — that one is also
+   toggled by AgendaList.renderCompletedItems based on whether there are any
+   real completions, and having two independent owners fight over one class
+   would make the section's visibility depend on toggle ORDER. */
+.day-pager-hidden {
+    display: none !important;
+}
+
 /* Week strip (sub-session 4, phase 2, 2026-07-20 session 73) — 7 tappable
    cells (offset 0..+6), one per day, above the day pager row. */
 .week-strip-row {

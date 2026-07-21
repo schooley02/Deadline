@@ -315,7 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // collaborators
             updatePlayerDisplays: () => Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge }),
-            updateTaskCountDisplay: () => Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay }),
+            updateTaskCountDisplay,
             updateRoutineDisplay,
             updateBaseVisuals: () => Damage.updateBaseVisuals(damageDeps()),
             generateDailyHabitInstances: (forWhichGameDay) => Habits.generateDailyHabitInstances(forWhichGameDay, habitInstanceDeps()),
@@ -493,7 +493,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             gameCanvas,
             handleEnemyClick, createListItem, sortAndRenderActiveList,
-            resetAllSubTaskCheckboxes, updateTaskCountDisplay: () => Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay }), renderCompletedItems,
+            resetAllSubTaskCheckboxes, updateTaskCountDisplay, renderCompletedItems,
             updatePlayerDisplays: () => Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge }), checkPlayerLevelUp, saveGame,
             calculateTimelineXWithClustering, getSubTaskClusterOffset, getItemTopPosition
         };
@@ -674,6 +674,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function resetAllSubTaskCheckboxes() {
         AgendaList.resetAllSubTaskCheckboxes();
+    }
+
+    // Single choke point (2026-07-20, Milestone 5 UX batch — playtest
+    // finding #1): every deps.updateTaskCountDisplay() call site across
+    // items.js/spawning.js/state.js resolves here. Previously two separate
+    // inline closures called Hud.updateTaskCountDisplay directly and never
+    // touched the week strip, so completing/creating a task left the strip's
+    // per-day counts stale until the next pager navigation. DayPagerView's
+    // refreshWeekStrip() is a no-op if weekStripRowEl isn't wired (module
+    // not yet init'd) or the row itself is absent, matching renderWeekStrip's
+    // own guard.
+    function updateTaskCountDisplay() {
+        Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay });
+        DayPagerView.refreshWeekStrip();
     }
 
     // (markAsOverdue wrapper inlined at its one call site (loopDeps) sub-session
@@ -867,6 +881,17 @@ document.addEventListener('DOMContentLoaded', () => {
             activeItemsListEl: activeItemsListUL,
             timeSliderEl,
             weekStripRowEl,
+            // 2026-07-20 Milestone 5 UX batch (playtest finding #3): the
+            // header count previously always showed Hud's global activeItems
+            // count regardless of viewed day. taskCountDisplayEl lets
+            // dayPagerView set a day-scoped count on ghost/snapshot pages;
+            // updateTaskCountDisplay restores the real global count on
+            // return to Today (Today itself must keep counting activeItems
+            // directly — same convention DayPager.weekStripSummary already
+            // uses for Today, see js/dayPager.js).
+            taskCountDisplayEl: taskCountDisplay,
+            updateTaskCountDisplay,
+            completedTasksSectionEl: document.getElementById('completedTasksSection'),
             getCurrentGameDate: State.getCurrentGameDate,
             getDefinedHabits: State.getDefinedHabits,
             getDefinedRoutines: State.getDefinedRoutines,

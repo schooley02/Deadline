@@ -150,6 +150,27 @@ const Forms = (() => {
     // Form HTML builders — pure, no script.js state
     // ---------------------------------------------------------------------
 
+    // Milestone 5 UX batch, playtest finding #2 (2026-07-20, Fable design
+    // call — see DECISIONS.md): the old hardcoded 5:00 PM default let a task
+    // created in the evening spawn ALREADY OVERDUE (damaging the base from
+    // the moment it's added — 2026-07-18's "already-overdue items start
+    // their damage clock at spawn" rule caps the harm but doesn't prevent
+    // it). Rule: max(5:00 PM, now + 1h rounded UP to the next half-hour),
+    // capped at 11:59 PM same day (never rolls into tomorrow — a same-day
+    // task with an impossible-to-hit default would be its own footgun).
+    // Pure + exported for Jest coverage (no DOM/Date-now mocking headaches
+    // needed beyond passing `now` in directly).
+    function computeDefaultDueTime(now) {
+        const FIVE_PM_MINUTES = 17 * 60;
+        const CAP_MINUTES = 23 * 60 + 59;
+        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+        const roundedUpPlusOneHour = Math.ceil((nowMinutes + 60) / 30) * 30;
+        const defaultMinutes = Math.min(Math.max(FIVE_PM_MINUTES, roundedUpPlusOneHour), CAP_MINUTES);
+        const hh = Math.floor(defaultMinutes / 60);
+        const mm = defaultMinutes % 60;
+        return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+    }
+
     function createTaskFormHtml() {
         // Local getters, not toISOString(): UTC formatting shows YESTERDAY's
         // date in positive-offset timezones (latent for CDT; same bug family
@@ -157,6 +178,7 @@ const Forms = (() => {
         const now = new Date();
         const pad = (n) => String(n).padStart(2, '0');
         const todayString = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+        const defaultDueTime = computeDefaultDueTime(now);
         return `
             <h3>Add New Task</h3>
             <div class="form-row">
@@ -187,7 +209,7 @@ const Forms = (() => {
                 </div>
                 <div class="form-row">
                     <label for="modalDueTime">Due Time:</label>
-                    <input type="time" id="modalDueTime" value="17:00">
+                    <input type="time" id="modalDueTime" value="${defaultDueTime}">
                 </div>
             </div>
             <div class="modal-buttons">
@@ -456,6 +478,7 @@ const Forms = (() => {
         createRoutineFormHtml,
         showFormModal,
         attachModalEventListeners,
+        computeDefaultDueTime,
     };
 })();
 

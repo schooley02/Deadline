@@ -264,6 +264,19 @@ const DayPagerView = (() => {
             if (deps.taskSectionTitleEl) deps.taskSectionTitleEl.textContent = "Today's Deadlines";
             deps.setTimePreviewActive(false);
             if (deps.renderTodayAgenda) deps.renderTodayAgenda();
+            // Playtest finding #3 (2026-07-20): restore the REAL global
+            // count — a prior visit to a ghost/snapshot page below
+            // overwrote taskCountDisplayEl with that day's ghost count.
+            if (deps.updateTaskCountDisplay) deps.updateTaskCountDisplay();
+            // Playtest finding #4 (2026-07-20): "Completed Today" is
+            // genuinely today-scoped (renderCompletedItems has no day
+            // parameter — it always reads real completedItems for the
+            // live day), so un-hide it again on return; it manages its own
+            // "no completions yet" hidden state independently via
+            // AgendaList.renderCompletedItems, called by deps.renderTodayAgenda
+            // -> script.js's sortAndRenderActiveList path elsewhere. Here we
+            // only undo OUR forced hide from the branch below.
+            if (deps.completedTasksSectionEl) deps.completedTasksSectionEl.classList.remove('day-pager-hidden');
             return;
         }
 
@@ -272,6 +285,14 @@ const DayPagerView = (() => {
         if (deps.taskSectionTitleEl) {
             deps.taskSectionTitleEl.textContent = formatDayLabel(viewedDayOffset, bounds) + "'s Deadlines";
         }
+        // Playtest finding #4 (2026-07-20): "Completed Today" always reflects
+        // the REAL current day regardless of what's being previewed, which
+        // read as confusing bleed-through under e.g. "Tomorrow's Deadlines".
+        // Hidden via its own class (not AgendaList's 'hidden', which it
+        // toggles itself based on whether there are any real completions —
+        // stomping that would fight with renderCompletedItems on the next
+        // real completion/uncompletion while still off Today).
+        if (deps.completedTasksSectionEl) deps.completedTasksSectionEl.classList.add('day-pager-hidden');
 
         const conjureDeps = {
             definedHabits: deps.getDefinedHabits(),
@@ -292,6 +313,7 @@ const DayPagerView = (() => {
             const snapshot = DayPager.conjureYesterdaySnapshot(conjureDeps, currentGameDate);
             renderGhostCanvas(snapshot, bounds.start);
             renderGhostAgenda(snapshot, 'Nothing was scheduled');
+            setDayScopedTaskCount(snapshot.length);
             return;
         }
 
@@ -308,6 +330,27 @@ const DayPagerView = (() => {
 
         renderGhostCanvas(ghosts, previewTime);
         renderGhostAgenda(ghosts, 'Nothing scheduled');
+        setDayScopedTaskCount(ghosts.length);
+    }
+
+    // Playtest finding #3 (2026-07-20): matches Hud.updateTaskCountDisplay's
+    // own "N task(s)" formatting exactly so the header doesn't visibly
+    // change style when paging off Today.
+    function setDayScopedTaskCount(count) {
+        if (!deps.taskCountDisplayEl) return;
+        deps.taskCountDisplayEl.textContent = `${count} task${count !== 1 ? 's' : ''}`;
+    }
+
+    // Public choke point (2026-07-20, Milestone 5 UX batch, playtest finding
+    // #1): lets script.js's updateTaskCountDisplay() refresh just the strip
+    // after any task/habit create/complete/uncomplete WITHOUT re-running the
+    // rest of render() (which would also touch the ghost canvas/agenda and
+    // the ".viewing-other-day" class — unwanted side effects on every
+    // routine task-count update). Guarded the same way renderWeekStrip
+    // already guards itself; also safe to call before init() (deps null).
+    function refreshWeekStrip() {
+        if (!deps) return;
+        renderWeekStrip();
     }
 
     function goToOffset(offset) {
@@ -348,6 +391,7 @@ const DayPagerView = (() => {
         isViewingToday,
         checkRolloverReset,
         formatDayLabel,
+        refreshWeekStrip,
     };
 })();
 
