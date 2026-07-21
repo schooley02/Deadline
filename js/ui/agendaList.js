@@ -369,30 +369,113 @@ const AgendaList = (() => {
     }
 
     /**
+     * Milestone 5 first-run/onboarding pass (2026-07-20). Pure — true only
+     * when the player has NEVER engaged with the app at all: nothing active,
+     * nothing ever completed, no habit/routine ever defined. Deliberately
+     * NOT a persisted flag/schema field — it's fully derived from state that
+     * already exists, so it clears itself the instant the player creates
+     * their first task/habit/routine, with no migration needed. It can also
+     * reappear if a player deletes their way back to zero — treated as
+     * harmless/correct (still an empty board either way), not a bug to guard
+     * against.
+     *
+     * state: { activeItems, completedItems, definedHabits, definedRoutines }
+     * (all plain arrays — caller resolves any getters first)
+     */
+    function isFirstRunEmpty(state) {
+        return state.activeItems.length === 0 &&
+            state.completedItems.length === 0 &&
+            state.definedHabits.length === 0 &&
+            state.definedRoutines.length === 0;
+    }
+
+    // PROJECT_SPEC.md's "Empty State" spec (Dynamic Task List section) at
+    // MVP fidelity — no new illustration assets, existing .primary-button
+    // styling (css/forms.css). CTA reuses the same "Tasks" management
+    // window the FAB menu already opens (Jeremy's call: one fewer tap than
+    // routing through the FAB menu, while reusing the existing Add Task flow
+    // rather than a bespoke bypass).
+    function onboardingEmptyStateHtml() {
+        return `
+            <li class="onboarding-empty-state">
+                <div class="onboarding-icon">⛪</div>
+                <h3>Welcome to Deadline!</h3>
+                <p class="onboarding-body">Turn your to-dos into a tower defense game.
+                    Add a task and a zombie starts marching toward your base — complete it
+                    in real life to defeat it before it arrives.</p>
+                <button id="onboardingAddTaskBtn" class="primary-button">+ Add Your First Task</button>
+            </li>
+        `;
+    }
+
+    /**
      * Sort activeItems by due date and re-render the top-level rows into the
      * active-items list. Sub-tasks are never appended here — they render
      * nested inside their parent's row (see createListItem).
      *
-     * deps: { activeItems, activeItemsListUL }
+     * On true first-run emptiness (see isFirstRunEmpty), renders the
+     * onboarding empty state instead of an empty list, and adds a subtle
+     * pulse-hint class to the FAB button (#fabButton, matching
+     * PROJECT_SPEC's "Tutorial Hint...pointing to Floating Action Button").
+     * Both clear automatically once isFirstRunEmpty goes false — no
+     * persisted "have they seen onboarding" flag anywhere.
+     *
+     * deps: { activeItems, activeItemsListUL, completedItems (getter),
+     *         definedHabits (getter), definedRoutines (getter),
+     *         openManagementWindow }
      */
     function sortAndRenderActiveList(deps) {
         // Sort by due date (most urgent first)
         deps.activeItems.sort((a, b) => a.dueDateTime - b.dueDateTime);
 
-        if (deps.activeItemsListUL) {
-            deps.activeItemsListUL.innerHTML = '';
+        const showOnboarding = isFirstRunEmpty({
+            activeItems: deps.activeItems,
+            completedItems: deps.completedItems ? deps.completedItems() : [],
+            definedHabits: deps.definedHabits ? deps.definedHabits() : [],
+            definedRoutines: deps.definedRoutines ? deps.definedRoutines() : [],
+        });
 
-            deps.activeItems.forEach(item => {
-                // Only show top-level items (not sub-tasks) in the main list
-                if (item.listItemElement && !item.parentId) {
-                    deps.activeItemsListUL.appendChild(item.listItemElement);
+        if (deps.activeItemsListUL) {
+            if (showOnboarding) {
+                deps.activeItemsListUL.innerHTML = onboardingEmptyStateHtml();
+                const ctaBtn = document.getElementById('onboardingAddTaskBtn');
+                if (ctaBtn && deps.openManagementWindow) {
+                    // stopPropagation is required, not cosmetic: this button
+                    // lives inside .task-section, which js/ui/modal.js's
+                    // document-level dismiss-click handler does NOT exempt
+                    // (only .management-window and .fab-container are —
+                    // see Modal.initDismissHandlers). Without it, the SAME
+                    // click that opens the Tasks window bubbles to document
+                    // and Modal's "isAnyManagementWindowOpen && click landed
+                    // outside" check immediately closes it again — found
+                    // live in Chrome (2026-07-20): openManagementWindow WAS
+                    // being called correctly, but classList showed 'hidden'
+                    // re-added a tick later from closeAllManagementWindows.
+                    ctaBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deps.openManagementWindow('tasks');
+                    });
                 }
-            });
+            } else {
+                deps.activeItemsListUL.innerHTML = '';
+
+                deps.activeItems.forEach(item => {
+                    // Only show top-level items (not sub-tasks) in the main list
+                    if (item.listItemElement && !item.parentId) {
+                        deps.activeItemsListUL.appendChild(item.listItemElement);
+                    }
+                });
+            }
 
             // After rendering, ensure all sub-task checkboxes are properly reset
             setTimeout(() => {
                 resetAllSubTaskCheckboxes();
             }, 0);
+        }
+
+        const fabButton = document.getElementById('fabButton');
+        if (fabButton) {
+            fabButton.classList.toggle('onboarding-hint', showOnboarding);
         }
     }
 
@@ -655,7 +738,8 @@ const AgendaList = (() => {
         resetAllSubTaskCheckboxes,
         renderCompletedItems,
         buildCompletedSubTaskRow,
-        showEditHabitInstanceModal
+        showEditHabitInstanceModal,
+        isFirstRunEmpty,
     };
 })();
 

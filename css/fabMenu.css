@@ -37,6 +37,26 @@
     transform: rotate(45deg);
 }
 
+/* First-run/onboarding FAB hint (Milestone 5, 2026-07-20) — PROJECT_SPEC's
+   "Tutorial Hint: Subtle animation pointing to Floating Action Button".
+   Toggled purely by AgendaList.isFirstRunEmpty (js/ui/agendaList.js) — no
+   persisted "seen" flag, no dotted-line guide graphic (MVP scope, existing
+   assets only): a gentle scale pulse on the button itself. Respects
+   prefers-reduced-motion like the rest of the app's motion (session 60/74
+   precedent); NOT gated by the session-59 fx-intensity setting, which
+   governs per-tick gameplay effects (streak fire) — this is a one-time UI
+   affordance, a different concern. */
+@media (prefers-reduced-motion: no-preference) {
+    .fab.onboarding-hint {
+        animation: fab-onboarding-pulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes fab-onboarding-pulse {
+        0%, 100% { transform: scale(1); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); }
+        50% { transform: scale(1.12); box-shadow: 0 6px 20px rgba(10, 95, 85, 0.45); }
+    }
+}
+
 .fab-icon {
     transition: transform 0.3s ease;
 }

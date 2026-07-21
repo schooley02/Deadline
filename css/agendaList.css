@@ -60,6 +60,49 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* First-run/onboarding empty state (Milestone 5, 2026-07-20) — PROJECT_SPEC's
+   "Empty State" spec at MVP fidelity (no new illustration assets). Only ever
+   shown when AgendaList.isFirstRunEmpty is true — see js/ui/agendaList.js. */
+.onboarding-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-2);
+    padding: var(--space-6) var(--space-4);
+    background: var(--color-bg-white);
+    border: 1px dashed var(--color-secondary-green-pale);
+    border-radius: 8px;
+    cursor: default; /* overrides .task-list li's pointer cursor — not a clickable row */
+}
+
+.onboarding-empty-state:hover {
+    /* overrides .task-list li:hover's lift — this row doesn't act like a task card */
+    transform: none;
+    box-shadow: none;
+}
+
+.onboarding-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+}
+
+.onboarding-empty-state h3 {
+    margin: 0;
+    color: var(--color-text-primary);
+}
+
+.onboarding-body {
+    margin: 0;
+    max-width: 420px;
+    color: var(--color-neutral);
+    font-size: var(--text-body, 1rem);
+}
+
+.onboarding-empty-state .primary-button {
+    margin-top: var(--space-2);
+}
+
 .task-list li:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);

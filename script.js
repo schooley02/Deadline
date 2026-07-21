@@ -531,7 +531,15 @@ document.addEventListener('DOMContentLoaded', () => {
             completedItems: () => State.getCompletedItems(),
             uncompleteItem: (itemId) => Items.uncompleteItem(itemId, itemsDeps()),
             definedHabits: () => State.getDefinedHabits(),
-            showEditHabitForm: (routineId, habitDef) => RoutineViews.showEditHabitForm(routineId, habitDef)
+            showEditHabitForm: (routineId, habitDef) => RoutineViews.showEditHabitForm(routineId, habitDef),
+            // Milestone 5 first-run/onboarding pass (2026-07-20): definedRoutines
+            // completes the "has the player ever engaged with the app" check
+            // (AgendaList.isFirstRunEmpty); openManagementWindow lets the
+            // onboarding empty state's CTA button jump straight to the Tasks
+            // window (same window the FAB menu opens), one tap closer than
+            // routing through the FAB menu itself.
+            definedRoutines: () => State.getDefinedRoutines(),
+            openManagementWindow: (type) => openManagementWindow(type),
         };
     }
 

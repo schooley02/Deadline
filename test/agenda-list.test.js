@@ -35,7 +35,12 @@ function makeElement(tag) {
             _set: new Set(),
             add(...names) { names.forEach(n => el.classList._set.add(n)); },
             remove(n) { el.classList._set.delete(n); },
-            contains(n) { return el.classList._set.has(n); }
+            contains(n) { return el.classList._set.has(n); },
+            toggle(n, force) {
+                const shouldHave = force === undefined ? !el.classList._set.has(n) : !!force;
+                if (shouldHave) el.classList._set.add(n); else el.classList._set.delete(n);
+                return shouldHave;
+            }
         },
         style: { cssText: '' },
         dataset: {},
@@ -50,7 +55,15 @@ function makeElement(tag) {
         removeAttribute() {},
         setAttribute(k, v) { el.dataset[k] = v; },
         appendChild(child) { el.children.push(child); return child; },
-        fire(evt) { (el.listeners[evt] || []).forEach(fn => fn()); }
+        // A minimal fake event (stopPropagation/preventDefault no-ops) is
+        // passed to every handler — harmless for the many existing handlers
+        // that never read their event arg, and needed by the onboarding CTA
+        // handler below, which calls e.stopPropagation() for real (see
+        // js/ui/agendaList.js's Milestone 5 first-run/onboarding pass).
+        fire(evt) {
+            const fakeEvent = { stopPropagation() {}, preventDefault() {} };
+            (el.listeners[evt] || []).forEach(fn => fn(fakeEvent));
+        }
     };
     return el;
 }
@@ -73,7 +86,16 @@ function findByText(root, text) {
 beforeEach(() => {
     global.document = {
         createElement: jest.fn(tag => makeElement(tag)),
-        createTextNode: jest.fn(text => ({ textContent: text, nodeType: 3 }))
+        createTextNode: jest.fn(text => ({ textContent: text, nodeType: 3 })),
+        // sortAndRenderActiveList's setTimeout(0) always calls
+        // resetAllSubTaskCheckboxes, which queries document.querySelectorAll
+        // directly (no deps) — needed by ANY test that exercises
+        // sortAndRenderActiveList, not just the onboarding suite below,
+        // since the callback fires asynchronously after the test body
+        // returns. Empty by default; individual tests never need real
+        // checkbox nodes here (sub-task checkbox behavior has its own
+        // dedicated coverage elsewhere).
+        querySelectorAll: jest.fn(() => [])
     };
     global.console.log = jest.fn();   // silence the retained DEBUG: sub-task log
     global.console.warn = jest.fn();
@@ -443,5 +465,97 @@ describe('AgendaList.renderCompletedItems — nested completed sub-tasks ([P1-DA
         expect(findByText(subRow, '✓ Completed')).toHaveLength(1);                   // static badge instead
 
         expect(deps.uncompleteItem).not.toHaveBeenCalled();
+    });
+});
+
+describe('AgendaList.isFirstRunEmpty — Milestone 5 first-run/onboarding pass (2026-07-20)', () => {
+    const allEmpty = { activeItems: [], completedItems: [], definedHabits: [], definedRoutines: [] };
+
+    test('true when the player has never engaged with the app at all', () => {
+        expect(AgendaList.isFirstRunEmpty(allEmpty)).toBe(true);
+    });
+
+    test('false with any active item', () => {
+        expect(AgendaList.isFirstRunEmpty({ ...allEmpty, activeItems: [{ id: 't1' }] })).toBe(false);
+    });
+
+    test('false with any past completion, even if the board is currently empty', () => {
+        expect(AgendaList.isFirstRunEmpty({ ...allEmpty, completedItems: [{ id: 't1' }] })).toBe(false);
+    });
+
+    test('false with any habit ever defined, even standalone with nothing active today', () => {
+        expect(AgendaList.isFirstRunEmpty({ ...allEmpty, definedHabits: [{ id: 'h1' }] })).toBe(false);
+    });
+
+    test('false with any routine ever defined', () => {
+        expect(AgendaList.isFirstRunEmpty({ ...allEmpty, definedRoutines: [{ id: 'r1' }] })).toBe(false);
+    });
+});
+
+describe('AgendaList.sortAndRenderActiveList — first-run onboarding empty state (2026-07-20)', () => {
+    let activeItemsListUL, fabButton, onboardingBtn;
+
+    beforeEach(() => {
+        activeItemsListUL = makeElement('ul');
+        fabButton = makeElement('button');
+        fabButton.classList.add('fab'); // real markup starts as class="fab"
+        onboardingBtn = makeElement('button');
+        const elementsById = { fabButton, onboardingAddTaskBtn: onboardingBtn };
+        global.document.getElementById = jest.fn(id => elementsById[id]);
+    });
+
+    function makeOnboardingDeps(overrides = {}) {
+        return {
+            activeItems: [],
+            activeItemsListUL,
+            completedItems: () => [],
+            definedHabits: () => [],
+            definedRoutines: () => [],
+            openManagementWindow: jest.fn(),
+            ...overrides
+        };
+    }
+
+    test('true first-run emptiness renders the onboarding block and hints the FAB', () => {
+        AgendaList.sortAndRenderActiveList(makeOnboardingDeps());
+
+        expect(activeItemsListUL.innerHTML).toContain('Welcome to Deadline!');
+        expect(activeItemsListUL.innerHTML).toContain('onboardingAddTaskBtn');
+        expect(fabButton.classList.contains('onboarding-hint')).toBe(true);
+    });
+
+    test('the onboarding CTA opens the Tasks management window', () => {
+        const deps = makeOnboardingDeps();
+        AgendaList.sortAndRenderActiveList(deps);
+
+        onboardingBtn.fire('click');
+
+        expect(deps.openManagementWindow).toHaveBeenCalledWith('tasks');
+    });
+
+    test('a habit ever defined suppresses onboarding even with an empty board today', () => {
+        AgendaList.sortAndRenderActiveList(makeOnboardingDeps({ definedHabits: () => [{ id: 'h1' }] }));
+
+        expect(activeItemsListUL.innerHTML).not.toContain('Welcome to Deadline!');
+        expect(activeItemsListUL.innerHTML).toBe('');
+        expect(fabButton.classList.contains('onboarding-hint')).toBe(false);
+    });
+
+    test('any active item suppresses onboarding and renders the real row instead', () => {
+        const task = { id: 't1', dueDateTime: new Date('2026-07-20T17:00:00Z'), parentId: null, listItemElement: makeElement('li') };
+        AgendaList.sortAndRenderActiveList(makeOnboardingDeps({ activeItems: [task] }));
+
+        expect(activeItemsListUL.innerHTML).toBe('');
+        expect(activeItemsListUL.children).toContain(task.listItemElement);
+        expect(fabButton.classList.contains('onboarding-hint')).toBe(false);
+    });
+
+    test('the FAB hint clears once onboarding is no longer true (was hinted, now has a real task)', () => {
+        AgendaList.sortAndRenderActiveList(makeOnboardingDeps());
+        expect(fabButton.classList.contains('onboarding-hint')).toBe(true);
+
+        const task = { id: 't1', dueDateTime: new Date('2026-07-20T17:00:00Z'), parentId: null, listItemElement: makeElement('li') };
+        AgendaList.sortAndRenderActiveList(makeOnboardingDeps({ activeItems: [task] }));
+        expect(fabButton.classList.contains('onboarding-hint')).toBe(false);
     });
 });
