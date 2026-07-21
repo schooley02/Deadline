@@ -4,6 +4,20 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-20 — Milestone 5 scoping via structured live playtest; UX-fixes batch queued first (Cowork session, Fable)
+
+**Decision:** Milestone 5's next item is a **UX fixes batch** (one Sonnet session, per the revised small/independent-work batching guardrail) covering the four findings from this session's structured Claude-in-Chrome playtest:
+1. **Week strip doesn't live-refresh** — `renderWeekStrip()` runs only on load/pager navigation, not on task/habit create/complete/uncomplete. Observed live: strip showed "Today 1" with 0 active items after a completion, and again "Today 1" with 2 active items after two creations.
+2. **Evening instant-overdue footgun** — Add Task's due-time default is a hard 5:00 PM today; created at 7:35 PM untouched, the task spawns already overdue and starts damaging the base. **Design call (Fable, this session): default due time = max(5:00 PM, now + 1h rounded up to the next half-hour), capped at 11:59 PM same day.** Daytime keeps the familiar 5 PM anchor; evening creation can never spawn already-overdue. (The existing "already-overdue items start their damage clock at spawn" rule from 2026-07-18 caps the harm but the default is still wrong.)
+3. **Task-count header ignores the viewed day** — "Tomorrow's Deadlines" showed "2 tasks" (global active count via `Hud.updateTaskCountDisplay`) while the page listed 1 ghost row.
+4. **"Completed Today" section renders under non-Today pager views** — confusing under "Tomorrow's Deadlines".
+
+**Why this item first:** all four were hit in ~20 minutes of ordinary play; they're small, independent, and testable, and polish friction is exactly Milestone 5's charter.
+
+**Considered, not queued yet (revisit after the batch):** phone deployment (hosting beyond localhost so the PWA install + Export/Import combo enables real daily play — the milestone's data-generating premise) and a first-run/onboarding experience (fresh save drops the player on an empty board with zero guidance). Jeremy chose to queue only the UX batch for now.
+
+**Playtest method note:** SW cache cleared before the trusted navigation; every core surface exercised (create/complete task, habit create + Tomorrow ghosting, day pager both directions, week strip, time slider snap-back, Shop/Stats/Settings windows); zero app console errors all session. One false alarm retracted: habit sprites' dashed border is intentional (`css/enemyStatus.css:63` `.enemy.habit-enemy { border-style: dashed }`), not day-pager ghost-class leakage.
+
 ## 2026-07-20 — Export/Import ("Backup & Transfer") shipped — Milestone 5 first item (Cowork session, Sonnet)
 
 **Decision:** Built cross-device / cross-build-version save portability, Jeremy's explicit ask (plays/tests across desktop and phone, and across in-development builds). `js/exportImport.js` (pure build/validate of a portable JSON envelope wrapping both `deadline.save` and `deadline.settings`) + `js/ui/settingsView.js`'s new "Backup & Transfer" section (Download file / Copy to clipboard / file-picker-or-paste import) + script.js's `handleConfirmImport` (the one stateful step: backup, write, reload). Full contract in docs/DATA_SCHEMA.md's new Export/Import section; UI in docs/UI_UX.md.

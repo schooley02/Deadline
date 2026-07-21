@@ -11,6 +11,19 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-07-20 — Milestone 5 scoping session: structured live playtest + UX-fixes batch queued (Cowork session, Fable)
+
+**Did:** Pure scoping session, NO code changes. Ran a structured playtest against Jeremy's live `node server.js` via Claude-in-Chrome (SW cache cleared before the trusted navigation): task create/complete, habit create + Tomorrow ghost, day pager both directions, week strip, time slider snap-back, Shop/Stats/Settings. Zero app console errors. Four friction findings logged + one design call made (evening due-time default rule) → queued as ONE "UX fixes batch" ROADMAP item under Milestone 5 (Jeremy's pick; phone deployment and onboarding considered but deliberately not queued yet). Updated docs/ROADMAP.md + docs/DECISIONS.md (full finding detail + the default-time rule live there).
+
+**State:** Code untouched — everything still exactly as the Export/Import session left it (57 suites, 1218/1218). Dev save now contains this session's playtest artifacts on TOP of the synthetic import-test values (Health 77/XP 1009/Level 7/Points 12355, one active task "Playtest evening task" due 9 PM, one active daily habit "Playtest daily stretch", smoke test task completed). Fine for dev; don't mistake it for real play data.
+
+**Next:** The UX fixes batch (Milestone 5, Sonnet session): (1) week strip live-refresh on create/complete, (2) due-time default rule (max(5 PM, now+1h rounded up to half-hour), cap 11:59 PM), (3) viewed-day task count on pager pages, (4) Completed Today hidden/relabeled on non-Today views. All four repro'd easily — see DECISIONS.md for exact observations.
+
+**Watch out:**
+- Habit sprites' dashed border is INTENTIONAL (`css/enemyStatus.css:63`) — don't "fix" it while touching ghost styling for finding 4's neighbor code; ghost styling and habit styling are separate dashed borders.
+- Finding 1's fix wants a single choke point: the strip needs re-rendering wherever `Hud.updateTaskCountDisplay` is already called, rather than sprinkling `renderWeekStrip()` calls — check `dayPagerView.js`'s existing render triggers first.
+- Finding 3 interacts with finding 1: `updateTaskCountDisplay` counts global `activeItems`; on a pager page the count should come from the same day-scoped source the ghost list uses (`conjureGhostsForDay`/`existingItemsForDay`), EXCEPT Today which must keep counting `activeItems` directly (session-73 week-strip convention — same trap).
+
 ## 2026-07-20 — Export/Import ("Backup & Transfer") shipped — Milestone 5 first item (Cowork session, Sonnet)
 
 **Did:** Built cross-device / cross-build-version save portability per Jeremy's request (desktop↔phone testing, testing different in-development builds). `js/exportImport.js` (new, pure): `buildEnvelope`/`validateEnvelope` wrapping both `deadline.save` and `deadline.settings` in one portable JSON blob, with an FNV-1a checksum (corruption/truncation detection, not crypto) and hard rejection of any newer-schemaVersion/newer-exportFormatVersion import. `js/ui/settingsView.js` gained a "Backup & Transfer" section (Download file / Copy to clipboard / file-picker-or-paste import → confirm-replace modal with a Current-vs-Incoming compare table). `script.js`'s `handleConfirmImport` is the one stateful step: backs up the current save+settings to `deadline.backup.preImport` (one-shot, overwritten by the next import), writes the imported save RAW (not through `Persistence.serialize`, so an older schemaVersion survives intact for the normal migration chain to upgrade on load), writes settings via `Settings.save`, then hard-reloads — full replace, no merge (Jeremy's call). `js/settings.js` gained one line (`SETTINGS_KEY` exposed) for the backup step. `index.html` loads `js/exportImport.js` right after `persistence.js`. `css/settings.css` gained the new section + confirm-modal styling.
