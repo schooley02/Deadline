@@ -122,6 +122,9 @@ const ManagementWindows = (() => {
                     buildExportEnvelope: deps.buildExportEnvelope,
                     currentSummary: deps.currentSummary,
                     onConfirmImport: deps.onConfirmImport,
+                    // Reset Game (moved from a floating corner button,
+                    // 2026-07-21) — same pass-through-deps-only shape.
+                    onConfirmReset: deps.onConfirmReset,
                 });
             }
         }

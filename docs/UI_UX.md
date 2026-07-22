@@ -52,6 +52,24 @@ opens a stacked confirm-replace modal (`Modal.open`, dedupeSelector-guarded) wit
 Current-vs-Incoming compare (days survived/level/XP/points/active items/habits/routines) before
 anything is written — see docs/DATA_SCHEMA.md's Export/Import section for the full contract.
 
+## Settings window — "Reset Game" + FAB menu contrast (2026-07-21)
+The dev-only "↺ Reset" button (previously a floating bottom-left corner button on the main game
+screen, always one accidental tap away from wiping a real save) moved into the Settings window as
+a clearly-flagged destructive section below Backup & Transfer: red-tinted heading/border, warning
+copy pointing at Export first, and a "Reset Game" button. Clicking it opens an in-app `Modal.open`
+confirm dialog (same pattern as the Import replace-confirm) instead of the browser's native
+`confirm()` the old button used — consistent look, and native `confirm()`/`alert()` are known to
+freeze Claude-in-Chrome CDP automation mid-playtest (see CLAUDE.md), so this also makes the flow
+testable without the navigate-away recovery trick. Confirming calls `handleConfirmReset` in
+script.js (unchanged wipe logic: definedHabits/definedRoutines/definedTasks/runHistory/lifetime
+achievements, then re-init); Cancel closes only the confirm dialog.
+
+Same session: the FAB menu's six pop-out items (`css/fabMenu.css` `.fab-menu-item`) were white
+cards with pale-green borders over the light game background — low contrast ("light buttons on a
+light background, hard on the eyes," Jeremy). Restyled to the same dark-green gradient as the FAB
+button itself, white text/icons, stronger shadow — the whole popped-out menu now reads as one
+clearly visible dark cluster instead of near-invisible outlines.
+
 ## Windows & Modals — unified behavior ([P2-UI-011] Stage 1, session 61, 2026-07-19)
 Two window systems share one behavior layer (`js/ui/modal.js`, wired via `Modal.initDismissHandlers`/`initFocusManagement` in script.js):
 - **Management windows** (FAB-opened Tasks/Habits/Routines/Shop/Stats/Settings panels) and **modal overlays** (form/popup `.modal-overlay`s) both close on ESC and outside/backdrop click.

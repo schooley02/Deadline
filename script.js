@@ -1428,6 +1428,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }),
             currentSummary: ExportImport.buildSummary(State.getPersistableState()),
             onConfirmImport: handleConfirmImport,
+            // Reset Game (moved from a floating corner button into Settings,
+            // 2026-07-21) — see handleConfirmReset below.
+            onConfirmReset: handleConfirmReset,
         });
     }
 
@@ -1474,6 +1477,30 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem(Persistence.SAVE_KEY, JSON.stringify(envelope.save));
         Settings.save(envelope.settings || Settings.DEFAULTS);
         window.location.reload();
+    }
+
+    // [2026-07-21] SettingsView's onConfirmReset — the confirm dialog itself
+    // now lives in settingsView.js (in-app Modal, replacing the old floating
+    // button's native confirm()); this callback runs only after the player
+    // has already confirmed. Logic unchanged from the retired resetTestButton
+    // handler: wipes definedHabits/definedRoutines too (unlike the restart
+    // button, which keeps definitions and re-seeds today's habit instances
+    // via initGame) so the next generateDailyHabitInstances() has nothing to
+    // re-create. Also wipes run history (session 52, RUN_HISTORY_PLAN: a
+    // full wipe means everything, not just the abandoned live run) and
+    // lifetime achievements data (session 64, ACHIEVEMENTS_PLAN.md) — both
+    // deliberately preserved by restart, wiped only here. Clears the save and
+    // persists the empty state, so no reload or flush-guard needed.
+    function handleConfirmReset() {
+        State.setDefinedHabits([]);
+        State.setDefinedRoutines([]);
+        window.definedTasks = [];
+        State.setRunHistory([]);
+        State.setLifetimeStats(Achievements.freshLifetimeStats());
+        State.setAchievements(Achievements.freshUnlocked());
+        if (typeof Persistence !== 'undefined') Persistence.clear();
+        initGame();
+        saveGame();
     }
 
     // [P2-UI-009] session 59: SettingsView's onChangeIntensity callback —
@@ -1854,32 +1881,6 @@ document.addEventListener('DOMContentLoaded', () => {
         restartButton.addEventListener('click', () => {
             // A restart abandons the dead run — clear its save so a reload
             // before the first new mutation doesn't resurrect it.
-            if (typeof Persistence !== 'undefined') Persistence.clear();
-            initGame();
-            saveGame();
-        });
-    }
-
-    // Dev/testing only: full reset to a fresh, empty game. Unlike the restart
-    // button (which keeps habit/routine DEFINITIONS and re-seeds today's habit
-    // instances via initGame), this also wipes definedHabits/definedRoutines so
-    // the next generateDailyHabitInstances() has nothing to re-create. Clears
-    // the save and persists the empty state, so no reload or flush-guard needed.
-    const resetTestButton = document.getElementById('resetTestButton');
-    if (resetTestButton) {
-        resetTestButton.addEventListener('click', () => {
-            if (!confirm('Reset the game to a fresh state? This clears all tasks, habits, routines, and progress.')) return;
-            State.setDefinedHabits([]);
-            State.setDefinedRoutines([]);
-            window.definedTasks = [];
-            // Dev reset wipes run history too — unlike the restart button,
-            // which deliberately preserves it (session 52, RUN_HISTORY_PLAN:
-            // dev-reset runs are abandoned AND a dev wipe means everything).
-            State.setRunHistory([]);
-            // Same reasoning extends to achievements (session 64,
-            // ACHIEVEMENTS_PLAN.md): lifetime data, wiped only here.
-            State.setLifetimeStats(Achievements.freshLifetimeStats());
-            State.setAchievements(Achievements.freshUnlocked());
             if (typeof Persistence !== 'undefined') Persistence.clear();
             initGame();
             saveGame();

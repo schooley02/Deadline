@@ -17,7 +17,17 @@
  *   buildExportEnvelope(): envelope,       — script.js: ExportImport.buildEnvelope(...)
  *   currentSummary: ExportImport summary shape (this device's live state, for the confirm compare),
  *   onConfirmImport(envelope)              — script.js: backup + localStorage write + reload
+ *   onConfirmReset()                       — script.js: handleConfirmReset (wipe + re-init), see below
  * }
+ *
+ * Reset Game (moved here from a floating bottom-left corner button,
+ * 2026-07-21 — it was one accidental tap away from wiping a real save on
+ * the main game screen; Settings is a deliberate two-taps-deep destination).
+ * Same in-app Modal.open confirm pattern as Import's replace-confirm below,
+ * not the browser's native confirm() the old button used — consistent look,
+ * and native confirm()/alert() are known to freeze Claude-in-Chrome CDP
+ * automation mid-playtest (CLAUDE.md), so this also makes the flow testable
+ * without the navigate-away recovery trick.
  */
 const SettingsView = (() => {
 
@@ -84,6 +94,11 @@ const SettingsView = (() => {
                     <p id="importStatus" class="settings-data-status" aria-live="polite"></p>
                 </div>
             </div>
+            <div class="settings-section settings-danger-section">
+                <h4>Reset Game</h4>
+                <p class="settings-section-hint">Wipes all tasks, habits, routines, run history, and achievements, and starts a fresh game. This cannot be undone — use Export above first if you want a backup.</p>
+                <button type="button" id="resetGameBtn" class="danger-button">Reset Game</button>
+            </div>
         `;
 
         container.querySelectorAll('input[name="effectsIntensity"]').forEach((input) => {
@@ -96,6 +111,7 @@ const SettingsView = (() => {
 
         wireExportControls(container, deps);
         wireImportControls(container, deps);
+        wireResetControl(container, deps);
     }
 
     // -----------------------------------------------------------------
@@ -237,6 +253,47 @@ const SettingsView = (() => {
         if (pasteBtn) {
             pasteBtn.addEventListener('click', () => {
                 processImportText(pasteArea ? pasteArea.value : '', deps, statusEl);
+            });
+        }
+    }
+
+    // -----------------------------------------------------------------
+    // Reset (moved here from a floating corner button, 2026-07-21 — see
+    // header comment above)
+    // -----------------------------------------------------------------
+
+    function showResetConfirmModal(deps) {
+        const html = `
+            <div class="modal-overlay reset-confirm-overlay">
+                <div class="modal-content reset-confirm-modal">
+                    <h3>Reset the game?</h3>
+                    <p>This clears all tasks, habits, routines, run history, and achievements, and starts a fresh game. This cannot be undone.</p>
+                    <div class="modal-buttons">
+                        <button type="button" id="confirmResetBtn" class="danger-button">Reset Game</button>
+                        <button type="button" id="cancelResetBtn" class="secondary-button">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        const overlay = Modal.open(html, { dedupeSelector: '.reset-confirm-overlay' });
+        if (!overlay) return;
+
+        overlay.querySelector('#confirmResetBtn').addEventListener('click', () => {
+            Modal.closeTopmost();
+            if (typeof deps.onConfirmReset === 'function') {
+                deps.onConfirmReset();
+            }
+        });
+        overlay.querySelector('#cancelResetBtn').addEventListener('click', () => {
+            Modal.closeTopmost();
+        });
+    }
+
+    function wireResetControl(container, deps) {
+        const resetBtn = container.querySelector('#resetGameBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                showResetConfirmModal(deps);
             });
         }
     }
