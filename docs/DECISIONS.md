@@ -4,6 +4,24 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-21 — Star-rating bug fix: rolling rate window + tenure gate replaces all-time average (Cowork session, bug reported live on Jeremy's phone; design discussed conversationally, executed Sonnet)
+
+**Bug:** Jeremy created a morning routine with one habit ("brush my teeth") and completed it once; the routine instantly showed 5 stars. Root cause: `Heroes.completionRate` computed an all-time average with no minimum-sample floor, and `Heroes.starRating` checked that average against fixed rate cutoffs (PROJECT_SPEC ~78-83: 60/70/80/90/95% → 1-5★) with no other gate. One habit, one completion = 1/1 = 100%, which cleared the top tier immediately.
+
+**Decision:** Deliberate deviation from PROJECT_SPEC's literal spec (which defines only the five rate cutoffs, no minimum-sample or tenure concept) — confirmed with Jeremy before building, per the "don't invent mechanics without asking" guardrail. Two changes:
+1. **Rolling rate window** (`CONFIG.HERO_STAR_RATE_WINDOW = 28`): the rate is now computed over the most recent 28 recorded occurrences across ALL the routine's member habits (merged and sorted chronologically), not an all-time average. Mirrors `HABIT_RATE_WINDOW`'s existing 14-occurrence window for the habit points multiplier (doubled, since a star rating is a bigger commitment than a points multiplier).
+2. **Tenure gate** (`minDays` added to each `CONFIG.HERO_STAR_TIERS` entry: 2/4/7/14/21 for 1★-5★): a star tier requires BOTH its rate cutoff AND a minimum count of distinct calendar days with a recorded occurrence (since routine creation, NOT limited to the 28-occurrence window — tenure is meant to span the routine's whole life, not just its recent rate sample). Modeled loosely on mobile-game prestige pacing: 1★ is reachable within a couple of days, 5★ is a ~3-week track record, not a first-day flex.
+
+Both numbers are DERIVED from existing `occurrenceHistory` data, not new persisted fields — no schema bump, same "derive don't store" precedent as the banked-slot-points system (avoids any level-oscillation-style exploit).
+
+**Why these specific numbers:** No canonical spec value exists for either (PROJECT_SPEC predates the idea of a minimum sample). 28/2-4-7-14-21 were proposed as a reasonable mobile-game-style pacing curve and confirmed with Jeremy in conversation before implementation; not a Fable-tuned balance pass. Revisit if real play data suggests the pacing feels off (per the standing balance-tuning protocol).
+
+**Also fixed:** the Manage-modal completion-% label (`js/ui/routineViews.js` `buildCompletionRateLabel`) now appends the tenure count ("67% of 3 · 3 days tracked") so a routine sitting at a high % with a low/zero star rating reads as "not enough track record yet," not a display bug.
+
+**Rejected:** a flat minimum-sample gate alone (e.g. unrated below 7 occurrences, otherwise unchanged) — considered as the smaller/quicker fix, but Jeremy chose the fuller redesign since the all-time-average also had a separate staleness problem (months of history could mask a recent bad stretch).
+
+**Verification:** 58 suites / 1256/1256 (new heroes.js/heroes-view.js/routine-views-slots.js coverage for the rolling window, tenure gate, and the exact reported bug scenario: 1 occurrence/100% rate/1 day tenure → 0★). `node --check` clean on all touched files. **Live-verified in Chrome** against Jeremy's running `localhost:8000` dev server: created a real routine ("Morning Routine") with one habit ("Brush Teeth"), completed it once — reproduced the exact reported scenario. Hero chip and Manage-modal both correctly showed ☆☆☆☆☆ / "(100% of 1 · 1 day tracked)" instead of the bugged 5★. Zero console errors throughout. Dev save reset to pristine first-run state after verification.
+
 ## 2026-07-21 — Art direction locked: pixel art stays; slider-coupled parallax in; camera tilt out (Cowork session, Fable)
 
 **Decision (three calls, made together):**

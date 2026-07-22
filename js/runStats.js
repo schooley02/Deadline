@@ -104,8 +104,8 @@ const RunStats = (() => {
      *   runNumber, startedAtMs, endedAtMs, daysSurvived,
      *   endReason,                       // 'base_destroyed' (enum-ready)
      *   definedRoutines, definedHabits,  // live defs at death
-     *   completionRate(routine, definedHabits, windowStartMs),  // Heroes.*
-     *   starRating(rate),                // tiers pre-bound by the caller
+     *   completionRate(routine, definedHabits, windowStartMs),  // Heroes.* (rateWindowSize pre-bound by the caller)
+     *   starRating(rate, distinctDays),  // tiers pre-bound by the caller
      * }
      */
     function finalizeRun(stats, ctx) {
@@ -113,14 +113,16 @@ const RunStats = (() => {
         const windowStartMs = ctx.startedAtMs;
 
         const routines = (ctx.definedRoutines || []).map(routine => {
-            // `cr` is Heroes.completionRate's raw { rate, samples } object (or
-            // null when no collaborator is injected — old damage tests). The
-            // record deliberately stores that whole object as `completionRate`
-            // (persistence.js's 10→11 sweep + the Steady Hands live path read
-            // `.rate` off it). starRating, however, takes the NUMERIC rate —
-            // must unwrap `cr.rate`, matching HeroesView.buildChipViewModel.
-            // The old code passed the object straight in, so `object >= minRate`
-            // was always NaN → every finalized routine stored stars: 0.
+            // `cr` is Heroes.completionRate's raw { rate, samples, distinctDays }
+            // object (or null when no collaborator is injected — old damage
+            // tests). The record deliberately stores that whole object as
+            // `completionRate` (persistence.js's 10→11 sweep + the Steady Hands
+            // live path read `.rate` off it). starRating, however, takes the
+            // NUMERIC rate plus the tenure count — must unwrap `cr.rate`/
+            // `cr.distinctDays`, matching HeroesView.buildChipViewModel. The old
+            // code passed the object straight in as the rate, so `object >=
+            // minRate` was always NaN → every finalized routine stored stars: 0
+            // (session 67's fix); distinctDays was added 2026-07-21.
             const cr = ctx.completionRate
                 ? ctx.completionRate(routine, ctx.definedHabits || [], windowStartMs)
                 : null;
@@ -128,7 +130,7 @@ const RunStats = (() => {
                 routineId: routine.id,
                 name: routine.name,
                 level: typeof routine.level === 'number' ? routine.level : 1,
-                stars: (cr != null && cr.rate != null && ctx.starRating) ? ctx.starRating(cr.rate) : null,
+                stars: (cr != null && cr.rate != null && ctx.starRating) ? ctx.starRating(cr.rate, cr.distinctDays) : null,
                 completionRate: cr,
                 memberDamage: blameRows
                     .filter(row => row.routineId === routine.id)

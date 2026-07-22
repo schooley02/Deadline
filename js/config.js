@@ -152,14 +152,27 @@ const CONFIG = {
     // revive next calendar day at HERO_REVIVE_HEALTH (fork 2, session 41).
     ROUTINE_MAX_HEALTH: 100,
     HERO_REVIVE_HEALTH: 50,
-    // Star tiers (PROJECT_SPEC ~78-83, fixed spec values): completion rate ->
-    // stars, checked high-to-low, first match wins; below 60% (or unrated) = 0.
+    // Rolling occurrence window for the star-rating RATE (2026-07-21 redesign,
+    // see docs/DECISIONS.md and docs/ROUTINES.md) — distinct from
+    // HABIT_RATE_WINDOW's 14 (which feeds the habit points multiplier). A
+    // routine's rate is "how am I doing over my last ~28 recorded
+    // occurrences," not an all-time average that stops moving once a routine
+    // has months of history behind it.
+    HERO_STAR_RATE_WINDOW: 28,
+    // Star tiers (PROJECT_SPEC ~78-83 sets the rate cutoffs; minDays is the
+    // 2026-07-21 addition, see DECISIONS.md). BOTH minRate (over the rolling
+    // window above) AND minDays (distinct calendar days with at least one
+    // recorded occurrence, since routine creation — NOT limited to the
+    // 28-window) must be satisfied; checked high-to-low, first match wins;
+    // below the lowest tier (or unrated) = 0. minDays is what fixes the
+    // reported bug: completing one habit once produced a 100% rate that
+    // instantly cleared the 95% tier with zero track record behind it.
     HERO_STAR_TIERS: [
-        { minRate: 0.95, stars: 5 },
-        { minRate: 0.90, stars: 4 },
-        { minRate: 0.80, stars: 3 },
-        { minRate: 0.70, stars: 2 },
-        { minRate: 0.60, stars: 1 },
+        { minRate: 0.95, minDays: 21, stars: 5 },
+        { minRate: 0.90, minDays: 14, stars: 4 },
+        { minRate: 0.80, minDays: 7, stars: 3 },
+        { minRate: 0.70, minDays: 4, stars: 2 },
+        { minRate: 0.60, minDays: 2, stars: 1 },
     ],
 
     // --- Hero rendering ([P1-UI-006] sub-session 3, 2026-07-19; js/ui/heroes.js) ---

@@ -238,8 +238,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // bare-global reference (same reasoning as every other
             // "collaborator from a later-loading module" in damage.js).
             heroesCompletionRate: (routine, habits, windowStartMs) =>
-                Heroes.completionRate(routine, habits, windowStartMs),
-            heroesStarRating: (rate) => Heroes.starRating(rate, CONFIG.HERO_STAR_TIERS),
+                Heroes.completionRate(routine, habits, windowStartMs, CONFIG.HERO_STAR_RATE_WINDOW),
+            heroesStarRating: (rate, distinctDays) => Heroes.starRating(rate, distinctDays, CONFIG.HERO_STAR_TIERS),
             // Game-over review card (Run history sub-session 4, session 55):
             // GameOverView (js/ui/gameOverView.js) loads after js/damage.js,
             // so it's reached through this pre-bound function — same

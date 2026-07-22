@@ -21,14 +21,18 @@
  * streak-bonus asymmetry bug). Slot enforcement consequences of de-leveling
  * are sub-session 4's grandfathering problem, not this module's.
  *
- * Star ratings (PROJECT_SPEC ~78-83, fixed spec values in
- * CONFIG.HERO_STAR_TIERS): completion rate over the routine's HABIT members'
- * recorded occurrences since max(routine.createdAt, runStartedAtMs). Routine
- * TASKS are deliberately EXCLUDED from the v1 rate: habit occurrenceHistory
- * is the only honest, complete record — routine-task misses are recorded
- * nowhere (rollover drops them without a trace), so any task denominator
- * would be reconstructed guesswork. Logged in DECISIONS.md session 41;
- * revisit when run history lands.
+ * Star ratings (PROJECT_SPEC ~78-83, fixed rate cutoffs in
+ * CONFIG.HERO_STAR_TIERS): a ROLLING window (CONFIG.HERO_STAR_RATE_WINDOW)
+ * of the routine's HABIT members' most recent recorded occurrences since
+ * max(routine.createdAt, runStartedAtMs), gated by a SEPARATE minDays tenure
+ * requirement per tier (2026-07-21 redesign — see docs/DECISIONS.md,
+ * docs/ROUTINES.md; fixes the bug where completing one habit once produced
+ * a 100% rate that instantly cleared the top tier). Routine TASKS are
+ * deliberately EXCLUDED from the v1 rate: habit occurrenceHistory is the
+ * only honest, complete record — routine-task misses are recorded nowhere
+ * (rollover drops them without a trace), so any task denominator would be
+ * reconstructed guesswork. Logged in DECISIONS.md session 41; revisit when
+ * run history lands.
  */
 const Heroes = (() => {
     // XP a routine earns when one of its member items is completed.
@@ -130,49 +134,86 @@ const Heroes = (() => {
     }
 
     /**
-     * Completion rate over the routine's habit members' recorded occurrences
-     * on/after windowStartMs (= max(routine.createdAt, runStartedAtMs),
-     * computed by the caller). Occurrence dates are 'YYYY-MM-DD' strings, so
-     * the comparison is a lexicographic date-string compare (safe for ISO
-     * dates). Excused days (cheat/sick/skip) recorded nothing, so they're
-     * transparent here too — same principle as the freeze counts.
+     * Completion rate + tenure over the routine's habit members' recorded
+     * occurrences on/after windowStartMs (= max(routine.createdAt,
+     * runStartedAtMs), computed by the caller). Occurrence dates are
+     * 'YYYY-MM-DD' strings, so the comparison is a lexicographic date-string
+     * compare (safe for ISO dates). Excused days (cheat/sick/skip) recorded
+     * nothing, so they're transparent here too — same principle as the
+     * freeze counts.
      *
      * Membership: habitDef.routineId (the canonical owner field) OR presence
      * in routine.habitDefinitionIds — belt and suspenders, matching the
      * spawn-selection gate's tolerance of either linkage.
      *
-     * Returns { rate, samples }: rate is null when samples === 0 (a brand-new
-     * routine is UNRATED, not 0%).
+     * 2026-07-21 redesign (docs/DECISIONS.md, docs/ROUTINES.md — fixes the
+     * "one habit, one completion, instant 5★" bug): the RATE is now a
+     * ROLLING window of at most `rateWindowSize` occurrences (most recent
+     * first, merged across every member habit and sorted chronologically —
+     * a routine with several habits doesn't get a stale rate just because
+     * one habit's history is longer than another's), not an all-time
+     * average. `distinctDays` is a SEPARATE tenure count — the number of
+     * distinct calendar days (since windowStartMs) with at least one
+     * recorded occurrence — deliberately NOT limited to the rolling rate
+     * window, since it exists purely to gate how much track record backs
+     * the rate (see starRating below). Omitting rateWindowSize (or passing a
+     * non-positive number) preserves the old all-time-average behavior.
+     *
+     * Returns { rate, samples, distinctDays }: rate is null when samples
+     * === 0 (a brand-new routine is UNRATED, not 0%); samples is the count
+     * actually used for the rate (<= rateWindowSize).
      */
-    function completionRate(routine, definedHabits, windowStartMs) {
+    function completionRate(routine, definedHabits, windowStartMs, rateWindowSize) {
         const memberIds = new Set(routine.habitDefinitionIds || []);
         const windowStart = toLocalDateStr(windowStartMs);
-        let successes = 0;
-        let samples = 0;
+        const entries = [];
 
         (definedHabits || []).forEach(def => {
             if (def.routineId !== routine.id && !memberIds.has(def.id)) return;
             (def.occurrenceHistory || []).forEach(entry => {
                 if (!entry || typeof entry.date !== 'string') return;
                 if (entry.date < windowStart) return;
-                samples++;
-                if (entry.success) successes++;
+                entries.push(entry);
             });
         });
+
+        const distinctDays = new Set(entries.map(e => e.date)).size;
+
+        const sorted = entries.slice().sort((a, b) => {
+            if (a.date < b.date) return -1;
+            if (a.date > b.date) return 1;
+            return 0;
+        });
+        const windowSize = (typeof rateWindowSize === 'number' && rateWindowSize > 0)
+            ? rateWindowSize
+            : Infinity;
+        const windowed = windowSize === Infinity ? sorted : sorted.slice(-windowSize);
+
+        const samples = windowed.length;
+        const successes = windowed.reduce((sum, e) => sum + (e.success ? 1 : 0), 0);
 
         return {
             rate: samples === 0 ? null : successes / samples,
             samples,
+            distinctDays,
         };
     }
 
-    // Star rating for a completion rate. Tiers checked high-to-low, first
-    // match wins (same shape discipline as CONFIG.HABIT_RATE_TIERS). A null
-    // rate (no samples yet) or a rate below the lowest tier is 0 stars.
-    function starRating(rate, tiers) {
+    // Star rating for a completion rate. BOTH minRate (over the caller's
+    // rolling window) AND minDays (distinctDays — the tenure gate added
+    // 2026-07-21, see completionRate above) must be met; tiers checked
+    // high-to-low, first match wins (same shape discipline as
+    // CONFIG.HABIT_RATE_TIERS). A null rate (no samples yet) is 0 stars.
+    // SIGNATURE CHANGED 2026-07-21 (was `starRating(rate, tiers)`, 2 args) —
+    // every in-repo caller/collaborator was updated to the new 3-arg form in
+    // the same session (see docs/DECISIONS.md). A non-numeric distinctDays
+    // is treated as 0 (never clears any real tier's minDays) rather than
+    // throwing, in case anything still passes it loosely.
+    function starRating(rate, distinctDays, tiers) {
         if (rate === null || rate === undefined) return 0;
+        const days = (typeof distinctDays === 'number') ? distinctDays : 0;
         for (const tier of tiers) {
-            if (rate >= tier.minRate) return tier.stars;
+            if (rate >= tier.minRate && days >= (tier.minDays || 0)) return tier.stars;
         }
         return 0;
     }

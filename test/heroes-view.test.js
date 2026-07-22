@@ -201,7 +201,11 @@ describe('buildChipViewModel', () => {
         expect(vm.state).toBe('active');
         expect(vm.emoji).toBe(CONFIG.CATEGORY_EMOJI.health);
         expect(vm.initial).toBeNull();
-        expect(vm.stars).toBeGreaterThan(0); // 7/7 = 100% success, well above the top tier
+        // 7/7 = 100% success clears every rate cutoff; 7 distinct days of
+        // tenure clears the 3★ tier's minDays (7) but not 4★'s (14) — see
+        // the 2026-07-21 tenure-gate redesign (docs/DECISIONS.md).
+        expect(vm.stars).toBe(3);
+        expect(vm.rateDistinctDays).toBe(7);
     });
 
     test('an unrated brand-new routine (no occurrence samples) gets 0 stars, not a crash', () => {

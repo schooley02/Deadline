@@ -107,8 +107,8 @@ const HeroesView = (() => {
     // Pure per-routine view model — no DOM, fully unit-testable.
     function buildChipViewModel(routine, definedHabits, config, runStartedAtMs) {
         const windowStartMs = Math.max(routine.createdAt || 0, runStartedAtMs || 0);
-        const rate = Heroes.completionRate(routine, definedHabits, windowStartMs);
-        const stars = Heroes.starRating(rate.rate, config.HERO_STAR_TIERS);
+        const rate = Heroes.completionRate(routine, definedHabits, windowStartMs, config.HERO_STAR_RATE_WINDOW);
+        const stars = Heroes.starRating(rate.rate, rate.distinctDays, config.HERO_STAR_TIERS);
         const maxHealth = config.ROUTINE_MAX_HEALTH || 0;
         const health = (typeof routine.health === 'number') ? routine.health : maxHealth;
         const healthPct = maxHealth > 0 ? Math.max(0, Math.min(1, health / maxHealth)) : 0;
@@ -125,6 +125,7 @@ const HeroesView = (() => {
             stars,
             rate: rate.rate,
             rateSamples: rate.samples,
+            rateDistinctDays: rate.distinctDays,
             health,
             healthPct,
             state: deriveState(routine),
@@ -228,7 +229,7 @@ const HeroesView = (() => {
 
             const rateOf = (r) => {
                 const windowStartMs = Math.max(r.createdAt || 0, runStartedAtMs || 0);
-                const rate = Heroes.completionRate(r, definedHabits, windowStartMs).rate;
+                const rate = Heroes.completionRate(r, definedHabits, windowStartMs, config.HERO_STAR_RATE_WINDOW).rate;
                 return rate === null ? -1 : rate;
             };
             const rateDiff = rateOf(b) - rateOf(a);

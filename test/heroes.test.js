@@ -163,11 +163,11 @@ describe('completionRate — habit members only, occurrences on/after the window
     const routine = { id: 'r1', habitDefinitionIds: ['h2'] };
     const windowStart = new Date(2026, 6, 10, 0, 0, 0).getTime(); // Jul 10 2026 local
 
-    test('no members / no occurrences → null rate, 0 samples (unrated, not 0%)', () => {
-        expect(Heroes.completionRate(routine, [], windowStart)).toEqual({ rate: null, samples: 0 });
+    test('no members / no occurrences → null rate, 0 samples, 0 distinct days (unrated, not 0%)', () => {
+        expect(Heroes.completionRate(routine, [], windowStart)).toEqual({ rate: null, samples: 0, distinctDays: 0 });
     });
 
-    test('counts successes over samples for habits owned via routineId', () => {
+    test('counts successes over samples for habits owned via routineId; distinctDays = unique dates', () => {
         const habits = [{
             id: 'h1', routineId: 'r1',
             occurrenceHistory: [
@@ -177,7 +177,8 @@ describe('completionRate — habit members only, occurrences on/after the window
                 { date: '2026-07-18', success: true },
             ],
         }];
-        expect(Heroes.completionRate(routine, habits, windowStart)).toEqual({ rate: 0.75, samples: 4 });
+        expect(Heroes.completionRate(routine, habits, windowStart))
+            .toEqual({ rate: 0.75, samples: 4, distinctDays: 4 });
     });
 
     test('membership via habitDefinitionIds also counts (belt and suspenders, matching spawn gating)', () => {
@@ -196,7 +197,8 @@ describe('completionRate — habit members only, occurrences on/after the window
                 { date: '2026-07-15', success: true },
             ],
         }];
-        expect(Heroes.completionRate(routine, habits, windowStart)).toEqual({ rate: 1, samples: 1 });
+        expect(Heroes.completionRate(routine, habits, windowStart))
+            .toEqual({ rate: 1, samples: 1, distinctDays: 1 });
     });
 
     test('a non-member habit contributes nothing', () => {
@@ -206,23 +208,121 @@ describe('completionRate — habit members only, occurrences on/after the window
         }];
         expect(Heroes.completionRate(routine, habits, windowStart).samples).toBe(0);
     });
+
+    // 2026-07-21 redesign (docs/DECISIONS.md): the rate is a ROLLING window
+    // of at most `rateWindowSize` occurrences, most-recent-first, merged
+    // across every member habit — this is the fix for a routine with
+    // multiple habits not getting a stale rate off whichever habit has the
+    // longest history.
+    describe('rolling rate window (rateWindowSize)', () => {
+        test('more occurrences than the window size only counts the most recent N', () => {
+            const habits = [{
+                id: 'h1', routineId: 'r1',
+                occurrenceHistory: [
+                    { date: '2026-07-15', success: false },
+                    { date: '2026-07-16', success: false },
+                    { date: '2026-07-17', success: true },
+                    { date: '2026-07-18', success: true },
+                ],
+            }];
+            // window of 2 → only the last two (both success) count, even
+            // though the all-time rate (2/4 = 50%) would be worse.
+            expect(Heroes.completionRate(routine, habits, windowStart, 2))
+                .toEqual({ rate: 1, samples: 2, distinctDays: 4 });
+        });
+
+        test('merges + sorts across multiple member habits before windowing', () => {
+            const habits = [
+                {
+                    id: 'h1', routineId: 'r1',
+                    occurrenceHistory: [
+                        { date: '2026-07-15', success: false },
+                        { date: '2026-07-17', success: true },
+                    ],
+                },
+                {
+                    id: 'h2', routineId: null, // membership via habitDefinitionIds
+                    occurrenceHistory: [
+                        { date: '2026-07-16', success: false },
+                        { date: '2026-07-18', success: true },
+                    ],
+                },
+            ];
+            // Chronological merge: 15(F) 16(F) 17(T) 18(T). Window of 2 keeps
+            // 17+18 → 100%, even though neither habit alone looks that good.
+            expect(Heroes.completionRate(routine, habits, windowStart, 2))
+                .toEqual({ rate: 1, samples: 2, distinctDays: 4 });
+        });
+
+        test('omitting rateWindowSize preserves the old all-time-average behavior', () => {
+            const habits = [{
+                id: 'h1', routineId: 'r1',
+                occurrenceHistory: [
+                    { date: '2026-07-15', success: false },
+                    { date: '2026-07-16', success: true },
+                ],
+            }];
+            expect(Heroes.completionRate(routine, habits, windowStart))
+                .toEqual({ rate: 0.5, samples: 2, distinctDays: 2 });
+        });
+
+        test('distinctDays is NOT limited to the rolling rate window (tenure spans full history)', () => {
+            const habits = [{
+                id: 'h1', routineId: 'r1',
+                occurrenceHistory: [
+                    { date: '2026-07-15', success: true },
+                    { date: '2026-07-16', success: true },
+                    { date: '2026-07-17', success: true },
+                    { date: '2026-07-18', success: true },
+                ],
+            }];
+            const result = Heroes.completionRate(routine, habits, windowStart, 2);
+            expect(result.samples).toBe(2); // rate windowed to 2
+            expect(result.distinctDays).toBe(4); // tenure sees all 4
+        });
+    });
 });
 
-describe('starRating — spec tiers 60/70/80/90/95 (PROJECT_SPEC ~78-83)', () => {
+describe('starRating — spec rate cutoffs 60/70/80/90/95 (PROJECT_SPEC ~78-83) gated by minDays tenure (2026-07-21)', () => {
     const tiers = CONFIG.HERO_STAR_TIERS;
+
     test.each([
-        [null, 0],
-        [0.59, 0],
-        [0.60, 1],
-        [0.69, 1],
-        [0.70, 2],
-        [0.80, 3],
-        [0.90, 4],
-        [0.949, 4],
-        [0.95, 5],
-        [1, 5],
-    ])('rate %p → %p stars', (rate, stars) => {
-        expect(Heroes.starRating(rate, tiers)).toBe(stars);
+        [null, 999, 0],
+        [0.59, 999, 0],
+        [0.60, 999, 1],
+        [0.69, 999, 1],
+        [0.70, 999, 2],
+        [0.80, 999, 3],
+        [0.90, 999, 4],
+        [0.949, 999, 4],
+        [0.95, 999, 5],
+        [1, 999, 5],
+    ])('rate %p with ample tenure (%p days) → %p stars', (rate, days, stars) => {
+        expect(Heroes.starRating(rate, days, tiers)).toBe(stars);
+    });
+
+    // The reported bug: one habit, one completion, 100% rate, effectively no
+    // track record — must stay unrated (0★), not jump straight to 5★.
+    test('a perfect rate with only 1 day of tenure is 0 stars, not 5', () => {
+        expect(Heroes.starRating(1, 1, tiers)).toBe(0);
+    });
+
+    test.each([
+        [0, 0], [1, 0], [2, 1], [3, 1], [4, 2], [6, 2], [7, 3],
+        [13, 3], [14, 4], [20, 4], [21, 5], [100, 5],
+    ])('a perfect rate gated purely by tenure: %p distinct days → %p stars', (days, stars) => {
+        expect(Heroes.starRating(1, days, tiers)).toBe(stars);
+    });
+
+    test('a high rate but insufficient tenure for that tier falls back to a LOWER tier it does qualify for', () => {
+        // 96% clears the 5★ rate cutoff, but only 10 days tracked — falls
+        // back through 4★ (needs 14, fails) to 3★ (needs 7, passes).
+        expect(Heroes.starRating(0.96, 10, tiers)).toBe(3);
+    });
+
+    test('non-numeric distinctDays is treated as 0 tenure', () => {
+        expect(Heroes.starRating(1, undefined, tiers)).toBe(0);
+        expect(Heroes.starRating(1, null, tiers)).toBe(0);
     });
 });
 

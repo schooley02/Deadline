@@ -532,10 +532,15 @@ const RoutineViews = (() => {
     // 2026-07-19). Pure HTML-string builder off the chip view model —
     // vm.rate is null (UNRATED, not 0%) until a member habit has at least one
     // recorded occurrence inside the rating window.
+    // 2026-07-21: appends the distinct-days tenure count alongside the rate
+    // (docs/DECISIONS.md) — otherwise a routine sitting at, say, 100%/1
+    // sample with 0 stars looks like a display bug rather than "not enough
+    // track record yet" (the tenure gate CONFIG.HERO_STAR_TIERS' minDays
+    // enforces).
     function buildCompletionRateLabel(vm) {
         const text = vm.rate === null || vm.rate === undefined
             ? 'unrated'
-            : `${Math.round(vm.rate * 100)}% of ${vm.rateSamples}`;
+            : `${Math.round(vm.rate * 100)}% of ${vm.rateSamples} · ${vm.rateDistinctDays} day${vm.rateDistinctDays === 1 ? '' : 's'} tracked`;
         return ` <span style="font-size: 11px; color: var(--color-neutral);">(${text})</span>`;
     }
 

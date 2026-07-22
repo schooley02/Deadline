@@ -24,7 +24,18 @@ the session-36 "no XP while frozen" no-op is now real). Uncompletion refunds EXA
 `item.routineXpAwarded` stamp, and level is DERIVED from xp (can de-level on refund — perfect
 round-trip by construction). Star ratings (`completionRate`/`starRating`, spec tiers 60-95% → 1-5★,
 HABIT members only in v1 — routine-task misses are recorded nowhere, so no honest task denominator
-exists) built in this sub-session; rendered in sub-session 3. Routine health damage/KO is
+exists) built in this sub-session; rendered in sub-session 3. **Redesigned 2026-07-21** (found via
+Jeremy's phone playtest: completing ONE habit once instantly rated a brand-new routine 5★ — see
+DECISIONS.md): `completionRate` now returns a rate over a ROLLING window of the most recent
+`CONFIG.HERO_STAR_RATE_WINDOW` (28) occurrences across ALL member habits merged/sorted
+chronologically, not an all-time average — plus a separate `distinctDays` tenure count (distinct
+calendar days with a recorded occurrence, since routine creation, NOT limited to the 28-window).
+`starRating` now requires BOTH the tier's `minRate` (spec's 60/70/80/90/95%, unchanged) AND its
+`minDays` (2/4/7/14/21 for 1★-5★) — a perfect rate with no track record stays unrated. No schema
+change (both numbers derive from existing `occurrenceHistory`, same "derive don't store" precedent
+as banked slot points). The Manage-modal completion-% label now also shows the tenure count
+(`"67% of 3 · 3 days tracked"`) so a low-star routine with a high % reads as "needs more track
+record," not a bug. Routine health damage/KO is
 sub-session 2. Slot capacity/enforcement (originally sketched here as a symmetric +1/+1 model) was
 SUPERSEDED by banked slot points in sub-session 4 before it ever shipped — see below.
 

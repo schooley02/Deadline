@@ -63,8 +63,8 @@
  *   setRunHistory,               // (arr) -> void        used by gameOver's finalize)
  *   getDefinedRoutines,          // () -> routine[]  (optional; per-routine rollup)
  *   getDefinedHabits,            // () -> habitDef[] (optional; per-routine rollup)
- *   heroesCompletionRate,        // (routine, habits, windowStartMs) -> rate|null
- *   heroesStarRating,            // (rate) -> stars|null   (both optional — Heroes.*
+ *   heroesCompletionRate,        // (routine, habits, windowStartMs) -> {rate,samples,distinctDays}|null
+ *   heroesStarRating,            // (rate, distinctDays) -> stars|null   (both optional — Heroes.*
  *                                //   pre-bound in script.js since Heroes loads
  *                                //   after this module)
  *   renderGameOverReview,        // ({gameOverMessage, record, daysSurvived}) -> void

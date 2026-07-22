@@ -122,7 +122,11 @@ describe('buildHeroStatsHtml', () => {
         expect(html).toContain('(unrated)');
     });
 
-    test('shows the live completion % and sample count once occurrences exist', () => {
+    // 2026-07-21: label also carries the distinct-days tenure count
+    // (docs/DECISIONS.md) — the number now reads "(67% of 3 · 3 days
+    // tracked)" so a low/zero star rating alongside a high % doesn't look
+    // like a bug (it's the tenure gate, not a broken percentage).
+    test('shows the live completion %, sample count, and tenure days once occurrences exist', () => {
         const r = routine({ habitDefinitionIds: ['h1'], createdAt: 0 });
         const habits = [{ id: 'h1', routineId: 'r1', category: 'health', occurrenceHistory: [
             { date: '2026-07-10', success: true },
@@ -130,7 +134,7 @@ describe('buildHeroStatsHtml', () => {
             { date: '2026-07-12', success: false },
         ] }];
         const html = RoutineViews.buildHeroStatsHtml(r, habits, 0);
-        expect(html).toContain('(67% of 3)');
+        expect(html).toContain('(67% of 3 · 3 days tracked)');
     });
 });
 
