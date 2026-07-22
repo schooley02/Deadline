@@ -1326,8 +1326,22 @@ const Items = (() => {
             item.x = deps.calculateTimelineXWithClustering(item, now);
             if (item.element) item.element.style.left = Math.max(deps.baseWidth, item.x) + 'px';
         } else if (!item.isOverdue && shouldBeOverdue) {
-            // Pulled into the past: it's overdue starting now.
+            // Pulled into the past: it's overdue starting now. markAsOverdue
+            // parks the damage clock at the DUE time (see its own comment) —
+            // for an edit that pulls a due date hours/days into the past,
+            // the live loop would then replay every missed interval at one
+            // per 50ms tick (found 2026-07-20, visual-audit session: a
+            // same-day 10PM->9AM edit dealt -92 HP in seconds). Design
+            // decision (Jeremy, Fable, same session — see DECISIONS.md): an
+            // edit is a bookkeeping correction, not evidence of an attack
+            // the player dodged, so NOTHING is back-charged — start the
+            // clock at the edit landing instead, matching the
+            // created-already-overdue precedent in spawning.js. Live damage
+            // from this point forward stays uncapped/unbounded by design —
+            // this only removes the retroactive back-charge, not ongoing
+            // pressure.
             markAsOverdue(item, now, deps);
+            item.lastDamageTickTime = now.getTime();
             item.x = deps.baseWidth + deps.getSubTaskClusterOffset(item);
             if (item.element) item.element.style.left = item.x + 'px';
         }
