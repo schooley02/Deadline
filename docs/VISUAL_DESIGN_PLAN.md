@@ -105,12 +105,23 @@ Nothing broken; zero game identity. Category chips already use ART_STYLE.md's pa
 
 ## Execution sessions (all Sonnet unless noted; one per session, commit each)
 
-- [ ] **V1 — Graveyard atmosphere** (`css/gameCanvas.css`, `index.html` for prop SVGs or a
-  new `Assets/scene/` SVG file): sky/ground layers, ground band, silhouette props, midnight
-  line restyled as a gate/fence break in the scenery. Zombies bottom-aligned to the ground
-  band (CSS only — verify `getItemTopPosition`'s lane offsets still separate clusters;
-  if the lane math itself must change, STOP and split a follow-up, that's movement.js).
-  Fog/animation gated fx-intensity + reduced-motion. Biggest identity win, do first.
+- [x] **V1 — Graveyard atmosphere** (2026-07-21, Cowork session, Sonnet) (`css/gameCanvas.css`,
+  `index.html` — inline SVG props, no new `Assets/scene/` file needed): sky/ground layers, ground
+  band, silhouette props (hill, 3 bare trees, fence, 3 tombstones, moon), midnight line restyled
+  as a gate/fence break, slider-coupled parallax (clouds fastest, silhouettes slower, ground
+  fixed — `--scene-progress` set by `js/ui/timeSliderView.js`), idle cloud drift + fog gated
+  behind fx-intensity + reduced-motion. **Found + fixed live in Chrome:** the negative-z-index
+  scene layers were invisible until `#gameCanvas` got `z-index: 0` to establish its own stacking
+  context — see `docs/UI_UX.md`'s new section for the full mechanism (general gotcha for any
+  future negative-z decorative layer). **Zombies bottom-aligned to the ground band: NOT done —
+  split off per this task's own stop condition.** `Movement.getItemTopPosition` randomizes a
+  top-level item's vertical position across the FULL canvas height, not a band; narrowing that
+  range is real lane-math (affects multi-item overlap), which is exactly what this task said to
+  stop and split rather than change unilaterally. The visual ground band is ready; next session
+  needs a small `movement.js` change to actually put zombies on it — logged in ROADMAP.
+  Live-verified in Chrome against Jeremy's real `node server.js`: desktop + 390×844 (no page
+  overflow), parallax transform confirmed across the full 0–1439 minute range, fx-off/fx-reduced
+  correctly stop idle animations, hero-chip zone unchanged, zero console errors.
 - [ ] **V2 — State-indicator redesign** (`css/enemyStatus.css`, `css/enemySprites.css`):
   drop-shadow glows replace all rectangle borders (priority/overdue/lurker/habit/sub-task/
   preview-ghost). Requires a DECISIONS.md entry superseding the intentional-dashed-border

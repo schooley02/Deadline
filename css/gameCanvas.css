@@ -101,8 +101,227 @@
     width: 100%;
     height: 100%;
     position: relative;
-    background: linear-gradient(135deg, #87CEEB 0%, #98D8C8 50%, #8FBC8F 100%);
+    /* z-index:0 is required here, not decorative — without it #gameCanvas
+       doesn't establish its own stacking context, so .graveyard-scene's
+       negative-z-index children (below) escape UPWARD past #gameCanvas
+       entirely instead of painting behind #base/#midnightLine/.enemy as
+       intended (found live in Chrome, 2026-07-21: the scene layers existed
+       in the DOM with correct rects/colors but never appeared on screen). */
+    z-index: 0;
+    /* Dark fallback (was the old daytime teal/green gradient) — only
+       visible for an instant before .graveyard-scene paints over it, or if
+       JS fails to run at all. overflow stays visible: enemies/hero chips
+       intentionally render slightly outside these bounds elsewhere. */
+    background: #0b0b24;
     overflow: visible;
+}
+
+/* Graveyard atmosphere (V1, 2026-07-21 — docs/VISUAL_DESIGN_PLAN.md).
+   Sky -> clouds -> silhouettes -> ground, all negative z-index so they
+   paint behind #gameCanvas's own background but below every existing
+   auto-stacked child (#base, #heroBaseZone, #midnightLine, .enemy) with
+   NO changes to those elements' own z-index. Confined to its own
+   overflow:hidden box so parallax translateX never affects #gameCanvas's
+   overflow:visible behavior for sprites/hero chips. Purely decorative —
+   aria-hidden in the markup. */
+.graveyard-scene {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.scene-layer {
+    position: absolute;
+    inset: 0;
+    width: 112%;
+    left: -6%;
+}
+
+.scene-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* Sky: night gradient + a static moon (glow via box-shadow, no asset). */
+.scene-sky {
+    z-index: -4;
+    background: linear-gradient(180deg, #0b0b24 0%, #171735 35%, #2b2a4a 68%, #3d3a5c 100%);
+}
+
+.scene-sky::after {
+    content: "";
+    position: absolute;
+    top: 10%;
+    right: 12%;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fffdf2 0%, #f6f0d4 55%, #ddd6ab 100%);
+    box-shadow: 0 0 24px 10px rgba(253, 251, 232, 0.5), 0 0 50px 18px rgba(253, 251, 232, 0.15);
+}
+
+/* Clouds: fastest parallax layer. Outer div carries the slider-driven
+   transform (--scene-progress, set by js/ui/timeSliderView.js); the inner
+   .scene-clouds-drift carries a SEPARATE idle animation so the two
+   transforms never fight on the same property/element.
+   2026-07-21 tuning pass (Jeremy: clouds too faint, parallax too subtle) —
+   rate bumped -9% -> -18% (roughly doubled) and the cloud gradients made
+   bigger/brighter/more numerous so the faster movement actually has
+   something visible to carry it. */
+.scene-clouds {
+    z-index: -3;
+    /* Wider than the shared .scene-layer 112%/-6% margin — needed once the
+       rate went to -18% (max single-direction shift is now 9%, which would
+       otherwise reveal a gap at the canvas edge at the extremes of the
+       slider). */
+    width: 130%;
+    left: -15%;
+    transform: translateX(calc((var(--scene-progress, 0.5) - 0.5) * -18%));
+    transition: transform 0.15s linear;
+}
+
+.scene-clouds-drift {
+    position: absolute;
+    inset: 0;
+    /* True infinite wrap (2026-07-21, Jeremy: clouds should sail off the
+       right edge and reappear on the left, not wiggle back and forth in
+       place) — animating `transform: translateX` can't do this cleanly
+       without either an oversized box (the previous 140%/-20% approach) or
+       a visible pop when it resets. Animating `background-position` on a
+       REPEATING tile instead: once the position has moved exactly one tile
+       width, the pattern is pixel-identical to its start, so the loop has
+       no seam and needs no extra box sizing. */
+    background-repeat: repeat-x;
+    /* Tile widened 500px -> 1100px and down to 2 shapes per tile (2026-07-21,
+       Jeremy: repeat-x at the old 500px tile with 4 shapes tiled into too
+       many clouds at once across a wide canvas). */
+    background-size: 1100px 100%;
+    /* Brightened again (2026-07-21, Jeremy) on top of the earlier tuning
+       pass. Positions are percentages of ONE 1100px tile, not the whole
+       canvas. */
+    background-image:
+        radial-gradient(ellipse 150px 32px at 15% 20%, rgba(255, 255, 255, 0.32), transparent 74%),
+        radial-gradient(ellipse 190px 36px at 65% 14%, rgba(255, 255, 255, 0.26), transparent 74%);
+    /* 70s -> 12s -> 7s (two rounds of speed feedback) -> 15s now that the
+       tile widened 500px -> 1100px (2026-07-21) — scaled up proportionally
+       so px/sec on-screen speed stays exactly what Jeremy just approved;
+       this round was about cloud COUNT, not pace. */
+    animation: cloud-idle-drift 15s linear infinite;
+}
+
+/* Drifts right ("wind" direction, Jeremy's call) while idle. Paused via
+   .parallax-scrubbing (js/ui/timeSliderView.js toggles this on #graveyardScene
+   for the duration of an active scrub) so the idle drift and the slider-driven
+   parallax transform on the PARENT .scene-clouds never visually fight each
+   other — positions lock in place, only the parallax offset moves, exactly
+   like Jeremy described. */
+.parallax-scrubbing .scene-clouds-drift {
+    animation-play-state: paused;
+}
+
+@keyframes cloud-idle-drift {
+    from { background-position: 0 0; }
+    to { background-position: 1100px 0; }
+}
+
+/* Far silhouettes (hill + bare trees): slower parallax than clouds.
+   2026-07-21 tuning pass: -3% -> -7%, keeping it clearly behind the
+   clouds' rate while still reading as motion on its own. */
+.scene-silhouettes {
+    z-index: -2;
+    transform: translateX(calc((var(--scene-progress, 0.5) - 0.5) * -7%));
+    transition: transform 0.15s linear;
+}
+
+.scene-hill {
+    fill: #141426;
+}
+
+.scene-tree {
+    stroke: #0d0d1a;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+/* Ground band. EXPERIMENTAL (2026-07-21, testing live per Jeremy's request)
+   — was fixed/no-transform per the original art-direction decision ("ground
+   fixed" sells depth against the faster layers above it). Jeremy's
+   observation: zombies stand on this band and visually move as you scrub,
+   so a perfectly static ground under them can read as sliding rather than
+   walking. Real-world parallax also runs this direction anyway — the
+   CLOSEST layer to the viewer should move the MOST, not stay still; "ground
+   fixed" was a deliberate stylization, not physical accuracy. Given the
+   fastest rate of all the layers here as a first pass (zombies don't move
+   at one uniform rate — due-time-based, not a simple function of slider
+   position — so this is tuned to roughly match rather than derived exactly).
+   If this sticks, log it in DECISIONS.md as superseding the prior call. */
+.scene-ground {
+    z-index: -1;
+    top: auto;
+    bottom: 0;
+    height: 24%;
+    min-height: 44px;
+    width: 130%;
+    left: -15%;
+    transform: translateX(calc((var(--scene-progress, 0.5) - 0.5) * -22%));
+    transition: transform 0.15s linear;
+}
+
+.scene-ground-fill {
+    fill: #0f1f14;
+}
+
+.scene-fence {
+    stroke: #0a0a0a;
+    stroke-width: 2;
+}
+
+.scene-fence-post {
+    stroke-width: 3;
+}
+
+.scene-tombstone {
+    fill: #1a1a1a;
+}
+
+/* Fog: slow ambient drift over the ground band, gated behind the existing
+   fx-intensity setting (js/settings.js body classes) + prefers-reduced-
+   motion, same pattern as css/enemyStatus.css's streak-fire/walk-bob
+   effects. */
+.scene-ground::before {
+    content: "";
+    position: absolute;
+    left: -20%;
+    right: -20%;
+    top: -30%;
+    height: 70%;
+    background:
+        radial-gradient(ellipse 60% 100% at 30% 50%, rgba(220, 230, 235, 0.10), transparent 70%),
+        radial-gradient(ellipse 50% 100% at 70% 60%, rgba(220, 230, 235, 0.08), transparent 70%);
+    animation: fog-drift 22s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes fog-drift {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(6%); }
+}
+
+.fx-reduced .scene-clouds-drift,
+.fx-off .scene-clouds-drift,
+.fx-reduced .scene-ground::before,
+.fx-off .scene-ground::before {
+    animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .scene-clouds-drift,
+    .scene-ground::before {
+        animation: none;
+    }
 }
 
 /* Base (Church) */
@@ -138,29 +357,47 @@
     50% { filter: brightness(1.5) hue-rotate(0deg) saturate(2); }
 }
 
-/* Midnight Line */
+/* Midnight Line — restyled V1 (2026-07-21) as a gate/fence break in the
+   scenery rather than an alarm-red hairline: a dark iron post with a warm
+   lantern glow at the top. Functionally unchanged — js/clock.js only ever
+   touches .style.left/.style.display, never color, so this is CSS-only. */
 #midnightLine {
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 3px;
-    background: linear-gradient(180deg, #ff6b6b 0%, #ff4757 50%, #ff3838 100%);
-    box-shadow: 0 0 10px rgba(255, 107, 107, 0.6), 0 0 20px rgba(255, 107, 107, 0.4);
+    width: 4px;
+    background: linear-gradient(180deg, #34302a 0%, #1c1a16 55%, #0d0c0a 100%);
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.7);
     z-index: 5;
-    opacity: 0.9;
+    opacity: 0.95;
+}
+
+/* Lantern glow at the top of the post — keeps a warm "boundary" cue
+   without the old shouting red line. */
+#midnightLine::after {
+    content: "";
+    position: absolute;
+    left: -3px;
+    right: -3px;
+    top: 0;
+    height: 8px;
+    border-radius: 2px;
+    background: radial-gradient(circle, #ffb347 0%, #ff8c42 60%, rgba(255, 140, 66, 0) 100%);
+    box-shadow: 0 0 10px 3px rgba(255, 140, 66, 0.55);
 }
 
 #midnightLine::before {
     content: "MIDNIGHT";
     position: absolute;
-    top: 10px;
-    left: 8px;
-    font-size: 10px;
+    top: 16px;
+    left: 7px;
+    font-size: 9px;
     font-weight: bold;
-    color: #ff4757;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.6);
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
     writing-mode: vertical-lr;
     text-orientation: mixed;
+    letter-spacing: 1px;
 }
 
 /* Message Overlays */

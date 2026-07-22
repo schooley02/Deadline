@@ -98,6 +98,57 @@ children's minimum widths, not the container's available width:
 Verified with `getBoundingClientRect`/`scrollWidth` checks (no li/container overflow at 390px) via
 a same-origin iframe injected at 390×844 into Jeremy's live `node server.js`, not just visually.
 
+## Game canvas — graveyard atmosphere (V1, 2026-07-21)
+`#gameCanvas` (`css/gameCanvas.css`, `index.html`) gained a `.graveyard-scene` layer stack behind
+`#base`/`#heroBaseZone`/`#midnightLine`/`.enemy`: night-sky gradient + static moon glow, a faint
+cloud layer, a far hill + three bare-tree silhouettes (inline SVG), and a fixed ground band with a
+fence + three tombstone silhouettes (inline SVG). All decorative/`aria-hidden`. Matches
+`docs/ART_STYLE.md`'s "pixel art / cartoonish, playful, slightly eerie graveyard — never grim" —
+low-detail silhouettes only; V4 will regenerate the pixel-art church into this scene later.
+
+**Slider-coupled parallax** (2026-07-21 art-direction decision): `js/ui/timeSliderView.js` sets a
+`--scene-progress` CSS custom property (0–1, minutes-of-day / MINUTES_PER_DAY) on `#graveyardScene`
+on every live tick (`syncHandle`) and scrub (`handleScrubInput`) — NOT threaded through the deps
+contract like the rest of that module, since it's a purely decorative DOM query with no game-state
+coupling (matches the direct `document.getElementById` precedent already used throughout
+`js/ui/*.js`; missing element no-ops). `.scene-clouds`/`.scene-silhouettes` read it via
+`translateX(calc((var(--scene-progress, 0.5) - 0.5) * rate))` (clouds fastest, silhouettes slower);
+`.scene-ground` is deliberately NOT transformed (fixed — the differential against the moving layers
+above it is what sells the depth). No rotate transforms anywhere (camera tilt was rejected,
+DECISIONS.md 2026-07-21). Idle cloud drift + ground fog are separate CSS keyframe animations (own
+element/pseudo-element, so they never fight the parallax `transform` on the same property), gated
+behind `fx-off`/`fx-reduced` (`js/settings.js` body classes) + `prefers-reduced-motion`, same
+pattern as `css/enemyStatus.css`'s streak-fire/walk-bob effects.
+
+**Stacking-context gotcha (found live in Chrome this session):** the scene layers use NEGATIVE
+z-index (-4 to -1) so they paint behind `#gameCanvas`'s own auto-stacked children without touching
+those elements' z-index. This only works if `#gameCanvas` itself establishes a stacking context —
+it didn't (plain `position: relative`, no `z-index`), so the negative-z children escaped upward
+past `#gameCanvas` entirely and never appeared on screen, even though their computed styles/rects
+were all correct. Fixed by adding `z-index: 0` to `#gameCanvas`. Flagging as a general pattern: any
+future negative-z-index decorative layer needs its positioned ancestor to have an explicit
+non-auto `z-index` too, or repeat this exact silent-failure mode.
+
+**Midnight line restyle:** `#midnightLine` (`css/gameCanvas.css`) changed from a red alarm hairline
+to a dark iron gate-post with a warm lantern glow at the top — reads as scenery ("a gate/fence break
+in the graveyard") rather than a warning stripe. Purely CSS; `js/clock.js`'s `updateMidnightLine`
+only ever touches `.style.left`/`.style.display`, never color, so no JS changes were needed.
+
+**Deferred (NOT done this session — see ROADMAP):** "zombies stand on the ground band" is only
+partially true today. `Movement.getItemTopPosition` still randomizes a top-level item's vertical
+position across the FULL canvas height (`canvasHeight - itemHeight`), not a narrow bottom band —
+changing that range is real lane-math (affects multi-item overlap), which the ROADMAP task itself
+flagged as a stop-and-split condition. The visual ground band is real and ready; the next small
+`movement.js` session needs to narrow the random range to sit on it.
+
+Live-verified in Chrome against Jeremy's real `node server.js`: scene renders correctly at desktop
+width and at 390×844 (same-origin iframe recipe, no page-level overflow — `.graveyard-scene`
+itself is `overflow: hidden` by design, so its own `scrollWidth > clientWidth` is expected and not
+a bug); `--scene-progress` and the resulting `translateX` verified across the full 0–1439 minute
+range (ground transform stayed `none` throughout); `fx-off`/`fx-reduced` correctly stop both idle
+animations, default leaves them running; hero-chip zone (base's leftmost 120px) unchanged; zero
+console errors beyond the standard Chrome-extension message-channel noise.
+
 ## Windows & Modals — unified behavior ([P2-UI-011] Stage 1, session 61, 2026-07-19)
 Two window systems share one behavior layer (`js/ui/modal.js`, wired via `Modal.initDismissHandlers`/`initFocusManagement` in script.js):
 - **Management windows** (FAB-opened Tasks/Habits/Routines/Shop/Stats/Settings panels) and **modal overlays** (form/popup `.modal-overlay`s) both close on ESC and outside/backdrop click.

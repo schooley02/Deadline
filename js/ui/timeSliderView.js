@@ -68,6 +68,28 @@
 const TimeSliderView = (() => {
     let deps = null;
 
+    // Graveyard scene parallax (V1, 2026-07-21 — docs/VISUAL_DESIGN_PLAN.md).
+    // Deliberately NOT threaded through the deps contract like the rest of
+    // this module: it's a purely decorative, non-game-state DOM query
+    // (matches the direct document.getElementById precedent already used
+    // throughout js/ui/*.js), so a missing element (jsdom tests, or a stale
+    // index.html) just no-ops rather than needing a fake collaborator in
+    // every existing test's makeDeps(). Cached once in init() rather than
+    // re-queried on every tick/scrub event.
+    let sceneEl = null;
+
+    // --scene-progress drives css/gameCanvas.css's .scene-clouds/.scene-
+    // silhouettes translateX (ground is deliberately left unmoved — "ground
+    // fixed" per the 2026-07-21 art-direction decision). Fed the SAME
+    // minutes-of-day value the slider itself shows, whether that came from
+    // a live tick (syncHandle) or an active scrub (handleScrubInput), so the
+    // scene always reflects whatever time is currently on screen.
+    function updateParallax(minutesOfDay) {
+        if (!sceneEl) return;
+        const progress = minutesOfDay / TimeSlider.MINUTES_PER_DAY;
+        sceneEl.style.setProperty('--scene-progress', progress);
+    }
+
     // Base/routine HP projection at `time` — optional collaborator GROUP
     // (see header). At time === now the projected delta is mathematically
     // zero (see js/timeSlider.js), so calling this on release with "now"
@@ -132,8 +154,10 @@ const TimeSliderView = (() => {
     function syncHandle(time) {
         if (!deps || !deps.sliderEl) return;
         const dayStart = TimeSlider.getDayBounds(time).start;
-        deps.sliderEl.value = TimeSlider.timeToMinutesOfDay(time, dayStart);
+        const minutes = TimeSlider.timeToMinutesOfDay(time, dayStart);
+        deps.sliderEl.value = minutes;
         if (deps.labelEl) deps.labelEl.textContent = TimeSlider.formatLabel(time);
+        updateParallax(minutes);
     }
 
     function handleScrubInput() {
@@ -144,6 +168,12 @@ const TimeSliderView = (() => {
         deps.setTimePreviewActive(true);
         if (deps.labelEl) deps.labelEl.textContent = TimeSlider.formatLabel(previewTime);
         applyPreview(previewTime, true);
+        // .parallax-scrubbing pauses the clouds' idle "wind drift" animation
+        // (css/gameCanvas.css) for the duration of the scrub, so it doesn't
+        // visually fight the slider-driven parallax transform — positions
+        // lock, only the parallax offset moves (Jeremy's call, 2026-07-21).
+        if (sceneEl) sceneEl.classList.add('parallax-scrubbing');
+        updateParallax(minutes);
     }
 
     // Idempotent by design — 'change'/'pointerup'/'touchend'/'blur' can fire
@@ -155,11 +185,13 @@ const TimeSliderView = (() => {
         deps.setTimePreviewActive(false);
         const now = new Date();
         applyPreview(now, false);
+        if (sceneEl) sceneEl.classList.remove('parallax-scrubbing');
         syncHandle(now);
     }
 
     function init(injectedDeps) {
         deps = injectedDeps;
+        sceneEl = (typeof document !== 'undefined') ? document.getElementById('graveyardScene') : null;
         if (!deps.sliderEl) return; // markup missing (e.g. a stale index.html) — degrade silently
 
         deps.sliderEl.min = 0;

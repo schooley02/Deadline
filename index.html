@@ -68,6 +68,65 @@
             
             <!-- Game Canvas with Church Base -->
             <div id="gameCanvas">
+                <!-- Graveyard atmosphere (V1, 2026-07-21 — docs/VISUAL_DESIGN_PLAN.md).
+                     Decorative only (aria-hidden): sky/clouds/silhouettes/ground
+                     layers, all negative z-index so they sit behind #base/
+                     #heroBaseZone/#midnightLine/.enemy without touching those
+                     elements' own stacking. Slider-coupled parallax is applied via
+                     the --scene-progress custom property (js/ui/timeSliderView.js
+                     sets it on #gameCanvas); ground is deliberately NOT translated
+                     (fixed, per the 2026-07-21 art-direction decision). -->
+                <div id="graveyardScene" class="graveyard-scene" aria-hidden="true">
+                    <div class="scene-layer scene-sky"></div>
+                    <div class="scene-layer scene-clouds">
+                        <div class="scene-clouds-drift"></div>
+                    </div>
+                    <div class="scene-layer scene-silhouettes">
+                        <svg class="scene-svg" viewBox="0 0 800 160" preserveAspectRatio="none" focusable="false">
+                            <path class="scene-hill" d="M0,160 L0,112 Q90,86 190,108 Q300,78 410,104 Q540,66 650,100 Q730,84 800,102 L800,160 Z"/>
+                            <g class="scene-tree">
+                                <line x1="70" y1="160" x2="72" y2="96"/>
+                                <line x1="72" y1="120" x2="56" y2="104"/>
+                                <line x1="72" y1="120" x2="88" y2="106"/>
+                                <line x1="72" y1="104" x2="60" y2="92"/>
+                                <line x1="72" y1="104" x2="84" y2="90"/>
+                            </g>
+                            <g class="scene-tree">
+                                <line x1="705" y1="160" x2="707" y2="88"/>
+                                <line x1="707" y1="116" x2="689" y2="98"/>
+                                <line x1="707" y1="116" x2="725" y2="100"/>
+                                <line x1="707" y1="98" x2="693" y2="84"/>
+                                <line x1="707" y1="98" x2="721" y2="82"/>
+                                <line x1="707" y1="98" x2="707" y2="80"/>
+                            </g>
+                            <g class="scene-tree">
+                                <line x1="380" y1="160" x2="381" y2="118"/>
+                                <line x1="381" y1="136" x2="369" y2="124"/>
+                                <line x1="381" y1="136" x2="393" y2="123"/>
+                            </g>
+                        </svg>
+                    </div>
+                    <div class="scene-layer scene-ground">
+                        <svg class="scene-svg" viewBox="0 0 800 60" preserveAspectRatio="none" focusable="false">
+                            <rect class="scene-ground-fill" x="0" y="0" width="800" height="60"/>
+                            <g class="scene-fence">
+                                <line x1="0" y1="14" x2="800" y2="14"/>
+                                <line x1="0" y1="24" x2="800" y2="24"/>
+                                <line class="scene-fence-post" x1="20" y1="6" x2="20" y2="30"/>
+                                <line class="scene-fence-post" x1="120" y1="6" x2="120" y2="30"/>
+                                <line class="scene-fence-post" x1="320" y1="6" x2="320" y2="30"/>
+                                <line class="scene-fence-post" x1="480" y1="6" x2="480" y2="30"/>
+                                <line class="scene-fence-post" x1="620" y1="6" x2="620" y2="30"/>
+                                <line class="scene-fence-post" x1="760" y1="6" x2="760" y2="30"/>
+                            </g>
+                            <g class="scene-tombstone">
+                                <path d="M170,60 L170,42 Q170,34 178,34 Q186,34 186,42 L186,60 Z"/>
+                                <path d="M420,60 L420,44 L436,44 L436,60 Z"/>
+                                <path d="M560,60 L560,40 Q560,32 568,32 Q576,32 576,40 L576,60 Z"/>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
                 <div id="base"></div>
                 <!-- Hero chips ([P1-UI-006] sub-session 3, 2026-07-19) — one
                      per routine, rendered by js/ui/heroes.js. Positioned over

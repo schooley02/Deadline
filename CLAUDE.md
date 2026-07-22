@@ -55,10 +55,13 @@ At the end of every session, run `/end-session` (append HANDOFF entry, log decis
 - Never change balance numbers silently — use the `balance-tuning` skill and log to DECISIONS.
 - Update the relevant `docs/*.md` in the SAME session as any mechanic/schema change.
 - Never open `.pdf`, `.psd`, `.xd`, `.ase`, `.eps` files, or the CSV analysis dumps (`detailed_evidence.csv`, `requirement_alignment_matrix.csv`).
+- Mobile-width flex-overflow fixes don't generalize automatically (found 2026-07-21, V3a). A nowrap flex row's automatic minimum width is the SUM of its children's minimum widths — any unclassed row inside `.item-info` (or a new sibling section next to it, like `.sub-tasks-section`) can silently overflow at narrow widths even if a similar row elsewhere was already fixed. Before assuming a CSS-only row is safe on mobile, check it directly. And a screenshot alone is NOT sufficient verification for this bug class — V3a's first pass looked visually clean but still measured 49px of real overflow; confirm with `el.scrollWidth > el.clientWidth` (or `getBoundingClientRect` against the parent), not just eyeballing a render.
 
 ## Model Strategy — actively manage Jeremy's usage limits
 
 Claude cannot change the top-level model itself, but MUST proactively prompt Jeremy to switch (one line, e.g. "This next step is mechanical — switch me to Sonnet in the model picker to save your Fable limit") at these moments: at session start after stating the plan, and MID-SESSION whenever the work type shifts tiers. Don't wait to be asked, and don't block on it — if Jeremy doesn't switch, continue working.
+
+**Always pair the model recommendation with an effort/thinking level, not model alone.** For any task where Claude would recommend a model, also state the effort setting to use with it (e.g., low/standard/high reasoning effort in the model picker) — token usage is a product of both dials, and recommending only the model leaves the cheaper lever unused. Default to the lowest effort that's honest about the task: mechanical execution (CSS, wiring, doc updates, writing tests from a spec) → low effort even on Sonnet; first-pass diagnosis or evaluating a mechanic against docs → standard; anything Fable-tier (architecture calls, spec conflicts, a bug that survived a first attempt) → high effort, since getting it wrong there is the expensive failure mode. State both in one line, e.g. "Sonnet, low effort — this is planned CSS execution" or "Fable, high effort — this changes the schema and is hard to reverse."
 
 | Model | Use for | Examples in this project |
 |---|---|---|
