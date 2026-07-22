@@ -73,12 +73,15 @@ describe('resolveEnemyVisual', () => {
         expect(classes).toContain('high-priority');
     });
 
-    test('habit gets habit + small classes at habit width', () => {
+    // 2026-07-21 (docs/DECISIONS.md): habits render at the same regular size
+    // as tasks now — 'zombie-small' (the old 70px shrink hook) is retired.
+    test('habit gets the habit-enemy class at regular (task) size, no shrink class', () => {
         const { width, height, classes } = Spawning.resolveEnemyVisual(
             { type: 'habit', category: 'health', streak: 0 }, DIMS);
         expect(width).toBe(128);
         expect(height).toBe(128);
-        expect(classes).toEqual(expect.arrayContaining(['habit-enemy', 'zombie-small']));
+        expect(classes).toContain('habit-enemy');
+        expect(classes).not.toContain('zombie-small');
         expect(classes).not.toContain('negative-habit');
         expect(classes).not.toContain('high-streak');
     });

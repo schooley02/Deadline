@@ -1045,7 +1045,12 @@ const Items = (() => {
         itemElement.classList.add(`zombie-${item.category}`);
 
         const itemSpriteWidth = (item.type === 'habit') ? deps.habitEnemyWidth : deps.enemyWidth;
-        const itemSpriteHeight = (item.type === 'habit') ? 70 : 128;
+        // 2026-07-21: habits render at regular (128) size now, matching
+        // spawning.js's resolveEnemyVisual — see docs/DECISIONS.md. This was
+        // previously hardcoded to 70 here, out of sync with spawning.js's own
+        // 128 (a pre-existing divergence in this hand-duplicated block, see
+        // ROADMAP.md's "uncompleteItem hand-duplicates..." note).
+        const itemSpriteHeight = 128;
 
         itemElement.style.width = `${itemSpriteWidth}px`;
         itemElement.style.height = `${itemSpriteHeight}px`;
@@ -1054,7 +1059,6 @@ const Items = (() => {
             itemElement.classList.add('high-priority');
         } else if (item.type === 'habit') {
             itemElement.classList.add('habit-enemy');
-            itemElement.classList.add('zombie-small');
             if (item.isNegative) {
                 itemElement.classList.add('negative-habit');
             }

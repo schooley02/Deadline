@@ -56,44 +56,15 @@
     }
 }
 
-/* Habit Enemies */
+/* Habit Enemies — 2026-07-21 (Jeremy's call, see docs/DECISIONS.md): habits
+   render at the same regular size as tasks now (the size-forcing
+   width/height/background-size rules that used to live here, and the
+   parallel .zombie-small.zombie-* block in enemySprites.css, are both
+   removed — sub-tasks already own the "visually smaller" treatment via a
+   real 64px box). The dashed border stays as the habit identity marker,
+   independent of size. */
 .enemy.habit-enemy {
-    width: 70px;
-    height: 70px;
     border-style: dashed;
-}
-
-/* Habit enemy sprite sizing */
-.enemy.habit-enemy.category-career {
-    background-size: 70px 70px !important;
-}
-
-.enemy.habit-enemy.category-creativity {
-    background-size: 70px 70px !important;
-}
-
-.enemy.habit-enemy.category-financial {
-    background-size: 70px 70px !important;
-}
-
-.enemy.habit-enemy.category-health {
-    background-size: 70px 70px !important;
-}
-
-.enemy.habit-enemy.category-lifestyle {
-    background-size: 70px 70px !important;
-}
-
-.enemy.habit-enemy.category-relationships {
-    background-size: 70px 70px !important;
-}
-
-.enemy.habit-enemy.category-spirituality {
-    background-size: 70px 70px !important;
-}
-
-.enemy.habit-enemy.category-other {
-    background-size: 70px 70px !important;
 }
 
 /* [P2-UI-009] Milestone 4, session 59: on-fire visual for a habit at/above

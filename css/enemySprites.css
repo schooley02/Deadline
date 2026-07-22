@@ -268,46 +268,11 @@
     background-size: 128px 128px;
 }
 
-/* Small zombie sprites for habits */
-.zombie-sprite.zombie-small.zombie-career {
-    background-image: url('../Assets/Zombies/career-zombie.png') !important;
-    background-size: 70px 70px !important;
-}
-
-.zombie-sprite.zombie-small.zombie-creativity {
-    background-image: url('../Assets/Zombies/creativity-zombie.png') !important;
-    background-size: 70px 70px !important;
-}
-
-.zombie-sprite.zombie-small.zombie-financial {
-    background-image: url('../Assets/Zombies/financial-zombie.png') !important;
-    background-size: 70px 70px !important;
-}
-
-.zombie-sprite.zombie-small.zombie-health {
-    background-image: url('../Assets/Zombies/health-zombie.png') !important;
-    background-size: 70px 70px !important;
-}
-
-.zombie-sprite.zombie-small.zombie-lifestyle {
-    background-image: url('../Assets/Zombies/lifestyle-zombie.png') !important;
-    background-size: 70px 70px !important;
-}
-
-.zombie-sprite.zombie-small.zombie-relationships {
-    background-image: url('../Assets/Zombies/relationships-zombie.png') !important;
-    background-size: 70px 70px !important;
-}
-
-.zombie-sprite.zombie-small.zombie-spirituality {
-    background-image: url('../Assets/Zombies/spiritual-zombie.png') !important;
-    background-size: 70px 70px !important;
-}
-
-.zombie-sprite.zombie-small.zombie-other {
-    background-image: url('../Assets/Zombies/other-zombie.png') !important;
-    background-size: 70px 70px !important;
-}
+/* Habit sprites now render at the same regular 128px size as tasks — they
+   simply inherit the .zombie-sprite.zombie-<category> rules above (the
+   'zombie-small' class + this block's old 70px !important overrides were
+   removed 2026-07-21, Jeremy's call, see docs/DECISIONS.md). Sub-tasks are
+   the only tier that visually shrinks, below. */
 
 /* Sub-task zombie sprites (64 × 64) */
 .zombie-subtask {

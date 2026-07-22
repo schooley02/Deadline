@@ -123,11 +123,13 @@ const DayPagerView = (() => {
         el.classList.add('zombie-sprite', `zombie-${ghost.category}`);
 
         const width = ghost.isHabit ? dims.habitEnemyWidth : dims.enemyWidth;
-        const height = ghost.isHabit ? 70 : 128;
+        // 2026-07-21: habit ghosts render at regular (128) size now, matching
+        // spawning.js's resolveEnemyVisual — see docs/DECISIONS.md.
+        const height = 128;
         el.style.width = width + 'px';
         el.style.height = height + 'px';
         if (ghost.isHabit) {
-            el.classList.add('habit-enemy', 'zombie-small');
+            el.classList.add('habit-enemy');
             if (ghost.isNegative) el.classList.add('negative-habit');
         }
 

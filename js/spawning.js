@@ -65,7 +65,15 @@ const Spawning = (() => {
         if (itemData.type === 'task' && itemData.isHighPriority) {
             classes.push('high-priority');
         } else if (itemData.type === 'habit') {
-            classes.push('habit-enemy', 'zombie-small');
+            // 2026-07-21 (Jeremy's call, see docs/DECISIONS.md): habits now
+            // render at the same regular sprite size as tasks — sub-tasks
+            // already carry the "visually smaller" treatment (real 64px box,
+            // above), so habits shrinking too was redundant/confusing.
+            // 'habit-enemy' is kept for its NON-size hooks (dashed border,
+            // negative-habit badge, high/super-streak flame) — only the old
+            // 'zombie-small' class (which forced a 70px background-size via
+            // enemySprites.css) is dropped.
+            classes.push('habit-enemy');
             if (itemData.isNegative) {
                 classes.push('negative-habit');
             }

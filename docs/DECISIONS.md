@@ -4,6 +4,16 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-07-21 — Habits render at regular (task) size; sub-tasks stay the only visually-smaller tier (Cowork session, Sonnet)
+
+**Decision:** Jeremy's call — habit zombie sprites now render at the same 128px regular size as tasks, since sub-tasks already own the "visually smaller" treatment (a genuine 64px box, `CONFIG.SUBTASK_ENEMY_WIDTH`). Habits ALSO shrinking (to 70px, via a `zombie-small` CSS class) was redundant and made the size hierarchy confusing (task > habit > sub-task, when only two visual tiers — regular vs. sub-task — are meaningful). Retired the `zombie-small` class and its two duplicate CSS rule blocks (`enemySprites.css`'s `.zombie-sprite.zombie-small.zombie-*`, `enemyStatus.css`'s `.enemy.habit-enemy.category-*`) that both forced `background-size: 70px 70px !important`. `js/spawning.js`'s `resolveEnemyVisual` no longer pushes `zombie-small` for habits; two other places that hand-duplicate this DOM construction (`js/items.js`'s `uncompleteItem`, `js/ui/dayPagerView.js`'s ghost-sprite builder) were updated to match — the latter two were ALSO found to hardcode habit height as 70 while `spawning.js` itself already used 128, a pre-existing three-way inconsistency now reconciled to 128 everywhere.
+
+**What stays:** the `habit-enemy` class is kept for its non-size hooks — dashed border (now the sole habit identity marker), negative-habit badge, high/super-streak flame effects. `.enemy.habit-enemy`'s CSS no longer sets width/height (previously 70px, dead code anyway since inline JS always won on layout size — cleaned up for clarity).
+
+**Why layout-only, no schema/balance change:** purely visual/CSS — no persisted data, no balance number, `ENEMY_WIDTH`/`HABIT_ENEMY_WIDTH` were already both 128 in `CONFIG` (the shrink lived entirely in CSS `background-size` overrides, not the box dimensions), so no balance-tuning protocol needed (same category as other display-only constants per `config.js`'s existing note).
+
+**Verification:** 58 suites / 1256/1256 (`test/spawning.test.js` updated: habit case now asserts `zombie-small` is absent). `node --check` clean. Live-verified in Chrome: created a task and a same-category ("Other") habit side by side — both rendered as identical 128×128 `other-zombie.png` sprites (confirmed via computed `backgroundSize`/`offsetWidth`/`offsetHeight`), habit distinguished only by its dashed border outline. Zero console errors. Dev save reset to pristine afterward.
+
 ## 2026-07-21 — Star-rating bug fix: rolling rate window + tenure gate replaces all-time average (Cowork session, bug reported live on Jeremy's phone; design discussed conversationally, executed Sonnet)
 
 **Bug:** Jeremy created a morning routine with one habit ("brush my teeth") and completed it once; the routine instantly showed 5 stars. Root cause: `Heroes.completionRate` computed an all-time average with no minimum-sample floor, and `Heroes.starRating` checked that average against fixed rate cutoffs (PROJECT_SPEC ~78-83: 60/70/80/90/95% → 1-5★) with no other gate. One habit, one completion = 1/1 = 100%, which cleared the top tier immediately.

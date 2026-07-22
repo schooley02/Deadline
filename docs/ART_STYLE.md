@@ -43,7 +43,7 @@ Shake animation on every hit. Smoke → full flames right before destruction.
 - Closer to due: more menacing, faster animation.
 - High priority: glow / bright outline.
 - Parent task w/ sub-tasks: larger; shrinks as sub-tasks complete.
-- Habit: smaller than task; high streak = on fire.
+- Habit: same regular size as a task (dashed border is the only visual distinction beyond category art); high streak = on fire. Sub-tasks are the only tier that renders visually smaller (64×64) — changed 2026-07-21, see DECISIONS.md.
 
 ## Category Colors (from prototype, for UI accents)
 other #90ee90 · career #4a90e2 · creativity #f5a623 · financial #50e3c2 · health #e91e63 · lifestyle #bd10e0 · relationships #f8e71c · spirituality #7ed321
