@@ -134,6 +134,10 @@
 
 .item-info {
     flex-grow: 1;
+    min-width: 0; /* V3a, 2026-07-21: without this a flex item's default
+        min-width:auto refuses to shrink below its content's intrinsic
+        width, which is how the whole title/details row structure below
+        was overflowing past the li's right edge on narrow viewports. */
     text-align: left;
     display: flex;
     flex-direction: column;
@@ -146,6 +150,8 @@
     display: block;
     margin-bottom: var(--space-1);
     color: var(--color-text-primary);
+    min-width: 0;
+    overflow-wrap: break-word; /* V3a: guards a very long unbroken task name */
 }
 
 .item-due {

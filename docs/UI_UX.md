@@ -70,6 +70,34 @@ light background, hard on the eyes," Jeremy). Restyled to the same dark-green gr
 button itself, white text/icons, stronger shadow — the whole popped-out menu now reads as one
 clearly visible dark cluster instead of near-invisible outlines.
 
+**Reset Game gated to dev mode (V3a, 2026-07-21).** Moving Reset into Settings fixed the
+accidental-tap risk but left it unconditionally visible to every player on the live GitHub Pages
+build, which is dev chrome that shouldn't ship. `js/ui/settingsView.js`'s `isDevMode(loc)` (pure,
+location-injected, exported for tests) now gates the whole "Reset Game" section: true on
+`localhost`/`127.0.0.1` (any port — covers `node server.js`/`npx serve .`), or when a `?dev` query
+param is present on any origin (so it can still be reached for a spot-check on the live build).
+False for a real player on the plain Pages URL. `test/settings-view-devmode.test.js` covers the
+pure function directly.
+
+## Agenda rows — mobile flex fixes (V3a, 2026-07-21)
+Agenda rows (`js/ui/agendaList.js`'s `createListItem`) were clipping off the right edge at 390px.
+Two independent flex chains needed fixing inside the `@media (max-width: 768px)` block in
+`css/responsive.css`, both because a nowrap flex row's automatic minimum width is the SUM of its
+children's minimum widths, not the container's available width:
+- The title/details rows inside `.item-info` (due date + category badge + sub-task-progress +
+  streak + the "+ Sub-task" button) are unclassed JS-built divs, so the fix targets them
+  structurally (`.item-info div { flex-wrap: wrap }`) rather than adding new classes.
+- `.task-controls` (edit icon + "Mark as Complete" checkbox) carries an inline `flex-shrink: 0`
+  (script keeps it from competing with the item name on wide screens) that pinned it to its full
+  unwrapped width even after wrapping onto its own line — needed `flex-shrink: 1 !important` to
+  win over the inline declaration, plus `min-width: 0` so its own content can wrap.
+- Sub-tasks render as a **sibling** of `.item-info` (not a descendant), so its own unwrapped row
+  (`.sub-task-item`/`.sub-task-info`/`.sub-task-controls` — all classed, unlike the rows above)
+  needed the same wrap + `min-width: 0` treatment, or it drags the whole card wider regardless of
+  the `.item-info` fix.
+Verified with `getBoundingClientRect`/`scrollWidth` checks (no li/container overflow at 390px) via
+a same-origin iframe injected at 390×844 into Jeremy's live `node server.js`, not just visually.
+
 ## Windows & Modals — unified behavior ([P2-UI-011] Stage 1, session 61, 2026-07-19)
 Two window systems share one behavior layer (`js/ui/modal.js`, wired via `Modal.initDismissHandlers`/`initFocusManagement` in script.js):
 - **Management windows** (FAB-opened Tasks/Habits/Routines/Shop/Stats/Settings panels) and **modal overlays** (form/popup `.modal-overlay`s) both close on ESC and outside/backdrop click.

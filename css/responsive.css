@@ -75,6 +75,65 @@
     .window-content {
         padding: var(--space-2);
     }
+
+    /* V3a (2026-07-21): agenda rows clipped off the right edge at 390px.
+       Root cause: js/ui/agendaList.js's details row (due date + category
+       badge + sub-task-progress + streak, all packed into one nowrap flex
+       row) plus the "+ Sub-task" button's flex-shrink:0 min-width together
+       exceeded the row's available width — a flex row's automatic
+       min-width is the SUM of its children's min-widths when it can't
+       wrap. Those inner rows are unclassed divs built in JS (no class to
+       target directly), so this targets them structurally as descendants
+       of `.item-info` instead of adding new classes (kept CSS-only per
+       VISUAL_DESIGN_PLAN.md's V3a scope). See docs/DECISIONS.md. */
+    .item-info div {
+        flex-wrap: wrap;
+        row-gap: var(--space-1);
+    }
+
+    .task-controls {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        /* .task-controls carries an inline `flex-shrink: 0` (js/ui/agendaList.js)
+           so it never competes with the item name for space on wide screens.
+           At 390px that pins it to its full unwrapped content width (edit
+           icon + "Mark as Complete (N remaining)") even after it wraps onto
+           its own line below the name, still overflowing the row by ~21px —
+           confirmed live via getBoundingClientRect. !important is needed to
+           beat the inline declaration (normal-weight external CSS cannot
+           override inline styles, but !important can regardless of origin). */
+        flex-shrink: 1 !important;
+        min-width: 0;
+    }
+
+    .completion-checkbox {
+        flex-wrap: wrap;
+        min-width: 0;
+    }
+
+    /* V3a follow-up: the fix above only covers `.item-info` — a task's
+       rendered sub-tasks (`.sub-tasks-section`, a SIBLING of `.item-info`
+       under the same shared parent, not a descendant of it) have their own
+       unwrapped flex row (name + due date + edit icon + "Mark as Complete"),
+       which was still forcing the whole card wider and dragging item-info's
+       right edge past the card boundary along with it — confirmed live via
+       getBoundingClientRect: item-info's box measured 49px wider than its
+       own parent li at 390px before this rule was added. `.sub-task-item`/
+       `.sub-task-info`/`.sub-task-controls` are all classed (unlike the
+       item-info-internal rows above), so no structural selector needed. */
+    .sub-task-item {
+        flex-wrap: wrap;
+        row-gap: var(--space-1);
+    }
+
+    .sub-task-info {
+        min-width: 0;
+    }
+
+    .sub-task-controls {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
 }
 
 @media (min-width: 1024px) {

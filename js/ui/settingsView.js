@@ -28,8 +28,28 @@
  * and native confirm()/alert() are known to freeze Claude-in-Chrome CDP
  * automation mid-playtest (CLAUDE.md), so this also makes the flow testable
  * without the navigate-away recovery trick.
+ *
+ * Reset Game is gated behind dev mode (V3a, 2026-07-21 — the move into
+ * Settings fixed the accidental-tap risk but left it unconditionally
+ * visible to any real player on the live GitHub Pages build, which is
+ * dev chrome that shouldn't ship). See isDevMode below.
  */
 const SettingsView = (() => {
+
+    /**
+     * True on localhost/127.0.0.1 (any port — covers `node server.js`/
+     * `npx serve .`) or when a `?dev` query param is present on any origin
+     * (so it can still be reached for a spot-check on the live Pages
+     * build). Pure/exported so it's unit-testable without touching
+     * `window.location` directly in a test.
+     */
+    function isDevMode(loc) {
+        if (!loc) return false;
+        const hostname = loc.hostname || '';
+        if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
+        const search = loc.search || '';
+        return new URLSearchParams(search).has('dev');
+    }
 
     const OPTIONS = [
         { value: 'full', label: 'Full', hint: 'Animated fire effects for high-streak habits' },
@@ -50,6 +70,8 @@ const SettingsView = (() => {
     function renderSettingsWindow(deps) {
         const container = document.getElementById('settingsWindowContent');
         if (!container) return;
+
+        const devMode = isDevMode(typeof window !== 'undefined' ? window.location : null);
 
         const optionsHtml = OPTIONS.map((opt) => `
             <label class="settings-radio-row">
@@ -94,11 +116,13 @@ const SettingsView = (() => {
                     <p id="importStatus" class="settings-data-status" aria-live="polite"></p>
                 </div>
             </div>
+            ${devMode ? `
             <div class="settings-section settings-danger-section">
                 <h4>Reset Game</h4>
                 <p class="settings-section-hint">Wipes all tasks, habits, routines, run history, and achievements, and starts a fresh game. This cannot be undone — use Export above first if you want a backup.</p>
                 <button type="button" id="resetGameBtn" class="danger-button">Reset Game</button>
             </div>
+            ` : ''}
         `;
 
         container.querySelectorAll('input[name="effectsIntensity"]').forEach((input) => {
@@ -300,6 +324,7 @@ const SettingsView = (() => {
 
     return {
         renderSettingsWindow,
+        isDevMode,
     };
 })();
 

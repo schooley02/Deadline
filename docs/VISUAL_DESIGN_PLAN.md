@@ -117,10 +117,16 @@ Nothing broken; zero game identity. Category chips already use ART_STYLE.md's pa
   note. Check `.time-preview-ghost` styling on base/HUD/hero-chips still reads once enemy
   dashes are gone. Verify glow perf with 10+ sprites on a phone (drop-shadow is per-frame;
   fall back to outline-style box-shadow under `fx-reduced` if Jeremy sees jank).
-- [ ] **V3a — Mobile agenda overflow + dev chrome** (`css/responsive.css`,
-  `css/agendaList.css`): agenda row flex fixes (rows currently CLIP off the right edge at
-  390px — ship this early, it's a functional bug), hide dev Reset behind a `?dev` query or
-  localhost check. Small session; can batch with another V item per the revised guardrail.
+- [x] **V3a — Mobile agenda overflow + dev chrome** (2026-07-21, Cowork session, Sonnet)
+  (`css/responsive.css`, `css/agendaList.css`, `js/ui/settingsView.js`): agenda row flex fixes
+  (rows were CLIPPING off the right edge at 390px — two separate nowrap flex chains, one inside
+  `.item-info`, one in the sibling `.sub-tasks-section`; see docs/UI_UX.md and DECISIONS.md for
+  the full root cause) and Reset Game gated behind `isDevMode()` (localhost/127.0.0.1 or `?dev`).
+  `test/settings-view-devmode.test.js` (+6). 60 suites, 1270/1270. Live-verified in Chrome via a
+  same-origin 390×844 iframe against Jeremy's real `node server.js` — no overflow on any agenda
+  row (checked via `scrollWidth`/`getBoundingClientRect`, not just visually), Reset correctly
+  shown on localhost and correctly computed `false` for a simulated production hostname with no
+  `?dev` param.
 - [ ] **V3b — Portrait glance strip** (Direction #4; `css/responsive.css`,
   `css/gameCanvas.css`, likely a small marker-rendering hook in the sprite/DOM path —
   if it grows beyond CSS + a render branch, split it): strip layout, marker variant
