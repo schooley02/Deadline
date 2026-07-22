@@ -138,7 +138,18 @@ const Movement = (() => {
 
     // Sub-tasks bottom-align with their parent (feet on the same ground line)
     // instead of a random height, so they visually cluster with it. Falls back
-    // to random for top-level items or if the parent isn't rendered yet.
+    // to the ground band (below) for top-level items or if the parent isn't
+    // rendered yet.
+    //
+    // Top-level items stand on the graveyard GROUND BAND (2026-07-21): their
+    // feet (box bottom) land at a random fraction of canvas height between
+    // CONFIG.GROUND_BAND_FEET_TOP_FRAC (~the fence line) and
+    // GROUND_BAND_FEET_BOTTOM_FRAC (~the canvas floor), so they read as a
+    // staggered crowd walking in front of the fence rather than floating at
+    // random full-canvas heights. The jitter between the two fractions gives
+    // depth and keeps same-timeline enemies from fully overlapping. Replaces
+    // the old `randomFn() * (canvasHeight - itemHeight)` full-height range.
+    //
     // canvasHeight is gameCanvas.offsetHeight (DOM read done by the caller);
     // randomFn defaults to Math.random and is injectable for tests.
     function getItemTopPosition(item, itemHeight, ctx) {
@@ -152,8 +163,11 @@ const Movement = (() => {
                 if (!isNaN(parentTop)) return parentTop + (parentHeight - itemHeight);
             }
         }
-        const randomTop = randomFn() * (canvasHeight - itemHeight);
-        return Math.max(0, Math.min(randomTop, canvasHeight - itemHeight));
+        const feetTop = CONFIG.GROUND_BAND_FEET_TOP_FRAC * canvasHeight;
+        const feetBottom = CONFIG.GROUND_BAND_FEET_BOTTOM_FRAC * canvasHeight;
+        const feet = feetTop + randomFn() * (feetBottom - feetTop);
+        const top = feet - itemHeight;
+        return Math.max(0, Math.min(top, canvasHeight - itemHeight));
     }
 
     return {

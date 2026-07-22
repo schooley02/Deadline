@@ -289,6 +289,21 @@ const CONFIG = {
     HABIT_ENEMY_WIDTH: 128,
     SUBTASK_ENEMY_WIDTH: 64,
 
+    // --- Ground band placement (2026-07-21) ---
+    // Top-level enemies stand on the graveyard ground band (css/gameCanvas.css
+    // `.scene-ground`, the bottom ~24% of #gameCanvas, with the fence
+    // silhouette drawn near its top). Their feet — the sprite box BOTTOM edge,
+    // the same alignment line sub-tasks bottom-align to — land at a random
+    // fraction of canvas height between these two values, so they read as a
+    // staggered crowd walking in front of the fence rather than floating at
+    // random full-canvas heights (the pre-2026-07-21 behavior). TOP_FRAC is
+    // roughly the fence line; BOTTOM_FRAC is near the canvas floor. The gap
+    // between them is the vertical jitter that gives depth and keeps
+    // same-timeline enemies from fully overlapping. Tunable (layout, not
+    // economy balance).
+    GROUND_BAND_FEET_TOP_FRAC: 0.85,
+    GROUND_BAND_FEET_BOTTOM_FRAC: 0.99,
+
     // --- Sub-task clustering ---
     SUBTASK_CLUSTER_GAP_PX: 8, // visual gap between clustered sprites' VISIBLE graphics (not their boxes)
     SUBTASK_AHEAD_THRESHOLD_PX: 150, // how much closer to the base a sub-task's own due date must put it before it breaks from the cluster

@@ -134,12 +134,18 @@ to a dark iron gate-post with a warm lantern glow at the top — reads as scener
 in the graveyard") rather than a warning stripe. Purely CSS; `js/clock.js`'s `updateMidnightLine`
 only ever touches `.style.left`/`.style.display`, never color, so no JS changes were needed.
 
-**Deferred (NOT done this session — see ROADMAP):** "zombies stand on the ground band" is only
-partially true today. `Movement.getItemTopPosition` still randomizes a top-level item's vertical
-position across the FULL canvas height (`canvasHeight - itemHeight`), not a narrow bottom band —
-changing that range is real lane-math (affects multi-item overlap), which the ROADMAP task itself
-flagged as a stop-and-split condition. The visual ground band is real and ready; the next small
-`movement.js` session needs to narrow the random range to sit on it.
+**Zombies stand on the ground band — DONE (2026-07-21).** `Movement.getItemTopPosition` used to
+randomize a top-level item's vertical position across the FULL canvas height (`canvasHeight -
+itemHeight`), so zombies floated at random heights instead of walking in front of the fence. It now
+lands a top-level item's FEET (sprite box bottom — the same alignment line sub-tasks bottom-align to)
+at a random fraction of canvas height between `CONFIG.GROUND_BAND_FEET_TOP_FRAC` (0.85, ≈ the fence
+line) and `CONFIG.GROUND_BAND_FEET_BOTTOM_FRAC` (0.99, ≈ the canvas floor). The jitter between the
+two fractions gives depth and — critically — keeps same-timeline enemies (identical due time → same
+x) from fully overlapping: they stagger vertically instead of stacking. Sub-task bottom-alignment to
+the parent is untouched (it already sat on the ground line). Live-verified in Chrome: two tasks with
+identical 11:59 PM due times spawned at the same x (655px) with feet at 0.893 and 0.961 of canvas
+height — both inside the band, staggered 27px apart; a 2,000-sample sweep of the real function landed
+every foot in [0.85, 0.99]. Fractions are layout constants (tunable), not economy balance.
 
 Live-verified in Chrome against Jeremy's real `node server.js`: scene renders correctly at desktop
 width and at 390×844 (same-origin iframe recipe, no page-level overflow — `.graveyard-scene`

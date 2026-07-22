@@ -212,19 +212,36 @@ describe('getItemTopPosition', () => {
         expect(top).toBe(114);
     });
 
-    test('top-level item uses injected randomFn within canvas bounds', () => {
+    test('top-level item lands feet in the ground band (mid-jitter)', () => {
         const item = { id: 1 };
         const top = Movement.getItemTopPosition(item, 128, { activeItems: [item], canvasHeight: 400, randomFn: () => 0.5 });
-        // 0.5 * (400 - 128) = 136
-        expect(top).toBe(136);
+        // feetTop = 0.85*400 = 340, feetBottom = 0.99*400 = 396
+        // feet = 340 + 0.5*(396-340) = 368 → top = 368 - 128 = 240
+        expect(top).toBe(240);
         expect(top).toBeGreaterThanOrEqual(0);
         expect(top).toBeLessThanOrEqual(400 - 128);
     });
 
-    test('sub-task with an unrendered parent falls back to random', () => {
+    test('top-level item feet stay within the ground band across the full jitter range', () => {
+        const item = { id: 1 };
+        const H = 400;
+        const itemH = 128;
+        const feetTop = CONFIG.GROUND_BAND_FEET_TOP_FRAC * H;      // 340
+        const feetBottom = CONFIG.GROUND_BAND_FEET_BOTTOM_FRAC * H; // 396
+        // randomFn=0 → feet at the band top (highest); =1 → feet at band bottom (lowest)
+        const topAtBandTop = Movement.getItemTopPosition(item, itemH, { activeItems: [item], canvasHeight: H, randomFn: () => 0 });
+        const topAtBandBottom = Movement.getItemTopPosition(item, itemH, { activeItems: [item], canvasHeight: H, randomFn: () => 1 });
+        expect(topAtBandTop + itemH).toBeCloseTo(feetTop, 6);      // feet at fence line
+        expect(topAtBandBottom + itemH).toBeCloseTo(feetBottom, 6); // feet near canvas floor
+        // Lower feet (larger random) means a larger top value (further down).
+        expect(topAtBandBottom).toBeGreaterThan(topAtBandTop);
+    });
+
+    test('sub-task with an unrendered parent falls back to the ground band', () => {
         const parent = { id: 1 }; // no element
         const sub = { id: 2, parentId: 1 };
         const top = Movement.getItemTopPosition(sub, 64, { activeItems: [parent, sub], canvasHeight: 400, randomFn: () => 0 });
-        expect(top).toBe(0);
+        // feetTop = 340 → top = 340 - 64 = 276
+        expect(top).toBe(276);
     });
 });
