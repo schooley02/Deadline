@@ -428,16 +428,23 @@ const Items = (() => {
         let pointsGained = 0;
 
         if (item.type === 'task') {
-            // Sub-task economy ([P1-DATA-004] sub-session 3, 2026-07-19):
-            // a sub-task pays HALF a standalone task's base XP/points
-            // (CONFIG.SUBTASK_XP/SUBTASK_POINTS); the parent (parentId
-            // falsy) is unaffected. The high-priority ×2 rule still applies
-            // to a sub's OWN priority flag on top of the halved base, via
-            // the same Economy.taskPoints seam — a high-priority sub tops
-            // out at POINTS_PER_TASK, never exceeding a standalone task.
+            // Sub-task economy ([P1-DATA-004] sub-session 3, 2026-07-19;
+            // points re-tuned 2026-07-21, Jeremy's call — see DECISIONS.md).
+            // A sub-task pays its own base (CONFIG.SUBTASK_XP/SUBTASK_POINTS);
+            // the parent (parentId falsy) still ALWAYS earns its own XP, but
+            // a parent that ever HAD sub-tasks (completedSubTasks > 0) now
+            // earns 0 POINTS of its own — all the points for a sub-tasked
+            // task come from completing its subs, not from checking off the
+            // parent. A parent that never had subs (a plain standalone task)
+            // is unaffected. XP is deliberately untouched either way — this
+            // is a currency-only rule. The high-priority ×2 rule still
+            // applies to a sub's OWN priority flag on top of its base, via
+            // the same Economy.taskPoints seam (0 base × 2 is still 0 for a
+            // subbed parent).
             const isSub = !!item.parentId;
+            const hadSubTasks = !isSub && item.completedSubTasks > 0;
             xpGained = isSub ? CONFIG.SUBTASK_XP : deps.xpPerTaskDefeat;
-            const basePoints = isSub ? CONFIG.SUBTASK_POINTS : deps.pointsPerTask;
+            const basePoints = isSub ? CONFIG.SUBTASK_POINTS : (hadSubTasks ? 0 : deps.pointsPerTask);
             pointsGained = Economy.taskPoints(item.isHighPriority, basePoints);
         } else if (item.type === 'habit') {
             const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
@@ -1149,14 +1156,18 @@ const Items = (() => {
 
         // Reverse the XP and points gained (if any)
         if (item.type === 'task') {
-            // Sub-task economy refund ([P1-DATA-004] sub-session 3): mirrors
-            // completeItem's award exactly — a sub's parentId can't change
-            // between complete and uncomplete, so the same isSub branch is
-            // symmetric by construction (no stamp-and-reuse pattern needed,
-            // unlike routine XP's award/refund below which spans a level-up).
+            // Sub-task economy refund ([P1-DATA-004] sub-session 3; points
+            // re-tuned 2026-07-21): mirrors completeItem's award exactly — a
+            // sub's parentId can't change between complete and uncomplete,
+            // and completedSubTasks isn't touched by uncompleting the PARENT
+            // itself (only by uncompleting one of its subs, a different call
+            // site), so the same isSub/hadSubTasks branches are symmetric by
+            // construction (no stamp-and-reuse pattern needed, unlike
+            // routine XP's award/refund below which spans a level-up).
             const isSub = !!item.parentId;
+            const hadSubTasks = !isSub && item.completedSubTasks > 0;
             const xpLost = isSub ? CONFIG.SUBTASK_XP : deps.xpPerTaskDefeat;
-            const basePointsLost = isSub ? CONFIG.SUBTASK_POINTS : deps.pointsPerTask;
+            const basePointsLost = isSub ? CONFIG.SUBTASK_POINTS : (hadSubTasks ? 0 : deps.pointsPerTask);
             const pointsLost = Economy.taskPoints(item.isHighPriority, basePointsLost);
 
             deps.setPlayerXP(Math.max(0, deps.getPlayerXP() - xpLost));

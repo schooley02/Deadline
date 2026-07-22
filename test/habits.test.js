@@ -134,19 +134,22 @@ describe('pointsMultiplier', () => {
     test('1x below the minimum sample, even at 100%', () => {
         expect(Habits.pointsMultiplier(history(6, 0), cfg)).toBe(1);
     });
-    // Multipliers re-tuned session 24 (2026-07-19): >=90% is task parity (2.0x
-    // of the 5-pt habit base = 10 = POINTS_PER_TASK); >=70% is 1.5x. Values
+    test('1x below the minimum sample even at a partial-window 100% streak (10 of 22)', () => {
+        expect(Habits.pointsMultiplier(history(10, 0), cfg)).toBe(1);
+    });
+    // Multipliers RE-DESIGNED 2026-07-21 (Jeremy's call, see DECISIONS.md): a
+    // full 22-occurrence window ("22 reps make a habit") must be recorded
+    // before any tier can fire. A perfect 22/22 record -> 3x; >=80% -> 2x,
+    // giving room to slip a few times and still keep the bonus. Values
     // pinned here on purpose so a silent config change fails loudly.
-    test('2x (task parity) at >= 90% once sample is met', () => {
-        expect(Habits.pointsMultiplier(history(9, 1), cfg)).toBe(2.0); // 90%
-        expect(Habits.pointsMultiplier(history(10, 0), cfg)).toBe(2.0); // 100%
+    test('3x at a perfect 22/22 record (100%)', () => {
+        expect(Habits.pointsMultiplier(history(22, 0), cfg)).toBe(3.0);
     });
-    test('1.5x at >= 70% but < 90%', () => {
-        expect(Habits.pointsMultiplier(history(7, 3), cfg)).toBe(1.5); // 70%
-        expect(Habits.pointsMultiplier(history(8, 2), cfg)).toBe(1.5); // 80%
+    test('2x at >= 80% of a full 22-window', () => {
+        expect(Habits.pointsMultiplier(history(18, 4), cfg)).toBe(2.0); // 18/22 ≈ 81.8%
     });
-    test('1x below 70%', () => {
-        expect(Habits.pointsMultiplier(history(6, 4), cfg)).toBe(1); // 60%
+    test('1x below 80% even with a full window', () => {
+        expect(Habits.pointsMultiplier(history(17, 5), cfg)).toBe(1); // 17/22 ≈ 77.3%
     });
 });
 
@@ -164,14 +167,14 @@ describe('applyHabitCompletion (rate-based)', () => {
     });
 
     test('high success rate multiplies the points award', () => {
-        // 8 prior successes; today's completion makes 9/9 = 100% (>= min sample 7) -> 2x (task parity)
-        const result = Habits.applyHabitCompletion(8, history(8, 0), false, new Date(2026, 6, 18), RATE_CONFIG);
-        expect(result.multiplier).toBe(2.0);
-        expect(result.pointsGained).toBe(Math.round(CONFIG.POINTS_PER_HABIT * 2.0));
+        // 21 prior successes; today's completion makes 22/22 = 100% (full window) -> 3x
+        const result = Habits.applyHabitCompletion(21, history(21, 0), false, new Date(2026, 6, 18), RATE_CONFIG);
+        expect(result.multiplier).toBe(3.0);
+        expect(result.pointsGained).toBe(Math.round(CONFIG.POINTS_PER_HABIT * 3.0));
     });
 
     test('xpGained is always the flat per-completion amount (never multiplied)', () => {
-        const result = Habits.applyHabitCompletion(8, history(8, 0), false, new Date(2026, 6, 18), RATE_CONFIG);
+        const result = Habits.applyHabitCompletion(21, history(21, 0), false, new Date(2026, 6, 18), RATE_CONFIG);
         expect(result.xpGained).toBe(CONFIG.XP_PER_HABIT_COMPLETE);
     });
 
@@ -197,10 +200,10 @@ describe('applyHabitUncompletion (rate-based, symmetric)', () => {
     });
 
     test('refund mirrors the award exactly (symmetric) — complete then uncomplete nets 0', () => {
-        // Start at 8/8 history. Complete today -> 9/9=100% -> 2x award.
+        // Start at 21/21 history. Complete today -> 22/22=100% -> 3x award.
         const due = new Date(2026, 6, 18);
-        const start = history(8, 0);
-        const comp = Habits.applyHabitCompletion(8, start, false, due, RATE_CONFIG);
+        const start = history(21, 0);
+        const comp = Habits.applyHabitCompletion(21, start, false, due, RATE_CONFIG);
         // Uncomplete from the post-completion history: refund must equal comp.pointsGained.
         const unc = Habits.applyHabitUncompletion(comp.streak, comp.occurrenceHistory, false, due, RATE_CONFIG);
         expect(unc.pointsLost).toBe(comp.pointsGained);
@@ -255,10 +258,11 @@ describe('applyHabitIndulgence ([P1-DATA-005] session 25, pure core only)', () =
     });
 
     test('high success (avoidance) rate still costs points on indulgence, scaled by the current multiplier', () => {
-        // 8 prior avoidance successes; today's indulged miss makes 8/9 ≈ 88.9% (>= min sample 7) -> 1.5x tier
-        const result = Habits.applyHabitIndulgence(8, history(8, 0), true, new Date(2026, 6, 18), RATE_CONFIG);
-        expect(result.multiplier).toBe(1.5);
-        expect(result.pointsLost).toBe(Math.round(CONFIG.POINTS_PER_HABIT * 1.5));
+        // 21 prior avoidance successes; today's indulged miss makes 21/22 ≈ 95.5% (full
+        // window, but not a perfect 22/22 since today itself is a miss) -> 2x tier
+        const result = Habits.applyHabitIndulgence(21, history(21, 0), true, new Date(2026, 6, 18), RATE_CONFIG);
+        expect(result.multiplier).toBe(2.0);
+        expect(result.pointsLost).toBe(Math.round(CONFIG.POINTS_PER_HABIT * 2.0));
     });
 
     test('a later same-day indulgence overwrites an earlier completion (upsert, like overdue)', () => {

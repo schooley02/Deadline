@@ -1,12 +1,15 @@
 /**
- * Sub-task economy ([P1-DATA-004] sub-session 3, 2026-07-19 session 49) —
- * half-value sub-tasks through the existing Economy.taskPoints seam.
- * CONFIG.SUBTASK_XP/SUBTASK_POINTS (5/5) replace the standalone
- * xpPerTaskDefeat/pointsPerTask (10/10) base whenever item.parentId is set;
- * the high-priority ×2 rule still applies on top via Economy.taskPoints, so
- * a high-priority sub tops out at 10 (parity with, never exceeding, a
- * standalone task). Parents and standalone tasks are unaffected. Award
- * (completeItem) and refund (uncompleteItem) must be exactly symmetric.
+ * Sub-task economy ([P1-DATA-004] sub-session 3, 2026-07-19 session 49;
+ * points RE-TUNED 2026-07-21, Jeremy's call — see DECISIONS.md).
+ * CONFIG.SUBTASK_XP/SUBTASK_POINTS (5/1) replace the standalone
+ * xpPerTaskDefeat/pointsPerTask (10/1) base whenever item.parentId is set;
+ * the high-priority ×2 rule still applies on top via Economy.taskPoints.
+ * A parent that EVER had a sub-task (completedSubTasks > 0) now pays 0
+ * POINTS of its own on final completion — all the points for a sub-tasked
+ * task come from its subs, not from checking off the parent — but still
+ * earns its own full XP either way (XP is untouched by this rule). A
+ * standalone task that never had subs is unaffected. Award (completeItem)
+ * and refund (uncompleteItem) must be exactly symmetric.
  */
 global.Schedule = require('../js/schedule.js');
 global.Habits = require('../js/habits.js');
@@ -100,17 +103,17 @@ describe('completeItem: sub-task economy award', () => {
     beforeEach(() => jest.useFakeTimers());
     afterEach(() => { jest.runOnlyPendingTimers(); jest.useRealTimers(); });
 
-    test('a standalone task awards the full base 10 XP / 10 pts', () => {
+    test('a standalone task awards the full base 10 XP / 1 pt', () => {
         const task = taskItem({ id: 1, isHighPriority: false });
         const deps = makeDeps({ activeItems: [task] });
 
         Items.completeItem(1, deps);
 
         expect(deps.getPlayerXP()).toBe(10);
-        expect(deps.getPlayerPoints()).toBe(110); // 100 starting + 10
+        expect(deps.getPlayerPoints()).toBe(101); // 100 starting + 1
     });
 
-    test('a sub-task (parentId set) awards half: 5 XP / 5 pts', () => {
+    test('a sub-task (parentId set) awards its own base: 5 XP / 1 pt', () => {
         const parent = taskItem({ id: 1, subTasks: [2], totalSubTasks: 1 });
         const sub = taskItem({ id: 2, parentId: 1, isHighPriority: false });
         const deps = makeDeps({ activeItems: [parent, sub] });
@@ -118,10 +121,10 @@ describe('completeItem: sub-task economy award', () => {
         Items.completeItem(2, deps);
 
         expect(deps.getPlayerXP()).toBe(5);
-        expect(deps.getPlayerPoints()).toBe(105);
+        expect(deps.getPlayerPoints()).toBe(101);
     });
 
-    test('a HIGH-PRIORITY sub-task still gets the ×2 rule on the halved base: 5 XP / 10 pts', () => {
+    test('a HIGH-PRIORITY sub-task still gets the ×2 rule on its base: 5 XP / 2 pts', () => {
         const parent = taskItem({ id: 1, subTasks: [2], totalSubTasks: 1 });
         const sub = taskItem({ id: 2, parentId: 1, isHighPriority: true });
         const deps = makeDeps({ activeItems: [parent, sub] });
@@ -130,39 +133,40 @@ describe('completeItem: sub-task economy award', () => {
 
         // XP has no priority multiplier anywhere in this codebase — stays 5.
         expect(deps.getPlayerXP()).toBe(5);
-        // Points: SUBTASK_POINTS (5) × 2 = 10 — parity with, not exceeding, a
-        // standalone high-priority task's own ×2 (10 × 2 = 20 would be the
-        // standalone case, confirmed in the next test).
-        expect(deps.getPlayerPoints()).toBe(110);
+        // Points: SUBTASK_POINTS (1) × 2 = 2 — same ceiling logic as a
+        // standalone high-priority task's own ×2 (1 × 2 = 2, confirmed in
+        // the next test).
+        expect(deps.getPlayerPoints()).toBe(102);
     });
 
-    test('a HIGH-PRIORITY standalone task still pays the full ×2: 10 XP / 20 pts', () => {
+    test('a HIGH-PRIORITY standalone task still pays the full ×2: 10 XP / 2 pts', () => {
         const task = taskItem({ id: 1, isHighPriority: true });
         const deps = makeDeps({ activeItems: [task] });
 
         Items.completeItem(1, deps);
 
         expect(deps.getPlayerXP()).toBe(10);
-        expect(deps.getPlayerPoints()).toBe(120);
+        expect(deps.getPlayerPoints()).toBe(102);
     });
 
-    test('a parent with subs is unaffected by the sub rate once it completes (still full 10/10)', () => {
+    test('a parent that HAD subs earns 0 points of its own on final completion (still full 10 XP)', () => {
         const parent = taskItem({ id: 1, subTasks: [2], totalSubTasks: 1 });
         const sub = taskItem({ id: 2, parentId: 1 });
         const deps = makeDeps({ activeItems: [parent, sub] });
 
-        Items.completeItem(2, deps); // clears parent.subTasks first
+        Items.completeItem(2, deps); // clears parent.subTasks first, bumps completedSubTasks
         expect(parent.subTasks).toHaveLength(0);
+        expect(parent.completedSubTasks).toBe(1);
 
         const beforeXp = deps.getPlayerXP();
         const beforePts = deps.getPlayerPoints();
         Items.completeItem(1, deps);
 
-        expect(deps.getPlayerXP()).toBe(beforeXp + 10);
-        expect(deps.getPlayerPoints()).toBe(beforePts + 10);
+        expect(deps.getPlayerXP()).toBe(beforeXp + 10); // XP untouched by this rule
+        expect(deps.getPlayerPoints()).toBe(beforePts); // 0 points — all pts already came from the sub
     });
 
-    test('multiple subs each independently pay the half rate', () => {
+    test('multiple subs each independently pay their own base, parent still pays 0', () => {
         const parent = taskItem({ id: 1, subTasks: [2, 3], totalSubTasks: 2 });
         const sub1 = taskItem({ id: 2, parentId: 1 });
         const sub2 = taskItem({ id: 3, parentId: 1 });
@@ -172,7 +176,11 @@ describe('completeItem: sub-task economy award', () => {
         Items.completeItem(3, deps);
 
         expect(deps.getPlayerXP()).toBe(10); // 5 + 5
-        expect(deps.getPlayerPoints()).toBe(110); // 100 + 5 + 5
+        expect(deps.getPlayerPoints()).toBe(102); // 100 + 1 + 1
+
+        Items.completeItem(1, deps); // parent, now with completedSubTasks: 2
+        expect(deps.getPlayerXP()).toBe(20); // + parent's own 10 XP
+        expect(deps.getPlayerPoints()).toBe(102); // + 0 points
     });
 });
 
@@ -190,7 +198,7 @@ describe('uncompleteItem: sub-task economy refund symmetry', () => {
 
         Items.completeItem(2, deps);
         expect(deps.getPlayerXP()).toBe(startXp + 5);
-        expect(deps.getPlayerPoints()).toBe(startPts + 5);
+        expect(deps.getPlayerPoints()).toBe(startPts + 1);
 
         // completeItem's removeItem runs on a 500ms fade-out setTimeout — run
         // it so the item actually leaves activeItems before uncompleteItem
@@ -202,7 +210,7 @@ describe('uncompleteItem: sub-task economy refund symmetry', () => {
         expect(deps.getPlayerPoints()).toBe(startPts);
     });
 
-    test('a high-priority sub round-trips symmetrically too (award 5/10, refund 5/10)', () => {
+    test('a high-priority sub round-trips symmetrically too (award 5/2, refund 5/2)', () => {
         const parent = taskItem({ id: 1, subTasks: [2], totalSubTasks: 1 });
         const sub = taskItem({ id: 2, parentId: 1, isHighPriority: true });
         const deps = makeDeps({ activeItems: [parent, sub], completedItems: [] });
@@ -212,7 +220,7 @@ describe('uncompleteItem: sub-task economy refund symmetry', () => {
 
         Items.completeItem(2, deps);
         expect(deps.getPlayerXP()).toBe(startXp + 5);
-        expect(deps.getPlayerPoints()).toBe(startPts + 10);
+        expect(deps.getPlayerPoints()).toBe(startPts + 2);
 
         jest.advanceTimersByTime(500);
 
@@ -221,7 +229,7 @@ describe('uncompleteItem: sub-task economy refund symmetry', () => {
         expect(deps.getPlayerPoints()).toBe(startPts);
     });
 
-    test('a standalone task still round-trips at the full 10/10 rate (regression guard)', () => {
+    test('a standalone task still round-trips at the full 10/1 rate (regression guard)', () => {
         const task = taskItem({ id: 1 });
         const deps = makeDeps({ activeItems: [task], completedItems: [] });
 
@@ -234,5 +242,26 @@ describe('uncompleteItem: sub-task economy refund symmetry', () => {
 
         expect(deps.getPlayerXP()).toBe(startXp);
         expect(deps.getPlayerPoints()).toBe(startPts);
+    });
+
+    test('a parent that HAD subs round-trips at 10 XP / 0 pts (uncompleting refunds nothing extra)', () => {
+        const parent = taskItem({ id: 1, subTasks: [2], totalSubTasks: 1 });
+        const sub = taskItem({ id: 2, parentId: 1 });
+        const deps = makeDeps({ activeItems: [parent, sub], completedItems: [] });
+
+        Items.completeItem(2, deps); // sub pays 5 XP / 1 pt, parent.completedSubTasks -> 1
+        jest.advanceTimersByTime(500);
+
+        const beforeXp = deps.getPlayerXP();
+        const beforePts = deps.getPlayerPoints();
+
+        Items.completeItem(1, deps); // parent pays 10 XP / 0 pts
+        expect(deps.getPlayerXP()).toBe(beforeXp + 10);
+        expect(deps.getPlayerPoints()).toBe(beforePts);
+
+        jest.advanceTimersByTime(500);
+        Items.uncompleteItem(1, deps); // refund mirrors: -10 XP / -0 pts
+        expect(deps.getPlayerXP()).toBe(beforeXp);
+        expect(deps.getPlayerPoints()).toBe(beforePts);
     });
 });

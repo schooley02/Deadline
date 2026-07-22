@@ -52,17 +52,30 @@ const CONFIG = {
     // --- XP & Points ---
     XP_PER_TASK_DEFEAT: 10,
     XP_PER_HABIT_COMPLETE: 5,
-    POINTS_PER_TASK: 10,
-    POINTS_PER_HABIT: 5,
-    // Sub-task economy ([P1-DATA-004] sub-session 3, 2026-07-19, balance-tuning
-    // protocol): half of XP_PER_TASK_DEFEAT/POINTS_PER_TASK — a sub-task is
-    // "half a task," decided alongside the growing-parent visual (both effects
-    // together weaken the parent as subs complete). The high-priority ×2 rule
+    // Points (currency) re-tuned 2026-07-21 (balance-tuning protocol, Jeremy's
+    // call — see DECISIONS.md): 10/5 → 1/1. Rationale: shop prices (25-300
+    // pts) were sized against the OLD ~75-85 pts/day earn rate: a full day's
+    // grinding covered a repair kit with room to spare. Jeremy wants tokens
+    // (freezes, pushbacks, cheat days) to cost real sustained effort, not a
+    // day's play — so the earn rate drops ~10x while shop prices stay put.
+    // XP is DELIBERATELY untouched (still 10/5 above) — this is a
+    // currency/shop-pressure change, not a leveling-pace change.
+    POINTS_PER_TASK: 1,
+    POINTS_PER_HABIT: 1,
+    // Sub-task economy ([P1-DATA-004] sub-session 3, 2026-07-19; points
+    // re-tuned 2026-07-21). Originally "half of POINTS_PER_TASK" — with the
+    // base at 1, half has no clean value, so Jeremy's call: a sub-task pays
+    // the SAME base as a standalone task (1 pt), but a parent task that ever
+    // had sub-tasks now pays 0 of its own on final completion — all the
+    // points for a sub-tasked task come from completing its subs, not from
+    // checking off the parent (items.js's completeItem/uncompleteItem gate
+    // this on `completedSubTasks > 0`; XP is unaffected, parent still earns
+    // its own XP_PER_TASK_DEFEAT). The high-priority ×2 rule
     // (Economy.taskPoints) still applies to a SUB's own priority flag on top
-    // of this base, so a high-priority sub can pay up to POINTS_PER_TASK (10)
-    // — capped at, never exceeding, a standalone task. See DECISIONS.md.
+    // of this base, so a high-priority sub can pay up to 2, same ceiling
+    // logic as a standalone high-priority task. See DECISIONS.md.
     SUBTASK_XP: 5,
-    SUBTASK_POINTS: 5,
+    SUBTASK_POINTS: 1,
     // Growing/shrinking parent visuals ([P1-DATA-004] sub-session 4,
     // 2026-07-19; plan values, docs/SUBTASKS_PLAN.md). A parent task's
     // rendered box grows 15% per OPEN sub-task (js/movement.js's
@@ -99,21 +112,27 @@ const CONFIG = {
     RECOVERY_AVOIDED_DAYS: 3,
 
     // --- Habit rate-based points bonus (decided session 13, built session 16;
-    // see DECISIONS.md + docs/MECHANICS.md). A habit's points award is
-    // multiplied by a factor derived from its rolling success rate over its last
-    // HABIT_RATE_WINDOW scheduled occurrences. Points only, never XP. 1× until at
-    // least HABIT_RATE_MIN_SAMPLE occurrences are recorded, so a new habit can't
-    // instantly max out. Tiers are checked high-to-low; first matching minRate
-    // wins; below the lowest tier the multiplier is 1×.
-    // Multipliers TUNED 2026-07-19 (session 24 theory pass, Fable — see
-    // DECISIONS.md): the ≥90% tier is anchored to TASK PARITY — a habit kept at
-    // 90%+ pays round(5 × 2.0) = 10 pts, same as POINTS_PER_TASK. "A habit you
-    // keep excellently is worth a task." ≥70% pays round(5 × 1.5) = 8. ---
-    HABIT_RATE_WINDOW: 14,
-    HABIT_RATE_MIN_SAMPLE: 7,
+    // RE-DESIGNED 2026-07-21, Jeremy's call — see DECISIONS.md). A habit's
+    // points award is multiplied by a factor derived from its success rate
+    // over its last HABIT_RATE_WINDOW scheduled occurrences. Points only,
+    // never XP. Below HABIT_RATE_MIN_SAMPLE occurrences recorded, the
+    // multiplier is a flat 1× — no tier can fire on a partial window.
+    // Tiers are checked high-to-low; first matching minRate wins.
+    //
+    // Window widened 10→14→22: 22 is the oft-cited "it takes ~22 repetitions
+    // to form a habit" figure Jeremy wants the mechanic to literally track.
+    // MIN_SAMPLE is set equal to the window (not a fraction of it, unlike the
+    // old 7-of-14) — deliberate: "100% of the last 22" / "80% of the last 22"
+    // are only meaningful once a full 22-occurrence window actually exists;
+    // a habit stays at 1× until then, full stop. No task-parity anchor
+    // anymore (task itself is 1 pt now, so "parity" would mean no bonus at
+    // all) — tiers are their own reward scale: perfect 22/22 record → 3×,
+    // ≥80% (some room to slip and still keep the run) → 2×, else 1×.
+    HABIT_RATE_WINDOW: 22,
+    HABIT_RATE_MIN_SAMPLE: 22,
     HABIT_RATE_TIERS: [
-        { minRate: 0.9, multiplier: 2.0 },
-        { minRate: 0.7, multiplier: 1.5 },
+        { minRate: 1.0, multiplier: 3.0 },
+        { minRate: 0.8, multiplier: 2.0 },
     ],
 
     // --- Progression ---
@@ -217,6 +236,15 @@ const CONFIG = {
     // pushback stays FLAT-priced (the closed points economy is self-limiting)
     // with a 6-hour stacking break-even against the 1-day tier. Re-check
     // against REAL play data once Jeremy has some (scheduled in ROADMAP).
+    // NOTE: that theory pass assumed the OLD ~75-85 pts/day earn rate. Prices
+    // below are DELIBERATELY left unchanged by the 2026-07-21 points re-tune
+    // (POINTS_PER_TASK/HABIT above dropped ~10x) — Jeremy's explicit intent
+    // was to make tokens cost real sustained effort against these same
+    // prices, not to preserve the old day-to-buy ratios. The HP-per-point/
+    // break-even math itself still holds (it's ratios between shop items,
+    // unaffected by the earn-rate change); only "how many real days of play
+    // to afford X" changed, on purpose. Re-check against real play data still
+    // applies once Jeremy has some.
     //
     // Shape per item:
     //   id        stable key (persisted inventory is keyed by this)

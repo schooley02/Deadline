@@ -75,11 +75,12 @@ describe('Items.indulgeHabit', () => {
     test('debits via the NON-clamping path — a balance that cannot cover the cost goes negative (sub-session 3)', () => {
         const item = makeNegativeHabitInstance();
         const habitDef = { id: 'def1', isNegative: true, streak: 3, occurrenceHistory: [] };
-        // Start near zero so even a 1x-multiplier debit (pointsPerHabit) pushes it negative.
+        // Start at zero so even the smallest possible debit (pointsPerHabit,
+        // now 1 after the 2026-07-21 points re-tune) still pushes it negative.
         const deps = makeDeps({
             activeItems: [item],
             definedHabits: [habitDef],
-            getPlayerPoints: () => 1,
+            getPlayerPoints: () => 0,
         });
 
         Items.indulgeHabit(1, deps);
