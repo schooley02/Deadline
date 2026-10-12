@@ -565,16 +565,27 @@ const Items = (() => {
         // Show completed tasks section and render completed items
         deps.renderCompletedItems();
 
-        // Fade out animation
+        // Exit: play the death animation (P2-GAME-010 Stage 2b), then fade the
+        // splat out over the last FADE_MS. Falls back to the plain 0.5s fade
+        // when there's no animated sprite or motion is off. (indulgeHabit
+        // keeps the plain fade on purpose: a lapse isn't a defeat.)
+        let exitMs = 500;
         if (item.element) {
-            item.element.style.transition = 'opacity 0.5s ease';
+            const deathMs = (typeof SpriteAnim !== 'undefined') ? SpriteAnim.playDeath(item.element) : 0;
+            if (deathMs > 0) {
+                const FADE_MS = 200;
+                exitMs = deathMs;
+                item.element.style.transition = `opacity ${FADE_MS}ms ease ${deathMs - FADE_MS}ms`;
+            } else {
+                item.element.style.transition = 'opacity 0.5s ease';
+            }
             item.element.style.opacity = '0';
         }
 
-        // Remove item after fade animation
+        // Remove item after the exit animation
         setTimeout(() => {
             removeItem(itemId, deps);
-        }, 500);
+        }, exitMs);
     }
 
     /**

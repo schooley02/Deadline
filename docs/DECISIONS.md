@@ -4,6 +4,35 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-12 — Negative-habit agenda rows: Avoided / Indulged buttons replace the checkbox (Jeremy's call, Claude app session, Sonnet)
+
+- **Problem:** the agenda row's "Mark as Complete" checkbox on a negative-habit lurker routed to `completeItem` = *avoided* (points + streak, defeat exit). A "done" tick is ambiguous for a thing you're trying NOT to do, and mapping it to *indulged* would make a misclick cost points and zero the streak.
+- **Decision:** negative-habit rows (`type==='habit' && isNegative`) show two compact buttons, **Avoided** (-> `completeItem`) and **Indulged** (-> `indulgeHabit`), the same pair as the popup's "Successfully avoided" / "I indulged". Positive habits and tasks keep the checkbox. No scoring change. `agendaListDeps()` now passes `indulgeHabit`. Controls container wraps so the row can't overflow (CLAUDE.md overflow rule — verify with `scrollWidth` live).
+- **Also 2026-10-12:** day-pager ghost sprites now stand on the ground band (CONFIG.GROUND_BAND_FEET_*) and use the animated sprite (paused frame 0); previously a fixed 20-180px top floated them in the sky. Jeremy confirmed the fix live.
+- sw.js `deadline-shell-v8`. 62 suites, 1308/1308 (+2 in agenda-list.test.js).
+
+---
+
+## 2026-10-12 — `uncompleteItem` overdue back-charge: ask for a new due time first (Jeremy's call, Claude app session)
+
+Resolves the design question flagged 2026-07-21 (see that date's entry). **Decision:** when undoing a completion on a one-off task or sub-task whose due time has already passed, the game first opens a small "When is this due now?" picker (the game's own `Modal.open`, never a native `confirm()`), BEFORE any damage clock is set. (a) A future time -> the item returns not overdue; nothing to back-charge. (b) Keep the original past time -> returns overdue with a clean-slate clock (`lastDamageTickTime = now`, same as the edit and created-overdue paths — option 1). (c) Cancel -> the undo is aborted and the item stays completed (no refund, no state change). **Habits:** no picker (their due time comes from the schedule, and `markAsOverdue` records a streak miss); they get the clean-slate clock only. Sub-tasks respect the same due-date rules as the edit form (parent ceiling). Reuse the edit form's date field/validation if it can be embedded.
+- **Why:** it moves the choice to the player at the moment it matters, makes the fallback rule rarely needed, and adds no loophole (editing a due date forward is already free).
+- **Rejected:** full back-charge (today's behavior — a misclick can end a run); capped 12 HP back-charge (surprise hit from a button press).
+- **Still to verify when building:** the habit streak/miss behavior on undo, so the no-picker habit path doesn't skip or double-record a miss.
+
+---
+
+## 2026-10-12 — Animated zombies, Stage 2b: death animation on completion + scrub pause (Claude app session, Sonnet)
+
+- **Death plays on completion only.** `completeItem` calls `SpriteAnim.playDeath(el)` (adds `.enemy-dying`: row 3, 9 frames at 12fps = 750ms, `steps(9, jump-none)` + `forwards` so the splat frame holds), then fades opacity over the last 200ms, then `removeItem` at 750ms. Covers tasks, sub-tasks and positive habits (one code path).
+- **Indulged bad habits keep the plain 0.5s fade (Jeremy's call).** A lapse isn't a defeat.
+- **Fallback:** no animated sprite, `body.fx-off`, or prefers-reduced-motion -> `playDeath` returns 0 and the old 500ms fade runs. `.fx-reduced` does NOT slow the death (its `--fps: 4 !important` is overridden) because removal timing assumes 750ms.
+- **Scrub pause:** `.enemy.time-preview-ghost .enemy-sprite-sheet { animation-play-state: paused }` — the slider and day pager already put that class on every enemy, so no JS. Resumes on release.
+- **Dying enemies** get `pointer-events: none` and no overdue pulse.
+- Alternatives rejected: JS-driven frame stepping (CSS steps already compositor-only); delaying removal via the animationend event (a timer matches the existing pattern and survives reduced-motion/background-tab throttling edge cases).
+
+---
+
 ## 2026-10-12 — Animated zombie sprites, Stage 2a: CSS-driven atlas animation, 1x/0.5x display, integer-snapped parent growth (Claude app session, Opus planning + Sonnet build)
 
 - **Rendering:** each enemy gets one child `.enemy-sprite` (fixed window, `overflow:hidden`) holding a sheet moved by a `steps(N)` `transform: translateX` animation (compositor-only). ALL state is CSS, derived from classes the game already sets: `.enemy-at-base` -> attack, `.negative-habit` (stationary lurker) -> idle, else walk; `urgency-*` tiers set walk speed; `urgency-calm` (due > 4h out, effectively parked at the right edge) IDLES instead of walking in place (Jeremy's call). Playback is defined as FRAME RATES (approaching 8 fps, urgent 12, idle 5, attack 8) with cycle length = frames/fps, so 7- and 9-frame animations of one state play at the same speed — the first version used fixed durations, which made 7-frame walks ~25% faster and urgent walks ~18 fps (fixed 2026-10-12 after playtest feedback); `zombie-<category>` picks the atlas. So category swaps, overdue transitions and restores needed no new hooks; JS (`js/spriteAnim.js`) only attaches the child and syncs `--sprite-scale`. Rejected: animating `background-position` (paint-heavy on phones); a JS frame ticker (a timer per enemy).

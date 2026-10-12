@@ -11,6 +11,20 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-10-12 — Animated zombies, Stage 2b: death animation + scrub pause (Claude app session, Sonnet)
+
+**Did:** Stage 2a live-verified by Jeremy ("looks good"). Built P2-GAME-010 Stage 2b. `js/spriteAnim.js` (`playDeath`, `canPlayDeath`, `DEATH_*`), `css/enemyAnim.css` (`.enemy-dying`, scrub pause), `js/items.js` (`completeItem` exit), `sw.js` (v5 -> v6), NEW `test/items-death-anim.test.js`. Docs: ROADMAP, ART_STYLE, DECISIONS, CLAUDE.md.
+
+**State:** Jest 62 suites, 1306/1306 green (scratch copy). Jeremy live-checked: scrub pause works. Found: future-day ghost sprites rendered in the sky -> fixed in `dayPagerView.js` (ground band + animated sprite; sw.js now v7), needs a re-check. Ghost fix confirmed live. Also built (Jeremy's call): negative-habit agenda rows show Avoided / Indulged buttons instead of the checkbox (`agendaList.js`, `script.js` deps, sw.js v8, 1308 tests) — needs a live check incl. a `scrollWidth` vs `clientWidth` overflow measure on a narrow screen.
+
+**Next:** (1) Live check: clear SW + Cache Storage, `node server.js`. Complete a task: death plays once, splat holds, fades out, removed ~750ms; a sub-task (half size) and a positive habit too; "I indulged" on a bad habit still plain-fades. Drag the time slider: zombies freeze, resume on release. Effects Off / reduced-motion: plain fade. Click a dying zombie: nothing. (2) Then V2 (state-indicator glow) per VISUAL_DESIGN_PLAN.md.
+
+**Watch out:**
+- `uncompleteItem` overdue back-charge: DECIDED (Jeremy, 2026-10-12) — picker for a new due time on undo of an overdue task/sub-task; habits clean-slate clock. Not built yet; spec in DECISIONS.md. Check the habit-miss behavior on undo before building.
+- Death FPS lives in two places (CSS `--fps: 12` and `SpriteAnim.DEATH_FPS`); a test pins them together.
+- A dying zombie stays in `activeItems` for 750ms (was 500ms); nothing else reads it differently, but watch for double-complete via the agenda list during that window.
+- Files in `archive/` still show as deletes + adds — `git add -A`.
+
 ## 2026-10-12 — Animated zombies, Stage 2a: walk/idle/attack sprite sheets (Claude app session, Opus plan -> Sonnet build)
 
 **Did:** Built P2-GAME-010 Stage 2a. NEW `js/spriteAnim.js`, `css/enemyAnim.css`, `test/spriteAnim.test.js`. Edited `js/spawning.js` + `js/items.js` (restore path) to attach the sprite child, `js/loop.js` (scale sync for growing parents), `js/movement.js` (`getParentSpriteScale`, snapped `getParentRenderWidth`), `js/config.js` (`PARENT_GROWTH_SNAP_TO_INTEGER`, re-measured `ZOMBIE_VISIBLE_MARGINS`), `index.html`, `sw.js` (v3 -> v4, atlases + new files), `test/movement.test.js` (pinned fixtures, snap on/off cases). Docs: DECISIONS, ROADMAP, ART_STYLE, CLAUDE.md.

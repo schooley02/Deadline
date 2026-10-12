@@ -135,10 +135,23 @@ const DayPagerView = (() => {
 
         const x = Clock.calculateTimelinePosition({ type: ghost.isHabit ? 'habit' : 'task', dueDateTime: ghost.dueTime }, previewTime, dims);
         el.style.left = Math.max(dims.baseWidth, x) + 'px';
-        // Simple deterministic vertical spread (no live canvas-height read
-        // needed for a read-only preview) — index-based, capped so ghosts
-        // never stack past a reasonable band.
-        el.style.top = (20 + (index % 5) * 40) + 'px';
+        // Vertical placement: stand on the V1 ground band like live zombies
+        // do (Movement.getItemTopPosition), spread deterministically by index
+        // across the band so ghosts don't stack. (Was a fixed 20-180px offset,
+        // which floated ghosts in the sky; fixed 2026-10-12.) Falls back to
+        // the old spread when the canvas height isn't measurable.
+        const canvasH = deps.gameCanvasEl ? deps.gameCanvasEl.offsetHeight : 0;
+        if (canvasH > 0 && typeof CONFIG !== 'undefined' && CONFIG.GROUND_BAND_FEET_TOP_FRAC != null) {
+            const feetTop = CONFIG.GROUND_BAND_FEET_TOP_FRAC * canvasH;
+            const feetBottom = CONFIG.GROUND_BAND_FEET_BOTTOM_FRAC * canvasH;
+            const feet = feetTop + ((index % 5) / 4) * (feetBottom - feetTop);
+            el.style.top = Math.max(0, Math.min(feet - height, canvasH - height)) + 'px';
+        } else {
+            el.style.top = (20 + (index % 5) * 40) + 'px';
+        }
+        // Same animated sprite as live zombies (paused on frame 0 by the
+        // .time-preview-ghost rule in css/enemyAnim.css).
+        if (typeof SpriteAnim !== 'undefined') SpriteAnim.attach(el, width);
 
         // Yesterday snapshot entries carry an `outcome` (sub-session 3) —
         // future-day ghosts never do, so this is a no-op for those.

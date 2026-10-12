@@ -226,6 +226,26 @@ describe('AgendaList.createListItem — type branching', () => {
         expect(findByClass(habit.listItemElement, 'item-streak')[0].textContent).toBe('Avoided: 9');
     });
 
+    test('a negative habit row has Avoided / Indulged buttons instead of the checkbox', () => {
+        const habit = makeHabit({ isNegative: true });
+        const deps = makeDeps({ indulgeHabit: jest.fn() });
+        AgendaList.createListItem(habit, deps);
+        expect(findByClass(habit.listItemElement, 'completion-checkbox-input')).toHaveLength(0);
+        findByClass(habit.listItemElement, 'avoid-btn')[0].fire('click');
+        expect(deps.completeItem).toHaveBeenCalledWith(habit.id);
+        expect(deps.indulgeHabit).not.toHaveBeenCalled();
+        findByClass(habit.listItemElement, 'indulge-btn')[0].fire('click');
+        expect(deps.indulgeHabit).toHaveBeenCalledWith(habit.id);
+        expect(deps.completeItem).toHaveBeenCalledTimes(1);
+    });
+
+    test('a positive habit keeps its checkbox', () => {
+        const habit = makeHabit({ isNegative: false });
+        AgendaList.createListItem(habit, makeDeps());
+        expect(findByClass(habit.listItemElement, 'completion-checkbox-input')).toHaveLength(1);
+        expect(findByClass(habit.listItemElement, 'indulge-btn')).toHaveLength(0);
+    });
+
     test('an unrecognized type renders the shared shell and warns rather than throwing', () => {
         const odd = { id: 'x1', type: 'quest', name: 'Mystery', category: 'other', dueDateTime: new Date() };
 

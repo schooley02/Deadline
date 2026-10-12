@@ -54,10 +54,10 @@ other #90ee90 · career #4a90e2 · creativity #f5a623 · financial #50e3c2 · he
 - Sub-task sprite convention: `subtask-[category]-[variant].png`, 64×64, CSS class `.zombie-subtask`, falls back to parent-category asset (see README.md sprite section).
 - Concept art / PSD / XD sources live in `OneDrive\Documents\Baseline - Old\Deadline\` — binary files, never open in Claude.
 
-## Animated Sprites (P2-GAME-010 Stage 2) — assets IN, walk/idle/attack rendering BUILT (2a, 2026-10-12); death = Stage 2b
+## Animated Sprites (P2-GAME-010 Stage 2) — assets IN, walk/idle/attack (2a) + death (2b) rendering BUILT 2026-10-12
 Jeremy generated all 8 zombies + animations in PixelLab (2026-10-12).
 - **Game files:** `Assets/Zombies/anim/<category>.png` + `<category>.json`, one atlas per category, category keys exactly as the game uses them (`spirituality`, not `spiritual`). Rows in every atlas, top to bottom: **walk, idle, attack, death**. The JSON gives `frameWidth`/`frameHeight` (156–180px square cells, varies by category), per-animation `row`/`frames`/`loop`, `feetY` (lowest walk/idle pixel in the cell — for ground-band alignment) and `bodyBox`.
-- Frame counts: walk 9 (other, spirituality: 7); idle 7; attack 9 (other: 7); death 9 (ends in a green splat — play once on completion).
+- Frame counts: walk 9 (other, spirituality: 7); idle 7; attack 9 (other: 7); death 9 (ends in a green splat — plays once on completion via `.enemy-dying`, 12fps = 750ms, holds the last frame; css/enemyAnim.css + `SpriteAnim.playDeath`).
 - Characters are drawn at **128px** inside the cell, all facing left (toward the church). Display at integer scales only (e.g. 0.5× → 64px) with `image-rendering: pixelated`, or the pixels shimmer.
 - **Originals:** PixelLab's raw exports (incl. the 8-direction rotation rows used only as AI reference, and alternate takes such as Career's two other walk cycles) are kept in `anim/_source/` — reference only, never shipped (exclude from `sw.js`).
 - Rebuild an atlas from `_source/` if Jeremy swaps a take: crop the chosen animation rows, center-pad each to the category's largest cell, stack walk/idle/attack/death.

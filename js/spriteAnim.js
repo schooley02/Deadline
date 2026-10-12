@@ -72,7 +72,33 @@ const SpriteAnim = (() => {
         CATEGORIES.forEach(c => { const img = new Image(); img.src = `Assets/Zombies/anim/${c}.png`; });
     }
 
-    return { CHARACTER_PX, CATEGORIES, scaleForWidth, attach, syncScale, preload };
+    // Death animation ([P2-GAME-010] Stage 2b, 2026-10-12): 9 frames, played
+    // once at DEATH_FPS, holding the final splat frame (css/enemyAnim.css
+    // `.enemy-dying`). Keep DEATH_FPS in sync with that rule.
+    const DEATH_FRAMES = 9;
+    const DEATH_FPS = 12;
+    const DEATH_MS = Math.round(DEATH_FRAMES / DEATH_FPS * 1000);
+
+    // True when a death animation would actually play: the enemy has an
+    // animated sprite and motion isn't switched off (fx 'off' body class or
+    // prefers-reduced-motion, same gating as the walk cycle).
+    function canPlayDeath(enemyEl) {
+        if (!enemyEl || !enemyEl.classList || !enemyEl.classList.contains('has-anim-sprite')) return false;
+        if (typeof document !== 'undefined' && document.body && document.body.classList.contains('fx-off')) return false;
+        if (typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+        return true;
+    }
+
+    // Starts the death animation. Returns its duration in ms, or 0 when it
+    // can't play (caller then uses the plain fade). Idempotent.
+    function playDeath(enemyEl) {
+        if (!canPlayDeath(enemyEl)) return 0;
+        enemyEl.classList.add('enemy-dying');
+        return DEATH_MS;
+    }
+
+    return { CHARACTER_PX, CATEGORIES, DEATH_FRAMES, DEATH_FPS, DEATH_MS, scaleForWidth, attach, syncScale, preload, canPlayDeath, playDeath };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

@@ -523,6 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
             activeItems: State.getActiveItems(), categoryStyles,
             completeItem: (itemId) => Items.completeItem(itemId, itemsDeps()),
+            indulgeHabit: (itemId) => Items.indulgeHabit(itemId, itemsDeps()),
             isGameOver: State.isGameOver,
             showEditTaskModal: (item) => Popups.showEditTaskModal(item, popupsDeps()),
             showEditHabitInstanceModal: (itemData) => AgendaList.showEditHabitInstanceModal(itemData, agendaListDeps()),

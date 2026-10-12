@@ -58,7 +58,8 @@ const AgendaList = (() => {
      *
      * deps: {
      *   activeItems, categoryStyles, completeItem, isGameOver,
-     *   showEditTaskModal, showEditHabitInstanceModal, createSubTaskPrompt
+     *   showEditTaskModal, showEditHabitInstanceModal, createSubTaskPrompt,
+     *   indulgeHabit (optional; negative-habit rows' "Indulged" button)
      * }
      */
     function createListItem(itemData, deps) {
@@ -162,7 +163,36 @@ const AgendaList = (() => {
         completeCheckboxLabel.appendChild(checkboxLabel);
 
         itemActionsContainer.appendChild(editIconButton);
-        itemActionsContainer.appendChild(completeCheckboxLabel);
+        if (itemData.type === 'habit' && itemData.isNegative === true) {
+            // Negative-habit lurker (2026-10-12, Jeremy's call): a "Mark as
+            // Complete" checkbox is ambiguous for something you're trying NOT
+            // to do, so the row gets the same explicit pair the popup has
+            // (js/ui/popups.js): avoided (success, completeItem) / indulged
+            // (indulgeHabit). Compact labels + wrap so the row can't overflow
+            // at narrow widths (CLAUDE.md overflow rule).
+            itemActionsContainer.style.flexWrap = 'wrap';
+            itemActionsContainer.style.justifyContent = 'flex-end';
+            const avoidBtn = document.createElement('button');
+            avoidBtn.type = 'button';
+            avoidBtn.classList.add('negative-habit-button', 'avoid-btn');
+            avoidBtn.textContent = 'Avoided';
+            avoidBtn.title = 'Successfully avoided';
+            avoidBtn.style.cssText = 'font-size: 12px; padding: 4px 8px;';
+            avoidBtn.addEventListener('click', () => deps.completeItem(itemData.id));
+            const indulgeBtn = document.createElement('button');
+            indulgeBtn.type = 'button';
+            indulgeBtn.classList.add('negative-habit-button', 'indulge-btn');
+            indulgeBtn.textContent = 'Indulged';
+            indulgeBtn.title = 'I indulged';
+            indulgeBtn.style.cssText = 'font-size: 12px; padding: 4px 8px;';
+            indulgeBtn.addEventListener('click', () => {
+                if (typeof deps.indulgeHabit === 'function') deps.indulgeHabit(itemData.id);
+            });
+            itemActionsContainer.appendChild(avoidBtn);
+            itemActionsContainer.appendChild(indulgeBtn);
+        } else {
+            itemActionsContainer.appendChild(completeCheckboxLabel);
+        }
 
         titleAndControlsRow.appendChild(itemNameSpan);
         titleAndControlsRow.appendChild(itemActionsContainer);

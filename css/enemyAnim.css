@@ -105,6 +105,31 @@
 .enemy.urgency-approaching .enemy-sprite-sheet { --fps: 8; }
 .enemy.urgency-urgent .enemy-sprite-sheet      { --fps: 12; }
 
+/* Death (Stage 2b): items.js completeItem adds .enemy-dying via
+   SpriteAnim.playDeath. Plays row 3 once and holds the final splat frame.
+   steps(9, jump-none) = nine distinct frames, last one held. Keep the 12fps
+   in sync with SpriteAnim.DEATH_FPS. Beats every other state rule above. */
+.enemy.enemy-dying {
+    pointer-events: none;
+    animation: none;
+}
+.enemy.enemy-dying .enemy-sprite-sheet {
+    --row: 3;
+    --frames: 9;
+    --fps: 12 !important; /* beats .fx-reduced's slow-down: removal timing assumes 750ms */
+    animation: enemy-sprite-death var(--sprite-dur) steps(9, jump-none) forwards !important;
+}
+@keyframes enemy-sprite-death {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(calc(var(--cell) * 8 * -1), 0, 0); }
+}
+
+/* Pause the walk/idle/attack cycle while the time slider / day pager is being
+   scrubbed (they put .time-preview-ghost on every enemy). Stage 2b. */
+.enemy.time-preview-ghost .enemy-sprite-sheet {
+    animation-play-state: paused;
+}
+
 /* Atlases */
 .zombie-career .enemy-sprite-sheet        { background-image: url('../Assets/Zombies/anim/career.png'); }
 .zombie-creativity .enemy-sprite-sheet    { background-image: url('../Assets/Zombies/anim/creativity.png'); }
