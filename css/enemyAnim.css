@@ -57,7 +57,12 @@
 .enemy-sprite-sheet {
     --row: 0;
     --frames: var(--n-walk);
-    --sprite-dur: 1.2s;
+    /* Playback is defined as a FRAME RATE per state, and the cycle length is
+       derived from the frame count, so a 7-frame and a 9-frame animation of the
+       same state run at the same speed (7-frame 'other'/'spirituality' walks
+       used to loop ~25% faster than the 9-frame ones). */
+    --fps: 8;
+    --sprite-dur: calc(var(--frames) / var(--fps) * 1s);
     position: absolute;
     left: 0;
     top: calc(var(--row) * var(--cell) * -1);
@@ -79,12 +84,12 @@
 .enemy.negative-habit .enemy-sprite-sheet {
     --row: 1;
     --frames: var(--n-idle);
-    --sprite-dur: 1.4s;
+    --fps: 5;
 }
 .enemy.enemy-at-base .enemy-sprite-sheet {
     --row: 2;
     --frames: var(--n-attack);
-    --sprite-dur: 0.9s;
+    --fps: 8;
 }
 
 /* Walk speed by urgency tier (same tiers as the Stage 1 bob; js/loop.js sets them).
@@ -94,10 +99,11 @@
 .enemy.urgency-calm .enemy-sprite-sheet {
     --row: 1;
     --frames: var(--n-idle);
-    --sprite-dur: 1.4s;
+    --fps: 5;
 }
-.enemy.urgency-approaching .enemy-sprite-sheet { --sprite-dur: 0.8s; }
-.enemy.urgency-urgent .enemy-sprite-sheet      { --sprite-dur: 0.5s; }
+/* Frame rates, not durations: 9 frames -> 1.1s / 0.75s per walk cycle, 7 frames -> 0.9s / 0.6s. */
+.enemy.urgency-approaching .enemy-sprite-sheet { --fps: 8; }
+.enemy.urgency-urgent .enemy-sprite-sheet      { --fps: 12; }
 
 /* Atlases */
 .zombie-career .enemy-sprite-sheet        { background-image: url('../Assets/Zombies/anim/career.png'); }
@@ -112,7 +118,7 @@
 /* Effects intensity + accessibility (same gating as the Stage 1 bob):
    'reduced' = one gentle uniform pace; 'off' / prefers-reduced-motion = hold frame 0. */
 .fx-reduced .enemy-sprite-sheet {
-    animation-duration: 1.6s !important;
+    --fps: 4 !important;
 }
 .fx-off .enemy-sprite-sheet {
     animation: none !important;

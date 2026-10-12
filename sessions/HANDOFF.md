@@ -15,13 +15,14 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 **Did:** Built P2-GAME-010 Stage 2a. NEW `js/spriteAnim.js`, `css/enemyAnim.css`, `test/spriteAnim.test.js`. Edited `js/spawning.js` + `js/items.js` (restore path) to attach the sprite child, `js/loop.js` (scale sync for growing parents), `js/movement.js` (`getParentSpriteScale`, snapped `getParentRenderWidth`), `js/config.js` (`PARENT_GROWTH_SNAP_TO_INTEGER`, re-measured `ZOMBIE_VISIBLE_MARGINS`), `index.html`, `sw.js` (v3 -> v4, atlases + new files), `test/movement.test.js` (pinned fixtures, snap on/off cases). Docs: DECISIONS, ROADMAP, ART_STYLE, CLAUDE.md.
 
-**State:** Jest 61 suites, 1296/1296 green (run in a scratch copy). **NOT live-verified** — localhost:8000 wasn't serving, so nothing has been seen in a browser yet. Jest cannot catch layout/animation problems here.
+**State:** Jest 61 suites, 1298/1298 green (run in a scratch copy). **NOT live-verified** — localhost:8000 wasn't serving, so nothing has been seen in a browser yet. Jest cannot catch layout/animation problems here.
 
 **Next:** (1) Live check first: `node server.js`, unregister the service worker + clear Cache Storage, load. Look for: zombies animate and face the church; feet sit on the ground band; urgency tiers visibly change walk speed; overdue ones play attack; negative habits idle; sub-tasks at 64px; sprite not clipped by the canvas; clicking still works; fx-off/reduced settings behave; and measure `scrollWidth` vs `clientWidth` on rows (CLAUDE.md overflow rule). Check the 4-open-sub parent (2x, 256px) for canvas clipping. (2) Then Stage 2b: death animation on completion.
 
 **Watch out:**
 - Parent growth: whole-number snap was tried and dropped (128 -> 256px too big). Now smooth, `PARENT_GROWTH_PER_SUB` 0.075 (max +30%, 166px at 4 subs); snap is an opt-in flag. Check in the browser that small subs still read as "under" the parent; tune the constant if not.
 - The Stage 1 bob is switched off for animated enemies; the walk cycle replaces it. Flip it back in enemyAnim.css if wanted.
+- Playback speed is frame-rate based (css/enemyAnim.css `--fps`: idle 5, walk 8 approaching / 12 urgent, attack 8; cycle = frames/fps) so 7- and 9-frame animations match. Tune the `--fps` values if still too fast/slow; sw.js cache is now v5.
 - Calm-tier tasks (due > 4h away, parked at the right) play IDLE; walking starts at the approaching tier (<= 4h). Tweak in enemyAnim.css.
 - A read-only `git diff --stat` ran from the bridge by mistake; no lock left behind.
 - Files in `archive/` still show as deletes + adds — `git add -A`.

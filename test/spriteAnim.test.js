@@ -123,11 +123,32 @@ describe('assets, CSS and CONFIG stay in agreement', () => {
         expect(css).toMatch(/\.enemy\.urgency-calm \.enemy-sprite-sheet\s*\{[^}]*--row:\s*1;[^}]*--frames:\s*var\(--n-idle\)/);
         expect(css).toMatch(/\.enemy\.negative-habit \.enemy-sprite-sheet\s*\{[^}]*--row:\s*1/);
         expect(css).toMatch(/\.enemy\.enemy-at-base \.enemy-sprite-sheet\s*\{[^}]*--row:\s*2/);
-        expect(css).toMatch(/\.enemy\.urgency-approaching \.enemy-sprite-sheet\s*\{[^}]*--sprite-dur/);
-        expect(css).toMatch(/\.enemy\.urgency-urgent \.enemy-sprite-sheet\s*\{[^}]*--sprite-dur/);
+        expect(css).toMatch(/\.enemy\.urgency-approaching \.enemy-sprite-sheet\s*\{[^}]*--fps:\s*8/);
+        expect(css).toMatch(/\.enemy\.urgency-urgent \.enemy-sprite-sheet\s*\{[^}]*--fps:\s*12/);
         // calm must not be given a walk row override
         const calm = css.match(/\.enemy\.urgency-calm \.enemy-sprite-sheet\s*\{[^}]*\}/)[0];
         expect(calm).not.toMatch(/--row:\s*0/);
+    });
+
+    test('playback is frame-rate based: cycle length derives from the frame count, never a fixed time', () => {
+        expect(css).toMatch(/--sprite-dur:\s*calc\(var\(--frames\)\s*\/\s*var\(--fps\)\s*\*\s*1s\)/);
+        // no state/tier rule may hard-code a duration (that is what made 7- and 9-frame cycles run at different speeds)
+        expect(css.match(/--sprite-dur:\s*[\d.]+s/g)).toBeNull();
+        expect(css).not.toMatch(/animation-duration:\s*[\d.]+s/);
+    });
+
+    test('effective fps: same state => same fps for every category, whatever its frame count', () => {
+        const fpsOf = { walkApproaching: 8, walkUrgent: 12, idle: 5, attack: 8 };
+        const durations = (frames, fps) => frames / fps;
+        SpriteAnim.CATEGORIES.forEach((cat) => {
+            const meta = JSON.parse(fs.readFileSync(path.join(ROOT, 'Assets/Zombies/anim', `${cat}.json`), 'utf8'));
+            // cycle length * fps recovers the frame count exactly, i.e. playback speed does not depend on it
+            expect(durations(meta.animations.walk.frames, fpsOf.walkUrgent) * fpsOf.walkUrgent).toBe(meta.animations.walk.frames);
+            expect(durations(meta.animations.attack.frames, fpsOf.attack)).toBeCloseTo(meta.animations.attack.frames / 8, 9);
+        });
+        // sanity: the longest cycle anywhere stays calm enough to read (>= 0.5s for urgent walk, >= 0.8s idle)
+        expect(7 / fpsOf.walkUrgent).toBeGreaterThanOrEqual(0.5);
+        expect(7 / fpsOf.idle).toBeGreaterThanOrEqual(0.8);
     });
 
     test('atlas PNG dimensions are 9 columns x 4 rows of cells', () => {
