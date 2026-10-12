@@ -1,0 +1,61 @@
+{
+  "character": {
+    "id": "21c881b7-84d9-45ba-b71c-6b30fb2bc8ef",
+    "name": "Idle",
+    "prompt": "a zombie nurse holding a syringe with a bright green substance in it",
+    "size": {
+      "width": 128,
+      "height": 128
+    },
+    "directions": 8,
+    "view": "side"
+  },
+  "spritesheet": {
+    "path": "Health_Zombie-Idle.png",
+    "cell_size": {
+      "width": 180,
+      "height": 180
+    },
+    "sheet_size": {
+      "width": 1620,
+      "height": 540
+    },
+    "columns": 9,
+    "pivot": "cell-center",
+    "rows": [
+      {
+        "row": 0,
+        "type": "rotations",
+        "frame_count": 8,
+        "directions": [
+          "south",
+          "south-east",
+          "east",
+          "north-east",
+          "north",
+          "north-west",
+          "west",
+          "south-west"
+        ]
+      },
+      {
+        "row": 1,
+        "type": "animation",
+        "frame_count": 7,
+        "animation": "Health Idle",
+        "animation_group_id": "4ddd6666-4a2f-450f-870a-b7656d3129a1",
+        "direction": "south"
+      },
+      {
+        "row": 2,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "Health Death",
+        "animation_group_id": "a952a33a-4a04-4d9a-94fc-f8292310ecad",
+        "direction": "south"
+      }
+    ]
+  },
+  "export_version": "1.0",
+  "export_date": "2026-10-12T19:38:28.140559+00:00"
+}

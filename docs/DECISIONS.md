@@ -4,6 +4,23 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-12 — Animated zombie sprites, Stage 2a: CSS-driven atlas animation, 1x/0.5x display, integer-snapped parent growth (Claude app session, Opus planning + Sonnet build)
+
+- **Rendering:** each enemy gets one child `.enemy-sprite` (fixed window, `overflow:hidden`) holding a sheet moved by a `steps(N)` `transform: translateX` animation (compositor-only). ALL state is CSS, derived from classes the game already sets: `.enemy-at-base` -> attack, `.negative-habit` (stationary lurker) -> idle, else walk; `urgency-*` tiers set walk speed (1.2s / 0.8s / 0.5s per cycle); `zombie-<category>` picks the atlas. So category swaps, overdue transitions and restores needed no new hooks; JS (`js/spriteAnim.js`) only attaches the child and syncs `--sprite-scale`. Rejected: animating `background-position` (paint-heavy on phones); a JS frame ticker (a timer per enemy).
+- **Display size (Jeremy's call):** option (a) — 1x for tasks/habits (the character is drawn at 128px), 0.5x (64px) for sub-tasks; integer scales only so pixels stay crisp. Feet are anchored to the enemy box's bottom edge at every scale.
+- **Growing parents — REVISED same day (Jeremy's call):** snapping to whole numbers was tried first (`PARENT_GROWTH_SNAP_TO_INTEGER`), but with 15%/sub the only visible step was 128 -> 256px, far too big. Growth should only be big enough to make it obvious the smaller sprites are under the parent. So: snap is now OFF by default (flag kept; opt-in), smooth fractional scaling, and `PARENT_GROWTH_PER_SUB` 0.15 -> **0.075** (cap 4 subs: +60% -> **+30%**, max 166px). Balance-protocol note: purely visual constant, no points/XP/damage impact. Tunable in config.js; `test/movement.test.js` derives its numbers from CONFIG and asserts max growth <= +35%.
+- **Stage 1 bob dropped** on enemies that have the animated child (the walk cycle has its own gait); the overdue `pulse-urgent` glow stays. Static PNG backgrounds remain as the fallback for time-preview ghosts and the legacy TaskManager path.
+- **`ZOMBIE_VISIBLE_MARGINS` re-measured** from each atlas JSON's `bodyBox` (walk+idle union); `test/spriteAnim.test.js` fails if CONFIG, the JSON, the CSS or the PNG dimensions ever drift apart.
+- **Deferred to Stage 2b:** death animation on completion (needs `element.remove()` delayed in the completion path in items.js — game-logic blast radius, its own session); pausing during time-slider scrubs.
+- **Git:** one read-only `git diff --stat` ran from the bridge shell this session (a slip against the no-git rule); no `.git/*.lock` left behind. Second lock-free data point; rule NOT relaxed.
+
+## 2026-10-12 — Project docs consolidated: CLAUDE.md is the single source of truth; skill retired to a pointer; model strategy by tier (Claude app session, Opus)
+
+- **Where instructions live:** CLAUDE.md (versioned with the code) stays authoritative. The claude.ai project instructions only bootstrap it; the `deadline-session` skill is reduced to a pointer. Reason: three copies of the same workflow had already drifted into contradictions (git rule, OneDrive path, stale tool names).
+- **Model strategy by tier, not version number**, so it doesn't go stale with each model release. Haiku added as a "Trivial" tier for pure paperwork.
+- **Git from the bridge stays banned until deliberately re-tested** with per-session delete permission (now available in the app). Not relaxed on the strength of one accidental lock-free run.
+- **Housekeeping:** HANDOFF entries older than 2026-07-21 archived; 2025 analysis/debug files moved to `archive/`; DECISIONS.md left whole (grep-only) since past decisions are reference material.
+
 ## 2026-07-21 — Zombies stand on the ground band: getItemTopPosition narrowed from full-canvas to a feet-in-band range (Cowork session, Opus)
 
 **Decision:** Closed the V1 follow-up split off during the parallax session. `Movement.getItemTopPosition` no longer randomizes a top-level item's vertical position across the full canvas (`randomFn() * (canvasHeight - itemHeight)`). It now places the item's FEET — its sprite box bottom, the same alignment line sub-tasks already bottom-align to — at `feetTop + randomFn() * (feetBottom - feetTop)`, where `feetTop = CONFIG.GROUND_BAND_FEET_TOP_FRAC * canvasHeight` (0.85) and `feetBottom = CONFIG.GROUND_BAND_FEET_BOTTOM_FRAC * canvasHeight` (0.99); `top = feet - itemHeight`, clamped to `[0, canvasHeight - itemHeight]`. Two new tunable layout constants in `js/config.js`.

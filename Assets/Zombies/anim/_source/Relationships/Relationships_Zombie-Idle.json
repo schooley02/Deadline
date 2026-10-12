@@ -1,0 +1,77 @@
+{
+  "character": {
+    "id": "ea33794e-ff8e-4ca9-b3b4-4bc64a2f80e6",
+    "name": "Idle",
+    "prompt": "a zombie mom pushing a stroller with her zombie child in it",
+    "size": {
+      "width": 128,
+      "height": 128
+    },
+    "directions": 8,
+    "view": "side"
+  },
+  "spritesheet": {
+    "path": "Relationships_Zombie-Idle.png",
+    "cell_size": {
+      "width": 180,
+      "height": 180
+    },
+    "sheet_size": {
+      "width": 1620,
+      "height": 900
+    },
+    "columns": 9,
+    "pivot": "cell-center",
+    "rows": [
+      {
+        "row": 0,
+        "type": "rotations",
+        "frame_count": 8,
+        "directions": [
+          "south",
+          "south-east",
+          "east",
+          "north-east",
+          "north",
+          "north-west",
+          "west",
+          "south-west"
+        ]
+      },
+      {
+        "row": 1,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "Relationships Death",
+        "animation_group_id": "22be4cab-2eef-4bc7-863e-5ef227ea63dd",
+        "direction": "south"
+      },
+      {
+        "row": 2,
+        "type": "animation",
+        "frame_count": 7,
+        "animation": "Relationships Idle",
+        "animation_group_id": "aa9d435a-18dc-42b3-81b5-54c93da759fa",
+        "direction": "south"
+      },
+      {
+        "row": 3,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "Relationships Attack",
+        "animation_group_id": "bbeffe1f-05f0-40c8-a650-1f0103467881",
+        "direction": "south"
+      },
+      {
+        "row": 4,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "Relationships Walk",
+        "animation_group_id": "d702dd38-5952-4a49-9ca7-3ad05fde2ff6",
+        "direction": "south"
+      }
+    ]
+  },
+  "export_version": "1.0",
+  "export_date": "2026-10-12T19:39:25.563522+00:00"
+}

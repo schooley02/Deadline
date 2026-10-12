@@ -126,6 +126,11 @@ Ordering decided 2026-07-18 session 19 (Fable — see DECISIONS.md): 007 → 008
   reload and correctly suppresses the glow, and a real habit completion crossing the base threshold
   fired the exact expected "🔥 ... is on fire!" toast with no console errors and no duplicate-on-
   reload. See MECHANICS.md/UI_UX.md/DATA_SCHEMA.md/DECISIONS.md.
+- [x] [P2-GAME-010] Stage 2a — animated sprite sheets, looping walk/idle/attack (2026-10-12) — `js/spriteAnim.js`,
+  `css/enemyAnim.css`, `Movement.getParentSpriteScale` + opt-in `CONFIG.PARENT_GROWTH_SNAP_TO_INTEGER` (default off), `PARENT_GROWTH_PER_SUB` 0.15 -> 0.075, re-measured
+  `ZOMBIE_VISIBLE_MARGINS`, sw.js `deadline-shell-v4`. 61 suites, 1296/1296 (+25 incl. new spriteAnim.test.js).
+  NOT yet live-verified in a browser (server wasn't running) — see HANDOFF. Decisions: DECISIONS.md 2026-10-12.
+  - [ ] Stage 2b: death animation on completion (delay element removal in items.js completion path), pause during time-slider scrubs.
 - [x] [P2-GAME-010] Stage 1 — CSS-only walk-speed-up (2026-07-19, session 60) — bob/sway `transform`
   keyframes (`enemy-walk-bob`, `css/enemyStatus.css`) on the existing static sprites; three
   `urgency-{calm,approaching,urgent}` classes (`Clock.getWalkUrgencyTier`, `js/clock.js`) drive
@@ -139,7 +144,7 @@ Ordering decided 2026-07-18 session 19 (Fable — see DECISIONS.md): 007 → 008
   found and fixed live before merge (stale urgency class surviving an edit-triggered overdue
   transition; stale urgency class surviving a save/restore because the DOM element rebuilds but the
   cached tier value doesn't) — see DECISIONS.md session 60.
-  - [ ] Stage 2 (art task, Jeremy's timeline, unscheduled): real 4-frame walk cycles × 8 categories
+  - [x] Stage 2 (art task) — SUPERSEDED by Stage 2a/2b above (PixelLab atlases, 7-9 frames, CSS steps() on a child element, not 4-frame background-position). Original note: real 4-frame walk cycles × 8 categories
     as horizontal sprite sheets; code swaps the bob keyframes for `steps(4)` background-position
     cycles — the tier/speed wiring from Stage 1 carries over unchanged.
 - [x] [P2-UI-011] Stage 1 — unified window/modal behavior layer (2026-07-19, session 61) — ticket

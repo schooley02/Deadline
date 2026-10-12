@@ -10,6 +10,12 @@ global.CONFIG = require('../js/config.js');
 global.Clock = require('../js/clock.js');
 const Movement = require('../js/movement.js');
 
+// These tests pin 'relationships' to SYMMETRIC 0.047 margins so the expected
+// numbers stay clean. The real value was re-measured for the animated sprites
+// (P2-GAME-010 Stage 2a, 2026-10-12) and is no longer symmetric — the maths
+// under test doesn't depend on the specific fractions, only on them being known.
+CONFIG.ZOMBIE_VISIBLE_MARGINS.relationships = { left: 0.047, right: 0.047 };
+
 const DIMS = {
     gameScreenWidth: 1000,
     baseWidth: 100,
@@ -144,14 +150,20 @@ describe('getParentGrowthScale / getParentRenderWidth (growing parent visuals, [
     });
 
     test('scale grows PARENT_GROWTH_PER_SUB per open sub', () => {
-        expect(Movement.getParentGrowthScale({ id: 1, subTasks: ['a'] })).toBeCloseTo(1.15, 6);
-        expect(Movement.getParentGrowthScale({ id: 1, subTasks: ['a', 'b'] })).toBeCloseTo(1.30, 6);
+        expect(Movement.getParentGrowthScale({ id: 1, subTasks: ['a'] })).toBeCloseTo(1 + 1 * CONFIG.PARENT_GROWTH_PER_SUB, 6);
+        expect(Movement.getParentGrowthScale({ id: 1, subTasks: ['a', 'b'] })).toBeCloseTo(1 + 2 * CONFIG.PARENT_GROWTH_PER_SUB, 6);
+    });
+
+    test('the max growth stays modest (<= +35%): just enough to read as "the parent of the small ones"', () => {
+        const max = 1 + CONFIG.PARENT_GROWTH_MAX_SUBS * CONFIG.PARENT_GROWTH_PER_SUB;
+        expect(max).toBeLessThanOrEqual(1.35);
+        expect(max).toBeGreaterThan(1);
     });
 
     test('scale caps at PARENT_GROWTH_MAX_SUBS open subs', () => {
         const atCap = Movement.getParentGrowthScale({ id: 1, subTasks: ['a', 'b', 'c', 'd'] });
         const overCap = Movement.getParentGrowthScale({ id: 1, subTasks: ['a', 'b', 'c', 'd', 'e', 'f'] });
-        expect(atCap).toBeCloseTo(1.60, 6);
+        expect(atCap).toBeCloseTo(1 + CONFIG.PARENT_GROWTH_MAX_SUBS * CONFIG.PARENT_GROWTH_PER_SUB, 6);
         expect(overCap).toBe(atCap); // extra subs beyond the cap don't grow it further
     });
 
@@ -160,15 +172,55 @@ describe('getParentGrowthScale / getParentRenderWidth (growing parent visuals, [
         const before = Movement.getParentGrowthScale({ id: 1, subTasks });
         subTasks.pop(); // completeItem/removeItem splice the completed/removed id out
         const after = Movement.getParentGrowthScale({ id: 1, subTasks });
-        expect(before).toBeCloseTo(1.45, 6);
-        expect(after).toBeCloseTo(1.30, 6);
+        expect(before).toBeCloseTo(1 + 3 * CONFIG.PARENT_GROWTH_PER_SUB, 6);
+        expect(after).toBeCloseTo(1 + 2 * CONFIG.PARENT_GROWTH_PER_SUB, 6);
         expect(after).toBeLessThan(before);
     });
 
-    test('getParentRenderWidth = baseWidth * scale', () => {
-        expect(Movement.getParentRenderWidth({ id: 1, subTasks: [] }, 128)).toBe(128);
-        expect(Movement.getParentRenderWidth({ id: 1, subTasks: ['a'] }, 128)).toBeCloseTo(147.2, 6);
-        expect(Movement.getParentRenderWidth({ id: 1, subTasks: ['a', 'b', 'c', 'd'] }, 128)).toBeCloseTo(204.8, 6);
+    describe('smooth growth (default)', () => {
+        test('getParentSpriteScale equals the raw growth scale', () => {
+            const item = { id: 1, subTasks: ['a', 'b'] };
+            expect(Movement.getParentSpriteScale(item)).toBe(Movement.getParentGrowthScale(item));
+        });
+
+        test('getParentRenderWidth = baseWidth * raw scale', () => {
+            const w = (n) => Movement.getParentRenderWidth({ id: 1, subTasks: Array(n).fill('x') }, 128);
+            expect(w(0)).toBe(128);
+            expect(w(1)).toBeCloseTo(128 * (1 + CONFIG.PARENT_GROWTH_PER_SUB), 6);
+            expect(w(4)).toBeCloseTo(128 * (1 + 4 * CONFIG.PARENT_GROWTH_PER_SUB), 6);
+            expect(w(4)).toBeLessThanOrEqual(128 * 1.35);
+        });
+    });
+
+    describe('integer snap ON (opt-in, P2-GAME-010 Stage 2a)', () => {
+        let savedPerSub;
+        beforeEach(() => {
+            CONFIG.PARENT_GROWTH_SNAP_TO_INTEGER = true;
+            savedPerSub = CONFIG.PARENT_GROWTH_PER_SUB;
+            CONFIG.PARENT_GROWTH_PER_SUB = 0.15; // the old value, so a 2x step is reachable
+        });
+        afterEach(() => {
+            CONFIG.PARENT_GROWTH_SNAP_TO_INTEGER = false;
+            CONFIG.PARENT_GROWTH_PER_SUB = savedPerSub;
+        });
+
+        test('getParentSpriteScale rounds to a whole number, min 1', () => {
+            const scaleFor = (n) => Movement.getParentSpriteScale({ id: 1, subTasks: Array(n).fill('x') });
+            expect(scaleFor(0)).toBe(1);
+            expect(scaleFor(3)).toBe(1); // 1.45
+            expect(scaleFor(4)).toBe(2); // 1.60
+            expect(scaleFor(9)).toBe(2); // capped
+        });
+
+        test('getParentRenderWidth = baseWidth * snapped scale', () => {
+            expect(Movement.getParentRenderWidth({ id: 1, subTasks: ['a'] }, 128)).toBe(128);
+            expect(Movement.getParentRenderWidth({ id: 1, subTasks: ['a', 'b', 'c', 'd'] }, 128)).toBe(256);
+        });
+
+        test('non-parents and null are scale 1', () => {
+            expect(Movement.getParentSpriteScale(null)).toBe(1);
+            expect(Movement.getParentSpriteScale({ id: 1 })).toBe(1);
+        });
     });
 });
 
@@ -182,15 +234,29 @@ describe('getSubTaskClusterOffset accounts for parent growth (sub-session 4)', (
     });
 
     test('parent with 2 open subs: fan attaches to the GROWN visible edge, not the fixed 128px one', () => {
-        // scale = 1 + 2*0.15 = 1.30 → box = 128*1.30 = 166.4
-        // visible right edge = 166.4 * 0.953 = 158.5792
+        const scale = 1 + 2 * CONFIG.PARENT_GROWTH_PER_SUB;
+        const visibleRight = 128 * scale * 0.953; // relationships right margin pinned to 0.047 above
         const parent = { id: 1, category: 'relationships', subTasks: ['x', 'y'] };
         const sub1 = { id: 2, parentId: 1, category: 'relationships' };
-        const activeItems = [parent, sub1];
-        const offset = Movement.getSubTaskClusterOffset(sub1, { activeItems, enemyWidth: 128 });
-        expect(offset).toBeCloseTo(158.5792 + GAP - 3.008, 3);
+        const offset = Movement.getSubTaskClusterOffset(sub1, { activeItems: [parent, sub1], enemyWidth: 128 });
+        expect(offset).toBeCloseTo(visibleRight + GAP - 3.008, 3);
         // and it's meaningfully further out than the ungrown case — proves scaling actually applies
         expect(offset).toBeGreaterThan(121.984 + GAP - 3.008);
+    });
+
+    test('snap ON (old 0.15/sub): 1-3 open subs leave the offset identical to an ungrown parent', () => {
+        CONFIG.PARENT_GROWTH_SNAP_TO_INTEGER = true;
+        const saved = CONFIG.PARENT_GROWTH_PER_SUB;
+        CONFIG.PARENT_GROWTH_PER_SUB = 0.15;
+        try {
+            const sub1 = { id: 2, parentId: 1, category: 'relationships' };
+            const ungrown = Movement.getSubTaskClusterOffset(sub1, { activeItems: [{ id: 1, category: 'relationships', subTasks: [] }, sub1], enemyWidth: 128 });
+            const at3 = Movement.getSubTaskClusterOffset(sub1, { activeItems: [{ id: 1, category: 'relationships', subTasks: ['a', 'b', 'c'] }, sub1], enemyWidth: 128 });
+            expect(at3).toBeCloseTo(ungrown, 6);
+        } finally {
+            CONFIG.PARENT_GROWTH_SNAP_TO_INTEGER = false;
+            CONFIG.PARENT_GROWTH_PER_SUB = saved;
+        }
     });
 
     test('growth is capped: 4 and 6 open subs produce the identical offset', () => {

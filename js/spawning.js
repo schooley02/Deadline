@@ -129,6 +129,11 @@ const Spawning = (() => {
         // Never write emoji textContent - always use sprite classes
         itemElement.textContent = '';
 
+        // Animated sprite sheet child ([P2-GAME-010] Stage 2a) — scale from the
+        // box width (128px char: tasks/habits 1, sub-tasks 0.5). Optional so
+        // pre-Stage-2 test harnesses without SpriteAnim keep working.
+        if (typeof SpriteAnim !== 'undefined') SpriteAnim.attach(itemElement, visual.width);
+
         // Add to game canvas
         gameCanvas.appendChild(itemElement);
         itemData.element = itemElement;

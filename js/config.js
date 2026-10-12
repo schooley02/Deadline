@@ -83,8 +83,13 @@ const CONFIG = {
     // balance number in the points/XP sense but follows the same
     // never-hardcode + log-to-DECISIONS discipline since it's a tunable
     // gameplay-feel constant.
-    PARENT_GROWTH_PER_SUB: 0.15,
+    PARENT_GROWTH_PER_SUB: 0.075, // was 0.15 until 2026-10-12 (animated sprites scale uniformly, so +60% read too large; Jeremy's call)
     PARENT_GROWTH_MAX_SUBS: 4,
+    // [P2-GAME-010] Stage 2a (2026-10-12): optionally snap the parent's rendered
+    // size to a whole-number multiple (crisper pixel art). OFF by default —
+    // with a 128px parent, the next whole step is 256px, far too big (Jeremy's
+    // call, same day). See Movement.getParentSpriteScale. false = smooth.
+    PARENT_GROWTH_SNAP_TO_INTEGER: false,
     // Streak is now a VISUAL-only concept (decided 2026-07-18, session 13; built
     // session 16). This threshold is the "on-fire" high-streak sprite/badge
     // trigger (spawning.js, items.js) — it NO LONGER awards points. The old flat
@@ -321,19 +326,22 @@ const CONFIG = {
     NEGATIVE_LURK_RIGHT_MARGIN_PX: 20,
 
     // Measured visible-pixel margins of each zombie sprite, as fractions of the
-    // sprite box width (alpha-channel bounding box, measured 2026-07-17 from
-    // Assets/Zombies/*.png — 128 and 64 variants have near-identical fractions).
+    // sprite box width. RE-MEASURED 2026-10-12 for the animated sprites ([P2-GAME-010]
+    // Stage 2a) from each atlas JSON's bodyBox (walk+idle union), relative to the
+    // 128px character region centred in the cell: pad = (frameWidth-128)/2,
+    // left = (bodyBox.left-pad)/128, right = (128-(bodyBox.right+1-pad))/128.
+    // (Previously measured 2026-07-17 from the static Assets/Zombies/*.png.)
     // left = transparent margin on the left, right = transparent margin on the right.
     // Used so cluster offsets butt the actual graphics together instead of the boxes.
     ZOMBIE_VISIBLE_MARGINS: {
-        career:        { left: 0.250, right: 0.219 },
-        creativity:    { left: 0.141, right: 0.109 },
-        financial:     { left: 0.109, right: 0.250 },
-        health:        { left: 0.250, right: 0.312 },
-        lifestyle:     { left: 0.172, right: 0.047 },
-        relationships: { left: 0.047, right: 0.047 },
-        spirituality:  { left: 0.203, right: 0.234 },
-        other:         { left: 0.234, right: 0.250 },
+        career:        { left: 0.188, right: 0.141 },
+        creativity:    { left: 0.078, right: 0.070 },
+        financial:     { left: 0.047, right: 0.125 },
+        health:        { left: 0.172, right: 0.234 },
+        lifestyle:     { left: 0.031, right: 0.023 },
+        relationships: { left: 0.047, right: 0.039 },
+        spirituality:  { left: 0.141, right: 0.195 },
+        other:         { left: 0.125, right: 0.195 },
     },
     ZOMBIE_VISIBLE_MARGIN_FALLBACK: { left: 0.2, right: 0.2 },
 

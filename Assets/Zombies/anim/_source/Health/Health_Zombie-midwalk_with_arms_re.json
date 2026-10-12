@@ -1,0 +1,61 @@
+{
+  "character": {
+    "id": "3788f60f-732f-4347-9e6e-2b984f53a346",
+    "name": "midwalk with arms re",
+    "prompt": "a zombie nurse holding a syringe with a bright green substance in it",
+    "size": {
+      "width": 128,
+      "height": 128
+    },
+    "directions": 8,
+    "view": "side"
+  },
+  "spritesheet": {
+    "path": "Health_Zombie-midwalk_with_arms_re.png",
+    "cell_size": {
+      "width": 180,
+      "height": 180
+    },
+    "sheet_size": {
+      "width": 1620,
+      "height": 540
+    },
+    "columns": 9,
+    "pivot": "cell-center",
+    "rows": [
+      {
+        "row": 0,
+        "type": "rotations",
+        "frame_count": 8,
+        "directions": [
+          "south",
+          "south-east",
+          "east",
+          "north-east",
+          "north",
+          "north-west",
+          "west",
+          "south-west"
+        ]
+      },
+      {
+        "row": 1,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "Health Walk",
+        "animation_group_id": "ba21b6b7-056b-4120-b140-a964a2ce9ff9",
+        "direction": "south"
+      },
+      {
+        "row": 2,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "Health Attack",
+        "animation_group_id": "f4b828c0-0958-41af-af35-9f9e19d2bf0e",
+        "direction": "south"
+      }
+    ]
+  },
+  "export_version": "1.0",
+  "export_date": "2026-10-12T19:46:30.644392+00:00"
+}

@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v3';
+const CACHE_NAME = 'deadline-shell-v4';
 
 const APP_SHELL = [
     './',
@@ -44,6 +44,7 @@ const APP_SHELL = [
     'css/heroes.css',
     'css/timeSlider.css',
     'css/dayPager.css',
+    'css/enemyAnim.css',
     'css/responsive.css',
 
     // js/*.js + js/ui/*.js — exact list from index.html's <script> tags
@@ -58,6 +59,7 @@ const APP_SHELL = [
     'js/clock.js',
     'js/movement.js',
     'js/timeSlider.js',
+    'js/spriteAnim.js',
     'js/spawning.js',
     'js/damage.js',
     'js/progression.js',
@@ -117,6 +119,15 @@ const APP_SHELL = [
     'Assets/Zombies/relationships-zombie-64.png',
     'Assets/Zombies/spiritual-zombie.png',
     'Assets/Zombies/spiritual-zombie-64.png',
+    // Animated sprite atlases ([P2-GAME-010] Stage 2a). NOT anim/_source/ (reference only).
+    'Assets/Zombies/anim/career.png',
+    'Assets/Zombies/anim/creativity.png',
+    'Assets/Zombies/anim/financial.png',
+    'Assets/Zombies/anim/health.png',
+    'Assets/Zombies/anim/lifestyle.png',
+    'Assets/Zombies/anim/relationships.png',
+    'Assets/Zombies/anim/spirituality.png',
+    'Assets/Zombies/anim/other.png',
     'Assets/icons/icon-192.png',
     'Assets/icons/icon-512.png',
 ];

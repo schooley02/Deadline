@@ -1,0 +1,53 @@
+{
+  "character": {
+    "id": "6b3e9ca2-3566-4058-a5d5-8caec34ad6ca",
+    "name": "scratching and clawi",
+    "prompt": "A male zombie with green skin and white eyes, wearying tattered jeans and a tattered shirt.",
+    "size": {
+      "width": 128,
+      "height": 128
+    },
+    "directions": 8,
+    "view": "side"
+  },
+  "spritesheet": {
+    "path": "Other_Zombie-scratching_and_clawi.png",
+    "cell_size": {
+      "width": 152,
+      "height": 152
+    },
+    "sheet_size": {
+      "width": 1216,
+      "height": 304
+    },
+    "columns": 8,
+    "pivot": "cell-center",
+    "rows": [
+      {
+        "row": 0,
+        "type": "rotations",
+        "frame_count": 8,
+        "directions": [
+          "south",
+          "south-east",
+          "east",
+          "north-east",
+          "north",
+          "north-west",
+          "west",
+          "south-west"
+        ]
+      },
+      {
+        "row": 1,
+        "type": "animation",
+        "frame_count": 7,
+        "animation": "Other Attack",
+        "animation_group_id": "2fa20810-ad66-47cc-b548-e16f156866b5",
+        "direction": "west"
+      }
+    ]
+  },
+  "export_version": "1.0",
+  "export_date": "2026-10-12T19:48:23.901825+00:00"
+}

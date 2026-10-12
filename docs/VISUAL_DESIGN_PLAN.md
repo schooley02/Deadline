@@ -66,7 +66,7 @@ Nothing broken; zero game identity. Category chips already use ART_STYLE.md's pa
    required to get 80% of the mood; pixel-art props can replace silhouettes later.
    **Parallax (added 2026-07-21, decided):** the layers are slider-coupled — each layer's
    `translateX` driven off the time-slider value at a different rate (clouds fastest, far
-   silhouettes slower, ground fixed) so scrub direction reads visually and the scene gains
+   silhouettes slower, ground fixed — SUPERSEDED 2026-07-21: ground now moves fastest, see ART_STYLE.md) so scrub direction reads visually and the scene gains
    depth. Idle cloud drift fx-gated like the fog. Camera TILT on scrub was considered and
    REJECTED (rotation breaks the pixel grid; parallax alone delivers the feel — see
    DECISIONS.md 2026-07-21); don't add rotate transforms to the scene.

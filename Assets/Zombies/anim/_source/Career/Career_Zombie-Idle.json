@@ -1,0 +1,61 @@
+{
+  "character": {
+    "id": "73f103f8-ca36-463f-ad84-aa7258625463",
+    "name": "Idle",
+    "prompt": "a zombie business man holding a cell phone and a briefcase",
+    "size": {
+      "width": 128,
+      "height": 128
+    },
+    "directions": 8,
+    "view": "side"
+  },
+  "spritesheet": {
+    "path": "Career_Zombie-Idle.png",
+    "cell_size": {
+      "width": 176,
+      "height": 176
+    },
+    "sheet_size": {
+      "width": 1584,
+      "height": 528
+    },
+    "columns": 9,
+    "pivot": "cell-center",
+    "rows": [
+      {
+        "row": 0,
+        "type": "rotations",
+        "frame_count": 8,
+        "directions": [
+          "south",
+          "south-east",
+          "east",
+          "north-east",
+          "north",
+          "north-west",
+          "west",
+          "south-west"
+        ]
+      },
+      {
+        "row": 1,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "Career Death",
+        "animation_group_id": "4fc2c39c-23eb-4898-8068-40e288aa76f8",
+        "direction": "south"
+      },
+      {
+        "row": 2,
+        "type": "animation",
+        "frame_count": 7,
+        "animation": "Career Idle",
+        "animation_group_id": "d2463d25-b0d2-4529-bedb-19bdf979723e",
+        "direction": "south"
+      }
+    ]
+  },
+  "export_version": "1.0",
+  "export_date": "2026-10-12T19:36:23.578038+00:00"
+}

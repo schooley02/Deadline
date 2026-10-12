@@ -1,0 +1,124 @@
+/**
+ * enemyAnim.css — animated zombie sprite sheets ([P2-GAME-010] Stage 2a,
+ * 2026-10-12). Pairs with js/spriteAnim.js. Atlas layout: docs/ART_STYLE.md.
+ *
+ * Every atlas is 9 columns x 4 rows (walk, idle, attack, death) of square
+ * cells; the cell size and per-animation frame counts vary by category (set
+ * below). The character is drawn at 128px inside each cell, facing left.
+ *
+ * State is picked by classes the game already sets on `.enemy`:
+ *   (default)           walk   — speed from the `urgency-*` tier class
+ *   .urgency-calm       idle   — due > 4h away, effectively parked
+ *   .negative-habit     idle   — the stationary lurker
+ *   .enemy-at-base      attack — overdue, camped at the church
+ * Movement is a compositor-only `transform: translateX` stepped by steps(N)
+ * (cheap on phones); the window is anchored so the character's feet sit on the
+ * enemy box's bottom edge at every scale (transform-origin = that point).
+ */
+
+/* Replace the static fallback + Stage 1 bob once the animated child exists. */
+.enemy.zombie-sprite.has-anim-sprite {
+    background-image: none !important;
+}
+.enemy.has-anim-sprite.urgency-calm,
+.enemy.has-anim-sprite.urgency-approaching,
+.enemy.has-anim-sprite.urgency-urgent {
+    animation: none;
+}
+/* ...but keep the overdue pulse (box-shadow glow) on enemies at the base. */
+.enemy.has-anim-sprite.enemy-at-base {
+    animation: pulse-urgent 1s infinite alternate;
+}
+
+.enemy-sprite {
+    --cell: 180px;
+    --n-walk: 9;
+    --n-idle: 7;
+    --n-attack: 9;
+    --sprite-scale: 1;
+    --pad: calc((var(--cell) - 128px) / 2);
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--pad) * -1);
+    width: var(--cell);
+    height: var(--cell);
+    margin-left: calc(var(--cell) / -2);
+    overflow: hidden;
+    pointer-events: none;
+    transform: scale(var(--sprite-scale));
+    transform-origin: 50% calc(100% - var(--pad));
+    z-index: 1;
+}
+
+/* Per-category cell size + frame counts (from Assets/Zombies/anim/*.json). */
+.zombie-other .enemy-sprite        { --cell: 156px; --n-walk: 7; --n-attack: 7; }
+.zombie-spirituality .enemy-sprite { --cell: 176px; --n-walk: 7; }
+
+.enemy-sprite-sheet {
+    --row: 0;
+    --frames: var(--n-walk);
+    --sprite-dur: 1.2s;
+    position: absolute;
+    left: 0;
+    top: calc(var(--row) * var(--cell) * -1);
+    width: calc(var(--cell) * 9);
+    height: calc(var(--cell) * 4);
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    image-rendering: pixelated;
+    will-change: transform;
+    animation: enemy-sprite-run var(--sprite-dur) steps(var(--frames)) infinite;
+}
+
+@keyframes enemy-sprite-run {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(calc(var(--cell) * var(--frames) * -1), 0, 0); }
+}
+
+/* State rows */
+.enemy.negative-habit .enemy-sprite-sheet {
+    --row: 1;
+    --frames: var(--n-idle);
+    --sprite-dur: 1.4s;
+}
+.enemy.enemy-at-base .enemy-sprite-sheet {
+    --row: 2;
+    --frames: var(--n-attack);
+    --sprite-dur: 0.9s;
+}
+
+/* Walk speed by urgency tier (same tiers as the Stage 1 bob; js/loop.js sets them).
+   'calm' (due > 4h away) is effectively parked at the right edge, so it IDLES
+   instead of walking in place (Jeremy's call, 2026-10-12); walking starts at
+   'approaching'. */
+.enemy.urgency-calm .enemy-sprite-sheet {
+    --row: 1;
+    --frames: var(--n-idle);
+    --sprite-dur: 1.4s;
+}
+.enemy.urgency-approaching .enemy-sprite-sheet { --sprite-dur: 0.8s; }
+.enemy.urgency-urgent .enemy-sprite-sheet      { --sprite-dur: 0.5s; }
+
+/* Atlases */
+.zombie-career .enemy-sprite-sheet        { background-image: url('../Assets/Zombies/anim/career.png'); }
+.zombie-creativity .enemy-sprite-sheet    { background-image: url('../Assets/Zombies/anim/creativity.png'); }
+.zombie-financial .enemy-sprite-sheet     { background-image: url('../Assets/Zombies/anim/financial.png'); }
+.zombie-health .enemy-sprite-sheet        { background-image: url('../Assets/Zombies/anim/health.png'); }
+.zombie-lifestyle .enemy-sprite-sheet     { background-image: url('../Assets/Zombies/anim/lifestyle.png'); }
+.zombie-relationships .enemy-sprite-sheet { background-image: url('../Assets/Zombies/anim/relationships.png'); }
+.zombie-spirituality .enemy-sprite-sheet  { background-image: url('../Assets/Zombies/anim/spirituality.png'); }
+.zombie-other .enemy-sprite-sheet         { background-image: url('../Assets/Zombies/anim/other.png'); }
+
+/* Effects intensity + accessibility (same gating as the Stage 1 bob):
+   'reduced' = one gentle uniform pace; 'off' / prefers-reduced-motion = hold frame 0. */
+.fx-reduced .enemy-sprite-sheet {
+    animation-duration: 1.6s !important;
+}
+.fx-off .enemy-sprite-sheet {
+    animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+    .enemy-sprite-sheet {
+        animation: none !important;
+    }
+}

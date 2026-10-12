@@ -51,8 +51,21 @@ const Movement = (() => {
     // baseWidth is the item's UNGROWN box width (CONFIG.ENEMY_WIDTH for a
     // top-level task — habits/sub-tasks never grow and shouldn't be routed
     // through this).
+    // [P2-GAME-010] Stage 2a (2026-10-12): the animated pixel-art sprites are
+    // crispest at WHOLE-NUMBER scales, so CONFIG.PARENT_GROWTH_SNAP_TO_INTEGER
+    // (OFF by default — the next whole step above 1x is 2x = 256px, too big;
+    // Jeremy's call) rounds the growth scale to the nearest integer (min 1).
+    // The box AND the sprite always use the same scale, which keeps
+    // getVisibleEdges' box-fraction math exact either way. With the flag off
+    // the sprite scales fractionally (slightly softer pixels) in small steps.
+    function getParentSpriteScale(item) {
+        const raw = getParentGrowthScale(item);
+        if (!CONFIG.PARENT_GROWTH_SNAP_TO_INTEGER) return raw;
+        return Math.max(1, Math.round(raw));
+    }
+
     function getParentRenderWidth(item, baseWidth) {
-        return baseWidth * getParentGrowthScale(item);
+        return baseWidth * getParentSpriteScale(item);
     }
 
     // Sub-tasks fan out beside their parent: alternating right/left by creation
@@ -173,6 +186,7 @@ const Movement = (() => {
     return {
         getVisibleEdges,
         getParentGrowthScale,
+        getParentSpriteScale,
         getParentRenderWidth,
         getSubTaskClusterOffset,
         calculateTimelineXWithClustering,

@@ -1,0 +1,53 @@
+{
+  "character": {
+    "id": "cdff2d82-963f-4a4e-9bba-b4310a665be3",
+    "name": "holding the guitar o",
+    "prompt": "a zombie musician holding a guitar, weary it around his body with a guitar strap",
+    "size": {
+      "width": 128,
+      "height": 128
+    },
+    "directions": 8,
+    "view": "side"
+  },
+  "spritesheet": {
+    "path": "Creativity_Zombie-holding_the_guitar_o.png",
+    "cell_size": {
+      "width": 180,
+      "height": 180
+    },
+    "sheet_size": {
+      "width": 1620,
+      "height": 360
+    },
+    "columns": 9,
+    "pivot": "cell-center",
+    "rows": [
+      {
+        "row": 0,
+        "type": "rotations",
+        "frame_count": 8,
+        "directions": [
+          "south",
+          "south-east",
+          "east",
+          "north-east",
+          "north",
+          "north-west",
+          "west",
+          "south-west"
+        ]
+      },
+      {
+        "row": 1,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "Creativity Attack",
+        "animation_group_id": "177385bd-53d3-4c7b-8039-79b39a233d2f",
+        "direction": "west"
+      }
+    ]
+  },
+  "export_version": "1.0",
+  "export_date": "2026-10-12T19:45:49.407316+00:00"
+}

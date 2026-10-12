@@ -1,0 +1,53 @@
+{
+  "character": {
+    "id": "de53ed7f-bafa-4ec6-bf4a-6fb0b371fa0c",
+    "name": "standing about the t",
+    "prompt": "a zombie nun, holding a bible and rosary beads",
+    "size": {
+      "width": 128,
+      "height": 128
+    },
+    "directions": 8,
+    "view": "side"
+  },
+  "spritesheet": {
+    "path": "Spirituality_Zombie-standing_about_the_t.png",
+    "cell_size": {
+      "width": 176,
+      "height": 176
+    },
+    "sheet_size": {
+      "width": 1584,
+      "height": 352
+    },
+    "columns": 9,
+    "pivot": "cell-center",
+    "rows": [
+      {
+        "row": 0,
+        "type": "rotations",
+        "frame_count": 8,
+        "directions": [
+          "south",
+          "south-east",
+          "east",
+          "north-east",
+          "north",
+          "north-west",
+          "west",
+          "south-west"
+        ]
+      },
+      {
+        "row": 1,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "Spirituality Attack",
+        "animation_group_id": "d70c6107-96b6-4a98-a4cd-28cecba0448c",
+        "direction": "south"
+      }
+    ]
+  },
+  "export_version": "1.0",
+  "export_date": "2026-10-12T19:48:58.544628+00:00"
+}

@@ -1,0 +1,38 @@
+{
+  "category": "spirituality",
+  "image": "spirituality.png",
+  "frameWidth": 176,
+  "frameHeight": 176,
+  "characterSize": 128,
+  "facing": "left",
+  "feetY": 150,
+  "bodyBox": {
+    "left": 42,
+    "top": 24,
+    "right": 126,
+    "bottom": 150
+  },
+  "animations": {
+    "walk": {
+      "row": 0,
+      "frames": 7,
+      "loop": true
+    },
+    "idle": {
+      "row": 1,
+      "frames": 7,
+      "loop": true
+    },
+    "attack": {
+      "row": 2,
+      "frames": 9,
+      "loop": true
+    },
+    "death": {
+      "row": 3,
+      "frames": 9,
+      "loop": false
+    }
+  },
+  "source": "PixelLab exports in anim/_source/ (rotation rows dropped)"
+}

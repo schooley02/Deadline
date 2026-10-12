@@ -1,0 +1,53 @@
+{
+  "character": {
+    "id": "93bacc92-36d5-4372-8817-4e35f410c2e3",
+    "name": "holding the briefcas",
+    "prompt": "a zombie business man holding a cell phone and a briefcase",
+    "size": {
+      "width": 128,
+      "height": 128
+    },
+    "directions": 8,
+    "view": "side"
+  },
+  "spritesheet": {
+    "path": "Career_Zombie-holding_the_briefcas.png",
+    "cell_size": {
+      "width": 180,
+      "height": 180
+    },
+    "sheet_size": {
+      "width": 1620,
+      "height": 360
+    },
+    "columns": 9,
+    "pivot": "cell-center",
+    "rows": [
+      {
+        "row": 0,
+        "type": "rotations",
+        "frame_count": 8,
+        "directions": [
+          "south",
+          "south-east",
+          "east",
+          "north-east",
+          "north",
+          "north-west",
+          "west",
+          "south-west"
+        ]
+      },
+      {
+        "row": 1,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "Career Attack",
+        "animation_group_id": "91552c8d-651f-4c8e-bb51-d84294440a6a",
+        "direction": "west"
+      }
+    ]
+  },
+  "export_version": "1.0",
+  "export_date": "2026-10-12T19:45:20.120177+00:00"
+}

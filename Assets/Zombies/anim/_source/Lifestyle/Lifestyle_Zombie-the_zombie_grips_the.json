@@ -1,0 +1,53 @@
+{
+  "character": {
+    "id": "88f2119a-3f73-4b1f-a369-26cfe2f0d77c",
+    "name": "the zombie grips the",
+    "prompt": "a zombie traveler wearing a camera around her neck and pulling luggage behind her",
+    "size": {
+      "width": 128,
+      "height": 128
+    },
+    "directions": 8,
+    "view": "side"
+  },
+  "spritesheet": {
+    "path": "Lifestyle_Zombie-the_zombie_grips_the.png",
+    "cell_size": {
+      "width": 180,
+      "height": 180
+    },
+    "sheet_size": {
+      "width": 1620,
+      "height": 360
+    },
+    "columns": 9,
+    "pivot": "cell-center",
+    "rows": [
+      {
+        "row": 0,
+        "type": "rotations",
+        "frame_count": 8,
+        "directions": [
+          "south",
+          "south-east",
+          "east",
+          "north-east",
+          "north",
+          "north-west",
+          "west",
+          "south-west"
+        ]
+      },
+      {
+        "row": 1,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "Lifestyle Attack",
+        "animation_group_id": "0bf15a9c-1adf-474d-aa33-bf3e60a1ffab",
+        "direction": "south"
+      }
+    ]
+  },
+  "export_version": "1.0",
+  "export_date": "2026-10-12T19:47:05.389754+00:00"
+}

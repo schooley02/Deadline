@@ -1,0 +1,38 @@
+{
+  "category": "health",
+  "image": "health.png",
+  "frameWidth": 180,
+  "frameHeight": 180,
+  "characterSize": 128,
+  "facing": "left",
+  "feetY": 156,
+  "bodyBox": {
+    "left": 48,
+    "top": 28,
+    "right": 123,
+    "bottom": 156
+  },
+  "animations": {
+    "walk": {
+      "row": 0,
+      "frames": 9,
+      "loop": true
+    },
+    "idle": {
+      "row": 1,
+      "frames": 7,
+      "loop": true
+    },
+    "attack": {
+      "row": 2,
+      "frames": 9,
+      "loop": true
+    },
+    "death": {
+      "row": 3,
+      "frames": 9,
+      "loop": false
+    }
+  },
+  "source": "PixelLab exports in anim/_source/ (rotation rows dropped)"
+}

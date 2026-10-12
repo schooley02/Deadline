@@ -1,0 +1,38 @@
+{
+  "category": "other",
+  "image": "other.png",
+  "frameWidth": 156,
+  "frameHeight": 156,
+  "characterSize": 128,
+  "facing": "left",
+  "feetY": 135,
+  "bodyBox": {
+    "left": 30,
+    "top": 24,
+    "right": 116,
+    "bottom": 135
+  },
+  "animations": {
+    "walk": {
+      "row": 0,
+      "frames": 7,
+      "loop": true
+    },
+    "idle": {
+      "row": 1,
+      "frames": 7,
+      "loop": true
+    },
+    "attack": {
+      "row": 2,
+      "frames": 7,
+      "loop": true
+    },
+    "death": {
+      "row": 3,
+      "frames": 9,
+      "loop": false
+    }
+  },
+  "source": "PixelLab exports in anim/_source/ (rotation rows dropped)"
+}

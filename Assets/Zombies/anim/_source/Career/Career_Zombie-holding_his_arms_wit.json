@@ -1,0 +1,69 @@
+{
+  "character": {
+    "id": "e067a606-6a8c-40a5-bf9c-2f2de851fe9e",
+    "name": "holding his arms wit",
+    "prompt": "a zombie business man holding a cell phone and a briefcase",
+    "size": {
+      "width": 128,
+      "height": 128
+    },
+    "directions": 8,
+    "view": "side"
+  },
+  "spritesheet": {
+    "path": "Career_Zombie-holding_his_arms_wit.png",
+    "cell_size": {
+      "width": 176,
+      "height": 176
+    },
+    "sheet_size": {
+      "width": 1584,
+      "height": 704
+    },
+    "columns": 9,
+    "pivot": "cell-center",
+    "rows": [
+      {
+        "row": 0,
+        "type": "rotations",
+        "frame_count": 8,
+        "directions": [
+          "south",
+          "south-east",
+          "east",
+          "north-east",
+          "north",
+          "north-west",
+          "west",
+          "south-west"
+        ]
+      },
+      {
+        "row": 1,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "The figure lurches forward with an uneven, heavy gait staring at his phone. The glow from the screen lights up his face. The briefcase held in the left hand sways rhythmically, pendulum-like, in sync with every other step. Maintain the crisp 2D pixel art aesthetic, thick outlines, flat colors, and the strict original perspective throughout the entire fluid animation.",
+        "animation_group_id": "afec0216-8f83-4d01-917e-50056a72cef9",
+        "direction": "south"
+      },
+      {
+        "row": 2,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "Career Walk",
+        "animation_group_id": "f093fb4b-0bd5-4460-8682-0cb7ecb13cf9",
+        "direction": "south"
+      },
+      {
+        "row": 3,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "Career Walk",
+        "animation_group_id": "f093fb4b-0bd5-4460-8682-0cb7ecb13cf9",
+        "direction": "south"
+      }
+    ]
+  },
+  "export_version": "1.0",
+  "export_date": "2026-10-12T19:44:48.622954+00:00"
+}

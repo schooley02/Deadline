@@ -91,7 +91,11 @@ const Loop = (() => {
             // position-update branch below. Optional collaborator — omitted
             // in deps is a silent no-op (existing tolerance pattern).
             if (deps.getParentRenderWidth && item.element && item.type === 'task' && !item.parentId) {
-                item.element.style.width = deps.getParentRenderWidth(item) + 'px';
+                const renderWidth = deps.getParentRenderWidth(item);
+                item.element.style.width = renderWidth + 'px';
+                // [P2-GAME-010] Stage 2a: keep the animated sprite's scale in step
+                // (no-op unless the width actually changed; optional global).
+                if (typeof SpriteAnim !== 'undefined') SpriteAnim.syncScale(item.element, renderWidth);
             }
 
             // [P1-DATA-005] session 27, repositioned session 29 — a

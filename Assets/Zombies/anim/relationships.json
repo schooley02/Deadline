@@ -1,0 +1,38 @@
+{
+  "category": "relationships",
+  "image": "relationships.png",
+  "frameWidth": 180,
+  "frameHeight": 180,
+  "characterSize": 128,
+  "facing": "left",
+  "feetY": 154,
+  "bodyBox": {
+    "left": 32,
+    "top": 40,
+    "right": 148,
+    "bottom": 154
+  },
+  "animations": {
+    "walk": {
+      "row": 0,
+      "frames": 9,
+      "loop": true
+    },
+    "idle": {
+      "row": 1,
+      "frames": 7,
+      "loop": true
+    },
+    "attack": {
+      "row": 2,
+      "frames": 9,
+      "loop": true
+    },
+    "death": {
+      "row": 3,
+      "frames": 9,
+      "loop": false
+    }
+  },
+  "source": "PixelLab exports in anim/_source/ (rotation rows dropped)"
+}

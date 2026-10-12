@@ -1,0 +1,61 @@
+{
+  "character": {
+    "id": "0996f1fd-b412-4668-a886-3128d9d66bb6",
+    "name": "Idle",
+    "prompt": "A male zombie with green skin and white eyes, wearying tattered jeans and a tattered shirt.",
+    "size": {
+      "width": 128,
+      "height": 128
+    },
+    "directions": 8,
+    "view": "side"
+  },
+  "spritesheet": {
+    "path": "Other_Zombie-Idle.png",
+    "cell_size": {
+      "width": 152,
+      "height": 152
+    },
+    "sheet_size": {
+      "width": 1368,
+      "height": 456
+    },
+    "columns": 9,
+    "pivot": "cell-center",
+    "rows": [
+      {
+        "row": 0,
+        "type": "rotations",
+        "frame_count": 8,
+        "directions": [
+          "south",
+          "south-east",
+          "east",
+          "north-east",
+          "north",
+          "north-west",
+          "west",
+          "south-west"
+        ]
+      },
+      {
+        "row": 1,
+        "type": "animation",
+        "frame_count": 7,
+        "animation": "Other Idle",
+        "animation_group_id": "1adb5979-3ebf-4b5e-821c-a992b9016c01",
+        "direction": "south"
+      },
+      {
+        "row": 2,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "Other Death",
+        "animation_group_id": "d0d5bb40-d7aa-4857-a0db-9a7a955feb78",
+        "direction": "south"
+      }
+    ]
+  },
+  "export_version": "1.0",
+  "export_date": "2026-10-12T19:35:37.821479+00:00"
+}

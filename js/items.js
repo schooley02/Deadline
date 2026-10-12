@@ -1061,6 +1061,8 @@ const Items = (() => {
 
         itemElement.style.width = `${itemSpriteWidth}px`;
         itemElement.style.height = `${itemSpriteHeight}px`;
+        // [P2-GAME-010] Stage 2a: animated sprite child, same as spawning.js.
+        if (typeof SpriteAnim !== 'undefined') SpriteAnim.attach(itemElement, itemSpriteWidth);
 
         if (item.type === 'task' && item.isHighPriority) {
             itemElement.classList.add('high-priority');
