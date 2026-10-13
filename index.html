@@ -148,23 +148,24 @@
              entirely in JS (js/ui/dayPagerView.js's renderWeekStrip). -->
         <div id="weekStripRow" class="week-strip-row"></div>
 
-        <!-- Day Pager (Week scope sub-session 2, 2026-07-20 — see
-             docs/TIME_SLIDER_WEEK_PLAN.md). offset -1..+6; yesterday's the
-             static snapshot (sub-session 3). js/ui/dayPagerView.js. -->
-        <div class="day-pager-row">
-            <button id="dayPagerPrev" class="day-pager-btn" aria-label="Previous day">‹</button>
-            <!-- role=status + aria-live so pressing the ‹ › buttons announces the
-                 newly-viewed day to screen readers (MOBILE_PWA_PLAN.md sub-session 2) —
-                 the label text is swapped silently by dayPagerView.js otherwise. -->
-            <span id="dayPagerLabel" class="day-pager-label" role="status" aria-live="polite" aria-atomic="true">Today</span>
-            <button id="dayPagerNext" class="day-pager-btn" aria-label="Next day">›</button>
-        </div>
-
-        <!-- Time Slider (Milestone 4, 2026-07-20) — sits ON the canvas/list
-             seam per docs/UI_UX.md. Today scope only; Week/Month scope toggle
-             is a later sub-item. Drag/scrub previews enemy positions at that
-             time (js/ui/timeSliderView.js); releasing snaps back to now. -->
+        <!-- Day Pager + Time Slider share ONE row (2026-10-13, Jeremy: free up
+             vertical space in every view). The pager (‹ label ›, Week scope
+             sub-session 2, 2026-07-20 — docs/TIME_SLIDER_WEEK_PLAN.md; offset
+             -1..+6; yesterday's the static snapshot, sub-session 3;
+             js/ui/dayPagerView.js) now sits to the LEFT of the time label and
+             slider. The slider (Milestone 4, 2026-07-20) still sits ON the
+             canvas/list seam per docs/UI_UX.md. Today scope only; drag/scrub
+             previews enemy positions at that time (js/ui/timeSliderView.js);
+             releasing snaps back to now. -->
         <div class="time-slider-seam">
+            <div class="day-pager-group">
+                <button id="dayPagerPrev" class="day-pager-btn" aria-label="Previous day">‹</button>
+                <!-- role=status + aria-live so pressing the ‹ › buttons announces the
+                     newly-viewed day to screen readers (MOBILE_PWA_PLAN.md sub-session 2) —
+                     the label text is swapped silently by dayPagerView.js otherwise. -->
+                <span id="dayPagerLabel" class="day-pager-label" role="status" aria-live="polite" aria-atomic="true">Today</span>
+                <button id="dayPagerNext" class="day-pager-btn" aria-label="Next day">›</button>
+            </div>
             <div id="timeSliderLabel" class="time-slider-label">12:00 AM</div>
             <input type="range" id="timeSlider" class="time-slider" aria-label="Preview time of day">
         </div>

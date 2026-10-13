@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 -- Day pager moves INTO the time-slider row (Jeremy; Claude app session)
+
+- **Decision:** the `‹ Today ›` day pager now sits to the LEFT of the time label + slider in ONE row (`.time-slider-seam` holds `.day-pager-group`, time label, slider), in every view (single DOM, so portrait / landscape / desktop all change). The standalone `.day-pager-row` is removed. IDs (`dayPagerPrev/Label/Next`) unchanged, so `dayPagerView.js` needed no edits.
+- **Why:** free vertical space (~37px saved at 390px: the pager row was ~53px and the slider row grows by ~16).
+- **Sizing:** buttons stay 44x44 (tap-target floor, MOBILE_PWA_PLAN); label `min-width` 160 -> 84px (74px + 11px font in strip mode) to fit `Tomorrow` / `Thu · Oct 15`. Measured live: 390px -> slider 129px, no overflow; 812px -> 502px; 1280px -> 970px. Option if more space is wanted: shrink the buttons to ~36px (breaks the 44px floor) -- not done.
+- **Note:** `--space-3` is NOT defined in base.css (pre-existing; `dayPager.css` ghost rows use it) -- used a literal 12px instead. `sw.js` -> v34.
+
+---
+
 ## 2026-10-13 -- Desktop/landscape: sub-tasks fan LEFT only, toward the church (Jeremy; Claude app session)
 
 - **Decision:** `Movement.getSubTaskClusterOffset` (non-strip mode) now places EVERY sub-task to the LEFT of its parent, chaining further left per sibling (by id), instead of alternating right/left. Applies to desktop AND mobile landscape (same layout). Jeremy: "behind" meant to the RIGHT of the parent; subs should be ahead of it, like portrait. The existing left-fan base guard (clamp to baseWidth) now covers the first sub too.

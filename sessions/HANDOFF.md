@@ -15,6 +15,8 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 > Addendum 2 (same session): desktop + mobile-landscape sub-tasks now fan LEFT only (toward the church), not alternating right/left; `Movement.getSubTaskClusterOffset`, `sw.js` v33, DECISIONS 2026-10-13. Verified in headless Chromium; Jeremy to eyeball on desktop and phone landscape.
 
+> Addendum 3 (same session): day pager (`‹ Today ›`) moved into the time-slider row, left of the time label, all views (`index.html`, dayPager/timeSlider/glanceStrip css, `sw.js` v34; DECISIONS 2026-10-13). Verified headless at 390/812/1280 with overflow measurements; not yet on the phone. Open item: `--space-3` is undefined project-wide.
+
 ## 2026-10-13 (late afternoon) -- Landscape ground lanes (Claude app session, Sonnet)
 **Did:** Jeremy: landscape zombies all in one lane. Cause: no lanes in landscape, only a ~35px random band. Added `Layout.computeGroundLanes`/`groundLaneFeet`/`applyGroundLanes` (list-order lanes, front = top of list), wired into the loop's `afterTick` in script.js (no-op in strip mode), config `GROUND_LANE_FEET_TOP_FRAC` 0.72 / `BOTTOM_FRAC` 0.99, tests in test/layout.test.js. Docs: DECISIONS, MECHANICS. `sw.js` -> v30. v29 portrait sub-spread was pushed earlier today.
 **State:** Jest 66 suites, 1,397/1,397; `node --check` OK on script.js/layout.js. NOT live-checked in a browser (script.js wiring isn't covered by Jest) and not on the phone.

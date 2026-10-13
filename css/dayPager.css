@@ -82,14 +82,14 @@
     font-weight: 600;
 }
 
-.day-pager-row {
+.day-pager-group {
+    /* Lives INSIDE .time-slider-seam (timeSlider.css) since 2026-10-13 — was its
+       own full-width .day-pager-row above the slider. Never shrinks: the slider
+       takes the leftover width. */
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: var(--space-2);
-    padding: var(--space-1) var(--space-4);
-    background: var(--color-bg-white);
-    border-top: 1px solid var(--color-secondary-green-pale);
+    flex: 0 0 auto;
+    gap: var(--space-1);
 }
 
 .day-pager-btn {
@@ -115,7 +115,8 @@
 }
 
 .day-pager-label {
-    min-width: 160px;
+    min-width: 84px; /* fits "Tomorrow" and "Thu · Oct 15" (2026-10-13: was 160px when it had its own row) */
+    white-space: nowrap;
     text-align: center;
     font-size: var(--text-caption);
     font-weight: 600;

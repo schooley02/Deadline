@@ -318,3 +318,13 @@ body.glance-strip .time-slider-label {
     min-width: 62px;
     font-size: 11px;
 }
+
+/* Day pager shares the slider row (2026-10-13): tighten so the slider keeps ~110px
+   at 390px (44px buttons stay -- tap-target floor). */
+body.glance-strip .day-pager-group {
+    gap: 2px;
+}
+body.glance-strip .day-pager-label {
+    min-width: 74px;
+    font-size: 11px;
+}

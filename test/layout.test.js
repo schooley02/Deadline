@@ -426,3 +426,31 @@ describe('Layout ground lanes (landscape)', () => {
         expect(items[0].element.style.top).toBe(first);
     });
 });
+
+// ---------------------------------------------------------------------------
+// Day pager shares the time-slider row (2026-10-13: free vertical space)
+// ---------------------------------------------------------------------------
+describe('Day pager lives inside the time-slider row', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    const seam = html.slice(html.indexOf('<div class="time-slider-seam">'));
+    const seamBody = seam.slice(0, seam.indexOf('<!-- Bottom 40%'));
+
+    test('prev / label / next sit inside .time-slider-seam, BEFORE the time label and slider', () => {
+        const iPrev = seamBody.indexOf('id="dayPagerPrev"');
+        const iLabel = seamBody.indexOf('id="dayPagerLabel"');
+        const iNext = seamBody.indexOf('id="dayPagerNext"');
+        const iTime = seamBody.indexOf('id="timeSliderLabel"');
+        const iSlider = seamBody.indexOf('id="timeSlider"');
+        expect(iPrev).toBeGreaterThan(-1);
+        expect(iPrev).toBeLessThan(iLabel);
+        expect(iLabel).toBeLessThan(iNext);
+        expect(iNext).toBeLessThan(iTime);
+        expect(iTime).toBeLessThan(iSlider);
+    });
+
+    test('the old standalone .day-pager-row is gone', () => {
+        expect(html).not.toMatch(/class="day-pager-row"/);
+    });
+});
