@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 — Manifest orientation `portrait-primary` -> `any` so the installed PWA can rotate (Jeremy, 11:43; Claude app session, Sonnet)
+
+- **Decision:** `manifest.json` `orientation` is now `"any"` (was `"portrait-primary"`). `display` stays `standalone`.
+- **Why:** Jeremy wants the browser bar hidden in landscape on his phone. The bar is only hidden in the INSTALLED app (standalone), and the old orientation lock meant the installed app could never rotate to landscape (the desktop-style battlefield).
+- **Effect:** installed app follows the phone's rotation; portrait still gets the glance strip, landscape the full canvas (same breakpoints as before). Browser-tab behavior is unchanged (tabs always rotated).
+- **Jeremy must:** after Pages redeploys, uninstall and re-add the app (Chrome menu -> Add to Home screen / Install app) — Android reads the manifest at install time (Chrome may refresh it eventually, not reliably). A plain browser tab will still show the bar.
+- **Rejected for now:** an in-app fullscreen button (offered, not chosen).
+- sw.js v18 (manifest is in the shell list).
+
 ## 2026-10-13 — Rotating portrait -> landscape left characters jammed at top:0; re-place on leaving strip mode (Jeremy's phone report 11:40; Claude app session, Sonnet)
 
 - **Root cause:** `Movement.getItemTopPosition` runs once at spawn against `gameCanvas.offsetHeight`. Spawned/restored in portrait the canvas is the ~76px strip, so a 128px character clamps to `top:0`; the strip CSS hides this (it overrides `top` with `!important`), but in landscape the inline `top` applies — all 8 test characters measured `top:0px`, not on the ground band. Pre-existing since V3b-1 (72px strip); lanes did not cause it.
