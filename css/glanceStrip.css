@@ -191,10 +191,10 @@ body.glance-strip .enemy.has-anim-sprite:not(.enemy-at-base):not(.lurker-parked)
 }
 body.glance-strip .enemy.has-anim-sprite:not(.enemy-at-base):not(.lurker-parked) .enemy-sprite {
     display: block;
-    --sprite-scale: 0.375 !important; /* 48px character; beats the inline scale */
+    --sprite-scale: 0.4375 !important; /* 56px character (fills the top lane to the canvas top); beats the inline scale */
 }
 body.glance-strip .enemy.zombie-subtask.has-anim-sprite:not(.enemy-at-base):not(.lurker-parked) .enemy-sprite {
-    --sprite-scale: 0.25 !important; /* 32px character for sub-tasks */
+    --sprite-scale: 0.3125 !important; /* 40px character for sub-tasks */
 }
 
 /* State rings (the V2 sprite glows are hidden with the sprite). */
