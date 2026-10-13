@@ -4,6 +4,16 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 -- Portrait strip floor art (PixelLab) wired in (Jeremy generated; Claude app session, Sonnet)
+
+- **Decision:** the glance-strip floor is now `Assets/scene/strip-floor.png`, 127x72, tiled `repeat-x` at 1:1 (`image-rendering: pixelated`, `background-size: 127px 72px`) from the church edge (left 56px), replacing the translucent placeholder in `css/glanceStrip.css`.
+- **Why 127x72:** PixelLab exported 128x128 with the floor in the bottom 72 rows (top rows transparent) and a stray white last column. Cropped rows 56-127 and columns 0-126; the seam then measures like an ordinary adjacent-column difference. Original kept in `Assets/scene/_source/strip-floor-128x128-original.png` (not cached by the SW).
+- **Verified live (390px):** floor 72px at top 24px, canvas still 96px, no horizontal overflow, tile reads seamless. NOT yet checked with markers on it (empty save) or on Jeremy's phone.
+- **Also:** `sw.js` v34 -> v35 + `Assets/scene/strip-floor.png` added to `APP_SHELL`.
+
+---
+
+
 ## 2026-10-13 -- Day pager moves INTO the time-slider row (Jeremy; Claude app session)
 
 - **Decision:** the `‹ Today ›` day pager now sits to the LEFT of the time label + slider in ONE row (`.time-slider-seam` holds `.day-pager-group`, time label, slider), in every view (single DOM, so portrait / landscape / desktop all change). The standalone `.day-pager-row` is removed. IDs (`dayPagerPrev/Label/Next`) unchanged, so `dayPagerView.js` needed no edits.

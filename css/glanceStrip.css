@@ -62,9 +62,12 @@ body.glance-strip .graveyard-scene {
     display: none;
 }
 
-/* PLACEHOLDER floor band (until the PixelLab tileable art lands): a slightly
-   lighter strip under the sky. Replace the background with
-   `url(...) repeat-x` + image-rendering: pixelated (72px tall art). */
+/* FLOOR band (PixelLab tileable art, 2026-10-13): Assets/scene/strip-floor.png is
+   127x72 (the 72px floor = 32px marker + 2 x 20px lane pitch), tiled sideways at
+   1:1 with crisp pixels. It starts right of the church (56px) and sits under the
+   24px sky band; the sky gradient on #gameCanvas shows through its transparent
+   top rows. KEEP IN SYNC: height 72px == --strip-marker + (lanes-1) * pitch.
+   Original 128x128 export kept in Assets/scene/_source/. */
 body.glance-strip #gameCanvas::before {
     content: "";
     position: absolute;
@@ -72,8 +75,8 @@ body.glance-strip #gameCanvas::before {
     right: 0;
     top: var(--strip-sky);
     bottom: 0;
-    background: rgba(255, 255, 255, 0.05);
-    border-top: 1px solid rgba(255, 255, 255, 0.18);
+    background: url("../Assets/scene/strip-floor.png") repeat-x 0 0 / 127px 72px;
+    image-rendering: pixelated;
 }
 
 body.glance-strip #base {

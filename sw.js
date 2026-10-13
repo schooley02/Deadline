@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v34';
+const CACHE_NAME = 'deadline-shell-v35';
 
 const APP_SHELL = [
     './',
@@ -131,6 +131,8 @@ const APP_SHELL = [
     'Assets/Zombies/anim/relationships.png',
     'Assets/Zombies/anim/spirituality.png',
     'Assets/Zombies/anim/other.png',
+    // Portrait glance-strip floor tile (css/glanceStrip.css). NOT scene/_source/.
+    'Assets/scene/strip-floor.png',
     'Assets/icons/icon-192.png',
     'Assets/icons/icon-512.png',
 ];
