@@ -99,7 +99,10 @@ body.glance-strip .enemy.zombie-sprite {
     width: var(--strip-marker) !important;
     height: var(--strip-marker) !important;
     top: calc(var(--strip-sky) + var(--lane, 0) * var(--strip-pitch)) !important;
-    z-index: calc(10 + var(--lane, 0)) !important; /* lower lane = nearer = in front */
+    /* Lanes are dealt in LIST order (Layout.computeStripLayout), so the list-order
+       z (--list-z) already puts the lower, nearer lane in front; the lane term
+       is only the fallback before the first render. */
+    z-index: var(--list-z, calc(10 + var(--lane, 0))) !important;
     box-sizing: border-box;
     border: 2px solid var(--marker) !important; /* category color ring */
     border-radius: 50% !important;
@@ -119,7 +122,7 @@ body.glance-strip .enemy.zombie-sprite.zombie-subtask {
     width: 20px !important;
     height: 20px !important;
     top: calc(var(--strip-sky) + var(--lane, 0) * var(--strip-pitch) + 6px) !important;
-    z-index: calc(5 + var(--lane, 0)) !important;
+    z-index: var(--list-z, calc(5 + var(--lane, 0))) !important;
     border-width: 2px !important;
 }
 
@@ -224,7 +227,7 @@ body.glance-strip .enemy.zombie-sprite.enemy-at-base.has-anim-sprite {
     height: 64px !important;
     top: auto !important;
     bottom: 4px;
-    z-index: 13 !important; /* above every lane (10-12) */
+    z-index: 80 !important; /* above the whole list-order band (30-79) */
     border: 0 !important;
     border-radius: 0 !important;
     background-color: transparent !important;
@@ -240,7 +243,7 @@ body.glance-strip .enemy.enemy-at-base.has-anim-sprite .enemy-sprite {
 body.glance-strip .enemy.enemy-at-base:not(.has-anim-sprite) {
     top: auto !important;
     bottom: 4px;
-    z-index: 13 !important;
+    z-index: 80 !important;
     border-color: #ff1744 !important;
     box-shadow: 0 0 9px 2px rgba(255, 23, 68, 0.85);
 }

@@ -8,6 +8,9 @@
  * <body class="glance-strip"> so css/glanceStrip.css can restyle, and (c)
  * computes the "+N" sub-task badge counts. Everything else is CSS.
  *
+ * V3b-2 follow-up (2026-10-13): lanes are dealt in agenda LIST order
+ * (js/listOrder.js) and a collapsed cluster shows its top-of-list marker.
+ *
  * Public API:
  *   Layout.isGlanceStrip(win?)        fresh matchMedia check
  *   Layout.isActive()                 cached result of the last applyBodyClass/init
@@ -134,10 +137,31 @@ const Layout = (() => {
         return true;
     }
 
+    // List-order key per item (js/listOrder.js): row index for top-level items,
+    // due-time slot (+0.5) for sub-tasks. null when ListOrder isn't loaded or
+    // opts.noListOrder is set -> callers fall back to x order (pre-2026-10-13).
     function byXThenId(a, b) { return (a.x - b.x) || (a.id - b.id); }
+
+    function listKeys(items, opts) {
+        if (opts && opts.keys) return opts.keys;
+        if (opts && opts.noListOrder) return null;
+        if (typeof ListOrder === 'undefined') return null;
+        return ListOrder.sortKeys(ListOrder.compute(items), items);
+    }
 
     function computeStripLayout(items, opts) {
         const { laneCount, markerWidth } = stripOpts(opts);
+        const keys = listKeys(items, opts);
+        // Order for dealing lanes / picking cluster leaders: list order when
+        // known (top of list = most forward), else x order.
+        const byKey = (a, b) => {
+            if (keys) {
+                const ka = keys.has(a.id) ? keys.get(a.id) : Infinity;
+                const kb = keys.has(b.id) ? keys.get(b.id) : Infinity;
+                if (ka !== kb) return ka - kb;
+            }
+            return byXThenId(a, b);
+        };
         const byId = new Map();
         items.forEach(i => byId.set(i.id, i));
         const plan = {};
@@ -161,8 +185,8 @@ const Layout = (() => {
         // Everything that owns a marker: not a stacked child.
         const owners = items.filter(i => !isStackedChild(i));
         const pile = owners.filter(isAtBase)
-            .sort((a, b) => ((a.parentId ? 1 : 0) - (b.parentId ? 1 : 0)) || (a.id - b.id));
-        const laned = owners.filter(i => !isAtBase(i)).sort(byXThenId);
+            .sort((a, b) => ((a.parentId ? 1 : 0) - (b.parentId ? 1 : 0)) || byKey(a, b));
+        const laned = owners.filter(i => !isAtBase(i)).sort(byKey);
 
         const ensure = i => (plan[i.id] = plan[i.id] || { lane: null, hidden: false, badge: 0 });
         const hide = (member, leader) => {
@@ -178,7 +202,9 @@ const Layout = (() => {
             hide(m, pile[0]);
         });
 
-        // Lanes: most urgent -> front lane (highest index).
+        // Lanes: top of the LIST -> front lane (highest index). Outside tie
+        // groups list order == due order == x order, so this is the old
+        // behavior; inside a group the hand-ordered top row takes the front.
         const lanes = Array.from({ length: laneCount }, () => []);
         laned.forEach((m, idx) => {
             const lane = (laneCount - 1) - (idx % laneCount);
@@ -186,11 +212,23 @@ const Layout = (() => {
             lanes[lane].push(m);
         });
         lanes.forEach(list => {
-            let leader = null;
-            list.forEach(m => { // already x-ascending
-                if (leader && (m.x - leader.x) < markerWidth) hide(m, leader);
-                else leader = m;
+            // Collapse runs of same-lane markers closer than a marker width
+            // (runs are found in x order); the run's visible marker is the
+            // TOP-OF-LIST one, not merely the nearest to the base.
+            list.sort(byXThenId);
+            let run = [];
+            const flush = () => {
+                if (run.length > 1) {
+                    const top = run.slice().sort(byKey)[0];
+                    run.forEach(m => { if (m !== top) hide(m, top); });
+                }
+                run = [];
+            };
+            list.forEach(m => {
+                if (run.length && (m.x - run[0].x) >= markerWidth) flush();
+                run.push(m);
             });
+            flush();
         });
 
         // Stacked children: follow the parent's lane / hidden state, and a

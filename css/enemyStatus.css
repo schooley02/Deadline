@@ -69,7 +69,8 @@
 
 /* High priority — gold glow (+ the star badge below). */
 .enemy.high-priority {
-    z-index: 15;
+    /* No stacking boost since list-order layering (2026-10-13): --list-z rules. */
+    z-index: var(--list-z, 15);
 }
 .enemy.high-priority > .enemy-sprite,
 .enemy.high-priority:not(.has-anim-sprite) {
@@ -141,7 +142,7 @@
     --an-fl: glow-flame;
 }
 .enemy.habit-enemy.super-streak {
-    z-index: 16;
+    z-index: var(--list-z, 16);
 }
 .enemy.habit-enemy.super-streak > .enemy-sprite,
 .enemy.habit-enemy.super-streak:not(.has-anim-sprite) {

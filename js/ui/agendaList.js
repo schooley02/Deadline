@@ -115,6 +115,30 @@ const AgendaList = (() => {
         itemActionsContainer.classList.add('task-controls');
         itemActionsContainer.style.cssText = 'display: flex; align-items: center; gap: 12px; flex-shrink: 0;';
 
+        // List-order reorder (2026-10-13): a stacked up/down pair, shown only
+        // while the neighbor in that direction is in the same 30-min tie group
+        // (sortAndRenderActiveList toggles visibility after every render).
+        // Top-level rows only -- sub-tasks render nested and never get one.
+        if (!itemData.parentId && deps.moveListItem) {
+            const reorderWrap = document.createElement('div');
+            reorderWrap.classList.add('reorder-controls');
+            [[-1, '\u25B2', 'Move up (same time window)'], [1, '\u25BC', 'Move down (same time window)']].forEach(([dir, glyph, title]) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.classList.add('reorder-btn', dir < 0 ? 'reorder-up' : 'reorder-down');
+                btn.textContent = glyph;
+                btn.title = title;
+                btn.setAttribute('aria-label', title);
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deps.moveListItem(itemData.id, dir);
+                });
+                reorderWrap.appendChild(btn);
+            });
+            reorderWrap.style.display = 'none';
+            itemActionsContainer.appendChild(reorderWrap);
+        }
+
         // Edit pencil: behavior and target editor are type-specific (a task
         // and a habit instance have different shapes and different editors).
         const editIconButton = document.createElement('button');
@@ -455,8 +479,14 @@ const AgendaList = (() => {
      *         openManagementWindow }
      */
     function sortAndRenderActiveList(deps) {
-        // Sort by due date (most urgent first)
+        // Sort by due date (most urgent first). The LIST order below layers
+        // hand-ordering inside 30-min tie groups on top of this (ListOrder).
         deps.activeItems.sort((a, b) => a.dueDateTime - b.dueDateTime);
+        const layout = (typeof ListOrder !== 'undefined') ? ListOrder.compute(deps.activeItems) : null;
+        if (layout) {
+            ListOrder.stampManualGroups(layout);   // persist slotted/ranked order
+            ListOrder.applyZ(layout, deps.activeItems);
+        }
 
         const showOnboarding = isFirstRunEmpty({
             activeItems: deps.activeItems,
@@ -489,10 +519,22 @@ const AgendaList = (() => {
             } else {
                 deps.activeItemsListUL.innerHTML = '';
 
-                deps.activeItems.forEach(item => {
-                    // Only show top-level items (not sub-tasks) in the main list
-                    if (item.listItemElement && !item.parentId) {
+                // Only top-level items (not sub-tasks) appear in the main list.
+                const rows = layout ? layout.rows : deps.activeItems.filter(i => !i.parentId);
+                rows.forEach(item => {
+                    if (item.listItemElement) {
                         deps.activeItemsListUL.appendChild(item.listItemElement);
+                        const wrap = typeof item.listItemElement.querySelector === 'function'
+                            ? item.listItemElement.querySelector('.reorder-controls') : null;
+                        if (wrap) {
+                            const up = layout && ListOrder.canMove(layout, item.id, -1);
+                            const down = layout && ListOrder.canMove(layout, item.id, 1);
+                            wrap.style.display = (up || down) ? 'flex' : 'none';
+                            const upBtn = wrap.querySelector('.reorder-up');
+                            const downBtn = wrap.querySelector('.reorder-down');
+                            if (upBtn) upBtn.style.visibility = up ? 'visible' : 'hidden';
+                            if (downBtn) downBtn.style.visibility = down ? 'visible' : 'hidden';
+                        }
                     }
                 });
             }

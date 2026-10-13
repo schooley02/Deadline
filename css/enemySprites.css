@@ -25,7 +25,9 @@
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     transition: all 0.2s ease;
     overflow: visible;
-    z-index: 10;
+    /* --list-z is written per enemy by ListOrder.applyZ (agenda row order:
+       top row = front). 10 is the pre-list-order fallback. */
+    z-index: var(--list-z, 10);
 }
 
 /* Offline catch-up: JS animates left directly — kill the 0.2s transition so
@@ -53,7 +55,7 @@
 
 .enemy:hover {
     transform: scale(1.1);
-    z-index: 20;
+    z-index: 85; /* above the whole list-order band (30-79) and the overdue pile (80) */
     /* hover glow is now a silhouette drop-shadow on the sprite (enemyStatus.css, --g-hover) */
     /* [P2-GAME-010] Stage 1, session 60: the walk-bob animation (enemyStatus.css)
        also targets `transform` continuously, which would fight this hover
@@ -279,7 +281,7 @@
     width: 64px;
     height: 64px;
     opacity: 0.85;
-    z-index: 5; /* always below the parent enemy (z-index: 10) when they overlap */
+    z-index: var(--list-z, 5); /* ListOrder sets this to parent z - 1: always just behind the parent */
 }
 
 .zombie-sprite.zombie-subtask.zombie-career,

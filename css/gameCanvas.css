@@ -24,7 +24,7 @@
     align-items: flex-start;
     padding: var(--space-4);
     background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 100%);
-    z-index: 20;
+    z-index: 90; /* above the enemy list-order band (30-79) + hover (85) */
     pointer-events: none;
 }
 

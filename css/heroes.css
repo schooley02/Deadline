@@ -21,7 +21,7 @@
     padding: 4px;
     box-sizing: border-box;
     pointer-events: none;
-    z-index: 10;
+    z-index: 90; /* above the enemy list-order band (30-79) */
 }
 
 .hero-chip {

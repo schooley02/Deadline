@@ -317,6 +317,18 @@ const CONFIG = {
     STRIP_LANE_PITCH: 20,
     STRIP_LANE_COUNT: 3,
 
+    // List-order layering + tie-group reorder (Jeremy, 2026-10-13; DECISIONS.md).
+    // Active tasks whose due times are within LIST_TIE_WINDOW_MIN of their
+    // NEIGHBOR form a chained tie group; manual order (item.listRank) applies
+    // only inside a group. Canvas z-index follows the agenda row: the top row
+    // gets LIST_Z_MAX and each lower row 2 less (floor LIST_Z_MIN); a sub-task
+    // sits one step behind its parent. The band sits above the old per-enemy
+    // z-values (10-16) and below the overdue pile (80), hover (85) and the
+    // stats/heroes overlays (90) -- see css/enemySprites.css, glanceStrip.css.
+    LIST_TIE_WINDOW_MIN: 30,
+    LIST_Z_MIN: 30,
+    LIST_Z_MAX: 79,
+
     // --- Ground band placement (2026-07-21) ---
     // Top-level enemies stand on the graveyard ground band (css/gameCanvas.css
     // `.scene-ground`, the bottom ~24% of #gameCanvas, with the fence

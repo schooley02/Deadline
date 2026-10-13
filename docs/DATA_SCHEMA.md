@@ -28,12 +28,12 @@ Envelope shape (wraps BOTH `deadline.save` and `deadline.settings` as one portab
 {
   exportFormatVersion: 1,       // versions the ENVELOPE shape, separate from schemaVersion
   exportedAt: "2026-07-20T...", // ISO
-  appSchemaVersion: 11,         // mirrors save.schemaVersion
+  appSchemaVersion: 12,         // mirrors save.schemaVersion
   summary: {                    // display-only, for the confirm-replace compare — not validated
     daysSurvived, playerLevel, playerXP, playerPoints,
     activeItemCount, habitCount, routineCount,
   },
-  save: { schemaVersion: 11, savedAt: "...", ...every deadline.save field },
+  save: { schemaVersion: 12, savedAt: "...", ...every deadline.save field },
   settings: { effectsIntensity: "full" },
   checksum: "a1b2c3d4",         // FNV-1a hex over the envelope minus this field — corruption
                                  // detection (catches a truncated paste), NOT cryptographic
@@ -57,6 +57,12 @@ Rules:
   `Persistence.requestSave`/`Persistence.flush` to no-ops immediately before the write (module
   state is thrown away by the reload regardless — same class of hazard as the session-52
   stub-before-edit trick, see CLAUDE.md's Cowork section).
+
+### schemaVersion 12 (2026-10-13): list-order layering — optional `listRank` / `listRankDue` on active items
+Hand-ordering inside a 30-min tie group (`js/listOrder.js`, `CONFIG.LIST_TIE_WINDOW_MIN`). Both fields are OPTIONAL numbers on an active item (top-level rows only; absent = plain due-time order):
+- `listRank` — the due time (ms, + idx/1000 to keep equal dues distinct) of the SLOT the item occupies after the group's sorted due times are re-dealt in the manual order. Slot-time ranks mean merged groups and groups that later split keep each former group's internal order with no bookkeeping.
+- `listRankDue` — the item's OWN due time (ms) when the rank was stamped. A rank is valid only while this still equals the item's current due time, so ANY due-time change (edit popup, pushback token, sub-task clamp) clears the rank implicitly — no call site has to remember to.
+Migration v11→v12 only stamps the version (items already serialize whole, so the fields round-trip). Stamping (`ListOrder.stampManualGroups`) runs in `sortAndRenderActiveList` ONLY for hand-ordered groups containing a member without a valid rank (a new/edited item just slotted in); a fully ranked group is never re-stamped, because restore adds saved items one at a time and re-stamping a partial group destroyed the saved order (found live 2026-10-13). See DECISIONS.md.
 
 ### schemaVersion 9 (2026-07-19): banked slot points — `routine.boughtHabitSlots`/`boughtTaskSlots` landed
 Sub-session 4 of [P1-UI-006] (see docs/HEROES_PLAN.md + docs/ROUTINES.md's "Slot Enforcement —

@@ -240,3 +240,46 @@ describe('strip geometry stays in sync between CONFIG and css/glanceStrip.css', 
         for (let l = 0; l < CONFIG.STRIP_LANE_COUNT; l++) expect(css).toContain(`[data-lane="${l}"] { --lane: ${l}; }`);
     });
 });
+
+// ---------------------------------------------------------------------------
+// List-order lanes (2026-10-13) -- lanes are dealt in agenda LIST order and a
+// collapsed cluster shows its top-of-list marker (opts.keys = ListOrder keys).
+// ---------------------------------------------------------------------------
+describe('Layout.computeStripLayout with list-order keys', () => {
+    const mk = (id, x, extra = {}) => ({ id, x, ...extra });
+    const lanes = plan => Object.fromEntries(Object.entries(plan).map(([id, p]) => [id, p.lane]));
+
+    test('lanes follow the key order, not x: hand-moved row 2 takes the front lane', () => {
+        const items = [mk(1, 100), mk(2, 112), mk(3, 124)];
+        const keys = new Map([[1, 1], [2, 0], [3, 2]]);          // id 2 is the top row
+        expect(lanes(Layout.computeStripLayout(items, { keys }))).toEqual({ 2: 2, 1: 1, 3: 0 });
+    });
+
+    test('keys equal to x order reproduce the old dealing', () => {
+        const items = [mk(1, 100), mk(2, 140), mk(3, 180), mk(4, 220), mk(5, 260)];
+        const keys = new Map(items.map((i, n) => [i.id, n]));
+        expect(lanes(Layout.computeStripLayout(items, { keys })))
+            .toEqual(lanes(Layout.computeStripLayout(items, { noListOrder: true })));
+    });
+
+    test('a collapsed same-lane cluster keeps the TOP-OF-LIST marker visible', () => {
+        // 4 markers: ids 1 and 4 share a lane (3 lanes) and sit 10px apart.
+        const items = [mk(1, 200), mk(2, 240), mk(3, 280), mk(4, 210)];
+        const keys = new Map([[4, 0], [1, 3], [2, 1], [3, 2]]);   // id 4 is above id 1
+        const plan = Layout.computeStripLayout(items, { keys });
+        const sameLane = plan[1].lane === plan[4].lane;
+        expect(sameLane).toBe(true);
+        expect(plan[4].hidden).toBe(false);
+        expect(plan[4].badge).toBe(1);
+        expect(plan[1].hidden).toBe(true);
+    });
+
+    test('a broken-away sub takes its due-time slot among the rows', () => {
+        const items = [mk(1, 100), mk(2, 300), mk(9, 200, { parentId: 1 })];
+        const keys = new Map([[1, 0], [2, 1], [9, 0.5]]);
+        const plan = Layout.computeStripLayout(items, { keys });
+        expect(plan[1].lane).toBe(2);
+        expect(plan[9].lane).toBe(1);
+        expect(plan[2].lane).toBe(0);
+    });
+});

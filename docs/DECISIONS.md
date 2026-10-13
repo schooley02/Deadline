@@ -4,6 +4,26 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 — List-order layering BUILT: implementation choices (Claude app session, Sonnet)
+
+- **Rank = slot due time, validity = `listRankDue`:** `listRank` is the due time (ms + idx/1000) of the slot the item occupies once the group's sorted dues are re-dealt in manual order; `listRankDue` is the item's own due when stamped. A rank is valid only while the two due times match, so edit-popup / pushback / sub-clamp changes clear it with ZERO call-site changes. Slot-time ranks make merged and split groups keep each former group's internal order. (Rejected: global row-index ranks -- collide when two separately-ranked groups merge; clearing the rank at each due-time write site -- three sites today, easy to miss a fourth.)
+- **New module `js/listOrder.js`** (not inside AgendaList) because both agendaList.js and layout.js need it; consumers guard `typeof ListOrder`. sw.js v19 -> v20 + APP_SHELL entry. Schema 11 -> 12 is a version stamp only (items serialize whole).
+- **Stamping rule:** only hand-ordered groups with a member lacking a valid rank are stamped. **Bug found live and fixed same session:** restore adds saved items one at a time and re-renders each time; stamping every manual group re-dealt slot dues of PARTIAL groups and destroyed the saved order on reload. Jest never exercised the incremental path until the regression test was added (`a fully ranked group is NOT re-stamped`).
+- **z band:** `--list-z` (top row 79, -2 per row, floor 30; sub = parent - 1); high-priority/super-streak boosts removed; overdue pile 80, hover 85, stats/heroes overlays 90. Strip z is simply `--list-z`: with lanes dealt in list order, adjacent lanes always hold consecutive rows, so list z and lane z agree.
+- **Strip lane change (option A):** lanes dealt by list-order key; run collapse picks the top-of-list marker as the visible one; pile leader top-of-list. `Layout.computeStripLayout(items, { keys })` accepts keys for tests; `{ noListOrder: true }` restores x-order dealing.
+- **Not live-verified:** service worker v20 (the built-in browser pane cannot register any SW: "unknown error fetching the script"); time-slider scrubbing with lanes; desktop/landscape with many zombies.
+
+## 2026-10-13 — List-order layering: design forks resolved (Jeremy, Claude app session, Opus plan -> Sonnet build)
+
+- **Decision (extends the entry below):**
+  1. **New task joining a hand-reordered tie group** slots in by due time ONLY when that spot agrees with the existing manual order (everything above it due no later, everything below it due no earlier); otherwise it goes to the bottom of the group. Before all of the group -> top. Ranks are stored so merged/split groups each keep their own order.
+  2. **Any due-time change clears `listRank`**: the edit popup, a pushback token, and a sub-task re-clamped by its parent's earlier deadline.
+  3. **High-priority / super-streak z-boosts are dropped**: list order is the only layering rule (glows and icons stay on top via the higher band).
+  4. **Strip lanes are dealt in LIST order** (option A), not by distance. Outside tie groups the two orders are identical; inside a group the top row takes the front lane, so pressing ▲ visibly brings that marker forward. A broken-away sub-task (not a main-list row) is placed by its due time among the rows.
+- **Why 4:** lanes override z-order in strip mode and overlap only matters inside tie groups, so without it "top of list = in front" would mostly not happen on the phone.
+- **Known trade-off:** a long chained group reordered by hand can put two close neighbors in the same lane, folding one into a "+N" badge more often. Revisit if it shows on the phone.
+- **Rejected:** B (list order only for groups narrower than ~3 marker widths: inconsistent, hard to explain); C (defer lanes: the phone view would not follow the list).
+
 ## 2026-10-13 — Bigger white-filled markers; strip 76px -> 96px; PixelLab icon slot (Jeremy after phone use, 11:54; Claude app session, Sonnet)
 
 - **Decision:** markers 24px -> 32px (`STRIP_MARKER_WIDTH`/`STRIP_MARKER_HEIGHT` 32), WHITE fill + 2px category-colored ring (was a category-colored fill + white ring), category icon box 24px (`STRIP_ICON_SIZE`, `--strip-icon`) with a larger emoji glyph (the old glyph was ~10px), lane pitch 14 -> 20px (overlap 12px), sky stays 24 -> strip 96px, floor 72px. Sub-task dots 16 -> 20px; `other`/sub markers show a centered category-colored dot (white fill + no icon would look empty). Habit/lurker rings 3px; priority star, lurker mark and "+N" badge enlarged to match. `CONFIG.STRIP_LANE_PITCH` etc. supersede the 76px/14px numbers of the entry below.

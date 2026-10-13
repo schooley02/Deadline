@@ -653,6 +653,20 @@ describe('migrate: v10 -> v11 seeds achievements + retro-derived lifetimeStats (
     });
 });
 
+describe('migrate: v11 -> v12 (list-order layering, 2026-10-13)', () => {
+    test('stamps the version and leaves items untouched (ranks are optional)', () => {
+        const items = [{ id: 1, name: 'a' }, { id: 2, name: 'b', listRank: 5, listRankDue: 7 }];
+        const save = Persistence.migrate({ schemaVersion: 11, activeItems: items });
+        expect(save.schemaVersion).toBe(12);
+        expect(save.activeItems).toBe(items);
+        expect(save.activeItems[0].listRank).toBeUndefined();
+        expect(save.activeItems[1].listRank).toBe(5);
+    });
+    test('SCHEMA_VERSION is 12', () => {
+        expect(Persistence.SCHEMA_VERSION).toBe(12);
+    });
+});
+
 describe('migrate: version handling', () => {
     test('a current-version save passes through unchanged (same reference)', () => {
         const original = {

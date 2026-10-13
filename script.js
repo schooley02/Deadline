@@ -605,6 +605,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // routing through the FAB menu itself.
             definedRoutines: () => State.getDefinedRoutines(),
             openManagementWindow: (type) => openManagementWindow(type),
+            // List-order reorder (2026-10-13): swap with the same-group neighbor,
+            // re-render (re-stamps ranks, z-index, button visibility) and save.
+            moveListItem: (itemId, dir) => {
+                if (ListOrder.move(State.getActiveItems(), itemId, dir)) {
+                    AgendaList.sortAndRenderActiveList(agendaListDeps());
+                    saveGame();
+                }
+            },
         };
     }
 

@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v19';
+const CACHE_NAME = 'deadline-shell-v20';
 
 const APP_SHELL = [
     './',
@@ -51,6 +51,7 @@ const APP_SHELL = [
     // js/*.js + js/ui/*.js — exact list from index.html's <script> tags
     // (2026-07-20). Keep in sync if index.html's load order ever changes.
     'js/config.js',
+    'js/listOrder.js',
     'js/layout.js',
     'js/settings.js',
     'js/runStats.js',

@@ -38,7 +38,12 @@ const Persistence = (() => {
     // `lifetimeStats` (persists ACROSS runs, retro-derived from existing
     // save data below) and `achievements` (unlocked-tier map; seeded {}).
     // See docs/ACHIEVEMENTS_PLAN.md + js/achievements.js.
-    const SCHEMA_VERSION = 11;
+    // v12 (2026-10-13): list-order layering -- active items may carry optional
+    // `listRank` / `listRankDue` (hand-ordered position inside a 30-min tie
+    // group; see js/listOrder.js). Absent = today's due-time order, so the
+    // migration only stamps the version. Items are saved whole, so the new
+    // fields round-trip with no serializer change.
+    const SCHEMA_VERSION = 12;
     const DEBOUNCE_MS = 500;
 
     // DOM references on item objects — never serialized, rebuilt on load.
@@ -371,6 +376,13 @@ const Persistence = (() => {
                 save.achievements = {};
             }
             save.schemaVersion = 11;
+        }
+
+        // v11 -> v12 (2026-10-13): list-order layering. Nothing to backfill:
+        // `listRank`/`listRankDue` are optional per item and unranked items
+        // keep today's behavior (plain due-time order).
+        if (save.schemaVersion === 11) {
+            save.schemaVersion = 12;
         }
 
         if (save.schemaVersion !== SCHEMA_VERSION) {
