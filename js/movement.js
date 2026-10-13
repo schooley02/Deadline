@@ -68,14 +68,16 @@ const Movement = (() => {
         return baseWidth * getParentSpriteScale(item);
     }
 
-    // Sub-tasks fan out beside their parent: alternating right/left by creation
-    // order (ordered by id, so the arrangement stays stable as siblings
-    // complete). Offsets are computed from the sprites' VISIBLE graphic edges
-    // (via getVisibleEdges), not their box edges. Each side's 1st slot butts its
-    // visible graphic against the parent's visible edge (plus a small gap); each
-    // further same-side slot chains off the previous sibling's visible edge.
-    // Sibling categories can differ, so the chain walks every earlier sibling
-    // and uses each one's own measured margins.
+    // Sub-tasks fan out to the LEFT of their parent -- toward the church (Jeremy,
+    // 2026-10-13: "behind" = to the right; a sub can never be due later than its
+    // parent, so it belongs ahead of it, matching the portrait strip). Before
+    // 2026-10-13 they alternated right/left by creation order. Ordered by id, so the
+    // arrangement stays stable as siblings complete. Offsets use the sprites' VISIBLE
+    // graphic edges (getVisibleEdges), not their box edges: the 1st sub butts its
+    // visible graphic against the parent's visible LEFT edge (minus a small gap); each
+    // further sub chains off the previous sibling's visible left edge. Sibling
+    // categories can differ, so the chain walks every earlier sibling and uses each
+    // one's own measured margins.
     function getSubTaskClusterOffset(item, ctx) {
         if (!item.parentId) return 0;
         // Portrait glance strip (V3b-1, revised 2026-10-13): never fan RIGHT (a fanned-out
@@ -99,26 +101,18 @@ const Movement = (() => {
         // so the fan stays attached to the visible graphic edge at any size.
         const parentBoxWidth = parentTask ? getParentRenderWidth(parentTask, enemyWidth) : enemyWidth;
         const parentEdges = getVisibleEdges(parentTask ? parentTask.category : 'other', parentBoxWidth);
-        let rightFrontier = parentEdges.right; // visible right edge of the rightmost cluster member so far (px, relative to parent box left)
-        let leftFrontier = parentEdges.left;   // visible left edge of the leftmost cluster member so far
+        let leftFrontier = parentEdges.left;   // visible left edge of the leftmost cluster member so far (px, relative to parent box left)
 
         const siblings = activeItems
             .filter(i => i.parentId === item.parentId && i.id <= item.id)
             .sort((a, b) => a.id - b.id);
 
         let offset = 0;
-        siblings.forEach((sib, idx) => {
+        siblings.forEach(sib => {
             const sibEdges = getVisibleEdges(sib.category, subWidth);
-            let sibOffset;
-            if (idx % 2 === 0) {
-                // right side: sib's visible left edge sits gap px after the current right frontier
-                sibOffset = rightFrontier + gap - sibEdges.left;
-                rightFrontier = sibOffset + sibEdges.right;
-            } else {
-                // left side: sib's visible right edge sits gap px before the current left frontier
-                sibOffset = leftFrontier - gap - sibEdges.right;
-                leftFrontier = sibOffset + sibEdges.left;
-            }
+            // sib's visible right edge sits gap px before the current left frontier
+            const sibOffset = leftFrontier - gap - sibEdges.right;
+            leftFrontier = sibOffset + sibEdges.left;
             if (sib.id === item.id) offset = sibOffset;
         });
         return offset;

@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 -- Desktop/landscape: sub-tasks fan LEFT only, toward the church (Jeremy; Claude app session)
+
+- **Decision:** `Movement.getSubTaskClusterOffset` (non-strip mode) now places EVERY sub-task to the LEFT of its parent, chaining further left per sibling (by id), instead of alternating right/left. Applies to desktop AND mobile landscape (same layout). Jeremy: "behind" meant to the RIGHT of the parent; subs should be ahead of it, like portrait. The existing left-fan base guard (clamp to baseWidth) now covers the first sub too.
+- **Why:** a sub is never due later than its parent, so it belongs on the church side; consistent with the portrait strip (2026-10-13).
+- **Also:** the z-order entry above (subs in front) stays -- it's what makes a left-fanned sub draw over its parent where they touch. `sw.js` -> v33. Gotcha for verifying: after a push the FIRST load can serve the previous cache (SW swaps mid-load) -- reload once more.
+- **Tests:** movement.test.js + layout.test.js rewritten for left-only (1,397 green). Verified live in headless Chromium 1280x800: sub x 695 < parent x 763, sub z 80 > parent z 79.
+
+---
+
 ## 2026-10-13 -- Desktop/landscape: sub-tasks draw IN FRONT of their parent (Jeremy; Claude app session)
 
 - **Decision:** outside portrait strip mode a sub-task's z-index is parent z + 1 (CSS only: `body:not(.glance-strip) .enemy.zombie-subtask` -> `--list-z + 2`; ListOrder still writes parent - 1). Reverses the 2026-10-13 list-order-layering rule 'sub = parent - 1' for desktop/landscape only.

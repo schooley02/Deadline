@@ -88,8 +88,8 @@ describe('Movement: sub-task fan-out in glance-strip mode (390px midnight-line b
     const sub = { id: 2, category: 'career', parentId: 1 };
     const activeItems = [parent, sub];
 
-    test('desktop: first sub fans out to the right of its parent (non-zero)', () => {
-        expect(Movement.getSubTaskClusterOffset(sub, { activeItems, enemyWidth: 128 })).toBeGreaterThan(0);
+    test('desktop: first sub fans out to the LEFT of its parent, toward the church (negative)', () => {
+        expect(Movement.getSubTaskClusterOffset(sub, { activeItems, enemyWidth: 128 })).toBeLessThan(0);
     });
     test('strip: first sub steps a small gap TOWARD THE CHURCH (never right)', () => {
         expect(Movement.getSubTaskClusterOffset(sub, { activeItems, enemyWidth: 128, glanceStrip: true }))

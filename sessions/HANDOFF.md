@@ -13,6 +13,8 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 > Addendum (same session): sub-tasks now draw IN FRONT of their parent on desktop/landscape (CSS only, `sw.js` v32; DECISIONS 2026-10-13). v31 missed overdue subs (excluded .enemy-at-base) -- fixed in v32; verified in headless Chromium.
 
+> Addendum 2 (same session): desktop + mobile-landscape sub-tasks now fan LEFT only (toward the church), not alternating right/left; `Movement.getSubTaskClusterOffset`, `sw.js` v33, DECISIONS 2026-10-13. Verified in headless Chromium; Jeremy to eyeball on desktop and phone landscape.
+
 ## 2026-10-13 (late afternoon) -- Landscape ground lanes (Claude app session, Sonnet)
 **Did:** Jeremy: landscape zombies all in one lane. Cause: no lanes in landscape, only a ~35px random band. Added `Layout.computeGroundLanes`/`groundLaneFeet`/`applyGroundLanes` (list-order lanes, front = top of list), wired into the loop's `afterTick` in script.js (no-op in strip mode), config `GROUND_LANE_FEET_TOP_FRAC` 0.72 / `BOTTOM_FRAC` 0.99, tests in test/layout.test.js. Docs: DECISIONS, MECHANICS. `sw.js` -> v30. v29 portrait sub-spread was pushed earlier today.
 **State:** Jest 66 suites, 1,397/1,397; `node --check` OK on script.js/layout.js. NOT live-checked in a browser (script.js wiring isn't covered by Jest) and not on the phone.

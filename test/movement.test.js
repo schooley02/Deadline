@@ -41,25 +41,26 @@ describe('getSubTaskClusterOffset', () => {
             .toBe(0);
     });
 
-    test('first sub-task sits on the right of the parent (positive offset)', () => {
+    test('first sub-task sits on the LEFT of the parent, toward the church (negative offset)', () => {
         const parent = { id: 1, category: 'relationships' };
         const sub1 = { id: 2, parentId: 1, category: 'relationships' };
         const activeItems = [parent, sub1];
         const offset = Movement.getSubTaskClusterOffset(sub1, { activeItems, enemyWidth: 128 });
-        // rightFrontier(121.984) + gap(8) - subLeft
-        expect(offset).toBeCloseTo(121.984 + GAP - SUB_L, 3);
-        expect(offset).toBeGreaterThan(0);
+        // parent visible left edge(6.016) - gap(8) - subRight
+        expect(offset).toBeCloseTo(6.016 - GAP - SUB_R, 3);
+        expect(offset).toBeLessThan(0);
     });
 
-    test('second sub-task alternates to the left of the parent (negative offset)', () => {
+    test('second sub-task chains further LEFT of the first (never to the right)', () => {
         const parent = { id: 1, category: 'relationships' };
         const sub1 = { id: 2, parentId: 1, category: 'relationships' };
         const sub2 = { id: 3, parentId: 1, category: 'relationships' };
         const activeItems = [parent, sub1, sub2];
         const offset = Movement.getSubTaskClusterOffset(sub2, { activeItems, enemyWidth: 128 });
-        // leftFrontier(6.016) - gap(8) - subRight
-        expect(offset).toBeCloseTo(6.016 - GAP - SUB_R, 3);
-        expect(offset).toBeLessThan(0);
+        const first = 6.016 - GAP - SUB_R;                 // sub1's offset
+        const leftFrontier = first + SUB_L;                 // sub1's visible left edge
+        expect(offset).toBeCloseTo(leftFrontier - GAP - SUB_R, 3);
+        expect(offset).toBeLessThan(first);
     });
 });
 
@@ -78,7 +79,9 @@ describe('calculateTimelineXWithClustering', () => {
         const x = Movement.calculateTimelineXWithClustering(sub, now, { activeItems, dims: DIMS });
         // ownTimelineX (baseWidth=100, overdue) + offset(no parent found → parentEdges use 'other')
         const offset = Movement.getSubTaskClusterOffset(sub, { activeItems, enemyWidth: DIMS.enemyWidth });
-        expect(x).toBeCloseTo(DIMS.baseWidth + offset, 6);
+        // Left-fan sub (negative offset) at the base is floored at baseWidth (never behind the church)
+        expect(offset).toBeLessThan(0);
+        expect(x).toBeCloseTo(Math.max(DIMS.baseWidth + offset, DIMS.baseWidth), 6);
     });
 
     test('sub-task due much earlier than parent breaks from the cluster', () => {
@@ -103,8 +106,8 @@ describe('calculateTimelineXWithClustering', () => {
     });
 
     describe('left-fan off-field guard ([P1-DATA-004] sub-session 5)', () => {
-        // sub2 (id 3) is the SECOND sibling → left side, negative offset
-        // (mirrors the "second sub-task alternates to the left" case above).
+        // Every sub fans LEFT now (2026-10-13), so even the first sibling can dip below
+        // the base when the parent is flush against it.
         function leftFanSiblings(parentX) {
             const parent = { id: 1, category: 'relationships', x: parentX, type: 'task', dueDateTime: new Date(Date.now() + 3600000) };
             const sub1 = { id: 2, parentId: 1, category: 'relationships', type: 'task', dueDateTime: new Date(Date.now() + 3600000) };
@@ -114,30 +117,28 @@ describe('calculateTimelineXWithClustering', () => {
 
         test('parent flush against the base: a left-fanned sub would go negative of baseWidth — clamped to baseWidth instead', () => {
             const now = new Date();
-            const { sub2, activeItems } = leftFanSiblings(DIMS.baseWidth); // parent.x == baseWidth (fully arrived)
-            const offset = Movement.getSubTaskClusterOffset(sub2, { activeItems, enemyWidth: DIMS.enemyWidth });
+            const { sub1, activeItems } = leftFanSiblings(DIMS.baseWidth); // parent.x == baseWidth (fully arrived)
+            const offset = Movement.getSubTaskClusterOffset(sub1, { activeItems, enemyWidth: DIMS.enemyWidth });
             expect(DIMS.baseWidth + offset).toBeLessThan(DIMS.baseWidth); // sanity: unclamped math WOULD go behind the base
 
-            const x = Movement.calculateTimelineXWithClustering(sub2, now, { activeItems, dims: DIMS });
+            const x = Movement.calculateTimelineXWithClustering(sub1, now, { activeItems, dims: DIMS });
             expect(x).toBe(DIMS.baseWidth); // floored, never behind the base
         });
 
         test('parent well clear of the base: the same left-fanned sub is NOT clamped, offset applies normally', () => {
             const now = new Date();
-            const { sub2, activeItems } = leftFanSiblings(400); // far from base — plenty of room to the left
-            const offset = Movement.getSubTaskClusterOffset(sub2, { activeItems, enemyWidth: DIMS.enemyWidth });
-            const x = Movement.calculateTimelineXWithClustering(sub2, now, { activeItems, dims: DIMS });
+            const { sub1, activeItems } = leftFanSiblings(400); // far from base — plenty of room to the left
+            const offset = Movement.getSubTaskClusterOffset(sub1, { activeItems, enemyWidth: DIMS.enemyWidth });
+            const x = Movement.calculateTimelineXWithClustering(sub1, now, { activeItems, dims: DIMS });
             expect(x).toBeCloseTo(400 + offset, 6);
             expect(x).toBeGreaterThan(DIMS.baseWidth);
         });
 
-        test('right-fanned sibling (positive offset) is unaffected by the guard even at the base edge', () => {
-            const now = new Date();
-            const { sub1, activeItems } = leftFanSiblings(DIMS.baseWidth);
-            const offset = Movement.getSubTaskClusterOffset(sub1, { activeItems, enemyWidth: DIMS.enemyWidth });
-            const x = Movement.calculateTimelineXWithClustering(sub1, now, { activeItems, dims: DIMS });
-            expect(x).toBeCloseTo(DIMS.baseWidth + offset, 6);
-            expect(offset).toBeGreaterThan(0);
+        test('no sub ever fans RIGHT of its parent (all offsets negative)', () => {
+            const { sub1, sub2, activeItems } = leftFanSiblings(400);
+            [sub1, sub2].forEach(s => {
+                expect(Movement.getSubTaskClusterOffset(s, { activeItems, enemyWidth: DIMS.enemyWidth })).toBeLessThan(0);
+            });
         });
     });
 });
@@ -233,18 +234,18 @@ describe('getSubTaskClusterOffset accounts for parent growth (sub-session 4)', (
         const sub1 = { id: 2, parentId: 1, category: 'relationships' };
         const activeItems = [parent, sub1];
         const offset = Movement.getSubTaskClusterOffset(sub1, { activeItems, enemyWidth: 128 });
-        expect(offset).toBeCloseTo(121.984 + GAP - SUB_L, 3); // same as the ungrown-parent test above
+        expect(offset).toBeCloseTo(6.016 - GAP - SUB_R, 3); // same as the ungrown-parent test above
     });
 
-    test('parent with 2 open subs: fan attaches to the GROWN visible edge, not the fixed 128px one', () => {
+    test('parent with 2 open subs: fan attaches to the GROWN visible left edge, not the fixed 128px one', () => {
         const scale = 1 + 2 * CONFIG.PARENT_GROWTH_PER_SUB;
-        const visibleRight = 128 * scale * 0.953; // relationships right margin pinned to 0.047 above
+        const visibleLeft = 128 * scale * 0.047; // relationships left margin pinned to 0.047 above
         const parent = { id: 1, category: 'relationships', subTasks: ['x', 'y'] };
         const sub1 = { id: 2, parentId: 1, category: 'relationships' };
         const offset = Movement.getSubTaskClusterOffset(sub1, { activeItems: [parent, sub1], enemyWidth: 128 });
-        expect(offset).toBeCloseTo(visibleRight + GAP - SUB_L, 3);
-        // and it's meaningfully further out than the ungrown case — proves scaling actually applies
-        expect(offset).toBeGreaterThan(121.984 + GAP - SUB_L);
+        expect(offset).toBeCloseTo(visibleLeft - GAP - SUB_R, 3);
+        // and it differs from the ungrown case — proves scaling actually applies
+        expect(offset).toBeGreaterThan(6.016 - GAP - SUB_R);
     });
 
     test('snap ON (old 0.15/sub): 1-3 open subs leave the offset identical to an ungrown parent', () => {
