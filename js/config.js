@@ -295,22 +295,26 @@ const CONFIG = {
     SUBTASK_ENEMY_WIDTH: 64,
     // Portrait glance strip (V3b-1, 2026-10-13): markers are small dots, so the
     // timeline math uses this as the "enemy width" while body.glance-strip is on
-    // (script.js refreshLayoutDims). Keep in sync with the 24px marker width in
+    // (script.js refreshLayoutDims). Keep in sync with the 32px marker width in
     // css/glanceStrip.css.
-    STRIP_MARKER_WIDTH: 24,
+    STRIP_MARKER_WIDTH: 32,
     // Glance-strip lanes (V3b-2, 2026-10-13). Strip = SKY band + a fixed-pixel
-    // FLOOR band. Lanes OVERLAP vertically on purpose (Jeremy, 11:35 after the
-    // phone check): each lane steps down only STRIP_LANE_PITCH px but a marker is
-    // STRIP_MARKER_HEIGHT tall, so a marker behind another keeps its top part
-    // visible and tappable. Floor = MARKER_HEIGHT + (LANE_COUNT-1)*PITCH =
-    // 24 + 2*14 = 52px; strip = SKY + floor = 24 + 52 = 76px. Markers in the
-    // same lane closer than STRIP_MARKER_WIDTH collapse into a "+N" badge. The
-    // PixelLab floor art must match (52px tall, tileable in x). Keep in sync with
-    // --strip-sky / --strip-pitch / --strip-marker / #gameCanvas height in
-    // css/glanceStrip.css (test/layout.test.js checks).
+    // FLOOR band. Markers are STRIP_MARKER_HEIGHT x STRIP_MARKER_WIDTH white-filled
+    // circles with a category-colored ring and a STRIP_ICON_SIZE icon (Jeremy,
+    // 11:54: bigger + white fill so icons and state rings read; custom PixelLab
+    // icons will replace the emoji SVGs — author them at STRIP_ICON_SIZE px,
+    // transparent). Lanes OVERLAP vertically on purpose: each steps down only
+    // STRIP_LANE_PITCH px but a marker is STRIP_MARKER_HEIGHT tall, so markers
+    // behind keep their top part visible and tappable. Floor = MARKER_HEIGHT +
+    // (LANE_COUNT-1)*PITCH = 32 + 2*20 = 72px; strip = SKY + floor = 24 + 72 = 96px.
+    // Same-lane markers closer than STRIP_MARKER_WIDTH collapse into a "+N" badge.
+    // PixelLab floor art must match (72px tall, tileable in x). Keep in sync with
+    // --strip-sky / --strip-marker / --strip-pitch / --strip-icon / #gameCanvas
+    // height in css/glanceStrip.css (test/layout.test.js checks).
     STRIP_SKY_HEIGHT: 24,
-    STRIP_MARKER_HEIGHT: 24,
-    STRIP_LANE_PITCH: 14,
+    STRIP_MARKER_HEIGHT: 32,
+    STRIP_ICON_SIZE: 24,
+    STRIP_LANE_PITCH: 20,
     STRIP_LANE_COUNT: 3,
 
     // --- Ground band placement (2026-07-21) ---

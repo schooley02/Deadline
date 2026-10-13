@@ -38,20 +38,21 @@ body.glance-strip .resource-panel {
 
 /* V3b-2 lane geometry. Keep in sync with CONFIG.STRIP_SKY_HEIGHT /
    STRIP_MARKER_HEIGHT / STRIP_LANE_PITCH / STRIP_LANE_COUNT (js/config.js).
-   Lanes OVERLAP: each steps down only --strip-pitch (14px) but a marker is
-   --strip-marker (24px) tall, so markers behind stay visible/tappable. Canvas =
-   sky + marker + (lanes-1)*pitch = 24 + 24 + 28 = 76px; the FLOOR band is the
-   lower 52px, a fixed pixel height on every phone (only the width varies), so
+   Lanes OVERLAP: each steps down only --strip-pitch (20px) but a marker is
+   --strip-marker (32px) tall, so markers behind stay visible/tappable. Canvas =
+   sky + marker + (lanes-1)*pitch = 24 + 32 + 40 = 96px; the FLOOR band is the
+   lower 72px, a fixed pixel height on every phone (only the width varies), so
    tileable pixel art can be authored against it. */
 body.glance-strip {
     --strip-sky: 24px;
-    --strip-marker: 24px;
-    --strip-pitch: 14px;
+    --strip-marker: 32px;
+    --strip-icon: 24px;   /* category icon box inside the marker (PixelLab art slot) */
+    --strip-pitch: 20px;
     --strip-lanes: 3;
 }
 
 body.glance-strip #gameCanvas {
-    height: 76px; /* = --strip-sky + --strip-marker + (--strip-lanes - 1) * --strip-pitch */
+    height: 96px; /* = --strip-sky + --strip-marker + (--strip-lanes - 1) * --strip-pitch */
     overflow: hidden; /* markers due tomorrow park at x = canvas width */
     background: linear-gradient(180deg, #1a1b3a 0%, #0b0b24 100%);
 }
@@ -63,7 +64,7 @@ body.glance-strip .graveyard-scene {
 
 /* PLACEHOLDER floor band (until the PixelLab tileable art lands): a slightly
    lighter strip under the sky. Replace the background with
-   `url(...) repeat-x` + image-rendering: pixelated (52px tall art). */
+   `url(...) repeat-x` + image-rendering: pixelated (72px tall art). */
 body.glance-strip #gameCanvas::before {
     content: "";
     position: absolute;
@@ -95,15 +96,15 @@ body.glance-strip #midnightLine::before {
 body.glance-strip .enemy,
 body.glance-strip .enemy.zombie-sprite {
     --marker: #9aa0a6;
-    width: 24px !important;
-    height: 24px !important;
+    width: var(--strip-marker) !important;
+    height: var(--strip-marker) !important;
     top: calc(var(--strip-sky) + var(--lane, 0) * var(--strip-pitch)) !important;
     z-index: calc(10 + var(--lane, 0)) !important; /* lower lane = nearer = in front */
     box-sizing: border-box;
-    border: 2px solid rgba(255, 255, 255, 0.9) !important;
+    border: 2px solid var(--marker) !important; /* category color ring */
     border-radius: 50% !important;
     background-image: none !important;
-    background-color: var(--marker) !important;
+    background-color: #fff !important; /* white fill: icons + state rings read on it */
     animation: none !important; /* no walk-bob on a dot */
 }
 
@@ -111,15 +112,15 @@ body.glance-strip .enemy .enemy-sprite {
     display: none;
 }
 
-/* Sub-tasks: smaller dot, centered on the same row. Sits under its parent
-   (z-index 5 vs 10) so a stacked sub is hidden behind the parent's dot. */
+/* Sub-tasks: smaller dot (20px), centered on the same marker row. Sits under its
+   parent (z-index 5 vs 10) so a stacked sub is hidden behind the parent's dot. */
 body.glance-strip .enemy.zombie-subtask,
 body.glance-strip .enemy.zombie-sprite.zombie-subtask {
-    width: 16px !important;
-    height: 16px !important;
-    top: calc(var(--strip-sky) + var(--lane, 0) * var(--strip-pitch) + 4px) !important;
+    width: 20px !important;
+    height: 20px !important;
+    top: calc(var(--strip-sky) + var(--lane, 0) * var(--strip-pitch) + 6px) !important;
     z-index: calc(5 + var(--lane, 0)) !important;
-    border-width: 1.5px !important;
+    border-width: 2px !important;
 }
 
 /* Lane assignment (Layout.applyStripLayout writes data-lane every tick it changes). */
@@ -147,19 +148,27 @@ body.glance-strip .enemy.category-other         { --marker: #9aa0a6; }
    Same emoji as CONFIG.CATEGORY_EMOJI, drawn as an SVG background so the ::before
    (sub-task badge) and ::after (priority star / lurker mark) stay free. 'other' is
    deliberately a plain dot (its emoji is the same star as the priority badge) and
-   sub-task dots (16px) stay plain too — too small for a legible icon. */
+   sub-task dots (20px) stay plain too — too small for a legible icon. With the
+   white fill both show a centered category-colored dot instead. */
 body.glance-strip .enemy:not(.zombie-subtask):not(.enemy-at-base) {
-    background-size: 15px 15px !important;
+    background-size: var(--strip-icon) var(--strip-icon) !important;
     background-position: center !important;
     background-repeat: no-repeat !important;
 }
-body.glance-strip .enemy.category-career:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='14.5'%20font-size='13'%20text-anchor='middle'%3E%F0%9F%92%BC%3C/text%3E%3C/svg%3E") !important; }
-body.glance-strip .enemy.category-creativity:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='14.5'%20font-size='13'%20text-anchor='middle'%3E%F0%9F%8E%A8%3C/text%3E%3C/svg%3E") !important; }
-body.glance-strip .enemy.category-financial:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='14.5'%20font-size='13'%20text-anchor='middle'%3E%F0%9F%92%B0%3C/text%3E%3C/svg%3E") !important; }
-body.glance-strip .enemy.category-health:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='14.5'%20font-size='13'%20text-anchor='middle'%3E%F0%9F%92%AA%3C/text%3E%3C/svg%3E") !important; }
-body.glance-strip .enemy.category-lifestyle:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='14.5'%20font-size='13'%20text-anchor='middle'%3E%F0%9F%8C%BF%3C/text%3E%3C/svg%3E") !important; }
-body.glance-strip .enemy.category-relationships:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='14.5'%20font-size='13'%20text-anchor='middle'%3E%E2%9D%A4%EF%B8%8F%3C/text%3E%3C/svg%3E") !important; }
-body.glance-strip .enemy.category-spirituality:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='14.5'%20font-size='13'%20text-anchor='middle'%3E%F0%9F%A7%98%3C/text%3E%3C/svg%3E") !important; }
+body.glance-strip .enemy.category-career:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='15.6'%20font-size='16'%20text-anchor='middle'%3E%F0%9F%92%BC%3C/text%3E%3C/svg%3E") !important; }
+body.glance-strip .enemy.category-creativity:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='15.6'%20font-size='16'%20text-anchor='middle'%3E%F0%9F%8E%A8%3C/text%3E%3C/svg%3E") !important; }
+body.glance-strip .enemy.category-financial:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='15.6'%20font-size='16'%20text-anchor='middle'%3E%F0%9F%92%B0%3C/text%3E%3C/svg%3E") !important; }
+body.glance-strip .enemy.category-health:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='15.6'%20font-size='16'%20text-anchor='middle'%3E%F0%9F%92%AA%3C/text%3E%3C/svg%3E") !important; }
+body.glance-strip .enemy.category-lifestyle:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='15.6'%20font-size='16'%20text-anchor='middle'%3E%F0%9F%8C%BF%3C/text%3E%3C/svg%3E") !important; }
+body.glance-strip .enemy.category-relationships:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='15.6'%20font-size='16'%20text-anchor='middle'%3E%E2%9D%A4%EF%B8%8F%3C/text%3E%3C/svg%3E") !important; }
+body.glance-strip .enemy.category-spirituality:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='15.6'%20font-size='16'%20text-anchor='middle'%3E%F0%9F%A7%98%3C/text%3E%3C/svg%3E") !important; }
+
+/* 'other' and sub-task markers: no icon, a centered category-colored dot. */
+body.glance-strip .enemy.category-other:not(.enemy-at-base),
+body.glance-strip .enemy.zombie-subtask:not(.enemy-at-base) {
+    background-image: radial-gradient(circle at center, var(--marker) 0 30%, transparent 33%) !important;
+    background-size: 100% 100% !important;
+}
 
 /* State rings (the V2 sprite glows are hidden with the sprite). */
 body.glance-strip .enemy.high-priority {
@@ -167,21 +176,23 @@ body.glance-strip .enemy.high-priority {
 }
 body.glance-strip .enemy.habit-enemy:not(.negative-habit) {
     border-color: #00e5ff !important;
+    border-width: 3px !important;
 }
 body.glance-strip .enemy.habit-enemy.negative-habit {
     border-color: #c04dff !important;
+    border-width: 3px !important;
 }
 body.glance-strip .enemy.high-priority::after {
-    font-size: 11px;
-    top: -9px;
-    left: -7px;
+    font-size: 14px;
+    top: -11px;
+    left: -9px;
 }
 body.glance-strip .enemy.habit-enemy.negative-habit::after {
-    font-size: 8px;
-    width: 12px;
-    height: 12px;
-    top: -6px;
-    right: -6px;
+    font-size: 10px;
+    width: 15px;
+    height: 15px;
+    top: -7px;
+    right: -7px;
 }
 
 /* Sub-task count badge on the parent ("+2"). ::before is free in strip mode
@@ -192,14 +203,14 @@ body.glance-strip .enemy[data-sub-count]::before {
     position: absolute;
     right: -7px;
     bottom: -7px;
-    min-width: 14px;
-    height: 14px;
-    padding: 0 3px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
     box-sizing: border-box;
-    border-radius: 7px;
+    border-radius: 9px;
     background: #111;
     color: #fff;
-    font: 700 9px/14px Inter, sans-serif;
+    font: 700 11px/17px Inter, sans-serif;
     text-shadow: none;
     align-items: center;
     justify-content: center;

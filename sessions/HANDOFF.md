@@ -19,7 +19,9 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 **Update (11:40):** Jeremy's phone report: rotating to landscape left all characters at top:0. Fixed (`replaceItemTops` in script.js on leaving strip mode; DECISIONS 2026-10-13; sw.js v17; live-verified, no Jest test possible). Also answered: hiding the browser bar in landscape needs the installed PWA (manifest `display: standalone`) AND `orientation` changed from `portrait-primary` to `any` — Jeremy chose the manifest change (11:43): `orientation` -> `any`, sw.js v18 — he must uninstall/re-add the PWA after deploy.
 
-**Next:** Jeremy checks the strip on his phone (clear SW/cache, now v17) and confirms or adjusts the lane numbers (`STRIP_LANE_PITCH` 14) BEFORE generating PixelLab floor art (52px floor, tileable in x, pixelated). Then list-order layering + tie-group reorder (own session, schema 12), V3c, V4, V5. Small follow-ups: lurker post 128px margin; maybe sticky lanes if lane-hopping on completion feels bad; maybe lane-by-list-order inside 30-min tie groups.
+**Update (11:54):** after using it on his phone: strip works, icons too small -> 32px white-filled markers with category-colored rings, 24px icons, lane pitch 20, strip 96px, floor 72px, sub dots 20px (DECISIONS 2026-10-13 "Bigger white-filled markers"; sw.js v19; Jest 1343). Jeremy plans custom PixelLab icons later — slot documented in UI_UX ("Custom icons"). Manifest `orientation: any` shipped and confirmed working on his phone (installed PWA rotates, bar hidden).
+
+**Next:** Jeremy checks the strip on his phone (clear SW/cache, now v19) and confirms or adjusts the lane numbers (`STRIP_LANE_PITCH` 14) BEFORE generating PixelLab floor art (52px floor, tileable in x, pixelated). Then list-order layering + tie-group reorder (own session, schema 12), V3c, V4, V5. Small follow-ups: lurker post 128px margin; maybe sticky lanes if lane-hopping on completion feels bad; maybe lane-by-list-order inside 30-min tie groups.
 
 **Watch out:**
 - Lane = f(x-order): completing/adding a task shifts lanes of every marker behind it (by design, per spec).

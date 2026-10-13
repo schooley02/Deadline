@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 — Bigger white-filled markers; strip 76px -> 96px; PixelLab icon slot (Jeremy after phone use, 11:54; Claude app session, Sonnet)
+
+- **Decision:** markers 24px -> 32px (`STRIP_MARKER_WIDTH`/`STRIP_MARKER_HEIGHT` 32), WHITE fill + 2px category-colored ring (was a category-colored fill + white ring), category icon box 24px (`STRIP_ICON_SIZE`, `--strip-icon`) with a larger emoji glyph (the old glyph was ~10px), lane pitch 14 -> 20px (overlap 12px), sky stays 24 -> strip 96px, floor 72px. Sub-task dots 16 -> 20px; `other`/sub markers show a centered category-colored dot (white fill + no icon would look empty). Habit/lurker rings 3px; priority star, lurker mark and "+N" badge enlarged to match. `CONFIG.STRIP_LANE_PITCH` etc. supersede the 76px/14px numbers of the entry below.
+- **Why:** on the phone the 24px/15px icons were very hard to see; white fill gives the emoji (and PixelLab art later) a neutral ground and makes the gold/cyan/purple state rings read.
+- **PixelLab:** custom icons are a straight swap of each category's `background-image` (transparent PNG at 24x24, or 12x12 at 2x, pixelated); the floor art is now 72px tall. Both must be made against these constants.
+- **Side effects:** the timeline's "enemy width" in strip mode is now 32 (so ~8px less timeline resolution); same-lane collapse threshold is 32px (fewer markers fit before "+N" appears — revisit if it triggers too early on the phone).
+- **Verified:** Jest 1343; live at 390px (11 markers): strip 96px, no page overflow, no overlap-hiding at that density, all markers' top edge + center hit-test to themselves (the stacked sub is hidden behind its parent by design). sw.js v19.
+
 ## 2026-10-13 — Manifest orientation `portrait-primary` -> `any` so the installed PWA can rotate (Jeremy, 11:43; Claude app session, Sonnet)
 
 - **Decision:** `manifest.json` `orientation` is now `"any"` (was `"portrait-primary"`). `display` stays `standalone`.
