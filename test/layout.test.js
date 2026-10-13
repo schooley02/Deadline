@@ -361,3 +361,68 @@ describe('Layout parked-lurker pile (2026-10-13)', () => {
         expect(Layout.isParkedLurker(task(2, 0))).toBe(false);
     });
 });
+
+// ---------------------------------------------------------------------------
+// Landscape / desktop ground lanes (2026-10-13: "all zombies in the same lane")
+// ---------------------------------------------------------------------------
+describe('Layout ground lanes (landscape)', () => {
+    const mk = (id, x, extra = {}) => ({ id, x, ...extra });
+    const withEl = (item, height) => {
+        item.element = { style: { height: height + 'px', top: '0px' }, offsetHeight: height };
+        return item;
+    };
+    beforeEach(() => { Layout.applyBodyClass(fakeDoc(), fakeWin(false)); }); // strip OFF
+
+    test('top-level items are dealt onto 3 lanes (front lane first), not one', () => {
+        const items = [mk(1, 100), mk(2, 140), mk(3, 180), mk(4, 220)];
+        const lanes = Layout.computeGroundLanes(items, { noListOrder: true });
+        expect(lanes).toEqual({ 1: 2, 2: 1, 3: 0, 4: 2 });
+        expect(new Set(Object.values(lanes)).size).toBe(3);
+    });
+
+    test('subs get no lane of their own', () => {
+        const lanes = Layout.computeGroundLanes([mk(1, 100), mk(2, 100, { parentId: 1 })], { noListOrder: true });
+        expect(lanes[2]).toBeUndefined();
+    });
+
+    test('lane feet spread across the band (back lane higher than front lane)', () => {
+        const H = 250;
+        const back = Layout.groundLaneFeet(0, H), mid = Layout.groundLaneFeet(1, H), front = Layout.groundLaneFeet(2, H);
+        expect(back).toBeCloseTo(CONFIG.GROUND_LANE_FEET_TOP_FRAC * H);
+        expect(front).toBeCloseTo(CONFIG.GROUND_LANE_FEET_BOTTOM_FRAC * H);
+        expect(back).toBeLessThan(mid);
+        expect(mid).toBeLessThan(front);
+        expect(mid - back).toBeGreaterThan(25); // visibly distinct lanes on a ~250px phone-landscape canvas
+    });
+
+    test('applyGroundLanes writes distinct tops per lane and bottom-aligns subs to their parent', () => {
+        const items = [withEl(mk(1, 100), 128), withEl(mk(2, 140), 128), withEl(mk(3, 180), 128),
+            withEl(mk(4, 100, { parentId: 1 }), 96)];
+        Layout.applyGroundLanes(items, 250, { noListOrder: true });
+        const tops = items.slice(0, 3).map(i => parseFloat(i.element.style.top));
+        expect(new Set(tops).size).toBe(3);
+        // lane 2 (front) is the lowest on screen
+        expect(tops[0]).toBeGreaterThan(tops[1]);
+        expect(tops[1]).toBeGreaterThan(tops[2]);
+        // sub feet == parent feet
+        const subFeet = parseFloat(items[3].element.style.top) + 96;
+        const parentFeet = parseFloat(items[0].element.style.top) + 128;
+        expect(subFeet).toBe(parentFeet);
+    });
+
+    test('is a no-op in portrait strip mode', () => {
+        Layout.applyBodyClass(fakeDoc(), fakeWin(true));
+        const items = [withEl(mk(1, 100), 128)];
+        Layout.applyGroundLanes(items, 250, { noListOrder: true });
+        expect(items[0].element.style.top).toBe('0px');
+    });
+
+    test('writes only on change', () => {
+        const items = [withEl(mk(1, 100), 128)];
+        Layout.applyGroundLanes(items, 250, { noListOrder: true });
+        const first = items[0].element.style.top;
+        items[0].element.style.top = first; // unchanged
+        Layout.applyGroundLanes(items, 250, { noListOrder: true });
+        expect(items[0].element.style.top).toBe(first);
+    });
+});

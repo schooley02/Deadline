@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 -- Landscape/desktop: deterministic 3 ground lanes in list order (Jeremy, phone landscape; Claude app session)
+
+- **Problem:** landscape zombies all read as one lane. Landscape had no lanes: feet were a random fraction of 0.85-0.99 of canvas height, set once at spawn -- only ~35px of spread on a ~250px phone-landscape canvas for 128px sprites.
+- **Decision:** top-level items are dealt onto `STRIP_LANE_COUNT` (3) lanes by agenda LIST order (top row = front/lowest lane), same rule as the portrait strip. Feet run `GROUND_LANE_FEET_TOP_FRAC` 0.72 -> `GROUND_LANE_FEET_BOTTOM_FRAC` 0.99 (~34px pitch at 250px). `Layout.applyGroundLanes` runs each tick (writes `style.top` only on change; no-op in strip mode); subs still bottom-align to their parent. Lane changes animate via the existing `.enemy` 0.2s transition.
+- **Notes:** the old random band (`GROUND_BAND_FEET_*`) remains only as the spawn / rotation initial placement until the next tick. Layout constants, not balance. `sw.js` -> v30.
+
+---
+
 ## 2026-10-13 -- Portrait strip: subs spread toward the church, in their own lanes (Jeremy, phone check; Claude app session)
 
 - **Decision:** in the portrait glance strip the first 2 open sub-tasks step 14px each toward the church (left only) from the parent and take a different lane; 3rd+ subs still stack on the parent with the +N badge. Landscape fan unchanged.

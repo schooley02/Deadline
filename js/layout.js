@@ -302,6 +302,68 @@ const Layout = (() => {
         return plan;
     }
 
+    // --- Landscape / desktop ground lanes (2026-10-13) ----------------------
+    // Pure: { [id]: lane } for top-level items, dealt in LIST order (top row =
+    // front lane = highest index = lowest on screen), same rule as the strip.
+    function computeGroundLanes(items, opts) {
+        const laneCount = (opts && opts.laneCount)
+            || ((typeof CONFIG !== 'undefined' && CONFIG.STRIP_LANE_COUNT) || 3);
+        const keys = listKeys(items, opts);
+        const byKey = (a, b) => {
+            if (keys) {
+                const ka = keys.has(a.id) ? keys.get(a.id) : Infinity;
+                const kb = keys.has(b.id) ? keys.get(b.id) : Infinity;
+                if (ka !== kb) return ka - kb;
+            }
+            return byXThenId(a, b);
+        };
+        const lanes = {};
+        items.filter(i => !i.parentId).sort(byKey).forEach((m, idx) => {
+            lanes[m.id] = (laneCount - 1) - (idx % laneCount);
+        });
+        return lanes;
+    }
+
+    // Feet-line (px from canvas top) for a lane.
+    function groundLaneFeet(lane, canvasHeight, opts) {
+        const c = (typeof CONFIG !== 'undefined') ? CONFIG : {};
+        const laneCount = (opts && opts.laneCount) || c.STRIP_LANE_COUNT || 3;
+        const topF = (opts && opts.topFrac != null) ? opts.topFrac : (c.GROUND_LANE_FEET_TOP_FRAC != null ? c.GROUND_LANE_FEET_TOP_FRAC : 0.72);
+        const botF = (opts && opts.bottomFrac != null) ? opts.bottomFrac : (c.GROUND_LANE_FEET_BOTTOM_FRAC != null ? c.GROUND_LANE_FEET_BOTTOM_FRAC : 0.99);
+        const t = laneCount > 1 ? lane / (laneCount - 1) : 1;
+        return (topF + t * (botF - topF)) * canvasHeight;
+    }
+
+    // Writes element tops only on change; no-op in portrait strip mode (the
+    // strip has its own lanes). Parents first, subs bottom-align to their parent.
+    function applyGroundLanes(items, canvasHeight, opts) {
+        if (active || !canvasHeight) return;
+        const lanes = computeGroundLanes(items, opts);
+        const tops = new Map();
+        const heightOf = el => parseFloat(el.style && el.style.height) || el.offsetHeight || 0;
+        const write = (item, top) => {
+            const el = item.element;
+            tops.set(item.id, top);
+            if (!el || !el.style) return;
+            const cur = parseFloat(el.style.top);
+            if (isNaN(cur) || Math.abs(cur - top) >= 0.5) el.style.top = top + 'px';
+        };
+        items.filter(i => !i.parentId).forEach(i => {
+            const el = i.element;
+            if (!el || lanes[i.id] == null) return;
+            const h = heightOf(el);
+            const top = Math.max(0, Math.min(groundLaneFeet(lanes[i.id], canvasHeight, opts) - h, canvasHeight - h));
+            write(i, Math.round(top));
+        });
+        items.filter(i => i.parentId).forEach(i => {
+            const el = i.element;
+            const parent = items.find(p => p.id === i.parentId);
+            if (!el || !parent || !parent.element || !tops.has(parent.id)) return;
+            const h = heightOf(el);
+            write(i, Math.round(tops.get(parent.id) + (heightOf(parent.element) - h)));
+        });
+    }
+
     // Writes only on change (called every game tick).
     function applyStripLayout(items) {
         const plan = active ? computeStripLayout(items) : {};
@@ -324,7 +386,8 @@ const Layout = (() => {
     }
 
     return { GLANCE_QUERY, isGlanceStrip, isActive, applyBodyClass, init, computeSubBadges, applySubBadges,
-        computeStripLayout, applyStripLayout, isParkedLurker };
+        computeStripLayout, applyStripLayout, isParkedLurker,
+        computeGroundLanes, groundLaneFeet, applyGroundLanes };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

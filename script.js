@@ -861,7 +861,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
             // Per-tick lanes + "+N" badges for the portrait glance strip
             // (V3b-1 sub badges, V3b-2 lanes / collision + overdue-pile badges).
-            afterTick: () => Layout.applyStripLayout(State.getActiveItems()),
+            afterTick: () => {
+                Layout.applyStripLayout(State.getActiveItems());
+                // Landscape/desktop: deterministic ground lanes in list order (no-op in strip mode).
+                if (!Layout.isActive()) Layout.applyGroundLanes(State.getActiveItems(), gameCanvas.offsetHeight);
+            },
             isGameOver: State.isGameOver,
             isOfflineCatchUpActive: () => offlineCatchUpActive,
             // Time slider (Milestone 4, 2026-07-20) — REQUIRED, same

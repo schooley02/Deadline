@@ -11,6 +11,12 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-10-13 (late afternoon) -- Landscape ground lanes (Claude app session, Sonnet)
+**Did:** Jeremy: landscape zombies all in one lane. Cause: no lanes in landscape, only a ~35px random band. Added `Layout.computeGroundLanes`/`groundLaneFeet`/`applyGroundLanes` (list-order lanes, front = top of list), wired into the loop's `afterTick` in script.js (no-op in strip mode), config `GROUND_LANE_FEET_TOP_FRAC` 0.72 / `BOTTOM_FRAC` 0.99, tests in test/layout.test.js. Docs: DECISIONS, MECHANICS. `sw.js` -> v30. v29 portrait sub-spread was pushed earlier today.
+**State:** Jest 66 suites, 1,397/1,397; `node --check` OK on script.js/layout.js. NOT live-checked in a browser (script.js wiring isn't covered by Jest) and not on the phone.
+**Next:** phone-check v30 landscape (3 distinct lanes; do lanes shuffle oddly when you reorder the list? is ~34px pitch enough?) and v29 portrait subs. Then PixelLab floor tile, then V3c.
+**Watch out:** lane = list-order index mod 3, so completing/adding an item re-deals lanes below it (animated 0.2s). Overdue items at the base also keep lanes in landscape. Spawn places via the old random band for one tick.
+
 ## 2026-10-13 (afternoon) -- Portrait sub-task spread (Claude app session, Opus plan -> Sonnet build)
 **Did:** Jeremy's phone check: sub size, rotation, overdue damage all OK. Fix for subs stacking on the parent in the portrait strip: first 2 subs step 14px toward the church (never right) and take lanes different from the parent's; 3rd+ still stack with +N. `js/movement.js` (strip branch of getSubTaskClusterOffset), `js/layout.js` (spread children in computeStripLayout), `js/config.js` (`STRIP_SUBTASK_GAP_PX`, `STRIP_SUBTASK_SPREAD_COUNT`), tests in `test/layout.test.js`. Docs: UI_UX, DECISIONS, CLAUDE.md. `sw.js` -> v29.
 **State:** Jest 66 suites, 1,391/1,391 (run in a scratch copy). NOT yet checked on the phone or in a live browser (headless visual check not done).

@@ -352,6 +352,16 @@ const CONFIG = {
     GROUND_BAND_FEET_TOP_FRAC: 0.85,
     GROUND_BAND_FEET_BOTTOM_FRAC: 0.99,
 
+    // Landscape / desktop GROUND LANES (2026-10-13, Jeremy: "all the zombies are in
+    // the same lane"). The random band above is only ~14% of a ~250px phone-landscape
+    // canvas (~35px of spread for 128px sprites), so it read as ONE lane. Top-level
+    // items are now dealt onto STRIP_LANE_COUNT lanes by agenda LIST order (top row =
+    // front/lowest lane -- same rule as the portrait strip; Layout.applyGroundLanes).
+    // Lane feet run from TOP_FRAC (back lane) to BOTTOM_FRAC (front lane) of canvas
+    // height. Layout constants, not balance. Sub-tasks still bottom-align to parent.
+    GROUND_LANE_FEET_TOP_FRAC: 0.72,
+    GROUND_LANE_FEET_BOTTOM_FRAC: 0.99,
+
     // --- Sub-task clustering ---
     SUBTASK_CLUSTER_GAP_PX: 8, // visual gap between clustered sprites' VISIBLE graphics (not their boxes)
     SUBTASK_AHEAD_THRESHOLD_PX: 150, // how much closer to the base a sub-task's own due date must put it before it breaks from the cluster
