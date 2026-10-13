@@ -331,6 +331,16 @@ const Layout = (() => {
         const topF = (opts && opts.topFrac != null) ? opts.topFrac : (c.GROUND_LANE_FEET_TOP_FRAC != null ? c.GROUND_LANE_FEET_TOP_FRAC : 0.72);
         const botF = (opts && opts.bottomFrac != null) ? opts.bottomFrac : (c.GROUND_LANE_FEET_BOTTOM_FRAC != null ? c.GROUND_LANE_FEET_BOTTOM_FRAC : 0.99);
         const t = laneCount > 1 ? lane / (laneCount - 1) : 1;
+        const px = !(opts && (opts.topFrac != null || opts.bottomFrac != null))
+            && typeof c.GROUND_FLOOR_HEIGHT === 'number'
+            && typeof c.GROUND_FLOOR_FEET_TOP_PAD === 'number'
+            && typeof c.GROUND_FLOOR_FEET_BOTTOM_PAD === 'number';
+        if (px) {
+            // Floor-band anchored (floor art, 2026-10-13): see CONFIG.GROUND_FLOOR_*.
+            const back = Math.max(0, canvasHeight - c.GROUND_FLOOR_HEIGHT + c.GROUND_FLOOR_FEET_TOP_PAD);
+            const front = Math.max(back, canvasHeight - c.GROUND_FLOOR_FEET_BOTTOM_PAD);
+            return back + t * (front - back);
+        }
         return (topF + t * (botF - topF)) * canvasHeight;
     }
 

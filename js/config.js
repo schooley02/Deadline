@@ -363,6 +363,15 @@ const CONFIG = {
     // front/lowest lane -- same rule as the portrait strip; Layout.applyGroundLanes).
     // Lane feet run from TOP_FRAC (back lane) to BOTTOM_FRAC (front lane) of canvas
     // height. Layout constants, not balance. Sub-tasks still bottom-align to parent.
+    // 2026-10-13 (floor art on desktop/landscape): the ground is now a fixed-height band of
+    // Assets/scene/floor-tile.png (.scene-ground in css/gameCanvas.css: GROUND_FLOOR_HEIGHT px,
+    // bottom-anchored). Lane feet are measured against THAT band, not canvas fractions: back
+    // lane feet = floor top + TOP_PAD, front lane feet = canvas bottom - BOTTOM_PAD (so
+    // nothing floats above the floor or touches the canvas edge); middle lane in between.
+    // The *_FRAC pair is the fallback (and what tests pass explicitly).
+    GROUND_FLOOR_HEIGHT: 72,
+    GROUND_FLOOR_FEET_TOP_PAD: 8,
+    GROUND_FLOOR_FEET_BOTTOM_PAD: 8,
     GROUND_LANE_FEET_TOP_FRAC: 0.72,
     GROUND_LANE_FEET_BOTTOM_FRAC: 0.99,
 

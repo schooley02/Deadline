@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 -- Desktop/landscape ground lanes re-anchored to the floor band (Jeremy: back lane floated, middle barely above floor; Claude app session, Sonnet)
+
+- **Cause:** after the 72px floor tile replaced the old ground band on desktop, lane feet were still canvas FRACTIONS (0.72 / 0.855 / 0.99 of ~298px = 215 / 255 / 295) but the floor top is at ~226, so the back lane stood in the sky above it.
+- **Decision:** lane feet are now measured against the floor band: back = canvas height - `GROUND_FLOOR_HEIGHT` (72) + `GROUND_FLOOR_FEET_TOP_PAD` (8), front = canvas height - `GROUND_FLOOR_FEET_BOTTOM_PAD` (8), middle halfway (~234 / 262 / 290 at 298px). `Layout.groundLaneFeet` uses these unless explicit `topFrac`/`bottomFrac` are passed (tests/fallback). Portrait strip is unaffected (its own lanes).
+- **Tests:** new CSS<->CONFIG sync test for `.scene-ground` height; 66 suites, 1400/1400. `sw.js` v38.
+
+---
+
 ## 2026-10-13 -- Strip shortened to 72px (feet-aligned lanes) + floor art on desktop (Jeremy: 'too tall'; Claude app session, Sonnet)
 
 - **Decision:** portrait strip 96 -> **72px**: sky 24 -> 4, lane pitch 20 -> 14, new `CONFIG.STRIP_FLOOR_PAD_BOTTOM` 8 (first cut was 16/4; Jeremy: front-lane feet touched the canvas edge, so 14/8 -- same 72px strip, same 36px floor) (`--strip-pad`). Markers stay 32px. Lane FEET (marker bottoms) land on the floor's top edge (y 36), 50 and bottom minus 8px pad (64); floor band = 36px (`(lanes-1)*pitch + pad`). Measured live at 390px with fake markers; no overflow.

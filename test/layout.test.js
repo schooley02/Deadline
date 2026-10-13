@@ -268,6 +268,14 @@ describe('Layout.applyStripLayout (V3b-2)', () => {
     });
 });
 
+describe('desktop floor band stays in sync between CONFIG and css/gameCanvas.css', () => {
+    const gc = require('fs').readFileSync(require('path').join(__dirname, '../css/gameCanvas.css'), 'utf8');
+    test('.scene-ground height == CONFIG.GROUND_FLOOR_HEIGHT and the tile is that tall', () => {
+        expect(gc).toMatch(new RegExp(`\\.scene-ground \\{[^}]*height: ${CONFIG.GROUND_FLOOR_HEIGHT}px;`));
+        expect(gc).toContain(`/ 127px ${CONFIG.GROUND_FLOOR_HEIGHT}px;`);
+    });
+});
+
 describe('strip geometry stays in sync between CONFIG and css/glanceStrip.css', () => {
     const css = require('fs').readFileSync(require('path').join(__dirname, '../css/glanceStrip.css'), 'utf8');
     test('sky / marker / icon / pitch / lane count / canvas height match', () => {
@@ -389,8 +397,9 @@ describe('Layout ground lanes (landscape)', () => {
     test('lane feet spread across the band (back lane higher than front lane)', () => {
         const H = 250;
         const back = Layout.groundLaneFeet(0, H), mid = Layout.groundLaneFeet(1, H), front = Layout.groundLaneFeet(2, H);
-        expect(back).toBeCloseTo(CONFIG.GROUND_LANE_FEET_TOP_FRAC * H);
-        expect(front).toBeCloseTo(CONFIG.GROUND_LANE_FEET_BOTTOM_FRAC * H);
+        expect(back).toBeCloseTo(H - CONFIG.GROUND_FLOOR_HEIGHT + CONFIG.GROUND_FLOOR_FEET_TOP_PAD);
+        expect(front).toBeCloseTo(H - CONFIG.GROUND_FLOOR_FEET_BOTTOM_PAD);
+        expect(Layout.groundLaneFeet(0, H, { topFrac: 0.72, bottomFrac: 0.99 })).toBeCloseTo(0.72 * H); // explicit fractions still win
         expect(back).toBeLessThan(mid);
         expect(mid).toBeLessThan(front);
         expect(mid - back).toBeGreaterThan(25); // visibly distinct lanes on a ~250px phone-landscape canvas
