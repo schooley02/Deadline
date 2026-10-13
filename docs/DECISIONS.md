@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 -- Portrait strip headroom 12 -> 24px, strip 92px (Jeremy's phone screenshot: parked-lurker sprite head clipped; 'we can show more sky')
+
+- **Cause:** the real overdue/lurker sprites in strip mode are 64px boxes at `bottom: 4px` (attackers) and `bottom: 20px` (parked lurker, one row behind). In an 80px canvas the lurker's top was at -4px, clipped by `overflow:hidden`. The 12px bump fixed only the priority star.
+- **Decision:** `STRIP_SKY_HEIGHT` 12 -> 24; canvas = 24 + 32 + 28 + 8 = **92px** (lurker top at 8px, attackers at 24px). Floor/lanes unchanged relative to the floor (floor top 56; feet 56 / 70 / 84). `sw.js` v40. If the lurker box ever grows, the rule is canvas >= 64 + 20 + a few px.
+
+---
+
 ## 2026-10-13 -- Portrait strip headroom 4 -> 12px, strip 80px (Jeremy: top-lane zombie partly off screen)
 
 - **Cause:** `#gameCanvas` is `overflow:hidden` and the top lane's marker top sat 4px from the edge, but the priority star is `top:-11px` and the gold glow reaches ~11px, so they were clipped.
