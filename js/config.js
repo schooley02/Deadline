@@ -309,12 +309,12 @@ const CONFIG = {
     // tighter lanes, FEET-aligned to the floor: lane 0's feet (marker bottom) sit on the
     // floor's top edge, lane 1 mid-floor, lane 2 at the bottom minus STRIP_FLOOR_PAD_BOTTOM.
     // Floor = (LANE_COUNT-1)*PITCH + PAD = 2*14 + 8 = 36px; strip = SKY + MARKER + floor =
-    // 4 + 32 + 36 = 72px (was 96; pad 4->8 and pitch 16->14 same day so feet clear the canvas edge).
+    // 12 + 32 + 36 = 80px (was 96; pad 4->8 and pitch 16->14 same day so feet clear the canvas edge).
     // Same-lane markers closer than STRIP_MARKER_WIDTH collapse into a "+N" badge.
     // PixelLab floor art must match (36px tall, tileable in x: Assets/scene/strip-floor.png). Keep in sync with
     // --strip-sky / --strip-marker / --strip-pitch / --strip-icon / #gameCanvas
     // height in css/glanceStrip.css (test/layout.test.js checks).
-    STRIP_SKY_HEIGHT: 4,
+    STRIP_SKY_HEIGHT: 12, // headroom: priority star sits 11px above a marker (top:-11px) + gold glow; the canvas clips overflow
     STRIP_MARKER_HEIGHT: 32,
     STRIP_ICON_SIZE: 24,
     STRIP_LANE_PITCH: 14,

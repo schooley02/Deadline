@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 -- Portrait strip headroom 4 -> 12px, strip 80px (Jeremy: top-lane zombie partly off screen)
+
+- **Cause:** `#gameCanvas` is `overflow:hidden` and the top lane's marker top sat 4px from the edge, but the priority star is `top:-11px` and the gold glow reaches ~11px, so they were clipped.
+- **Decision:** `STRIP_SKY_HEIGHT` 4 -> 12 (`--strip-sky`); canvas = 12 + 32 + 28 + 8 = **80px**; floor (36px) and lane feet offsets relative to it unchanged (feet at 44 / 58 / 72, floor top at 44). `sw.js` v39.
+
+---
+
 ## 2026-10-13 -- Desktop/landscape ground lanes re-anchored to the floor band (Jeremy: back lane floated, middle barely above floor; Claude app session, Sonnet)
 
 - **Cause:** after the 72px floor tile replaced the old ground band on desktop, lane feet were still canvas FRACTIONS (0.72 / 0.855 / 0.99 of ~298px = 215 / 255 / 295) but the floor top is at ~226, so the back lane stood in the sky above it.
