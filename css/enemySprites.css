@@ -276,59 +276,58 @@
    removed 2026-07-21, Jeremy's call, see docs/DECISIONS.md). Sub-tasks are
    the only tier that visually shrinks, below. */
 
-/* Sub-task zombie sprites (64 × 64) */
+/* Sub-task zombie sprites (96 × 96) */
 .zombie-subtask {
-    width: 64px;
-    height: 64px;
-    opacity: 0.85;
+    width: 96px;
+    height: 96px;
     z-index: var(--list-z, 5); /* ListOrder sets this to parent z - 1: always just behind the parent */
 }
 
 .zombie-sprite.zombie-subtask.zombie-career,
 .zombie-subtask.zombie-career {
     background-image: url('../Assets/Zombies/career-zombie-64.png') !important;
-    background-size: 64px 64px !important;
+    background-size: 96px 96px !important;
 }
 
 .zombie-sprite.zombie-subtask.zombie-creativity,
 .zombie-subtask.zombie-creativity {
     background-image: url('../Assets/Zombies/creativity-zombie-64.png') !important;
-    background-size: 64px 64px !important;
+    background-size: 96px 96px !important;
 }
 
 .zombie-sprite.zombie-subtask.zombie-financial,
 .zombie-subtask.zombie-financial {
     background-image: url('../Assets/Zombies/financial-zombie-64.png') !important;
-    background-size: 64px 64px !important;
+    background-size: 96px 96px !important;
 }
 
 .zombie-sprite.zombie-subtask.zombie-health,
 .zombie-subtask.zombie-health {
     background-image: url('../Assets/Zombies/health-zombie-64.png') !important;
-    background-size: 64px 64px !important;
+    background-size: 96px 96px !important;
 }
 
 .zombie-sprite.zombie-subtask.zombie-lifestyle,
 .zombie-subtask.zombie-lifestyle {
     background-image: url('../Assets/Zombies/lifestyle-zombie-64.png') !important;
-    background-size: 64px 64px !important;
+    background-size: 96px 96px !important;
 }
 
 .zombie-sprite.zombie-subtask.zombie-relationships,
 .zombie-subtask.zombie-relationships {
     background-image: url('../Assets/Zombies/relationships-zombie-64.png') !important;
-    background-size: 64px 64px !important;
+    background-size: 96px 96px !important;
 }
 
 .zombie-sprite.zombie-subtask.zombie-spirituality,
 .zombie-subtask.zombie-spirituality {
     background-image: url('../Assets/Zombies/spiritual-zombie-64.png') !important;
-    background-size: 64px 64px !important;
+    background-size: 96px 96px !important;
 }
 
 .zombie-sprite.zombie-subtask.zombie-other,
 .zombie-subtask.zombie-other {
     background-image: url('../Assets/Zombies/other-zombie-64.png') !important;
-    background-size: 64px 64px !important;
+    background-size: 96px 96px !important;
 }
 

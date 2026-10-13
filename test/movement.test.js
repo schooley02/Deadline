@@ -25,7 +25,10 @@ const DIMS = {
 
 // 'relationships' has symmetric 0.047 margins → clean numbers.
 // parent box 128px: visible left = 128*0.047 = 6.016, right = 128*0.953 = 121.984
-// sub box 64px:     visible left = 64*0.047  = 3.008, right = 64*0.953  = 60.992
+// sub box = CONFIG.SUBTASK_ENEMY_WIDTH (96px since 2026-10-13): visible left = W*0.047, right = W*0.953
+const SUB_W = CONFIG.SUBTASK_ENEMY_WIDTH;
+const SUB_L = SUB_W * 0.047; // 4.512 at 96px
+const SUB_R = SUB_W * 0.953; // 91.488 at 96px
 const GAP = CONFIG.SUBTASK_CLUSTER_GAP_PX; // 8
 
 function overdue(dueOffsetMs = -1000, extra = {}) {
@@ -43,8 +46,8 @@ describe('getSubTaskClusterOffset', () => {
         const sub1 = { id: 2, parentId: 1, category: 'relationships' };
         const activeItems = [parent, sub1];
         const offset = Movement.getSubTaskClusterOffset(sub1, { activeItems, enemyWidth: 128 });
-        // rightFrontier(121.984) + gap(8) - subLeft(3.008) = 126.976
-        expect(offset).toBeCloseTo(121.984 + GAP - 3.008, 3);
+        // rightFrontier(121.984) + gap(8) - subLeft
+        expect(offset).toBeCloseTo(121.984 + GAP - SUB_L, 3);
         expect(offset).toBeGreaterThan(0);
     });
 
@@ -54,8 +57,8 @@ describe('getSubTaskClusterOffset', () => {
         const sub2 = { id: 3, parentId: 1, category: 'relationships' };
         const activeItems = [parent, sub1, sub2];
         const offset = Movement.getSubTaskClusterOffset(sub2, { activeItems, enemyWidth: 128 });
-        // leftFrontier(6.016) - gap(8) - subRight(60.992) = -62.976
-        expect(offset).toBeCloseTo(6.016 - GAP - 60.992, 3);
+        // leftFrontier(6.016) - gap(8) - subRight
+        expect(offset).toBeCloseTo(6.016 - GAP - SUB_R, 3);
         expect(offset).toBeLessThan(0);
     });
 });
@@ -230,7 +233,7 @@ describe('getSubTaskClusterOffset accounts for parent growth (sub-session 4)', (
         const sub1 = { id: 2, parentId: 1, category: 'relationships' };
         const activeItems = [parent, sub1];
         const offset = Movement.getSubTaskClusterOffset(sub1, { activeItems, enemyWidth: 128 });
-        expect(offset).toBeCloseTo(121.984 + GAP - 3.008, 3); // same as the ungrown-parent test above
+        expect(offset).toBeCloseTo(121.984 + GAP - SUB_L, 3); // same as the ungrown-parent test above
     });
 
     test('parent with 2 open subs: fan attaches to the GROWN visible edge, not the fixed 128px one', () => {
@@ -239,9 +242,9 @@ describe('getSubTaskClusterOffset accounts for parent growth (sub-session 4)', (
         const parent = { id: 1, category: 'relationships', subTasks: ['x', 'y'] };
         const sub1 = { id: 2, parentId: 1, category: 'relationships' };
         const offset = Movement.getSubTaskClusterOffset(sub1, { activeItems: [parent, sub1], enemyWidth: 128 });
-        expect(offset).toBeCloseTo(visibleRight + GAP - 3.008, 3);
+        expect(offset).toBeCloseTo(visibleRight + GAP - SUB_L, 3);
         // and it's meaningfully further out than the ungrown case — proves scaling actually applies
-        expect(offset).toBeGreaterThan(121.984 + GAP - 3.008);
+        expect(offset).toBeGreaterThan(121.984 + GAP - SUB_L);
     });
 
     test('snap ON (old 0.15/sub): 1-3 open subs leave the offset identical to an ungrown parent', () => {

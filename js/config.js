@@ -292,7 +292,7 @@ const CONFIG = {
     // --- Sprites ---
     ENEMY_WIDTH: 128,
     HABIT_ENEMY_WIDTH: 128,
-    SUBTASK_ENEMY_WIDTH: 64,
+    SUBTASK_ENEMY_WIDTH: 96, // was 64 (2026-10-13: too small on phone landscape, Jeremy)
     // Portrait glance strip (V3b-1, 2026-10-13): markers are small dots, so the
     // timeline math uses this as the "enemy width" while body.glance-strip is on
     // (script.js refreshLayoutDims). Keep in sync with the 32px marker width in
