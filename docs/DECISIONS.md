@@ -4,6 +4,23 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 — V3b-1: portrait glance strip built; sub-tasks stack on the parent with a "+N" badge (Claude app session, Opus plan -> Sonnet build)
+
+- **Decision:** split V3b in two. V3b-1 (this session) = strip layout, dot markers, overdue-sprite exception, slim slider, sub-task stacking + "+N" badge, mode re-measure. V3b-2 (queued) = overlap badges for unrelated markers + polish from Jeremy's phone check. The strip went beyond "CSS + a render branch" (dims are measured once at init; six files set enemy `left`), which the roadmap said to split on.
+- **Fixes the 390px phone report** by design: in strip mode `getSubTaskClusterOffset` is 0, so a sub can't land past the midnight line because of the fan-out. movement.js was changed only for this flag (the earlier note said not to patch it separately for the bug — the flag IS the strip behavior, not a standalone patch).
+- **Marker style:** first built as plain category-colored dots + V2 glow rings; **Jeremy chose category icons the same day (2026-10-13)**, so each dot carries its category emoji (SVG background; `other` + sub-task dots stay plain). **Church:** keeps the damage-state base image rather than icon-192 (it shows base health). **Hero chips hidden** in strip mode (don't fit 72px) — Jeremy OK'd. sw.js bumped to v14 for the icon CSS.
+- **Timeline width:** while in strip mode the timeline math uses `CONFIG.STRIP_MARKER_WIDTH` (24) instead of 128 as the enemy width, otherwise 128px would be reserved at the right edge and the strip's time resolution cut ~40%. Sprite/box sizes are overridden in CSS, not by changing ENEMY_WIDTH semantics elsewhere.
+- **Found live + fixed:** after rotating strip -> landscape without a reload, an overdue zombie stayed at the strip's base x (56) on top of the 120px church — overdue items are only repositioned on damage ticks. `refreshLayoutDims` now re-snaps them.
+- **Tests:** `test/layout.test.js` (+10); Jest 64 suites / 1329. sw.js `deadline-shell-v13` (+ `js/layout.js`, `css/glanceStrip.css`).
+
+## 2026-10-13 — Canvas layering follows list order; 30-min chained tie groups can be hand-reordered (Jeremy's request, Claude app session, Opus)
+
+- **Decision:** a zombie's z-order on the canvas mirrors its row in the agenda list, top row in front. Items with similar due times can be moved up/down in the list to bring them forward or back on the canvas.
+- **"Similar" = fixed time window, 30 min (`CONFIG.LIST_TIE_WINDOW_MIN`), CHAINED:** neighbors within 30 min join one group, so 9:00 / 9:25 / 9:50 is one group. Due-time sort stays primary; manual order only reorders inside a group, so a later task can never sit above an earlier non-tied one. Tunable later.
+- **Persistence:** new optional `listRank` per item, schema 11→12; editing a due time clears it. Reorder UI: ▲/▼ buttons only on rows whose neighbor shares the group.
+- **Rejected:** grouping by on-screen sprite overlap (groups would differ between phone and desktop); fixed non-chained buckets (cut adjacent items arbitrarily); drag-reorder first (unreliable inside a scrolling phone list).
+- **Sequencing:** built after V3b-1, as its own session.
+
 ## 2026-10-12 — V2: state indicators become silhouette glows; supersedes "dashed habit border is intentional" (Jeremy approved plan, Claude app session, Opus plan -> Sonnet build)
 
 - **Decision:** every rectangle state indicator on enemies (priority outline+box-shadow, overdue red box pulse, habit dashed border, lurker orange border, sub-task thin outline, preview-ghost dashed outline, hover white box-shadow, streak-fire box-shadows) is replaced by a CSS `drop-shadow` glow that follows the zombie's silhouette. Colors, deliberately loud: priority gold, overdue red, habit cyan, lurker purple, streak orange (super = hotter/bigger). Sub-task has no glow (smaller + 0.85 opacity already marks it). Preview ghost = existing opacity dim + desaturated sprite (glows stay colored). Habit zombies are NOT see-through (Jeremy: the time slider already uses see-through for "preview").

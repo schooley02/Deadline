@@ -1,0 +1,213 @@
+/**
+ * glanceStrip.css — portrait "glance strip" variant (V3b-1, 2026-10-13).
+ * docs/VISUAL_DESIGN_PLAN.md Direction #4; DECISIONS.md 2026-07-20 + 2026-10-13.
+ *
+ * Everything here is scoped to `body.glance-strip`, which js/layout.js toggles
+ * for portrait + max-width 768px. It restyles the SAME DOM the desktop scene
+ * uses: the canvas collapses to a thin strip, church at the left, each enemy
+ * becomes a small category-colored dot with its category icon positioned by the normal timeline math,
+ * and OVERDUE enemies keep their real animated sprite (shrunk 0.5x) pulsing at
+ * the base edge. Sub-tasks stack under their parent (Movement zeroes their
+ * fan-out in this mode) and the parent shows a "+N" badge (data-sub-count).
+ *
+ * Loaded BEFORE responsive.css (which must stay last); !important is used only
+ * where it must beat inline styles the game loop writes (width/height/top) or
+ * existing `!important` sprite backgrounds.
+ *
+ * KEEP IN SYNC: marker width 24px == CONFIG.STRIP_MARKER_WIDTH (js/config.js),
+ * which the timeline math uses so the rightmost marker reaches the strip edge.
+ */
+
+/* --- Strip frame ------------------------------------------------------- */
+body.glance-strip .game-canvas {
+    height: auto;
+    min-height: 0;
+}
+
+/* HUD chips go in-flow above the strip instead of overlaying it. */
+body.glance-strip .stats-overlay {
+    position: static;
+    padding: 4px 8px;
+    background: none;
+}
+
+body.glance-strip .resource-panel {
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+body.glance-strip #gameCanvas {
+    height: 72px;
+    overflow: hidden; /* markers due tomorrow park at x = canvas width */
+    background: linear-gradient(180deg, #1a1b3a 0%, #0b0b24 100%);
+}
+
+/* Minimal backdrop only — no scene props in portrait. */
+body.glance-strip .graveyard-scene {
+    display: none;
+}
+
+/* Faint track line the markers ride on. */
+body.glance-strip #gameCanvas::before {
+    content: "";
+    position: absolute;
+    left: 56px;
+    right: 0;
+    top: 50%;
+    height: 2px;
+    margin-top: -1px;
+    background: rgba(255, 255, 255, 0.14);
+}
+
+body.glance-strip #base {
+    width: 56px; /* BASE_WIDTH is re-measured from this on mode change */
+    border-right-width: 2px;
+}
+
+/* Hero chips (34px each) don't fit a 72px strip. Routine HP stays visible in
+   the routine windows; revisit with V3c. */
+body.glance-strip #heroBaseZone {
+    display: none;
+}
+
+/* The vertical "MIDNIGHT" label is taller than the strip; keep post + lantern. */
+body.glance-strip #midnightLine::before {
+    display: none;
+}
+
+/* --- Markers ----------------------------------------------------------- */
+body.glance-strip .enemy,
+body.glance-strip .enemy.zombie-sprite {
+    --marker: #9aa0a6;
+    width: 24px !important;
+    height: 24px !important;
+    top: calc(50% - 12px) !important;
+    box-sizing: border-box;
+    border: 2px solid rgba(255, 255, 255, 0.9) !important;
+    border-radius: 50% !important;
+    background-image: none !important;
+    background-color: var(--marker) !important;
+    animation: none !important; /* no walk-bob on a dot */
+}
+
+body.glance-strip .enemy .enemy-sprite {
+    display: none;
+}
+
+/* Sub-tasks: smaller dot, centered on the same row. Sits under its parent
+   (z-index 5 vs 10) so a stacked sub is hidden behind the parent's dot. */
+body.glance-strip .enemy.zombie-subtask,
+body.glance-strip .enemy.zombie-sprite.zombie-subtask {
+    width: 16px !important;
+    height: 16px !important;
+    top: calc(50% - 8px) !important;
+    border-width: 1.5px !important;
+}
+
+/* Category colors (the list below carries the detail). */
+body.glance-strip .enemy.category-career        { --marker: #4c7dff; }
+body.glance-strip .enemy.category-creativity    { --marker: #f06292; }
+body.glance-strip .enemy.category-financial     { --marker: #3fbf6f; }
+body.glance-strip .enemy.category-health        { --marker: #ff7043; }
+body.glance-strip .enemy.category-lifestyle     { --marker: #7aa6c2; }
+body.glance-strip .enemy.category-relationships { --marker: #e0a96d; }
+body.glance-strip .enemy.category-spirituality  { --marker: #d9d2ff; }
+body.glance-strip .enemy.category-other         { --marker: #9aa0a6; }
+
+/* Category icons on the dots (Jeremy chose icons over plain dots, 2026-10-13).
+   Same emoji as CONFIG.CATEGORY_EMOJI, drawn as an SVG background so the ::before
+   (sub-task badge) and ::after (priority star / lurker mark) stay free. 'other' is
+   deliberately a plain dot (its emoji is the same star as the priority badge) and
+   sub-task dots (16px) stay plain too — too small for a legible icon. */
+body.glance-strip .enemy:not(.zombie-subtask):not(.enemy-at-base) {
+    background-size: 15px 15px !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+}
+body.glance-strip .enemy.category-career:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='14.5'%20font-size='13'%20text-anchor='middle'%3E%F0%9F%92%BC%3C/text%3E%3C/svg%3E") !important; }
+body.glance-strip .enemy.category-creativity:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='14.5'%20font-size='13'%20text-anchor='middle'%3E%F0%9F%8E%A8%3C/text%3E%3C/svg%3E") !important; }
+body.glance-strip .enemy.category-financial:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='14.5'%20font-size='13'%20text-anchor='middle'%3E%F0%9F%92%B0%3C/text%3E%3C/svg%3E") !important; }
+body.glance-strip .enemy.category-health:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='14.5'%20font-size='13'%20text-anchor='middle'%3E%F0%9F%92%AA%3C/text%3E%3C/svg%3E") !important; }
+body.glance-strip .enemy.category-lifestyle:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='14.5'%20font-size='13'%20text-anchor='middle'%3E%F0%9F%8C%BF%3C/text%3E%3C/svg%3E") !important; }
+body.glance-strip .enemy.category-relationships:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='14.5'%20font-size='13'%20text-anchor='middle'%3E%E2%9D%A4%EF%B8%8F%3C/text%3E%3C/svg%3E") !important; }
+body.glance-strip .enemy.category-spirituality:not(.zombie-subtask):not(.enemy-at-base) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Ctext%20x='10'%20y='14.5'%20font-size='13'%20text-anchor='middle'%3E%F0%9F%A7%98%3C/text%3E%3C/svg%3E") !important; }
+
+/* State rings (the V2 sprite glows are hidden with the sprite). */
+body.glance-strip .enemy.high-priority {
+    box-shadow: 0 0 0 2px #ffc400, 0 0 9px 2px rgba(255, 196, 0, 0.85);
+}
+body.glance-strip .enemy.habit-enemy:not(.negative-habit) {
+    border-color: #00e5ff !important;
+}
+body.glance-strip .enemy.habit-enemy.negative-habit {
+    border-color: #c04dff !important;
+}
+body.glance-strip .enemy.high-priority::after {
+    font-size: 11px;
+    top: -9px;
+    left: -7px;
+}
+body.glance-strip .enemy.habit-enemy.negative-habit::after {
+    font-size: 8px;
+    width: 12px;
+    height: 12px;
+    top: -6px;
+    right: -6px;
+}
+
+/* Sub-task count badge on the parent ("+2"). ::before is free in strip mode
+   (the category-icon ::before is display:none everywhere). */
+body.glance-strip .enemy[data-sub-count]::before {
+    content: "+" attr(data-sub-count);
+    display: flex !important;
+    position: absolute;
+    right: -7px;
+    bottom: -7px;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+    box-sizing: border-box;
+    border-radius: 7px;
+    background: #111;
+    color: #fff;
+    font: 700 9px/14px Inter, sans-serif;
+    text-shadow: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 6;
+}
+
+/* --- Overdue exception: the real sprite, small, pulsing at the base ------ */
+body.glance-strip .enemy.enemy-at-base.has-anim-sprite,
+body.glance-strip .enemy.zombie-sprite.enemy-at-base.has-anim-sprite {
+    width: 64px !important;
+    height: 64px !important;
+    top: auto !important;
+    bottom: 4px;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background-color: transparent !important;
+    box-shadow: none;
+}
+
+body.glance-strip .enemy.enemy-at-base.has-anim-sprite .enemy-sprite {
+    display: block;
+    --sprite-scale: 0.5 !important; /* beats the inline scale spriteAnim.js writes */
+}
+
+/* Static-PNG fallback (no animated sprite): a red-ringed dot. */
+body.glance-strip .enemy.enemy-at-base:not(.has-anim-sprite) {
+    border-color: #ff1744 !important;
+    box-shadow: 0 0 9px 2px rgba(255, 23, 68, 0.85);
+}
+
+/* --- Slim slider ----------------------------------------------------------- */
+body.glance-strip .time-slider-seam {
+    padding: 2px 12px;
+    gap: 8px;
+}
+
+body.glance-strip .time-slider-label {
+    min-width: 62px;
+    font-size: 11px;
+}

@@ -179,6 +179,9 @@ const Loop = (() => {
         }
 
         deps.updateMidnightLine(currentTime);
+        // Optional per-tick hook (glance-strip "+N" sub-task badges, V3b-1) —
+        // omitted in deps is a silent no-op, like the collaborators above.
+        if (deps.afterTick) deps.afterTick(currentTime);
         // Keeps the slider handle/label creeping forward with live time when
         // nobody's scrubbing it (time slider, 2026-07-20). Reaching this line
         // at all means isTimePreviewActive() was false above, so no extra

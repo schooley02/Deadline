@@ -293,6 +293,11 @@ const CONFIG = {
     ENEMY_WIDTH: 128,
     HABIT_ENEMY_WIDTH: 128,
     SUBTASK_ENEMY_WIDTH: 64,
+    // Portrait glance strip (V3b-1, 2026-10-13): markers are small dots, so the
+    // timeline math uses this as the "enemy width" while body.glance-strip is on
+    // (script.js refreshLayoutDims). Keep in sync with the 24px marker width in
+    // css/glanceStrip.css.
+    STRIP_MARKER_WIDTH: 24,
 
     // --- Ground band placement (2026-07-21) ---
     // Top-level enemies stand on the graveyard ground band (css/gameCanvas.css

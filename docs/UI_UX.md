@@ -174,6 +174,18 @@ console errors beyond the standard Chrome-extension message-channel noise.
 
 **Gating:** `.fx-reduced` and prefers-reduced-motion hold all glows still; `.fx-off` holds state glows still and drops the streak fire. Colors are a first pass — a stronger set of at-a-glance differentiators is planned (ROADMAP). Perf with 10+ sprites on a phone is unverified.
 
+## Portrait glance strip (V3b-1, 2026-10-13)
+
+Portrait phones (`(max-width: 768px) and (orientation: portrait)`) get a thin threat strip instead of the shrunken battlefield (DECISIONS 2026-07-20). It is a CSS/render VARIANT of the same DOM and state — never a second component.
+
+- **Mode switch:** `js/layout.js` (`Layout.init`) toggles `body.glance-strip` and re-runs on resize/rotation; `script.js refreshLayoutDims()` re-measures `GAME_SCREEN_WIDTH`/`BASE_WIDTH`, swaps the timeline "enemy width" to `CONFIG.STRIP_MARKER_WIDTH` (24px, so the rightmost marker reaches the strip edge) and re-snaps overdue items to the new base edge (they are otherwise only repositioned on damage ticks). Landscape/desktop is untouched.
+- **Look (`css/glanceStrip.css`, loaded just before responsive.css):** canvas 72px; HUD chips in-flow above it; church base 56px wide (the damage-state image, not icon-192); category-colored dots (24px; sub-tasks 16px) carrying the category icon (same emoji as `CONFIG.CATEGORY_EMOJI`, drawn as an SVG background so `::before`/`::after` stay free; `other` and sub-task dots stay plain), positioned by the SAME `Clock.calculateTimelinePosition` math; V2 state glows become rings (priority gold ring + ⭐, habit cyan border, lurker purple border + 🚫); midnight post + lantern kept, label hidden; scene props hidden; thin slider; week strip + pager unchanged.
+- **Overdue exception:** an overdue enemy keeps its real animated sprite at 0.5x (`--sprite-scale: .5 !important` to beat the inline value), pulsing red at the base edge. The static-PNG fallback gets a red-ringed dot instead.
+- **Sub-tasks:** `Movement.getSubTaskClusterOffset` returns 0 in strip mode (`ctx.glanceStrip`), so subs sit exactly on their parent (z-index 5 vs 10+) and the parent gets a "+N" badge (`data-sub-count`, via `Layout.applySubBadges` from the loop's optional `afterTick` hook; CSS `::before`). This is the fix for the 390px "sub-task lands past the midnight line" report. A sub due much earlier than its parent breaks away (own x), shows as its own dot, and is not counted.
+- **Hero chips are hidden in strip mode** (34px chips don't fit 72px) — Jeremy OK'd 2026-10-13; revisit with V3c.
+- **Not yet (V3b-2):** badges for UNRELATED markers that overlap — a confirmed need: everything due >4h out is compressed into the right 25% of the strip (8 afternoon/evening tasks measured 11-15px apart with 24px dots); also several overdue sprites piled at the base; lurker post still uses the 128px right margin.
+- Verification recipe: built-in browser, `resize_window` 390x844, reload; check with `getBoundingClientRect`/`scrollWidth`, not screenshots alone.
+
 ## Windows & Modals — unified behavior ([P2-UI-011] Stage 1, session 61, 2026-07-19)
 Two window systems share one behavior layer (`js/ui/modal.js`, wired via `Modal.initDismissHandlers`/`initFocusManagement` in script.js):
 - **Management windows** (FAB-opened Tasks/Habits/Routines/Shop/Stats/Settings panels) and **modal overlays** (form/popup `.modal-overlay`s) both close on ESC and outside/backdrop click.

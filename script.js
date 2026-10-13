@@ -3,6 +3,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Elements ---
     const gameCanvas = document.getElementById('gameCanvas');
     const baseElement = document.getElementById('base');
+    // Portrait glance strip (V3b-1, 2026-10-13): applies body.glance-strip NOW,
+    // before initGame() measures the canvas/base, and re-measures on every
+    // resize/rotation (onChange -> refreshLayoutDims, a hoisted function below;
+    // it only runs on a later event, after the lets it touches are initialized).
+    Layout.init({ onChange: () => refreshLayoutDims() });
     const baseHealthDisplay = document.getElementById('baseHealthDisplay');
     const playerXpDisplay = document.getElementById('playerXpDisplay');
     const playerLevelDisplay = document.getElementById('playerLevelDisplay');
@@ -99,6 +104,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_PLAYER_LEVEL = LEVEL_XP_THRESHOLDS.length;
 
     let GAME_SCREEN_WIDTH, BASE_WIDTH, ENEMY_WIDTH, HABIT_ENEMY_WIDTH;
+
+    // In glance-strip mode enemies are small dots, so the TIMELINE math uses
+    // CONFIG.STRIP_MARKER_WIDTH as the enemy width (otherwise 128px would be
+    // reserved at the right edge and the strip's resolution cut by ~40%).
+    // Sprite/box sizing is overridden in css/glanceStrip.css, not here.
+    function enemyWidthForMode(configWidth) {
+        return Layout.isActive() ? CONFIG.STRIP_MARKER_WIDTH : configWidth;
+    }
+
+    // Re-measure after the layout mode flips or the viewport resizes. Positions
+    // themselves refresh on the next game-loop tick (loop.js recomputes x for
+    // every non-preview item every tick).
+    function refreshLayoutDims() {
+        GAME_SCREEN_WIDTH = gameCanvas.offsetWidth;
+        BASE_WIDTH = baseElement.offsetWidth;
+        ENEMY_WIDTH = enemyWidthForMode(CONFIG.ENEMY_WIDTH);
+        HABIT_ENEMY_WIDTH = enemyWidthForMode(CONFIG.HABIT_ENEMY_WIDTH);
+        // Overdue items camp at the base edge and are only re-positioned when
+        // they take a damage tick, so after the base width changes (56px strip
+        // <-> 120px church) re-snap them now — found live 2026-10-13: after
+        // rotating back to landscape an overdue zombie sat on top of the church.
+        State.getActiveItems().forEach(item => {
+            if (!item.isOverdue || !item.element || Items.isNonThreatening(item)) return;
+            item.x = BASE_WIDTH + getSubTaskClusterOffset(item);
+            item.element.style.left = Math.max(BASE_WIDTH, item.x) + 'px';
+        });
+    }
 
     // Real implementation lives in js/state.js (Milestone 2 extraction,
     // session 11, 2026-07-18) — thin wrapper so this call site is unchanged.
@@ -283,8 +315,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // state setters (State.* — see getters comment above)
             setGameScreenWidth: (n) => { GAME_SCREEN_WIDTH = n; },
             setBaseWidth: (n) => { BASE_WIDTH = n; },
-            setEnemyWidth: (n) => { ENEMY_WIDTH = n; },
-            setHabitEnemyWidth: (n) => { HABIT_ENEMY_WIDTH = n; },
+            setEnemyWidth: (n) => { ENEMY_WIDTH = enemyWidthForMode(n); },
+            setHabitEnemyWidth: (n) => { HABIT_ENEMY_WIDTH = enemyWidthForMode(n); },
             setPlayerXP: State.setPlayerXP,
             setPlayerLevel: State.setPlayerLevel,
             setPlayerPoints: State.setPlayerPoints,
@@ -719,7 +751,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function getSubTaskClusterOffset(item) {
         return Movement.getSubTaskClusterOffset(item, {
             activeItems: State.getActiveItems(),
-            enemyWidth: ENEMY_WIDTH
+            enemyWidth: ENEMY_WIDTH,
+            glanceStrip: Layout.isActive()
         });
     }
 
@@ -735,6 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function calculateTimelineXWithClustering(item, currentTime) {
         return Movement.calculateTimelineXWithClustering(item, currentTime, {
             activeItems: State.getActiveItems(),
+            glanceStrip: Layout.isActive(),
             dims: {
                 gameScreenWidth: GAME_SCREEN_WIDTH,
                 baseWidth: BASE_WIDTH,
@@ -772,6 +806,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // initGame via stateDeps().updateGame, offline catch-up) are unchanged.
     function loopDeps() {
         return {
+            // Per-tick "+N" sub-task badges for the portrait glance strip (V3b-1).
+            afterTick: () => Layout.applySubBadges(State.getActiveItems()),
             isGameOver: State.isGameOver,
             isOfflineCatchUpActive: () => offlineCatchUpActive,
             // Time slider (Milestone 4, 2026-07-20) — REQUIRED, same

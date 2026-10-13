@@ -78,6 +78,10 @@ const Movement = (() => {
     // and uses each one's own measured margins.
     function getSubTaskClusterOffset(item, ctx) {
         if (!item.parentId) return 0;
+        // Portrait glance strip (V3b-1): subs stack ON their parent (the parent
+        // shows a "+N" badge) — a fanned-out sub could land past the midnight
+        // line and read as "due after midnight" (Jeremy's 390px phone report).
+        if (ctx.glanceStrip) return 0;
         const { activeItems, enemyWidth } = ctx;
         const parentTask = activeItems.find(p => p.id === item.parentId);
         const gap = CONFIG.SUBTASK_CLUSTER_GAP_PX;
@@ -125,7 +129,7 @@ const Movement = (() => {
         const ownTimelineX = Clock.calculateTimelinePosition(item, currentTime, dims);
         if (!item.parentId) return ownTimelineX;
 
-        const offsetCtx = { activeItems, enemyWidth: dims.enemyWidth };
+        const offsetCtx = { activeItems, enemyWidth: dims.enemyWidth, glanceStrip: ctx.glanceStrip };
         const parentTask = activeItems.find(p => p.id === item.parentId);
         // Left-fan off-field guard ([P1-DATA-004] sub-session 5, 2026-07-19):
         // a left-fanned sub gets a NEGATIVE cluster offset (getSubTaskClusterOffset),
