@@ -117,6 +117,11 @@ const Layout = (() => {
     //    rest hide and add to its badge ("pile").
     // A sub stacked on its parent shares the parent's lane / hidden state and
     // adds to the parent's badge exactly like V3b-1.
+    const CONFIG_STRIP = {
+        get gap() { return (typeof CONFIG !== 'undefined' && CONFIG.STRIP_SUBTASK_GAP_PX) || 14; },
+        get count() { return (typeof CONFIG !== 'undefined' && CONFIG.STRIP_SUBTASK_SPREAD_COUNT) || 2; },
+    };
+
     function stripOpts(opts) {
         const o = opts || {};
         const c = (typeof CONFIG !== 'undefined') ? CONFIG : {};
@@ -189,10 +194,33 @@ const Layout = (() => {
             }
         });
         const isStackedChild = i => !!stackedOn(i) && !isAtBase(i);
-        const childCount = i => (stackedChildren.get(i.id) || []).length;
 
-        // Everything that owns a marker: not a stacked child.
-        const owners = items.filter(i => !isStackedChild(i));
+        // Spread subs (2026-10-13): a sub a small gap TOWARD THE CHURCH from its parent
+        // (Movement.getSubTaskClusterOffset, strip mode) keeps its own marker but takes a
+        // lane different from the parent's, so parent + sub read as two items instead of
+        // one with a "+N". Hidden whenever the parent is hidden.
+        const spreadMax = (CONFIG_STRIP.gap * CONFIG_STRIP.count) + 1;
+        const spreadOf = i => {
+            if (!i.parentId || isAtBase(i) || stackedOn(i)) return null;
+            const parent = byId.get(i.parentId);
+            if (!parent) return null;
+            const d = parent.x - i.x;
+            return (d > 0 && d <= spreadMax) ? parent : null;
+        };
+        const spreadChildren = new Map(); // parentId -> [sub, ...] (id order)
+        items.slice().sort((a, b) => a.id - b.id).forEach(i => {
+            const parent = spreadOf(i);
+            if (parent) {
+                if (!spreadChildren.has(parent.id)) spreadChildren.set(parent.id, []);
+                spreadChildren.get(parent.id).push(i);
+            }
+        });
+        const isSpreadChild = i => !!spreadOf(i);
+        const childCount = i => (stackedChildren.get(i.id) || []).length
+            + (spreadChildren.get(i.id) || []).length;
+
+        // Everything that owns a marker: not a stacked or spread child.
+        const owners = items.filter(i => !isStackedChild(i) && !isSpreadChild(i));
         const lurkerPile = owners.filter(i => !isAtBase(i) && isParkedLurker(i)).sort(byKey);
         const pile = owners.filter(isAtBase)
             .sort((a, b) => ((a.parentId ? 1 : 0) - (b.parentId ? 1 : 0)) || byKey(a, b));
@@ -203,6 +231,7 @@ const Layout = (() => {
             ensure(member).hidden = true;
             ensure(leader).badge += 1 + childCount(member);
             (stackedChildren.get(member.id) || []).forEach(c => { ensure(c).hidden = true; });
+            (spreadChildren.get(member.id) || []).forEach(c => { ensure(c).hidden = true; });
         };
 
         // Pile at the base.
@@ -256,6 +285,19 @@ const Layout = (() => {
                 ce.lane = ensure(o).lane;
                 if (!plan[o.id].hidden) plan[o.id].badge += 1;
             });
+            // Spread subs: lanes other than the parent's, nearest lane first.
+            const kids = spreadChildren.get(o.id) || [];
+            if (kids.length) {
+                const pl = ensure(o).lane;
+                const other = Array.from({ length: laneCount }, (_, l) => l)
+                    .filter(l => l !== pl)
+                    .sort((a, b) => (pl == null ? b - a : (Math.abs(a - pl) - Math.abs(b - pl)) || (a - b)));
+                kids.forEach((c, k) => {
+                    const ce = ensure(c);
+                    if (plan[o.id].hidden) { ce.hidden = true; ce.lane = pl; return; }
+                    ce.lane = other.length ? other[k % other.length] : pl;
+                });
+            }
         });
         return plan;
     }

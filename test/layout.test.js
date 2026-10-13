@@ -91,10 +91,20 @@ describe('Movement: sub-task fan-out in glance-strip mode (390px midnight-line b
     test('desktop: first sub fans out to the right of its parent (non-zero)', () => {
         expect(Movement.getSubTaskClusterOffset(sub, { activeItems, enemyWidth: 128 })).toBeGreaterThan(0);
     });
-    test('strip: offset is exactly 0', () => {
-        expect(Movement.getSubTaskClusterOffset(sub, { activeItems, enemyWidth: 128, glanceStrip: true })).toBe(0);
+    test('strip: first sub steps a small gap TOWARD THE CHURCH (never right)', () => {
+        expect(Movement.getSubTaskClusterOffset(sub, { activeItems, enemyWidth: 128, glanceStrip: true }))
+            .toBe(-CONFIG.STRIP_SUBTASK_GAP_PX);
     });
-    test('strip: clustered sub lands on the parent x, not past it', () => {
+    test('strip: 2nd sub steps 2 gaps left; 3rd+ stack on the parent (offset 0)', () => {
+        const mkSub = id => ({ id, category: 'career', parentId: 1 });
+        const subs = [mkSub(2), mkSub(3), mkSub(4)];
+        const all = [parent, ...subs];
+        const off = s => Movement.getSubTaskClusterOffset(s, { activeItems: all, enemyWidth: 128, glanceStrip: true });
+        expect(off(subs[0])).toBe(-CONFIG.STRIP_SUBTASK_GAP_PX);
+        expect(off(subs[1])).toBe(-2 * CONFIG.STRIP_SUBTASK_GAP_PX);
+        expect(off(subs[2])).toBe(0);
+    });
+    test('strip: clustered sub lands a small gap left of the parent, never right', () => {
         const dims = { gameScreenWidth: 390, baseWidth: 56, enemyWidth: 24, habitEnemyWidth: 24 };
         const now = new Date(2026, 9, 13, 23, 0, 0);
         parent.type = 'task'; sub.type = 'task';
@@ -102,7 +112,8 @@ describe('Movement: sub-task fan-out in glance-strip mode (390px midnight-line b
         sub.dueDateTime = new Date(2026, 9, 13, 23, 55, 0);
         parent.x = Clock.calculateTimelinePosition(parent, now, dims);
         const x = Movement.calculateTimelineXWithClustering(sub, now, { activeItems, dims, glanceStrip: true });
-        expect(x).toBe(parent.x);
+        expect(x).toBeLessThanOrEqual(parent.x);
+        expect(x).toBe(Math.max(parent.x - CONFIG.STRIP_SUBTASK_GAP_PX, dims.baseWidth));
     });
 });
 
@@ -170,6 +181,45 @@ describe('Layout.computeStripLayout (V3b-2)', () => {
         expect(plan[3].lane).not.toBeNull(); // own marker
         expect(plan[3].lane).not.toBe(plan[1].lane);
         expect(plan[3].badge).toBe(0);
+    });
+
+    test('spread subs (a gap left of the parent) take lanes different from the parent and show no badge', () => {
+        const gap = CONFIG.STRIP_SUBTASK_GAP_PX;
+        const items = [mk(1, 200), mk(2, 200 - gap, { parentId: 1 }), mk(3, 200 - 2 * gap, { parentId: 1 })];
+        const plan = Layout.computeStripLayout(items);
+        expect(plan[1]).toEqual({ lane: 2, hidden: false, badge: 0 });
+        expect(plan[2].lane).not.toBe(plan[1].lane);
+        expect(plan[3].lane).not.toBe(plan[1].lane);
+        expect(plan[2].lane).not.toBe(plan[3].lane); // two subs fill the two other lanes
+        expect(plan[2].hidden).toBe(false);
+        expect(plan[3].hidden).toBe(false);
+    });
+
+    test('spread + stacked: 3rd sub stacks on the parent and only it is badged', () => {
+        const gap = CONFIG.STRIP_SUBTASK_GAP_PX;
+        const items = [mk(1, 200), mk(2, 200 - gap, { parentId: 1 }), mk(3, 200 - 2 * gap, { parentId: 1 }),
+            mk(4, 200, { parentId: 1 })];
+        const plan = Layout.computeStripLayout(items);
+        expect(plan[1].badge).toBe(1);
+        expect(plan[4].lane).toBe(plan[1].lane);
+        expect(plan[2].lane).not.toBe(plan[1].lane);
+    });
+
+    test('a hidden (collapsed) parent hides its spread subs and counts them in the leader badge', () => {
+        const gap = CONFIG.STRIP_SUBTASK_GAP_PX;
+        // 4 items at one x: #4 collapses under #1 (same lane); #4 has a spread sub
+        const items = [mk(1, 310), mk(2, 310), mk(3, 310), mk(4, 310), mk(5, 310 - gap, { parentId: 4 })];
+        const plan = Layout.computeStripLayout(items);
+        expect(plan[4].hidden).toBe(true);
+        expect(plan[5].hidden).toBe(true);
+        expect(plan[1].badge).toBe(2); // #4 + its sub
+    });
+
+    test('a sub far from its parent (broken away) is NOT a spread sub', () => {
+        const items = [mk(1, 300), mk(2, 120, { parentId: 1 })];
+        const plan = Layout.computeStripLayout(items);
+        expect(plan[2].lane).not.toBeNull();
+        expect(plan[1].badge).toBe(0);
     });
 
     test('overdue items pile at the base: one leader, the rest hidden, badge counts them (and their subs)', () => {

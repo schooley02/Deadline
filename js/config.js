@@ -316,6 +316,14 @@ const CONFIG = {
     STRIP_ICON_SIZE: 24,
     STRIP_LANE_PITCH: 20,
     STRIP_LANE_COUNT: 3,
+    // Portrait strip sub-task spread (2026-10-13, Jeremy: subs stacked on their parent
+    // read as one item). The first STRIP_SUBTASK_SPREAD_COUNT open subs (by id) step
+    // STRIP_SUBTASK_GAP_PX px TOWARD THE CHURCH per slot (a sub can never be due later
+    // than its parent, so left-only never reads as 'later'; the midnight-line bug can't
+    // return) and take a lane different from the parent's. Further subs still stack on
+    // the parent with the +N badge.
+    STRIP_SUBTASK_GAP_PX: 14,
+    STRIP_SUBTASK_SPREAD_COUNT: 2,
 
     // List-order layering + tie-group reorder (Jeremy, 2026-10-13; DECISIONS.md).
     // Active tasks whose due times are within LIST_TIE_WINDOW_MIN of their

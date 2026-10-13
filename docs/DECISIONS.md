@@ -4,6 +4,16 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 -- Portrait strip: subs spread toward the church, in their own lanes (Jeremy, phone check; Claude app session)
+
+- **Decision:** in the portrait glance strip the first 2 open sub-tasks step 14px each toward the church (left only) from the parent and take a different lane; 3rd+ subs still stack on the parent with the +N badge. Landscape fan unchanged.
+- **Why left only:** Jeremy: a sub's due time can't be later than its parent's, so a leftward nudge never misrepresents timing and the old right-fan 'past midnight' bug can't return.
+- **Also OK per Jeremy:** spawning in other lanes near the parent.
+- **Config:** `STRIP_SUBTASK_GAP_PX` 14, `STRIP_SUBTASK_SPREAD_COUNT` 2 (layout constants, not balance). `sw.js` -> v29.
+- **Alternatives rejected:** alternate left/right (right can read as later / cross midnight); spread every sub (crowds the strip -- 3rd+ keep the badge).
+
+---
+
 ## 2026-10-13 — Negative-habit time is a TRIGGER time, not a deadline: wording + strip lurker post (Jeremy, phone feedback; Claude app session, Sonnet)
 
 - **Decision:** the A2 lurker model is KEPT (a lurker never advances, never goes overdue, never damages the base; passing its time = success). Jeremy asked whether Snacks (due 12:00, now 1:01) should be at the base attacking because the row said "Due". Resolved by fixing the WORDING, not the mechanic: a negative habit's time of day is shown as "Tempting around 12:00 PM · avoiding today" (agenda row, `Habits.dueLineText`), "Tempting around:" in its popup, and the time-of-day selects read "Tempting Time:" / "(around 12 PM)" instead of "(by 12 PM)" in all three habit forms while the Negative type is selected (`Habits.timeOfDayLabels`, `Modal.wireHabitTimeLabels`). Positive habits and tasks keep "Due".

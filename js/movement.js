@@ -78,10 +78,17 @@ const Movement = (() => {
     // and uses each one's own measured margins.
     function getSubTaskClusterOffset(item, ctx) {
         if (!item.parentId) return 0;
-        // Portrait glance strip (V3b-1): subs stack ON their parent (the parent
-        // shows a "+N" badge) — a fanned-out sub could land past the midnight
-        // line and read as "due after midnight" (Jeremy's 390px phone report).
-        if (ctx.glanceStrip) return 0;
+        // Portrait glance strip (V3b-1, revised 2026-10-13): never fan RIGHT (a fanned-out
+        // sub could land past the midnight line and read as "due after midnight" -- Jeremy's
+        // 390px phone report). The first STRIP_SUBTASK_SPREAD_COUNT subs (by id) step a small
+        // gap TOWARD THE CHURCH instead (subs are never due later than the parent); layout.js
+        // puts them in a different lane. Further subs stack on the parent (+N badge).
+        if (ctx.glanceStrip) {
+            const sibs = ctx.activeItems.filter(i => i.parentId === item.parentId).sort((a, b) => a.id - b.id);
+            const k = sibs.findIndex(i => i.id === item.id);
+            if (k < 0 || k >= CONFIG.STRIP_SUBTASK_SPREAD_COUNT) return 0;
+            return -CONFIG.STRIP_SUBTASK_GAP_PX * (k + 1);
+        }
         const { activeItems, enemyWidth } = ctx;
         const parentTask = activeItems.find(p => p.id === item.parentId);
         const gap = CONFIG.SUBTASK_CLUSTER_GAP_PX;
