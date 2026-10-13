@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v23';
+const CACHE_NAME = 'deadline-shell-v24';
 
 const APP_SHELL = [
     './',
@@ -138,7 +138,10 @@ const APP_SHELL = [
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then((cache) => cache.addAll(APP_SHELL))
+            // cache:'reload' bypasses the browser's HTTP cache. GitHub Pages sends
+            // max-age=600, so a plain addAll() within 10 min of a deploy copied
+            // the OLD css/js into the NEW cache (new version number, old files).
+            .then((cache) => cache.addAll(APP_SHELL.map((url) => new Request(url, { cache: 'reload' }))))
             .then(() => self.skipWaiting())
     );
 });
