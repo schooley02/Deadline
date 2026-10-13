@@ -19,7 +19,9 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 **Update (same day, after Jeremy's replies):** hero chips staying hidden = OK; markers now carry CATEGORY ICONS (SVG backgrounds in glanceStrip.css; `other` + sub dots plain); sw.js now v14. Live check with 8 tasks showed heavy dot overlap in the right 25% of the strip (11-15px apart, 24px dots) — V3b-2 is the next priority.
 
-**Next:** (1) Jeremy: check the strip on the phone after clearing SW/cache (cache v14) — icons legible at 24px? "+N" clear? (2) V3b-2: overlap badges for unrelated markers (and piled overdue sprites), top-of-list representation, lurker post margin. (3) List-order layering + tie-group reorder (own session — touches persistence). (4) V3c / V4 / V5 anytime.
+**Direction agreed after that (Jeremy, 09:36):** fix the overlap with 3 vertical lanes in a 72px floor band (strip -> ~96px), badges only as fallback; PixelLab background art must match fixed floor-height constants. Written into ROADMAP V3b-2 + DECISIONS 2026-10-13; nothing built yet.
+
+**Next:** the single next task is **V3b-2 lane build** (Sonnet, medium effort — fully specified; ROADMAP V3b-2 + DECISIONS 2026-10-13 have the spec). Numbers proposed: strip 96px = 24px sky/horizon + 72px floor band, 3 lanes x 24px, lane assigned in x order and stable (re-pack on spawn/removal/mode change, not every tick), lower lane in front; badges only as the fallback for what lanes can't separate + piled overdue sprites; overdue 64px sprites sit in the floor band at the base. Jeremy confirms/changes the numbers first, THEN generates the PixelLab tileable floor art to match. Also: Jeremy checks the strip on his phone (clear SW/cache, now v14) — icons legible at 24px? "+N" clear? Then: list-order layering + tie-group reorder (own session, schema 12), V3c, V4, V5. Lurker post margin (128px) is a small V3b-2 follow-up.
 
 **Watch out:**
 - Tap targets: markers are 24px (subs 16px, hidden under the parent) — below the 44px guideline; V3c's touch-target audit should cover this. Tapping the overdue sprite (64px) is fine.

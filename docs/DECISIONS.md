@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 — Glance-strip overlap: vertical lanes first, badges as fallback; strip grows to ~96px (Jeremy's direction, Claude app session, Opus)
+
+- **Decision:** solve the dot overlap in the compressed right zone by staggering markers on 3 vertical lanes inside a fixed-pixel floor band, not (only) by merging them into count badges. Strip height 72 -> ~96px: ~24px sky/horizon + 72px floor band (3 x 24px lanes). Lanes assigned in x order, stable across ticks, lower lane = in front. Badges remain only for clusters lanes can't separate and for piled overdue sprites.
+- **Why:** the zone after the 4h mark is ~77px wide (25% of a 310px timeline), so only 3 dots fit side by side; 3 lanes put same-lane neighbours 36-45px apart, which would have separated the 8-task live test (11-15px apart). Costs ~24px of list height.
+- **Background art:** Jeremy will generate it in PixelLab. The floor height must be a fixed CSS px value on every phone width (only width varies); art is a tileable horizontal strip at an integer scale, `image-rendering: pixelated`; the church stays separate (V4); PixelLab's canvas limits to be checked against the final numbers before generating. The lane/floor constants must be fixed first and then match the art.
+- **Rejected for now:** badges as the primary fix (hides which tasks are where); a percentage-based floor (breaks pixel art scaling); putting the lane logic on desktop in the same pass (desktop keeps its random ground-band jitter; revisit after the strip).
+- **Related idea (not decided):** within a 30-min tie group, list order picks the lane (top = front), linking this to the list-order layering item.
+
 ## 2026-10-13 — V3b-1: portrait glance strip built; sub-tasks stack on the parent with a "+N" badge (Claude app session, Opus plan -> Sonnet build)
 
 - **Decision:** split V3b in two. V3b-1 (this session) = strip layout, dot markers, overdue-sprite exception, slim slider, sub-task stacking + "+N" badge, mode re-measure. V3b-2 (queued) = overlap badges for unrelated markers + polish from Jeremy's phone check. The strip went beyond "CSS + a render branch" (dims are measured once at init; six files set enemy `left`), which the roadmap said to split on.
