@@ -298,6 +298,16 @@ const CONFIG = {
     // (script.js refreshLayoutDims). Keep in sync with the 24px marker width in
     // css/glanceStrip.css.
     STRIP_MARKER_WIDTH: 24,
+    // Glance-strip lanes (V3b-2, 2026-10-13; numbers locked by Jeremy 09:42 "to
+    // test, adjust later"). Strip = SKY band + a fixed-pixel FLOOR band of
+    // LANE_COUNT lanes, so strip height = 24 + 3*24 = 96px. Markers in the same
+    // lane closer than STRIP_MARKER_WIDTH collapse into a "+N" badge. The
+    // PixelLab floor art must match these (floor = LANE_COUNT * LANE_HEIGHT =
+    // 72px tall, tileable in x). Keep in sync with --strip-sky / --strip-lane /
+    // #gameCanvas height in css/glanceStrip.css (test/layout.test.js checks).
+    STRIP_SKY_HEIGHT: 24,
+    STRIP_LANE_HEIGHT: 24,
+    STRIP_LANE_COUNT: 3,
 
     // --- Ground band placement (2026-07-21) ---
     // Top-level enemies stand on the graveyard ground band (css/gameCanvas.css

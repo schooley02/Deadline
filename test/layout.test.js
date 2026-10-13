@@ -105,3 +105,129 @@ describe('Movement: sub-task fan-out in glance-strip mode (390px midnight-line b
         expect(x).toBe(parent.x);
     });
 });
+
+// ---------------------------------------------------------------------------
+// V3b-2 — vertical lanes, same-lane collision fallback, overdue pile
+// ---------------------------------------------------------------------------
+describe('Layout.computeStripLayout (V3b-2)', () => {
+    const mk = (id, x, extra = {}) => ({ id, x, ...extra });
+    const el = (...classes) => ({ classList: { contains: c => classes.includes(c) } });
+    const lanes = plan => Object.fromEntries(Object.entries(plan).map(([id, p]) => [id, p.lane]));
+
+    test('deals markers onto 3 lanes in x order; most urgent takes the FRONT lane', () => {
+        const items = [mk(1, 100), mk(2, 140), mk(3, 180), mk(4, 220), mk(5, 260)];
+        expect(lanes(Layout.computeStripLayout(items))).toEqual({ 1: 2, 2: 1, 3: 0, 4: 2, 5: 1 });
+    });
+
+    test('same-lane neighbours end up LANE_COUNT markers apart (the point of lanes)', () => {
+        // 8 tasks 12px apart (the live-check density that overlapped before)
+        const items = Array.from({ length: 8 }, (_, i) => mk(i + 1, 230 + i * 12));
+        const plan = Layout.computeStripLayout(items);
+        const byLane = {};
+        items.forEach(i => (byLane[plan[i.id].lane] = byLane[plan[i.id].lane] || []).push(i.x));
+        Object.values(byLane).forEach(xs => {
+            for (let k = 1; k < xs.length; k++) expect(xs[k] - xs[k - 1]).toBeGreaterThanOrEqual(CONFIG.STRIP_MARKER_WIDTH);
+        });
+        expect(Object.values(plan).every(p => !p.hidden && p.badge === 0)).toBe(true);
+    });
+
+    test('order of the input array and tiny x drift do not change lanes (stable while walking)', () => {
+        const a = [mk(1, 100), mk(2, 140), mk(3, 180)];
+        const first = lanes(Layout.computeStripLayout(a));
+        const moved = [mk(3, 170.5), mk(1, 90.5), mk(2, 130.5)]; // everyone walked ~10px, shuffled array
+        expect(lanes(Layout.computeStripLayout(moved))).toEqual(first);
+    });
+
+    test('a spawn or removal re-packs the markers behind it', () => {
+        const before = lanes(Layout.computeStripLayout([mk(1, 100), mk(2, 200), mk(3, 300)]));
+        const spawned = lanes(Layout.computeStripLayout([mk(1, 100), mk(4, 150), mk(2, 200), mk(3, 300)]));
+        expect(before).toEqual({ 1: 2, 2: 1, 3: 0 });
+        expect(spawned).toEqual({ 1: 2, 4: 1, 2: 0, 3: 2 });
+        const removed = lanes(Layout.computeStripLayout([mk(2, 200), mk(3, 300)]));
+        expect(removed).toEqual({ 2: 2, 3: 1 });
+    });
+
+    test('x ties (parked tomorrow items) fan across lanes by id', () => {
+        const items = [mk(7, 310), mk(5, 310), mk(6, 310)];
+        expect(lanes(Layout.computeStripLayout(items))).toEqual({ 5: 2, 6: 1, 7: 0 });
+    });
+
+    test('same-lane markers closer than a marker width collapse into the nearest one\'s badge', () => {
+        // 4 parked at the same x: three fill the lanes, the 4th lands in lane 2 on top of #1
+        const items = [mk(1, 310), mk(2, 310), mk(3, 310), mk(4, 310)];
+        const plan = Layout.computeStripLayout(items);
+        expect(plan[1]).toEqual({ lane: 2, hidden: false, badge: 1 });
+        expect(plan[4]).toEqual({ lane: 2, hidden: true, badge: 0 });
+        expect(plan[2].hidden).toBe(false);
+        expect(plan[3].hidden).toBe(false);
+    });
+
+    test('a sub stacked on its parent shares its lane and adds to its badge; a broken-away sub gets its own lane', () => {
+        const items = [mk(1, 200), mk(2, 200, { parentId: 1 }), mk(3, 120, { parentId: 1 })];
+        const plan = Layout.computeStripLayout(items);
+        expect(plan[2].lane).toBe(plan[1].lane);
+        expect(plan[1].badge).toBe(1);
+        expect(plan[3].lane).not.toBeNull(); // own marker
+        expect(plan[3].lane).not.toBe(plan[1].lane);
+        expect(plan[3].badge).toBe(0);
+    });
+
+    test('overdue items pile at the base: one leader, the rest hidden, badge counts them (and their subs)', () => {
+        const base = 56;
+        const items = [
+            mk(1, base, { isOverdue: true, element: el('enemy-at-base') }),
+            mk(2, base, { isOverdue: true, element: el('enemy-at-base') }),
+            mk(3, base, { isOverdue: true, element: el('enemy-at-base') }),
+            mk(4, base, { parentId: 3 }), // not overdue itself, stacked on overdue #3
+            mk(5, 200),
+        ];
+        const plan = Layout.computeStripLayout(items);
+        expect(plan[1]).toEqual({ lane: null, hidden: false, badge: 3 }); // #2, #3 + #3's sub
+        expect(plan[2].hidden).toBe(true);
+        expect(plan[3].hidden).toBe(true);
+        expect(plan[4].hidden).toBe(true);
+        expect(plan[5]).toEqual({ lane: 2, hidden: false, badge: 0 }); // overdue items don't use lanes
+    });
+
+    test('overdue but non-threatening (no enemy-at-base) stays an ordinary lane marker', () => {
+        const items = [mk(1, 100, { isOverdue: true, element: el() })];
+        expect(Layout.computeStripLayout(items)[1].lane).toBe(2);
+    });
+});
+
+describe('Layout.applyStripLayout (V3b-2)', () => {
+    function domEl() {
+        const classes = new Set();
+        return { dataset: {}, classList: { contains: c => classes.has(c), toggle: (c, on) => (on ? classes.add(c) : classes.delete(c)) }, classes };
+    }
+    test('writes data-lane / data-sub-count / .strip-hidden in strip mode and clears them outside it', () => {
+        Layout.applyBodyClass(fakeDoc(), fakeWin(true));
+        const a = { id: 1, x: 100, element: domEl() };
+        const b = { id: 2, x: 100, parentId: 1, element: domEl() };
+        const c = { id: 3, x: 300, element: domEl() };
+        const items = [a, b, c];
+        Layout.applyStripLayout(items);
+        expect(a.element.dataset).toEqual({ lane: '2', subCount: '1' });
+        expect(b.element.dataset).toEqual({ lane: '2' });
+        expect(c.element.dataset).toEqual({ lane: '1' });
+
+        Layout.applyBodyClass(fakeDoc(), fakeWin(false));
+        Layout.applyStripLayout(items);
+        expect(a.element.dataset).toEqual({});
+        expect(c.element.classes.has('strip-hidden')).toBe(false);
+    });
+});
+
+describe('strip geometry stays in sync between CONFIG and css/glanceStrip.css', () => {
+    const css = require('fs').readFileSync(require('path').join(__dirname, '../css/glanceStrip.css'), 'utf8');
+    test('sky / lane / lane count / canvas height match', () => {
+        expect(css).toContain(`--strip-sky: ${CONFIG.STRIP_SKY_HEIGHT}px;`);
+        expect(css).toContain(`--strip-lane: ${CONFIG.STRIP_LANE_HEIGHT}px;`);
+        expect(css).toContain(`--strip-lanes: ${CONFIG.STRIP_LANE_COUNT};`);
+        const h = CONFIG.STRIP_SKY_HEIGHT + CONFIG.STRIP_LANE_COUNT * CONFIG.STRIP_LANE_HEIGHT;
+        expect(css).toMatch(new RegExp(`#gameCanvas \\{\\s*height: ${h}px;`));
+    });
+    test('lane selectors exist for every lane', () => {
+        for (let l = 0; l < CONFIG.STRIP_LANE_COUNT; l++) expect(css).toContain(`[data-lane="${l}"] { --lane: ${l}; }`);
+    });
+});

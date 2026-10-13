@@ -11,6 +11,20 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-10-13 — V3b-2: glance-strip lanes + overlap/pile badges (Claude app session, Opus plan -> Sonnet build)
+
+**Did:** Built the 3-lane strip. Numbers locked by Jeremy "to test, adjust later": strip 96px = 24px sky + 72px floor (3 x 24px lanes) as `CONFIG.STRIP_SKY_HEIGHT/STRIP_LANE_HEIGHT/STRIP_LANE_COUNT`, mirrored as CSS vars in `css/glanceStrip.css` (test-checked). `Layout.computeStripLayout` (pure) deals markers onto lanes in x order (most urgent -> front lane); `Layout.applyStripLayout` (loop `afterTick`, replaces the applySubBadges call in script.js) writes `data-lane` / `data-sub-count` / `.strip-hidden`. Fallbacks: same-lane markers closer than 24px fold into the nearest one's "+N"; overdue items camped at the base pile into one leader sprite with "+N". Placeholder floor band until the PixelLab art. Docs: UI_UX, ROADMAP (V3b-2 checked), DECISIONS 2026-10-13, VISUAL_DESIGN_PLAN, CLAUDE.md state. sw.js v14 -> v15.
+
+**State:** Jest 64 suites, 1341/1341 green (scratch copy; +12 in `test/layout.test.js`). Live-checked in the built-in browser at 375px: 11 markers -> no overlap, same-lane gaps >= 24px, stacked sub "+1"; +3 overdue +4 parked-past-midnight -> overdue pile "+2", colliding parked markers fold into "+1", no page overflow. Browser-pane save restored afterwards. NOT checked: Jeremy's real phone (icon legibility at 24px, tap targets, perf), time-slider scrubbing (lanes/badges use live item.x, not scrubbed time), >18 markers.
+
+**Next:** Jeremy checks the strip on his phone (clear SW/cache, now v15) and confirms or adjusts the lane numbers BEFORE generating PixelLab floor art (72px floor, 3x24 lanes, tileable in x, pixelated). Then list-order layering + tie-group reorder (own session, schema 12), V3c, V4, V5. Small follow-ups: lurker post 128px margin; maybe sticky lanes if lane-hopping on completion feels bad; maybe lane-by-list-order inside 30-min tie groups.
+
+**Watch out:**
+- Lane = f(x-order): completing/adding a task shifts lanes of every marker behind it (by design, per spec).
+- Hidden (collapsed) markers and piled overdue sprites are only tappable via the agenda list; the leader marker's popup still works.
+- Strip CSS uses `!important` on top/z-index to beat inline styles; overdue sprites are z-index 13 (above lanes 10-12).
+- Commit not made from the app (git rule) — Jeremy pastes the commands.
+
 ## 2026-10-13 — V3b-1: portrait glance strip (Claude app session, Opus plan -> Sonnet build)
 
 **Did:** Built the core of the portrait glance strip. New `js/layout.js` (`Layout.init` toggles `body.glance-strip` for portrait + <=768px, re-runs on resize/rotation; `computeSubBadges`/`applySubBadges`) and `css/glanceStrip.css` (72px strip, 56px church, category-colored dot markers with V2-glow rings, overdue enemies keep their real sprite at 0.5x pulsing at the base, slim slider). `Movement.getSubTaskClusterOffset` returns 0 in strip mode so subs stack on the parent and the parent shows "+N" — this fixes the 390px sub-task-past-the-midnight-line report. script.js: `refreshLayoutDims()` re-measures canvas/base widths on mode change, swaps the timeline enemy width to `CONFIG.STRIP_MARKER_WIDTH` (24), and re-snaps overdue items to the new base edge; loop.js got an optional `afterTick` hook. Also logged the NEW list-order layering item (z-order follows list order, 30-min chained tie groups, ▲/▼ buttons, `listRank`, schema 12) in ROADMAP/DECISIONS — design locked, not built. Docs: UI_UX ("Portrait glance strip"), DECISIONS 2026-10-13 (x2), ROADMAP, VISUAL_DESIGN_PLAN, CLAUDE.md state. sw.js v12 -> v13.

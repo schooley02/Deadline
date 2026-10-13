@@ -19,6 +19,10 @@
  *                                     re-apply (script.js uses it to re-measure dims)
  *   Layout.computeSubBadges(items)    { [parentId]: n } — subs sitting ON their parent
  *   Layout.applySubBadges(items)      writes data-sub-count on parent elements
+ *   Layout.computeStripLayout(items, opts?)
+ *                                     V3b-2 pure plan: { [id]: { lane, hidden, badge } }
+ *   Layout.applyStripLayout(items)    writes data-lane / data-sub-count / .strip-hidden
+ *                                     (per tick; supersedes applySubBadges in the game)
  */
 const Layout = (() => {
     const GLANCE_QUERY = '(max-width: 768px) and (orientation: portrait)';
@@ -94,7 +98,136 @@ const Layout = (() => {
         });
     }
 
-    return { GLANCE_QUERY, isGlanceStrip, isActive, applyBodyClass, init, computeSubBadges, applySubBadges };
+    // --- V3b-2: vertical lanes + fallback badges ---------------------------
+    // Markers are dealt onto CONFIG.STRIP_LANE_COUNT lanes in x order, so
+    // same-lane neighbours are LANE_COUNT markers apart (36-45px in the
+    // compressed right zone instead of 11-15px). The most urgent (nearest the
+    // base) takes the FRONT lane (highest index = lowest on screen = drawn in
+    // front). Lane depends only on the x-ORDER, which only changes on spawn,
+    // removal, a due-date edit or a sub breaking away — so it never jitters
+    // while items just walk (no per-tick re-pack needed).
+    //
+    // Fallbacks (both reuse the "+N" badge):
+    //  - same-lane markers closer than STRIP_MARKER_WIDTH: the nearest-to-base
+    //    one stays as the leader, the rest hide and add to its badge;
+    //  - overdue items all sit on the base edge: ONE leader sprite shows, the
+    //    rest hide and add to its badge ("pile").
+    // A sub stacked on its parent shares the parent's lane / hidden state and
+    // adds to the parent's badge exactly like V3b-1.
+    function stripOpts(opts) {
+        const o = opts || {};
+        const c = (typeof CONFIG !== 'undefined') ? CONFIG : {};
+        return {
+            laneCount: o.laneCount || c.STRIP_LANE_COUNT || 3,
+            markerWidth: o.markerWidth || c.STRIP_MARKER_WIDTH || 24,
+        };
+    }
+
+    // Overdue + actually camped at the base (non-threatening overdue items never
+    // get `enemy-at-base`, so they stay ordinary lane markers).
+    function isAtBase(item) {
+        if (!item.isOverdue) return false;
+        const el = item.element;
+        if (el && el.classList && typeof el.classList.contains === 'function') {
+            return el.classList.contains('enemy-at-base');
+        }
+        return true;
+    }
+
+    function byXThenId(a, b) { return (a.x - b.x) || (a.id - b.id); }
+
+    function computeStripLayout(items, opts) {
+        const { laneCount, markerWidth } = stripOpts(opts);
+        const byId = new Map();
+        items.forEach(i => byId.set(i.id, i));
+        const plan = {};
+
+        const stackedOn = i => {
+            if (!i.parentId) return null;
+            const parent = byId.get(i.parentId);
+            return (parent && Math.abs(i.x - parent.x) < 1) ? parent : null;
+        };
+        const stackedChildren = new Map(); // parentId -> [sub, ...]
+        items.forEach(i => {
+            const parent = stackedOn(i);
+            if (parent && !isAtBase(i)) {
+                if (!stackedChildren.has(parent.id)) stackedChildren.set(parent.id, []);
+                stackedChildren.get(parent.id).push(i);
+            }
+        });
+        const isStackedChild = i => !!stackedOn(i) && !isAtBase(i);
+        const childCount = i => (stackedChildren.get(i.id) || []).length;
+
+        // Everything that owns a marker: not a stacked child.
+        const owners = items.filter(i => !isStackedChild(i));
+        const pile = owners.filter(isAtBase)
+            .sort((a, b) => ((a.parentId ? 1 : 0) - (b.parentId ? 1 : 0)) || (a.id - b.id));
+        const laned = owners.filter(i => !isAtBase(i)).sort(byXThenId);
+
+        const ensure = i => (plan[i.id] = plan[i.id] || { lane: null, hidden: false, badge: 0 });
+        const hide = (member, leader) => {
+            ensure(member).hidden = true;
+            ensure(leader).badge += 1 + childCount(member);
+            (stackedChildren.get(member.id) || []).forEach(c => { ensure(c).hidden = true; });
+        };
+
+        // Pile at the base.
+        pile.forEach((m, idx) => {
+            const e = ensure(m);
+            if (idx === 0) return;
+            hide(m, pile[0]);
+        });
+
+        // Lanes: most urgent -> front lane (highest index).
+        const lanes = Array.from({ length: laneCount }, () => []);
+        laned.forEach((m, idx) => {
+            const lane = (laneCount - 1) - (idx % laneCount);
+            ensure(m).lane = lane;
+            lanes[lane].push(m);
+        });
+        lanes.forEach(list => {
+            let leader = null;
+            list.forEach(m => { // already x-ascending
+                if (leader && (m.x - leader.x) < markerWidth) hide(m, leader);
+                else leader = m;
+            });
+        });
+
+        // Stacked children: follow the parent's lane / hidden state, and a
+        // visible parent's badge counts them.
+        owners.forEach(o => {
+            (stackedChildren.get(o.id) || []).forEach(c => {
+                const ce = ensure(c);
+                ce.lane = ensure(o).lane;
+                if (!plan[o.id].hidden) plan[o.id].badge += 1;
+            });
+        });
+        return plan;
+    }
+
+    // Writes only on change (called every game tick).
+    function applyStripLayout(items) {
+        const plan = active ? computeStripLayout(items) : {};
+        items.forEach(i => {
+            const el = i.element;
+            if (!el || !el.dataset) return;
+            const p = plan[i.id] || { lane: null, hidden: false, badge: 0 };
+            setData(el, 'lane', p.lane == null ? null : String(p.lane));
+            setData(el, 'subCount', p.badge > 0 ? String(p.badge) : null);
+            if (el.classList) el.classList.toggle('strip-hidden', !!p.hidden);
+        });
+    }
+
+    function setData(el, key, value) {
+        if (value === null) {
+            if (el.dataset[key] !== undefined) delete el.dataset[key];
+        } else if (el.dataset[key] !== value) {
+            el.dataset[key] = value;
+        }
+    }
+
+    return { GLANCE_QUERY, isGlanceStrip, isActive, applyBodyClass, init, computeSubBadges, applySubBadges,
+        computeStripLayout, applyStripLayout };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

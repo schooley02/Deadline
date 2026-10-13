@@ -806,8 +806,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // initGame via stateDeps().updateGame, offline catch-up) are unchanged.
     function loopDeps() {
         return {
-            // Per-tick "+N" sub-task badges for the portrait glance strip (V3b-1).
-            afterTick: () => Layout.applySubBadges(State.getActiveItems()),
+            // Per-tick lanes + "+N" badges for the portrait glance strip
+            // (V3b-1 sub badges, V3b-2 lanes / collision + overdue-pile badges).
+            afterTick: () => Layout.applyStripLayout(State.getActiveItems()),
             isGameOver: State.isGameOver,
             isOfflineCatchUpActive: () => offlineCatchUpActive,
             // Time slider (Milestone 4, 2026-07-20) — REQUIRED, same
