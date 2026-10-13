@@ -369,16 +369,32 @@ describe('Loop.updateActiveItems — negative-habit lurker exclusion ([P1-DATA-0
         expect(deps._state.damageDealt).toBe(0);
     });
 
-    test('a lurker is positioned at gameScreenWidth - HABIT_ENEMY_WIDTH - NEGATIVE_LURK_RIGHT_MARGIN_PX (far right), not a timeline position', () => {
+    test('a past-due lurker parks beside the base with lurker-parked, never overdue, no damage', () => {
         const lurker = makeLurker();
         const deps = makeDeps({ state: { activeItems: [lurker] } });
         Loop.updateActiveItems(deps);
-        const expectedX = deps.gameScreenWidth - CONFIG.HABIT_ENEMY_WIDTH - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX;
-        expect(lurker.x).toBe(expectedX);
-        expect(lurker.element.style.left).toBe(`${expectedX}px`);
-        // never routed through the timeline calc, and not parked near the base
-        expect(lurker.x).not.toBe(500); // the deps' calculateTimelineXWithClustering stub
-        expect(lurker.x).toBeGreaterThan(deps.baseWidth);
+        expect(lurker.x).toBe(deps.baseWidth + deps.getSubTaskClusterOffset(lurker));
+        expect(lurker.element.classList.contains('lurker-parked')).toBe(true);
+        expect(lurker.isOverdue).toBe(false);
+        expect(deps._state.damageDealt).toBe(0);
+    });
+
+    test('a not-yet-due lurker walks the timeline and is not parked', () => {
+        const lurker = makeLurker({ dueDateTime: new Date(Date.now() + 2 * 60 * 60 * 1000) });
+        const deps = makeDeps({ state: { activeItems: [lurker] } });
+        Loop.updateActiveItems(deps);
+        expect(lurker.x).toBe(500); // the deps' calculateTimelineXWithClustering stub
+        expect(lurker.element.classList.contains('lurker-parked')).toBe(false);
+    });
+
+    test('a parked lurker whose time moves into the future un-parks', () => {
+        const lurker = makeLurker();
+        const deps = makeDeps({ state: { activeItems: [lurker] } });
+        Loop.updateActiveItems(deps);
+        lurker.dueDateTime = new Date(Date.now() + 2 * 60 * 60 * 1000);
+        Loop.updateActiveItems(deps);
+        expect(lurker.element.classList.contains('lurker-parked')).toBe(false);
+        expect(lurker.x).toBe(500);
     });
 
     test('an already-overdue lurker (edge case) still deals no damage and is left alone', () => {
@@ -559,21 +575,5 @@ describe('Loop.updateGame', () => {
             Loop.updateGame(deps);
             expect(calls).toBe(1);
         });
-    });
-});
-
-
-describe('Loop lurker post is strip-aware (2026-10-13)', () => {
-    test('glance-strip mode (habitEnemyWidth 32): x = screen - 32 - margin', () => {
-        const lurker = makeLurker();
-        const deps = makeDeps({ state: { activeItems: [lurker] }, deps: { habitEnemyWidth: 32 } });
-        Loop.updateActiveItems(deps);
-        expect(lurker.x).toBe(1200 - 32 - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX);
-    });
-    test('without habitEnemyWidth it falls back to the desktop CONFIG width', () => {
-        const lurker = makeLurker();
-        const deps = makeDeps({ state: { activeItems: [lurker] } });
-        Loop.updateActiveItems(deps);
-        expect(lurker.x).toBe(1200 - CONFIG.HABIT_ENEMY_WIDTH - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX);
     });
 });

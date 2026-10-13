@@ -6,7 +6,7 @@
  *
  * Design: ALL animation state lives in CSS (css/enemyAnim.css), derived from
  * classes the game already puts on the enemy — `.enemy-at-base` -> attack,
- * `.negative-habit` (the stationary lurker) -> idle, otherwise walk, with the
+ * `.lurker-parked` (a negative habit parked at the base) -> idle, otherwise walk, with the
  * `urgency-*` tier classes setting the walk speed and `zombie-<category>`
  * picking the atlas. So the only JS job is to give each enemy one child
  * element and keep its scale in sync with the enemy's box width. Category

@@ -900,22 +900,32 @@ describe('runOfflineCatchUp', () => {
         expect(deps._state.baseHealth).toBe(Math.min(CONFIG.MAX_BASE_HEALTH, 50 + 10 * CONFIG.BASE_REGEN_HP));
     });
 
-    test('a lurker\'s target position is the far-right lurk x, not the timeline calc', () => {
+    test('a past-due lurker is not sent to the far-right post (it parks at the base in the loop)', () => {
         const lurker = item({
             type: 'habit', isNegative: true,
             dueDateTime: new Date(Date.now() - 10 * 60 * 60 * 1000),
-            isOverdue: false,
-            x: 0,
-            element: fakeEl(),
+            isOverdue: false, x: 0, element: fakeEl(),
         });
         const deps = makeDeps({
             state: { activeItems: [lurker] },
             deps: { isNonThreatening: (i) => i.type === 'habit' && i.isNegative === true },
         });
         Damage.runOfflineCatchUp([{ item: lurker, savedX: 0 }], 1000, deps);
-        const expectedX = deps.gameScreenWidth - CONFIG.HABIT_ENEMY_WIDTH - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX;
-        expect(lurker.x).toBe(expectedX);
-        expect(lurker.x).not.toBe(500); // never the stub calculateTimelineXWithClustering value
-        expect(lurker.x).toBeGreaterThan(deps.baseWidth); // not parked near the base
+        expect(lurker.isOverdue).toBe(false);
+        expect(lurker.x).toBeLessThan(deps.gameScreenWidth - CONFIG.HABIT_ENEMY_WIDTH - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX);
+    });
+
+    test('a not-yet-due lurker follows the timeline calc', () => {
+        const lurker = item({
+            type: 'habit', isNegative: true,
+            dueDateTime: new Date(Date.now() + 3 * 60 * 60 * 1000),
+            isOverdue: false, x: 0, element: fakeEl(),
+        });
+        const deps = makeDeps({
+            state: { activeItems: [lurker] },
+            deps: { isNonThreatening: (i) => i.type === 'habit' && i.isNegative === true },
+        });
+        Damage.runOfflineCatchUp([{ item: lurker, savedX: 0 }], 1000, deps);
+        expect(lurker.x).toBe(500);
     });
 });

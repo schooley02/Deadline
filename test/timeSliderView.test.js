@@ -80,19 +80,6 @@ describe('scrubbing (input event)', () => {
         expect(calls.midnightUpdates.length).toBe(1);
     });
 
-    test('a non-threatening (lurker) item uses TimeSlider.getLurkerPreviewX instead', () => {
-        const el = makeItemEl();
-        const item = { element: el, isNegative: true };
-        const { deps, sliderEl } = makeDeps({ activeItems: [item] });
-        TimeSliderView.init(deps);
-
-        sliderEl.value = String(21 * 60); // 9:00 PM — midnight line is on-screen
-        sliderEl.dispatchEvent(new Event('input'));
-
-        const expectedX = TimeSlider.getLurkerPreviewX(new Date(new Date().setHours(21, 0, 0, 0)), DIMS);
-        expect(el.style.left).toBe(Math.max(DIMS.baseWidth, expectedX) + 'px');
-    });
-
     test('position is clamped to baseWidth', () => {
         const el = makeItemEl();
         const item = { element: el, __x: 10 }; // below baseWidth (100)

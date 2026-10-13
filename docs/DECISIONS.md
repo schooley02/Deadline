@@ -3874,3 +3874,6 @@ After all four fixes, `node --check script.js` and `node --check js/config.js` b
 ## 2026-07-16 — node_modules untracked
 **Decision:** Added .gitignore; `git rm -r --cached node_modules`. Regenerate with `npm install`.
 **Why:** It was committed to the repo (thousands of files bloating diffs and status).
+
+## 2026-10-13 -- Negative-habit lurkers follow the timeline, then park idle at the base (reverses session 29's fixed far-right post)
+Jeremy: position habits where they would normally be by due time, but instead of an attack animation show the idle animation next to the base. Decision: a negative habit walks the timeline (urgency-tier walk speed) until its tempting time; after it, it parks beside the base (`.lurker-parked`, idle row). Still never overdue, never damages, never pauses regen; resolved by Avoided/Indulged or next-morning check-in (A2 model unchanged). Retired: fixed far-right post, strip-aware `habitEnemyWidth` plumbing, `TimeSlider.getLurkerPreviewX` (slider now treats lurkers like all items). `NEGATIVE_LURK_RIGHT_MARGIN_PX` left in config, unused. Known simplification: in the glance strip a parked lurker is an offset 64px idle sprite (margin-left 60px) rather than its own pile -- several parked lurkers overlap. Parked: glow/pulse when tempting time arrives (not roadmapped).

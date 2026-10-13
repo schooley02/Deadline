@@ -83,33 +83,6 @@ describe('formatLabel', () => {
     });
 });
 
-describe('getLurkerPreviewX', () => {
-    test('before 8pm, sits at the fixed lurk post (matches loop.js live positioning)', () => {
-        const t = new Date('2026-07-20T14:00:00');
-        const expected = DIMS.gameScreenWidth - DIMS.habitEnemyWidth - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX;
-        expect(TimeSlider.getLurkerPreviewX(t, DIMS)).toBe(expected);
-    });
-
-    test('at exactly 8pm, rides the midnight line', () => {
-        const t = new Date('2026-07-20T20:00:00');
-        expect(TimeSlider.getLurkerPreviewX(t, DIMS))
-            .toBe(Clock.calculateMidnightLinePosition(t, DIMS));
-    });
-
-    test('closer to midnight, the line (and lurker) has advanced further left', () => {
-        const early = TimeSlider.getLurkerPreviewX(new Date('2026-07-20T20:30:00'), DIMS);
-        const late = TimeSlider.getLurkerPreviewX(new Date('2026-07-20T23:30:00'), DIMS);
-        expect(late).toBeLessThan(early);
-    });
-
-    test('scrubbing back before 8pm returns to the lurk post, not a stale line position', () => {
-        const afterLine = TimeSlider.getLurkerPreviewX(new Date('2026-07-20T21:00:00'), DIMS);
-        const rewound = TimeSlider.getLurkerPreviewX(new Date('2026-07-20T10:00:00'), DIMS);
-        expect(rewound).not.toBe(afterLine);
-        expect(rewound).toBe(DIMS.gameScreenWidth - DIMS.habitEnemyWidth - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX);
-    });
-});
-
 // Damage/regen projection (2026-07-20, same session — "the preview also
 // needs to show base damage and freezes").
 describe('ticksSinceOverdue', () => {

@@ -855,10 +855,6 @@ document.addEventListener('DOMContentLoaded', () => {
             activeItems: State.getActiveItems(),
             baseWidth: BASE_WIDTH,
             gameScreenWidth: GAME_SCREEN_WIDTH,
-            // Strip-aware lurker post (2026-10-13): CONFIG.HABIT_ENEMY_WIDTH is
-            // the 128px desktop width and parked the lurker ~148px in from the
-            // right in glance-strip mode.
-            habitEnemyWidth: HABIT_ENEMY_WIDTH,
             getLastLoopTickMs: State.getLastLoopTickMs,
             setLastLoopTickMs: State.setLastLoopTickMs,
             getLastRegenTickMs: State.getLastRegenTickMs,

@@ -9,7 +9,7 @@
  * State is picked by classes the game already sets on `.enemy`:
  *   (default)           walk   — speed from the `urgency-*` tier class
  *   .urgency-calm       idle   — due > 4h away, effectively parked
- *   .negative-habit     idle   — the stationary lurker
+ *   .lurker-parked      idle   — a negative-habit lurker parked beside the base
  *   .enemy-at-base      attack — overdue, camped at the church
  * Movement is a compositor-only `transform: translateX` stepped by steps(N)
  * (cheap on phones); the window is anchored so the character's feet sit on the
@@ -78,11 +78,6 @@
 }
 
 /* State rows */
-.enemy.negative-habit .enemy-sprite-sheet {
-    --row: 1;
-    --frames: var(--n-idle);
-    --fps: 5;
-}
 .enemy.enemy-at-base .enemy-sprite-sheet {
     --row: 2;
     --frames: var(--n-attack);
@@ -101,6 +96,13 @@
 /* Frame rates, not durations: 9 frames -> 1.1s / 0.75s per walk cycle, 7 frames -> 0.9s / 0.6s. */
 .enemy.urgency-approaching .enemy-sprite-sheet { --fps: 8; }
 .enemy.urgency-urgent .enemy-sprite-sheet      { --fps: 12; }
+
+/* Parked lurker (negative habit past its tempting time): idles beside the base. */
+.enemy.lurker-parked .enemy-sprite-sheet {
+    --row: 1;
+    --frames: var(--n-idle);
+    --fps: 5;
+}
 
 /* Death (Stage 2b): items.js completeItem adds .enemy-dying via
    SpriteAnim.playDeath. Plays row 3 once and holds the final splat frame.

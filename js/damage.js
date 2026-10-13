@@ -456,7 +456,6 @@ const Damage = (() => {
             isGameOver, getActiveItems, calculateTimelineXWithClustering,
             baseWidth, gameScreenWidth, setOfflineCatchUpActive, isNonThreatening
         } = deps;
-        const lurkW = (typeof deps.habitEnemyWidth === 'number') ? deps.habitEnemyWidth : CONFIG.HABIT_ENEMY_WIDTH;
 
         if (isGameOver()) return;
         const nowMs = Date.now();
@@ -474,17 +473,16 @@ const Damage = (() => {
 
         // Compute target positions in order, updating item.x as we go so
         // sub-task clustering sees its parent's target, not its saved x. A
-        // lurker's target is its fixed lurk position — anchored to the far
-        // right of the canvas since session 29, never a timeline calc.
-        // Overdue items already had x set to the base by addItemToGame.
+        // lurker's target is its timeline position, or the base once its time
+        // has passed (changed 2026-10-13: lurkers walk the timeline and park
+        // idle beside the base; they still never take/deal damage).
+        // Overdue items (and past-due lurkers) already had x set to the base
+        // by addItemToGame.
         entries.forEach(e => {
-            if (isLurker(e.item)) {
-                e.targetX = gameScreenWidth - lurkW - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX;
-            } else {
-                e.targetX = e.item.isOverdue
-                    ? e.item.x
-                    : calculateTimelineXWithClustering(e.item, now);
-            }
+            const pastDue = e.item.dueDateTime.getTime() <= nowMs;
+            e.targetX = (e.item.isOverdue || (isLurker(e.item) && pastDue))
+                ? e.item.x
+                : calculateTimelineXWithClustering(e.item, now);
             e.item.x = e.targetX;
         });
 

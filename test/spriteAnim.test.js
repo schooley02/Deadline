@@ -121,7 +121,7 @@ describe('assets, CSS and CONFIG stay in agreement', () => {
 
     test('state rows: calm (parked) and lurkers idle, overdue attacks, tiers set walk speed', () => {
         expect(css).toMatch(/\.enemy\.urgency-calm \.enemy-sprite-sheet\s*\{[^}]*--row:\s*1;[^}]*--frames:\s*var\(--n-idle\)/);
-        expect(css).toMatch(/\.enemy\.negative-habit \.enemy-sprite-sheet\s*\{[^}]*--row:\s*1/);
+        expect(css).toMatch(/\.enemy\.lurker-parked \.enemy-sprite-sheet\s*\{[^}]*--row:\s*1/);
         expect(css).toMatch(/\.enemy\.enemy-at-base \.enemy-sprite-sheet\s*\{[^}]*--row:\s*2/);
         expect(css).toMatch(/\.enemy\.urgency-approaching \.enemy-sprite-sheet\s*\{[^}]*--fps:\s*8/);
         expect(css).toMatch(/\.enemy\.urgency-urgent \.enemy-sprite-sheet\s*\{[^}]*--fps:\s*12/);

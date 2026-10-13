@@ -134,9 +134,7 @@ const TimeSliderView = (() => {
         const dims = deps.dims();
         deps.getActiveItems().forEach((item) => {
             if (!item.element) return;
-            const x = deps.isNonThreatening(item)
-                ? TimeSlider.getLurkerPreviewX(time, dims)
-                : deps.calculateTimelineXWithClustering(item, time);
+            const x = deps.calculateTimelineXWithClustering(item, time);
             item.element.style.left = Math.max(dims.baseWidth, x) + 'px';
             item.element.classList.toggle('time-preview-ghost', ghost);
         });

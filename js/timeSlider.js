@@ -28,7 +28,6 @@
  *   TimeSlider.minutesOfDayToTime(minutes, dayStart) -> Date
  *   TimeSlider.timeToMinutesOfDay(time, dayStart) -> number (0-1440, clamped)
  *   TimeSlider.formatLabel(time) -> '2:30 PM'
- *   TimeSlider.getLurkerPreviewX(previewTime, dims) -> px
  *       (dims = { gameScreenWidth, baseWidth, habitEnemyWidth })
  *
  * Damage/regen projection (added 2026-07-20, same session — Jeremy's
@@ -95,21 +94,6 @@ const TimeSlider = (() => {
         if (hours === 0) hours = 12;
         const mm = minutes < 10 ? '0' + minutes : '' + minutes;
         return hours + ':' + mm + ' ' + ampm;
-    }
-
-    // A negative-habit lurker never advances in LIVE play (A2 model, see
-    // items.js's isNonThreatening/loop.js) — it sits pinned at the far-right
-    // "lurk post". Jeremy's call for the preview (2026-07-20): lurkers should
-    // move WITH the midnight line once it's on-screen (>=8pm, see Clock.
-    // shouldShowMidnightLine), riding it toward the base as previewTime
-    // advances past 8pm; before 8pm (or scrubbed back before 8pm) they sit at
-    // the same lurk post the live loop uses. This is preview-only — the live
-    // loop's lurker positioning (loop.js) is completely unchanged.
-    function getLurkerPreviewX(previewTime, dims) {
-        if (!Clock.shouldShowMidnightLine(previewTime)) {
-            return dims.gameScreenWidth - dims.habitEnemyWidth - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX;
-        }
-        return Clock.calculateMidnightLinePosition(previewTime, dims);
     }
 
     // Whole DAMAGE_INTERVAL_MS-sized periods elapsed since dueMs, as of atMs.
@@ -185,7 +169,6 @@ const TimeSlider = (() => {
         minutesOfDayToTime,
         timeToMinutesOfDay,
         formatLabel,
-        getLurkerPreviewX,
         ticksSinceOverdue,
         damageTicksDelta,
         regenTicksDelta,

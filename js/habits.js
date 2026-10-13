@@ -416,15 +416,11 @@ const Habits = (() => {
             offlineDamageCharged: 0
         };
 
-        // [P1-DATA-005] session 27, repositioned session 29 — a negative habit
-        // spawns as a lurker: a fixed position anchored to the FAR RIGHT of the
-        // canvas, never a timeline position (the A2 model — see DECISIONS.md
-        // sessions 26/29: since it never moves, parking it near the base like
-        // an imminent threat was misleading). Every OTHER instance (positive
-        // habit, task) keeps the existing timeline calc.
-        habitInstanceData.x = habitDef.isNegative
-            ? deps.gameScreenWidth - deps.habitEnemyWidth - deps.negativeLurkRightMarginPx
-            : deps.calculateTimelinePosition(habitInstanceData, instanceCreationTime);
+        // [P1-DATA-005] A negative habit lurker spawns on the normal timeline
+        // by its tempting time (2026-10-13: reverses the session-29 fixed
+        // far-right post; the loop parks it idle beside the base once the
+        // time passes). Never overdue, never damaging (A2 model).
+        habitInstanceData.x = deps.calculateTimelinePosition(habitInstanceData, instanceCreationTime);
 
         return habitInstanceData;
     }

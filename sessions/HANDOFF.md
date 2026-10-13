@@ -11,6 +11,12 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-10-13 (later) -- Lurkers: timeline position, park idle at the base (Claude app session, Sonnet)
+**Did:** Negative habits now walk the timeline by their tempting time and, past it, park beside the base with the idle animation (`.lurker-parked`); never overdue/damaging. `js/loop.js` (lurker branch + damage guard), `js/damage.js` (offline target), `js/habits.js` (spawn x), `js/ui/timeSliderView.js`, `js/timeSlider.js` (getLurkerPreviewX removed), `css/enemyAnim.css`, `css/glanceStrip.css`, tests updated; `sw.js` -> `deadline-shell-v22`. Docs: DECISIONS, MECHANICS, UI_UX, CLAUDE.md.
+**State:** Jest 66 suites, 1,375/1,375. Live phone-width check still to do (see Watch out).
+**Next:** Verify at 375px with a past-due negative habit; if several parked lurkers overlap in the strip, give them a pile like overdue attackers. Parked idea: glow when tempting time arrives.
+**Watch out:** Strip parked lurkers are only offset 64px sprites, no pile yet. `NEGATIVE_LURK_RIGHT_MARGIN_PX` is now unused. Bump `CACHE_NAME` every shell commit.
+
 ## 2026-10-13 — List-order layering + tie-group reorder (Claude app session, Opus plan -> Sonnet build)
 
 **Did:** Built the whole roadmap item. NEW `js/listOrder.js` (chained 30-min tie groups; hand order stored as slot-time `listRank` + `listRankDue`, invalid -> cleared automatically when a due time changes; new-task slot-in rule; z band; list-order keys) + `test/list-order.test.js` (19). Schema 11 -> 12 (version stamp only; `js/persistence.js`, +2 migration tests). `AgendaList.sortAndRenderActiveList` renders in list order, stamps, writes `--list-z`, and toggles a stacked ▲/▼ pair (`.reorder-controls`, `css/agendaList.css`) only toward same-group neighbors; `moveListItem` dep in script.js. CSS z-index now `var(--list-z, old)` (high-priority/super-streak boosts removed; overdue pile 80, hover 85, stats/heroes overlays 90). `Layout.computeStripLayout` deals lanes in list order and keeps the top-of-list marker visible in a collapsed cluster (+4 tests). `CONFIG.LIST_TIE_WINDOW_MIN/LIST_Z_MIN/LIST_Z_MAX`. sw.js v19 -> v20 (+ `js/listOrder.js` in APP_SHELL), index.html script tag. Docs: UI_UX, DATA_SCHEMA, ARCHITECTURE, ROADMAP (checked), DECISIONS (2 entries), CLAUDE.md state. Jeremy's design answers (slot-in only when it clearly fits; any due-time change clears rank; z follows list only; lanes in list order = option A) are logged in DECISIONS.md.

@@ -105,26 +105,27 @@ const Loop = (() => {
                 if (typeof SpriteAnim !== 'undefined') SpriteAnim.syncScale(item.element, renderWidth);
             }
 
-            // [P1-DATA-005] session 27, repositioned session 29 — a
-            // negative-habit lurker never advances, never goes overdue,
-            // never damages the base (the A2 model — see DECISIONS.md
-            // sessions 26/29). It sits at a fixed position anchored to the
-            // far right of the canvas (not near the base — parking a
-            // stationary, non-threatening item near the base misrepresented
-            // it as an imminent threat) instead of a timeline position.
-            // Skips BOTH the overdue-transition branch below AND the
-            // damage-tick branch entirely.
-            if (deps.isNonThreatening && deps.isNonThreatening(item)) {
-                // habitEnemyWidth is strip-aware (32px marker in glance-strip
-                // mode, 128 on desktop); CONFIG's 128 is only the fallback.
-                const lurkW = (typeof deps.habitEnemyWidth === 'number') ? deps.habitEnemyWidth : CONFIG.HABIT_ENEMY_WIDTH;
-                item.x = deps.gameScreenWidth - lurkW - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX;
-                if (item.element) item.element.style.left = item.x + 'px';
-                continue;
-            }
+            // [P1-DATA-005] session 27 -- a negative-habit lurker never goes
+            // overdue and never damages the base (A2 model, DECISIONS
+            // sessions 26/29). CHANGED 2026-10-13 (Jeremy): no fixed far-right
+            // post. It walks the timeline by its time like any other item and,
+            // once the time passes, PARKS beside the base (class
+            // `lurker-parked` -> idle animation; no attack, no damage). It
+            // skips markAsOverdue and the damage tick entirely.
+            const isLurker = !!(deps.isNonThreatening && deps.isNonThreatening(item));
 
             if (!item.isOverdue) {
-                if (item.dueDateTime <= currentTime) {
+                if (isLurker && item.dueDateTime <= currentTime) {
+                    // Past its tempting time: park idle beside the base.
+                    item.x = deps.baseWidth + deps.getSubTaskClusterOffset(item);
+                    if (item.element && item.element.classList && !item.element.classList.contains('lurker-parked')) {
+                        item.element.classList.add('lurker-parked');
+                    }
+                    if (item.urgencyTier) {
+                        if (item.element) item.element.classList.remove('urgency-' + item.urgencyTier);
+                        item.urgencyTier = null;
+                    }
+                } else if (item.dueDateTime <= currentTime) {
                     // Item just became overdue. markAsOverdue (items.js) also
                     // clears any walk-urgency tier class — [P2-GAME-010]
                     // Stage 1, centralized there rather than duplicated here
@@ -136,6 +137,10 @@ const Loop = (() => {
                 } else {
                     // Calculate position based on timeline
                     item.x = deps.calculateTimelineXWithClustering(item, currentTime);
+                    // A lurker whose time moved back into the future walks again.
+                    if (isLurker && item.element && item.element.classList && item.element.classList.contains('lurker-parked')) {
+                        item.element.classList.remove('lurker-parked');
+                    }
 
                     // [P2-GAME-010] Stage 1 (2026-07-19, session 60): CSS-only
                     // walk-speed-up ahead of real animated sprites (see
@@ -159,7 +164,7 @@ const Loop = (() => {
             }
 
             // Handle damage from overdue items
-            if (item.isOverdue) {
+            if (item.isOverdue && !isLurker) {
                 if (currentTimeMs >= item.lastDamageTickTime + CONFIG.DAMAGE_INTERVAL_MS) {
                     // Run-history blame attribution (sub-session 2, session
                     // 53) — MUST run BEFORE deps.damageBase below. damageBase

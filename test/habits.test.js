@@ -365,11 +365,10 @@ describe('createHabitInstanceData', () => {
         expect(instance.x).toBe(42);
     });
 
-    test('[P1-DATA-005] session 27/29: a negative habit spawns at the far-right lurk x, NOT the timeline calc', () => {
+    test('a negative habit spawns on the timeline calc (2026-10-13), not a fixed far-right post', () => {
         const negativeHabitDef = { ...habitDef, isNegative: true };
         const instance = Habits.createHabitInstanceData(negativeHabitDef, new Date(2026, 6, 18), deps());
-        expect(instance.x).toBe(800 - 60 - 20); // gameScreenWidth - habitEnemyWidth - negativeLurkRightMarginPx
-        expect(instance.x).not.toBe(42); // never routed through calculateTimelinePosition
+        expect(instance.x).toBe(42);
     });
 
     test('due time follows the timeOfDay bucket for the given date', () => {
