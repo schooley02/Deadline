@@ -285,9 +285,11 @@
 
 /* Desktop / landscape (2026-10-13, Jeremy): a sub-task draws IN FRONT of its parent.
    ListOrder writes --list-z = parent z - 1, so +2 = parent z + 1 (rows differ by 2, so
-   it still sits below the row above). Portrait strip is excluded: there a stacked
+   it still sits below the row above). Applies to overdue (enemy-at-base) subs too -- an overdue
+   parent + its overdue subs all camp at the base and the sub must still draw on top.
+   Portrait strip is excluded: there a stacked
    sub (3rd+) must stay hidden behind the parent's dot -- glanceStrip.css owns it. */
-body:not(.glance-strip) .enemy.zombie-subtask:not(.enemy-at-base) {
+body:not(.glance-strip) .enemy.zombie-subtask {
     z-index: calc(var(--list-z, 5) + 2);
 }
 

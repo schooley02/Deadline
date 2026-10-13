@@ -6,9 +6,9 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ## 2026-10-13 -- Desktop/landscape: sub-tasks draw IN FRONT of their parent (Jeremy; Claude app session)
 
-- **Decision:** outside portrait strip mode a sub-task's z-index is parent z + 1 (CSS only: `body:not(.glance-strip) .enemy.zombie-subtask:not(.enemy-at-base)` -> `--list-z + 2`; ListOrder still writes parent - 1). Reverses the 2026-10-13 list-order-layering rule 'sub = parent - 1' for desktop/landscape only.
+- **Decision:** outside portrait strip mode a sub-task's z-index is parent z + 1 (CSS only: `body:not(.glance-strip) .enemy.zombie-subtask` -> `--list-z + 2`; ListOrder still writes parent - 1). Reverses the 2026-10-13 list-order-layering rule 'sub = parent - 1' for desktop/landscape only.
 - **Why:** Jeremy: subs should read as in front of the parent. Rows step by 2, so a sub never jumps above the row above its parent.
-- **Portrait unchanged:** stacked (3rd+) subs must stay behind the parent dot. Overdue pile (z 80) unchanged. `sw.js` -> v31.
+- **Portrait unchanged:** stacked (3rd+) subs must stay behind the parent dot. `sw.js` -> v31, then v32: the first version excluded `.enemy-at-base`, so an overdue parent's (also overdue) subs stayed behind -- Jeremy caught it on desktop; verified live in headless Chromium 1280x800 (sub z 80 vs parent 79, overdue and not).
 
 ---
 
