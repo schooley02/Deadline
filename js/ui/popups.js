@@ -332,6 +332,78 @@ const Popups = (() => {
 
     // deps: { activeItems, recomputeOverdueStateAfterEdit, createListItem,
     //         sortAndRenderActiveList, saveGame, clampSubTaskDueDates? }
+    // "When is this due now?" — shown by Items.uncompleteItemWithDuePrompt
+    // when undoing a completed task/sub-task whose due time has passed
+    // (DECISIONS.md 2026-10-12). cb({dueDateTime: Date}) for a new future time,
+    // cb({dueDateTime: null}) to keep the original (clean-slate clock),
+    // cb({cancel: true}) to abort the undo. Sub-tasks can't pass the parent's
+    // deadline (same rule as the edit form). deps: { activeItems }.
+    function promptNewDueTime(item, deps, cb) {
+        const parent = item.parentId
+            ? (deps.activeItems || []).find(i => i.id === item.parentId && i.type === 'task')
+            : null;
+        const maxAttr = parent ? ` max="${formatDateInputValue(parent.dueDateTime)}"` : '';
+        // A sub-task can never be due after its parent: suggest the sooner of
+        // now+1h and the parent's deadline, and if the parent itself is already
+        // past due there is no valid future time, so only "Keep original" and
+        // "Cancel" are offered.
+        const parentHasRoom = !parent || parent.dueDateTime.getTime() > Date.now();
+        const oneHour = new Date(Date.now() + 60 * 60 * 1000);
+        const suggested = (parent && parentHasRoom && parent.dueDateTime < oneHour) ? parent.dueDateTime : oneHour;
+        const html = `
+            <div class="modal-overlay" id="uncompleteDueOverlay">
+                <div class="modal-content">
+                    <h3>When is this due now?</h3>
+                    <p>"${String(item.name).replace(/</g, '&lt;')}" is past its original due time. Pick a new one, or keep the original and it comes back overdue.</p>
+                    <div class="form-row-group">
+                        <div class="form-row">
+                            <label for="uncompleteDueDate">Due Date:</label>
+                            <input type="date" id="uncompleteDueDate" value="${formatDateInputValue(suggested)}"${maxAttr} required>
+                        </div>
+                        <div class="form-row">
+                            <label for="uncompleteDueTime">Due Time:</label>
+                            <input type="time" id="uncompleteDueTime" value="${formatTimeInputValue(suggested)}">
+                        </div>
+                    </div>
+                    ${parentHasRoom ? '' : '<p class="form-note">The parent task is already past due, so this sub-task can\'t be given a later time. Keep the original, or cancel.</p>'}
+                    <p id="uncompleteDueError" class="form-error" style="display:none;"></p>
+                    <div class="modal-buttons">
+                        <button id="uncompleteSetDue" class="primary-button"${parentHasRoom ? '' : ' disabled'}>Set new due time</button>
+                        <button id="uncompleteKeepDue" class="secondary-button">Keep original (overdue)</button>
+                        <button id="uncompleteCancel" class="secondary-button">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        Modal.open(html);
+        const finish = (result) => { Modal.closeModal(); cb(result); };
+        const showError = (msg) => {
+            const el = document.getElementById('uncompleteDueError');
+            if (el) { el.textContent = msg; el.style.display = 'block'; }
+        };
+        const on = (id, handler) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('click', handler);
+        };
+        on('uncompleteSetDue', () => {
+            const d = document.getElementById('uncompleteDueDate').value;
+            const t = document.getElementById('uncompleteDueTime').value || '00:00';
+            if (!d) { showError('Pick a due date.'); return; }
+            const next = new Date(`${d}T${t}`);
+            if (isNaN(next.getTime()) || next.getTime() <= Date.now()) {
+                showError('Pick a time in the future, or keep the original.');
+                return;
+            }
+            if (parent && next > parent.dueDateTime) {
+                showError(`A sub-task can't be due after its parent (${formatDateInputValue(parent.dueDateTime)} ${formatTimeInputValue(parent.dueDateTime)}).`);
+                return;
+            }
+            finish({ dueDateTime: next });
+        });
+        on('uncompleteKeepDue', () => finish({ dueDateTime: null }));
+        on('uncompleteCancel', () => finish({ cancel: true }));
+    }
+
     function showEditTaskModal(item, deps) {
         const dueDate = formatDateInputValue(item.dueDateTime);
         const dueTime = formatTimeInputValue(item.dueDateTime);
@@ -628,6 +700,7 @@ const Popups = (() => {
         handleEnemyClick,
         showTaskDetailsPopup,
         showEditTaskModal,
+        promptNewDueTime,
         createSubTaskPrompt,
         showCreateSubTaskModal,
         // Exposed for tests (test/popups-prefill.test.js)

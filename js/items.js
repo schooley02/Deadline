@@ -650,6 +650,42 @@ const Items = (() => {
     }
 
     /**
+     * Player-facing undo entry point (DECISIONS.md 2026-10-12, Jeremy's call).
+     * For a one-off task or sub-task whose due time has already passed, ask for
+     * a new due time BEFORE uncompleteItem sets any damage clock:
+     *   - a future time  -> item returns not overdue (nothing to back-charge);
+     *   - keep original  -> returns overdue with a clean-slate clock;
+     *   - cancel / dismiss -> undo aborted, item stays completed.
+     * Habits never prompt (their due time comes from the schedule) and get the
+     * clean-slate clock inside uncompleteItem. Without deps.promptNewDueTime
+     * (older callers/tests) this is exactly uncompleteItem.
+     * Extra deps: promptNewDueTime(item, cb({dueDateTime?: Date|null, cancel?: true})),
+     * renderCompletedItems.
+     */
+    function uncompleteItemWithDuePrompt(itemId, deps) {
+        const item = deps.completedItems().find(i => i.id === itemId);
+        if (!item) return;
+        const needsPrompt = item.type === 'task'
+            && item.dueDateTime instanceof Date
+            && item.dueDateTime.getTime() <= Date.now()
+            && typeof deps.promptNewDueTime === 'function';
+        if (!needsPrompt) {
+            uncompleteItem(itemId, deps);
+            return;
+        }
+        // The row's checkbox was just unchecked; re-render now so a dismissed
+        // prompt (ESC / overlay) leaves it checked and the item completed.
+        if (typeof deps.renderCompletedItems === 'function') deps.renderCompletedItems();
+        deps.promptNewDueTime(item, (result) => {
+            if (!result || result.cancel) return;
+            if (result.dueDateTime instanceof Date && result.dueDateTime.getTime() > Date.now()) {
+                item.dueDateTime = result.dueDateTime;
+            }
+            uncompleteItem(itemId, deps);
+        });
+    }
+
+    /**
      * deps: superset of completeItem's + removeItem's:
      *   { isGameOver, activeItems, definedHabits (getter), xpPerHabitComplete,
      *     pointsPerHabit, getPlayerXP, setPlayerXP, getPlayerPoints,
@@ -1052,6 +1088,11 @@ const Items = (() => {
         // Check if it should be marked as overdue
         if (item.dueDateTime <= currentTime) {
             markAsOverdue(item, currentTime, deps);
+            // Clean-slate damage clock (DECISIONS.md 2026-10-12, Jeremy): like
+            // an edit-into-the-past and a created-already-overdue item, the
+            // clock starts NOW. markAsOverdue parks it at the (past) due time,
+            // which would replay every missed 5-min interval at tick speed.
+            item.lastDamageTickTime = currentTime.getTime();
             item.x = deps.baseWidth + deps.getSubTaskClusterOffset(item);
         }
 
@@ -1409,6 +1450,7 @@ const Items = (() => {
         useSkipDayOnItem,
         useSickDayGlobally,
         uncompleteItem,
+        uncompleteItemWithDuePrompt,
         markAsOverdue,
         recomputeOverdueStateAfterEdit,
         findRoutineForItem,

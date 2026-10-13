@@ -530,7 +530,9 @@ document.addEventListener('DOMContentLoaded', () => {
             createSubTaskPrompt: (parentId) => Popups.createSubTaskPrompt(parentId, popupsDeps()),
             activeItemsListUL,
             completedItems: () => State.getCompletedItems(),
-            uncompleteItem: (itemId) => Items.uncompleteItem(itemId, itemsDeps()),
+            uncompleteItem: (itemId) => Items.uncompleteItemWithDuePrompt(itemId, Object.assign({}, itemsDeps(), {
+                promptNewDueTime: (item, cb) => Popups.promptNewDueTime(item, popupsDeps(), cb)
+            })),
             definedHabits: () => State.getDefinedHabits(),
             showEditHabitForm: (routineId, habitDef) => RoutineViews.showEditHabitForm(routineId, habitDef),
             // Milestone 5 first-run/onboarding pass (2026-07-20): definedRoutines
