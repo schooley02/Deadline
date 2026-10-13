@@ -3897,3 +3897,4 @@ Jeremy reviewed the 2026-07-17 cap (`OFFLINE_DAMAGE_CAP_PER_ITEM` = 12, lifetime
 
 ## 2026-10-13 -- Portrait strip sprite scale 0.375 -> 0.4375 (sub-tasks 0.25 -> 0.3125)
 Jeremy (phone, portrait): the 'other'-category task zombie still looked too small (landscape is fine). Cause: the 'other' art is a hunched, reaching pose, so at 48px it reads noticeably shorter than the upright nurse. Fix: the whole strip uses 56px characters (fills the top lane exactly to the canvas top, so no head clipping; feet stay bottom-anchored) and 40px sub-tasks. CSS only (`css/glanceStrip.css`); no per-category exceptions. Verified headless at 375px. `sw.js` -> v27.
+Follow-up (same day): even at 0.4375 the 'other' zombie still read small on the phone (screenshot confirmed the update had landed). 'other' gets its own strip scale, 0.55 (sub-tasks 0.39), to match the upright characters' visible height. CSS only; `sw.js` -> v28.
