@@ -138,7 +138,7 @@ Nothing broken; zero game identity. Category chips already use ART_STYLE.md's pa
   row (checked via `scrollWidth`/`getBoundingClientRect`, not just visually), Reset correctly
   shown on localhost and correctly computed `false` for a simulated production hostname with no
   `?dev` param.
-- [ ] **V3b — Portrait glance strip** (Direction #4; `css/responsive.css`,
+- [ ] **V3b — Portrait glance strip** (NOTE 2026-10-12, Jeremy's phone report: on a ~370px canvas a parent due soon sits with its right edge at the midnight line, and its right-fanned sub-task (`getSubTaskClusterOffset`) lands PAST the line, reading as "due after midnight" though only the cluster offset puts it there. Reproduced at 390px: parent box 130-268, line 263, sub 241-305. The strip's markers-at-own-timeline-position + cluster badges are the intended fix — don't patch movement.js separately.) (Direction #4; `css/responsive.css`,
   `css/gameCanvas.css`, likely a small marker-rendering hook in the sprite/DOM path —
   if it grows beyond CSS + a render branch, split it): strip layout, marker variant
   classes, cluster badges, overdue-sprite exception, slim slider, week strip/pager kept.
