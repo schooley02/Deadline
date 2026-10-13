@@ -159,6 +159,21 @@ document.addEventListener('DOMContentLoaded', () => {
             item.x = BASE_WIDTH + getSubTaskClusterOffset(item);
             item.element.style.left = Math.max(BASE_WIDTH, item.x) + 'px';
         });
+        // Items keep the INLINE width they were spawned with. Spawned/restored in
+        // portrait that is the 32px strip marker, so after rotating to landscape
+        // a habit stayed a 32px-wide (quarter-size) sprite until reload, and a
+        // task until the next loop tick (Jeremy's phone report 2026-10-13). Re-size
+        // every top-level item to the CURRENT mode's width now; the loop keeps
+        // refining parent-task growth from there. Sub-tasks use a fixed width in
+        // every mode (the strip restyles them in CSS), so they are left alone.
+        if (modeChanged) {
+            State.getActiveItems().forEach(item => {
+                if (!item.element || item.parentId) return;
+                const w = item.type === 'habit' ? HABIT_ENEMY_WIDTH : ENEMY_WIDTH;
+                item.element.style.width = w + 'px';
+                if (typeof SpriteAnim !== 'undefined') SpriteAnim.syncScale(item.element, w);
+            });
+        }
         if (modeChanged && !isStrip) replaceItemTops();
     }
 
