@@ -308,8 +308,8 @@ const CONFIG = {
     // behind keep their top part visible and tappable. 2026-10-13 (Jeremy: too tall):
     // tighter lanes, FEET-aligned to the floor: lane 0's feet (marker bottom) sit on the
     // floor's top edge, lane 1 mid-floor, lane 2 at the bottom minus STRIP_FLOOR_PAD_BOTTOM.
-    // Floor = (LANE_COUNT-1)*PITCH + PAD = 2*16 + 4 = 36px; strip = SKY + MARKER + floor =
-    // 4 + 32 + 36 = 72px (was 96).
+    // Floor = (LANE_COUNT-1)*PITCH + PAD = 2*14 + 8 = 36px; strip = SKY + MARKER + floor =
+    // 4 + 32 + 36 = 72px (was 96; pad 4->8 and pitch 16->14 same day so feet clear the canvas edge).
     // Same-lane markers closer than STRIP_MARKER_WIDTH collapse into a "+N" badge.
     // PixelLab floor art must match (36px tall, tileable in x: Assets/scene/strip-floor.png). Keep in sync with
     // --strip-sky / --strip-marker / --strip-pitch / --strip-icon / #gameCanvas
@@ -317,8 +317,8 @@ const CONFIG = {
     STRIP_SKY_HEIGHT: 4,
     STRIP_MARKER_HEIGHT: 32,
     STRIP_ICON_SIZE: 24,
-    STRIP_LANE_PITCH: 16,
-    STRIP_FLOOR_PAD_BOTTOM: 4, // gap under the front lane's feet (2026-10-13)
+    STRIP_LANE_PITCH: 14,
+    STRIP_FLOOR_PAD_BOTTOM: 8, // gap under the front lane's feet (2026-10-13)
     STRIP_LANE_COUNT: 3,
     // Portrait strip sub-task spread (2026-10-13, Jeremy: subs stacked on their parent
     // read as one item). The first STRIP_SUBTASK_SPREAD_COUNT open subs (by id) step

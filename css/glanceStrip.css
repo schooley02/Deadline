@@ -38,17 +38,17 @@ body.glance-strip .resource-panel {
 
 /* V3b-2 lane geometry. Keep in sync with CONFIG.STRIP_SKY_HEIGHT /
    STRIP_MARKER_HEIGHT / STRIP_LANE_PITCH / STRIP_LANE_COUNT (js/config.js).
-   Lanes OVERLAP: each steps down only --strip-pitch (16px) but a marker is
+   Lanes OVERLAP: each steps down only --strip-pitch (14px) but a marker is
    --strip-marker (32px) tall, so markers behind stay visible/tappable. Canvas =
-   sky + marker + (lanes-1)*pitch + pad = 4 + 32 + 32 + 4 = 72px; the FLOOR band is the
+   sky + marker + (lanes-1)*pitch + pad = 4 + 32 + 28 + 8 = 72px; the FLOOR band is the
    lower 36px (lane feet land on its top edge / middle / bottom-minus-pad), a fixed pixel height on every phone (only the width varies), so
    tileable pixel art can be authored against it. */
 body.glance-strip {
     --strip-sky: 4px;
     --strip-marker: 32px;
     --strip-icon: 24px;   /* category icon box inside the marker (PixelLab art slot) */
-    --strip-pitch: 16px;
-    --strip-pad: 4px;    /* gap under the front lane's feet; floor = (lanes-1)*pitch + pad */
+    --strip-pitch: 14px;
+    --strip-pad: 8px;    /* gap under the front lane's feet; floor = (lanes-1)*pitch + pad */
     --strip-lanes: 3;
 }
 
