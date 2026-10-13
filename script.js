@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // before initGame() measures the canvas/base, and re-measures on every
     // resize/rotation (onChange -> refreshLayoutDims, a hoisted function below;
     // it only runs on a later event, after the lets it touches are initialized).
-    Layout.init({ onChange: () => refreshLayoutDims() });
+    Layout.init({ onChange: (isStrip, modeChanged) => refreshLayoutDims(isStrip, modeChanged) });
     const baseHealthDisplay = document.getElementById('baseHealthDisplay');
     const playerXpDisplay = document.getElementById('playerXpDisplay');
     const playerLevelDisplay = document.getElementById('playerLevelDisplay');
@@ -116,7 +116,36 @@ document.addEventListener('DOMContentLoaded', () => {
     // Re-measure after the layout mode flips or the viewport resizes. Positions
     // themselves refresh on the next game-loop tick (loop.js recomputes x for
     // every non-preview item every tick).
-    function refreshLayoutDims() {
+    // Per-item random ground-band fraction (0..1), kept in memory only (not in the
+    // save) so re-placing after a rotation is stable instead of reshuffling.
+    const groundBandFrac = new WeakMap();
+
+    // Vertical placement is computed ONCE, at spawn, against the canvas height at
+    // that moment (Movement.getItemTopPosition). Spawned in portrait the canvas is
+    // the ~76px glance strip, so a 128px character clamps to top:0 — and rotating
+    // to landscape (full battlefield) left every character jammed at the top
+    // (Jeremy's phone report 2026-10-13). So when the layout leaves strip mode,
+    // re-place every item against the real canvas height. Parents first, so subs
+    // can bottom-align to their parent's new top.
+    function replaceItemTops() {
+        const items = State.getActiveItems();
+        const canvasHeight = gameCanvas.offsetHeight;
+        const place = (item) => {
+            const el = item.element;
+            if (!el) return;
+            const h = parseFloat(el.style.height) || el.offsetHeight;
+            if (!groundBandFrac.has(item)) groundBandFrac.set(item, Math.random());
+            el.style.top = Movement.getItemTopPosition(item, h, {
+                activeItems: items,
+                canvasHeight,
+                randomFn: () => groundBandFrac.get(item)
+            }) + 'px';
+        };
+        items.filter(i => !i.parentId).forEach(place);
+        items.filter(i => i.parentId).forEach(place);
+    }
+
+    function refreshLayoutDims(isStrip, modeChanged) {
         GAME_SCREEN_WIDTH = gameCanvas.offsetWidth;
         BASE_WIDTH = baseElement.offsetWidth;
         ENEMY_WIDTH = enemyWidthForMode(CONFIG.ENEMY_WIDTH);
@@ -130,6 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
             item.x = BASE_WIDTH + getSubTaskClusterOffset(item);
             item.element.style.left = Math.max(BASE_WIDTH, item.x) + 'px';
         });
+        if (modeChanged && !isStrip) replaceItemTops();
     }
 
     // Real implementation lives in js/state.js (Milestone 2 extraction,

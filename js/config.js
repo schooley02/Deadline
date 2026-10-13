@@ -298,15 +298,19 @@ const CONFIG = {
     // (script.js refreshLayoutDims). Keep in sync with the 24px marker width in
     // css/glanceStrip.css.
     STRIP_MARKER_WIDTH: 24,
-    // Glance-strip lanes (V3b-2, 2026-10-13; numbers locked by Jeremy 09:42 "to
-    // test, adjust later"). Strip = SKY band + a fixed-pixel FLOOR band of
-    // LANE_COUNT lanes, so strip height = 24 + 3*24 = 96px. Markers in the same
-    // lane closer than STRIP_MARKER_WIDTH collapse into a "+N" badge. The
-    // PixelLab floor art must match these (floor = LANE_COUNT * LANE_HEIGHT =
-    // 72px tall, tileable in x). Keep in sync with --strip-sky / --strip-lane /
-    // #gameCanvas height in css/glanceStrip.css (test/layout.test.js checks).
+    // Glance-strip lanes (V3b-2, 2026-10-13). Strip = SKY band + a fixed-pixel
+    // FLOOR band. Lanes OVERLAP vertically on purpose (Jeremy, 11:35 after the
+    // phone check): each lane steps down only STRIP_LANE_PITCH px but a marker is
+    // STRIP_MARKER_HEIGHT tall, so a marker behind another keeps its top part
+    // visible and tappable. Floor = MARKER_HEIGHT + (LANE_COUNT-1)*PITCH =
+    // 24 + 2*14 = 52px; strip = SKY + floor = 24 + 52 = 76px. Markers in the
+    // same lane closer than STRIP_MARKER_WIDTH collapse into a "+N" badge. The
+    // PixelLab floor art must match (52px tall, tileable in x). Keep in sync with
+    // --strip-sky / --strip-pitch / --strip-marker / #gameCanvas height in
+    // css/glanceStrip.css (test/layout.test.js checks).
     STRIP_SKY_HEIGHT: 24,
-    STRIP_LANE_HEIGHT: 24,
+    STRIP_MARKER_HEIGHT: 24,
+    STRIP_LANE_PITCH: 14,
     STRIP_LANE_COUNT: 3,
 
     // --- Ground band placement (2026-07-21) ---

@@ -37,18 +37,21 @@ body.glance-strip .resource-panel {
 }
 
 /* V3b-2 lane geometry. Keep in sync with CONFIG.STRIP_SKY_HEIGHT /
-   STRIP_LANE_HEIGHT / STRIP_LANE_COUNT (js/config.js); the canvas is
-   sky + lanes*lane = 24 + 3*24 = 96px. The FLOOR band (lanes) is a fixed
-   pixel height on every phone — only the width varies — so tileable pixel
-   art can be authored against it. */
+   STRIP_MARKER_HEIGHT / STRIP_LANE_PITCH / STRIP_LANE_COUNT (js/config.js).
+   Lanes OVERLAP: each steps down only --strip-pitch (14px) but a marker is
+   --strip-marker (24px) tall, so markers behind stay visible/tappable. Canvas =
+   sky + marker + (lanes-1)*pitch = 24 + 24 + 28 = 76px; the FLOOR band is the
+   lower 52px, a fixed pixel height on every phone (only the width varies), so
+   tileable pixel art can be authored against it. */
 body.glance-strip {
     --strip-sky: 24px;
-    --strip-lane: 24px;
+    --strip-marker: 24px;
+    --strip-pitch: 14px;
     --strip-lanes: 3;
 }
 
 body.glance-strip #gameCanvas {
-    height: 96px; /* = --strip-sky + --strip-lanes * --strip-lane */
+    height: 76px; /* = --strip-sky + --strip-marker + (--strip-lanes - 1) * --strip-pitch */
     overflow: hidden; /* markers due tomorrow park at x = canvas width */
     background: linear-gradient(180deg, #1a1b3a 0%, #0b0b24 100%);
 }
@@ -59,8 +62,8 @@ body.glance-strip .graveyard-scene {
 }
 
 /* PLACEHOLDER floor band (until the PixelLab tileable art lands): a slightly
-   lighter strip under the sky, with a faint line between lanes. Replace the
-   background with `url(...) repeat-x` + image-rendering: pixelated. */
+   lighter strip under the sky. Replace the background with
+   `url(...) repeat-x` + image-rendering: pixelated (52px tall art). */
 body.glance-strip #gameCanvas::before {
     content: "";
     position: absolute;
@@ -68,11 +71,7 @@ body.glance-strip #gameCanvas::before {
     right: 0;
     top: var(--strip-sky);
     bottom: 0;
-    background:
-        repeating-linear-gradient(180deg,
-            transparent 0, transparent calc(var(--strip-lane) - 1px),
-            rgba(255, 255, 255, 0.10) calc(var(--strip-lane) - 1px), rgba(255, 255, 255, 0.10) var(--strip-lane)),
-        rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.05);
     border-top: 1px solid rgba(255, 255, 255, 0.18);
 }
 
@@ -98,7 +97,7 @@ body.glance-strip .enemy.zombie-sprite {
     --marker: #9aa0a6;
     width: 24px !important;
     height: 24px !important;
-    top: calc(var(--strip-sky) + var(--lane, 0) * var(--strip-lane)) !important;
+    top: calc(var(--strip-sky) + var(--lane, 0) * var(--strip-pitch)) !important;
     z-index: calc(10 + var(--lane, 0)) !important; /* lower lane = nearer = in front */
     box-sizing: border-box;
     border: 2px solid rgba(255, 255, 255, 0.9) !important;
@@ -118,7 +117,7 @@ body.glance-strip .enemy.zombie-subtask,
 body.glance-strip .enemy.zombie-sprite.zombie-subtask {
     width: 16px !important;
     height: 16px !important;
-    top: calc(var(--strip-sky) + var(--lane, 0) * var(--strip-lane) + 4px) !important;
+    top: calc(var(--strip-sky) + var(--lane, 0) * var(--strip-pitch) + 4px) !important;
     z-index: calc(5 + var(--lane, 0)) !important;
     border-width: 1.5px !important;
 }

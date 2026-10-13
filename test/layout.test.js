@@ -220,12 +220,17 @@ describe('Layout.applyStripLayout (V3b-2)', () => {
 
 describe('strip geometry stays in sync between CONFIG and css/glanceStrip.css', () => {
     const css = require('fs').readFileSync(require('path').join(__dirname, '../css/glanceStrip.css'), 'utf8');
-    test('sky / lane / lane count / canvas height match', () => {
+    test('sky / marker / pitch / lane count / canvas height match', () => {
         expect(css).toContain(`--strip-sky: ${CONFIG.STRIP_SKY_HEIGHT}px;`);
-        expect(css).toContain(`--strip-lane: ${CONFIG.STRIP_LANE_HEIGHT}px;`);
+        expect(css).toContain(`--strip-marker: ${CONFIG.STRIP_MARKER_HEIGHT}px;`);
+        expect(css).toContain(`--strip-pitch: ${CONFIG.STRIP_LANE_PITCH}px;`);
         expect(css).toContain(`--strip-lanes: ${CONFIG.STRIP_LANE_COUNT};`);
-        const h = CONFIG.STRIP_SKY_HEIGHT + CONFIG.STRIP_LANE_COUNT * CONFIG.STRIP_LANE_HEIGHT;
+        const h = CONFIG.STRIP_SKY_HEIGHT + CONFIG.STRIP_MARKER_HEIGHT + (CONFIG.STRIP_LANE_COUNT - 1) * CONFIG.STRIP_LANE_PITCH;
         expect(css).toMatch(new RegExp(`#gameCanvas \\{\\s*height: ${h}px;`));
+    });
+    test('lanes overlap (pitch < marker height) so back markers stay tappable', () => {
+        expect(CONFIG.STRIP_LANE_PITCH).toBeLessThan(CONFIG.STRIP_MARKER_HEIGHT);
+        expect(CONFIG.STRIP_MARKER_HEIGHT).toBe(24); // css marker box is 24px
     });
     test('lane selectors exist for every lane', () => {
         for (let l = 0; l < CONFIG.STRIP_LANE_COUNT; l++) expect(css).toContain(`[data-lane="${l}"] { --lane: ${l}; }`);
