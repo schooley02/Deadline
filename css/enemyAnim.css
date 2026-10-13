@@ -25,10 +25,7 @@
 .enemy.has-anim-sprite.urgency-urgent {
     animation: none;
 }
-/* ...but keep the overdue pulse (box-shadow glow) on enemies at the base. */
-.enemy.has-anim-sprite.enemy-at-base {
-    animation: pulse-urgent 1s infinite alternate;
-}
+/* (The overdue pulse is now a drop-shadow glow on the sprite — enemyStatus.css.) */
 
 .enemy-sprite {
     --cell: 180px;

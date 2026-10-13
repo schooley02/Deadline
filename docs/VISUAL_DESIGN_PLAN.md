@@ -122,7 +122,7 @@ Nothing broken; zero game identity. Category chips already use ART_STYLE.md's pa
   Live-verified in Chrome against Jeremy's real `node server.js`: desktop + 390×844 (no page
   overflow), parallax transform confirmed across the full 0–1439 minute range, fx-off/fx-reduced
   correctly stop idle animations, hero-chip zone unchanged, zero console errors.
-- [ ] **V2 — State-indicator redesign** (`css/enemyStatus.css`, `css/enemySprites.css`):
+- [x] **V2 — State-indicator redesign (BUILT 2026-10-12, Claude app session; CSS only — `enemyStatus.css`, `enemySprites.css`, `enemyAnim.css`, `timeSlider.css`; sw.js v12; mechanism in docs/UI_UX.md "Enemy state glows"; supersession logged in DECISIONS.md). Live-checked in the built-in browser with real class combos (all states, stacked states, fx modes). STILL OPEN: phone perf check with 10+ sprites; Jeremy wants a stronger differentiator set planned later. Original spec follows.** — (`css/enemyStatus.css`, `css/enemySprites.css`):
   drop-shadow glows replace all rectangle borders (priority/overdue/lurker/habit/sub-task/
   preview-ghost). Requires a DECISIONS.md entry superseding the intentional-dashed-border
   note. Check `.time-preview-ghost` styling on base/HUD/hero-chips still reads once enemy
@@ -171,8 +171,8 @@ gets at most a minimal sky/ground backdrop, no props.
 
 ## Hazards (audit-discovered, for the executing sessions)
 
-- Habit dashed border is currently INTENTIONAL (enemyStatus.css:63) — V2 must log the
-  supersession, not silently restyle. Ghost-vs-habit dashes are separate rules; kill both.
+- ~~Habit dashed border is currently INTENTIONAL~~ — superseded and logged by V2 (2026-10-12).
+  (Original note: V2 must log the supersession, not silently restyle.) Ghost-vs-habit dashes are separate rules; kill both.
 - `.time-preview-ghost` applies opacity-dim to base/HUD/hero chips too — V2's enemy changes
   must not orphan those.
 - Hero chips render over the base's leftmost 120px (heroes.js) — V1/V3/V4 layout changes

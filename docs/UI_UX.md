@@ -36,7 +36,7 @@ Replaces the agenda list with routines ranked by level (top performers first). M
 - **Settings window BUILT ([P2-UI-009], Milestone 4, session 59, 2026-07-19):** 6th FAB item, `js/ui/settingsView.js`. First real content in what's meant to grow into a general settings surface (DATA_SCHEMA.md's long-forward-declared `deadline.settings` key) — today just a "Streak Fire Effects" radio group (Full / Reduced / Off), persisted separately from the game save via `js/settings.js` and applied as a `<body>` class (`fx-reduced`/`fx-off`) that CSS keys off. `prefers-reduced-motion` is honored unconditionally regardless of the in-app setting.
 
 ## Visual Feedback
-- Urgent task: glow / bright border (enemy and list item).
+- Urgent task: red glow around the zombie (enemy; V2) / bright border (list item).
 - Base damage: shake on hit, progressive destruction visuals.
 - Enemy defeat: explosion + points/XP popup.
 - Game over: "Your Base survived X days. What adjustments can you make to have a stronger Base in your life?" + New Base button.
@@ -154,6 +154,25 @@ a bug); `--scene-progress` and the resulting `translateX` verified across the fu
 range (ground transform stayed `none` throughout); `fx-off`/`fx-reduced` correctly stop both idle
 animations, default leaves them running; hero-chip zone (base's leftmost 120px) unchanged; zero
 console errors beyond the standard Chrome-extension message-channel noise.
+
+## Enemy state glows (V2, 2026-10-12)
+
+`css/enemyStatus.css` owns every state indicator on `.enemy`. They are `drop-shadow` glows on the animated sprite child `.enemy-sprite` (static-PNG fallback: on `.enemy` itself, held still), so they trace the character, not the box.
+
+| State (class) | Look |
+|---|---|
+| `high-priority` | gold glow, pulses; ⭐ badge (`::after`) |
+| `enemy-at-base` (overdue) | red glow, pulses |
+| `habit-enemy` (not negative) | cyan glow |
+| `habit-enemy.negative-habit` | purple glow; 🚫 badge (`::after`) |
+| `high-streak` / `super-streak` | orange fire glow, flickers (super: hotter, bigger, faster) |
+| `time-preview-ghost` | existing opacity dim + `grayscale(.85)` sprite; glows stay colored |
+| `:hover` | white glow |
+| `zombie-subtask` | none (smaller + 0.85 opacity) |
+
+**Composition rule (don't break it):** `filter` is one property, so a state NEVER sets `filter` itself — it sets its fragment variable (`--g-priority`, `--g-overdue`, `--g-habit`, `--g-lurker`, `--g-streak`, `--g-hover`, `--g-ghost`) and the single chain on `.enemy-sprite` joins them. An unset fragment's empty `var()` fallback disappears; no states = `filter: none`. Pulses animate registered `@property` lengths (`--pr-blur`, `--od-blur`, `--fl-blur`) selected through `--an-pr/--an-od/--an-fl` + `animation-name: var(...)`, in stepped timing; the registered initial-values are the held look. Fragments must be declared on the element that carries the filter, or their `var(--*-blur)` won't see the animated value. `::before`/`::after` stay claimed (category icon, ⭐, 🚫) — put nothing new on them.
+
+**Gating:** `.fx-reduced` and prefers-reduced-motion hold all glows still; `.fx-off` holds state glows still and drops the streak fire. Colors are a first pass — a stronger set of at-a-glance differentiators is planned (ROADMAP). Perf with 10+ sprites on a phone is unverified.
 
 ## Windows & Modals — unified behavior ([P2-UI-011] Stage 1, session 61, 2026-07-19)
 Two window systems share one behavior layer (`js/ui/modal.js`, wired via `Modal.initDismissHandlers`/`initFocusManagement` in script.js):

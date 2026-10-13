@@ -7,7 +7,7 @@
  * every element it's toggled on (#base, #baseHealthDisplay, #heroBaseZone as
  * ONE container — opacity visually dims all its chip children too with no
  * per-chip CSS needed), plus a MORE SPECIFIC .enemy variant that adds the
- * dashed-outline treatment on top. Enemy sprite movement comes for free from
+ * desaturated-sprite treatment on top. Enemy sprite movement comes for free from
  * .enemy's existing `transition: all 0.2s ease` (css/enemySprites.css), same
  * as every other position change in the game, so it's intentionally NOT
  * re-declared or gated here.
@@ -76,9 +76,6 @@
     opacity: 0.55;
 }
 
-/* Enemy sprites additionally get a dashed outline — no new motion, the
-   slide itself is .enemy's existing transition (see file header). */
-.enemy.time-preview-ghost {
-    outline: 2px dashed var(--color-sacred-stone);
-    outline-offset: 2px;
-}
+/* Enemy sprites additionally desaturate (V2, 2026-10-12: replaces the dashed
+   outline) — see enemyStatus.css --g-ghost. No new motion, the slide itself
+   is .enemy's existing transition (see file header). */

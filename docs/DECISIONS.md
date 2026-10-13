@@ -4,6 +4,18 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-12 — V2: state indicators become silhouette glows; supersedes "dashed habit border is intentional" (Jeremy approved plan, Claude app session, Opus plan -> Sonnet build)
+
+- **Decision:** every rectangle state indicator on enemies (priority outline+box-shadow, overdue red box pulse, habit dashed border, lurker orange border, sub-task thin outline, preview-ghost dashed outline, hover white box-shadow, streak-fire box-shadows) is replaced by a CSS `drop-shadow` glow that follows the zombie's silhouette. Colors, deliberately loud: priority gold, overdue red, habit cyan, lurker purple, streak orange (super = hotter/bigger). Sub-task has no glow (smaller + 0.85 opacity already marks it). Preview ghost = existing opacity dim + desaturated sprite (glows stay colored). Habit zombies are NOT see-through (Jeremy: the time slider already uses see-through for "preview").
+- **Supersedes** the session-73 note that the habit dashed border (`css/enemyStatus.css`) is intentional; that rule is gone. The ghost-vs-habit dashed outlines are both removed.
+- **Mechanism:** one `filter` chain on the sprite child (`.enemy-sprite`) fed by per-state fragment variables, so stacked states compose instead of overwriting each other; pulses animate registered custom properties (`--pr-blur/--od-blur/--fl-blur`) in stepped timing, never `filter` itself. Static-PNG fallback (no `.has-anim-sprite`) gets the same glows held still on the `.enemy` box. Details: docs/UI_UX.md "Enemy state glows".
+- **fx gating:** `reduced` / prefers-reduced-motion = glows held still; `off` = state glows held still, streak fire dropped (keeps the pre-session-59 "plain" contract). Super-streak's breathing scale was dropped.
+- **Deferred (Jeremy):** the colors are a first pass; a stronger set of at-a-glance differentiators (shape/badge language, not just color) will be planned later — see ROADMAP. Lurk-post prop deferred to V4+.
+- **Not verified yet:** glow performance with 10+ sprites on Jeremy's phone. Fallback if janky: drop shadow layers under `.fx-reduced`.
+- sw.js `deadline-shell-v12`. Jest 63 suites / 1319 green (no test pins these CSS rules).
+
+---
+
 ## 2026-10-12 — Negative-habit agenda rows: Avoided / Indulged buttons replace the checkbox (Jeremy's call, Claude app session, Sonnet)
 
 - **Problem:** the agenda row's "Mark as Complete" checkbox on a negative-habit lurker routed to `completeItem` = *avoided* (points + streak, defeat exit). A "done" tick is ambiguous for a thing you're trying NOT to do, and mapping it to *indulged* would make a misclick cost points and zero the streak.

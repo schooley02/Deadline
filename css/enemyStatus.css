@@ -1,17 +1,82 @@
 /**
- * enemyStatus.css — extracted from the style.css monolith (Milestone 2, style.css split, 2026-07-18).
- * High-priority indicator, habit-enemy sizing, overdue-enemy styling.
+ * enemyStatus.css — state indicators ("V2 glow system", 2026-10-12).
+ *
+ * Every state indicator is a silhouette-hugging GLOW (CSS `drop-shadow`), never
+ * a rectangle: the zombie art has transparent backgrounds, so the glow follows
+ * the character. Replaces the old outline / dashed-border / box-shadow boxes
+ * (see docs/DECISIONS.md 2026-10-12 — supersedes the session-73 "dashed habit
+ * border is intentional" note).
+ *
+ * HOW IT COMPOSES: one zombie can be high-priority AND overdue AND a streaking
+ * habit at once, and `filter` is a single property, so each state only sets its
+ * own fragment variable (--g-priority, --g-overdue, --g-habit, --g-lurker,
+ * --g-streak, --g-hover, --g-ghost); the one `filter` rule below chains
+ * whichever fragments exist. An unset fragment's empty fallback vanishes, and a
+ * fully-empty filter is `none` (zero cost for plain zombies).
+ *
+ * WHERE: the glow lives on the animated sprite child (`.enemy-sprite`, built by
+ * js/spriteAnim.js) so it traces the drawn character. A zombie still on its
+ * static fallback PNG (no `.has-anim-sprite`) takes the glow on the `.enemy`
+ * box itself, held still. Fragments are declared on the same element that
+ * carries the filter so their `var(--*-blur)` pieces resolve against the
+ * animated values.
+ *
+ * PULSES animate registered custom properties (the *-blur lengths below), not
+ * `filter` itself, so they never fight each other. Stepped timing keeps the
+ * re-rasterize rate low on phones. The registered initial-values are the
+ * "held" look used when motion is off. If a phone janks with 10+ sprites, the
+ * fallback is to drop the shadow layers under .fx-reduced (see
+ * docs/VISUAL_DESIGN_PLAN.md V2).
+ *
+ * Colors are deliberately loud; a better differentiator set (shape / badge
+ * language) is a planned follow-up, not this file's job.
  */
 
-/* High Priority Enemies */
-.enemy.high-priority {
-    outline: 3px solid var(--color-holy-gold);
-    box-shadow: 0 0 15px var(--color-holy-gold), 0 0 25px var(--color-accent-yellow);
-    animation: pulse-priority 1.5s infinite alternate;
-    z-index: 15;
+@property --pr-blur { syntax: '<length>'; inherits: true; initial-value: 10px; }
+@property --od-blur { syntax: '<length>'; inherits: true; initial-value: 12px; }
+@property --fl-blur { syntax: '<length>'; inherits: true; initial-value: 10px; }
+
+.enemy-sprite,
+.enemy:not(.has-anim-sprite) {
+    filter: var(--g-ghost,) var(--g-hover,) var(--g-habit,) var(--g-lurker,)
+            var(--g-streak,) var(--g-priority,) var(--g-overdue,);
 }
 
-/* High priority star indicator */
+/* Pulse wiring: each state sets --an-* to its keyframes name; unset = none. */
+.enemy-sprite {
+    animation-name: var(--an-pr, none), var(--an-od, none), var(--an-fl, none);
+    animation-duration: 1.4s, 0.8s, 1.2s;
+    animation-iteration-count: infinite;
+    animation-direction: alternate, alternate, normal;
+    animation-timing-function: steps(4), steps(4), steps(1, end);
+}
+
+@keyframes glow-priority { from { --pr-blur: 6px; }  to { --pr-blur: 15px; } }
+@keyframes glow-overdue  { from { --od-blur: 7px; }  to { --od-blur: 20px; } }
+@keyframes glow-flame {
+    0%   { --fl-blur: 7px; }
+    25%  { --fl-blur: 13px; }
+    50%  { --fl-blur: 9px; }
+    75%  { --fl-blur: 15px; }
+    100% { --fl-blur: 7px; }
+}
+@keyframes glow-flame-strong {
+    0%   { --fl-blur: 12px; }
+    30%  { --fl-blur: 22px; }
+    60%  { --fl-blur: 16px; }
+    100% { --fl-blur: 12px; }
+}
+
+/* High priority — gold glow (+ the star badge below). */
+.enemy.high-priority {
+    z-index: 15;
+}
+.enemy.high-priority > .enemy-sprite,
+.enemy.high-priority:not(.has-anim-sprite) {
+    --g-priority: drop-shadow(0 0 2px #fff6b0) drop-shadow(0 0 var(--pr-blur) #ffc400);
+    --an-pr: glow-priority;
+}
+
 .enemy.high-priority::after {
     content: "⭐";
     position: absolute;
@@ -22,132 +87,24 @@
     text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
 }
 
-@keyframes pulse-priority {
-    from {
-        outline-width: 3px;
-        box-shadow: 0 0 10px var(--color-holy-gold), 0 0 15px var(--color-accent-yellow);
-    }
-    to {
-        outline-width: 4px;
-        box-shadow: 0 0 18px var(--color-holy-gold), 0 0 30px var(--color-accent-yellow);
-    }
+/* Overdue (camped at the base) — red glow. */
+.enemy.enemy-at-base > .enemy-sprite,
+.enemy.enemy-at-base:not(.has-anim-sprite) {
+    --g-overdue: drop-shadow(0 0 2px #ff8a80) drop-shadow(0 0 var(--od-blur) #ff1744);
+    --an-od: glow-overdue;
 }
 
-/* Responsive icon sizing for mobile */
-@media (max-width: 768px) {
-    .enemy::before {
-        font-size: 24px;
-    }
-    
-    .enemy.category-relationships::before {
-        font-size: 18px;
-    }
-    
-    .enemy.high-priority::after {
-        font-size: 14px;
-        top: -6px;
-        left: -6px;
-    }
-    
-    .enemy.habit-enemy.negative-habit::after {
-        font-size: 10px;
-        width: 14px;
-        height: 14px;
-    }
+/* Habit — cyan "spectral" glow. NOT see-through: the time slider already
+   uses see-through for "preview" (Jeremy's call, 2026-10-12). */
+.enemy.habit-enemy:not(.negative-habit) > .enemy-sprite,
+.enemy.habit-enemy:not(.negative-habit):not(.has-anim-sprite) {
+    --g-habit: drop-shadow(0 0 2px #b2ffff) drop-shadow(0 0 8px #00e5ff);
 }
 
-/* Habit Enemies — 2026-07-21 (Jeremy's call, see docs/DECISIONS.md): habits
-   render at the same regular size as tasks now (the size-forcing
-   width/height/background-size rules that used to live here, and the
-   parallel .zombie-small.zombie-* block in enemySprites.css, are both
-   removed — sub-tasks already own the "visually smaller" treatment via a
-   real 64px box). The dashed border stays as the habit identity marker,
-   independent of size. */
-.enemy.habit-enemy {
-    border-style: dashed;
-}
-
-/* [P2-UI-009] Milestone 4, session 59: on-fire visual for a habit at/above
-   CONFIG.HABIT_STREAK_BONUS_THRESHOLD. Deliberately NO ::before/::after here
-   — both are already spoken for on this element (::before is the category
-   icon, enemySprites.css; ::after is the negative-habit 🚫 badge, which CAN
-   coexist with high-streak on the same element for a negative habit that's
-   being successfully avoided repeatedly). Everything is box-shadow/filter/
-   transform on the element itself: no extra DOM nodes, GPU-composited,
-   cheap enough for many concurrent enemies on mobile — a deliberate
-   "illusion of fire" over a real particle system, which is the actual
-   answer to the ticket's own "optimize for multiple concurrent effects /
-   mobile devices" requirement. */
-.enemy.habit-enemy.high-streak {
-    animation: flame-flicker 1.4s infinite;
-}
-
-@keyframes flame-flicker {
-    0%   { box-shadow: 0 0 8px  #ff8c00, 0 0 16px #ffa500, 0 0 2px  #fff5cc; filter: brightness(1); }
-    25%  { box-shadow: 0 0 14px #ff6f00, 0 0 26px #ffb300, 0 0 4px  #fff5cc; filter: brightness(1.08); }
-    50%  { box-shadow: 0 0 10px #ff8c00, 0 0 20px #ffa500, 0 0 3px  #fff5cc; filter: brightness(1.02); }
-    75%  { box-shadow: 0 0 16px #ff5722, 0 0 28px #ff9800, 0 0 5px  #fff5cc; filter: brightness(1.1); }
-    100% { box-shadow: 0 0 8px  #ff8c00, 0 0 16px #ffa500, 0 0 2px  #fff5cc; filter: brightness(1); }
-}
-
-/* Stronger tier (session 59) — CONFIG.HABIT_STREAK_STRONG_THRESHOLD.
-   ADDITIVE: spawning.js/items.js always pair this with .high-streak (never
-   alone), so this just layers a bigger, hotter, faster flicker + a subtle
-   breathing scale on top of the base flame rather than replacing it. */
-.enemy.habit-enemy.super-streak {
-    animation: flame-flicker-strong 0.9s infinite;
-    z-index: 16;
-}
-
-@keyframes flame-flicker-strong {
-    0%   { box-shadow: 0 0 14px #ff5722, 0 0 28px #ff3d00, 0 0 40px rgba(255, 87, 34, 0.5), 0 0 6px #fff8e1; filter: brightness(1.05); transform: scale(1); }
-    30%  { box-shadow: 0 0 20px #ff3d00, 0 0 38px #ff6f00, 0 0 55px rgba(255, 61, 0, 0.6),  0 0 9px #fff8e1; filter: brightness(1.18); transform: scale(1.03); }
-    60%  { box-shadow: 0 0 16px #ff5722, 0 0 32px #ff5722, 0 0 45px rgba(255, 87, 34, 0.5), 0 0 7px #fff8e1; filter: brightness(1.1); transform: scale(1); }
-    100% { box-shadow: 0 0 14px #ff5722, 0 0 28px #ff3d00, 0 0 40px rgba(255, 87, 34, 0.5), 0 0 6px #fff8e1; filter: brightness(1.05); transform: scale(1); }
-}
-
-/* Accessibility + the ticket's "user preference toggle for visual effects
-   intensity" (js/settings.js sets one of these classes on <body>; default
-   'full' adds neither, so existing behavior is unchanged for anyone who
-   never opens the new Settings window). 'reduced' keeps a static colored
-   glow (still readable as "this habit is special") without any animation
-   cost; 'off' drops back to the plain pre-session-59 look. prefers-reduced-
-   motion is honored unconditionally regardless of the in-app setting. */
-@media (prefers-reduced-motion: reduce) {
-    .enemy.habit-enemy.high-streak,
-    .enemy.habit-enemy.super-streak {
-        animation: none;
-        transform: none;
-        filter: none;
-        box-shadow: 0 0 10px #ff8c00, 0 0 20px #ffa500;
-    }
-}
-
-.fx-reduced .enemy.habit-enemy.high-streak,
-.fx-reduced .enemy.habit-enemy.super-streak {
-    animation: none;
-    transform: none;
-    filter: none;
-    box-shadow: 0 0 10px #ff8c00, 0 0 20px #ffa500;
-}
-
-.fx-off .enemy.habit-enemy.high-streak,
-.fx-off .enemy.habit-enemy.super-streak {
-    animation: none;
-    transform: none;
-    filter: none;
-    box-shadow: none;
-}
-
-/* [P1-DATA-005] session 29 (Jeremy's call): border only, no fill — a solid
-   orange background made the lurker read as an active/urgent enemy rather
-   than the passive, stationary temptation it actually is. */
-.enemy.habit-enemy.negative-habit {
-    background-color: transparent !important;
-    border-width: 3px !important;
-    border-style: solid !important;
-    border-color: #e68900 !important;
-    box-shadow: 0 0 8px var(--color-warning), 0 0 15px rgba(245, 124, 0, 0.3);
+/* Negative habit ("lurker") — purple glow. The 🚫 badge stays. */
+.enemy.habit-enemy.negative-habit > .enemy-sprite,
+.enemy.habit-enemy.negative-habit:not(.has-anim-sprite) {
+    --g-lurker: drop-shadow(0 0 2px #f0c8ff) drop-shadow(0 0 9px #c04dff);
 }
 
 .enemy.habit-enemy.negative-habit::after {
@@ -172,15 +129,81 @@
     z-index: 2;
 }
 
-/* Overdue Enemies */
-.enemy-at-base {
-    border-color: var(--color-error) !important;
-    animation: pulse-urgent 1s infinite alternate;
+/* [P2-UI-009] Streak fire (habit at/above CONFIG.HABIT_STREAK_BONUS_THRESHOLD),
+   now an orange flickering glow instead of box-shadow rectangles.
+   super-streak (CONFIG.HABIT_STREAK_STRONG_THRESHOLD) is ALWAYS paired with
+   high-streak (spawning.js/items.js) and just overrides to a bigger, hotter,
+   faster flicker. The old breathing scale on super-streak was dropped with the
+   box-shadow rewrite. */
+.enemy.habit-enemy.high-streak > .enemy-sprite,
+.enemy.habit-enemy.high-streak:not(.has-anim-sprite) {
+    --g-streak: drop-shadow(0 0 2px #fff3c4) drop-shadow(0 0 var(--fl-blur) #ff7a00);
+    --an-fl: glow-flame;
+}
+.enemy.habit-enemy.super-streak {
+    z-index: 16;
+}
+.enemy.habit-enemy.super-streak > .enemy-sprite,
+.enemy.habit-enemy.super-streak:not(.has-anim-sprite) {
+    --g-streak: drop-shadow(0 0 3px #fff8e1) drop-shadow(0 0 var(--fl-blur) #ff3d00)
+                drop-shadow(0 0 6px #ff7a00);
+    --an-fl: glow-flame-strong;
+}
+.enemy.habit-enemy.super-streak > .enemy-sprite { animation-duration: 1.4s, 0.8s, 0.9s; }
+
+/* Hover (desktop) — white glow around the zombie (was a white box-shadow). */
+.enemy:hover > .enemy-sprite,
+.enemy:hover:not(.has-anim-sprite) {
+    --g-hover: drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px rgba(255, 255, 255, 0.9));
 }
 
-@keyframes pulse-urgent {
-    from { box-shadow: 0 0 5px var(--color-error), 0 0 10px var(--color-error); }
-    to { box-shadow: 0 0 10px var(--color-error), 0 0 20px #ff4d4d; }
+/* Time-slider / day-pager preview ("projected, not real"): the .enemy is
+   already dimmed by css/timeSlider.css; the sprite also desaturates. Listed
+   FIRST in the filter chain so the state glows stay fully colored. */
+.enemy.time-preview-ghost > .enemy-sprite,
+.enemy.time-preview-ghost:not(.has-anim-sprite) {
+    --g-ghost: grayscale(0.85);
+}
+
+/* Effects intensity + accessibility (js/settings.js sets .fx-reduced / .fx-off
+   on <body>; prefers-reduced-motion is honored unconditionally):
+   - reduced / reduced-motion: every glow held still (the registered
+     initial-values), no pulse or flicker.
+   - off: same held glows for the STATE colors; the streak fire is dropped
+     entirely, matching the pre-session-59 "plain" contract. */
+@media (prefers-reduced-motion: reduce) {
+    .enemy-sprite { animation-name: none; }
+}
+.fx-reduced .enemy-sprite,
+.fx-off .enemy-sprite {
+    animation-name: none;
+}
+.fx-off .enemy.habit-enemy.high-streak > .enemy-sprite,
+.fx-off .enemy.habit-enemy.high-streak:not(.has-anim-sprite) {
+    --g-streak: initial;
+}
+
+/* Responsive icon sizing for mobile */
+@media (max-width: 768px) {
+    .enemy::before {
+        font-size: 24px;
+    }
+
+    .enemy.category-relationships::before {
+        font-size: 18px;
+    }
+
+    .enemy.high-priority::after {
+        font-size: 14px;
+        top: -6px;
+        left: -6px;
+    }
+
+    .enemy.habit-enemy.negative-habit::after {
+        font-size: 10px;
+        width: 14px;
+        height: 14px;
+    }
 }
 
 /* [P2-GAME-010] Stage 1, Milestone 4, session 60 (2026-07-19): "fake walk"

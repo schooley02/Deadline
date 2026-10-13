@@ -11,22 +11,35 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
-## 2026-10-12 — Animated zombies, Stage 2b: death animation + scrub pause (Claude app session, Sonnet)
+## 2026-10-12 — V2: state-indicator glows (Claude app session, Opus plan -> Sonnet build)
 
-**Did:** Stage 2a live-verified by Jeremy ("looks good"). Built P2-GAME-010 Stage 2b. `js/spriteAnim.js` (`playDeath`, `canPlayDeath`, `DEATH_*`), `css/enemyAnim.css` (`.enemy-dying`, scrub pause), `js/items.js` (`completeItem` exit), `sw.js` (v5 -> v6), NEW `test/items-death-anim.test.js`. Docs: ROADMAP, ART_STYLE, DECISIONS, CLAUDE.md.
+**Did:** Jeremy confirmed the undo fix live ("Keep original" now attacks + normal damage). Built **V2**: all enemy state rectangles (priority, overdue, habit dashed border, lurker, sub-task outline, preview-ghost dashed outline, hover, streak-fire box-shadows) replaced by silhouette `drop-shadow` glows — gold priority, red overdue, cyan habit, purple lurker, orange streak; sub-task none; ghost = dim + desaturated sprite; habits NOT see-through (Jeremy). One `filter` chain on `.enemy-sprite` fed by per-state fragment variables so stacked states compose; pulses animate registered `@property` blur lengths in stepped timing. Files: `css/enemyStatus.css` (rewritten top half; Stage 1 bob tail untouched), `enemySprites.css`, `enemyAnim.css`, `timeSlider.css`; sw.js v11 -> v12. Docs: DECISIONS (supersedes session-73 "dashed border intentional"), ART_STYLE, UI_UX ("Enemy state glows"), VISUAL_DESIGN_PLAN, ROADMAP, CLAUDE.md.
 
-**State:** Jest 62 suites, 1306/1306 green (scratch copy). Jeremy live-checked: scrub pause works. Found: future-day ghost sprites rendered in the sky -> fixed in `dayPagerView.js` (ground band + animated sprite; sw.js now v7), needs a re-check. Ghost fix confirmed live. Also built (Jeremy's call): negative-habit agenda rows show Avoided / Indulged buttons instead of the checkbox (`agendaList.js`, `script.js` deps, sw.js v8, 1308 tests) — needs a live check incl. a `scrollWidth` vs `clientWidth` overflow measure on a narrow screen.
+**State:** Jest 63 suites, 1319/1319 green (scratch copy). Live-checked in the built-in browser (localhost:8000) with injected real class combos: every state, a 3-state stack, fx-reduced/fx-off gating, composition. NOT checked: real task flow end to end, prefers-reduced-motion, glow performance on the phone with 10+ sprites. Commit not made (Jeremy pastes the git commands).
 
-**Live-verified 2026-10-12 (Jeremy):** death animation, scrub pause, future-day ghosts, Avoided/Indulged buttons (fit on mobile by eye). The checklist below is kept for reference.
-
-**Built after that (Sonnet):** the `uncompleteItem` due-time picker — `Items.uncompleteItemWithDuePrompt`, `Popups.promptNewDueTime`, clean-slate clock in `uncompleteItem`, script.js wiring, sw.js v9, +9 tests (1317 total). **NOT live-verified.** Live check: complete a task whose due time has passed (edit its due time into the past first, or use an overdue one), then untick it in Completed -> modal appears; test (a) future time -> returns not overdue, no damage; (b) Keep original -> overdue, damage ticks normally from now (no HP drop burst); (c) Cancel / ESC -> stays completed, checkbox still checked; (d) a sub-task can't pick a time after its parent; (e) a positive habit undo shows no prompt. Watch out: `test/timeSliderView.test.js` ('scrubbing forward past an overdue item...' + routine variant) is a pre-existing time-of-day flake — fails when run after ~23:00 local/sandbox time (it scrubs to 11 PM); passes earlier in the day.
-
-**Next:** live-check the picker, then V2. Old checklist: Complete a task: death plays once, splat holds, fades out, removed ~750ms; a sub-task (half size) and a positive habit too; "I indulged" on a bad habit still plain-fades. Drag the time slider: zombies freeze, resume on release. Effects Off / reduced-motion: plain fade. Click a dying zombie: nothing. (2) Then V2 (state-indicator glow) per VISUAL_DESIGN_PLAN.md.
+**Next:** (1) Jeremy: eyeball real zombies on desktop + phone after clearing SW/cache (cache v12); report jank with many sprites (fallback: drop shadow layers under `.fx-reduced`). (2) Plan stronger at-a-glance differentiators (shape/badge language) — design task, Jeremy wants it later. (3) V3b -> V3c; V4/V5 anytime. Lurk-post prop waits for V4+.
 
 **Watch out:**
-- `uncompleteItem` overdue back-charge: DECIDED (Jeremy, 2026-10-12) — picker for a new due time on undo of an overdue task/sub-task; habits clean-slate clock. Not built yet; spec in DECISIONS.md. Check the habit-miss behavior on undo before building.
+- A state must NEVER set `filter` directly — set its `--g-*` fragment (UI_UX.md "Enemy state glows"), or it will overwrite the other states' glows.
+- Fragments must be declared on the element carrying the filter (the sprite child, or `.enemy` for the static fallback), or the animated blur values won't resolve.
+- `::before`/`::after` on `.enemy` are still taken (category icon, ⭐, 🚫).
+- Super-streak lost its breathing scale; `off` drops streak fire (state glows stay).
+- Old pre-existing items still apply: `timeSliderView` time-of-day test flake after ~23:00; death FPS lives in CSS + `SpriteAnim.DEATH_FPS`; Avoided/Indulged buttons never measured with `scrollWidth`; files in `archive/` show as deletes + adds, use `git add -A`.
+
+## 2026-10-12 — Stage 2b (death animation, scrub pause) + follow-ups: ghost ground fix, Avoided/Indulged buttons, undo due-time picker (Claude app session, Opus plan -> Sonnet build)
+
+**Did:** Stage 2a live-verified ("looks good"). Built and pushed: (1) **P2-GAME-010 Stage 2b** — `SpriteAnim.playDeath`, `.enemy-dying` + scrub pause in `css/enemyAnim.css`, `completeItem` exit = 750ms death + 200ms fade (plain fade fallback; `indulgeHabit` keeps the plain fade). (2) **Day-pager ghosts** now stand on the ground band with the animated sprite (`dayPagerView.js`). (3) **Negative-habit agenda rows** show Avoided / Indulged buttons instead of the checkbox (`agendaList.js`, `script.js`). (4) **Undo of a past-due completion** (`uncompleteItem` back-charge hazard, DECIDED + BUILT): `Items.uncompleteItemWithDuePrompt` + `Popups.promptNewDueTime` (future time / keep original = clean-slate clock / cancel), clean-slate `lastDamageTickTime` inside `uncompleteItem`, picker default capped at the parent's deadline (Set disabled if the parent is past due), and the rebuilt element now gets `enemy-at-base` (pre-existing bug: undone overdue items walked instead of attacking). sw.js v5 -> v11. New tests: `test/items-death-anim.test.js`, `test/items-uncomplete-due.test.js`, +2 in `agenda-list.test.js`. Docs: ROADMAP, ART_STYLE, DECISIONS (3 entries), CLAUDE.md.
+
+**State:** Jest 63 suites, 1319/1319 green (scratch copy; commit pushed by Jeremy). **Live-verified by Jeremy:** death animation, scrub pause, future-day ghosts, Avoided/Indulged buttons (fit on mobile by eye), picker flow incl. sub-task parent rule. **Not re-verified after the final fix:** "Keep original" now attacking (`enemy-at-base`), and the picker's parent-past-due disabled state. Positive-habit undo correctly shows no prompt.
+
+**Next:** (1) Quick re-check of "Keep original" -> attack animation + normal damage from that moment (clear SW + cache first; cache is v11). (2) V2 (state-indicator glow) per `docs/VISUAL_DESIGN_PLAN.md` — design task, plan on Opus first. Then V3b, V3c; V4/V5 anytime.
+
+**Watch out:**
+- `test/timeSliderView.test.js` ('scrubbing forward past an overdue item...' + routine variant) is a pre-existing time-of-day flake: fails when run after ~23:00 sandbox/local time (it scrubs to 11 PM). Passes earlier in the day.
 - Death FPS lives in two places (CSS `--fps: 12` and `SpriteAnim.DEATH_FPS`); a test pins them together.
-- A dying zombie stays in `activeItems` for 750ms (was 500ms); nothing else reads it differently, but watch for double-complete via the agenda list during that window.
+- A dying zombie stays in `activeItems` for 750ms (was 500ms); watch for double-complete via the agenda list in that window.
+- Avoided/Indulged buttons were checked by eye on mobile, not with a `scrollWidth` vs `clientWidth` measure (CLAUDE.md overflow rule).
+- Edit Task / + Sub-task still reject a sub-task due later than its parent (existing rule, working as intended).
 - Files in `archive/` still show as deletes + adds — `git add -A`.
 
 ## 2026-10-12 — Animated zombies, Stage 2a: walk/idle/attack sprite sheets (Claude app session, Opus plan -> Sonnet build)

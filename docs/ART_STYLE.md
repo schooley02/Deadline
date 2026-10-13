@@ -41,9 +41,9 @@ Shake animation on every hit. Smoke → full flames right before destruction.
 
 ## Enemy Visual Modifiers
 - Closer to due: more menacing, faster animation.
-- High priority: glow / bright outline.
+- High priority: gold silhouette glow + ⭐ badge. Overdue: red glow (pulses). Negative-habit lurker: purple glow + 🚫 badge. Habit: cyan glow. High/super streak: orange flickering fire glow. All are `drop-shadow` glows that hug the sprite (V2, 2026-10-12) — no rectangles; see UI_UX.md "Enemy state glows".
 - Parent task w/ sub-tasks: larger; shrinks as sub-tasks complete.
-- Habit: same regular size as a task (dashed border is the only visual distinction beyond category art); high streak = on fire. Sub-tasks are the only tier that renders visually smaller (64×64) — changed 2026-07-21, see DECISIONS.md.
+- Habit: same regular size as a task (cyan glow is the only visual distinction beyond category art; the dashed border was removed in V2); high streak = on fire. Sub-tasks are the only tier that renders visually smaller (64×64) — changed 2026-07-21, see DECISIONS.md.
 
 ## Category Colors (from prototype, for UI accents)
 other #90ee90 · career #4a90e2 · creativity #f5a623 · financial #50e3c2 · health #e91e63 · lifestyle #bd10e0 · relationships #f8e71c · spirituality #7ed321
