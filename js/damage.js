@@ -256,9 +256,22 @@ const Damage = (() => {
     // Guards on deps.setLastRegenTickMs being present so callers/tests that
     // don't thread it through (script.js not yet wired, or a deps stub) are
     // unaffected.
+    //
+    // Regen is PAUSED while any threatening item is overdue (Jeremy, 2026-10-13:
+    // with symmetric 1 HP / 5 min regen and damage, one overdue item netted zero
+    // and the base never visibly dropped). Items still flagged overdue at this
+    // point (restore flags them in addItemToGame) block the whole span -- a
+    // conservative approximation for items that went overdue partway through
+    // the window.
+    function hasThreateningOverdue(deps) {
+        if (!deps || typeof deps.getActiveItems !== 'function') return false;
+        const isLurker = deps.isNonThreatening || ((item) => item.type === 'habit' && item.isNegative === true);
+        return deps.getActiveItems().some(item => item.isOverdue && !isLurker(item));
+    }
+
     function applyElapsedRegen(elapsedMs, deps) {
         const ticks = computeRegenTicks(elapsedMs, CONFIG.BASE_REGEN_INTERVAL_MS);
-        if (ticks > 0) healBase(ticks * CONFIG.BASE_REGEN_HP, deps);
+        if (ticks > 0 && !hasThreateningOverdue(deps)) healBase(ticks * CONFIG.BASE_REGEN_HP, deps);
         if (deps.setLastRegenTickMs) deps.setLastRegenTickMs(Date.now());
     }
 
@@ -443,6 +456,7 @@ const Damage = (() => {
             isGameOver, getActiveItems, calculateTimelineXWithClustering,
             baseWidth, gameScreenWidth, setOfflineCatchUpActive, isNonThreatening
         } = deps;
+        const lurkW = (typeof deps.habitEnemyWidth === 'number') ? deps.habitEnemyWidth : CONFIG.HABIT_ENEMY_WIDTH;
 
         if (isGameOver()) return;
         const nowMs = Date.now();
@@ -465,7 +479,7 @@ const Damage = (() => {
         // Overdue items already had x set to the base by addItemToGame.
         entries.forEach(e => {
             if (isLurker(e.item)) {
-                e.targetX = gameScreenWidth - CONFIG.HABIT_ENEMY_WIDTH - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX;
+                e.targetX = gameScreenWidth - lurkW - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX;
             } else {
                 e.targetX = e.item.isOverdue
                     ? e.item.x
@@ -529,6 +543,7 @@ const Damage = (() => {
         damageBase,
         healBase,
         applyElapsedRegen,
+        hasThreateningOverdue,
         gameOver,
         applyOfflineDamage,
         runLiveGapCatchUp,

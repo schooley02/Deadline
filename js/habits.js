@@ -450,7 +450,46 @@ const Habits = (() => {
         deps.sortAndRenderActiveList();
     }
 
+    // Form/row wording for a habit's time of day (2026-10-13, Jeremy). For a
+    // NEGATIVE habit the time is a TRIGGER time ("tempting around 12 PM"), not
+    // a deadline: a lurker never goes overdue, so "by 12 PM" / "Due" misled.
+    function timeOfDayLabels(isNegative) {
+        if (isNegative) {
+            return {
+                fieldLabel: 'Tempting Time:',
+                options: {
+                    anytime: 'Anytime Today',
+                    morning: 'Morning (around 12 PM)',
+                    afternoon: 'Afternoon (around 5 PM)',
+                    evening: 'Evening (around 10 PM)',
+                },
+            };
+        }
+        return {
+            fieldLabel: null, // keep each form's own label ("Time of Day:" / "Completion Window:")
+            options: {
+                anytime: 'Anytime Today',
+                morning: 'Morning (by 12 PM)',
+                afternoon: 'Afternoon (by 5 PM)',
+                evening: 'Evening (by 10 PM)',
+            },
+        };
+    }
+
+    // Row text under a habit/task title: "Due: <date, time>" for everything
+    // except a negative-habit lurker, which reads "Tempting around <time> ·
+    // avoiding today".
+    function dueLineText(item, locale) {
+        if (item && item.type === 'habit' && item.isNegative === true) {
+            const t = item.dueDateTime.toLocaleTimeString(locale || [], { timeStyle: 'short' });
+            return `Tempting around ${t} \u00B7 avoiding today`;
+        }
+        return `Due: ${item.dueDateTime.toLocaleString(locale || [], { dateStyle: 'short', timeStyle: 'short' })}`;
+    }
+
     return {
+        timeOfDayLabels,
+        dueLineText,
         getHabitInstanceDueTime,
         selectHabitDefsToSpawn,
         // rate-based bonus (session 16)

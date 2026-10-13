@@ -151,7 +151,13 @@ const TimeSlider = (() => {
         const damageDelta = items.reduce((sum, item) => {
             return sum + damageTicksDelta(item.dueDateTime.getTime(), previewMs, nowMs, CONFIG.DAMAGE_INTERVAL_MS) * CONFIG.OVERDUE_DAMAGE;
         }, 0);
-        const regenDelta = regenTicksDelta(regenAnchorMs, previewMs, nowMs, CONFIG.BASE_REGEN_INTERVAL_MS) * CONFIG.BASE_REGEN_HP;
+        // Regen is paused while any threatening item is overdue (2026-10-13), so
+        // the projection counts none when an item is due by either "now" or the
+        // previewed time (approximation: ignores a partial span before it fell due).
+        const horizonMs = Math.max(previewMs, nowMs);
+        const regenPaused = items.some(item => item.dueDateTime.getTime() <= horizonMs);
+        const regenDelta = regenPaused ? 0
+            : regenTicksDelta(regenAnchorMs, previewMs, nowMs, CONFIG.BASE_REGEN_INTERVAL_MS) * CONFIG.BASE_REGEN_HP;
         return Math.max(0, Math.min(CONFIG.MAX_BASE_HEALTH, currentHealth - damageDelta + regenDelta));
     }
 

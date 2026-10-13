@@ -313,7 +313,27 @@ const Modal = (() => {
         window[name] = fn;
     }
 
+    // Habit forms (2026-10-13): relabel the Time of Day select when the habit
+    // type is Negative ("Tempting around ..." instead of "by ..."), live as the
+    // radio changes. Texts come from Habits.timeOfDayLabels. radioName = the
+    // habit-type radio group's `name`, selectId = the time-of-day <select>.
+    function wireHabitTimeLabels(radioName, selectId) {
+        const sel = document.getElementById(selectId);
+        if (!sel || typeof Habits === 'undefined' || !Habits.timeOfDayLabels) return;
+        const labelEl = sel.closest('.form-row') && sel.closest('.form-row').querySelector('label');
+        const originalLabel = labelEl ? labelEl.textContent : '';
+        const apply = () => {
+            const checked = document.querySelector(`input[name="${radioName}"]:checked`);
+            const labels = Habits.timeOfDayLabels(!!checked && checked.value === 'negative');
+            if (labelEl) labelEl.textContent = labels.fieldLabel || originalLabel;
+            Array.from(sel.options).forEach(o => { if (labels.options[o.value]) o.textContent = labels.options[o.value]; });
+        };
+        document.querySelectorAll(`input[name="${radioName}"]`).forEach(r => r.addEventListener('change', apply));
+        apply();
+    }
+
     return {
+        wireHabitTimeLabels,
         open,
         closeModal,
         closeTopmost,

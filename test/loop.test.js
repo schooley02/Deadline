@@ -323,6 +323,35 @@ describe('Loop.updateActiveItems', () => {
         expect(deps._state.healDealt).toBe(CONFIG.BASE_REGEN_HP);
     });
 
+    test('regen is PAUSED while a threatening item is overdue; clock stays planted at now (2026-10-13)', () => {
+        const REGEN_INTERVAL = CONFIG.BASE_REGEN_INTERVAL_MS;
+        const now = Date.now();
+        const overdue = { id: 1, type: 'task', isOverdue: true, dueDateTime: new Date(now - 60000),
+            lastDamageTickTime: now, x: 0, element: null, parentId: null };
+        const deps = makeDeps({
+            state: { activeItems: [overdue], lastRegenTickMs: now - 3 * REGEN_INTERVAL },
+        });
+        Loop.updateActiveItems(deps);
+        expect(deps._state.healDealt).toBe(0);
+        expect(deps._state.lastRegenTickMs).toBeGreaterThanOrEqual(now); // nothing banked
+        // overdue clears -> regen resumes one full interval later, not instantly
+        overdue.isOverdue = false;
+        overdue.dueDateTime = new Date(now + 3600000);
+        Loop.updateActiveItems(deps);
+        expect(deps._state.healDealt).toBe(0);
+    });
+
+    test('an overdue negative-habit lurker does NOT pause regen', () => {
+        const REGEN_INTERVAL = CONFIG.BASE_REGEN_INTERVAL_MS;
+        const lurker = makeLurker();
+        const deps = makeDeps({
+            state: { activeItems: [lurker], lastRegenTickMs: Date.now() - REGEN_INTERVAL - 10 },
+        });
+        lurker.isOverdue = true;
+        Loop.updateActiveItems(deps);
+        expect(deps._state.healDealt).toBe(CONFIG.BASE_REGEN_HP);
+    });
+
     test('[P2-GAME-012] no regen tick before an elapsed interval', () => {
         const deps = makeDeps({ state: { activeItems: [], lastRegenTickMs: Date.now() } });
         Loop.updateActiveItems(deps);
@@ -530,5 +559,21 @@ describe('Loop.updateGame', () => {
             Loop.updateGame(deps);
             expect(calls).toBe(1);
         });
+    });
+});
+
+
+describe('Loop lurker post is strip-aware (2026-10-13)', () => {
+    test('glance-strip mode (habitEnemyWidth 32): x = screen - 32 - margin', () => {
+        const lurker = makeLurker();
+        const deps = makeDeps({ state: { activeItems: [lurker] }, deps: { habitEnemyWidth: 32 } });
+        Loop.updateActiveItems(deps);
+        expect(lurker.x).toBe(1200 - 32 - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX);
+    });
+    test('without habitEnemyWidth it falls back to the desktop CONFIG width', () => {
+        const lurker = makeLurker();
+        const deps = makeDeps({ state: { activeItems: [lurker] } });
+        Loop.updateActiveItems(deps);
+        expect(lurker.x).toBe(1200 - CONFIG.HABIT_ENEMY_WIDTH - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX);
     });
 });

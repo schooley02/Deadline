@@ -17,6 +17,10 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 **State:** Jest 65 suites, 1368/1368 green (scratch copy at `$HOME/scratch`, not in the folder). Live-checked in the built-in browser at 375px with a hand-built save: migration to 12 on load, buttons only inside the 3-task group (none on the task hours away), reorder via the real buttons moved row/z/lane together, order survived reload (after the restore bug fix), no page/row overflow, buttons 44x22. Save restored to pristine afterward.
 
+**Also (phone feedback, same session):** Jeremy saw an hour-overdue task with the base still at 100 HP. Cause: regen and a single overdue item's damage cancelled (both 1 HP / 5 min). Fixed on his OK: regen now pauses while any threatening item is overdue (loop.js, damage.js `applyElapsedRegen`/`hasThreateningOverdue`, timeSlider.js projection); 3 old damage tests updated + 5 new tests (Jest 65 suites, 1,373/1,373); MECHANICS + DECISIONS updated. NOT live-verified. He also asked why Snacks (a NEGATIVE habit, 12:00, now 1:01) wasn't attacking too -- answered below (A2 lurker model kept, wording fixed).
+
+**Snacks resolved (same session):** Jeremy chose to KEEP the A2 lurker model and fix the confusion: negative-habit rows now read "Tempting around <time> · avoiding today" (also popup + the three habit forms' time selects), the time still sorts/ties normally, and the strip lurker post is strip-aware (x = W - 32 - 20; live-checked at 375px: left 323). New `test/habit-labels.test.js` + 2 loop tests; Jest 66 suites, 1,379/1,379. Glow-when-tempting idea parked by Jeremy (not on the roadmap). Regen-pause NOT live-verified beyond unit tests.
+
 **Next:** Jeremy's real-phone check (clear SW/cache, double-open for sw v20): confirm ▲/▼ feel right, the front-most marker is the top row, and a long reordered group doesn't over-fold into "+N". Then V3c (touch-target audit; the 22px-tall ▲/▼ halves are the one sub-44px height), V4, V5. Small open items: time-slider scrubbing with lanes; desktop/landscape z with many zombies; lurker post 128px margin; PixelLab art.
 
 **Watch out:**

@@ -1098,6 +1098,7 @@ const RoutineViews = (() => {
         `;
         Modal.open(formHtml);
         wireScheduleFieldsToggle('newHabit');
+        Modal.wireHabitTimeLabels('habitType', 'newHabitTimeOfDay');
     }
 
     // No deps — pure HTML-string builder (see showCreateHabitForm note).
@@ -1202,6 +1203,7 @@ const RoutineViews = (() => {
         `;
         Modal.open(formHtml);
         wireScheduleFieldsToggle('editHabit');
+        Modal.wireHabitTimeLabels('editHabitType', 'editHabitTimeOfDay');
     }
 
     // No deps — pure HTML-string builder (see showCreateHabitForm note).

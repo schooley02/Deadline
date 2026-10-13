@@ -4,6 +4,23 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 — Negative-habit time is a TRIGGER time, not a deadline: wording + strip lurker post (Jeremy, phone feedback; Claude app session, Sonnet)
+
+- **Decision:** the A2 lurker model is KEPT (a lurker never advances, never goes overdue, never damages the base; passing its time = success). Jeremy asked whether Snacks (due 12:00, now 1:01) should be at the base attacking because the row said "Due". Resolved by fixing the WORDING, not the mechanic: a negative habit's time of day is shown as "Tempting around 12:00 PM · avoiding today" (agenda row, `Habits.dueLineText`), "Tempting around:" in its popup, and the time-of-day selects read "Tempting Time:" / "(around 12 PM)" instead of "(by 12 PM)" in all three habit forms while the Negative type is selected (`Habits.timeOfDayLabels`, `Modal.wireHabitTimeLabels`). Positive habits and tasks keep "Due".
+- **Why keep the time:** Jeremy: certain times of day are when someone is susceptible to a bad habit (or should do a good one) -- the time is real information, so it stays, still sorts at its time in the list, and still joins 30-min tie groups (no pinning to the bottom).
+- **Strip lurker post:** loop.js / damage.js used the 128px desktop `CONFIG.HABIT_ENEMY_WIDTH` for the lurk post, so in glance-strip mode the lurker sat ~148px in from the right (on top of mid-timeline markers). Now strip-aware (`habitEnemyWidth` threaded through loopDeps and `State.buildDamageDeps`; falls back to CONFIG): x = screen - 32 - 20 in strip mode. Spawn and the slider preview were already strip-aware.
+- **Deferred (Jeremy: "later if needed"):** making the lurker react when its tempting time arrives (glow / pulse). Not built, not on the roadmap.
+- **Rejected:** making lurkers go overdue and attack after their time (reverses the 2026-07-19 A2 decision: avoiding all day would be punished by a clock).
+
+## 2026-10-13 — Base regen PAUSES while anything is overdue (Jeremy, from his phone; Claude app session, Sonnet) — BALANCE CHANGE
+
+- **Decision:** `BASE_REGEN_*` is unchanged, but regen does not tick while any threatening item is overdue (live loop, offline/gap catch-up, time-slider projection). The regen clock stays planted at now, so nothing banks while overdue and regen resumes one full interval after the last overdue clears.
+- **Why:** Jeremy had a task overdue by an hour and the base still read 100 HP. Cause: regen (+1 / 5 min) and one overdue item's damage (-1 / 5 min) were deliberately symmetric (2026-07-18), so a single overdue item netted zero. Two or more overdue items still net down; now one does too.
+- **Effect:** one overdue item = -1 HP / 5 min (12 HP/hour, the existing offline cap per item). A quiet base still recovers. Repair kits unchanged.
+- **Rejected:** keep as designed (the base looked like it ignored a camped zombie); slow regen to 10 min (a single overdue item would still lose only ~6 HP/hour and the rate would feel arbitrary).
+- **Not changed:** negative-habit lurkers (A2 model) never count as overdue and never block regen -- see the open question in the next handoff about whether a lurker past its due time should attack.
+- **Approximation:** offline/gap catch-up blocks the whole span if an item is overdue at restore, even when it went overdue partway through the window.
+
 ## 2026-10-13 — List-order layering BUILT: implementation choices (Claude app session, Sonnet)
 
 - **Rank = slot due time, validity = `listRankDue`:** `listRank` is the due time (ms + idx/1000) of the slot the item occupies once the group's sorted dues are re-dealt in manual order; `listRankDue` is the item's own due when stamped. A rank is valid only while the two due times match, so edit-popup / pushback / sub-clamp changes clear it with ZERO call-site changes. Slot-time ranks make merged and split groups keep each former group's internal order. (Rejected: global row-index ranks -- collide when two separately-ranked groups merge; clearing the rank at each due-time write site -- three sites today, easy to miss a fourth.)

@@ -73,6 +73,13 @@ const Loop = (() => {
         const lastRegen = deps.getLastRegenTickMs();
         if (lastRegen === null) {
             deps.setLastRegenTickMs(currentTimeMs);
+        } else if (deps.activeItems.some(i => i.isOverdue && !(deps.isNonThreatening && deps.isNonThreatening(i)))) {
+            // Regen is PAUSED while any threatening item is overdue (Jeremy,
+            // 2026-10-13; DECISIONS.md): symmetric regen + damage netted zero
+            // for a single overdue item, so the base never visibly dropped.
+            // Keep the clock planted at now so no heals bank up meanwhile --
+            // regen resumes one full interval after the last overdue clears.
+            deps.setLastRegenTickMs(currentTimeMs);
         } else if (currentTimeMs >= lastRegen + CONFIG.BASE_REGEN_INTERVAL_MS) {
             deps.healBase(CONFIG.BASE_REGEN_HP);
             deps.setLastRegenTickMs(lastRegen + CONFIG.BASE_REGEN_INTERVAL_MS);
@@ -108,7 +115,10 @@ const Loop = (() => {
             // Skips BOTH the overdue-transition branch below AND the
             // damage-tick branch entirely.
             if (deps.isNonThreatening && deps.isNonThreatening(item)) {
-                item.x = deps.gameScreenWidth - CONFIG.HABIT_ENEMY_WIDTH - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX;
+                // habitEnemyWidth is strip-aware (32px marker in glance-strip
+                // mode, 128 on desktop); CONFIG's 128 is only the fallback.
+                const lurkW = (typeof deps.habitEnemyWidth === 'number') ? deps.habitEnemyWidth : CONFIG.HABIT_ENEMY_WIDTH;
+                item.x = deps.gameScreenWidth - lurkW - CONFIG.NEGATIVE_LURK_RIGHT_MARGIN_PX;
                 if (item.element) item.element.style.left = item.x + 'px';
                 continue;
             }

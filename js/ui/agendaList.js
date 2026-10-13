@@ -232,10 +232,11 @@ const AgendaList = (() => {
         const itemDetailsSpan = document.createElement('span');
         itemDetailsSpan.classList.add('item-details');
         itemDetailsSpan.style.cssText = 'font-size: 12px; color: var(--color-neutral);';
-        itemDetailsSpan.textContent = `Due: ${itemData.dueDateTime.toLocaleString([], {
-            dateStyle: 'short',
-            timeStyle: 'short'
-        })}`;
+        // Negative-habit lurkers read "Tempting around <time> · avoiding today"
+        // (Habits.dueLineText) -- their time is a trigger time, not a deadline.
+        itemDetailsSpan.textContent = (typeof Habits !== 'undefined' && Habits.dueLineText)
+            ? Habits.dueLineText(itemData)
+            : `Due: ${itemData.dueDateTime.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`;
 
         itemDetailsContainer.appendChild(itemDetailsSpan);
         detailsAndSubTaskRow.appendChild(itemDetailsContainer);

@@ -262,6 +262,7 @@ const State = (() => {
             // [P1-DATA-005] session 29 — the negative-habit lurker's fixed x
             // anchors to the far right of the canvas, not the base.
             gameScreenWidth: deps.gameScreenWidth,
+            habitEnemyWidth: deps.habitEnemyWidth,
             baseElement: deps.baseElement,
             baseHealthDisplay: deps.baseHealthDisplay,
             gameOverMessage: deps.gameOverMessage,

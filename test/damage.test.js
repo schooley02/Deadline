@@ -734,6 +734,21 @@ describe('runLiveGapCatchUp', () => {
 
     test('[P2-GAME-012] heals for the gap since the last regen tick, after damage', () => {
         const now = Date.now();
+        // No overdue items: regen is only PAUSED while something is overdue (2026-10-13).
+        const lastRegen = now - 3 * CONFIG.BASE_REGEN_INTERVAL_MS;
+        const deps = makeDeps({
+            state: { activeItems: [], baseHealth: 50, lastRegenTickMs: lastRegen },
+            deps: {
+                getLastRegenTickMs: () => deps._state.lastRegenTickMs,
+                setLastRegenTickMs: (n) => { deps._state.lastRegenTickMs = n; },
+            },
+        });
+        Damage.runLiveGapCatchUp(deps);
+        expect(deps._state.baseHealth).toBe(50 + 3 * CONFIG.BASE_REGEN_HP);
+    });
+
+    test('regen is PAUSED across a gap while a threatening item is overdue (2026-10-13)', () => {
+        const now = Date.now();
         const it = item({ lastDamageTickTime: now - 10 * 60 * 60 * 1000, offlineDamageCharged: CAP }); // no damage owed
         const lastRegen = now - 3 * CONFIG.BASE_REGEN_INTERVAL_MS;
         const deps = makeDeps({
@@ -744,7 +759,22 @@ describe('runLiveGapCatchUp', () => {
             },
         });
         Damage.runLiveGapCatchUp(deps);
-        expect(deps._state.baseHealth).toBe(50 + 3 * CONFIG.BASE_REGEN_HP);
+        expect(deps._state.baseHealth).toBe(50);
+        expect(deps._state.lastRegenTickMs).toBeGreaterThan(lastRegen); // clock still reset
+    });
+
+    test('a lurker (negative habit) overdue does NOT pause regen', () => {
+        const now = Date.now();
+        const lurker = item({ type: 'habit', isNegative: true, isOverdue: true });
+        const deps = makeDeps({
+            state: { activeItems: [lurker], baseHealth: 50, lastRegenTickMs: now - 2 * CONFIG.BASE_REGEN_INTERVAL_MS },
+            deps: {
+                getLastRegenTickMs: () => deps._state.lastRegenTickMs,
+                setLastRegenTickMs: (n) => { deps._state.lastRegenTickMs = n; },
+            },
+        });
+        Damage.runLiveGapCatchUp(deps);
+        expect(deps._state.baseHealth).toBe(50 + 2 * CONFIG.BASE_REGEN_HP);
     });
 
     // [P1-DATA-005] session 27 — a negative-habit lurker takes no damage
@@ -789,20 +819,19 @@ describe('runOfflineCatchUp', () => {
     test('applies damage instantly when nothing needs animating', () => {
         // Long absence, but the item has no element to animate → the
         // instant-apply branch runs and the capped damage lands immediately.
-        // Started below max so the [P2-GAME-012] regen this same offline
-        // window now grants (10 whole BASE_REGEN_INTERVAL_MS ticks, applied
-        // AFTER damage) is actually visible rather than clamped away.
+        // 2026-10-13: regen is PAUSED while the item is overdue, so the offline
+        // window's 10 regen ticks are NOT granted on top of the damage.
         const it = item({ dueDateTime: new Date(Date.now() - 3 * INTERVAL), element: null });
         const deps = makeDeps({ state: { activeItems: [it], baseHealth: 50 } });
         Damage.runOfflineCatchUp([{ item: it, savedX: null }], 10 * INTERVAL, deps);
-        expect(deps._state.baseHealth).toBe(50 - 3 * DMG + 10 * CONFIG.BASE_REGEN_HP);
+        expect(deps._state.baseHealth).toBe(50 - 3 * DMG);
         expect(deps._state.offlineCatchUpActive).toBe(false);
     });
 
     test('[P2-GAME-012] regen clamps at MAX_BASE_HEALTH even after a long absence', () => {
-        const it = item({ dueDateTime: new Date(Date.now() - 3 * INTERVAL), element: null });
-        const deps = makeDeps({ state: { activeItems: [it] } }); // starts at 100
-        Damage.runOfflineCatchUp([{ item: it, savedX: null }], 10 * INTERVAL, deps);
+        // No overdue item (regen is paused while any is overdue, 2026-10-13).
+        const deps = makeDeps({ state: { activeItems: [], baseHealth: 90 } });
+        Damage.runOfflineCatchUp([], 100 * INTERVAL, deps);
         expect(deps._state.baseHealth).toBe(CONFIG.MAX_BASE_HEALTH);
     });
 

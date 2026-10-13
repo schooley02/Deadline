@@ -201,7 +201,9 @@ const Popups = (() => {
                     <h3>${item.name}</h3>
                     <div class="task-details">
                         <p><strong>Category:</strong> ${item.category}</p>
-                        <p><strong>Due:</strong> <span class="task-due-display">${item.dueDateTime.toLocaleString()}</span></p>
+                        ${isNegativeHabitInstance(item)
+                            ? `<p><strong>Tempting around:</strong> <span class="task-due-display">${item.dueDateTime.toLocaleTimeString([], { timeStyle: 'short' })}</span></p>`
+                            : `<p><strong>Due:</strong> <span class="task-due-display">${item.dueDateTime.toLocaleString()}</span></p>`}
                         <p><strong>Priority:</strong> ${item.isHighPriority ? 'High' : 'Normal'}</p>
                         ${item.type === 'habit' ? `<p><strong>Streak:</strong> ${item.streak}</p>` : ''}
                         ${buildActionsHtml(item, deps)}

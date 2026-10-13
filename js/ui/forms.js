@@ -333,7 +333,10 @@ const Forms = (() => {
         Modal.open(html);
 
         attachModalEventListeners(formType, deps);
-        if (formType === 'habit') wireScheduleFieldsToggle('modalHabit');
+        if (formType === 'habit') {
+            wireScheduleFieldsToggle('modalHabit');
+            Modal.wireHabitTimeLabels('modalHabitType', 'modalHabitTimeOfDay');
+        }
     }
 
     // deps: {

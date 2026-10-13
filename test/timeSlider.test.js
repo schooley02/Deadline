@@ -206,6 +206,15 @@ describe('projectBaseHealth', () => {
         expect(projected).toBe(50 + 2 * CONFIG.BASE_REGEN_HP);
     });
 
+    test('regen is paused in the projection while an item is overdue by now or the preview (2026-10-13)', () => {
+        const items = [makeOverdueItem(DUE)];
+        const anchor = NOW - 10;
+        const preview = NOW + CONFIG.BASE_REGEN_INTERVAL_MS * 2.5;   // 2 regen ticks would fall in the window
+        const damage = Math.floor((preview - DUE) / CONFIG.DAMAGE_INTERVAL_MS) - Math.floor((NOW - DUE) / CONFIG.DAMAGE_INTERVAL_MS);
+        expect(TimeSlider.projectBaseHealth(items, 50, preview, NOW, anchor))
+            .toBe(50 - damage * CONFIG.OVERDUE_DAMAGE);
+    });
+
     test('clamps at 0 (never shows negative projected health)', () => {
         const items = [makeOverdueItem(DUE)];
         const preview = DUE + CONFIG.DAMAGE_INTERVAL_MS * 500; // way more damage than current health
