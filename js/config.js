@@ -330,7 +330,7 @@ const CONFIG = {
     // NEIGHBOR form a chained tie group; manual order (item.listRank) applies
     // only inside a group. Canvas z-index follows the agenda row: the top row
     // gets LIST_Z_MAX and each lower row 2 less (floor LIST_Z_MIN); a sub-task
-    // sits one step behind its parent. The band sits above the old per-enemy
+    // sits one step behind its parent (portrait strip; in front of it on desktop/landscape since 2026-10-13, css/enemySprites.css). The band sits above the old per-enemy
     // z-values (10-16) and below the overdue pile (80), hover (85) and the
     // stats/heroes overlays (90) -- see css/enemySprites.css, glanceStrip.css.
     LIST_TIE_WINDOW_MIN: 30,

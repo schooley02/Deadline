@@ -283,6 +283,14 @@
     z-index: var(--list-z, 5); /* ListOrder sets this to parent z - 1: always just behind the parent */
 }
 
+/* Desktop / landscape (2026-10-13, Jeremy): a sub-task draws IN FRONT of its parent.
+   ListOrder writes --list-z = parent z - 1, so +2 = parent z + 1 (rows differ by 2, so
+   it still sits below the row above). Portrait strip is excluded: there a stacked
+   sub (3rd+) must stay hidden behind the parent's dot -- glanceStrip.css owns it. */
+body:not(.glance-strip) .enemy.zombie-subtask:not(.enemy-at-base) {
+    z-index: calc(var(--list-z, 5) + 2);
+}
+
 .zombie-sprite.zombie-subtask.zombie-career,
 .zombie-subtask.zombie-career {
     background-image: url('../Assets/Zombies/career-zombie-64.png') !important;

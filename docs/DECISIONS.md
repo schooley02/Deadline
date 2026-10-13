@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 -- Desktop/landscape: sub-tasks draw IN FRONT of their parent (Jeremy; Claude app session)
+
+- **Decision:** outside portrait strip mode a sub-task's z-index is parent z + 1 (CSS only: `body:not(.glance-strip) .enemy.zombie-subtask:not(.enemy-at-base)` -> `--list-z + 2`; ListOrder still writes parent - 1). Reverses the 2026-10-13 list-order-layering rule 'sub = parent - 1' for desktop/landscape only.
+- **Why:** Jeremy: subs should read as in front of the parent. Rows step by 2, so a sub never jumps above the row above its parent.
+- **Portrait unchanged:** stacked (3rd+) subs must stay behind the parent dot. Overdue pile (z 80) unchanged. `sw.js` -> v31.
+
+---
+
 ## 2026-10-13 -- Landscape/desktop: deterministic 3 ground lanes in list order (Jeremy, phone landscape; Claude app session)
 
 - **Problem:** landscape zombies all read as one lane. Landscape had no lanes: feet were a random fraction of 0.85-0.99 of canvas height, set once at spawn -- only ~35px of spread on a ~250px phone-landscape canvas for 128px sprites.
