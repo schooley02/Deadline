@@ -21,7 +21,9 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 
 **Snacks resolved (same session):** Jeremy chose to KEEP the A2 lurker model and fix the confusion: negative-habit rows now read "Tempting around <time> · avoiding today" (also popup + the three habit forms' time selects), the time still sorts/ties normally, and the strip lurker post is strip-aware (x = W - 32 - 20; live-checked at 375px: left 323). New `test/habit-labels.test.js` + 2 loop tests; Jest 66 suites, 1,379/1,379. Glow-when-tempting idea parked by Jeremy (not on the roadmap). Regen-pause NOT live-verified beyond unit tests.
 
-**Next:** Jeremy's real-phone check (clear SW/cache, double-open for sw v20): confirm ▲/▼ feel right, the front-most marker is the top row, and a long reordered group doesn't over-fold into "+N". Then V3c (touch-target audit; the 22px-tall ▲/▼ halves are the one sub-44px height), V4, V5. Small open items: time-slider scrubbing with lanes; desktop/landscape z with many zombies; lurker post 128px margin; PixelLab art.
+**sw cache bump (same session):** Jeremy's phone still showed the old app after the regen/Snacks commit because that commit shipped shell-file changes under the SAME `CACHE_NAME` (v20): the browser sees a byte-identical sw.js, never installs a new worker, and the cache-first worker keeps serving the old files. Bumped to v21. RULE (already in CLAUDE.md, broken once): every commit that touches ANY shell file bumps CACHE_NAME, not just the first commit of a session.
+
+**Next:** Jeremy's real-phone check (clear SW/cache, double-open for sw v21): confirm ▲/▼ feel right, the front-most marker is the top row, and a long reordered group doesn't over-fold into "+N". Then V3c (touch-target audit; the 22px-tall ▲/▼ halves are the one sub-44px height), V4, V5. Small open items: time-slider scrubbing with lanes; desktop/landscape z with many zombies; lurker post 128px margin; PixelLab art.
 
 **Watch out:**
 - The built-in browser pane cannot register a service worker ("unknown error fetching the script") -- so sw v20 is NOT live-verified; test on the phone.
