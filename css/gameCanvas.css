@@ -262,12 +262,21 @@
     z-index: -1;
     top: auto;
     bottom: 0;
-    height: 24%;
+    /* 2026-10-13: PixelLab floor art. Fixed 72px = floor-tile.png's height (the canvas is
+       ~298px on desktop, so this is ~24% as before); tiled 1:1, pixelated. The old SVG
+       ground (fill/fence/tombstones) is hidden below; the fog ::before still drifts. */
+    height: 72px;
     min-height: 44px;
+    background: url("../Assets/scene/floor-tile.png") repeat-x 0 100% / 127px 72px;
+    image-rendering: pixelated;
     width: 130%;
     left: -15%;
     transform: translateX(calc((var(--scene-progress, 0.5) - 0.5) * -22%));
     transition: transform 0.15s linear;
+}
+
+.scene-ground .scene-svg {
+    display: none; /* replaced by the floor-tile.png art above */
 }
 
 .scene-ground-fill {

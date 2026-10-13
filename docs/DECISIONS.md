@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 -- Strip shortened to 72px (feet-aligned lanes) + floor art on desktop (Jeremy: 'too tall'; Claude app session, Sonnet)
+
+- **Decision:** portrait strip 96 -> **72px**: sky 24 -> 4, lane pitch 20 -> 16, new `CONFIG.STRIP_FLOOR_PAD_BOTTOM` 4 (`--strip-pad`). Markers stay 32px. Lane FEET (marker bottoms) land on the floor's top edge (y 36), mid-floor (52) and bottom minus 4px pad (68); floor band = 36px (`(lanes-1)*pitch + pad`). Measured live at 390px with fake markers; no overflow.
+- **Art:** `strip-floor.png` is now 64x36 (BOX-halved from the 127x72 tile; seam diff 0.4). `Assets/scene/floor-tile.png` (127x72, 1:1) is the desktop/landscape floor.
+- **Desktop/landscape:** `.scene-ground` (css/gameCanvas.css) is now a fixed 72px band of `floor-tile.png` (`repeat-x`, pixelated) replacing the SVG fill/fence/tombstones (hidden via `display:none`); parallax translate + fog `::before` unchanged. ~24% of the 298px desktop canvas, same as before.
+- **Tests/SW:** layout.test.js checks `--strip-pad` and the new height formula; 66 suites, 1399/1399 (run in a scratch copy). `sw.js` v35 -> v36, `floor-tile.png` added.
+
+---
+
 ## 2026-10-13 -- Portrait strip floor art (PixelLab) wired in (Jeremy generated; Claude app session, Sonnet)
 
 - **Decision:** the glance-strip floor is now `Assets/scene/strip-floor.png`, 127x72, tiled `repeat-x` at 1:1 (`image-rendering: pixelated`, `background-size: 127px 72px`) from the church edge (left 56px), replacing the translucent placeholder in `css/glanceStrip.css`.

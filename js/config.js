@@ -305,16 +305,20 @@ const CONFIG = {
     // icons will replace the emoji SVGs — author them at STRIP_ICON_SIZE px,
     // transparent). Lanes OVERLAP vertically on purpose: each steps down only
     // STRIP_LANE_PITCH px but a marker is STRIP_MARKER_HEIGHT tall, so markers
-    // behind keep their top part visible and tappable. Floor = MARKER_HEIGHT +
-    // (LANE_COUNT-1)*PITCH = 32 + 2*20 = 72px; strip = SKY + floor = 24 + 72 = 96px.
+    // behind keep their top part visible and tappable. 2026-10-13 (Jeremy: too tall):
+    // tighter lanes, FEET-aligned to the floor: lane 0's feet (marker bottom) sit on the
+    // floor's top edge, lane 1 mid-floor, lane 2 at the bottom minus STRIP_FLOOR_PAD_BOTTOM.
+    // Floor = (LANE_COUNT-1)*PITCH + PAD = 2*16 + 4 = 36px; strip = SKY + MARKER + floor =
+    // 4 + 32 + 36 = 72px (was 96).
     // Same-lane markers closer than STRIP_MARKER_WIDTH collapse into a "+N" badge.
-    // PixelLab floor art must match (72px tall, tileable in x). Keep in sync with
+    // PixelLab floor art must match (36px tall, tileable in x: Assets/scene/strip-floor.png). Keep in sync with
     // --strip-sky / --strip-marker / --strip-pitch / --strip-icon / #gameCanvas
     // height in css/glanceStrip.css (test/layout.test.js checks).
-    STRIP_SKY_HEIGHT: 24,
+    STRIP_SKY_HEIGHT: 4,
     STRIP_MARKER_HEIGHT: 32,
     STRIP_ICON_SIZE: 24,
-    STRIP_LANE_PITCH: 20,
+    STRIP_LANE_PITCH: 16,
+    STRIP_FLOOR_PAD_BOTTOM: 4, // gap under the front lane's feet (2026-10-13)
     STRIP_LANE_COUNT: 3,
     // Portrait strip sub-task spread (2026-10-13, Jeremy: subs stacked on their parent
     // read as one item). The first STRIP_SUBTASK_SPREAD_COUNT open subs (by id) step

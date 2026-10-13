@@ -276,7 +276,8 @@ describe('strip geometry stays in sync between CONFIG and css/glanceStrip.css', 
         expect(css).toContain(`--strip-icon: ${CONFIG.STRIP_ICON_SIZE}px;`);
         expect(css).toContain(`--strip-pitch: ${CONFIG.STRIP_LANE_PITCH}px;`);
         expect(css).toContain(`--strip-lanes: ${CONFIG.STRIP_LANE_COUNT};`);
-        const h = CONFIG.STRIP_SKY_HEIGHT + CONFIG.STRIP_MARKER_HEIGHT + (CONFIG.STRIP_LANE_COUNT - 1) * CONFIG.STRIP_LANE_PITCH;
+        expect(css).toContain(`--strip-pad: ${CONFIG.STRIP_FLOOR_PAD_BOTTOM}px;`);
+        const h = CONFIG.STRIP_SKY_HEIGHT + CONFIG.STRIP_MARKER_HEIGHT + (CONFIG.STRIP_LANE_COUNT - 1) * CONFIG.STRIP_LANE_PITCH + CONFIG.STRIP_FLOOR_PAD_BOTTOM;
         expect(css).toMatch(new RegExp(`#gameCanvas \\{\\s*height: ${h}px;`));
     });
     test('markers are round (width = height) and the icon fits inside the thickest ring', () => {
