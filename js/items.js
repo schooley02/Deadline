@@ -1145,6 +1145,11 @@ const Items = (() => {
         // Add to game canvas
         deps.gameCanvas.appendChild(itemElement);
         item.element = itemElement;
+        // markAsOverdue (above) ran BEFORE this element existed, so its
+        // `enemy-at-base` class went to the old/discarded element. Re-apply it
+        // here or an undone past-due item walks instead of attacking
+        // (found live 2026-10-12).
+        if (item.isOverdue) itemElement.classList.add('enemy-at-base');
 
         // Add back to active items first
         deps.activeItems.push(item);

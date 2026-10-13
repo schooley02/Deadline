@@ -67,6 +67,19 @@ describe('uncompleteItem clean-slate clock', () => {
     });
 });
 
+describe('uncompleteItem overdue visuals', () => {
+    test('an undone past-due item\'s NEW element gets enemy-at-base (attack animation)', () => {
+        const item = completedTask();
+        Items.uncompleteItem(1, makeDeps([item]));
+        expect(item.element.classList.contains('enemy-at-base')).toBe(true);
+    });
+    test('an undone future item\'s element does not', () => {
+        const item = completedTask({ dueDateTime: new Date(Date.now() + 5 * HOUR), isOverdue: false, lastDamageTickTime: null });
+        Items.uncompleteItem(1, makeDeps([item]));
+        expect(item.element.classList.contains('enemy-at-base')).toBe(false);
+    });
+});
+
 describe('uncompleteItemWithDuePrompt', () => {
     test('a future new time: returns not overdue with that due time', () => {
         const item = completedTask();
