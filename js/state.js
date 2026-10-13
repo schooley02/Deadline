@@ -462,8 +462,14 @@ const State = (() => {
             // tick always (re)applies the class to the fresh element.
             item.urgencyTier = null;
             const savedX = (typeof item.x === 'number') ? item.x : null;
+            // Saved damage clock of an item that was ALREADY overdue at save time, so
+            // the offline catch-up can resume its partial 5-min countdown (below,
+            // restore resets lastDamageTickTime to now; Damage.runOfflineCatchUp
+            // moves it back to the last whole tick). 2026-10-13.
+            const savedTickMs = (item.isOverdue && typeof item.lastDamageTickTime === 'number' && isFinite(item.lastDamageTickTime))
+                ? item.lastDamageTickTime : null;
             deps.addItemToGame(item);
-            restoredEntries.push({ item, savedX });
+            restoredEntries.push({ item, savedX, savedTickMs });
             // item.isOverdue here covers BOTH items saved as overdue (markAsOverdue
             // early-returned; re-apply its visual state) and items whose due date
             // passed while offline (addItemToGame just marked them — but with

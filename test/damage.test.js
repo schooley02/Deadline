@@ -929,3 +929,71 @@ describe('runOfflineCatchUp', () => {
         expect(lurker.x).toBe(500);
     });
 });
+
+// ---------------------------------------------------------------------------
+// Partial damage countdown survives a reload (2026-10-13, Jeremy)
+describe('computeOfflineTicks (resumed damage clock)', () => {
+    const now = Date.now();
+
+    test('already-overdue item: window starts at its saved last tick, remainder kept', () => {
+        // last tick 3 min ago; app was gone 4 min (so savedAt = 4 min ago)
+        const saved = now - 3 * 60 * 1000;
+        const r = Damage.computeOfflineTicks(now - 60 * INTERVAL, now, 4 * 60 * 1000, saved);
+        expect(r.ticks).toBe(0);
+        expect(r.nextTickMs).toBe(saved); // countdown keeps its 3 min of progress
+    });
+
+    test('7 minutes since the last tick = 1 tick owed, 2 min of progress carried', () => {
+        const saved = now - 7 * 60 * 1000;
+        const r = Damage.computeOfflineTicks(now - 60 * INTERVAL, now, 5 * 60 * 1000, saved);
+        expect(r.ticks).toBe(1);
+        expect(r.nextTickMs).toBe(saved + INTERVAL);
+        expect(now - r.nextTickMs).toBe(2 * 60 * 1000);
+    });
+
+    test('item that fell due while offline (no saved tick): window = later of due and start of absence', () => {
+        const r = Damage.computeOfflineTicks(now - 12 * 60 * 1000, now, 60 * INTERVAL, undefined);
+        expect(r.ticks).toBe(2);
+        expect(r.nextTickMs).toBe(now - 12 * 60 * 1000 + 2 * INTERVAL);
+    });
+
+    test('a saved tick in the future is ignored (clock skew)', () => {
+        const r = Damage.computeOfflineTicks(now - 20 * 60 * 1000, now, 20 * 60 * 1000, now + 99999);
+        expect(r.ticks).toBe(4);
+    });
+
+    test('computeOfflineOverdueDamage honours the saved tick and the lifetime cap', () => {
+        expect(Damage.computeOfflineOverdueDamage(now - 60 * INTERVAL, now, 10 * INTERVAL, 0, now - 2 * INTERVAL - 1000)).toBe(2 * DMG);
+        expect(Damage.computeOfflineOverdueDamage(now - 60 * INTERVAL, now, 100 * INTERVAL, CAP - 1, now - 50 * INTERVAL)).toBe(1);
+        expect(Damage.computeOfflineOverdueDamage(now - 60 * INTERVAL, now, 100 * INTERVAL, CAP, now - 50 * INTERVAL)).toBe(0);
+    });
+});
+
+describe('runOfflineCatchUp keeps the partial countdown', () => {
+    test('short reload: no damage, damage clock resumes at the saved tick (not reset to now)', () => {
+        const saved = Date.now() - 3 * 60 * 1000;
+        const it = item({ dueDateTime: new Date(Date.now() - 60 * INTERVAL), lastDamageTickTime: Date.now() });
+        const deps = makeDeps({ state: { activeItems: [it], baseHealth: 90 } });
+        Damage.runOfflineCatchUp([{ item: it, savedX: null, savedTickMs: saved }], 4 * 60 * 1000, deps);
+        expect(deps._state.baseHealth).toBe(90);
+        expect(it.lastDamageTickTime).toBe(saved);
+    });
+
+    test('long absence: charges whole ticks (capped), clock lands on a tick boundary', () => {
+        const saved = Date.now() - 7 * 60 * 1000;
+        const it = item({ dueDateTime: new Date(Date.now() - 60 * INTERVAL), lastDamageTickTime: Date.now() });
+        const deps = makeDeps({ state: { activeItems: [it], baseHealth: 90 } });
+        Damage.runOfflineCatchUp([{ item: it, savedX: null, savedTickMs: saved }], 5 * 60 * 1000, deps);
+        expect(deps._state.baseHealth).toBe(90 - 1 * DMG);
+        expect(it.lastDamageTickTime).toBe(saved + INTERVAL);
+    });
+
+    test('cap exhausted: no damage but the clock still advances (live loop must not replay refused ticks)', () => {
+        const saved = Date.now() - 30 * INTERVAL;
+        const it = item({ dueDateTime: new Date(Date.now() - 60 * INTERVAL), lastDamageTickTime: Date.now(), offlineDamageCharged: CAP });
+        const deps = makeDeps({ state: { activeItems: [it], baseHealth: 90 } });
+        Damage.runOfflineCatchUp([{ item: it, savedX: null, savedTickMs: saved }], 30 * INTERVAL, deps);
+        expect(deps._state.baseHealth).toBe(90);
+        expect(it.lastDamageTickTime).toBe(saved + 30 * INTERVAL);
+    });
+});

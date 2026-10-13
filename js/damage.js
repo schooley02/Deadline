@@ -115,12 +115,32 @@ const Damage = (() => {
     // already overdue before the save were charged live while the game was
     // open, so the window starts at the LATER of (due time, start of offline
     // window) — no double-charging with the live tick loop either.
-    function computeOfflineOverdueDamage(dueMs, nowMs, offlineMs, alreadyCharged) {
+    function computeOfflineOverdueDamage(dueMs, nowMs, offlineMs, alreadyCharged, savedTickMs) {
         const remaining = CONFIG.OFFLINE_DAMAGE_CAP_PER_ITEM - (alreadyCharged || 0);
         if (offlineMs <= 0 || dueMs >= nowMs || remaining <= 0) return 0;
-        const overdueStartMs = Math.max(dueMs, nowMs - offlineMs);
-        const ticks = Math.floor((nowMs - overdueStartMs) / CONFIG.DAMAGE_INTERVAL_MS);
+        const { ticks } = computeOfflineTicks(dueMs, nowMs, offlineMs, savedTickMs);
         return Math.min(ticks * CONFIG.OVERDUE_DAMAGE, remaining);
+    }
+
+    // Whole damage ticks owed for an offline window, plus WHERE the item's
+    // damage clock should resume so the sub-interval remainder survives the
+    // reload (2026-10-13, Jeremy: a reload used to restart every overdue item's
+    // 5-minute countdown from zero). savedTickMs = the item's saved
+    // lastDamageTickTime when it was ALREADY overdue at save time -- the window
+    // then starts at that last tick, so the partial countdown it had earned
+    // while the app was open counts too. Items that fell due while offline (no
+    // savedTickMs) start at the later of due time and the start of the absence,
+    // as before. Pure; never returns a resume time after nowMs.
+    function computeOfflineTicks(dueMs, nowMs, offlineMs, savedTickMs) {
+        const interval = CONFIG.DAMAGE_INTERVAL_MS;
+        const floorMs = Math.max(dueMs, nowMs - Math.max(0, offlineMs));
+        let startMs = floorMs;
+        if (typeof savedTickMs === 'number' && isFinite(savedTickMs) && savedTickMs <= nowMs) {
+            startMs = Math.max(savedTickMs, dueMs, nowMs - CONFIG.OFFLINE_MAX_MS - interval);
+        }
+        if (startMs >= nowMs) return { ticks: 0, nextTickMs: nowMs };
+        const ticks = Math.floor((nowMs - startMs) / interval);
+        return { ticks, nextTickMs: startMs + ticks * interval };
     }
 
     // The decision half of runLiveGapCatchUp, separated so it can be tested on
@@ -463,12 +483,27 @@ const Damage = (() => {
         const isLurker = isNonThreatening || ((item) => item.type === 'habit' && item.isNegative === true);
 
         const hits = [];
+        const savedTicks = new Map(); // item -> saved lastDamageTickTime (was already overdue at save)
+        entries.forEach(e => {
+            if (typeof e.savedTickMs === 'number') savedTicks.set(e.item, e.savedTickMs);
+        });
         getActiveItems().forEach(item => {
             if (isLurker(item)) return; // [P1-DATA-005] session 27 — no offline damage for lurkers
+            const dueMs = item.dueDateTime.getTime();
+            const savedTickMs = savedTicks.get(item);
             const dmg = computeOfflineOverdueDamage(
-                item.dueDateTime.getTime(), nowMs, offlineMs, item.offlineDamageCharged
+                dueMs, nowMs, offlineMs, item.offlineDamageCharged, savedTickMs
             );
             if (dmg > 0) hits.push({ item, dmg });
+            // Keep the partial countdown: resume the live damage clock at the
+            // last whole tick boundary (restore had reset it to "now"). Applies
+            // even when the lifetime cap suppressed the damage, so the live
+            // loop never replays the ticks the cap refused. Only touches items
+            // that are actually overdue.
+            if (item.isOverdue && dueMs < nowMs && offlineMs > 0) {
+                const { nextTickMs } = computeOfflineTicks(dueMs, nowMs, offlineMs, savedTickMs);
+                item.lastDamageTickTime = nextTickMs;
+            }
         });
 
         // Compute target positions in order, updating item.x as we go so
@@ -533,6 +568,7 @@ const Damage = (() => {
         computeDaysSurvived,
         resolveBaseImage,
         computeOfflineOverdueDamage,
+        computeOfflineTicks,
         computeGapCatchUpHits,
         computeCatchUpDuration,
         computeRegenTicks,
