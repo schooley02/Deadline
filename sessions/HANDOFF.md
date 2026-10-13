@@ -15,7 +15,7 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Did:** Negative habits now walk the timeline by their tempting time and, past it, park beside the base with the idle animation (`.lurker-parked`); never overdue/damaging. `js/loop.js` (lurker branch + damage guard), `js/damage.js` (offline target), `js/habits.js` (spawn x), `js/ui/timeSliderView.js`, `js/timeSlider.js` (getLurkerPreviewX removed), `css/enemyAnim.css`, `css/glanceStrip.css`, tests updated; `sw.js` -> `deadline-shell-v22`. Docs: DECISIONS, MECHANICS, UI_UX, CLAUDE.md.
 **State:** Jest 66 suites, 1,375/1,375. Live phone-width check still to do (see Watch out).
 **Next:** Verify at 375px with a past-due negative habit; if several parked lurkers overlap in the strip, give them a pile like overdue attackers. Parked idea: glow when tempting time arrives.
-**Watch out:** Strip parked lurkers are only offset 64px sprites, no pile yet. `NEGATIVE_LURK_RIGHT_MARGIN_PX` is now unused. Bump `CACHE_NAME` every shell commit.
+**Watch out:** Strip parked lurkers now stand behind the attackers and pile (+N badge) -- added after Jeremy's phone check; `sw.js` is v23. `NEGATIVE_LURK_RIGHT_MARGIN_PX` is now unused. Bump `CACHE_NAME` every shell commit.
 
 ## 2026-10-13 — List-order layering + tie-group reorder (Claude app session, Opus plan -> Sonnet build)
 

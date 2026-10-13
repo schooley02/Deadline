@@ -249,15 +249,15 @@ body.glance-strip .enemy.enemy-at-base:not(.has-anim-sprite) {
 }
 
 /* --- Parked lurker (negative habit past its tempting time): the real sprite,
-   small and IDLE, standing beside the base (right of any overdue attacker).
+   small and IDLE, standing BEHIND the overdue attackers at the base.
    Never overdue, never damaging. 2026-10-13. ------------------------------ */
 body.glance-strip .enemy.lurker-parked.has-anim-sprite {
     width: 64px !important;
     height: 64px !important;
     top: auto !important;
-    bottom: 4px;
-    margin-left: 60px;
-    z-index: 80 !important;
+    bottom: 20px;      /* one row BEHIND the overdue attackers */
+    margin-left: 26px; /* peeks out from behind the attacker */
+    z-index: 79 !important; /* just under the attackers (80) */
     border: 0 !important;
     border-radius: 0 !important;
     background-color: transparent !important;
@@ -269,9 +269,9 @@ body.glance-strip .enemy.lurker-parked.has-anim-sprite .enemy-sprite {
 }
 body.glance-strip .enemy.lurker-parked:not(.has-anim-sprite) {
     top: auto !important;
-    bottom: 4px;
-    margin-left: 60px;
-    z-index: 80 !important;
+    bottom: 20px;
+    margin-left: 26px;
+    z-index: 79 !important;
 }
 
 /* --- Slim slider ----------------------------------------------------------- */

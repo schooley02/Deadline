@@ -137,6 +137,15 @@ const Layout = (() => {
         return true;
     }
 
+    // Negative-habit lurker parked beside the base (loop.js adds the class once
+    // its tempting time passes). Never overdue, so it is NOT in the attacker
+    // pile; it gets its own small pile standing BEHIND the attackers.
+    function isParkedLurker(item) {
+        const el = item.element;
+        return !!(el && el.classList && typeof el.classList.contains === 'function'
+            && el.classList.contains('lurker-parked'));
+    }
+
     // List-order key per item (js/listOrder.js): row index for top-level items,
     // due-time slot (+0.5) for sub-tasks. null when ListOrder isn't loaded or
     // opts.noListOrder is set -> callers fall back to x order (pre-2026-10-13).
@@ -184,9 +193,10 @@ const Layout = (() => {
 
         // Everything that owns a marker: not a stacked child.
         const owners = items.filter(i => !isStackedChild(i));
+        const lurkerPile = owners.filter(i => !isAtBase(i) && isParkedLurker(i)).sort(byKey);
         const pile = owners.filter(isAtBase)
             .sort((a, b) => ((a.parentId ? 1 : 0) - (b.parentId ? 1 : 0)) || byKey(a, b));
-        const laned = owners.filter(i => !isAtBase(i)).sort(byKey);
+        const laned = owners.filter(i => !isAtBase(i) && !isParkedLurker(i)).sort(byKey);
 
         const ensure = i => (plan[i.id] = plan[i.id] || { lane: null, hidden: false, badge: 0 });
         const hide = (member, leader) => {
@@ -200,6 +210,13 @@ const Layout = (() => {
             const e = ensure(m);
             if (idx === 0) return;
             hide(m, pile[0]);
+        });
+
+        // Parked-lurker pile (behind the attackers): the top-of-list lurker is
+        // shown, the rest fold into its "+N" badge. No lane.
+        lurkerPile.forEach((m, idx) => {
+            ensure(m);
+            if (idx > 0) hide(m, lurkerPile[0]);
         });
 
         // Lanes: top of the LIST -> front lane (highest index). Outside tie
@@ -265,7 +282,7 @@ const Layout = (() => {
     }
 
     return { GLANCE_QUERY, isGlanceStrip, isActive, applyBodyClass, init, computeSubBadges, applySubBadges,
-        computeStripLayout, applyStripLayout };
+        computeStripLayout, applyStripLayout, isParkedLurker };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

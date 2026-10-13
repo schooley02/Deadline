@@ -283,3 +283,31 @@ describe('Layout.computeStripLayout with list-order keys', () => {
         expect(plan[2].lane).toBe(0);
     });
 });
+
+describe('Layout parked-lurker pile (2026-10-13)', () => {
+    const el = (parked) => ({ dataset: {}, classList: { contains: c => parked && c === 'lurker-parked' } });
+    const lurker = (id, x) => ({ id, x, isOverdue: false, element: el(true) });
+    const task = (id, x) => ({ id, x, isOverdue: false, element: el(false) });
+
+    test('parked lurkers get no lane and do not take lanes from ordinary markers', () => {
+        const items = [lurker(1, 50), task(2, 300), task(3, 500)];
+        const plan = Layout.computeStripLayout(items, { noListOrder: true });
+        expect(plan[1].lane).toBeNull();
+        expect(plan[2].lane).toBe(2);
+        expect(plan[3].lane).toBe(1);
+    });
+
+    test('several parked lurkers fold into the top one with a +N badge', () => {
+        const items = [lurker(1, 50), lurker(2, 50), lurker(3, 50)];
+        const plan = Layout.computeStripLayout(items, { keys: new Map([[2, 0], [1, 1], [3, 2]]) });
+        expect(plan[2].hidden).toBe(false);
+        expect(plan[2].badge).toBe(2);
+        expect(plan[1].hidden).toBe(true);
+        expect(plan[3].hidden).toBe(true);
+    });
+
+    test('isParkedLurker reads the lurker-parked class', () => {
+        expect(Layout.isParkedLurker(lurker(1, 0))).toBe(true);
+        expect(Layout.isParkedLurker(task(2, 0))).toBe(false);
+    });
+});
