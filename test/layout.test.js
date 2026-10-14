@@ -222,7 +222,7 @@ describe('Layout.computeStripLayout (V3b-2)', () => {
         expect(plan[1].badge).toBe(0);
     });
 
-    test('overdue items at the base spread over the lanes; only a 4th+ folds into a "+N" badge (2026-10-13)', () => {
+    test('overdue items at the base spread over the lanes; a 4th+ fans out right, then folds into a "+N" badge (2026-10-13)', () => {
         const base = 56;
         const items = [
             mk(1, base, { isOverdue: true, element: el('enemy-at-base') }),
@@ -239,12 +239,36 @@ describe('Layout.computeStripLayout (V3b-2)', () => {
             mk(6, 200),
         ]);
         const plan = Layout.computeStripLayout(more);
-        expect(plan[4].hidden).toBe(true);                         // 4th: every lane blocked
-        expect(plan[5].hidden).toBe(true);                         // its stacked sub goes with it
-        expect(plan[1]).toEqual({ lane: 2, hidden: false, badge: 2 }); // #4 + #4's sub, on the top-of-list leader
+        expect(plan[4].hidden).toBe(false);                        // 4th: every lane blocked -> fans out right
+        expect(plan[4].dx).toBe(CONFIG.LANE_OVERFLOW_OFFSET_PX);
+        expect(plan[5].dx).toBe(CONFIG.LANE_OVERFLOW_OFFSET_PX);   // its stacked sub rides with it
+        expect(plan[1]).toEqual({ lane: 2, hidden: false, badge: 0 }); // nothing folded into the leader
+        expect(plan[4].badge).toBe(1);                             // #4 keeps its own "+1" for the stacked sub
         expect(plan[2].hidden).toBe(false);
         expect(plan[3].hidden).toBe(false);
         expect(plan[6]).toEqual({ lane: 1, hidden: false, badge: 0 }); // 200px away: natural lane, no clash
+    });
+
+    test('strip fan-out: attackers past STRIP_OVERFLOW_MAX fold into the leader\'s "+N"; walkers are unaffected', () => {
+        const base = 56;
+        const mkAtk = id => mk(id, base, { isOverdue: true, element: el('enemy-at-base') });
+        const items = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(mkAtk);   // 3 lanes + 6 more
+        const keys = new Map(items.map((i, k) => [i.id, k]));
+        const plan = Layout.computeStripLayout(items, { baseWidth: base, keys });
+        const step = CONFIG.LANE_OVERFLOW_OFFSET_PX;
+        [4, 5, 6, 7].forEach((id, k) => {
+            expect(plan[id].hidden).toBe(false);
+            expect(plan[id].dx).toBe((k + 1) * step);
+        });
+        expect(CONFIG.STRIP_OVERFLOW_MAX).toBe(4);
+        [8, 9].forEach(id => expect(plan[id].hidden).toBe(true));  // beyond the cap
+        expect(plan[1].badge).toBe(2);                             // the two hidden ones
+        [1, 2, 3].forEach(id => expect(plan[id].dx).toBeUndefined());
+        // a lone walker's overflow still hides (no fan for non-attackers)
+        const walkers = [1, 2, 3, 4].map(id => mk(id, 300, { element: el() }));
+        const wp = Layout.computeStripLayout(walkers, { keys: new Map(walkers.map((i, k) => [i.id, k])) });
+        expect(wp[4].hidden).toBe(true);
+        expect(wp[4].dx).toBeUndefined();
     });
 
     test('a walker closing in on the base pile moves to a free lane instead of hiding behind it', () => {
@@ -284,6 +308,24 @@ describe('Layout.computeStripLayout (V3b-2)', () => {
 });
 
 describe('Layout.applyStripLayout (V3b-2)', () => {
+    test('writes --lane-dx for fanned attackers and clears it when they free up (2026-10-13)', () => {
+        Layout.applyBodyClass(fakeDoc(), fakeWin(true));
+        const props = {};
+        const mkDom = (withStyle) => {
+            const classes = new Set(['enemy-at-base']);
+            return { dataset: {}, classList: { contains: c => classes.has(c), toggle: () => {} },
+                style: withStyle ? { getPropertyValue: k => props[k] || '', setProperty: (k, v) => { props[k] = v; },
+                    removeProperty: k => { delete props[k]; } } : undefined };
+        };
+        const items = [1, 2, 3, 4].map(id => ({ id, x: 56, isOverdue: true, element: mkDom(id === 4) }));
+        const keys = new Map(items.map((i, k) => [i.id, k]));
+        Layout.applyStripLayout(items, { baseWidth: 56, keys });
+        expect(props['--lane-dx']).toBe(CONFIG.LANE_OVERFLOW_OFFSET_PX + 'px');
+        items.splice(0, 1);                                         // one is defeated -> #4 gets a lane
+        Layout.applyStripLayout(items, { baseWidth: 56, keys });
+        expect(props['--lane-dx']).toBeUndefined();
+    });
+
     function domEl() {
         const classes = new Set();
         return { dataset: {}, classList: { contains: c => classes.has(c), toggle: (c, on) => (on ? classes.add(c) : classes.delete(c)) }, classes };

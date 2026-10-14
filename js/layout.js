@@ -192,7 +192,7 @@ const Layout = (() => {
                 // fans them out sideways by rank x CONFIG.LANE_OVERFLOW_OFFSET_PX).
                 const overflowRank = 1 + placed.filter(p => p.overflow && clash(p)).length;
                 out.set(e.item.id, { lane: natural, leader: blocker ? blocker.id : null, overflowRank });
-                if (keepOverflow) placed.push({ id: e.item.id, x: e.x, w: e.w, lane: natural, overflow: true });
+                if (keepOverflow || e.fan) placed.push({ id: e.item.id, x: e.x, w: e.w, lane: natural, overflow: true });
                 return;
             }
             out.set(e.item.id, { lane: free, leader: null, overflowRank: 0 });
@@ -302,13 +302,22 @@ const Layout = (() => {
         // whose lane is already taken by a higher-priority one within frac x width
         // moves to the nearest free lane; only when all lanes are blocked does it fold
         // into the top-of-list blocker's "+N" badge.
+        // Overdue attackers at the base that find every lane blocked FAN OUT to the right (away
+        // from the church) by rank x step, like landscape (2026-10-13, Jeremy's phone: 5 overdue
+        // zombies read as one pile); past STRIP_OVERFLOW_MAX they fold into the leader's "+N".
+        const fanStep = (opts && opts.overflowOffset != null) ? opts.overflowOffset
+            : ((typeof CONFIG !== 'undefined' && CONFIG.LANE_OVERFLOW_OFFSET_PX != null) ? CONFIG.LANE_OVERFLOW_OFFSET_PX : 24);
+        const fanMax = (opts && opts.overflowMax != null) ? opts.overflowMax
+            : ((typeof CONFIG !== 'undefined' && CONFIG.STRIP_OVERFLOW_MAX != null) ? CONFIG.STRIP_OVERFLOW_MAX : 4);
         const assigned = assignLanes(
-            laned.map(m => ({ item: m, x: Math.max(m.x, baseWidth), w: isAtBase(m) ? attackerWidth : markerWidth })),
+            laned.map(m => ({ item: m, x: Math.max(m.x, baseWidth), w: isAtBase(m) ? attackerWidth : markerWidth, fan: isAtBase(m) })),
             laneCount, frac, false);
         laned.forEach(m => {
             const a = assigned.get(m.id);
             ensure(m).lane = a.lane;
-            if (a.leader != null) hide(m, byId.get(a.leader));
+            if (a.leader == null) return;
+            if (isAtBase(m) && a.overflowRank <= fanMax) plan[m.id].dx = a.overflowRank * fanStep;
+            else hide(m, byId.get(a.leader));
         });
 
         // Stacked children: follow the parent's lane / hidden state, and a
@@ -317,6 +326,7 @@ const Layout = (() => {
             (stackedChildren.get(o.id) || []).forEach(c => {
                 const ce = ensure(c);
                 ce.lane = ensure(o).lane;
+                if (plan[o.id].dx) ce.dx = plan[o.id].dx; // rides with its fanned parent
                 if (!plan[o.id].hidden) plan[o.id].badge += 1;
             });
             // Spread subs: lanes other than the parent's, nearest lane first.
@@ -397,6 +407,17 @@ const Layout = (() => {
         return (topF + t * (botF - topF)) * canvasHeight;
     }
 
+    // Sideways fan-out of overflow zombies: a margin-left custom property (css/enemySprites.css,
+    // css/glanceStrip.css), never `left` (the game loop owns that). Written only on change.
+    function setLaneDx(item, px) {
+        const st = item.element && item.element.style;
+        if (!st || typeof st.setProperty !== 'function') return;
+        const cur = typeof st.getPropertyValue === 'function' ? st.getPropertyValue('--lane-dx') : '';
+        const v = px ? px + 'px' : '';
+        if (cur === v) return;
+        if (px) st.setProperty('--lane-dx', v); else if (typeof st.removeProperty === 'function') st.removeProperty('--lane-dx');
+    }
+
     // Writes element tops only on change; no-op in portrait strip mode (the
     // strip has its own lanes). Parents first, subs bottom-align to their parent.
     function applyGroundLanes(items, canvasHeight, opts) {
@@ -405,16 +426,7 @@ const Layout = (() => {
         const gl = computeGroundLayout(items, layout ? Object.assign({}, opts, { keys: ListOrder.sortKeys(layout, items) }) : opts);
         const lanes = gl.lanes;
         const tops = new Map();
-        // Sideways fan-out of overflow zombies: a margin-left custom property (css/enemySprites.css),
-        // never `left` (the game loop owns that). Written only on change; subs follow their parent.
-        const setDx = (item, px) => {
-            const st = item.element && item.element.style;
-            if (!st || typeof st.setProperty !== 'function') return;
-            const cur = typeof st.getPropertyValue === 'function' ? st.getPropertyValue('--lane-dx') : '';
-            const v = px ? px + 'px' : '';
-            if (cur === v) return;
-            if (px) st.setProperty('--lane-dx', v); else if (typeof st.removeProperty === 'function') st.removeProperty('--lane-dx');
-        };
+        const setDx = setLaneDx;
         const heightOf = el => parseFloat(el.style && el.style.height) || el.offsetHeight || 0;
         const write = (item, top) => {
             const el = item.element;
@@ -456,7 +468,7 @@ const Layout = (() => {
             if (!el || !el.dataset) return;
             const p = plan[i.id] || { lane: null, hidden: false, badge: 0 };
             // Outside strip mode data-lane belongs to applyGroundLanes (landscape): don't fight it.
-            if (active) setData(el, 'lane', p.lane == null ? null : String(p.lane));
+            if (active) { setData(el, 'lane', p.lane == null ? null : String(p.lane)); setLaneDx(i, p.dx || 0); }
             setData(el, 'subCount', p.badge > 0 ? String(p.badge) : null);
             if (el.classList) el.classList.toggle('strip-hidden', !!p.hidden);
         });

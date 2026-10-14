@@ -284,6 +284,13 @@ body.glance-strip .enemy.enemy-at-base.has-anim-sprite .enemy-sprite {
     --sprite-scale: 0.5 !important; /* beats the inline scale spriteAnim.js writes */
 }
 
+/* Overdue attackers that find every lane blocked fan out to the RIGHT (Layout.applyStripLayout writes
+   --lane-dx = rank x LANE_OVERFLOW_OFFSET_PX, capped at CONFIG.STRIP_OVERFLOW_MAX; the rest fold into
+   the "+N" badge). A margin, not `left`: the game loop owns `left`. */
+body.glance-strip .enemy.enemy-at-base {
+    margin-left: var(--lane-dx, 0px);
+}
+
 /* Static-PNG fallback (no animated sprite): a red-ringed dot. */
 body.glance-strip .enemy.enemy-at-base:not(.has-anim-sprite) {
     top: auto !important;

@@ -4,6 +4,12 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 (night) -- Portrait strip: overdue attackers fan out; sub-task list no longer clipped
+- **Sub-task list clipped (bug, fixed):** `.sub-tasks-container:not(:empty)` in `css/popups.css` had `max-height: 200px` + `overflow: hidden`, so a parent with 3+ sub-tasks (rows are ~100px on a phone) hid every row past the first ~2, including their "Mark as Complete" checkboxes, and the parent could never be completed (it needs all subs done). Now `max-height: none`. Jeremy's phone, 20:15. Test: `test/subtask-list-unclipped.test.js`.
+- **Strip fan-out (Jeremy: "they are overlapping each other on the canvas"):** 5+ overdue attackers at the base used to fill 3 lanes and fold the rest into one "+N". `Layout.computeStripLayout` now fans attackers that find every lane blocked sideways to the RIGHT by rank x `CONFIG.LANE_OVERFLOW_OFFSET_PX` (24px), like landscape, up to `CONFIG.STRIP_OVERFLOW_MAX` (4, so 96px); beyond that they fold into the leader's "+N". Only attackers at the base fan (walkers keep the old fold); stacked subs ride with their parent. `Layout.applyStripLayout` writes `--lane-dx` (shared `setLaneDx`); CSS `body.glance-strip .enemy.enemy-at-base { margin-left: var(--lane-dx) }`. `sw.js` v47 -> v48.
+- **Why not just raise the cap / tighten the pitch:** the strip is 92px tall with a 10px lane pitch; more vertical room isn't available, and sideways was already Jeremy's pick for landscape.
+- Live check (built-in pane, 390px, 8 overdue): 3 lane-holders, 4 fanned at 24/48/72/96px, 1 folded into a "+1". Not yet phone-checked.
+
 ## 2026-10-13 (night) -- Landscape overflow fan-out (Jeremy chose a small offset over a "+N" badge)
 
 - **Decision:** in landscape/desktop, a zombie that overlaps three others (every lane blocked, e.g. 4+ overdue at the base) is offset sideways instead of stacking exactly: `rank x CONFIG.LANE_OVERFLOW_OFFSET_PX` (24px), where rank = 1 + the overflow zombies already stacked in that cluster, so 4th = +24, 5th = +48 ... It keeps its natural lane and z (lane first, list order within a lane). Direction is RIGHT (away from the church; the base edge is the left limit).
