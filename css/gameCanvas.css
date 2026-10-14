@@ -267,7 +267,7 @@
        ground (fill/fence/tombstones) is hidden below; the fog ::before still drifts. */
     height: 72px;
     min-height: 44px;
-    background: url("../Assets/scene/floor-tile.png") repeat-x 0 100% / 127px 72px;
+    background: url("../Assets/scene/floor-tile.png") repeat-x 0 100% / 256px 72px;
     image-rendering: pixelated;
     width: 130%;
     left: -15%;

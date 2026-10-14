@@ -370,8 +370,8 @@ const CONFIG = {
     // nothing floats above the floor or touches the canvas edge); middle lane in between.
     // The *_FRAC pair is the fallback (and what tests pass explicitly).
     GROUND_FLOOR_HEIGHT: 72,
-    GROUND_FLOOR_FEET_TOP_PAD: 24, // tile rows 0-~10 are sky/grass tufts; the walkable dirt band is ~rows 10-45, so back-lane feet go mid-dirt (2026-10-13, Jeremy: top lane floated)
-    GROUND_FLOOR_FEET_BOTTOM_PAD: 8,
+    GROUND_FLOOR_FEET_TOP_PAD: 28, // tile rows 0-~10 are sky/grass tufts; the walkable dirt band is ~rows 10-45, so back-lane feet go mid-dirt (2026-10-13, Jeremy: top lane floated)
+    GROUND_FLOOR_FEET_BOTTOM_PAD: 6,
     GROUND_LANE_FEET_TOP_FRAC: 0.72,
     GROUND_LANE_FEET_BOTTOM_FRAC: 0.99,
 

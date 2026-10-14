@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 -- Wider floor tile (256px; strip-floor2 from PixelLab) replaces the 127px tile; desktop lane pads re-tuned
+
+- **Why:** Jeremy: the 127px tile repeated too close together. PixelLab capped width at 256, so the new art is 256x128 (fence silhouettes over a thin lighter dirt band, art in rows 45-115). Cropped rows 44-116 -> `floor-tile.png` 256x72 (desktop/landscape, flush-bottom) and BOX-halved -> `strip-floor.png` 128x36 (portrait). Original export kept as `Assets/scene/strip-floor2.png` (not in sw.js).
+- **CSS:** tile sizes 127x72 -> 256x72 (css/gameCanvas.css) and 64x36 -> 128x36 (css/glanceStrip.css); layout.test.js sync check updated.
+- **Lanes (desktop):** the new art's lit dirt band is rows ~26-44 of the 72px floor, so `GROUND_FLOOR_FEET_TOP_PAD` 24 -> 28 and `GROUND_FLOOR_FEET_BOTTOM_PAD` 8 -> 6 (feet at 28 / 47 / 66 of the floor, ~19px apart). Checked live at 1100px with fake sprites: all three lanes stand on the ground. Portrait lane geometry unchanged; its floor now reads darker/grittier with the dirt band lower in the 36px strip (lane-0 markers sit at the floor's top edge) -- nudge with `background-position-y` if it looks off on the phone.
+- **Gotcha (again):** `device_commit_files` sometimes doesn't land a binary on the first call; verify dimensions on disk after writing. `sw.js` v42.
+
+---
+
 ## 2026-10-13 -- Desktop back-lane feet moved into the dirt band: TOP_PAD 8 -> 24 (Jeremy's screenshot: top lane still floated)
 
 - **Cause:** enemy boxes are built so the character's feet sit on the box bottom (`feetY` 150-156 of a 180 cell, pad 26 => within ~2px; `other` ~7px above), so box bottom == feet. But `floor-tile.png`'s top ~10 rows are sky + grass tufts; the standable dirt band is ~rows 10-45. Back lane at floor top + 8 stood on the tufts' tops, which read as floating.

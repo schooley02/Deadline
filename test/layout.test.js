@@ -272,7 +272,7 @@ describe('desktop floor band stays in sync between CONFIG and css/gameCanvas.css
     const gc = require('fs').readFileSync(require('path').join(__dirname, '../css/gameCanvas.css'), 'utf8');
     test('.scene-ground height == CONFIG.GROUND_FLOOR_HEIGHT and the tile is that tall', () => {
         expect(gc).toMatch(new RegExp(`\\.scene-ground \\{[^}]*height: ${CONFIG.GROUND_FLOOR_HEIGHT}px;`));
-        expect(gc).toContain(`/ 127px ${CONFIG.GROUND_FLOOR_HEIGHT}px;`);
+        expect(gc).toContain(`/ 256px ${CONFIG.GROUND_FLOOR_HEIGHT}px;`);
     });
 });
 
@@ -402,7 +402,7 @@ describe('Layout ground lanes (landscape)', () => {
         expect(Layout.groundLaneFeet(0, H, { topFrac: 0.72, bottomFrac: 0.99 })).toBeCloseTo(0.72 * H); // explicit fractions still win
         expect(back).toBeLessThan(mid);
         expect(mid).toBeLessThan(front);
-        expect(mid - back).toBeGreaterThanOrEqual(20); // distinct lanes: spread = floor height - top pad - bottom pad, halved (2026-10-13: 20px on the 72px floor)
+        expect(mid - back).toBeGreaterThanOrEqual(18); // distinct lanes: spread = (floor height - top pad - bottom pad) / 2 (2026-10-13: 19px on the 72px floor)
     });
 
     test('applyGroundLanes writes distinct tops per lane and bottom-aligns subs to their parent', () => {

@@ -77,7 +77,7 @@ body.glance-strip #gameCanvas::before {
     right: 0;
     top: calc(var(--strip-sky) + var(--strip-marker));
     bottom: 0;
-    background: url("../Assets/scene/strip-floor.png") repeat-x 0 0 / 64px 36px;
+    background: url("../Assets/scene/strip-floor.png") repeat-x 0 0 / 128px 36px;
     image-rendering: pixelated;
 }
 
