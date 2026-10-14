@@ -4,6 +4,18 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 (night) -- Sprite feet calibration + portrait back lane inside the ground
+
+- **Trigger (Jeremy, phone):** the nurse on the right of the strip floated a little above the floor; asked to check where every character's feet land on its sprite sheet.
+- **Two causes found, both fixed.**
+  1. *Back lane hung in the air.* Lane 0's feet sat exactly on the strip floor tile's top edge, but the tile's opaque ground starts ~6 rows down (rows 0-5 are sky/grass fringe). Fix: `STRIP_FLOOR_FEET_INSET` 8 -- lane 0's feet are 8px below the tile top (2-3px into the dirt). Geometry: sky 24 -> 32, pitch 14 -> 10, canvas still 92px, floor still 36px = inset 8 + 2 x 10 + pad 8; floor top = `sky + marker - inset` (`--strip-inset`). Cost: back lanes show 10px (was 14) above the lane in front -- lane switching (previous entry) keeps overlaps rare. Bonus: 8px more headroom above the back lane, and the back-lane overdue attacker (`bottom: 4 + (2 - lane) x pitch`) no longer reaches the canvas top.
+  2. *Atlases don't all put the feet where the CSS assumed.* The sprite window assumes the 128px character is centred in its cell (planted feet at `cell - pad`). Measured lowest opaque row per frame (alpha > 20; walk = max over frames, idle/attack = median): `other` feet were 7-10px HIGH (floating), `career` 3px, `creativity`/`spirituality` 2px; `health` and `lifestyle` sit 2px LOW when walking (health 4px low when attacking); `financial`/`relationships` exact. New per-category/state `--dy-walk/--dy-idle/--dy-attack` (cell px, + = down) shift the sheet (`top: row*cell*-1 + --dy`), so the planted foot lands on the enemy box bottom at every scale. Death uses the walk value.
+- **Guard:** `test/spriteFeet.test.js` re-measures every atlas with `pngjs` (optional dependency; suite skips if absent) and fails if the CSS table no longer matches -- re-export art => re-measure => update the table in `css/enemyAnim.css`.
+- **Verified live** (built-in pane, 390px, one task per category): rendered planted-foot y minus box bottom = 0.0 for all 8 categories (walk row); back-lane feet 98.5 vs floor top 91 (ground starts ~97). Landscape (900x420) looked right too.
+- **Alternatives rejected:** nudging the lane geometry only (leaves `other` floating in every lane/view); editing the atlas PNGs (re-exports would silently undo it; CSS table + test is cheaper to maintain); moving the floor tile up instead of lowering the lanes (would drop the 36px floor art's top rows into the sky).
+
+---
+
 ## 2026-10-13 (evening) -- Lane z-order + lane switching (supersedes "Canvas layering follows list order")
 
 - **Trigger (Jeremy, phone check):** with 3 lanes in portrait, a task that caught up to an overdue habit drew BEHIND it although it sat in the middle lane. Wanted: middle lane always over the back lane, front lane over everything, and zombies that overlap significantly switch lanes so each stays tappable.

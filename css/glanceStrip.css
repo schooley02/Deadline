@@ -38,17 +38,20 @@ body.glance-strip .resource-panel {
 
 /* V3b-2 lane geometry. Keep in sync with CONFIG.STRIP_SKY_HEIGHT /
    STRIP_MARKER_HEIGHT / STRIP_LANE_PITCH / STRIP_LANE_COUNT (js/config.js).
-   Lanes OVERLAP: each steps down only --strip-pitch (14px) but a marker is
+   Lanes OVERLAP: each steps down only --strip-pitch (10px) but a marker is
    --strip-marker (32px) tall, so markers behind stay visible/tappable. Canvas =
-   sky + marker + (lanes-1)*pitch + pad = 24 + 32 + 28 + 8 = 92px; the FLOOR band is the
-   lower 36px (lane feet land on its top edge / middle / bottom-minus-pad), a fixed pixel height on every phone (only the width varies), so
+   sky + marker + (lanes-1)*pitch + pad = 32 + 32 + 20 + 8 = 92px; the FLOOR band is the
+   lower 36px = inset + (lanes-1)*pitch + pad (lane 0's feet land --strip-inset (8px) BELOW its
+   top edge, i.e. inside the dirt; then one pitch lower per lane; lane 2 at the bottom minus
+   pad), a fixed pixel height on every phone (only the width varies), so
    tileable pixel art can be authored against it. */
 body.glance-strip {
-    --strip-sky: 24px;
+    --strip-sky: 32px;
     --strip-marker: 32px;
     --strip-icon: 24px;   /* category icon box inside the marker (PixelLab art slot) */
-    --strip-pitch: 14px;
-    --strip-pad: 8px;    /* gap under the front lane's feet; floor = (lanes-1)*pitch + pad */
+    --strip-pitch: 10px;
+    --strip-inset: 8px;  /* back lane's feet sit this far below the floor tile's top edge (ground starts ~6px down) */
+    --strip-pad: 8px;    /* gap under the front lane's feet; floor = inset + (lanes-1)*pitch + pad */
     --strip-lanes: 3;
 }
 
@@ -65,17 +68,18 @@ body.glance-strip .graveyard-scene {
 
 /* FLOOR band (PixelLab tileable art, 2026-10-13): Assets/scene/strip-floor.png is
    64x36 (the 127x72 floor-tile.png, halved), tiled sideways at 1:1 with crisp
-   pixels. It starts right of the church (56px); its TOP edge is where lane 0's
-   feet (marker bottom) land: top = sky + marker. Lane 1 feet sit mid-floor, lane 2
-   feet at the bottom minus --strip-pad. The sky gradient on #gameCanvas shows
+   pixels. It starts right of the church (56px); its top edge is --strip-inset (8px) ABOVE
+   where lane 0's feet (marker bottom) land (the tile's opaque ground starts ~6 rows down, so
+   feet ON the top edge floated -- 2026-10-13): top = sky + marker - inset. Lane 1 feet sit a pitch
+   lower, lane 2 feet at the bottom minus --strip-pad. The sky gradient on #gameCanvas shows
    through the tile's transparent top rows. KEEP IN SYNC: height 36px ==
-   (--strip-lanes - 1) * --strip-pitch + --strip-pad. */
+   --strip-inset + (--strip-lanes - 1) * --strip-pitch + --strip-pad. */
 body.glance-strip #gameCanvas::before {
     content: "";
     position: absolute;
     left: 56px;
     right: 0;
-    top: calc(var(--strip-sky) + var(--strip-marker));
+    top: calc(var(--strip-sky) + var(--strip-marker) - var(--strip-inset));
     bottom: 0;
     background: url("../Assets/scene/strip-floor.png") repeat-x 0 0 / 64px 36px;
     image-rendering: pixelated;

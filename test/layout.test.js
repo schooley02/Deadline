@@ -324,6 +324,11 @@ describe('strip geometry stays in sync between CONFIG and css/glanceStrip.css', 
         expect(css).toContain(`--strip-pitch: ${CONFIG.STRIP_LANE_PITCH}px;`);
         expect(css).toContain(`--strip-lanes: ${CONFIG.STRIP_LANE_COUNT};`);
         expect(css).toContain(`--strip-pad: ${CONFIG.STRIP_FLOOR_PAD_BOTTOM}px;`);
+        expect(css).toContain(`--strip-inset: ${CONFIG.STRIP_FLOOR_FEET_INSET}px;`);
+        // floor tile (36px) = inset + (lanes-1)*pitch + pad; its top = sky + marker - inset
+        const floor = CONFIG.STRIP_FLOOR_FEET_INSET + (CONFIG.STRIP_LANE_COUNT - 1) * CONFIG.STRIP_LANE_PITCH + CONFIG.STRIP_FLOOR_PAD_BOTTOM;
+        expect(css).toContain(`/ 64px ${floor}px;`);
+        expect(css).toContain('top: calc(var(--strip-sky) + var(--strip-marker) - var(--strip-inset));');
         const h = CONFIG.STRIP_SKY_HEIGHT + CONFIG.STRIP_MARKER_HEIGHT + (CONFIG.STRIP_LANE_COUNT - 1) * CONFIG.STRIP_LANE_PITCH + CONFIG.STRIP_FLOOR_PAD_BOTTOM;
         expect(css).toMatch(new RegExp(`#gameCanvas \\{\\s*height: ${h}px;`));
     });

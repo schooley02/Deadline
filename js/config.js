@@ -306,18 +306,23 @@ const CONFIG = {
     // transparent). Lanes OVERLAP vertically on purpose: each steps down only
     // STRIP_LANE_PITCH px but a marker is STRIP_MARKER_HEIGHT tall, so markers
     // behind keep their top part visible and tappable. 2026-10-13 (Jeremy: too tall):
-    // tighter lanes, FEET-aligned to the floor: lane 0's feet (marker bottom) sit on the
-    // floor's top edge, lane 1 mid-floor, lane 2 at the bottom minus STRIP_FLOOR_PAD_BOTTOM.
-    // Floor = (LANE_COUNT-1)*PITCH + PAD = 2*14 + 8 = 36px; strip = SKY + MARKER + floor =
-    // 24 + 32 + 36 = 92px (was 96; pad 4->8 and pitch 16->14 same day so feet clear the canvas edge).
+    // tighter lanes, FEET-aligned to the floor: lane 0's feet (marker bottom) sit
+    // STRIP_FLOOR_FEET_INSET px BELOW the floor tile's top edge, lane 1 a pitch lower, lane 2 at
+    // the bottom minus STRIP_FLOOR_PAD_BOTTOM. 2026-10-13 evening (Jeremy: the back-lane nurse
+    // floated): the tile's opaque ground only starts ~6 rows down (rows 0-5 are sky/grass
+    // fringe), so feet ON the top edge hung in the air; inset 8 puts them 2-3px into the dirt
+    // (sky 24->32, pitch 14->10, canvas still 92px).
+    // Floor = INSET + (LANE_COUNT-1)*PITCH + PAD = 8 + 2*10 + 8 = 36px; strip = SKY + MARKER +
+    // (LANE_COUNT-1)*PITCH + PAD = 32 + 32 + 20 + 8 = 92px.
     // Same-lane markers closer than STRIP_MARKER_WIDTH collapse into a "+N" badge.
     // PixelLab floor art must match (36px tall, tileable in x: Assets/scene/strip-floor.png). Keep in sync with
     // --strip-sky / --strip-marker / --strip-pitch / --strip-icon / #gameCanvas
     // height in css/glanceStrip.css (test/layout.test.js checks).
-    STRIP_SKY_HEIGHT: 24, // headroom: parked lurker sprite (64px box at bottom:20px) needs 84px of canvas above the floor's bottom edge, priority star sits 11px above a marker; the canvas clips overflow
+    STRIP_SKY_HEIGHT: 32, // headroom: parked lurker sprite (64px box at bottom:20px) needs 84px of canvas above the floor's bottom edge, priority star sits 11px above a marker; the canvas clips overflow
     STRIP_MARKER_HEIGHT: 32,
     STRIP_ICON_SIZE: 24,
-    STRIP_LANE_PITCH: 14,
+    STRIP_LANE_PITCH: 10,
+    STRIP_FLOOR_FEET_INSET: 8, // back lane's feet sit this far below the floor tile's top edge (2026-10-13)
     STRIP_FLOOR_PAD_BOTTOM: 8, // gap under the front lane's feet (2026-10-13)
     STRIP_LANE_COUNT: 3,
     // Portrait strip sub-task spread (2026-10-13, Jeremy: subs stacked on their parent

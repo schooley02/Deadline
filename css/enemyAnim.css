@@ -34,6 +34,16 @@
     --n-attack: 9;
     --sprite-scale: 1;
     --pad: calc((var(--cell) - 128px) / 2);
+    /* FEET CALIBRATION (2026-10-13, Jeremy: the nurse floated above the floor). The window is
+       anchored as if the 128px character were centred in its cell (planted feet at cell - pad),
+       but each atlas draws its characters a few px higher/lower, and per state (walk / idle /
+       attack). --dy-* = how many cell-px the sheet must move DOWN (negative = up) so the planted
+       foot lands exactly on the enemy box's bottom edge. Measured from the PNGs (lowest opaque
+       row: walk = max over frames, idle/attack = median); test/spriteFeet.test.js re-measures
+       and fails if a re-exported atlas drifts. Scales with --sprite-scale automatically. */
+    --dy-walk: 0px;
+    --dy-idle: 0px;
+    --dy-attack: 0px;
     position: absolute;
     left: 50%;
     bottom: calc(var(--pad) * -1);
@@ -51,8 +61,17 @@
 .zombie-other .enemy-sprite        { --cell: 156px; --n-walk: 7; --n-attack: 7; }
 .zombie-spirituality .enemy-sprite { --cell: 176px; --n-walk: 7; }
 
+/* Per-category feet calibration (see --dy-* above). financial / relationships are already exact. */
+.zombie-career .enemy-sprite        { --dy-walk: 3px;  --dy-idle: 2px;  --dy-attack: 3px; }
+.zombie-creativity .enemy-sprite    { --dy-walk: 0px;  --dy-idle: 2px;  --dy-attack: 2px; }
+.zombie-health .enemy-sprite        { --dy-walk: -2px; --dy-idle: 0px;  --dy-attack: -4px; }
+.zombie-lifestyle .enemy-sprite     { --dy-walk: -2px; --dy-idle: 0px;  --dy-attack: 0px; }
+.zombie-other .enemy-sprite         { --dy-walk: 7px;  --dy-idle: 10px; --dy-attack: 10px; }
+.zombie-spirituality .enemy-sprite  { --dy-walk: 2px;  --dy-idle: 2px;  --dy-attack: 2px; }
+
 .enemy-sprite-sheet {
     --row: 0;
+    --dy: var(--dy-walk);
     --frames: var(--n-walk);
     /* Playback is defined as a FRAME RATE per state, and the cycle length is
        derived from the frame count, so a 7-frame and a 9-frame animation of the
@@ -62,7 +81,7 @@
     --sprite-dur: calc(var(--frames) / var(--fps) * 1s);
     position: absolute;
     left: 0;
-    top: calc(var(--row) * var(--cell) * -1);
+    top: calc(var(--row) * var(--cell) * -1 + var(--dy));
     width: calc(var(--cell) * 9);
     height: calc(var(--cell) * 4);
     background-repeat: no-repeat;
@@ -80,6 +99,7 @@
 /* State rows */
 .enemy.enemy-at-base .enemy-sprite-sheet {
     --row: 2;
+    --dy: var(--dy-attack);
     --frames: var(--n-attack);
     --fps: 8;
 }
@@ -90,6 +110,7 @@
    'approaching'. */
 .enemy.urgency-calm .enemy-sprite-sheet {
     --row: 1;
+    --dy: var(--dy-idle);
     --frames: var(--n-idle);
     --fps: 5;
 }
@@ -100,6 +121,7 @@
 /* Parked lurker (negative habit past its tempting time): idles beside the base. */
 .enemy.lurker-parked .enemy-sprite-sheet {
     --row: 1;
+    --dy: var(--dy-idle);
     --frames: var(--n-idle);
     --fps: 5;
 }
@@ -114,6 +136,7 @@
 }
 .enemy.enemy-dying .enemy-sprite-sheet {
     --row: 3;
+    --dy: var(--dy-walk); /* death frames start where the walk/idle poses stood; the splat then spreads below */
     --frames: 9;
     --fps: 12 !important; /* beats .fx-reduced's slow-down: removal timing assumes 750ms */
     animation: enemy-sprite-death var(--sprite-dur) steps(9, jump-none) forwards !important;
