@@ -363,3 +363,101 @@ describe('rankRoutines', () => {
         expect(ranked.map(r => r.id)).toEqual(['lv2', 'nolevel']);
     });
 });
+
+describe('resolveTap (V3c-1 tap-to-interact)', () => {
+    test('press and release on the same routine chip is a routine tap', () => {
+        expect(HeroesView.resolveTap('r:routine_0_1', 'r:routine_0_1'))
+            .toEqual({ type: 'routine', routineId: 'routine_0_1' });
+    });
+
+    test('press and release on the +N chip is an overflow tap', () => {
+        expect(HeroesView.resolveTap('overflow', 'overflow')).toEqual({ type: 'overflow' });
+    });
+
+    test('press on one chip and release on another is not a tap', () => {
+        expect(HeroesView.resolveTap('r:a', 'r:b')).toBeNull();
+        expect(HeroesView.resolveTap('r:a', 'overflow')).toBeNull();
+    });
+
+    test('missing press or release (drag off a chip, tap on empty space) is not a tap', () => {
+        expect(HeroesView.resolveTap(null, 'r:a')).toBeNull();
+        expect(HeroesView.resolveTap('r:a', null)).toBeNull();
+        expect(HeroesView.resolveTap(null, null)).toBeNull();
+    });
+
+    test('routine ids that contain colons survive the key round-trip', () => {
+        expect(HeroesView.resolveTap('r:a:b', 'r:a:b')).toEqual({ type: 'routine', routineId: 'a:b' });
+    });
+});
+
+describe('chipKey / bindChipTaps (fake DOM)', () => {
+    function fakeChip(dataset) {
+        const chip = { dataset };
+        const el = { closest: (sel) => (sel === '.hero-chip' ? chip : null) };
+        return el;
+    }
+
+    test('chipKey reads routine and overflow chips, null for non-chips', () => {
+        expect(HeroesView.chipKey(fakeChip({ routineId: 'r1' }))).toBe('r:r1');
+        expect(HeroesView.chipKey(fakeChip({ heroOverflow: '1' }))).toBe('overflow');
+        expect(HeroesView.chipKey({ closest: () => null })).toBeNull();
+        expect(HeroesView.chipKey(null)).toBeNull();
+    });
+
+    test('bindChipTaps fires onRoutine once per tap and survives a chip rebuild between down and up', () => {
+        jest.useFakeTimers();
+        const listeners = {};
+        const container = { dataset: {}, addEventListener: (t, fn) => { listeners[t] = fn; } };
+        const calls = [];
+        HeroesView.bindChipTaps(container, { onRoutine: (id) => calls.push(id), onOverflow: () => calls.push('OVERFLOW') });
+
+        // down on the OLD chip element, up on the REBUILT one (same routine id)
+        listeners.pointerdown({ target: fakeChip({ routineId: 'r1' }) });
+        listeners.pointerup({ target: fakeChip({ routineId: 'r1' }) });
+        listeners.pointerdown({ target: fakeChip({ heroOverflow: '1' }) });
+        listeners.pointerup({ target: fakeChip({ heroOverflow: '1' }) });
+        // drag from one chip onto another: no tap
+        listeners.pointerdown({ target: fakeChip({ routineId: 'r1' }) });
+        listeners.pointerup({ target: fakeChip({ routineId: 'r2' }) });
+        // up without a down (stale): no tap
+        listeners.pointerup({ target: fakeChip({ routineId: 'r1' }) });
+
+        // handlers are deferred past the trailing click (setTimeout 0)
+        expect(calls).toEqual([]);
+        jest.runAllTimers();
+        jest.useRealTimers();
+        expect(calls).toEqual(['r1', 'OVERFLOW']);
+    });
+
+    test('bindChipTaps is idempotent per container', () => {
+        let adds = 0;
+        const container = { dataset: {}, addEventListener: () => { adds++; } };
+        HeroesView.bindChipTaps(container, {});
+        HeroesView.bindChipTaps(container, {});
+        expect(adds).toBe(3); // pointerdown + pointercancel + pointerup, once
+    });
+});
+
+describe('chipSignature (in-place chip reconcile)', () => {
+    const base = { id: 'r1', state: 'active', stars: 2, healthPct: 0.8, emoji: '💼', name: 'Work', fx: null };
+
+    test('identical view models give identical signatures (chip node is reused)', () => {
+        expect(HeroesView.chipSignature(base, 1000)).toBe(HeroesView.chipSignature({ ...base }, 5000));
+    });
+
+    test('any visible change changes the signature', () => {
+        const sig = HeroesView.chipSignature(base, 1000);
+        expect(HeroesView.chipSignature({ ...base, stars: 3 }, 1000)).not.toBe(sig);
+        expect(HeroesView.chipSignature({ ...base, healthPct: 0.7 }, 1000)).not.toBe(sig);
+        expect(HeroesView.chipSignature({ ...base, state: 'frozen' }, 1000)).not.toBe(sig);
+        expect(HeroesView.chipSignature({ ...base, emoji: '🏋️' }, 1000)).not.toBe(sig);
+    });
+
+    test('a running fx keeps one signature (keyed by start time, not elapsed) and ends with a new one', () => {
+        const a = HeroesView.chipSignature({ ...base, fx: { effect: 'flinch', elapsedMs: 100, durationMs: 600 } }, 1100);
+        const b = HeroesView.chipSignature({ ...base, fx: { effect: 'flinch', elapsedMs: 350, durationMs: 600 } }, 1350);
+        const ended = HeroesView.chipSignature({ ...base, fx: null }, 1700);
+        expect(a).toBe(b);
+        expect(ended).not.toBe(a);
+    });
+});

@@ -20,8 +20,32 @@
     gap: 2px;
     padding: 4px;
     box-sizing: border-box;
-    pointer-events: none;
+    pointer-events: none; /* container stays click-through; the chips opt in below */
     z-index: 90; /* above the enemy list-order band (30-79) */
+}
+
+/* V3c-1 (2026-10-14): chips are tappable (-> that routine's management
+   window; "+N" -> Routines window). The visual box stays 34px; ::after grows
+   the HIT area to >=44px without changing layout. touch-action keeps a tap
+   from becoming a scroll/zoom. Taps are handled by ONE delegated listener on
+   #heroBaseZone (HeroesView.bindChipTaps) because chips are rebuilt every tick. */
+#heroBaseZone .hero-chip {
+    pointer-events: auto;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+#heroBaseZone .hero-chip::after {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    min-width: 44px;
+    min-height: 44px;
+    left: 50%;
+    top: 50%;
+    right: auto;
+    bottom: auto;
+    transform: translate(-50%, -50%);
 }
 
 .hero-chip {
@@ -40,14 +64,8 @@
 }
 
 .hero-chip-avatar {
-    font-size: 14px;
+    font-size: 18px;
     line-height: 1;
-}
-
-.hero-chip-level {
-    font-weight: 700;
-    color: var(--color-text-primary);
-    font-size: 8px;
 }
 
 .hero-chip-stars {
@@ -159,4 +177,29 @@
         height: 28px;
         font-size: 10px;
     }
+}
+
+/* V3c-2 (2026-10-14): the same chip, sized for an agenda row, shown beside the
+   category label of habits/routine tasks that belong to a routine. Position is
+   provisional ("we may move it later"). Tap -> that routine's management window. */
+.hero-chip--inline {
+    flex: 0 0 auto;
+    width: 30px;
+    cursor: pointer;
+    touch-action: manipulation;
+    vertical-align: middle;
+}
+
+.hero-chip--inline .hero-chip-avatar {
+    font-size: 14px;
+}
+
+.hero-chip--inline::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
 }

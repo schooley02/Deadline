@@ -144,12 +144,22 @@ Nothing broken; zero game identity. Category chips already use ART_STYLE.md's pa
   if it grows beyond CSS + a render branch, split it): strip layout, marker variant
   classes, cluster badges, overdue-sprite exception, slim slider, week strip/pager kept.
   Live-verify portrait at 390px (iframe trick, HANDOFF 2026-07-20) AND on Jeremy's phone.
-- [ ] **V3c — Landscape scene + tap-to-interact** (after V1 so landscape inherits the
-  graveyard): orientation media query routes phone-landscape to the desktop layout;
-  hero-chip click → that routine's management window; enemy tap already opens the popup
-  (verify touch targets ≥44px on sprites). Hero/enemy tap behaviors enabled on desktop in
-  the same session. Check `manifest.json` does NOT lock orientation, and that rotating
-  mid-scrub/mid-pager-preview cleanly releases or preserves the non-mutating preview state.
+- [ ] **V3c — Landscape scene + tap-to-interact (RE-SCOPED 2026-10-14, Fable; see DECISIONS.md
+  2026-10-14).** Landscape already gets the full scene (strip is portrait-only, `Layout.GLANCE_QUERY`),
+  `manifest.json` orientation is `any` — nothing to build there. Remaining:
+  - **V3c-1 — tap-to-interact + chip trim:** hero chip tap → `showRoutineManagement(routineId)`
+    (drop `pointer-events: none` on `#heroBaseZone`, hit area ≥44px without changing the visual
+    size), "+N" chip → Routines window; chip loses the emoji/initial identity text and the `Lv N`
+    badge (keeps stars + health; avatar slot shows the category emoji as a placeholder until the
+    pixel avatars exist). Verify enemy taps in a crowded landscape pile (fan-out + lanes) hit the
+    intended sprite. Check rotating mid-scrub / mid-pager-preview: preview should END cleanly
+    (snap to now) rather than strand ghosts. Desktop gets the same taps.
+  - **V3c-2 — list-row hero badges:** routine-owned agenda rows (habit via `habitDef.routineId`,
+    routine-task instances) show a small hero avatar badge; tap → that routine's management
+    window. Portrait's only hero entry point. Time order untouched.
+  - **Deferred until after V4 (church redesign):** pixel hero avatars (8 category sprites + neutral
+    default, PixelLab; brief must give heroes a distinct palette / right-facing pose / chip frame so
+    they never read as zombies), chip size + placement in landscape, portrait chip placement.
 - [ ] **V4 — Pixel church + base integration** (art task + `css/gameCanvas.css`): regenerate
   `Assets/Base/base_000..100.png` in pixel style (5 damage states, same filenames — zero
   code churn), remove the CHURCH label, blend base into the V1 ground band. **UNBLOCKED

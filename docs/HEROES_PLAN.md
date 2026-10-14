@@ -12,7 +12,7 @@ ACTIONABLE_TICKETS.md [P1-UI-006].
 
 ## Design forks — RESOLVED 2026-07-19 session 41 (Jeremy's verdicts)
 
-1. **Hero art = CSS/emoji placeholders for v1.** No hero sprite assets exist (`Assets/` has only
+1. **Hero art = CSS/emoji placeholders for v1.** *(Partly SUPERSEDED 2026-10-14: pixel hero avatars are now planned -- see DECISIONS.md 2026-10-14.)* No hero sprite assets exist (`Assets/` has only
    zombies + base states; the spec's `assets/sprites/heroes/` was never created). v1 renders each
    hero as a styled avatar chip (category emoji/initial + star row + level badge + health bar)
    behind a single rendering seam (`js/ui/heroes.js`), so real sprites can swap in later without

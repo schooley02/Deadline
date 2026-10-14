@@ -372,6 +372,14 @@ const AgendaList = (() => {
         }
         itemDetailsContainer.appendChild(itemCategorySpan);
 
+        // Routine chip (V3c-2, 2026-10-14): habits and routine tasks owned by
+        // a routine show that routine's hero chip beside the category label.
+        // deps.routineChipFor is optional (absent in older deps/tests).
+        if (typeof deps.routineChipFor === 'function') {
+            const routineChip = deps.routineChipFor(itemData);
+            if (routineChip) itemDetailsContainer.appendChild(routineChip);
+        }
+
         // Sub-task progress label ([P1-DATA-004] sub-session 5, 2026-07-19):
         // "N/M sub-tasks" for any task that has EVER had a sub-task, live —
         // completed count comes from `completedSubTasks` (persists across

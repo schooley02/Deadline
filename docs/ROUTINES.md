@@ -109,6 +109,8 @@ KO'd, showing "revives tomorrow" vs. "ready to revive"). Once the gate clears, r
 today's due instances as normal.
 
 ## Hero Rendering ([P1-UI-006] sub-session 3, built 2026-07-19)
+> **Updated 2026-10-14 (V3c-1):** the chip no longer shows the name initial or the `Lv N` badge (neutral 🛡️ avatar when the routine has no habits; stars + health kept) and is tappable (chip -> management window, "+N" -> Routines window). Pixel avatars + list-row badges are queued -- DECISIONS 2026-10-14. The paragraph below is the original v1 description.
+
 One avatar chip per routine, rendered at the Base Zone (over `#base`'s leftmost 120px). No hero
 sprite assets exist yet (docs/ART_STYLE.md), so v1 is a CSS/emoji placeholder chip (fork 1,
 HEROES_PLAN.md): category emoji (dominant category among the routine's HABIT members — routine

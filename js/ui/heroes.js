@@ -6,8 +6,8 @@
  * the Base Zone (index.html's `#heroBaseZone`, positioned over `#base`'s
  * leftmost-120px per PROJECT_SPEC ~88). No hero sprite assets exist yet
  * (docs/ART_STYLE.md — only zombies + base states), so v1 is a CSS/emoji
- * placeholder chip (fork 1, HEROES_PLAN.md): category emoji/initial, star
- * row (live completion rate), level badge, health bar, and state styling
+ * placeholder chip (fork 1, HEROES_PLAN.md): category emoji, star
+ * row (live completion rate), health bar (V3c-1: no Lv badge/initial), and state styling
  * (active / frozen 🥶 / KO'd 💤 / inactive greyed — same status vocabulary as
  * managementWindows.js's compact routine card).
  *
@@ -150,6 +150,7 @@ const HeroesView = (() => {
         return 'var(--color-base-health-critical)';
     }
 
+    const NEUTRAL_AVATAR = '🛡️';
     const STATE_ICON = { ko: '💤', frozen: '🥶', inactive: '⚪' };
     const STATE_LABEL = { ko: 'Knocked out', frozen: 'Frozen', inactive: 'Inactive', active: 'Active' };
 
@@ -157,7 +158,7 @@ const HeroesView = (() => {
         const chip = document.createElement('div');
         chip.className = `hero-chip hero-chip--${vm.state}`;
         chip.dataset.routineId = vm.id;
-        chip.title = `${vm.name} — Lv${vm.level} — ${STATE_LABEL[vm.state] || 'Active'}`;
+        chip.title = `${vm.name} — ${STATE_LABEL[vm.state] || 'Active'} (tap to manage)`;
 
         // Interaction FX (sub-session 5): resume the animation mid-flight
         // across the 50ms full rebuilds via negative animation-delay — see
@@ -171,18 +172,65 @@ const HeroesView = (() => {
         const statusIcon = STATE_ICON[vm.state]
             ? `<span class="hero-chip-status-icon">${STATE_ICON[vm.state]}</span>`
             : '';
-        const identity = vm.emoji || vm.initial || '?';
+        // V3c-1 (2026-10-14): the avatar slot is the seam for the pixel hero
+        // sprites (DECISIONS 2026-10-14). Until they exist it shows the
+        // category emoji (or a neutral shield for a routine with no habits
+        // yet) -- the routine-name initial and the Lv badge are gone.
+        const identity = vm.emoji || NEUTRAL_AVATAR;
 
         chip.innerHTML = `
             ${statusIcon}
             <div class="hero-chip-avatar">${identity}</div>
-            <div class="hero-chip-level">Lv${vm.level}</div>
             <div class="hero-chip-stars">${starsHtml(vm.stars)}</div>
             <div class="hero-chip-health-track">
                 <div class="hero-chip-health-fill" style="width:${Math.round(vm.healthPct * 100)}%; background:${healthColorVar(vm.healthPct)};"></div>
             </div>
         `;
         return chip;
+    }
+
+    // --- Tap-to-interact (V3c-1, 2026-10-14) ---
+    // renderHeroesAtBase full-rebuilds every chip each 50ms tick, so a click
+    // handler on the chip itself would never fire (the pressed element is
+    // replaced between pointerdown and pointerup). Instead ONE listener pair
+    // lives on the stable container: pointerdown records which chip was hit
+    // (as a key), pointerup resolves the chip under the finger NOW, and a tap
+    // counts when both keys match. Keys: 'r:<routineId>' | 'overflow'.
+    function chipKey(el) {
+        const chip = el && el.closest ? el.closest('.hero-chip') : null;
+        if (!chip) return null;
+        if (chip.dataset.heroOverflow) return 'overflow';
+        return chip.dataset.routineId != null ? `r:${chip.dataset.routineId}` : null;
+    }
+
+    // Pure: a tap is a press and a release on the SAME chip.
+    function resolveTap(downKey, upKey) {
+        if (!downKey || !upKey || downKey !== upKey) return null;
+        if (upKey === 'overflow') return { type: 'overflow' };
+        if (upKey.startsWith('r:')) return { type: 'routine', routineId: upKey.slice(2) };
+        return null;
+    }
+
+    // handlers = { onRoutine(routineId), onOverflow() }. Idempotent per container.
+    function bindChipTaps(containerEl, handlers) {
+        if (!containerEl || containerEl.dataset.heroTapsBound) return;
+        containerEl.dataset.heroTapsBound = '1';
+        let downKey = null;
+        containerEl.addEventListener('pointerdown', (e) => { downKey = chipKey(e.target); });
+        containerEl.addEventListener('pointercancel', () => { downKey = null; });
+        containerEl.addEventListener('pointerup', (e) => {
+            const tap = resolveTap(downKey, chipKey(e.target));
+            downKey = null;
+            if (!tap) return;
+            // Defer past the browser's trailing `click`: opening a window here
+            // raises a backdrop (and modal) under the pointer, and that same
+            // click would land on the backdrop and dismiss the window
+            // immediately (found live 2026-10-14 on the "+N" chip).
+            setTimeout(() => {
+                if (tap.type === 'overflow') handlers.onOverflow && handlers.onOverflow();
+                else handlers.onRoutine && handlers.onRoutine(tap.routineId);
+            }, 0);
+        });
     }
 
     // --- Interaction FX ([P1-UI-006] sub-session 5, 2026-07-19) ---
@@ -250,9 +298,30 @@ const HeroesView = (() => {
         return stars > previous;
     }
 
+    // The SAME chip the base shows (avatar, stars, health, state styling),
+    // sized for an agenda row (V3c-2, 2026-10-14): `.hero-chip--inline`.
+    // Not rebuilt per tick -- the list re-renders on state changes, so the
+    // chip is a snapshot of the routine at render time. `onTap(routine)`
+    // (optional) wires the tap to the routine's management window.
+    function buildRoutineChip(routine, deps) {
+        const config = deps.config || CONFIG;
+        const vm = buildChipViewModel(routine, deps.definedHabits, config, deps.runStartedAtMs);
+        const chip = buildChipElement(vm);
+        chip.classList.add('hero-chip--inline');
+        chip.title = `${vm.name} — ${STATE_LABEL[vm.state] || 'Active'} (tap to manage)`;
+        if (deps.onTap) {
+            chip.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deps.onTap(routine);
+            });
+        }
+        return chip;
+    }
+
     function buildOverflowChip(overflowCount) {
         const chip = document.createElement('div');
         chip.className = 'hero-chip hero-chip-overflow';
+        chip.dataset.heroOverflow = '1';
         chip.textContent = `+${overflowCount}`;
         chip.title = `${overflowCount} more routine${overflowCount === 1 ? '' : 's'}`;
         return chip;
@@ -274,16 +343,35 @@ const HeroesView = (() => {
         const visible = routines.slice(0, maxDisplay);
         const overflow = routines.length - visible.length;
 
-        containerEl.innerHTML = '';
+        // Reconcile IN PLACE (V3c-1 follow-up, 2026-10-14): this runs every
+        // 50ms tick, and a full innerHTML rebuild destroyed the chip under a
+        // finger between touchstart and touchend, so real phone taps never
+        // landed (mouse clicks survived by luck). A chip is only replaced when
+        // its signature changes; untouched chips keep their DOM node.
+        const existing = {};
+        Array.from(containerEl.children).forEach(el => {
+            const key = el.dataset.heroOverflow ? 'overflow' : (el.dataset.routineId != null ? `r:${el.dataset.routineId}` : null);
+            if (key) existing[key] = el;
+        });
+        const desired = [];
+        const nowMs = deps.nowMs || Date.now();
 
         visible.forEach(routine => {
             const vm = buildChipViewModel(routine, deps.definedHabits, config, deps.runStartedAtMs);
             // Interaction FX (sub-session 5, optional dep — omit fxMemory to
             // skip): stamped timestamps -> replayed CSS animation.
             if (deps.fxMemory) {
-                vm.fx = deriveFx(deps.fxMemory[routine.id], deps.nowMs || Date.now(), config);
+                vm.fx = deriveFx(deps.fxMemory[routine.id], nowMs, config);
             }
-            containerEl.appendChild(buildChipElement(vm));
+            const sig = chipSignature(vm, nowMs);
+            const prev = existing[`r:${routine.id}`];
+            if (prev && prev.dataset.heroSig === sig) {
+                desired.push(prev);
+            } else {
+                const chip = buildChipElement(vm);
+                chip.dataset.heroSig = sig;
+                desired.push(chip);
+            }
 
             if (deps.starMemory && deps.onStarThresholdCrossed) {
                 const crossed = trackStarCrossing(deps.starMemory, routine.id, vm.stars);
@@ -292,8 +380,31 @@ const HeroesView = (() => {
         });
 
         if (overflow > 0) {
-            containerEl.appendChild(buildOverflowChip(overflow));
+            const sig = `overflow:${overflow}`;
+            const prev = existing.overflow;
+            if (prev && prev.dataset.heroSig === sig) {
+                desired.push(prev);
+            } else {
+                const chip = buildOverflowChip(overflow);
+                chip.dataset.heroSig = sig;
+                desired.push(chip);
+            }
         }
+
+        // Touch the DOM only when the node list actually differs.
+        const current = Array.from(containerEl.children);
+        const same = current.length === desired.length && current.every((el, i) => el === desired[i]);
+        if (!same) {
+            containerEl.replaceChildren(...desired);
+        }
+    }
+
+    // Pure: everything that changes a chip's look. FX is keyed by effect +
+    // START time (not elapsed) so a running animation is not restarted by the
+    // rebuild; when it ends the signature changes once and the chip refreshes.
+    function chipSignature(vm, nowMs) {
+        const fx = vm.fx ? `${vm.fx.effect}@${Math.round(nowMs - vm.fx.elapsedMs)}` : '';
+        return [vm.id, vm.state, vm.stars, Math.round(vm.healthPct * 100), vm.emoji || '', vm.name, fx].join('|');
     }
 
     return {
@@ -308,9 +419,14 @@ const HeroesView = (() => {
         trackStarCrossing,
         deriveFx,
         rankRoutines,
+        resolveTap,
+        chipSignature,
         // DOM
         buildChipElement,
         buildOverflowChip,
+        buildRoutineChip,
+        chipKey,
+        bindChipTaps,
         renderHeroesAtBase,
     };
 })();

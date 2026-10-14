@@ -599,6 +599,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function agendaListDeps() {
         return {
             activeItems: State.getActiveItems(), categoryStyles,
+            // V3c-2: the owning routine's chip beside the category label.
+            routineChipFor: (item) => {
+                const routine = Items.findRoutineForItem(item, { definedHabits: () => State.getDefinedHabits(), definedRoutines: () => State.getDefinedRoutines() });
+                if (!routine) return null;
+                return HeroesView.buildRoutineChip(routine, {
+                    config: CONFIG, definedHabits: State.getDefinedHabits(), runStartedAtMs: State.getRunStartedAtMs(),
+                    onTap: (r) => showRoutineManagement(r.id),
+                });
+            },
             completeItem: (itemId) => Items.completeItem(itemId, itemsDeps()),
             indulgeHabit: (itemId) => Items.indulgeHabit(itemId, itemsDeps()),
             isGameOver: State.isGameOver,
@@ -1421,7 +1430,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // patched — HeroesView itself is unchanged, it just renders whatever
     // array it's given. Omitted (every existing call site) renders the real
     // live definedRoutines, unchanged behavior.
+    // Tap-to-interact (V3c-1, 2026-10-14): idempotent; opens even during a
+    // time-slider scrub / non-Today day page (Jeremy: management window is
+    // not a mutation of the preview).
+    function bindHeroChipTaps() {
+        HeroesView.bindChipTaps(heroBaseZoneEl, {
+            onRoutine: (routineKey) => {
+                // dataset round-trips ids as strings; resolve the real id.
+                const routine = State.getDefinedRoutines().find(r => String(r.id) === routineKey);
+                if (routine) showRoutineManagement(routine.id);
+            },
+            onOverflow: () => openManagementWindow('routines'),
+        });
+    }
+
     function renderHeroesAtBase(routinesOverride) {
+        bindHeroChipTaps();
         HeroesView.renderHeroesAtBase({
             containerEl: heroBaseZoneEl,
             definedRoutines: routinesOverride || State.getDefinedRoutines(),
