@@ -29,12 +29,12 @@ At the end of every session, run `/end-session` (append HANDOFF entry, log decis
 | `ACTIONABLE_TICKETS.md` | Ticket details when a ROADMAP item references a ticket ID (P0/P1/P2-xxx) |
 | `docs/VISUAL_DESIGN_PLAN.md` | Visual track V1–V6 (scene, glow, layouts, church, tokens, juice) |
 
-## Codebase State (refreshed 2026-10-13 — last code change 2026-10-13, lane z-order + lane switching, sprite feet calibration, strip back lane lowered)
+## Codebase State (refreshed 2026-10-14 — last code change 2026-10-14, V3c: tappable hero chips on the base + routine chips in the agenda list, in-place chip reconcile)
 
 - **Modular vanilla JS, no build step.** `index.html` + ~27 core modules in `js/` (new: `listOrder.js`, 2026-10-13) + 17 UI modules in `js/ui/` + 21 CSS files in `css/` (`responsive.css` loads last — order-sensitive). `script.js` (~1,900 lines) is boot/wiring only: deps builders + `window.*` names for inline onclicks. Game state is owned by `js/state.js` (`State.getX`/`State.setX`). Target layout: `docs/ARCHITECTURE.md`.
 - **Persistence:** localStorage `deadline.save`, `SCHEMA_VERSION = 12` (migrations in `js/persistence.js`); settings in `deadline.settings`; Backup & Transfer via `js/exportImport.js`.
-- **PWA:** `manifest.json` + cache-first `sw.js`. BUMP `CACHE_NAME` (currently `deadline-shell-v48`) on ANY shell-file change, and add new assets to its `APP_SHELL` list. Deployed via GitHub Pages from `main`.
-- **Tests:** Jest, ~68 suites / ~1,426 tests in `test/` (`npm test`). Jest never loads `script.js` — boot/wiring regressions only show up in a live browser check.
+- **PWA:** `manifest.json` + cache-first `sw.js`. BUMP `CACHE_NAME` (currently `deadline-shell-v51`) on ANY shell-file change, and add new assets to its `APP_SHELL` list. Deployed via GitHub Pages from `main`.
+- **Tests:** Jest, ~68 suites / ~1,437 tests in `test/` (`npm test`). Jest never loads `script.js` — boot/wiring regressions only show up in a live browser check.
 - **Progress:** Milestones 0–4 closed; Milestone 5 (live-play polish + visual track V1–V6, see `docs/VISUAL_DESIGN_PLAN.md`) in progress. Next queued items are in the top `sessions/HANDOFF.md` entry.
 - **Floor art (2026-10-13):** `Assets/scene/floor-tile.png` (127x72, desktop/landscape `.scene-ground`) + `strip-floor.png` (64x36, portrait strip floor); lane feet are anchored to the floor (`CONFIG.GROUND_FLOOR_*`, `STRIP_*`). Alternates in `Assets/scene/_source/` (strip-floor2/3.png) unused. See `docs/ART_STYLE.md`.
 - **Art:** animated PixelLab atlases in `Assets/Zombies/anim/` drive walk/idle/attack (P2-GAME-010 Stage 2a, `js/spriteAnim.js` + `css/enemyAnim.css`, built 2026-10-12, pending live check); death animation on completion + scrub pause built in Stage 2b (2026-10-12, live-verified). Static 64×64 PNGs in `Assets/Zombies/` remain as the fallback.

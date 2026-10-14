@@ -144,8 +144,8 @@ Nothing broken; zero game identity. Category chips already use ART_STYLE.md's pa
   if it grows beyond CSS + a render branch, split it): strip layout, marker variant
   classes, cluster badges, overdue-sprite exception, slim slider, week strip/pager kept.
   Live-verify portrait at 390px (iframe trick, HANDOFF 2026-07-20) AND on Jeremy's phone.
-- [ ] **V3c — Landscape scene + tap-to-interact (RE-SCOPED 2026-10-14, Fable; see DECISIONS.md
-  2026-10-14).** Landscape already gets the full scene (strip is portrait-only, `Layout.GLANCE_QUERY`),
+- [x] **V3c — Landscape scene + tap-to-interact (DONE 2026-10-14, phone-confirmed; V3c-1 tappable chips + V3c-2 list chips; pixel avatars + chip layout deferred to after V4 — ROADMAP). RE-SCOPED 2026-10-14, Fable; see DECISIONS.md
+  2026-10-14.** Landscape already gets the full scene (strip is portrait-only, `Layout.GLANCE_QUERY`),
   `manifest.json` orientation is `any` — nothing to build there. Remaining:
   - **V3c-1 — tap-to-interact + chip trim:** hero chip tap → `showRoutineManagement(routineId)`
     (drop `pointer-events: none` on `#heroBaseZone`, hit area ≥44px without changing the visual
