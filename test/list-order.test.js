@@ -151,6 +151,39 @@ describe('z band and sort keys', () => {
         const z = ListOrder.zIndexes(ListOrder.compute(items), items);
         expect(Math.min(...z.values())).toBe(CONFIG.LIST_Z_MIN);
     });
+    test('lanes: front lane over middle over back whatever the row; list order inside a lane (2026-10-13)', () => {
+        const items = [mk(0), mk(100), mk(200), mk(300)];            // rows 0-3
+        const lanes = new Map([[items[0].id, 0], [items[1].id, 1], [items[2].id, 2], [items[3].id, 2]]);
+        const z = ListOrder.zIndexes(ListOrder.compute(items), items, { lanes });
+        const zs = items.map(i => z.get(i.id));
+        expect(zs[2]).toBeGreaterThan(zs[1]);   // front lane (row 2) over middle lane (row 1)
+        expect(zs[3]).toBeGreaterThan(zs[0]);   // front lane (row 3) over back lane (row 0), though row 0 is higher in the list
+        expect(zs[1]).toBeGreaterThan(zs[0]);
+        expect(zs[2]).toBeGreaterThan(zs[3]);   // same lane: the higher row wins
+        expect(Math.min(...zs)).toBeGreaterThanOrEqual(CONFIG.LIST_Z_MIN);
+        expect(Math.max(...zs)).toBeLessThanOrEqual(CONFIG.LIST_Z_MAX);
+    });
+    test('lanes: no-lane item (parked lurker) sinks behind everything; a sub on its own lane is layered by it', () => {
+        const a = mk(0), b = mk(100), lurker = mk(200), s = mk(210, { parentId: a.id }), s2 = mk(220, { parentId: a.id });
+        const items = [a, b, lurker, s, s2];
+        const lanes = new Map([[a.id, 2], [b.id, 0], [lurker.id, null], [s.id, 2], [s2.id, 1]]);
+        const z = ListOrder.zIndexes(ListOrder.compute(items), items, { lanes });
+        expect(z.get(lurker.id)).toBeLessThan(z.get(b.id));
+        expect(z.get(s.id)).toBe(z.get(a.id) - 1);                    // same lane as parent: one behind it
+        expect(z.get(s2.id)).toBeGreaterThan(z.get(b.id));             // middle lane: over the back lane...
+        expect(z.get(s2.id)).toBeLessThan(z.get(a.id));                // ...under the front lane
+    });
+    test('applyZ reads data-lane when no lanes are passed', () => {
+        const a = mk(0), b = mk(100);
+        [a, b].forEach(i => {
+            const store = {};
+            i.store = store;
+            i.element = { dataset: {}, style: { getPropertyValue: k => store[k] || '', setProperty: (k, v) => { store[k] = v; } } };
+        });
+        a.element.dataset.lane = '0'; b.element.dataset.lane = '2';
+        ListOrder.applyZ(ListOrder.compute([a, b]), [a, b]);
+        expect(Number(b.store['--list-z'])).toBeGreaterThan(Number(a.store['--list-z']));
+    });
     test('applyZ writes --list-z only when it changes', () => {
         const a = mk(0);
         const calls = [];

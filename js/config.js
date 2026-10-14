@@ -341,6 +341,18 @@ const CONFIG = {
     LIST_Z_MIN: 30,
     LIST_Z_MAX: 79,
 
+    // Lane layering + overlap avoidance (Jeremy, 2026-10-13 evening phone check; DECISIONS.md
+    // "Lane z-order + lane switching"). Z now follows the LANE first (front lane over middle over
+    // back), list order only breaks ties inside a lane: lane L owns the z slice
+    // LIST_Z_MIN + L*LIST_Z_LANE_STRIDE .. +STRIDE-1 (3 lanes x 16 = 30-77, still under the 80/85/90
+    // overlay layers). Two top-level zombies whose x positions are closer than
+    // LANE_CONFLICT_FRAC x the narrower sprite width may not share a lane: the lower-priority one
+    // (lower in the list) moves to the nearest free lane. Only when ALL lanes are blocked at that
+    // spot does the portrait strip fold the extra one into a "+N" badge (landscape just stacks it).
+    LANE_CONFLICT_FRAC: 0.6,
+    LIST_Z_LANE_STRIDE: 16,
+    STRIP_ATTACKER_WIDTH: 64, // overdue sprite box at the base in the strip (css/glanceStrip.css .enemy-at-base)
+
     // --- Ground band placement (2026-07-21) ---
     // Top-level enemies stand on the graveyard ground band (css/gameCanvas.css
     // `.scene-ground`, the bottom ~24% of #gameCanvas, with the fence

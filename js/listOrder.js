@@ -31,7 +31,11 @@
  *   ListOrder.canMove(layout, id, dir)   dir -1 = up, +1 = down
  *   ListOrder.move(items, id, dir, opts?) swap with the neighbor + stamp -> bool
  *   ListOrder.zIndexes(layout, items, opts?) -> Map(id -> z)
- *   ListOrder.applyZ(layout, items)   writes --list-z on each item's element
+ *       opts.lanes (Map id -> lane|null): LANE-first layering (2026-10-13) -- the front
+ *       lane (highest index) draws over the middle lane over the back lane; list order
+ *       only ranks items inside a lane. Without opts.lanes: pure list order (old rule).
+ *   ListOrder.applyZ(layout, items, lanes?)   writes --list-z on each item's element
+ *       (lanes omitted: read from each element's data-lane, if any is set)
  *   ListOrder.sortKeys(layout, items) -> Map(id -> number) list-order key for
  *                                       every item (subs: parent's row / due slot)
  */
@@ -158,21 +162,62 @@ const ListOrder = (() => {
         return true;
     }
 
+    // Lane-first z: lane L owns [zMin + L*stride, +stride). Inside a lane the row
+    // rank (list order) gives 2 per step (7 steps, then they tie) so a sub can sit
+    // at parent -1 / +1. A top-level item with no lane (a parked lurker standing
+    // behind the attackers) sinks to the bottom of the back lane's slice.
+    function laneZ(laneOf, rank, zMin, stride) {
+        const lane = (laneOf == null) ? 0 : Math.max(0, laneOf);
+        const r = (laneOf == null) ? 6 : Math.min(rank, 6);
+        return zMin + lane * stride + 2 + 2 * (6 - r);
+    }
+
     function zIndexes(layout, items, opts) {
         const c = cfg();
         const zMax = (opts && opts.zMax) || c.LIST_Z_MAX || 79;
         const zMin = (opts && opts.zMin) || c.LIST_Z_MIN || 30;
+        const lanes = opts && opts.lanes;
         const z = new Map();
-        layout.rows.forEach((item, row) => z.set(item.id, Math.max(zMin, zMax - row * 2)));
-        (items || []).forEach(i => {
-            if (!i.parentId) return;
+        if (!lanes) {
+            layout.rows.forEach((item, row) => z.set(item.id, Math.max(zMin, zMax - row * 2)));
+            (items || []).forEach(i => {
+                if (!i.parentId) return;
+                z.set(i.id, z.has(i.parentId) ? z.get(i.parentId) - 1 : zMin - 1);
+            });
+            return z;
+        }
+        const stride = (opts && opts.stride) || c.LIST_Z_LANE_STRIDE || 16;
+        const seen = new Map(); // lane -> items already ranked in it
+        const rankIn = lane => { const n = seen.get(lane) || 0; seen.set(lane, n + 1); return n; };
+        const laneOf = id => (lanes.has(id) ? lanes.get(id) : null);
+        layout.rows.forEach(item => {
+            const lane = laneOf(item.id);
+            z.set(item.id, laneZ(lane, lane == null ? 0 : rankIn(lane), zMin, stride));
+        });
+        // Subs: stacked on the parent's lane (or no lane of their own) -> one behind the
+        // parent, as before; a sub that took a lane of its own is layered by that lane.
+        (items || []).filter(i => i.parentId).sort((a, b) => dueMs(a) - dueMs(b)).forEach(i => {
+            const own = laneOf(i.id);
+            const parentLane = laneOf(i.parentId);
+            if (own != null && own !== parentLane) { z.set(i.id, laneZ(own, rankIn(own), zMin, stride)); return; }
             z.set(i.id, z.has(i.parentId) ? z.get(i.parentId) - 1 : zMin - 1);
         });
         return z;
     }
 
-    function applyZ(layout, items) {
-        const z = zIndexes(layout, items);
+    // Lanes from the elements' data-lane (written per tick by Layout), or null when none is set.
+    function lanesFromDom(items) {
+        let any = false;
+        const m = new Map();
+        (items || []).forEach(i => {
+            const d = i.element && i.element.dataset;
+            if (d && d.lane !== undefined && d.lane !== '') { m.set(i.id, Number(d.lane)); any = true; }
+        });
+        return any ? m : null;
+    }
+
+    function applyZ(layout, items, lanes) {
+        const z = zIndexes(layout, items, { lanes: lanes || lanesFromDom(items) });
         (items || []).forEach(i => {
             const el = i.element;
             if (!el || !el.style || typeof el.style.setProperty !== 'function') return;

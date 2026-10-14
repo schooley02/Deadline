@@ -11,6 +11,12 @@
  * V3b-2 follow-up (2026-10-13): lanes are dealt in agenda LIST order
  * (js/listOrder.js) and a collapsed cluster shows its top-of-list marker.
  *
+ * Lane layering + overlap avoidance (2026-10-13 evening): z-index follows the LANE
+ * (front lane over middle over back; ListOrder.zIndexes with opts.lanes), and zombies
+ * that would overlap by more than CONFIG.LANE_CONFLICT_FRAC move to a free lane so each
+ * stays tappable (assignLanes below). Overdue attackers at the base use lanes too; the
+ * "+N" badge appears only when every lane is blocked at that spot (strip only).
+ *
  * Public API:
  *   Layout.isGlanceStrip(win?)        fresh matchMedia check
  *   Layout.isActive()                 cached result of the last applyBodyClass/init
@@ -163,8 +169,53 @@ const Layout = (() => {
         return ListOrder.sortKeys(ListOrder.compute(items), items);
     }
 
+    // --- Lane assignment with overlap avoidance (2026-10-13) ---------------------
+    // entries: [{ item, x, w }] in PRIORITY order (top of the list first). Each entry
+    // wants its "natural" lane (list position dealt round-robin, front lane first -- the
+    // pre-existing rule) and takes it unless a higher-priority entry already in that lane
+    // is closer than frac x min(widths). Then the nearest free lane (ties -> the front
+    // one). When every lane is blocked the entry keeps its natural lane and records the
+    // first blocking entry as `leader` (the strip folds it into that one's "+N" badge).
+    // keepOverflow: overflow entries still block later ones (landscape: they stay visible).
+    function assignLanes(entries, laneCount, frac, keepOverflow) {
+        const placed = [];
+        const out = new Map();
+        entries.forEach((e, idx) => {
+            const natural = (laneCount - 1) - (idx % laneCount);
+            const clash = (p) => Math.abs(p.x - e.x) < frac * Math.min(p.w, e.w);
+            const order = Array.from({ length: laneCount }, (_, l) => l)
+                .sort((a, b) => (Math.abs(a - natural) - Math.abs(b - natural)) || (b - a));
+            const free = order.find(l => !placed.some(p => p.lane === l && clash(p)));
+            if (free === undefined) {
+                const blocker = placed.find(clash);
+                out.set(e.item.id, { lane: natural, leader: blocker ? blocker.id : null });
+                if (keepOverflow) placed.push({ id: e.item.id, x: e.x, w: e.w, lane: natural });
+                return;
+            }
+            out.set(e.item.id, { lane: free, leader: null });
+            placed.push({ id: e.item.id, x: e.x, w: e.w, lane: free });
+        });
+        return out;
+    }
+
+    function conflictFrac(opts) {
+        const v = (opts && opts.conflictFrac != null) ? opts.conflictFrac
+            : (typeof CONFIG !== 'undefined' ? CONFIG.LANE_CONFLICT_FRAC : null);
+        return (typeof v === 'number') ? v : 0.6;
+    }
+
+    function laneMap(plan, items) {
+        const m = new Map();
+        items.forEach(i => { if (plan[i.id]) m.set(i.id, plan[i.id].lane); });
+        return m;
+    }
+
     function computeStripLayout(items, opts) {
         const { laneCount, markerWidth } = stripOpts(opts);
+        const frac = conflictFrac(opts);
+        const baseWidth = (opts && opts.baseWidth) || 0;
+        const attackerWidth = (opts && opts.attackerWidth)
+            || ((typeof CONFIG !== 'undefined' && CONFIG.STRIP_ATTACKER_WIDTH) || 64);
         const keys = listKeys(items, opts);
         // Order for dealing lanes / picking cluster leaders: list order when
         // known (top of list = most forward), else x order.
@@ -222,9 +273,10 @@ const Layout = (() => {
         // Everything that owns a marker: not a stacked or spread child.
         const owners = items.filter(i => !isStackedChild(i) && !isSpreadChild(i));
         const lurkerPile = owners.filter(i => !isAtBase(i) && isParkedLurker(i)).sort(byKey);
-        const pile = owners.filter(isAtBase)
-            .sort((a, b) => ((a.parentId ? 1 : 0) - (b.parentId ? 1 : 0)) || byKey(a, b));
-        const laned = owners.filter(i => !isAtBase(i) && !isParkedLurker(i)).sort(byKey);
+        // Walkers AND overdue attackers at the base share the lanes (2026-10-13): attackers
+        // used to fold into one big pile sprite; now they spread over the lanes like
+        // everything else and only overflow beyond laneCount into a "+N" badge.
+        const laned = owners.filter(i => isAtBase(i) || !isParkedLurker(i)).sort(byKey);
 
         const ensure = i => (plan[i.id] = plan[i.id] || { lane: null, hidden: false, badge: 0 });
         const hide = (member, leader) => {
@@ -234,13 +286,6 @@ const Layout = (() => {
             (spreadChildren.get(member.id) || []).forEach(c => { ensure(c).hidden = true; });
         };
 
-        // Pile at the base.
-        pile.forEach((m, idx) => {
-            const e = ensure(m);
-            if (idx === 0) return;
-            hide(m, pile[0]);
-        });
-
         // Parked-lurker pile (behind the attackers): the top-of-list lurker is
         // shown, the rest fold into its "+N" badge. No lane.
         lurkerPile.forEach((m, idx) => {
@@ -248,33 +293,19 @@ const Layout = (() => {
             if (idx > 0) hide(m, lurkerPile[0]);
         });
 
-        // Lanes: top of the LIST -> front lane (highest index). Outside tie
-        // groups list order == due order == x order, so this is the old
-        // behavior; inside a group the hand-ordered top row takes the front.
-        const lanes = Array.from({ length: laneCount }, () => []);
-        laned.forEach((m, idx) => {
-            const lane = (laneCount - 1) - (idx % laneCount);
-            ensure(m).lane = lane;
-            lanes[lane].push(m);
-        });
-        lanes.forEach(list => {
-            // Collapse runs of same-lane markers closer than a marker width
-            // (runs are found in x order); the run's visible marker is the
-            // TOP-OF-LIST one, not merely the nearest to the base.
-            list.sort(byXThenId);
-            let run = [];
-            const flush = () => {
-                if (run.length > 1) {
-                    const top = run.slice().sort(byKey)[0];
-                    run.forEach(m => { if (m !== top) hide(m, top); });
-                }
-                run = [];
-            };
-            list.forEach(m => {
-                if (run.length && (m.x - run[0].x) >= markerWidth) flush();
-                run.push(m);
-            });
-            flush();
+        // Lanes: top of the LIST -> front lane (highest index) as the starting point.
+        // Outside tie groups list order == due order == x order, so that is the old
+        // dealing; inside a group the hand-ordered top row takes the front. A marker
+        // whose lane is already taken by a higher-priority one within frac x width
+        // moves to the nearest free lane; only when all lanes are blocked does it fold
+        // into the top-of-list blocker's "+N" badge.
+        const assigned = assignLanes(
+            laned.map(m => ({ item: m, x: Math.max(m.x, baseWidth), w: isAtBase(m) ? attackerWidth : markerWidth })),
+            laneCount, frac, false);
+        laned.forEach(m => {
+            const a = assigned.get(m.id);
+            ensure(m).lane = a.lane;
+            if (a.leader != null) hide(m, byId.get(a.leader));
         });
 
         // Stacked children: follow the parent's lane / hidden state, and a
@@ -317,10 +348,15 @@ const Layout = (() => {
             }
             return byXThenId(a, b);
         };
+        const baseWidth = (opts && opts.baseWidth) || 0;
+        const cw = (typeof CONFIG !== 'undefined' && (CONFIG.ENEMY_WIDTH || CONFIG.HABIT_ENEMY_WIDTH)) || 128;
+        const widthOf = i => (i.element && i.element.offsetWidth > 0 ? i.element.offsetWidth : cw);
+        const top = items.filter(i => !i.parentId).sort(byKey);
+        const assigned = assignLanes(
+            top.map(m => ({ item: m, x: Math.max(m.x, baseWidth), w: widthOf(m) })),
+            laneCount, conflictFrac(opts), true);
         const lanes = {};
-        items.filter(i => !i.parentId).sort(byKey).forEach((m, idx) => {
-            lanes[m.id] = (laneCount - 1) - (idx % laneCount);
-        });
+        top.forEach(m => { lanes[m.id] = assigned.get(m.id).lane; });
         return lanes;
     }
 
@@ -348,7 +384,8 @@ const Layout = (() => {
     // strip has its own lanes). Parents first, subs bottom-align to their parent.
     function applyGroundLanes(items, canvasHeight, opts) {
         if (active || !canvasHeight) return;
-        const lanes = computeGroundLanes(items, opts);
+        const layout = (typeof ListOrder !== 'undefined' && !(opts && (opts.noListOrder || opts.keys))) ? ListOrder.compute(items) : null;
+        const lanes = computeGroundLanes(items, layout ? Object.assign({}, opts, { keys: ListOrder.sortKeys(layout, items) }) : opts);
         const tops = new Map();
         const heightOf = el => parseFloat(el.style && el.style.height) || el.offsetHeight || 0;
         const write = (item, top) => {
@@ -364,27 +401,37 @@ const Layout = (() => {
             const h = heightOf(el);
             const top = Math.max(0, Math.min(groundLaneFeet(lanes[i.id], canvasHeight, opts) - h, canvasHeight - h));
             write(i, Math.round(top));
+            if (el.dataset) setData(el, 'lane', String(lanes[i.id]));
         });
         items.filter(i => i.parentId).forEach(i => {
             const el = i.element;
             const parent = items.find(p => p.id === i.parentId);
+            if (el && el.dataset) setData(el, 'lane', null); // subs ride their parent's lane (no stale strip lane)
             if (!el || !parent || !parent.element || !tops.has(parent.id)) return;
             const h = heightOf(el);
             write(i, Math.round(tops.get(parent.id) + (heightOf(parent.element) - h)));
         });
+        // z follows the lane: front lane over middle over back (list order inside a lane).
+        if (layout) ListOrder.applyZ(layout, items, new Map(items.filter(i => lanes[i.id] != null).map(i => [i.id, lanes[i.id]])));
     }
 
     // Writes only on change (called every game tick).
-    function applyStripLayout(items) {
-        const plan = active ? computeStripLayout(items) : {};
+    function applyStripLayout(items, opts) {
+        const layout = (active && typeof ListOrder !== 'undefined') ? ListOrder.compute(items) : null;
+        const plan = active
+            ? computeStripLayout(items, layout ? Object.assign({ keys: ListOrder.sortKeys(layout, items) }, opts) : opts)
+            : {};
         items.forEach(i => {
             const el = i.element;
             if (!el || !el.dataset) return;
             const p = plan[i.id] || { lane: null, hidden: false, badge: 0 };
-            setData(el, 'lane', p.lane == null ? null : String(p.lane));
+            // Outside strip mode data-lane belongs to applyGroundLanes (landscape): don't fight it.
+            if (active) setData(el, 'lane', p.lane == null ? null : String(p.lane));
             setData(el, 'subCount', p.badge > 0 ? String(p.badge) : null);
             if (el.classList) el.classList.toggle('strip-hidden', !!p.hidden);
         });
+        // z follows the lane (front lane over middle over back); no lane (parked lurker) = behind.
+        if (layout) ListOrder.applyZ(layout, items, laneMap(plan, items));
     }
 
     function setData(el, key, value) {
@@ -397,7 +444,7 @@ const Layout = (() => {
 
     return { GLANCE_QUERY, isGlanceStrip, isActive, applyBodyClass, init, computeSubBadges, applySubBadges,
         computeStripLayout, applyStripLayout, isParkedLurker,
-        computeGroundLanes, groundLaneFeet, applyGroundLanes };
+        computeGroundLanes, groundLaneFeet, applyGroundLanes, assignLanes };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

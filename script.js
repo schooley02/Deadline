@@ -862,9 +862,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Per-tick lanes + "+N" badges for the portrait glance strip
             // (V3b-1 sub badges, V3b-2 lanes / collision + overdue-pile badges).
             afterTick: () => {
-                Layout.applyStripLayout(State.getActiveItems());
-                // Landscape/desktop: deterministic ground lanes in list order (no-op in strip mode).
-                if (!Layout.isActive()) Layout.applyGroundLanes(State.getActiveItems(), gameCanvas.offsetHeight);
+                Layout.applyStripLayout(State.getActiveItems(), { baseWidth: BASE_WIDTH });
+                // Landscape/desktop: ground lanes in list order, overlap-avoiding (no-op in strip mode).
+                if (!Layout.isActive()) Layout.applyGroundLanes(State.getActiveItems(), gameCanvas.offsetHeight, { baseWidth: BASE_WIDTH });
             },
             isGameOver: State.isGameOver,
             isOfflineCatchUpActive: () => offlineCatchUpActive,

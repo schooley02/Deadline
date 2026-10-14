@@ -222,21 +222,59 @@ describe('Layout.computeStripLayout (V3b-2)', () => {
         expect(plan[1].badge).toBe(0);
     });
 
-    test('overdue items pile at the base: one leader, the rest hidden, badge counts them (and their subs)', () => {
+    test('overdue items at the base spread over the lanes; only a 4th+ folds into a "+N" badge (2026-10-13)', () => {
         const base = 56;
         const items = [
             mk(1, base, { isOverdue: true, element: el('enemy-at-base') }),
             mk(2, base, { isOverdue: true, element: el('enemy-at-base') }),
             mk(3, base, { isOverdue: true, element: el('enemy-at-base') }),
-            mk(4, base, { parentId: 3 }), // not overdue itself, stacked on overdue #3
-            mk(5, 200),
         ];
-        const plan = Layout.computeStripLayout(items);
-        expect(plan[1]).toEqual({ lane: null, hidden: false, badge: 3 }); // #2, #3 + #3's sub
-        expect(plan[2].hidden).toBe(true);
-        expect(plan[3].hidden).toBe(true);
-        expect(plan[4].hidden).toBe(true);
-        expect(plan[5]).toEqual({ lane: 2, hidden: false, badge: 0 }); // overdue items don't use lanes
+        const three = Layout.computeStripLayout(items);
+        expect(lanes(three)).toEqual({ 1: 2, 2: 1, 3: 0 });       // each attacker has its own lane, no badge
+        expect(Object.values(three).every(p => !p.hidden && p.badge === 0)).toBe(true);
+
+        const more = items.concat([
+            mk(4, base, { isOverdue: true, element: el('enemy-at-base') }),
+            mk(5, base, { parentId: 4 }), // not overdue itself, stacked on overdue #4
+            mk(6, 200),
+        ]);
+        const plan = Layout.computeStripLayout(more);
+        expect(plan[4].hidden).toBe(true);                         // 4th: every lane blocked
+        expect(plan[5].hidden).toBe(true);                         // its stacked sub goes with it
+        expect(plan[1]).toEqual({ lane: 2, hidden: false, badge: 2 }); // #4 + #4's sub, on the top-of-list leader
+        expect(plan[2].hidden).toBe(false);
+        expect(plan[3].hidden).toBe(false);
+        expect(plan[6]).toEqual({ lane: 1, hidden: false, badge: 0 }); // 200px away: natural lane, no clash
+    });
+
+    test('a walker closing in on the base pile moves to a free lane instead of hiding behind it', () => {
+        const base = 56;
+        const items = [
+            mk(1, base, { isOverdue: true, element: el('enemy-at-base') }),
+            mk(2, base + 10, { element: el() }), // natural lane is the pile leader's (round-robin idx 1 -> lane 1)
+        ];
+        const plan = Layout.computeStripLayout(items, { baseWidth: base });
+        expect(plan[1].lane).toBe(2);
+        expect(plan[2].lane).toBe(1);
+        // a walker's x left of the base is clamped to it, so it still clashes with the pile
+        const clamped = Layout.computeStripLayout(
+            [mk(1, base, { isOverdue: true, element: el('enemy-at-base') }), mk(2, 20, { element: el() }),
+                mk(3, 20, { element: el() })], { baseWidth: base, keys: new Map([[1, 0], [2, 1], [3, 2]]) });
+        expect(clamped[1].lane).toBe(2);
+        expect(new Set([clamped[1].lane, clamped[2].lane, clamped[3].lane]).size).toBe(3);
+    });
+
+    test('markers within 60% of a marker width never share a lane; just outside it they may', () => {
+        const w = CONFIG.STRIP_MARKER_WIDTH;
+        const edge = Math.floor(CONFIG.LANE_CONFLICT_FRAC * w);     // 19px: still a conflict (< 19.2)
+        // natural lanes: #1 -> 2, #2 -> 1, #3 -> 0, #4 -> 2 (clashes with #1 at `edge - 1`)
+        const near = [mk(1, 300), mk(2, 400), mk(3, 500), mk(4, 300 + edge)];
+        const keys = new Map([[1, 0], [2, 1], [3, 2], [4, 3]]);   // list order == id order
+        const p = Layout.computeStripLayout(near, { keys });
+        expect(p[4].hidden).toBe(false);
+        expect(p[4].lane).not.toBe(p[1].lane);
+        const far = [mk(1, 300), mk(2, 400), mk(3, 500), mk(4, 300 + edge + 1)];
+        expect(Layout.computeStripLayout(far, { keys })[4].lane).toBe(2);     // 20px >= 19.2: same lane is fine
     });
 
     test('overdue but non-threatening (no enemy-at-base) stays an ordinary lane marker', () => {
@@ -263,7 +301,8 @@ describe('Layout.applyStripLayout (V3b-2)', () => {
 
         Layout.applyBodyClass(fakeDoc(), fakeWin(false));
         Layout.applyStripLayout(items);
-        expect(a.element.dataset).toEqual({});
+        // outside strip mode data-lane belongs to Layout.applyGroundLanes (landscape), so it is left alone
+        expect(a.element.dataset.subCount).toBeUndefined();
         expect(c.element.classes.has('strip-hidden')).toBe(false);
     });
 });
@@ -321,15 +360,22 @@ describe('Layout.computeStripLayout with list-order keys', () => {
             .toEqual(lanes(Layout.computeStripLayout(items, { noListOrder: true })));
     });
 
-    test('a collapsed same-lane cluster keeps the TOP-OF-LIST marker visible', () => {
-        // 4 markers: ids 1 and 4 share a lane (3 lanes) and sit 10px apart.
+    test('two overlapping markers: the lower row yields its lane, both stay visible (2026-10-13)', () => {
+        // ids 1 and 4 would share a lane (3 lanes) and sit 10px apart; #4 is higher in the list.
         const items = [mk(1, 200), mk(2, 240), mk(3, 280), mk(4, 210)];
-        const keys = new Map([[4, 0], [1, 3], [2, 1], [3, 2]]);   // id 4 is above id 1
+        const keys = new Map([[4, 0], [1, 3], [2, 1], [3, 2]]);
         const plan = Layout.computeStripLayout(items, { keys });
-        const sameLane = plan[1].lane === plan[4].lane;
-        expect(sameLane).toBe(true);
-        expect(plan[4].hidden).toBe(false);
-        expect(plan[4].badge).toBe(1);
+        expect(plan[4]).toEqual({ lane: 2, hidden: false, badge: 0 });   // top row keeps the front lane
+        expect(plan[1].hidden).toBe(false);
+        expect(plan[1].lane).not.toBe(plan[4].lane);                      // #1 moved to a free lane
+        expect([plan[1], plan[2], plan[3], plan[4]].every(p => p.badge === 0)).toBe(true);
+    });
+
+    test('a cluster of 4 at one spot: top-of-list marker keeps the badge, the 4th hides', () => {
+        const items = [mk(1, 200), mk(2, 205), mk(3, 210), mk(4, 215)];
+        const keys = new Map([[4, 0], [1, 3], [2, 1], [3, 2]]);
+        const plan = Layout.computeStripLayout(items, { keys });
+        expect(plan[4]).toEqual({ lane: 2, hidden: false, badge: 1 });
         expect(plan[1].hidden).toBe(true);
     });
 
@@ -418,6 +464,58 @@ describe('Layout ground lanes (landscape)', () => {
         const subFeet = parseFloat(items[3].element.style.top) + 96;
         const parentFeet = parseFloat(items[0].element.style.top) + 128;
         expect(subFeet).toBe(parentFeet);
+    });
+
+    test('overlapping zombies switch lanes instead of sharing one (2026-10-13)', () => {
+        // 4th item (natural lane 2) stands 30px from #1 (lane 2): inside 60% of 128px -> moves
+        const items = [mk(1, 300), mk(2, 600), mk(3, 900), mk(4, 330)];
+        const lanes = Layout.computeGroundLanes(items, { noListOrder: true });
+        expect(lanes[1]).toBe(2);
+        expect(lanes[4]).not.toBe(2);
+        // 4 zombies at the same spot (all overdue at the base): 3 lanes, the 4th stacks on its natural lane
+        const pile = [mk(1, 56), mk(2, 56), mk(3, 56), mk(4, 56)];
+        const pl = Layout.computeGroundLanes(pile, { noListOrder: true, baseWidth: 56 });
+        expect([pl[1], pl[2], pl[3]].sort()).toEqual([0, 1, 2]);
+        expect(pl[4]).toBe(2);
+    });
+
+    test('x left of the base is clamped, so an item at the base still clashes with it', () => {
+        const items = [mk(1, 56), mk(2, 10)];
+        const lanes = Layout.computeGroundLanes(items, { noListOrder: true, baseWidth: 56 });
+        expect(lanes[1]).not.toBe(lanes[2]);
+    });
+
+    describe('with list order: lane-first layering', () => {
+        const ListOrder = require('../js/listOrder.js');
+        beforeAll(() => { global.ListOrder = ListOrder; });
+        afterAll(() => { delete global.ListOrder; });
+        const item = (id, x, mins) => {
+            const z = {};
+            const el = { dataset: {}, style: { height: '128px', top: '0px',
+                getPropertyValue: k => z[k] || '', setProperty: (k, v) => { z[k] = v; } }, offsetHeight: 128 };
+            return { id, x, dueDateTime: new Date(2026, 9, 13, 9, 0).getTime() + mins * 3600000, element: el, z };
+        };
+
+        test('front lane draws over middle over back, whatever the list row', () => {
+            // rows 1-4 (due 1h apart so no tie group); x far apart -> lanes 2,1,0,2
+            const items = [item(1, 300, 0), item(2, 700, 1), item(3, 1100, 2), item(4, 1500, 3)];
+            Layout.applyGroundLanes(items, 250, { baseWidth: 56 });
+            expect(items.map(i => i.element.dataset.lane)).toEqual(['2', '1', '0', '2']);
+            const z = items.map(i => Number(i.z['--list-z']));
+            expect(z[3]).toBeGreaterThan(z[1]);   // row 4 in the front lane beats row 2 in the middle lane
+            expect(z[1]).toBeGreaterThan(z[2]);   // middle beats back
+            expect(z[0]).toBeGreaterThan(z[3]);   // same lane: list order (row 1 over row 4)
+        });
+
+        test('the case from the phone: a later item caught up to a front-lane overdue one', () => {
+            // #1 overdue at base (lane 2). #2 (middle lane) arrives at the same spot: it must draw over #3 (back lane)
+            const items = [item(1, 56, 0), item(2, 56, 1), item(3, 56, 2)];
+            Layout.applyGroundLanes(items, 250, { baseWidth: 56 });
+            expect(items.map(i => i.element.dataset.lane)).toEqual(['2', '1', '0']);
+            const z = items.map(i => Number(i.z['--list-z']));
+            expect(z[0]).toBeGreaterThan(z[1]);
+            expect(z[1]).toBeGreaterThan(z[2]);
+        });
     });
 
     test('is a no-op in portrait strip mode', () => {
