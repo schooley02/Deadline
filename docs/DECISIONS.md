@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 -- Reverted to the ORIGINAL floor art (Jeremy: prefers it for now; v2/v3 tiles tried and set aside)
+
+- **Decision:** `floor-tile.png` = 127x72 (desktop/landscape) and `strip-floor.png` = 64x36 (portrait), both rebuilt from `Assets/scene/strip-floor-original.png` (the first PixelLab export, 128x128: crop rows 56-128 x cols 0-126; portrait = BOX-halved). Desktop `GROUND_FLOOR_HEIGHT` 72, `FEET_TOP_PAD` 24, `FEET_BOTTOM_PAD` 8 (the settings Jeremy approved); portrait CSS back to top = sky + marker, 64x36 tile. `sw.js` v44 (`strip-floor.png` back in the shell list).
+- **Kept for later:** `strip-floor2.png` (256x128, dark fence over thin dirt) and `strip-floor3.png` (256x128, wrought-iron fence + gray ground + soil). v3 worked as ONE 256x85 tile for both views: desktop `GROUND_FLOOR_HEIGHT` 85 / `FEET_TOP_PAD` 44 / `FEET_BOTTOM_PAD` 4, background-size 256x85; portrait drawn 1:1 with `top: calc(sky + marker - 41px)`. Recipe is in the previous entry's history (DECISIONS, same date). None of these source files are loaded by the app or cached by sw.js.
+
+---
+
 ## 2026-10-13 -- Floor tile v3 (strip-floor3: wrought-iron fence + gray ground), ONE 256x85 tile for desktop AND portrait
 
 - **Why:** Jeremy didn't like v2; v3 has a wrought-iron fence over a gray ground band and soil. Source `Assets/scene/strip-floor3.png` (256x128, art rows 40-124). Cropped rows 40-124 -> `Assets/scene/floor-tile.png` **256x85** (fence rows 0-38, lit ground 39-63, soil 64-81).

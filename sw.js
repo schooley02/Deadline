@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v43';
+const CACHE_NAME = 'deadline-shell-v44';
 
 const APP_SHELL = [
     './',
@@ -131,7 +131,8 @@ const APP_SHELL = [
     'Assets/Zombies/anim/relationships.png',
     'Assets/Zombies/anim/spirituality.png',
     'Assets/Zombies/anim/other.png',
-    // Floor tile shared by desktop (css/gameCanvas.css) and the portrait strip (css/glanceStrip.css). NOT strip-floor*.png or scene/_source/.
+    // Floor art: desktop/landscape ground (css/gameCanvas.css) + portrait strip floor (css/glanceStrip.css). NOT strip-floor-original/2/3.png or scene/_source/.
+    'Assets/scene/strip-floor.png',
     'Assets/scene/floor-tile.png',
     'Assets/icons/icon-192.png',
     'Assets/icons/icon-512.png',
