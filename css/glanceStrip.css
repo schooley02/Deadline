@@ -87,7 +87,10 @@ body.glance-strip #gameCanvas::before {
 
 body.glance-strip #base {
     width: 56px; /* BASE_WIDTH is re-measured from this on mode change */
-    border-right-width: 2px;
+    /* V4: the art at 1:1 (80x194), right-aligned so the 56px window shows the door, steps and
+       both stained-glass windows; the roof/steeple end is cropped. Feet on the front lane. */
+    background-size: 80px 194px;
+    background-position: right bottom 8px;
 }
 
 /* Hero chips (34px each) don't fit a 72px strip. Routine HP stays visible in

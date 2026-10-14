@@ -96,13 +96,16 @@ const Damage = (() => {
         return Math.max(0, Math.floor((nowMs - runStartedAtMs) / perDay));
     }
 
-    // Which base sprite corresponds to a given health value.
+    // Which base sprite corresponds to a given health value. V4 (2026-10-14):
+    // returns the full path under Assets/Base/ -- the old repo-root copies were
+    // not in sw.js's APP_SHELL, so damage states could fail offline.
+    const BASE_IMAGE_DIR = 'Assets/Base/';
     function resolveBaseImage(baseHealth) {
-        if (baseHealth > 75) return 'base_100.png';
-        if (baseHealth > 50) return 'base_075.png';
-        if (baseHealth > 25) return 'base_050.png';
-        if (baseHealth > 0) return 'base_025.png';
-        return 'base_000.png';
+        if (baseHealth > 75) return BASE_IMAGE_DIR + 'base_100.png';
+        if (baseHealth > 50) return BASE_IMAGE_DIR + 'base_075.png';
+        if (baseHealth > 25) return BASE_IMAGE_DIR + 'base_050.png';
+        if (baseHealth > 0) return BASE_IMAGE_DIR + 'base_025.png';
+        return BASE_IMAGE_DIR + 'base_000.png';
     }
 
     // Back-charged damage for ONE item across an offline window.
@@ -390,7 +393,7 @@ const Damage = (() => {
         }
 
         if (restartButton) restartButton.classList.remove('hidden');
-        if (baseElement) baseElement.style.backgroundImage = "url('base_000.png')";
+        if (baseElement) baseElement.style.backgroundImage = `url("${resolveBaseImage(0)}")`;
 
         enableFormControls(false);
         saveGame();

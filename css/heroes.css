@@ -4,7 +4,7 @@
  * HEROES_PLAN.md — no hero sprite assets exist yet).
  */
 
-/* Positioned over #base's leftmost-120px zone (gameCanvas.css), anchored to
+/* Positioned over #base's leftmost-160px zone (gameCanvas.css), anchored to
    its bottom edge so the chips read as heroes standing in front of the
    church rather than covering it. Wraps rather than overflows if slot count
    grows — HERO_CHIP_MAX_DISPLAY caps it with a "+N" chip regardless. */
@@ -12,7 +12,7 @@
     position: absolute;
     left: 0;
     bottom: 0;
-    width: 120px;
+    width: 160px;
     display: flex;
     flex-wrap: wrap;
     align-content: flex-end;

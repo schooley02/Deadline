@@ -160,7 +160,7 @@ Nothing broken; zero game identity. Category chips already use ART_STYLE.md's pa
   - **Deferred until after V4 (church redesign):** pixel hero avatars (8 category sprites + neutral
     default, PixelLab; brief must give heroes a distinct palette / right-facing pose / chip frame so
     they never read as zombies), chip size + placement in landscape, portrait chip placement.
-- [ ] **V4 — Pixel church + base integration** (art task + `css/gameCanvas.css`): regenerate
+- [x] **V4 — Pixel church + base integration (BUILT 2026-10-14; front-of-church art, 160px column, 2x pixel scale; damage states are tinted placeholders — see DECISIONS 2026-10-14 V4)** — original spec: (art task + `css/gameCanvas.css`): regenerate
   `Assets/Base/base_000..100.png` in pixel style (5 damage states, same filenames — zero
   code churn), remove the CHURCH label, blend base into the V1 ground band. **UNBLOCKED
   2026-07-21: art source = AI-generate** (Retro Diffusion, current renders as style

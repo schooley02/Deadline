@@ -16,7 +16,7 @@ Pixel art / cartoonish. Playful, slightly eerie (graveyard setting) but never gr
 - Character sprite sizing reference: **1290 × 720** scene basis. Zombie sprites are **64×64** source pixels (sub-tasks render at 64×64; tasks/habits scale up). Scale only by CSS with `image-rendering: pixelated`.
 
 ## The Base
-A country church overlooking a vast eerie graveyard.
+A country church overlooking a vast eerie graveyard. **V4 (2026-10-14): the art is the FRONT of the church only (80x194 source, door ~72px tall, stained-glass windows, finished gable with a small cross, no steeple), drawn at exactly 2x (160x388) in landscape/desktop and 1:1 in the portrait strip, standing on the front-lane feet line. All five states live in `Assets/Base/` (the only copies the game loads); `base_075/050/025/000` are tinted placeholders until real damage art replaces them (same canvas + bottom edge). Sources in `Assets/Base/_source/`.**
 Damage states (`Assets/Base/`; the game currently loads the copies at the repo root — `js/damage.js` / `sw.js`):
 | Asset | Base HP |
 |---|---|

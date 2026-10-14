@@ -215,7 +215,7 @@ const CONFIG = {
         relationships: '❤️',
         spirituality: '🧘',
     },
-    // Base Zone is small (120px wide) — cap simultaneous chips and show a
+    // Base Zone is small (160px wide since V4, 2026-10-14) — cap simultaneous chips and show a
     // "+N" overflow chip past this count rather than crowding/overflowing.
     HERO_CHIP_MAX_DISPLAY: 6,
     // Interaction FX ([P1-UI-006] sub-session 5, 2026-07-19): how long a

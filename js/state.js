@@ -149,7 +149,7 @@ const State = (() => {
         // Initialize base
         setBaseHealth(CONFIG.MAX_BASE_HEALTH);
         deps.baseHealthDisplay.textContent = CONFIG.MAX_BASE_HEALTH;
-        deps.baseElement.style.backgroundImage = "url('base_100.png')";
+        deps.baseElement.style.backgroundImage = 'url("Assets/Base/base_100.png")';
         deps.baseElement.classList.remove('base-hit-flash');
 
         // Reset UI state

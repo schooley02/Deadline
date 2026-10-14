@@ -123,15 +123,15 @@ describe('computeDaysSurvived', () => {
 // ---------------------------------------------------------------------------
 describe('resolveBaseImage', () => {
     test.each([
-        [100, 'base_100.png'],
-        [76, 'base_100.png'],
-        [75, 'base_075.png'],
-        [51, 'base_075.png'],
-        [50, 'base_050.png'],
-        [26, 'base_050.png'],
-        [25, 'base_025.png'],
-        [1, 'base_025.png'],
-        [0, 'base_000.png'],
+        [100, 'Assets/Base/base_100.png'],
+        [76, 'Assets/Base/base_100.png'],
+        [75, 'Assets/Base/base_075.png'],
+        [51, 'Assets/Base/base_075.png'],
+        [50, 'Assets/Base/base_050.png'],
+        [26, 'Assets/Base/base_050.png'],
+        [25, 'Assets/Base/base_025.png'],
+        [1, 'Assets/Base/base_025.png'],
+        [0, 'Assets/Base/base_000.png'],
     ])('health %i -> %s', (hp, img) => {
         expect(Damage.resolveBaseImage(hp)).toBe(img);
     });
@@ -405,7 +405,7 @@ describe('damageBase', () => {
     test('updates the base sprite as health drops', () => {
         const deps = makeDeps();
         Damage.damageBase(60, deps); // -> 40
-        expect(deps.baseElement.style.backgroundImage).toBe('url("base_050.png")');
+        expect(deps.baseElement.style.backgroundImage).toBe('url("Assets/Base/base_050.png")');
     });
 
     test('triggers game over at zero health', () => {
@@ -441,7 +441,7 @@ describe('gameOver', () => {
         const deps = makeDeps();
         Damage.gameOver(deps);
         expect(deps.restartButton._classes.has('hidden')).toBe(false);
-        expect(deps.baseElement.style.backgroundImage).toBe("url('base_000.png')");
+        expect(deps.baseElement.style.backgroundImage).toBe('url("Assets/Base/base_000.png")');
     });
 
     test('with no run-history collaborators (existing tests above), gameOver still no-ops safely', () => {

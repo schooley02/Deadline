@@ -334,21 +334,27 @@
 }
 
 /* Base (Church) */
+/* V4 (2026-10-14): pixel church art (Assets/Base/base_*.png, 80x194 source, inpainted gable + cross) drawn at
+   an exact 2x (160x388) with crisp pixels, standing on the FRONT-lane feet line
+   (GROUND_FLOOR_FEET_BOTTOM_PAD = 8px above the canvas bottom). The box is full height so
+   a short canvas just clips the roof (door + windows always show); no background
+   color / border -- the art is transparent and sits on the scene. 160px wide = room for
+   4 hero chips per row. BASE_WIDTH is re-measured from this element. */
 #base {
-    width: 120px;
+    width: 160px;
     height: 100%;
-    background-color: var(--color-sacred-stone);
+    background-color: transparent;
     background-image: url('../Assets/Base/base_100.png');
-    background-size: contain;
-    background-position: center;
+    background-size: 160px 388px;
+    background-position: left bottom 8px;
     background-repeat: no-repeat;
+    image-rendering: pixelated;
     display: flex;
     justify-content: center;
     align-items: center;
     position: absolute;
     left: 0;
     top: 0;
-    border-right: 3px solid var(--color-primary-dark-green);
     box-sizing: border-box;
     font-weight: bold;
     color: var(--color-primary-white);
