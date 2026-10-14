@@ -402,7 +402,7 @@ describe('Layout ground lanes (landscape)', () => {
         expect(Layout.groundLaneFeet(0, H, { topFrac: 0.72, bottomFrac: 0.99 })).toBeCloseTo(0.72 * H); // explicit fractions still win
         expect(back).toBeLessThan(mid);
         expect(mid).toBeLessThan(front);
-        expect(mid - back).toBeGreaterThan(25); // visibly distinct lanes on a ~250px phone-landscape canvas
+        expect(mid - back).toBeGreaterThanOrEqual(20); // distinct lanes: spread = floor height - top pad - bottom pad, halved (2026-10-13: 20px on the 72px floor)
     });
 
     test('applyGroundLanes writes distinct tops per lane and bottom-aligns subs to their parent', () => {

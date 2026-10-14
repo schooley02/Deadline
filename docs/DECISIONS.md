@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 -- Desktop back-lane feet moved into the dirt band: TOP_PAD 8 -> 24 (Jeremy's screenshot: top lane still floated)
+
+- **Cause:** enemy boxes are built so the character's feet sit on the box bottom (`feetY` 150-156 of a 180 cell, pad 26 => within ~2px; `other` ~7px above), so box bottom == feet. But `floor-tile.png`'s top ~10 rows are sky + grass tufts; the standable dirt band is ~rows 10-45. Back lane at floor top + 8 stood on the tufts' tops, which read as floating.
+- **Decision:** `GROUND_FLOOR_FEET_TOP_PAD` 8 -> 24 (back lane feet at tile row 24, middle 44, front 64 = bottom - 8). Lane spread 20px. Portrait strip unchanged. `sw.js` v41.
+
+---
+
 ## 2026-10-13 -- Portrait strip headroom 12 -> 24px, strip 92px (Jeremy's phone screenshot: parked-lurker sprite head clipped; 'we can show more sky')
 
 - **Cause:** the real overdue/lurker sprites in strip mode are 64px boxes at `bottom: 4px` (attackers) and `bottom: 20px` (parked lurker, one row behind). In an 80px canvas the lurker's top was at -4px, clipped by `overflow:hidden`. The 12px bump fixed only the priority star.
