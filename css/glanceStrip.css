@@ -63,21 +63,21 @@ body.glance-strip .graveyard-scene {
     display: none;
 }
 
-/* FLOOR band (PixelLab tileable art, 2026-10-13): Assets/scene/strip-floor.png is
-   64x36 (the 127x72 floor-tile.png, halved), tiled sideways at 1:1 with crisp
-   pixels. It starts right of the church (56px); its TOP edge is where lane 0's
-   feet (marker bottom) land: top = sky + marker. Lane 1 feet sit mid-floor, lane 2
-   feet at the bottom minus --strip-pad. The sky gradient on #gameCanvas shows
-   through the tile's transparent top rows. KEEP IN SYNC: height 36px ==
-   (--strip-lanes - 1) * --strip-pitch + --strip-pad. */
+/* FLOOR band (PixelLab tileable art, 2026-10-13): Assets/scene/floor-tile.png, the SAME
+   256x85 tile as desktop, drawn 1:1 (crisp pixels, repeat-x) from the church edge
+   (left 56px). Tile rows: 0-38 wrought-iron fence, 39-63 lit gray ground, 64-81 dark
+   soil. The band is positioned so the ground's top edge sits 2px above lane 0's feet
+   (marker bottom = --strip-sky + --strip-marker): top = feet - 2 - 39. The fence rises
+   into the sky BEHIND the lane-0 markers; the soil runs off the bottom (the canvas
+   clips it). KEEP IN SYNC: 41px = 39 fence rows + 2px. */
 body.glance-strip #gameCanvas::before {
     content: "";
     position: absolute;
     left: 56px;
     right: 0;
-    top: calc(var(--strip-sky) + var(--strip-marker));
+    top: calc(var(--strip-sky) + var(--strip-marker) - 41px);
     bottom: 0;
-    background: url("../Assets/scene/strip-floor.png") repeat-x 0 0 / 128px 36px;
+    background: url("../Assets/scene/floor-tile.png") repeat-x 0 0 / 256px 85px;
     image-rendering: pixelated;
 }
 

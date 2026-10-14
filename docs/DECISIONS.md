@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-13 -- Floor tile v3 (strip-floor3: wrought-iron fence + gray ground), ONE 256x85 tile for desktop AND portrait
+
+- **Why:** Jeremy didn't like v2; v3 has a wrought-iron fence over a gray ground band and soil. Source `Assets/scene/strip-floor3.png` (256x128, art rows 40-124). Cropped rows 40-124 -> `Assets/scene/floor-tile.png` **256x85** (fence rows 0-38, lit ground 39-63, soil 64-81).
+- **Desktop/landscape:** `.scene-ground` is 85px (`CONFIG.GROUND_FLOOR_HEIGHT` 85), `background-size: 256px 85px`. Lane feet: `GROUND_FLOOR_FEET_TOP_PAD` 44 (just inside the gray ground), `GROUND_FLOOR_FEET_BOTTOM_PAD` 4 -> feet at 44 / 62.5 / 81 of the floor (18.5px apart). Checked live at 1100px with fake sprites.
+- **Portrait:** no longer a separate halved tile. The same 85px tile is drawn 1:1 from the church edge with `top = sky + marker - 41px` (15px), so the ground's top edge is 2px above lane 0's feet; the fence rises into the sky BEHIND the lane-0 markers and the soil runs off the canvas bottom. Strip stays 92px; lanes unchanged. `strip-floor.png` (128x36) is now unused (kept on disk, removed from sw.js).
+- **sw.js v43.** 66 suites, 1400/1400.
+
+---
+
 ## 2026-10-13 -- Wider floor tile (256px; strip-floor2 from PixelLab) replaces the 127px tile; desktop lane pads re-tuned
 
 - **Why:** Jeremy: the 127px tile repeated too close together. PixelLab capped width at 256, so the new art is 256x128 (fence silhouettes over a thin lighter dirt band, art in rows 45-115). Cropped rows 44-116 -> `floor-tile.png` 256x72 (desktop/landscape, flush-bottom) and BOX-halved -> `strip-floor.png` 128x36 (portrait). Original export kept as `Assets/scene/strip-floor2.png` (not in sw.js).
