@@ -30,6 +30,13 @@
     z-index: var(--list-z, 10);
 }
 
+/* Landscape / desktop: Layout.applyGroundLanes fans the 4th+ zombie that overlaps three others
+   (every lane blocked, e.g. all overdue at the base) sideways by rank x CONFIG.LANE_OVERFLOW_OFFSET_PX
+   so it stays tappable. A margin, not `left`: the game loop owns `left`. Strip mode uses a "+N" badge. */
+body:not(.glance-strip) .enemy {
+    margin-left: var(--lane-dx, 0px);
+}
+
 /* Offline catch-up: JS animates left directly — kill the 0.2s transition so
    frames don't lag, and add a subtle motion trail (spec: trail effects). */
 .enemy.catching-up {

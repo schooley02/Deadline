@@ -188,11 +188,14 @@ const Layout = (() => {
             const free = order.find(l => !placed.some(p => p.lane === l && clash(p)));
             if (free === undefined) {
                 const blocker = placed.find(clash);
-                out.set(e.item.id, { lane: natural, leader: blocker ? blocker.id : null });
-                if (keepOverflow) placed.push({ id: e.item.id, x: e.x, w: e.w, lane: natural });
+                // overflowRank: 1 + the overflow entries already stacked in this cluster (landscape
+                // fans them out sideways by rank x CONFIG.LANE_OVERFLOW_OFFSET_PX).
+                const overflowRank = 1 + placed.filter(p => p.overflow && clash(p)).length;
+                out.set(e.item.id, { lane: natural, leader: blocker ? blocker.id : null, overflowRank });
+                if (keepOverflow) placed.push({ id: e.item.id, x: e.x, w: e.w, lane: natural, overflow: true });
                 return;
             }
-            out.set(e.item.id, { lane: free, leader: null });
+            out.set(e.item.id, { lane: free, leader: null, overflowRank: 0 });
             placed.push({ id: e.item.id, x: e.x, w: e.w, lane: free });
         });
         return out;
@@ -337,6 +340,13 @@ const Layout = (() => {
     // Pure: { [id]: lane } for top-level items, dealt in LIST order (top row =
     // front lane = highest index = lowest on screen), same rule as the strip.
     function computeGroundLanes(items, opts) {
+        return computeGroundLayout(items, opts).lanes;
+    }
+
+    // { lanes: { id: lane }, offsets: { id: px } } -- offsets fan the 4th+ zombie that overlaps three
+    // others (every lane blocked, e.g. all overdue at the base) sideways, away from the church, by
+    // rank x CONFIG.LANE_OVERFLOW_OFFSET_PX so each stays tappable (landscape has no "+N" badge).
+    function computeGroundLayout(items, opts) {
         const laneCount = (opts && opts.laneCount)
             || ((typeof CONFIG !== 'undefined' && CONFIG.STRIP_LANE_COUNT) || 3);
         const keys = listKeys(items, opts);
@@ -355,9 +365,16 @@ const Layout = (() => {
         const assigned = assignLanes(
             top.map(m => ({ item: m, x: Math.max(m.x, baseWidth), w: widthOf(m) })),
             laneCount, conflictFrac(opts), true);
+        const step = (opts && opts.overflowOffset != null) ? opts.overflowOffset
+            : ((typeof CONFIG !== 'undefined' && CONFIG.LANE_OVERFLOW_OFFSET_PX != null) ? CONFIG.LANE_OVERFLOW_OFFSET_PX : 24);
         const lanes = {};
-        top.forEach(m => { lanes[m.id] = assigned.get(m.id).lane; });
-        return lanes;
+        const offsets = {};
+        top.forEach(m => {
+            const a = assigned.get(m.id);
+            lanes[m.id] = a.lane;
+            offsets[m.id] = a.overflowRank * step;
+        });
+        return { lanes, offsets };
     }
 
     // Feet-line (px from canvas top) for a lane.
@@ -385,8 +402,19 @@ const Layout = (() => {
     function applyGroundLanes(items, canvasHeight, opts) {
         if (active || !canvasHeight) return;
         const layout = (typeof ListOrder !== 'undefined' && !(opts && (opts.noListOrder || opts.keys))) ? ListOrder.compute(items) : null;
-        const lanes = computeGroundLanes(items, layout ? Object.assign({}, opts, { keys: ListOrder.sortKeys(layout, items) }) : opts);
+        const gl = computeGroundLayout(items, layout ? Object.assign({}, opts, { keys: ListOrder.sortKeys(layout, items) }) : opts);
+        const lanes = gl.lanes;
         const tops = new Map();
+        // Sideways fan-out of overflow zombies: a margin-left custom property (css/enemySprites.css),
+        // never `left` (the game loop owns that). Written only on change; subs follow their parent.
+        const setDx = (item, px) => {
+            const st = item.element && item.element.style;
+            if (!st || typeof st.setProperty !== 'function') return;
+            const cur = typeof st.getPropertyValue === 'function' ? st.getPropertyValue('--lane-dx') : '';
+            const v = px ? px + 'px' : '';
+            if (cur === v) return;
+            if (px) st.setProperty('--lane-dx', v); else if (typeof st.removeProperty === 'function') st.removeProperty('--lane-dx');
+        };
         const heightOf = el => parseFloat(el.style && el.style.height) || el.offsetHeight || 0;
         const write = (item, top) => {
             const el = item.element;
@@ -402,11 +430,13 @@ const Layout = (() => {
             const top = Math.max(0, Math.min(groundLaneFeet(lanes[i.id], canvasHeight, opts) - h, canvasHeight - h));
             write(i, Math.round(top));
             if (el.dataset) setData(el, 'lane', String(lanes[i.id]));
+            setDx(i, gl.offsets[i.id] || 0);
         });
         items.filter(i => i.parentId).forEach(i => {
             const el = i.element;
             const parent = items.find(p => p.id === i.parentId);
             if (el && el.dataset) setData(el, 'lane', null); // subs ride their parent's lane (no stale strip lane)
+            if (parent) setDx(i, gl.offsets[parent.id] || 0);
             if (!el || !parent || !parent.element || !tops.has(parent.id)) return;
             const h = heightOf(el);
             write(i, Math.round(tops.get(parent.id) + (heightOf(parent.element) - h)));
@@ -444,7 +474,7 @@ const Layout = (() => {
 
     return { GLANCE_QUERY, isGlanceStrip, isActive, applyBodyClass, init, computeSubBadges, applySubBadges,
         computeStripLayout, applyStripLayout, isParkedLurker,
-        computeGroundLanes, groundLaneFeet, applyGroundLanes, assignLanes };
+        computeGroundLanes, computeGroundLayout, groundLaneFeet, applyGroundLanes, assignLanes };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

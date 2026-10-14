@@ -490,6 +490,49 @@ describe('Layout ground lanes (landscape)', () => {
         expect(lanes[1]).not.toBe(lanes[2]);
     });
 
+    describe('overflow fan-out (2026-10-13): the 4th+ zombie on a full spot is offset sideways', () => {
+        const mkEl = () => {
+            const props = {};
+            return { dataset: {}, offsetHeight: 128, offsetWidth: 128,
+                style: { height: '128px', top: '0px',
+                    getPropertyValue: k => props[k] || '', setProperty: (k, v) => { props[k] = v; },
+                    removeProperty: k => { delete props[k]; } }, props };
+        };
+        const item = (id, x, extra = {}) => ({ id, x, element: mkEl(), ...extra });
+
+        test('offsets are 0 for lane holders and rank x LANE_OVERFLOW_OFFSET_PX for overflow', () => {
+            const items = [1, 2, 3, 4, 5].map(i => item(i, 56));        // 5 at one spot (the base)
+            const { lanes, offsets } = Layout.computeGroundLayout(items, { noListOrder: true, baseWidth: 56 });
+            expect([1, 2, 3].map(i => offsets[i])).toEqual([0, 0, 0]);
+            expect(offsets[4]).toBe(CONFIG.LANE_OVERFLOW_OFFSET_PX);
+            expect(offsets[5]).toBe(2 * CONFIG.LANE_OVERFLOW_OFFSET_PX);
+            expect(new Set([lanes[1], lanes[2], lanes[3]]).size).toBe(3);
+        });
+
+        test('nothing overflows with 3 or fewer in a spot, or when they are spread out', () => {
+            const three = [1, 2, 3].map(i => item(i, 56));
+            expect(Object.values(Layout.computeGroundLayout(three, { noListOrder: true, baseWidth: 56 }).offsets)).toEqual([0, 0, 0]);
+            const far = [1, 2, 3, 4, 5].map(i => item(i, 300 * i));
+            expect(Object.values(Layout.computeGroundLayout(far, { noListOrder: true }).offsets).every(v => v === 0)).toBe(true);
+        });
+
+        test('applyGroundLanes writes --lane-dx only for overflow, subs follow their parent, and it clears', () => {
+            const items = [1, 2, 3, 4].map(i => item(i, 56));
+            const sub = item(9, 56, { parentId: 4 });
+            sub.element.offsetHeight = 96; sub.element.style.height = '96px';
+            items.push(sub);
+            Layout.applyGroundLanes(items, 250, { noListOrder: true, baseWidth: 56 });
+            expect(items[0].element.props['--lane-dx']).toBeUndefined();
+            expect(items[3].element.props['--lane-dx']).toBe(CONFIG.LANE_OVERFLOW_OFFSET_PX + 'px');
+            expect(sub.element.props['--lane-dx']).toBe(CONFIG.LANE_OVERFLOW_OFFSET_PX + 'px');
+            // one of them completes -> #4 now has a free lane and its offset clears
+            items.splice(0, 1);
+            Layout.applyGroundLanes(items, 250, { noListOrder: true, baseWidth: 56 });
+            expect(items[2].element.props['--lane-dx']).toBeUndefined();
+            expect(sub.element.props['--lane-dx']).toBeUndefined();
+        });
+    });
+
     describe('with list order: lane-first layering', () => {
         const ListOrder = require('../js/listOrder.js');
         beforeAll(() => { global.ListOrder = ListOrder; });

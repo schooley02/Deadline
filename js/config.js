@@ -355,6 +355,7 @@ const CONFIG = {
     // (lower in the list) moves to the nearest free lane. Only when ALL lanes are blocked at that
     // spot does the portrait strip fold the extra one into a "+N" badge (landscape just stacks it).
     LANE_CONFLICT_FRAC: 0.6,
+    LANE_OVERFLOW_OFFSET_PX: 24, // landscape: the 4th+ zombie stacked on three others fans RIGHT (away from the church) by rank x this
     LIST_Z_LANE_STRIDE: 16,
     STRIP_ATTACKER_WIDTH: 64, // overdue sprite box at the base in the strip (css/glanceStrip.css .enemy-at-base)
 
