@@ -72,7 +72,32 @@ const Layout = (() => {
             else reapply();
         };
         w.addEventListener('resize', onResize);
+        watchSeamStack(d, w, onResize);
         return { reapply };
+    }
+
+    // Phone landscape (2026-10-14, Jeremy): the canvas fills the screen down to the
+    // bottom of the time-slider seam (css/responsive.css). The rows between the canvas
+    // and the list (week strip + seam) change height with their content (a cell can
+    // gain a priority line), so their live total is published as --seam-stack-h on
+    // <html> instead of being hardcoded. A change re-runs the resize path so script.js
+    // re-measures the canvas. No-op where ResizeObserver is missing (Jest/jsdom).
+    function watchSeamStack(d, w, onChange) {
+        if (!d || !w || typeof w.ResizeObserver !== 'function') return;
+        const rows = [d.getElementById('weekStripRow'), d.querySelector('.time-slider-seam')]
+            .filter(Boolean);
+        if (!rows.length) return;
+        let lastH = -1;
+        const publish = () => {
+            const h = rows.reduce((sum, el) => sum + el.offsetHeight, 0);
+            if (h === lastH) return;
+            lastH = h;
+            d.documentElement.style.setProperty('--seam-stack-h', h + 'px');
+            if (onChange) onChange();
+        };
+        const ro = new w.ResizeObserver(publish);
+        rows.forEach(el => ro.observe(el));
+        publish();
     }
 
     // A sub-task "sits on" its parent when its x equals the parent's (strip mode
