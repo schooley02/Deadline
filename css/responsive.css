@@ -159,19 +159,29 @@
 
 /* Phone LANDSCAPE: the battlefield fills the screen (2026-10-14, Jeremy).
    The canvas stretches until the bottom of the time-slider seam meets the
-   bottom of the screen; the agenda list sits below the fold (scroll down).
-   --seam-stack-h = live height of the week strip + slider seam (the rows
-   between canvas and list), set by js/layout.js watchSeamStack; 112px is only
-   the pre-JS fallback. 100svh = viewport with the browser bars SHOWING, so the
-   fit is exact on load and the canvas doesn't resize while the URL bar
-   hides/shows mid-scroll (svh = vh in an installed PWA). max-height: 500px
-   catches phones (landscape height <= ~430px) but not tablets/desktops. Kept
-   LAST so it beats the min-width: 1024px block. Portrait = glance strip,
-   untouched. */
+   bottom of the screen: the slider bar is the LAST thing on screen. The week
+   strip is reordered BELOW the slider (flex `order` on .app-container's
+   column), so it scrolls in with the agenda list. --seam-stack-h = live height
+   of the slider seam, set by js/layout.js watchSeamStack; 54px is only the
+   pre-JS fallback. 100svh = viewport with the browser bars SHOWING, so the fit
+   is exact on load and the canvas doesn't resize while the URL bar hides/shows
+   mid-scroll (svh = vh in an installed PWA). max-height: 500px catches phones
+   (landscape height <= ~430px) but not tablets/desktops. Kept LAST so it beats
+   the min-width: 1024px block. Portrait = glance strip, untouched. */
 @media (orientation: landscape) and (max-height: 500px) {
     .game-canvas {
-        height: calc(100vh - var(--seam-stack-h, 112px));   /* fallback: no svh */
-        height: calc(100svh - var(--seam-stack-h, 112px));
+        order: -3;
+        height: calc(100vh - var(--seam-stack-h, 54px));   /* fallback: no svh */
+        height: calc(100svh - var(--seam-stack-h, 54px));
         min-height: 0;
+    }
+
+    .time-slider-seam {
+        order: -2;
+        flex: 0 0 auto;
+    }
+
+    .week-strip-row {
+        order: -1;
     }
 }
