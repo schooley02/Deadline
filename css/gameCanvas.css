@@ -334,8 +334,8 @@
 }
 
 /* Base (Church) */
-/* V4 (2026-10-14): pixel church art (Assets/Base/base_*.png, 80x194 source, inpainted gable + cross) drawn at
-   an exact 2x (160x388) with crisp pixels, standing on the FRONT-lane feet line
+/* V4 (2026-10-14): pixel church art (Assets/Base/base_*.png, 80x200 source, all five states share one canvas; the art ends 7 rows above the
+   image bottom) drawn at an exact 2x (160x400) with crisp pixels, standing on the FRONT-lane feet line
    (GROUND_FLOOR_FEET_BOTTOM_PAD = 8px above the canvas bottom). The box is full height so
    a short canvas just clips the roof (door + windows always show); no background
    color / border -- the art is transparent and sits on the scene. 160px wide = room for
@@ -345,8 +345,8 @@
     height: 100%;
     background-color: transparent;
     background-image: url('../Assets/Base/base_100.png');
-    background-size: 160px 388px;
-    background-position: left bottom 8px;
+    background-size: 160px 400px;
+    background-position: left bottom -6px; /* = 8px front-lane pad - 14px (7 empty rows x 2) */
     background-repeat: no-repeat;
     image-rendering: pixelated;
     display: flex;
