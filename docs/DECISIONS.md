@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-15 -- Landscape phone: battlefield fills the screen; hero chips hidden on the canvas (Claude app session, Sonnet)
+- **Landscape layout (Jeremy):** on phones in landscape (`orientation: landscape` + `max-height: 500px`) the canvas height is `100svh - --seam-stack-h`, so the time-slider bar is the LAST thing on screen; the week strip is reordered BELOW the slider (flex `order` on `.app-container`) and scrolls in with the agenda list. `--seam-stack-h` = the slider seam's live height, published by `Layout.watchSeamStack` (js/layout.js, ResizeObserver, no-op in jsdom). Portrait strip / tablet / desktop untouched. Verified in headless Chromium at 844x390 and 932x430 (seam bottom == viewport height). `css/responsive.css`, `js/layout.js`.
+- **Hero chips hidden on the canvas (Jeremy):** `#heroBaseZone { display: none !important }` in `css/heroes.css`, all layouts. Why: they cover the church and no good placement exists yet. Agenda-list chips unchanged. DOM/JS still runs, so removing the one CSS rule restores them. Revisit under ROADMAP "Hero pixel avatars + chip layout".
+- sw.js `deadline-shell-v58`.
+
+---
+
 ## 2026-10-14 -- V4: pixel church in (art v3), 160px column, church stands on the front-lane line (Claude app session, Opus plan -> Sonnet build)
 - **Art:** PixelLab "v3" (80x160 source, cropped to 80x153; **superseded same day by the inpainted 80x200 -> trimmed 80x194 version: finished gable + small cross, no flat roof cut on tall desktop canvases; CSS size now 160x388 / 80x194**) = the FRONT of the church: arched double door ~72 source px tall (~144px on screen vs a ~124px zombie), a stained-glass window each side, lantern, steps, roof peak clipped at the top. **No steeple** (Jeremy: the door is the focus; a steeple rule would have forced a taller min canvas). PixelLab custom sizes are beta -- generating at 88x200 / 80x200 failed, but INPAINTING v3 onto an 80x200 canvas worked (Jeremy). Sources kept in `Assets/Base/_source/` (v2 = steeple version, 160x232; v3 = 80x160; `base_100_inpainted-80x200.png` = untrimmed final).
 - **UPDATE 2026-10-14 night: damage states are now REAL (Jeremy, PixelLab inpainting chain 100 -> 075 -> 050 -> 025 -> 000), all 80x200; `base_100` re-padded to 80x200; CSS size 160x400 / strip 80x200 with bottom offsets -6px / 1px so the foundation stays on the front-lane line; sw.js v54.** (Earlier text below describes the placeholder tints.) - **Damage states WERE placeholders:** `base_075/050/025/000.png` are colour tints of `base_100` (script-made, same canvas). Jeremy will replace them with real PixelLab edits of base_100 (same 80x153 canvas, same bottom edge). Keep the filenames.

@@ -8,6 +8,15 @@
    its bottom edge so the chips read as heroes standing in front of the
    church rather than covering it. Wraps rather than overflows if slot count
    grows — HERO_CHIP_MAX_DISPLAY caps it with a "+N" chip regardless. */
+/* 2026-10-15 (Jeremy): chips are HIDDEN on the canvas in every layout for now -- they
+   covered the church and no good placement exists yet (ROADMAP "Hero pixel avatars +
+   chip layout"). Only the canvas zone is hidden; the agenda-list chips are untouched.
+   The DOM/JS (js/ui/heroes.js, tap binding) still runs, so deleting this one rule
+   brings them back. */
+#heroBaseZone {
+    display: none !important;
+}
+
 #heroBaseZone {
     position: absolute;
     left: 0;
