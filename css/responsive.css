@@ -156,3 +156,26 @@
     }
 }
 
+
+/* Phone LANDSCAPE: the battlefield fills the screen (2026-10-14, Jeremy).
+   The canvas stretches until the bottom of the time-slider seam meets the
+   bottom of the screen; the agenda list sits below the fold (scroll down).
+   Seam is pinned to its natural height (44px pager buttons + 2x4px padding +
+   2x1px borders = 54px) so the calc is exact. 100svh = the viewport with the
+   browser bars SHOWING, so the fit is exact on load and the canvas doesn't
+   resize while the URL bar hides/shows mid-scroll (svh = vh in an installed
+   PWA). max-height: 500px catches phones (landscape height <= ~430px) but not
+   tablets/desktops. Kept LAST so it beats the min-width: 1024px block for
+   wide phones. Portrait is the glance strip (css/glanceStrip.css), untouched. */
+@media (orientation: landscape) and (max-height: 500px) {
+    .game-canvas {
+        height: calc(100vh - 54px);   /* fallback: browsers without svh */
+        height: calc(100svh - 54px);
+        min-height: 0;
+    }
+
+    .time-slider-seam {
+        height: 54px;
+        flex: 0 0 54px;
+    }
+}
