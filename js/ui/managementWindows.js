@@ -211,12 +211,14 @@ const ManagementWindows = (() => {
 
         habitsList.innerHTML = '';
 
-        if (deps.definedHabits.length === 0) {
+        // Archived ("deleted") habits are hidden — Routines.archiveHabit.
+        const liveHabits = deps.definedHabits.filter(h => !h.archivedAt);
+        if (liveHabits.length === 0) {
             habitsList.innerHTML = '<li>No habits defined</li>';
             return;
         }
 
-        deps.definedHabits.forEach(habit => {
+        liveHabits.forEach(habit => {
             const li = document.createElement('li');
             const habitTypeIcon = habit.isNegative ? ' 🚫' : ' ✅';
             li.innerHTML = `

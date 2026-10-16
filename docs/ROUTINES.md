@@ -83,6 +83,9 @@ Routines can be deactivated (vacation/seasonal) and reactivated. Deactivating a 
 ## Deletion & Orphaned Habits (fixed 2026-07-19)
 Deleting a routine (`Routines.deleteRoutine`) releases its member habits to standalone (`habitDef.routineId = null`) via `Routines.releaseOrphanedHabits`, the same "removal = standalone" behavior single-habit removal already had (see above). This was a gap before 2026-07-19: `selectHabitDefsToSpawn`'s gating already treated a dangling `routineId` as standalone at spawn time, but the underlying data was never actually corrected, so deleted routines left behind habits that still pointed at a dead routine id. `state.js`'s `restoreGameState` also runs `releaseOrphanedHabits` as a sweep on every load, healing any save written before this fix (or any other edge case). Routine TASK definitions have no back-reference (`routineId`) to orphan — they're only referenced via the routine's own `taskDefinitionIds`, so a deleted routine simply drops them with it (unchanged).
 
+## Deleting (archiving) a habit (built 2026-10-16)
+"Delete Habit" in the Edit Habit modal calls `Routines.archiveHabit`: the habit leaves every routine it belonged to, its live instance is recalled (no XP/points/streak/damage), and any `frozenState` it caused on a routine is cleared. The def is kept with `archivedAt` set (history preserved) and is hidden from spawning and every list. See DECISIONS.md 2026-10-16.
+
 ## Hero Health, KO, and Revive ([P1-UI-006] sub-session 2, built 2026-07-19)
 Every routine ("hero") has `health` (0-`CONFIG.ROUTINE_MAX_HEALTH`, seeded 100 by the schemaVersion 8
 migration). The base-damage tick path — live loop (`js/loop.js`) AND both catch-up paths (offline

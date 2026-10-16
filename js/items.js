@@ -1071,6 +1071,17 @@ const Items = (() => {
 
         const item = deps.completedItems()[completedIndex];
 
+        // A completed row whose habit was since archived ("deleted") can't be
+        // undone — it would respawn a zombie for a habit that no longer
+        // exists. Re-render so the unchecked checkbox snaps back to checked.
+        if (item.type === 'habit') {
+            const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
+            if (habitDef && habitDef.archivedAt) {
+                if (typeof deps.renderCompletedItems === 'function') deps.renderCompletedItems();
+                return;
+            }
+        }
+
         // Remove from completed items
         deps.completedItems().splice(completedIndex, 1);
 

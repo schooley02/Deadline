@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-16 -- Delete Habit = archive (Claude app session, Opus)
+- **Decision (Jeremy):** habits can be deleted from the Edit Habit modal (red "Delete Habit" button under Save/Cancel, behind a `confirm()`). Under the hood it ARCHIVES: `habitDef.archivedAt = ISO string`, the def stays in `definedHabits` with its streak + `occurrenceHistory`. Why: keeps history for future stats/restore. Rejected: hard delete (loses history); a trash icon in the read-only Habits window (Jeremy: edit window only).
+- **Effects (`Routines.archiveHabit`):** today's live instance (+ sub-tasks) is recalled with NO XP/points/streak/damage effect (same rule as routine deactivate/delete); the habit leaves every routine (`habitDefinitionIds` + `routineId = null`); a `frozenState` it caused is cleared (else the routine could stay frozen by a habit that can never recover it). No unfreeze notice is shown.
+- **Hidden everywhere:** `Habits.selectHabitDefsToSpawn` (never spawns), `DayPager.scheduledHabitsForYesterday`, Habits window, routine habit pickers (`populateHabitSelectDropdown`, add-to-routine modal); `Routines.addHabitToRoutine` refuses an archived def. Completed Today rows stay as history, but `Items.uncompleteItem` refuses to undo an archived habit's row (re-renders so the checkbox snaps back).
+- **No schema bump:** a missing `archivedAt` = live, so old saves and imports need no migration. No restore UI yet (data supports it).
+- Files: `js/routines.js`, `js/habits.js`, `js/dayPager.js`, `js/items.js`, `js/ui/routineViews.js`, `js/ui/managementWindows.js`, `script.js` (`window.archiveHabit`), `css/modal.css`, `sw.js` v58 -> v60 (v60: week strip re-rendered after the archive; found live, it showed stale 1s on future days), new `test/habit-archive.test.js` (+8). Jest 69 suites / 1,445.
+
+---
+
 ## 2026-10-15 -- Landscape phone: battlefield fills the screen; hero chips hidden on the canvas (Claude app session, Sonnet)
 - **Landscape layout (Jeremy):** on phones in landscape (`orientation: landscape` + `max-height: 500px`) the canvas height is `100svh - --seam-stack-h`, so the time-slider bar is the LAST thing on screen; the week strip is reordered BELOW the slider (flex `order` on `.app-container`) and scrolls in with the agenda list. `--seam-stack-h` = the slider seam's live height, published by `Layout.watchSeamStack` (js/layout.js, ResizeObserver, no-op in jsdom). Portrait strip / tablet / desktop untouched. Verified in headless Chromium at 844x390 and 932x430 (seam bottom == viewport height). `css/responsive.css`, `js/layout.js`.
 - **Hero chips hidden on the canvas (Jeremy):** `#heroBaseZone { display: none !important }` in `css/heroes.css`, all layouts. Why: they cover the church and no good placement exists yet. Agenda-list chips unchanged. DOM/JS still runs, so removing the one CSS rule restores them. Revisit under ROADMAP "Hero pixel avatars + chip layout".

@@ -750,7 +750,8 @@ const RoutineViews = (() => {
     function populateHabitSelectDropdown(selectElement, deps) {
         selectElement.innerHTML = '<option value="">-- Select Habit --</option>';
 
-        const definedHabits = deps.definedHabits();
+        // Archived ("deleted") habits can't be picked — Routines.archiveHabit.
+        const definedHabits = deps.definedHabits().filter(h => !h.archivedAt);
 
         if (definedHabits.length === 0) {
             const option = document.createElement('option');
@@ -832,7 +833,7 @@ const RoutineViews = (() => {
         if (itemType === 'habit') {
             existingIds = routine.habitDefinitionIds || [];
             optionsHtml = deps.definedHabits()
-                .filter(habit => !existingIds.includes(habit.id))
+                .filter(habit => !habit.archivedAt && !existingIds.includes(habit.id))
                 .map(habit => {
                     const icon = habit.isNegative ? '🚫' : '✅';
                     return `<option value="${habit.id}">${habit.name} (${habit.category}) ${icon}</option>`;
@@ -1197,6 +1198,9 @@ const RoutineViews = (() => {
                     <div class="modal-buttons">
                         <button class="primary-button" onclick="saveEditedHabit('${habitDef.id}')">Save Changes</button>
                         <button class="secondary-button" onclick="closeModal()">Cancel</button>
+                    </div>
+                    <div class="modal-buttons delete-habit-row">
+                        <button class="danger-button" onclick="archiveHabit('${habitDef.id}')">Delete Habit</button>
                     </div>
                 </div>
             </div>

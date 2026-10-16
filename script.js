@@ -1486,6 +1486,40 @@ document.addEventListener('DOMContentLoaded', () => {
         RoutineViews.saveEditedHabit(habitId, routineViewsDeps());
     };
 
+    // "Delete Habit" button in the Edit Habit modal (2026-10-16). Archives
+    // rather than hard-deletes — see Routines.archiveHabit. window-exposed
+    // because the modal button is an inline onclick string (same contract as
+    // window.deleteRoutine / window.saveEditedHabit).
+    window.archiveHabit = function(habitId) {
+        const habitDef = State.getDefinedHabits().find(h => h.id === habitId);
+        if (!habitDef) return;
+        if (!confirm(`Delete the habit "${habitDef.name}"? It will be removed from the board and from any routine.`)) return;
+
+        Routines.archiveHabit(habitId, {
+            definedHabits: State.getDefinedHabits(),
+            definedRoutines: State.getDefinedRoutines(),
+            activeItems: State.getActiveItems(),
+            removeItem
+        });
+        Modal.closeModal();
+        RoutineViews.renderDefinedRoutines(routineViewsDeps());
+        sortAndRenderActiveList();
+        // Re-render the week strip AFTER the def is archived: removeItem's
+        // own refresh ran while the habit was still live, so the future-day
+        // ghost counts were stale (found live 2026-10-16).
+        updateTaskCountDisplay();
+        saveGame();
+
+        setTimeout(() => {
+            if (managementWindows.habits && !managementWindows.habits.classList.contains('hidden')) {
+                populateHabitsWindow();
+            }
+            if (managementWindows.routines && !managementWindows.routines.classList.contains('hidden')) {
+                populateRoutinesWindow();
+            }
+        }, 100);
+    };
+
     window.saveEditedTask = function(taskId) {
         RoutineViews.saveEditedTask(taskId, routineViewsDeps());
     };

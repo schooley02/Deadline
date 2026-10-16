@@ -218,6 +218,7 @@ const DayPager = (() => {
 
     function scheduledHabitsForYesterday(definedHabits, definedRoutines, targetDate) {
         return (definedHabits || [])
+            .filter(def => !def.archivedAt)
             .filter(def => isHabitScheduledAndUsable(def, definedRoutines || [], targetDate))
             .map(def => ({
                 key: 'snapshot:habit:' + def.id,

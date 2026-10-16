@@ -294,6 +294,43 @@ const Routines = (() => {
         return true;
     }
 
+    // Archives a habit definition ("Delete Habit" in the Edit Habit modal —
+    // Jeremy's call 2026-10-16: archive, not hard-delete, so its
+    // occurrenceHistory/streak survive for future stats). An archived def
+    // stays in definedHabits with `archivedAt` set (ISO string) and is
+    // filtered out of spawning, the day pager, the Habits window and the
+    // routine pickers. Same recall rule as deactivating/deleting a routine:
+    // today's live instance (+ any sub-tasks) is removed with no
+    // XP/points/streak/damage effect. It also leaves every routine
+    // (routineId -> null, dropped from habitDefinitionIds) and clears any
+    // frozenState it caused, so a routine can't stay frozen by a habit that
+    // no longer exists. No schema bump: a missing archivedAt = not archived.
+    // Returns the archived def, or null if not found / already archived.
+    // Caller owns the confirm() dialog before calling and save/render after.
+    // deps = { definedHabits, definedRoutines, activeItems, removeItem, now? }
+    function archiveHabit(habitDefId, deps) {
+        const habitDef = deps.definedHabits.find(h => h.id === habitDefId);
+        if (!habitDef || habitDef.archivedAt) return null;
+
+        selectActiveInstanceIdsForDefinition(deps.activeItems, habitDefId, 'habit')
+            .forEach(id => deps.removeItem(id));
+
+        (deps.definedRoutines || []).forEach(routine => {
+            if (Array.isArray(routine.habitDefinitionIds)) {
+                const i = routine.habitDefinitionIds.indexOf(habitDefId);
+                if (i !== -1) routine.habitDefinitionIds.splice(i, 1);
+            }
+            if (routine.frozenState && routine.frozenState.frozenBy === habitDefId) {
+                routine.frozenState = null;
+            }
+        });
+
+        habitDef.routineId = null;
+        const now = deps.now ? deps.now() : new Date();
+        habitDef.archivedAt = now.toISOString();
+        return habitDef;
+    }
+
     // Mutates routine.taskDefinitionIds in place. Returns true if removed.
     function removeTaskFromRoutine(routineId, taskId, definedRoutines) {
         const routine = definedRoutines.find(r => r.id === routineId);
@@ -475,7 +512,7 @@ const Routines = (() => {
         const routine = definedRoutines.find(r => r.id === routineId);
         const habitDef = definedHabits.find(h => h.id === habitDefId);
 
-        if (!routine || !habitDef) {
+        if (!routine || !habitDef || habitDef.archivedAt) {
             return { ok: false, reason: 'not-found' };
         }
 
@@ -699,6 +736,7 @@ const Routines = (() => {
         deleteRoutine,
         releaseOrphanedHabits,
         removeHabitFromRoutine,
+        archiveHabit,
         removeTaskFromRoutine,
         createNewHabitInRoutine,
         createNewTaskInRoutine,

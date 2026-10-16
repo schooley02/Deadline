@@ -109,6 +109,8 @@ const Habits = (() => {
         const forWhichGameDayOccurrence = toOccurrenceDate(forWhichGameDay);
 
         return definedHabits.filter(habitDef => {
+            // Archived ("deleted") habits never spawn — Routines.archiveHabit.
+            if (habitDef.archivedAt) return false;
             if (habitDef.skipDayDate === forWhichGameDayOccurrence) return false;
             if (sickDayDate && sickDayDate === forWhichGameDayOccurrence) return false;
             // Cheat Day marker (session 57): an active cheatDayDate for this

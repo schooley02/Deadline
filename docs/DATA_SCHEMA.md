@@ -205,6 +205,9 @@ Habit {
   schedule: Schedule,       // see below — DESIGNED 2026-07-18, not yet built
   timeOfDay: "HH:MM"|null,
   routineId: string|null,
+  archivedAt?: ISOString,   // 2026-10-16: set by "Delete Habit" (Routines.archiveHabit);
+                            // absent = live. Archived defs never spawn and are hidden
+                            // from all lists/pickers; history is kept. No schema bump.
   streak: number,           // VISUAL layer only as of 2026-07-18 — badge +
                             // on-fire sprite; no economy effect (see below)
   lastCompletionDate: ISOString|null,

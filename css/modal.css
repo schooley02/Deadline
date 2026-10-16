@@ -65,6 +65,16 @@
     flex: 1;
 }
 
+/* Edit Habit modal: "Delete Habit" sits apart from Save/Cancel (2026-10-16) */
+.modal-buttons.delete-habit-row {
+    border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+    padding-top: var(--space-3, 12px);
+}
+
+.modal-buttons.delete-habit-row .danger-button {
+    min-height: 44px;
+}
+
 @media (max-width: 768px) {
     .routine-button-group {
         flex-direction: column;
