@@ -6,8 +6,8 @@ Mobile-first web app; prioritize Chrome/Android. Must be responsive so it works 
 **Installable PWA shell (2026-07-20, MOBILE_PWA_PLAN.md sub-session 3):** `manifest.json` +
 `sw.js` (cache-first service worker over an explicit app-shell file list — not a blanket
 `Assets/*` glob) make the app installable ("Add to Home Screen") and load offline. Icons
-(`Assets/icons/icon-192.png`/`icon-512.png`) are a square crop of the existing church base
-sprite. Scope is deliberately shallow (installable shell only, per Jeremy's call) — no offline
+(`Assets/icons/icon-192.png`/`icon-512.png`) are the steepled pixel church
+(`Assets/Base/_source/base_100v2.png`) on a night-violet square (changed 2026-10-16, DECISIONS). Scope is deliberately shallow (installable shell only, per Jeremy's call) — no offline
 game-state sync or write reconciliation; the game's actual data stays exactly as it was,
 localStorage-only. Bump `sw.js`'s `CACHE_NAME` on any future shell-file change (new/removed
 `<script>`/`<link>`, edited CSS/JS) so returning installs pick up the update.

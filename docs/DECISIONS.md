@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-16 -- App icon = pixel church (Jeremy; Claude app session)
+- **Decision (Jeremy):** the PWA/favicon icon is now the steepled pixel church `Assets/Base/_source/base_100v2.png` (replaces the old blurry crop of the pre-pixel church). Same paths (`Assets/icons/icon-192.png`, `icon-512.png`), so `manifest.json`, `index.html` and the `sw.js` `APP_SHELL` list are unchanged; `sw.js` v60 -> v61 so the offline cache picks the new files up.
+- **How built:** opaque bounds of the source (149x216) scaled EXACTLY 2x with nearest-neighbour (crisp pixels), centred on a solid `#17142a` night-violet square at 512; the 192 is a Lanczos downsample of the 512. Purpose stays `any` (no maskable variant yet).
+- **Note:** the in-game church is the steeple-less art (V4); the icon deliberately keeps the steeple version Jeremy chose. An installed PWA keeps its old icon until uninstall + clear site data + reinstall (manifest rule in CLAUDE.md); browsers cache the favicon aggressively. `Assets/icons/icon-crop.png` (old intermediate) is unused and left alone.
+
+---
+
 ## 2026-10-16 -- Delete Habit = archive (Claude app session, Opus)
 - **Decision (Jeremy):** habits can be deleted from the Edit Habit modal (red "Delete Habit" button under Save/Cancel, behind a `confirm()`). Under the hood it ARCHIVES: `habitDef.archivedAt = ISO string`, the def stays in `definedHabits` with its streak + `occurrenceHistory`. Why: keeps history for future stats/restore. Rejected: hard delete (loses history); a trash icon in the read-only Habits window (Jeremy: edit window only).
 - **Effects (`Routines.archiveHabit`):** today's live instance (+ sub-tasks) is recalled with NO XP/points/streak/damage effect (same rule as routine deactivate/delete); the habit leaves every routine (`habitDefinitionIds` + `routineId = null`); a `frozenState` it caused is cleared (else the routine could stay frozen by a habit that can never recover it). No unfreeze notice is shown.
