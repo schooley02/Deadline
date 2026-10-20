@@ -60,8 +60,10 @@
 /* Per-category cell size + frame counts (from Assets/Zombies/anim/*.json). */
 .zombie-other .enemy-sprite        { --cell: 156px; --n-walk: 7; --n-attack: 7; }
 .zombie-spirituality .enemy-sprite { --cell: 176px; --n-walk: 7; }
+.zombie-financial .enemy-sprite    { --n-idle: 9; } /* bank robber re-export 2026-10-19 */
 
-/* Per-category feet calibration (see --dy-* above). financial / relationships are already exact. */
+/* Per-category feet calibration (see --dy-* above). relationships is already exact. */
+.zombie-financial .enemy-sprite     { --dy-walk: 6px;  --dy-idle: 6px;  --dy-attack: 4px; }
 .zombie-career .enemy-sprite        { --dy-walk: 3px;  --dy-idle: 2px;  --dy-attack: 3px; }
 .zombie-creativity .enemy-sprite    { --dy-walk: 0px;  --dy-idle: 2px;  --dy-attack: 2px; }
 .zombie-health .enemy-sprite        { --dy-walk: -2px; --dy-idle: 0px;  --dy-attack: -4px; }

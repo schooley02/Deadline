@@ -421,7 +421,7 @@ const CONFIG = {
     ZOMBIE_VISIBLE_MARGINS: {
         career:        { left: 0.188, right: 0.141 },
         creativity:    { left: 0.078, right: 0.070 },
-        financial:     { left: 0.047, right: 0.125 },
+        financial:     { left: 0.109, right: 0.141 }, // bank robber 2026-10-19
         health:        { left: 0.172, right: 0.234 },
         lifestyle:     { left: 0.031, right: 0.023 },
         relationships: { left: 0.047, right: 0.039 },

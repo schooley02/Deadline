@@ -5,12 +5,12 @@
   "frameHeight": 180,
   "characterSize": 128,
   "facing": "left",
-  "feetY": 154,
+  "feetY": 147,
   "bodyBox": {
-    "left": 32,
-    "top": 26,
-    "right": 137,
-    "bottom": 154
+    "left": 40,
+    "top": 32,
+    "right": 135,
+    "bottom": 147
   },
   "animations": {
     "walk": {
@@ -20,7 +20,7 @@
     },
     "idle": {
       "row": 1,
-      "frames": 7,
+      "frames": 9,
       "loop": true
     },
     "attack": {
@@ -34,5 +34,5 @@
       "loop": false
     }
   },
-  "source": "PixelLab exports in anim/_source/ (rotation rows dropped)"
+  "source": "PixelLab export anim/_source/Financial/Financial_Zombie-Idle.* (bank robber, 2026-10-19; rotation row dropped, 164px cells centre-padded to 180)"
 }

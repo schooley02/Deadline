@@ -4,6 +4,12 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-19 -- Finance zombie redesigned: butler -> bank robber (Jeremy; Claude app session, Opus)
+- **Why:** Jeremy's daughter couldn't tell the butler was about money. New design = cartoon zombie bank robber (striped shirt, domino mask, beanie, burlap sack with a big green $); readable from silhouette + prop, no suit (avoids looking like the career zombie / a finance bro). Rejected: banker (reads as career), zombie in a convertible (can't share the walk/idle/attack/death set, too wide for lanes).
+- **Assets:** new PixelLab export in `Assets/Zombies/anim/_source/Financial/` (164px cells); atlas rebuilt to `anim/financial.png` 1620x720 (180px cells, centre-padded, rows walk/idle/attack/death). Idle is now **9 frames** (was 7) -> `--n-idle: 9` in `css/enemyAnim.css`. JSON feetY 147, bodyBox 40/32/135/147. Feet re-measured: `--dy-walk 6 / --dy-idle 6 / --dy-attack 4`. `CONFIG.ZOMBIE_VISIBLE_MARGINS.financial` = 0.109 / 0.141. Static fallbacks `financial-zombie.png` (128) / `-64.png` regenerated from walk frame 0. Old butler files kept in `_source/Financial/old-butler-2026-10-12/`. sw.js `deadline-shell-v62`. Jest 68/1,437 pass.
+
+---
+
 ## 2026-10-16 -- App icon = pixel church (Jeremy; Claude app session)
 - **Decision (Jeremy):** the PWA/favicon icon is now the steepled pixel church `Assets/Base/_source/base_100v2.png` (replaces the old blurry crop of the pre-pixel church). Same paths (`Assets/icons/icon-192.png`, `icon-512.png`), so `manifest.json`, `index.html` and the `sw.js` `APP_SHELL` list are unchanged; `sw.js` v60 -> v61 so the offline cache picks the new files up.
 - **How built:** opaque bounds of the source (149x216) scaled EXACTLY 2x with nearest-neighbour (crisp pixels), centred on a solid `#17142a` night-violet square at 512; the 192 is a Lanczos downsample of the 512. Purpose stays `any` (no maskable variant yet).

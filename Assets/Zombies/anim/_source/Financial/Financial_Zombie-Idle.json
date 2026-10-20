@@ -1,8 +1,8 @@
 {
   "character": {
-    "id": "009ec7cb-7230-4467-8b7c-ed92337eeece",
+    "id": "1b453edf-04a2-43dd-ba09-9df2f72e93aa",
     "name": "Idle",
-    "prompt": "a zombie butler holding a tray with champaign glasses on it.",
+    "prompt": "Cartoon zombie bank robber, hunched and shambling. Green-gray zombie skin, sunken eyes. Black-and-white horizontal striped long-sleeve shirt, torn at the hem. Small black eye mask (domino mask). Black knit beanie. Dark pants, scuffed shoes. Carrying a large tan burlap money sack over one shoulder with a big bold green dollar sign ($) on it. A few gold coins and green bills poking out of the sack's top. Playful, kid-friendly, not scary. Clear readable silhouette. Pixel art.",
     "size": {
       "width": 128,
       "height": 128
@@ -13,12 +13,12 @@
   "spritesheet": {
     "path": "Financial_Zombie-Idle.png",
     "cell_size": {
-      "width": 180,
-      "height": 180
+      "width": 164,
+      "height": 164
     },
     "sheet_size": {
-      "width": 1620,
-      "height": 900
+      "width": 1476,
+      "height": 820
     },
     "columns": 9,
     "pivot": "cell-center",
@@ -42,16 +42,16 @@
         "row": 1,
         "type": "animation",
         "frame_count": 9,
-        "animation": "Financial Walk",
-        "animation_group_id": "3a77e886-a22f-47d3-aecc-e609b9a47ea9",
+        "animation": "Financial Idle",
+        "animation_group_id": "1385ffb9-6efc-4852-a5b6-1125e018278d",
         "direction": "south"
       },
       {
         "row": 2,
         "type": "animation",
         "frame_count": 9,
-        "animation": "Financial Death",
-        "animation_group_id": "d724a8e0-e2f7-4d59-905e-c2c9f21018f0",
+        "animation": "Financial Walk",
+        "animation_group_id": "22aa0c4c-590a-42ec-986f-85c12c370835",
         "direction": "south"
       },
       {
@@ -59,19 +59,19 @@
         "type": "animation",
         "frame_count": 9,
         "animation": "Financial Attack",
-        "animation_group_id": "db9af826-de5d-43af-aeb2-d531ffa9c164",
+        "animation_group_id": "307a42c7-b51d-4043-bae7-0c7b36dd0f48",
         "direction": "south"
       },
       {
         "row": 4,
         "type": "animation",
-        "frame_count": 7,
-        "animation": "Financial Idle",
-        "animation_group_id": "f19e06ad-fdef-4375-85b2-5df527448b3d",
+        "frame_count": 9,
+        "animation": "Financial Death",
+        "animation_group_id": "77be35f5-c817-4922-af36-ff4cd6c9ed49",
         "direction": "south"
       }
     ]
   },
   "export_version": "1.0",
-  "export_date": "2026-10-12T19:37:54.551582+00:00"
+  "export_date": "2026-10-20T03:42:15.715180+00:00"
 }
