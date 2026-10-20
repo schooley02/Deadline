@@ -108,6 +108,39 @@ const Damage = (() => {
         return BASE_IMAGE_DIR + 'base_000.png';
     }
 
+    // Animated idle loops (2026-10-20, V4 follow-up). A damage state listed here
+    // has a horizontal frame strip `Assets/Base/base_<key>_anim.png` (80x200
+    // frames). The inline background-image stays the STATIC png (fallback, and
+    // what the time-slider preview / tests read); `data-base-anim="<key>"` lets
+    // css/gameCanvas.css swap in the strip and step through it. Adding a sheet =
+    // key here + a `#base[data-base-anim="<key>"]` rule (frame count) + sw.js.
+    const BASE_ANIM_STATES = ['100'];
+    function resolveBaseAnimKey(baseHealth) {
+        const m = /base_(\d{3})\.png$/.exec(resolveBaseImage(baseHealth));
+        const key = m ? m[1] : '';
+        return BASE_ANIM_STATES.indexOf(key) !== -1 ? key : '';
+    }
+
+    // Sets the church art for a health value: static png + animation key.
+    function applyBaseArt(baseElement, baseHealth) {
+        if (!baseElement) return;
+        const target = `url("${resolveBaseImage(baseHealth)}")`;
+        if (baseElement.style.backgroundImage !== target) baseElement.style.backgroundImage = target;
+        if (!baseElement.dataset) return; // bare test fakes have no dataset
+        const key = resolveBaseAnimKey(baseHealth);
+        if (key) baseElement.dataset.baseAnim = key;
+        else delete baseElement.dataset.baseAnim;
+    }
+
+    // Hit shake (2026-10-20, Jeremy): at most once per BASE_SHAKE_COOLDOWN_MS so
+    // a pile of attackers doesn't shake the church nonstop. The brightness
+    // flash still fires on every hit.
+    let lastShakeMs = -Infinity;
+    function shouldShake(nowMs, lastMs, cooldownMs) {
+        return nowMs - lastMs >= cooldownMs;
+    }
+    function resetShakeForTests() { lastShakeMs = -Infinity; }
+
     // Back-charged damage for ONE item across an offline window.
     //
     // alreadyCharged is the item's LIFETIME offline total (not per-restore), so
@@ -215,13 +248,7 @@ const Damage = (() => {
         const { baseElement, getBaseHealth } = deps;
         if (!baseElement) return;
 
-        const newBaseImage = resolveBaseImage(getBaseHealth());
-        const currentBgImage = baseElement.style.backgroundImage;
-        const targetBgImage = `url("${newBaseImage}")`;
-
-        if (newBaseImage && currentBgImage !== targetBgImage) {
-            baseElement.style.backgroundImage = targetBgImage;
-        }
+        applyBaseArt(baseElement, getBaseHealth());
     }
 
     function damageBase(amount, deps) {
@@ -240,6 +267,15 @@ const Damage = (() => {
             setTimeout(() => {
                 baseElement.classList.remove('base-hit-flash');
             }, 300);
+
+            const nowMs = Date.now();
+            if (shouldShake(nowMs, lastShakeMs, CONFIG.BASE_SHAKE_COOLDOWN_MS)) {
+                lastShakeMs = nowMs;
+                baseElement.classList.add('base-hit-shake');
+                setTimeout(() => {
+                    baseElement.classList.remove('base-hit-shake');
+                }, CONFIG.BASE_SHAKE_DURATION_MS);
+            }
         }
 
         updateBaseVisuals(deps);
@@ -393,7 +429,7 @@ const Damage = (() => {
         }
 
         if (restartButton) restartButton.classList.remove('hidden');
-        if (baseElement) baseElement.style.backgroundImage = `url("${resolveBaseImage(0)}")`;
+        applyBaseArt(baseElement, 0);
 
         enableFormControls(false);
         saveGame();
@@ -570,6 +606,9 @@ const Damage = (() => {
         // pure
         computeDaysSurvived,
         resolveBaseImage,
+        resolveBaseAnimKey,
+        shouldShake,
+        BASE_ANIM_STATES,
         computeOfflineOverdueDamage,
         computeOfflineTicks,
         computeGapCatchUpHits,
@@ -577,6 +616,8 @@ const Damage = (() => {
         computeRegenTicks,
         // stateful
         updateBaseVisuals,
+        applyBaseArt,
+        resetShakeForTests,
         damageBase,
         healBase,
         applyElapsedRegen,

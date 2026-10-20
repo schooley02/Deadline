@@ -89,7 +89,9 @@ body.glance-strip #base {
     width: 56px; /* BASE_WIDTH is re-measured from this on mode change */
     /* V4: the art at 1:1 (80x200), right-aligned so the 56px window shows the door, steps and
        both stained-glass windows; the roof/steeple end is cropped. Feet on the front lane. */
-    background-size: 80px 200px;
+    --base-fw: 80px;
+    --base-fh: 200px;
+    --base-x0: -24px; /* idle-loop strips: right-align frame 0 in the 56px window (56 - 80) */
     background-position: right bottom 1px; /* = 8px pad - 7 empty rows */
 }
 

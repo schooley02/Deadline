@@ -105,7 +105,9 @@ const TimeSliderView = (() => {
 
         const projectedHealth = TimeSlider.projectBaseHealth(items, deps.getBaseHealth(), previewMs, nowMs, regenAnchor);
         if (deps.baseHealthDisplayEl) deps.baseHealthDisplayEl.textContent = Math.round(projectedHealth);
-        if (deps.baseElement && deps.resolveBaseImage) {
+        if (deps.baseElement && deps.applyBaseArt) {
+            deps.applyBaseArt(deps.baseElement, projectedHealth); // static png + idle-loop key
+        } else if (deps.baseElement && deps.resolveBaseImage) {
             deps.baseElement.style.backgroundImage = 'url("' + deps.resolveBaseImage(projectedHealth) + '")';
         }
 

@@ -966,6 +966,7 @@ document.addEventListener('DOMContentLoaded', () => {
             baseElement,
             baseHealthDisplayEl: baseHealthDisplay,
             resolveBaseImage: Damage.resolveBaseImage,
+            applyBaseArt: Damage.applyBaseArt,
             getDefinedRoutines: State.getDefinedRoutines,
             getRoutineIdForItem: (item) => {
                 const routine = Items.findRoutineForItem(item, {

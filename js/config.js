@@ -30,6 +30,10 @@ const CONFIG = {
     // heal/damage rate); balance-protocol tunable independently of damage.
     BASE_REGEN_HP: 1,
     BASE_REGEN_INTERVAL_MS: 5 * 60 * 1000,
+    // Hit shake (visual only, not balance; 2026-10-20 Jeremy): the church
+    // shakes at most once per cooldown; the flash still fires on every hit.
+    BASE_SHAKE_COOLDOWN_MS: 3000,
+    BASE_SHAKE_DURATION_MS: 300,
 
     // --- Offline catch-up (decided 2026-07-17, see DECISIONS.md) ---
     // Per-item cap on back-charged overdue damage for time spent offline.

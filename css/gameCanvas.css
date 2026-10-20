@@ -341,11 +341,22 @@
    color / border -- the art is transparent and sits on the scene. 160px wide = room for
    4 hero chips per row. BASE_WIDTH is re-measured from this element. */
 #base {
+    /* Frame geometry for the idle-loop strips (2026-10-20): one 80x200 frame at 2x.
+       glanceStrip.css overrides these for the 1:1 portrait strip. A static png is
+       just a 1-frame strip, so the same background-size works for both. */
+    --base-fw: 160px;
+    --base-fh: 400px;
+    --base-x0: 0px;     /* x of frame 0 (left-aligned here) */
+    --base-frames: 1;
+    --base-fps: 6;      /* Jeremy 2026-10-20: start at 6, tune by eye */
     width: 160px;
     height: 100%;
     background-color: transparent;
     background-image: url('../Assets/Base/base_100.png');
-    background-size: 160px 400px;
+    background-size: calc(var(--base-frames) * var(--base-fw)) var(--base-fh);
+    /* idle loop + hit flash + hit shake run side by side (each is a var so the
+       hit classes never cancel the loop by replacing the animation shorthand) */
+    animation: var(--base-idle, none), var(--base-flash, none), var(--base-shake, none);
     background-position: left bottom -6px; /* = 8px front-lane pad - 14px (7 empty rows x 2) */
     background-repeat: no-repeat;
     image-rendering: pixelated;
@@ -362,9 +373,57 @@
 }
 
 
-/* Base Flash Animation */
+/* Animated idle loops (2026-10-20). js/damage.js applyBaseArt sets
+   data-base-anim="<state>" when that damage state has a strip
+   (Assets/Base/base_<state>_anim.png); the inline style keeps the static png
+   as the fallback, so the strip needs !important. --base-frames MUST match the
+   strip width / 80 (test/baseAnim.test.js checks it). */
+#base[data-base-anim] {
+    --base-idle: base-idle calc(var(--base-frames) / var(--base-fps) * 1s) steps(var(--base-frames)) infinite;
+}
+#base[data-base-anim="100"] {
+    background-image: url('../Assets/Base/base_100_anim.png') !important;
+    --base-frames: 8;
+}
+
+@keyframes base-idle {
+    from { background-position-x: var(--base-x0); }
+    to   { background-position-x: calc(var(--base-x0) - var(--base-frames) * var(--base-fw)); }
+}
+
+/* Base Flash Animation (every hit) */
 .base-hit-flash {
-    animation: flash-damage 0.3s;
+    --base-flash: flash-damage 0.3s;
+}
+
+/* Hit shake (at most once per CONFIG.BASE_SHAKE_COOLDOWN_MS, js/damage.js).
+   Whole-pixel steps so the 2x art never lands on a half pixel. */
+.base-hit-shake {
+    --base-shake: base-shake 0.3s linear;
+}
+@keyframes base-shake {
+    0%, 100% { translate: 0 0; }
+    20% { translate: -2px 0; }
+    40% { translate: 2px 0; }
+    60% { translate: -2px 0; }
+    80% { translate: 1px 0; }
+}
+
+/* Effects intensity (body.fx-reduced / body.fx-off from js/settings.js) and
+   prefers-reduced-motion: reduced = slower sway; off / reduced-motion = church
+   holds frame 0 and never shakes. The flash stays (it is not motion). */
+body.fx-reduced #base {
+    --base-fps: 3;
+}
+body.fx-off #base {
+    --base-idle: none !important;
+    --base-shake: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+    #base {
+        --base-idle: none !important;
+        --base-shake: none !important;
+    }
 }
 
 @keyframes flash-damage {

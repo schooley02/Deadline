@@ -149,8 +149,12 @@ const State = (() => {
         // Initialize base
         setBaseHealth(CONFIG.MAX_BASE_HEALTH);
         deps.baseHealthDisplay.textContent = CONFIG.MAX_BASE_HEALTH;
-        deps.baseElement.style.backgroundImage = 'url("Assets/Base/base_100.png")';
-        deps.baseElement.classList.remove('base-hit-flash');
+        if (typeof Damage !== 'undefined' && Damage.applyBaseArt) {
+            Damage.applyBaseArt(deps.baseElement, CONFIG.MAX_BASE_HEALTH); // also sets the idle-loop key
+        } else {
+            deps.baseElement.style.backgroundImage = 'url("Assets/Base/base_100.png")';
+        }
+        deps.baseElement.classList.remove('base-hit-flash', 'base-hit-shake');
 
         // Reset UI state
         if (deps.gameOverMessage) deps.gameOverMessage.classList.add('hidden');

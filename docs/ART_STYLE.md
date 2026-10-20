@@ -25,7 +25,8 @@ Damage states (`Assets/Base/`; the game currently loads the copies at the repo r
 | `base_050.png` | 26–50% (smoking) |
 | `base_025.png` | 1–25% (flames) |
 | `base_000.png` | 0% (destroyed) |
-Shake animation on every hit. Smoke → full flames right before destruction.
+Hit feedback: brightness flash on every hit + a 2px side shake at most once per 3 s (`CONFIG.BASE_SHAKE_COOLDOWN_MS`, 2026-10-20). Smoke → full flames right before destruction.
+**Animated idle loops (2026-10-20):** a damage state can have a horizontal strip `Assets/Base/base_<state>_anim.png` (80x200 frames, any frame count, PixelLab exports are converted from the 3-wide grid; the grid is kept in `Assets/Base/_source/`). `Damage.BASE_ANIM_STATES` lists which states have one; `applyBaseArt` sets the static png (fallback) plus `data-base-anim`, and `css/gameCanvas.css` swaps in the strip and steps through it (`--base-fps`, default 6; 3 under reduced effects; frozen under off / prefers-reduced-motion). Done: `base_100` (8 frames, lantern sway + glow; only a 10x11 px patch changes, church fixed). To add a state: export strip, add its key to `BASE_ANIM_STATES`, add a `#base[data-base-anim="<key>"]` rule with `--base-frames`, add the file to `sw.js`; `test/baseAnim.test.js` checks all four agree. Portrait strip uses the same strip at 1:1 (`--base-x0: -24px` right-aligns frame 0 in the 56px window).
 
 ## Zombie Skins by Category (8 life domains)
 | Category | Zombie look |
