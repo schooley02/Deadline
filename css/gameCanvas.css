@@ -399,7 +399,7 @@
 /* Hit shake (at most once per CONFIG.BASE_SHAKE_COOLDOWN_MS, js/damage.js).
    Whole-pixel steps so the 2x art never lands on a half pixel. */
 .base-hit-shake {
-    --base-shake: base-shake 0.3s linear;
+    --base-shake: base-shake 0.3s step-end; /* step-end = hold each keyframe, so offsets are exactly whole px */
 }
 @keyframes base-shake {
     0%, 100% { translate: 0 0; }
