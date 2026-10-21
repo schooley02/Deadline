@@ -385,6 +385,10 @@
     background-image: url('../Assets/Base/base_100_anim.png') !important;
     --base-frames: 8;
 }
+#base[data-base-anim="075"] {
+    background-image: url('../Assets/Base/base_075_anim.png') !important;
+    --base-frames: 8;
+}
 
 @keyframes base-idle {
     from { background-position-x: var(--base-x0); }

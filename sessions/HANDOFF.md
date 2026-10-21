@@ -11,6 +11,12 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-10-21 -- Animated church base_075 (Claude app session, Sonnet)
+**Did:** Jeremy delivered the PixelLab sheet for the 51-75% church. Verified (only the lantern patch x32-41 y136-147 differs from `base_075.png`; 3 unique poses A,B,C,B held 2 frames each), converted the 3x3 grid to `Assets/Base/base_075_anim.png` (640x200; grid kept in `_source/base_075_anim_grid.png`), registered it: `BASE_ANIM_STATES = ['100','075']` (`js/damage.js`), `#base[data-base-anim="075"]` rule (`css/gameCanvas.css`), `sw.js` APP_SHELL + `v64 -> v65` (v64 was the category-edit session's bump, uncommitted), `test/baseAnim.test.js` (075/051 -> animated, 050/025 -> static). Docs: ART_STYLE, ROADMAP, DECISIONS, CLAUDE.md.
+**State:** Jest 71 suites / 1,467/1,467 (scratch copy). Live-checked in the built-in pane: strip applied, inline bg stays the static png, all 8 frames cycle at 1.33s/loop. The pane's own save is at 100 HP, so the 75% art was previewed with `Damage.applyBaseArt(base, 60)` (visual only, save untouched), not reached by real damage. NOT checked: Jeremy's phone; the real 100 -> 75 art swap mid-play.
+**Next:** (a) Jeremy generates `base_050` (smoke) and `base_025` (flames) sheets; register each the same way. (b) Hero pixel avatars + chip layout is still the next big roadmap task.
+**Watch out:** (1) Both this session's changes and the 2026-10-21 category-edit session's are UNCOMMITTED in the working tree (sw.js v65 covers both). (2) base_050/025 sheets will have smoke/flames that reach the top rows; check PixelLab isn't clipping them.
+
 ## 2026-10-21 -- Category edit re-skins zombie (Claude app session, Opus root-cause -> Sonnet build)
 **Did:** Jeremy: editing a task/habit/sub-task category left the on-screen zombie unchanged. Root cause: Edit Task removed `category-*` but left the old `zombie-<category>` class, so the old atlas won by CSS order. Added `SpriteAnim.setEnemyCategory`, used in `js/ui/popups.js` (tasks + sub-tasks) and `js/ui/routineViews.js` (`saveEditedHabit`); `saveEditedTask` (routine task editor) now also syncs today's live instance (name, category, priority, sprite, row). sw.js v63 -> v64. New `test/enemy-category-edit.test.js`. Docs: DECISIONS, CLAUDE.md.
 **State:** Jest 71 suites / 1,463/1,463 (scratch copy). NOT live-checked yet (needs SW unregister + cache clear, then edit a task's category and watch the zombie). Not committed.
