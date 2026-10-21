@@ -1337,14 +1337,12 @@ const RoutineViews = (() => {
         // follow-up (see docs/DECISIONS.md).
         deps.activeItems.forEach(item => {
             if (item.type === 'habit' && item.definitionId === habitId) {
-                const oldCategory = item.category;
                 item.name = name;
                 item.category = category;
                 item.isNegative = isNegative;
 
                 if (item.element) {
-                    item.element.classList.remove(`category-${oldCategory}`, `zombie-${oldCategory}`);
-                    item.element.classList.add(`category-${category}`, `zombie-${category}`);
+                    SpriteAnim.setEnemyCategory(item.element, category);
                     item.element.classList.toggle('negative-habit', isNegative);
                 }
 
@@ -1361,7 +1359,8 @@ const RoutineViews = (() => {
     }
 
     /**
-     * deps: { editTaskInRoutine }
+     * deps: { editTaskInRoutine, activeItems (plain reference), createListItem,
+     *         sortAndRenderActiveList, saveGame }
      */
     function saveEditedTask(taskId, deps) {
         const name = document.getElementById('editTaskName').value.trim();
@@ -1380,6 +1379,35 @@ const RoutineViews = (() => {
         }
 
         deps.editTaskInRoutine(taskId, { name, category, defaultDueTime, isHighPriority, schedule });
+
+        // Keep today's already-spawned instance in sync (2026-10-21), same as
+        // saveEditedHabit: name/category/priority + zombie sprite + list row.
+        // Deliberately NOT defaultDueTime — retroactively moving today's due
+        // time is a separate follow-up (see docs/DECISIONS.md 2026-10-21).
+        // Sub-tasks keep their own category; only the parent instance changes.
+        let touched = false;
+        deps.activeItems.forEach(item => {
+            if (item.type === 'task' && !item.parentId && item.definitionId === taskId) {
+                item.name = name;
+                item.category = category;
+                item.isHighPriority = isHighPriority;
+                touched = true;
+
+                if (item.element) {
+                    SpriteAnim.setEnemyCategory(item.element, category);
+                    item.element.classList.toggle('high-priority', isHighPriority);
+                }
+
+                if (item.listItemElement) {
+                    item.listItemElement.remove();
+                    deps.createListItem(item);
+                }
+            }
+        });
+        if (touched) {
+            deps.sortAndRenderActiveList();
+            deps.saveGame();
+        }
         Modal.closeModal();
     }
 

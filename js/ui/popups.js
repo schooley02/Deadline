@@ -523,9 +523,7 @@ const Popups = (() => {
                 // Update visual elements
                 if (item.element) {
                     item.element.classList.toggle('high-priority', isHighPriority);
-                    item.element.className = item.element.className.replace(/category-\w+/g, '');
-                    item.element.classList.add(`category-${category}`);
-                    item.element.classList.add(`zombie-${category}`);
+                    SpriteAnim.setEnemyCategory(item.element, category);
                 }
 
                 // Recreate list item with updated data

@@ -98,7 +98,19 @@ const SpriteAnim = (() => {
         return DEATH_MS;
     }
 
-    return { CHARACTER_PX, CATEGORIES, DEATH_FRAMES, DEATH_FPS, DEATH_MS, scaleForWidth, attach, syncScale, preload, canPlayDeath, playDeath };
+    // Re-skin an existing enemy element after its category was edited
+    // (2026-10-21). Removes EVERY category-*/zombie-<category> class (the
+    // sprite atlas is chosen by the zombie-<category> class, so a leftover
+    // old one wins by CSS order and the zombie keeps its old look), then adds
+    // the new pair. Deliberately explicit rather than a /zombie-\w+/ regex:
+    // that would also strip zombie-sprite / zombie-subtask. No-op on null.
+    function setEnemyCategory(enemyEl, category) {
+        if (!enemyEl || !enemyEl.classList) return;
+        CATEGORIES.forEach(c => enemyEl.classList.remove(`category-${c}`, `zombie-${c}`));
+        enemyEl.classList.add(`category-${category}`, `zombie-${category}`);
+    }
+
+    return { CHARACTER_PX, CATEGORIES, DEATH_FRAMES, DEATH_FPS, DEATH_MS, scaleForWidth, attach, syncScale, preload, canPlayDeath, playDeath, setEnemyCategory };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

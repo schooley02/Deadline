@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-21 -- Category edits re-skin the live zombie; routine-task edits sync today's instance (Jeremy; Claude app session, Opus root-cause -> Sonnet build)
+- **Decision:** one helper, `SpriteAnim.setEnemyCategory(el, category)`, removes every `category-<c>` / `zombie-<c>` class (explicit list from `SpriteAnim.CATEGORIES`) and adds the new pair; used by Edit Task (tasks + sub-tasks, `js/ui/popups.js`) and Edit Habit (`saveEditedHabit`). `RoutineViews.saveEditedTask` now also updates today's live instance of the routine task (name, category, priority, sprite, list row), mirroring `saveEditedHabit`.
+- **Why:** the atlas comes from `zombie-<category>`. Edit Task stripped only `category-*` via regex and then added the new `zombie-*` without removing the old one, so two zombie classes coexisted and the later rule in `css/enemyAnim.css` won (zombie kept its old art). Routine-task edits changed only the definition, so the live zombie and row stayed stale until the next spawn.
+- **Not changed:** due time / `defaultDueTime` is NOT pushed to today's instance (same limit as habits); sub-tasks keep their own category when a parent routine task is edited. A regex `/zombie-\w+/` was rejected because it would also strip `zombie-sprite` / `zombie-subtask`.
+- **Tests:** new `test/enemy-category-edit.test.js` (+6). sw.js v63 -> v64.
+
+---
+
 ## 2026-10-20 -- Animated church idle loops + throttled hit shake (Jeremy; Claude app session, Opus plan -> Sonnet build)
 - **Decision:** the base animates via per-damage-state strips (`base_<state>_anim.png`, 80x200 frames) driven by a CSS `steps()` loop at 6 fps (Jeremy: start there, tune by eye), not by code-drawn overlays. `base_100` is first (lantern sway/glow). Hit reaction is shared by every state: flash on every hit, 2px shake at most once per 3 s (Jeremy's pick, `CONFIG.BASE_SHAKE_COOLDOWN_MS`).
 - **Why:** the PixelLab sheet changes only a 10x11 px patch (verified frame by frame; walls/cross never shift, so no shimmer at 2x) and is pixel-identical to `base_100.png` elsewhere, so swapping still/animated never jumps. The shake was in ART_STYLE since V4 but only the flash was built; constant shaking under a pile of attackers would be tiring, hence the cooldown.

@@ -141,6 +141,19 @@ const Damage = (() => {
     }
     function resetShakeForTests() { lastShakeMs = -Infinity; }
 
+    function playFlash(baseElement) {
+        baseElement.classList.add('base-hit-flash');
+        setTimeout(() => { baseElement.classList.remove('base-hit-flash'); }, 300);
+    }
+    // Starts the shake if the shared cooldown allows. Returns true when it played.
+    function tryShake(baseElement, nowMs) {
+        if (!shouldShake(nowMs, lastShakeMs, CONFIG.BASE_SHAKE_COOLDOWN_MS)) return false;
+        lastShakeMs = nowMs;
+        baseElement.classList.add('base-hit-shake');
+        setTimeout(() => { baseElement.classList.remove('base-hit-shake'); }, CONFIG.BASE_SHAKE_DURATION_MS);
+        return true;
+    }
+
     // Back-charged damage for ONE item across an offline window.
     //
     // alreadyCharged is the item's LIFETIME offline total (not per-restore), so
@@ -263,19 +276,8 @@ const Damage = (() => {
 
         // Visual feedback
         if (baseElement) {
-            baseElement.classList.add('base-hit-flash');
-            setTimeout(() => {
-                baseElement.classList.remove('base-hit-flash');
-            }, 300);
-
-            const nowMs = Date.now();
-            if (shouldShake(nowMs, lastShakeMs, CONFIG.BASE_SHAKE_COOLDOWN_MS)) {
-                lastShakeMs = nowMs;
-                baseElement.classList.add('base-hit-shake');
-                setTimeout(() => {
-                    baseElement.classList.remove('base-hit-shake');
-                }, CONFIG.BASE_SHAKE_DURATION_MS);
-            }
+            playFlash(baseElement);
+            tryShake(baseElement, Date.now());
         }
 
         updateBaseVisuals(deps);
