@@ -120,6 +120,9 @@ const Loop = (() => {
                     item.x = deps.baseWidth + deps.getSubTaskClusterOffset(item);
                     if (item.element && item.element.classList && !item.element.classList.contains('lurker-parked')) {
                         item.element.classList.add('lurker-parked');
+                        // Its time has arrived: ask indulged/avoided (OPTIONAL hook, 2026-10-21;
+                        // script.js gates it to once per habit per day).
+                        if (typeof deps.onLurkerArrived === 'function') deps.onLurkerArrived(item);
                     }
                     if (item.urgencyTier) {
                         if (item.element) item.element.classList.remove('urgency-' + item.urgencyTier);

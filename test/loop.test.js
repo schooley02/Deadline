@@ -379,6 +379,17 @@ describe('Loop.updateActiveItems — negative-habit lurker exclusion ([P1-DATA-0
         expect(deps._state.damageDealt).toBe(0);
     });
 
+    test('a lurker arriving fires onLurkerArrived once (not every tick, never for a walker)', () => {
+        const lurker = makeLurker();
+        const walker = makeLurker({ dueDateTime: new Date(Date.now() + 2 * 60 * 60 * 1000) });
+        const deps = makeDeps({ state: { activeItems: [lurker, walker] } });
+        const seen = [];
+        deps.onLurkerArrived = (it) => seen.push(it);
+        Loop.updateActiveItems(deps);
+        Loop.updateActiveItems(deps);
+        expect(seen).toEqual([lurker]);
+    });
+
     test('a not-yet-due lurker walks the timeline and is not parked', () => {
         const lurker = makeLurker({ dueDateTime: new Date(Date.now() + 2 * 60 * 60 * 1000) });
         const deps = makeDeps({ state: { activeItems: [lurker] } });

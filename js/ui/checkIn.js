@@ -96,9 +96,71 @@ const CheckIn = (() => {
         }
     }
 
+    // --- Same-day "time has arrived" prompt (2026-10-21, Jeremy) ----------------
+    // A negative habit's time passed while the game is open: ask indulged/avoided right
+    // away instead of waiting for tomorrow's check-in. Several habits arriving together
+    // stack as cards in ONE popup. Resolution reuses the lurker popup's own actions
+    // (deps.completeItem = avoided, deps.indulgeHabit = indulged), so the economics are
+    // identical. "Later" just closes it; tomorrow's check-in still settles the day.
+    function escapeHtml(text) {
+        return String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function buildArrivalCardHtml(item) {
+        return `
+            <div class="check-in-card arrival-card" data-item-id="${item.id}">
+                <p class="check-in-question"><strong>${escapeHtml(item.name)}</strong>: its time has arrived. Did you indulge or avoid it?</p>
+                <div class="check-in-actions">
+                    <button type="button" class="check-in-button avoid-btn negative-habit-button" data-outcome="avoided">Avoided</button>
+                    <button type="button" class="check-in-button indulge-btn" data-outcome="indulged">I indulged</button>
+                </div>
+            </div>
+        `;
+    }
+
+    function wireArrivalCard(card, overlay, item, deps) {
+        card.querySelectorAll('.check-in-button').forEach(button => {
+            button.addEventListener('click', () => {
+                if (button.getAttribute('data-outcome') === 'avoided') deps.completeItem(item.id);
+                else deps.indulgeHabit(item.id);
+                card.remove();
+                if (!overlay.querySelector('.arrival-card')) overlay.remove();
+            });
+        });
+    }
+
+    function queueArrivalPrompt(item, deps) {
+        const existing = document.querySelector('.arrival-overlay');
+        if (existing) {
+            if (existing.querySelector('.arrival-card[data-item-id="' + item.id + '"]')) return;
+            const tmp = document.createElement('div');
+            tmp.innerHTML = buildArrivalCardHtml(item);
+            const card = tmp.firstElementChild;
+            existing.querySelector('.arrival-cards').appendChild(card);
+            wireArrivalCard(card, existing, item, deps);
+            return;
+        }
+        const overlay = Modal.open(`
+            <div class="modal-overlay arrival-overlay">
+                <div class="modal-content check-in-modal">
+                    <h3>Time's up</h3>
+                    <div class="arrival-cards">${buildArrivalCardHtml(item)}</div>
+                    <p class="check-in-snooze"><a href="#" class="arrival-later-link">Later</a></p>
+                </div>
+            </div>
+        `, { dedupeSelector: '.arrival-overlay' });
+        if (!overlay) return;
+        wireArrivalCard(overlay.querySelector('.arrival-card'), overlay, item, deps);
+        overlay.querySelector('.arrival-later-link').addEventListener('click', (e) => {
+            e.preventDefault();
+            overlay.remove();
+        });
+    }
+
     return {
         collectPendingCheckIns,
         showCheckInModal,
+        queueArrivalPrompt,
     };
 })();
 

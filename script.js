@@ -731,6 +731,24 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    // Negative-habit "time has arrived" prompt (2026-10-21, Jeremy). Once per habit per
+    // occurrence day: the stamp is saved on the habit definition, so a reload or a later
+    // re-time never asks twice; "Later" just closes it (the next-morning check-in still
+    // settles the day).
+    function promptLurkerArrival(item) {
+        if (typeof CheckIn === 'undefined' || !item || item.type !== 'habit') return;
+        const def = State.getDefinedHabits().find(d => d.id === item.definitionId);
+        if (!def || !def.isNegative) return;
+        const day = Habits.toOccurrenceDate(item.originalDueDate || item.dueDateTime);
+        if (def.arrivalPromptedFor === day) return;
+        def.arrivalPromptedFor = day;
+        saveGame();
+        CheckIn.queueArrivalPrompt(item, {
+            completeItem: (id) => Items.completeItem(id, itemsDeps()),
+            indulgeHabit: (id) => Items.indulgeHabit(id, itemsDeps()),
+        });
+    }
+
     // Shows the check-in modal if restoring the save left any pendingCheckIn
     // markers (state.js's rollover routing). Safe to call unconditionally —
     // CheckIn.showCheckInModal no-ops when nothing is pending.
@@ -910,6 +928,8 @@ document.addEventListener('DOMContentLoaded', () => {
             saveGame,
             // [P1-DATA-005] session 27 — negative-habit lurker exclusion
             isNonThreatening: Items.isNonThreatening,
+            // Negative habit's time arrived: once-per-day indulged/avoided prompt (2026-10-21)
+            onLurkerArrived: (item) => promptLurkerArrival(item),
             // [P1-DATA-004] sub-session 4, 2026-07-19 — growing parent visuals
             getParentRenderWidth,
             // Time slider (Milestone 4, 2026-07-20) — keeps the handle/label

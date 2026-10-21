@@ -4,6 +4,11 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-21 -- Negative habits ask "indulged or avoided?" the moment their time arrives (Jeremy; Claude app session, Sonnet)
+- **Context:** Jeremy edited a negative habit earlier and saw no attack/red row; that is the lurker model (DECISIONS 2026-07-19 / 2026-10-13): never overdue, parks idle. Rather than change that, he proposed a popup when the time arrives.
+- **Decision:** in-app only (no notifications when the game is closed), with a **Later** option. Popup shows once per habit per occurrence day (`habitDef.arrivalPromptedFor`, persisted additively, no schema bump); several arrivals stack as cards in one popup. Avoided = `Items.completeItem`, I indulged = `Items.indulgeHabit` (same economics, Cheat Day and streak rules as tapping the lurker). Later closes it; the lurker stays parked and tomorrow's check-in still settles the day. Lurkers remain never-overdue, no damage.
+- **Not changed:** red row / attack for negative habits was offered and not chosen.
+
 ## 2026-10-21 -- Editing a habit's time of day re-times today's zombie; the attack starts now with no miss (Jeremy; Claude app session, Sonnet)
 - **Report:** Jeremy edited an existing habit to an earlier time of day ("Morning (by 12 PM)" after noon) and the zombie still wasn't attacking.
 - **Root cause:** `RoutineViews.saveEditedHabit` synced name/category/isNegative onto the already-spawned instance but deliberately skipped `timeOfDay` (comment: "recomputing today's due time retroactively is a separate, more involved follow-up"), so today's `dueDateTime` kept the old bucket until tomorrow's instance spawned. Not a bucket-time bug: Morning = by 12 PM is the design (`Habits.getHabitInstanceDueTime`: morning 12:00, afternoon 17:00, evening 22:00, anytime 23:59), and Jeremy chose to KEEP those times.
