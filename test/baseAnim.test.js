@@ -26,7 +26,8 @@ describe('resolveBaseAnimKey', () => {
     test.each([
         [100, '100'], [76, '100'],
         [75, '075'], [51, '075'],
-        [50, ''], [25, ''],
+        [50, '050'], [26, '050'],
+        [25, ''], [1, ''],
         [0, ''],
     ])('health %i -> "%s"', (hp, key) => {
         expect(Damage.resolveBaseAnimKey(hp)).toBe(key);
