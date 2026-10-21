@@ -102,6 +102,60 @@ describe('hit shake throttle', () => {
     });
 });
 
+describe('under-attack pulse (visual only)', () => {
+    const overdue = (extra = {}) => ({ isOverdue: true, type: 'task', ...extra });
+    function mk(items, over = {}) {
+        const el = document.createElement('div');
+        return {
+            el,
+            deps: {
+                baseElement: el,
+                getActiveItems: () => items,
+                isGameOver: () => false,
+                isNonThreatening: (i) => i.type === 'habit' && i.isNegative === true,
+                ...over,
+            },
+        };
+    }
+    beforeEach(() => { jest.useFakeTimers(); Damage.resetShakeForTests(); document.body.className = ''; });
+    afterEach(() => jest.useRealTimers());
+
+    test('pulses every cooldown while a threatening item is overdue', () => {
+        const { el, deps } = mk([overdue()]);
+        expect(Damage.pulseIfUnderAttack(10_000, deps)).toBe(true);
+        expect(el.classList.contains('base-hit-flash')).toBe(true);
+        expect(el.classList.contains('base-hit-shake')).toBe(true);
+        jest.advanceTimersByTime(400);
+        expect(Damage.pulseIfUnderAttack(10_000 + CONFIG.BASE_SHAKE_COOLDOWN_MS - 1, deps)).toBe(false);
+        expect(Damage.pulseIfUnderAttack(10_000 + CONFIG.BASE_SHAKE_COOLDOWN_MS, deps)).toBe(true);
+        expect(Damage.pulseIfUnderAttack(10_000 + 2 * CONFIG.BASE_SHAKE_COOLDOWN_MS, deps)).toBe(true);
+    });
+    test('quiet with nothing overdue, only a lurker, or game over', () => {
+        expect(Damage.pulseIfUnderAttack(10_000, mk([{ isOverdue: false, type: 'task' }]).deps)).toBe(false);
+        expect(Damage.pulseIfUnderAttack(10_000, mk([overdue({ type: 'habit', isNegative: true })]).deps)).toBe(false);
+        expect(Damage.pulseIfUnderAttack(10_000, mk([overdue()], { isGameOver: () => true }).deps)).toBe(false);
+    });
+    test('skipped under fx-off', () => {
+        document.body.classList.add('fx-off');
+        expect(Damage.pulseIfUnderAttack(10_000, mk([overdue()]).deps)).toBe(false);
+    });
+    test('a real hit resets the shared timer so the pulse does not double up', () => {
+        const { deps } = mk([overdue()]);
+        let hp = 100;
+        jest.setSystemTime(50_000);
+        Damage.damageBase(1, { ...deps, getBaseHealth: () => hp, setBaseHealth: (n) => { hp = n; }, baseHealthDisplay: null, saveGame: () => {} });
+        expect(Damage.pulseIfUnderAttack(50_000 + 1000, deps)).toBe(false);
+        expect(Damage.pulseIfUnderAttack(50_000 + CONFIG.BASE_SHAKE_COOLDOWN_MS, deps)).toBe(true);
+    });
+    test('changes no health and never calls save', () => {
+        let saved = 0; let hp = 80;
+        const { deps } = mk([overdue()], { saveGame: () => { saved++; }, getBaseHealth: () => hp });
+        Damage.pulseIfUnderAttack(10_000, deps);
+        expect(saved).toBe(0);
+        expect(hp).toBe(80);
+    });
+});
+
 describe('strips, CSS and sw.js agree', () => {
     const css = fs.readFileSync(path.join(ROOT, 'css/gameCanvas.css'), 'utf8');
     const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');

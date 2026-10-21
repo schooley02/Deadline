@@ -871,6 +871,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // Per-tick lanes + "+N" badges for the portrait glance strip
             // (V3b-1 sub badges, V3b-2 lanes / collision + overdue-pile badges).
             afterTick: () => {
+                // Church flash + shake every few seconds while attackers are at the base (visual only).
+                Damage.pulseIfUnderAttack(Date.now(), {
+                    baseElement,
+                    getActiveItems: State.getActiveItems,
+                    isGameOver: State.isGameOver,
+                    isNonThreatening: Items.isNonThreatening,
+                });
                 Layout.applyStripLayout(State.getActiveItems(), { baseWidth: BASE_WIDTH });
                 // Landscape/desktop: ground lanes in list order, overlap-avoiding (no-op in strip mode).
                 if (!Layout.isActive()) Layout.applyGroundLanes(State.getActiveItems(), gameCanvas.offsetHeight, { baseWidth: BASE_WIDTH });

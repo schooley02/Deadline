@@ -154,6 +154,33 @@ const Damage = (() => {
         return true;
     }
 
+    // "Under attack" pulse (Jeremy 2026-10-20, restored 2026-10-21): real damage
+    // only lands once per DAMAGE_INTERVAL_MS (5 min) per overdue item, so on its
+    // own the church would sit still for minutes while zombies visibly chew on
+    // it. While any threatening overdue item is alive, the church flashes +
+    // shakes every BASE_SHAKE_COOLDOWN_MS (3 s). Visual only: no damage, no
+    // state, no save. Shares the shake timer with real hits (a hit just reset
+    // it, so they never double up). Called from the live loop's afterTick, which
+    // does not run during time-slider previews or offline catch-up. Skipped
+    // under fx-off and prefers-reduced-motion (a periodic flash is still flicker).
+    function pulseAllowed() {
+        if (typeof document !== 'undefined' && document.body && document.body.classList.contains('fx-off')) return false;
+        if (typeof window !== 'undefined' && window.matchMedia) {
+            try { if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false; } catch (e) { /* ignore */ }
+        }
+        return true;
+    }
+    function pulseIfUnderAttack(nowMs, deps) {
+        const { baseElement, isGameOver } = deps;
+        if (!baseElement || (isGameOver && isGameOver())) return false;
+        if (!hasThreateningOverdue(deps)) return false;
+        if (!pulseAllowed()) return false;
+        if (!shouldShake(nowMs, lastShakeMs, CONFIG.BASE_SHAKE_COOLDOWN_MS)) return false;
+        playFlash(baseElement);
+        tryShake(baseElement, nowMs);
+        return true;
+    }
+
     // Back-charged damage for ONE item across an offline window.
     //
     // alreadyCharged is the item's LIFETIME offline total (not per-restore), so
@@ -619,6 +646,7 @@ const Damage = (() => {
         // stateful
         updateBaseVisuals,
         applyBaseArt,
+        pulseIfUnderAttack,
         resetShakeForTests,
         damageBase,
         healBase,
