@@ -67,6 +67,23 @@ const Habits = (() => {
         return due;
     }
 
+    // Re-derives an ALREADY-SPAWNED habit instance's due time after its
+    // definition's timeOfDay was edited (2026-10-21; before this, today's
+    // zombie kept the old due time until tomorrow's instance regenerated, so
+    // moving a habit to an earlier bucket that had already passed never made
+    // it attack). Keeps the instance's own calendar day (the day it was
+    // scheduled for) and only swaps the bucket's clock time. Returns true when
+    // the due time actually changed so the caller knows to re-evaluate
+    // overdue state (Items.recomputeOverdueStateAfterEdit). Pure apart from
+    // setting item.dueDateTime.
+    function retimeHabitInstance(item, timeOfDay) {
+        if (!item || !(item.dueDateTime instanceof Date)) return false;
+        const newDue = getHabitInstanceDueTime(timeOfDay, item.dueDateTime);
+        if (newDue.getTime() === item.dueDateTime.getTime()) return false;
+        item.dueDateTime = newDue;
+        return true;
+    }
+
     // Which habit definitions should spawn an instance for forWhichGameDay.
     //
     // Routine membership is carried by habitDef.routineId (null = standalone),
@@ -489,6 +506,7 @@ const Habits = (() => {
         timeOfDayLabels,
         dueLineText,
         getHabitInstanceDueTime,
+        retimeHabitInstance,
         selectHabitDefsToSpawn,
         // rate-based bonus (session 16)
         toOccurrenceDate,

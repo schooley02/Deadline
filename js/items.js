@@ -1326,7 +1326,12 @@ const Items = (() => {
         // Reset habit streak (visual) AND record a miss occurrence for the
         // rate-based bonus (session 16). occurrenceHistory keys off the
         // instance's originalDueDate — the scheduled day this miss belongs to.
-        if (item.type === 'habit') {
+        // deps.skipHabitMiss (2026-10-21, Jeremy): an EDIT that pulls a habit's
+        // time into the past is a bookkeeping correction, not a dodged attack,
+        // so it must not record a missed occurrence / reset the streak (set by
+        // recomputeOverdueStateAfterEdit; the natural overdue transition in the
+        // loop never sets it).
+        if (item.type === 'habit' && !deps.skipHabitMiss) {
             const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
             if (habitDef) {
                 const result = Habits.applyHabitOverdue(
@@ -1410,7 +1415,7 @@ const Items = (() => {
             // from this point forward stays uncapped/unbounded by design —
             // this only removes the retroactive back-charge, not ongoing
             // pressure.
-            markAsOverdue(item, now, deps);
+            markAsOverdue(item, now, Object.assign({}, deps, { skipHabitMiss: true }));
             item.lastDamageTickTime = now.getTime();
             item.x = deps.baseWidth + deps.getSubTaskClusterOffset(item);
             if (item.element) item.element.style.left = item.x + 'px';

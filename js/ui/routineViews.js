@@ -1331,15 +1331,21 @@ const RoutineViews = (() => {
 
         // Keep any already-spawned instance of this habit in sync, so editing
         // from today's agenda row (or anywhere else) doesn't go stale until
-        // the next day's instance regenerates. Deliberately does NOT touch
-        // frequency/timeOfDay for an already-spawned instance — recomputing
-        // today's due time retroactively is a separate, more involved
-        // follow-up (see docs/DECISIONS.md).
+        // the next day's instance regenerates. timeOfDay is retimed too
+        // (2026-10-21, Jeremy: moving a habit to an already-passed bucket must
+        // make today's zombie attack): the due time is re-derived on the
+        // instance's own day and overdue state re-evaluated, which starts the
+        // attack from NOW with no back-charge and no missed occurrence (see
+        // DECISIONS 2026-10-21). Frequency/schedule still only apply to
+        // future instances.
         deps.activeItems.forEach(item => {
             if (item.type === 'habit' && item.definitionId === habitId) {
                 item.name = name;
                 item.category = category;
                 item.isNegative = isNegative;
+                if (Habits.retimeHabitInstance(item, timeOfDay) && deps.recomputeOverdueStateAfterEdit) {
+                    deps.recomputeOverdueStateAfterEdit(item);
+                }
 
                 if (item.element) {
                     SpriteAnim.setEnemyCategory(item.element, category);

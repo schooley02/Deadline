@@ -1372,6 +1372,8 @@ document.addEventListener('DOMContentLoaded', () => {
             transferHabitBetweenRoutines, transferTaskBetweenRoutines,
             createNewHabitInRoutine, createNewTaskInRoutine, editHabitInRoutine, editTaskInRoutine,
             activeItems: State.getActiveItems(), createListItem, sortAndRenderActiveList,
+            // 2026-10-21: saveEditedHabit retimes today's instance, then re-evaluates overdue state.
+            recomputeOverdueStateAfterEdit: (item) => Items.recomputeOverdueStateAfterEdit(item, itemsDeps()),
             // [P1-UI-006] sub-session 4, 2026-07-19 — star-rating window start
             // for the Manage modal's hero stats block (buildHeroStatsHtml).
             runStartedAtMs: State.getRunStartedAtMs()
