@@ -114,7 +114,7 @@ const Damage = (() => {
     // what the time-slider preview / tests read); `data-base-anim="<key>"` lets
     // css/gameCanvas.css swap in the strip and step through it. Adding a sheet =
     // key here + a `#base[data-base-anim="<key>"]` rule (frame count) + sw.js.
-    const BASE_ANIM_STATES = ['100', '075', '050'];
+    const BASE_ANIM_STATES = ['100', '075', '050', '025'];
     function resolveBaseAnimKey(baseHealth) {
         const m = /base_(\d{3})\.png$/.exec(resolveBaseImage(baseHealth));
         const key = m ? m[1] : '';

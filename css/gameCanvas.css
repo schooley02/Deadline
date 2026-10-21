@@ -393,6 +393,10 @@
     background-image: url('../Assets/Base/base_050_anim.png') !important;
     --base-frames: 7; /* 7 distinct frames (smoke + embers), not 8 */
 }
+#base[data-base-anim="025"] {
+    background-image: url('../Assets/Base/base_025_anim.png') !important;
+    --base-frames: 9; /* poses 0-5 then back 4,3,2 (flames) */
+}
 
 @keyframes base-idle {
     from { background-position-x: var(--base-x0); }

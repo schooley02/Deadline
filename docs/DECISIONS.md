@@ -18,6 +18,7 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 - **Mechanics:** the inline background-image stays the static png (fallback, time-slider preview, existing tests); `data-base-anim` + `!important` strip rule layers the animation on top. Flash/shake/idle use CSS custom props so they run side by side. reduced = 3 fps, off / prefers-reduced-motion = frame 0 and no shake.
 - **2026-10-21 update:** `base_075` strip added the same way (verified: only the lantern patch differs from `base_075.png`; 3 unique poses in a ping-pong, so it reads as a slower, simpler sway than base_100). No design change.
 - **2026-10-21 update 2:** `base_050` strip added (7 distinct frames; CSS `--base-frames: 7`; the test derives frames from strip width so odd counts are fine). Its effects (smoke plume, embers, wall glow) differ from the still `base_050.png`, accepted since the strip is what plays; the still is only the fallback/preview.
+- **2026-10-21 update 3:** `base_025` strip added (9 frames, `--base-frames: 9`). Exported order 0,1,2,3,4,5,4,3,2 is kept as delivered (its wrap step 2->0 is ~12% larger than the biggest in-loop step, not a visible pop). Registered even though the fire take dropped the still's smoke cloud: reversible, and Jeremy can re-roll. `base_000` deliberately has no strip.
 - **Rejected:** separate lantern sprite + code glow overlay (more wiring, only worth it if the whole-image sheets ever shimmer); shaking on every damage tick.
 
 ## 2026-10-19 -- Finance zombie redesigned: butler -> bank robber (Jeremy; Claude app session, Opus)
