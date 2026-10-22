@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeItemsListUL = document.getElementById('activeItemsList');
     const taskCountDisplay = document.getElementById('taskCountDisplay');
     // [P1-UI-006] sub-session 3, 2026-07-19 — hero chips container over the base.
-    const heroBaseZoneEl = document.getElementById('heroBaseZone');
+    const heroTabEl = document.getElementById('heroTab');
     const baseScrimEl = document.getElementById('baseScrim');
     const heroSpotlightEl = document.getElementById('heroSpotlight');
     // Time slider (Milestone 4, 2026-07-20) — canvas/list seam, Today scope.
@@ -85,6 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // schema bump this session) per-routine star-rating memory for
     // HeroesView's star-threshold-crossed notice. See js/ui/heroes.js header.
     let heroStarMemory = {};
+    // Hero spotlight / tray lazy-init flags live up here (not beside their functions) because
+    // renderHeroesAtBase can run during boot, before those function bodies' lines are reached.
+    let heroSpotlightReady = false;
+    let heroTrayReady = false;
     // [P1-UI-006] sub-session 5, 2026-07-19 — ephemeral (NOT persisted)
     // per-routine FX timestamps: { [routineId]: { damagedAt, celebratedAt } }.
     // Stamped by itemsDeps' onRoutineDamaged/onRoutineCelebrate, read by
@@ -190,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // alone).
         heroStarMemory = {};
         heroFxMemory = {};
+        HeroTray.resetMemory();
         State.initGame(stateDeps());
     }
 
@@ -792,7 +797,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Lazy init so boot order is untouched. A tapped zombie that belongs to a
     // routine (a sub-task counts for its parent's routine) shows that routine's
     // hero in front of the church AND opens its usual popup (plan answer 1).
-    let heroSpotlightReady = false;
     function ensureHeroSpotlight() {
         if (heroSpotlightReady) return;
         HeroSpotlight.init({
@@ -1046,7 +1050,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return routine ? routine.id : null;
             },
             renderHeroesAtBase,
-            heroBaseZoneEl,
         };
     }
 
@@ -1503,34 +1506,47 @@ document.addEventListener('DOMContentLoaded', () => {
     // patched — HeroesView itself is unchanged, it just renders whatever
     // array it's given. Omitted (every existing call site) renders the real
     // live definedRoutines, unchanged behavior.
-    // Tap-to-interact (V3c-1, 2026-10-14): idempotent; opens even during a
-    // time-slider scrub / non-Today day page (Jeremy: management window is
-    // not a mutation of the preview).
-    function bindHeroChipTaps() {
-        HeroesView.bindChipTaps(heroBaseZoneEl, {
-            onRoutine: (routineKey) => {
+    // Hero tab + tray (docs/HERO_SPOTLIGHT_PLAN.md sub-session 3, 2026-10-21) replaced the
+    // base chips. `renderHeroesAtBase` keeps its name because the game loop and the time
+    // slider already call it; it now renders the Heroes tab (status dots / spotlit hero),
+    // keeps the open tray's rows current, and still detects star-rating thresholds for the
+    // star-up notice. DOM is touched only when a signature changes (js/ui/heroTray.js), so
+    // the 50ms call is cheap. routinesOverride (time slider scrub) draws PROJECTED health.
+    // Tap a tray row -> that routine's management window (the old chip tap).
+    function ensureHeroTray() {
+        if (heroTrayReady) return;
+        HeroTray.init({
+            tabEl: heroTabEl,
+            trayEl: document.getElementById('heroTray'),
+            backdropEl: document.getElementById('heroTrayBackdrop'),
+            listEl: document.getElementById('heroTrayList'),
+            closeEl: document.getElementById('heroTrayClose'),
+            config: CONFIG,
+            onManage: (routineKey) => {
                 // dataset round-trips ids as strings; resolve the real id.
                 const routine = State.getDefinedRoutines().find(r => String(r.id) === routineKey);
                 if (routine) showRoutineManagement(routine.id);
             },
-            onOverflow: () => openManagementWindow('routines'),
+            onOpenRoutines: () => openManagementWindow('routines'),
+            getSpotlitId: () => (heroSpotlightReady ? HeroSpotlight.getCurrentRoutineId() : null),
+            dismissSpotlight: () => { if (heroSpotlightReady) HeroSpotlight.dismiss(); },
+            isModalOpen: () => !!document.querySelector('.modal-overlay'),
         });
+        heroTrayReady = true;
     }
 
     function renderHeroesAtBase(routinesOverride) {
-        bindHeroChipTaps();
-        HeroesView.renderHeroesAtBase({
-            containerEl: heroBaseZoneEl,
+        ensureHeroTray();
+        HeroTray.render({
             definedRoutines: routinesOverride || State.getDefinedRoutines(),
             definedHabits: State.getDefinedHabits(),
+            definedTasks: window.definedTasks || [],
             config: CONFIG,
             runStartedAtMs: State.getRunStartedAtMs(),
             starMemory: heroStarMemory,
             onStarThresholdCrossed: (routine, stars) => {
                 FrozenNotice.showHeroStarUpNotice(routine.name, stars);
             },
-            // Sub-session 5: flinch/celebrate FX timestamps (see itemsDeps).
-            fxMemory: heroFxMemory,
         });
     }
 

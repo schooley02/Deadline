@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-21 -- Hero tab + tray built; base chips retired (HERO_SPOTLIGHT_PLAN sub-session 3; Claude app session, Sonnet)
+- **Built:** `js/ui/heroTray.js` (pure: `slotCells`, `buildRowViewModel`, `summarize`, `tabModel`, signatures, `shouldAutoOpenOnLevelUp`; DOM: `init/render/open/close/toggle/resetMemory/isOpen`), `css/heroTray.css`, `#heroTab` + tray markup in index.html, `renderHeroesAtBase` now drives `HeroTray.render` (reconciled by signature, never rebuilt per tick; also does star-threshold detection the chip renderer used to do). `#heroBaseZone` and its CSS removed. sw.js v74 -> v75.
+- **Deviation from plan:** the tray is a viewport-fixed bottom sheet everywhere instead of rising over the canvas strip, because the portrait strip is only 92px tall. Tab sits bottom-centre and may cover a zombie tap in the strip; judge on the phone (CSS-only move).
+- **Bug found live:** the empty-state "Open routines" button opened the window and Modal's document click handler closed it again; fixed with `stopPropagation` (same cause as the onboarding button).
+- **Verified:** Jest 75 suites / 1,534 (scratch copy). Live (built-in pane, SW cleared): tab dots, real-click open, ranking, slot cells, backdrop/Escape close, row tap -> Manage Routine, spotlit tab, level-up auto-open, 844x390 landscape (scrolls inside 60vh), empty state -> Routines window opens, no console errors. Pane save restored.
+- **Follow-ups:** dead `HeroesView` chip code (`renderHeroesAtBase`, `bindChipTaps`, `buildOverflowChip`, `chipKey`, `resolveTap`, `dominantCategoryOrInitial`) to delete; star-up notice via the tray is unit-tested only; pick a KO look.
+
+---
+
 ## 2026-10-21 -- Hero spotlight + scrim built (HERO_SPOTLIGHT_PLAN sub-session 2; Claude app session, Sonnet)
 - **Built:** `js/ui/heroSpotlight.js` (pure: `resolveRoutineForItem`, `heroLookFor`, `zombieSpriteFor`, `createController` with injected timers; DOM: `init/show/dismiss`), `css/heroSpotlight.css`, `#baseScrim` + `#heroSpotlight` in index.html, `CONFIG.HERO_SPOTLIGHT_MS` 5000 / `HERO_SCRIM_OPACITY` 0.4 / `HERO_KO_LOOK` 'faded'. script.js: lazy `ensureHeroSpotlight`, `spotlightRoutine`, `spotlightHeroForItem`; `handleEnemyClick` wrapper fires the spotlight then opens the popup (both together, per Jeremy); the five Spawning deps that called `Popups.handleEnemyClick` directly now call the wrapper (found live: the first build showed the popup but no hero); list-row avatar tap = spotlight (was Manage Routine). sw.js v73.
 - **KO looks:** both built behind `CONFIG.HERO_KO_LOOK` ('faded' | 'zombie'); compare live with `CONFIG.HERO_KO_LOOK = 'zombie'` in the console, then pick one and drop the other.

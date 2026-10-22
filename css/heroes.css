@@ -4,58 +4,9 @@
  * HEROES_PLAN.md — no hero sprite assets exist yet).
  */
 
-/* Positioned over #base's leftmost-160px zone (gameCanvas.css), anchored to
-   its bottom edge so the chips read as heroes standing in front of the
-   church rather than covering it. Wraps rather than overflows if slot count
-   grows — HERO_CHIP_MAX_DISPLAY caps it with a "+N" chip regardless. */
-/* 2026-10-15 (Jeremy): chips are HIDDEN on the canvas in every layout for now -- they
-   covered the church and no good placement exists yet (ROADMAP "Hero pixel avatars +
-   chip layout"). Only the canvas zone is hidden; the agenda-list chips are untouched.
-   The DOM/JS (js/ui/heroes.js, tap binding) still runs, so deleting this one rule
-   brings them back. */
-#heroBaseZone {
-    display: none !important;
-}
-
-#heroBaseZone {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    width: 160px;
-    display: flex;
-    flex-wrap: wrap;
-    align-content: flex-end;
-    justify-content: center;
-    gap: 2px;
-    padding: 4px;
-    box-sizing: border-box;
-    pointer-events: none; /* container stays click-through; the chips opt in below */
-    z-index: 90; /* above the enemy list-order band (30-79) */
-}
-
-/* V3c-1 (2026-10-14): chips are tappable (-> that routine's management
-   window; "+N" -> Routines window). The visual box stays 34px; ::after grows
-   the HIT area to >=44px without changing layout. touch-action keeps a tap
-   from becoming a scroll/zoom. Taps are handled by ONE delegated listener on
-   #heroBaseZone (HeroesView.bindChipTaps) because chips are rebuilt every tick. */
-#heroBaseZone .hero-chip {
-    pointer-events: auto;
-    cursor: pointer;
-    touch-action: manipulation;
-}
-
-#heroBaseZone .hero-chip::after {
-    content: '';
-    position: absolute;
-    inset: -5px;
-    min-width: 44px;
-    min-height: 44px;
-    left: 50%;
-    top: 50%;
-    right: auto;
-    bottom: auto;
-    transform: translate(-50%, -50%);
-}
+/* The base-zone container (#heroBaseZone) was retired 2026-10-21 (HERO_SPOTLIGHT_PLAN
+   sub-session 3): heroes live in the Heroes tab + tray (css/heroTray.css) and the spotlight
+   (css/heroSpotlight.css). The .hero-chip styles below remain for the agenda-row chips. */
 
 .hero-chip {
     position: relative;

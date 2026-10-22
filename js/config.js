@@ -234,6 +234,9 @@ const CONFIG = {
     // KO'd hero look, built both ways to compare live (plan answer 3):
     // 'faded' = desaturated hero; 'zombie' = the category zombie grey-tinted.
     HERO_KO_LOOK: 'faded',
+    // Hero tray (plan sub-session 3): a hero counts as "hurt" (red dot on the Heroes tab) at or
+    // below this fraction of max health. Display threshold, not balance.
+    HERO_HURT_PCT: 0.5,
     // Base Zone is small (160px wide since V4, 2026-10-14) — cap simultaneous chips and show a
     // "+N" overflow chip past this count rather than crowding/overflowing.
     HERO_CHIP_MAX_DISPLAY: 6,

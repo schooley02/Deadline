@@ -95,12 +95,6 @@ body.glance-strip #base {
     background-position: right bottom 1px; /* = 8px pad - 7 empty rows */
 }
 
-/* Hero chips (34px each) don't fit a 72px strip. Routine HP stays visible in
-   the routine windows; revisit with V3c. */
-body.glance-strip #heroBaseZone {
-    display: none;
-}
-
 /* The vertical "MIDNIGHT" label is taller than the strip; keep post + lantern. */
 body.glance-strip #midnightLine::before {
     display: none;

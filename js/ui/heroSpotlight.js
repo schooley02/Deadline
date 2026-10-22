@@ -157,6 +157,11 @@ const HeroSpotlight = (() => {
 
     function show(routineId) { return controller ? controller.show(routineId) : false; }
     function dismiss() { return controller ? controller.dismiss() : false; }
+    // Routine id of the hero showing right now, or null (the Heroes tab mirrors it).
+    function getCurrentRoutineId() {
+        const current = controller ? controller.get() : null;
+        return current ? current.routineId : null;
+    }
 
     return {
         resolveRoutineForItem,
@@ -166,6 +171,7 @@ const HeroSpotlight = (() => {
         init,
         show,
         dismiss,
+        getCurrentRoutineId,
     };
 })();
 

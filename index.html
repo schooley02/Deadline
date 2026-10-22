@@ -35,6 +35,7 @@
     <link rel="stylesheet" href="css/gameOverReview.css">
     <link rel="stylesheet" href="css/heroes.css">
     <link rel="stylesheet" href="css/heroSpotlight.css">
+    <link rel="stylesheet" href="css/heroTray.css">
     <link rel="stylesheet" href="css/timeSlider.css">
     <link rel="stylesheet" href="css/dayPager.css">
     <link rel="stylesheet" href="css/enemyAnim.css">
@@ -135,10 +136,10 @@
                      the layer in front of the church, below the enemies (css/heroSpotlight.css). -->
                 <div id="baseScrim"></div>
                 <div id="heroSpotlight" class="hero-spotlight"></div>
-                <!-- Hero chips ([P1-UI-006] sub-session 3, 2026-07-19) — one
-                     per routine, rendered by js/ui/heroes.js. Positioned over
-                     the base zone via css/heroes.css. -->
-                <div id="heroBaseZone"></div>
+                <!-- Heroes tab (docs/HERO_SPOTLIGHT_PLAN.md sub-session 3, 2026-10-21): replaces the
+                     old per-routine base chips. Content rendered by js/ui/heroTray.js; the tray it
+                     opens is at the end of <body>. -->
+                <button id="heroTab" class="hero-tab" type="button" aria-expanded="false" aria-controls="heroTray"></button>
                 <div id="midnightLine" style="display: none;"></div>
             </div>
             
@@ -382,6 +383,17 @@
         <button id="restartButton" class="restart-button hidden">Start New Base (Restart)</button>
     </div>
 
+    <!-- Hero tray (docs/HERO_SPOTLIGHT_PLAN.md sub-session 3): viewport-fixed bottom sheet opened by
+         #heroTab; outside #gameCanvas so the 92px portrait strip can't clip it. Rows by js/ui/heroTray.js. -->
+    <div id="heroTrayBackdrop" class="hero-tray-backdrop"></div>
+    <section id="heroTray" class="hero-tray" role="dialog" aria-label="Heroes" aria-hidden="true" tabindex="-1">
+        <header class="hero-tray-header">
+            <h3>Heroes</h3>
+            <button id="heroTrayClose" class="hero-tray-close" type="button" aria-label="Close heroes">&times;</button>
+        </header>
+        <div id="heroTrayList" class="hero-tray-list"></div>
+    </section>
+
     <script src="js/config.js"></script>
     <script src="js/listOrder.js"></script>
     <script src="js/layout.js"></script>
@@ -434,6 +446,7 @@
     <script src="js/ui/routineViews.js"></script>
     <script src="js/ui/heroes.js"></script>
     <script src="js/ui/heroSpotlight.js"></script>
+    <script src="js/ui/heroTray.js"></script>
     <script src="js/ui/timeSliderView.js"></script>
     <!-- js/ui/dayPagerView.js needs DayPager (pure ghost conjuring) + Movement
          (top-position math) already loaded — see its header. -->
