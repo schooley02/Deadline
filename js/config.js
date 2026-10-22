@@ -219,6 +219,10 @@ const CONFIG = {
         relationships: '❤️',
         spirituality: '🧘',
     },
+    // Hero art categories (HERO_SPOTLIGHT_PLAN.md, 2026-10-21): the 8 life
+    // domains a routine's hero can be. `routine.heroCategory` is one of these;
+    // missing/unknown reads as 'other' (Heroes.heroCategoryFor).
+    HERO_CATEGORIES: ['other', 'career', 'creativity', 'financial', 'health', 'lifestyle', 'relationships', 'spirituality'],
     // Base Zone is small (160px wide since V4, 2026-10-14) — cap simultaneous chips and show a
     // "+N" overflow chip past this count rather than crowding/overflowing.
     HERO_CHIP_MAX_DISPLAY: 6,

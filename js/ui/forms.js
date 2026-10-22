@@ -280,6 +280,10 @@ const Forms = (() => {
                 <label for="modalRoutineName">Routine Name:</label>
                 <input type="text" id="modalRoutineName" placeholder="e.g., Morning Ritual" required>
             </div>
+            <div class="form-row">
+                <label for="modalRoutineHeroCategory">Hero type:</label>
+                <select id="modalRoutineHeroCategory">${HeroesView.heroCategoryOptionsHtml('other', CONFIG)}</select>
+            </div>
             <div class="modal-buttons">
                 <button id="modalCreateRoutineButton" class="primary-button">Create Routine</button>
                 <button class="secondary-button" onclick="closeModal()">Cancel</button>
@@ -447,7 +451,8 @@ const Forms = (() => {
                         // Routines.createRoutineDefinition instead of duplicating
                         // its validation/construction inline — see file header
                         // and DECISIONS.md. Same messages, same routine shape.
-                        const result = Routines.createRoutineDefinition(name, deps.definedRoutines);
+                        const heroSelect = modal.querySelector('#modalRoutineHeroCategory');
+                        const result = Routines.createRoutineDefinition(name, deps.definedRoutines, heroSelect ? heroSelect.value : 'other');
                         if (!result.ok) {
                             alert(result.reason === 'empty' ? 'Please enter a routine name.' : 'Routine name already exists.');
                             return;

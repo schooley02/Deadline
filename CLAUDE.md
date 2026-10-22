@@ -32,8 +32,8 @@ At the end of every session, run `/end-session` (append HANDOFF entry, log decis
 ## Codebase State (refreshed 2026-10-14 — last code change 2026-10-14, V4: pixel church art at 160px/2x, front-lane line, paths unified on Assets/Base/)
 
 - **Modular vanilla JS, no build step.** `index.html` + ~27 core modules in `js/` (new: `listOrder.js`, 2026-10-13) + 17 UI modules in `js/ui/` + 21 CSS files in `css/` (`responsive.css` loads last — order-sensitive). `script.js` (~1,900 lines) is boot/wiring only: deps builders + `window.*` names for inline onclicks. Game state is owned by `js/state.js` (`State.getX`/`State.setX`). Target layout: `docs/ARCHITECTURE.md`.
-- **Persistence:** localStorage `deadline.save`, `SCHEMA_VERSION = 12` (migrations in `js/persistence.js`); settings in `deadline.settings`; Backup & Transfer via `js/exportImport.js`.
-- **PWA:** `manifest.json` + cache-first `sw.js`. BUMP `CACHE_NAME` (currently `deadline-shell-v71`) on ANY shell-file change, and add new assets to its `APP_SHELL` list. Deployed via GitHub Pages from `main`.
+- **Persistence:** localStorage `deadline.save`, `SCHEMA_VERSION = 13` (migrations in `js/persistence.js`); settings in `deadline.settings`; Backup & Transfer via `js/exportImport.js`.
+- **PWA:** `manifest.json` + cache-first `sw.js`. BUMP `CACHE_NAME` (currently `deadline-shell-v72`) on ANY shell-file change, and add new assets to its `APP_SHELL` list. Deployed via GitHub Pages from `main`.
 - **Tests:** Jest, ~69 suites / ~1,445 tests in `test/` (`npm test`). Jest never loads `script.js` — boot/wiring regressions only show up in a live browser check.
 - **Progress:** Milestones 0–4 closed; Milestone 5 (live-play polish + visual track V1–V6, see `docs/VISUAL_DESIGN_PLAN.md`) in progress. Next queued items are in the top `sessions/HANDOFF.md` entry.
 - **Category edits (2026-10-21):** use `SpriteAnim.setEnemyCategory(el, cat)` to re-skin an existing zombie (never hand-edit `zombie-*` classes; stale ones win by CSS order). See DECISIONS 2026-10-21.

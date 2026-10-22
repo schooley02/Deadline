@@ -112,7 +112,7 @@ const HeroesView = (() => {
         const maxHealth = config.ROUTINE_MAX_HEALTH || 0;
         const health = (typeof routine.health === 'number') ? routine.health : maxHealth;
         const healthPct = maxHealth > 0 ? Math.max(0, Math.min(1, health / maxHealth)) : 0;
-        const identity = dominantCategoryOrInitial(routine, definedHabits);
+        const heroCategory = Heroes.heroCategoryFor(routine, config.HERO_CATEGORIES);
         const progress = xpProgress(routine, config.ROUTINE_LEVEL_XP_THRESHOLDS);
 
         return {
@@ -129,9 +129,20 @@ const HeroesView = (() => {
             health,
             healthPct,
             state: deriveState(routine),
-            emoji: identity.category ? categoryEmoji(identity.category, config) : null,
-            initial: identity.initial,
+            heroCategory,
+            emoji: categoryEmoji(heroCategory, config),
+            initial: null,
         };
+    }
+
+    // <option> list for the hero-category pickers (Create Routine + Manage
+    // Routine). Labels are the capitalised category keys, same as the habit/
+    // task category selects.
+    function heroCategoryOptionsHtml(selected, config) {
+        return (config.HERO_CATEGORIES || []).map(cat => {
+            const label = cat.charAt(0).toUpperCase() + cat.slice(1);
+            return `<option value="${cat}"${cat === selected ? ' selected' : ''}>${label}</option>`;
+        }).join('');
     }
 
     function starsHtml(stars) {
@@ -411,6 +422,7 @@ const HeroesView = (() => {
         // pure
         categoryEmoji,
         dominantCategoryOrInitial,
+        heroCategoryOptionsHtml,
         deriveState,
         xpProgress,
         buildChipViewModel,

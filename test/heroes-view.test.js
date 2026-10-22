@@ -172,6 +172,7 @@ describe('buildChipViewModel', () => {
             id: 'r1',
             name: 'Morning Ritual',
             level: 2,
+            heroCategory: 'health',
             xp: CONFIG.ROUTINE_LEVEL_XP_THRESHOLDS[1] + 5,
             health: 80,
             isActive: true,
@@ -199,6 +200,7 @@ describe('buildChipViewModel', () => {
         expect(vm.health).toBe(80);
         expect(vm.healthPct).toBeCloseTo(80 / CONFIG.ROUTINE_MAX_HEALTH);
         expect(vm.state).toBe('active');
+        expect(vm.heroCategory).toBe('health');
         expect(vm.emoji).toBe(CONFIG.CATEGORY_EMOJI.health);
         expect(vm.initial).toBeNull();
         // 7/7 = 100% success clears every rate cutoff; 7 distinct days of
@@ -459,5 +461,22 @@ describe('chipSignature (in-place chip reconcile)', () => {
         const ended = HeroesView.chipSignature({ ...base, fx: null }, 1700);
         expect(a).toBe(b);
         expect(ended).not.toBe(a);
+    });
+});
+
+describe('buildChipViewModel hero category (2026-10-21)', () => {
+    test('a routine with no heroCategory shows the Other hero', () => {
+        const vm = HeroesView.buildChipViewModel({ id: 'r1', name: 'Empty', level: 1, health: 100 }, [], CONFIG, 0);
+        expect(vm.heroCategory).toBe('other');
+        expect(vm.emoji).toBe(CONFIG.CATEGORY_EMOJI.other);
+    });
+});
+
+describe('heroCategoryOptionsHtml', () => {
+    test('lists every hero category once and selects the given one', () => {
+        const html = HeroesView.heroCategoryOptionsHtml('career', CONFIG);
+        expect((html.match(/<option /g) || []).length).toBe(CONFIG.HERO_CATEGORIES.length);
+        expect(html).toContain('<option value="career" selected>Career</option>');
+        expect(html).not.toContain('value="other" selected');
     });
 });

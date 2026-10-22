@@ -605,6 +605,11 @@ const RoutineViews = (() => {
 
                     ${buildHeroStatsHtml(routine, deps.definedHabits(), deps.runStartedAtMs)}
 
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+                        <label for="routineHeroCategory" style="font-size: 14px;">Hero type:</label>
+                        <select id="routineHeroCategory">${HeroesView.heroCategoryOptionsHtml(Heroes.heroCategoryFor(routine, CONFIG.HERO_CATEGORIES), CONFIG)}</select>
+                    </div>
+
                     <!-- Habits Section -->
                     <div style="margin-bottom: 20px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -671,6 +676,19 @@ const RoutineViews = (() => {
                         deps.populateRoutinesWindow();
                     }
                 }, 100);
+            });
+        }
+
+        // Hero type picker (schemaVersion 13, 2026-10-21): which category
+        // hero represents this routine. Saves immediately; the agenda list is
+        // re-rendered so row chips pick up the new look.
+        const heroCategorySelect = document.getElementById('routineHeroCategory');
+        if (heroCategorySelect) {
+            heroCategorySelect.addEventListener('change', () => {
+                if (CONFIG.HERO_CATEGORIES.indexOf(heroCategorySelect.value) === -1) return;
+                routine.heroCategory = heroCategorySelect.value;
+                deps.saveGame();
+                if (typeof deps.sortAndRenderActiveList === 'function') deps.sortAndRenderActiveList();
             });
         }
 

@@ -112,6 +112,7 @@ KO'd, showing "revives tomorrow" vs. "ready to revive"). Once the gate clears, r
 today's due instances as normal.
 
 ## Hero Rendering ([P1-UI-006] sub-session 3, built 2026-07-19)
+> **Updated 2026-10-21 (HERO_SPOTLIGHT_PLAN sub-session 1):** a hero's category is now the PLAYER-PICKED `routine.heroCategory` (schemaVersion 13; default `'other'`; "Hero type" select in Create Routine and Manage Routine; existing routines were seeded once from their dominant habit + task category). The "dominant habit category / initial / neutral shield" rule below is superseded for avatars (`HeroesView.buildChipViewModel` now always resolves a category via `Heroes.heroCategoryFor`). Hero rendering itself moves from base chips to a spotlight + tray (docs/HERO_SPOTLIGHT_PLAN.md).
 > **Updated 2026-10-14 (V3c-1):** the chip no longer shows the name initial or the `Lv N` badge (neutral 🛡️ avatar when the routine has no habits; stars + health kept) and is tappable (chip -> management window, "+N" -> Routines window). Pixel avatars + list-row badges are queued -- DECISIONS 2026-10-14. The paragraph below is the original v1 description.
 
 One avatar chip per routine, rendered at the Base Zone (over `#base`'s leftmost 120px). No hero

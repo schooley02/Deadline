@@ -176,7 +176,7 @@ const Routines = (() => {
     // { ok: true, routine } on success. Does NOT push — callers own that so
     // they control save/render/close ordering around it (matches the two
     // existing call sites, which differ in what they do after creating).
-    function createRoutineDefinition(name, definedRoutines) {
+    function createRoutineDefinition(name, definedRoutines, heroCategory) {
         const trimmedName = (name || '').trim();
         if (!trimmedName) {
             return { ok: false, reason: 'empty' };
@@ -208,7 +208,10 @@ const Routines = (() => {
             // 2026-07-19): only the SPENT counts are persisted — available
             // points are derived from level (js/heroes.js). See DECISIONS.md.
             boughtHabitSlots: 0,
-            boughtTaskSlots: 0
+            boughtTaskSlots: 0,
+            // Which category hero stands for this routine (schemaVersion 13,
+            // 2026-10-21): player-picked, new routines default to 'other'.
+            heroCategory: CONFIG.HERO_CATEGORIES.indexOf(heroCategory) !== -1 ? heroCategory : 'other'
         };
 
         return { ok: true, routine };

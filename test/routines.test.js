@@ -148,6 +148,12 @@ describe('createRoutineDefinition', () => {
         expect(result.routine.frozenState).toBeNull();
     });
 
+    test('hero category defaults to other; a valid pick is kept; an unknown one falls back', () => {
+        expect(Routines.createRoutineDefinition('A', []).routine.heroCategory).toBe('other');
+        expect(Routines.createRoutineDefinition('B', [], 'career').routine.heroCategory).toBe('career');
+        expect(Routines.createRoutineDefinition('C', [], 'wizard').routine.heroCategory).toBe('other');
+    });
+
     test('trims the name before storing', () => {
         const result = Routines.createRoutineDefinition('  Padded  ', []);
         expect(result.routine.name).toBe('Padded');

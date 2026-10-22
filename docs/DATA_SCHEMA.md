@@ -28,12 +28,12 @@ Envelope shape (wraps BOTH `deadline.save` and `deadline.settings` as one portab
 {
   exportFormatVersion: 1,       // versions the ENVELOPE shape, separate from schemaVersion
   exportedAt: "2026-07-20T...", // ISO
-  appSchemaVersion: 12,         // mirrors save.schemaVersion
+  appSchemaVersion: 13,         // mirrors save.schemaVersion
   summary: {                    // display-only, for the confirm-replace compare — not validated
     daysSurvived, playerLevel, playerXP, playerPoints,
     activeItemCount, habitCount, routineCount,
   },
-  save: { schemaVersion: 12, savedAt: "...", ...every deadline.save field },
+  save: { schemaVersion: 13, savedAt: "...", ...every deadline.save field },
   settings: { effectsIntensity: "full" },
   checksum: "a1b2c3d4",         // FNV-1a hex over the envelope minus this field — corruption
                                  // detection (catches a truncated paste), NOT cryptographic
@@ -57,6 +57,9 @@ Rules:
   `Persistence.requestSave`/`Persistence.flush` to no-ops immediately before the write (module
   state is thrown away by the reload regardless — same class of hazard as the session-52
   stub-before-edit trick, see CLAUDE.md's Cowork section).
+
+### schemaVersion 13 (2026-10-21): `routine.heroCategory`
+Which of the 8 category heroes (`CONFIG.HERO_CATEGORIES`: other, career, creativity, financial, health, lifestyle, relationships, spirituality) represents a routine. Player-picked (Create Routine + Manage Routine "Hero type" select); NEW routines default to `'other'`. The 12 -> 13 migration SEEDS every existing routine ONCE from its dominant category across habit members (`routineId` or `habitDefinitionIds`, archived excluded) AND task members (`taskDefinitionIds`); ties go to the category counted first (habits in `definedHabits` order, then tasks); no categorised members -> `'other'`. A missing/unknown value reads as `'other'` (`Heroes.heroCategoryFor`). Replaces the old "dominant habit category" rule for hero art (docs/HERO_SPOTLIGHT_PLAN.md).
 
 ### schemaVersion 12 (2026-10-13): list-order layering — optional `listRank` / `listRankDue` on active items
 Hand-ordering inside a 30-min tie group (`js/listOrder.js`, `CONFIG.LIST_TIE_WINDOW_MIN`). Both fields are OPTIONAL numbers on an active item (top-level rows only; absent = plain due-time order):
@@ -276,7 +279,8 @@ Routine {
   // that SAME habit (frozenBy match) hitting CONFIG.RECOVERY_AVOIDED_DAYS
   // (3) consecutive avoided days, or by a real edit to that habit (recovery
   // path 1, later sub-session). See js/frozenSlots.js + DECISIONS.md.
-  frozenState: { frozenBy: string, frozenAt: "ISOString" } | null
+  frozenState: { frozenBy: string, frozenAt: "ISOString" } | null,
+  heroCategory: "other" | "career" | "creativity" | "financial" | "health" | "lifestyle" | "relationships" | "spirituality"  // schemaVersion 13; which category hero represents this routine
 }
 
 Run {

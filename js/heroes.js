@@ -230,7 +230,17 @@ const Heroes = (() => {
         return health <= 0;
     }
 
+    // Which category hero represents a routine (HERO_SPOTLIGHT_PLAN.md,
+    // 2026-10-21). Player-picked `routine.heroCategory`; a missing or unknown
+    // value reads as 'other'. `categories` = CONFIG.HERO_CATEGORIES (passed in
+    // so this module stays config-free like the rest of its pure helpers).
+    function heroCategoryFor(routine, categories) {
+        const value = routine && routine.heroCategory;
+        return (Array.isArray(categories) && categories.indexOf(value) !== -1) ? value : 'other';
+    }
+
     return {
+        heroCategoryFor,
         xpAmountFor,
         levelForXp,
         applyXpDelta,

@@ -43,7 +43,7 @@ const Persistence = (() => {
     // group; see js/listOrder.js). Absent = today's due-time order, so the
     // migration only stamps the version. Items are saved whole, so the new
     // fields round-trip with no serializer change.
-    const SCHEMA_VERSION = 12;
+    const SCHEMA_VERSION = 13;
     const DEBOUNCE_MS = 500;
 
     // DOM references on item objects — never serialized, rebuilt on load.
@@ -383,6 +383,47 @@ const Persistence = (() => {
         // keep today's behavior (plain due-time order).
         if (save.schemaVersion === 11) {
             save.schemaVersion = 12;
+        }
+
+        // v12 -> v13 (2026-10-21): routines gain `heroCategory` (which of the 8
+        // category heroes represents the routine; docs/HERO_SPOTLIGHT_PLAN.md).
+        // Existing routines are SEEDED ONCE from their dominant category across
+        // habit AND task members (archived habits excluded); ties go to the
+        // category counted first (habits in definedHabits order, then tasks),
+        // matching the old dominantCategoryOrInitial rule; no categorised
+        // members -> 'other'. Literal category list and inline math, no module
+        // deps (v2->v3 precedent). After this the value is the player's to
+        // change; new routines start as 'other'. See DECISIONS.md 2026-10-21.
+        if (save.schemaVersion === 12) {
+            const heroCategories = ['other', 'career', 'creativity', 'financial', 'health', 'lifestyle', 'relationships', 'spirituality'];
+            const habits = Array.isArray(save.definedHabits) ? save.definedHabits : [];
+            const tasks = Array.isArray(save.definedTasks) ? save.definedTasks : [];
+            (save.definedRoutines || []).forEach(routine => {
+                if (heroCategories.indexOf(routine.heroCategory) !== -1) return;
+                const habitIds = routine.habitDefinitionIds || [];
+                const taskIds = routine.taskDefinitionIds || [];
+                const counts = {};
+                const order = [];
+                const tally = category => {
+                    if (heroCategories.indexOf(category) === -1) return;
+                    if (!counts[category]) { counts[category] = 0; order.push(category); }
+                    counts[category] += 1;
+                };
+                habits.forEach(def => {
+                    if (def.archivedAt) return;
+                    if (def.routineId === routine.id || habitIds.indexOf(def.id) !== -1) tally(def.category);
+                });
+                tasks.forEach(def => {
+                    if (taskIds.indexOf(def.id) !== -1) tally(def.category);
+                });
+                let best = 'other';
+                let bestCount = 0;
+                order.forEach(category => {
+                    if (counts[category] > bestCount) { best = category; bestCount = counts[category]; }
+                });
+                routine.heroCategory = best;
+            });
+            save.schemaVersion = 13;
         }
 
         if (save.schemaVersion !== SCHEMA_VERSION) {

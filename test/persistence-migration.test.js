@@ -657,13 +657,77 @@ describe('migrate: v11 -> v12 (list-order layering, 2026-10-13)', () => {
     test('stamps the version and leaves items untouched (ranks are optional)', () => {
         const items = [{ id: 1, name: 'a' }, { id: 2, name: 'b', listRank: 5, listRankDue: 7 }];
         const save = Persistence.migrate({ schemaVersion: 11, activeItems: items });
-        expect(save.schemaVersion).toBe(12);
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
         expect(save.activeItems).toBe(items);
         expect(save.activeItems[0].listRank).toBeUndefined();
         expect(save.activeItems[1].listRank).toBe(5);
     });
-    test('SCHEMA_VERSION is 12', () => {
-        expect(Persistence.SCHEMA_VERSION).toBe(12);
+    test('SCHEMA_VERSION is 13', () => {
+        expect(Persistence.SCHEMA_VERSION).toBe(13);
+    });
+});
+
+describe('migrate: v12 -> v13 seeds routine.heroCategory (2026-10-21)', () => {
+    const migrate12 = extra => Persistence.migrate(Object.assign({ schemaVersion: 12 }, extra));
+
+    test('seeds the dominant category across habit AND task members', () => {
+        const save = migrate12({
+            definedRoutines: [{ id: 'r1', habitDefinitionIds: ['h1'], taskDefinitionIds: ['t1', 't2'] }],
+            definedHabits: [{ id: 'h1', routineId: 'r1', category: 'health' }],
+            definedTasks: [{ id: 't1', category: 'career' }, { id: 't2', category: 'career' }],
+        });
+        expect(save.schemaVersion).toBe(13);
+        expect(save.definedRoutines[0].heroCategory).toBe('career');
+    });
+
+    test('archived habits do not count', () => {
+        const save = migrate12({
+            definedRoutines: [{ id: 'r1', habitDefinitionIds: ['h1', 'h2'], taskDefinitionIds: ['t1'] }],
+            definedHabits: [
+                { id: 'h1', routineId: 'r1', category: 'health', archivedAt: 123 },
+                { id: 'h2', routineId: 'r1', category: 'health', archivedAt: 456 },
+            ],
+            definedTasks: [{ id: 't1', category: 'financial' }],
+        });
+        expect(save.definedRoutines[0].heroCategory).toBe('financial');
+    });
+
+    test('ties go to the category counted first (habits before tasks)', () => {
+        const save = migrate12({
+            definedRoutines: [{ id: 'r1', habitDefinitionIds: ['h1'], taskDefinitionIds: ['t1'] }],
+            definedHabits: [{ id: 'h1', routineId: 'r1', category: 'lifestyle' }],
+            definedTasks: [{ id: 't1', category: 'creativity' }],
+        });
+        expect(save.definedRoutines[0].heroCategory).toBe('lifestyle');
+    });
+
+    test('other routines\' members are ignored; no categorised members -> other', () => {
+        const save = migrate12({
+            definedRoutines: [
+                { id: 'r1', habitDefinitionIds: [], taskDefinitionIds: [] },
+                { id: 'r2', habitDefinitionIds: ['h1'], taskDefinitionIds: [] },
+            ],
+            definedHabits: [{ id: 'h1', routineId: 'r2', category: 'spirituality' }, { id: 'h2', routineId: null, category: 'health' }],
+            definedTasks: [],
+        });
+        expect(save.definedRoutines[0].heroCategory).toBe('other');
+        expect(save.definedRoutines[1].heroCategory).toBe('spirituality');
+    });
+
+    test('unknown categories are ignored and an already-valid heroCategory is kept', () => {
+        const save = migrate12({
+            definedRoutines: [
+                { id: 'r1', habitDefinitionIds: ['h1'], taskDefinitionIds: [] },
+                { id: 'r2', heroCategory: 'health', habitDefinitionIds: ['h2'], taskDefinitionIds: [] },
+            ],
+            definedHabits: [{ id: 'h1', routineId: 'r1', category: 'made-up' }, { id: 'h2', routineId: 'r2', category: 'career' }],
+        });
+        expect(save.definedRoutines[0].heroCategory).toBe('other');
+        expect(save.definedRoutines[1].heroCategory).toBe('health');
+    });
+
+    test('a save with no routines or lists migrates cleanly', () => {
+        expect(migrate12({}).schemaVersion).toBe(13);
     });
 });
 

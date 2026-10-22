@@ -336,3 +336,18 @@ describe('routine health math (pure only — damage wiring is sub-session 2)', (
         expect(Heroes.shouldKo(0)).toBe(true);
     });
 });
+
+describe('heroCategoryFor (2026-10-21)', () => {
+    test('returns the routine\'s heroCategory when valid', () => {
+        expect(Heroes.heroCategoryFor({ heroCategory: 'career' }, CONFIG.HERO_CATEGORIES)).toBe('career');
+    });
+    test('missing, unknown or absent routine reads as other', () => {
+        expect(Heroes.heroCategoryFor({}, CONFIG.HERO_CATEGORIES)).toBe('other');
+        expect(Heroes.heroCategoryFor({ heroCategory: 'wizard' }, CONFIG.HERO_CATEGORIES)).toBe('other');
+        expect(Heroes.heroCategoryFor(null, CONFIG.HERO_CATEGORIES)).toBe('other');
+        expect(Heroes.heroCategoryFor({ heroCategory: 'career' })).toBe('other');
+    });
+    test('HERO_CATEGORIES matches the emoji table keys', () => {
+        expect([...CONFIG.HERO_CATEGORIES].sort()).toEqual(Object.keys(CONFIG.CATEGORY_EMOJI).sort());
+    });
+});
