@@ -1,0 +1,119 @@
+/**
+ * heroSpotlight.css — hero in front of the church + base scrim
+ * (docs/HERO_SPOTLIGHT_PLAN.md sub-session 2, 2026-10-21).
+ *
+ * Layer order inside #gameCanvas: #base (auto) < #baseScrim (20) < #heroSpotlight (25)
+ * < enemies (list-order band 30-79) < overdue pile (80) < overlays (90+). Zombies stay
+ * ABOVE the scrim so a zombie at the door is never dimmed. Both elements are siblings
+ * of #base, so the church's hit shake / flash does not move the hero.
+ *
+ * Geometry mirrors #base: landscape/desktop = 160px column, hero centred on the door at
+ * the front-lane feet line (GROUND_FLOOR_FEET_BOTTOM_PAD = 8px); portrait strip
+ * (body.glance-strip) = 56px window, hero at ~0.55 scale. Placeholder art = emoji block.
+ */
+#baseScrim {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 160px;
+    height: 100%;
+    z-index: 20;
+    background: rgba(12, 14, 24, var(--hero-scrim-opacity, 0.4));
+    border-radius: 0 12px 12px 0; /* soft edge: reads as a spotlight, not a box */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+}
+
+#baseScrim.active {
+    opacity: 1;
+    pointer-events: auto; /* tap the dimmed church to dismiss */
+}
+
+.hero-spotlight {
+    position: absolute;
+    left: 80px; /* centre of the 160px church column = the door */
+    bottom: 8px; /* front-lane feet line */
+    width: 64px;
+    height: 104px;
+    box-sizing: border-box;
+    z-index: 25;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: #fff;
+    border: 3px solid var(--hero-ring, #3d8f5f);
+    transform: translate(-50%, 6px);
+    opacity: 0;
+    pointer-events: none;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.hero-spotlight.active {
+    opacity: 1;
+    transform: translate(-50%, 0);
+    pointer-events: auto;
+}
+
+.hero-spotlight-emoji {
+    font-size: 44px;
+    line-height: 1;
+}
+
+.hero-spotlight-sprite {
+    width: 56px;
+    height: 56px;
+    image-rendering: pixelated;
+    object-fit: contain;
+}
+
+/* Category ring colours (docs/ART_STYLE.md "Category Colors"). */
+.hero-spotlight[data-category="other"] { --hero-ring: #90ee90; }
+.hero-spotlight[data-category="career"] { --hero-ring: #4a90e2; }
+.hero-spotlight[data-category="creativity"] { --hero-ring: #f5a623; }
+.hero-spotlight[data-category="financial"] { --hero-ring: #50e3c2; }
+.hero-spotlight[data-category="health"] { --hero-ring: #e91e63; }
+.hero-spotlight[data-category="lifestyle"] { --hero-ring: #bd10e0; }
+.hero-spotlight[data-category="relationships"] { --hero-ring: #f8e71c; }
+.hero-spotlight[data-category="spirituality"] { --hero-ring: #7ed321; }
+
+/* States. frozen = icy cast, inactive = greyed, ko = faded (look A) or grey zombie (look B). */
+.hero-spotlight--frozen { filter: hue-rotate(160deg) saturate(0.8) brightness(1.05); }
+.hero-spotlight--inactive { filter: grayscale(1); opacity: 0.85; }
+.hero-spotlight--inactive.active { opacity: 0.85; }
+.hero-spotlight--ko { filter: grayscale(1) brightness(0.9); }
+.hero-spotlight--ko.hero-spotlight--emoji { opacity: 0.6; }
+.hero-spotlight--ko.hero-spotlight--emoji.active { opacity: 0.6; }
+.hero-spotlight--ko.hero-spotlight--zombie { background: #d8d8d8; border-style: dashed; }
+
+/* Portrait glance strip: 56px church window, 92px strip. */
+body.glance-strip #baseScrim {
+    width: 56px;
+    border-radius: 0 8px 8px 0;
+}
+
+body.glance-strip .hero-spotlight {
+    left: 28px;
+    bottom: 2px;
+    width: 36px;
+    height: 58px;
+    border-width: 2px;
+    border-radius: 8px;
+}
+
+body.glance-strip .hero-spotlight-emoji { font-size: 24px; }
+body.glance-strip .hero-spotlight-sprite { width: 30px; height: 30px; }
+
+@media (prefers-reduced-motion: reduce) {
+    #baseScrim,
+    .hero-spotlight {
+        transition: opacity 120ms linear;
+    }
+    .hero-spotlight,
+    .hero-spotlight.active {
+        transform: translate(-50%, 0);
+    }
+}

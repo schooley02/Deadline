@@ -319,7 +319,7 @@ const HeroesView = (() => {
         const vm = buildChipViewModel(routine, deps.definedHabits, config, deps.runStartedAtMs);
         const chip = buildChipElement(vm);
         chip.classList.add('hero-chip--inline');
-        chip.title = `${vm.name} — ${STATE_LABEL[vm.state] || 'Active'} (tap to manage)`;
+        chip.title = `${vm.name} — ${STATE_LABEL[vm.state] || 'Active'} (tap to show hero)`;
         if (deps.onTap) {
             chip.addEventListener('click', (e) => {
                 e.stopPropagation();

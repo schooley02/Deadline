@@ -223,6 +223,17 @@ const CONFIG = {
     // domains a routine's hero can be. `routine.heroCategory` is one of these;
     // missing/unknown reads as 'other' (Heroes.heroCategoryFor).
     HERO_CATEGORIES: ['other', 'career', 'creativity', 'financial', 'health', 'lifestyle', 'relationships', 'spirituality'],
+    // Hero spotlight (docs/HERO_SPOTLIGHT_PLAN.md, 2026-10-21): display timing /
+    // look constants, not gameplay balance (no balance-tuning protocol needed).
+    // How long the hero stays in front of the church after a tap.
+    HERO_SPOTLIGHT_MS: 5000,
+    // Darkness of the scrim over the base area while a hero shows. ~0.4: the
+    // church still reads; below ~0.3 it wins over the hero, above ~0.5 its
+    // damage state disappears.
+    HERO_SCRIM_OPACITY: 0.4,
+    // KO'd hero look, built both ways to compare live (plan answer 3):
+    // 'faded' = desaturated hero; 'zombie' = the category zombie grey-tinted.
+    HERO_KO_LOOK: 'faded',
     // Base Zone is small (160px wide since V4, 2026-10-14) — cap simultaneous chips and show a
     // "+N" overflow chip past this count rather than crowding/overflowing.
     HERO_CHIP_MAX_DISPLAY: 6,
