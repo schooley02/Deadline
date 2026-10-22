@@ -4,6 +4,12 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-21 -- Heroes leave the base: spotlight + scrim + Hero tray; heroes are healthy twins of the zombies (Jeremy; Claude app session, Opus)
+- **Context:** canvas hero chips hidden since 2026-10-15 (they covered the church). Jeremy: a wider base breaks portrait; put avatars/slots in a pull-out tray; when a routine zombie is tapped (canvas or list), show that hero on the layer in front of the church.
+- **Decision:** (1) no permanent hero art at the base; base width unchanged. (2) Spotlight hero overlaps the church on a front layer, feet on the front-lane line, auto-dismisses. (3) A translucent scrim over the base area, only while a hero is showing; zombies draw ABOVE it. (4) Hero tray behind a tab holds avatars, stars, health and slots; open slots (unspent banked points) show only there, flagged by a tab dot; the tab shows the spotlit hero's status. (5) List stays urgency-sorted (option B) with per-row hero avatar; its tap now spotlights instead of opening management (management via the tray). (6) Heroes are healthy, non-zombie twins of each category zombie (PixelLab, zombie as reference) -- refines the 2026-10-14 brief "distinct palette, framed so heroes never read as zombies": contrast now comes from warm/saturated alive palette + upright stance + the scrim, not a chip frame.
+- **Rejected:** hero heads lined up at the base (widens the base / clutters the 56px strip window); hero standing beside the church (needs horizontal room); routine-grouped list (breaks the due-time sort, same reason as 2026-10-14).
+- **Plan:** `docs/HERO_SPOTLIGHT_PLAN.md`. No schema change.
+
 ## 2026-10-21 -- Negative habits ask "indulged or avoided?" the moment their time arrives (Jeremy; Claude app session, Sonnet)
 - **Context:** Jeremy edited a negative habit earlier and saw no attack/red row; that is the lurker model (DECISIONS 2026-07-19 / 2026-10-13): never overdue, parks idle. Rather than change that, he proposed a popup when the time arrives.
 - **Decision:** in-app only (no notifications when the game is closed), with a **Later** option. Popup shows once per habit per occurrence day (`habitDef.arrivalPromptedFor`, persisted additively, no schema bump); several arrivals stack as cards in one popup. Avoided = `Items.completeItem`, I indulged = `Items.indulgeHabit` (same economics, Cheat Day and streak rules as tapping the lurker). Later closes it; the lurker stays parked and tomorrow's check-in still settles the day. Lurkers remain never-overdue, no damage.

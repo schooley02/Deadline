@@ -40,6 +40,9 @@ Hit feedback: brightness flash on every real hit + a 2px side shake at most once
 | Spirituality | Nun |
 | Other | Generic zombie |
 
+## Heroes (planned 2026-10-21)
+Healthy, non-zombie twins of the category zombies above (same outfit, alive palette, upright, facing right). Brief, file layout and sizing: `docs/HERO_SPOTLIGHT_PLAN.md`.
+
 ## Enemy Visual Modifiers
 - Closer to due: more menacing, faster animation.
 - High priority: gold silhouette glow + ⭐ badge. Overdue: red glow (pulses). Negative-habit lurker: purple glow + 🚫 badge. Habit: cyan glow. High/super streak: orange flickering fire glow. All are `drop-shadow` glows that hug the sprite (V2, 2026-10-12) — no rectangles; see UI_UX.md "Enemy state glows".
