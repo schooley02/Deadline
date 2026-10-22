@@ -56,13 +56,14 @@ Keep `.hero-chip--inline` beside the category label, avatar swapped from emoji t
 - **Feet:** extend `test/spriteFeet.test.js` to the hero atlases so the per-category `--dy-idle` is measured, not eyeballed.
 - Add every new file to `sw.js` APP_SHELL and bump `CACHE_NAME`.
 
-## Sub-sessions (one per session; only change to saved data is the additive `routine.heroCategory`)
-1. **Spotlight + scrim with placeholder art, plus `routine.heroCategory` + picker.** `js/ui/heroSpotlight.js` (pure: resolve routine from item, show/replace/dismiss state machine, timer) + `css/heroSpotlight.css` + `#baseScrim`/`#heroSpotlight` in `index.html`. Placeholder = emoji/CSS block. Wire canvas zombie tap + list avatar tap. Jest for the pure parts; live-check layer order (zombie above scrim) in landscape + portrait. _Sonnet, medium._
-2. **Hero tray + tab.** `js/ui/heroTray.js` + `css/heroTray.css`; retire `#heroBaseZone`; status dots; level-up auto-open; spotlit tab status. Live-check 320–430px portrait and 844x390 landscape for overflow (`scrollWidth`, not screenshots). _Sonnet, medium._
-3. **Art integration** (after Jeremy's PixelLab pass): hero atlases into `spriteAnim.js` (or a sibling), feet test, head crops into tray + list avatars, sw.js. _Sonnet, low–medium._
-4. **Optional polish:** hurt/celebrate/KO anims, level gear (e.g. helmet at Lv 3), spotlight on routine completion. _Cut if play says so._
+## Sub-sessions (one per session; one schema bump 12 -> 13 for `routine.heroCategory`)
+1. **`routine.heroCategory`: 12 -> 13 migration (seed) + picker + `heroCategoryFor` resolver.** Persistence change, so its own session per CLAUDE.md. _Sonnet, medium._
+2. **Spotlight + scrim with placeholder art.** `js/ui/heroSpotlight.js` (pure: resolve routine from item, show/replace/dismiss state machine, timer) + `css/heroSpotlight.css` + `#baseScrim`/`#heroSpotlight` in `index.html`. Placeholder = emoji/CSS block. Wire canvas zombie tap + list avatar tap. Jest for the pure parts; live-check layer order (zombie above scrim) in landscape + portrait. _Sonnet, medium._
+3. **Hero tray + tab.** `js/ui/heroTray.js` + `css/heroTray.css`; retire `#heroBaseZone`; status dots; level-up auto-open; spotlit tab status. Live-check 320–430px portrait and 844x390 landscape for overflow (`scrollWidth`, not screenshots). _Sonnet, medium._
+4. **Art integration** (after Jeremy's PixelLab pass): hero atlases into `spriteAnim.js` (or a sibling), feet test, head crops into tray + list avatars, sw.js. _Sonnet, low–medium._
+5. **Optional polish:** hurt/celebrate/KO anims, level gear (e.g. helmet at Lv 3), spotlight on routine completion. _Cut if play says so._
 
-Art (step 0) can happen in parallel with 1–2, which run on placeholders.
+Art (step 0) can happen in parallel with 1–3, which run on placeholders.
 
 ## Answers (Jeremy, 2026-10-21 21:51)
 1. **Canvas zombie tap: popup AND spotlight together** to start; revisit if the popup hides the hero on small screens.
@@ -70,10 +71,11 @@ Art (step 0) can happen in parallel with 1–2, which run on placeholders.
 3. **KO look: build both** (faded/desaturated twin, and the zombie sprite grey-tinted) behind `CONFIG.HERO_KO_LOOK` (`'faded'` | `'zombie'`) so Jeremy can compare live, then pick one. Grey-zombie KO only ever appears in the spotlight and tray.
 4. **Sub-task zombie -> its parent task's routine hero** (no hero if the parent is standalone).
 5. **Hero category = "Other" by default; the player can pick another category for the routine** (tasks have categories too, so "dominant habit category" is no longer the rule). This is the per-routine picker the 2026-10-14 decision parked:
-   - new optional `routine.heroCategory` (one of the 8 category keys); missing = `'other'`. Additive field read with a default, so likely no schema bump (same pattern as `arrivalPromptedFor`); confirm in the build session against `docs/DATA_SCHEMA.md`.
+   - new `routine.heroCategory` (one of the 8 category keys); readers still default a missing value to `'other'`.
    - picker: a category select in Create Routine + Manage Routine (reuse the task/habit category options).
    - the neutral default hero is dropped: **8 heroes, not 9**; "Other" is the default.
-   - **Still to confirm:** existing routines on upgrade -- start as Other (simplest, proposed) or seed from today's dominant habit category once?
+   - **Existing routines on upgrade (Jeremy, 21:53): seeded ONCE from their current dominant category across habit AND task members** (`habitDef.routineId` + the routine's `taskDefinitionIds`; archived habits excluded, `!archivedAt`). Tie-break: first category to reach the top count, same as today's `dominantCategoryOrInitial`. No categorised members -> `'other'`. After seeding the value is the player's to change; NEW routines start as Other.
+   - Because the seed writes a value once, do it as a proper **schema 12 -> 13 migration** in `js/persistence.js` (the established pattern; inline math, no module deps), not a load-time sweep. Update `docs/DATA_SCHEMA.md`.
    - Adds a small step to sub-session 1 (field + picker + resolver `heroCategoryFor(routine)` replacing `dominantCategoryOrInitial` for hero art; the list/zombie category logic is untouched).
 
 ## Original open questions (resolved above)
