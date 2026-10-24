@@ -49,4 +49,4 @@ Inventory cap / "item slots" (no cap exists; inventing one to lift it is a non-p
 
 ## Open
 - Church skin art for the Steward title (V4+ track) — `skin: 'steward'` is a hook only.
-- Whether a level-up with a gifted item should auto-open the shop or just toast.
+- ~~Whether a level-up with a gifted item should auto-open the shop or just toast.~~ **Decided 2026-10-23 (Jeremy): toast only.** The level-up toast names every perk gained (including gifted items); the shop does not open.
