@@ -31,9 +31,18 @@ const Hud = (() => {
         return Math.ceil(Math.abs(points) / pointsPerTask);
     }
 
-    // deps: { playerXP, playerLevel, playerPoints, routineSlots, pointsPerTask,
-    //         playerXpDisplay, playerLevelDisplay, playerPointsDisplay,
-    //         totalRoutineSlotsDisplay, playerPointsStat?, playerPointsNudge? }
+    // Fraction (0..1) of the way through the current level, for the HUD XP bar.
+    // Max level (or a missing threshold) reads as full. Pure; delegates to
+    // Progression.xpProgress (LEVEL_PERKS_PLAN.md sub-session B).
+    function xpFraction(xp, thresholds, level) {
+        if (!thresholds || typeof Progression === 'undefined') return 0;
+        return Progression.xpProgress(xp, thresholds, level).pct;
+    }
+
+    // deps: { playerXP, playerLevel, playerPoints, pointsPerTask,
+    //         playerXpDisplay?, playerLevelDisplay, playerPointsDisplay,
+    //         playerXpBar?, levelButton?, xpThresholds?,
+    //         playerPointsStat?, playerPointsNudge? }
     //
     // Negative-balance styling + agency-framed nudge ([P1-DATA-005]
     // sub-session 3, 2026-07-19). Debt only happens via negative-habit
@@ -45,7 +54,15 @@ const Hud = (() => {
         if (deps.playerXpDisplay) deps.playerXpDisplay.textContent = deps.playerXP;
         if (deps.playerLevelDisplay) deps.playerLevelDisplay.textContent = deps.playerLevel;
         if (deps.playerPointsDisplay) deps.playerPointsDisplay.textContent = deps.playerPoints;
-        if (deps.totalRoutineSlotsDisplay) deps.totalRoutineSlotsDisplay.textContent = deps.routineSlots;
+        // Level button: slim XP bar + an aria-label carrying the numbers (the
+        // XP total itself lives in the level panel).
+        if (deps.playerXpBar || deps.levelButton) {
+            const frac = xpFraction(deps.playerXP, deps.xpThresholds, deps.playerLevel);
+            if (deps.playerXpBar && deps.playerXpBar.style) deps.playerXpBar.style.width = `${Math.round(frac * 100)}%`;
+            if (deps.levelButton && deps.levelButton.setAttribute) {
+                deps.levelButton.setAttribute('aria-label', `Level ${deps.playerLevel}, ${deps.playerXP} XP. Open level panel`);
+            }
+        }
 
         const inDebt = deps.playerPoints < 0;
         if (deps.playerPointsStat) deps.playerPointsStat.classList.toggle('points-negative', inDebt);
@@ -155,6 +172,7 @@ const Hud = (() => {
 
     return {
         tasksToBreakEven,
+        xpFraction,
         updatePlayerDisplays,
         updateTaskCountDisplay,
         showLevelUpMessage,

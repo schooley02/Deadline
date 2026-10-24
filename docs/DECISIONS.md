@@ -4,6 +4,12 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-23 -- Level panel built (LEVEL_PERKS_PLAN sub-session B; Claude app session, Sonnet; no balance numbers)
+- **Built:** a centered-Modal level panel (`js/ui/levelPanel.js`, `css/levelPanel.css`) opened by the HUD level button and the Hero tray's "Routines 3/4 · 1 frozen" summary; the HUD's XP and Level chips merged into one `#levelButton` (Lv + slim XP bar + ⓘ, never a "+"); dead `totalRoutineSlotsDisplay` and the unused `routineSlots` HUD dep removed.
+- **Decided with Jeremy:** show XP numbers only (no "≈ N completions to go", which would need an XP-per-completion assumption); Modal, not a bottom sheet (doesn't compete with the Hero tray).
+- **Design calls (mine, flag if wrong):** a KO'd routine is shown as a KO'd pip only while a slot is free (KO auto-deactivates it, so a refilled slot leaves it with no pip); active discount shows as "(active)" with its granting level; "Coming up" = next two levels with perks.
+- **Verified:** Jest 77 suites / 1,611 (+19); live in cloud Chromium at 390x844, 844x390, 320x700, zero console errors. Not on the phone.
+
 ## 2026-10-23 -- Level perks wired (LEVEL_PERKS_PLAN sub-session A; Claude app session, Sonnet; balance-tuning protocol: no new numbers)
 - **Built:** gifts pay on level-up for EVERY level crossed (`Progression.perksForLevels` + `Shop.grant`, applied in `script.js checkPlayerLevelUp`; a perk is only named in the toast if it was applied); shop discount derived from the current level (`Progression.shopDiscount`; replaces, never stacks; `Economy.shopPrice(base, owned, discount)` rounds once, floor 1 pt) used by the shop window, the after-buy re-render and the pushback popup tiers; level-up toast lists each perk (5 s with perks); `peakPlayerLevel` on run records (additive, no schema bump) and the Steward title badge on the game-over card and past-run cards. Jeremy's call (same day): gifts are announced in the toast only, the shop does not auto-open.
 - **Balance numbers:** none changed — the schedule is exactly the one logged earlier today. One DATA fix, not a balance change: `ROUTINE_SLOTS_PER_LEVEL[9] = 4` (the table stopped at 8, so a reloaded Lv-9 player fell to 1 slot via `table[level] || 1`; intended cap is 4). A guard test now requires an entry for every level.

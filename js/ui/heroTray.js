@@ -165,8 +165,16 @@ const HeroTray = (() => {
             </div>`;
     }
 
+    // "Routines 3/4 · 1 frozen" header line (opens the level panel). Text only changes with state.
+    function updateSummary() {
+        if (!els || !els.summaryEl || !deps.getSlotsSummary) return;
+        const text = deps.getSlotsSummary();
+        if (els.summaryEl.textContent !== text) els.summaryEl.textContent = text;
+    }
+
     function updateList() {
         if (!els) return;
+        updateSummary();
         const config = deps.config;
         const listEl = els.listEl;
         if (lastRows.length === 0) {
@@ -253,13 +261,13 @@ const HeroTray = (() => {
     function toggle() { if (isOpen) close(); else open(); }
 
     /**
-     * d: { tabEl, trayEl, backdropEl, listEl, closeEl, config,
+     * d: { tabEl, trayEl, backdropEl, listEl, closeEl, summaryEl?, config,
      *      onManage(routineId), onOpenRoutines(), getSpotlitId(), dismissSpotlight(),
-     *      isModalOpen() }
+     *      isModalOpen(), getSlotsSummary()?, onOpenLevelPanel()? }
      */
     function init(d) {
         deps = d;
-        els = { tabEl: d.tabEl, trayEl: d.trayEl, backdropEl: d.backdropEl, listEl: d.listEl };
+        els = { tabEl: d.tabEl, trayEl: d.trayEl, backdropEl: d.backdropEl, listEl: d.listEl, summaryEl: d.summaryEl || null };
         d.tabEl.addEventListener('click', () => {
             const spotlit = d.getSpotlitId();
             if (spotlit !== null && spotlit !== undefined) {
@@ -271,6 +279,14 @@ const HeroTray = (() => {
         });
         d.backdropEl.addEventListener('click', close);
         if (d.closeEl) d.closeEl.addEventListener('click', close);
+        if (d.summaryEl) {
+            d.summaryEl.addEventListener('click', (e) => {
+                // stopPropagation: same reason as the open-routines button below.
+                e.stopPropagation();
+                close();
+                if (d.onOpenLevelPanel) d.onOpenLevelPanel();
+            });
+        }
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen) close(); });
         const activate = (target, ev) => {
             if (target.closest && target.closest('[data-action="open-routines"]')) {

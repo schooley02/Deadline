@@ -39,7 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const createRoutineButton = document.getElementById('createRoutineButton');
     const definedRoutinesListUL = document.getElementById('definedRoutinesList');
     const activeRoutineCountDisplay = document.getElementById('activeRoutineCountDisplay');
-    const totalRoutineSlotsDisplay = document.getElementById('totalRoutineSlotsDisplay');
+    const playerXpBar = document.getElementById('playerXpBar');
+    const levelButton = document.getElementById('levelButton');
     
     // Control buttons
     const attackButton = document.getElementById('attackButton');
@@ -398,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setOfflineCatchUpActive: (v) => { offlineCatchUpActive = v; },
 
             // collaborators
-            updatePlayerDisplays: () => Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge }),
+            updatePlayerDisplays: () => Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, playerXpBar, levelButton, xpThresholds: CONFIG.LEVEL_XP_THRESHOLDS, playerPointsStat, playerPointsNudge }),
             updateTaskCountDisplay,
             updateRoutineDisplay,
             updateBaseVisuals: () => Damage.updateBaseVisuals(damageDeps()),
@@ -495,12 +496,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         if (inventoryChanged) saveGame();
 
-        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge });
+        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, playerXpBar, levelButton, xpThresholds: CONFIG.LEVEL_XP_THRESHOLDS, playerPointsStat, playerPointsNudge });
         Hud.showLevelUpMessage({ playerLevel: State.getPlayerLevel(), levelUpMessage, perkLabels });
 
         if (result.slotsUnlocked) {
             State.setRoutineSlots(result.slots);
-            Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge });
+            Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, playerXpBar, levelButton, xpThresholds: CONFIG.LEVEL_XP_THRESHOLDS, playerPointsStat, playerPointsNudge });
             updateRoutineDisplay();
         }
 
@@ -606,7 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
             gameCanvas,
             handleEnemyClick, createListItem, sortAndRenderActiveList,
             resetAllSubTaskCheckboxes, updateTaskCountDisplay, renderCompletedItems,
-            updatePlayerDisplays: () => Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge }), checkPlayerLevelUp, saveGame,
+            updatePlayerDisplays: () => Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, playerXpBar, levelButton, xpThresholds: CONFIG.LEVEL_XP_THRESHOLDS, playerPointsStat, playerPointsNudge }), checkPlayerLevelUp, saveGame,
             calculateTimelineXWithClustering, getSubTaskClusterOffset, getItemTopPosition
         };
     }
@@ -1542,6 +1543,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // star-up notice. DOM is touched only when a signature changes (js/ui/heroTray.js), so
     // the 50ms call is cheap. routinesOverride (time slider scrub) draws PROJECTED health.
     // Tap a tray row -> that routine's management window (the old chip tap).
+    // Level panel (LEVEL_PERKS_PLAN.md sub-session B): one renderer for the HUD level button and the
+    // Hero tray's "Routines 3/4" summary line. Everything is derived from State on each call.
+    function levelPanelContext() {
+        return {
+            level: State.getPlayerLevel(), xp: State.getPlayerXP(), thresholds: CONFIG.LEVEL_XP_THRESHOLDS,
+            slotsTable: CONFIG.ROUTINE_SLOTS_PER_LEVEL, perksTable: CONFIG.LEVEL_PERKS,
+            routines: State.getDefinedRoutines(), definedHabits: State.getDefinedHabits(),
+            config: CONFIG, runStartedAtMs: State.getRunStartedAtMs(),
+        };
+    }
+    function openLevelPanel() {
+        LevelPanel.open(Object.assign(levelPanelContext(), {
+            onManage: (routineKey) => {
+                const routine = State.getDefinedRoutines().find(r => String(r.id) === routineKey);
+                if (routine) showRoutineManagement(routine.id);
+            },
+            onCreate: () => openManagementWindow('routines'),
+        }));
+    }
+    if (levelButton) levelButton.addEventListener('click', openLevelPanel);
+
     function ensureHeroTray() {
         if (heroTrayReady) return;
         HeroTray.init({
@@ -1550,6 +1572,9 @@ document.addEventListener('DOMContentLoaded', () => {
             backdropEl: document.getElementById('heroTrayBackdrop'),
             listEl: document.getElementById('heroTrayList'),
             closeEl: document.getElementById('heroTrayClose'),
+            summaryEl: document.getElementById('heroTraySummary'),
+            getSlotsSummary: () => LevelPanel.slotsSummary(LevelPanel.slotsModel(levelPanelContext())),
+            onOpenLevelPanel: openLevelPanel,
             config: CONFIG,
             onManage: (routineKey) => {
                 // dataset round-trips ids as strings; resolve the real id.
@@ -1839,7 +1864,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         State.setPlayerPoints(result.newPoints);
         State.setPlayerInventory(result.newInventory);
-        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge });
+        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, playerXpBar, levelButton, xpThresholds: CONFIG.LEVEL_XP_THRESHOLDS, playerPointsStat, playerPointsNudge });
         saveGame();
 
         // Deferred, not synchronous: populateShopWindow() replaces
@@ -1948,7 +1973,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!targetItem.parentId) createListItem(targetItem);
         }
         sortAndRenderActiveList();
-        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge });
+        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, playerXpBar, levelButton, xpThresholds: CONFIG.LEVEL_XP_THRESHOLDS, playerPointsStat, playerPointsNudge });
         saveGame();
 
         return { ok: true, newPoints: State.getPlayerPoints() };
@@ -1984,7 +2009,7 @@ document.addEventListener('DOMContentLoaded', () => {
         State.setPlayerInventory(result.newInventory);
         habitDef.cheatDayDate = Habits.toOccurrenceDate(targetItem.originalDueDate);
 
-        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge });
+        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, playerXpBar, levelButton, xpThresholds: CONFIG.LEVEL_XP_THRESHOLDS, playerPointsStat, playerPointsNudge });
         saveGame();
 
         return { ok: true };
@@ -2014,7 +2039,7 @@ document.addEventListener('DOMContentLoaded', () => {
         State.setPlayerInventory(result.newInventory);
         Items.useSkipDayOnItem(targetItem, itemsDeps());
 
-        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge });
+        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, playerXpBar, levelButton, xpThresholds: CONFIG.LEVEL_XP_THRESHOLDS, playerPointsStat, playerPointsNudge });
         saveGame();
 
         return { ok: true };
@@ -2029,7 +2054,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // docs/FROZEN_SLOTS_PLAN.md — Sick Day is habits-only).
     function handleUseSickDay() {
         Items.useSickDayGlobally(State.getCurrentGameDate(), itemsDeps());
-        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge });
+        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, playerXpBar, levelButton, xpThresholds: CONFIG.LEVEL_XP_THRESHOLDS, playerPointsStat, playerPointsNudge });
         saveGame();
     }
 

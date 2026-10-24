@@ -54,12 +54,11 @@ describe('Hud.tasksToBreakEven', () => {
 describe('Hud.updatePlayerDisplays — negative balance styling', () => {
     function makeDeps(overrides = {}) {
         return {
-            playerXP: 0, playerLevel: 1, playerPoints: 0, routineSlots: 1,
+            playerXP: 0, playerLevel: 1, playerPoints: 0,
             pointsPerTask: 5,
             playerXpDisplay: fakeTextEl(),
             playerLevelDisplay: fakeTextEl(),
             playerPointsDisplay: fakeTextEl(),
-            totalRoutineSlotsDisplay: fakeTextEl(),
             playerPointsStat: fakeStatEl(),
             playerPointsNudge: fakeNudgeEl(),
             ...overrides,

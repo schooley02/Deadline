@@ -1,0 +1,83 @@
+/* Level panel (docs/LEVEL_PERKS_PLAN.md sub-session B, 2026-10-23) + the HUD level button
+   and the Hero tray's "Routines 3/4" summary line that open it. */
+
+/* ---- HUD level button (replaces the separate XP / Level stat chips) ---- */
+.level-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: inherit;
+    cursor: pointer;
+    min-height: 32px;
+}
+.level-button:focus-visible { outline: 2px solid var(--color-primary-dark-green); outline-offset: 2px; }
+.level-xp-bar {
+    display: inline-block;
+    width: 44px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--color-secondary-green-pale);
+    overflow: hidden;
+}
+.level-xp-fill {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--color-accent-teal);
+    transition: width 0.3s ease;
+}
+.level-info { color: var(--color-neutral); font-size: 12px; line-height: 1; }
+
+/* ---- Hero tray summary line ---- */
+.hero-tray-summary {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0 8px;
+    padding: 6px 8px;
+    min-height: 32px;
+    text-align: left;
+    font: inherit;
+    font-size: 13px;
+    color: var(--color-primary-dark-green);
+    background: none;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---- Panel ---- */
+.level-panel { max-width: 380px; }
+.lp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.lp-head h3 { margin: 0; }
+.lp-xp-text { font-size: 13px; color: var(--color-neutral); }
+.lp-xp-bar { height: 8px; margin: 6px 0 10px; border-radius: 4px; background: var(--color-secondary-green-pale); overflow: hidden; }
+.lp-xp-fill { display: block; height: 100%; background: var(--color-accent-teal); }
+.lp-title { margin: 0 0 8px; font-weight: 600; color: var(--color-holy-gold); }
+.lp-section { margin: 14px 0 6px; font-size: 14px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.lp-section-count { font-weight: 400; font-size: 12px; color: var(--color-neutral); }
+.lp-pips { display: flex; flex-wrap: wrap; gap: 8px; }
+.lp-pip {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: 76px; min-height: 64px; padding: 6px 4px; box-sizing: border-box;
+    border: 1px solid var(--color-secondary-green-light); border-radius: 8px;
+    background: var(--color-primary-white); font: inherit; font-size: 11px;
+    color: var(--color-text-primary); text-align: center;
+}
+button.lp-pip { cursor: pointer; }
+.lp-pip-icon { font-size: 22px; line-height: 1.1; }
+.lp-pip-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lp-pip-note { font-size: 10px; color: var(--color-neutral); }
+.lp-pip--frozen { background: #E3F2FD; border-color: #64B5F6; }
+.lp-pip--ko { background: #FDECEA; border-color: var(--color-error); border-style: dashed; }
+.lp-pip--empty { border-style: dashed; color: var(--color-primary-dark-green); }
+.lp-pip--empty .lp-pip-icon { font-size: 26px; }
+.lp-pip--locked { border-style: dotted; color: var(--color-neutral); background: transparent; }
+.lp-note { margin: 8px 0 0; font-size: 12px; color: var(--color-neutral); overflow-wrap: anywhere; }
+.lp-perks { list-style: none; margin: 0; padding: 0; }
+.lp-perk { display: flex; gap: 10px; align-items: baseline; padding: 3px 0; font-size: 14px; }
+.lp-perk-lv { flex: none; min-width: 34px; font-size: 12px; font-weight: 600; color: var(--color-primary-dark-green); }
+.lp-perk-text { min-width: 0; overflow-wrap: anywhere; }
+.lp-perks--next .lp-perk { color: var(--color-neutral); }
+.lp-section--next { margin-top: 10px; }
