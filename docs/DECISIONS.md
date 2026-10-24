@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-23 -- Level perks schedule designed (balance-tuning protocol; Claude app session, Fable)
+- **Decision (Jeremy's calls):** every player level now grants something. `CONFIG.LEVEL_PERKS` (data only, no code reads it yet): Lv2 Repair Kit (Small) ×1 · Lv3 2nd routine slot · Lv4 10% shop discount · Lv5 3rd slot · Lv6 Repair Kit (Medium) ×1 · Lv7 4th slot · Lv8 20% discount (replaces 10%) · Lv9 Sick Day ×1 + title "Steward of the Church" (+ church skin when V4+ art exists; must show on that run's review card). Slot levels unchanged (`ROUTINE_SLOTS_PER_LEVEL` stays authoritative). Full plan: `docs/LEVEL_PERKS_PLAN.md`.
+- **Why:** levels 2/4/6/8/9 granted nothing, which the planned level panel would have exposed. Perks reset with the run (level/XP/inventory already do), so they are run-progression stakes, not lifetime unlocks. Discounts escalate 10→20% because Jeremy wants long runs to pull players deeper and make bought items feel worth using.
+- **Red lines kept:** no 200-pt token before max level (a Lv4 gift would equal ~a month of post-07-21 earnings — red flag "tokens trivially save a run"); gifts are small held items only (25/50 pts); nothing softens damage, freezes or the earn rate.
+- **Swap during design:** Lv6 was going to be a free Pushback 1 hr, but pushbacks are instant (`consumable: false`) and can't be held — swapped to Repair Kit (Medium) at the same 50-pt value rather than inventing a credit mechanism.
+- **Rejected:** inventory cap / item slots (no cap exists), base-regen boost, frozen/overdue mercy, points earn-rate bonus, gating existing UI behind levels.
+- **Also decided (level panel UX):** level box opens the panel via chevron/ⓘ; "+" appears ONLY on empty routine-slot pips; KO'd routine's slot shows "KO'd, revives tomorrow", not empty. `peakPlayerLevel` to be added to run records (additive, no schema bump).
+- sw.js v75 -> v76 (config.js is a cached shell file).
+
 ## 2026-10-21 -- Hero tab + tray built; base chips retired (HERO_SPOTLIGHT_PLAN sub-session 3; Claude app session, Sonnet)
 - **Built:** `js/ui/heroTray.js` (pure: `slotCells`, `buildRowViewModel`, `summarize`, `tabModel`, signatures, `shouldAutoOpenOnLevelUp`; DOM: `init/render/open/close/toggle/resetMemory/isOpen`), `css/heroTray.css`, `#heroTab` + tray markup in index.html, `renderHeroesAtBase` now drives `HeroTray.render` (reconciled by signature, never rebuilt per tick; also does star-threshold detection the chip renderer used to do). `#heroBaseZone` and its CSS removed. sw.js v74 -> v75.
 - **Deviation from plan:** the tray is a viewport-fixed bottom sheet everywhere instead of rising over the canvas strip, because the portrait strip is only 92px tall. Tab sits bottom-centre and may cover a zombie tap in the strip; judge on the phone (CSS-only move).

@@ -20,6 +20,7 @@ Every gameplay number in Deadline lives in `js/config.js`. Follow this protocol 
 - Points (currency): 1 per task defeat, 1 per habit completion base (re-tuned 2026-07-21 from 10/5). High-priority ×2. Sub-task pays 1 pt on its own; a parent that ever had a sub-task pays 0 pts of its own on final completion. Habit rate bonus: 100% of a full 22-occurrence window → 3×, ≥80% → 2×, else 1×.
 - Max enemies on screen: 20 (overflow offscreen right)
 - Routine start: level 1, 1 habit slot + 1 task slot; slots grow per level
+- Player level perks (`CONFIG.LEVEL_PERKS`, 2026-10-23): Lv2 small repair kit, Lv3 2nd routine slot, Lv4 10% shop discount, Lv5 3rd slot, Lv6 medium repair kit, Lv7 4th slot, Lv8 20% discount, Lv9 Sick Day + "Steward" title. Per-run (reset on game over). No 200-pt token before max level.
 - Streak: resets to 0 on miss; high streak = chance of double points (exact % TBD — ask Jeremy)
 - Shop pricing: price = base × 1.5^quantity_owned. Bases: repair kits 25/50/100; pushback 50 (1hr)/100 (2hr)/300 (1day); cheat/sick/skip day tokens 200 each
 - Frozen routine slots: negative-habit streak ≥3 days freezes; recover via habit edit or 3-day avoidance

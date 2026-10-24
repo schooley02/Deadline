@@ -148,6 +148,36 @@ const CONFIG = {
     LEVEL_XP_THRESHOLDS: [0, 100, 250, 500, 800, 1200, 1700, 2300, 3000],
     ROUTINE_SLOTS_PER_LEVEL: { 1: 1, 2: 1, 3: 2, 4: 2, 5: 3, 6: 3, 7: 4, 8: 4 },
 
+    // --- Level perks (DESIGNED 2026-10-23, Fable, balance-tuning protocol —
+    // docs/LEVEL_PERKS_PLAN.md + ECONOMY.md "Level perks" + DECISIONS.md).
+    // Fills the player levels that previously granted nothing (2, 4, 6, 8, 9).
+    // Pattern: routine slots on the odd levels (ROUTINE_SLOTS_PER_LEVEL above
+    // stays the source of truth for those; the 'slot' rows here are labels
+    // for the level panel only), convenience on the even levels, a capstone
+    // at max level. Everything resets with the run, like level and XP.
+    // Perk types: 'slot' (display only), 'item' (adds `count` of a SHOP_ITEMS
+    // id to the held inventory — HELD items only, pushbacks are instant and
+    // can't be gifted), 'discount' (shop price multiplier = 1 - value; the
+    // highest reached level's discount applies, derived from level, not
+    // persisted), 'title' (cosmetic; `skin` is a hook for V4+ church art).
+    // Red-line kept on purpose: no 200-pt token before max level, nothing
+    // that softens damage, freezes or the earn rate. DATA ONLY as of
+    // 2026-10-23 — no code reads this table yet (build sub-sessions pending).
+    LEVEL_PERKS: {
+        1: [{ type: 'slot', value: 1, label: '1 routine slot' }],
+        2: [{ type: 'item', itemId: 'repair_small', count: 1, label: 'Repair Kit (Small) ×1' }],
+        3: [{ type: 'slot', value: 2, label: '2nd routine slot' }],
+        4: [{ type: 'discount', value: 0.10, label: '10% off the shop' }],
+        5: [{ type: 'slot', value: 3, label: '3rd routine slot' }],
+        6: [{ type: 'item', itemId: 'repair_medium', count: 1, label: 'Repair Kit (Medium) ×1' }],
+        7: [{ type: 'slot', value: 4, label: '4th routine slot' }],
+        8: [{ type: 'discount', value: 0.20, label: '20% off the shop' }],
+        9: [
+            { type: 'item', itemId: 'sick_day', count: 1, label: 'Sick Day token ×1' },
+            { type: 'title', value: 'Steward of the Church', skin: 'steward', label: 'Title: Steward of the Church' },
+        ],
+    },
+
     // --- Hero/routine progression ([P1-UI-006] sub-session 1, 2026-07-19
     // session 41; docs/HEROES_PLAN.md + docs/ROUTINES.md). NOT to be confused
     // with ROUTINE_SLOTS_PER_LEVEL above, which maps PLAYER level -> number of
