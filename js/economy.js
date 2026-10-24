@@ -53,8 +53,17 @@ const Economy = (() => {
 
     // Shop pricing (docs/ECONOMY.md): price = baseCost × 1.5^quantityOwned,
     // rounded to whole points. Unlimited scaling by design (anti-abuse).
-    function shopPrice(baseCost, quantityOwned) {
-        return Math.round(baseCost * Math.pow(1.5, quantityOwned));
+    //
+    // Optional `discount` (0..1, LEVEL PERKS 2026-10-23 — Progression.shopDiscount
+    // of the current level) multiplies the price by (1 − discount), rounded ONCE
+    // at the end, floor of 1 pt so a discounted item is never free. discount 0
+    // / omitted is byte-identical to the pre-perk formula.
+    function shopPrice(baseCost, quantityOwned, discount) {
+        const raw = baseCost * Math.pow(1.5, quantityOwned);
+        if (typeof discount === 'number' && discount > 0) {
+            return Math.max(1, Math.round(raw * (1 - Math.min(1, discount))));
+        }
+        return Math.round(raw);
     }
 
     return {

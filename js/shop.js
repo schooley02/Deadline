@@ -35,14 +35,34 @@ const Shop = (() => {
     // Live price for the next purchase of an item: base × 1.5^held, via Economy.
     // For consumable items `held` is the held count; for instant-consume items
     // (pushback) held is always 0 today, so price == baseCost (session-4 TODO).
-    function price(item, inventory) {
+    // `discount` (optional, 0..1) is the level-perk shop discount — callers
+    // pass Progression.shopDiscount(CONFIG.LEVEL_PERKS, level); omitted = none.
+    function price(item, inventory, discount) {
         const held = item.consumable ? heldCount(inventory, item.id) : 0;
-        return Economy.shopPrice(item.baseCost, held);
+        return Economy.shopPrice(item.baseCost, held, discount);
     }
 
     // Can the player afford the next unit of this item?
-    function canAfford(item, inventory, playerPoints) {
-        return playerPoints >= price(item, inventory);
+    function canAfford(item, inventory, playerPoints, discount) {
+        return playerPoints >= price(item, inventory, discount);
+    }
+
+    /**
+     * Level-perk gift: returns a NEW inventory with `count` more of a HELD
+     * (consumable) item. Non-consumables (pushback — instant, can't be held)
+     * and unknown ids are refused as { ok: false } with the inventory
+     * unchanged, so a bad LEVEL_PERKS row is a visible no-op, never a
+     * corrupted inventory.
+     */
+    function grant(itemId, count, catalog, inventory) {
+        const item = getItem(itemId, catalog);
+        const n = Math.floor(count);
+        if (!item || !item.consumable || !(n > 0)) {
+            return { ok: false, newInventory: inventory };
+        }
+        const newInventory = Object.assign({}, inventory);
+        newInventory[item.id] = heldCount(inventory, item.id) + n;
+        return { ok: true, item, newInventory };
     }
 
     /**
@@ -53,11 +73,11 @@ const Shop = (() => {
      * items (pushback) are NOT added — they're applied instantly by the caller —
      * so newInventory is returned unchanged for them.
      */
-    function purchase(itemId, catalog, inventory, playerPoints) {
+    function purchase(itemId, catalog, inventory, playerPoints, discount) {
         const item = getItem(itemId, catalog);
         if (!item) return { ok: false, reason: 'unknown_item', cost: 0 };
 
-        const cost = price(item, inventory);
+        const cost = price(item, inventory, discount);
         if (playerPoints < cost) {
             return { ok: false, reason: 'insufficient_points', cost };
         }
@@ -112,6 +132,7 @@ const Shop = (() => {
         price,
         canAfford,
         purchase,
+        grant,
         consume,
         pushedBackDueDate,
     };

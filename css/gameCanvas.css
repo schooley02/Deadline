@@ -508,6 +508,22 @@ body.fx-off #base {
     animation: level-up-celebration 2.5s ease-in-out forwards;
 }
 
+/* Level perks (2026-10-23): one line per perk the level-up granted. The
+   toast's inline animation-duration stretches to PERK_TOAST_MS (hud.js). */
+#levelUpMessage .level-up-perk {
+    font-size: 0.5em;
+    font-weight: 600;
+    margin-top: var(--space-2, 8px);
+}
+
+/* A positioned box at left:50% only gets ~half the canvas width before it
+   wraps; with perk lines that made the toast tall and covered the HUD in the
+   92px portrait strip. Size to content instead (short "LEVEL N!" is unchanged). */
+#levelUpMessage {
+    width: max-content;
+    max-width: 92%;
+}
+
 #gameOverMessage {
     background-color: var(--color-error);
 }

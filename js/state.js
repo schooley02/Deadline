@@ -289,6 +289,9 @@ const State = (() => {
             getCurrentRunStats,
             getRunHistory,
             setRunHistory,
+            // Level perks (2026-10-23): gameOver records the run's peak level
+            // (peakPlayerLevel) so a past run's card can show its title.
+            getPlayerLevel,
             getDefinedRoutines,
             getDefinedHabits,
             heroesCompletionRate: deps.heroesCompletionRate,

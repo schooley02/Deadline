@@ -91,6 +91,7 @@ currentRunStats = {
 runRecord = {
   runNumber, startedAtMs, endedAtMs, daysSurvived,
   endReason: 'base_destroyed',   // enum-ready for future end types
+  peakPlayerLevel: 9,            // 2026-10-23, additive (no schema bump): player level when the run ended (never drops within a run); absent on older records. Drives the Steward title.
   totals: { ...currentRunStats minus blame },
   blame: [ top blame rows, sorted by totalDamage desc ],
   routines: [ { routineId, name, level, stars, completionRate, memberDamage,

@@ -39,8 +39,14 @@ const GameOverView = (() => {
             ? `<div class="game-over-totals">${totals.tasksCompleted} tasks · ${totals.habitsCompleted} habits · ${totals.pointsEarned} pts earned</div>`
             : '';
 
+        // Level-perk title (2026-10-23): a run that reached max level ends with
+        // its Steward title on the card. '' for everyone else.
+        const titleBadge = record ? StatsView.buildTitleBadge(record, 'game-over-title-badge') : '';
+        const titleLine = titleBadge ? `<div class="game-over-title">${titleBadge}</div>` : '';
+
         return `
             <div class="game-over-heading">GAME OVER! Your Base Survived ${daysSurvived} ${dayLabel}.</div>
+            ${titleLine}
             <div class="game-over-prompt">What adjustments can you make to have a stronger Base in your life?</div>
             ${totalsLine}
             <div class="game-over-blame-heading">What hit hardest</div>

@@ -79,3 +79,10 @@
 .game-over-review-active .stats-empty {
     color: rgba(255, 255, 255, 0.6);
 }
+
+/* Level-perk title line (2026-10-23): only rendered for max-level runs. */
+.game-over-title {
+    margin: var(--space-2, 8px) 0;
+    font-size: 1rem;
+    font-weight: 600;
+}

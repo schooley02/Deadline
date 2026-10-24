@@ -458,7 +458,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // wanted at all) belongs to the future UI extraction, not this cleanup.
     function enableFormControls(enabled) {}
 
+    // Level-perk shop discount (0..1), DERIVED from the current level on every
+    // call — never persisted, so it can't drift from the level (LEVEL_PERKS_PLAN.md).
+    function currentShopDiscount() {
+        return Progression.shopDiscount(CONFIG.LEVEL_PERKS, State.getPlayerLevel());
+    }
+
     function checkPlayerLevelUp() {
+        const levelBefore = State.getPlayerLevel();
         const result = Progression.checkLevelUp(
             { level: State.getPlayerLevel(), xp: State.getPlayerXP(), slots: State.getRoutineSlots() },
             LEVEL_XP_THRESHOLDS, ROUTINE_SLOTS_PER_LEVEL, MAX_PLAYER_LEVEL
@@ -467,8 +474,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!result.leveledUp) return false;
 
         State.setPlayerLevel(result.level);
+
+        // Level perks (docs/LEVEL_PERKS_PLAN.md): every level crossed pays out —
+        // a big XP award can jump several. Item perks go into HELD inventory
+        // (Shop.grant refuses non-held ids, so a bad table row is a no-op); a
+        // perk is only named in the toast if it was actually applied. Level
+        // never decreases in a run, so complete/uncomplete oscillation can't
+        // re-fire a payout. Discount / slot / title perks are derived from the
+        // level, nothing to apply here.
+        const perkLabels = [];
+        let inventoryChanged = false;
+        Progression.perksForLevels(CONFIG.LEVEL_PERKS, levelBefore, result.level).forEach(perk => {
+            if (perk.type === 'item') {
+                const gift = Shop.grant(perk.itemId, perk.count, CONFIG.SHOP_ITEMS, State.getPlayerInventory());
+                if (!gift.ok) return;
+                State.setPlayerInventory(gift.newInventory);
+                inventoryChanged = true;
+            }
+            if (perk.label) perkLabels.push(perk.label);
+        });
+        if (inventoryChanged) saveGame();
+
         Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), routineSlots: State.getRoutineSlots(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, totalRoutineSlotsDisplay, playerPointsStat, playerPointsNudge });
-        Hud.showLevelUpMessage({ playerLevel: State.getPlayerLevel(), levelUpMessage });
+        Hud.showLevelUpMessage({ playerLevel: State.getPlayerLevel(), levelUpMessage, perkLabels });
 
         if (result.slotsUnlocked) {
             State.setRoutineSlots(result.slots);
@@ -674,6 +702,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // points getter (popup re-checks affordability after each buy),
             // and the handler that pays + shifts the target's due date.
             pushbackCatalog: CONFIG.SHOP_ITEMS.filter(i => i.category === 'pushback'),
+            getShopDiscount: currentShopDiscount,
             getPlayerPoints: State.getPlayerPoints,
             onPushback: handlePushback,
             // Cheat Day targeting ([P1-DATA-005] sub-session 5, 2026-07-19):
@@ -1659,7 +1688,7 @@ document.addEventListener('DOMContentLoaded', () => {
             definedRoutines: State.getDefinedRoutines(), routineSlots: State.getRoutineSlots(), showRoutineManagement, toggleRoutineActive,
             runStartedAtMs: State.getRunStartedAtMs(),
             shopCatalog: CONFIG.SHOP_ITEMS, playerInventory: State.getPlayerInventory(), playerPoints: State.getPlayerPoints(), baseHealth: State.getBaseHealth(),
-            onShopBuy: handleShopPurchase, onShopUse: handleShopUse,
+            onShopBuy: handleShopPurchase, onShopUse: handleShopUse, shopDiscount: currentShopDiscount(),
             currentRunStats: State.getCurrentRunStats(), runHistory: State.getRunHistory(), daysSurvivedSoFar: Damage.computeDaysSurvived(State.getRunStartedAtMs(), Date.now(), CONFIG.MS_PER_REAL_DAY),
             achievementsCatalog: CONFIG.ACHIEVEMENTS, lifetimeStats: State.getLifetimeStats(), achievements: State.getAchievements(),
             currentEffectsIntensity: effectsIntensity,
@@ -1788,6 +1817,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function populateShopWindow() {
         ShopView.renderShopWindow({
             catalog: CONFIG.SHOP_ITEMS, inventory: State.getPlayerInventory(), playerPoints: State.getPlayerPoints(), baseHealth: State.getBaseHealth(),
+            discount: currentShopDiscount(),
             onBuy: handleShopPurchase, onUse: handleShopUse
         });
     }
@@ -1798,7 +1828,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Pushback targeting is session 4 — buying only fills playerInventory
     // today; repair-kit USE (below) closes the loop for repair kits.
     function handleShopPurchase(itemId) {
-        const result = Shop.purchase(itemId, CONFIG.SHOP_ITEMS, State.getPlayerInventory(), State.getPlayerPoints());
+        const result = Shop.purchase(itemId, CONFIG.SHOP_ITEMS, State.getPlayerInventory(), State.getPlayerPoints(), currentShopDiscount());
         if (!result.ok) {
             // Buy button is disabled whenever unaffordable, so this is a
             // defensive no-op guard (e.g. a stale render) rather than the
@@ -1884,7 +1914,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!targetItem) return { ok: false };
 
-        const result = Shop.purchase(itemId, CONFIG.SHOP_ITEMS, State.getPlayerInventory(), State.getPlayerPoints());
+        const result = Shop.purchase(itemId, CONFIG.SHOP_ITEMS, State.getPlayerInventory(), State.getPlayerPoints(), currentShopDiscount());
         if (!result.ok) {
             // Tier buttons are disabled when unaffordable, so this is a
             // defensive guard rather than the expected path.

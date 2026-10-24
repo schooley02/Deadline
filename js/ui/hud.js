@@ -76,14 +76,35 @@ const Hud = (() => {
     // Level-up message
     // ---------------------------------------------------------------------
 
-    // deps: { playerLevel, levelUpMessage }
+    // deps: { playerLevel, levelUpMessage, perkLabels? }
+    // perkLabels (level perks, 2026-10-23): one line per perk the level-up just
+    // granted (Jeremy's call: the toast names gifted items; the shop does NOT
+    // auto-open). With perks the toast lingers longer (PERK_TOAST_MS) so the
+    // lines are readable; without, it's the original 2.5 s "LEVEL N!".
+    const LEVEL_UP_TOAST_MS = 2500;
+    const PERK_TOAST_MS = 5000;
+
+    function escapeHtml(text) {
+        return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
     function showLevelUpMessage(deps) {
-        if (!deps.levelUpMessage) return;
-        deps.levelUpMessage.textContent = `LEVEL ${deps.playerLevel}!`;
-        deps.levelUpMessage.classList.remove('hidden');
+        const el = deps.levelUpMessage;
+        if (!el) return;
+        const labels = Array.isArray(deps.perkLabels) ? deps.perkLabels.filter(Boolean) : [];
+        const ms = labels.length > 0 ? PERK_TOAST_MS : LEVEL_UP_TOAST_MS;
+        if (labels.length > 0) {
+            el.innerHTML = `<div>LEVEL ${deps.playerLevel}!</div>`
+                + labels.map(l => `<div class="level-up-perk">🎁 ${escapeHtml(l)}</div>`).join('');
+        } else {
+            el.textContent = `LEVEL ${deps.playerLevel}!`;
+        }
+        // The CSS keyframes are authored for 2.5 s; scale them with the toast.
+        if (el.style) el.style.animationDuration = `${ms}ms`;
+        el.classList.remove('hidden');
         setTimeout(() => {
-            deps.levelUpMessage.classList.add('hidden');
-        }, 2500);
+            el.classList.add('hidden');
+        }, ms);
     }
 
     // ---------------------------------------------------------------------

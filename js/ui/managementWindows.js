@@ -43,7 +43,7 @@ const ManagementWindows = (() => {
 
     // deps: { managementWindows, closeFabMenu, activeItems, definedHabits,
     //         definedRoutines, routineSlots, showRoutineManagement,
-    //         toggleRoutineActive, runStartedAtMs, shopCatalog,
+    //         toggleRoutineActive, runStartedAtMs, shopCatalog, shopDiscount?,
     //         playerInventory, playerPoints, baseHealth, onShopBuy, onShopUse,
     //         currentRunStats, runHistory, daysSurvivedSoFar,
     //         currentEffectsIntensity, onChangeEffectsIntensity }
@@ -100,6 +100,10 @@ const ManagementWindows = (() => {
                     baseHealth: deps.baseHealth,
                     onBuy: deps.onShopBuy,
                     onUse: deps.onShopUse,
+                    // Level-perk shop discount (2026-10-23). The shop renders from TWO
+                    // places — here (window open) and script.js populateShopWindow
+                    // (after a buy/use) — so any new shop dep must be added to both.
+                    discount: deps.shopDiscount,
                 });
             } else if (type === 'stats') {
                 StatsView.renderStatsWindow({

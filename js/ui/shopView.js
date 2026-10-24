@@ -31,10 +31,10 @@ const ShopView = (() => {
     // Builds one catalog card. Pure DOM construction, no mutation of deps.
     // baseHealth/onUse are only meaningful for repair kits (consumable,
     // category 'repair') — pushback items pass them through unused today.
-    function buildItemCard(item, inventory, playerPoints, onBuy, baseHealth, onUse) {
+    function buildItemCard(item, inventory, playerPoints, onBuy, baseHealth, onUse, discount) {
         const held = item.consumable ? Shop.heldCount(inventory, item.id) : 0;
-        const cost = Shop.price(item, inventory);
-        const affordable = Shop.canAfford(item, inventory, playerPoints);
+        const cost = Shop.price(item, inventory, discount);
+        const affordable = Shop.canAfford(item, inventory, playerPoints, discount);
 
         const card = document.createElement('div');
         card.className = 'shop-item-card';
@@ -49,6 +49,12 @@ const ShopView = (() => {
         // next price differs from baseCost.
         const priceNote = item.consumable && held > 0
             ? `<div class="shop-item-note">Price rises ×1.5 per one you hold</div>`
+            : '';
+
+        // Level-perk discount tag (2026-10-23): shown on every card while a
+        // discount perk is active, so the lower price is explained, not mysterious.
+        const discountNote = (typeof discount === 'number' && discount > 0)
+            ? `<div class="shop-item-note shop-discount-note">Level perk: −${Math.round(discount * 100)}%</div>`
             : '';
 
         // Use button (session 3, repair kits only, extended sub-session 5 to
@@ -105,6 +111,7 @@ const ShopView = (() => {
                 ${heldRow}
                 <div class="shop-item-price">${cost} pts</div>
                 ${priceNote}
+                ${discountNote}
             </div>
             ${actionRow}
             ${useRow}
@@ -126,7 +133,7 @@ const ShopView = (() => {
         return card;
     }
 
-    // deps: { catalog, inventory, playerPoints, baseHealth, onBuy, onUse }
+    // deps: { catalog, inventory, playerPoints, baseHealth, onBuy, onUse, discount? }
     function renderShopWindow(deps) {
         const list = document.getElementById('shopWindowList');
         if (!list) return;
@@ -134,7 +141,7 @@ const ShopView = (() => {
         list.innerHTML = '';
         deps.catalog.forEach(item => {
             list.appendChild(buildItemCard(
-                item, deps.inventory, deps.playerPoints, deps.onBuy, deps.baseHealth, deps.onUse
+                item, deps.inventory, deps.playerPoints, deps.onBuy, deps.baseHealth, deps.onUse, deps.discount
             ));
         });
     }

@@ -146,7 +146,10 @@ const CONFIG = {
 
     // --- Progression ---
     LEVEL_XP_THRESHOLDS: [0, 100, 250, 500, 800, 1200, 1700, 2300, 3000],
-    ROUTINE_SLOTS_PER_LEVEL: { 1: 1, 2: 1, 3: 2, 4: 2, 5: 3, 6: 3, 7: 4, 8: 4 },
+    // Level 9 (max) added 2026-10-23 as a BUG FIX, not a balance change: the
+    // table stopped at 8, so state.js's restore (`ROUTINE_SLOTS_PER_LEVEL[level] || 1`)
+    // dropped a reloaded Lv-9 player to 1 slot. 9: 4 keeps the intended cap of 4.
+    ROUTINE_SLOTS_PER_LEVEL: { 1: 1, 2: 1, 3: 2, 4: 2, 5: 3, 6: 3, 7: 4, 8: 4, 9: 4 },
 
     // --- Level perks (DESIGNED 2026-10-23, Fable, balance-tuning protocol —
     // docs/LEVEL_PERKS_PLAN.md + ECONOMY.md "Level perks" + DECISIONS.md).
@@ -161,8 +164,12 @@ const CONFIG = {
     // highest reached level's discount applies, derived from level, not
     // persisted), 'title' (cosmetic; `skin` is a hook for V4+ church art).
     // Red-line kept on purpose: no 200-pt token before max level, nothing
-    // that softens damage, freezes or the earn rate. DATA ONLY as of
-    // 2026-10-23 — no code reads this table yet (build sub-sessions pending).
+    // that softens damage, freezes or the earn rate. WIRED 2026-10-23
+    // (LEVEL_PERKS_PLAN.md sub-session A): script.js checkPlayerLevelUp pays
+    // item perks via Shop.grant and names every perk in the level-up toast;
+    // Progression.shopDiscount feeds Shop.price (shop window, pushback popup);
+    // Progression.titleForLevel + run records' peakPlayerLevel drive the
+    // Steward badge. The level PANEL (sub-session B) is still to come.
     LEVEL_PERKS: {
         1: [{ type: 'slot', value: 1, label: '1 routine slot' }],
         2: [{ type: 'item', itemId: 'repair_small', count: 1, label: 'Repair Kit (Small) ×1' }],

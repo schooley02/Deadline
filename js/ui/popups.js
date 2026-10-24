@@ -79,6 +79,11 @@ const Popups = (() => {
     // Shop.price (bare global, loaded before this module — same as Modal);
     // a tier is disabled when the player can't afford it. Pushback applies to
     // ANY enemy (task/sub-task/habit), Jeremy's call 2026-07-19.
+    // Level-perk shop discount (2026-10-23) — optional dep, 0 when not wired.
+    function shopDiscountOf(deps) {
+        return typeof deps.getShopDiscount === 'function' ? deps.getShopDiscount() : 0;
+    }
+
     function buildPushbackSectionHtml(deps) {
         if (!deps.onPushback || !Array.isArray(deps.pushbackCatalog) || deps.pushbackCatalog.length === 0) {
             return '';
@@ -86,7 +91,7 @@ const Popups = (() => {
         const points = typeof deps.getPlayerPoints === 'function' ? deps.getPlayerPoints() : 0;
 
         const buttons = deps.pushbackCatalog.map(p => {
-            const price = Shop.price(p, {});
+            const price = Shop.price(p, {}, shopDiscountOf(deps));
             const affordable = points >= price;
             // Short label from the catalog name: "Enemy Pushback (1 hr)" -> "1 hr".
             const m = /\(([^)]+)\)/.exec(p.name);
@@ -101,7 +106,7 @@ const Popups = (() => {
         // broken, and a title= tooltip is invisible on mobile (this app's
         // primary target). Showing the live balance makes the disabled state
         // self-explanatory; refreshPushbackUI keeps it current after a buy.
-        const anyUnaffordable = deps.pushbackCatalog.some(p => points < Shop.price(p, {}));
+        const anyUnaffordable = deps.pushbackCatalog.some(p => points < Shop.price(p, {}, shopDiscountOf(deps)));
         const balanceNote = anyUnaffordable
             ? ` <span class="pushback-balance-note">(you have ${points} pts)</span>`
             : ` <span class="pushback-balance-note"></span>`;
@@ -308,7 +313,7 @@ const Popups = (() => {
             overlay.querySelectorAll('.pushback-btn').forEach(btn => {
                 const p = deps.pushbackCatalog.find(i => i.id === btn.dataset.itemId);
                 if (p) {
-                    btn.disabled = points < Shop.price(p, {});
+                    btn.disabled = points < Shop.price(p, {}, shopDiscountOf(deps));
                     if (btn.disabled) anyUnaffordable = true;
                 }
             });

@@ -33,7 +33,7 @@ Inventory cap / "item slots" (no cap exists; inventing one to lift it is a non-p
 
 ## Build sub-sessions (Sonnet, medium)
 
-### A — Perk wiring (pure + script.js)
+### A — Perk wiring (pure + script.js) — **BUILT 2026-10-23** (Claude app session, Sonnet; see "Built notes" at the end)
 - `js/progression.js`: `perksForLevels(table, fromLevel, toLevel)` (levels gained, inclusive of `toLevel`), `shopDiscount(table, level)` (highest `discount` at or below level, 0 if none), `xpProgress(xp, thresholds, level)` → `{ into, needed, pct }` (max level → pct 1, needed 0), `nextSlotUnlock(slotsTable, level)`.
 - `script.js checkPlayerLevelUp`: for each level gained, apply `item` perks via the existing inventory add path (`Shop`/`State.setPlayerInventory`), then `saveGame`. Multi-level jumps already handled by `Progression.checkLevelUp`.
 - `js/shop.js price()` / `Economy.shopPrice`: multiply by `(1 - discount)`, round, min 1. Discount derived from level each call — nothing persisted. Shop card shows "−10%" tag when active.
@@ -50,3 +50,11 @@ Inventory cap / "item slots" (no cap exists; inventing one to lift it is a non-p
 ## Open
 - Church skin art for the Steward title (V4+ track) — `skin: 'steward'` is a hook only.
 - ~~Whether a level-up with a gifted item should auto-open the shop or just toast.~~ **Decided 2026-10-23 (Jeremy): toast only.** The level-up toast names every perk gained (including gifted items); the shop does not open.
+
+## Built notes — sub-session A (2026-10-23)
+- **Pure core:** `Progression.perksForLevels/shopDiscount/titleForLevel/xpProgress/slotsAtLevel/nextSlotUnlock` (the last three are for sub-session B's panel), `Shop.grant`, optional `discount` on `Economy.shopPrice` / `Shop.price` / `canAfford` / `purchase` (omitted = byte-identical to the old formula; rounded once at the end; floor 1 pt). Discounts REPLACE (Lv8's 20% supersedes Lv4's 10%), never stack.
+- **Wiring:** `script.js checkPlayerLevelUp` (pays every level crossed; names a perk in the toast only if it was actually applied), `currentShopDiscount()` (derived from level on every call), `Hud.showLevelUpMessage` (`perkLabels`; toast stretches to 5 s with perks), shop cards show "Level perk: −N%", pushback popup tiers use `getShopDiscount`.
+- **Run record:** `RunStats.finalizeRun` adds `peakPlayerLevel` only when the caller passes a number (old records and old call sites keep their shape); `StatsView.buildTitleBadge` + `GameOverView` derive the Steward title from it.
+- **Found live (all fixed, all invisible to Jest):** (1) the shop renders from TWO places — `managementWindows.js`'s 'shop' branch (window open) and `script.js populateShopWindow` (after buy) — only the second had the discount at first, so cards showed full price while purchases charged the discounted one; (2) `Damage.gameOver` gets its deps from `State.buildDamageDeps`, NOT script.js's `stateDeps`, so `getPlayerLevel` never reached it and `peakPlayerLevel` was silently undefined until added there (regression test added); (3) a perk line made the toast wrap tall and cover the portrait HUD — now `width: max-content`; (4) at 320px the 🏅 split from the title text on a past-run card — badge is `inline-block; nowrap`.
+- **Latent bug fixed on the way (not a balance change):** `ROUTINE_SLOTS_PER_LEVEL` stopped at level 8, so state.js's restore (`table[level] || 1`) dropped a reloaded Lv-9 player to 1 slot. Added `9: 4` + a guard test (every level has an entry, never decreasing). Live-verified: Lv 9 reloads with 4 slots, nothing re-granted.
+- **Verified:** Jest 76 suites / 1,592 (+58; mutation-checked: stacking discounts, single-level payout and a removed `getPlayerLevel` dep each fail the suite). Live (cloud Chromium, SW blocked, reduced motion; 390x844 / 844x390 / 1200x800 / 320x700): Lv1->2 gift + toast through a real task completion, Lv2->4 two-level jump, Lv8->9 Sick Day + title, shop window + after-buy re-render + pushback tiers at 10% (held-1 repair kit 34 pts, held-2 51), purchases charge the shown price, real offline-catch-up game over at Lv 9 -> card + past-run card show the title; zero console errors. NOT checked: the phone, the in-app browser pane.

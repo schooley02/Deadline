@@ -153,6 +153,14 @@ const RunStats = (() => {
             endedAtMs: ctx.endedAtMs,
             daysSurvived: ctx.daysSurvived,
             endReason: ctx.endReason || 'base_destroyed',
+            // Level perks (2026-10-23): the player's level when the run ended.
+            // Level never drops within a run, so end level IS the peak. Additive
+            // field, no schema bump — records saved before this simply lack it
+            // (readers treat a missing value as "no title"). Only included when
+            // the caller supplies a number, so old collaborator-less call sites
+            // keep their exact record shape. The Steward title is derived from
+            // it (Progression.titleForLevel).
+            ...(typeof ctx.playerLevel === 'number' ? { peakPlayerLevel: ctx.playerLevel } : {}),
             totals,
             blame: blameRows,
             routines,

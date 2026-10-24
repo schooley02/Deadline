@@ -149,6 +149,20 @@ const StatsView = (() => {
         `;
     }
 
+    // Level-perk title badge (LEVEL_PERKS_PLAN.md, 2026-10-23): the cosmetic
+    // title a run earned, derived from the record's peakPlayerLevel via
+    // Progression.titleForLevel — so past-run cards show the Steward of the
+    // Church flag for every run that hit max level. '' for older records
+    // (no peakPlayerLevel), runs below the title's level, or when
+    // Progression/CONFIG aren't loaded (pure-module tests).
+    function buildTitleBadge(record, className) {
+        if (!record || typeof record.peakPlayerLevel !== 'number') return '';
+        if (typeof Progression === 'undefined' || typeof CONFIG === 'undefined') return '';
+        const title = Progression.titleForLevel(CONFIG.LEVEL_PERKS, record.peakPlayerLevel);
+        if (!title || !title.value) return '';
+        return `<span class="${className}" title="Reached level ${title.level}">🏅 ${title.value}</span>`;
+    }
+
     // One past-run card. `record` is a frozen runRecord (RunStats.finalizeRun
     // shape) — record.blame is already sorted damage-desc.
     //
@@ -158,9 +172,9 @@ const StatsView = (() => {
     // (`isBest` — RunStats.bestRunNumber, computed once in
     // renderStatsWindow, not per card).
     function buildRunCard(record, isBest) {
-        const bestBadge = isBest
+        const bestBadge = (isBest
             ? '<span class="stats-run-card-best" title="Personal record">🏆 Best run</span>'
-            : '';
+            : '') + buildTitleBadge(record, 'stats-run-card-title-badge');
         const routineRows = (record.routines || []).map(buildRunRoutineRow).join('');
         const routinesHtml = routineRows
             ? `<div class="stats-blame-heading">Routines this run</div>
@@ -371,6 +385,7 @@ const StatsView = (() => {
         formatCompletionRate,
         formatStars,
         buildBlameList,
+        buildTitleBadge,
         formatDeltaBadge,
         buildCurrentRunPanel,
         buildRunCard,

@@ -423,6 +423,7 @@ const Damage = (() => {
                 endedAtMs: Date.now(),
                 daysSurvived,
                 endReason: 'base_destroyed',
+                playerLevel: deps.getPlayerLevel ? deps.getPlayerLevel() : undefined,
                 definedRoutines: deps.getDefinedRoutines ? deps.getDefinedRoutines() : [],
                 definedHabits: deps.getDefinedHabits ? deps.getDefinedHabits() : [],
                 completionRate: deps.heroesCompletionRate,
