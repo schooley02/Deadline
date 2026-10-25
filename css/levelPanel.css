@@ -13,10 +13,14 @@
 .level-button:focus-visible { outline: 2px solid var(--color-primary-dark-green); outline-offset: 2px; }
 .level-xp-bar {
     display: inline-block;
-    width: 44px;
-    height: 6px;
-    border-radius: 3px;
-    background: var(--color-secondary-green-pale);
+    box-sizing: border-box;
+    width: 48px;
+    height: 9px;
+    border-radius: 5px;
+    /* Empty part must read against the button's near-white fill: a mid-tone track plus a
+       dark-green outline (the old pale-green track was nearly invisible, 2026-10-25). */
+    background: #B8CBC6;
+    border: 1px solid var(--color-primary-dark-green);
     overflow: hidden;
 }
 .level-xp-fill {
@@ -52,7 +56,7 @@
 .lp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .lp-head h3 { margin: 0; }
 .lp-xp-text { font-size: 13px; color: var(--color-neutral); }
-.lp-xp-bar { height: 8px; margin: 6px 0 10px; border-radius: 4px; background: var(--color-secondary-green-pale); overflow: hidden; }
+.lp-xp-bar { box-sizing: border-box; height: 10px; margin: 6px 0 10px; border-radius: 5px; background: #B8CBC6; border: 1px solid var(--color-primary-dark-green); overflow: hidden; }
 .lp-xp-fill { display: block; height: 100%; background: var(--color-accent-teal); }
 .lp-title { margin: 0 0 8px; font-weight: 600; color: var(--color-holy-gold); }
 .lp-section { margin: 14px 0 6px; font-size: 14px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
