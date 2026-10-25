@@ -1,7 +1,7 @@
 /* Level panel (docs/LEVEL_PERKS_PLAN.md sub-session B, 2026-10-23) + the HUD level button
    and the Hero tray's "Routines 3/4" summary line that open it. */
 
-/* ---- HUD level button (replaces the separate XP / Level stat chips) ---- */
+/* ---- HUD level button (replaces the separate XP / Level stat chips); up-right arrow = "opens the panel" ---- */
 .level-button {
     display: inline-flex;
     align-items: center;
@@ -26,7 +26,7 @@
     background: var(--color-accent-teal);
     transition: width 0.3s ease;
 }
-.level-info { color: var(--color-neutral); font-size: 12px; line-height: 1; }
+.level-arrow { flex: none; color: var(--color-primary-dark-green); }
 
 /* ---- Hero tray summary line ---- */
 .hero-tray-summary {
