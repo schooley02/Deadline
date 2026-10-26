@@ -83,6 +83,39 @@ const HeroSpotlight = (() => {
         };
     }
 
+    // ---- One-shot reactions (hurt / levelup) ---------------------------------
+    const ONESHOT_KINDS = ['hurt', 'levelup'];
+
+    function oneShotFrames(kind, category, config) {
+        const over = config.HERO_ONESHOT_FRAME_OVERRIDES && config.HERO_ONESHOT_FRAME_OVERRIDES[kind];
+        return (over && over[category]) || config.HERO_ONESHOT_FRAMES || 9;
+    }
+
+    function oneShotMs(kind, category, config) {
+        return Math.round(oneShotFrames(kind, category, config) / (config.HERO_ONESHOT_FPS || 10) * 1000);
+    }
+
+    /**
+     * Pure decision: what should a hurt / levelup event do right now?
+     * ctx: { kind, routine, visibleRoutineId (hero on screen or null), config }
+     * -> { action: 'ignore' } | { action: 'play', ms } | { action: 'show', ms }
+     * play = that routine's hero is already up; show = open the spotlight first
+     * (level-up only, behind CONFIG.HERO_LEVELUP_AUTO_SHOW, only when nothing is showing).
+     */
+    function planReaction(ctx) {
+        const { kind, routine, visibleRoutineId, config } = ctx;
+        if (!routine || ONESHOT_KINDS.indexOf(kind) === -1) return { action: 'ignore' };
+        const category = Heroes.heroCategoryFor(routine, config.HERO_CATEGORIES);
+        if (!hasHeroArt(category, config)) return { action: 'ignore' }; // emoji heroes have no rows
+        if (deriveState(routine) === 'ko') return { action: 'ignore' }; // the KO row owns a KO'd hero
+        const ms = oneShotMs(kind, category, config);
+        if (visibleRoutineId === routine.id) return { action: 'play', ms };
+        if (kind === 'levelup' && config.HERO_LEVELUP_AUTO_SHOW && (visibleRoutineId === null || visibleRoutineId === undefined)) {
+            return { action: 'show', ms };
+        }
+        return { action: 'ignore' };
+    }
+
     /**
      * Show / replace / dismiss state machine with an injected clock so it is
      * unit-testable. onChange(state) gets { routineId } or null. A new show()
@@ -128,14 +161,23 @@ const HeroSpotlight = (() => {
     // standalone items); a normal tap-show() temporarily replaces it.
     let workRoutine = null;
 
+    let oneShotTimer = null;
+    function clearOneShot() {
+        if (oneShotTimer !== null) { clearTimeout(oneShotTimer); oneShotTimer = null; }
+    }
+    function spriteHtml(anim) {
+        return `<div class="hero-sprite" data-anim="${anim}"><div class="hero-sprite-sheet"></div></div>`;
+    }
+
     function renderInto(look) {
+        clearOneShot();
         heroEl.className = `hero-spotlight hero-spotlight--${look.state} hero-spotlight--${look.kind}`;
         heroEl.dataset.category = look.category;
         heroEl.dataset.routineId = look.routineId;
         heroEl.title = look.name;
         if (look.kind === 'atlas') {
             // Fresh nodes on every show(), so a KO animation always restarts at frame 1.
-            heroEl.innerHTML = `<div class="hero-sprite" data-anim="${look.anim}"><div class="hero-sprite-sheet"></div></div>`;
+            heroEl.innerHTML = spriteHtml(look.anim);
         } else if (look.kind === 'zombie') {
             heroEl.innerHTML = `<img class="hero-spotlight-sprite" src="${look.sprite}" alt="">`;
         } else {
@@ -196,6 +238,35 @@ const HeroSpotlight = (() => {
     }
     function isWorking() { return workRoutine !== null; }
 
+    // Routine id of the hero on screen: the tapped spotlight, else the working hero, else null.
+    function visibleRoutineId() {
+        const current = controller ? controller.get() : null;
+        if (current) return current.routineId;
+        return workRoutine ? workRoutine.id : null;
+    }
+
+    /**
+     * Play the hurt / levelup row once on the hero that is on screen, then fall back to the
+     * routine's resting look (idle, or KO if the hit was fatal). Level-up may open the spotlight
+     * first (see planReaction). Returns true if something played.
+     */
+    function react(routineId, kind) {
+        if (!heroEl || !controller || typeof lookup !== 'function') return false;
+        const routine = lookup(routineId);
+        const plan = planReaction({ kind, routine, visibleRoutineId: visibleRoutineId(), config: configRef });
+        if (plan.action === 'ignore') return false;
+        if (plan.action === 'show' && !controller.show(routineId)) return false;
+        clearOneShot();
+        heroEl.innerHTML = spriteHtml(kind);
+        oneShotTimer = setTimeout(() => {
+            oneShotTimer = null;
+            const fresh = lookup(routineId);
+            if (!fresh || heroEl.dataset.routineId !== String(routineId)) return;
+            heroEl.innerHTML = spriteHtml(heroLookFor(fresh, configRef).anim);
+        }, plan.ms);
+        return true;
+    }
+
     function show(routineId) { return controller ? controller.show(routineId) : false; }
     function dismiss() { return controller ? controller.dismiss() : false; }
     // Routine id of the hero showing right now, or null (the Heroes tab mirrors it).
@@ -214,6 +285,10 @@ const HeroSpotlight = (() => {
         show,
         dismiss,
         getCurrentRoutineId,
+        planReaction,
+        oneShotFrames,
+        oneShotMs,
+        react,
         setWork,
         isWorking,
     };

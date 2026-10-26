@@ -49,7 +49,7 @@ const State = (() => {
     // NOT migrated (see plan fork 3 — UI/wiring-local, not game state):
     // GAME_SCREEN_WIDTH/BASE_WIDTH/ENEMY_WIDTH/HABIT_ENEMY_WIDTH,
     // gameLoopInterval, attackMode, offlineCatchUpActive, timePreviewActive,
-    // heroStarMemory, heroFxMemory, lastAutosaveMs, effectsIntensity — those
+    // heroStarMemory, lastAutosaveMs, effectsIntensity — those
     // stay script.js `let`s, reached the same accessor way they are today.
     //
     // RunStats.freshRunStats()/Achievements.freshLifetimeStats()/

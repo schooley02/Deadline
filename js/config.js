@@ -282,23 +282,20 @@ const CONFIG = {
     // keyframes in css/heroSpotlight.css (test/heroArt.test.js checks they agree).
     HERO_KO_FPS: 10,
     HERO_KO_HOLD_MS: 3000,
+    // One-shot reaction rows (sub-session 5, 2026-10-25): `hurt` plays when the routine takes damage,
+    // `levelup` when it levels. Both play ONCE at HERO_ONESHOT_FPS, then the hero returns to idle (or
+    // KO if that was the hit). Display only. Frame counts come from the atlas JSON (9 unless listed in
+    // HERO_ONESHOT_FRAME_OVERRIDES); KEEP IN SYNC with the `hero-oneshot` rules in css/heroSpotlight.css
+    // (test/heroArt.test.js checks both against the JSON files).
+    HERO_ONESHOT_FPS: 10,
+    HERO_ONESHOT_FRAMES: 9,
+    HERO_ONESHOT_FRAME_OVERRIDES: { hurt: { financial: 7, health: 7 } },
+    // A routine level-up opens the spotlight on that hero (it plays `levelup`) when no hero is showing.
+    // Hurt never opens it (damage ticks are frequent): it only plays on a hero that is already up.
+    HERO_LEVELUP_AUTO_SHOW: true,
     // Hero tray (plan sub-session 3): a hero counts as "hurt" (red dot on the Heroes tab) at or
     // below this fraction of max health. Display threshold, not balance.
     HERO_HURT_PCT: 0.5,
-    // Base Zone is small (160px wide since V4, 2026-10-14) — cap simultaneous chips and show a
-    // "+N" overflow chip past this count rather than crowding/overflowing.
-    HERO_CHIP_MAX_DISPLAY: 6,
-    // Interaction FX ([P1-UI-006] sub-session 5, 2026-07-19): how long a
-    // chip's flinch (routine damaged) / celebrate (member completed)
-    // animation plays, in ms. Display-only timing, not gameplay balance —
-    // same category as the chip-display constants above. renderHeroesAtBase
-    // rebuilds every chip each 50ms game tick, so HeroesView replays the
-    // animation with a negative animation-delay equal to the elapsed time;
-    // these windows are both the CSS duration and the "still animating"
-    // cutoff that keeps the effect visually continuous across rebuilds.
-    HERO_FLINCH_MS: 500,
-    HERO_CELEBRATE_MS: 900,
-
     // --- Shop catalog ([P1-UI-008], SHOP_PLAN.md session 1, 2026-07-18) ---
     // Base costs + effects transcribed from docs/ECONOMY.md (canonical). Live
     // price at the shop is Economy.shopPrice(baseCost, owned) = round(base ×
@@ -507,7 +504,7 @@ const CONFIG = {
     // Per-routine rollup (sub-session 4, session 55): how many past-run rows
     // to show per routine in the Stats window's "Routine Performance"
     // section (RunStats.rollupRoutinePerformance). Display cap, not gameplay
-    // balance — same category as HERO_CHIP_MAX_DISPLAY above.
+    // balance — same category as the other display-only HERO_* constants above.
     ROUTINE_ROLLUP_MAX_RUNS: 5,
 
     // Achievements & badges (Milestone 4, session 64 — docs/ACHIEVEMENTS_PLAN.md).

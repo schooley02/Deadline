@@ -155,3 +155,37 @@ describe('config', () => {
         expect(['faded', 'zombie']).toContain(CONFIG.HERO_KO_LOOK);
     });
 });
+
+// --- One-shot hurt / levelup reactions (hero sub-session 5, 2026-10-25) ---
+describe('planReaction', () => {
+    const hero = { id: 'rA', name: 'Study', isActive: true, frozenState: null, koState: null, heroCategory: 'career' };
+    const plan = (over) => HeroSpotlight.planReaction({
+        kind: 'hurt', routine: hero, visibleRoutineId: 'rA', config: CONFIG, ...over,
+    });
+
+    test('hurt / levelup play on the hero that is already on screen, for the frame count of its row', () => {
+        expect(plan({ kind: 'hurt' })).toEqual({ action: 'play', ms: 900 });
+        expect(plan({ kind: 'levelup' })).toEqual({ action: 'play', ms: 900 });
+        const fin = { ...hero, heroCategory: 'financial' };
+        expect(plan({ kind: 'hurt', routine: fin })).toEqual({ action: 'play', ms: 700 }); // 7-frame hurt row
+        expect(plan({ kind: 'levelup', routine: fin })).toEqual({ action: 'play', ms: 900 });
+    });
+
+    test('hurt never opens the spotlight, and never plays on a different hero', () => {
+        expect(plan({ kind: 'hurt', visibleRoutineId: null }).action).toBe('ignore');
+        expect(plan({ kind: 'hurt', visibleRoutineId: 'other' }).action).toBe('ignore');
+    });
+
+    test('levelup opens the spotlight only when no hero is showing (and the switch is on)', () => {
+        expect(plan({ kind: 'levelup', visibleRoutineId: null })).toEqual({ action: 'show', ms: 900 });
+        expect(plan({ kind: 'levelup', visibleRoutineId: 'other' }).action).toBe('ignore');
+        expect(plan({ kind: 'levelup', visibleRoutineId: null, config: { ...CONFIG, HERO_LEVELUP_AUTO_SHOW: false } }).action).toBe('ignore');
+    });
+
+    test('a KO\'d hero, a category without art, an unknown kind or a missing routine are ignored', () => {
+        expect(plan({ routine: { ...hero, koState: { koAt: 1 } } }).action).toBe('ignore');
+        expect(plan({ config: NO_ART }).action).toBe('ignore');
+        expect(plan({ kind: 'attack' }).action).toBe('ignore');
+        expect(plan({ routine: null }).action).toBe('ignore');
+    });
+});

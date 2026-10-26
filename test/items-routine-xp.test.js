@@ -215,50 +215,52 @@ describe('completeItem awards routine XP to the owning routine', () => {
         expect(routine.level).toBe(2);
     });
 
-    // Celebrate FX hook ([P1-UI-006] sub-session 5, 2026-07-19): fires
-    // exactly when routine XP is awarded — same gating, by construction.
-    test('fires optional deps.onRoutineCelebrate when routine XP is awarded', () => {
+    // Level-up FX hook (hero sub-session 5, 2026-10-25): fires only when a routine XP award
+    // actually crosses a level threshold -- same gating as the award itself, by construction.
+    test('fires optional deps.onRoutineLevelUp when an award levels the routine', () => {
+        const startXp = CONFIG.ROUTINE_LEVEL_XP_THRESHOLDS[1] - 5;
+        const routine = activeRoutine({ taskDefinitionIds: ['td1'], xp: startXp });
+        const item = routineTaskItem();
+        const leveled = [];
+        const deps = makeDeps({
+            activeItems: [item], definedRoutines: [routine],
+            onRoutineLevelUp: (r) => leveled.push(r.id),
+        });
+
+        Items.completeItem(1, deps);
+
+        expect(leveled).toEqual(['r1']);
+    });
+
+    test('does NOT fire onRoutineLevelUp when the award stays inside the level', () => {
         const routine = activeRoutine({ taskDefinitionIds: ['td1'] });
         const item = routineTaskItem();
-        const celebrated = [];
+        const leveled = [];
         const deps = makeDeps({
             activeItems: [item], definedRoutines: [routine],
-            onRoutineCelebrate: (r) => celebrated.push(r.id),
+            onRoutineLevelUp: (r) => leveled.push(r.id),
         });
 
         Items.completeItem(1, deps);
 
-        expect(celebrated).toEqual(['r1']);
+        expect(leveled).toEqual([]);
     });
 
-    test('does NOT fire onRoutineCelebrate for a standalone item', () => {
-        const item = routineTaskItem({ definitionId: undefined });
-        const celebrated = [];
-        const deps = makeDeps({
-            activeItems: [item],
-            onRoutineCelebrate: (r) => celebrated.push(r.id),
-        });
+    test('does NOT fire onRoutineLevelUp for a standalone item or a suspended (frozen) routine', () => {
+        const leveled = [];
+        const hook = (r) => leveled.push(r.id);
+        const startXp = CONFIG.ROUTINE_LEVEL_XP_THRESHOLDS[1] - 5;
 
-        Items.completeItem(1, deps);
+        const standalone = routineTaskItem({ definitionId: undefined });
+        Items.completeItem(1, makeDeps({ activeItems: [standalone], onRoutineLevelUp: hook }));
 
-        expect(celebrated).toEqual([]);
-    });
-
-    test('does NOT fire onRoutineCelebrate for a suspended (frozen) routine', () => {
-        const routine = activeRoutine({
-            taskDefinitionIds: ['td1'],
+        const frozen = activeRoutine({
+            taskDefinitionIds: ['td1'], xp: startXp,
             frozenState: { frozenBy: 'someHabit', frozenAt: new Date() },
         });
-        const item = routineTaskItem();
-        const celebrated = [];
-        const deps = makeDeps({
-            activeItems: [item], definedRoutines: [routine],
-            onRoutineCelebrate: (r) => celebrated.push(r.id),
-        });
+        Items.completeItem(1, makeDeps({ activeItems: [routineTaskItem()], definedRoutines: [frozen], onRoutineLevelUp: hook }));
 
-        Items.completeItem(1, deps);
-
-        expect(celebrated).toEqual([]);
+        expect(leveled).toEqual([]);
     });
 });
 

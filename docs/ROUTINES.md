@@ -125,8 +125,8 @@ routine name's first letter when it has no habit members yet), a `Lv N` level ba
 (★☆ from the live completion rate, `Heroes.starRating`), and a health bar (colored by the same
 75/50/25% tiers `Damage.resolveBaseImage` uses for the base sprite itself). State styling matches
 `managementWindows.js`'s compact routine card: KO'd 💤 > frozen 🥶 > inactive ⚪ (greyed) > active
-(normal) — checked in that priority order. The Base Zone caps simultaneous chips at
-`CONFIG.HERO_CHIP_MAX_DISPLAY` (6) and shows a `+N` overflow chip past that.
+(normal) — checked in that priority order. (The base-zone chips and their `+N` overflow chip were
+retired 2026-10-21 / deleted 2026-10-25; the Heroes tray replaces them.)
 
 Pure view-model math (`js/ui/heroes.js`'s `buildChipViewModel` and friends) is unit-tested;
 DOM-building (`buildChipElement`/`renderHeroesAtBase`) is live-playtest-verified only, per
@@ -243,16 +243,11 @@ routine slots + recovery" ticket (5 sub-sessions, 2 schema bumps) is now fully C
 The hero chip flinches on routine damage and celebrates on a routine-owned completion — pure CSS
 animation classes toggled off the sub-session-2 damage hook (`Items.damageRoutineForItem`) and the
 sub-session-1 XP-award sites (`Items.awardRoutineXpForItem`/`awardRoutineXpForHabitDef`), no new
-persisted state. Each site optionally calls a new collaborator (`deps.onRoutineDamaged` /
-`deps.onRoutineCelebrate`, same "omitted → no-op" tolerance as every other optional hook in this
-codebase) that stamps a wall-clock timestamp into an ephemeral, NON-persisted script.js map
-(`heroFxMemory: { [routineId]: { damagedAt, celebratedAt } }`, reset alongside `heroStarMemory` on
-new game/reset). `renderHeroesAtBase()` full-rebuilds every chip each 50ms tick (see Hero Rendering
-above), so a naive class toggle would restart the animation every rebuild — instead
-`HeroesView.deriveFx` reads the timestamp each render and replays the animation via a **negative**
-`animation-delay` equal to the elapsed time, so it looks continuous across rebuilds and expires
-cleanly once past `CONFIG.HERO_FLINCH_MS` (500ms) / `CONFIG.HERO_CELEBRATE_MS` (900ms). A same-instant
-tie favors flinch — damage feedback should never be masked by a celebrate.
+persisted state. The old chip flinch/celebrate FX (`heroFxMemory`, `deriveFx`) was deleted 2026-10-25;
+the spotlight's one-shot hurt / level-up rows replaced it: `deps.onRoutineDamaged` (every real damage
+tick) and `deps.onRoutineLevelUp` (an XP award crossing a level threshold) -> `HeroSpotlight.react`.
+Hurt only plays on a hero that is already on screen; level-up may open the spotlight
+(`CONFIG.HERO_LEVELUP_AUTO_SHOW`). See DECISIONS 2026-10-25.
 
 Routine View ranking (this section's own line, previously aspirational) is now real:
 `HeroesView.rankRoutines` sorts by level desc, then live completion rate desc (unrated routines sort

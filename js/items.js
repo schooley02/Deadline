@@ -242,10 +242,8 @@ const Items = (() => {
         // absent on pre-existing stamps, with a findRoutineForItem fallback
         // in refundRoutineXpForItem.
         item.routineXpRoutineId = routine.id;
-        // Celebrate FX ([P1-UI-006] sub-session 5): optional, DOM-free —
-        // script.js stamps an ephemeral timestamp HeroesView reads at render
-        // time. Same optional-collaborator pattern as onRoutineKo below.
-        if (typeof deps.onRoutineCelebrate === 'function') deps.onRoutineCelebrate(routine);
+        // Level-up FX (hero sub-session 5): optional, DOM-free collaborator (same pattern as onRoutineKo).
+        if (result.leveledUp && typeof deps.onRoutineLevelUp === 'function') deps.onRoutineLevelUp(routine);
     }
 
     // Reverse a prior award off the stamp — unconditional (no suspension
@@ -278,8 +276,7 @@ const Items = (() => {
         const result = Heroes.applyXpDelta(routine.xp || 0, Heroes.xpAmountFor('habit', CONFIG), CONFIG.ROUTINE_LEVEL_XP_THRESHOLDS);
         routine.xp = result.xp;
         routine.level = result.level;
-        // Celebrate FX (sub-session 5) — see awardRoutineXpForItem.
-        if (typeof deps.onRoutineCelebrate === 'function') deps.onRoutineCelebrate(routine);
+        if (result.leveledUp && typeof deps.onRoutineLevelUp === 'function') deps.onRoutineLevelUp(routine);
     }
 
     // --- Routine health damage + KO ([P1-UI-006] sub-session 2, 2026-07-19;
@@ -315,7 +312,7 @@ const Items = (() => {
         const currentHealth = (typeof routine.health === 'number') ? routine.health : CONFIG.ROUTINE_MAX_HEALTH;
         routine.health = Heroes.applyRoutineDamage(currentHealth, amount);
 
-        // Flinch FX ([P1-UI-006] sub-session 5): optional, DOM-free — fires
+        // Hurt FX ([P1-UI-006] sub-session 5): optional, DOM-free — fires
         // on every real damage tick, including the one that KOs. Same
         // optional-collaborator pattern as onRoutineKo below.
         if (typeof deps.onRoutineDamaged === 'function') deps.onRoutineDamaged(routine);

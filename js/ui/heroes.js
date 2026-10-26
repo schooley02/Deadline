@@ -1,41 +1,20 @@
 /**
- * HeroesView — hero rendering at the Base Zone ([P1-UI-006] sub-session 3,
- * 2026-07-19; see docs/HEROES_PLAN.md).
+ * HeroesView — pure hero view-model helpers plus the agenda-row hero chip
+ * ([P1-UI-006] sub-session 3, 2026-07-19; see docs/HEROES_PLAN.md).
  *
- * The ticket's visible payoff: one avatar chip per routine, rendered in/around
- * the Base Zone (index.html's `#heroBaseZone`, positioned over `#base`'s
- * leftmost-120px per PROJECT_SPEC ~88). No hero sprite assets exist yet
- * (docs/ART_STYLE.md — only zombies + base states), so v1 is a CSS/emoji
- * placeholder chip (fork 1, HEROES_PLAN.md): category emoji, star
- * row (live completion rate), health bar (V3c-1: no Lv badge/initial), and state styling
- * (active / frozen 🥶 / KO'd 💤 / inactive greyed — same status vocabulary as
- * managementWindows.js's compact routine card).
- *
- * PURE / DOM split, same discipline as js/heroes.js: `buildChipViewModel` and
- * its helpers are pure (no DOM, unit-testable); `buildChipElement`/
- * `renderHeroesAtBase` build/mutate the DOM from a view model. This module
- * renders from state ONLY — no new mechanics (all math delegates to the real
- * `Heroes` pure core, js/heroes.js).
- *
- * WIRING (script.js): a new `heroStarMemory` object + `heroBaseZoneEl` DOM
- * ref, and a `renderHeroesAtBase()` wrapper called (a) immediately after
- * init/restore/level-up alongside the existing `updateRoutineDisplay()`
- * wrapper, for instant first paint, and (b) every game-loop tick (`updateGame()`,
- * CONFIG.GAME_TICK_MS = 50ms) so the chips stay live across ALL the events the
- * plan's live-verify checklist calls out (complete/damage/freeze/KO/deactivate)
- * without threading a new UI dependency through items.js/routines.js/damage.js
- * — those modules stay DOM-free. A full-rebuild render of a handful of small
- * chips every 50ms is negligible next to updateActiveItems' per-item DOM work
- * already running on the same tick.
+ * `buildChipViewModel` and its helpers are pure (no DOM, unit-testable);
+ * `buildChipElement` / `buildRoutineChip` build the small avatar + health +
+ * stars chip shown beside a routine-owned item in the agenda list (tap ->
+ * hero spotlight). The tray (js/ui/heroTray.js) reuses the view model,
+ * ranking, star-crossing and avatar helpers. The old base-zone render loop,
+ * chip tap plumbing and flinch/celebrate FX were deleted in hero
+ * sub-session 5 (2026-10-25) — the spotlight's hurt / level-up rows replaced
+ * the FX.
  *
  * STAR-THRESHOLD-CROSSED NOTIFICATION (PROJECT_SPEC ~84): fires the FIRST time
- * a routine's star rating actually INCREASES. Tracked via `heroStarMemory`, a
- * plain object keyed by routine id — deliberately NOT persisted (sub-session 3
- * lands no schema change, per HEROES_PLAN.md's "migration-free by design").
- * The first observation of a routine just seeds its memory (no notice); only a
- * later render that sees a HIGHER star count than the last one recorded
- * counts as a crossing. A page reload resets the memory, which is fine — a
- * reload can't fabricate a star increase that didn't already happen live.
+ * a routine's star rating actually INCREASES, tracked by `trackStarCrossing`
+ * in a plain object keyed by routine id (NOT persisted; the first observation
+ * only seeds the memory, a reload resets it).
  */
 const HeroesView = (() => {
     const FALLBACK_EMOJI = '⭐';
@@ -188,15 +167,6 @@ const HeroesView = (() => {
         chip.dataset.routineId = vm.id;
         chip.title = `${vm.name} — ${STATE_LABEL[vm.state] || 'Active'} (tap to manage)`;
 
-        // Interaction FX (sub-session 5): resume the animation mid-flight
-        // across the 50ms full rebuilds via negative animation-delay — see
-        // deriveFx.
-        if (vm.fx) {
-            chip.classList.add(`hero-chip--fx-${vm.fx.effect}`);
-            chip.style.animationDuration = `${vm.fx.durationMs}ms`;
-            chip.style.animationDelay = `-${vm.fx.elapsedMs}ms`;
-        }
-
         const statusIcon = STATE_ICON[vm.state]
             ? `<span class="hero-chip-status-icon">${STATE_ICON[vm.state]}</span>`
             : '';
@@ -215,80 +185,6 @@ const HeroesView = (() => {
             </div>
         `;
         return chip;
-    }
-
-    // --- Tap-to-interact (V3c-1, 2026-10-14) ---
-    // renderHeroesAtBase full-rebuilds every chip each 50ms tick, so a click
-    // handler on the chip itself would never fire (the pressed element is
-    // replaced between pointerdown and pointerup). Instead ONE listener pair
-    // lives on the stable container: pointerdown records which chip was hit
-    // (as a key), pointerup resolves the chip under the finger NOW, and a tap
-    // counts when both keys match. Keys: 'r:<routineId>' | 'overflow'.
-    function chipKey(el) {
-        const chip = el && el.closest ? el.closest('.hero-chip') : null;
-        if (!chip) return null;
-        if (chip.dataset.heroOverflow) return 'overflow';
-        return chip.dataset.routineId != null ? `r:${chip.dataset.routineId}` : null;
-    }
-
-    // Pure: a tap is a press and a release on the SAME chip.
-    function resolveTap(downKey, upKey) {
-        if (!downKey || !upKey || downKey !== upKey) return null;
-        if (upKey === 'overflow') return { type: 'overflow' };
-        if (upKey.startsWith('r:')) return { type: 'routine', routineId: upKey.slice(2) };
-        return null;
-    }
-
-    // handlers = { onRoutine(routineId), onOverflow() }. Idempotent per container.
-    function bindChipTaps(containerEl, handlers) {
-        if (!containerEl || containerEl.dataset.heroTapsBound) return;
-        containerEl.dataset.heroTapsBound = '1';
-        let downKey = null;
-        containerEl.addEventListener('pointerdown', (e) => { downKey = chipKey(e.target); });
-        containerEl.addEventListener('pointercancel', () => { downKey = null; });
-        containerEl.addEventListener('pointerup', (e) => {
-            const tap = resolveTap(downKey, chipKey(e.target));
-            downKey = null;
-            if (!tap) return;
-            // Defer past the browser's trailing `click`: opening a window here
-            // raises a backdrop (and modal) under the pointer, and that same
-            // click would land on the backdrop and dismiss the window
-            // immediately (found live 2026-10-14 on the "+N" chip).
-            setTimeout(() => {
-                if (tap.type === 'overflow') handlers.onOverflow && handlers.onOverflow();
-                else handlers.onRoutine && handlers.onRoutine(tap.routineId);
-            }, 0);
-        });
-    }
-
-    // --- Interaction FX ([P1-UI-006] sub-session 5, 2026-07-19) ---
-    // renderHeroesAtBase full-rebuilds every chip each 50ms tick, so a naive
-    // class toggle would restart its CSS animation every rebuild. Instead the
-    // fx memory (script.js's ephemeral heroFxMemory: { damagedAt,
-    // celebratedAt } per routine id) records WHEN the event happened, and the
-    // rebuilt chip replays the animation with a negative animation-delay
-    // equal to the elapsed time — visually continuous across rebuilds.
-    // Pure: picks the most recent event still inside its config window
-    // (flinch wins a tie — damage feedback shouldn't be masked by a
-    // same-instant celebrate). Returns null or { effect, elapsedMs,
-    // durationMs }.
-    function deriveFx(fxEntry, nowMs, config) {
-        if (!fxEntry) return null;
-
-        const candidates = [
-            { effect: 'flinch', at: fxEntry.damagedAt, durationMs: config.HERO_FLINCH_MS || 0 },
-            { effect: 'celebrate', at: fxEntry.celebratedAt, durationMs: config.HERO_CELEBRATE_MS || 0 },
-        ];
-
-        let best = null;
-        candidates.forEach(c => {
-            if (typeof c.at !== 'number') return;
-            const elapsedMs = nowMs - c.at;
-            if (elapsedMs < 0 || elapsedMs >= c.durationMs) return;
-            if (!best || c.at > best.at) best = { effect: c.effect, at: c.at, elapsedMs, durationMs: c.durationMs };
-        });
-
-        return best ? { effect: best.effect, elapsedMs: best.elapsedMs, durationMs: best.durationMs } : null;
     }
 
     // Display ranking for routine lists (ROUTINES.md "Routine View ranks
@@ -346,95 +242,6 @@ const HeroesView = (() => {
         return chip;
     }
 
-    function buildOverflowChip(overflowCount) {
-        const chip = document.createElement('div');
-        chip.className = 'hero-chip hero-chip-overflow';
-        chip.dataset.heroOverflow = '1';
-        chip.textContent = `+${overflowCount}`;
-        chip.title = `${overflowCount} more routine${overflowCount === 1 ? '' : 's'}`;
-        return chip;
-    }
-
-    // deps = {
-    //   containerEl, definedRoutines, definedHabits, config (defaults to
-    //   bare-global CONFIG), runStartedAtMs,
-    //   starMemory (optional — plain object; omit to skip crossing detection),
-    //   onStarThresholdCrossed (optional — (routine, stars) => void)
-    // }
-    function renderHeroesAtBase(deps) {
-        const containerEl = deps.containerEl;
-        if (!containerEl) return;
-
-        const config = deps.config || CONFIG;
-        const routines = deps.definedRoutines || [];
-        const maxDisplay = config.HERO_CHIP_MAX_DISPLAY || routines.length;
-        const visible = routines.slice(0, maxDisplay);
-        const overflow = routines.length - visible.length;
-
-        // Reconcile IN PLACE (V3c-1 follow-up, 2026-10-14): this runs every
-        // 50ms tick, and a full innerHTML rebuild destroyed the chip under a
-        // finger between touchstart and touchend, so real phone taps never
-        // landed (mouse clicks survived by luck). A chip is only replaced when
-        // its signature changes; untouched chips keep their DOM node.
-        const existing = {};
-        Array.from(containerEl.children).forEach(el => {
-            const key = el.dataset.heroOverflow ? 'overflow' : (el.dataset.routineId != null ? `r:${el.dataset.routineId}` : null);
-            if (key) existing[key] = el;
-        });
-        const desired = [];
-        const nowMs = deps.nowMs || Date.now();
-
-        visible.forEach(routine => {
-            const vm = buildChipViewModel(routine, deps.definedHabits, config, deps.runStartedAtMs);
-            // Interaction FX (sub-session 5, optional dep — omit fxMemory to
-            // skip): stamped timestamps -> replayed CSS animation.
-            if (deps.fxMemory) {
-                vm.fx = deriveFx(deps.fxMemory[routine.id], nowMs, config);
-            }
-            const sig = chipSignature(vm, nowMs);
-            const prev = existing[`r:${routine.id}`];
-            if (prev && prev.dataset.heroSig === sig) {
-                desired.push(prev);
-            } else {
-                const chip = buildChipElement(vm);
-                chip.dataset.heroSig = sig;
-                desired.push(chip);
-            }
-
-            if (deps.starMemory && deps.onStarThresholdCrossed) {
-                const crossed = trackStarCrossing(deps.starMemory, routine.id, vm.stars);
-                if (crossed) deps.onStarThresholdCrossed(routine, vm.stars);
-            }
-        });
-
-        if (overflow > 0) {
-            const sig = `overflow:${overflow}`;
-            const prev = existing.overflow;
-            if (prev && prev.dataset.heroSig === sig) {
-                desired.push(prev);
-            } else {
-                const chip = buildOverflowChip(overflow);
-                chip.dataset.heroSig = sig;
-                desired.push(chip);
-            }
-        }
-
-        // Touch the DOM only when the node list actually differs.
-        const current = Array.from(containerEl.children);
-        const same = current.length === desired.length && current.every((el, i) => el === desired[i]);
-        if (!same) {
-            containerEl.replaceChildren(...desired);
-        }
-    }
-
-    // Pure: everything that changes a chip's look. FX is keyed by effect +
-    // START time (not elapsed) so a running animation is not restarted by the
-    // rebuild; when it ends the signature changes once and the chip refreshes.
-    function chipSignature(vm, nowMs) {
-        const fx = vm.fx ? `${vm.fx.effect}@${Math.round(nowMs - vm.fx.elapsedMs)}` : '';
-        return [vm.id, vm.state, vm.stars, Math.round(vm.healthPct * 100), vm.emoji || '', vm.headSrc || '', vm.name, fx].join('|');
-    }
-
     return {
         // pure
         categoryEmoji,
@@ -448,17 +255,10 @@ const HeroesView = (() => {
         starsHtml,
         healthColorVar,
         trackStarCrossing,
-        deriveFx,
         rankRoutines,
-        resolveTap,
-        chipSignature,
         // DOM
         buildChipElement,
-        buildOverflowChip,
         buildRoutineChip,
-        chipKey,
-        bindChipTaps,
-        renderHeroesAtBase,
     };
 })();
 

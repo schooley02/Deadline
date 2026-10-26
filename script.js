@@ -90,12 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // renderHeroesAtBase can run during boot, before those function bodies' lines are reached.
     let heroSpotlightReady = false;
     let heroTrayReady = false;
-    // [P1-UI-006] sub-session 5, 2026-07-19 — ephemeral (NOT persisted)
-    // per-routine FX timestamps: { [routineId]: { damagedAt, celebratedAt } }.
-    // Stamped by itemsDeps' onRoutineDamaged/onRoutineCelebrate, read by
-    // renderHeroesAtBase each tick to keep flinch/celebrate animations
-    // continuous across the 50ms full-rebuild renders. See js/ui/heroes.js.
-    let heroFxMemory = {};
 
 
     // --- Game Settings ---
@@ -194,7 +188,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // without a full page reload, so this can't rely on module-load init
         // alone).
         heroStarMemory = {};
-        heroFxMemory = {};
         HeroTray.resetMemory();
         State.initGame(stateDeps());
     }
@@ -596,14 +589,15 @@ document.addEventListener('DOMContentLoaded', () => {
             onRoutineKo: (routine) => {
                 FrozenNotice.showRoutineKoNotice(routine.name);
             },
-            // Interaction FX ([P1-UI-006] sub-session 5, 2026-07-19): stamp
-            // ephemeral timestamps for HeroesView's flinch/celebrate
-            // animations — no DOM here, render reads them each tick.
             onRoutineDamaged: (routine) => {
-                (heroFxMemory[routine.id] = heroFxMemory[routine.id] || {}).damagedAt = Date.now();
+                // Hero spotlight `hurt` row: only plays on a hero that is already on screen.
+                if (heroSpotlightReady) HeroSpotlight.react(routine.id, 'hurt');
             },
-            onRoutineCelebrate: (routine) => {
-                (heroFxMemory[routine.id] = heroFxMemory[routine.id] || {}).celebratedAt = Date.now();
+            // Hero spotlight `levelup` row (may open the spotlight; CONFIG.HERO_LEVELUP_AUTO_SHOW).
+            onRoutineLevelUp: (routine) => {
+                if (!baseScrimEl || !heroSpotlightEl) return;
+                ensureHeroSpotlight();
+                HeroSpotlight.react(routine.id, 'levelup');
             },
             isGameOver: State.isGameOver,
             getPlayerXP: State.getPlayerXP,

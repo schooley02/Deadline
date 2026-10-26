@@ -1,7 +1,6 @@
 /**
- * heroes.css — hero chips at the Base Zone ([P1-UI-006] sub-session 3,
- * 2026-07-19; js/ui/heroes.js). CSS/emoji placeholder chips (fork 1,
- * HEROES_PLAN.md — no hero sprite assets exist yet).
+ * heroes.css — hero chips for the agenda rows ([P1-UI-006] sub-session 3,
+ * 2026-07-19; js/ui/heroes.js).
  */
 
 /* The base-zone container (#heroBaseZone) was retired 2026-10-21 (HERO_SPOTLIGHT_PLAN
@@ -86,54 +85,6 @@
     opacity: 0.5;
 }
 
-/* Interaction FX ([P1-UI-006] sub-session 5, 2026-07-19): flinch on routine
-   damage, celebrate on member completion. Duration + (negative) delay are set
-   INLINE by HeroesView.buildChipElement from CONFIG.HERO_FLINCH_MS /
-   HERO_CELEBRATE_MS — the chip is fully rebuilt every 50ms game tick, so the
-   negative delay resumes the animation mid-flight instead of restarting it
-   (see js/ui/heroes.js deriveFx). Only animation-name/timing/count live here. */
-.hero-chip--fx-flinch {
-    animation-name: hero-chip-flinch;
-    animation-timing-function: ease-out;
-    animation-iteration-count: 1;
-}
-
-.hero-chip--fx-celebrate {
-    animation-name: hero-chip-celebrate;
-    animation-timing-function: ease-out;
-    animation-iteration-count: 1;
-}
-
-@keyframes hero-chip-flinch {
-    0%   { transform: translateX(0); filter: none; }
-    15%  { transform: translateX(-3px); filter: sepia(1) saturate(4) hue-rotate(-25deg); }
-    30%  { transform: translateX(3px); filter: sepia(1) saturate(4) hue-rotate(-25deg); }
-    45%  { transform: translateX(-2px); }
-    60%  { transform: translateX(2px); }
-    100% { transform: translateX(0); filter: none; }
-}
-
-@keyframes hero-chip-celebrate {
-    0%   { transform: scale(1); }
-    25%  { transform: scale(1.25) rotate(-4deg); box-shadow: 0 0 10px 3px rgba(255, 215, 0, 0.8); }
-    50%  { transform: scale(1.12) rotate(3deg); box-shadow: 0 0 8px 2px rgba(255, 215, 0, 0.6); }
-    75%  { transform: scale(1.06); box-shadow: 0 0 5px 1px rgba(255, 215, 0, 0.35); }
-    100% { transform: scale(1); box-shadow: none; }
-}
-
-.hero-chip-overflow {
-    width: 34px;
-    height: 34px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.55);
-    color: var(--color-primary-white);
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 700;
-}
-
 @media (max-width: 768px) {
     .hero-chip {
         width: 28px;
@@ -144,11 +95,6 @@
         font-size: 12px;
     }
 
-    .hero-chip-overflow {
-        width: 28px;
-        height: 28px;
-        font-size: 10px;
-    }
 }
 
 /* V3c-2 (2026-10-14): the same chip, sized for an agenda row, shown beside the

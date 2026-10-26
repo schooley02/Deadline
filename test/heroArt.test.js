@@ -57,6 +57,29 @@ describe('KO animation never loops without the hold (css <-> config)', () => {
     });
 });
 
+describe('hurt / levelup one-shot rows (css <-> config <-> json)', () => {
+    test('config defaults match the css vars', () => {
+        expect(CONFIG.HERO_ONESHOT_FPS).toBeGreaterThan(0);
+        expect(css).toMatch(new RegExp(`--hero-oneshot-frames: ${CONFIG.HERO_ONESHOT_FRAMES}; --hero-oneshot-fps: ${CONFIG.HERO_ONESHOT_FPS};`));
+        expect(css).toMatch(/\.hero-sprite\[data-anim="hurt"\] \{ --hero-row: 2; \}/);
+        expect(css).toMatch(/\.hero-sprite\[data-anim="levelup"\] \{ --hero-row: 3; \}/);
+        expect(css).toMatch(/steps\(var\(--hero-oneshot-frames\), jump-none\) 1 forwards/);
+    });
+
+    test.each(ART)('%s: configured frame counts equal the atlas json, overrides are in the css', (cat) => {
+        const meta = JSON.parse(read(`Assets/Heroes/anim/${cat}.json`));
+        ['hurt', 'levelup'].forEach(kind => {
+            expect(meta.animations[kind].loop).toBe(false);
+            expect(HeroSpotlight.oneShotFrames(kind, cat, CONFIG)).toBe(meta.animations[kind].frames);
+            if (meta.animations[kind].frames !== CONFIG.HERO_ONESHOT_FRAMES) {
+                expect(css).toMatch(new RegExp(`data-category="${cat}"\\] \\.hero-sprite\\[data-anim="${kind}"\\]`));
+            }
+        });
+        expect(meta.animations.hurt.row).toBe(2);
+        expect(meta.animations.levelup.row).toBe(3);
+    });
+});
+
 describe('heroLookFor with art', () => {
     const base = { id: 'r', name: 'x', isActive: true, heroCategory: 'other' };
     test('an art category draws the atlas: idle normally, ko when knocked out', () => {
