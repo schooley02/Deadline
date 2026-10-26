@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-26 -- Pushbacks count from now for overdue zombies; edit-form price matches (Jeremy; Claude app session, Sonnet) -- BALANCE CHANGE
+
+- **Decision:** a pushback adds its time to the LATER of now and the target's current due date (`Shop.pushedBackDueDate(due, pushbackMs, nowMs)`, `handlePushback` passes `Date.now()`). An overdue zombie lands at now + tier, so even the 1 hr tier (50 pts) clears it however overdue it was; a not-yet-due item still gets the time added to its due date and can never be pulled earlier. The edit form's reschedule price measures distance the same way (`Economy.reschedulePrice`: `delta = newDue - max(currentDue, now)`), so an overdue task moved to 1 h from now costs the 1 hr tier. Prices, zone factors, the 10-min grace and the weekly free use are unchanged.
+- **Why:** Jeremy, designing the base-health panel's under-attack state: a pushback should buy time from the moment you pay, not from a due date that may be hours or days old. Before, a zombie 3 h overdue needed the 1 day tier (300 pts) to clear at all, and the edit form charged the same for moving it to 1 h from now.
+- **Effect:** clearing any attacker costs the 1 hr tier (50 pts before discount), so "push back all N attackers" is N x 50. The 2 hr / 1 day tiers now only buy longer relief. The 6-hour stacking break-even against the 1 day tier (2026-07-19) still holds for relief duration; what is gone is tier gating on how overdue a zombie is. Pushing back the last attacker also restarts healing (one regen interval later).
+- **Balance flag (not changed):** 50 pts holds a zombie off for up to an hour (12 HP of its damage) and can resume healing, roughly the same points per HP as repair kits. Re-check in the balance-tuning process once there is real play data. Kits and pushbacks stay flat/unchanged here.
+- **Unchanged:** damage already dealt is not undone; sub-task pushes still clamp to the parent's deadline (a sub-task under an overdue parent stays overdue until the parent is pushed); the offline damage lifetime cap per item.
+- **Tests:** `test/shop.test.js` (`pushedBackDueDate` with `nowMs`: overdue, far overdue, not yet due, due exactly now, zero shift, the old behaviour for contrast) and `test/reschedule-price.test.js` (overdue items priced from now).
+
 ## 2026-10-26 -- Away-time healing is blocked only while a zombie would have been attacking (Jeremy; Claude app session, Opus design + Sonnet build) -- BALANCE CHANGE
 
 - **Decision:** healing while away (offline reload and suspended-loop gap) is no longer all-or-nothing. `Damage.applyElapsedRegen` heals the QUIET part of the span only: from the span start to the earliest moment a still-overdue threatening item began attacking, `max(item due time, span start)` (nothing can be completed while away, so every item overdue at restore has been attacking since then and still is). Pure rule: `Damage.computeQuietMs(elapsedMs, nowMs, overdueDueMs)`. Regen rate, damage rate and the 12 HP/item lifetime cap are unchanged.

@@ -142,6 +142,45 @@ describe('pushedBackDueDate', () => {
         expect(Shop.pushedBackDueDate(due, 0).getTime()).toBe(due.getTime());
         expect(Shop.pushedBackDueDate(due, undefined).getTime()).toBe(due.getTime());
     });
+
+    // 2026-10-26 (Jeremy, balance change): counts from the later of now and the due date.
+    describe('with nowMs (counts from now for overdue items)', () => {
+        const now = new Date('2026-07-19T12:00:00.000Z').getTime();
+
+        test('an overdue item is pushed to now + tier, however overdue it is', () => {
+            const threeHoursLate = new Date(now - 3 * ONE_HOUR);
+            expect(Shop.pushedBackDueDate(threeHoursLate, ONE_HOUR, now).getTime()).toBe(now + ONE_HOUR);
+            const threeDaysLate = new Date(now - 72 * ONE_HOUR);
+            expect(Shop.pushedBackDueDate(threeDaysLate, ONE_HOUR, now).getTime()).toBe(now + ONE_HOUR);
+        });
+
+        test('a not-yet-due item still adds to its due date (never pulled earlier)', () => {
+            const dueInFive = new Date(now + 5 * ONE_HOUR);
+            expect(Shop.pushedBackDueDate(dueInFive, ONE_HOUR, now).getTime()).toBe(now + 6 * ONE_HOUR);
+        });
+
+        test('due exactly now is the same either way', () => {
+            expect(Shop.pushedBackDueDate(new Date(now), ONE_HOUR, now).getTime()).toBe(now + ONE_HOUR);
+        });
+
+        test('zero pushbackMs stays a no-op even for an overdue item', () => {
+            const late = new Date(now - 3 * ONE_HOUR);
+            expect(Shop.pushedBackDueDate(late, 0, now).getTime()).toBe(late.getTime());
+        });
+
+        test('the 1 hr tier now clears a zombie that was over an hour late (it did not before)', () => {
+            const late = new Date(now - 3 * ONE_HOUR);
+            expect(Shop.pushedBackDueDate(late, ONE_HOUR).getTime()).toBeLessThan(now); // old behaviour: still overdue
+            expect(Shop.pushedBackDueDate(late, ONE_HOUR, now).getTime()).toBeGreaterThan(now);
+        });
+
+        test('never mutates the input Date', () => {
+            const late = new Date(now - 3 * ONE_HOUR);
+            const before = late.getTime();
+            Shop.pushedBackDueDate(late, ONE_HOUR, now);
+            expect(late.getTime()).toBe(before);
+        });
+    });
 });
 
 describe('consume', () => {

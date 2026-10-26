@@ -68,8 +68,8 @@ const Economy = (() => {
 
     // ---- Distance-priced rescheduling (Build 2, 2026-10-25; docs/ECONOMY.md
     // "Rescheduling price", docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md Q2) ----
-    // Moving a task's due time LATER costs the pushback tier for the distance moved
-    // (rounded UP to the next tier; beyond the largest tier, whole multiples of it)
+    // Moving a task's due time LATER costs the pushback tier for the distance moved,
+    // measured from the later of its current due and now (rounded UP to the next tier; beyond the largest tier, whole multiples of it)
     // x a factor for the urgency zone of the time left to the CURRENT due at save
     // time. Pure: the caller supplies the zone (Clock.getWalkUrgencyTier, with null
     // = 'overdue'), the tiers, factors and the weekly free-use count.
@@ -118,7 +118,10 @@ const Economy = (() => {
 
         const tiers = opts.tiers || [];
         if (tiers.length === 0) return { later: true, cost: 0, free: true, reason: 'calm', consumesFreeUse: false };
-        const delta = newMs - currentMs;
+        // Distance is measured from the later of the current due and now
+        // (2026-10-26, Jeremy): an overdue item moved to 1 h from now is a 1 hr
+        // pushback, not (hours overdue + 1 h). Same rule as the shop pushback.
+        const delta = Math.max(0, newMs - Math.max(currentMs, nowMs));
         const fit = tiers.find(t => t.pushbackMs >= delta);
         let tierCost;
         if (fit) {

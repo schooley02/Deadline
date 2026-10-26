@@ -462,7 +462,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Distance-priced rescheduling (Build 2, 2026-10-25). Pure pricing lives in
     // Economy.reschedulePrice; these two adapters read live state. The price is
-    // computed against the item's CURRENT due at save time.
+    // computed against the item's CURRENT due at save time; the distance moved is
+    // measured from the later of that due and now (2026-10-26), matching the shop
+    // pushback, so an overdue item moved to 1 h from now costs the 1 hr tier.
     function reschedulePricingFor(item, newDue) {
         const now = new Date();
         const zone = Clock.getWalkUrgencyTier({ dueDateTime: item.dueDateTime }, now) || 'overdue';
@@ -2174,7 +2176,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         State.setPlayerPoints(result.newPoints);
-        targetItem.dueDateTime = Shop.pushedBackDueDate(targetItem.dueDateTime, item.effect.pushbackMs);
+        // Counts from the later of now and the current due (2026-10-26, Jeremy): an
+        // overdue zombie is pushed to now + tier, so even the 1 hr tier clears it.
+        targetItem.dueDateTime = Shop.pushedBackDueDate(targetItem.dueDateTime, item.effect.pushbackMs, Date.now());
 
         // Dependent due dates ([P1-DATA-004] sub-session 2): a SUB-TASK can't
         // be pushed past its parent's deadline — the pushed date clamps to the

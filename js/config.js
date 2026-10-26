@@ -327,7 +327,7 @@ const CONFIG = {
     //             Cheat Day); false = applied instantly on purchase (pushback)
     //   effect    category-specific params:
     //             repair   -> { healAmount }  HP restored per use
-    //             pushback -> { pushbackMs }   ms the target's due date shifts later
+    //             pushback -> { pushbackMs }   ms added to the LATER of now and the target's due date (2026-10-26)
     //             cheatDay -> {} (no numeric effect — applying it just sets
     //                         the target habit's cheatDayDate; see items.js)
     SHOP_ITEMS: [

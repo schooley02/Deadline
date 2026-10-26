@@ -40,6 +40,27 @@ describe('reschedulePrice', () => {
         const r = base({ newDue: new Date(now.getTime() + 2 * H + 25 * H) });
         expect(r.cost).toBe(600);
     });
+    // 2026-10-26 (Jeremy): distance is measured from the later of the current due and now.
+    describe('overdue items are priced from now', () => {
+        const overdue = (newDue) => base({ currentDue: new Date(now.getTime() - 3 * H), newDue, zone: 'overdue' });
+
+        test('3 h overdue moved to 1 h from now = the 1hr tier (was the 1day tier)', () => {
+            expect(overdue(new Date(now.getTime() + 1 * H)).cost).toBe(50);
+        });
+        test('moved to 90 min from now = the 2hr tier', () => {
+            expect(overdue(new Date(now.getTime() + 90 * 60000)).cost).toBe(100);
+        });
+        test('moved to 25 h from now = whole multiples of the day price', () => {
+            expect(overdue(new Date(now.getTime() + 25 * H)).cost).toBe(600);
+        });
+        test('moved later but still in the past costs the smallest tier, as before', () => {
+            const r = overdue(new Date(now.getTime() - 2 * H));
+            expect(r).toMatchObject({ later: true, cost: 50, free: false });
+        });
+        test('a not-yet-due item is still priced by distance from its due date', () => {
+            expect(base({ newDue: new Date(now.getTime() + 2 * H + 90 * 60000) }).cost).toBe(100);
+        });
+    });
     test('approaching zone halves, overdue is full, calm is free', () => {
         expect(base({ zone: 'approaching' }).cost).toBe(25);
         expect(base({ zone: 'overdue' }).cost).toBe(50);

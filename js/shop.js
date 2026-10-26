@@ -103,9 +103,18 @@ const Shop = (() => {
      * no-op shift (returns an equal-valued new Date). The caller is
      * responsible for re-deriving overdue state afterwards
      * (Items.recomputeOverdueStateAfterEdit).
+     *
+     * nowMs (2026-10-26, Jeremy -- BALANCE CHANGE): when given, the shift is
+     * added to the LATER of the current due date and now, so a pushback on an
+     * overdue zombie counts from now (any tier clears it) while one on a
+     * not-yet-due item still adds to its due date (it can never pull a due
+     * date earlier). Omitted = the old behaviour (add to the due date).
      */
-    function pushedBackDueDate(currentDueDate, pushbackMs) {
-        return new Date(currentDueDate.getTime() + (pushbackMs || 0));
+    function pushedBackDueDate(currentDueDate, pushbackMs, nowMs) {
+        if (!pushbackMs) return new Date(currentDueDate.getTime());
+        const dueMs = currentDueDate.getTime();
+        const baseMs = (typeof nowMs === 'number' && isFinite(nowMs)) ? Math.max(dueMs, nowMs) : dueMs;
+        return new Date(baseMs + pushbackMs);
     }
 
     /**
