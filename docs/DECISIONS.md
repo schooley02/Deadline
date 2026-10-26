@@ -4,6 +4,10 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-26 -- Hero stands in its zombie's lane (Jeremy; Claude app session, Sonnet; visual only, no balance numbers changed)
+- **Decision:** a spotlit hero shares the lane of one of its zombies in landscape and the portrait strip (Jeremy said "profile view" -- read as portrait). The hero's feet sit on the zombie element's bottom edge; measured live, so portrait attackers (4px + lane pitch) and walkers (dots) and landscape ground lanes all line up. Which zombie when a hero has several: the tapped one, else the work-timer item, else an attacker, then soonest due.
+- **Wiring:** `HeroSpotlight.pickLaneItem` (pure) + `setLaneBottom`; script.js `laneFeetBottomFor` / `refreshHeroLane` (inside `refreshHeroAttack`, 500 ms, forced on spotlight / timer start); CSS var `--hero-lane-bottom` with the old 8px / 2px defaults. sw v105.
+
 ## 2026-10-26 -- Hero art sized to match its category zombie (Jeremy; Claude app session, Sonnet; visual only, no balance numbers changed)
 - **Why:** on the phone heroes read smaller than zombies. Measured visible figure heights (alpha bbox, median over frames): at equal scale the hero is 0-18% shorter than the same-category zombie (financial/other match), and in the portrait strip it drew at 0.45 against 0.5 for at-base zombies.
 - **Decision:** hero scale = base x fit. Base 1 (landscape) / 0.5 (portrait strip). Fit per category (never below 1): career 1.16, creativity 1.07, financial 1.00, health 1.20, lifestyle 1.14, other 1.00, relationships 1.15, spirituality 1.22. Tune any value in css/heroSpotlight.css; test/heroArt.test.js pins presence and the 1-1.5 range. sw v104.

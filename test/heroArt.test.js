@@ -70,6 +70,13 @@ describe('hero size fit (2026-10-26)', () => {
     });
 });
 
+describe('hero lane position (2026-10-26)', () => {
+    test('atlas heroes take their feet line from --hero-lane-bottom, defaulting to the old spots', () => {
+        expect(css).toMatch(/bottom: calc\(var\(--hero-lane-bottom, 8px\) - \(var\(--hero-cell\) - var\(--hero-feet\)\) \* var\(--hero-scale\)\);/);
+        expect(css).toMatch(/bottom: calc\(var\(--hero-lane-bottom, 2px\) - \(var\(--hero-cell\) - var\(--hero-feet\)\) \* var\(--hero-scale\)\);/);
+    });
+});
+
 describe('hurtloop row (2026-10-26)', () => {
     test('css loops the hurt row with the same frames/fps as the one-shot', () => {
         expect(css).toMatch(/\.hero-sprite\[data-anim="hurtloop"\] \{ --hero-row: 2; --hero-oneshot-frames: 9; --hero-oneshot-fps: 10; \}/);

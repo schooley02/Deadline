@@ -134,6 +134,29 @@ const HeroSpotlight = (() => {
         return Array.from(seen);
     }
 
+    /**
+     * Which of a hero's zombies it stands beside (2026-10-26: the hero takes that zombie's LANE).
+     * Candidates = active items that resolve to `heroId`. Order: the explicitly preferred item
+     * (the one tapped / the one the work timer runs on) if it is still a candidate, else an
+     * attacker (overdue and threatening) before a calm one, then the soonest due, then lowest id.
+     * Returns the item or null.
+     */
+    function pickLaneItem(heroId, activeItems, findRoutine, categories, preferredId, isNonThreatening) {
+        const mine = (activeItems || []).filter(it => {
+            if (!it) return false;
+            const hero = resolveHeroForItem(it, activeItems, findRoutine, categories);
+            return !!hero && String(hero.id) === String(heroId);
+        });
+        if (!mine.length) return null;
+        if (preferredId !== null && preferredId !== undefined) {
+            const pref = mine.find(it => it.id === preferredId);
+            if (pref) return pref;
+        }
+        const attacking = it => (it.isOverdue && !(typeof isNonThreatening === 'function' && isNonThreatening(it))) ? 0 : 1;
+        const dueMs = it => { const t = it.dueDateTime ? new Date(it.dueDateTime).getTime() : NaN; return isNaN(t) ? Infinity : t; };
+        return mine.slice().sort((a, b) => (attacking(a) - attacking(b)) || (dueMs(a) - dueMs(b)) || (a.id - b.id))[0];
+    }
+
     // ---- One-shot reactions (hurt / levelup) ---------------------------------
     const ONESHOT_KINDS = ['hurt', 'levelup'];
 
@@ -298,6 +321,18 @@ const HeroSpotlight = (() => {
         heroEl.innerHTML = spriteHtml(look.anim);
     }
 
+    // Lane (2026-10-26): script.js measures the focal zombie's feet line and hands over the distance
+    // from the canvas bottom (px), or null for the default front-lane spot. Written only on change.
+    let laneBottomPx = null;
+    function setLaneBottom(px) {
+        const v = (typeof px === 'number' && isFinite(px)) ? px : null;
+        if (v === laneBottomPx) return;
+        laneBottomPx = v;
+        if (!heroEl) return;
+        if (v === null) heroEl.style.removeProperty('--hero-lane-bottom');
+        else heroEl.style.setProperty('--hero-lane-bottom', v + 'px');
+    }
+
     function renderWork() {
         if (!heroEl || !workRoutine) return;
         renderInto(heroLookFor(workRoutine, configRef, { underAttack: isAttacked(workRoutine.id) }));
@@ -356,6 +391,9 @@ const HeroSpotlight = (() => {
     return {
         resolveRoutineForItem,
         resolveHeroForItem,
+        pickLaneItem,
+        setLaneBottom,
+        getVisibleRoutineId: () => visibleRoutineId(),
         attackedHeroIds,
         setAttackedHeroes,
         isAttacked,

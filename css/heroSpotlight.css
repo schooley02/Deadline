@@ -109,7 +109,9 @@
     width: calc(var(--hero-cell) * var(--hero-scale));
     height: calc(var(--hero-cell) * var(--hero-scale));
     /* plant the feet row on the same 8px front-lane line the emoji block used */
-    bottom: calc(8px - (var(--hero-cell) - var(--hero-feet)) * var(--hero-scale));
+    /* feet on the lane of the zombie it stands beside (--hero-lane-bottom, written by script.js
+       refreshHeroLane); default = the front-lane line, 8px up */
+    bottom: calc(var(--hero-lane-bottom, 8px) - (var(--hero-cell) - var(--hero-feet)) * var(--hero-scale));
     display: block;
     background: none;
     border: 0;
@@ -240,7 +242,7 @@ body.glance-strip .hero-spotlight--atlas {
     --hero-base: 0.5;
     width: calc(var(--hero-cell) * var(--hero-scale));
     height: calc(var(--hero-cell) * var(--hero-scale));
-    bottom: calc(2px - (var(--hero-cell) - var(--hero-feet)) * var(--hero-scale));
+    bottom: calc(var(--hero-lane-bottom, 2px) - (var(--hero-cell) - var(--hero-feet)) * var(--hero-scale));
     border: 0;
     border-radius: 0;
 }

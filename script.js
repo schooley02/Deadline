@@ -885,6 +885,34 @@ document.addEventListener('DOMContentLoaded', () => {
         heroSpotlightReady = true;
     }
 
+    // Hero lane (2026-10-26): the hero stands on the feet line (= bottom edge of the element) of one of
+    // its zombies, so it shares that zombie's lane in landscape and in the portrait strip.
+    // Focus: the zombie tapped, else the one the work timer runs on, else the pick in
+    // HeroSpotlight.pickLaneItem (attacker first, then soonest due).
+    let heroFocusItemId = null;
+    let heroWorkItemId = null;
+    function laneFeetBottomFor(item) {
+        const el = item && item.element;
+        if (!el || !gameCanvas || !el.getBoundingClientRect || !gameCanvas.getBoundingClientRect) return null;
+        if (el.classList && el.classList.contains('strip-hidden')) return null;
+        const er = el.getBoundingClientRect();
+        if (!er.height) return null;
+        const cr = gameCanvas.getBoundingClientRect();
+        // absolute `bottom` is measured from the padding box's bottom edge
+        const padBottom = cr.top + (gameCanvas.clientTop || 0) + gameCanvas.clientHeight;
+        const px = padBottom - er.bottom;
+        return (isFinite(px) && px > -2 && px < gameCanvas.clientHeight) ? Math.round(px * 2) / 2 : null;
+    }
+    function refreshHeroLane() {
+        if (!heroSpotlightReady) return;
+        const vid = HeroSpotlight.getVisibleRoutineId();
+        if (vid === null || vid === undefined) { HeroSpotlight.setLaneBottom(null); return; }
+        const tapped = HeroSpotlight.getCurrentRoutineId() !== null;
+        const item = HeroSpotlight.pickLaneItem(vid, State.getActiveItems(), findRoutineForItemDeps, CONFIG.HERO_CATEGORIES,
+            tapped ? heroFocusItemId : heroWorkItemId, Items.isNonThreatening);
+        HeroSpotlight.setLaneBottom(item ? laneFeetBottomFor(item) : null);
+    }
+
     // Heroes whose zombies are attacking loop the hurt row (2026-10-26). Same rule as the church pulse:
     // overdue and not Items.isNonThreatening. Blank while the time slider previews or after game over.
     let heroAttackLastMs = 0;
@@ -896,10 +924,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const ids = (timePreviewActive || State.isGameOver()) ? []
             : HeroSpotlight.attackedHeroIds(State.getActiveItems(), findRoutineForItemDeps, CONFIG.HERO_CATEGORIES, Items.isNonThreatening);
         HeroSpotlight.setAttackedHeroes(ids);
+        refreshHeroLane();
     }
 
     function spotlightRoutine(routineId, opts) {
         ensureHeroSpotlight();
+        heroFocusItemId = (opts && opts.itemId !== undefined) ? opts.itemId : null;
         refreshHeroAttack(true);
         if (!HeroSpotlight.show(routineId)) return;
         // Portrait: the strip scrolls away with the page, so a tap deep in the
@@ -921,7 +951,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const item = State.getActiveItems().find(i => i.id === itemId);
         if (!item) return;
         const hero = HeroSpotlight.resolveHeroForItem(item, State.getActiveItems(), findRoutineForItemDeps, CONFIG.HERO_CATEGORIES);
-        if (hero) spotlightRoutine(hero.id, opts);
+        if (hero) spotlightRoutine(hero.id, Object.assign({}, opts, { itemId }));
     }
 
     // ---- Work timer (Build 3, 2026-10-25; docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md Q3) ----
@@ -938,6 +968,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function syncWorkHero(runningAny) {
         // Limit timers (negative habits) have no hero.
         const running = (runningAny && !Timer.isLimit(runningAny)) ? runningAny : null;
+        heroWorkItemId = running ? running.id : null;
         if (!running) {
             if (workHeroKey !== null) { workHeroKey = null; HeroSpotlight.setWork(null); }
             return;

@@ -100,6 +100,52 @@ describe('hurt loop while a zombie attacks (2026-10-26)', () => {
     });
 });
 
+describe('pickLaneItem: which zombie the hero stands beside (2026-10-26)', () => {
+    const cats = CONFIG.HERO_CATEGORIES;
+    const find = (it) => (it.definitionId === 'd1' ? routineA : null);
+    const nonThreat = (it) => !!it.koGhost;
+    const at = (h) => new Date(2026, 9, 26, h, 0, 0);
+
+    test('only items that resolve to the hero are candidates', () => {
+        const items = [
+            { id: 1, category: 'health', definitionId: 'd1', dueDateTime: at(9) },
+            { id: 2, category: 'health', dueDateTime: at(8) },
+        ];
+        expect(HeroSpotlight.pickLaneItem('rA', items, find, cats).id).toBe(1);
+        expect(HeroSpotlight.pickLaneItem('__cat:health', items, find, cats).id).toBe(2);
+        expect(HeroSpotlight.pickLaneItem('rZ', items, find, cats)).toBeNull();
+        expect(HeroSpotlight.pickLaneItem('rA', null, find, cats)).toBeNull();
+    });
+
+    test('the preferred (tapped / timed) item wins while it is still a candidate', () => {
+        const items = [
+            { id: 1, category: 'health', definitionId: 'd1', dueDateTime: at(9), isOverdue: true },
+            { id: 2, category: 'health', definitionId: 'd1', dueDateTime: at(18) },
+        ];
+        expect(HeroSpotlight.pickLaneItem('rA', items, find, cats, 2, nonThreat).id).toBe(2);
+        expect(HeroSpotlight.pickLaneItem('rA', items, find, cats, 99, nonThreat).id).toBe(1); // gone -> default
+    });
+
+    test('default: an attacker before a calm one, then soonest due, then lowest id', () => {
+        const calmSoon = { id: 1, category: 'health', definitionId: 'd1', dueDateTime: at(10) };
+        const calmLate = { id: 2, category: 'health', definitionId: 'd1', dueDateTime: at(20) };
+        const attacker = { id: 3, category: 'health', definitionId: 'd1', dueDateTime: at(23), isOverdue: true };
+        const ghost = { id: 4, category: 'health', definitionId: 'd1', dueDateTime: at(1), isOverdue: true, koGhost: true };
+        expect(HeroSpotlight.pickLaneItem('rA', [calmLate, calmSoon, attacker], find, cats, null, nonThreat).id).toBe(3);
+        expect(HeroSpotlight.pickLaneItem('rA', [calmLate, calmSoon], find, cats, null, nonThreat).id).toBe(1);
+        expect(HeroSpotlight.pickLaneItem('rA', [ghost, calmLate], find, cats, null, nonThreat).id).toBe(4); // a ghost is not an attacker, so it is ordered by due time
+        const tieA = { id: 7, category: 'health', definitionId: 'd1', dueDateTime: at(12) };
+        const tieB = { id: 5, category: 'health', definitionId: 'd1', dueDateTime: at(12) };
+        expect(HeroSpotlight.pickLaneItem('rA', [tieA, tieB], find, cats).id).toBe(5);
+    });
+
+    test('a sub-task counts for its parent routine hero', () => {
+        const parent = { id: 1, category: 'career', definitionId: 'd1', dueDateTime: at(9) };
+        const sub = { id: 2, parentId: 1, category: 'career', dueDateTime: at(8) };
+        expect(HeroSpotlight.pickLaneItem('rA', [parent, sub], find, cats, 2).id).toBe(2);
+    });
+});
+
 describe('resolveRoutineForItem', () => {
     const findRoutine = jest.fn(item => (item.definitionId === 'd1' ? routineA : null));
     beforeEach(() => findRoutine.mockClear());
