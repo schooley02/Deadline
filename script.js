@@ -916,7 +916,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return routine || { id: '__other', name: 'Other', heroCategory: 'other', isActive: true };
     }
 
-    function syncWorkHero(running) {
+    function syncWorkHero(runningAny) {
+        // Limit timers (negative habits) have no hero.
+        const running = (runningAny && !Timer.isLimit(runningAny)) ? runningAny : null;
         if (!running) {
             if (workHeroKey !== null) { workHeroKey = null; HeroSpotlight.setWork(null); }
             return;
@@ -935,8 +937,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!btn) return;
             const running = Timer.isRunning(item);
             btn.classList.toggle('running', running);
-            btn.textContent = running ? `\u23F9 ${Timer.formatElapsed(Timer.elapsedMs(item, nowMs))}` : '\u23F1';
-            btn.title = running ? 'Stop timer' : 'Start timer';
+            btn.textContent = Timer.buttonLabel(item, nowMs);
+            btn.title = running ? (Timer.isLimit(item) ? 'Stop \u2014 I stayed within my limit' : 'Stop timer') : (Timer.isLimit(item) ? 'Start limit timer' : 'Start timer');
             btn.setAttribute('aria-label', btn.title);
         });
     }
@@ -948,12 +950,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!item) return { ok: false };
         const now = Date.now();
         if (Timer.isRunning(item)) {
+            if (Timer.isLimit(item)) {
+                // Stopping a limit timer inside its budget = Avoided (completeItem stops + banks it).
+                Items.completeItem(itemId, itemsDeps());
+                syncWorkHero(null);
+                updateTimerButtons(now);
+                saveGame();
+                return { ok: true, running: false, completed: true };
+            }
             Timer.stop(item, now);
         } else {
-            if (!Timer.canWorkTimer(item)) return { ok: false };
+            if (!Timer.canTimer(item)) return { ok: false };
             const other = Timer.findRunning(items);
             if (other) Timer.stop(other, now);
             Timer.start(item, now);
+            if (Timer.isLimit(item)) {
+                // Starting a limit timer IS the day's arrival prompt (no second popup at the time of day).
+                const def = State.getDefinedHabits().find(d => d.id === item.definitionId);
+                if (def) def.arrivalPromptedFor = Habits.toOccurrenceDate(item.originalDueDate || item.dueDateTime);
+            }
         }
         syncWorkHero(Timer.findRunning(items));
         updateTimerButtons(now);
@@ -972,7 +987,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (nowMs - lastTimerLabelMs >= 1000) { lastTimerLabelMs = nowMs; updateTimerButtons(nowMs); }
         const action = Timer.pendingAction(running, nowMs);
         if (!action) return;
-        if (action === 'target') {
+        if (action === 'limit-expired') {
+            // Budget used up: stop (banking it all) and open the "Time's up" popup.
+            Timer.stop(running, nowMs);
+            updateTimerButtons(nowMs);
+            saveGame();
+            if (typeof CheckIn !== 'undefined') {
+                CheckIn.queueArrivalPrompt(running, {
+                    expired: true,
+                    completeItem: (id) => Items.completeItem(id, itemsDeps()),
+                    indulgeHabit: (id) => Items.indulgeHabit(id, itemsDeps()),
+                });
+            }
+        } else if (action === 'target') {
             const minutes = running.timerMinutes;
             Timer.stop(running, nowMs);
             syncWorkHero(null);
@@ -1297,7 +1324,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Habit system functions
-    function createHabitDefinition(name, category, scheduleOrFrequency, timeOfDay, isNegative = false) {
+    function createHabitDefinition(name, category, scheduleOrFrequency, timeOfDay, isNegative = false, timerMinutes = null) {
         const newHabitDef = {
             id: `habitDef_${State.getDefinedHabits().length}_${Date.now()}`,
             name,
@@ -1309,6 +1336,8 @@ document.addEventListener('DOMContentLoaded', () => {
             schedule: Schedule.normalize(scheduleOrFrequency),
             timeOfDay,
             isNegative,
+            timerMode: timerMinutes ? (isNegative ? 'limit' : 'work') : null,
+            timerMinutes: timerMinutes || null,
             // null = standalone (not owned by any routine), so it spawns daily
             // regardless of routine state. See docs/DATA_SCHEMA.md's Habit shape
             // and Habits.selectHabitDefsToSpawn.

@@ -432,7 +432,12 @@ const Habits = (() => {
             listItemElement: null,
             originalDueDate: new Date(dueDateTime),
             // Cumulative offline overdue damage ever charged — see createTaskItemData.
-            offlineDamageCharged: 0
+            offlineDamageCharged: 0,
+            // Timer (Build 4, 2026-10-25): copied from the definition. For a negative habit
+            // timerMinutes is the LIMIT budget; for a positive habit a work goal.
+            timer: null,
+            timerMsBanked: 0,
+            timerMinutes: (typeof habitDef.timerMinutes === 'number' && habitDef.timerMinutes > 0) ? habitDef.timerMinutes : null
         };
 
         // [P1-DATA-005] A negative habit lurker spawns on the normal timeline

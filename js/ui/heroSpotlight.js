@@ -63,8 +63,7 @@ const HeroSpotlight = (() => {
      * zombie (KO look B -- only ever shown inside the spotlight, never as a
      * live enemy).
      */
-    // opts.working (Build 3 work timer): an active atlas hero plays the ATTACK row.
-    function heroLookFor(routine, config, opts) {
+    function heroLookFor(routine, config) {
         const category = Heroes.heroCategoryFor(routine, config.HERO_CATEGORIES);
         const state = deriveState(routine);
         const koLook = config.HERO_KO_LOOK === 'zombie' ? 'zombie' : 'faded';
@@ -80,7 +79,7 @@ const HeroSpotlight = (() => {
             emoji: (config.CATEGORY_EMOJI && config.CATEGORY_EMOJI[category]) || '⭐',
             sprite: kind === 'zombie' ? zombieSpriteFor(category) : null,
             koLook,
-            anim: state === 'ko' ? 'ko' : ((opts && opts.working && state === 'active') ? 'attack' : 'idle'), // atlas row; only meaningful for kind 'atlas'
+            anim: state === 'ko' ? 'ko' : 'idle', // atlas row; only meaningful for kind 'atlas'
         };
     }
 
@@ -182,7 +181,7 @@ const HeroSpotlight = (() => {
 
     function renderWork() {
         if (!heroEl || !workRoutine) return;
-        renderInto(heroLookFor(workRoutine, configRef, { working: true }));
+        renderInto(heroLookFor(workRoutine, configRef));
         scrimEl.classList.remove('active');
         heroEl.classList.add('active');
         heroEl.classList.add('hero-spotlight--working');

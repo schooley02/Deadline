@@ -1073,6 +1073,8 @@ const Items = (() => {
 
         const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
         if (!habitDef || !habitDef.isNegative) return;
+        // Limit timer (Build 4): indulging ends it, banking the time.
+        if (typeof Timer !== 'undefined' && Timer.isRunning(item)) Timer.stop(item, Date.now());
 
         if (isCheatDayExcused(habitDef, item.originalDueDate)) {
             // Marker intentionally kept — see the header comment (session 57).

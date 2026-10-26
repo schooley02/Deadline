@@ -193,15 +193,15 @@ const AgendaList = (() => {
         completeCheckboxLabel.appendChild(checkboxLabel);
 
         // Work timer (Build 3): start/stop on the row; script.js refreshes the label each second.
-        if (typeof deps.toggleWorkTimer === 'function' && typeof Timer !== 'undefined' && Timer.canWorkTimer(itemData)) {
+        if (typeof deps.toggleWorkTimer === 'function' && typeof Timer !== 'undefined' && Timer.canTimer(itemData)) {
             const timerBtn = document.createElement('button');
             timerBtn.type = 'button';
             timerBtn.classList.add('work-timer-btn');
             timerBtn.dataset.itemId = itemData.id;
             const running = Timer.isRunning(itemData);
-            timerBtn.textContent = running ? `\u23F9 ${Timer.formatElapsed(Timer.elapsedMs(itemData, Date.now()))}` : '\u23F1';
+            timerBtn.textContent = Timer.buttonLabel(itemData, Date.now());
             timerBtn.classList.toggle('running', running);
-            timerBtn.title = running ? 'Stop timer' : 'Start timer';
+            timerBtn.title = running ? (Timer.isLimit(itemData) ? 'Stop \u2014 I stayed within my limit' : 'Stop timer') : (Timer.isLimit(itemData) ? 'Start limit timer' : 'Start timer');
             timerBtn.setAttribute('aria-label', timerBtn.title);
             timerBtn.addEventListener('click', (e) => {
                 e.stopPropagation();

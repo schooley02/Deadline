@@ -21,6 +21,17 @@ const Timer = (() => {
         return typeof src[key] === 'number' ? src[key] : DEFAULTS[key];
     }
 
+    // Definition-level target (habit editors): minutes 1..600 or null. A NEGATIVE habit's
+    // value is a LIMIT budget ('limit'); a positive habit's is a work goal ('work').
+    function normalizeTarget(value) {
+        const n = Math.floor(Number(value));
+        return (isFinite(n) && n >= 1 && n <= 600) ? n : null;
+    }
+    function modeFor(isNegative, minutes) {
+        if (normalizeTarget(minutes) === null) return null;
+        return isNegative ? 'limit' : 'work';
+    }
+
     function isRunning(item) {
         return !!(item && item.timer && typeof item.timer.startedAt === 'number');
     }
@@ -33,6 +44,36 @@ const Timer = (() => {
         return item.type === 'habit' && item.isNegative !== true;
     }
 
+    // Limit timer (Build 4): a NEGATIVE habit with a budget (item.timerMinutes) counts DOWN.
+    // Stopping inside the budget = Avoided (caller completes the item); running out opens the
+    // "Time's up" arrival popup. Limit timers have no "Still working?" prompt and no damage.
+    function isLimit(item) {
+        return !!item && item.type === 'habit' && item.isNegative === true;
+    }
+    function canLimitTimer(item) {
+        return isLimit(item) && item.koGhost !== true && typeof item.timerMinutes === 'number' && item.timerMinutes > 0;
+    }
+    function canTimer(item) {
+        return canWorkTimer(item) || canLimitTimer(item);
+    }
+    function remainingMs(item, nowMs) {
+        const budget = (item && typeof item.timerMinutes === 'number') ? item.timerMinutes * 60000 : 0;
+        return Math.max(0, budget - elapsedMs(item, nowMs));
+    }
+    // Row button text and popup button text.
+    function buttonLabel(item, nowMs) {
+        if (!isRunning(item)) return '\u23F1';
+        return isLimit(item)
+            ? `\u23F3 ${formatElapsed(remainingMs(item, nowMs))}`
+            : `\u23F9 ${formatElapsed(elapsedMs(item, nowMs))}`;
+    }
+    function popupLabel(item) {
+        if (isLimit(item)) {
+            return isRunning(item) ? '\u23F9 Stop \u2014 I stayed within my limit' : `\u23F3 Start ${item.timerMinutes}-min limit`;
+        }
+        return isRunning(item) ? '\u23F9 Stop timer' : '\u23F1 Start timer';
+    }
+
     function elapsedMs(item, nowMs) {
         const banked = (item && typeof item.timerMsBanked === 'number') ? item.timerMsBanked : 0;
         const live = isRunning(item) ? Math.max(0, nowMs - item.timer.startedAt) : 0;
@@ -40,7 +81,7 @@ const Timer = (() => {
     }
 
     function start(item, nowMs) {
-        if (!canWorkTimer(item) || isRunning(item)) return false;
+        if (!canTimer(item) || isRunning(item)) return false;
         item.timer = { startedAt: nowMs, checkedAt: nowMs, promptedAt: null };
         if (typeof item.timerMsBanked !== 'number') item.timerMsBanked = 0;
         return true;
@@ -67,6 +108,7 @@ const Timer = (() => {
     function pendingAction(item, nowMs, c) {
         if (!isRunning(item)) return null;
         const t = item.timer;
+        if (isLimit(item)) return remainingMs(item, nowMs) <= 0 ? 'limit-expired' : null;
         if (typeof item.timerMinutes === 'number' && item.timerMinutes > 0
             && elapsedMs(item, nowMs) >= item.timerMinutes * 60000) return 'target';
         if (typeof t.promptedAt === 'number') {
@@ -121,7 +163,8 @@ const Timer = (() => {
     }
 
     return {
-        isRunning, canWorkTimer, elapsedMs, start, stop, findRunning,
+        normalizeTarget, modeFor, isRunning, canWorkTimer, isLimit, canLimitTimer, canTimer,
+        remainingMs, buttonLabel, popupLabel, elapsedMs, start, stop, findRunning,
         pendingAction, promptDueAt, markPrompted, confirmStillWorking, autoStop,
         damageIntervalMs, formatElapsed,
     };

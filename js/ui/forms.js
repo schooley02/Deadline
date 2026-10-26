@@ -270,6 +270,11 @@ const Forms = (() => {
                     <option value="evening">Evening (by 10 PM)</option>
                 </select>
             </div>
+            <div class="form-row">
+                <label for="modalHabitTimerMinutes">Timer (minutes, optional):</label>
+                <input type="number" id="modalHabitTimerMinutes" min="1" max="600" step="1" inputmode="numeric" placeholder="e.g. 30">
+                <small class="form-hint">Negative habit: a limit &mdash; start the timer and stop before it runs out to count as avoided. Positive habit: a work goal that completes it.</small>
+            </div>
             <div class="modal-buttons">
                 <button id="modalAddHabitButton" class="primary-button">Add Habit</button>
                 <button class="secondary-button" onclick="closeModal()">Cancel</button>
@@ -430,7 +435,9 @@ const Forms = (() => {
                             return;
                         }
 
-                        deps.createHabitDefinition(name, category, schedule, timeOfDay, isNegative);
+                        const habitTimerInput = modal.querySelector('#modalHabitTimerMinutes');
+                        const habitTimerMinutes = habitTimerInput ? Timer.normalizeTarget(habitTimerInput.value) : null;
+                        deps.createHabitDefinition(name, category, schedule, timeOfDay, isNegative, habitTimerMinutes);
                         Modal.closeModal();
 
                         // Update habits window if open

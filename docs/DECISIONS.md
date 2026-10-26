@@ -4,6 +4,18 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-25 -- Limit timer BUILT (Build 4 of the design batch; Claude app session, Sonnet; no balance numbers changed)
+
+Spec = design-batch entry + `docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md` Q3. Implementation calls:
+- **Same engine as the work timer** (`js/timer.js`): a negative habit instance with a budget (`item.timerMinutes`, copied from `habitDef.timerMinutes` at spawn) can run a timer that counts DOWN (`remainingMs`, row label "⏳ mm:ss"). No "Still working?" prompt, no damage interaction, no hero. Shares the one-timer-at-a-time rule: starting any timer stops + banks the other.
+- **Stop inside the budget = Avoided:** the row/popup Stop button calls `Items.completeItem` (success occurrence, streak++, points as today). Indulging (`Items.indulgeHabit`) also stops the timer.
+- **Expiry:** `pendingAction` returns `limit-expired`; script.js stops the timer, banking it all, and opens the existing "Time's up" arrival popup with the card text "its N-minute limit is up. Did you stay within it?" (Avoided / I indulged / Later). Past-expiry on reopen fires the same popup on the next tick (time is a timestamp, never counted).
+- **Starting counts as the day's arrival prompt:** sets `habitDef.arrivalPromptedFor` to the occurrence day, so `promptLurkerArrival` doesn't ask again at the time of day.
+- **Definition editors:** one optional "Timer (minutes)" field on habit create/edit (routine habit forms + the standalone Add Habit form). Meaning follows the habit type: negative = limit budget (`timerMode 'limit'`), positive = work goal (`'work'`). Normalised 1-600 or null. NOT required for negative habits (empty = no timer, nothing changes), a softening of the spec's "required". Routine TASK definitions have no target field yet (deferred; one-off tasks do via Add/Edit Task).
+- **Hero change (Jeremy, 2026-10-25, after Build 3):** the work-timer hero now stays on its IDLE loop instead of the Attack row; the attack CSS was removed.
+
+---
+
 ## 2026-10-25 -- Work timer BUILT (Build 3 of the design batch; Claude app session, Sonnet; no balance numbers changed)
 
 Spec = design-batch entry + `docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md` Q3. Implementation calls:
@@ -12,7 +24,7 @@ Spec = design-batch entry + `docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md` Q3. Impleme
 - **"Still working?"** at `WORK_TIMER_CHECK_MS` of continuous running. promptedAt is stamped at the moment the prompt was DUE (checkedAt + 60 min), not "now", so if the app was closed through the whole window the timer auto-stops on the next tick banking only up to that moment (closed-app time is never credited, and no stale modal).
 - **Target** (`item.timerMinutes`, set in the Add/Edit Task forms, 1-600): reaching it stops the timer and completes through `Items.completeItem`; a parent with open sub-tasks stays open and the notice says so. Banked time counts toward the target.
 - **Completing / removing** an item stops its timer. A running item that becomes a KO ghost is stopped by the per-tick check.
-- **Hero:** `HeroSpotlight.setWork(routine)` keeps the owning routine's hero up on the ATTACK row (atlas row 1, 9 frames, 9 fps, every category), NO scrim, for as long as a timer runs; standalone items use a pseudo "Other" hero. A tap-spotlight temporarily replaces it and it returns. Effects-off / reduced motion hold frame 1.
+- **Hero:** `HeroSpotlight.setWork(routine)` keeps the owning routine's hero up on its IDLE loop (Jeremy 2026-10-25: idle, not the Attack row; the attack CSS was removed), NO scrim, for as long as a timer runs; standalone items use a pseudo "Other" hero. A tap-spotlight temporarily replaces it and it returns. Effects-off / reduced motion hold frame 1.
 - **Deferred:** definition-level targets (`habitDef/taskDef.timerMinutes`, `timerMode` editors) and the time-on-task stats surface -- schema fields exist; nothing reads them yet. Limit timers are Build 4.
 
 ---
@@ -57,7 +69,7 @@ Full write-up and build order: `docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md`. New `js
 - **Accepted gap:** far-out due dates pulled inward stay free — the game prices failure, not caution.
 - **Rejected:** an Edit token (duplicate of pushback with more UI); charging every later edit (fake dates, quitting); more than one free move a week (makes the paid zone noise).
 
-**3. Timers: work (tasks + positive habits) and limit (negative habits).** One running timer at a time, stored as a start timestamp plus banked ms (never counted ticks — 2026-07-18 Decision 2). Work timer: Start/Stop on the item; the owning hero (Other hero for standalone items) plays the shipped Attack row in front of the church, scrim off; overdue base AND routine damage halved while running (never zero); a "Still working?" Modal at 60 min, auto-stop 10 min later banking time only to the prompt; optional `timerMinutes` target completes the item via the normal path. Limit timer (Jeremy's "30 min of social media"): a negative habit with `timerMode 'limit'` and a budget; Start from the lurker popup; stop inside the budget = Avoided (success); budget expiry fires the existing "Time's up" arrival popup (Avoided / I indulged / Later), and starting the limit counts as that day's arrival prompt. Catch-up damage ignores timers. Schema 13 -> 14 (fields listed in the plan).
+**3. Timers: work (tasks + positive habits) and limit (negative habits).** One running timer at a time, stored as a start timestamp plus banked ms (never counted ticks — 2026-07-18 Decision 2). Work timer: Start/Stop on the item; the owning hero (Other hero for standalone items) stays up on its IDLE loop in front of the church, scrim off (changed from the Attack row at Jeremy's request, 2026-10-25); overdue base AND routine damage halved while running (never zero); a "Still working?" Modal at 60 min, auto-stop 10 min later banking time only to the prompt; optional `timerMinutes` target completes the item via the normal path. Limit timer (Jeremy's "30 min of social media"): a negative habit with `timerMode 'limit'` and a budget; Start from the lurker popup; stop inside the budget = Avoided (success); budget expiry fires the existing "Time's up" arrival popup (Avoided / I indulged / Later), and starting the limit counts as that day's arrival prompt. Catch-up damage ignores timers. Schema 13 -> 14 (fields listed in the plan).
 - **Why:** turns time-on-task into play (the Attack row finally has a job) and makes "indulged" measurable for limit habits with machinery that already exists.
 - **Rejected:** zero damage while working (leave-it-running exploit); pomodoro/break scheduling (scope); tasks-only (limit habits are the clearest timer case).
 

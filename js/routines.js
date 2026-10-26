@@ -364,6 +364,9 @@ const Routines = (() => {
             schedule: habitData.schedule ? Schedule.normalize(habitData.schedule) : Schedule.fromLegacyFrequency(habitData.frequency),
             timeOfDay: habitData.timeOfDay,
             isNegative: habitData.isNegative || false,
+            // Timer (Build 4): limit budget (negative) or work goal (positive), minutes or null.
+            timerMode: habitData.timerMinutes ? (habitData.isNegative ? 'limit' : 'work') : null,
+            timerMinutes: habitData.timerMinutes || null,
             // Owned by this routine — only spawns while the routine isActive.
             routineId: routineId,
             streak: 0,
@@ -462,6 +465,10 @@ const Routines = (() => {
         habit.schedule = newSchedule;
         habit.timeOfDay = updatedData.timeOfDay;
         habit.isNegative = updatedData.isNegative;
+        // Timer (Build 4): not a "meaningful" edit for frozen-slot recovery, so it isn't
+        // added to changedFields.
+        habit.timerMinutes = updatedData.timerMinutes || null;
+        habit.timerMode = habit.timerMinutes ? (habit.isNegative ? 'limit' : 'work') : null;
 
         if (changedFields.length > 0) {
             if (!Array.isArray(habit.modificationHistory)) habit.modificationHistory = [];

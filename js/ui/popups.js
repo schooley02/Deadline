@@ -187,8 +187,13 @@ const Popups = (() => {
                 : (heldCheatDays > 0
                     ? `<button type="button" id="useCheatDayBtn" class="negative-habit-button cheatday-btn">Use Cheat Day (${heldCheatDays} held)</button>`
                     : '');
+            const limitOk = typeof deps.toggleWorkTimer === 'function' && typeof Timer !== 'undefined' && Timer.canLimitTimer(item);
+            const limitHtml = limitOk
+                ? `<button type="button" id="workTimerBtn" class="work-timer-btn${Timer.isRunning(item) ? ' running' : ''}">${Timer.popupLabel(item)}</button>`
+                : '';
             return `
                 <div class="task-actions negative-habit-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    ${limitHtml}
                     <button id="editTaskBtn" class="edit-icon-btn" title="Edit Task">✏️</button>
                     <button type="button" id="avoidHabitBtn" class="negative-habit-button avoid-btn">Successfully avoided</button>
                     <button type="button" id="indulgeHabitBtn" class="negative-habit-button indulge-btn">I indulged</button>
@@ -204,10 +209,10 @@ const Popups = (() => {
         const openSubTaskCount = (item.type === 'task' && item.subTasks) ? item.subTasks.length : 0;
         const hasOpenSubTasks = openSubTaskCount > 0;
         const remainingSuffix = openSubTaskCount === 1 ? '' : 's';
-        const timerOk = typeof deps.toggleWorkTimer === 'function' && typeof Timer !== 'undefined' && Timer.canWorkTimer(item);
+        const timerOk = typeof deps.toggleWorkTimer === 'function' && typeof Timer !== 'undefined' && Timer.canTimer(item);
         const timerRunning = timerOk && Timer.isRunning(item);
         const timerHtml = timerOk
-            ? `<button type="button" id="workTimerBtn" class="work-timer-btn${timerRunning ? ' running' : ''}">${timerRunning ? '\u23F9 Stop timer' : '\u23F1 Start timer'}</button>`
+            ? `<button type="button" id="workTimerBtn" class="work-timer-btn${timerRunning ? ' running' : ''}">${Timer.popupLabel(item)}</button>`
             : '';
         return `
             <div class="task-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
@@ -316,8 +321,9 @@ const Popups = (() => {
             workTimerButton.addEventListener('click', () => {
                 const r = deps.toggleWorkTimer(item.id);
                 if (r && r.ok) {
+                    if (r.completed) { Modal.closeModal(); return; }
                     workTimerButton.classList.toggle('running', r.running);
-                    workTimerButton.textContent = r.running ? '\u23F9 Stop timer' : '\u23F1 Start timer';
+                    workTimerButton.textContent = Timer.popupLabel(item);
                 }
             });
         }

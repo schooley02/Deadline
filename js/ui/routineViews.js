@@ -1108,6 +1108,11 @@ const RoutineViews = (() => {
                             <option value="evening">Evening (by 10 PM)</option>
                         </select>
                     </div>
+                    <div class="form-row">
+                        <label for="newHabitTimerMinutes">Timer (minutes, optional):</label>
+                        <input type="number" id="newHabitTimerMinutes" min="1" max="600" step="1" inputmode="numeric" value="" placeholder="e.g. 30">
+                        <small class="form-hint">Negative habit: a limit &mdash; start the timer and stop before it runs out to count as avoided. Positive habit: a work goal that completes it.</small>
+                    </div>
                     <div class="modal-buttons">
                         <button class="primary-button" onclick="saveNewHabit('${routineId}')">Create Habit</button>
                         <button class="secondary-button" onclick="closeModal()">Cancel</button>
@@ -1213,6 +1218,11 @@ const RoutineViews = (() => {
                             <option value="evening" ${habitDef.timeOfDay === 'evening' ? 'selected' : ''}>Evening (by 10 PM)</option>
                         </select>
                     </div>
+                    <div class="form-row">
+                        <label for="editHabitTimerMinutes">Timer (minutes, optional):</label>
+                        <input type="number" id="editHabitTimerMinutes" min="1" max="600" step="1" inputmode="numeric" value="${typeof habitDef.timerMinutes === 'number' ? habitDef.timerMinutes : ''}" placeholder="e.g. 30">
+                        <small class="form-hint">Negative habit: a limit &mdash; start the timer and stop before it runs out to count as avoided. Positive habit: a work goal that completes it.</small>
+                    </div>
                     <div class="modal-buttons">
                         <button class="primary-button" onclick="saveEditedHabit('${habitDef.id}')">Save Changes</button>
                         <button class="secondary-button" onclick="closeModal()">Cancel</button>
@@ -1295,7 +1305,8 @@ const RoutineViews = (() => {
         const routine = deps.definedRoutines().find(r => r.id === routineId);
         if (routine && !ensureRoutineSlotAvailable(routine, 'habit', deps)) return;
 
-        deps.createNewHabitInRoutine(routineId, { name, category, schedule, timeOfDay, isNegative });
+        const timerMinutes = Timer.normalizeTarget(document.getElementById('newHabitTimerMinutes').value);
+        deps.createNewHabitInRoutine(routineId, { name, category, schedule, timeOfDay, isNegative, timerMinutes });
         Modal.closeModal();
     }
 
@@ -1345,7 +1356,8 @@ const RoutineViews = (() => {
             return;
         }
 
-        deps.editHabitInRoutine(habitId, { name, category, schedule, timeOfDay, isNegative });
+        const timerMinutes = Timer.normalizeTarget(document.getElementById('editHabitTimerMinutes').value);
+        deps.editHabitInRoutine(habitId, { name, category, schedule, timeOfDay, isNegative, timerMinutes });
 
         // Keep any already-spawned instance of this habit in sync, so editing
         // from today's agenda row (or anywhere else) doesn't go stale until
@@ -1361,6 +1373,8 @@ const RoutineViews = (() => {
                 item.name = name;
                 item.category = category;
                 item.isNegative = isNegative;
+                // Timer target follows the definition unless a timer is mid-run.
+                if (typeof Timer !== 'undefined' && !Timer.isRunning(item)) item.timerMinutes = timerMinutes;
                 if (Habits.retimeHabitInstance(item, timeOfDay) && deps.recomputeOverdueStateAfterEdit) {
                     deps.recomputeOverdueStateAfterEdit(item);
                 }
