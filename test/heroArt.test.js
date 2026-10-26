@@ -57,6 +57,14 @@ describe('KO animation never loops without the hold (css <-> config)', () => {
     });
 });
 
+describe('hurtloop row (2026-10-26)', () => {
+    test('css loops the hurt row with the same frames/fps as the one-shot', () => {
+        expect(css).toMatch(/\.hero-sprite\[data-anim="hurtloop"\] \{ --hero-row: 2; --hero-oneshot-frames: 9; --hero-oneshot-fps: 10; \}/);
+        expect(css).toMatch(/\[data-anim="hurtloop"\] \.hero-sprite-sheet \{\s*animation: hero-oneshot[^;]*infinite;/);
+        expect(css).toMatch(/\.hero-spotlight\[data-category="health"\] \.hero-sprite\[data-anim="hurtloop"\] \{ --hero-oneshot-frames: 7; \}/);
+    });
+});
+
 describe('hurt / levelup one-shot rows (css <-> config <-> json)', () => {
     test('config defaults match the css vars', () => {
         expect(CONFIG.HERO_ONESHOT_FPS).toBeGreaterThan(0);

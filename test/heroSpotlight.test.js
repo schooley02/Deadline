@@ -62,6 +62,44 @@ describe('category heroes for standalone items (2026-10-26)', () => {
     });
 });
 
+describe('hurt loop while a zombie attacks (2026-10-26)', () => {
+    const cats = CONFIG.HERO_CATEGORIES;
+    const find = (it) => (it.definitionId === 'd1' ? routineA : null);
+    const nonThreat = (it) => !!it.koGhost;
+
+    test('heroLookFor loops the hurt row only when under attack; KO wins', () => {
+        expect(HeroSpotlight.heroLookFor(routineA, CONFIG).anim).toBe('idle');
+        expect(HeroSpotlight.heroLookFor(routineA, CONFIG, { underAttack: true }).anim).toBe('hurtloop');
+        const ko = { ...routineA, koState: { at: 1 } };
+        expect(HeroSpotlight.heroLookFor(ko, CONFIG, { underAttack: true }).anim).toBe('ko');
+    });
+
+    test('attackedHeroIds: overdue threatening items resolve to their hero', () => {
+        const items = [
+            { id: 1, category: 'health', definitionId: 'd1', isOverdue: true },
+            { id: 2, category: 'creativity', isOverdue: true },
+            { id: 3, category: 'financial', isOverdue: false },
+        ];
+        expect(HeroSpotlight.attackedHeroIds(items, find, cats, nonThreat).sort()).toEqual(['__cat:creativity', 'rA']);
+    });
+
+    test('ghosts and not-yet-overdue items do not attack; duplicates collapse; sub-task uses its parent', () => {
+        const items = [
+            { id: 1, category: 'health', isOverdue: true, koGhost: true },
+            { id: 2, category: 'lifestyle', isOverdue: true },
+            { id: 3, category: 'lifestyle', isOverdue: true },
+            { id: 4, parentId: 2, category: 'career', isOverdue: true },
+        ];
+        expect(HeroSpotlight.attackedHeroIds(items, find, cats, nonThreat)).toEqual(['__cat:lifestyle']);
+        expect(HeroSpotlight.attackedHeroIds(null, find, cats, nonThreat)).toEqual([]);
+    });
+
+    test('attackedHeroIds without an isNonThreatening fn still returns overdue items', () => {
+        const items = [{ id: 1, category: 'health', isOverdue: true, koGhost: true }];
+        expect(HeroSpotlight.attackedHeroIds(items, find, cats)).toEqual(['__cat:health']);
+    });
+});
+
 describe('resolveRoutineForItem', () => {
     const findRoutine = jest.fn(item => (item.definitionId === 'd1' ? routineA : null));
     beforeEach(() => findRoutine.mockClear());

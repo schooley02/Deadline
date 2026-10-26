@@ -885,8 +885,22 @@ document.addEventListener('DOMContentLoaded', () => {
         heroSpotlightReady = true;
     }
 
+    // Heroes whose zombies are attacking loop the hurt row (2026-10-26). Same rule as the church pulse:
+    // overdue and not Items.isNonThreatening. Blank while the time slider previews or after game over.
+    let heroAttackLastMs = 0;
+    function refreshHeroAttack(force) {
+        if (!heroSpotlightReady) return;
+        const now = Date.now();
+        if (!force && now - heroAttackLastMs < 500) return;
+        heroAttackLastMs = now;
+        const ids = (timePreviewActive || State.isGameOver()) ? []
+            : HeroSpotlight.attackedHeroIds(State.getActiveItems(), findRoutineForItemDeps, CONFIG.HERO_CATEGORIES, Items.isNonThreatening);
+        HeroSpotlight.setAttackedHeroes(ids);
+    }
+
     function spotlightRoutine(routineId, opts) {
         ensureHeroSpotlight();
+        refreshHeroAttack(true);
         if (!HeroSpotlight.show(routineId)) return;
         // Portrait: the strip scrolls away with the page, so a tap deep in the
         // list brings it back into view (only when it is fully off-screen).
@@ -931,6 +945,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const routine = resolveWorkHero(running);
         if (workHeroKey === routine.id) return;
         ensureHeroSpotlight();
+        refreshHeroAttack(true);
         workHeroKey = routine.id;
         HeroSpotlight.setWork(routine);
     }
@@ -1150,6 +1165,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 processTimers(Date.now());
                 refreshBaseChip();
+                refreshHeroAttack();
                 Layout.applyStripLayout(State.getActiveItems(), { baseWidth: BASE_WIDTH });
                 // Landscape/desktop: ground lanes in list order, overlap-avoiding (no-op in strip mode).
                 if (!Layout.isActive()) Layout.applyGroundLanes(State.getActiveItems(), gameCanvas.offsetHeight, { baseWidth: BASE_WIDTH });

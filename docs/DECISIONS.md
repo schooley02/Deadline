@@ -4,6 +4,11 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-26 -- Hero loops the hurt animation while its zombie attacks (Jeremy; Claude app session, Sonnet; no balance numbers changed)
+- **Decision:** the hero on screen loops the hurt row while any of its zombies is attacking (overdue and not non-threatening). This includes the work-timer hero (Jeremy: yes -- the timer only halves damage, the base is still being hit) and standalone category heroes (this reverses "category heroes idle only" for the ATTACKING state; they still get no one-shot hurt / level-up reactions, which are routine-only).
+- **Precedence:** KO > a one-shot reaction in progress > hurt loop > idle. Several attackers just keep the same loop (no scaling).
+- **Wiring:** `HeroSpotlight.attackedHeroIds` (pure) / `setAttackedHeroes`; script.js `refreshHeroAttack` (afterTick, 500 ms, forced on spotlight / timer start; blank in time-slider preview and game over). CSS `data-anim="hurtloop"` mirrors the one-shot frame counts (test/heroArt.test.js).
+
 ## 2026-10-26 -- Every item has a hero: standalone items use their own category; list-row tap shows the hero only (Jeremy; Claude app session, Sonnet; no balance numbers changed)
 - **Decision:** a standalone task/habit (no routine) now spotlights the hero of its own category (pseudo-routine `__cat:<category>`, resolved in `HeroSpotlight`; never stored). Routine-owned items keep the routine's hero; a sub-task uses its parent's (routine, else parent category). The work timer's fallback hero uses the same resolver (was always `other`).
 - **List rows:** tapping a row's body (anything that is not a button, input, select, textarea, link or label) shows the hero only; no popup (Jeremy: the row already shows what the popup shows). Canvas taps are unchanged (hero + popup). Wired as the optional `deps.onRowTap` in `AgendaList.createListItem`.

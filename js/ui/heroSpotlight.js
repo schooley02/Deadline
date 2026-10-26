@@ -96,7 +96,7 @@ const HeroSpotlight = (() => {
      * zombie (KO look B -- only ever shown inside the spotlight, never as a
      * live enemy).
      */
-    function heroLookFor(routine, config) {
+    function heroLookFor(routine, config, opts) {
         const category = Heroes.heroCategoryFor(routine, config.HERO_CATEGORIES);
         const state = deriveState(routine);
         const koLook = config.HERO_KO_LOOK === 'zombie' ? 'zombie' : 'faded';
@@ -112,8 +112,26 @@ const HeroSpotlight = (() => {
             emoji: (config.CATEGORY_EMOJI && config.CATEGORY_EMOJI[category]) || '⭐',
             sprite: kind === 'zombie' ? zombieSpriteFor(category) : null,
             koLook,
-            anim: state === 'ko' ? 'ko' : 'idle', // atlas row; only meaningful for kind 'atlas'
+            // atlas row; only meaningful for kind 'atlas'. KO beats everything; a hero whose zombie is
+            // attacking loops the hurt row (opts.underAttack, 2026-10-26).
+            anim: state === 'ko' ? 'ko' : ((opts && opts.underAttack) ? 'hurtloop' : 'idle'),
         };
+    }
+
+    /**
+     * Ids of the heroes whose zombies are attacking right now: any active item that is overdue and
+     * threatening (same rule as the church pulse / base-health panel), resolved to its hero with
+     * resolveHeroForItem (routine hero, else category hero).
+     */
+    function attackedHeroIds(activeItems, findRoutine, categories, isNonThreatening) {
+        const seen = new Set();
+        (activeItems || []).forEach(item => {
+            if (!item || !item.isOverdue) return;
+            if (typeof isNonThreatening === 'function' && isNonThreatening(item)) return;
+            const hero = resolveHeroForItem(item, activeItems, findRoutine, categories);
+            if (hero) seen.add(hero.id);
+        });
+        return Array.from(seen);
     }
 
     // ---- One-shot reactions (hurt / levelup) ---------------------------------
@@ -247,7 +265,7 @@ const HeroSpotlight = (() => {
                 }
                 const routine = lookup(state.routineId);
                 if (!routine) { applyActive(false); return; }
-                renderInto(heroLookFor(routine, config));
+                renderInto(heroLookFor(routine, config, { underAttack: isAttacked(routine.id) }));
                 applyActive(true);
             },
         });
@@ -257,9 +275,32 @@ const HeroSpotlight = (() => {
         return controller;
     }
 
+    // Heroes whose zombies are attacking (set each tick by script.js). The hero on screen loops the
+    // hurt row while its id is in here; KO, or a one-shot reaction in progress, wins.
+    let attackedIds = new Set();
+    let attackedSig = '';
+    function isAttacked(id) { return id !== null && id !== undefined && attackedIds.has(String(id)); }
+    function setAttackedHeroes(ids) {
+        const list = Array.isArray(ids) ? ids.map(String).sort() : [];
+        const sig = list.join('|');
+        if (sig === attackedSig) return;
+        const vid = visibleRoutineId();
+        const was = isAttacked(vid);
+        attackedIds = new Set(list);
+        attackedSig = sig;
+        if (!heroEl || typeof lookup !== 'function' || vid === null || vid === undefined || oneShotTimer !== null) return;
+        const now = isAttacked(vid);
+        if (now === was) return;
+        const routine = lookup(vid);
+        if (!routine) return;
+        const look = heroLookFor(routine, configRef, { underAttack: now });
+        if (look.kind !== 'atlas') return;
+        heroEl.innerHTML = spriteHtml(look.anim);
+    }
+
     function renderWork() {
         if (!heroEl || !workRoutine) return;
-        renderInto(heroLookFor(workRoutine, configRef));
+        renderInto(heroLookFor(workRoutine, configRef, { underAttack: isAttacked(workRoutine.id) }));
         scrimEl.classList.remove('active');
         heroEl.classList.add('active');
         heroEl.classList.add('hero-spotlight--working');
@@ -291,6 +332,7 @@ const HeroSpotlight = (() => {
         const routine = lookup(routineId);
         const plan = planReaction({ kind, routine, visibleRoutineId: visibleRoutineId(), config: configRef });
         if (plan.action === 'ignore') return false;
+        if (kind === 'hurt' && isAttacked(routineId)) return false; // the hurt loop is already showing
         if (plan.action === 'show' && !controller.show(routineId)) return false;
         clearOneShot();
         heroEl.innerHTML = spriteHtml(kind);
@@ -298,7 +340,7 @@ const HeroSpotlight = (() => {
             oneShotTimer = null;
             const fresh = lookup(routineId);
             if (!fresh || heroEl.dataset.routineId !== String(routineId)) return;
-            heroEl.innerHTML = spriteHtml(heroLookFor(fresh, configRef).anim);
+            heroEl.innerHTML = spriteHtml(heroLookFor(fresh, configRef, { underAttack: isAttacked(routineId) }).anim);
         }, plan.ms);
         return true;
     }
@@ -314,6 +356,9 @@ const HeroSpotlight = (() => {
     return {
         resolveRoutineForItem,
         resolveHeroForItem,
+        attackedHeroIds,
+        setAttackedHeroes,
+        isAttacked,
         categoryHero,
         isCategoryHeroId,
         heroLookFor,
