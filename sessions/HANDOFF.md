@@ -11,6 +11,12 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-10-26 -- Hero scrim off (Claude app session, Sonnet)
+**Did:** `CONFIG.HERO_SCRIM_OPACITY` 0.4 -> 0 (no dark overlay behind the hero; Jeremy: adjust later if needed), config comment + the "sane constants" test (allows 0), sw v103, UI_UX / DECISIONS / CLAUDE.md. The scrim element stays as an invisible tap-to-dismiss area over the church column.
+**State:** config-only change; Jest run in the cloud clone (see summary). Not live/phone-checked.
+**Next:** unchanged from the hurt-loop entry below (phone checks on v103, then Base Health panel step 5).
+**Watch out:** the invisible scrim still intercepts taps over the church column while a hero shows (tap dismisses); the work-timer hero never had a scrim.
+
 ## 2026-10-26 -- Hero loops the hurt animation while its zombie attacks (Claude app session, Sonnet)
 **Did:** `HeroSpotlight.attackedHeroIds` (pure: overdue + not non-threatening items -> hero ids via `resolveHeroForItem`), `setAttackedHeroes` / `isAttacked`, `heroLookFor(routine, config, {underAttack})` -> anim `hurtloop` (KO wins), a one-shot `react()` is skipped for 'hurt' while looping and restores to the loop afterwards. CSS `data-anim="hurtloop"` (hurt row, same frames/fps, `infinite`). script.js `refreshHeroAttack` (afterTick, 500 ms throttle; forced in `spotlightRoutine` and `syncWorkHero`; empty during time-slider preview / game over). sw v102. Tests: +5 in `test/heroSpotlight.test.js` (+1 css test in `test/heroArt.test.js`). Docs: UI_UX, DECISIONS, ROADMAP, CLAUDE.md. The work-timer hero loops too (Jeremy: yes).
 **State:** Jest 84 suites / 1,788 (targeted suites 67/67 green; full run in the cloud clone -- see below). Live-checked in cloud Chromium (390x844): overdue health task -> `hurtloop`, non-overdue creativity task -> `idle`, completing the late task flipped the on-screen hero back to `idle` within ~1.5 s; no page errors. NOT phone-checked.

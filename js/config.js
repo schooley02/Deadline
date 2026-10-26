@@ -264,10 +264,12 @@ const CONFIG = {
     // look constants, not gameplay balance (no balance-tuning protocol needed).
     // How long the hero stays in front of the church after a tap.
     HERO_SPOTLIGHT_MS: 5000,
-    // Darkness of the scrim over the base area while a hero shows. ~0.4: the
-    // church still reads; below ~0.3 it wins over the hero, above ~0.5 its
-    // damage state disappears.
-    HERO_SCRIM_OPACITY: 0.4,
+    // Darkness of the scrim over the base area while a hero shows. 0 = OFF
+    // (2026-10-26, Jeremy: no dark overlay behind the hero for now; the invisible
+    // scrim still takes the tap-to-dismiss). Raise it to bring the overlay back:
+    // ~0.4 the church still reads; below ~0.3 it wins over the hero, above ~0.5
+    // its damage state disappears.
+    HERO_SCRIM_OPACITY: 0,
     // KO'd hero look, built both ways to compare live (plan answer 3):
     // 'faded' = desaturated hero; 'zombie' = the category zombie grey-tinted.
     HERO_KO_LOOK: 'faded',

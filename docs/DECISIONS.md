@@ -4,6 +4,9 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-26 -- Hero scrim switched off (Jeremy; Claude app session, Sonnet; visual only, no balance numbers changed)
+- **Decision:** no transparent dark overlay over the church behind the hero. `CONFIG.HERO_SCRIM_OPACITY` 0.4 -> 0 (sw v103). The scrim element, layering and tap-to-dismiss stay, so bringing it back (or a lighter tint) later is a one-number change. Test now allows 0.
+
 ## 2026-10-26 -- Hero loops the hurt animation while its zombie attacks (Jeremy; Claude app session, Sonnet; no balance numbers changed)
 - **Decision:** the hero on screen loops the hurt row while any of its zombies is attacking (overdue and not non-threatening). This includes the work-timer hero (Jeremy: yes -- the timer only halves damage, the base is still being hit) and standalone category heroes (this reverses "category heroes idle only" for the ATTACKING state; they still get no one-shot hurt / level-up reactions, which are routine-only).
 - **Precedence:** KO > a one-shot reaction in progress > hurt loop > idle. Several attackers just keep the same loop (no scaling).

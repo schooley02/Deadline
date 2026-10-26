@@ -237,7 +237,7 @@ describe('createController', () => {
 describe('config', () => {
     test('spotlight constants are sane', () => {
         expect(CONFIG.HERO_SPOTLIGHT_MS).toBeGreaterThan(0);
-        expect(CONFIG.HERO_SCRIM_OPACITY).toBeGreaterThan(0);
+        expect(CONFIG.HERO_SCRIM_OPACITY).toBeGreaterThanOrEqual(0); // 0 = overlay off (2026-10-26)
         expect(CONFIG.HERO_SCRIM_OPACITY).toBeLessThan(1);
         expect(['faded', 'zombie']).toContain(CONFIG.HERO_KO_LOOK);
     });
