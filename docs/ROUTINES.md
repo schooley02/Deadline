@@ -103,6 +103,8 @@ uses — a pure removal, no completion/XP/points penalty beyond the KO itself), 
 fires (`FrozenNotice.showRoutineKoNotice`). The `koState` guard makes this idempotent — an already-KO'd
 routine can't be damaged or re-KO'd again.
 
+**DECIDED 2026-10-25, NOT built (Fable; `docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md`, DECISIONS 2026-10-25) — KO will STOP recalling instances:** the routine's live habits/tasks stay on the canvas and in the list as faded, inert, completable ghosts (`item.koGhost`, schema 14). Completing a ghost pays XP + a success occurrence but 0 points; an undone ghost is excused (no miss / streak reset / damage); ghosts never attack; revive converts survivors back to live items with a clean-slate damage clock. Until built, the "pure removal" above is still what the code does. Manual deactivation and frozen slots keep the recall behaviour.
+
 **Revive:** a KO'd routine can't be manually reactivated (`Routines.toggleRoutineActive`) until the
 calendar day AFTER the KO (`DayRollover.hasDayRolledOver`, the same local-midnight check the day-advance
 mechanism uses) — attempting sooner shows an alert and no-ops, both in the backend gate and in the

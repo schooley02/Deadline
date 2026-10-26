@@ -579,6 +579,35 @@ const CONFIG = {
     // to be before the Stats current-run panel nudges it. UI-only constant
     // (no economy/balance effect), not gated by the balance-tuning skill.
     NEAR_MISS_THRESHOLD_PCT: 0.8,
+
+    // ---- Design batch 2026-10-25 (Fable; docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md,
+    // DECISIONS 2026-10-25). DATA ONLY — nothing reads these yet; the build
+    // sessions wire them. Balance numbers: change only via the balance-tuning
+    // protocol.
+    //
+    // KO ghosts: a KO'd routine's habits/tasks stay as completable ghosts.
+    // Completing one pays XP + a habit success occurrence but points × this
+    // factor (0 = the routine's economy is down while KO'd). Leaving one
+    // undone is excused (no miss, no streak reset, no damage).
+    KO_GHOST_POINTS_FACTOR: 0,
+    // Distance-priced rescheduling: moving a one-off task/sub-task LATER
+    // costs the pushback tier for the distance moved (SHOP_ITEMS pushback
+    // rows, rounded up) × the factor for the urgency zone of the time left
+    // to the CURRENT due at save time (zones = Clock.getWalkUrgencyTier's
+    // 2h/4h boundaries). Moving earlier is always free.
+    RESCHEDULE_ZONE_FACTORS: { calm: 0, approaching: 0.5, urgent: 1, overdue: 1 },
+    // Any due-time edit this soon after the item's creation is free (typo fix).
+    RESCHEDULE_GRACE_MS: 10 * 60 * 1000,
+    // Free paid-zone reschedules per rolling 7 days (per player).
+    RESCHEDULE_FREE_PER_WEEK: 1,
+    // Work timer: overdue base + routine damage is multiplied by this while a
+    // timer runs on the item (never 0 — a running timer is not a free pass).
+    WORK_TIMER_DAMAGE_FACTOR: 0.5,
+    // After this much continuous running the game asks "Still working?";
+    // with no answer for WORK_TIMER_AUTO_STOP_MS the timer stops itself and
+    // banks time only up to the prompt.
+    WORK_TIMER_CHECK_MS: 60 * 60 * 1000,
+    WORK_TIMER_AUTO_STOP_MS: 10 * 60 * 1000,
 };
 
 // Export for Jest/Node; browser picks up the global `CONFIG` via <script> tag.

@@ -21,9 +21,12 @@ Every gameplay number in Deadline lives in `js/config.js`. Follow this protocol 
 - Max enemies on screen: 20 (overflow offscreen right)
 - Routine start: level 1, 1 habit slot + 1 task slot; slots grow per level
 - Player level perks (`CONFIG.LEVEL_PERKS`, 2026-10-23): Lv2 small repair kit, Lv3 2nd routine slot, Lv4 10% shop discount, Lv5 3rd slot, Lv6 medium repair kit, Lv7 4th slot, Lv8 20% discount, Lv9 Sick Day + "Steward" title. Per-run (reset on game over). No 200-pt token before max level.
-- Streak: resets to 0 on miss; high streak = chance of double points (exact % TBD — ask Jeremy)
+- Streak: resets to 0 on miss; VISUAL only (no economy effect since 2026-07-18)
 - Shop pricing: price = base × 1.5^quantity_owned. Bases: repair kits 25/50/100; pushback 50 (1hr)/100 (2hr)/300 (1day); cheat/sick/skip day tokens 200 each
 - Frozen routine slots: negative-habit streak ≥3 days freezes; recover via habit edit or 3-day avoidance
+- KO ghosts (2026-10-25, decided not built): ghost completion pays points × `KO_GHOST_POINTS_FACTOR` 0 (XP + habit success occurrence unchanged); undone ghosts are excused
+- Rescheduling (2026-10-25, decided not built): later-move price = pushback tier for distance × `RESCHEDULE_ZONE_FACTORS` {>4h 0, 2-4h 0.5, <2h 1, overdue 1}; `RESCHEDULE_GRACE_MS` 10 min after creation free; `RESCHEDULE_FREE_PER_WEEK` 1
+- Work timer (2026-10-25, decided not built): overdue damage × `WORK_TIMER_DAMAGE_FACTOR` 0.5 while running; `WORK_TIMER_CHECK_MS` 60 min, `WORK_TIMER_AUTO_STOP_MS` 10 min
 - Demo clock: 60s = 1 day (testing only, `config.DEMO_MODE`)
 
 ## Making the change
