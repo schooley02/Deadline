@@ -932,6 +932,7 @@ document.addEventListener('DOMContentLoaded', () => {
         heroFocusItemId = (opts && opts.itemId !== undefined) ? opts.itemId : null;
         refreshHeroAttack(true);
         if (!HeroSpotlight.show(routineId)) return;
+        refreshHeroLane(); // the hero is the visible one now: measure its lane at once, so it never jumps in later
         // Portrait: the strip scrolls away with the page, so a tap deep in the
         // list brings it back into view (only when it is fully off-screen).
         if (opts && opts.bringCanvasIntoView && gameCanvas && gameCanvas.getBoundingClientRect) {
@@ -979,6 +980,7 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshHeroAttack(true);
         workHeroKey = routine.id;
         HeroSpotlight.setWork(routine);
+        refreshHeroLane();
     }
 
     function updateTimerButtons(nowMs) {

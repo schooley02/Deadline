@@ -11,6 +11,12 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-10-26 -- Hero lane: no more jump on show (Claude app session, Sonnet)
+**Did:** Jeremy (phone): a small delay, then the hero jumped to the right lane. Cause: `refreshHeroLane` ran inside `refreshHeroAttack(true)` BEFORE `HeroSpotlight.show()` / `setWork()`, so it saw no visible hero and left the default spot until the next 500 ms tick. Fix: script.js calls `refreshHeroLane()` right after `show()` in `spotlightRoutine` and after `setWork()` in `syncWorkHero`, in the same JS turn (before paint). sw v106.
+**State:** see summary for the full Jest count; live-checked in cloud Chromium (both orientations): the `--hero-lane-bottom` value is already correct in the same synchronous turn as the tap. NOT phone-checked.
+**Next:** unchanged: phone check on v106 (hero appears in the right lane at once; v104 sizes; v103 scrim-off), then Base Health panel step 5.
+**Watch out:** any new code that shows a hero must call `refreshHeroLane()` AFTER the hero is shown (it reads `HeroSpotlight.getVisibleRoutineId()`).
+
 ## 2026-10-26 -- Hero stands in its zombie's lane (Claude app session, Sonnet)
 **Did:** Jeremy: row tap, health chip and hurt loop work on the phone; asked for the hero to be in the same lane as its zombie, portrait and landscape ("profile view" read as portrait). `HeroSpotlight.pickLaneItem` (tapped item > work-timer item > attacker > soonest due), `setLaneBottom`, `getVisibleRoutineId`; script.js `laneFeetBottomFor` / `refreshHeroLane` (called from `refreshHeroAttack`; focus set in `spotlightRoutine` via `opts.itemId`, work item in `syncWorkHero`); CSS `bottom: calc(var(--hero-lane-bottom, 8px|2px) - ...)` for atlas heroes. sw v105. +5 tests. Docs: UI_UX, DECISIONS, CLAUDE.md.
 **State:** Jest 84 suites / 1,794 green (cloud clone). Live-checked in cloud Chromium (3 tasks in lanes 0/1/2, tapped each): hero feet == zombie bottom edge from canvas bottom, portrait 28/18/8 px, landscape 48/28/8 px; no page errors. NOT phone-checked.
