@@ -4,6 +4,11 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-26 -- Every item has a hero: standalone items use their own category; list-row tap shows the hero only (Jeremy; Claude app session, Sonnet; no balance numbers changed)
+- **Decision:** a standalone task/habit (no routine) now spotlights the hero of its own category (pseudo-routine `__cat:<category>`, resolved in `HeroSpotlight`; never stored). Routine-owned items keep the routine's hero; a sub-task uses its parent's (routine, else parent category). The work timer's fallback hero uses the same resolver (was always `other`).
+- **List rows:** tapping a row's body (anything that is not a button, input, select, textarea, link or label) shows the hero only; no popup (Jeremy: the row already shows what the popup shows). Canvas taps are unchanged (hero + popup). Wired as the optional `deps.onRowTap` in `AgendaList.createListItem`.
+- **Why:** the work timer was the only way to see a standalone item's hero; tapping is the natural trigger.
+
 ## 2026-10-26 -- Base Health panel steps 3-4 combined: HUD chip + opener wired to live state (Jeremy; Claude app session, Sonnet; no balance numbers changed)
 
 - **Decision:** steps 3 (HUD chip) and 4 (opener + live wiring) built in one session at Jeremy's request (CLAUDE.md allows batching small wiring work; no persistence, schema or balance change). The chip's pure text model is `BasePanel.chipModel` in `js/ui/basePanel.js`, not `js/ui/heroes.js` as the plan said (that file no longer holds base chips; keeping it beside the panel keeps one owner and one test file). `#baseHealthDisplay` stays as the number span so damage.js, state.js and timeSliderView.js keep writing to it unchanged. Pushback and kit buttons reuse `handlePushback` / `handleShopUse`, so pricing, discounts, saves and re-renders are the same code the popups and shop use. `baseHealthContext()` is rebuilt on every call (panel ticks and chip refreshes), never cached.

@@ -689,6 +689,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             },
             completeItem: (itemId) => Items.completeItem(itemId, itemsDeps()),
+            // Row-body tap: hero only, no popup (2026-10-26).
+            onRowTap: (itemId) => { if (!State.isGameOver()) spotlightHeroForItem(itemId, { bringCanvasIntoView: true }); },
             indulgeHabit: (itemId) => Items.indulgeHabit(itemId, itemsDeps()),
             isGameOver: State.isGameOver,
             showEditTaskModal: (item) => Popups.showEditTaskModal(item, popupsDeps()),
@@ -896,12 +898,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function spotlightHeroForItem(itemId) {
+    function findRoutineForItemDeps(it) {
+        return Items.findRoutineForItem(it, { definedHabits: () => State.getDefinedHabits(), definedRoutines: () => State.getDefinedRoutines() });
+    }
+
+    // Any item has a hero: its routine's, else its own category's (2026-10-26).
+    function spotlightHeroForItem(itemId, opts) {
         const item = State.getActiveItems().find(i => i.id === itemId);
         if (!item) return;
-        const routine = HeroSpotlight.resolveRoutineForItem(item, State.getActiveItems(), (it) =>
-            Items.findRoutineForItem(it, { definedHabits: () => State.getDefinedHabits(), definedRoutines: () => State.getDefinedRoutines() }));
-        if (routine) spotlightRoutine(routine.id);
+        const hero = HeroSpotlight.resolveHeroForItem(item, State.getActiveItems(), findRoutineForItemDeps, CONFIG.HERO_CATEGORIES);
+        if (hero) spotlightRoutine(hero.id, opts);
     }
 
     // ---- Work timer (Build 3, 2026-10-25; docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md Q3) ----
@@ -912,9 +918,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastTimerLabelMs = 0;
 
     function resolveWorkHero(item) {
-        const routine = HeroSpotlight.resolveRoutineForItem(item, State.getActiveItems(), (it) =>
-            Items.findRoutineForItem(it, { definedHabits: () => State.getDefinedHabits(), definedRoutines: () => State.getDefinedRoutines() }));
-        return routine || { id: '__other', name: 'Other', heroCategory: 'other', isActive: true };
+        return HeroSpotlight.resolveHeroForItem(item, State.getActiveItems(), findRoutineForItemDeps, CONFIG.HERO_CATEGORIES);
     }
 
     function syncWorkHero(runningAny) {

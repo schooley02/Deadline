@@ -11,7 +11,7 @@
  * church's hit shake / flash never moves it.
  *
  * PURE / DOM split (same discipline as js/ui/heroes.js):
- *   - pure + node-testable: resolveRoutineForItem, heroLookFor, zombieSpriteFor,
+ *   - pure + node-testable: resolveRoutineForItem, resolveHeroForItem, heroLookFor, zombieSpriteFor,
  *     createController (injected timers);
  *   - DOM: init / show / dismiss / renderInto.
  * Categories listed in CONFIG.HERO_ART_CATEGORIES draw the PixelLab atlas (kind
@@ -39,6 +39,39 @@ const HeroSpotlight = (() => {
             return parent ? (findRoutine(parent) || null) : null;
         }
         return findRoutine(item) || null;
+    }
+
+    // Standalone items (no routine) stand for their own CATEGORY's hero (2026-10-26).
+    // A pseudo-routine keyed '__cat:<category>' -- never stored, always rebuilt.
+    const CATEGORY_HERO_PREFIX = '__cat:';
+
+    function categoryHero(category, categories) {
+        const cat = (Array.isArray(categories) && categories.indexOf(category) !== -1) ? category : 'other';
+        return {
+            id: CATEGORY_HERO_PREFIX + cat,
+            name: cat.charAt(0).toUpperCase() + cat.slice(1),
+            heroCategory: cat,
+            isActive: true,
+            frozenState: null,
+            koState: null,
+        };
+    }
+
+    function isCategoryHeroId(id) {
+        return typeof id === 'string' && id.indexOf(CATEGORY_HERO_PREFIX) === 0;
+    }
+
+    /**
+     * The hero for ANY item: its routine's hero when it has one (a sub-task uses its
+     * parent's), else the pseudo-hero of the item's own category (a sub-task of a
+     * standalone parent uses the parent's category).
+     */
+    function resolveHeroForItem(item, activeItems, findRoutine, categories) {
+        if (!item) return null;
+        const routine = resolveRoutineForItem(item, activeItems, findRoutine);
+        if (routine) return routine;
+        const parent = item.parentId ? (activeItems || []).find(i => i.id === item.parentId) : null;
+        return categoryHero((parent || item).category, categories);
     }
 
     function deriveState(routine) {
@@ -197,7 +230,10 @@ const HeroSpotlight = (() => {
     function init(deps) {
         scrimEl = deps.scrimEl;
         heroEl = deps.heroEl;
-        lookup = deps.getRoutine;
+        const baseLookup = deps.getRoutine;
+        lookup = (id) => (isCategoryHeroId(id)
+            ? categoryHero(id.slice(CATEGORY_HERO_PREFIX.length), deps.config.HERO_CATEGORIES)
+            : baseLookup(id));
         const config = deps.config;
         configRef = config;
         scrimEl.style.setProperty('--hero-scrim-opacity', String(config.HERO_SCRIM_OPACITY));
@@ -277,6 +313,9 @@ const HeroSpotlight = (() => {
 
     return {
         resolveRoutineForItem,
+        resolveHeroForItem,
+        categoryHero,
+        isCategoryHeroId,
         heroLookFor,
         hasHeroArt,
         zombieSpriteFor,

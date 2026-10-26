@@ -454,6 +454,15 @@ const AgendaList = (() => {
         listItem.appendChild(itemSpriteDiv);
         listItem.appendChild(taskContentDiv);
 
+        // Row tap (2026-10-26): tapping the row body (not a control) steps the item's
+        // hero out in front of the church -- hero only, no popup. deps.onRowTap is optional.
+        if (typeof deps.onRowTap === 'function') {
+            listItem.addEventListener('click', (e) => {
+                if (e.target && e.target.closest && e.target.closest('button, input, select, textarea, a, label')) return;
+                deps.onRowTap(itemData.id);
+            });
+        }
+
         itemData.listItemElement = listItem;
     }
 

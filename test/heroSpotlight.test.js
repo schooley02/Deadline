@@ -13,6 +13,55 @@ const NO_ART = { ...CONFIG, HERO_ART_CATEGORIES: [] };
 
 const routineA = { id: 'rA', name: 'Study', isActive: true, frozenState: null, koState: null, heroCategory: 'career' };
 
+describe('category heroes for standalone items (2026-10-26)', () => {
+    const findNone = () => null;
+    const cats = CONFIG.HERO_CATEGORIES;
+
+    test('categoryHero builds a pseudo-routine keyed by category', () => {
+        const h = HeroSpotlight.categoryHero('health', cats);
+        expect(h).toMatchObject({ id: '__cat:health', heroCategory: 'health', isActive: true, koState: null, frozenState: null });
+        expect(HeroSpotlight.isCategoryHeroId(h.id)).toBe(true);
+        expect(HeroSpotlight.isCategoryHeroId('r1')).toBe(false);
+        expect(HeroSpotlight.isCategoryHeroId(7)).toBe(false);
+    });
+
+    test('an unknown category falls back to other', () => {
+        expect(HeroSpotlight.categoryHero('nonsense', cats).id).toBe('__cat:other');
+    });
+
+    test('a standalone item resolves to its own category hero', () => {
+        const item = { id: 1, category: 'creativity' };
+        expect(HeroSpotlight.resolveHeroForItem(item, [item], findNone, cats).heroCategory).toBe('creativity');
+    });
+
+    test('a routine-owned item still resolves to its routine', () => {
+        const item = { id: 1, category: 'health', definitionId: 'd1' };
+        const find = (it) => (it.definitionId === 'd1' ? routineA : null);
+        expect(HeroSpotlight.resolveHeroForItem(item, [item], find, cats)).toBe(routineA);
+    });
+
+    test('a sub-task uses its parent: routine first, else the parent category', () => {
+        const parent = { id: 1, category: 'financial' };
+        const sub = { id: 2, parentId: 1, category: 'career' };
+        expect(HeroSpotlight.resolveHeroForItem(sub, [parent, sub], findNone, cats).heroCategory).toBe('financial');
+        const owned = { id: 3, category: 'health', definitionId: 'd1' };
+        const sub2 = { id: 4, parentId: 3, category: 'career' };
+        const find = (it) => (it.definitionId === 'd1' ? routineA : null);
+        expect(HeroSpotlight.resolveHeroForItem(sub2, [owned, sub2], find, cats)).toBe(routineA);
+    });
+
+    test('an orphaned sub-task uses its own category; null item -> null', () => {
+        const orphan = { id: 5, parentId: 99, category: 'lifestyle' };
+        expect(HeroSpotlight.resolveHeroForItem(orphan, [orphan], findNone, cats).heroCategory).toBe('lifestyle');
+        expect(HeroSpotlight.resolveHeroForItem(null, [], findNone, cats)).toBeNull();
+    });
+
+    test('heroLookFor gives the category pseudo-hero the matching art atlas', () => {
+        const look = HeroSpotlight.heroLookFor(HeroSpotlight.categoryHero('health', cats), CONFIG);
+        expect(look).toMatchObject({ category: 'health', state: 'active', kind: 'atlas', anim: 'idle' });
+    });
+});
+
 describe('resolveRoutineForItem', () => {
     const findRoutine = jest.fn(item => (item.definitionId === 'd1' ? routineA : null));
     beforeEach(() => findRoutine.mockClear());
