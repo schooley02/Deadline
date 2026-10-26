@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-26 -- Base Health panel design (Jeremy; Claude app session, Opus design; no balance numbers changed)
+
+- **Decision:** a Base Health panel opens from the HUD health number (like the Level panel). Header: HP chip colored by state (full green #4CAF50, then #FFC107 / #FF9800 / #F44336) + "Base Health" + points pill top right. Shows healing countdowns (+1 HP, next church art stage, full), damage rate and "church falls in..." whenever any zombie is attacking, an Attackers list (3 rows, "Show all"; 1 hr pushback only; greyed when unaffordable; no "push back all"), repair kits as a compact row with time bought/saved, and an info popover for explanations. HUD chip gets a ring + "+1 in 3m" / "-N / 5m" / "Full".
+- **Why:** players could not judge whether to spend kits or pushbacks. Full health is green (not gold) because gold read as "already damaged"; the bar/chip colors match the game's existing health palette.
+- **Rejected:** gold/blue for full; a "push back all" button (space); tall repair-kit rows (height on phones); a permanent notes box (moved into a popover).
+- Plan and build order: `docs/BASE_PANEL_PLAN.md`. Step 1 (`js/baseModel.js`) built.
+
 ## 2026-10-26 -- Pushbacks count from now for overdue zombies; edit-form price matches (Jeremy; Claude app session, Sonnet) -- BALANCE CHANGE
 
 - **Decision:** a pushback adds its time to the LATER of now and the target's current due date (`Shop.pushedBackDueDate(due, pushbackMs, nowMs)`, `handlePushback` passes `Date.now()`). An overdue zombie lands at now + tier, so even the 1 hr tier (50 pts) clears it however overdue it was; a not-yet-due item still gets the time added to its due date and can never be pulled earlier. The edit form's reschedule price measures distance the same way (`Economy.reschedulePrice`: `delta = newDue - max(currentDue, now)`), so an overdue task moved to 1 h from now costs the 1 hr tier. Prices, zone factors, the 10-min grace and the weekly free use are unchanged.
