@@ -64,6 +64,9 @@ const State = (() => {
     let baseHealth, playerXP, playerLevel, playerPoints, routineSlots;
     let playerInventory = {};
     let sickDayDate = null;
+    // Build 2 (2026-10-25): timestamps (ms) of free paid-zone reschedules used in
+    // the last 7 days. Additive root field, no schema bump.
+    let rescheduleFreeUses = [];
     let currentRunStats = (typeof RunStats !== 'undefined') ? RunStats.freshRunStats() : {};
     let runHistory = [];
     let lifetimeStats = (typeof Achievements !== 'undefined') ? Achievements.freshLifetimeStats() : {};
@@ -91,6 +94,8 @@ const State = (() => {
     const setPlayerInventory = (obj) => { playerInventory = obj; };
     const getSickDayDate = () => sickDayDate;
     const setSickDayDate = (d) => { sickDayDate = d; };
+    const getRescheduleFreeUses = () => rescheduleFreeUses;
+    const setRescheduleFreeUses = (a) => { rescheduleFreeUses = Array.isArray(a) ? a : []; };
     const getCurrentRunStats = () => currentRunStats;
     const setCurrentRunStats = (obj) => { currentRunStats = obj; };
     const getRunHistory = () => runHistory;
@@ -135,6 +140,7 @@ const State = (() => {
         setPlayerLevel(1);
         setPlayerPoints(0);
         setPlayerInventory({}); // shop inventory — fresh run starts empty
+        setRescheduleFreeUses([]);
         setSickDayDate(null); // frozen-slots sub-session 5 — fresh run has no active Sick Day
         // Run stats reset with the run; runHistory is deliberately NOT
         // touched here — it must survive restart (session 52, RUN_HISTORY_PLAN).
@@ -215,6 +221,7 @@ const State = (() => {
             playerPoints: getPlayerPoints(),
             inventory: getPlayerInventory(),
             sickDayDate: getSickDayDate(),
+            rescheduleFreeUses: getRescheduleFreeUses(),
             runHistory: getRunHistory(),
             currentRunStats: getCurrentRunStats(),
             lifetimeStats: getLifetimeStats(),
@@ -372,6 +379,7 @@ const State = (() => {
         // migration seeds null on older saves, but guard here too (any
         // non-string, e.g. malformed data) so a bad save can never crash boot.
         setSickDayDate((typeof save.sickDayDate === 'string') ? save.sickDayDate : null);
+        setRescheduleFreeUses(Array.isArray(save.rescheduleFreeUses) ? save.rescheduleFreeUses.filter(n => typeof n === 'number') : []);
         // Run history (session 52, docs/RUN_HISTORY_PLAN.md). The v9→v10
         // migration seeds both, but guard here too so a malformed save can
         // never crash boot. currentRunStats keeps accruing across a mid-run
@@ -695,6 +703,7 @@ const State = (() => {
         getRoutineSlots, setRoutineSlots,
         getPlayerInventory, setPlayerInventory,
         getSickDayDate, setSickDayDate,
+        getRescheduleFreeUses, setRescheduleFreeUses,
         getCurrentRunStats, setCurrentRunStats,
         getRunHistory, setRunHistory,
         getLifetimeStats, setLifetimeStats,

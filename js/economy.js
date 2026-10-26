@@ -66,12 +66,86 @@ const Economy = (() => {
         return Math.round(raw);
     }
 
+    // ---- Distance-priced rescheduling (Build 2, 2026-10-25; docs/ECONOMY.md
+    // "Rescheduling price", docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md Q2) ----
+    // Moving a task's due time LATER costs the pushback tier for the distance moved
+    // (rounded UP to the next tier; beyond the largest tier, whole multiples of it)
+    // x a factor for the urgency zone of the time left to the CURRENT due at save
+    // time. Pure: the caller supplies the zone (Clock.getWalkUrgencyTier, with null
+    // = 'overdue'), the tiers, factors and the weekly free-use count.
+    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+    // Pushback tiers ({ pushbackMs, baseCost }, ascending) from the shop catalog.
+    function reschedulePriceTiers(shopItems) {
+        return (shopItems || [])
+            .filter(i => i && i.category === 'pushback' && i.effect && i.effect.pushbackMs > 0)
+            .map(i => ({ pushbackMs: i.effect.pushbackMs, baseCost: i.baseCost }))
+            .sort((a, b) => a.pushbackMs - b.pushbackMs);
+    }
+
+    // Free paid-zone reschedules are a rolling 7-day allowance of timestamps (ms
+    // or ISO). Pruned copy / remaining count; never mutate the input.
+    function pruneRescheduleFreeUses(uses, nowMs) {
+        return (Array.isArray(uses) ? uses : [])
+            .map(t => (typeof t === 'number' ? t : Date.parse(t)))
+            .filter(ms => isFinite(ms) && nowMs - ms >= 0 && nowMs - ms < WEEK_MS);
+    }
+    function rescheduleFreeUsesLeft(uses, nowMs, perWeek) {
+        return Math.max(0, (perWeek || 0) - pruneRescheduleFreeUses(uses, nowMs).length);
+    }
+
+    // opts: { currentDue, newDue, now (Date), createdAt (Date|ms|null),
+    //         zone: 'calm'|'approaching'|'urgent'|'overdue', tiers, zoneFactors,
+    //         graceMs, freeUsesLeft, discount }
+    // -> { later, cost, free, reason, consumesFreeUse }
+    //   reason: 'not-later' | 'grace' | 'calm' | 'weekly' | 'paid'
+    function reschedulePrice(opts) {
+        const currentMs = opts.currentDue.getTime();
+        const newMs = opts.newDue.getTime();
+        const later = newMs > currentMs;
+        if (!later) return { later: false, cost: 0, free: true, reason: 'not-later', consumesFreeUse: false };
+
+        const nowMs = opts.now.getTime();
+        const createdMs = opts.createdAt == null ? null
+            : (opts.createdAt instanceof Date ? opts.createdAt.getTime() : Number(opts.createdAt));
+        if (createdMs !== null && isFinite(createdMs) && nowMs - createdMs <= (opts.graceMs || 0)) {
+            return { later: true, cost: 0, free: true, reason: 'grace', consumesFreeUse: false };
+        }
+
+        const factors = opts.zoneFactors || {};
+        const factor = typeof factors[opts.zone] === 'number' ? factors[opts.zone] : 1;
+        if (factor <= 0) return { later: true, cost: 0, free: true, reason: 'calm', consumesFreeUse: false };
+
+        const tiers = opts.tiers || [];
+        if (tiers.length === 0) return { later: true, cost: 0, free: true, reason: 'calm', consumesFreeUse: false };
+        const delta = newMs - currentMs;
+        const fit = tiers.find(t => t.pushbackMs >= delta);
+        let tierCost;
+        if (fit) {
+            tierCost = fit.baseCost;
+        } else {
+            const top = tiers[tiers.length - 1];
+            tierCost = top.baseCost * Math.ceil(delta / top.pushbackMs);
+        }
+        const discount = typeof opts.discount === 'number' ? Math.min(1, Math.max(0, opts.discount)) : 0;
+        const cost = Math.max(1, Math.round(tierCost * factor * (1 - discount)));
+
+        if ((opts.freeUsesLeft || 0) > 0) {
+            return { later: true, cost: 0, free: true, reason: 'weekly', consumesFreeUse: true };
+        }
+        return { later: true, cost, free: false, reason: 'paid', consumesFreeUse: false };
+    }
+
     return {
         taskPoints,
         addPoints,
         subtractPoints,
         applyIndulgenceCost,
         shopPrice,
+        reschedulePriceTiers,
+        pruneRescheduleFreeUses,
+        rescheduleFreeUsesLeft,
+        reschedulePrice,
     };
 })();
 

@@ -36,6 +36,9 @@ const RunStats = (() => {
             habitsCompleted: 0,
             habitsMissed: 0,
             pointsEarned: 0,
+            // Distance-priced rescheduling (Build 2, 2026-10-25): times a task's
+            // due time was moved LATER (paid or free). Additive; absent = 0.
+            reschedules: 0,
             blame: {},
         };
     }
@@ -78,6 +81,7 @@ const RunStats = (() => {
     function recordTaskCompleted(stats) { if (stats) stats.tasksCompleted += 1; }
     function recordHabitCompleted(stats) { if (stats) stats.habitsCompleted += 1; }
     function recordHabitMissed(stats) { if (stats) stats.habitsMissed += 1; }
+    function recordReschedule(stats) { if (stats) stats.reschedules = (stats.reschedules || 0) + 1; }
 
     // Gross earnings only — spending isn't a run-performance signal.
     // Uncompletion refunds are NOT subtracted (same "completion happened"
@@ -145,6 +149,7 @@ const RunStats = (() => {
             habitsCompleted: stats.habitsCompleted,
             habitsMissed: stats.habitsMissed,
             pointsEarned: stats.pointsEarned,
+            reschedules: stats.reschedules || 0,
         } : freshRunStats();
 
         return {
@@ -264,6 +269,7 @@ const RunStats = (() => {
             habitsCompleted: s.habitsCompleted - (t.habitsCompleted || 0),
             habitsMissed: s.habitsMissed - (t.habitsMissed || 0),
             pointsEarned: s.pointsEarned - (t.pointsEarned || 0),
+            reschedules: (s.reschedules || 0) - (t.reschedules || 0),
         };
     }
 
@@ -274,6 +280,7 @@ const RunStats = (() => {
         recordTaskCompleted,
         recordHabitCompleted,
         recordHabitMissed,
+        recordReschedule,
         recordPointsEarned,
         sortedBlame,
         finalizeRun,

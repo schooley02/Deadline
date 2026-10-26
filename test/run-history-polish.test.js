@@ -74,6 +74,7 @@ describe('RunStats.deltasVsLastRun', () => {
             habitsCompleted: -1,
             habitsMissed: -1,
             pointsEarned: 25,
+            reschedules: 0,
         });
     });
 

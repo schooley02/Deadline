@@ -467,6 +467,41 @@ document.addEventListener('DOMContentLoaded', () => {
         return Progression.shopDiscount(CONFIG.LEVEL_PERKS, State.getPlayerLevel());
     }
 
+    // Distance-priced rescheduling (Build 2, 2026-10-25). Pure pricing lives in
+    // Economy.reschedulePrice; these two adapters read live state. The price is
+    // computed against the item's CURRENT due at save time.
+    function reschedulePricingFor(item, newDue) {
+        const now = new Date();
+        const zone = Clock.getWalkUrgencyTier({ dueDateTime: item.dueDateTime }, now) || 'overdue';
+        const r = Economy.reschedulePrice({
+            currentDue: item.dueDateTime, newDue, now,
+            createdAt: item.creationTime || null,
+            zone,
+            tiers: Economy.reschedulePriceTiers(CONFIG.SHOP_ITEMS),
+            zoneFactors: CONFIG.RESCHEDULE_ZONE_FACTORS,
+            graceMs: CONFIG.RESCHEDULE_GRACE_MS,
+            freeUsesLeft: Economy.rescheduleFreeUsesLeft(State.getRescheduleFreeUses(), now.getTime(), CONFIG.RESCHEDULE_FREE_PER_WEEK),
+            discount: currentShopDiscount(),
+        });
+        r.zone = zone;
+        r.canAfford = r.cost <= State.getPlayerPoints();
+        return r;
+    }
+
+    // Pays for / records a reschedule that was priced by reschedulePricingFor.
+    // Call only once the new due time is being applied.
+    function commitReschedule(item, r) {
+        if (!r || !r.later) return;
+        if (r.cost > 0) State.setPlayerPoints(Economy.subtractPoints(State.getPlayerPoints(), r.cost));
+        if (r.consumesFreeUse) {
+            const t = Date.now();
+            State.setRescheduleFreeUses(Economy.pruneRescheduleFreeUses(State.getRescheduleFreeUses(), t).concat([t]));
+        }
+        item.rescheduleCount = (item.rescheduleCount || 0) + 1;
+        RunStats.recordReschedule(State.getCurrentRunStats());
+        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, playerXpBar, levelButton, xpThresholds: CONFIG.LEVEL_XP_THRESHOLDS, playerPointsStat, playerPointsNudge });
+    }
+
     function checkPlayerLevelUp() {
         const levelBefore = State.getPlayerLevel();
         const result = Progression.checkLevelUp(
@@ -711,6 +746,8 @@ document.addEventListener('DOMContentLoaded', () => {
             getShopDiscount: currentShopDiscount,
             getPlayerPoints: State.getPlayerPoints,
             onPushback: handlePushback,
+            reschedulePricingFor,
+            commitReschedule,
             // Cheat Day targeting ([P1-DATA-005] sub-session 5, 2026-07-19):
             // held count for the popup's "Use Cheat Day (N held)" button,
             // whether THIS lurker's day already has one active (shows the
@@ -1553,8 +1590,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     Items.recomputeOverdueStateAfterEdit(item, itemsDeps());
                 }
                 refreshGhostLook([item]);
+                // "Keep original for all remaining": drop the rest of the queue --
+                // they already came back overdue with a clean clock above.
+                if (res && res.skipAll) queue.length = 0;
                 next();
-            });
+            }, { remaining: queue.length });
         };
         // Deferred: the revive click may still be bubbling out of a modal.
         setTimeout(next, 0);

@@ -122,6 +122,10 @@ const StatsView = (() => {
                         <span class="stats-counter-value">${stats.pointsEarned}${d('pointsEarned', true)}</span>
                         <span class="stats-counter-label">Points earned</span>
                     </div>
+                    <div class="stats-counter">
+                        <span class="stats-counter-value">${stats.reschedules || 0}${d('reschedules', false)}</span>
+                        <span class="stats-counter-label">Rescheduled</span>
+                    </div>
                 </div>
                 ${nearMissHtml}
                 <div class="stats-blame-heading">Top offenders so far</div>

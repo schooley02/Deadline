@@ -63,7 +63,7 @@ Rules:
 - `item.timer: { startedAt: ISO } | null`, `item.timerMsBanked: number` (default 0), `item.timerMinutes: number | null` (one-off tasks' optional target).
 - `item.rescheduleCount: number` (default 0) — +1 on every later-move of the due time, paid or free.
 - `habitDef.timerMode: 'work' | 'limit' | null`, `habitDef.timerMinutes: number | null`; the same two fields on routine `taskDefinitions`.
-- Root save: `rescheduleFreeUses: [ISO…]` — timestamps of free paid-zone reschedules, pruned to the rolling 7 days on write. **NOT added yet** (the 13 → 14 migration does not seed it and `State` does not persist it); it lands with Build 2.
+- Root save: `rescheduleFreeUses: number[]` — ms timestamps of free paid-zone reschedules; pruned to the rolling 7 days on use (`Economy.pruneRescheduleFreeUses`). Additive root field, NO schema bump: `State` restores it with an `Array.isArray` + numbers-only guard (absent = `[]`) and resets it in `initGame`; the 13 → 14 migration does not seed it. `item.rescheduleCount` increments on every later-move; run stats gained `reschedules` (absent = 0; in `freshRunStats`, `finalizeRun` totals and `deltasVsLastRun`).
 - Migration 13 → 14 (`js/persistence.js`, idempotent — never overwrites) fills the item and definition defaults only (no routine can hold live items while KO'd under the pre-14 rule, so `koGhost` is false everywhere). Spec: `docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md`.
 
 ### schemaVersion 13 (2026-10-21): `routine.heroCategory`

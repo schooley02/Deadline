@@ -178,3 +178,14 @@
     }
 }
 
+
+/* Distance-priced rescheduling (Build 2): live price line in the Edit Task modal. */
+.reschedule-note {
+    min-height: 1.2em;
+    margin: 0.4rem 0 0;
+    font-size: 0.85rem;
+    color: var(--text-muted, #b9b2a3);
+}
+.reschedule-note-blocked {
+    color: #e0795f;
+}

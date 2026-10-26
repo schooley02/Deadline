@@ -365,7 +365,11 @@ const Popups = (() => {
     // cb({dueDateTime: null}) to keep the original (clean-slate clock),
     // cb({cancel: true}) to abort the undo. Sub-tasks can't pass the parent's
     // deadline (same rule as the edit form). deps: { activeItems }.
-    function promptNewDueTime(item, deps, cb) {
+    // opts.remaining (Build 2): how many more pickers are queued AFTER this one
+    // (revive flow). When >= 1 a "Keep original for all remaining" button shows;
+    // it calls cb({dueDateTime: null, skipAll: true}).
+    function promptNewDueTime(item, deps, cb, opts) {
+        const remaining = (opts && opts.remaining) || 0;
         const parent = item.parentId
             ? (deps.activeItems || []).find(i => i.id === item.parentId && i.type === 'task')
             : null;
@@ -397,6 +401,7 @@ const Popups = (() => {
                     <div class="modal-buttons">
                         <button id="uncompleteSetDue" class="primary-button"${parentHasRoom ? '' : ' disabled'}>Set new due time</button>
                         <button id="uncompleteKeepDue" class="secondary-button">Keep original (overdue)</button>
+                        ${remaining >= 1 ? `<button id="uncompleteKeepAll" class="secondary-button">Keep original for all remaining (${remaining + 1})</button>` : ''}
                         <button id="uncompleteCancel" class="secondary-button">Cancel</button>
                     </div>
                 </div>
@@ -428,6 +433,7 @@ const Popups = (() => {
             finish({ dueDateTime: next });
         });
         on('uncompleteKeepDue', () => finish({ dueDateTime: null }));
+        on('uncompleteKeepAll', () => finish({ dueDateTime: null, skipAll: true }));
         on('uncompleteCancel', () => finish({ cancel: true }));
     }
 
@@ -480,6 +486,7 @@ const Popups = (() => {
                             <input type="time" id="editDueTime" value="${dueTime}">
                         </div>
                     </div>
+                    <p id="editRescheduleNote" class="reschedule-note" aria-live="polite"></p>
                     <div class="modal-buttons">
                         <button id="saveTaskChanges" class="primary-button">Save Changes</button>
                         <button class="secondary-button" onclick="closeModal()">Cancel</button>
@@ -490,8 +497,48 @@ const Popups = (() => {
 
         Modal.open(modalHtml);
 
-        // Add save functionality
+        // Distance-priced rescheduling (Build 2): moving the due time LATER may
+        // cost points. Live price line under the date/time; Save is blocked when
+        // it can't be afforded (never debt). Optional dep — older callers
+        // without it keep the old free behavior.
         const saveButton = document.getElementById('saveTaskChanges');
+        const priceNote = document.getElementById('editRescheduleNote');
+        const readNewDue = () => {
+            const d = document.getElementById('editDueDate').value;
+            const t = document.getElementById('editDueTime').value;
+            if (!d) return null;
+            const dt = new Date(`${d}T${t || '00:00'}`);
+            return isNaN(dt.getTime()) ? null : dt;
+        };
+        const refreshPrice = () => {
+            if (!priceNote || typeof deps.reschedulePricingFor !== 'function') return null;
+            const nd = readNewDue();
+            if (!nd) { priceNote.textContent = ''; return null; }
+            const r = deps.reschedulePricingFor(item, nd);
+            let text = '';
+            let blocked = false;
+            if (r.later) {
+                if (!r.free) {
+                    text = `Moving this later costs ${r.cost} pts`;
+                    if (!r.canAfford) { text += ` — you have ${deps.getPlayerPoints()}`; blocked = true; }
+                } else if (r.reason === 'weekly') {
+                    text = 'Free this time — your weekly reschedule';
+                } else if (r.reason === 'grace') {
+                    text = 'Free — just created';
+                }
+            }
+            priceNote.textContent = text;
+            priceNote.classList.toggle('reschedule-note-blocked', blocked);
+            if (saveButton) saveButton.disabled = blocked;
+            return r;
+        };
+        ['editDueDate', 'editDueTime'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.addEventListener('input', refreshPrice); el.addEventListener('change', refreshPrice); }
+        });
+        refreshPrice();
+
+        // Add save functionality
         if (saveButton) {
             saveButton.addEventListener('click', () => {
                 const name = document.getElementById('editTaskName').value.trim();
@@ -517,11 +564,21 @@ const Popups = (() => {
                     return;
                 }
 
+                // Price against the CURRENT due (before it's overwritten) and
+                // re-check affordability at click time.
+                const reschedule = (typeof deps.reschedulePricingFor === 'function')
+                    ? deps.reschedulePricingFor(item, newDueDateTime) : null;
+                if (reschedule && reschedule.later && !reschedule.canAfford) {
+                    refreshPrice();
+                    return;
+                }
+
                 // Update the item data
                 item.name = name;
                 item.category = category;
                 item.isHighPriority = isHighPriority;
                 item.dueDateTime = newDueDateTime;
+                if (reschedule && typeof deps.commitReschedule === 'function') deps.commitReschedule(item, reschedule);
 
                 // Re-derive overdue state from the NEW due date. Without this,
                 // pushing an overdue task's deadline into the future left

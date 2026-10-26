@@ -4,6 +4,18 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-25 -- Distance-priced rescheduling BUILT (Build 2 of the design batch; Claude app session, Sonnet; no balance numbers changed)
+
+Spec = the design-batch entry below + `docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md` Q2; all numbers were already in `CONFIG` (`RESCHEDULE_*`).
+- **Pure core:** `Economy.reschedulePrice` (+ `reschedulePriceTiers`, `pruneRescheduleFreeUses`, `rescheduleFreeUsesLeft`). Tiers come from the pushback shop items so a shop re-price moves both. Delta rounds UP to the next tier; past the 1-day tier = whole days x the 1-day price. Zone factor, then level discount applied ONCE with min 1. Order of free reasons: not-later, grace (10 min from `creationTime`), calm (factor 0), weekly free use, else paid.
+- **Priced against the CURRENT due at save time** (zone via `Clock.getWalkUrgencyTier`, null = overdue). Both quick-fix and the weekly allowance are consumed only on a real later-move; Save is blocked (never debt) if unaffordable; re-checked at click time.
+- **Weekly free use stored as ms timestamps** (root `rescheduleFreeUses`, no schema bump) -- a free use is spent only by the weekly path, not by grace/calm moves.
+- **Shared modal:** tasks and sub-tasks use the same Edit modal, so both get the price line; the sub-task <= parent rule is unchanged. Habit instances and the revive picker stay free.
+- **Also:** `Popups.promptNewDueTime(item, deps, cb, {remaining})` shows "Keep original for all remaining (N)" when more pickers are queued -> `{dueDateTime:null, skipAll:true}`; script.js empties the queue (items already came back overdue with a clean clock).
+- **Stats:** `reschedules` run counter (Stats window + game-over totals line when > 0).
+
+---
+
 ## 2026-10-25 -- KO ghosts BUILT (Build 1 of the design batch; Claude app session, Sonnet; no balance numbers changed)
 
 Spec = the entry below + `docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md`. Implementation calls made while building:
