@@ -48,6 +48,12 @@
     gap: 2px;
 }
 
+.shop-item-effect {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-success, #4caf50);
+}
+
 .shop-item-held {
     font-size: 12px;
     color: var(--color-neutral);

@@ -74,6 +74,12 @@ const ShopView = (() => {
                    </button>`)
             : '';
 
+        // What a repair kit does, shown BEFORE buying (2026-10-26, Jeremy: the
+        // heal amount only appeared on the Use button, i.e. after purchase).
+        const effectRow = isRepairKit
+            ? `<div class="shop-item-effect">Heals +${item.effect.healAmount} HP</div>`
+            : '';
+
         // Pushback (non-consumable) can't be bought-to-hold — it's applied to
         // a specific zombie from the enemy-click popup (session 4). So its card
         // shows the price but routes the player to the real action instead of
@@ -108,6 +114,7 @@ const ShopView = (() => {
                 <span class="shop-item-name">${item.name}</span>
             </div>
             <div class="shop-item-body">
+                ${effectRow}
                 ${heldRow}
                 <div class="shop-item-price">${cost} pts</div>
                 ${priceNote}
