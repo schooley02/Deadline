@@ -87,6 +87,8 @@ const HeroTray = (() => {
                 mode: 'spot',
                 id: spot.chip.id,
                 emoji: spot.chip.emoji,
+                headSrc: spot.chip.headSrc || null,
+                state: spot.chip.state,
                 name: spot.chip.name,
                 level: spot.chip.level,
                 health: spot.chip.health,
@@ -100,14 +102,14 @@ const HeroTray = (() => {
 
     function tabSignature(model) {
         return model.mode === 'spot'
-            ? ['spot', model.id, model.name, model.level, model.health, model.emoji].join('|')
+            ? ['spot', model.id, model.name, model.level, model.health, model.emoji, model.headSrc || '', model.state].join('|')
             : ['idle', model.count, model.hasOpenSlot ? 1 : 0, model.hasHurt ? 1 : 0].join('|');
     }
 
     function rowSignature(row) {
         const c = row.chip;
         const cells = row.cells.map(x => [x.kind, x.category || x.itemType || x.level || '', x.frozen ? 'f' : ''].join(':')).join(',');
-        return [c.id, c.name, c.level, c.stars, c.health, c.state, c.emoji, row.points, cells].join('|');
+        return [c.id, c.name, c.level, c.stars, c.health, c.state, c.emoji, c.headSrc || '', row.points, cells].join('|');
     }
 
     /**
@@ -156,7 +158,7 @@ const HeroTray = (() => {
         const hp = Math.round(c.healthPct * 100);
         return `
             <div class="hero-tray-avatar" style="--hp:${hp}; --hp-color:${HeroesView.healthColorVar(c.healthPct)};">
-                <span class="hero-tray-avatar-inner" aria-hidden="true">${c.emoji}</span>
+                <span class="hero-tray-avatar-inner" aria-hidden="true">${HeroesView.avatarHtml(c)}</span>
             </div>
             <div class="hero-tray-main">
                 <div class="hero-tray-name"><span class="hero-tray-name-text">${esc(c.name)}</span><span class="hero-tray-level">Lv ${c.level}</span><span class="hero-tray-stars" aria-label="${c.stars} of 5 stars"><span class="hero-tray-star-on">${'★'.repeat(Math.max(0, c.stars))}</span><span class="hero-tray-star-off">${'☆'.repeat(Math.max(0, 5 - c.stars))}</span></span></div>
@@ -216,8 +218,8 @@ const HeroTray = (() => {
         const tab = els.tabEl;
         if (model.mode === 'spot') {
             const pct = Math.round(model.healthPct * 100);
-            tab.className = 'hero-tab hero-tab--spot';
-            tab.innerHTML = `<span class="hero-tab-emoji" aria-hidden="true">${model.emoji}</span><span class="hero-tab-name">${esc(model.name)} · Lv ${model.level}</span><span class="hero-tab-track" aria-hidden="true"><span class="hero-tab-fill" style="width:${pct}%; background:${HeroesView.healthColorVar(model.healthPct)};"></span></span><span class="hero-tab-hp">${model.health}/${config.ROUTINE_MAX_HEALTH}</span>`;
+            tab.className = 'hero-tab hero-tab--spot' + (model.state === 'ko' ? ' hero-tab--ko' : '');
+            tab.innerHTML = `<span class="hero-tab-emoji" aria-hidden="true">${HeroesView.avatarHtml(model)}</span><span class="hero-tab-name">${esc(model.name)} · Lv ${model.level}</span><span class="hero-tab-track" aria-hidden="true"><span class="hero-tab-fill" style="width:${pct}%; background:${HeroesView.healthColorVar(model.healthPct)};"></span></span><span class="hero-tab-hp">${model.health}/${config.ROUTINE_MAX_HEALTH}</span>`;
             tab.setAttribute('aria-label', `${model.name}, level ${model.level}, health ${model.health} of ${config.ROUTINE_MAX_HEALTH}. Open heroes`);
         } else {
             const notes = [];

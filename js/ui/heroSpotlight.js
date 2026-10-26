@@ -14,9 +14,10 @@
  *   - pure + node-testable: resolveRoutineForItem, heroLookFor, zombieSpriteFor,
  *     createController (injected timers);
  *   - DOM: init / show / dismiss / renderInto.
- * Placeholder art only (category emoji block); the PixelLab hero atlases land in
- * plan sub-session 4. KO has TWO looks behind CONFIG.HERO_KO_LOOK ('faded' |
- * 'zombie') so Jeremy can compare them live (plan answer 3).
+ * Categories listed in CONFIG.HERO_ART_CATEGORIES draw the PixelLab atlas (kind
+ * 'atlas': idle loop; KO plays once, holds its last frame, restarts -- unfaded).
+ * Every other category keeps the placeholder category emoji block, where KO has
+ * TWO looks behind CONFIG.HERO_KO_LOOK ('faded' | 'zombie') (plan answer 3).
  *
  * Global read at call time: Heroes (js/heroes.js, heroCategoryFor). Hero state
  * is derived locally so there is no load-order dependency on HeroesView.
@@ -47,6 +48,11 @@ const HeroSpotlight = (() => {
         return 'active';
     }
 
+    function hasHeroArt(category, config) {
+        return Array.isArray(config && config.HERO_ART_CATEGORIES)
+            && config.HERO_ART_CATEGORIES.indexOf(category) !== -1;
+    }
+
     function zombieSpriteFor(category) {
         return `Assets/Zombies/${ZOMBIE_FILE_KEY[category] || category}-zombie-64.png`;
     }
@@ -61,7 +67,9 @@ const HeroSpotlight = (() => {
         const category = Heroes.heroCategoryFor(routine, config.HERO_CATEGORIES);
         const state = deriveState(routine);
         const koLook = config.HERO_KO_LOOK === 'zombie' ? 'zombie' : 'faded';
-        const kind = (state === 'ko' && koLook === 'zombie') ? 'zombie' : 'emoji';
+        const hasArt = hasHeroArt(category, config);
+        let kind = (state === 'ko' && koLook === 'zombie') ? 'zombie' : 'emoji';
+        if (hasArt) kind = 'atlas'; // art heroes never use the faded / grey-zombie stand-ins
         return {
             routineId: routine.id,
             name: routine.name,
@@ -71,6 +79,7 @@ const HeroSpotlight = (() => {
             emoji: (config.CATEGORY_EMOJI && config.CATEGORY_EMOJI[category]) || '⭐',
             sprite: kind === 'zombie' ? zombieSpriteFor(category) : null,
             koLook,
+            anim: state === 'ko' ? 'ko' : 'idle', // atlas row; only meaningful for kind 'atlas'
         };
     }
 
@@ -119,9 +128,14 @@ const HeroSpotlight = (() => {
         heroEl.dataset.category = look.category;
         heroEl.dataset.routineId = look.routineId;
         heroEl.title = look.name;
-        heroEl.innerHTML = look.kind === 'zombie'
-            ? `<img class="hero-spotlight-sprite" src="${look.sprite}" alt="">`
-            : `<span class="hero-spotlight-emoji" aria-hidden="true">${look.emoji}</span>`;
+        if (look.kind === 'atlas') {
+            // Fresh nodes on every show(), so a KO animation always restarts at frame 1.
+            heroEl.innerHTML = `<div class="hero-sprite" data-anim="${look.anim}"><div class="hero-sprite-sheet"></div></div>`;
+        } else if (look.kind === 'zombie') {
+            heroEl.innerHTML = `<img class="hero-spotlight-sprite" src="${look.sprite}" alt="">`;
+        } else {
+            heroEl.innerHTML = `<span class="hero-spotlight-emoji" aria-hidden="true">${look.emoji}</span>`;
+        }
     }
 
     function applyActive(active) {
@@ -166,6 +180,7 @@ const HeroSpotlight = (() => {
     return {
         resolveRoutineForItem,
         heroLookFor,
+        hasHeroArt,
         zombieSpriteFor,
         createController,
         init,

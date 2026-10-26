@@ -89,6 +89,81 @@
 .hero-spotlight--ko.hero-spotlight--emoji.active { opacity: 0.6; }
 .hero-spotlight--ko.hero-spotlight--zombie { background: #d8d8d8; border-style: dashed; }
 
+/* ---- Hero ART (HERO_SPOTLIGHT_PLAN sub-session 4, 2026-10-25) ----------------------------
+   Categories in CONFIG.HERO_ART_CATEGORIES draw their PixelLab atlas instead of the emoji block:
+   Assets/Heroes/anim/<category>.png, 9 cols x 5 rows of 164px cells (idle, attack, hurt, levelup,
+   ko), character 128px facing right, feet on cell row 140 in every frame (test/heroArt.test.js).
+   No card, ring or white box -- the sprite stands directly on the front-lane line. Same
+   steps()-slid sheet technique as css/enemyAnim.css. */
+.hero-spotlight--atlas {
+    --hero-scale: 1;
+    --hero-cell: 164px;
+    --hero-feet: 140px;
+    width: calc(var(--hero-cell) * var(--hero-scale));
+    height: calc(var(--hero-cell) * var(--hero-scale));
+    /* plant the feet row on the same 8px front-lane line the emoji block used */
+    bottom: calc(8px - (var(--hero-cell) - var(--hero-feet)) * var(--hero-scale));
+    display: block;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    overflow: hidden;
+}
+.hero-sprite {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 164px;
+    height: 164px;
+    overflow: hidden;
+    transform: scale(var(--hero-scale));
+    transform-origin: 0 0;
+    pointer-events: none;
+    --hero-row: 0;
+    --hero-fps: 6;
+}
+.hero-sprite[data-anim="ko"] { --hero-row: 4; }
+.hero-sprite-sheet {
+    position: absolute;
+    left: 0;
+    top: calc(var(--hero-row) * -164px);
+    width: 1476px;  /* 9 x 164 */
+    height: 820px;  /* 5 x 164 */
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    image-rendering: pixelated;
+    will-change: transform;
+    animation: hero-sprite-run calc(9 / var(--hero-fps) * 1s) steps(9) infinite;
+}
+.hero-spotlight[data-category="other"] .hero-sprite-sheet { background-image: url('../Assets/Heroes/anim/other.png'); }
+@keyframes hero-sprite-run {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-1476px, 0, 0); }
+}
+
+/* KO: 9 frames ONCE at CONFIG.HERO_KO_FPS (10fps = 0.9s), then HOLD the last (lying) frame for
+   CONFIG.HERO_KO_HOLD_MS (3s), then restart. 3.9s total; 0.9 / 3.9 = 23.077%. Never loops
+   without the pause. KEEP IN SYNC with config.js (test/heroArt.test.js verifies). */
+.hero-sprite[data-anim="ko"] .hero-sprite-sheet {
+    animation: hero-ko 3.9s linear infinite;
+}
+@keyframes hero-ko {
+    0%      { transform: translate3d(0, 0, 0); animation-timing-function: steps(9, jump-none); }
+    23.077% { transform: translate3d(-1312px, 0, 0); }
+    100%    { transform: translate3d(-1312px, 0, 0); }
+}
+
+/* The KO animation itself is NOT faded (Jeremy, 2026-10-25); frozen / inactive casts still apply. */
+.hero-spotlight--ko.hero-spotlight--atlas { filter: none; }
+
+/* Effects off / reduced motion: idle holds frame 1, KO holds its final (lying) frame. */
+.fx-off .hero-sprite-sheet { animation: none !important; }
+.fx-off .hero-sprite[data-anim="ko"] .hero-sprite-sheet { transform: translate3d(-1312px, 0, 0); }
+@media (prefers-reduced-motion: reduce) {
+    .hero-sprite-sheet { animation: none !important; }
+    .hero-sprite[data-anim="ko"] .hero-sprite-sheet { transform: translate3d(-1312px, 0, 0); }
+}
+
 /* Portrait glance strip: 56px church window, 92px strip. */
 body.glance-strip #baseScrim {
     width: 56px;
@@ -106,6 +181,16 @@ body.glance-strip .hero-spotlight {
 
 body.glance-strip .hero-spotlight-emoji { font-size: 24px; }
 body.glance-strip .hero-spotlight-sprite { width: 30px; height: 30px; }
+
+/* Hero art in the portrait strip: the 128px character at 0.45 = 58px tall, like the emoji block. */
+body.glance-strip .hero-spotlight--atlas {
+    --hero-scale: 0.45;
+    width: calc(var(--hero-cell) * var(--hero-scale));
+    height: calc(var(--hero-cell) * var(--hero-scale));
+    bottom: calc(2px - (var(--hero-cell) - var(--hero-feet)) * var(--hero-scale));
+    border: 0;
+    border-radius: 0;
+}
 
 @media (prefers-reduced-motion: reduce) {
     #baseScrim,

@@ -164,6 +164,11 @@
     font-size: 20px;
 }
 
+.hero-tray-avatar-inner .hero-head { width: 100%; height: 100%; border-radius: 50%; }
+/* A KO'd spotlit hero in the tab fades like its tray / list avatars. */
+.hero-tab--ko .hero-tab-emoji { filter: grayscale(1); opacity: 0.6; }
+.hero-tab-emoji .hero-head { width: 1.6em; height: 1.6em; }
+
 .hero-tray-main { flex: 1; min-width: 0; }
 .hero-tray-name { display: flex; align-items: baseline; gap: 8px; font-weight: 600; font-size: 15px; }
 .hero-tray-name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }

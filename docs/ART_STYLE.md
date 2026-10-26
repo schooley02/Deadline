@@ -40,7 +40,8 @@ Hit feedback: brightness flash on every real hit + a 2px side shake at most once
 | Spirituality | Nun |
 | Other | Generic zombie |
 
-## Heroes (planned 2026-10-21)
+## Heroes (planned 2026-10-21; Other Hero built 2026-10-25)
+**Built (Other):** `Assets/Heroes/anim/other.png` = 9 cols x 5 rows of 164px cells (character 128px, faces right, feet on row 140 in every idle frame): rows idle, attack, hurt, levelup, ko (9 frames each; PixelLab export with the rotation row dropped and rows reordered), `other.json` (same shape as the zombie atlases + `feetY`, `bodyBox`), `Assets/Heroes/other-head.png` (32x32 head crop for tray / tab / list chips). Recipe for the other 7 categories is in `docs/HERO_SPOTLIGHT_PLAN.md` sub-session 4. KO plays once at `CONFIG.HERO_KO_FPS`, holds the last frame `CONFIG.HERO_KO_HOLD_MS` (3 s), restarts; the KO row has one airborne mid-fall frame by design. Only `idle` and `ko` are wired.
 Healthy, non-zombie twins of the category zombies above (same outfit, alive palette, upright, facing right). Brief, file layout and sizing: `docs/HERO_SPOTLIGHT_PLAN.md`.
 
 ## Enemy Visual Modifiers

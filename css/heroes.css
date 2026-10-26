@@ -28,6 +28,18 @@
     line-height: 1;
 }
 
+/* Hero art head crop (32x32 PixelLab) in place of the emoji; sized in em so every avatar slot
+   (chip 18px, inline chip 14px, tray, tab) scales it with its own font-size. */
+.hero-head {
+    display: block;
+    width: 1.2em;
+    height: 1.2em;
+    object-fit: cover;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+.hero-chip-avatar .hero-head { margin: 0 auto; }
+
 .hero-chip-stars {
     color: var(--color-holy-gold);
     letter-spacing: -1px;

@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v80';
+const CACHE_NAME = 'deadline-shell-v81';
 
 const APP_SHELL = [
     './',
@@ -141,6 +141,9 @@ const APP_SHELL = [
     'Assets/Zombies/anim/relationships.png',
     'Assets/Zombies/anim/spirituality.png',
     'Assets/Zombies/anim/other.png',
+    // Hero art (HERO_SPOTLIGHT_PLAN sub-session 4, 2026-10-25): atlas + 32x32 head crop per art category.
+    'Assets/Heroes/anim/other.png',
+    'Assets/Heroes/other-head.png',
     // Floor art: desktop/landscape ground (css/gameCanvas.css) + portrait strip floor (css/glanceStrip.css). NOT strip-floor-original/2/3.png or scene/_source/.
     'Assets/scene/strip-floor.png',
     'Assets/scene/floor-tile.png',

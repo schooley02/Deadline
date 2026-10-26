@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-25 -- Other Hero art integrated; KO animation unfaded (HERO_SPOTLIGHT_PLAN sub-session 4, first hero; Claude app session, Opus plan -> Sonnet build; no balance numbers)
+- **Decided with Jeremy:** the hero's KO ANIMATION plays as drawn (not faded / not the grey-zombie stand-in) and must never loop without pausing: 9 frames once at 10 fps, then HOLD the last (lying) frame 3 s, then restart. The small things DO fade when KO'd: tray / tab / list-chip avatars, and (design, NOT built) the routine's habit + task zombies and list rows should stay on the canvas and in the list as faded ghosts ("at-a-glance"). `CONFIG.HERO_KO_LOOK` now only applies to categories without art.
+- **Built:** `Assets/Heroes/anim/other.png` (9x5 cells of 164px; rows idle, attack, hurt, levelup, ko; rotation row dropped) + `other.json` + `Assets/Heroes/other-head.png` (32x32). `CONFIG.HERO_ART_CATEGORIES = ['other']`, `HERO_KO_FPS`, `HERO_KO_HOLD_MS`. Spotlight kind `'atlas'` (idle loop / KO), head-crop avatars via `HeroesView.headSrcFor/avatarHtml` in the tray, tab and list chips; tab gets `.hero-tab--ko`. sw.js v81 (+ atlas + head crop in APP_SHELL). No static fallback PNG shipped (nothing would use it).
+- **Why CSS keyframes, not JS timers:** same steps()-slid-sheet technique as zombies; the hold is a keyframe plateau (0.9 s play + 3 s hold = 3.9 s, stop at 23.077%). Config and CSS must agree; `test/heroArt.test.js` parses the CSS and fails if they drift. Effects-off / reduced motion hold the FINAL KO frame.
+- **Found:** the KO row has one airborne mid-fall frame (feet ~8 px above the floor) -- intentional; the test only requires grounded first and last frames. The sheet's own JSON labels every animation direction "south"; the art actually faces right (what the game wants).
+- **Verified:** Jest 78 suites / 1,623 (+12, `test/heroArt.test.js`); live in cloud Chromium (390x844 and 844x390, planted save): idle loops, KO reaches frame 9 by 1.2 s, holds through 3 s, restarts; KO unfaded; tray heads, KO row greyed; zero console errors. Not on the phone.
+- **Open (queued, not decided):** KO ghosts vs streaks, reschedule limits / Edit token, work timer -- `docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md`.
+
 ## 2026-10-23 -- Level panel built (LEVEL_PERKS_PLAN sub-session B; Claude app session, Sonnet; no balance numbers)
 - **Built:** a centered-Modal level panel (`js/ui/levelPanel.js`, `css/levelPanel.css`) opened by the HUD level button and the Hero tray's "Routines 3/4 · 1 frozen" summary; the HUD's XP and Level chips merged into one `#levelButton` (Lv + slim XP bar + ⓘ, never a "+"); dead `totalRoutineSlotsDisplay` and the unused `routineSlots` HUD dep removed.
 - **Decided with Jeremy:** show XP numbers only (no "≈ N completions to go", which would need an XP-per-completion assumption); Modal, not a bottom sheet (doesn't compete with the Hero tray).

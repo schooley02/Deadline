@@ -45,6 +45,22 @@ const HeroesView = (() => {
         return map[category] || FALLBACK_EMOJI;
     }
 
+    // Hero art (sub-session 4, 2026-10-25): categories in CONFIG.HERO_ART_CATEGORIES have a 32x32
+    // head crop that replaces the emoji in every small avatar (list chip, tray row, Heroes tab).
+    // Others return null and keep the emoji.
+    function headSrcFor(category, config) {
+        const arts = (config && config.HERO_ART_CATEGORIES) || [];
+        return arts.indexOf(category) !== -1 ? `Assets/Heroes/${category}-head.png` : null;
+    }
+
+    // Avatar markup for a chip view model (or tab model): head crop when it has one, else emoji.
+    // KO / inactive fading is plain CSS on the container (grayscale + opacity), so it applies to
+    // the <img> and the emoji alike.
+    function avatarHtml(vm) {
+        if (vm && vm.headSrc) return `<img class="hero-head" src="${vm.headSrc}" alt="" draggable="false">`;
+        return (vm && vm.emoji) || '';
+    }
+
     // Dominant category among the routine's HABIT members (routine tasks
     // aren't counted — same habit-only scope as Heroes.completionRate, for
     // the same reason: task categories aren't tied to any honest per-routine
@@ -131,6 +147,7 @@ const HeroesView = (() => {
             state: deriveState(routine),
             heroCategory,
             emoji: categoryEmoji(heroCategory, config),
+            headSrc: headSrcFor(heroCategory, config),
             initial: null,
         };
     }
@@ -187,7 +204,7 @@ const HeroesView = (() => {
         // sprites (DECISIONS 2026-10-14). Until they exist it shows the
         // category emoji (or a neutral shield for a routine with no habits
         // yet) -- the routine-name initial and the Lv badge are gone.
-        const identity = vm.emoji || NEUTRAL_AVATAR;
+        const identity = avatarHtml(vm) || NEUTRAL_AVATAR;
 
         chip.innerHTML = `
             ${statusIcon}
@@ -415,12 +432,14 @@ const HeroesView = (() => {
     // rebuild; when it ends the signature changes once and the chip refreshes.
     function chipSignature(vm, nowMs) {
         const fx = vm.fx ? `${vm.fx.effect}@${Math.round(nowMs - vm.fx.elapsedMs)}` : '';
-        return [vm.id, vm.state, vm.stars, Math.round(vm.healthPct * 100), vm.emoji || '', vm.name, fx].join('|');
+        return [vm.id, vm.state, vm.stars, Math.round(vm.healthPct * 100), vm.emoji || '', vm.headSrc || '', vm.name, fx].join('|');
     }
 
     return {
         // pure
         categoryEmoji,
+        headSrcFor,
+        avatarHtml,
         dominantCategoryOrInitial,
         heroCategoryOptionsHtml,
         deriveState,

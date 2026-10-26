@@ -271,6 +271,17 @@ const CONFIG = {
     // KO'd hero look, built both ways to compare live (plan answer 3):
     // 'faded' = desaturated hero; 'zombie' = the category zombie grey-tinted.
     HERO_KO_LOOK: 'faded',
+    // Hero ART (HERO_SPOTLIGHT_PLAN sub-session 4, 2026-10-25): categories that have a PixelLab
+    // atlas (Assets/Heroes/anim/<category>.png + .json) and head crop (Assets/Heroes/<category>-head.png).
+    // Those heroes skip the emoji block and the HERO_KO_LOOK treatment: the KO ANIMATION plays
+    // unfaded (Jeremy, 2026-10-25) while the small avatars (tray / tab / list chips) still fade.
+    // Categories not listed keep the emoji placeholder until their art lands.
+    HERO_ART_CATEGORIES: ['other'],
+    // KO animation timing (display only). The KO row (9 frames) plays ONCE at HERO_KO_FPS, then
+    // holds its last frame for HERO_KO_HOLD_MS, then restarts. KEEP IN SYNC with the `hero-ko`
+    // keyframes in css/heroSpotlight.css (test/heroArt.test.js checks they agree).
+    HERO_KO_FPS: 10,
+    HERO_KO_HOLD_MS: 3000,
     // Hero tray (plan sub-session 3): a hero counts as "hurt" (red dot on the Heroes tab) at or
     // below this fraction of max health. Display threshold, not balance.
     HERO_HURT_PCT: 0.5,
