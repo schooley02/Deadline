@@ -204,8 +204,14 @@ const Popups = (() => {
         const openSubTaskCount = (item.type === 'task' && item.subTasks) ? item.subTasks.length : 0;
         const hasOpenSubTasks = openSubTaskCount > 0;
         const remainingSuffix = openSubTaskCount === 1 ? '' : 's';
+        const timerOk = typeof deps.toggleWorkTimer === 'function' && typeof Timer !== 'undefined' && Timer.canWorkTimer(item);
+        const timerRunning = timerOk && Timer.isRunning(item);
+        const timerHtml = timerOk
+            ? `<button type="button" id="workTimerBtn" class="work-timer-btn${timerRunning ? ' running' : ''}">${timerRunning ? '\u23F9 Stop timer' : '\u23F1 Start timer'}</button>`
+            : '';
         return `
             <div class="task-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
+                ${timerHtml}
                 <button id="editTaskBtn" class="edit-icon-btn" title="Edit Task">✏️</button>
                 <label class="completion-checkbox"${hasOpenSubTasks ? ` title="${openSubTaskCount} sub-task${remainingSuffix} remaining" style="cursor: not-allowed; opacity: 0.6;"` : ''}>
                     <input type="checkbox" id="completeTaskCheck" class="completion-checkbox-input"${hasOpenSubTasks ? ' disabled' : ''} />
@@ -301,6 +307,17 @@ const Popups = (() => {
                 const result = deps.onUseSkipDay ? deps.onUseSkipDay('skip_day', item) : { ok: false };
                 if (result && result.ok) {
                     Modal.closeModal();
+                }
+            });
+        }
+
+        const workTimerButton = document.getElementById('workTimerBtn');
+        if (workTimerButton) {
+            workTimerButton.addEventListener('click', () => {
+                const r = deps.toggleWorkTimer(item.id);
+                if (r && r.ok) {
+                    workTimerButton.classList.toggle('running', r.running);
+                    workTimerButton.textContent = r.running ? '\u23F9 Stop timer' : '\u23F1 Start timer';
                 }
             });
         }
@@ -486,6 +503,10 @@ const Popups = (() => {
                             <input type="time" id="editDueTime" value="${dueTime}">
                         </div>
                     </div>
+                    <div class="form-row">
+                        <label for="editTimerMinutes">Timer target (min, optional):</label>
+                        <input type="number" id="editTimerMinutes" min="1" max="600" step="1" inputmode="numeric" value="${typeof item.timerMinutes === 'number' ? item.timerMinutes : ''}" placeholder="e.g. 30">
+                    </div>
                     <p id="editRescheduleNote" class="reschedule-note" aria-live="polite"></p>
                     <div class="modal-buttons">
                         <button id="saveTaskChanges" class="primary-button">Save Changes</button>
@@ -578,6 +599,8 @@ const Popups = (() => {
                 item.category = category;
                 item.isHighPriority = isHighPriority;
                 item.dueDateTime = newDueDateTime;
+                const editTarget = Math.floor(Number(document.getElementById('editTimerMinutes').value));
+                item.timerMinutes = (editTarget >= 1 && editTarget <= 600) ? editTarget : null;
                 if (reschedule && typeof deps.commitReschedule === 'function') deps.commitReschedule(item, reschedule);
 
                 // Re-derive overdue state from the NEW due date. Without this,

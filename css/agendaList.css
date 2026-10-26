@@ -413,3 +413,21 @@
     cursor: pointer;
 }
 .reorder-btn:hover { background: var(--color-secondary-green-pale); }
+
+/* Work timer (Build 3): row / popup start-stop button. */
+.work-timer-btn {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 12px;
+    color: inherit;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 2px 8px;
+    min-height: 28px;
+    white-space: nowrap;
+}
+.work-timer-btn.running {
+    border-color: #e0a84f;
+    color: #e0a84f;
+    font-variant-numeric: tabular-nums;
+}

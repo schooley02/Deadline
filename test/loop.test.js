@@ -259,6 +259,28 @@ describe('Loop.updateActiveItems', () => {
         expect(deps._state.damageDealt).toBe(DMG);
     });
 
+    // Work timer (Build 3, 2026-10-25): a running timer stretches THIS item's tick
+    // interval by 1 / WORK_TIMER_DAMAGE_FACTOR (damage halved, never zero).
+    test('a running work timer halves the damage rate for that item only', () => {
+        global.Timer = require('../js/timer.js');
+        try {
+            const now = Date.now();
+            const worked = makeItem({ id: 1, isOverdue: true, lastDamageTickTime: now - INTERVAL - 10, timer: { startedAt: now - 1000, checkedAt: now - 1000, promptedAt: null } });
+            const idle = makeItem({ id: 2, isOverdue: true, lastDamageTickTime: now - INTERVAL - 10 });
+            const deps = makeDeps({ state: { activeItems: [worked, idle] } });
+            Loop.updateActiveItems(deps);
+            // only the idle item hit; the worked one waits for 2x the interval
+            expect(deps._state.damageDealt).toBe(DMG);
+            expect(worked.lastDamageTickTime).toBe(now - INTERVAL - 10);
+            worked.lastDamageTickTime = now - 2 * INTERVAL - 10;
+            Loop.updateActiveItems(deps);
+            expect(deps._state.damageDealt).toBe(DMG * 2);
+            expect(worked.lastDamageTickTime).toBe(now - 2 * INTERVAL - 10 + 2 * INTERVAL);
+        } finally {
+            delete global.Timer;
+        }
+    });
+
     // [P1-UI-006] sub-session 2, 2026-07-19 — routine health damage/KO
     test('a damage tick also calls the optional damageRoutineForItem collaborator with the item + amount', () => {
         const now = Date.now();

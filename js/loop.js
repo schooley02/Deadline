@@ -168,7 +168,13 @@ const Loop = (() => {
 
             // Handle damage from overdue items
             if (item.isOverdue && !isLurker) {
-                if (currentTimeMs >= item.lastDamageTickTime + CONFIG.DAMAGE_INTERVAL_MS) {
+                // Work timer (Build 3, 2026-10-25): while a timer runs on this item the
+                // tick interval is stretched (damage x WORK_TIMER_DAMAGE_FACTOR, never
+                // zero). Live loop only -- catch-up paths ignore the timer.
+                const tickMs = (typeof Timer !== 'undefined')
+                    ? Timer.damageIntervalMs(item, CONFIG.DAMAGE_INTERVAL_MS)
+                    : CONFIG.DAMAGE_INTERVAL_MS;
+                if (currentTimeMs >= item.lastDamageTickTime + tickMs) {
                     // Run-history blame attribution (sub-session 2, session
                     // 53) — MUST run BEFORE deps.damageBase below. damageBase
                     // can synchronously trigger gameOver() at 0 HP, which
@@ -189,7 +195,7 @@ const Loop = (() => {
                     // it's threaded through deps to match damage.js's
                     // injection pattern for the same collaborator.
                     if (deps.damageRoutineForItem) deps.damageRoutineForItem(item, CONFIG.OVERDUE_DAMAGE);
-                    item.lastDamageTickTime += CONFIG.DAMAGE_INTERVAL_MS;
+                    item.lastDamageTickTime += tickMs;
 
                     if (deps.isGameOver()) break;
                 }

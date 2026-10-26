@@ -140,3 +140,6 @@ Requested by Jeremy: some routines need certain habits/tasks active only on week
 - Note: negative-habit avoidance IS spec'd — validated via daily check-in prompts (see ROUTINES.md).
 - ~~Double-points probability curve~~ RESOLVED 2026-07-18: superseded by the rate-based multiplier (see Habits above).
 - ~~Base healing: daily reset vs. gradual regen~~ RESOLVED 2026-07-18: gradual regen (see Base above).
+
+## Work timer (BUILT 2026-10-25, Build 3)
+Tasks and positive habits can be timed (row ⏱ button, popup "Start timer"). One at a time. While running: the owning routine's hero (or the "Other" hero) attacks in front of the church with no scrim, and THAT item's overdue damage rate is halved (tick interval doubled, `CONFIG.WORK_TIMER_DAMAGE_FACTOR`; offline catch-up ignores the timer). After `WORK_TIMER_CHECK_MS` (60 min) a "Still working?" modal appears; unanswered for `WORK_TIMER_AUTO_STOP_MS` (10 min) it auto-stops, banking time only up to the prompt. Optional `item.timerMinutes` target completes the item through the normal path. Time is stored in `item.timerMsBanked`; no stats surface yet. Pure rules: `js/timer.js`.

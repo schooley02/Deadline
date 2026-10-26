@@ -4,6 +4,19 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-25 -- Work timer BUILT (Build 3 of the design batch; Claude app session, Sonnet; no balance numbers changed)
+
+Spec = design-batch entry + `docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md` Q3. Implementation calls:
+- **Pure core `js/timer.js`:** `item.timer = {startedAt, checkedAt, promptedAt}` (ms epoch) + `item.timerMsBanked`; elapsed = banked + now - startedAt, so it survives reloads and never ticks. Eligible: tasks (incl. sub-tasks) and POSITIVE habits that aren't KO ghosts. One timer at a time (starting another stops + banks the first).
+- **Damage halved by stretching the tick interval** (`interval / WORK_TIMER_DAMAGE_FACTOR`, i.e. 5 -> 10 min), not by hitting for 0.5: damage and base HP are whole numbers. Same average, never zero. Live loop only (`loop.js`); the offline and live-gap catch-up paths ignore the timer.
+- **"Still working?"** at `WORK_TIMER_CHECK_MS` of continuous running. promptedAt is stamped at the moment the prompt was DUE (checkedAt + 60 min), not "now", so if the app was closed through the whole window the timer auto-stops on the next tick banking only up to that moment (closed-app time is never credited, and no stale modal).
+- **Target** (`item.timerMinutes`, set in the Add/Edit Task forms, 1-600): reaching it stops the timer and completes through `Items.completeItem`; a parent with open sub-tasks stays open and the notice says so. Banked time counts toward the target.
+- **Completing / removing** an item stops its timer. A running item that becomes a KO ghost is stopped by the per-tick check.
+- **Hero:** `HeroSpotlight.setWork(routine)` keeps the owning routine's hero up on the ATTACK row (atlas row 1, 9 frames, 9 fps, every category), NO scrim, for as long as a timer runs; standalone items use a pseudo "Other" hero. A tap-spotlight temporarily replaces it and it returns. Effects-off / reduced motion hold frame 1.
+- **Deferred:** definition-level targets (`habitDef/taskDef.timerMinutes`, `timerMode` editors) and the time-on-task stats surface -- schema fields exist; nothing reads them yet. Limit timers are Build 4.
+
+---
+
 ## 2026-10-25 -- Distance-priced rescheduling BUILT (Build 2 of the design batch; Claude app session, Sonnet; no balance numbers changed)
 
 Spec = the design-batch entry below + `docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md` Q2; all numbers were already in `CONFIG` (`RESCHEDULE_*`).

@@ -420,7 +420,13 @@ const Items = (() => {
             // Cumulative offline overdue damage ever charged to this item —
             // lifetime cap (CONFIG.OFFLINE_DAMAGE_CAP_PER_ITEM), not per-restore.
             // See computeOfflineOverdueDamage / DECISIONS.md 2026-07-17.
-            offlineDamageCharged: 0
+            offlineDamageCharged: 0,
+            // Work timer + reschedule fields (schema 14 defaults; Build 3, 2026-10-25)
+            koGhost: false,
+            timer: null,
+            timerMsBanked: 0,
+            timerMinutes: null,
+            rescheduleCount: 0
         };
 
         // Calculate initial position based on new timeline system
@@ -470,6 +476,9 @@ const Items = (() => {
         if (item.type === 'task' && item.subTasks && item.subTasks.length > 0) {
             return { ok: false, reason: 'subtasks_remaining', remaining: item.subTasks.length };
         }
+
+        // Work timer (Build 3, 2026-10-25): completing an item ends its timer, banking the time.
+        if (typeof Timer !== 'undefined' && Timer.isRunning(item)) Timer.stop(item, Date.now());
 
         let xpGained = 0;
         let pointsGained = 0;
@@ -665,6 +674,7 @@ const Items = (() => {
         if (itemIndex === -1) return;
 
         const item = deps.activeItems[itemIndex];
+        if (typeof Timer !== 'undefined' && Timer.isRunning(item)) Timer.stop(item, Date.now());
 
         if (item.element) item.element.remove();
         if (item.listItemElement) item.listItemElement.remove();

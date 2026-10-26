@@ -212,6 +212,10 @@ const Forms = (() => {
                     <input type="time" id="modalDueTime" value="${defaultDueTime}">
                 </div>
             </div>
+            <div class="form-row">
+                <label for="modalTimerMinutes">Timer target (min, optional):</label>
+                <input type="number" id="modalTimerMinutes" min="1" max="600" step="1" inputmode="numeric" placeholder="e.g. 30">
+            </div>
             <div class="modal-buttons">
                 <button id="modalAddTaskButton" class="primary-button">Add Task</button>
                 <button class="secondary-button" onclick="closeModal()">Cancel</button>
@@ -381,6 +385,9 @@ const Forms = (() => {
                         }
 
                         const taskData = deps.createTaskItemData(name, category, isHighPriority, dueDate, dueTime);
+                        const targetInput = modal.querySelector('#modalTimerMinutes');
+                        const targetMin = targetInput ? Math.floor(Number(targetInput.value)) : NaN;
+                        taskData.timerMinutes = (targetMin >= 1 && targetMin <= 600) ? targetMin : null;
                         deps.addItemToGame(taskData);
                         deps.sortAndRenderActiveList();
                         Modal.closeModal();

@@ -691,6 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
             indulgeHabit: (itemId) => Items.indulgeHabit(itemId, itemsDeps()),
             isGameOver: State.isGameOver,
             showEditTaskModal: (item) => Popups.showEditTaskModal(item, popupsDeps()),
+            toggleWorkTimer,
             showEditHabitInstanceModal: (itemData) => AgendaList.showEditHabitInstanceModal(itemData, agendaListDeps()),
             createSubTaskPrompt: (parentId) => Popups.createSubTaskPrompt(parentId, popupsDeps()),
             activeItemsListUL,
@@ -748,6 +749,7 @@ document.addEventListener('DOMContentLoaded', () => {
             onPushback: handlePushback,
             reschedulePricingFor,
             commitReschedule,
+            toggleWorkTimer,
             // Cheat Day targeting ([P1-DATA-005] sub-session 5, 2026-07-19):
             // held count for the popup's "Use Cheat Day (N held)" button,
             // whether THIS lurker's day already has one active (shows the
@@ -901,6 +903,105 @@ document.addEventListener('DOMContentLoaded', () => {
         if (routine) spotlightRoutine(routine.id);
     }
 
+    // ---- Work timer (Build 3, 2026-10-25; docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md Q3) ----
+    // Pure rules live in js/timer.js; this is the wiring. One timer at a time; the
+    // owning routine's hero (pseudo "Other" hero for standalone items) attacks, with no
+    // scrim, while it runs.
+    let workHeroKey = null;
+    let lastTimerLabelMs = 0;
+
+    function resolveWorkHero(item) {
+        const routine = HeroSpotlight.resolveRoutineForItem(item, State.getActiveItems(), (it) =>
+            Items.findRoutineForItem(it, { definedHabits: () => State.getDefinedHabits(), definedRoutines: () => State.getDefinedRoutines() }));
+        return routine || { id: '__other', name: 'Other', heroCategory: 'other', isActive: true };
+    }
+
+    function syncWorkHero(running) {
+        if (!running) {
+            if (workHeroKey !== null) { workHeroKey = null; HeroSpotlight.setWork(null); }
+            return;
+        }
+        const routine = resolveWorkHero(running);
+        if (workHeroKey === routine.id) return;
+        ensureHeroSpotlight();
+        workHeroKey = routine.id;
+        HeroSpotlight.setWork(routine);
+    }
+
+    function updateTimerButtons(nowMs) {
+        State.getActiveItems().forEach(item => {
+            if (!item.listItemElement) return;
+            const btn = item.listItemElement.querySelector('.work-timer-btn');
+            if (!btn) return;
+            const running = Timer.isRunning(item);
+            btn.classList.toggle('running', running);
+            btn.textContent = running ? `\u23F9 ${Timer.formatElapsed(Timer.elapsedMs(item, nowMs))}` : '\u23F1';
+            btn.title = running ? 'Stop timer' : 'Start timer';
+            btn.setAttribute('aria-label', btn.title);
+        });
+    }
+
+    function toggleWorkTimer(itemId) {
+        if (State.isGameOver()) return { ok: false };
+        const items = State.getActiveItems();
+        const item = items.find(i => i.id === itemId);
+        if (!item) return { ok: false };
+        const now = Date.now();
+        if (Timer.isRunning(item)) {
+            Timer.stop(item, now);
+        } else {
+            if (!Timer.canWorkTimer(item)) return { ok: false };
+            const other = Timer.findRunning(items);
+            if (other) Timer.stop(other, now);
+            Timer.start(item, now);
+        }
+        syncWorkHero(Timer.findRunning(items));
+        updateTimerButtons(now);
+        saveGame();
+        return { ok: true, running: Timer.isRunning(item) };
+    }
+
+    // Per-tick (afterTick): keeps the hero in step with whatever is running (also after a
+    // reload), updates row labels once a second, and fires the prompt / auto-stop / target.
+    function processTimers(nowMs) {
+        const items = State.getActiveItems();
+        const running = Timer.findRunning(items);
+        if (!running) { syncWorkHero(null); return; }
+        if (running.koGhost) { Timer.stop(running, nowMs); syncWorkHero(null); updateTimerButtons(nowMs); saveGame(); return; }
+        syncWorkHero(running);
+        if (nowMs - lastTimerLabelMs >= 1000) { lastTimerLabelMs = nowMs; updateTimerButtons(nowMs); }
+        const action = Timer.pendingAction(running, nowMs);
+        if (!action) return;
+        if (action === 'target') {
+            const minutes = running.timerMinutes;
+            Timer.stop(running, nowMs);
+            syncWorkHero(null);
+            Items.completeItem(running.id, itemsDeps());
+            const completed = !State.getActiveItems().includes(running);
+            updateTimerButtons(nowMs);
+            saveGame();
+            TimerView.showTargetReached(running, minutes, completed);
+        } else if (action === 'prompt') {
+            Timer.markPrompted(running, Timer.promptDueAt(running));
+            saveGame();
+            // Normally due "now". If the app was closed past the whole window, the next tick
+            // auto-stops (banking only up to the moment the prompt was due) -- no modal.
+            if (Timer.pendingAction(running, nowMs) !== 'autostop') {
+                TimerView.showStillWorking(running, {
+                    onContinue: () => { Timer.confirmStillWorking(running, Date.now()); saveGame(); },
+                    onStop: () => { Timer.stop(running, Date.now()); syncWorkHero(null); updateTimerButtons(Date.now()); saveGame(); },
+                });
+            }
+        } else if (action === 'autostop') {
+            Timer.autoStop(running, nowMs);
+            TimerView.closeStillWorking();
+            syncWorkHero(null);
+            updateTimerButtons(nowMs);
+            saveGame();
+            TimerView.showAutoStopped(running);
+        }
+    }
+
     function handleEnemyClick(itemId) {
         if (!State.isGameOver()) spotlightHeroForItem(itemId);
         Popups.handleEnemyClick(itemId, popupsDeps());
@@ -1015,6 +1116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     isGameOver: State.isGameOver,
                     isNonThreatening: Items.isNonThreatening,
                 });
+                processTimers(Date.now());
                 Layout.applyStripLayout(State.getActiveItems(), { baseWidth: BASE_WIDTH });
                 // Landscape/desktop: ground lanes in list order, overlap-avoiding (no-op in strip mode).
                 if (!Layout.isActive()) Layout.applyGroundLanes(State.getActiveItems(), gameCanvas.offsetHeight, { baseWidth: BASE_WIDTH });

@@ -63,7 +63,8 @@ const HeroSpotlight = (() => {
      * zombie (KO look B -- only ever shown inside the spotlight, never as a
      * live enemy).
      */
-    function heroLookFor(routine, config) {
+    // opts.working (Build 3 work timer): an active atlas hero plays the ATTACK row.
+    function heroLookFor(routine, config, opts) {
         const category = Heroes.heroCategoryFor(routine, config.HERO_CATEGORIES);
         const state = deriveState(routine);
         const koLook = config.HERO_KO_LOOK === 'zombie' ? 'zombie' : 'faded';
@@ -79,7 +80,7 @@ const HeroSpotlight = (() => {
             emoji: (config.CATEGORY_EMOJI && config.CATEGORY_EMOJI[category]) || '⭐',
             sprite: kind === 'zombie' ? zombieSpriteFor(category) : null,
             koLook,
-            anim: state === 'ko' ? 'ko' : 'idle', // atlas row; only meaningful for kind 'atlas'
+            anim: state === 'ko' ? 'ko' : ((opts && opts.working && state === 'active') ? 'attack' : 'idle'), // atlas row; only meaningful for kind 'atlas'
         };
     }
 
@@ -122,6 +123,11 @@ const HeroSpotlight = (() => {
     let heroEl = null;
     let controller = null;
     let lookup = null; // routineId -> routine (or null), supplied by script.js
+    let configRef = null;
+    // Work timer (Build 3): the hero stays up, attacking, with NO scrim while a
+    // timer runs. `workRoutine` is a routine object (or the pseudo "Other" hero for
+    // standalone items); a normal tap-show() temporarily replaces it.
+    let workRoutine = null;
 
     function renderInto(look) {
         heroEl.className = `hero-spotlight hero-spotlight--${look.state} hero-spotlight--${look.kind}`;
@@ -152,11 +158,16 @@ const HeroSpotlight = (() => {
         heroEl = deps.heroEl;
         lookup = deps.getRoutine;
         const config = deps.config;
+        configRef = config;
         scrimEl.style.setProperty('--hero-scrim-opacity', String(config.HERO_SCRIM_OPACITY));
         controller = createController({
             durationMs: config.HERO_SPOTLIGHT_MS,
             onChange: (state) => {
-                if (state === null) { applyActive(false); return; }
+                if (state === null) {
+                    // Back to the working hero (no scrim) if a timer is running.
+                    if (workRoutine) { renderWork(); } else { applyActive(false); }
+                    return;
+                }
                 const routine = lookup(state.routineId);
                 if (!routine) { applyActive(false); return; }
                 renderInto(heroLookFor(routine, config));
@@ -168,6 +179,23 @@ const HeroSpotlight = (() => {
         heroEl.addEventListener('click', dismissNow);
         return controller;
     }
+
+    function renderWork() {
+        if (!heroEl || !workRoutine) return;
+        renderInto(heroLookFor(workRoutine, configRef, { working: true }));
+        scrimEl.classList.remove('active');
+        heroEl.classList.add('active');
+        heroEl.classList.add('hero-spotlight--working');
+    }
+    // routine: a routine object, or null to stop. Idempotent.
+    function setWork(routine) {
+        workRoutine = routine || null;
+        if (!heroEl) return;
+        if (workRoutine) { renderWork(); return; }
+        heroEl.classList.remove('hero-spotlight--working');
+        if (!controller || controller.get() === null) applyActive(false);
+    }
+    function isWorking() { return workRoutine !== null; }
 
     function show(routineId) { return controller ? controller.show(routineId) : false; }
     function dismiss() { return controller ? controller.dismiss() : false; }
@@ -187,6 +215,8 @@ const HeroSpotlight = (() => {
         show,
         dismiss,
         getCurrentRoutineId,
+        setWork,
+        isWorking,
     };
 })();
 

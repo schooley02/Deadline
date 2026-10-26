@@ -124,6 +124,9 @@
     --hero-idle-frames: 9; /* per-category override below (lifestyle idle has 7 frames) */
 }
 .hero-sprite[data-anim="ko"] { --hero-row: 4; }
+/* Work timer (Build 3): ATTACK row (atlas row 1, 9 frames in every category), looping. */
+.hero-spotlight .hero-sprite[data-anim="attack"],
+.hero-spotlight[data-category] .hero-sprite[data-anim="attack"] { --hero-row: 1; --hero-idle-frames: 9; --hero-fps: 9; }
 .hero-sprite-sheet {
     position: absolute;
     left: 0;

@@ -192,6 +192,23 @@ const AgendaList = (() => {
         completeCheckboxLabel.appendChild(completeCheckbox);
         completeCheckboxLabel.appendChild(checkboxLabel);
 
+        // Work timer (Build 3): start/stop on the row; script.js refreshes the label each second.
+        if (typeof deps.toggleWorkTimer === 'function' && typeof Timer !== 'undefined' && Timer.canWorkTimer(itemData)) {
+            const timerBtn = document.createElement('button');
+            timerBtn.type = 'button';
+            timerBtn.classList.add('work-timer-btn');
+            timerBtn.dataset.itemId = itemData.id;
+            const running = Timer.isRunning(itemData);
+            timerBtn.textContent = running ? `\u23F9 ${Timer.formatElapsed(Timer.elapsedMs(itemData, Date.now()))}` : '\u23F1';
+            timerBtn.classList.toggle('running', running);
+            timerBtn.title = running ? 'Stop timer' : 'Start timer';
+            timerBtn.setAttribute('aria-label', timerBtn.title);
+            timerBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deps.toggleWorkTimer(itemData.id);
+            });
+            itemActionsContainer.appendChild(timerBtn);
+        }
         itemActionsContainer.appendChild(editIconButton);
         if (itemData.type === 'habit' && itemData.isNegative === true) {
             // Negative-habit lurker (2026-10-12, Jeremy's call): a "Mark as

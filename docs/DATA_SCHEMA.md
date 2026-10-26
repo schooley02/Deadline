@@ -333,3 +333,5 @@ Save {
 - IDs are never reused. Deletion marks status, doesn't splice history.
 - All times stored as ISO strings; parse at the edges.
 - Migrations: bump `schemaVersion`, add a migration step in `js/persistence.js`, log in DECISIONS.md.
+
+- **Timer fields now live (Build 3, 2026-10-25):** `item.timer {startedAt, checkedAt, promptedAt} | null` (ms epoch), `item.timerMsBanked`, `item.timerMinutes` (set from the Add/Edit Task forms; new items are created with the schema-14 defaults). `habitDef/taskDef.timerMode/timerMinutes` are still unread.
