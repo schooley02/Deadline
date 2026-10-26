@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-26 -- Base Health panel steps 3-4 combined: HUD chip + opener wired to live state (Jeremy; Claude app session, Sonnet; no balance numbers changed)
+
+- **Decision:** steps 3 (HUD chip) and 4 (opener + live wiring) built in one session at Jeremy's request (CLAUDE.md allows batching small wiring work; no persistence, schema or balance change). The chip's pure text model is `BasePanel.chipModel` in `js/ui/basePanel.js`, not `js/ui/heroes.js` as the plan said (that file no longer holds base chips; keeping it beside the panel keeps one owner and one test file). `#baseHealthDisplay` stays as the number span so damage.js, state.js and timeSliderView.js keep writing to it unchanged. Pushback and kit buttons reuse `handlePushback` / `handleShopUse`, so pricing, discounts, saves and re-renders are the same code the popups and shop use. `baseHealthContext()` is rebuilt on every call (panel ticks and chip refreshes), never cached.
+- **Why:** one wiring pass, one live check; reusing the existing purchase/use handlers avoids a second pricing path.
+- **Rejected:** a new `onPushback` pricing path inside the panel; caching the context between ticks (stale attackers after a pushback).
+- Live-checked in cloud Chromium against the real game (tasks added through the UI, planted points/kits): chip text and ring color follow state, panel pushback deducts points and removes the attacker, kit heals, buttons disable when points run short, panel flips to the healing view when the last attacker is pushed back, ESC closes; no console errors; HUD stays on one row at 320 px.
+
 ## 2026-10-26 -- Base Health panel step 2: live refresh patches text, rebuilds only on structure change (Claude app session, Sonnet; no balance numbers changed)
 
 - **Decision:** `BasePanel` refreshes once a second by patching `<span data-bind>` text and replacing the markup only when `structureSignature` (the HTML with ticking text blanked) changes (an HP step, a button's disabled state, an attacker added or removed). Aria-labels never contain times, so they do not force rebuilds. Panel files are loaded now (index.html/sw.js, sw v99) although nothing opens the panel until step 4 (Jeremy: yes, load now).

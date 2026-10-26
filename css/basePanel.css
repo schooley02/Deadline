@@ -132,3 +132,26 @@
 @media (prefers-reduced-motion: no-preference) {
     .bp-fill { transition: width 0.3s ease; }
 }
+
+/* ---- HUD health button: ring + number + state chip; opens the panel (step 3-4, 2026-10-26) ---- */
+.base-health-button {
+    display: inline-flex; align-items: center; gap: var(--space-2);
+    font-family: inherit; cursor: pointer; min-height: 32px;
+}
+.base-health-button:focus-visible { outline: 2px solid var(--color-primary-dark-green); outline-offset: 2px; }
+.bh-ring { flex: none; }
+.bh-ring-track { stroke: #B8CBC6; }
+.bh-ring-arc { stroke: var(--color-base-health-full); }
+.bh-ring--moderate .bh-ring-arc { stroke: var(--color-base-health-moderate); }
+.bh-ring--low .bh-ring-arc { stroke: var(--color-base-health-low); }
+.bh-ring--critical .bh-ring-arc { stroke: var(--color-base-health-critical); }
+.bh-chip { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--color-neutral); white-space: nowrap; }
+.bh-chip--attacked { color: #B71C1C; }
+.bh-chip--healing { color: var(--color-primary-dark-green); }
+
+/* Very narrow phones: keep the HUD row (health, level, points) on one line. */
+@media (max-width: 340px) {
+    .base-health-button { gap: 4px; padding-left: 6px; padding-right: 6px; }
+    .base-health-button .bh-ring { width: 14px; height: 14px; }
+    .bh-chip { font-size: 10px; }
+}

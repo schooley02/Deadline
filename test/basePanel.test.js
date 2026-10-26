@@ -105,6 +105,32 @@ describe('buildViewModel', () => {
     });
 });
 
+describe('chipModel (HUD chip)', () => {
+    test('healing: "+1 in Nm" rounds the next heal up to whole minutes', () => {
+        expect(BasePanel.chipModel(ctxFor(40)).text).toBe('+1 in 4m'); // next heal in 4:00
+        expect(BasePanel.chipModel(ctxFor(40, [], { lastRegenTickMs: NOW - 4 * MIN - 30 * 1000 })).text).toBe('+1 in 1m');
+    });
+    test('attacked: HP lost per 5 minutes across attackers, with the unicode minus', () => {
+        expect(BasePanel.chipModel(ctxFor(80, [att('a', 10)])).text).toBe('\u22121 / 5m');
+        expect(BasePanel.chipModel(ctxFor(80, [att('a', 10), att('b', 20), att('c', 30)])).text).toBe('\u22123 / 5m');
+    });
+    test('a work timer slows its zombie, so the rate can be fractional', () => {
+        const slow = att('a', 10, { tickMs: CONFIG.DAMAGE_INTERVAL_MS * 2 });
+        expect(BasePanel.chipModel(ctxFor(80, [slow])).text).toBe('\u22120.5 / 5m');
+    });
+    test('full and fallen', () => {
+        expect(BasePanel.chipModel(ctxFor(100)).text).toBe('Full');
+        expect(BasePanel.chipModel(ctxFor(100)).aria).toBe('Base health 100 of 100, full strength. Open base health panel');
+        expect(BasePanel.chipModel(ctxFor(0, [att('a', 10)])).text).toBe('Fallen');
+    });
+    test('carries state, color, ring fraction and an aria label', () => {
+        const chip = BasePanel.chipModel(ctxFor(58, [att('a', 10)]));
+        expect(chip).toMatchObject({ state: 'attacked', color: 'moderate' });
+        expect(chip.pct).toBeCloseTo(58);
+        expect(chip.aria).toBe('Base health 58 of 100, under attack. \u22121 / 5m. Open base health panel');
+    });
+});
+
 describe('markup', () => {
     test('structureSignature ignores ticking text but not structure', () => {
         const a = BasePanel.innerHtml(BasePanel.buildViewModel(ctxFor(40)));

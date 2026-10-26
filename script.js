@@ -41,6 +41,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeRoutineCountDisplay = document.getElementById('activeRoutineCountDisplay');
     const playerXpBar = document.getElementById('playerXpBar');
     const levelButton = document.getElementById('levelButton');
+    // Base Health panel (docs/BASE_PANEL_PLAN.md steps 3-4, 2026-10-26): HUD ring + chip button.
+    const baseHealthButton = document.getElementById('baseHealthButton');
+    const baseHealthRing = document.getElementById('baseHealthRing');
+    const baseHealthArc = document.getElementById('baseHealthArc');
+    const baseHealthChipEl = document.getElementById('baseHealthChip');
     
     // Control buttons
     const attackButton = document.getElementById('attackButton');
@@ -1140,6 +1145,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     isNonThreatening: Items.isNonThreatening,
                 });
                 processTimers(Date.now());
+                refreshBaseChip();
                 Layout.applyStripLayout(State.getActiveItems(), { baseWidth: BASE_WIDTH });
                 // Landscape/desktop: ground lanes in list order, overlap-avoiding (no-op in strip mode).
                 if (!Layout.isActive()) Layout.applyGroundLanes(State.getActiveItems(), gameCanvas.offsetHeight, { baseWidth: BASE_WIDTH });
@@ -1792,6 +1798,75 @@ document.addEventListener('DOMContentLoaded', () => {
         }));
     }
     if (levelButton) levelButton.addEventListener('click', openLevelPanel);
+
+    // ---- Base Health panel (docs/BASE_PANEL_PLAN.md steps 3-4, 2026-10-26) ----
+    // Everything the panel and the HUD chip show is derived from live state on each call
+    // (never cached): attackers are the overdue items that actually hit the base
+    // (Items.isNonThreatening excludes lurkers and KO ghosts), with their own tick length
+    // (a running work timer stretches it) and last-hit clock, exactly as js/loop.js uses them.
+    function baseHealthContext() {
+        const nowMs = Date.now();
+        const items = State.getActiveItems();
+        const attackers = items
+            .filter(i => i.isOverdue && !Items.isNonThreatening(i))
+            .map(i => ({
+                id: i.id, name: i.name, dueMs: i.dueDateTime.getTime(),
+                tickMs: Timer.damageIntervalMs(i, CONFIG.DAMAGE_INTERVAL_MS),
+                lastDamageTickMs: typeof i.lastDamageTickTime === 'number' ? i.lastDamageTickTime : nowMs,
+            }));
+        let nextDue = null;
+        items.forEach(i => {
+            if (i.isOverdue || Items.isNonThreatening(i)) return;
+            const dueMs = i.dueDateTime.getTime();
+            if (dueMs > nowMs && (!nextDue || dueMs < nextDue.dueMs)) nextDue = { name: i.name, dueMs };
+        });
+        const pushback = Shop.getItem('pushback_1hr', CONFIG.SHOP_ITEMS);
+        return {
+            health: State.getBaseHealth(), nowMs, lastRegenTickMs: State.getLastRegenTickMs(),
+            attackers, inventory: State.getPlayerInventory(), shopItems: CONFIG.SHOP_ITEMS, config: CONFIG,
+            points: State.getPlayerPoints(),
+            pushbackPrice: pushback ? Shop.price(pushback, {}, currentShopDiscount()) : null,
+            pushbackLabel: '1 hr', nextDue,
+        };
+    }
+
+    // HUD chip: ring (state color, HP fraction) + "+1 in 3m" / "\u2212N / 5m" / "Full". Throttled to
+    // twice a second from the loop's afterTick; the DOM is touched only when the signature
+    // changes. Hidden while the time slider previews a projected health.
+    const BH_RING_C = 50.27; // 2 * PI * r(8)
+    let baseChipSig = '';
+    let baseChipLastMs = 0;
+    function refreshBaseChip(force) {
+        if (!baseHealthChipEl || typeof BasePanel === 'undefined') return;
+        const now = Date.now();
+        if (!force && now - baseChipLastMs < 500) return;
+        baseChipLastMs = now;
+        baseHealthChipEl.hidden = !!timePreviewActive;
+        if (timePreviewActive) return;
+        const chip = BasePanel.chipModel(baseHealthContext());
+        const sig = [chip.state, chip.color, Math.round(chip.pct), chip.text].join('|');
+        if (sig === baseChipSig) return;
+        baseChipSig = sig;
+        baseHealthChipEl.textContent = chip.text;
+        baseHealthChipEl.className = 'bh-chip bh-chip--' + chip.state;
+        if (baseHealthRing) baseHealthRing.setAttribute('class', 'bh-ring bh-ring--' + chip.color);
+        if (baseHealthArc) baseHealthArc.setAttribute('stroke-dasharray', (chip.pct / 100 * BH_RING_C).toFixed(2) + ' ' + BH_RING_C);
+        if (baseHealthButton) baseHealthButton.setAttribute('aria-label', chip.aria);
+    }
+    function openBasePanel() {
+        if (State.isGameOver()) return;
+        refreshBaseChip(true);
+        BasePanel.open({
+            getContext: baseHealthContext,
+            onPushback: (attackerId) => {
+                const item = State.getActiveItems().find(i => String(i.id) === String(attackerId));
+                if (item) handlePushback('pushback_1hr', item);
+                refreshBaseChip(true);
+            },
+            onUseKit: (kitId) => { handleShopUse(kitId); refreshBaseChip(true); },
+        });
+    }
+    if (baseHealthButton) baseHealthButton.addEventListener('click', openBasePanel);
 
     function ensureHeroTray() {
         if (heroTrayReady) return;

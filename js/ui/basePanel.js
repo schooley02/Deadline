@@ -133,6 +133,32 @@ const BasePanel = (() => {
         return vm;
     }
 
+    /**
+     * HUD chip next to the health number (step 3). Same ctx as buildViewModel.
+     * -> { state, color, pct, text, aria }  text: "+1 in 3m" while healing, "−N / 5m" while
+     * attacked (N = HP lost per DAMAGE_INTERVAL_MS across all attackers, a work timer
+     * slows its zombie so N can be fractional), "Full" at full strength, "Fallen" at 0 HP.
+     */
+    function chipModel(ctx) {
+        const m = BaseModel.build(ctx);
+        const c = ctx.config;
+        const mins = Math.round(c.DAMAGE_INTERVAL_MS / 60000);
+        let text;
+        if (m.health <= 0) text = 'Fallen';
+        else if (m.state === 'attacked') {
+            const per = (ctx.attackers || []).reduce((s, a) =>
+                s + c.OVERDUE_DAMAGE * c.DAMAGE_INTERVAL_MS / (a.tickMs > 0 ? a.tickMs : c.DAMAGE_INTERVAL_MS), 0);
+            const n = Math.round(per * 10) / 10;
+            text = `\u2212${n} / ${mins}m`;
+        } else if (m.state === 'healing') {
+            text = `+${c.BASE_REGEN_HP} in ${Math.max(1, Math.ceil(m.nextHealMs / 60000))}m`;
+        } else text = 'Full';
+        return {
+            state: m.state, color: m.color, pct: m.max > 0 ? (m.health / m.max) * 100 : 0, text,
+            aria: `Base health ${Math.round(m.health)} of ${m.max}, ${STATE_LABELS[m.state].toLowerCase()}.${m.state === 'full' ? '' : ' ' + text + '.'} Open base health panel`,
+        };
+    }
+
     // Replaces every ticking text with nothing so two renders of the same structure compare equal.
     function structureSignature(html) {
         return html.replace(/(<span data-bind="[^"]*">)[^<]*(<\/span>)/g, '$1$2');
@@ -286,7 +312,7 @@ const BasePanel = (() => {
         timerId = setInterval(render, REFRESH_MS);
     }
 
-    return { kitShortName, kitNotes, buildViewModel, structureSignature, innerHtml, panelHtml, open, STATE_LABELS };
+    return { kitShortName, kitNotes, chipModel, buildViewModel, structureSignature, innerHtml, panelHtml, open, STATE_LABELS };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

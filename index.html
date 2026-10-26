@@ -51,10 +51,11 @@
             <!-- Player Stats Dashboard - Always visible -->
             <div class="stats-overlay">
                 <div class="resource-panel">
-                    <div class="stat-item">
-                        <span class="stat-label">Health:</span>
+                    <button type="button" id="baseHealthButton" class="stat-item base-health-button" aria-label="Base health 100 of 100, full strength. Open base health panel">
+                        <svg id="baseHealthRing" class="bh-ring bh-ring--full" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false"><circle class="bh-ring-track" cx="10" cy="10" r="8" fill="none" stroke-width="3"/><circle id="baseHealthArc" class="bh-ring-arc" cx="10" cy="10" r="8" fill="none" stroke-width="3" stroke-linecap="round" transform="rotate(-90 10 10)" stroke-dasharray="50.27 50.27"/></svg>
                         <span id="baseHealthDisplay">100</span>
-                    </div>
+                        <span id="baseHealthChip" class="bh-chip">Full</span>
+                    </button>
                     <button type="button" id="levelButton" class="stat-item level-button" aria-label="Level 1. Open level panel">
                         <span class="stat-label">Lv</span>
                         <span id="playerLevelDisplay">1</span>
