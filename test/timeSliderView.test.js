@@ -134,6 +134,16 @@ describe('release (change/pointerup/touchend/blur)', () => {
 // group — omitted entirely by every test above, which must keep passing
 // unchanged.
 describe('damage/routine HP preview (optional collaborator group)', () => {
+    // Pin "now" to 9:00 AM local (2026-10-26). These tests scrub to 11:00 PM and expect damage
+    // to accrue between now and then; on the real clock after ~10:55 PM the preview
+    // time is no longer in the future, so nothing is projected and two of them failed
+    // (seen 2026-10-25 late evening). Fake timers also freeze Date / new Date().
+    beforeEach(() => {
+        jest.useFakeTimers({ now: new Date(new Date().setHours(9, 0, 0, 0)) });
+    });
+    afterEach(() => {
+        jest.useRealTimers();
+    });
     function makeDamageDeps(overrides = {}) {
         const baseElement = document.createElement('div');
         const baseHealthDisplayEl = document.createElement('span');

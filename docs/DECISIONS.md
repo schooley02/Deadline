@@ -4,6 +4,11 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-26 -- Portrait floor runs under the church; time-slider tests pin the clock (Claude app session, Opus; no balance numbers changed)
+
+- **Portrait floor band spans the full strip width**, including under the church (was `left: 56px`, starting at the church's right edge). Jeremy: the ground should extend all the way across. The church still paints on top (DOM order). Alternative rejected: none -- direct request.
+- **The damage-preview tests in `test/timeSliderView.test.js` pin "now" to 9:00 AM local** (`jest.useFakeTimers({ now })` per test, real timers restored after). They scrub to 11:00 PM, so on the real clock after ~10:55 PM nothing was projected and two tests failed. The code's behavior (a preview at or before now projects no damage) is correct, so only the tests changed.
+
 ## 2026-10-25 -- Hero sub-session 5: hurt / level-up rows wired + dead chip code deleted (Claude app session, Sonnet; no balance numbers changed)
 
 - **Hurt and level-up are one-shot spotlight rows** (atlas rows 2 and 3, `CONFIG.HERO_ONESHOT_FPS` 10, 9 frames; financial + health hurt rows have 7 -- `HERO_ONESHOT_FRAME_OVERRIDES`). `HeroSpotlight.react(routineId, kind)` swaps the sprite to the row, then returns it to its resting look (idle, or KO if the hit was fatal). Pure decision `HeroSpotlight.planReaction`.
