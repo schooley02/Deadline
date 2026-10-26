@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-26 -- Base Health panel step 2: live refresh patches text, rebuilds only on structure change (Claude app session, Sonnet; no balance numbers changed)
+
+- **Decision:** `BasePanel` refreshes once a second by patching `<span data-bind>` text and replacing the markup only when `structureSignature` (the HTML with ticking text blanked) changes (an HP step, a button's disabled state, an attacker added or removed). Aria-labels never contain times, so they do not force rebuilds. Panel files are loaded now (index.html/sw.js, sw v99) although nothing opens the panel until step 4 (Jeremy: yes, load now).
+- **Why:** a full re-render every second replaces the buttons under the finger and can swallow a tap that spans the swap; focus would also jump.
+- **Rejected:** re-rendering every tick and restoring focus (taps still lost); a long-lived DOM diff library (overkill for a no-build vanilla app).
+- Live-checked in cloud Chromium at 390 and 320 px (all three states, popover + ESC order, pushback click): no panel overflow, no console errors. The 320px page overflow is the known time-slider one.
+
 ## 2026-10-26 -- Base Health panel design (Jeremy; Claude app session, Opus design; no balance numbers changed)
 
 - **Decision:** a Base Health panel opens from the HUD health number (like the Level panel). Header: HP chip colored by state (full green #4CAF50, then #FFC107 / #FF9800 / #F44336) + "Base Health" + points pill top right. Shows healing countdowns (+1 HP, next church art stage, full), damage rate and "church falls in..." whenever any zombie is attacking, an Attackers list (3 rows, "Show all"; 1 hr pushback only; greyed when unaffordable; no "push back all"), repair kits as a compact row with time bought/saved, and an info popover for explanations. HUD chip gets a ring + "+1 in 3m" / "-N / 5m" / "Full".
