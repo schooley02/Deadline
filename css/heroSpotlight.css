@@ -247,6 +247,12 @@ body.glance-strip .hero-spotlight--atlas {
     border-radius: 0;
 }
 
+/* The agenda row whose hero is held up (2026-10-26): tap the row again, or the hero, to let it go. */
+li.hero-selected-list-item {
+    outline: 2px solid #1f7a8c;
+    outline-offset: -2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
     #baseScrim,
     .hero-spotlight {

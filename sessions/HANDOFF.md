@@ -11,6 +11,12 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-10-26 -- Selected row holds its hero (Claude app session, Sonnet)
+**Did:** Jeremy: heroes disappear after a few seconds, but should stay up while their row is selected. Rows had no selected state, so: tapping a row (toggle) or a canvas zombie (select only; popup still opens) holds that item's hero up with no timeout and outlines the row (`li.hero-selected-list-item`). Released by: same row again, hero / scrim tap, another selection, the task completing or being removed (500 ms tick), game over. `HeroSpotlight.show(id, {hold})`, controller `show(id, hold)`, `init({onDismiss})`; script.js `heroSelectedItemId`, `toggleHeroSelection`, `syncHeroSelectionRows`, `clearHeroSelection`, `spotlightRoutine` opts `hold`. Avatar taps and level-up auto-show keep the 5 s timeout. sw v107. +3 tests.
+**State:** see summary for the Jest count; live-checked in cloud Chromium at 390x844 (select, 7 s hold, switch, toggle off, hero tap, complete selected, canvas tap). NOT phone-checked.
+**Next:** phone check on v107: select a row and wait >5 s; tap it again; select another; tap the hero; complete the selected task. Also v106 (no jump), v104 sizes, v103 scrim. Then Base Health panel step 5.
+**Watch out:** (1) The canvas tap selects but does not toggle (a second tap reopens the popup), so deselect via the row, the hero or the church area. (2) A held hero keeps the hurt loop and lane logic as before. (3) With the scrim at 0 opacity the invisible scrim still catches taps over the church column and dismisses the hero. (4) A work-timer hero comes back after a held hero is dismissed.
+
 ## 2026-10-26 -- Hero lane: no more jump on show (Claude app session, Sonnet)
 **Did:** Jeremy (phone): a small delay, then the hero jumped to the right lane. Cause: `refreshHeroLane` ran inside `refreshHeroAttack(true)` BEFORE `HeroSpotlight.show()` / `setWork()`, so it saw no visible hero and left the default spot until the next 500 ms tick. Fix: script.js calls `refreshHeroLane()` right after `show()` in `spotlightRoutine` and after `setWork()` in `syncWorkHero`, in the same JS turn (before paint). sw v106.
 **State:** see summary for the full Jest count; live-checked in cloud Chromium (both orientations): the `--hero-lane-bottom` value is already correct in the same synchronous turn as the tap. NOT phone-checked.

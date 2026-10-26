@@ -77,6 +77,12 @@ describe('hero lane position (2026-10-26)', () => {
     });
 });
 
+describe('selected row outline (2026-10-26)', () => {
+    test('css outlines the row whose hero is held', () => {
+        expect(css).toMatch(/li\.hero-selected-list-item \{\s*outline: 2px solid/);
+    });
+});
+
 describe('hurtloop row (2026-10-26)', () => {
     test('css loops the hurt row with the same frames/fps as the one-shot', () => {
         expect(css).toMatch(/\.hero-sprite\[data-anim="hurtloop"\] \{ --hero-row: 2; --hero-oneshot-frames: 9; --hero-oneshot-fps: 10; \}/);

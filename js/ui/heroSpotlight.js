@@ -213,12 +213,13 @@ const HeroSpotlight = (() => {
             onChange(null);
             return true;
         }
-        function show(routineId) {
+        // hold = stay up until dismissed (a selected row, 2026-10-26); otherwise auto-dismiss after durationMs.
+        function show(routineId, hold) {
             if (routineId === null || routineId === undefined) return false;
             clearTimer();
             current = { routineId };
             onChange(current);
-            timer = setT(() => { timer = null; dismiss(); }, durationMs);
+            if (!hold) timer = setT(() => { timer = null; dismiss(); }, durationMs);
             return true;
         }
         return { show, dismiss, get: () => current };
@@ -276,12 +277,14 @@ const HeroSpotlight = (() => {
             ? categoryHero(id.slice(CATEGORY_HERO_PREFIX.length), deps.config.HERO_CATEGORIES)
             : baseLookup(id));
         const config = deps.config;
+        const onDismiss = typeof deps.onDismiss === 'function' ? deps.onDismiss : () => {};
         configRef = config;
         scrimEl.style.setProperty('--hero-scrim-opacity', String(config.HERO_SCRIM_OPACITY));
         controller = createController({
             durationMs: config.HERO_SPOTLIGHT_MS,
             onChange: (state) => {
                 if (state === null) {
+                    onDismiss();
                     // Back to the working hero (no scrim) if a timer is running.
                     if (workRoutine) { renderWork(); } else { applyActive(false); }
                     return;
@@ -380,7 +383,8 @@ const HeroSpotlight = (() => {
         return true;
     }
 
-    function show(routineId) { return controller ? controller.show(routineId) : false; }
+    // opts.hold: no auto-dismiss (the caller dismisses it, e.g. when its row is deselected).
+    function show(routineId, opts) { return controller ? controller.show(routineId, !!(opts && opts.hold)) : false; }
     function dismiss() { return controller ? controller.dismiss() : false; }
     // Routine id of the hero showing right now, or null (the Heroes tab mirrors it).
     function getCurrentRoutineId() {

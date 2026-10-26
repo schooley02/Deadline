@@ -690,7 +690,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             completeItem: (itemId) => Items.completeItem(itemId, itemsDeps()),
             // Row-body tap: hero only, no popup (2026-10-26).
-            onRowTap: (itemId) => { if (!State.isGameOver()) spotlightHeroForItem(itemId, { bringCanvasIntoView: true }); },
+            onRowTap: (itemId) => { if (!State.isGameOver()) toggleHeroSelection(itemId); },
             indulgeHabit: (itemId) => Items.indulgeHabit(itemId, itemsDeps()),
             isGameOver: State.isGameOver,
             showEditTaskModal: (item) => Popups.showEditTaskModal(item, popupsDeps()),
@@ -881,6 +881,7 @@ document.addEventListener('DOMContentLoaded', () => {
             heroEl: heroSpotlightEl,
             config: CONFIG,
             getRoutine: (routineId) => State.getDefinedRoutines().find(r => r.id === routineId) || null,
+            onDismiss: () => clearHeroSelection(),
         });
         heroSpotlightReady = true;
     }
@@ -891,6 +892,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // HeroSpotlight.pickLaneItem (attacker first, then soonest due).
     let heroFocusItemId = null;
     let heroWorkItemId = null;
+    // Selected row (2026-10-26): tapping a row / canvas zombie HOLDS its hero up (no 5 s timeout) and
+    // outlines the row; tapping the row again, the hero or the scrim lets it go. Avatar taps do not select.
+    let heroSelectedItemId = null;
+    function syncHeroSelectionRows() {
+        State.getActiveItems().forEach(i => {
+            const el = i.listItemElement;
+            if (el && el.classList) el.classList.toggle('hero-selected-list-item', heroSelectedItemId !== null && i.id === heroSelectedItemId);
+        });
+    }
+    function clearHeroSelection() {
+        if (heroSelectedItemId === null) return;
+        heroSelectedItemId = null;
+        syncHeroSelectionRows();
+    }
+    function toggleHeroSelection(itemId) {
+        if (heroSelectedItemId === itemId && HeroSpotlight.getCurrentRoutineId() !== null) { HeroSpotlight.dismiss(); return; }
+        spotlightHeroForItem(itemId, { hold: true, bringCanvasIntoView: true });
+    }
     function laneFeetBottomFor(item) {
         const el = item && item.element;
         if (!el || !gameCanvas || !el.getBoundingClientRect || !gameCanvas.getBoundingClientRect) return null;
@@ -905,6 +924,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function refreshHeroLane() {
         if (!heroSpotlightReady) return;
+        if (heroSelectedItemId !== null) {
+            // the selected task was completed / removed (or the run ended): let its hero go; else keep the outline on rebuilt rows
+            if (State.isGameOver() || !State.getActiveItems().some(i => i.id === heroSelectedItemId)) HeroSpotlight.dismiss();
+            else syncHeroSelectionRows();
+        }
         const vid = HeroSpotlight.getVisibleRoutineId();
         if (vid === null || vid === undefined) { HeroSpotlight.setLaneBottom(null); return; }
         const tapped = HeroSpotlight.getCurrentRoutineId() !== null;
@@ -930,8 +954,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function spotlightRoutine(routineId, opts) {
         ensureHeroSpotlight();
         heroFocusItemId = (opts && opts.itemId !== undefined) ? opts.itemId : null;
+        const hold = !!(opts && opts.hold && opts.itemId !== undefined);
+        heroSelectedItemId = hold ? opts.itemId : null;
         refreshHeroAttack(true);
-        if (!HeroSpotlight.show(routineId)) return;
+        if (!HeroSpotlight.show(routineId, { hold })) { heroSelectedItemId = null; syncHeroSelectionRows(); return; }
+        syncHeroSelectionRows();
         refreshHeroLane(); // the hero is the visible one now: measure its lane at once, so it never jumps in later
         // Portrait: the strip scrolls away with the page, so a tap deep in the
         // list brings it back into view (only when it is fully off-screen).
@@ -1083,7 +1110,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleEnemyClick(itemId) {
-        if (!State.isGameOver()) spotlightHeroForItem(itemId);
+        if (!State.isGameOver()) spotlightHeroForItem(itemId, { hold: true });
         Popups.handleEnemyClick(itemId, popupsDeps());
     }
 

@@ -4,6 +4,9 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-26 -- A selected row holds its hero up (Jeremy; Claude app session, Sonnet; visual only, no balance numbers changed)
+- **Decision:** heroes used to vanish after `HERO_SPOTLIGHT_MS` (5 s); now tapping a row or a canvas zombie selects that item and its hero stays until released. Row tap toggles; canvas tap only selects (a second tap just reopens the popup). The selected row is outlined. Avatar taps and level-up shows keep the timeout (no row to select). Selection clears on hero/scrim tap, on another selection moving it, when the task is completed or removed, and at game over. sw v107.
+
 ## 2026-10-26 -- Hero stands in its zombie's lane (Jeremy; Claude app session, Sonnet; visual only, no balance numbers changed)
 - **Decision:** a spotlit hero shares the lane of one of its zombies in landscape and the portrait strip (Jeremy said "profile view" -- read as portrait). The hero's feet sit on the zombie element's bottom edge; measured live, so portrait attackers (4px + lane pitch) and walkers (dots) and landscape ground lanes all line up. Which zombie when a hero has several: the tapped one, else the work-timer item, else an attacker, then soonest due.
 - **Wiring:** `HeroSpotlight.pickLaneItem` (pure) + `setLaneBottom`; script.js `laneFeetBottomFor` / `refreshHeroLane` (inside `refreshHeroAttack`, 500 ms, forced on spotlight / timer start); CSS var `--hero-lane-bottom` with the old 8px / 2px defaults. sw v105.

@@ -146,6 +146,32 @@ describe('pickLaneItem: which zombie the hero stands beside (2026-10-26)', () =>
     });
 });
 
+describe('createController hold (2026-10-26)', () => {
+    test('a held hero schedules no auto-dismiss; a normal show does, and replaces the hold', () => {
+        const setT = jest.fn(() => 7);
+        const clearT = jest.fn();
+        const onChange = jest.fn();
+        const c = HeroSpotlight.createController({ setTimeout: setT, clearTimeout: clearT, durationMs: 5000, onChange });
+        expect(c.show('r1', true)).toBe(true);
+        expect(setT).not.toHaveBeenCalled();
+        expect(c.get()).toEqual({ routineId: 'r1' });
+        c.show('r2');
+        expect(setT).toHaveBeenCalledTimes(1);
+        expect(c.dismiss()).toBe(true);
+        expect(onChange).toHaveBeenLastCalledWith(null);
+    });
+
+    test('showing a held hero cancels a pending auto-dismiss of the previous one', () => {
+        const setT = jest.fn(() => 9);
+        const clearT = jest.fn();
+        const c = HeroSpotlight.createController({ setTimeout: setT, clearTimeout: clearT, durationMs: 5000, onChange: () => {} });
+        c.show('r1');
+        c.show('r2', true);
+        expect(clearT).toHaveBeenCalledWith(9);
+        expect(setT).toHaveBeenCalledTimes(1);
+    });
+});
+
 describe('resolveRoutineForItem', () => {
     const findRoutine = jest.fn(item => (item.definitionId === 'd1' ? routineA : null));
     beforeEach(() => findRoutine.mockClear());
