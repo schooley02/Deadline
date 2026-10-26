@@ -11,6 +11,12 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-10-26 -- Hero size matched to zombies (Claude app session, Sonnet)
+**Did:** Jeremy (phone): row tap + health chip + hurt loop work; heroes look smaller than zombies. Measured visible heights from the atlases, then css/heroSpotlight.css: `--hero-scale = --hero-base x --hero-fit` (base 1 landscape / 0.5 portrait strip, was 0.45; fit per category 1.00-1.22, see DECISIONS). +1 test in test/heroArt.test.js. sw v104. Docs: UI_UX, DECISIONS, CLAUDE.md.
+**State:** Jest 84 suites / 1,789 green (cloud clone). Live-checked in cloud Chromium at 390x844 and 844x390 (health / spirituality / financial heroes with overdue zombies): scales 0.6 / 0.61 / 0.5 portrait and 1.2 / 1.22 / 1 landscape, no page errors; portrait screenshot shows the hero about the height of the zombies at the church. NOT phone-checked.
+**Next:** Jeremy: phone check on v104 (clear cache): spotlight each category in portrait and compare the hero against a zombie of the same category at the church; tell me which categories still look off and by how much (each is one number in the css). Still pending: v103 scrim-off look, Base Health panel step 5.
+**Watch out:** (1) The art-only emoji placeholder heroes are unchanged. (2) A taller hero's transparent cell box is wider than the 160px church column in landscape (hero z25 sits under zombies z30+, so taps on zombies still win). (3) Portrait: the tallest fit (1.22) makes a ~101px cell box with the figure about 63px tall inside the 92px strip.
+
 ## 2026-10-26 -- Hero scrim off (Claude app session, Sonnet)
 **Did:** `CONFIG.HERO_SCRIM_OPACITY` 0.4 -> 0 (no dark overlay behind the hero; Jeremy: adjust later if needed), config comment + the "sane constants" test (allows 0), sw v103, UI_UX / DECISIONS / CLAUDE.md. The scrim element stays as an invisible tap-to-dismiss area over the church column.
 **State:** config-only change; Jest run in the cloud clone (see summary). Not live/phone-checked.

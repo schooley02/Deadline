@@ -4,6 +4,10 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-26 -- Hero art sized to match its category zombie (Jeremy; Claude app session, Sonnet; visual only, no balance numbers changed)
+- **Why:** on the phone heroes read smaller than zombies. Measured visible figure heights (alpha bbox, median over frames): at equal scale the hero is 0-18% shorter than the same-category zombie (financial/other match), and in the portrait strip it drew at 0.45 against 0.5 for at-base zombies.
+- **Decision:** hero scale = base x fit. Base 1 (landscape) / 0.5 (portrait strip). Fit per category (never below 1): career 1.16, creativity 1.07, financial 1.00, health 1.20, lifestyle 1.14, other 1.00, relationships 1.15, spirituality 1.22. Tune any value in css/heroSpotlight.css; test/heroArt.test.js pins presence and the 1-1.5 range. sw v104.
+
 ## 2026-10-26 -- Hero scrim switched off (Jeremy; Claude app session, Sonnet; visual only, no balance numbers changed)
 - **Decision:** no transparent dark overlay over the church behind the hero. `CONFIG.HERO_SCRIM_OPACITY` 0.4 -> 0 (sw v103). The scrim element, layering and tap-to-dismiss stay, so bringing it back (or a lighter tint) later is a one-number change. Test now allows 0.
 

@@ -96,7 +96,14 @@
    No card, ring or white box -- the sprite stands directly on the front-lane line. Same
    steps()-slid sheet technique as css/enemyAnim.css. */
 .hero-spotlight--atlas {
-    --hero-scale: 1;
+    /* SIZE (2026-10-26, Jeremy: heroes read smaller than the zombies). scale = base x fit.
+       base = the zombie sprite scale at the same place (landscape 1 = 128px character; portrait
+       strip 0.5 = the at-base zombie scale in css/glanceStrip.css). fit = per-category factor so
+       the hero's VISIBLE figure matches the same-category zombie (mean of its idle + attack median
+       heights / the hero's idle median height, measured from the atlases; never below 1). */
+    --hero-base: 1;
+    --hero-fit: 1;
+    --hero-scale: calc(var(--hero-base) * var(--hero-fit));
     --hero-cell: 164px;
     --hero-feet: 140px;
     width: calc(var(--hero-cell) * var(--hero-scale));
@@ -109,6 +116,14 @@
     border-radius: 0;
     overflow: hidden;
 }
+.hero-spotlight--atlas[data-category="career"] { --hero-fit: 1.16; }
+.hero-spotlight--atlas[data-category="creativity"] { --hero-fit: 1.07; }
+.hero-spotlight--atlas[data-category="financial"] { --hero-fit: 1; }
+.hero-spotlight--atlas[data-category="health"] { --hero-fit: 1.2; }
+.hero-spotlight--atlas[data-category="lifestyle"] { --hero-fit: 1.14; }
+.hero-spotlight--atlas[data-category="other"] { --hero-fit: 1; }
+.hero-spotlight--atlas[data-category="relationships"] { --hero-fit: 1.15; }
+.hero-spotlight--atlas[data-category="spirituality"] { --hero-fit: 1.22; }
 .hero-sprite {
     position: absolute;
     left: 0;
@@ -220,9 +235,9 @@ body.glance-strip .hero-spotlight {
 body.glance-strip .hero-spotlight-emoji { font-size: 24px; }
 body.glance-strip .hero-spotlight-sprite { width: 30px; height: 30px; }
 
-/* Hero art in the portrait strip: the 128px character at 0.45 = 58px tall, like the emoji block. */
+/* Hero art in the portrait strip: base 0.5 = the scale an at-base zombie draws at (x the per-category fit). */
 body.glance-strip .hero-spotlight--atlas {
-    --hero-scale: 0.45;
+    --hero-base: 0.5;
     width: calc(var(--hero-cell) * var(--hero-scale));
     height: calc(var(--hero-cell) * var(--hero-scale));
     bottom: calc(2px - (var(--hero-cell) - var(--hero-feet)) * var(--hero-scale));

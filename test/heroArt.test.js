@@ -57,6 +57,19 @@ describe('KO animation never loops without the hold (css <-> config)', () => {
     });
 });
 
+describe('hero size fit (2026-10-26)', () => {
+    test('every art category has a --hero-fit of at least 1; scale = base x fit; portrait base 0.5', () => {
+        CONFIG.HERO_ART_CATEGORIES.forEach(cat => {
+            const m = css.match(new RegExp(`\\.hero-spotlight--atlas\\[data-category="${cat}"\\] \\{ --hero-fit: ([0-9.]+); \\}`));
+            expect(m).not.toBeNull();
+            expect(parseFloat(m[1])).toBeGreaterThanOrEqual(1);
+            expect(parseFloat(m[1])).toBeLessThanOrEqual(1.5);
+        });
+        expect(css).toMatch(/--hero-scale: calc\(var\(--hero-base\) \* var\(--hero-fit\)\);/);
+        expect(css).toMatch(/body\.glance-strip \.hero-spotlight--atlas \{\s*--hero-base: 0\.5;/);
+    });
+});
+
 describe('hurtloop row (2026-10-26)', () => {
     test('css loops the hurt row with the same frames/fps as the one-shot', () => {
         expect(css).toMatch(/\.hero-sprite\[data-anim="hurtloop"\] \{ --hero-row: 2; --hero-oneshot-frames: 9; --hero-oneshot-fps: 10; \}/);
