@@ -68,7 +68,8 @@ body.glance-strip .graveyard-scene {
 
 /* FLOOR band (PixelLab tileable art, 2026-10-13): Assets/scene/strip-floor.png is
    64x36 (the 127x72 floor-tile.png, halved), tiled sideways at 1:1 with crisp
-   pixels. It starts right of the church (56px); its top edge is --strip-inset (8px) ABOVE
+   pixels. It runs the full strip width, UNDER the church too (2026-10-26, Jeremy: the ground
+   stopped at the church's right edge; #base paints above it by DOM order); its top edge is --strip-inset (8px) ABOVE
    where lane 0's feet (marker bottom) land (the tile's opaque ground starts ~6 rows down, so
    feet ON the top edge floated -- 2026-10-13): top = sky + marker - inset. Lane 1 feet sit a pitch
    lower, lane 2 feet at the bottom minus --strip-pad. The sky gradient on #gameCanvas shows
@@ -77,7 +78,7 @@ body.glance-strip .graveyard-scene {
 body.glance-strip #gameCanvas::before {
     content: "";
     position: absolute;
-    left: 56px;
+    left: 0;
     right: 0;
     top: calc(var(--strip-sky) + var(--strip-marker) - var(--strip-inset));
     bottom: 0;
