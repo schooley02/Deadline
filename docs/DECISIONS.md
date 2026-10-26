@@ -4,6 +4,16 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-26 -- Away-time healing is blocked only while a zombie would have been attacking (Jeremy; Claude app session, Opus design + Sonnet build) -- BALANCE CHANGE
+
+- **Decision:** healing while away (offline reload and suspended-loop gap) is no longer all-or-nothing. `Damage.applyElapsedRegen` heals the QUIET part of the span only: from the span start to the earliest moment a still-overdue threatening item began attacking, `max(item due time, span start)` (nothing can be completed while away, so every item overdue at restore has been attacking since then and still is). Pure rule: `Damage.computeQuietMs(elapsedMs, nowMs, overdueDueMs)`. Regen rate, damage rate and the 12 HP/item lifetime cap are unchanged.
+- **Why:** Jeremy, designing the base-health panel: healing should stop while a zombie is attacking even when he is away (it pushes check-ins and repair kits / pushbacks), but it should NOT stop for away time when nothing was attacking. The old rule voided the whole absence if anything was overdue at the moment of return: gone 8 h, a task goes overdue 10 min before you open the app, lose ~96 HP of healing.
+- **Effect:** nothing overdue = full healing (unchanged); overdue before you left = no healing (unchanged); overdue partway through = healing for the time before it fell due. Several zombies: the earliest one sets the quiet span.
+- **Order changed:** away-time healing is now applied BEFORE the back-charged damage in all three paths (reload instant, reload animated, `runLiveGapCatchUp`), because the quiet time came first. Reverses the 2026-07-18 "regen after damage" order. Side effects: the clamp at 100 no longer erases healing (98 HP + 7 quiet ticks, then 2 damage = 98, was 100), and healing can now rescue a base from an away-time KO that the damage alone would have caused. Jeremy approved the plan including this order.
+- **Rejected:** keep all-or-nothing (voids healing for time when nothing was attacking); simulate per-item overlap tick by tick (the union of attack intervals is always [earliest start, now] because items cannot be completed while away, so the simple form is exact).
+- **Not changed:** the live loop (`js/loop.js`) still pauses regen while anything is overdue; `TimeSlider.projectBaseHealth` still counts no regen at all in a preview where an item is due by the previewed time (conservative; it ignores the quiet time before the item falls due). Revisit if the base panel reuses it for "full by..." estimates.
+- **Tests:** `test/damage.test.js` -- new `computeQuietMs` and "quiet-span healing" suites (half-interval margins so clock drift can't flip a tick); two older tests updated for the new rule. Jest in a scratch copy: 82 suites / 1712 tests pass; the 13 new/updated tests fail against the old `damage.js`.
+
 ## 2026-10-26 -- Portrait floor runs under the church; time-slider tests pin the clock (Claude app session, Opus; no balance numbers changed)
 
 - **Portrait floor band spans the full strip width**, including under the church (was `left: 56px`, starting at the church's right edge). Jeremy: the ground should extend all the way across. The church still paints on top (DOM order). Alternative rejected: none -- direct request.
@@ -422,7 +432,7 @@ Full write-up and build order: `docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md`. New `js
 - **Effect:** one overdue item = -1 HP / 5 min (12 HP/hour, the existing offline cap per item). A quiet base still recovers. Repair kits unchanged.
 - **Rejected:** keep as designed (the base looked like it ignored a camped zombie); slow regen to 10 min (a single overdue item would still lose only ~6 HP/hour and the rate would feel arbitrary).
 - **Not changed:** negative-habit lurkers (A2 model) never count as overdue and never block regen -- see the open question in the next handoff about whether a lurker past its due time should attack.
-- **Approximation:** offline/gap catch-up blocks the whole span if an item is overdue at restore, even when it went overdue partway through the window.
+- **Approximation:** offline/gap catch-up blocks the whole span if an item is overdue at restore, even when it went overdue partway through the window. (Superseded 2026-10-26: only the time the item was attacking is blocked.)
 
 ## 2026-10-13 — List-order layering BUILT: implementation choices (Claude app session, Sonnet)
 

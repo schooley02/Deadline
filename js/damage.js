@@ -347,19 +347,49 @@ const Damage = (() => {
     //
     // Regen is PAUSED while any threatening item is overdue (Jeremy, 2026-10-13:
     // with symmetric 1 HP / 5 min regen and damage, one overdue item netted zero
-    // and the base never visibly dropped). Items still flagged overdue at this
-    // point (restore flags them in addItemToGame) block the whole span -- a
-    // conservative approximation for items that went overdue partway through
-    // the window.
+    // and the base never visibly dropped). For a catch-up span (offline reload or
+    // suspended loop) only the part of the span a zombie would have been
+    // attacking is blocked (changed 2026-10-26, Jeremy): nothing can be completed
+    // while away, so an item still overdue at restore has been attacking since
+    // the later of its due time and the start of the span, and the quiet time
+    // before the EARLIEST such item is healed normally. See computeQuietMs.
     function hasThreateningOverdue(deps) {
         if (!deps || typeof deps.getActiveItems !== 'function') return false;
         const isLurker = deps.isNonThreatening || ((item) => item.type === 'habit' && item.isNegative === true);
         return deps.getActiveItems().some(item => item.isOverdue && !isLurker(item));
     }
 
+    // Due times (ms) of every threatening item that is overdue right now. Same
+    // predicate as hasThreateningOverdue (lurkers / ghosts never count).
+    function threateningOverdueDueMs(deps) {
+        if (!deps || typeof deps.getActiveItems !== 'function') return [];
+        const isLurker = deps.isNonThreatening || ((item) => item.type === 'habit' && item.isNegative === true);
+        return deps.getActiveItems()
+            .filter(item => item.isOverdue && !isLurker(item) && item.dueDateTime)
+            .map(item => item.dueDateTime.getTime())
+            .filter(ms => isFinite(ms));
+    }
+
+    // Pure. Milliseconds of an away span [nowMs - elapsedMs, nowMs] during which
+    // no zombie was attacking (2026-10-26, Jeremy). Items cannot be completed
+    // while away, so every item overdue at restore has been attacking since
+    // max(its due time, span start) and is still attacking now. The quiet span
+    // is therefore span start -> the EARLIEST such attack start; no overdue
+    // items means the whole span is quiet. Never negative, never > elapsedMs.
+    function computeQuietMs(elapsedMs, nowMs, overdueDueMs) {
+        if (!(elapsedMs > 0)) return 0;
+        const spanStart = nowMs - elapsedMs;
+        let attackStart = nowMs;
+        (overdueDueMs || []).forEach(dueMs => {
+            attackStart = Math.min(attackStart, Math.max(dueMs, spanStart));
+        });
+        return Math.max(0, attackStart - spanStart);
+    }
+
     function applyElapsedRegen(elapsedMs, deps) {
-        const ticks = computeRegenTicks(elapsedMs, CONFIG.BASE_REGEN_INTERVAL_MS);
-        if (ticks > 0 && !hasThreateningOverdue(deps)) healBase(ticks * CONFIG.BASE_REGEN_HP, deps);
+        const quietMs = computeQuietMs(elapsedMs, Date.now(), threateningOverdueDueMs(deps));
+        const ticks = computeRegenTicks(quietMs, CONFIG.BASE_REGEN_INTERVAL_MS);
+        if (ticks > 0) healBase(ticks * CONFIG.BASE_REGEN_HP, deps);
         if (deps.setLastRegenTickMs) deps.setLastRegenTickMs(Date.now());
     }
 
@@ -525,18 +555,20 @@ const Damage = (() => {
             if (item.element) item.element.style.left = item.x + 'px';
         }, isNonThreatening);
 
-        applyOfflineDamage(hits, deps); // increments offlineDamageCharged + saves via damageBase
-
-        // Regen for the same suspended span, AFTER damage — mirrors the
-        // reload path's order (see MECHANICS.md Base). Uses the gap since the
-        // live loop's own last regen tick, not this function's local nowMs
-        // window, so a long string of short suspensions can't each restart
-        // the clock and lose the remainder repeatedly.
+        // Regen for the suspended span BEFORE damage (2026-10-26): the quiet
+        // part of the span came first in time, so healing it first clamps at
+        // 100 the way real time would have. Mirrors the reload path (see
+        // MECHANICS.md Base). Uses the gap since the live loop's own last regen
+        // tick, not this function's local nowMs window, so a long string of
+        // short suspensions can't each restart the clock and lose the
+        // remainder repeatedly.
         if (deps.getLastRegenTickMs) {
             const lastRegen = deps.getLastRegenTickMs();
             const elapsed = lastRegen !== null ? nowMs - lastRegen : 0;
             applyElapsedRegen(elapsed, deps);
         }
+
+        applyOfflineDamage(hits, deps); // increments offlineDamageCharged + saves via damageBase
     }
 
     // Spec (PROJECT_SPEC §3.5): on app resume, zombies animate from their saved
@@ -603,8 +635,8 @@ const Damage = (() => {
             entries.forEach(e => {
                 if (e.item.element) e.item.element.style.left = Math.max(baseWidth, e.targetX) + 'px';
             });
+            applyElapsedRegen(offlineMs, deps); // BEFORE damage (quiet span first) — see MECHANICS.md Base
             applyOfflineDamage(hits, deps);
-            applyElapsedRegen(offlineMs, deps); // AFTER damage — see MECHANICS.md Base
             return;
         }
 
@@ -629,8 +661,8 @@ const Damage = (() => {
             }
             animatable.forEach(e => e.item.element.classList.remove('catching-up'));
             setOfflineCatchUpActive(false);
+            applyElapsedRegen(offlineMs, deps); // BEFORE damage (quiet span first) — see MECHANICS.md Base
             applyOfflineDamage(hits, deps);
-            applyElapsedRegen(offlineMs, deps); // AFTER damage — see MECHANICS.md Base
         }
         requestAnimationFrame(frame);
     }
@@ -647,6 +679,7 @@ const Damage = (() => {
         computeGapCatchUpHits,
         computeCatchUpDuration,
         computeRegenTicks,
+        computeQuietMs,
         // stateful
         updateBaseVisuals,
         applyBaseArt,

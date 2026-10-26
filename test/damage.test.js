@@ -763,9 +763,12 @@ describe('runLiveGapCatchUp', () => {
         expect(deps._state.baseHealth).toBe(50 + 3 * CONFIG.BASE_REGEN_HP);
     });
 
-    test('regen is PAUSED across a gap while a threatening item is overdue (2026-10-13)', () => {
+    test('regen is PAUSED across a gap for an item that was already overdue before it (2026-10-13, 2026-10-26)', () => {
         const now = Date.now();
-        const it = item({ lastDamageTickTime: now - 10 * 60 * 60 * 1000, offlineDamageCharged: CAP }); // no damage owed
+        const it = item({
+            dueDateTime: new Date(now - 10 * 60 * 60 * 1000), // overdue since before the gap -> no quiet time
+            lastDamageTickTime: now - 10 * 60 * 60 * 1000, offlineDamageCharged: CAP,
+        }); // no damage owed
         const lastRegen = now - 3 * CONFIG.BASE_REGEN_INTERVAL_MS;
         const deps = makeDeps({
             state: { activeItems: [it], baseHealth: 50, lastRegenTickMs: lastRegen },
@@ -777,6 +780,24 @@ describe('runLiveGapCatchUp', () => {
         Damage.runLiveGapCatchUp(deps);
         expect(deps._state.baseHealth).toBe(50);
         expect(deps._state.lastRegenTickMs).toBeGreaterThan(lastRegen); // clock still reset
+    });
+
+    test('[2026-10-26] a gap heals the quiet part before an item fell due, then pauses', () => {
+        const now = Date.now();
+        // 15-min gap; the item fell due 2.5 min before the end -> 12.5 min (2 whole ticks) were quiet.
+        const it = item({
+            dueDateTime: new Date(now - 0.5 * INTERVAL),
+            lastDamageTickTime: now - 10 * 60 * 60 * 1000, offlineDamageCharged: CAP,
+        }); // no damage owed
+        const deps = makeDeps({
+            state: { activeItems: [it], baseHealth: 50, lastRegenTickMs: now - 3 * CONFIG.BASE_REGEN_INTERVAL_MS },
+            deps: {
+                getLastRegenTickMs: () => deps._state.lastRegenTickMs,
+                setLastRegenTickMs: (n) => { deps._state.lastRegenTickMs = n; },
+            },
+        });
+        Damage.runLiveGapCatchUp(deps);
+        expect(deps._state.baseHealth).toBe(50 + 2 * CONFIG.BASE_REGEN_HP);
     });
 
     test('a lurker (negative habit) overdue does NOT pause regen', () => {
@@ -820,6 +841,110 @@ describe('runLiveGapCatchUp', () => {
 });
 
 // ---------------------------------------------------------------------------
+// 2026-10-26 (Jeremy): away-time healing is blocked only while a zombie would
+// have been attacking, not for the whole window. All due times use a half-
+// interval margin so a few ms of clock drift can never flip a whole tick.
+describe('computeQuietMs', () => {
+    const NOW = 1_000_000_000_000;
+    const SPAN = 10 * INTERVAL;
+
+    test('no overdue items: the whole span is quiet', () => {
+        expect(Damage.computeQuietMs(SPAN, NOW, [])).toBe(SPAN);
+        expect(Damage.computeQuietMs(SPAN, NOW, undefined)).toBe(SPAN);
+    });
+
+    test('zero, negative or invalid span is never quiet', () => {
+        expect(Damage.computeQuietMs(0, NOW, [])).toBe(0);
+        expect(Damage.computeQuietMs(-5, NOW, [])).toBe(0);
+        expect(Damage.computeQuietMs(NaN, NOW, [])).toBe(0);
+    });
+
+    test('an item overdue since before the span leaves no quiet time', () => {
+        expect(Damage.computeQuietMs(SPAN, NOW, [NOW - 20 * INTERVAL])).toBe(0);
+        expect(Damage.computeQuietMs(SPAN, NOW, [NOW - SPAN])).toBe(0); // due exactly at span start
+    });
+
+    test('an item that fell due mid-span: quiet time is the part before it', () => {
+        expect(Damage.computeQuietMs(SPAN, NOW, [NOW - 3.5 * INTERVAL])).toBe(6.5 * INTERVAL);
+    });
+
+    test('several items: the earliest attack start sets the quiet span', () => {
+        expect(Damage.computeQuietMs(SPAN, NOW, [NOW - 2.5 * INTERVAL, NOW - 6.5 * INTERVAL, NOW - 4 * INTERVAL]))
+            .toBe(3.5 * INTERVAL);
+    });
+
+    test('a due time in the future (bad data) cannot push quiet time past the span', () => {
+        expect(Damage.computeQuietMs(SPAN, NOW, [NOW + 60 * 60 * 1000])).toBe(SPAN);
+    });
+});
+
+describe('runOfflineCatchUp: quiet-span healing (2026-10-26)', () => {
+    const run = (items, baseHealth, offlineMs, extra = {}) => {
+        const deps = makeDeps({ state: { activeItems: items, baseHealth }, ...extra });
+        Damage.runOfflineCatchUp(items.map(it => ({ item: it, savedX: null })), offlineMs, deps);
+        return deps;
+    };
+    const dueAgo = (intervals) => item({ dueDateTime: new Date(Date.now() - intervals * INTERVAL), element: null });
+
+    test('nothing overdue: the whole away time heals', () => {
+        expect(run([], 50, 10 * INTERVAL)._state.baseHealth).toBe(50 + 10 * CONFIG.BASE_REGEN_HP);
+    });
+
+    test('a zombie that arrived late still lets the earlier quiet time heal', () => {
+        // gone 10 intervals, zombie due 3.5 ago: 6 quiet ticks heal, 3 damage ticks land
+        expect(run([dueAgo(3.5)], 50, 10 * INTERVAL)._state.baseHealth).toBe(50 + 6 - 3);
+    });
+
+    test('a zombie overdue before the user left blocks healing for the whole absence', () => {
+        // due 20 intervals ago, gone 10: no quiet time; 10 damage ticks land
+        expect(run([dueAgo(20)], 50, 10 * INTERVAL)._state.baseHealth).toBe(50 - 10);
+    });
+
+    test('two zombies: the earlier one sets the quiet span', () => {
+        // quiet = 10 - 6.5 = 3.5 intervals -> 3 ticks; damage = 2 + 6
+        expect(run([dueAgo(2.5), dueAgo(6.5)], 50, 10 * INTERVAL)._state.baseHealth).toBe(50 + 3 - 8);
+    });
+
+    test('a lurker overdue the whole time does not block healing', () => {
+        const lurker = item({ type: 'habit', isNegative: true, dueDateTime: new Date(Date.now() - 20 * INTERVAL), element: null });
+        const deps = run([lurker], 50, 10 * INTERVAL, {
+            deps: { isNonThreatening: (i) => i.type === 'habit' && i.isNegative === true },
+        });
+        expect(deps._state.baseHealth).toBe(50 + 10 * CONFIG.BASE_REGEN_HP);
+    });
+
+    test('quiet-time healing comes BEFORE damage, so the 100 HP clamp does not eat it', () => {
+        // 98 HP, 7 quiet ticks heal (clamped at 100), THEN 2 damage ticks -> 98.
+        // (Damage first would give 96 + 7 -> 100 and silently erase the hits.)
+        expect(run([dueAgo(2.5)], 98, 10 * INTERVAL)._state.baseHealth).toBe(98);
+    });
+
+    test('quiet-time healing can save the base from a KO the damage alone would cause', () => {
+        // 6 HP, two zombies owing 8 damage: damage alone would end the run;
+        // the 3 quiet ticks heal first, so the base survives on 1 HP.
+        const deps = run([dueAgo(2.5), dueAgo(6.5)], 6, 10 * INTERVAL);
+        expect(deps._state.baseHealth).toBe(1);
+        expect(deps._state.gameIsOver).toBe(false);
+    });
+
+    test('the animated path applies the same rule', () => {
+        const el = fakeEl();
+        const it = item({ dueDateTime: new Date(Date.now() - 3.5 * INTERVAL), element: el });
+        const deps = makeDeps({ state: { activeItems: [it], baseHealth: 50 } });
+        const origRaf = global.requestAnimationFrame;
+        global.requestAnimationFrame = (fn) => { setTimeout(() => fn(performance.now() + 1e6), 0); return 0; };
+        return new Promise((resolve) => {
+            Damage.runOfflineCatchUp([{ item: it, savedX: 400 }], 10 * INTERVAL, deps);
+            setTimeout(() => {
+                global.requestAnimationFrame = origRaf;
+                expect(deps._state.baseHealth).toBe(50 + 6 - 3);
+                resolve();
+            }, 50);
+        });
+    });
+});
+
+// ---------------------------------------------------------------------------
 describe('runOfflineCatchUp', () => {
     test('a sub-tick absence owes nothing', () => {
         // Note: OFFLINE_ANIMATION_THRESHOLD_MS (30s) is far below
@@ -835,12 +960,13 @@ describe('runOfflineCatchUp', () => {
     test('applies damage instantly when nothing needs animating', () => {
         // Long absence, but the item has no element to animate → the
         // instant-apply branch runs and the capped damage lands immediately.
-        // 2026-10-13: regen is PAUSED while the item is overdue, so the offline
-        // window's 10 regen ticks are NOT granted on top of the damage.
-        const it = item({ dueDateTime: new Date(Date.now() - 3 * INTERVAL), element: null });
+        // 2026-10-13: regen is PAUSED while the item is overdue. 2026-10-26: only
+        // for the time it was attacking -- the 6.5 intervals of quiet time before
+        // it fell due (6 whole ticks) heal first, then its 3 ticks of damage land.
+        const it = item({ dueDateTime: new Date(Date.now() - 3.5 * INTERVAL), element: null });
         const deps = makeDeps({ state: { activeItems: [it], baseHealth: 50 } });
         Damage.runOfflineCatchUp([{ item: it, savedX: null }], 10 * INTERVAL, deps);
-        expect(deps._state.baseHealth).toBe(50 - 3 * DMG);
+        expect(deps._state.baseHealth).toBe(50 + 6 * CONFIG.BASE_REGEN_HP - 3 * DMG);
         expect(deps._state.offlineCatchUpActive).toBe(false);
     });
 
