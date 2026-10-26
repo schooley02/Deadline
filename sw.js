@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v81';
+const CACHE_NAME = 'deadline-shell-v88';
 
 const APP_SHELL = [
     './',
@@ -144,6 +144,20 @@ const APP_SHELL = [
     // Hero art (HERO_SPOTLIGHT_PLAN sub-session 4, 2026-10-25): atlas + 32x32 head crop per art category.
     'Assets/Heroes/anim/other.png',
     'Assets/Heroes/other-head.png',
+    'Assets/Heroes/anim/spirituality.png',
+    'Assets/Heroes/spirituality-head.png',
+    'Assets/Heroes/anim/relationships.png',
+    'Assets/Heroes/relationships-head.png',
+    'Assets/Heroes/anim/lifestyle.png',
+    'Assets/Heroes/lifestyle-head.png',
+    'Assets/Heroes/anim/health.png',
+    'Assets/Heroes/health-head.png',
+    'Assets/Heroes/anim/financial.png',
+    'Assets/Heroes/financial-head.png',
+    'Assets/Heroes/anim/creativity.png',
+    'Assets/Heroes/creativity-head.png',
+    'Assets/Heroes/anim/career.png',
+    'Assets/Heroes/career-head.png',
     // Floor art: desktop/landscape ground (css/gameCanvas.css) + portrait strip floor (css/glanceStrip.css). NOT strip-floor-original/2/3.png or scene/_source/.
     'Assets/scene/strip-floor.png',
     'Assets/scene/floor-tile.png',

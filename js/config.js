@@ -276,7 +276,7 @@ const CONFIG = {
     // Those heroes skip the emoji block and the HERO_KO_LOOK treatment: the KO ANIMATION plays
     // unfaded (Jeremy, 2026-10-25) while the small avatars (tray / tab / list chips) still fade.
     // Categories not listed keep the emoji placeholder until their art lands.
-    HERO_ART_CATEGORIES: ['other'],
+    HERO_ART_CATEGORIES: ['other', 'spirituality', 'relationships', 'lifestyle', 'health', 'financial', 'creativity', 'career'],
     // KO animation timing (display only). The KO row (9 frames) plays ONCE at HERO_KO_FPS, then
     // holds its last frame for HERO_KO_HOLD_MS, then restarts. KEEP IN SYNC with the `hero-ko`
     // keyframes in css/heroSpotlight.css (test/heroArt.test.js checks they agree).

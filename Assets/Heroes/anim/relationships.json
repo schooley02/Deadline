@@ -1,0 +1,44 @@
+{
+  "category": "relationships",
+  "image": "relationships.png",
+  "frameWidth": 164,
+  "frameHeight": 164,
+  "characterSize": 128,
+  "facing": "right",
+  "feetY": 140,
+  "bodyBox": {
+    "left": 25,
+    "top": 38,
+    "right": 135,
+    "bottom": 142
+  },
+  "animations": {
+    "idle": {
+      "row": 0,
+      "frames": 9,
+      "loop": true
+    },
+    "attack": {
+      "row": 1,
+      "frames": 9,
+      "loop": true
+    },
+    "hurt": {
+      "row": 2,
+      "frames": 9,
+      "loop": false
+    },
+    "levelup": {
+      "row": 3,
+      "frames": 9,
+      "loop": false
+    },
+    "ko": {
+      "row": 4,
+      "frames": 9,
+      "loop": false
+    }
+  },
+  "note": "ko: plays once; the game holds the last frame CONFIG.HERO_KO_HOLD_MS then restarts. hurt/levelup: play once.",
+  "source": "PixelLab export (cells 144px re-padded to 164 with feet on row 140; rotation row + any extra rows dropped; rows reordered idle,attack,hurt,levelup,ko)"
+}

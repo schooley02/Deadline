@@ -68,10 +68,12 @@ describe('heroLookFor with art', () => {
         expect(HeroSpotlight.heroLookFor(ko, { ...CONFIG, HERO_KO_LOOK: 'zombie' }).kind).toBe('atlas');
     });
     test('a category without art keeps the emoji placeholder and its KO looks', () => {
+        // (all 8 categories have art now, so simulate one that doesn't: career with the art list cut to 'other')
+        const OTHER_ONLY = { ...CONFIG, HERO_ART_CATEGORIES: ['other'] };
         const career = { ...base, heroCategory: 'career', koState: { koAt: 1 } };
-        expect(HeroSpotlight.heroLookFor(career, { ...CONFIG, HERO_KO_LOOK: 'faded' }).kind).toBe('emoji');
-        expect(HeroSpotlight.heroLookFor(career, { ...CONFIG, HERO_KO_LOOK: 'zombie' }).kind).toBe('zombie');
-        expect(HeroSpotlight.hasHeroArt('career', CONFIG)).toBe(false);
+        expect(HeroSpotlight.heroLookFor(career, { ...OTHER_ONLY, HERO_KO_LOOK: 'faded' }).kind).toBe('emoji');
+        expect(HeroSpotlight.heroLookFor(career, { ...OTHER_ONLY, HERO_KO_LOOK: 'zombie' }).kind).toBe('zombie');
+        expect(HeroSpotlight.hasHeroArt('career', OTHER_ONLY)).toBe(false);
         expect(HeroSpotlight.hasHeroArt('other', CONFIG)).toBe(true);
         expect(HeroSpotlight.hasHeroArt('other', {})).toBe(false);
     });
@@ -80,7 +82,7 @@ describe('heroLookFor with art', () => {
 describe('head-crop avatars', () => {
     test('art categories get a head crop; others keep the emoji', () => {
         expect(HeroesView.headSrcFor('other', CONFIG)).toBe('Assets/Heroes/other-head.png');
-        expect(HeroesView.headSrcFor('career', CONFIG)).toBeNull();
+        expect(HeroesView.headSrcFor('career', { ...CONFIG, HERO_ART_CATEGORIES: ['other'] })).toBeNull();
         expect(HeroesView.headSrcFor('other', {})).toBeNull();
     });
     test('avatarHtml: <img> when there is a head, emoji otherwise', () => {
@@ -113,6 +115,7 @@ describe('assets + cache list', () => {
         expect(css).toMatch(new RegExp(`--hero-cell: ${cell}px`));
         expect(css).toMatch(new RegExp(`--hero-feet: ${meta.feetY}px`));
         expect(css).toMatch(/width: 1476px/);
+        expect(css).toMatch(/--hero-idle-frames: 9;/);
         expect(css).toMatch(/height: 820px/);
         expect(meta.animations.idle.row).toBe(0);
         expect(meta.animations.ko).toMatchObject({ row: 4, frames: 9, loop: false });
@@ -127,12 +130,19 @@ describe('assets + cache list', () => {
             }
             return 0;
         };
-        const idle = Array.from({ length: 9 }, (_, f) => edge(meta.animations.idle.row, f));
+        // Idle may have fewer than 9 frames (lifestyle: 7); the CSS must say so (--hero-idle-frames).
+        const idleN = meta.animations.idle.frames;
+        const m = css.match(new RegExp(`data-category="${cat}"\\] \\.hero-sprite \\{ --hero-idle-frames: (\\d+)`));
+        expect(m ? Number(m[1]) : 9).toBe(idleN);
+        expect(meta.animations.ko.frames).toBe(9); // KO keyframes assume 9 (hurt may be 7: health)
+        Object.values(meta.animations).forEach(a => expect(a.frames).toBeLessThanOrEqual(9));
+        const idle = Array.from({ length: idleN }, (_, f) => edge(meta.animations.idle.row, f));
         const ko = Array.from({ length: 9 }, (_, f) => edge(meta.animations.ko.row, f));
         idle.forEach(e => expect(e).toBe(meta.feetY));
-        // KO: frame 1 standing and the last 3 lying frames are grounded (+-1px); the middle fall
+        // KO: frame 1 standing and the last 3 lying frames are grounded (+-4px); the middle fall
         // frames may be airborne (higher = smaller edge) but never BELOW the floor line.
-        ko.forEach(e => expect(e).toBeLessThanOrEqual(meta.feetY + 1));
-        [0, 6, 7, 8].forEach(f => expect(Math.abs(ko[f] - meta.feetY)).toBeLessThanOrEqual(1));
+        // (a prone final frame may sit a few px below the standing line: relationships +2, lifestyle +4)
+        ko.forEach(e => expect(e).toBeLessThanOrEqual(meta.feetY + 4));
+        [0, 6, 7, 8].forEach(f => expect(Math.abs(ko[f] - meta.feetY)).toBeLessThanOrEqual(4));
     });
 });

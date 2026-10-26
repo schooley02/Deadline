@@ -7,6 +7,10 @@ global.Heroes = require('../js/heroes.js');
 const CONFIG = require('../js/config.js');
 const HeroSpotlight = require('../js/ui/heroSpotlight.js');
 
+// All 8 categories now have hero art (2026-10-25); the emoji / grey-zombie placeholder path is still
+// the fallback for a category without art, so these tests run with art switched off.
+const NO_ART = { ...CONFIG, HERO_ART_CATEGORIES: [] };
+
 const routineA = { id: 'rA', name: 'Study', isActive: true, frozenState: null, koState: null, heroCategory: 'career' };
 
 describe('resolveRoutineForItem', () => {
@@ -46,7 +50,7 @@ describe('resolveRoutineForItem', () => {
 
 describe('heroLookFor', () => {
     test('active routine: emoji block for its hero category', () => {
-        const look = HeroSpotlight.heroLookFor(routineA, CONFIG);
+        const look = HeroSpotlight.heroLookFor(routineA, NO_ART);
         expect(look).toMatchObject({ routineId: 'rA', category: 'career', state: 'active', kind: 'emoji', sprite: null });
         expect(look.emoji).toBe(CONFIG.CATEGORY_EMOJI.career);
     });
@@ -65,15 +69,15 @@ describe('heroLookFor', () => {
 
     test('KO look A (faded) keeps the emoji block; look B (zombie) uses the grey zombie sprite', () => {
         const ko = { ...routineA, koState: { at: 1 } };
-        const faded = HeroSpotlight.heroLookFor(ko, { ...CONFIG, HERO_KO_LOOK: 'faded' });
+        const faded = HeroSpotlight.heroLookFor(ko, { ...NO_ART, HERO_KO_LOOK: 'faded' });
         expect(faded).toMatchObject({ state: 'ko', kind: 'emoji', koLook: 'faded', sprite: null });
-        const zombie = HeroSpotlight.heroLookFor(ko, { ...CONFIG, HERO_KO_LOOK: 'zombie' });
+        const zombie = HeroSpotlight.heroLookFor(ko, { ...NO_ART, HERO_KO_LOOK: 'zombie' });
         expect(zombie).toMatchObject({ state: 'ko', kind: 'zombie', koLook: 'zombie', sprite: 'Assets/Zombies/career-zombie-64.png' });
     });
 
     test('the zombie KO look only applies to KO, and an unknown look falls back to faded', () => {
-        expect(HeroSpotlight.heroLookFor(routineA, { ...CONFIG, HERO_KO_LOOK: 'zombie' }).kind).toBe('emoji');
-        expect(HeroSpotlight.heroLookFor({ ...routineA, koState: {} }, { ...CONFIG, HERO_KO_LOOK: 'bogus' }).koLook).toBe('faded');
+        expect(HeroSpotlight.heroLookFor(routineA, { ...NO_ART, HERO_KO_LOOK: 'zombie' }).kind).toBe('emoji');
+        expect(HeroSpotlight.heroLookFor({ ...routineA, koState: {} }, { ...NO_ART, HERO_KO_LOOK: 'bogus' }).koLook).toBe('faded');
     });
 });
 

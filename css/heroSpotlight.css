@@ -121,6 +121,7 @@
     pointer-events: none;
     --hero-row: 0;
     --hero-fps: 6;
+    --hero-idle-frames: 9; /* per-category override below (lifestyle idle has 7 frames) */
 }
 .hero-sprite[data-anim="ko"] { --hero-row: 4; }
 .hero-sprite-sheet {
@@ -133,12 +134,23 @@
     background-size: 100% 100%;
     image-rendering: pixelated;
     will-change: transform;
-    animation: hero-sprite-run calc(9 / var(--hero-fps) * 1s) steps(9) infinite;
+    animation: hero-sprite-run calc(var(--hero-idle-frames) / var(--hero-fps) * 1s) steps(var(--hero-idle-frames)) infinite;
 }
 .hero-spotlight[data-category="other"] .hero-sprite-sheet { background-image: url('../Assets/Heroes/anim/other.png'); }
+.hero-spotlight[data-category="spirituality"] .hero-sprite-sheet { background-image: url('../Assets/Heroes/anim/spirituality.png'); }
+.hero-spotlight[data-category="relationships"] .hero-sprite-sheet { background-image: url('../Assets/Heroes/anim/relationships.png'); }
+.hero-spotlight[data-category="lifestyle"] .hero-sprite-sheet { background-image: url('../Assets/Heroes/anim/lifestyle.png'); }
+.hero-spotlight[data-category="lifestyle"] .hero-sprite { --hero-idle-frames: 7; }
+.hero-spotlight[data-category="health"] .hero-sprite-sheet { background-image: url('../Assets/Heroes/anim/health.png'); }
+.hero-spotlight[data-category="health"] .hero-sprite { --hero-idle-frames: 7; }
+.hero-spotlight[data-category="financial"] .hero-sprite-sheet { background-image: url('../Assets/Heroes/anim/financial.png'); }
+.hero-spotlight[data-category="financial"] .hero-sprite { --hero-idle-frames: 7; }
+.hero-spotlight[data-category="creativity"] .hero-sprite-sheet { background-image: url('../Assets/Heroes/anim/creativity.png'); }
+.hero-spotlight[data-category="creativity"] .hero-sprite { --hero-idle-frames: 7; }
+.hero-spotlight[data-category="career"] .hero-sprite-sheet { background-image: url('../Assets/Heroes/anim/career.png'); }
 @keyframes hero-sprite-run {
     from { transform: translate3d(0, 0, 0); }
-    to   { transform: translate3d(-1476px, 0, 0); }
+    to   { transform: translate3d(calc(var(--hero-idle-frames) * -164px), 0, 0); }
 }
 
 /* KO: 9 frames ONCE at CONFIG.HERO_KO_FPS (10fps = 0.9s), then HOLD the last (lying) frame for

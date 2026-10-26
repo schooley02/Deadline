@@ -1,0 +1,44 @@
+{
+  "category": "creativity",
+  "image": "creativity.png",
+  "frameWidth": 164,
+  "frameHeight": 164,
+  "characterSize": 128,
+  "facing": "right",
+  "feetY": 140,
+  "bodyBox": {
+    "left": 18,
+    "top": 24,
+    "right": 146,
+    "bottom": 140
+  },
+  "animations": {
+    "idle": {
+      "row": 0,
+      "frames": 7,
+      "loop": true
+    },
+    "attack": {
+      "row": 1,
+      "frames": 9,
+      "loop": true
+    },
+    "hurt": {
+      "row": 2,
+      "frames": 9,
+      "loop": false
+    },
+    "levelup": {
+      "row": 3,
+      "frames": 9,
+      "loop": false
+    },
+    "ko": {
+      "row": 4,
+      "frames": 9,
+      "loop": false
+    }
+  },
+  "note": "ko: plays once; the game holds the last frame CONFIG.HERO_KO_HOLD_MS then restarts. hurt/levelup: play once. Frame counts may be < 9 (CSS --hero-<anim>-frames per category).",
+  "source": "PixelLab exports re-padded to 164px cells with feet on row 140; rotation rows dropped; rows reordered idle,attack,hurt,levelup,ko"
+}
