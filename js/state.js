@@ -476,6 +476,9 @@ const State = (() => {
             const savedTickMs = (item.isOverdue && typeof item.lastDamageTickTime === 'number' && isFinite(item.lastDamageTickTime))
                 ? item.lastDamageTickTime : null;
             deps.addItemToGame(item);
+            // KO ghost restored from the save: re-apply the fade + badge to the
+            // freshly built element (the agenda row styles itself from state).
+            if (item.koGhost && typeof deps.syncGhostLook === 'function') deps.syncGhostLook(item);
             restoredEntries.push({ item, savedX, savedTickMs });
             // item.isOverdue here covers BOTH items saved as overdue (markAsOverdue
             // early-returned; re-apply its visual state) and items whose due date
@@ -610,7 +613,9 @@ const State = (() => {
             .forEach(item => {
                 const isExcusedCheatDay = item.type === 'habit' && item.isNegative === true &&
                     deps.isCheatDayExcusedForItem(item);
-                const isCheckInEligible = !isExcusedCheatDay && item.type === 'habit' && item.isNegative === true &&
+                // KO ghosts skip the check-in card (the routine is down; the
+                // generous auto-avoid applies, minus points -- Items.ghostAdjustedPoints).
+                const isCheckInEligible = !isExcusedCheatDay && !item.koGhost && item.type === 'habit' && item.isNegative === true &&
                     DayRollover.isFromPreviousDay(item.originalDueDate, now);
                 if (isExcusedCheatDay) {
                     deps.settleExcusedCheatDay(item);

@@ -115,6 +115,26 @@ describe('State.performDayRollover', () => {
         expect(deps._state.checkedIn).toEqual([]);
     });
 
+    // KO ghosts (2026-10-25): a ghost negative habit from the previous day skips the
+    // check-in card (the routine is down) and auto-settles; ghost positive habits and
+    // ghost routine tasks settle (are removed) like any stale recurring instance --
+    // no miss is ever recorded for a ghost (markAsOverdue is a no-op for them).
+    test('a KO ghost negative habit from the previous day settles instead of asking for a check-in', () => {
+        const lurker = makeItem({ id: 7, isNegative: true, koGhost: true, originalDueDate: daysAgo(1) });
+        const deps = makeDeps({ state: { currentGameDate: daysAgo(1), activeItems: [lurker] } });
+        State.performDayRollover(deps, new Date());
+        expect(deps._state.settled).toEqual([7]);
+        expect(deps._state.checkedIn).toEqual([]);
+    });
+
+    test('KO ghost positive habit and ghost routine task are settled (removed) at rollover', () => {
+        const habit = makeItem({ id: 8, koGhost: true });
+        const task = makeItem({ id: 9, type: 'task', definitionId: 'td1', koGhost: true });
+        const deps = makeDeps({ state: { currentGameDate: daysAgo(1), activeItems: [habit, task] } });
+        State.performDayRollover(deps, new Date());
+        expect(deps._state.settled.sort()).toEqual([8, 9]);
+    });
+
     test('an excused (active Cheat Day) negative habit settles via settleExcusedCheatDay ahead of the check-in fork', () => {
         const lurker = makeItem({ id: 6, isNegative: true, originalDueDate: daysAgo(1) });
         const deps = makeDeps({

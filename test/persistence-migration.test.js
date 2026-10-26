@@ -662,8 +662,8 @@ describe('migrate: v11 -> v12 (list-order layering, 2026-10-13)', () => {
         expect(save.activeItems[0].listRank).toBeUndefined();
         expect(save.activeItems[1].listRank).toBe(5);
     });
-    test('SCHEMA_VERSION is 13', () => {
-        expect(Persistence.SCHEMA_VERSION).toBe(13);
+    test('SCHEMA_VERSION is 14', () => {
+        expect(Persistence.SCHEMA_VERSION).toBe(14);
     });
 });
 
@@ -676,7 +676,7 @@ describe('migrate: v12 -> v13 seeds routine.heroCategory (2026-10-21)', () => {
             definedHabits: [{ id: 'h1', routineId: 'r1', category: 'health' }],
             definedTasks: [{ id: 't1', category: 'career' }, { id: 't2', category: 'career' }],
         });
-        expect(save.schemaVersion).toBe(13);
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
         expect(save.definedRoutines[0].heroCategory).toBe('career');
     });
 
@@ -727,7 +727,47 @@ describe('migrate: v12 -> v13 seeds routine.heroCategory (2026-10-21)', () => {
     });
 
     test('a save with no routines or lists migrates cleanly', () => {
-        expect(migrate12({}).schemaVersion).toBe(13);
+        expect(migrate12({}).schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+    });
+});
+
+describe('migrate: v13 -> v14 (KO ghosts / timers / reschedule fields, 2026-10-25)', () => {
+    const migrate13 = extra => Persistence.migrate(Object.assign({ schemaVersion: 13 }, extra));
+
+    test('fills item defaults on active and completed items', () => {
+        const save = migrate13({ activeItems: [{ id: 1 }], completedItems: [{ id: 2 }] });
+        expect(save.schemaVersion).toBe(14);
+        [save.activeItems[0], save.completedItems[0]].forEach(item => {
+            expect(item.koGhost).toBe(false);
+            expect(item.timer).toBeNull();
+            expect(item.timerMsBanked).toBe(0);
+            expect(item.timerMinutes).toBeNull();
+            expect(item.rescheduleCount).toBe(0);
+        });
+    });
+
+    test('fills timerMode / timerMinutes on habit and task definitions', () => {
+        const save = migrate13({ definedHabits: [{ id: 'h1' }], definedTasks: [{ id: 't1' }] });
+        expect(save.definedHabits[0].timerMode).toBeNull();
+        expect(save.definedHabits[0].timerMinutes).toBeNull();
+        expect(save.definedTasks[0].timerMode).toBeNull();
+        expect(save.definedTasks[0].timerMinutes).toBeNull();
+    });
+
+    test('never overwrites existing values', () => {
+        const save = migrate13({
+            activeItems: [{ id: 1, koGhost: true, timerMsBanked: 5000, rescheduleCount: 2 }],
+            definedHabits: [{ id: 'h1', timerMode: 'limit', timerMinutes: 30 }],
+        });
+        expect(save.activeItems[0].koGhost).toBe(true);
+        expect(save.activeItems[0].timerMsBanked).toBe(5000);
+        expect(save.activeItems[0].rescheduleCount).toBe(2);
+        expect(save.definedHabits[0].timerMode).toBe('limit');
+        expect(save.definedHabits[0].timerMinutes).toBe(30);
+    });
+
+    test('a save with no lists migrates cleanly', () => {
+        expect(migrate13({}).schemaVersion).toBe(14);
     });
 });
 

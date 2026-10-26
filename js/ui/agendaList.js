@@ -86,6 +86,11 @@ const AgendaList = (() => {
         if (itemData.isOverdue) {
             listItem.classList.add('overdue-list-item');
         }
+        // KO ghost (2026-10-25): faded row; the checkbox stays live (completing
+        // a ghost is real follow-through), the due line and edit pencil change below.
+        if (itemData.koGhost) {
+            listItem.classList.add('ko-ghost-list-item');
+        }
 
         // Adjust main task container to align properly
         listItem.style.display = 'flex';
@@ -145,6 +150,7 @@ const AgendaList = (() => {
         editIconButton.classList.add('edit-icon-btn');
         editIconButton.textContent = '✏️';
         editIconButton.style.cssText = 'background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;';
+        if (itemData.koGhost) editIconButton.style.display = 'none'; // no edits while KO'd
         if (itemData.type === 'habit') {
             editIconButton.title = 'Edit Habit';
             editIconButton.addEventListener('click', () => deps.showEditHabitInstanceModal(itemData));
@@ -234,9 +240,11 @@ const AgendaList = (() => {
         itemDetailsSpan.style.cssText = 'font-size: 12px; color: var(--color-neutral);';
         // Negative-habit lurkers read "Tempting around <time> · avoiding today"
         // (Habits.dueLineText) -- their time is a trigger time, not a deadline.
-        itemDetailsSpan.textContent = (typeof Habits !== 'undefined' && Habits.dueLineText)
-            ? Habits.dueLineText(itemData)
-            : `Due: ${itemData.dueDateTime.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`;
+        itemDetailsSpan.textContent = itemData.koGhost
+            ? '\u{1F4A4} KO\'d \u00B7 excused today'
+            : ((typeof Habits !== 'undefined' && Habits.dueLineText)
+                ? Habits.dueLineText(itemData)
+                : `Due: ${itemData.dueDateTime.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`);
 
         itemDetailsContainer.appendChild(itemDetailsSpan);
         detailsAndSubTaskRow.appendChild(itemDetailsContainer);
@@ -266,7 +274,8 @@ const AgendaList = (() => {
                 }
             });
             // Add the sub-task button to the right side of the details row
-            detailsAndSubTaskRow.appendChild(addSubTaskButton);
+            // (not on a KO ghost: no new work attaches to a routine that is down).
+            if (!itemData.koGhost) detailsAndSubTaskRow.appendChild(addSubTaskButton);
 
             // Create sub-tasks container
             const subTasksContainer = document.createElement('ul');

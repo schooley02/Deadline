@@ -4,6 +4,19 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-25 -- KO ghosts BUILT (Build 1 of the design batch; Claude app session, Sonnet; no balance numbers changed)
+
+Spec = the entry below + `docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md`. Implementation calls made while building:
+- **One seam, not new guards:** `Items.isNonThreatening` now also returns true for `item.koGhost`, so the loop's damage tick, both catch-up paths, `markAsOverdue` (no overdue, no habit miss, no streak reset), `recomputeOverdueStateAfterEdit` and the time-slider preview all skip ghosts for free, and the loop parks a past-due ghost beside the base with the lurker-parked look.
+- **Catch-up batch guard:** `Damage.applyOfflineDamage` skips a pre-computed hit whose item was ghosted earlier in the same batch (the KO'ing item's own hit still lands). Found live: without it the routine's other items' hits still hit the base after the KO.
+- **Regen after a catch-up KO:** the KO leaves no threatening overdue item, so the offline regen span heals the base normally (live-observed 92 -> 99). Accepted — same as the old recall behaviour.
+- **Points:** `Items.ghostAdjustedPoints` (factor 0) in `completeItem`, the rollover auto-avoid (`settleStaleRecurringInstance`) and the uncomplete refund, so complete -> undo is symmetric. Routine XP is not awarded for a ghost (the routine is suspended, existing `awardRoutineXpForItem` gate).
+- **Undo of a ghost completion** restores the item as a ghost only if its routine is STILL KO'd, otherwise as a live item.
+- **Rollover:** ghost negative habits skip the check-in card (`!item.koGhost` in `performDayRollover`) and auto-settle; ghost positive habits/routine tasks are removed with no miss.
+- **Revive:** `Routines.reviveGhostInstancesForRoutine`; script.js `handleGhostsRevived` re-derives overdue (clean clock, no miss) for EVERY past-due revived item, one-offs included, BEFORE opening the "When is this due now?" pickers, so dismissing a picker with ESC can never leave an item to be back-charged by the loop. A new future time un-overdues it. Pickers are free (no points, no `rescheduleCount`) and queue parents before sub-tasks.
+- **UI scope:** ghost rows hide the edit pencil and "+ Sub-task"; the popup drops edit / pushback / Cheat Day / Skip Day; the KO notice text now describes ghosts.
+- **Deferred:** `rescheduleFreeUses` root field -> Build 2. Hurt/attack/level-up hero rows are untouched.
+
 ## 2026-10-25 -- Design batch: KO ghosts, distance-priced rescheduling, work + limit timers (Claude app session, Fable, balance-tuning protocol; design only, config data added, nothing wired)
 
 Full write-up and build order: `docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md`. New `js/config.js` keys (data only): `KO_GHOST_POINTS_FACTOR 0`, `RESCHEDULE_ZONE_FACTORS {calm 0, approaching 0.5, urgent 1, overdue 1}`, `RESCHEDULE_GRACE_MS 10 min`, `RESCHEDULE_FREE_PER_WEEK 1`, `WORK_TIMER_DAMAGE_FACTOR 0.5`, `WORK_TIMER_CHECK_MS 60 min`, `WORK_TIMER_AUTO_STOP_MS 10 min`. sw.js v88 -> v89.

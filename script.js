@@ -415,6 +415,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // ahead of the check-in-eligible fork above.
             isCheatDayExcusedForItem,
             settleExcusedCheatDay: (item) => Items.settleExcusedCheatDay(item, itemsDeps()),
+            // KO ghosts (2026-10-25): re-apply the fade + badge to restored ghosts.
+            syncGhostLook: (item) => Items.syncGhostLook(item),
             addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => handleEnemyClick(itemId), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay: () => Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay }), sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
             createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()),
             renderDefinedRoutines: () => RoutineViews.renderDefinedRoutines(routineViewsDeps()),
@@ -553,6 +555,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // one-time notice, same "module called as a bare stable global
             // from inside a script.js wrapper" pattern as onRoutineFrozen.
             clearActiveInstancesForRoutine,
+            // KO ghosts (2026-10-25): a KO keeps the routine's items as inert
+            // completable ghosts instead of recalling them.
+            ghostifyActiveInstancesForRoutine,
             onRoutineKo: (routine) => {
                 FrozenNotice.showRoutineKoNotice(routine.name);
             },
@@ -1501,8 +1506,65 @@ document.addEventListener('DOMContentLoaded', () => {
         Routines.clearActiveInstancesForRoutine(routineId, { definedRoutines: State.getDefinedRoutines(), activeItems: State.getActiveItems(), removeItem });
     }
 
+    // ---- KO ghosts (2026-10-25; docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md) ----
+    // Re-style a ghost/revived item's sprite + agenda row from its koGhost flag.
+    // Top-level rows are rebuilt (their due line + edit pencil depend on it);
+    // sub-tasks render inside their parent's row, so the parent rebuild covers them.
+    function refreshGhostLook(items) {
+        items.forEach(item => Items.syncGhostLook(item));
+        items.forEach(item => {
+            if (item.parentId) return;
+            if (item.listItemElement) item.listItemElement.remove();
+            AgendaList.createListItem(item, agendaListDeps());
+        });
+        AgendaList.sortAndRenderActiveList(agendaListDeps());
+        updateTaskCountDisplay();
+    }
+
+    function ghostifyActiveInstancesForRoutine(routineId) {
+        const flagged = [];
+        Routines.ghostifyActiveInstancesForRoutine(routineId, {
+            definedRoutines: State.getDefinedRoutines(),
+            activeItems: State.getActiveItems(),
+            onGhostified: (item) => flagged.push(item)
+        });
+        refreshGhostLook(flagged);
+    }
+
+    // Revive: ghosts come back to life. Recurring ones whose time passed re-derive
+    // overdue with a clean clock and NO miss (recomputeOverdueStateAfterEdit);
+    // stale one-off tasks/sub-tasks each open "When is this due now?" first
+    // (parents before their sub-tasks, so a sub-task's ceiling is the new parent
+    // time). Dismissing a picker = keep the original (overdue, clean clock).
+    function handleGhostsRevived(revivedItems, result) {
+        refreshGhostLook(revivedItems);
+        // Everything whose time already passed becomes overdue NOW with a clean
+        // damage clock and no miss -- one-offs too, so dismissing a picker (ESC)
+        // can never leave an un-ticked past-due item to be back-charged by the loop.
+        result.recurring.concat(result.staleOneOffs).forEach(item => Items.recomputeOverdueStateAfterEdit(item, itemsDeps()));
+        const queue = result.staleOneOffs.slice().sort((a, b) => (a.parentId ? 1 : 0) - (b.parentId ? 1 : 0));
+        const next = () => {
+            const item = queue.shift();
+            if (!item) { refreshGhostLook([]); saveGame(); return; }
+            Popups.promptNewDueTime(item, popupsDeps(), (res) => {
+                if (res && res.dueDateTime instanceof Date && res.dueDateTime.getTime() > Date.now()) {
+                    item.dueDateTime = res.dueDateTime;
+                    // A new future time un-overdues it (and re-positions it).
+                    Items.recomputeOverdueStateAfterEdit(item, itemsDeps());
+                }
+                refreshGhostLook([item]);
+                next();
+            });
+        };
+        // Deferred: the revive click may still be bubbling out of a modal.
+        setTimeout(next, 0);
+    }
+
     function toggleRoutineActive(routineId) {
+        const revivedItems = [];
         Routines.toggleRoutineActive(routineId, {
+            onGhostRevived: (item) => revivedItems.push(item),
+            onGhostsRevived: (result) => handleGhostsRevived(revivedItems, result),
             definedRoutines: State.getDefinedRoutines(),
             routineSlots: State.getRoutineSlots(),
             activeItems: State.getActiveItems(),

@@ -160,6 +160,25 @@ const Popups = (() => {
     }
 
     function buildActionsHtml(item, deps) {
+        // KO ghost (2026-10-25): completable, but no edit / pushback / cheat day /
+        // skip day while the routine is down.
+        if (item.koGhost) {
+            if (isNegativeHabitInstance(item)) {
+                return `
+                    <div class="task-actions negative-habit-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <button type="button" id="avoidHabitBtn" class="negative-habit-button avoid-btn">Successfully avoided</button>
+                        <button type="button" id="indulgeHabitBtn" class="negative-habit-button indulge-btn">I indulged</button>
+                    </div>`;
+            }
+            const openSubs = (item.type === 'task' && item.subTasks) ? item.subTasks.length : 0;
+            return `
+                <div class="task-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
+                    <label class="completion-checkbox"${openSubs ? ` title="${openSubs} sub-task${openSubs === 1 ? '' : 's'} remaining" style="cursor: not-allowed; opacity: 0.6;"` : ''}>
+                        <input type="checkbox" id="completeTaskCheck" class="completion-checkbox-input"${openSubs ? ' disabled' : ''} />
+                        Mark as Complete${openSubs ? ` (${openSubs} remaining)` : ''}
+                    </label>
+                </div>`;
+        }
         if (isNegativeHabitInstance(item)) {
             const cheatDayActive = typeof deps.isCheatDayActiveForItem === 'function' && deps.isCheatDayActiveForItem(item);
             const heldCheatDays = typeof deps.getCheatDayHeldCount === 'function' ? deps.getCheatDayHeldCount() : 0;
@@ -204,6 +223,7 @@ const Popups = (() => {
                 <div class="modal-content task-details-modal">
                     <button class="close-modal-x" onclick="closeModal()">&times;</button>
                     <h3>${item.name}</h3>
+                    ${item.koGhost ? '<p class="ko-ghost-note">\u{1F4A4} Knocked out \u2014 revives tomorrow. Finishing this still counts (XP and streak, no points); skipping it is excused.</p>' : ''}
                     <div class="task-details">
                         <p><strong>Category:</strong> ${item.category}</p>
                         ${isNegativeHabitInstance(item)

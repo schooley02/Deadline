@@ -58,13 +58,13 @@ Rules:
   state is thrown away by the reload regardless — same class of hazard as the session-52
   stub-before-edit trick, see CLAUDE.md's Cowork section).
 
-### schemaVersion 14 (PLANNED 2026-10-25, Fable design batch — NOT built; lands with the KO-ghosts build): timers, reschedule tracking, KO ghosts
+### schemaVersion 14 (BUILT 2026-10-25, KO-ghosts build; only `koGhost` is read by code so far — the timer/reschedule fields are defaults until Builds 2-4): timers, reschedule tracking, KO ghosts
 - `item.koGhost: boolean` (default false) — true while the owning routine is KO'd; set on KO, cleared on revive; persisted so a reload can't un-ghost.
 - `item.timer: { startedAt: ISO } | null`, `item.timerMsBanked: number` (default 0), `item.timerMinutes: number | null` (one-off tasks' optional target).
 - `item.rescheduleCount: number` (default 0) — +1 on every later-move of the due time, paid or free.
 - `habitDef.timerMode: 'work' | 'limit' | null`, `habitDef.timerMinutes: number | null`; the same two fields on routine `taskDefinitions`.
-- Root save: `rescheduleFreeUses: [ISO…]` — timestamps of free paid-zone reschedules, pruned to the rolling 7 days on write.
-- Migration 13 → 14 fills defaults only (no routine can hold live items while KO'd under the pre-14 rule, so `koGhost` is false everywhere). Spec: `docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md`.
+- Root save: `rescheduleFreeUses: [ISO…]` — timestamps of free paid-zone reschedules, pruned to the rolling 7 days on write. **NOT added yet** (the 13 → 14 migration does not seed it and `State` does not persist it); it lands with Build 2.
+- Migration 13 → 14 (`js/persistence.js`, idempotent — never overwrites) fills the item and definition defaults only (no routine can hold live items while KO'd under the pre-14 rule, so `koGhost` is false everywhere). Spec: `docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md`.
 
 ### schemaVersion 13 (2026-10-21): `routine.heroCategory`
 Which of the 8 category heroes (`CONFIG.HERO_CATEGORIES`: other, career, creativity, financial, health, lifestyle, relationships, spirituality) represents a routine. Player-picked (Create Routine + Manage Routine "Hero type" select); NEW routines default to `'other'`. The 12 -> 13 migration SEEDS every existing routine ONCE from its dominant category across habit members (`routineId` or `habitDefinitionIds`, archived excluded) AND task members (`taskDefinitionIds`); ties go to the category counted first (habits in `definedHabits` order, then tasks); no categorised members -> `'other'`. A missing/unknown value reads as `'other'` (`Heroes.heroCategoryFor`). Replaces the old "dominant habit category" rule for hero art (docs/HERO_SPOTLIGHT_PLAN.md).

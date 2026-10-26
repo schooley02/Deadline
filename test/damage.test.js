@@ -653,6 +653,22 @@ describe('applyOfflineDamage', () => {
         expect(b.offlineDamageCharged).toBe(0); // never charged
     });
 
+    // KO ghosts (2026-10-25): a KO earlier in the same batch turns the routine's
+    // other items into inert ghosts, whose already-computed hits must not land.
+    test('skips a hit whose item became a KO ghost earlier in the same batch', () => {
+        const a = item();
+        const b = item();
+        const deps = makeDeps({
+            deps: {
+                isNonThreatening: (it) => it.koGhost === true,
+                damageRoutineForItem: (it) => { if (it === a) b.koGhost = true; },
+            },
+        });
+        Damage.applyOfflineDamage([{ item: a, dmg: 3 }, { item: b, dmg: 4 }], deps);
+        expect(deps._state.baseHealth).toBe(100 - 3);
+        expect(b.offlineDamageCharged).toBe(0);
+    });
+
     // [P1-UI-006] sub-session 2, 2026-07-19 — routine health damage/KO,
     // shared by both offline catch-up and live-gap catch-up (both funnel
     // through this function).

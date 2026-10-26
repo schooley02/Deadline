@@ -43,7 +43,14 @@ const Persistence = (() => {
     // group; see js/listOrder.js). Absent = today's due-time order, so the
     // migration only stamps the version. Items are saved whole, so the new
     // fields round-trip with no serializer change.
-    const SCHEMA_VERSION = 13;
+    // v14 (2026-10-25, KO ghosts build; docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md):
+    // items gain `koGhost` (KO'd routine's inert completable ghosts), the
+    // timer fields (`timer`, `timerMsBanked`, `timerMinutes`) and
+    // `rescheduleCount`; habit + routine-task definitions gain `timerMode` /
+    // `timerMinutes`. Only `koGhost` is read by code yet; the rest land now so
+    // builds 2-4 need no further bump. The root `rescheduleFreeUses` list
+    // lands with Build 2 (State does not persist it yet).
+    const SCHEMA_VERSION = 14;
     const DEBOUNCE_MS = 500;
 
     // DOM references on item objects — never serialized, rebuilt on load.
@@ -424,6 +431,31 @@ const Persistence = (() => {
                 routine.heroCategory = best;
             });
             save.schemaVersion = 13;
+        }
+
+        // v13 -> v14 (2026-10-25): fill the new item + definition fields with
+        // their defaults. No routine can hold live items while KO'd under the
+        // pre-14 rule (KO recalled them), so koGhost is false everywhere.
+        // Existing values are never overwritten (idempotent).
+        if (save.schemaVersion === 13) {
+            const fillItem = item => {
+                if (!item || typeof item !== 'object') return;
+                if (item.koGhost === undefined) item.koGhost = false;
+                if (item.timer === undefined) item.timer = null;
+                if (item.timerMsBanked === undefined) item.timerMsBanked = 0;
+                if (item.timerMinutes === undefined) item.timerMinutes = null;
+                if (item.rescheduleCount === undefined) item.rescheduleCount = 0;
+            };
+            const fillDef = def => {
+                if (!def || typeof def !== 'object') return;
+                if (def.timerMode === undefined) def.timerMode = null;
+                if (def.timerMinutes === undefined) def.timerMinutes = null;
+            };
+            (Array.isArray(save.activeItems) ? save.activeItems : []).forEach(fillItem);
+            (Array.isArray(save.completedItems) ? save.completedItems : []).forEach(fillItem);
+            (Array.isArray(save.definedHabits) ? save.definedHabits : []).forEach(fillDef);
+            (Array.isArray(save.definedTasks) ? save.definedTasks : []).forEach(fillDef);
+            save.schemaVersion = 14;
         }
 
         if (save.schemaVersion !== SCHEMA_VERSION) {

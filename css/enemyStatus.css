@@ -267,3 +267,31 @@
     animation-duration: 1.6s;
 }
 
+
+/* ---- KO ghosts (2026-10-25, docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md) ----
+   A KO'd routine's items stay as inert, completable ghosts: same fade as the
+   day-pager / time-preview ghosts, plus a 💤 badge. The badge is a real child
+   element because ::before/::after on the sprite are already claimed. */
+.enemy.ko-ghost {
+    opacity: 0.5;
+    filter: grayscale(0.85);
+}
+.enemy.ko-ghost .ko-ghost-badge {
+    position: absolute;
+    top: -6px;
+    right: -4px;
+    font-size: 14px;
+    line-height: 1;
+    pointer-events: none;
+}
+li.ko-ghost-list-item {
+    opacity: 0.6;
+}
+li.ko-ghost-list-item .item-sprite {
+    filter: grayscale(0.85);
+}
+.ko-ghost-note {
+    margin: 4px 0 8px;
+    font-size: 13px;
+    color: var(--color-neutral);
+}

@@ -677,10 +677,64 @@ const Routines = (() => {
         selectActiveItemIdsToClearForRoutine(deps.activeItems, routine).forEach(id => deps.removeItem(id));
     }
 
+    // KO ghosts (2026-10-25, docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md): when a
+    // routine is KO'd its live items are NOT recalled — they stay as inert,
+    // completable ghosts (`item.koGhost`; Items.isNonThreatening makes them
+    // never overdue / never damaging / miss-free). An item already overdue at
+    // KO stops being overdue (its misses were recorded; that damage caused the
+    // KO). `deps.onGhostified(item)` is an optional DOM hook (fade classes).
+    // Sub-tasks cascade with their parent (same selection as the recall).
+    // deps = { definedRoutines, activeItems, onGhostified? }
+    function ghostifyActiveInstancesForRoutine(routineId, deps) {
+        const routine = deps.definedRoutines.find(r => r.id === routineId);
+        if (!routine) return 0;
+        const ids = new Set(selectActiveItemIdsToClearForRoutine(deps.activeItems, routine));
+        let count = 0;
+        deps.activeItems.forEach(item => {
+            if (!ids.has(item.id)) return;
+            item.koGhost = true;
+            item.isOverdue = false;
+            count += 1;
+            if (typeof deps.onGhostified === 'function') deps.onGhostified(item);
+        });
+        return count;
+    }
+
+    // The revive counterpart: ghosts become live items again. Pure state flip;
+    // the caller handles what the new liveness means:
+    //   - `recurring`  ghosts (habits / routine tasks, have a definitionId) whose
+    //     due time already passed -> caller re-evaluates overdue with a clean
+    //     damage clock and NO missed occurrence (recomputeOverdueStateAfterEdit
+    //     + skipHabitMiss, the habit-retime precedent).
+    //   - `staleOneOffs` one-off tasks / sub-tasks whose due time passed -> the
+    //     caller opens the "When is this due now?" picker for each (Jeremy,
+    //     2026-10-25); dismissing it keeps the original time.
+    // Ghosts whose due time is still ahead just resume walking.
+    // deps = { definedRoutines, activeItems, now? (Date), onGhostRevived? }
+    function reviveGhostInstancesForRoutine(routineId, deps) {
+        const result = { recurring: [], staleOneOffs: [] };
+        const routine = deps.definedRoutines.find(r => r.id === routineId);
+        if (!routine) return result;
+        const now = deps.now ? deps.now() : new Date();
+        const ids = new Set(selectActiveItemIdsToClearForRoutine(deps.activeItems, routine));
+        deps.activeItems.forEach(item => {
+            if (!ids.has(item.id) || !item.koGhost) return;
+            item.koGhost = false;
+            if (typeof deps.onGhostRevived === 'function') deps.onGhostRevived(item);
+            if (item.dueDateTime && item.dueDateTime <= now) {
+                if (item.definitionId != null) result.recurring.push(item);
+                else result.staleOneOffs.push(item);
+            }
+        });
+        return result;
+    }
+
     // deps = {
     //   definedRoutines, routineSlots, activeItems, removeItem, alert,
     //   generateDailyHabitInstances, generateDailyRoutineTaskInstances,
-    //   currentGameDate, saveGame, now?
+    //   currentGameDate, saveGame, now?,
+    //   onGhostsRevived? (result of reviveGhostInstancesForRoutine) + the
+    //   optional hooks that function takes
     // }
     function toggleRoutineActive(routineId, deps) {
         const routine = deps.definedRoutines.find(r => r.id === routineId);
@@ -719,6 +773,9 @@ const Routines = (() => {
             if (routine.koState) {
                 routine.koState = null;
                 routine.health = CONFIG.HERO_REVIVE_HEALTH;
+                // KO ghosts (2026-10-25): surviving ghosts come back to life.
+                const revived = reviveGhostInstancesForRoutine(routineId, deps);
+                if (typeof deps.onGhostsRevived === 'function') deps.onGhostsRevived(revived);
             }
             // Spawning today's due instances immediately on activation is the
             // symmetric counterpart to the immediate recall above (2026-07-18
@@ -751,6 +808,8 @@ const Routines = (() => {
         selectActiveInstanceIdsForDefinition,
         selectActiveItemIdsToClearForRoutine,
         clearActiveInstancesForRoutine,
+        ghostifyActiveInstancesForRoutine,
+        reviveGhostInstancesForRoutine,
         toggleRoutineActive,
     };
 })();

@@ -104,8 +104,10 @@ const FrozenNotice = (() => {
                 <div class="modal-content frozen-notice-modal">
                     <h3>💤 ${routineName} was knocked out</h3>
                     <p>${routineName}'s health ran out from overdue habits/tasks, so it's been
-                       deactivated — its members are off the board for now, no completion credit
-                       lost. You can revive it starting tomorrow, at half health.</p>
+                       deactivated. Its habits and tasks stay on the board as faded ghosts: they
+                       can't hurt you, and anything you leave undone is excused. Finishing one
+                       still earns XP and keeps your streak (but no points). You can revive
+                       ${routineName} starting tomorrow, at half health.</p>
                     <div class="modal-buttons">
                         <button class="primary-button" onclick="closeModal()">Got it</button>
                     </div>

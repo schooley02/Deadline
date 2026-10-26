@@ -76,8 +76,49 @@ const Items = (() => {
     // deps-only conventions — receive it as an injected `isNonThreatening`
     // collaborator (see loopDeps()/damageDeps() in script.js) rather than
     // duplicating the check, so there is still exactly one implementation.
+    // KO ghosts (2026-10-25, docs/DESIGN_QUESTIONS_KO_EDIT_TIMER.md): a KO'd
+    // routine's items stay as inert, completable ghosts (`item.koGhost`). They
+    // ride this same seam, so they never go overdue, never damage the base or
+    // routine (live loop + both catch-up paths), record no miss, and are
+    // excluded from the time-slider preview — one definition, no new guards.
     function isNonThreatening(item) {
-        return item.type === 'habit' && item.isNegative === true;
+        return (item.type === 'habit' && item.isNegative === true) || item.koGhost === true;
+    }
+
+    // DOM half of the ghost look (2026-10-25): fade class + 💤 badge on the
+    // canvas sprite, fade class on the agenda row, and no overdue styling while
+    // a ghost. Idempotent; call after flipping `item.koGhost` either way, and
+    // after (re)building an element for a restored ghost. A reviving
+    // non-lurker also drops the parked-idle class it picked up as a ghost.
+    function syncGhostLook(item) {
+        const on = item.koGhost === true;
+        const el = item.element;
+        if (el && el.classList) {
+            el.classList.toggle('ko-ghost', on);
+            const existing = el.querySelector ? el.querySelector(':scope > .ko-ghost-badge') : null;
+            if (on && !existing && typeof document !== 'undefined') {
+                const badge = document.createElement('span');
+                badge.className = 'ko-ghost-badge';
+                badge.textContent = '\u{1F4A4}';
+                el.appendChild(badge);
+            } else if (!on && existing) {
+                existing.remove();
+            }
+            if (on) el.classList.remove('enemy-at-base');
+            if (!on && !isNonThreatening(item)) el.classList.remove('lurker-parked');
+        }
+        const row = item.listItemElement;
+        if (row && row.classList) {
+            row.classList.toggle('ko-ghost-list-item', on);
+            if (on) row.classList.remove('overdue-list-item');
+        }
+    }
+
+    // Points a ghost completion pays (CONFIG.KO_GHOST_POINTS_FACTOR; XP and the
+    // habit success occurrence are unchanged). Non-ghosts pass through.
+    function ghostAdjustedPoints(item, points) {
+        if (!item || item.koGhost !== true) return points;
+        return Math.round(points * CONFIG.KO_GHOST_POINTS_FACTOR);
     }
 
     // --- Frozen routine slots ("Frozen routine slots + recovery" ticket,
@@ -282,7 +323,13 @@ const Items = (() => {
         if (Heroes.shouldKo(routine.health)) {
             routine.koState = { koAt: Date.now() };
             routine.isActive = false;
-            if (typeof deps.clearActiveInstancesForRoutine === 'function') {
+            // KO ghosts (2026-10-25): the routine's items STAY as inert
+            // completable ghosts instead of being recalled. Falls back to the
+            // old pure removal when the ghost collaborator isn't supplied
+            // (older deps objects / tests).
+            if (typeof deps.ghostifyActiveInstancesForRoutine === 'function') {
+                deps.ghostifyActiveInstancesForRoutine(routine.id);
+            } else if (typeof deps.clearActiveInstancesForRoutine === 'function') {
                 deps.clearActiveInstancesForRoutine(routine.id);
             }
             if (typeof deps.onRoutineKo === 'function') {
@@ -480,6 +527,10 @@ const Items = (() => {
                 }
             }
         }
+
+        // KO ghost completion (2026-10-25): XP + habit success stand, points are
+        // scaled by CONFIG.KO_GHOST_POINTS_FACTOR (0 = the routine's economy is down).
+        pointsGained = ghostAdjustedPoints(item, pointsGained);
 
         if (xpGained > 0) {
             deps.setPlayerXP(deps.getPlayerXP() + xpGained);
@@ -749,7 +800,7 @@ const Items = (() => {
                 habitDef.lastCompletionDate = result.lastCompletionDate;
                 habitDef.occurrenceHistory = result.occurrenceHistory;
                 deps.setPlayerXP(deps.getPlayerXP() + result.xpGained);
-                deps.setPlayerPoints(Economy.addPoints(deps.getPlayerPoints(), result.pointsGained));
+                deps.setPlayerPoints(Economy.addPoints(deps.getPlayerPoints(), ghostAdjustedPoints(item, result.pointsGained)));
                 deps.updatePlayerDisplays();
                 deps.checkPlayerLevelUp();
                 // Frozen routine slots: auto-avoided is a success occurrence
@@ -1082,6 +1133,16 @@ const Items = (() => {
             }
         }
 
+        // KO ghosts: the refund mirrors what the completion paid (factor), then
+        // the restored item takes the routine's CURRENT state — still KO'd = still
+        // a ghost; revived since = a normal live item.
+        const wasGhost = item.koGhost === true;
+        const refundPoints = points => (wasGhost ? Math.round(points * CONFIG.KO_GHOST_POINTS_FACTOR) : points);
+        {
+            const owner = findRoutineForItem(item, deps);
+            item.koGhost = !!(owner && owner.koState);
+        }
+
         // Remove from completed items
         deps.completedItems().splice(completedIndex, 1);
 
@@ -1241,7 +1302,7 @@ const Items = (() => {
             const pointsLost = Economy.taskPoints(item.isHighPriority, basePointsLost);
 
             deps.setPlayerXP(Math.max(0, deps.getPlayerXP() - xpLost));
-            deps.setPlayerPoints(Economy.subtractPoints(deps.getPlayerPoints(), pointsLost));
+            deps.setPlayerPoints(Economy.subtractPoints(deps.getPlayerPoints(), refundPoints(pointsLost)));
             // Achievements sub-session 2 (session 65): symmetric lifetime
             // decrement (plan scope guard — complete→uncomplete can't farm
             // badge progress). An unlock already fired stays unlocked
@@ -1269,7 +1330,7 @@ const Items = (() => {
                 habitDef.occurrenceHistory = result.occurrenceHistory;
 
                 deps.setPlayerXP(Math.max(0, deps.getPlayerXP() - result.xpLost));
-                deps.setPlayerPoints(Economy.subtractPoints(deps.getPlayerPoints(), result.pointsLost));
+                deps.setPlayerPoints(Economy.subtractPoints(deps.getPlayerPoints(), refundPoints(result.pointsLost)));
                 // Achievements sub-session 2 (session 65): symmetric lifetime
                 // decrement, same reasoning as the task branch above.
                 // bestHabitStreak is a high-water mark — applyHabitUncompletion
@@ -1457,6 +1518,8 @@ const Items = (() => {
 
     return {
         isNonThreatening,
+        ghostAdjustedPoints,
+        syncGhostLook,
         createTaskItemData,
         clampedSubTaskDueDate,
         clampSubTasksToParentDeadline,

@@ -477,6 +477,9 @@ const Damage = (() => {
     function applyOfflineDamage(hits, deps) {
         for (const hit of hits) {
             if (deps.isGameOver()) break;
+            // KO ghosts (2026-10-25): an earlier hit in this same batch may have KO'd
+            // this item's routine, turning it into an inert ghost -- it deals nothing.
+            if (typeof deps.isNonThreatening === 'function' && deps.isNonThreatening(hit.item)) continue;
             hit.item.offlineDamageCharged = (hit.item.offlineDamageCharged || 0) + hit.dmg;
             // Run-history blame attribution (sub-session 2, session 53) —
             // MUST run BEFORE damageBase below. damageBase can synchronously
