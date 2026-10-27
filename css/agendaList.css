@@ -121,7 +121,11 @@
     margin-right: 4px;
 }
 
-.task-list li.overdue-list-item {
+/* .preview-attack-list-item (2026-10-27): the row's zombie reaches the church at
+   the time the slider is previewing - same red as a live attacker
+   (js/ui/timeSliderView.js markPreviewAttackers, cleared on release). */
+.task-list li.overdue-list-item,
+.task-list li.preview-attack-list-item {
     border-left: 4px solid var(--color-error);
     background: rgba(229, 57, 53, 0.05);
     animation: urgent-pulse 2s ease-in-out infinite;

@@ -351,3 +351,45 @@ describe('scrub-coupled animation (2026-10-27)', () => {
         expect(cloud.playbackRate).toBe(1);
     });
 });
+
+describe('preview attackers get the red row (2026-10-27)', () => {
+    afterEach(() => { document.body.innerHTML = ''; });
+
+    function rowItem(dueHour, extra = {}) {
+        const row = document.createElement('li');
+        document.body.appendChild(row);
+        return { element: makeItemEl(), listItemElement: row, dueDateTime: new Date(new Date().setHours(dueHour, 0, 0, 0)), ...extra };
+    }
+
+    test('rows whose zombie has reached the base at the previewed time turn red; release clears', () => {
+        const at11 = rowItem(11);
+        const at15 = rowItem(15);
+        const lurker = rowItem(11, { isNegative: true }); // non-threatening
+        const live = rowItem(9, { isOverdue: true });
+        live.listItemElement.classList.add('overdue-list-item');
+        const { deps, sliderEl } = makeDeps({ activeItems: [at11, at15, lurker, live] });
+        TimeSliderView.init(deps);
+        TimeSliderView.syncHandle(new Date(new Date().setHours(10, 0, 0, 0)));
+
+        sliderEl.value = String(12 * 60); // preview 12:00
+        sliderEl.dispatchEvent(new Event('input'));
+        expect(at11.listItemElement.classList.contains('preview-attack-list-item')).toBe(true);
+        expect(at15.listItemElement.classList.contains('preview-attack-list-item')).toBe(false);
+        expect(lurker.listItemElement.classList.contains('preview-attack-list-item')).toBe(false);
+        expect(live.listItemElement.classList.contains('overdue-list-item')).toBe(true); // live red untouched
+
+        sliderEl.value = String(16 * 60); // 16:00 — the 15:00 one arrives too
+        sliderEl.dispatchEvent(new Event('input'));
+        expect(at15.listItemElement.classList.contains('preview-attack-list-item')).toBe(true);
+
+        sliderEl.value = String(10 * 60 + 30); // back to 10:30 — neither has arrived
+        sliderEl.dispatchEvent(new Event('input'));
+        expect(at11.listItemElement.classList.contains('preview-attack-list-item')).toBe(false);
+        expect(at15.listItemElement.classList.contains('preview-attack-list-item')).toBe(false);
+
+        sliderEl.value = String(20 * 60);
+        sliderEl.dispatchEvent(new Event('input'));
+        sliderEl.dispatchEvent(new Event('change'));
+        expect(document.querySelectorAll('.preview-attack-list-item').length).toBe(0);
+    });
+});

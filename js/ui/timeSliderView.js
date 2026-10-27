@@ -109,6 +109,24 @@ const TimeSliderView = (() => {
         });
     }
 
+    // Rows of zombies that have REACHED the base at the previewed time get the
+    // same red highlight as live attackers (2026-10-27, Jeremy: "which task to
+    // focus on first" at a glance). Same rule as the damage projection: due at
+    // or before the previewed time and not non-threatening. Live overdue rows
+    // keep their own `.overdue-list-item` and stay red either way; release
+    // (ghost=false) strips the preview class from every row.
+    function markPreviewAttackers(time, ghost) {
+        const previewMs = time.getTime();
+        deps.getActiveItems().forEach((item) => {
+            const row = item.listItemElement;
+            if (!row || !row.classList) return;
+            const due = item.dueDateTime ? new Date(item.dueDateTime).getTime() : NaN;
+            const threat = !(typeof deps.isNonThreatening === 'function' && deps.isNonThreatening(item));
+            const attacking = ghost && !item.isOverdue && threat && Number.isFinite(due) && due <= previewMs;
+            row.classList.toggle('preview-attack-list-item', attacking);
+        });
+    }
+
     function releaseAnimations() {
         scrubbedAnims.forEach((anim) => { anim.playbackRate = 1; });
         scrubbedAnims.clear();
@@ -186,6 +204,7 @@ const TimeSliderView = (() => {
             item.element.style.left = Math.max(dims.baseWidth, x) + 'px';
             item.element.classList.toggle('time-preview-ghost', ghost);
         });
+        markPreviewAttackers(time, ghost);
         deps.updateMidnightLine(time);
 
         if (deps.baseElement) deps.baseElement.classList.toggle('time-preview-ghost', ghost);
