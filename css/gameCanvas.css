@@ -145,7 +145,9 @@
     height: 100%;
 }
 
-/* Sky: night gradient + a static moon (glow via box-shadow, no asset). */
+/* Sky: night gradient + a static moon. 2026-10-26: moon is now PixelLab art
+   (Assets/scene/moon.png, 58x58 trimmed disc, shown 1:1 pixelated), larger and
+   tucked toward the top-right corner; the glow stays in CSS (box-shadow). */
 .scene-sky {
     z-index: -4;
     background: linear-gradient(180deg, #0b0b24 0%, #171735 35%, #2b2a4a 68%, #3d3a5c 100%);
@@ -154,13 +156,14 @@
 .scene-sky::after {
     content: "";
     position: absolute;
-    top: 10%;
-    right: 12%;
-    width: 40px;
-    height: 40px;
+    top: 6%;
+    right: 5%;
+    width: 58px;
+    height: 58px;
     border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #fffdf2 0%, #f6f0d4 55%, #ddd6ab 100%);
-    box-shadow: 0 0 24px 10px rgba(253, 251, 232, 0.5), 0 0 50px 18px rgba(253, 251, 232, 0.15);
+    background: url("../Assets/scene/moon.png") center / 58px 58px no-repeat;
+    image-rendering: pixelated;
+    box-shadow: 0 0 36px 14px rgba(253, 251, 232, 0.5), 0 0 80px 28px rgba(253, 251, 232, 0.15);
 }
 
 /* Clouds: fastest parallax layer. Outer div carries the slider-driven

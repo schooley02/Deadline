@@ -4,6 +4,11 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-26 -- Moon is now PixelLab art, larger, in the top-right corner (Jeremy; Claude app session, Sonnet; visual only, no balance numbers changed)
+- **Decision:** the sky moon is a PixelLab sprite (`Assets/scene/moon.png`, 58x58 trimmed disc, shown 1:1 with `image-rendering: pixelated`) instead of a CSS radial-gradient circle. It is larger (40px -> 58px) and moved from top 10% / right 12% to top 6% / right 5%. The glow stays in CSS (`box-shadow`, scaled up to 36px/14px + 80px/28px) so it can be tuned without regenerating art.
+- **Why:** Jeremy wanted a bigger, more characterful moon tucked toward the corner. He compared six PixelLab candidates in a canvas mock, with and without glow, and picked the flat-crater one with glow. Rays, outlined and face variants were rejected (see-through hole, outline fought the glow, face pulled attention from the church).
+- **Files:** `css/gameCanvas.css` (`.scene-sky::after`), `Assets/scene/moon.png`, `sw.js` (moon.png added to the shell list; CACHE_NAME v111 -> v112), `docs/UI_UX.md`.
+
 ## 2026-10-26 -- Routine level-up modal shows the hero's level-up animation (Jeremy; Claude app session, Sonnet; visual only, no balance numbers changed)
 - **Decision:** the modal that announces a routine "leveling up" (the star-rating notice, the only routine level-up modal that exists) now shows that routine's hero (`routine.heroCategory`) playing the `levelup` row on a loop above the heading, so each category has its own. Looped rather than one-shot so the modal never freezes on an odd last frame. A plain XP-level-up still has no modal (only the spotlight one-shot); say so if that should get one too.
 - **Wiring:** `HeroSpotlight.levelUpArtHtml(category, config)` (empty for a category without art) -> `FrozenNotice.showHeroStarUpNotice(name, stars, heroCategory)`; script.js passes `Heroes.heroCategoryFor(routine, CONFIG.HERO_CATEGORIES)`. CSS `.hero-notice-art` (own wrapper, 1.1x scale) + 8 sheet rules. sw v111.
