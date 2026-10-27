@@ -107,4 +107,14 @@ describe('Hud.updatePlayerDisplays — negative balance styling', () => {
         delete deps.playerPointsNudge;
         expect(() => Hud.updatePlayerDisplays(deps)).not.toThrow();
     });
+
+    test('points button gets an aria-label with the balance and the shop action', () => {
+        const stat = fakeStatEl();
+        const attrs = {};
+        stat.setAttribute = (k, v) => { attrs[k] = v; };
+        Hud.updatePlayerDisplays(makeDeps({ playerPoints: 120, playerPointsStat: stat }));
+        expect(attrs['aria-label']).toBe('120 points. Open shop');
+        Hud.updatePlayerDisplays(makeDeps({ playerPoints: -15, playerPointsStat: stat }));
+        expect(attrs['aria-label']).toBe('-15 points. Open shop');
+    });
 });

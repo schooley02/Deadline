@@ -1986,6 +1986,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (baseHealthButton) baseHealthButton.addEventListener('click', openBasePanel);
 
+    // HUD points button opens the Shop (2026-10-27). Same path as the FAB's
+    // Shop item, so the shop renders through ManagementWindows as usual.
+    // stopPropagation: Modal's document click handler would otherwise see a
+    // click outside .management-window and close the shop right away.
+    if (playerPointsStat) playerPointsStat.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openManagementWindow('shop');
+    });
+
     function ensureHeroTray() {
         if (heroTrayReady) return;
         HeroTray.init({

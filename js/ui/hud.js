@@ -54,6 +54,10 @@ const Hud = (() => {
         if (deps.playerXpDisplay) deps.playerXpDisplay.textContent = deps.playerXP;
         if (deps.playerLevelDisplay) deps.playerLevelDisplay.textContent = deps.playerLevel;
         if (deps.playerPointsDisplay) deps.playerPointsDisplay.textContent = deps.playerPoints;
+        // The points stat is a button that opens the Shop (2026-10-27).
+        if (deps.playerPointsStat && deps.playerPointsStat.setAttribute) {
+            deps.playerPointsStat.setAttribute('aria-label', `${deps.playerPoints} points. Open shop`);
+        }
         // Level button: slim XP bar + an aria-label carrying the numbers (the
         // XP total itself lives in the level panel).
         if (deps.playerXpBar || deps.levelButton) {
