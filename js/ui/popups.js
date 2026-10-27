@@ -646,6 +646,18 @@ const Popups = (() => {
                     }
                 }
 
+                // A sub-task renders NESTED inside its parent's row, so rebuild the
+                // parent row too -- otherwise the nested zombie icon + "| category"
+                // label keep the old category (2026-10-27), same pattern as
+                // showCreateSubTaskModal.
+                if (item.parentId) {
+                    const editedParent = (deps.activeItems || []).find(i => i.id === item.parentId && i.type === 'task');
+                    if (editedParent && editedParent.listItemElement) {
+                        editedParent.listItemElement.remove();
+                        deps.createListItem(editedParent);
+                    }
+                }
+
                 deps.sortAndRenderActiveList();
                 deps.saveGame();
                 Modal.closeModal();

@@ -62,16 +62,19 @@ const HeroSpotlight = (() => {
     }
 
     /**
-     * The hero for ANY item: its routine's hero when it has one (a sub-task uses its
-     * parent's), else the pseudo-hero of the item's own category (a sub-task of a
-     * standalone parent uses the parent's category).
+     * The hero for ANY item follows the item's OWN category (2026-10-27, Jeremy: editing a
+     * category must change the hero too). A routine's hero is used only while the item's
+     * category matches the routine's hero category (a sub-task checks its parent's routine) --
+     * so the routine hero's KO / frozen / level state still shows for the usual case -- and
+     * otherwise the pseudo-hero of the item's own category ('__cat:<category>') stands in.
+     * A sub-task uses its OWN category, not its parent's.
      */
     function resolveHeroForItem(item, activeItems, findRoutine, categories) {
         if (!item) return null;
+        const hero = categoryHero(item.category, categories);
         const routine = resolveRoutineForItem(item, activeItems, findRoutine);
-        if (routine) return routine;
-        const parent = item.parentId ? (activeItems || []).find(i => i.id === item.parentId) : null;
-        return categoryHero((parent || item).category, categories);
+        if (routine && Heroes.heroCategoryFor(routine, categories) === hero.heroCategory) return routine;
+        return hero;
     }
 
     function deriveState(routine) {

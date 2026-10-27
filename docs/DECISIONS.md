@@ -4,12 +4,32 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-27 -- Sub-tasks get their own counter; they no longer count as tasks in run stats or Task Slayer (Jeremy chose option A; Claude app session, Sonnet; achievement-counting change via the balance-tuning protocol)
+- **Decision:** completing a SUB-TASK (`item.parentId`) now bumps `subtasksCompleted` instead of `tasksCompleted`, in both layers: the run stats (`RunStats.recordSubtaskCompleted`, in `freshRunStats` / `finalizeRun` totals / `deltasVsLastRun`) and the lifetime stats (`recordLifetime('subtaskCompleted', +/-1)`, symmetric on uncomplete like tasks; `Achievements.freshLifetimeStats` gains `subtasksCompleted`). Task Slayer (metric `tasksCompleted`, tiers 10 / 50 / 250 / 1000) therefore ignores sub-tasks. UI: Stats "Sub-tasks done" counter (+ delta vs last run), and a "N sub-tasks" segment on past-run cards and the game-over totals line only when N > 0.
+- **Why:** Jeremy: a separate sub-task count is more useful to the player than mixing sub-tasks into the task count. Option B (sub-tasks counted separately in the run but still feeding Task Slayer) was rejected: the Stats screen and the badge would disagree about what a task is.
+- **No schema bump:** additive fields, absent = 0 (same pattern as `reschedules`). Existing saves keep working; nothing already unlocked is revoked.
+- **Known limit:** past runs' and the current lifetime `tasksCompleted` already include every sub-task completed before today and cannot be separated retroactively; only completions from now on are split. Task Slayer progress is not reduced.
+- **Unchanged:** XP / points for sub-tasks (5 XP, 1 pt; parent rule), the daily "N tasks" header and week strip still exclude sub-tasks.
+- **Tests:** items-run-stats, achievements-wiring, achievements, run-stats, run-history-polish updated (+3 new); Jest 87 suites / 1,881 green (scratch copy). Live-checked in the built-in browser: completing a sub-task showed "0 Tasks done / 1 Sub-tasks done", Task Slayer stayed 0/10. sw.js v125 -> v126.
+
+---
+
+## 2026-10-27 -- An item's hero follows its OWN category; category edits refresh the hero + sub-task row (Jeremy chose option B; Claude app session, Sonnet)
+- **Decision:** `HeroSpotlight.resolveHeroForItem` now resolves by the item's own category. A routine's hero is used only while the item's category equals the routine's hero category (so KO / frozen / level state still shows in the normal case); otherwise the category pseudo-hero `__cat:<category>` stands in. A SUB-TASK uses its own category (it used to use its parent's). Editing a category therefore swaps the hero: script.js `reconcileTappedHero` (called from `refreshHeroLane`, so within ~500 ms) re-resolves the tapped item and re-shows the right hero, keeping a held selection held; the work-timer hero already self-corrects each tick via `syncWorkHero`.
+- **Also fixed:** saving a sub-task edit now rebuilds its parent's row (`js/ui/popups.js`), so the nested zombie icon and "| category" label update.
+- **Why:** Jeremy: editing a task/habit/sub-task category must update the on-screen zombie AND the corresponding hero. The zombie already re-skinned (DECISIONS 2026-10-21); the hero was resolved once when shown and the sub-task row was never rebuilt.
+- **Options rejected:** A) keep the routine's hero when an item's category changes (the recommendation); C) rewrite the routine's `heroCategory` to match the edited item. **Confirmed (Jeremy, same day):** keep B. A routine can show several different heroes, which is accepted: a separate, later feature will tell users when a habit or task belongs to a routine, so don't treat the mismatch as a bug or switch to A/C before that lands.
+- **Tests:** `test/heroSpotlight.test.js` updated (+1); Jest 87 suites / 1,878 green (scratch copy). Live-checked in the built-in browser: held Health hero swapped to Career on edit, sub-task row showed the new category. sw.js v124 -> v125.
+
+---
+
 ## 2026-10-27 -- Survival count unified on NIGHTS (Jeremy; Claude app session, Opus; balance change via the balance-tuning protocol)
 - **Decision:** every "days survived" count now uses the moon's rule: whole LOCAL midnights crossed since the run started. `Damage.computeDaysSurvived` changed from `floor((now - runStartedAtMs) / MS_PER_REAL_DAY)` to the local-midnight count (DST-safe, same as `NightsSurvivedView.countMidnights`; a test checks they agree). Applies to the game-over screen ("Survived N Nights"), Stats ("N nights survived so far", run cards), the Settings backup compare label, run history and the achievements that read it.
 - **Balance effect (old -> new):** a run is credited up to ~1 day sooner (a run started at 11 PM has 1 night at midnight; it used to need 24 h). Survivor thresholds unchanged at 3 / 7 / 14 / 30 (now nights, near-miss unit 'night'); Steady Hands' ">= 7 days" is now ">= 7 nights". Net: Survivor and Steady Hands are slightly easier to reach. Judged acceptable by Jeremy (one consistent number beats two that disagree); no red flags (doesn't let tokens/pushbacks save a run, not punishing).
 - **Saved data:** field name `daysSurvived` / `bestRunDaysSurvived` kept, no schema bump. Past run records keep their old full-24h numbers (not recomputed), so an old best can read up to 1 lower than the same run would score today.
 - **Rejected:** unifying on full 24h days (the moon would lag its own midnight rhythm); recomputing old run records (they don't store enough to be exact, and the gap is at most 1).
 - **Files:** `js/damage.js`, `js/ui/gameOverView.js`, `js/ui/statsView.js`, `js/ui/settingsView.js`, `js/ui/nightsSurvivedView.js` (comment), `js/config.js` (Survivor near-miss unit), `test/damage.test.js`, `sw.js` v124, docs MECHANICS / ACHIEVEMENTS_PLAN / balance-tuning skill.
+- **Verification:** Jeremy phone-checked Stats on v124 (2026-10-27): the Stats night count matches the moon. The game-over text (needs a dead run) is still unchecked live.
 
 ## 2026-10-27 -- Add Task due time defaults to the current time (Jeremy; Claude app session, Opus; UX only, no balance numbers changed)
 - **Decision:** the Add Task time picker opens on the CURRENT time + 5 min (Jeremy saw exact-now first and asked for 5 min out; the date rolls to tomorrow if that crosses midnight). SUPERSEDES the 2026-07-20 rule (max(5 PM, now + 1h rounded up to :30), capped 11:59 PM).

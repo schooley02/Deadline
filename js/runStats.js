@@ -33,6 +33,9 @@ const RunStats = (() => {
     function freshRunStats() {
         return {
             tasksCompleted: 0,
+            // Sub-tasks completed (2026-10-27): counted HERE and no longer in
+            // tasksCompleted. Additive; absent = 0 (no schema bump).
+            subtasksCompleted: 0,
             habitsCompleted: 0,
             habitsMissed: 0,
             pointsEarned: 0,
@@ -79,6 +82,7 @@ const RunStats = (() => {
     }
 
     function recordTaskCompleted(stats) { if (stats) stats.tasksCompleted += 1; }
+    function recordSubtaskCompleted(stats) { if (stats) stats.subtasksCompleted = (stats.subtasksCompleted || 0) + 1; }
     function recordHabitCompleted(stats) { if (stats) stats.habitsCompleted += 1; }
     function recordHabitMissed(stats) { if (stats) stats.habitsMissed += 1; }
     function recordReschedule(stats) { if (stats) stats.reschedules = (stats.reschedules || 0) + 1; }
@@ -146,6 +150,7 @@ const RunStats = (() => {
 
         const totals = stats ? {
             tasksCompleted: stats.tasksCompleted,
+            subtasksCompleted: stats.subtasksCompleted || 0,
             habitsCompleted: stats.habitsCompleted,
             habitsMissed: stats.habitsMissed,
             pointsEarned: stats.pointsEarned,
@@ -266,6 +271,7 @@ const RunStats = (() => {
         return {
             daysSurvived: (daysSurvivedSoFar || 0) - (lastRecord.daysSurvived || 0),
             tasksCompleted: s.tasksCompleted - (t.tasksCompleted || 0),
+            subtasksCompleted: (s.subtasksCompleted || 0) - (t.subtasksCompleted || 0),
             habitsCompleted: s.habitsCompleted - (t.habitsCompleted || 0),
             habitsMissed: s.habitsMissed - (t.habitsMissed || 0),
             pointsEarned: s.pointsEarned - (t.pointsEarned || 0),
@@ -278,6 +284,7 @@ const RunStats = (() => {
         blameKeyFor,
         recordDamage,
         recordTaskCompleted,
+        recordSubtaskCompleted,
         recordHabitCompleted,
         recordHabitMissed,
         recordReschedule,

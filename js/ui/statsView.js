@@ -111,6 +111,10 @@ const StatsView = (() => {
                         <span class="stats-counter-label">Tasks done</span>
                     </div>
                     <div class="stats-counter">
+                        <span class="stats-counter-value">${stats.subtasksCompleted || 0}${d('subtasksCompleted', true)}</span>
+                        <span class="stats-counter-label">Sub-tasks done</span>
+                    </div>
+                    <div class="stats-counter">
                         <span class="stats-counter-value">${stats.habitsCompleted}${d('habitsCompleted', true)}</span>
                         <span class="stats-counter-label">Habits done</span>
                     </div>
@@ -191,7 +195,7 @@ const StatsView = (() => {
                     <span class="stats-run-card-date">${formatDate(record.endedAtMs)} <span class="stats-run-card-chevron" aria-hidden="true">▸</span></span>
                 </div>
                 <div class="stats-run-card-totals">
-                    ${record.totals.tasksCompleted} tasks · ${record.totals.habitsCompleted} habits ·
+                    ${record.totals.tasksCompleted} tasks · ${record.totals.subtasksCompleted ? `${record.totals.subtasksCompleted} sub-tasks · ` : ''}${record.totals.habitsCompleted} habits ·
                     ${record.totals.habitsMissed} missed · ${record.totals.pointsEarned} pts
                 </div>
                 <div class="stats-run-card-summary-blame">${buildBlameList(record.blame, 3)}</div>

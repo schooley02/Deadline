@@ -36,7 +36,7 @@ const GameOverView = (() => {
         const totals = record && record.totals;
 
         const totalsLine = totals
-            ? `<div class="game-over-totals">${totals.tasksCompleted} tasks · ${totals.habitsCompleted} habits · ${totals.pointsEarned} pts earned${totals.reschedules ? ` · ${totals.reschedules} rescheduled` : ''}</div>`
+            ? `<div class="game-over-totals">${totals.tasksCompleted} tasks · ${totals.subtasksCompleted ? `${totals.subtasksCompleted} sub-tasks · ` : ''}${totals.habitsCompleted} habits · ${totals.pointsEarned} pts earned${totals.reschedules ? ` · ${totals.reschedules} rescheduled` : ''}</div>`
             : '';
 
         // Level-perk title (2026-10-23): a run that reached max level ends with

@@ -34,20 +34,32 @@ describe('category heroes for standalone items (2026-10-26)', () => {
         expect(HeroSpotlight.resolveHeroForItem(item, [item], findNone, cats).heroCategory).toBe('creativity');
     });
 
-    test('a routine-owned item still resolves to its routine', () => {
-        const item = { id: 1, category: 'health', definitionId: 'd1' };
+    test('a routine-owned item resolves to its routine while its category matches the routine hero', () => {
+        const item = { id: 1, category: 'career', definitionId: 'd1' };
         const find = (it) => (it.definitionId === 'd1' ? routineA : null);
         expect(HeroSpotlight.resolveHeroForItem(item, [item], find, cats)).toBe(routineA);
     });
 
-    test('a sub-task uses its parent: routine first, else the parent category', () => {
+    test('a routine-owned item whose category differs gets its OWN category hero (2026-10-27)', () => {
+        const item = { id: 1, category: 'health', definitionId: 'd1' };
+        const find = (it) => (it.definitionId === 'd1' ? routineA : null);
+        const hero = HeroSpotlight.resolveHeroForItem(item, [item], find, cats);
+        expect(hero.id).toBe('__cat:health');
+        // editing the category back to the routine's hero category restores the routine hero
+        item.category = 'career';
+        expect(HeroSpotlight.resolveHeroForItem(item, [item], find, cats)).toBe(routineA);
+    });
+
+    test('a sub-task follows ITS OWN category; its parent routine hero is used only when they match', () => {
         const parent = { id: 1, category: 'financial' };
         const sub = { id: 2, parentId: 1, category: 'career' };
-        expect(HeroSpotlight.resolveHeroForItem(sub, [parent, sub], findNone, cats).heroCategory).toBe('financial');
-        const owned = { id: 3, category: 'health', definitionId: 'd1' };
-        const sub2 = { id: 4, parentId: 3, category: 'career' };
+        expect(HeroSpotlight.resolveHeroForItem(sub, [parent, sub], findNone, cats).id).toBe('__cat:career');
+        const owned = { id: 3, category: 'career', definitionId: 'd1' };
         const find = (it) => (it.definitionId === 'd1' ? routineA : null);
-        expect(HeroSpotlight.resolveHeroForItem(sub2, [owned, sub2], find, cats)).toBe(routineA);
+        const subMatch = { id: 4, parentId: 3, category: 'career' };
+        const subOther = { id: 5, parentId: 3, category: 'health' };
+        expect(HeroSpotlight.resolveHeroForItem(subMatch, [owned, subMatch], find, cats)).toBe(routineA);
+        expect(HeroSpotlight.resolveHeroForItem(subOther, [owned, subOther], find, cats).id).toBe('__cat:health');
     });
 
     test('an orphaned sub-task uses its own category; null item -> null', () => {
@@ -76,21 +88,21 @@ describe('hurt loop while a zombie attacks (2026-10-26)', () => {
 
     test('attackedHeroIds: overdue threatening items resolve to their hero', () => {
         const items = [
-            { id: 1, category: 'health', definitionId: 'd1', isOverdue: true },
+            { id: 1, category: 'career', definitionId: 'd1', isOverdue: true },
             { id: 2, category: 'creativity', isOverdue: true },
             { id: 3, category: 'financial', isOverdue: false },
         ];
         expect(HeroSpotlight.attackedHeroIds(items, find, cats, nonThreat).sort()).toEqual(['__cat:creativity', 'rA']);
     });
 
-    test('ghosts and not-yet-overdue items do not attack; duplicates collapse; sub-task uses its parent', () => {
+    test('ghosts and not-yet-overdue items do not attack; duplicates collapse; a sub-task uses its own category', () => {
         const items = [
             { id: 1, category: 'health', isOverdue: true, koGhost: true },
             { id: 2, category: 'lifestyle', isOverdue: true },
             { id: 3, category: 'lifestyle', isOverdue: true },
             { id: 4, parentId: 2, category: 'career', isOverdue: true },
         ];
-        expect(HeroSpotlight.attackedHeroIds(items, find, cats, nonThreat)).toEqual(['__cat:lifestyle']);
+        expect(HeroSpotlight.attackedHeroIds(items, find, cats, nonThreat).sort()).toEqual(['__cat:career', '__cat:lifestyle']);
         expect(HeroSpotlight.attackedHeroIds(null, find, cats, nonThreat)).toEqual([]);
     });
 
@@ -108,7 +120,7 @@ describe('pickLaneItem: which zombie the hero stands beside (2026-10-26)', () =>
 
     test('only items that resolve to the hero are candidates', () => {
         const items = [
-            { id: 1, category: 'health', definitionId: 'd1', dueDateTime: at(9) },
+            { id: 1, category: 'career', definitionId: 'd1', dueDateTime: at(9) },
             { id: 2, category: 'health', dueDateTime: at(8) },
         ];
         expect(HeroSpotlight.pickLaneItem('rA', items, find, cats).id).toBe(1);
@@ -119,23 +131,23 @@ describe('pickLaneItem: which zombie the hero stands beside (2026-10-26)', () =>
 
     test('the preferred (tapped / timed) item wins while it is still a candidate', () => {
         const items = [
-            { id: 1, category: 'health', definitionId: 'd1', dueDateTime: at(9), isOverdue: true },
-            { id: 2, category: 'health', definitionId: 'd1', dueDateTime: at(18) },
+            { id: 1, category: 'career', definitionId: 'd1', dueDateTime: at(9), isOverdue: true },
+            { id: 2, category: 'career', definitionId: 'd1', dueDateTime: at(18) },
         ];
         expect(HeroSpotlight.pickLaneItem('rA', items, find, cats, 2, nonThreat).id).toBe(2);
         expect(HeroSpotlight.pickLaneItem('rA', items, find, cats, 99, nonThreat).id).toBe(1); // gone -> default
     });
 
     test('default: an attacker before a calm one, then soonest due, then lowest id', () => {
-        const calmSoon = { id: 1, category: 'health', definitionId: 'd1', dueDateTime: at(10) };
-        const calmLate = { id: 2, category: 'health', definitionId: 'd1', dueDateTime: at(20) };
-        const attacker = { id: 3, category: 'health', definitionId: 'd1', dueDateTime: at(23), isOverdue: true };
-        const ghost = { id: 4, category: 'health', definitionId: 'd1', dueDateTime: at(1), isOverdue: true, koGhost: true };
+        const calmSoon = { id: 1, category: 'career', definitionId: 'd1', dueDateTime: at(10) };
+        const calmLate = { id: 2, category: 'career', definitionId: 'd1', dueDateTime: at(20) };
+        const attacker = { id: 3, category: 'career', definitionId: 'd1', dueDateTime: at(23), isOverdue: true };
+        const ghost = { id: 4, category: 'career', definitionId: 'd1', dueDateTime: at(1), isOverdue: true, koGhost: true };
         expect(HeroSpotlight.pickLaneItem('rA', [calmLate, calmSoon, attacker], find, cats, null, nonThreat).id).toBe(3);
         expect(HeroSpotlight.pickLaneItem('rA', [calmLate, calmSoon], find, cats, null, nonThreat).id).toBe(1);
         expect(HeroSpotlight.pickLaneItem('rA', [ghost, calmLate], find, cats, null, nonThreat).id).toBe(4); // a ghost is not an attacker, so it is ordered by due time
-        const tieA = { id: 7, category: 'health', definitionId: 'd1', dueDateTime: at(12) };
-        const tieB = { id: 5, category: 'health', definitionId: 'd1', dueDateTime: at(12) };
+        const tieA = { id: 7, category: 'career', definitionId: 'd1', dueDateTime: at(12) };
+        const tieB = { id: 5, category: 'career', definitionId: 'd1', dueDateTime: at(12) };
         expect(HeroSpotlight.pickLaneItem('rA', [tieA, tieB], find, cats).id).toBe(5);
     });
 

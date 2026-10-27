@@ -143,12 +143,12 @@ describe('completeItem dispatches lifetime counter bumps', () => {
         expect(deps._calls).toEqual([['taskCompleted', 1]]);
     });
 
-    test('a sub-task completion still dispatches taskCompleted +1 (sub-tasks count as tasks)', () => {
+    test('a sub-task completion dispatches subtaskCompleted +1, NOT taskCompleted (2026-10-27: Task Slayer ignores sub-tasks)', () => {
         const parent = taskItem({ id: 9, subTasks: [1], totalSubTasks: 1 });
         const sub = taskItem({ id: 1, parentId: 9 });
         const deps = makeDeps({ activeItems: [parent, sub] });
         Items.completeItem(1, deps);
-        expect(deps._calls).toEqual([['taskCompleted', 1]]);
+        expect(deps._calls).toEqual([['subtaskCompleted', 1]]);
     });
 
     test('a habit completion dispatches streakReached (new streak) THEN habitCompleted +1', () => {

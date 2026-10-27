@@ -286,6 +286,8 @@ document.addEventListener('DOMContentLoaded', () => {
         applyLifetimeProgress((stats) => {
             if (event === 'taskCompleted') {
                 stats.tasksCompleted = Math.max(0, (stats.tasksCompleted || 0) + value);
+            } else if (event === 'subtaskCompleted') {
+                stats.subtasksCompleted = Math.max(0, (stats.subtasksCompleted || 0) + value);
             } else if (event === 'habitCompleted') {
                 stats.habitsCompleted = Math.max(0, (stats.habitsCompleted || 0) + value);
             } else if (event === 'streakReached') {
@@ -924,8 +926,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const px = padBottom - er.bottom;
         return (isFinite(px) && px > -2 && px < gameCanvas.clientHeight) ? Math.round(px * 2) / 2 : null;
     }
+    // A category edit can change which hero an item stands for (resolveHeroForItem follows the item's own
+    // category). When the hero on screen came from tapping an item, re-resolve it and swap in the new hero
+    // (keeping a held selection held). Runs from refreshHeroLane, i.e. within ~500 ms of the edit.
+    let reconcilingHero = false; // spotlightRoutine -> refreshHeroLane re-enters here before the new hero is shown
+    function reconcileTappedHero() {
+        if (reconcilingHero || heroFocusItemId === null) return;
+        const currentId = HeroSpotlight.getCurrentRoutineId();
+        if (currentId === null) return;
+        const item = State.getActiveItems().find(i => i.id === heroFocusItemId);
+        if (!item) return;
+        const hero = HeroSpotlight.resolveHeroForItem(item, State.getActiveItems(), findRoutineForItemDeps, CONFIG.HERO_CATEGORIES);
+        if (!hero || String(hero.id) === String(currentId)) return;
+        reconcilingHero = true;
+        try { spotlightRoutine(hero.id, { itemId: item.id, hold: heroSelectedItemId !== null }); }
+        finally { reconcilingHero = false; }
+    }
     function refreshHeroLane() {
         if (!heroSpotlightReady) return;
+        reconcileTappedHero();
         if (heroSelectedItemId !== null) {
             // the selected task was completed / removed (or the run ended): let its hero go; else keep the outline on rebuilt rows
             if (State.isGameOver() || !State.getActiveItems().some(i => i.id === heroSelectedItemId)) HeroSpotlight.dismiss();

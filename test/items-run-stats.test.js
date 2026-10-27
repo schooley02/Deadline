@@ -132,7 +132,7 @@ describe('completeItem records run-stats counters', () => {
         expect(stats.pointsEarned).toBe(Economy.taskPoints(false, CONFIG.POINTS_PER_TASK));
     });
 
-    test('a sub-task completion still counts as a task (half value)', () => {
+    test('a sub-task completion counts in subtasksCompleted, NOT tasksCompleted (2026-10-27)', () => {
         const parent = taskItem({ id: 9, subTasks: [1], totalSubTasks: 1 });
         const sub = taskItem({ id: 1, parentId: 9 });
         const stats = RunStats.freshRunStats();
@@ -140,8 +140,21 @@ describe('completeItem records run-stats counters', () => {
 
         Items.completeItem(1, deps);
 
-        expect(stats.tasksCompleted).toBe(1);
+        expect(stats.subtasksCompleted).toBe(1);
+        expect(stats.tasksCompleted).toBe(0);
         expect(stats.pointsEarned).toBe(CONFIG.SUBTASK_POINTS);
+    });
+
+    test('an older save without subtasksCompleted (absent) still counts from 0', () => {
+        const parent = taskItem({ id: 9, subTasks: [1], totalSubTasks: 1 });
+        const sub = taskItem({ id: 1, parentId: 9 });
+        const stats = RunStats.freshRunStats();
+        delete stats.subtasksCompleted;
+        const deps = makeDeps({ activeItems: [parent, sub], currentRunStats: stats });
+
+        Items.completeItem(1, deps);
+
+        expect(stats.subtasksCompleted).toBe(1);
     });
 
     test('a habit completion increments habitsCompleted, not tasksCompleted', () => {

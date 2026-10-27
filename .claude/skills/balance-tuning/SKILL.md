@@ -17,7 +17,7 @@ Every gameplay number in Deadline lives in `js/config.js`. Follow this protocol 
 - Overdue damage: 1 HP per 5 minutes until item completed
 - Enemy enters base (damages routine health): after 1 hour overdue
 - XP: 10 per task defeat, 5 per habit completion
-- Points (currency): 1 per task defeat, 1 per habit completion base (re-tuned 2026-07-21 from 10/5). High-priority ×2. Sub-task pays 1 pt on its own; a parent that ever had a sub-task pays 0 pts of its own on final completion. Habit rate bonus: 100% of a full 22-occurrence window → 3×, ≥80% → 2×, else 1×.
+- Points (currency): 1 per task defeat, 1 per habit completion base (re-tuned 2026-07-21 from 10/5). High-priority ×2. Sub-task pays 1 pt on its own (and counts in `subtasksCompleted`, not `tasksCompleted` / Task Slayer, since 2026-10-27); a parent that ever had a sub-task pays 0 pts of its own on final completion. Habit rate bonus: 100% of a full 22-occurrence window → 3×, ≥80% → 2×, else 1×.
 - Max enemies on screen: 20 (overflow offscreen right)
 - Routine start: level 1, 1 habit slot + 1 task slot; slots grow per level
 - Player level perks (`CONFIG.LEVEL_PERKS`, 2026-10-23): Lv2 small repair kit, Lv3 2nd routine slot, Lv4 10% shop discount, Lv5 3rd slot, Lv6 medium repair kit, Lv7 4th slot, Lv8 20% discount, Lv9 Sick Day + "Steward" title. Per-run (reset on game over). No 200-pt token before max level.

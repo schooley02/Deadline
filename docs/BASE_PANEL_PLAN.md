@@ -41,3 +41,6 @@ Players can't see how fast the base heals or dies, so they can't judge whether t
 - Live loop still pauses regen while anything is overdue; `TimeSlider.projectBaseHealth` is conservative (no regen if an item is due by preview time). Not changed (see DECISIONS).
 - Balance flag: 50-pt pushback ≈ kit cost per HP; revisit with real play data via the balance-tuning process.
 - Model rec: Sonnet, medium effort, one roadmap task per session.
+
+## Status
+Steps 1-5 done (step 5, the MECHANICS note, 2026-10-27). Panel + chip phone-verified by Jeremy 2026-10-27: COMPLETE.

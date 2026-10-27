@@ -573,7 +573,9 @@ const Items = (() => {
             if (typeof deps.getCurrentRunStats === 'function') {
                 const stats = deps.getCurrentRunStats();
                 if (item.type === 'task') {
-                    RunStats.recordTaskCompleted(stats);
+                    // A sub-task is counted separately (2026-10-27), not as a task.
+                    if (item.parentId) RunStats.recordSubtaskCompleted(stats);
+                    else RunStats.recordTaskCompleted(stats);
                 } else if (item.type === 'habit') {
                     RunStats.recordHabitCompleted(stats);
                 }
@@ -590,7 +592,7 @@ const Items = (() => {
             // else in this deps shape.
             if (typeof deps.recordLifetime === 'function') {
                 if (item.type === 'task') {
-                    deps.recordLifetime('taskCompleted', 1);
+                    deps.recordLifetime(item.parentId ? 'subtaskCompleted' : 'taskCompleted', 1);
                 } else if (item.type === 'habit') {
                     deps.recordLifetime('habitCompleted', 1);
                 }
@@ -1328,7 +1330,7 @@ const Items = (() => {
             // event, not an undo of the earlier recovery, and Back in Black
             // is single-tier so the counter can't be farmed into more badges.
             if (typeof deps.recordLifetime === 'function') {
-                deps.recordLifetime('taskCompleted', -1);
+                deps.recordLifetime(item.parentId ? 'subtaskCompleted' : 'taskCompleted', -1);
             }
         } else if (item.type === 'habit') {
             const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);

@@ -59,6 +59,26 @@ describe('RunStats.bestRunNumber', () => {
     });
 });
 
+describe('RunStats sub-task counter (2026-10-27)', () => {
+    test('recordSubtaskCompleted bumps subtasksCompleted and tolerates an absent field / null stats', () => {
+        const stats = RunStats.freshRunStats();
+        expect(stats.subtasksCompleted).toBe(0);
+        RunStats.recordSubtaskCompleted(stats);
+        RunStats.recordSubtaskCompleted(stats);
+        expect(stats.subtasksCompleted).toBe(2);
+        const old = { tasksCompleted: 1 };
+        RunStats.recordSubtaskCompleted(old);
+        expect(old.subtasksCompleted).toBe(1);
+        expect(() => RunStats.recordSubtaskCompleted(null)).not.toThrow();
+    });
+
+    test('deltasVsLastRun treats a missing last-run subtasksCompleted as 0', () => {
+        const stats = { ...RunStats.freshRunStats(), subtasksCompleted: 4 };
+        const last = record(1, 4); // totals have no subtasksCompleted (a run from before this stat)
+        expect(RunStats.deltasVsLastRun(stats, 4, last).subtasksCompleted).toBe(4);
+    });
+});
+
 describe('RunStats.deltasVsLastRun', () => {
     test('no prior run → null (panel renders no deltas at all)', () => {
         expect(RunStats.deltasVsLastRun(RunStats.freshRunStats(), 0, null)).toBeNull();
@@ -75,6 +95,7 @@ describe('RunStats.deltasVsLastRun', () => {
             habitsMissed: -1,
             pointsEarned: 25,
             reschedules: 0,
+            subtasksCompleted: 0,
         });
     });
 

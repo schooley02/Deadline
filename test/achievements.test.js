@@ -25,6 +25,7 @@ describe('freshLifetimeStats', () => {
     test('all counters zeroed', () => {
         expect(Achievements.freshLifetimeStats()).toEqual({
             tasksCompleted: 0,
+            subtasksCompleted: 0,
             habitsCompleted: 0,
             bestRunDaysSurvived: 0,
             bestHabitStreak: 0,

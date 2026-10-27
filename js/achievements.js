@@ -29,6 +29,7 @@ const Achievements = (() => {
     function freshLifetimeStats() {
         return {
             tasksCompleted: 0,
+            subtasksCompleted: 0, // 2026-10-27: sub-tasks no longer feed tasksCompleted / Task Slayer
             habitsCompleted: 0,
             bestRunDaysSurvived: 0,
             bestHabitStreak: 0,
