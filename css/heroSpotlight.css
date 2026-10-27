@@ -96,7 +96,9 @@
    No card, ring or white box -- the sprite stands directly on the front-lane line. Same
    steps()-slid sheet technique as css/enemyAnim.css. */
 .hero-spotlight--atlas {
-    /* SIZE (2026-10-26, Jeremy: heroes read smaller than the zombies). scale = base x fit.
+    /* SIZE (2026-10-27 revision: every fit is 1 -- the 2026-10-26 fits matched OUTLINE height, which
+       includes raised arms/props on the zombies, and made upright heroes tower over them; the nurse
+       was the worst). Original note: (2026-10-26, Jeremy: heroes read smaller than the zombies). scale = base x fit.
        base = the zombie sprite scale at the same place (landscape 1 = 128px character; portrait
        strip 0.5 = the at-base zombie scale in css/glanceStrip.css). fit = per-category factor so
        the hero's VISIBLE figure matches the same-category zombie (mean of its idle + attack median
@@ -118,14 +120,14 @@
     border-radius: 0;
     overflow: hidden;
 }
-.hero-spotlight--atlas[data-category="career"] { --hero-fit: 1.16; }
-.hero-spotlight--atlas[data-category="creativity"] { --hero-fit: 1.07; }
+.hero-spotlight--atlas[data-category="career"] { --hero-fit: 1; }
+.hero-spotlight--atlas[data-category="creativity"] { --hero-fit: 1; }
 .hero-spotlight--atlas[data-category="financial"] { --hero-fit: 1; }
-.hero-spotlight--atlas[data-category="health"] { --hero-fit: 1.2; }
-.hero-spotlight--atlas[data-category="lifestyle"] { --hero-fit: 1.14; }
+.hero-spotlight--atlas[data-category="health"] { --hero-fit: 1; }
+.hero-spotlight--atlas[data-category="lifestyle"] { --hero-fit: 1; }
 .hero-spotlight--atlas[data-category="other"] { --hero-fit: 1; }
-.hero-spotlight--atlas[data-category="relationships"] { --hero-fit: 1.15; }
-.hero-spotlight--atlas[data-category="spirituality"] { --hero-fit: 1.22; }
+.hero-spotlight--atlas[data-category="relationships"] { --hero-fit: 1; }
+.hero-spotlight--atlas[data-category="spirituality"] { --hero-fit: 1; }
 .hero-sprite {
     position: absolute;
     left: 0;

@@ -4,6 +4,11 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-27 -- Hero size fits reset to 1 (Jeremy: portrait nurse much bigger than her zombie; Claude app session; visual only, no balance numbers changed)
+- **Decision:** every per-category `--hero-fit` is now 1 (was 1.00-1.22). Hero scale = base only: 1 landscape / 0.5 portrait strip.
+- **Why:** the 2026-10-26 fits matched the hero's OUTLINE height to the zombie's, but zombie outlines include raised arms and props (syringe, guitar, book) and zombies hunch, so upright heroes (nurse 1.20, nun 1.22, businessman 1.16, rocker, tourist) came out about a head taller. Rendering both at the real portrait scales showed fit 1 lines up head-for-head with the attackers (0.5) in all 8 categories. Walking zombies draw at 0.4375, so a hero beside a walker still reads slightly larger; sized to the attackers on purpose since the hero usually stands by one.
+- **Kept:** the per-category rules stay (all 1) so one category can be nudged later; `test/heroArt.test.js` range 1-1.5 still holds. Supersedes the 2026-10-26 "sized to match its category zombie" numbers. sw v129.
+
 ## 2026-10-27 -- HUD points button opens the Shop; all three HUD buttons carry the open arrow; Shop header shows the balance (Jeremy; Claude app session, Sonnet; UX only, no balance numbers changed)
 - **Decision:** `#playerPointsStat` is now a `<button>` (same id, so the debt styling + nudge hooks are unchanged) with the same up-right arrow as the level and base-health buttons; a tap calls `openManagementWindow('shop')`. The base-health button gained the arrow too. The Shop window header shows "Shop  N pts" (`#shopWindowPoints`, red when in debt), written by `ShopView.renderShopWindow`, so both render paths (window open and script.js `populateShopWindow` after a buy/use) keep it current.
 - **Why:** Jeremy asked for the points chip to open the Shop (he first said "tokens", then clarified he meant points -- no token counter was built); the arrow marks every HUD stat that opens something; the balance in the Shop header saves backing out to see what you can afford.
