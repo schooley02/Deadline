@@ -4,6 +4,10 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-26 -- Routine level-up modal shows the hero's level-up animation (Jeremy; Claude app session, Sonnet; visual only, no balance numbers changed)
+- **Decision:** the modal that announces a routine "leveling up" (the star-rating notice, the only routine level-up modal that exists) now shows that routine's hero (`routine.heroCategory`) playing the `levelup` row on a loop above the heading, so each category has its own. Looped rather than one-shot so the modal never freezes on an odd last frame. A plain XP-level-up still has no modal (only the spotlight one-shot); say so if that should get one too.
+- **Wiring:** `HeroSpotlight.levelUpArtHtml(category, config)` (empty for a category without art) -> `FrozenNotice.showHeroStarUpNotice(name, stars, heroCategory)`; script.js passes `Heroes.heroCategoryFor(routine, CONFIG.HERO_CATEGORIES)`. CSS `.hero-notice-art` (own wrapper, 1.1x scale) + 8 sheet rules. sw v111.
+
 ## 2026-10-26 -- Hero attack row plays once on task/habit completion (Jeremy; Claude app session, Sonnet; visual only, no balance numbers changed)
 - **Decision:** completing a task or habit shows the item's hero (its routine's, else its category's; a sub-task uses its parent's) in the defeated zombie's lane and plays the atlas `attack` row ONCE. After it the hero idles and leaves on the normal `HERO_SPOTLIGHT_MS` (5 s). Jeremy picked this over leaving as soon as the attack finishes. The attack replaces any hero already up and releases a held selected row (the item is gone anyway).
 - **Why not a loop / why before the death animation:** one completion = one swing, matching the zombie's ~0.75 s death. The hook fires before `SpriteAnim.playDeath` so the lane can still be measured from the live sprite.

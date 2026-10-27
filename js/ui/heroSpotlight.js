@@ -199,6 +199,17 @@ const HeroSpotlight = (() => {
     }
 
     /**
+     * The level-up animation as inline markup for a MODAL (2026-10-26): the routine-level-up notice shows
+     * the hero set as the routine's category playing its `levelup` row, looping while the modal is open.
+     * '' for a category without hero art (the caller keeps its text-only heading).
+     */
+    function levelUpArtHtml(category, config) {
+        if (!hasHeroArt(category, config)) return '';
+        return `<div class="hero-notice-art" data-category="${category}" aria-hidden="true">`
+            + '<div class="hero-sprite" data-anim="levelup"><div class="hero-sprite-sheet"></div></div></div>';
+    }
+
+    /**
      * Show / replace / dismiss state machine with an injected clock so it is
      * unit-testable. onChange(state) gets { routineId } or null. A new show()
      * REPLACES the current hero (no stacking) and restarts the timer.
@@ -416,6 +427,7 @@ const HeroSpotlight = (() => {
         isCategoryHeroId,
         heroLookFor,
         hasHeroArt,
+        levelUpArtHtml,
         zombieSpriteFor,
         createController,
         init,

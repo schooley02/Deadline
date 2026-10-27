@@ -124,10 +124,14 @@ const FrozenNotice = (() => {
     // for why). Trigger site is a render call inside a 50ms game-loop tick,
     // not a modal-closing click, but the defer:true defensive pattern
     // costs nothing and matches every other notice here.
-    function showHeroStarUpNotice(routineName, stars) {
+    // heroCategory (2026-10-26): the routine's hero category; its `levelup` animation plays above the text.
+    function showHeroStarUpNotice(routineName, stars, heroCategory) {
+        const art = (typeof HeroSpotlight !== 'undefined' && typeof CONFIG !== 'undefined' && heroCategory)
+            ? HeroSpotlight.levelUpArtHtml(heroCategory, CONFIG) : '';
         const modalHtml = `
             <div class="modal-overlay frozen-notice-overlay">
                 <div class="modal-content frozen-notice-modal">
+                    ${art}
                     <h3>${'★'.repeat(stars)} ${routineName} leveled up its rating</h3>
                     <p>${routineName} is now rated ${stars} star${stars === 1 ? '' : 's'} — keep it up!</p>
                     <div class="modal-buttons">

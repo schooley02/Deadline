@@ -267,3 +267,29 @@ li.hero-selected-list-item {
         transform: translate(-50%, 0);
     }
 }
+
+/* ---- Level-up animation inside the routine level-up modal (2026-10-26) ----------------------
+   js/ui/frozenNotice.js showHeroStarUpNotice -> HeroSpotlight.levelUpArtHtml: the routine's category hero
+   plays its `levelup` row (same atlas rows + frame count as the spotlight one-shot) on a loop while the
+   modal is open. Own wrapper, so none of the spotlight's absolute positioning / ring / fade applies. */
+.hero-notice-art {
+    --hero-scale: 1.1;
+    position: relative;
+    width: calc(164px * var(--hero-scale));
+    height: calc(164px * var(--hero-scale));
+    margin: 0 auto var(--space-2, 8px);
+    overflow: hidden;
+    pointer-events: none;
+}
+.hero-notice-art .hero-sprite[data-anim="levelup"] .hero-sprite-sheet {
+    animation-iteration-count: infinite;
+    animation-fill-mode: none;
+}
+.hero-notice-art[data-category="other"] .hero-sprite-sheet { background-image: url('../Assets/Heroes/anim/other.png'); }
+.hero-notice-art[data-category="career"] .hero-sprite-sheet { background-image: url('../Assets/Heroes/anim/career.png'); }
+.hero-notice-art[data-category="creativity"] .hero-sprite-sheet { background-image: url('../Assets/Heroes/anim/creativity.png'); }
+.hero-notice-art[data-category="financial"] .hero-sprite-sheet { background-image: url('../Assets/Heroes/anim/financial.png'); }
+.hero-notice-art[data-category="health"] .hero-sprite-sheet { background-image: url('../Assets/Heroes/anim/health.png'); }
+.hero-notice-art[data-category="lifestyle"] .hero-sprite-sheet { background-image: url('../Assets/Heroes/anim/lifestyle.png'); }
+.hero-notice-art[data-category="relationships"] .hero-sprite-sheet { background-image: url('../Assets/Heroes/anim/relationships.png'); }
+.hero-notice-art[data-category="spirituality"] .hero-sprite-sheet { background-image: url('../Assets/Heroes/anim/spirituality.png'); }

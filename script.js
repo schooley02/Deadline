@@ -2002,7 +2002,7 @@ document.addEventListener('DOMContentLoaded', () => {
             runStartedAtMs: State.getRunStartedAtMs(),
             starMemory: heroStarMemory,
             onStarThresholdCrossed: (routine, stars) => {
-                FrozenNotice.showHeroStarUpNotice(routine.name, stars);
+                FrozenNotice.showHeroStarUpNotice(routine.name, stars, Heroes.heroCategoryFor(routine, CONFIG.HERO_CATEGORIES));
             },
         });
     }
