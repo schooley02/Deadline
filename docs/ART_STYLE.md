@@ -9,7 +9,7 @@ Pixel art / cartoonish. Playful, slightly eerie (graveyard setting) but never gr
 - **Base sprite generation:** Retro Diffusion (true grid-aligned pixel art; use existing assets/renders as style reference).
 - **Animation / rotations:** PixelLab (text-prompted cycles, 4/8-direction rotations, Aseprite extension).
 - **Format:** raster PNG only — the pipeline is PNG sprites positioned by DOM/CSS; no vector sprites. SVG is used only for scene silhouette props (V1).
-- Background is layered with slider-coupled parallax; camera tilt rejected — never rotate pixel sprites. **Current rates (V1 live-tuning, 2026-07-21): ground −22% (fastest — the original "ground fixed" call was reversed), clouds −18%, silhouettes −7%.**
+- Background is layered with slider-coupled parallax; camera tilt rejected — never rotate pixel sprites. **Current rates (V1 live-tuning, 2026-07-21): ground −22% (fastest — the original "ground fixed" call was reversed), clouds −18%, silhouettes −7%.** **Clouds (2026-10-27):** PixelLab pixel art, 2x like the church: `Assets/scene/clouds-tile.png` (625x72; sources `Assets/scene/_source/cloud-a.png`, `cloud-d.png`), 3 muted lavender-grey colours (#8c89a8 / #5a5878 / #3d3a5c), dark underside (no light bottom row), no outline. Brief that worked: "pixel art night cloud, isolated, transparent background, puffy rounded top, flatter bottom, moonlit from the upper right, 4-5 colour palette, no anti-aliasing".
 
 ## Canvas & Sprite Dimensions (from base view notes)
 - Game canvas reference: **720 × 368**

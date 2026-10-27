@@ -262,3 +262,31 @@ describe('TimeSliderView.syncHandle (live-tick hook)', () => {
         expect(labelEl.textContent).toBe('9:05 AM');
     });
 });
+
+describe('hero spotlight ghosting (2026-10-27)', () => {
+    afterEach(() => { document.body.innerHTML = ''; });
+
+    test('scrubbing marks #gameCanvas .time-previewing; release clears it', () => {
+        const canvas = document.createElement('div');
+        canvas.id = 'gameCanvas';
+        const hero = document.createElement('div');
+        hero.id = 'heroSpotlight';
+        hero.className = 'hero-spotlight active';
+        canvas.appendChild(hero);
+        document.body.appendChild(canvas);
+
+        const { deps, sliderEl } = makeDeps();
+        TimeSliderView.init(deps);
+
+        sliderEl.value = '600';
+        sliderEl.dispatchEvent(new Event('input'));
+        expect(canvas.classList.contains('time-previewing')).toBe(true);
+
+        // A hero re-render mid-scrub rewrites its own className; the canvas flag survives.
+        hero.className = 'hero-spotlight hero-spotlight--normal hero-spotlight--atlas active';
+        expect(canvas.classList.contains('time-previewing')).toBe(true);
+
+        sliderEl.dispatchEvent(new Event('change'));
+        expect(canvas.classList.contains('time-previewing')).toBe(false);
+    });
+});

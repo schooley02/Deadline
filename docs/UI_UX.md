@@ -115,6 +115,7 @@ fence + three tombstone silhouettes (inline SVG). All decorative/`aria-hidden`. 
 `docs/ART_STYLE.md`'s "pixel art / cartoonish, playful, slightly eerie graveyard — never grim" —
 low-detail silhouettes only; V4 will regenerate the pixel-art church into this scene later.
 **Moon + Nights Survived (2026-10-26):** `#nightsSurvived` in `#gameCanvas` (top 8%, right 32px): PixelLab `Assets/scene/moon.png` (58x58, 1:1, pixelated, CSS box-shadow glow) with the run's night count (local midnights crossed) centred in Press Start 2P and a "NIGHTS SURVIVED" label in Inter below. Driven by `js/ui/nightsSurvivedView.js`; hidden in the portrait strip.
+**Pixel clouds (2026-10-27):** `.scene-clouds-drift` tiles `Assets/scene/clouds-tile.png` (625x72 at an exact 2x, a big and a small PixelLab cloud ~390px apart), drifting ~45 px/s (28 s per 1250px loop) and passing IN FRONT of the moon + label (`.nights-survived` z -3, `.scene-clouds` z -2). Parallax and the scrub pause are unchanged.
 
 **Slider-coupled parallax** (2026-07-21 art-direction decision): `js/ui/timeSliderView.js` sets a
 `--scene-progress` CSS custom property (0–1, minutes-of-day / MINUTES_PER_DAY) on `#graveyardScene`

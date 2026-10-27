@@ -67,6 +67,7 @@
  */
 const TimeSliderView = (() => {
     let deps = null;
+    let canvasEl = null; // #gameCanvas, carries .time-previewing while scrubbing
 
     // Graveyard scene parallax (V1, 2026-07-21 — docs/VISUAL_DESIGN_PLAN.md).
     // Deliberately NOT threaded through the deps contract like the rest of
@@ -145,6 +146,11 @@ const TimeSliderView = (() => {
         if (deps.baseElement) deps.baseElement.classList.toggle('time-preview-ghost', ghost);
         if (deps.baseHealthDisplayEl) deps.baseHealthDisplayEl.classList.toggle('time-preview-ghost', ghost);
         if (deps.heroBaseZoneEl) deps.heroBaseZoneEl.classList.toggle('time-preview-ghost', ghost);
+        // Hero spotlight (2026-10-27): ghosted via a class on #gameCanvas, NOT on
+        // #heroSpotlight itself, because HeroSpotlight.renderInto() rewrites the
+        // hero's className on every re-render and would drop the ghost mid-scrub.
+        // css/timeSlider.css dims `.time-previewing .hero-spotlight.active`.
+        if (canvasEl) canvasEl.classList.toggle('time-previewing', ghost);
         applyDamagePreview(time);
     }
 
@@ -192,6 +198,7 @@ const TimeSliderView = (() => {
     function init(injectedDeps) {
         deps = injectedDeps;
         sceneEl = (typeof document !== 'undefined') ? document.getElementById('graveyardScene') : null;
+        canvasEl = (typeof document !== 'undefined') ? document.getElementById('gameCanvas') : null;
         if (!deps.sliderEl) return; // markup missing (e.g. a stale index.html) — degrade silently
 
         deps.sliderEl.min = 0;

@@ -76,6 +76,15 @@
     opacity: 0.55;
 }
 
+/* Hero spotlight (2026-10-27, Jeremy: "like the base and the zombies"). Keyed
+   off #gameCanvas.time-previewing (toggled by js/ui/timeSliderView.js) because
+   HeroSpotlight rewrites the hero's className on re-render. Only the visible
+   (.active) hero is touched, so a hidden hero stays at opacity 0. Same 0.55 as
+   .time-preview-ghost; the hero's own 200ms opacity transition eases it. */
+#gameCanvas.time-previewing .hero-spotlight.active {
+    opacity: 0.55;
+}
+
 /* Enemy sprites additionally desaturate (V2, 2026-10-12: replaces the dashed
    outline) — see enemyStatus.css --g-ghost. No new motion, the slide itself
    is .enemy's existing transition (see file header). */
