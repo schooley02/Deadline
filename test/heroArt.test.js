@@ -128,6 +128,22 @@ describe('every hurt animation runs at HERO_HURT_FPS (2026-10-26)', () => {
     });
 });
 
+describe('all 8 heroes show the hurt loop when attacked (2026-10-26)', () => {
+    test.each(ART)('%s: an attacked hero loops hurt, a calm one idles, a KO\'d one stays KO', (cat) => {
+        const hero = { id: 'h-' + cat, name: cat, isActive: true, frozenState: null, koState: null, heroCategory: cat };
+        expect(HeroSpotlight.heroLookFor(hero, CONFIG, { underAttack: true })).toMatchObject({ kind: 'atlas', category: cat, anim: 'hurtloop' });
+        expect(HeroSpotlight.heroLookFor(hero, CONFIG, { underAttack: false }).anim).toBe('idle');
+        expect(HeroSpotlight.heroLookFor({ ...hero, koState: { koAt: 1 } }, CONFIG, { underAttack: true }).anim).toBe('ko');
+    });
+    test.each(ART)('%s: css gives it a sprite sheet, and the atlas hurt row is row 2 so hurtloop shows it', (cat) => {
+        const meta = JSON.parse(read(`Assets/Heroes/anim/${cat}.json`));
+        expect(css).toMatch(new RegExp(`data-category="${cat}"\\] \\.hero-sprite-sheet \\{ background-image: url\\('\\.\\./Assets/Heroes/anim/${cat}\\.png'\\); \\}`));
+        expect(meta.animations.hurt.row).toBe(2);
+        const frames = HeroSpotlight.oneShotFrames('hurt', cat, CONFIG);
+        if (frames !== 9) expect(css).toMatch(new RegExp(`data-category="${cat}"\\] \\.hero-sprite\\[data-anim="hurtloop"\\][^{]*\\{ --hero-oneshot-frames: ${frames}; \\}`));
+    });
+});
+
 describe('attack row on completion (2026-10-26)', () => {
     test('css plays attack (row 1) once with the shared one-shot frames / fps', () => {
         expect(css).toMatch(/\.hero-sprite\[data-anim="attack"\] \{ --hero-row: 1; \}/);

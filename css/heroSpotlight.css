@@ -149,11 +149,11 @@
 .hero-sprite[data-anim="attack"],
 .hero-sprite[data-anim="levelup"] { --hero-oneshot-frames: 9; --hero-oneshot-fps: 10; }
 /* Every hurt animation (the one-shot on damage AND the attacked loop below) runs slower: CONFIG.HERO_HURT_FPS. */
-.hero-sprite[data-anim="hurt"] { --hero-oneshot-frames: 9; --hero-oneshot-fps: 5; }
+.hero-sprite[data-anim="hurt"] { --hero-oneshot-frames: 9; --hero-oneshot-fps: 7; }
 .hero-spotlight[data-category="financial"] .hero-sprite[data-anim="hurt"],
 .hero-spotlight[data-category="health"] .hero-sprite[data-anim="hurt"] { --hero-oneshot-frames: 7; }
 /* hurtloop (2026-10-26): the hurt row LOOPS while the hero's zombie is attacking. Same row + frames as hurt, at the slower hurt speed (CONFIG.HERO_HURT_FPS). */
-.hero-sprite[data-anim="hurtloop"] { --hero-row: 2; --hero-oneshot-frames: 9; --hero-oneshot-fps: 5; } /* KEEP IN SYNC with CONFIG.HERO_HURT_FPS */
+.hero-sprite[data-anim="hurtloop"] { --hero-row: 2; --hero-oneshot-frames: 9; --hero-oneshot-fps: 7; } /* KEEP IN SYNC with CONFIG.HERO_HURT_FPS */
 .hero-spotlight[data-category="financial"] .hero-sprite[data-anim="hurtloop"],
 .hero-spotlight[data-category="health"] .hero-sprite[data-anim="hurtloop"] { --hero-oneshot-frames: 7; }
 .hero-sprite-sheet {
