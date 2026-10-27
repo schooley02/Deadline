@@ -150,25 +150,37 @@ const Forms = (() => {
     // Form HTML builders — pure, no script.js state
     // ---------------------------------------------------------------------
 
-    // Milestone 5 UX batch, playtest finding #2 (2026-07-20, Fable design
-    // call — see DECISIONS.md): the old hardcoded 5:00 PM default let a task
-    // created in the evening spawn ALREADY OVERDUE (damaging the base from
-    // the moment it's added — 2026-07-18's "already-overdue items start
-    // their damage clock at spawn" rule caps the harm but doesn't prevent
-    // it). Rule: max(5:00 PM, now + 1h rounded UP to the next half-hour),
-    // capped at 11:59 PM same day (never rolls into tomorrow — a same-day
-    // task with an impossible-to-hit default would be its own footgun).
-    // Pure + exported for Jest coverage (no DOM/Date-now mocking headaches
-    // needed beyond passing `now` in directly).
+    // Default due time (2026-10-27, Jeremy): the time picker opens on the CURRENT
+    // time, so scrolling starts from "now". Supersedes the 2026-07-20 rule
+    // (max(5 PM, now + 1h rounded to :30)). Because "now" is already past by the
+    // time Add is tapped, resolveSubmittedDueTime() below nudges an untouched or
+    // just-passed time NOW_BUMP_MINUTES ahead, so the zombie walks in instead of
+    // spawning at the church already attacking (the original 2026-07-20 bug).
+    const NOW_BUMP_MINUTES = 5;
+    const pad2 = (n) => String(n).padStart(2, '0');
+    const localDateStr = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    const localTimeStr = (d) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+
     function computeDefaultDueTime(now) {
-        const FIVE_PM_MINUTES = 17 * 60;
-        const CAP_MINUTES = 23 * 60 + 59;
-        const nowMinutes = now.getHours() * 60 + now.getMinutes();
-        const roundedUpPlusOneHour = Math.ceil((nowMinutes + 60) / 30) * 30;
-        const defaultMinutes = Math.min(Math.max(FIVE_PM_MINUTES, roundedUpPlusOneHour), CAP_MINUTES);
-        const hh = Math.floor(defaultMinutes / 60);
-        const mm = defaultMinutes % 60;
-        return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+        return localTimeStr(now);
+    }
+
+    // Pure. Returns { dueDate, dueTime } to hand to createTaskItemData. A due time
+    // at or before `now` is bumped to now + NOW_BUMP_MINUTES when the time field
+    // was left at its prefilled value OR is less than NOW_BUMP_MINUTES in the past
+    // (i.e. "now-ish"). An older past time the user picked on purpose is kept.
+    function resolveSubmittedDueTime(dueDate, dueTime, prefilledTime, now) {
+        if (!dueDate || !dueTime) return { dueDate, dueTime };
+        const due = new Date(`${dueDate}T${dueTime}`);
+        if (isNaN(due.getTime())) return { dueDate, dueTime };
+        const nowMs = now.getTime();
+        const untouched = prefilledTime != null && dueTime === prefilledTime;
+        const nowish = due.getTime() > nowMs - NOW_BUMP_MINUTES * 60 * 1000;
+        if (due.getTime() <= nowMs && (untouched || nowish)) {
+            const bumped = new Date(nowMs + NOW_BUMP_MINUTES * 60 * 1000);
+            return { dueDate: localDateStr(bumped), dueTime: localTimeStr(bumped) };
+        }
+        return { dueDate, dueTime };
     }
 
     function createTaskFormHtml() {
@@ -209,7 +221,7 @@ const Forms = (() => {
                 </div>
                 <div class="form-row">
                     <label for="modalDueTime">Due Time:</label>
-                    <input type="time" id="modalDueTime" value="${defaultDueTime}">
+                    <input type="time" id="modalDueTime" value="${defaultDueTime}" data-prefilled="${defaultDueTime}">
                 </div>
             </div>
             <div class="form-row">
@@ -389,7 +401,9 @@ const Forms = (() => {
                             return;
                         }
 
-                        const taskData = deps.createTaskItemData(name, category, isHighPriority, dueDate, dueTime);
+                        const resolved = resolveSubmittedDueTime(dueDate, dueTime,
+                            timeInput ? timeInput.getAttribute('data-prefilled') : null, new Date());
+                        const taskData = deps.createTaskItemData(name, category, isHighPriority, resolved.dueDate, resolved.dueTime);
                         const targetInput = modal.querySelector('#modalTimerMinutes');
                         const targetMin = targetInput ? Math.floor(Number(targetInput.value)) : NaN;
                         taskData.timerMinutes = (targetMin >= 1 && targetMin <= 600) ? targetMin : null;
@@ -501,6 +515,7 @@ const Forms = (() => {
         showFormModal,
         attachModalEventListeners,
         computeDefaultDueTime,
+        resolveSubmittedDueTime,
     };
 })();
 

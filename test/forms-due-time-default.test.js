@@ -1,65 +1,25 @@
 /**
- * Regression tests for the Add Task default due-time rule (Milestone 5 UX
- * batch, playtest finding #2, 2026-07-20 — see DECISIONS.md).
+ * Add Task default due time.
  *
- * The bug: Add Task's due-time input was hardcoded to "17:00" (5:00 PM) no
- * matter when the task was created. Creating a task in the evening (after
- * 5 PM) with an untouched default therefore spawned it ALREADY OVERDUE,
- * damaging the base from the moment it was added.
+ * 2026-10-27 (Jeremy): the time input defaults to the CURRENT time (supersedes
+ * the 2026-07-20 "max(5 PM, now + 1h rounded to :30)" rule). An untouched or
+ * just-passed time is nudged 5 minutes ahead on submit so a new task never
+ * spawns already attacking (the original 2026-07-20 playtest bug).
  *
- * The fix (Fable design call): default = max(5:00 PM, now + 1h rounded UP
- * to the next half-hour), capped at 11:59 PM same day (never rolls into
- * tomorrow).
- *
- * TZ-independence: all cases construct `now` with the LOCAL Date
- * constructor and assert against local wall-clock HH:MM, matching the
- * existing popups-prefill.test.js convention.
+ * TZ-independence: `now` is built with the LOCAL Date constructor and asserts
+ * use local wall-clock HH:MM.
  */
 
 const Forms = require('../js/ui/forms.js');
 
 describe('computeDefaultDueTime', () => {
-    test('daytime: now + 1h rounds to before 5 PM -> keeps the familiar 5 PM anchor', () => {
-        const now = new Date(2026, 6, 20, 10, 0); // 10:00 AM
-        expect(Forms.computeDefaultDueTime(now)).toBe('17:00');
+    test('is the current local time (HH:MM)', () => {
+        expect(Forms.computeDefaultDueTime(new Date(2026, 6, 20, 8, 5))).toBe('08:05');
+        expect(Forms.computeDefaultDueTime(new Date(2026, 6, 20, 19, 35, 42))).toBe('19:35');
+        expect(Forms.computeDefaultDueTime(new Date(2026, 6, 20, 0, 0))).toBe('00:00');
     });
 
-    test('daytime: now + 1h rounds to exactly 5 PM -> still 5 PM (no double-counting)', () => {
-        const now = new Date(2026, 6, 20, 16, 0); // 4:00 PM -> +1h = 5:00 PM exactly
-        expect(Forms.computeDefaultDueTime(now)).toBe('17:00');
-    });
-
-    test('just past the 5 PM anchor: now + 1h rounds up past 5 PM -> uses the rounded time', () => {
-        const now = new Date(2026, 6, 20, 16, 20); // 4:20 PM -> +1h = 5:20 PM -> round up to 5:30 PM
-        expect(Forms.computeDefaultDueTime(now)).toBe('17:30');
-    });
-
-    test('evening: the exact playtest-finding repro (7:35 PM) never lands already-overdue', () => {
-        const now = new Date(2026, 6, 20, 19, 35); // 7:35 PM -> +1h = 8:35 PM -> round up to 9:00 PM
-        expect(Forms.computeDefaultDueTime(now)).toBe('21:00');
-    });
-
-    test('rounds UP to the next half-hour boundary, never down', () => {
-        const now = new Date(2026, 6, 20, 18, 1); // 6:01 PM -> +1h = 7:01 PM -> round up to 7:30 PM
-        expect(Forms.computeDefaultDueTime(now)).toBe('19:30');
-    });
-
-    test('exact half-hour boundary is left unchanged by rounding', () => {
-        const now = new Date(2026, 6, 20, 19, 30); // 7:30 PM -> +1h = 8:30 PM exactly
-        expect(Forms.computeDefaultDueTime(now)).toBe('20:30');
-    });
-
-    test('late night: caps at 11:59 PM same day instead of rolling into tomorrow', () => {
-        const now = new Date(2026, 6, 20, 23, 45); // 11:45 PM -> +1h = 12:45 AM next day, capped
-        expect(Forms.computeDefaultDueTime(now)).toBe('23:59');
-    });
-
-    test('right at the cap boundary: exactly 11:59 PM stays capped, not rounded past midnight', () => {
-        const now = new Date(2026, 6, 20, 22, 59); // 10:59 PM -> +1h = 11:59 PM -> round up to 12:00 AM -> capped to 23:59
-        expect(Forms.computeDefaultDueTime(now)).toBe('23:59');
-    });
-
-    test('createTaskFormHtml embeds the computed default as the time input value', () => {
+    test('createTaskFormHtml embeds it as the value and remembers it as data-prefilled', () => {
         const now = new Date(2026, 6, 20, 19, 35);
         const originalDate = global.Date;
         global.Date = class extends originalDate {
@@ -70,9 +30,45 @@ describe('computeDefaultDueTime', () => {
         };
         try {
             const html = Forms.createTaskFormHtml();
-            expect(html).toContain('id="modalDueTime" value="21:00"');
+            expect(html).toContain('id="modalDueTime" value="19:35" data-prefilled="19:35"');
         } finally {
             global.Date = originalDate;
         }
+    });
+});
+
+describe('resolveSubmittedDueTime', () => {
+    const now = new Date(2026, 6, 20, 19, 35, 30);
+
+    test('untouched default (now) is bumped 5 minutes ahead', () => {
+        expect(Forms.resolveSubmittedDueTime('2026-07-20', '19:35', '19:35', now))
+            .toEqual({ dueDate: '2026-07-20', dueTime: '19:40' });
+    });
+
+    test('untouched default left open a long time is still bumped', () => {
+        const later = new Date(2026, 6, 20, 20, 10);
+        expect(Forms.resolveSubmittedDueTime('2026-07-20', '19:35', '19:35', later))
+            .toEqual({ dueDate: '2026-07-20', dueTime: '20:15' });
+    });
+
+    test('a just-passed time typed by the user is bumped too', () => {
+        expect(Forms.resolveSubmittedDueTime('2026-07-20', '19:32', '19:30', now))
+            .toEqual({ dueDate: '2026-07-20', dueTime: '19:40' });
+    });
+
+    test('a deliberately earlier time (more than 5 min ago) is kept', () => {
+        expect(Forms.resolveSubmittedDueTime('2026-07-20', '18:00', '19:35', now))
+            .toEqual({ dueDate: '2026-07-20', dueTime: '18:00' });
+    });
+
+    test('a future time is kept as-is', () => {
+        expect(Forms.resolveSubmittedDueTime('2026-07-20', '21:00', '19:35', now))
+            .toEqual({ dueDate: '2026-07-20', dueTime: '21:00' });
+    });
+
+    test('the bump rolls into tomorrow near midnight', () => {
+        const late = new Date(2026, 6, 20, 23, 58);
+        expect(Forms.resolveSubmittedDueTime('2026-07-20', '23:58', '23:58', late))
+            .toEqual({ dueDate: '2026-07-21', dueTime: '00:03' });
     });
 });

@@ -4,6 +4,19 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-27 -- Add Task due time defaults to the current time (Jeremy; Claude app session, Opus; UX only, no balance numbers changed)
+- **Decision:** the Add Task time picker opens on the CURRENT time. SUPERSEDES the 2026-07-20 rule (max(5 PM, now + 1h rounded up to :30), capped 11:59 PM).
+- **Guard (Jeremy's pick):** on submit, a time at or before now that is either untouched (still the prefilled value) or less than 5 min in the past is bumped to now + 5 min (may roll into tomorrow near midnight), so a new task never spawns already attacking (the 2026-07-20 playtest bug). An older past time picked on purpose is kept.
+- **Rejected:** taking "now" literally (task attacks the instant it is added).
+- **Files:** `js/ui/forms.js` (`computeDefaultDueTime`, new `resolveSubmittedDueTime`, `data-prefilled` on `#modalDueTime`), `test/forms-due-time-default.test.js` (rewritten), `sw.js` v122.
+
+## 2026-10-27 -- Time slider: scene locks, animations follow the drag, preview attackers get red rows, hero ghosts (Jeremy; Claude app session, Opus; visual only, no balance numbers changed)
+- **Decision:** dragging the time slider no longer moves the ground, hills/trees or clouds sideways (parallax transforms removed). Instead every LOOPING animation on zombie sprites, the visible hero and the cloud drift is frozen and stepped by the drag (`CONFIG.SCRUB_ANIM_MS_PER_MINUTE` = 20 ms per slider minute; right = forward, left = reverse, still = frozen); release resumes normal playback. One-shot animations (hero attack/hurt/level-up, zombie death) are untouched.
+- **Also:** a row whose zombie has reached the church at the previewed time gets `.preview-attack-list-item` (same red as `.overdue-list-item`); live overdue rows stay red regardless. The visible hero dims to 0.55 during a scrub like the base/zombies (`#gameCanvas.time-previewing`).
+- **How:** Web Animations API `playbackRate = 0` + `currentTime`, NOT `pause()/play()`, which would permanently override CSS `animation-play-state` (the day pager's enemy pause rule).
+- **Rejected:** keeping hill parallax; sped-up playback that keeps running while the finger is still.
+- **Files:** `js/ui/timeSliderView.js`, `js/config.js`, `css/gameCanvas.css`, `css/timeSlider.css`, `css/enemyAnim.css`, `css/agendaList.css`, `test/timeSliderView.test.js`, `sw.js` v119-v121.
+
 ## 2026-10-27 -- Pixel-art clouds replace the CSS glow clouds (Jeremy; Claude app session, Sonnet; visual only, no balance numbers changed)
 - **Decision:** the cloud layer is PixelLab art: one 625x72 strip (`Assets/scene/clouds-tile.png`, the big puffy cloud + the small puffy one, shown at an exact 2x like the church), tiled `repeat-x` pixelated on `.scene-clouds-drift`. Palette is 3 muted lavender-greys (#8c89a8 / #5a5878 / #3d3a5c) so the clouds stay below the zombies in visual weight against the #171735-#2b2a4a sky. Pair "A + D" chosen from a 10-pair mock; the flat streaky clouds read as a different style next to the puffy ones and were left out.
 - **Layering:** clouds pass IN FRONT of the moon and its Nights Survived label (Jeremy). `.nights-survived` moved from z-index auto to -3 and `.scene-clouds` from -3 to -2 (still before the silhouettes in DOM order, so hills paint over clouds as before). The moon's glow now sits under the clouds too.
