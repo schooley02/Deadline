@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-27 -- Survival count unified on NIGHTS (Jeremy; Claude app session, Opus; balance change via the balance-tuning protocol)
+- **Decision:** every "days survived" count now uses the moon's rule: whole LOCAL midnights crossed since the run started. `Damage.computeDaysSurvived` changed from `floor((now - runStartedAtMs) / MS_PER_REAL_DAY)` to the local-midnight count (DST-safe, same as `NightsSurvivedView.countMidnights`; a test checks they agree). Applies to the game-over screen ("Survived N Nights"), Stats ("N nights survived so far", run cards), the Settings backup compare label, run history and the achievements that read it.
+- **Balance effect (old -> new):** a run is credited up to ~1 day sooner (a run started at 11 PM has 1 night at midnight; it used to need 24 h). Survivor thresholds unchanged at 3 / 7 / 14 / 30 (now nights, near-miss unit 'night'); Steady Hands' ">= 7 days" is now ">= 7 nights". Net: Survivor and Steady Hands are slightly easier to reach. Judged acceptable by Jeremy (one consistent number beats two that disagree); no red flags (doesn't let tokens/pushbacks save a run, not punishing).
+- **Saved data:** field name `daysSurvived` / `bestRunDaysSurvived` kept, no schema bump. Past run records keep their old full-24h numbers (not recomputed), so an old best can read up to 1 lower than the same run would score today.
+- **Rejected:** unifying on full 24h days (the moon would lag its own midnight rhythm); recomputing old run records (they don't store enough to be exact, and the gap is at most 1).
+- **Files:** `js/damage.js`, `js/ui/gameOverView.js`, `js/ui/statsView.js`, `js/ui/settingsView.js`, `js/ui/nightsSurvivedView.js` (comment), `js/config.js` (Survivor near-miss unit), `test/damage.test.js`, `sw.js` v124, docs MECHANICS / ACHIEVEMENTS_PLAN / balance-tuning skill.
+
 ## 2026-10-27 -- Add Task due time defaults to the current time (Jeremy; Claude app session, Opus; UX only, no balance numbers changed)
 - **Decision:** the Add Task time picker opens on the CURRENT time + 5 min (Jeremy saw exact-now first and asked for 5 min out; the date rolls to tomorrow if that crosses midnight). SUPERSEDES the 2026-07-20 rule (max(5 PM, now + 1h rounded up to :30), capped 11:59 PM).
 - **Guard (Jeremy's pick):** on submit, a time at or before now that is either untouched (still the prefilled value) or less than 5 min in the past is bumped to now + 5 min (may roll into tomorrow near midnight), so a new task never spawns already attacking (the 2026-07-20 playtest bug). An older past time picked on purpose is kept.

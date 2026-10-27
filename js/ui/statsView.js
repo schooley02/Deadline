@@ -104,7 +104,7 @@ const StatsView = (() => {
         return `
             <div class="stats-current-panel">
                 <h4>Run #${deps.currentRunNumber} — in progress</h4>
-                <div class="stats-days-survived">${deps.daysSurvivedSoFar} day${deps.daysSurvivedSoFar === 1 ? '' : 's'} survived so far${daysDeltaHtml}</div>
+                <div class="stats-days-survived">${deps.daysSurvivedSoFar} night${deps.daysSurvivedSoFar === 1 ? '' : 's'} survived so far${daysDeltaHtml}</div>
                 <div class="stats-counter-row">
                     <div class="stats-counter">
                         <span class="stats-counter-value">${stats.tasksCompleted}${d('tasksCompleted', true)}</span>
@@ -187,7 +187,7 @@ const StatsView = (() => {
         return `
             <li class="stats-run-card" data-run-number="${record.runNumber}" role="button" tabindex="0" aria-expanded="false">
                 <div class="stats-run-card-header">
-                    <span class="stats-run-card-title">Run #${record.runNumber} — ${record.daysSurvived} day${record.daysSurvived === 1 ? '' : 's'} ${bestBadge}</span>
+                    <span class="stats-run-card-title">Run #${record.runNumber} — ${record.daysSurvived} night${record.daysSurvived === 1 ? '' : 's'} ${bestBadge}</span>
                     <span class="stats-run-card-date">${formatDate(record.endedAtMs)} <span class="stats-run-card-chevron" aria-hidden="true">▸</span></span>
                 </div>
                 <div class="stats-run-card-totals">

@@ -31,7 +31,7 @@ const GameOverView = (() => {
     // null/undefined if run-history deps weren't wired (defensive — mirrors
     // every other optional-collaborator fallback in this codebase).
     function buildReviewCardHtml(record, daysSurvived) {
-        const dayLabel = daysSurvived === 1 ? 'Day' : 'Days';
+        const dayLabel = daysSurvived === 1 ? 'Night' : 'Nights';
         const blameRows = (record && record.blame) || [];
         const totals = record && record.totals;
 

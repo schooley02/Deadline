@@ -58,7 +58,7 @@ const SettingsView = (() => {
     ];
 
     const SUMMARY_LABELS = [
-        { key: 'daysSurvived', label: 'Days survived' },
+        { key: 'daysSurvived', label: 'Nights survived' },
         { key: 'playerLevel', label: 'Level' },
         { key: 'playerXP', label: 'XP' },
         { key: 'playerPoints', label: 'Points' },

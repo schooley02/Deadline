@@ -86,14 +86,21 @@ const Damage = (() => {
     // Pure cores — no DOM, no state. These are what the unit tests target.
     // ---------------------------------------------------------------------
 
-    // Real calendar days elapsed since the run started. Replaces the old
-    // accelerated 60s-per-"day" interval, which both over-counted short waking
-    // sessions and stopped entirely while the machine slept (see DECISIONS.md
-    // 2026-07-18).
-    function computeDaysSurvived(runStartedAtMs, nowMs, msPerRealDay) {
-        if (!runStartedAtMs) return 0;
-        const perDay = msPerRealDay || CONFIG.MS_PER_REAL_DAY;
-        return Math.max(0, Math.floor((nowMs - runStartedAtMs) / perDay));
+    // NIGHTS survived: whole LOCAL midnights crossed since the run started
+    // (2026-10-27, Jeremy: unify on the moon's count; was full 24h periods,
+    // floor(elapsed / MS_PER_REAL_DAY)). A run started at 11pm counts 1 at
+    // 12:00am. Counted by calendar date, so DST (23h/25h days) never skips or
+    // doubles a night. MUST match NightsSurvivedView.countMidnights (a test
+    // checks). Name kept (`daysSurvived` is the saved field). The 3rd param is
+    // accepted for old callers and ignored. Still derived from real time, not a
+    // tick counter (DECISIONS 2026-07-18).
+    function computeDaysSurvived(runStartedAtMs, nowMs /* , msPerRealDay (ignored) */) {
+        if (!runStartedAtMs || typeof nowMs !== 'number' || !isFinite(nowMs)) return 0;
+        const a = new Date(runStartedAtMs);
+        const b = new Date(nowMs);
+        const dayA = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+        const dayB = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+        return Math.max(0, Math.round((dayB - dayA) / (24 * 60 * 60 * 1000)));
     }
 
     // Which base sprite corresponds to a given health value. V4 (2026-10-14):
@@ -482,7 +489,7 @@ const Damage = (() => {
             if (deps.renderGameOverReview) {
                 deps.renderGameOverReview({ gameOverMessage, record, daysSurvived });
             } else {
-                const dayLabel = daysSurvived === 1 ? 'Day' : 'Days';
+                const dayLabel = daysSurvived === 1 ? 'Night' : 'Nights';
                 gameOverMessage.textContent = `GAME OVER! Your Base Survived ${daysSurvived} ${dayLabel}.`;
                 gameOverMessage.classList.remove('hidden');
             }

@@ -532,7 +532,7 @@ const CONFIG = {
     // authored ascending; `id` is the persisted key in the unlocked-tier map.
     ACHIEVEMENTS: [
         {
-            id: 'survivor', name: 'Survivor', metric: 'bestRunDaysSurvived', nearMissUnit: 'day',
+            id: 'survivor', name: 'Survivor', metric: 'bestRunDaysSurvived', nearMissUnit: 'night', // nights (local midnights) since 2026-10-27
             tiers: [
                 { id: 'survivor_1', label: 'Bronze', threshold: 3 },
                 { id: 'survivor_2', label: 'Silver', threshold: 7 },

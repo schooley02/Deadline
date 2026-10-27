@@ -89,34 +89,41 @@ function item(props = {}) {
 }
 
 // ---------------------------------------------------------------------------
-describe('computeDaysSurvived', () => {
-    const DAY = CONFIG.MS_PER_REAL_DAY;
+describe('computeDaysSurvived (nights: local midnights crossed, 2026-10-27)', () => {
+    const at = (y, mo, d, h = 0, mi = 0) => new Date(y, mo, d, h, mi).getTime();
 
     test('returns 0 when the run has no start time', () => {
-        expect(Damage.computeDaysSurvived(null, Date.now(), DAY)).toBe(0);
-        expect(Damage.computeDaysSurvived(0, Date.now(), DAY)).toBe(0);
+        expect(Damage.computeDaysSurvived(null, Date.now())).toBe(0);
+        expect(Damage.computeDaysSurvived(0, Date.now())).toBe(0);
     });
 
-    test('floors to whole real days', () => {
-        const start = 1_000_000;
-        expect(Damage.computeDaysSurvived(start, start, DAY)).toBe(0);
-        expect(Damage.computeDaysSurvived(start, start + DAY - 1, DAY)).toBe(0);
-        expect(Damage.computeDaysSurvived(start, start + DAY, DAY)).toBe(1);
-        expect(Damage.computeDaysSurvived(start, start + 3 * DAY + 5, DAY)).toBe(3);
+    test('counts local midnights, not 24h periods', () => {
+        expect(Damage.computeDaysSurvived(at(2026, 9, 20, 9), at(2026, 9, 20, 23, 59))).toBe(0);
+        expect(Damage.computeDaysSurvived(at(2026, 9, 20, 23), at(2026, 9, 21, 0, 0))).toBe(1); // 11pm start, 1 at midnight
+        expect(Damage.computeDaysSurvived(at(2026, 9, 20, 9), at(2026, 9, 21, 8))).toBe(1);   // < 24h but crossed midnight
+        expect(Damage.computeDaysSurvived(at(2026, 9, 20, 9), at(2026, 9, 23, 9, 5))).toBe(3);
     });
 
     test('never goes negative if the clock moved backwards', () => {
-        expect(Damage.computeDaysSurvived(2 * DAY, DAY, DAY)).toBe(0);
+        expect(Damage.computeDaysSurvived(at(2026, 9, 22), at(2026, 9, 20))).toBe(0);
     });
 
-    test('22 minutes of runtime is 0 days, not 22 (the 2026-07-18 bug)', () => {
-        const start = 1_000_000;
-        expect(Damage.computeDaysSurvived(start, start + 22 * 60 * 1000, DAY)).toBe(0);
+    test('22 minutes of runtime the same evening is 0, not 22 (the 2026-07-18 bug)', () => {
+        const start = at(2026, 9, 20, 19);
+        expect(Damage.computeDaysSurvived(start, start + 22 * 60 * 1000)).toBe(0);
     });
 
-    test('defaults to CONFIG.MS_PER_REAL_DAY when no period is passed', () => {
-        const start = 1_000_000;
-        expect(Damage.computeDaysSurvived(start, start + DAY)).toBe(1);
+    test('a legacy 3rd argument is ignored', () => {
+        expect(Damage.computeDaysSurvived(at(2026, 9, 20, 23), at(2026, 9, 21, 1), 60 * 1000)).toBe(1);
+    });
+
+    test('matches the moon (NightsSurvivedView.countMidnights) across a spread of cases', () => {
+        const Nights = require('../js/ui/nightsSurvivedView.js');
+        const start = at(2026, 2, 1, 22, 30); // spans the March DST change
+        for (let h = 0; h < 24 * 40; h += 7) {
+            const now = start + h * 60 * 60 * 1000;
+            expect(Damage.computeDaysSurvived(start, now)).toBe(Nights.countMidnights(start, now));
+        }
     });
 });
 
@@ -430,11 +437,11 @@ describe('gameOver', () => {
     test('pluralises the day label correctly', () => {
         const one = makeDeps({ state: { runStartedAtMs: Date.now() - CONFIG.MS_PER_REAL_DAY } });
         Damage.gameOver(one);
-        expect(one.gameOverMessage.textContent).toBe('GAME OVER! Your Base Survived 1 Day.');
+        expect(one.gameOverMessage.textContent).toBe('GAME OVER! Your Base Survived 1 Night.');
 
         const zero = makeDeps({ state: { runStartedAtMs: Date.now() } });
         Damage.gameOver(zero);
-        expect(zero.gameOverMessage.textContent).toBe('GAME OVER! Your Base Survived 0 Days.');
+        expect(zero.gameOverMessage.textContent).toBe('GAME OVER! Your Base Survived 0 Nights.');
     });
 
     test('shows the restart button and the destroyed base', () => {

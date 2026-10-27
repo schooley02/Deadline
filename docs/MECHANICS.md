@@ -75,9 +75,10 @@ A shop consumable (200 pts, held-inventory exponential pricing like repair kits 
 - **Check-in resolution** (`Items.resolvePendingCheckIn`'s `'indulged'` branch): same excused check, defensive — in practice a cheat-day-covered day never reaches the check-in card at all (see the rollover fork above), but this guards a same-day edge case.
 - **Rollover** (`state.js`): `Items.settleExcusedCheatDay` — checked FIRST, ahead of the check-in-eligible and auto-avoid paths; clears the marker and removes the lurker with no points/xp/streak/occurrence change, silently, matching NEGATIVE_HABITS_PLAN.md's "the check-in card for that day auto-resolves as excused."
 
-## Days Survived
+## Nights Survived (was "Days Survived")
 
-- Derived from REAL elapsed time since the run started: `floor((now - runStartedAtMs) / CONFIG.MS_PER_REAL_DAY)`. Frozen at death by `gameOver()`.
+- **Since 2026-10-27 (Jeremy): NIGHTS = local midnights crossed since the run started** (`Damage.computeDaysSurvived`, same count as the moon's `NightsSurvivedView.countMidnights`; a test keeps them identical). A run started at 11 PM counts 1 at midnight. Used by the moon, game-over screen, Stats, run history and the Survivor / Steady Hands achievements. The saved field is still `daysSurvived` (no schema change); run records saved before this keep their old full-24h counts. Frozen at death by `gameOver()`.
+- Before 2026-10-27: full 24h periods, `floor((now - runStartedAtMs) / CONFIG.MS_PER_REAL_DAY)`.
 - Not a tick counter. The old accelerated timer (`DAY_DURATION_MS`, 1 real minute = 1 "day") was removed 2026-07-18 — it reported "22 Days" for 22 minutes of runtime while ignoring the ~10 hours the machine was asleep. See DECISIONS.md.
 
 ## Habits: Positive & Negative

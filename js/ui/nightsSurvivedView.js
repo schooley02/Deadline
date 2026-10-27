@@ -7,10 +7,10 @@
  *   LABEL (.nights-label): "Nights Survived" in Inter underneath.
  *
  * COUNTING RULE: one night per LOCAL midnight crossed since the run started
- * (State.getRunStartedAtMs). A run started at 11pm shows 1 at 12:00am. This is
- * deliberately MOON-ONLY for now: the game-over screen, run history and the
- * Survivor achievement still use Damage.computeDaysSurvived (full 24h periods).
- * Unifying the two is an open design question (see DECISIONS.md 2026-10-26).
+ * (State.getRunStartedAtMs). A run started at 11pm shows 1 at 12:00am. Since
+ * 2026-10-27 the game-over screen, run history, Stats and the Survivor
+ * achievement use the SAME count (Damage.computeDaysSurvived); keep the two
+ * implementations identical (test/nightsSurvivedView.test.js checks).
  *
  * Counted by calendar DATE, not elapsed ms / 24h, so a DST change (23h or 25h
  * day) never skips or doubles a night. Same local-calendar reasoning as

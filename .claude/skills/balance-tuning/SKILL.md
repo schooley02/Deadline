@@ -27,6 +27,7 @@ Every gameplay number in Deadline lives in `js/config.js`. Follow this protocol 
 - KO ghosts (2026-10-25, decided not built): ghost completion pays points × `KO_GHOST_POINTS_FACTOR` 0 (XP + habit success occurrence unchanged); undone ghosts are excused
 - Rescheduling (2026-10-25, decided not built): later-move price = pushback tier for distance × `RESCHEDULE_ZONE_FACTORS` {>4h 0, 2-4h 0.5, <2h 1, overdue 1}; `RESCHEDULE_GRACE_MS` 10 min after creation free; `RESCHEDULE_FREE_PER_WEEK` 1
 - Work timer (2026-10-25, decided not built): overdue damage × `WORK_TIMER_DAMAGE_FACTOR` 0.5 while running; `WORK_TIMER_CHECK_MS` 60 min, `WORK_TIMER_AUTO_STOP_MS` 10 min
+- Survival count (2026-10-27): NIGHTS = local midnights crossed since run start (`Damage.computeDaysSurvived`; was floor(elapsed / 24h)). Survivor tiers 3 / 7 / 14 / 30 nights; Steady Hands needs >= 7 nights.
 - Demo clock: 60s = 1 day (testing only, `config.DEMO_MODE`)
 
 ## Making the change
