@@ -151,7 +151,7 @@ const Forms = (() => {
     // ---------------------------------------------------------------------
 
     // Default due time (2026-10-27, Jeremy): the time picker opens on the CURRENT
-    // time, so scrolling starts from "now". Supersedes the 2026-07-20 rule
+    // time + 5 minutes, so scrolling starts from "now". Supersedes the 2026-07-20 rule
     // (max(5 PM, now + 1h rounded to :30)). Because "now" is already past by the
     // time Add is tapped, resolveSubmittedDueTime() below nudges an untouched or
     // just-passed time NOW_BUMP_MINUTES ahead, so the zombie walks in instead of
@@ -161,8 +161,15 @@ const Forms = (() => {
     const localDateStr = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
     const localTimeStr = (d) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 
+    // Default = now + NOW_BUMP_MINUTES (Jeremy, same day: "make it 5 minutes out").
+    function defaultDueDateTime(now) {
+        return new Date(now.getTime() + NOW_BUMP_MINUTES * 60 * 1000);
+    }
     function computeDefaultDueTime(now) {
-        return localTimeStr(now);
+        return localTimeStr(defaultDueDateTime(now));
+    }
+    function computeDefaultDueDate(now) {
+        return localDateStr(defaultDueDateTime(now)); // tomorrow when now + 5 min crosses midnight
     }
 
     // Pure. Returns { dueDate, dueTime } to hand to createTaskItemData. A due time
@@ -188,8 +195,7 @@ const Forms = (() => {
         // date in positive-offset timezones (latent for CDT; same bug family
         // as the popups.js UTC pre-fill fix — see DECISIONS.md 2026-07-18).
         const now = new Date();
-        const pad = (n) => String(n).padStart(2, '0');
-        const todayString = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+        const todayString = computeDefaultDueDate(now); // usually today; tomorrow if now + 5 min passes midnight
         const defaultDueTime = computeDefaultDueTime(now);
         return `
             <h3>Add New Task</h3>
@@ -515,6 +521,7 @@ const Forms = (() => {
         showFormModal,
         attachModalEventListeners,
         computeDefaultDueTime,
+        computeDefaultDueDate,
         resolveSubmittedDueTime,
     };
 })();

@@ -5,10 +5,10 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 ## 2026-10-27 -- Add Task due time defaults to the current time (Jeremy; Claude app session, Opus; UX only, no balance numbers changed)
-- **Decision:** the Add Task time picker opens on the CURRENT time. SUPERSEDES the 2026-07-20 rule (max(5 PM, now + 1h rounded up to :30), capped 11:59 PM).
+- **Decision:** the Add Task time picker opens on the CURRENT time + 5 min (Jeremy saw exact-now first and asked for 5 min out; the date rolls to tomorrow if that crosses midnight). SUPERSEDES the 2026-07-20 rule (max(5 PM, now + 1h rounded up to :30), capped 11:59 PM).
 - **Guard (Jeremy's pick):** on submit, a time at or before now that is either untouched (still the prefilled value) or less than 5 min in the past is bumped to now + 5 min (may roll into tomorrow near midnight), so a new task never spawns already attacking (the 2026-07-20 playtest bug). An older past time picked on purpose is kept.
 - **Rejected:** taking "now" literally (task attacks the instant it is added).
-- **Files:** `js/ui/forms.js` (`computeDefaultDueTime`, new `resolveSubmittedDueTime`, `data-prefilled` on `#modalDueTime`), `test/forms-due-time-default.test.js` (rewritten), `sw.js` v122.
+- **Files:** `js/ui/forms.js` (`computeDefaultDueTime`, new `resolveSubmittedDueTime`, `data-prefilled` on `#modalDueTime`, `computeDefaultDueDate`), `test/forms-due-time-default.test.js` (rewritten), `sw.js` v122.
 
 ## 2026-10-27 -- Time slider: scene locks, animations follow the drag, preview attackers get red rows, hero ghosts (Jeremy; Claude app session, Opus; visual only, no balance numbers changed)
 - **Decision:** dragging the time slider no longer moves the ground, hills/trees or clouds sideways (parallax transforms removed). Instead every LOOPING animation on zombie sprites, the visible hero and the cloud drift is frozen and stepped by the drag (`CONFIG.SCRUB_ANIM_MS_PER_MINUTE` = 20 ms per slider minute; right = forward, left = reverse, still = frozen); release resumes normal playback. One-shot animations (hero attack/hurt/level-up, zombie death) are untouched.

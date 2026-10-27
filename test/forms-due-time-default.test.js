@@ -1,7 +1,7 @@
 /**
  * Add Task default due time.
  *
- * 2026-10-27 (Jeremy): the time input defaults to the CURRENT time (supersedes
+ * 2026-10-27 (Jeremy): the time input defaults to the CURRENT time + 5 min (supersedes
  * the 2026-07-20 "max(5 PM, now + 1h rounded to :30)" rule). An untouched or
  * just-passed time is nudged 5 minutes ahead on submit so a new task never
  * spawns already attacking (the original 2026-07-20 playtest bug).
@@ -12,11 +12,17 @@
 
 const Forms = require('../js/ui/forms.js');
 
-describe('computeDefaultDueTime', () => {
-    test('is the current local time (HH:MM)', () => {
-        expect(Forms.computeDefaultDueTime(new Date(2026, 6, 20, 8, 5))).toBe('08:05');
-        expect(Forms.computeDefaultDueTime(new Date(2026, 6, 20, 19, 35, 42))).toBe('19:35');
-        expect(Forms.computeDefaultDueTime(new Date(2026, 6, 20, 0, 0))).toBe('00:00');
+describe('computeDefaultDueTime / computeDefaultDueDate', () => {
+    test('is the current local time + 5 minutes (HH:MM)', () => {
+        expect(Forms.computeDefaultDueTime(new Date(2026, 6, 20, 8, 5))).toBe('08:10');
+        expect(Forms.computeDefaultDueTime(new Date(2026, 6, 20, 19, 35, 42))).toBe('19:40');
+        expect(Forms.computeDefaultDueDate(new Date(2026, 6, 20, 19, 35))).toBe('2026-07-20');
+    });
+
+    test('rolls the date to tomorrow when now + 5 min crosses midnight', () => {
+        const late = new Date(2026, 6, 20, 23, 57);
+        expect(Forms.computeDefaultDueTime(late)).toBe('00:02');
+        expect(Forms.computeDefaultDueDate(late)).toBe('2026-07-21');
     });
 
     test('createTaskFormHtml embeds it as the value and remembers it as data-prefilled', () => {
@@ -30,7 +36,8 @@ describe('computeDefaultDueTime', () => {
         };
         try {
             const html = Forms.createTaskFormHtml();
-            expect(html).toContain('id="modalDueTime" value="19:35" data-prefilled="19:35"');
+            expect(html).toContain('id="modalDueTime" value="19:40" data-prefilled="19:40"');
+            expect(html).toContain('id="modalDueDate" value="2026-07-20"');
         } finally {
             global.Date = originalDate;
         }
