@@ -38,3 +38,33 @@ describe('repair kit heal amount on the shop card', () => {
         expect(card('pushback_1hr').querySelector('.shop-item-effect')).toBeNull();
     });
 });
+
+describe('points balance in the shop window header (2026-10-27)', () => {
+    function render(points) {
+        document.body.innerHTML = '<span id="shopWindowPoints"></span><div id="shopWindowList"></div>';
+        ShopView.renderShopWindow({
+            catalog: CATALOG, inventory: {}, playerPoints: points, baseHealth: 50,
+            onBuy: noop, onUse: noop, discount: 0,
+        });
+        return document.getElementById('shopWindowPoints');
+    }
+
+    test('shows the balance and refreshes on every render', () => {
+        expect(render(120).textContent).toBe('120 pts');
+        expect(document.getElementById('shopWindowPoints').classList.contains('shop-points--debt')).toBe(false);
+        const el = document.getElementById('shopWindowPoints');
+        ShopView.renderShopWindow({ catalog: CATALOG, inventory: {}, playerPoints: 70, baseHealth: 50, onBuy: noop, onUse: noop, discount: 0 });
+        expect(el.textContent).toBe('70 pts');
+    });
+
+    test('debt gets the debt class', () => {
+        const el = render(-15);
+        expect(el.textContent).toBe('-15 pts');
+        expect(el.classList.contains('shop-points--debt')).toBe(true);
+    });
+
+    test('renders fine when the header element is missing', () => {
+        document.body.innerHTML = '<div id="shopWindowList"></div>';
+        expect(() => ShopView.renderShopWindow({ catalog: CATALOG, inventory: {}, playerPoints: 5, baseHealth: 50, onBuy: noop, onUse: noop, discount: 0 })).not.toThrow();
+    });
+});

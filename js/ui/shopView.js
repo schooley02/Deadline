@@ -145,6 +145,14 @@ const ShopView = (() => {
         const list = document.getElementById('shopWindowList');
         if (!list) return;
 
+        // Balance next to the title. Both render paths (window open and
+        // script.js populateShopWindow) land here, so it stays current after buys.
+        const pointsEl = document.getElementById('shopWindowPoints');
+        if (pointsEl) {
+            pointsEl.textContent = `${deps.playerPoints} pts`;
+            pointsEl.classList.toggle('shop-points--debt', deps.playerPoints < 0);
+        }
+
         list.innerHTML = '';
         deps.catalog.forEach(item => {
             list.appendChild(buildItemCard(

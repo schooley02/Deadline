@@ -55,6 +55,7 @@
                         <svg id="baseHealthRing" class="bh-ring bh-ring--full" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false"><circle class="bh-ring-track" cx="10" cy="10" r="8" fill="none" stroke-width="3"/><circle id="baseHealthArc" class="bh-ring-arc" cx="10" cy="10" r="8" fill="none" stroke-width="3" stroke-linecap="round" transform="rotate(-90 10 10)" stroke-dasharray="50.27 50.27"/></svg>
                         <span id="baseHealthDisplay">100</span>
                         <span id="baseHealthChip" class="bh-chip">Full</span>
+                        <svg class="level-arrow" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M3 9 L9 3 M4.5 3 H9 V7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </button>
                     <button type="button" id="levelButton" class="stat-item level-button" aria-label="Level 1. Open level panel">
                         <span class="stat-label">Lv</span>
@@ -300,7 +301,10 @@
 
         <div id="shopWindow" class="management-window hidden" role="dialog" aria-labelledby="shopWindowTitle" tabindex="-1">
             <div class="window-header">
-                <h3 id="shopWindowTitle">Shop</h3>
+                <div class="shop-title-group">
+                    <h3 id="shopWindowTitle">Shop</h3>
+                    <span id="shopWindowPoints" class="shop-points" aria-live="polite">0 pts</span>
+                </div>
                 <button class="close-window" data-window="shopWindow" aria-label="Close Shop window">×</button>
             </div>
             <div class="window-content">

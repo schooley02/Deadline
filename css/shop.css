@@ -128,3 +128,17 @@
 .shop-message.hidden {
     display: none;
 }
+
+/* Title + points balance in the Shop window header (2026-10-27). */
+.shop-title-group {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+}
+.shop-points {
+    font-size: 16px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-primary-dark-green);
+}
+.shop-points--debt { color: var(--color-error); }
