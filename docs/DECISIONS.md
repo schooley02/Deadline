@@ -4,6 +4,16 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-27 -- HUD points button opens the Shop; all three HUD buttons carry the open arrow; Shop header shows the balance (Jeremy; Claude app session, Sonnet; UX only, no balance numbers changed)
+- **Decision:** `#playerPointsStat` is now a `<button>` (same id, so the debt styling + nudge hooks are unchanged) with the same up-right arrow as the level and base-health buttons; a tap calls `openManagementWindow('shop')`. The base-health button gained the arrow too. The Shop window header shows "Shop  N pts" (`#shopWindowPoints`, red when in debt), written by `ShopView.renderShopWindow`, so both render paths (window open and script.js `populateShopWindow` after a buy/use) keep it current.
+- **Why:** Jeremy asked for the points chip to open the Shop (he first said "tokens", then clarified he meant points -- no token counter was built); the arrow marks every HUD stat that opens something; the balance in the Shop header saves backing out to see what you can afford.
+- **Trap found live:** the click handler MUST `stopPropagation()`. Modal's document-level click handler closes any open management window when a click lands outside `.management-window` / `.fab-container`, so without it the Shop opened and closed in the same tap (same trap as the hero tray).
+- **Also:** `--space-3` is NOT defined in this project's CSS (use `--space-2` / `--space-4`); a gap using it silently collapses to nothing.
+- **Alternatives rejected:** a combined day-token counter on the button (not what Jeremy meant); collapsing the 9 `Hud.updatePlayerDisplays` call sites into one builder (not needed once the token counter was dropped).
+- **Tests:** `test/hud.test.js` +1 (aria-label), `test/shopView.test.js` +3 (balance text, refresh, debt class, missing header). sw.js v126 -> v127 (points button) -> v128 (arrow + shop header). Phone-verified by Jeremy.
+
+---
+
 ## 2026-10-27 -- Sub-tasks get their own counter; they no longer count as tasks in run stats or Task Slayer (Jeremy chose option A; Claude app session, Sonnet; achievement-counting change via the balance-tuning protocol)
 - **Decision:** completing a SUB-TASK (`item.parentId`) now bumps `subtasksCompleted` instead of `tasksCompleted`, in both layers: the run stats (`RunStats.recordSubtaskCompleted`, in `freshRunStats` / `finalizeRun` totals / `deltasVsLastRun`) and the lifetime stats (`recordLifetime('subtaskCompleted', +/-1)`, symmetric on uncomplete like tasks; `Achievements.freshLifetimeStats` gains `subtasksCompleted`). Task Slayer (metric `tasksCompleted`, tiers 10 / 50 / 250 / 1000) therefore ignores sub-tasks. UI: Stats "Sub-tasks done" counter (+ delta vs last run), and a "N sub-tasks" segment on past-run cards and the game-over totals line only when N > 0.
 - **Why:** Jeremy: a separate sub-task count is more useful to the player than mixing sub-tasks into the task count. Option B (sub-tasks counted separately in the run but still feeding Task Slayer) was rejected: the Stats screen and the badge would disagree about what a task is.
