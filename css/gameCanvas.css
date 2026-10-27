@@ -176,6 +176,11 @@
     flex-direction: column;
     align-items: center;
     pointer-events: none;
+    /* 2026-10-27 (Jeremy): clouds must drift IN FRONT of the moon and its label.
+       The moon used to be z-index auto (above the whole scene); it now sits at -3,
+       just above the sky (-4) and below the clouds (-2), still behind the church /
+       enemies (all auto or higher). */
+    z-index: -3;
 }
 
 .nights-moon {
@@ -224,7 +229,7 @@
    bigger/brighter/more numerous so the faster movement actually has
    something visible to carry it. */
 .scene-clouds {
-    z-index: -3;
+    z-index: -2; /* above the moon + label (-3), below the silhouettes (-2, later in DOM) */
     /* Wider than the shared .scene-layer 112%/-6% margin — needed once the
        rate went to -18% (max single-direction shift is now 9%, which would
        otherwise reveal a gap at the canvas edge at the extremes of the
@@ -247,21 +252,22 @@
        width, the pattern is pixel-identical to its start, so the loop has
        no seam and needs no extra box sizing. */
     /* Pixel clouds (2026-10-27, Jeremy picked pair "A + D" from PixelLab):
-       Assets/scene/clouds-tile.png is a 550x72 transparent tile holding both
+       Assets/scene/clouds-tile.png is a 750x72 transparent tile holding both
        clouds (sources in Assets/scene/_source/cloud-a.png, cloud-d.png), drawn
-       at an exact 2x (1100x144) like the church. The tile is still 1100px wide
-       on screen, so the seamless wrap and the 15s px/sec speed are unchanged.
-       Replaces the 2026-07-21 radial-gradient glows. */
+       at an exact 2x (1500x144) like the church. Same-day follow-up: tile widened
+       1100 -> 1500px on screen so the two clouds sit ~500px apart (spread out
+       more) and drift slowed ~20% (see the duration below). */
     background-image: url("../Assets/scene/clouds-tile.png");
     background-repeat: repeat-x;
-    background-size: 1100px 144px;
+    background-size: 1500px 144px;
     background-position: 0 0;
     image-rendering: pixelated;
     /* 70s -> 12s -> 7s (two rounds of speed feedback) -> 15s now that the
        tile widened 500px -> 1100px (2026-07-21) — scaled up proportionally
        so px/sec on-screen speed stays exactly what Jeremy just approved;
        this round was about cloud COUNT, not pace. */
-    animation: cloud-idle-drift 15s linear infinite;
+    /* 2026-10-27: 1100px/15s (73 px/s) -> 1500px/26s (58 px/s), "a tad" slower. */
+    animation: cloud-idle-drift 26s linear infinite;
 }
 
 /* Drifts right ("wind" direction, Jeremy's call) while idle. Paused via
@@ -276,7 +282,7 @@
 
 @keyframes cloud-idle-drift {
     from { background-position-x: 0; }
-    to { background-position-x: 1100px; }
+    to { background-position-x: 1500px; }
 }
 
 /* Far silhouettes (hill + bare trees): slower parallax than clouds.
