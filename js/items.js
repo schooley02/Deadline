@@ -440,7 +440,9 @@ const Items = (() => {
      *         updatePlayerDisplays, checkPlayerLevelUp, createListItem,
      *         sortAndRenderActiveList, completedItems (getter), saveGame,
      *         renderCompletedItems, getCurrentRunStats?, onStreakMilestone?,
-     *         recordLifetime? }
+     *         recordLifetime?, onItemDefeated? }
+     * onItemDefeated(item) — optional (2026-10-26): fires once per completion, before the death
+     * animation, so script.js can play the owning hero's attack row.
      * recordLifetime(event, value) — optional achievements collaborator
      * (session 65): events 'taskCompleted'/'habitCompleted' (value ±1),
      * 'streakReached' (value = new streak), 'pointsRecovered' (value 1).
@@ -621,6 +623,11 @@ const Items = (() => {
 
         // Show completed tasks section and render completed items
         deps.renderCompletedItems();
+
+        // Hero attack (2026-10-26): the item's hero plays its attack row once. Fired BEFORE the death
+        // animation starts, while the sprite is still in place (script.js measures its lane). Optional
+        // collaborator; every completion path (task, sub-task, habit, avoided lurker, KO ghost) lands here.
+        if (typeof deps.onItemDefeated === 'function') deps.onItemDefeated(item);
 
         // Exit: play the death animation (P2-GAME-010 Stage 2b), then fade the
         // splat out over the last FADE_MS. Falls back to the plain 0.5s fade

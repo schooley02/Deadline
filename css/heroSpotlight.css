@@ -141,10 +141,12 @@
     --hero-idle-frames: 9; /* per-category override below (lifestyle idle has 7 frames) */
 }
 .hero-sprite[data-anim="ko"] { --hero-row: 4; }
-/* One-shot reactions (sub-session 5): hurt row 2, levelup row 3. Frames + fps KEEP IN SYNC with
-   CONFIG.HERO_ONESHOT_* (test/heroArt.test.js). */
+/* One-shot reactions (sub-session 5): attack row 1 (2026-10-26, on completion), hurt row 2, levelup
+   row 3. Frames + fps KEEP IN SYNC with CONFIG.HERO_ONESHOT_* (test/heroArt.test.js). */
+.hero-sprite[data-anim="attack"] { --hero-row: 1; }
 .hero-sprite[data-anim="hurt"] { --hero-row: 2; }
 .hero-sprite[data-anim="levelup"] { --hero-row: 3; }
+.hero-sprite[data-anim="attack"],
 .hero-sprite[data-anim="hurt"],
 .hero-sprite[data-anim="levelup"] { --hero-oneshot-frames: 9; --hero-oneshot-fps: 10; }
 .hero-spotlight[data-category="financial"] .hero-sprite[data-anim="hurt"],
@@ -194,7 +196,8 @@
     100%    { transform: translate3d(-1312px, 0, 0); }
 }
 
-/* hurt / levelup: play the row once, hold the last frame; script returns the hero to idle/KO afterwards. */
+/* attack / hurt / levelup: play the row once, hold the last frame; script returns the hero to idle/KO afterwards. */
+.hero-sprite[data-anim="attack"] .hero-sprite-sheet,
 .hero-sprite[data-anim="hurt"] .hero-sprite-sheet,
 .hero-sprite[data-anim="levelup"] .hero-sprite-sheet {
     animation: hero-oneshot calc(var(--hero-oneshot-frames) / var(--hero-oneshot-fps) * 1s) steps(var(--hero-oneshot-frames), jump-none) 1 forwards;

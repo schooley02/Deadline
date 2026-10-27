@@ -596,6 +596,8 @@ document.addEventListener('DOMContentLoaded', () => {
             onRoutineKo: (routine) => {
                 FrozenNotice.showRoutineKoNotice(routine.name);
             },
+            // Completion (2026-10-26): the item's hero plays its `attack` row once.
+            onItemDefeated: (item) => heroAttackOnDefeat(item),
             onRoutineDamaged: (routine) => {
                 // Hero spotlight `hurt` row: only plays on a hero that is already on screen.
                 if (heroSpotlightReady) HeroSpotlight.react(routine.id, 'hurt');
@@ -945,10 +947,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const now = Date.now();
         if (!force && now - heroAttackLastMs < 500) return;
         heroAttackLastMs = now;
+        // A just-completed zombie stays in the list while its death animation plays: it no longer attacks.
         const ids = (timePreviewActive || State.isGameOver()) ? []
-            : HeroSpotlight.attackedHeroIds(State.getActiveItems(), findRoutineForItemDeps, CONFIG.HERO_CATEGORIES, Items.isNonThreatening);
+            : HeroSpotlight.attackedHeroIds(State.getActiveItems().filter(i => !i.completedAt), findRoutineForItemDeps, CONFIG.HERO_CATEGORIES, Items.isNonThreatening);
         HeroSpotlight.setAttackedHeroes(ids);
         refreshHeroLane();
+    }
+
+    // Completing a task / habit (2026-10-26): the item's hero (its routine's, else its category's;
+    // a sub-task uses its parent's) comes up in the defeated zombie's lane and plays `attack` once, then
+    // stays for the normal HERO_SPOTLIGHT_MS. It replaces any hero already up and releases a selected row
+    // (the hold would otherwise outlive the item). Called from Items.completeItem before the death animation.
+    function heroAttackOnDefeat(item) {
+        if (!item || !baseScrimEl || !heroSpotlightEl) return;
+        if (CONFIG.HERO_ATTACK_ON_COMPLETE === false) return;
+        const hero = HeroSpotlight.resolveHeroForItem(item, State.getActiveItems(), findRoutineForItemDeps, CONFIG.HERO_CATEGORIES);
+        if (!hero) return;
+        ensureHeroSpotlight();
+        heroFocusItemId = item.id;
+        clearHeroSelection();
+        if (!HeroSpotlight.react(hero.id, 'attack')) return;
+        refreshHeroLane(); // the hero is visible now: put its feet on the defeated zombie's feet line at once
     }
 
     function spotlightRoutine(routineId, opts) {

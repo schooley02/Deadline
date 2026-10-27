@@ -157,8 +157,9 @@ const HeroSpotlight = (() => {
         return mine.slice().sort((a, b) => (attacking(a) - attacking(b)) || (dueMs(a) - dueMs(b)) || (a.id - b.id))[0];
     }
 
-    // ---- One-shot reactions (hurt / levelup) ---------------------------------
-    const ONESHOT_KINDS = ['hurt', 'levelup'];
+    // ---- One-shot reactions (hurt / levelup / attack) -------------------------
+    // attack (2026-10-26): plays once on the hero of an item the player just completed.
+    const ONESHOT_KINDS = ['hurt', 'levelup', 'attack'];
 
     function oneShotFrames(kind, category, config) {
         const over = config.HERO_ONESHOT_FRAME_OVERRIDES && config.HERO_ONESHOT_FRAME_OVERRIDES[kind];
@@ -170,11 +171,13 @@ const HeroSpotlight = (() => {
     }
 
     /**
-     * Pure decision: what should a hurt / levelup event do right now?
+     * Pure decision: what should a hurt / levelup / attack event do right now?
      * ctx: { kind, routine, visibleRoutineId (hero on screen or null), config }
      * -> { action: 'ignore' } | { action: 'play', ms } | { action: 'show', ms }
      * play = that routine's hero is already up; show = open the spotlight first
      * (level-up only, behind CONFIG.HERO_LEVELUP_AUTO_SHOW, only when nothing is showing).
+     * attack (completion) ALWAYS shows: it opens the hero, or replaces whichever other hero is up,
+     * behind CONFIG.HERO_ATTACK_ON_COMPLETE (default on).
      */
     function planReaction(ctx) {
         const { kind, routine, visibleRoutineId, config } = ctx;
@@ -183,6 +186,10 @@ const HeroSpotlight = (() => {
         if (!hasHeroArt(category, config)) return { action: 'ignore' }; // emoji heroes have no rows
         if (deriveState(routine) === 'ko') return { action: 'ignore' }; // the KO row owns a KO'd hero
         const ms = oneShotMs(kind, category, config);
+        if (kind === 'attack') {
+            if (config.HERO_ATTACK_ON_COMPLETE === false) return { action: 'ignore' };
+            return { action: visibleRoutineId === routine.id ? 'play' : 'show', ms };
+        }
         if (visibleRoutineId === routine.id) return { action: 'play', ms };
         if (kind === 'levelup' && config.HERO_LEVELUP_AUTO_SHOW && (visibleRoutineId === null || visibleRoutineId === undefined)) {
             return { action: 'show', ms };
@@ -361,9 +368,10 @@ const HeroSpotlight = (() => {
     }
 
     /**
-     * Play the hurt / levelup row once on the hero that is on screen, then fall back to the
+     * Play the hurt / levelup / attack row once on the hero that is on screen, then fall back to the
      * routine's resting look (idle, or KO if the hit was fatal). Level-up may open the spotlight
-     * first (see planReaction). Returns true if something played.
+     * first (see planReaction). Attack always (re)shows the hero on a normal HERO_SPOTLIGHT_MS timer,
+     * which also releases a held (selected-row) hero. Returns true if something played.
      */
     function react(routineId, kind) {
         if (!heroEl || !controller || typeof lookup !== 'function') return false;
@@ -371,7 +379,9 @@ const HeroSpotlight = (() => {
         const plan = planReaction({ kind, routine, visibleRoutineId: visibleRoutineId(), config: configRef });
         if (plan.action === 'ignore') return false;
         if (kind === 'hurt' && isAttacked(routineId)) return false; // the hurt loop is already showing
-        if (plan.action === 'show' && !controller.show(routineId)) return false;
+        if (kind === 'attack') {
+            if (!controller.show(routineId)) return false; // restarts the timer, drops any hold
+        } else if (plan.action === 'show' && !controller.show(routineId)) return false;
         clearOneShot();
         heroEl.innerHTML = spriteHtml(kind);
         oneShotTimer = setTimeout(() => {

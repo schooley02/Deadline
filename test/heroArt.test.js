@@ -114,6 +114,21 @@ describe('hurt / levelup one-shot rows (css <-> config <-> json)', () => {
     });
 });
 
+describe('attack row on completion (2026-10-26)', () => {
+    test('css plays attack (row 1) once with the shared one-shot frames / fps', () => {
+        expect(css).toMatch(/\.hero-sprite\[data-anim="attack"\] \{ --hero-row: 1; \}/);
+        expect(css).toMatch(/\.hero-sprite\[data-anim="attack"\],\s*\.hero-sprite\[data-anim="hurt"\],\s*\.hero-sprite\[data-anim="levelup"\] \{ --hero-oneshot-frames: 9; --hero-oneshot-fps: 10; \}/);
+        expect(css).toMatch(/\.hero-sprite\[data-anim="attack"\] \.hero-sprite-sheet,\s*\.hero-sprite\[data-anim="hurt"\] \.hero-sprite-sheet,\s*\.hero-sprite\[data-anim="levelup"\] \.hero-sprite-sheet \{\s*animation: hero-oneshot[^;]*1 forwards;/);
+    });
+
+    test.each(ART)('%s: the atlas attack row is row 1 with the configured frame count (no override needed)', (cat) => {
+        const meta = JSON.parse(read(`Assets/Heroes/anim/${cat}.json`));
+        expect(meta.animations.attack.row).toBe(1);
+        expect(meta.animations.attack.frames).toBe(CONFIG.HERO_ONESHOT_FRAMES);
+        expect(HeroSpotlight.oneShotFrames('attack', cat, CONFIG)).toBe(meta.animations.attack.frames);
+    });
+});
+
 describe('heroLookFor with art', () => {
     const base = { id: 'r', name: 'x', isActive: true, heroCategory: 'other' };
     test('an art category draws the atlas: idle normally, ko when knocked out', () => {

@@ -341,10 +341,25 @@ describe('planReaction', () => {
         expect(plan({ kind: 'levelup', visibleRoutineId: null, config: { ...CONFIG, HERO_LEVELUP_AUTO_SHOW: false } }).action).toBe('ignore');
     });
 
+    test('attack (completion) plays on the hero already up, otherwise opens or replaces the spotlight', () => {
+        expect(plan({ kind: 'attack' })).toEqual({ action: 'play', ms: 900 });
+        expect(plan({ kind: 'attack', visibleRoutineId: null })).toEqual({ action: 'show', ms: 900 });
+        expect(plan({ kind: 'attack', visibleRoutineId: 'other' })).toEqual({ action: 'show', ms: 900 });
+        const fin = { ...hero, heroCategory: 'financial' };
+        expect(plan({ kind: 'attack', routine: fin, visibleRoutineId: null })).toEqual({ action: 'show', ms: 900 }); // 9-frame attack row
+    });
+
+    test('attack is ignored for a KO\'d hero, a category without art, or with HERO_ATTACK_ON_COMPLETE off', () => {
+        expect(plan({ kind: 'attack', routine: { ...hero, koState: { koAt: 1 } } }).action).toBe('ignore');
+        expect(plan({ kind: 'attack', config: NO_ART }).action).toBe('ignore');
+        expect(plan({ kind: 'attack', config: { ...CONFIG, HERO_ATTACK_ON_COMPLETE: false } }).action).toBe('ignore');
+        expect(CONFIG.HERO_ATTACK_ON_COMPLETE).toBe(true);
+    });
+
     test('a KO\'d hero, a category without art, an unknown kind or a missing routine are ignored', () => {
         expect(plan({ routine: { ...hero, koState: { koAt: 1 } } }).action).toBe('ignore');
         expect(plan({ config: NO_ART }).action).toBe('ignore');
-        expect(plan({ kind: 'attack' }).action).toBe('ignore');
+        expect(plan({ kind: 'bogus' }).action).toBe('ignore');
         expect(plan({ routine: null }).action).toBe('ignore');
     });
 });

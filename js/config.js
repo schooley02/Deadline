@@ -295,6 +295,10 @@ const CONFIG = {
     // A routine level-up opens the spotlight on that hero (it plays `levelup`) when no hero is showing.
     // Hurt never opens it (damage ticks are frequent): it only plays on a hero that is already up.
     HERO_LEVELUP_AUTO_SHOW: true,
+    // Completing a task / habit plays the `attack` row ONCE on that item's hero (2026-10-26): the hero
+    // opens (or replaces the one showing) for HERO_SPOTLIGHT_MS, standing in the completed zombie's lane.
+    // Same fps / 9 frames as the other one-shots. false = no completion attack.
+    HERO_ATTACK_ON_COMPLETE: true,
     // Hero tray (plan sub-session 3): a hero counts as "hurt" (red dot on the Heroes tab) at or
     // below this fraction of max health. Display threshold, not balance.
     HERO_HURT_PCT: 0.5,
