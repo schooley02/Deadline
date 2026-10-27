@@ -220,10 +220,9 @@
     text-shadow: 0 1px 2px #0b0b24, 0 0 4px #0b0b24;
 }
 
-/* Clouds: fastest parallax layer. Outer div carries the slider-driven
-   transform (--scene-progress, set by js/ui/timeSliderView.js); the inner
-   .scene-clouds-drift carries a SEPARATE idle animation so the two
-   transforms never fight on the same property/element.
+/* Clouds. Until 2026-10-27 the outer div carried a slider-driven parallax
+   transform; now the inner .scene-clouds-drift idle animation is stepped
+   forward/backward with the slider instead (js/ui/timeSliderView.js).
    2026-07-21 tuning pass (Jeremy: clouds too faint, parallax too subtle) —
    rate bumped -9% -> -18% (roughly doubled) and the cloud gradients made
    bigger/brighter/more numerous so the faster movement actually has
@@ -236,8 +235,8 @@
        slider). */
     width: 130%;
     left: -15%;
-    transform: translateX(calc((var(--scene-progress, 0.5) - 0.5) * -18%));
-    transition: transform 0.15s linear;
+    /* 2026-10-27 (Jeremy): no slider parallax any more; the drift below is stepped
+       forward/backward with the slider instead (js/ui/timeSliderView.js scrubAnimations). */
 }
 
 .scene-clouds-drift {
@@ -271,16 +270,10 @@
     animation: cloud-idle-drift 28s linear infinite;
 }
 
-/* Drifts right ("wind" direction, Jeremy's call) while idle. Paused via
-   .parallax-scrubbing (js/ui/timeSliderView.js toggles this on #graveyardScene
-   for the duration of an active scrub) so the idle drift and the slider-driven
-   parallax transform on the PARENT .scene-clouds never visually fight each
-   other — positions lock in place, only the parallax offset moves, exactly
-   like Jeremy described. */
-.parallax-scrubbing .scene-clouds-drift {
-    animation-play-state: paused;
-}
-
+/* Drifts right ("wind" direction, Jeremy's call) while idle. While the time
+   slider is dragged, js/ui/timeSliderView.js freezes this animation and steps
+   it forward/backward with the drag (2026-10-27; replaces the old pause-during-
+   scrub rule and the slider parallax on .scene-clouds). */
 @keyframes cloud-idle-drift {
     from { background-position-x: 0; }
     to { background-position-x: 1250px; }
@@ -291,8 +284,7 @@
    clouds' rate while still reading as motion on its own. */
 .scene-silhouettes {
     z-index: -2;
-    transform: translateX(calc((var(--scene-progress, 0.5) - 0.5) * -7%));
-    transition: transform 0.15s linear;
+    /* 2026-10-27 (Jeremy): locked in place; no longer moves with the time slider. */
 }
 
 .scene-hill {
@@ -330,8 +322,7 @@
     image-rendering: pixelated;
     width: 130%;
     left: -15%;
-    transform: translateX(calc((var(--scene-progress, 0.5) - 0.5) * -22%));
-    transition: transform 0.15s linear;
+    /* 2026-10-27 (Jeremy): locked in place; no longer moves with the time slider. */
 }
 
 .scene-ground .scene-svg {

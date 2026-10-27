@@ -69,6 +69,51 @@ const TimeSliderView = (() => {
     let deps = null;
     let canvasEl = null; // #gameCanvas, carries .time-previewing while scrubbing
 
+    // ---- Scrub-coupled animation (2026-10-27, Jeremy) -------------------------------------------
+    // While the slider is dragged, every LOOPING animation on the zombie sprites, the visible hero and
+    // the cloud drift is frozen (playbackRate 0) and its currentTime is moved by the slider delta x
+    // CONFIG.SCRUB_ANIM_MS_PER_MINUTE: drag right plays forward, drag left plays in reverse, a still
+    // finger holds the frame. Release restores playbackRate 1 so CSS playback carries on from there.
+    // playbackRate/currentTime (NOT pause()/play()) on purpose: pause()/play() would permanently
+    // override CSS `animation-play-state` (the day pager's `.enemy.time-preview-ghost` pause rule).
+    // One-shot (finite) animations - hero attack/hurt/level-up, zombie death - are left alone.
+    // The ground + hills no longer move with the slider (css/gameCanvas.css).
+    const SCRUB_TARGETS = '#gameCanvas .enemy-sprite-sheet, #heroSpotlight .hero-sprite-sheet, #graveyardScene .scene-clouds-drift';
+    const scrubbedAnims = new Set();
+    let lastScrubMinutes = null;
+
+    function scrubMsPerMinute() {
+        const v = (typeof CONFIG !== 'undefined' && CONFIG) ? Number(CONFIG.SCRUB_ANIM_MS_PER_MINUTE) : NaN;
+        return Number.isFinite(v) ? v : 20;
+    }
+
+    function scrubAnimations(deltaMinutes) {
+        if (typeof document === 'undefined') return;
+        const shift = deltaMinutes * scrubMsPerMinute();
+        document.querySelectorAll(SCRUB_TARGETS).forEach((el) => {
+            if (typeof el.getAnimations !== 'function') return;
+            el.getAnimations().forEach((anim) => {
+                const timing = (anim.effect && typeof anim.effect.getComputedTiming === 'function')
+                    ? anim.effect.getComputedTiming() : null;
+                if (!timing || timing.iterations !== Infinity) return;
+                const dur = Number(timing.duration);
+                if (!(dur > 0)) return;
+                if (!scrubbedAnims.has(anim)) {
+                    anim.playbackRate = 0;
+                    scrubbedAnims.add(anim);
+                }
+                const delay = Number(timing.delay) || 0;
+                const local = (Number(anim.currentTime) || 0) - delay + shift;
+                anim.currentTime = delay + (((local % dur) + dur) % dur); // wrap, phase kept
+            });
+        });
+    }
+
+    function releaseAnimations() {
+        scrubbedAnims.forEach((anim) => { anim.playbackRate = 1; });
+        scrubbedAnims.clear();
+    }
+
     // Graveyard scene parallax (V1, 2026-07-21 — docs/VISUAL_DESIGN_PLAN.md).
     // Deliberately NOT threaded through the deps contract like the rest of
     // this module: it's a purely decorative, non-game-state DOM query
@@ -162,6 +207,7 @@ const TimeSliderView = (() => {
         const dayStart = TimeSlider.getDayBounds(time).start;
         const minutes = TimeSlider.timeToMinutesOfDay(time, dayStart);
         deps.sliderEl.value = minutes;
+        lastScrubMinutes = minutes; // rest position: the next drag's delta starts here
         if (deps.labelEl) deps.labelEl.textContent = TimeSlider.formatLabel(time);
         updateParallax(minutes);
     }
@@ -174,10 +220,10 @@ const TimeSliderView = (() => {
         deps.setTimePreviewActive(true);
         if (deps.labelEl) deps.labelEl.textContent = TimeSlider.formatLabel(previewTime);
         applyPreview(previewTime, true);
-        // .parallax-scrubbing pauses the clouds' idle "wind drift" animation
-        // (css/gameCanvas.css) for the duration of the scrub, so it doesn't
-        // visually fight the slider-driven parallax transform — positions
-        // lock, only the parallax offset moves (Jeremy's call, 2026-07-21).
+        scrubAnimations(lastScrubMinutes == null ? 0 : minutes - lastScrubMinutes);
+        lastScrubMinutes = minutes;
+        // .parallax-scrubbing marks #graveyardScene for the duration of the scrub
+        // (the clouds' drift is now driven by scrubAnimations, see above).
         if (sceneEl) sceneEl.classList.add('parallax-scrubbing');
         updateParallax(minutes);
     }
@@ -191,6 +237,7 @@ const TimeSliderView = (() => {
         deps.setTimePreviewActive(false);
         const now = new Date();
         applyPreview(now, false);
+        releaseAnimations();
         if (sceneEl) sceneEl.classList.remove('parallax-scrubbing');
         syncHandle(now);
     }

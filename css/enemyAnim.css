@@ -148,8 +148,10 @@
     to   { transform: translate3d(calc(var(--cell) * 8 * -1), 0, 0); }
 }
 
-/* Pause the walk/idle/attack cycle while the time slider / day pager is being
-   scrubbed (they put .time-preview-ghost on every enemy). Stage 2b. */
+/* Pause the walk/idle/attack cycle while the day pager shows another day
+   (it puts .time-preview-ghost on every enemy). Stage 2b. During a time-slider
+   drag js/ui/timeSliderView.js instead steps the cycle forward/backward with
+   the drag (2026-10-27). */
 .enemy.time-preview-ghost .enemy-sprite-sheet {
     animation-play-state: paused;
 }

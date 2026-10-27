@@ -290,3 +290,64 @@ describe('hero spotlight ghosting (2026-10-27)', () => {
         expect(canvas.classList.contains('time-previewing')).toBe(false);
     });
 });
+
+describe('scrub-coupled animation (2026-10-27)', () => {
+    afterEach(() => { document.body.innerHTML = ''; delete global.CONFIG; });
+
+    function fakeAnim({ duration = 1000, iterations = Infinity, delay = 0, currentTime = 0 } = {}) {
+        return {
+            playbackRate: 1,
+            currentTime,
+            effect: { getComputedTiming: () => ({ duration, iterations, delay }) },
+        };
+    }
+    function mount(selectorParentId, cls, anims) {
+        let parent = document.getElementById(selectorParentId);
+        if (!parent) {
+            parent = document.createElement('div');
+            parent.id = selectorParentId;
+            document.body.appendChild(parent);
+        }
+        const el = document.createElement('div');
+        el.className = cls;
+        el.getAnimations = () => anims;
+        parent.appendChild(el);
+        return el;
+    }
+
+    test('drag right steps loops forward, drag left in reverse, release resumes', () => {
+        global.CONFIG = { SCRUB_ANIM_MS_PER_MINUTE: 10 };
+        const walk = fakeAnim({ duration: 1000, currentTime: 100 });
+        const hero = fakeAnim({ duration: 900, currentTime: 0 });
+        const cloud = fakeAnim({ duration: 28000, currentTime: 5000 });
+        const oneShot = fakeAnim({ duration: 900, iterations: 1, currentTime: 50 });
+        mount('gameCanvas', 'enemy-sprite-sheet', [walk]);
+        mount('heroSpotlight', 'hero-sprite-sheet', [hero, oneShot]);
+        mount('graveyardScene', 'scene-clouds-drift', [cloud]);
+
+        const { deps, sliderEl } = makeDeps();
+        TimeSliderView.init(deps);
+        TimeSliderView.syncHandle(new Date(new Date().setHours(10, 0, 0, 0))); // rest at 10:00, away from the ends
+        const start = Number(sliderEl.value);
+        expect(start).toBe(600);
+
+        sliderEl.value = String(start + 30); // +30 min => +300 ms
+        sliderEl.dispatchEvent(new Event('input'));
+        expect(walk.playbackRate).toBe(0);
+        expect(walk.currentTime).toBe(400);
+        expect(hero.currentTime).toBe(300);
+        expect(cloud.currentTime).toBe(5300);
+        expect(oneShot.playbackRate).toBe(1); // finite one-shots untouched
+        expect(oneShot.currentTime).toBe(50);
+
+        sliderEl.value = String(start - 30); // -60 min => -600 ms, wraps
+        sliderEl.dispatchEvent(new Event('input'));
+        expect(walk.currentTime).toBe(800); // 400 - 600 = -200 -> 800
+        expect(hero.currentTime).toBe(600); // 300 - 600 = -300 -> 600
+
+        sliderEl.dispatchEvent(new Event('change'));
+        expect(walk.playbackRate).toBe(1);
+        expect(hero.playbackRate).toBe(1);
+        expect(cloud.playbackRate).toBe(1);
+    });
+});
