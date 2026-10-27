@@ -156,8 +156,10 @@
 .scene-sky::after {
     content: "";
     position: absolute;
-    top: 6%;
-    right: 5%;
+    top: 8%;
+    /* .scene-layer is 112% wide and shifted -6%, so a plain % here lands off-screen;
+       6% + a fixed px margin keeps ~28px of breathing room from the canvas edge. */
+    right: calc(6% + 28px);
     width: 58px;
     height: 58px;
     border-radius: 50%;
