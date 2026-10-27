@@ -252,22 +252,23 @@
        width, the pattern is pixel-identical to its start, so the loop has
        no seam and needs no extra box sizing. */
     /* Pixel clouds (2026-10-27, Jeremy picked pair "A + D" from PixelLab):
-       Assets/scene/clouds-tile.png is a 750x72 transparent tile holding both
+       Assets/scene/clouds-tile.png is a 625x72 transparent tile holding both
        clouds (sources in Assets/scene/_source/cloud-a.png, cloud-d.png), drawn
-       at an exact 2x (1500x144) like the church. Same-day follow-up: tile widened
-       1100 -> 1500px on screen so the two clouds sit ~500px apart (spread out
-       more) and drift slowed ~20% (see the duration below). */
+       at an exact 2x (1250x144) like the church. Same-day follow-ups: tile
+       widened 1100 -> 1500px (spread out), then pulled in to 1250px so the two
+       clouds sit an even ~390px apart, and the drift slowed twice (see below). */
     background-image: url("../Assets/scene/clouds-tile.png");
     background-repeat: repeat-x;
-    background-size: 1500px 144px;
+    background-size: 1250px 144px;
     background-position: 0 0;
     image-rendering: pixelated;
     /* 70s -> 12s -> 7s (two rounds of speed feedback) -> 15s now that the
        tile widened 500px -> 1100px (2026-07-21) — scaled up proportionally
        so px/sec on-screen speed stays exactly what Jeremy just approved;
        this round was about cloud COUNT, not pace. */
-    /* 2026-10-27: 1100px/15s (73 px/s) -> 1500px/26s (58 px/s), "a tad" slower. */
-    animation: cloud-idle-drift 26s linear infinite;
+    /* 2026-10-27: 1100px/15s (73 px/s) -> 1500px/26s (58 px/s) -> 1250px/28s
+       (~45 px/s), each a "tad" slower at Jeremy's request. */
+    animation: cloud-idle-drift 28s linear infinite;
 }
 
 /* Drifts right ("wind" direction, Jeremy's call) while idle. Paused via
@@ -282,7 +283,7 @@
 
 @keyframes cloud-idle-drift {
     from { background-position-x: 0; }
-    to { background-position-x: 1500px; }
+    to { background-position-x: 1250px; }
 }
 
 /* Far silhouettes (hill + bare trees): slower parallax than clouds.
