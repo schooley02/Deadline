@@ -3,7 +3,7 @@
  * of the game canvas (2026-10-26, Jeremy).
  *
  *   MOON  (#nightsSurvived .nights-moon): the PixelLab moon sprite with the
- *         count centred on it in the Silkscreen pixel font.
+ *         count centred on it in the Press Start 2P pixel font.
  *   LABEL (.nights-label): "Nights Survived" in Inter underneath.
  *
  * COUNTING RULE: one night per LOCAL midnight crossed since the run started

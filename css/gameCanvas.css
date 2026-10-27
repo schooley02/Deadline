@@ -155,14 +155,14 @@
 
 /* Nights Survived (2026-10-26, Jeremy): PixelLab moon (Assets/scene/moon.png,
    58x58 trimmed disc, shown 1:1 pixelated) with the run's night count centred on
-   it in the Silkscreen pixel font, and a "Nights Survived" label in Inter
+   it in the Press Start 2P pixel font, and a "Nights Survived" label in Inter
    underneath. Glow stays CSS (box-shadow). Positioned in #gameCanvas itself (not
    the wide scene layer), so right/top are plain offsets. z-index auto + DOM
    order before #base => above the scene layers, below the church/enemies. */
 @font-face {
-    font-family: 'Silkscreen';
-    src: url("../Assets/fonts/silkscreen-latin-700-normal.woff2") format("woff2");
-    font-weight: 700;
+    font-family: 'Press Start 2P';
+    src: url("../Assets/fonts/press-start-2p-latin-400-normal.woff2") format("woff2");
+    font-weight: 400;
     font-style: normal;
     font-display: swap;
 }
@@ -190,13 +190,15 @@
 }
 
 .nights-count {
-    font-family: 'Silkscreen', monospace;
-    font-weight: 700;
+    font-family: 'Press Start 2P', monospace;
+    font-weight: 400;
     line-height: 1;
     color: #2b2a4a;
     /* soft cream halo keeps the digits readable over the craters */
     text-shadow: 0 0 3px rgba(255, 253, 242, 0.9), 0 0 6px rgba(255, 253, 242, 0.7);
 }
+/* Press Start 2P is an 8px-grid monospace (1 glyph = 1em wide): 24px / 16px land
+   on whole pixels; 4+ digits drop to 12px to fit the 58px disc. */
 .nights-count--d2 { font-size: 24px; }
 .nights-count--d3 { font-size: 16px; }
 .nights-count--d4 { font-size: 12px; }
