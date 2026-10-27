@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v114';
+const CACHE_NAME = 'deadline-shell-v115';
 
 const APP_SHELL = [
     './',
@@ -166,6 +166,7 @@ const APP_SHELL = [
     'Assets/Heroes/career-head.png',
     // Floor art: desktop/landscape ground (css/gameCanvas.css) + portrait strip floor (css/glanceStrip.css). NOT strip-floor-original/2/3.png or scene/_source/.
     'Assets/scene/strip-floor.png',
+    'Assets/scene/clouds-tile.png',
     'Assets/scene/floor-tile.png',
     'Assets/scene/moon.png',
     'Assets/fonts/press-start-2p-latin-400-normal.woff2',
