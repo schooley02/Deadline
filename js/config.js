@@ -290,6 +290,10 @@ const CONFIG = {
     // HERO_ONESHOT_FRAME_OVERRIDES); KEEP IN SYNC with the `hero-oneshot` rules in css/heroSpotlight.css
     // (test/heroArt.test.js checks both against the JSON files).
     HERO_ONESHOT_FPS: 10,
+    // EVERY hurt animation runs slower than the other one-shots so it does not flicker (2026-10-26): the one-shot
+    // `hurt` when the routine takes damage AND the `hurtloop` while a zombie attacks. Lower = slower. KEEP IN SYNC
+    // with `--hero-oneshot-fps` on `[data-anim="hurt"]` and `[data-anim="hurtloop"]` in css/heroSpotlight.css.
+    HERO_HURT_FPS: 5,
     HERO_ONESHOT_FRAMES: 9,
     HERO_ONESHOT_FRAME_OVERRIDES: { hurt: { financial: 7, health: 7 } },
     // A routine level-up opens the spotlight on that hero (it plays `levelup`) when no hero is showing.

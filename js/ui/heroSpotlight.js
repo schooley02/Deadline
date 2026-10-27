@@ -167,7 +167,8 @@ const HeroSpotlight = (() => {
     }
 
     function oneShotMs(kind, category, config) {
-        return Math.round(oneShotFrames(kind, category, config) / (config.HERO_ONESHOT_FPS || 10) * 1000);
+        const fps = (kind === 'hurt' ? config.HERO_HURT_FPS : config.HERO_ONESHOT_FPS) || config.HERO_ONESHOT_FPS || 10;
+        return Math.round(oneShotFrames(kind, category, config) / fps * 1000);
     }
 
     /**

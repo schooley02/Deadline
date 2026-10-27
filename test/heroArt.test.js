@@ -85,7 +85,7 @@ describe('selected row outline (2026-10-26)', () => {
 
 describe('hurtloop row (2026-10-26)', () => {
     test('css loops the hurt row with the same frames/fps as the one-shot', () => {
-        expect(css).toMatch(/\.hero-sprite\[data-anim="hurtloop"\] \{ --hero-row: 2; --hero-oneshot-frames: 9; --hero-oneshot-fps: 10; \}/);
+        expect(css).toMatch(new RegExp(`\\.hero-sprite\\[data-anim="hurtloop"\\] \\{ --hero-row: 2; --hero-oneshot-frames: 9; --hero-oneshot-fps: ${CONFIG.HERO_HURT_FPS}; \\}`));
         expect(css).toMatch(/\[data-anim="hurtloop"\] \.hero-sprite-sheet \{\s*animation: hero-oneshot[^;]*infinite;/);
         expect(css).toMatch(/\.hero-spotlight\[data-category="health"\] \.hero-sprite\[data-anim="hurtloop"\] \{ --hero-oneshot-frames: 7; \}/);
     });
@@ -114,10 +114,24 @@ describe('hurt / levelup one-shot rows (css <-> config <-> json)', () => {
     });
 });
 
+describe('every hurt animation runs at HERO_HURT_FPS (2026-10-26)', () => {
+    test('one-shot hurt and the attacked loop share the slower fps with the css', () => {
+        expect(CONFIG.HERO_HURT_FPS).toBeGreaterThan(0);
+        expect(CONFIG.HERO_HURT_FPS).toBeLessThan(CONFIG.HERO_ONESHOT_FPS);
+        expect(css).toMatch(new RegExp(`\\.hero-sprite\\[data-anim="hurt"\\] \\{ --hero-oneshot-frames: 9; --hero-oneshot-fps: ${CONFIG.HERO_HURT_FPS}; \\}`));
+        expect(css).toMatch(new RegExp(`\\[data-anim="hurtloop"\\] \\{ --hero-row: 2; --hero-oneshot-frames: 9; --hero-oneshot-fps: ${CONFIG.HERO_HURT_FPS}; \\}`));
+    });
+    test.each(['career', 'financial'])('%s: the one-shot hurt lasts frames / HERO_HURT_FPS (matches the css animation)', (cat) => {
+        const frames = HeroSpotlight.oneShotFrames('hurt', cat, CONFIG);
+        expect(HeroSpotlight.oneShotMs('hurt', cat, CONFIG)).toBe(Math.round(frames / CONFIG.HERO_HURT_FPS * 1000));
+        expect(HeroSpotlight.oneShotMs('levelup', cat, CONFIG)).toBe(Math.round(9 / CONFIG.HERO_ONESHOT_FPS * 1000));
+    });
+});
+
 describe('attack row on completion (2026-10-26)', () => {
     test('css plays attack (row 1) once with the shared one-shot frames / fps', () => {
         expect(css).toMatch(/\.hero-sprite\[data-anim="attack"\] \{ --hero-row: 1; \}/);
-        expect(css).toMatch(/\.hero-sprite\[data-anim="attack"\],\s*\.hero-sprite\[data-anim="hurt"\],\s*\.hero-sprite\[data-anim="levelup"\] \{ --hero-oneshot-frames: 9; --hero-oneshot-fps: 10; \}/);
+        expect(css).toMatch(/\.hero-sprite\[data-anim="attack"\],\s*\.hero-sprite\[data-anim="levelup"\] \{ --hero-oneshot-frames: 9; --hero-oneshot-fps: 10; \}/);
         expect(css).toMatch(/\.hero-sprite\[data-anim="attack"\] \.hero-sprite-sheet,\s*\.hero-sprite\[data-anim="hurt"\] \.hero-sprite-sheet,\s*\.hero-sprite\[data-anim="levelup"\] \.hero-sprite-sheet \{\s*animation: hero-oneshot[^;]*1 forwards;/);
     });
 

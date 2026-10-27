@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-10-26 -- Hero attack row plays once on task/habit completion (Jeremy; Claude app session, Sonnet; visual only, no balance numbers changed)
+- **Decision:** completing a task or habit shows the item's hero (its routine's, else its category's; a sub-task uses its parent's) in the defeated zombie's lane and plays the atlas `attack` row ONCE. After it the hero idles and leaves on the normal `HERO_SPOTLIGHT_MS` (5 s). Jeremy picked this over leaving as soon as the attack finishes. The attack replaces any hero already up and releases a held selected row (the item is gone anyway).
+- **Why not a loop / why before the death animation:** one completion = one swing, matching the zombie's ~0.75 s death. The hook fires before `SpriteAnim.playDeath` so the lane can still be measured from the live sprite.
+- **Wiring:** `Items.completeItem` -> optional `deps.onItemDefeated(item)` -> script.js `heroAttackOnDefeat` -> `HeroSpotlight.react(id,'attack')` (new kind in `ONESHOT_KINDS`; `planReaction` always returns play/show for it, ignored for KO'd heroes, emoji-only categories, or `CONFIG.HERO_ATTACK_ON_COMPLETE === false`). No indulge, no blocked parent, no game over. `refreshHeroAttack` skips `completedAt` items so a dying zombie doesn't re-trigger the hurt loop. sw v108.
+- **Hurt speed (Jeremy, same session: "loops too fast"):** all hurt animations, the one-shot `hurt` and the attacked `hurtloop`, now play at `CONFIG.HERO_HURT_FPS` 5 instead of the shared `HERO_ONESHOT_FPS` 10 (attack / levelup unchanged). `oneShotMs('hurt')` uses it so the one-shot lasts 1.8 s (1.4 s for the 7-frame financial / health rows) and matches the CSS. sw v109.
+- **Not changed (Jeremy confirmed 2026-10-26):** the work-timer hero stays on `idle` unless its zombie is currently attacking the base, then it loops `hurt` (existing `hurtloop` rule, `renderWork` passes `underAttack`). No attack row while a timer runs.
+
 ## 2026-10-26 -- A selected row holds its hero up (Jeremy; Claude app session, Sonnet; visual only, no balance numbers changed)
 - **Decision:** heroes used to vanish after `HERO_SPOTLIGHT_MS` (5 s); now tapping a row or a canvas zombie selects that item and its hero stays until released. Row tap toggles; canvas tap only selects (a second tap just reopens the popup). The selected row is outlined. Avatar taps and level-up shows keep the timeout (no row to select). Selection clears on hero/scrim tap, on another selection moving it, when the task is completed or removed, and at game over. sw v107.
 

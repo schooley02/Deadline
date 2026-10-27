@@ -323,10 +323,10 @@ describe('planReaction', () => {
     });
 
     test('hurt / levelup play on the hero that is already on screen, for the frame count of its row', () => {
-        expect(plan({ kind: 'hurt' })).toEqual({ action: 'play', ms: 900 });
+        expect(plan({ kind: 'hurt' })).toEqual({ action: 'play', ms: 1800 }); // hurt runs at HERO_HURT_FPS (5)
         expect(plan({ kind: 'levelup' })).toEqual({ action: 'play', ms: 900 });
         const fin = { ...hero, heroCategory: 'financial' };
-        expect(plan({ kind: 'hurt', routine: fin })).toEqual({ action: 'play', ms: 700 }); // 7-frame hurt row
+        expect(plan({ kind: 'hurt', routine: fin })).toEqual({ action: 'play', ms: 1400 }); // 7-frame hurt row at 5 fps
         expect(plan({ kind: 'levelup', routine: fin })).toEqual({ action: 'play', ms: 900 });
     });
 
