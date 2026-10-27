@@ -66,6 +66,11 @@ body.glance-strip .graveyard-scene {
     display: none;
 }
 
+/* The moon / Nights Survived count is landscape-only for now (2026-10-26). */
+body.glance-strip .nights-survived {
+    display: none;
+}
+
 /* FLOOR band (PixelLab tileable art, 2026-10-13): Assets/scene/strip-floor.png is
    64x36 (the 127x72 floor-tile.png, halved), tiled sideways at 1:1 with crisp
    pixels. It runs the full strip width, UNDER the church too (2026-10-26, Jeremy: the ground

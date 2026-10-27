@@ -114,7 +114,7 @@ cloud layer, a far hill + three bare-tree silhouettes (inline SVG), and a fixed 
 fence + three tombstone silhouettes (inline SVG). All decorative/`aria-hidden`. Matches
 `docs/ART_STYLE.md`'s "pixel art / cartoonish, playful, slightly eerie graveyard — never grim" —
 low-detail silhouettes only; V4 will regenerate the pixel-art church into this scene later.
-**Moon (2026-10-26):** PixelLab sprite `Assets/scene/moon.png` (58x58, shown 1:1, `image-rendering: pixelated`) on `.scene-sky::after` at top 8% / right calc(6% + 28px) (the sky layer is 112% wide, so a bare % clips the moon); glow stays CSS `box-shadow` so it can be tuned without regenerating art.
+**Moon + Nights Survived (2026-10-26):** `#nightsSurvived` in `#gameCanvas` (top 8%, right 32px): PixelLab `Assets/scene/moon.png` (58x58, 1:1, pixelated, CSS box-shadow glow) with the run's night count (local midnights crossed) centred in Silkscreen and a "NIGHTS SURVIVED" label in Inter below. Driven by `js/ui/nightsSurvivedView.js`; hidden in the portrait strip.
 
 **Slider-coupled parallax** (2026-07-21 art-direction decision): `js/ui/timeSliderView.js` sets a
 `--scene-progress` CSS custom property (0–1, minutes-of-day / MINUTES_PER_DAY) on `#graveyardScene`

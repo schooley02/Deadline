@@ -2611,6 +2611,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // read POST-restore state on their first render, not fresh-boot
     // defaults (mirrors TimeSliderView.init's own ordering note above).
     DayPagerView.init(dayPagerViewDeps());
+    // Nights Survived on the moon (2026-10-26) — after restoreGameState() so it
+    // reads the restored run start; the view self-refreshes (own interval).
+    NightsSurvivedView.init({
+        getRunStartedAtMs: State.getRunStartedAtMs,
+        isGameOver: State.isGameOver,
+    });
     // Sub-session 4 ([P1-DATA-005], check-in prompt, 2026-07-19): if the
     // rollover just ran (above) and left any negative-habit pendingCheckIn
     // markers, prompt for them now.

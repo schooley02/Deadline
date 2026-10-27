@@ -145,27 +145,72 @@
     height: 100%;
 }
 
-/* Sky: night gradient + a static moon. 2026-10-26: moon is now PixelLab art
-   (Assets/scene/moon.png, 58x58 trimmed disc, shown 1:1 pixelated), larger and
-   tucked toward the top-right corner; the glow stays in CSS (box-shadow). */
+/* Sky: night gradient only. The moon moved OUT of this layer on 2026-10-26 into
+   #nightsSurvived (below) so it can carry the Nights Survived count; this layer
+   is 112% wide / left -6%, which also made % offsets clip the moon. */
 .scene-sky {
     z-index: -4;
     background: linear-gradient(180deg, #0b0b24 0%, #171735 35%, #2b2a4a 68%, #3d3a5c 100%);
 }
 
-.scene-sky::after {
-    content: "";
+/* Nights Survived (2026-10-26, Jeremy): PixelLab moon (Assets/scene/moon.png,
+   58x58 trimmed disc, shown 1:1 pixelated) with the run's night count centred on
+   it in the Silkscreen pixel font, and a "Nights Survived" label in Inter
+   underneath. Glow stays CSS (box-shadow). Positioned in #gameCanvas itself (not
+   the wide scene layer), so right/top are plain offsets. z-index auto + DOM
+   order before #base => above the scene layers, below the church/enemies. */
+@font-face {
+    font-family: 'Silkscreen';
+    src: url("../Assets/fonts/silkscreen-latin-700-normal.woff2") format("woff2");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+.nights-survived {
     position: absolute;
     top: 8%;
-    /* .scene-layer is 112% wide and shifted -6%, so a plain % here lands off-screen;
-       6% + a fixed px margin keeps ~28px of breathing room from the canvas edge. */
-    right: calc(6% + 28px);
+    right: 32px;
+    width: 58px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+}
+
+.nights-moon {
     width: 58px;
     height: 58px;
     border-radius: 50%;
     background: url("../Assets/scene/moon.png") center / 58px 58px no-repeat;
     image-rendering: pixelated;
     box-shadow: 0 0 36px 14px rgba(253, 251, 232, 0.5), 0 0 80px 28px rgba(253, 251, 232, 0.15);
+    display: grid;
+    place-items: center;
+}
+
+.nights-count {
+    font-family: 'Silkscreen', monospace;
+    font-weight: 700;
+    line-height: 1;
+    color: #2b2a4a;
+    /* soft cream halo keeps the digits readable over the craters */
+    text-shadow: 0 0 3px rgba(255, 253, 242, 0.9), 0 0 6px rgba(255, 253, 242, 0.7);
+}
+.nights-count--d2 { font-size: 24px; }
+.nights-count--d3 { font-size: 16px; }
+.nights-count--d4 { font-size: 12px; }
+
+.nights-label {
+    margin-top: 10px;
+    white-space: nowrap;
+    font-family: var(--font-primary);
+    font-weight: 700;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #f6f0d4;
+    text-shadow: 0 1px 2px #0b0b24, 0 0 4px #0b0b24;
 }
 
 /* Clouds: fastest parallax layer. Outer div carries the slider-driven

@@ -132,6 +132,13 @@
                         </svg>
                     </div>
                 </div>
+                <!-- Nights Survived (2026-10-26): the moon + run night count, top-right.
+                     Lives OUTSIDE the aria-hidden scene so screen readers get the count
+                     (aria-label set by js/ui/nightsSurvivedView.js). -->
+                <div id="nightsSurvived" class="nights-survived" role="img" aria-label="0 nights survived">
+                    <div class="nights-moon" aria-hidden="true"><span id="nightsSurvivedCount" class="nights-count nights-count--d2">0</span></div>
+                    <div class="nights-label" aria-hidden="true">Nights Survived</div>
+                </div>
                 <div id="base"></div>
                 <!-- Hero spotlight (docs/HERO_SPOTLIGHT_PLAN.md, 2026-10-21): scrim + hero on
                      the layer in front of the church, below the enemies (css/heroSpotlight.css). -->
@@ -455,6 +462,7 @@
     <script src="js/ui/levelPanel.js"></script>
     <script src="js/ui/basePanel.js"></script>
     <script src="js/ui/timeSliderView.js"></script>
+    <script src="js/ui/nightsSurvivedView.js"></script>
     <!-- js/ui/dayPagerView.js needs DayPager (pure ghost conjuring) + Movement
          (top-position math) already loaded — see its header. -->
     <script src="js/ui/dayPagerView.js"></script>
