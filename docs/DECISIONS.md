@@ -5,6 +5,31 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+
+## 2026-10-27 — Daily record (D2): per-day summary for AI insights + Stats — DESIGNED
+
+**Decision — build the daily record BEFORE the V7 visuals.** Days not recorded are gone for good;
+the visuals lose nothing by waiting a week. (Jeremy agreed after the scaling check below.)
+
+**Decision — compact fixed-shape numeric record, never an event log.** ~500-700 bytes/day; separate
+key `deadline.days`, written once per day at rollover; today's accumulator rides in `deadline.save`
+(schema 15). 18-month daily retention, monthly roll-up after. Rejected: per-tick events (rejected again,
+same reasons as 2026-07 run records); storing the record inside `deadline.save` (would rewrite a year
+of history on every change). Per-habit day outcomes are NOT duplicated — `occurrenceHistory` has them.
+
+**Decision — what a day holds (Jeremy's three calls):** (1) `byCat` = [done, missed, dmg] per
+category — damage per category included. (2) Time of day: three 24-bucket arrays (done, missed, base
+damage) so problematic hours by season are answerable; plus first/last interaction hour. (3) 18-month
+retention is fine. Added on review for completeness: denominators (`due`, `load`), late completions,
+tokens used, reschedules, KO/revive, timer minutes, tz offset, level, streak high, points end.
+
+**Decision — the keep-it-current rule.** Guardrail added to CLAUDE.md: any mechanic that changes what
+can happen in a day adds its counter in the same session and bumps `DailyRecord.v`. Fields additive
+only; missing = 0. Old days never migrate.
+
+**Decision — Day Pager stays forward-only; "best/worst day per run" in Stats is the first consumer.**
+Full plan: `docs/DAILY_RECORD_PLAN.md`.
+
 ## 2026-10-27 — World feedback V7 (sky / distant city / graveyard): brainstorm + first decisions
 
 **Context:** Jeremy wants the empty landscape/desktop scene regions (background, right side) to give

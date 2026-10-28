@@ -29,6 +29,7 @@ At the end of every session, run `/end-session` (append HANDOFF entry, log decis
 | `ACTIONABLE_TICKETS.md` | Ticket details when a ROADMAP item references a ticket ID (P0/P1/P2-xxx) |
 | `docs/VISUAL_DESIGN_PLAN.md` | Visual track V1–V6 (scene, glow, layouts, church, tokens, juice) |
 | `docs/WORLD_FEEDBACK_PLAN.md` | Visual track V7: sky weather, distant-city goals, right-side graveyard achievements |
+| `docs/DAILY_RECORD_PLAN.md` | The per-day summary record (`deadline.days`), its seams and roll-up; any new mechanic |
 
 ## Codebase State (refreshed 2026-10-14 — last code change 2026-10-14, V4: pixel church art at 160px/2x, front-lane line, paths unified on Assets/Base/)
 
@@ -69,6 +70,7 @@ At the end of every session, run `/end-session` (append HANDOFF entry, log decis
 - If a design question isn't answered in `docs/` — Grep PROJECT_SPEC.md; if still unclear, ASK Jeremy. Don't invent mechanics.
 - Never change balance numbers silently — use the `balance-tuning` skill and log to DECISIONS.
 - Update the relevant `docs/*.md` in the SAME session as any mechanic/schema change.
+- **Daily record (designed 2026-10-27, `docs/DAILY_RECORD_PLAN.md`):** any mechanic that changes what can happen in a day (a new completion type, token, timer, damage source, KO state…) adds its counter to `DailyRecord` in the SAME session, bumps `DailyRecord.v`, and notes it in DATA_SCHEMA.md. The record feeds future AI insights; a field added late is a season of data lost.
 - Never open `.pdf`, `.psd`, `.xd`, `.ase`, `.eps` files, or anything in `archive/`.
 - Mobile-width flex-overflow fixes don't generalize automatically (found 2026-07-21, V3a). A nowrap flex row's automatic minimum width is the SUM of its children's minimum widths — any unclassed row inside `.item-info` (or a new sibling section next to it, like `.sub-tasks-section`) can silently overflow at narrow widths even if a similar row elsewhere was already fixed. Before assuming a CSS-only row is safe on mobile, check it directly. And a screenshot alone is NOT sufficient verification for this bug class — V3a's first pass looked visually clean but still measured 49px of real overflow; confirm with `el.scrollWidth > el.clientWidth` (or `getBoundingClientRect` against the parent), not just eyeballing a render.
 

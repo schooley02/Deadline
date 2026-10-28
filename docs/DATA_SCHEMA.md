@@ -336,3 +336,12 @@ Save {
 
 - **Timer fields now live (Build 3, 2026-10-25):** `item.timer {startedAt, checkedAt, promptedAt} | null` (ms epoch), `item.timerMsBanked`, `item.timerMinutes` (set from the Add/Edit Task forms; new items are created with the schema-14 defaults). `habitDef/taskDef.timerMode/timerMinutes` are still unread.
 - **Definition timer fields now live (Build 4):** `habitDef.timerMinutes` (1-600 | null) and `habitDef.timerMode` ('limit' for negative, 'work' for positive, null if no minutes); spawned habit instances copy `timerMinutes`. Routine `taskDef.timerMode/timerMinutes` remain unread.
+
+## Daily record (DESIGNED 2026-10-27, build pending — `docs/DAILY_RECORD_PLAN.md`)
+- `save.today` (schema 15): the in-progress `DailyRecord` for the current local day.
+- Separate localStorage key `deadline.days`: `{ v, days: {date: DailyRecord}, months: {ym: totals} }`,
+  written once per day at rollover; 18-month daily retention, then monthly roll-up; lifetime data
+  (survives Reset Game / new run); in Backup & Transfer; import merges by date.
+- `DailyRecord` fields are additive and versioned (`v`); a missing field reads as 0/empty.
+  **Rule:** a mechanic that changes what can happen in a day adds its counter in the same session.
+
