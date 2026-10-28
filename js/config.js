@@ -479,6 +479,32 @@ const CONFIG = {
     GROUND_LANE_FEET_TOP_FRAC: 0.72,
     GROUND_LANE_FEET_BOTTOM_FRAC: 0.99,
 
+    // --- Graveyard zone (V7 W0, 2026-10-28; docs/WORLD_FEEDBACK_PLAN.md) ---
+    // Landscape + desktop only (hidden in the portrait glance strip). A fixed-width hill on the
+    // RIGHT of #gameCanvas holds one headstone per achievement family in staggered lanes; the
+    // zombie field ends where the hill starts (script.js refreshLayoutDims subtracts the zone's
+    // measured width, so parked/spawning zombies stand just left of it). The tree is its own
+    // graphic pushed partly off the right edge. Layout constants, not balance.
+    GRAVEYARD_HILL_WIDTH_PX: 140,
+    GRAVEYARD_LANES: 3,
+    GRAVEYARD_LANE_RISE_PX: 28, // each back lane sits this much higher up the hill
+    GRAVEYARD_STONE_PITCH_PX: 44, // = tap-target width; odd lanes shift by half a pitch into the gaps
+    GRAVEYARD_STONE_HIT_PX: 44, // minimum tap box (visual art can be smaller)
+    GRAVEYARD_PAD_PX: 6,
+    GRAVEYARD_TRUNK_PX: 24, // visible strip of tree trunk at the right edge
+    // Past-run graves creep out of the hill across the field: newest next to the hill, oldest
+    // furthest left, on the same 3 lanes as the zombies, drawn just behind each lane's zombies.
+    // Spacing starts wide and tightens as runs pile up; the oldest fade out near the church.
+    RUN_GRAVE_MAX_SPACING_PX: 110,
+    RUN_GRAVE_MIN_SPACING_PX: 22,
+    RUN_GRAVE_JITTER_FRAC: 0.35, // +/- fraction of the spacing a grave may wander
+    RUN_GRAVE_HEIGHT_PX: 26, // shorter than a zombie (128px box) on purpose
+    RUN_GRAVE_HEIGHT_VARIANCE_PX: 8,
+    RUN_GRAVE_TILT_DEG: 6, // +/- tilt
+    RUN_GRAVE_OPACITY: 0.7, // low contrast so zombies read first
+    RUN_GRAVE_FADE_PX: 90, // oldest fade out over the last N px before the church
+    RUN_GRAVE_GAP_PX: 22, // newest grave sits this far left of the hill edge
+
     // --- Sub-task clustering ---
     SUBTASK_CLUSTER_GAP_PX: 8, // visual gap between clustered sprites' VISIBLE graphics (not their boxes)
     SUBTASK_AHEAD_THRESHOLD_PX: 150, // how much closer to the base a sub-task's own due date must put it before it breaks from the cluster

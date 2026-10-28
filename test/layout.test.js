@@ -551,6 +551,30 @@ describe('Layout ground lanes (landscape)', () => {
             expect(new Set([lanes[1], lanes[2], lanes[3]]).size).toBe(3);
         });
 
+        test('V7 W0: overflow that would cross the graveyard hill fans LEFT instead (fieldRight)', () => {
+            const FIELD = 704; // 844 canvas - 140 hill; a late-today zombie's left edge is FIELD - 128
+            const pinned = [1, 2, 3, 4, 5].map(i => item(i, FIELD - 128));
+            const { offsets } = Layout.computeGroundLayout(pinned, { noListOrder: true, baseWidth: 160, fieldRight: FIELD });
+            expect([1, 2, 3].map(i => offsets[i])).toEqual([0, 0, 0]);
+            expect(offsets[4]).toBe(-CONFIG.LANE_OVERFLOW_OFFSET_PX);
+            expect(offsets[5]).toBe(-2 * CONFIG.LANE_OVERFLOW_OFFSET_PX);
+        });
+
+        test('V7 W0: overflow with room before the hill still fans right; no fieldRight = old behaviour', () => {
+            const atBase = [1, 2, 3, 4].map(i => item(i, 160));
+            expect(Layout.computeGroundLayout(atBase, { noListOrder: true, baseWidth: 160, fieldRight: 704 }).offsets[4])
+                .toBe(CONFIG.LANE_OVERFLOW_OFFSET_PX);
+            const pinned = [1, 2, 3, 4].map(i => item(i, 576));
+            expect(Layout.computeGroundLayout(pinned, { noListOrder: true, baseWidth: 160 }).offsets[4])
+                .toBe(CONFIG.LANE_OVERFLOW_OFFSET_PX);
+        });
+
+        test('V7 W0: a left fan never pushes a zombie past the church', () => {
+            const crowded = [1, 2, 3, 4].map(i => item(i, 170)); // 10px right of the church, but boxed in by the hill
+            const { offsets } = Layout.computeGroundLayout(crowded, { noListOrder: true, baseWidth: 160, fieldRight: 300 });
+            expect(offsets[4]).toBeGreaterThanOrEqual(-10);
+        });
+
         test('nothing overflows with 3 or fewer in a spot, or when they are spread out', () => {
             const three = [1, 2, 3].map(i => item(i, 56));
             expect(Object.values(Layout.computeGroundLayout(three, { noListOrder: true, baseWidth: 56 }).offsets)).toEqual([0, 0, 0]);

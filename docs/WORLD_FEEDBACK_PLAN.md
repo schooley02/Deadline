@@ -136,15 +136,53 @@ list. PROPOSED extensions:
   for long streaks).
 - Optional: a fresh grave for a KO'd hero until revived (may be one thing too many).
 
+**Superseded by "W0 layout" below for placement (tree on the right edge, run graves in the field).**
 DECIDED 2026-10-27: the V1 decorative tombstones AND the 3 bare trees are removed outright
 (Jeremy); the graveyard markers + the growth tree replace them. Marker size vs tap-target minimum (44px hit area, visual can
 be smaller — the V3c-1 chip trick).
 
+## W0 layout — DECIDED + BUILT 2026-10-28 (Jeremy + Opus plan, Sonnet build)
+
+Mockups: Design canvas "Deadline World Feedback Mockups", boards 7a-7f (7f is a live tweakable scene).
+
+- **Graveyard hill = its own zone on the RIGHT of `#gameCanvas`, fixed `CONFIG.GRAVEYARD_HILL_WIDTH_PX`
+  (140).** Landscape + desktop only (hidden in the portrait strip by css/glanceStrip.css). Full brightness
+  (not dimmed: it is interactive and must look tappable). The zombie field ENDS at its left edge:
+  script.js `GAME_SCREEN_WIDTH = canvas width - GraveyardView.zoneWidth()` (measured, so 0 in portrait).
+  `Clock`/`Movement` are unchanged: even tasks due days away sit in the 75-100% zone, so a zombie's right
+  edge never passes the field edge. Zombies "spawn" just left of the hill.
+- **Achievement headstones stand on the hill in 3 staggered lanes** (lane rise 28px, odd lane shifted half
+  a 44px pitch so a back stone peeks between two front stones). One button per family
+  (`CONFIG.ACHIEVEMENTS`), 44px tap box, tap -> Stats. W0 art is a placeholder stone for every family;
+  tier art (wooden cross -> mausoleum) is W2. 140px holds 6 families (capacity = `GraveyardLayout.stoneCapacity`).
+- **The tree is its own graphic at the right edge, pushed partly off-screen** (only a trunk strip +
+  the canopy overhanging the back stones show). It sits in a clipper (`.graveyard-tree-clip`) because
+  `#gameCanvas` is `overflow: visible` and `clip-path` does NOT stop an element widening the page
+  (found live: 18px horizontal overflow). Placeholder SVG; growth stages (sapling/young/giant by lifetime
+  nights) are W3.
+- **Past-run graves creep out across the FIELD:** newest next to the hill, oldest furthest left, on the
+  same 3 lanes as the zombies, each drawn just UNDER its lane's zombies (z = `LIST_Z_MIN + lane*STRIDE - 1`)
+  so zombies walk over them; low contrast (opacity 0.7), 26px tall (a zombie box is 128px). Placement is
+  seeded by the run number (stable as newer runs push a grave left): jitter, lane, height, tilt. Spacing
+  starts wide (110px) and tightens with the run count (min 22px); the oldest FADE over the last 90px before
+  the church and graves past the church are dropped from the scene (Stats lists every run).
+  Tappable wherever no zombie covers them -> Stats. Hill width does not grow with runs.
+- The moon moves left of the hill (`right: hill width + 12px`) so a grown tree never covers it.
+- **Overflow zombies fan LEFT at the hill.** `Layout.computeGroundLayout` takes `opts.fieldRight`
+  (script.js passes `GAME_SCREEN_WIDTH`): a 4th+ stacked zombie that would fan right across the field edge
+  fans left toward the church instead (same distance, never past the church), so none stand on the stones.
+- Pure maths: `js/graveyardLayout.js` (tests: graveyardLayout, graveyardView, graveyardWiring, layout +3).
+  DOM: `js/ui/graveyardView.js` (render is signature-gated and called from `refreshLayoutDims` + afterTick).
+  Geometry in `CONFIG.GRAVEYARD_*` / `CONFIG.RUN_GRAVE_*`; CSS `css/graveyard.css`.
+- **Known limitations (W0):** (1) sub-tasks fan to the RIGHT of their parent (Movement), so a late-today
+  parent's sub-tasks can stand on the hill edge. (2) The "+" FAB (bottom-right) overlaps the lowest ~20px of
+  the front-lane stones' tap boxes on a landscape phone. (3) Placeholder art only; no tier art or tree growth.
+
 ## Suggested build order (PROPOSED; one session each, commit each)
 
-- [ ] **W0 — Layout pass (Opus plan / Sonnet build):** reserve the city band and the
-  graveyard zone in landscape + desktop; static placeholder art; confirm zombies still read
-  first. Mockup first if wanted.
+- [x] **W0 — Layout pass (BUILT 2026-10-28, Opus plan / Sonnet build; sw v133):** graveyard hill on the
+  right + past-run graves + spawn edge moved (see "W0 layout — DECIDED + BUILT" below). The distant-city
+  band was NOT reserved: it waits for Goals (W5), no placeholder skyline was added.
 - [ ] **W1 — Sky weather (Sonnet):** pure `skyModel` (state → weather level) + CSS layers,
   fx-gated; tap sky/moon → day summary.
 - [ ] **W2 — Graveyard markers (Sonnet + PixelLab art):** family markers by tier, tap → list.

@@ -6,6 +6,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 
 
+## 2026-10-28 -- V7 W0 graveyard layout DECIDED + BUILT (Claude app session, Opus plan -> Sonnet build; layout constants only, no balance numbers)
+
+- **Zone, not a hill-under-zombies:** the graveyard is its own fixed 140px strip on the right of the canvas and the zombie field ends at its left edge (Jeremy: zombies spawn to the LEFT of it; dimming it would hide that it is interactive; idle late-day zombies must not cover the headstones). Implemented by measuring the zone in `refreshLayoutDims`/`initGame` (`GAME_SCREEN_WIDTH = canvas - zone`); Clock/Movement untouched (the "off-screen right" branch in `Clock.calculateTimelinePosition` is unreachable for ordinary items, so nothing parks on the hill).
+- **Headstones fixed, past-run graves grow:** achievement headstones keep a fixed place on the hill (3 staggered lanes, a stone peeks between two in front; 6 families fit in 140px). Run graves were first mocked on the hill (254px for 12 stones = too wide on a phone), so they instead creep out over the zombie lanes: newest nearest the hill, oldest furthest left, low contrast, ~26px tall, drawn just under each lane's zombies, tappable where uncovered, seeded jitter so they look placed by hand, oldest fade near the church and are dropped past it (Stats keeps the full list). Hill width never grows.
+- **Tree:** own graphic, on the RIGHT edge, allowed partly off-screen; kept in a clipper because `clip-path` does not stop an `overflow: visible` canvas child widening the page (18px found live).
+- **Overflow zombies fan left at the hill** (`Layout.computeGroundLayout` `opts.fieldRight`): previously the 4th+ stacked zombie fanned right (off the canvas); with a hill that would put them on the stones. Same distance leftwards, never past the church.
+- **City band NOT reserved in W0** (waits for Goals / W5). Rejected: dimming the hill; putting run graves on the hill; a hill that widens with runs; a back-paging day pager.
+- **Open / known:** sub-tasks still fan RIGHT of their parent (Movement); the "+" FAB overlaps the bottom ~20px of front-lane stone tap boxes on a landscape phone; placeholder art only; not phone-checked. sw.js v133. Jest 93 suites / 2,003 (+3 suites, +52 tests).
+
 ## 2026-10-27 -- Stats best/worst day per run (D2 step 5) BUILT (Claude app session, Sonnet; display only, no balance numbers)
 
 - **Score = done - missed - damage**, weights in `CONFIG.DAILY_SCORE_WEIGHTS` = 1/1/1 (Jeremy chose the defaults). `done` = tasks + sub-tasks + habits; `missed` = overdue tasks + habit misses; `damage` = base HP lost that day. Avoided lurkers are not in `done` (see the D2 BUILT entry).

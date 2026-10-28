@@ -403,10 +403,19 @@ const Layout = (() => {
             : ((typeof CONFIG !== 'undefined' && CONFIG.LANE_OVERFLOW_OFFSET_PX != null) ? CONFIG.LANE_OVERFLOW_OFFSET_PX : 24);
         const lanes = {};
         const offsets = {};
+        // V7 W0 (2026-10-28): with the graveyard hill on the right the field ends at opts.fieldRight.
+        // A fanned-out zombie that would cross it fans LEFT (toward the church, where there is room)
+        // by the same amount instead, so overflow zombies never stand on the headstones.
+        const fieldRight = (opts && typeof opts.fieldRight === 'number') ? opts.fieldRight : null;
         top.forEach(m => {
             const a = assigned.get(m.id);
             lanes[m.id] = a.lane;
-            offsets[m.id] = a.overflowRank * step;
+            let dx = a.overflowRank * step;
+            if (dx && fieldRight !== null) {
+                const left = Math.max(m.x, baseWidth);
+                if (left + widthOf(m) + dx > fieldRight + 1) dx = -Math.min(dx, Math.max(0, left - baseWidth));
+            }
+            offsets[m.id] = dx;
         });
         return { lanes, offsets };
     }

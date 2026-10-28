@@ -154,6 +154,15 @@ range (ground transform stayed `none` throughout); `fx-off`/`fx-reduced` correct
 animations, default leaves them running; hero-chip zone (base's leftmost 120px) unchanged; zero
 console errors beyond the standard Chrome-extension message-channel noise.
 
+## Graveyard zone + past-run graves (V7 W0, 2026-10-28)
+Landscape/desktop only (hidden in the portrait strip). A fixed 140px hill (`#graveyardZone`, `css/graveyard.css`,
+`js/ui/graveyardView.js`, geometry in `CONFIG.GRAVEYARD_*`) sits on the right of `#gameCanvas`; the zombie field
+ends at its left edge. Headstones (one per achievement family, 3 staggered lanes, 44px tap boxes) and the
+past-run graves (`#runGraves`, newest by the hill, tightening spacing, oldest fade near the church, each just
+under its lane's zombies) are buttons that open Stats; run graves are tappable only where no zombie covers
+them. The tree (own graphic) runs off the right edge inside `.graveyard-tree-clip`. The moon sits left of the hill.
+Full decisions + limitations: `docs/WORLD_FEEDBACK_PLAN.md` "W0 layout".
+
 ## Enemy state glows (V2, 2026-10-12)
 
 `css/enemyStatus.css` owns every state indicator on `.enemy`. They are `drop-shadow` glows on the animated sprite child `.enemy-sprite` (static-PNG fallback: on `.enemy` itself, held still), so they trace the character, not the box.

@@ -1,0 +1,133 @@
+/*
+ * graveyard.css -- V7 W0 (2026-10-28): the right-hand graveyard zone + past-run graves.
+ * Plan: docs/WORLD_FEEDBACK_PLAN.md. Landscape + desktop only; css/glanceStrip.css hides
+ * both layers in the portrait strip (it loads after this file).
+ *
+ * Geometry comes from CONFIG.GRAVEYARD_* via js/ui/graveyardView.js, which sets
+ * --gy-hill-w / --gy-hill-h on #gameCanvas; the fallbacks below only matter before it runs.
+ * script.js refreshLayoutDims() measures #graveyardZone's width and the zombie field ends at
+ * its left edge, so changing the width here (or in CONFIG) needs no other code change.
+ *
+ * Placeholder art: hill, tree and headstones are plain CSS/SVG until the PixelLab sprites land
+ * (W2). Each is its own element so they can be swapped one by one.
+ */
+
+#gameCanvas {
+    --gy-hill-w: 140px;
+    --gy-hill-h: 70px;
+}
+
+/* The moon moves left of the hill so a grown tree never covers it. */
+.nights-survived {
+    right: calc(var(--gy-hill-w) + 12px);
+}
+
+.graveyard-zone {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: var(--gy-hill-w);
+    height: var(--gy-hill-h);
+    z-index: 6; /* above the scene layers and church; zombies (30+) draw over it if one ever spills in */
+    pointer-events: none;
+}
+
+.graveyard-hill {
+    position: absolute;
+    inset: 0;
+    background: #221f3d;
+    border-top: 2px solid #3a3660;
+    border-top-left-radius: 60px 22px;
+    box-sizing: border-box;
+}
+
+/* The tree runs off the right edge on purpose, and #gameCanvas is overflow:visible (clip-path would not
+   stop it widening the page), so the tree sits in a clipper that is cut at the zone's right edge but
+   stays open upward/leftward for the canopy. Only the trunk strip (CONFIG.GRAVEYARD_TRUNK_PX) is on
+   the canvas; the canopy overhangs the back stones. */
+.graveyard-tree-clip {
+    position: absolute;
+    left: -80px;
+    right: 0;
+    bottom: calc(var(--gy-hill-h) - 4px);
+    height: 600px;
+    overflow: hidden;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.graveyard-tree {
+    position: absolute;
+    /* 90px art with the trunk at x=52..61: trunk left edge sits (trunk strip - 4) in from the right edge. */
+    left: calc(80px + var(--gy-hill-w) - 72px);
+    bottom: 0;
+    image-rendering: pixelated;
+}
+
+.graveyard-stones {
+    position: absolute;
+    inset: 0;
+}
+
+/* Headstone: a >=44px tap box with a smaller visual. */
+.graveyard-stone,
+.run-grave {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.graveyard-stone:focus-visible,
+.run-grave:focus-visible {
+    outline: 2px solid #f1d27a;
+    outline-offset: 1px;
+}
+
+.graveyard-stone-art {
+    display: block;
+    width: 28px;
+    height: 38px;
+    border-radius: 12px 12px 2px 2px;
+    background: #6d6a92;
+    box-shadow: inset 4px 0 0 #7d7aa3, inset 0 -4px 0 rgba(0, 0, 0, 0.18);
+    image-rendering: pixelated;
+}
+
+.graveyard-stone:hover .graveyard-stone-art,
+.graveyard-stone:focus-visible .graveyard-stone-art,
+.graveyard-stone:active .graveyard-stone-art {
+    filter: brightness(1.3) drop-shadow(0 0 3px #f1d27a);
+}
+
+/* Run graves live in the field, low contrast and shorter than a zombie. The wrapper has NO
+   z-index (a stacking context would flatten the per-lane z-indexes set in JS). */
+.run-graves {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.run-grave-art {
+    display: block;
+    width: 18px;
+    border-radius: 7px 7px 2px 2px;
+    background: #3b3756;
+    box-shadow: 0 3px 0 -1px #2a2740;
+    transform-origin: 50% 100%;
+}
+
+.run-grave:hover .run-grave-art,
+.run-grave:focus-visible .run-grave-art,
+.run-grave:active .run-grave-art {
+    filter: brightness(1.6);
+}

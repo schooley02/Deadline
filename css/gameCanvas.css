@@ -330,23 +330,6 @@
     /* 2026-10-27 (Jeremy): locked in place; no longer moves with the time slider. */
 }
 
-.scene-ground .scene-svg {
-    display: none; /* replaced by the floor-tile.png art above */
-}
-
-.scene-ground-fill {
-    fill: #0f1f14;
-}
-
-.scene-fence {
-    stroke: #0a0a0a;
-    stroke-width: 2;
-}
-
-.scene-fence-post {
-    stroke-width: 3;
-}
-
 /* Fog: slow ambient drift over the ground band, gated behind the existing
    fx-intensity setting (js/settings.js body classes) + prefers-reduced-
    motion, same pattern as css/enemyStatus.css's streak-fire/walk-bob

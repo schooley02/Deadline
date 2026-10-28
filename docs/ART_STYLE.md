@@ -53,6 +53,13 @@ Healthy, non-zombie twins of the category zombies above (same outfit, alive pale
 ## Category Colors (from prototype, for UI accents)
 other #90ee90 · career #4a90e2 · creativity #f5a623 · financial #50e3c2 · health #e91e63 · lifestyle #bd10e0 · relationships #f8e71c · spirituality #7ed321
 
+## Graveyard zone art (V7, placeholders built 2026-10-28)
+Hill, tree and each headstone are SEPARATE graphics (so they can be swapped one by one): hill (CSS now), tree
+(inline SVG, trunk at the right edge, canopy overhanging), one headstone per achievement tier (locked mound,
+wooden cross, stone, marble + lantern, mausoleum; W2) and one low, dim past-run grave (shorter than a
+zombie, ~26px, slight tilt). All at the moon/church pixel scale; every new shell asset goes in `sw.js`
+`APP_SHELL` with a `CACHE_NAME` bump.
+
 ## Asset Sources
 - **FINISHED sprites: `Assets/Zombies/<category>-zombie.png` + `-64.png` (64×64) for all 8 categories** — use these.
 - Base damage states: `Assets/Base/base_000..100.png`.

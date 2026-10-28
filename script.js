@@ -8,6 +8,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // resize/rotation (onChange -> refreshLayoutDims, a hoisted function below;
     // it only runs on a later event, after the lets it touches are initialized).
     Layout.init({ onChange: (isStrip, modeChanged) => refreshLayoutDims(isStrip, modeChanged) });
+    // Graveyard zone (V7 W0, 2026-10-28): the right-hand hill + past-run graves. Initialised right
+    // after Layout so its width is known BEFORE initGame() measures the canvas; the zombie field
+    // ends where the hill starts (zoneWidth() is 0 in the portrait strip). Deps are lazy closures.
+    GraveyardView.init({
+        getRunHistory: () => State.getRunHistory(),
+        getAchievementFamilies: () => CONFIG.ACHIEVEMENTS.map(a => ({ id: a.id, name: a.name })),
+        onOpenStats: () => openManagementWindow('stats'),
+    });
     const baseHealthDisplay = document.getElementById('baseHealthDisplay');
     const playerXpDisplay = document.getElementById('playerXpDisplay');
     const playerLevelDisplay = document.getElementById('playerLevelDisplay');
@@ -152,8 +160,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function refreshLayoutDims(isStrip, modeChanged) {
-        GAME_SCREEN_WIDTH = gameCanvas.offsetWidth;
+        GAME_SCREEN_WIDTH = gameCanvas.offsetWidth - GraveyardView.zoneWidth();
         BASE_WIDTH = baseElement.offsetWidth;
+        GraveyardView.render(BASE_WIDTH);
         ENEMY_WIDTH = enemyWidthForMode(CONFIG.ENEMY_WIDTH);
         HABIT_ENEMY_WIDTH = enemyWidthForMode(CONFIG.HABIT_ENEMY_WIDTH);
         // Overdue items camp at the base edge and are only re-positioned when
@@ -366,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
             gameScreenWidth: GAME_SCREEN_WIDTH,
 
             // state setters (State.* — see getters comment above)
-            setGameScreenWidth: (n) => { GAME_SCREEN_WIDTH = n; },
+            setGameScreenWidth: (n) => { GAME_SCREEN_WIDTH = n - GraveyardView.zoneWidth(); }, // n = canvas width; the graveyard hill is not walkable field
             setBaseWidth: (n) => { BASE_WIDTH = n; },
             setEnemyWidth: (n) => { ENEMY_WIDTH = enemyWidthForMode(n); },
             setHabitEnemyWidth: (n) => { HABIT_ENEMY_WIDTH = enemyWidthForMode(n); },
@@ -1279,10 +1288,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 processTimers(Date.now());
                 refreshBaseChip();
+                GraveyardView.render(BASE_WIDTH);
                 refreshHeroAttack();
                 Layout.applyStripLayout(State.getActiveItems(), { baseWidth: BASE_WIDTH });
                 // Landscape/desktop: ground lanes in list order, overlap-avoiding (no-op in strip mode).
-                if (!Layout.isActive()) Layout.applyGroundLanes(State.getActiveItems(), gameCanvas.offsetHeight, { baseWidth: BASE_WIDTH });
+                if (!Layout.isActive()) Layout.applyGroundLanes(State.getActiveItems(), gameCanvas.offsetHeight, { baseWidth: BASE_WIDTH, fieldRight: GAME_SCREEN_WIDTH });
             },
             isGameOver: State.isGameOver,
             isOfflineCatchUpActive: () => offlineCatchUpActive,

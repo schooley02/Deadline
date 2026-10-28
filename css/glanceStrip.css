@@ -66,6 +66,12 @@ body.glance-strip .graveyard-scene {
     display: none;
 }
 
+/* Graveyard zone + past-run graves are landscape/desktop only (V7 W0, 2026-10-28). */
+body.glance-strip .graveyard-zone,
+body.glance-strip .run-graves {
+    display: none;
+}
+
 /* The moon / Nights Survived count is landscape-only for now (2026-10-26). */
 body.glance-strip .nights-survived {
     display: none;

@@ -41,6 +41,7 @@
     <link rel="stylesheet" href="css/timeSlider.css">
     <link rel="stylesheet" href="css/dayPager.css">
     <link rel="stylesheet" href="css/enemyAnim.css">
+    <link rel="stylesheet" href="css/graveyard.css">
     <link rel="stylesheet" href="css/glanceStrip.css">
     <link rel="stylesheet" href="css/responsive.css">
 </head>
@@ -93,21 +94,7 @@
                             <path class="scene-hill" d="M0,160 L0,112 Q90,86 190,108 Q300,78 410,104 Q540,66 650,100 Q730,84 800,102 L800,160 Z"/>
                         </svg>
                     </div>
-                    <div class="scene-layer scene-ground">
-                        <svg class="scene-svg" viewBox="0 0 800 60" preserveAspectRatio="none" focusable="false">
-                            <rect class="scene-ground-fill" x="0" y="0" width="800" height="60"/>
-                            <g class="scene-fence">
-                                <line x1="0" y1="14" x2="800" y2="14"/>
-                                <line x1="0" y1="24" x2="800" y2="24"/>
-                                <line class="scene-fence-post" x1="20" y1="6" x2="20" y2="30"/>
-                                <line class="scene-fence-post" x1="120" y1="6" x2="120" y2="30"/>
-                                <line class="scene-fence-post" x1="320" y1="6" x2="320" y2="30"/>
-                                <line class="scene-fence-post" x1="480" y1="6" x2="480" y2="30"/>
-                                <line class="scene-fence-post" x1="620" y1="6" x2="620" y2="30"/>
-                                <line class="scene-fence-post" x1="760" y1="6" x2="760" y2="30"/>
-                            </g>
-                        </svg>
-                    </div>
+                    <div class="scene-layer scene-ground"></div>
                 </div>
                 <!-- Nights Survived (2026-10-26): the moon + run night count, top-right.
                      Lives OUTSIDE the aria-hidden scene so screen readers get the count
@@ -115,6 +102,25 @@
                 <div id="nightsSurvived" class="nights-survived" role="img" aria-label="0 nights survived">
                     <div class="nights-moon" aria-hidden="true"><span id="nightsSurvivedCount" class="nights-count nights-count--d2">0</span></div>
                     <div class="nights-label" aria-hidden="true">Nights Survived</div>
+                </div>
+                <!-- Run graves (V7 W0, 2026-10-28; docs/WORLD_FEEDBACK_PLAN.md): past-run markers on the
+                     ZOMBIE lanes, newest next to the hill. This wrapper has NO z-index (no stacking
+                     context) so each button's own z-index slots just under its lane's zombies
+                     (js/ui/graveyardView.js). Landscape/desktop only. -->
+                <div id="runGraves" class="run-graves"></div>
+                <!-- Graveyard zone (V7 W0): the right-hand hill. Fixed width (CONFIG.GRAVEYARD_HILL_WIDTH_PX);
+                     the zombie field ends at its left edge. Hill, tree and each headstone are separate
+                     graphics (placeholder CSS/SVG until the PixelLab art lands, W2). Hidden in the
+                     portrait glance strip (css/glanceStrip.css). -->
+                <div id="graveyardZone" class="graveyard-zone">
+                    <div class="graveyard-hill" aria-hidden="true"></div>
+                    <div class="graveyard-tree-clip" aria-hidden="true">
+                        <svg class="graveyard-tree" viewBox="0 0 90 110" width="90" height="110" focusable="false">
+                            <rect x="52" y="44" width="9" height="66" fill="#0f0e28"/>
+                            <path d="M56,48 L30,30 L48,36 L10,22 L46,30 L40,8 L54,34 L66,12 L62,40 L84,30 L60,54 Z" fill="#0f0e28"/>
+                        </svg>
+                    </div>
+                    <div id="graveyardStones" class="graveyard-stones"></div>
                 </div>
                 <div id="base"></div>
                 <!-- Hero spotlight (docs/HERO_SPOTLIGHT_PLAN.md, 2026-10-21): scrim + hero on
@@ -386,6 +392,7 @@
     <script src="js/config.js"></script>
     <script src="js/listOrder.js"></script>
     <script src="js/layout.js"></script>
+    <script src="js/graveyardLayout.js"></script>
     <script src="js/settings.js"></script>
     <!-- js/runStats.js has ZERO module dependencies (pure data functions,
          no bare-global refs at load time) — loaded here, right after
@@ -446,6 +453,7 @@
     <script src="js/ui/basePanel.js"></script>
     <script src="js/ui/timeSliderView.js"></script>
     <script src="js/ui/nightsSurvivedView.js"></script>
+    <script src="js/ui/graveyardView.js"></script>
     <!-- js/ui/dayPagerView.js needs DayPager (pure ghost conjuring) + Movement
          (top-position math) already loaded — see its header. -->
     <script src="js/ui/dayPagerView.js"></script>
