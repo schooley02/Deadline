@@ -60,6 +60,53 @@ wooden cross, stone, marble + lantern, mausoleum; W2) and one low, dim past-run 
 zombie, ~26px, slight tilt). All at the moon/church pixel scale; every new shell asset goes in `sw.js`
 `APP_SHELL` with a `CACHE_NAME` bump.
 
+## Achievement village art (DECIDED 2026-10-28 in the mockups; PixelLab; NOTHING BUILT YET)
+Mockups: Design canvas "Deadline World Feedback Mockups", boards 8a-8e (`Building.dc.html` is the reference drawing of all 9 kinds).
+The village replaces the W2 headstone-by-tier idea: 8 category buildings stand on a raised ridge BEHIND the zombie lanes (a
+background-art change), as a seeded staggered cluster in 3 depth rows; the Memorial (all-time best tiers) is the one monument on
+the right-hand graveyard hill. Tapping the band or the Memorial opens a close-up village view. Buildings carry their own state
+(no floating markers by default).
+
+**Kinds** (mockup ids; final code ids are a build-time call): `slain` Armory (Zombies Slain), `nights` Watchtower, `habits` Barn,
+`lurkers` Jailhouse, `heroes` Hall, `defense` Gatehouse (Church Defense), `punctuality` Clock tower, `bestdays` Windmill, `memorial`.
+Each has 5 tiers and 3 conditions (tended / slipping / neglected).
+
+**Size rule: ONE native sprite per building + tier, shown at whole-number scales only.**
+- Native canvas **48x56 px** (the mockup viewBox), transparent background, building sits on the bottom edge, centred.
+- Scene: drawn at **1x** (48x56). Close-up village view: **2x** (96x112). `image-rendering: pixelated` / `imageSmoothingEnabled = false`.
+- NEVER author big and shrink; NEVER scale by a non-whole number; NEVER rotate a pixel sprite (church/zombie rule). Two mockup
+  shortcuts therefore do NOT carry over: (1) the back-row 0.9x scale -> depth is done by ridge y-position + a darker tint on back
+  rows, same sprite size; (2) the tier-1 -3deg CSS tilt -> the lean is DRAWN into the tier-1 art.
+- Escape hatch: if one building looks bare at 2x, add `<kind>_t<n>@village.png` (96x112, real extra detail, made first and used as
+  the PixelLab reference for the 48x56 one). Code falls back to the 2x of the small sprite when no `@village` file exists.
+- Memorial: same 48x56 native by default (drawn 1x on the hill, 2x in its own view). If it should loom over the village, author it
+  bigger natively (e.g. 64x74) instead of scaling.
+
+**Tier ladder (from the mockup; each tier is a new sprite, silhouette must differ, not just colour):**
+T1 leaning/ruined, cracked wall, dull carving - T2 upright and intact - T3 accent-coloured emblem appears - T4 lantern posts either
+side - T5 richest palette and detail (glow is added in code). Each kind has an accent colour (Armory red, Watchtower blue, Barn green,
+Jailhouse violet, Hall gold, Gatehouse white, Clock tower orange, Windmill teal, Memorial pale gold); body/roof ramp from dark
+slate-violet (T1) to lighter lavender (T5) so the buildings sit on the dark ridge (#1b1a36).
+
+**Conditions are CODE, not art** (keeps it at 45 base sprites, not 135): tended = full colour + soft warm glow + chimney-smoke
+overlay; slipping = CSS `saturate(.55) brightness(.74)` + weeds overlay; neglected = `saturate(.15) brightness(.48)` + boards/vines
+overlay; tier-up = twinkle overlay + accent glow. Overlays are shared small PNGs in `Assets/Village/overlays/` drawn on the same
+48x56 grid so they scale with the building. TO VERIFY with the test building: lit windows are painted into the sprite, so
+neglected only dims them - if "dark windows" matters at 48px, add a dark-window variant per tier (+5 per kind) or a window-mask layer.
+At 44-48px weeds and boards mostly vanish; the scene-level state cue must come from lit versus dark light, smoke and the dimming.
+
+**Pixel recipe (PixelLab):** match the church/cloud scale: 12-16 colour palette, 1px selective outline darker than the fill, light
+from the upper right (the moon), no anti-aliasing, no dithering noise, transparent background, flat ground line on the bottom row.
+Generate T1 first, then use it as the style reference for T2-T5 so the family matches.
+
+**Files:** `Assets/Village/<kind>_t<1-5>.png` (+ optional `@village`), `Assets/Village/overlays/<name>.png`, PixelLab originals in
+`Assets/Village/_source/`. Every shell asset goes in `sw.js` `APP_SHELL` with a `CACHE_NAME` bump.
+
+**Test building: Clock tower (`punctuality`), all 5 tiers, tended.** Chosen because it is the narrowest, tallest silhouette with a
+small clock face - the hardest case for reading at 48px. Pass = (1) the 5 tiers are told apart side by side at 1x on the dark ridge
+colour, (2) the clock face reads at 1x, (3) it still looks good at 2x (96x112), (4) the dimming filters read as slipping/neglected.
+If it passes, the other 8 kinds are safe; if the face is mush at 1x, simplify the face (a 4-6px ring) before making the rest.
+
 ## Asset Sources
 - **FINISHED sprites: `Assets/Zombies/<category>-zombie.png` + `-64.png` (64×64) for all 8 categories** — use these.
 - Base damage states: `Assets/Base/base_000..100.png`.

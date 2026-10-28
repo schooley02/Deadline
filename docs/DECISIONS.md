@@ -6,6 +6,16 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 
 
+## 2026-10-28 -- Achievement village: building art size rule DECIDED (Claude app session, Opus advice -> Sonnet docs; art spec only, no code, no balance numbers)
+
+- **One native sprite per building + tier (48x56), shown at whole-number scales: 1x in the scene, 2x in the close-up village view.** No big-art-shrunk-down: pixel art loses its 1px outline and detail rows when downscaled, and a half-size shrink still blurs. No non-integer scaling, no rotation of pixel sprites.
+- **Two mockup shortcuts are NOT carried into the build:** the back-row 0.9x size (depth = ridge y + darker tint instead) and the tier-1 -3deg CSS tilt (the lean is drawn into the art).
+- **Conditions are code** (CSS saturate/brightness + shared overlay PNGs), so the art count is 9 kinds x 5 tiers = 45 sprites, not 135.
+- **`@village` escape hatch:** a 96x112 hand-detailed version for a single building that looks bare at 2x, with code fallback to the 2x of the small one. Not made unless a building needs it.
+- **Clock tower is the test building** (narrowest, hardest to read at 48px); pass criteria are in ART_STYLE.md. If it fails, adjust the size rule before the other 40 sprites are made.
+- Rejected: two full sizes for every building (doubles the PixelLab work and the chance of drift); generating large and downscaling.
+- **Open:** Memorial native size; dark windows for neglected (verify on the test); the village replaces W2 headstone markers (W0 hill stones become the Memorial) - mockups only, not built or phone-checked.
+
 ## 2026-10-28 -- V7 W0 graveyard layout DECIDED + BUILT (Claude app session, Opus plan -> Sonnet build; layout constants only, no balance numbers)
 
 - **Zone, not a hill-under-zombies:** the graveyard is its own fixed 140px strip on the right of the canvas and the zombie field ends at its left edge (Jeremy: zombies spawn to the LEFT of it; dimming it would hide that it is interactive; idle late-day zombies must not cover the headstones). Implemented by measuring the zone in `refreshLayoutDims`/`initGame` (`GAME_SCREEN_WIDTH = canvas - zone`); Clock/Movement untouched (the "off-screen right" branch in `Clock.calculateTimelinePosition` is unreachable for ordinary items, so nothing parks on the hill).
