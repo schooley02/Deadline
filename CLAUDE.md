@@ -28,6 +28,7 @@ At the end of every session, run `/end-session` (append HANDOFF entry, log decis
 | `PROJECT_SPEC.md` | DEEP detail lookups only — it's 115KB/2700 lines. NEVER read it whole; Grep for the section you need. The docs/ files summarize it. |
 | `ACTIONABLE_TICKETS.md` | Ticket details when a ROADMAP item references a ticket ID (P0/P1/P2-xxx) |
 | `docs/VISUAL_DESIGN_PLAN.md` | Visual track V1–V6 (scene, glow, layouts, church, tokens, juice) |
+| `docs/WORLD_FEEDBACK_PLAN.md` | Visual track V7: sky weather, distant-city goals, right-side graveyard achievements |
 
 ## Codebase State (refreshed 2026-10-14 — last code change 2026-10-14, V4: pixel church art at 160px/2x, front-lane line, paths unified on Assets/Base/)
 

@@ -175,6 +175,8 @@ Nothing broken; zero game identity. Category chips already use ART_STYLE.md's pa
   the moments): defeat explosion, spawn, hit feedback, XP/points popups, all fx-gated.
   Coordinate with whatever Milestone 6 scoping decides; don't pre-build.
 
+- [ ] **V7 — World feedback (sky / distant city / graveyard)** — DRAFT 2026-10-27, own plan: `docs/WORLD_FEEDBACK_PLAN.md`.
+
 Suggested order: V3a (functional bug) can go first or batch with V1; then V1 → V2 → V3b →
 V3c (V3c wants V1's scene done); V4 anytime (art call made 2026-07-21: AI-generate pixel);
 V5 anytime; V6 waits for play data. V1's graveyard primarily serves desktop/landscape — the portrait strip
