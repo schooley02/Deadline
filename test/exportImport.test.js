@@ -164,3 +164,47 @@ describe('computeChecksum', () => {
         expect(ExportImport.computeChecksum({ a: 1 })).not.toBe(ExportImport.computeChecksum({ a: 2 }));
     });
 });
+
+describe('daily records in the export (D2, 2026-10-27)', () => {
+    const DAYS = { v: 1, days: { '2026-10-27': { v: 1, date: '2026-10-27' } }, months: {} };
+
+    test('buildEnvelope embeds days when getDays returns a store', () => {
+        const envelope = ExportImport.buildEnvelope({
+            getPersistableState: () => fakeSaveState(),
+            getSettings: () => ({}),
+            getDays: () => DAYS,
+        });
+        expect(envelope.days).toEqual(DAYS);
+    });
+
+    test('no getDays / null store -> no days field (older-shape envelope)', () => {
+        const a = ExportImport.buildEnvelope({ getPersistableState: () => fakeSaveState(), getSettings: () => ({}) });
+        const b = ExportImport.buildEnvelope({ getPersistableState: () => fakeSaveState(), getSettings: () => ({}), getDays: () => null });
+        expect('days' in a).toBe(false);
+        expect('days' in b).toBe(false);
+    });
+
+    test('days round-trip through validateEnvelope and are covered by the checksum', () => {
+        const envelope = ExportImport.buildEnvelope({
+            getPersistableState: () => fakeSaveState(),
+            getSettings: () => ({}),
+            getDays: () => DAYS,
+        });
+        const ok = ExportImport.validateEnvelope(JSON.stringify(envelope));
+        expect(ok.valid).toBe(true);
+        expect(ok.days).toEqual(DAYS);
+
+        const tampered = JSON.parse(JSON.stringify(envelope));
+        tampered.days.days['2026-10-28'] = { v: 1 };
+        const bad = ExportImport.validateEnvelope(JSON.stringify(tampered));
+        expect(bad.valid).toBe(false);
+        expect(bad.reason).toBe('checksum');
+    });
+
+    test('an export without days still validates (days = null)', () => {
+        const envelope = ExportImport.buildEnvelope({ getPersistableState: () => fakeSaveState(), getSettings: () => ({}) });
+        const res = ExportImport.validateEnvelope(JSON.stringify(envelope));
+        expect(res.valid).toBe(true);
+        expect(res.days).toBeNull();
+    });
+});

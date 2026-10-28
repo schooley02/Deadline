@@ -80,6 +80,13 @@ const Timer = (() => {
         return banked + live;
     }
 
+    // Daily record seam (D2, 2026-10-27): script.js registers ONE listener at boot;
+    // every stop (item completed/indulged/removed, manual stop, auto-stop) reports
+    // the span it just banked, so timer minutes are counted in exactly one place.
+    // Listener errors are swallowed -- a stats bug must never break a stop.
+    let spanListener = null;
+    function onSpan(fn) { spanListener = typeof fn === 'function' ? fn : null; }
+
     function start(item, nowMs) {
         if (!canTimer(item) || isRunning(item)) return false;
         item.timer = { startedAt: nowMs, checkedAt: nowMs, promptedAt: null };
@@ -95,6 +102,9 @@ const Timer = (() => {
         const span = Math.max(0, end - item.timer.startedAt);
         item.timerMsBanked = (typeof item.timerMsBanked === 'number' ? item.timerMsBanked : 0) + span;
         item.timer = null;
+        if (span > 0 && spanListener) {
+            try { spanListener(item, span); } catch (e) { /* never break a stop */ }
+        }
         return span;
     }
 
@@ -164,7 +174,7 @@ const Timer = (() => {
 
     return {
         normalizeTarget, modeFor, isRunning, canWorkTimer, isLimit, canLimitTimer, canTimer,
-        remainingMs, buttonLabel, popupLabel, elapsedMs, start, stop, findRunning,
+        remainingMs, buttonLabel, popupLabel, elapsedMs, onSpan, start, stop, findRunning,
         pendingAction, promptDueAt, markPrompted, confirmStillWorking, autoStop,
         damageIntervalMs, formatElapsed,
     };

@@ -337,11 +337,33 @@ Save {
 - **Timer fields now live (Build 3, 2026-10-25):** `item.timer {startedAt, checkedAt, promptedAt} | null` (ms epoch), `item.timerMsBanked`, `item.timerMinutes` (set from the Add/Edit Task forms; new items are created with the schema-14 defaults). `habitDef/taskDef.timerMode/timerMinutes` are still unread.
 - **Definition timer fields now live (Build 4):** `habitDef.timerMinutes` (1-600 | null) and `habitDef.timerMode` ('limit' for negative, 'work' for positive, null if no minutes); spawned habit instances copy `timerMinutes`. Routine `taskDef.timerMode/timerMinutes` remain unread.
 
-## Daily record (DESIGNED 2026-10-27, build pending — `docs/DAILY_RECORD_PLAN.md`)
-- `save.today` (schema 15): the in-progress `DailyRecord` for the current local day.
-- Separate localStorage key `deadline.days`: `{ v, days: {date: DailyRecord}, months: {ym: totals} }`,
-  written once per day at rollover; 18-month daily retention, then monthly roll-up; lifetime data
-  (survives Reset Game / new run); in Backup & Transfer; import merges by date.
-- `DailyRecord` fields are additive and versioned (`v`); a missing field reads as 0/empty.
-  **Rule:** a mechanic that changes what can happen in a day adds its counter in the same session.
+## Daily record (BUILT 2026-10-27, D2 steps 1-4 -- `docs/DAILY_RECORD_PLAN.md`)
+- `save.today` (schema 15): the in-progress `DailyRecord` for the current local day. The v14->v15
+  migration seeds `null`; `State.ensureToday` builds the record (dated by the REAL local day, never an
+  older game date, so no phantom past day is written).
+- Separate localStorage key `deadline.days` (`Persistence.DAYS_KEY`): `{ v, days: {date: DailyRecord}, months: {ym: totals} }`,
+  written ONCE per day by `State.closeDailyRecord` (inside `performDayRollover`, after the settle loop);
+  18-month daily retention, then monthly roll-up (`DailyRecord.rollUp`: counters + hour arrays summed,
+  `active` first/last min/max, `base` averaged, `tz` dropped, plus `days` = days folded in); lifetime data
+  (survives Reset Game / new run -- `Persistence.clear()` removes only `deadline.save`).
+- Backup & Transfer: the envelope gains an OPTIONAL `days` field (checksummed; `EXPORT_FORMAT_VERSION` stays 1).
+  Import MERGES by date (`DailyRecord.mergeStores`) -- a day already on the device is never overwritten.
+- `DailyRecord` v1 fields are additive and versioned (`v`); a missing field reads as 0/empty
+  (`DailyRecord.normalize`). Semantics worth knowing:
+  - `done.*` = task / subtask / habit completions; an AVOIDED negative habit ("lurker") counts in
+    `lurk.avoided` (hours / byCat / pts still bump), never in `done.*`. `lurk.slipped` = real indulgences
+    (a cheat-day-excused indulge records nothing).
+  - `dmg.taken/hits` + `hoursDmg` + `byCat[2]` = LIVE overdue ticks; `dmg.offline` = offline / live-gap
+    back-charge (kept apart: hour of day is meaningless for a batch). Both feed `base.minHp`.
+  - `missed.*` / `hoursMissed` hour = the item's DUE-time hour (when it went wrong), not when it was noticed.
+    A habit edited into the past (`skipHabitMiss`) records no miss.
+  - `tokens.*` = token USES (cheat / sick / skip / pushback / kit); `pts.spent` = shop purchases, pushbacks
+    and paid reschedules. `timer.workMin/limitMin` = minutes banked by `Timer.stop` (via `Timer.onSpan`).
+  - `active` = throttled (30 s) pointerdown window: first/last hour + count.
+  - `due.task` = non-sub tasks with a due time on that day still on file at close; `due.habit` = done + missed
+    (habit instances are removed once settled).
+  - A check-in answer for yesterday's lurker lands in TODAY's record; the silent rollover auto-avoid lands in
+    the day that just ended. An undo whose completion belongs to a closed day is skipped.
+- **Rule:** a mechanic that changes what can happen in a day adds its counter in the same session
+  (`DailyRecord.bump` event + a `recordDaily`/`State.bumpToday` seam) and bumps `DailyRecord.V`.
 

@@ -1,6 +1,6 @@
 # Daily Record — per-day summary for future AI insights + Stats (D2)
 
-**Status: DESIGNED 2026-10-27 (Claude app session, Fable). Build pending (one Sonnet session).**
+**Status: DESIGNED 2026-10-27 (Fable). Build steps 1-4 + docs BUILT 2026-10-27 (Sonnet); step 5 (Stats best/worst day) still open.**
 Decisions logged in `docs/DECISIONS.md` 2026-10-27 "Daily record". Root shape in
 `docs/DATA_SCHEMA.md` "Daily record".
 

@@ -662,8 +662,8 @@ describe('migrate: v11 -> v12 (list-order layering, 2026-10-13)', () => {
         expect(save.activeItems[0].listRank).toBeUndefined();
         expect(save.activeItems[1].listRank).toBe(5);
     });
-    test('SCHEMA_VERSION is 14', () => {
-        expect(Persistence.SCHEMA_VERSION).toBe(14);
+    test('SCHEMA_VERSION is 15', () => {
+        expect(Persistence.SCHEMA_VERSION).toBe(15);
     });
 });
 
@@ -736,7 +736,7 @@ describe('migrate: v13 -> v14 (KO ghosts / timers / reschedule fields, 2026-10-2
 
     test('fills item defaults on active and completed items', () => {
         const save = migrate13({ activeItems: [{ id: 1 }], completedItems: [{ id: 2 }] });
-        expect(save.schemaVersion).toBe(14);
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
         [save.activeItems[0], save.completedItems[0]].forEach(item => {
             expect(item.koGhost).toBe(false);
             expect(item.timer).toBeNull();
@@ -767,7 +767,75 @@ describe('migrate: v13 -> v14 (KO ghosts / timers / reschedule fields, 2026-10-2
     });
 
     test('a save with no lists migrates cleanly', () => {
-        expect(migrate13({}).schemaVersion).toBe(14);
+        expect(migrate13({}).schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+    });
+});
+
+describe('migrate: v14 -> v15 (daily record accumulator slot, 2026-10-27)', () => {
+    const migrate14 = extra => Persistence.migrate(Object.assign({ schemaVersion: 14 }, extra));
+
+    test('seeds today = null and stamps v15', () => {
+        const save = migrate14({});
+        expect(save.schemaVersion).toBe(15);
+        expect(save.today).toBeNull();
+    });
+
+    test('never overwrites an existing today record', () => {
+        const today = { v: 1, date: '2026-10-27' };
+        expect(migrate14({ today }).today).toBe(today);
+    });
+
+    test('a v1 save chains all the way to the current version with today seeded', () => {
+        const save = Persistence.migrate({ schemaVersion: 1 });
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+        expect(save.today).toBeNull();
+    });
+});
+
+describe('closed-days store helpers (deadline.days)', () => {
+    let store;
+    beforeEach(() => {
+        store = {};
+        global.localStorage = {
+            getItem: k => (k in store ? store[k] : null),
+            setItem: (k, v) => { store[k] = String(v); },
+            removeItem: k => { delete store[k]; },
+        };
+    });
+    afterEach(() => { delete global.localStorage; });
+
+    test('DAYS_KEY is its own key, separate from the save', () => {
+        expect(Persistence.DAYS_KEY).toBe('deadline.days');
+        expect(Persistence.DAYS_KEY).not.toBe(Persistence.SAVE_KEY);
+    });
+
+    test('loadDays returns null when absent or corrupt, never throws', () => {
+        expect(Persistence.loadDays()).toBeNull();
+        store['deadline.days'] = '{not json';
+        const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        expect(Persistence.loadDays()).toBeNull();
+        spy.mockRestore();
+    });
+
+    test('saveDays / loadDays round-trip', () => {
+        const days = { v: 1, days: { '2026-10-27': { v: 1 } }, months: {} };
+        expect(Persistence.saveDays(days)).toBe(true);
+        expect(Persistence.loadDays()).toEqual(days);
+    });
+
+    test('clear() (Reset Game) leaves the days store alone', () => {
+        Persistence.saveDays({ v: 1, days: {}, months: {} });
+        store['deadline.save'] = '{}';
+        Persistence.clear();
+        expect(store['deadline.save']).toBeUndefined();
+        expect(store['deadline.days']).toBeDefined();
+    });
+
+    test('saveDays reports failure instead of throwing (quota)', () => {
+        global.localStorage.setItem = () => { throw new Error('quota'); };
+        const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        expect(Persistence.saveDays({ v: 1 })).toBe(false);
+        spy.mockRestore();
     });
 });
 

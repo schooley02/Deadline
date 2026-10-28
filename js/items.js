@@ -329,6 +329,7 @@ const Items = (() => {
             } else if (typeof deps.clearActiveInstancesForRoutine === 'function') {
                 deps.clearActiveInstancesForRoutine(routine.id);
             }
+            recordDaily(deps, 'ko', {}); // daily record (D2)
             if (typeof deps.onRoutineKo === 'function') {
                 deps.onRoutineKo(routine);
             }
@@ -343,6 +344,18 @@ const Items = (() => {
     // `recordRunDamage` collaborator (optional -> no-op, matching every
     // other collaborator in this file); loop.js itself loads AFTER items.js
     // and can call it directly.
+    // Daily record seam (D2, 2026-10-27, docs/DAILY_RECORD_PLAN.md). `recordDaily`
+    // is an OPTIONAL collaborator (script.js wires State.bumpToday), tolerated
+    // when absent like every other optional dep so old test deps keep working.
+    // kind: 'lurker' = a negative habit (avoided = a win but not a "done" item).
+    function dailyKindFor(item) {
+        if (item.type === 'habit') return item.isNegative === true ? 'lurker' : 'habit';
+        return item.parentId ? 'subtask' : 'task';
+    }
+    function recordDaily(deps, event, payload) {
+        if (deps && typeof deps.recordDaily === 'function') deps.recordDaily(event, payload);
+    }
+
     function recordRunDamageForItem(item, amount, nowMs, deps) {
         if (typeof deps.getCurrentRunStats !== 'function') return;
         const routine = findRoutineForItem(item, deps);
@@ -621,6 +634,11 @@ const Items = (() => {
         // Move item to completed list
         item.completedAt = new Date();
         deps.completedItems().push(item);
+        // Daily record (D2): `late` = completed after it went overdue.
+        recordDaily(deps, 'complete', {
+            kind: dailyKindFor(item), category: item.category,
+            at: item.completedAt.getTime(), late: item.isOverdue === true, points: pointsGained
+        });
         deps.saveGame();
 
         // Show completed tasks section and render completed items
@@ -817,6 +835,12 @@ const Items = (() => {
                 habitDef.occurrenceHistory = result.occurrenceHistory;
                 deps.setPlayerXP(deps.getPlayerXP() + result.xpGained);
                 deps.setPlayerPoints(Economy.addPoints(deps.getPlayerPoints(), ghostAdjustedPoints(item, result.pointsGained)));
+                // Daily record (D2): the silent rollover auto-avoid. Runs BEFORE
+                // State closes the day, so it lands in the day that just ended.
+                recordDaily(deps, 'complete', {
+                    kind: 'lurker', category: item.category, at: item.dueDateTime ? item.dueDateTime.getTime() : Date.now(),
+                    points: ghostAdjustedPoints(item, result.pointsGained)
+                });
                 deps.updatePlayerDisplays();
                 deps.checkPlayerLevelUp();
                 // Frozen routine slots: auto-avoided is a success occurrence
@@ -986,6 +1010,11 @@ const Items = (() => {
             if (prevPoints < 0 && newPoints >= 0 && typeof deps.recordLifetime === 'function') {
                 deps.recordLifetime('pointsRecovered', 1);
             }
+            // Daily record (D2): the check-in answer lands in TODAY's record
+            // (the lurker belonged to yesterday; documented in DAILY_RECORD_PLAN).
+            recordDaily(deps, 'complete', {
+                kind: 'lurker', category: habitDef.category, at: Date.now(), points: result.pointsGained
+            });
             deps.checkPlayerLevelUp();
             // Frozen routine slots: 'avoided' is a success occurrence for a
             // negative habit — check recovery path 2.
@@ -1017,6 +1046,7 @@ const Items = (() => {
                     habitDef.streak = result.streak;
                     habitDef.occurrenceHistory = result.occurrenceHistory;
                     deps.setPlayerPoints(Economy.applyIndulgenceCost(deps.getPlayerPoints(), result.pointsLost));
+                    recordDaily(deps, 'lurk', { outcome: 'slipped' });
                     // Frozen routine slots: 'indulged' is a failure occurrence
                     // for a negative habit — check the freeze trigger.
                     maybeFreezeRoutine(habitDef, deps);
@@ -1101,6 +1131,8 @@ const Items = (() => {
             habitDef.occurrenceHistory = result.occurrenceHistory;
 
             deps.setPlayerPoints(Economy.applyIndulgenceCost(deps.getPlayerPoints(), result.pointsLost));
+            // Daily record (D2): a real slip (the cheat-day-excused branch above records nothing).
+            recordDaily(deps, 'lurk', { outcome: 'slipped' });
             // Frozen routine slots: this indulge is a failure occurrence for
             // a negative habit — check the freeze trigger.
             maybeFreezeRoutine(habitDef, deps);
@@ -1163,6 +1195,12 @@ const Items = (() => {
 
         // Remove from completed items
         deps.completedItems().splice(completedIndex, 1);
+
+        // Daily record (D2): remember when it was completed and whether it was
+        // late BEFORE both are cleared, so the undo reverses the same buckets.
+        const dailyCompletedAtMs = item.completedAt ? new Date(item.completedAt).getTime() : Date.now();
+        const dailyWasLate = item.isOverdue === true;
+        let dailyPointsLost = 0;
 
         // Remove completion timestamp
         delete item.completedAt;
@@ -1319,6 +1357,7 @@ const Items = (() => {
             const basePointsLost = isSub ? CONFIG.SUBTASK_POINTS : (hadSubTasks ? 0 : deps.pointsPerTask);
             const pointsLost = Economy.taskPoints(item.isHighPriority, basePointsLost);
 
+            dailyPointsLost = refundPoints(pointsLost);
             deps.setPlayerXP(Math.max(0, deps.getPlayerXP() - xpLost));
             deps.setPlayerPoints(Economy.subtractPoints(deps.getPlayerPoints(), refundPoints(pointsLost)));
             // Achievements sub-session 2 (session 65): symmetric lifetime
@@ -1347,6 +1386,7 @@ const Items = (() => {
                 habitDef.lastCompletionDate = result.lastCompletionDate;
                 habitDef.occurrenceHistory = result.occurrenceHistory;
 
+                dailyPointsLost = refundPoints(result.pointsLost);
                 deps.setPlayerXP(Math.max(0, deps.getPlayerXP() - result.xpLost));
                 deps.setPlayerPoints(Economy.subtractPoints(deps.getPlayerPoints(), refundPoints(result.pointsLost)));
                 // Achievements sub-session 2 (session 65): symmetric lifetime
@@ -1363,6 +1403,13 @@ const Items = (() => {
         // Hero/routine XP ([P1-UI-006]): mirror the award exactly, off the
         // stamp completeItem left on the item (see refundRoutineXpForItem).
         refundRoutineXpForItem(item, deps);
+
+        // Daily record (D2): State.bumpToday skips this when the completion
+        // belongs to an already-closed day (payload.at is that day's time).
+        recordDaily(deps, 'uncomplete', {
+            kind: dailyKindFor(item), category: item.category,
+            at: dailyCompletedAtMs, late: dailyWasLate, points: dailyPointsLost
+        });
 
         deps.updatePlayerDisplays();
         deps.saveGame();
@@ -1384,6 +1431,16 @@ const Items = (() => {
 
         item.isOverdue = true;
         item.lastDamageTickTime = item.dueDateTime.getTime();
+
+        // Daily record (D2): a one-off task / sub-task going overdue is a miss
+        // (habit misses are recorded below, next to the run-stats miss, so the
+        // edit-into-the-past correction `skipHabitMiss` stays out of the day).
+        // Hour = the due time's hour (when it went wrong), not when we noticed.
+        if (item.type !== 'habit') {
+            recordDaily(deps, 'overdue', {
+                kind: 'task', category: item.category, at: item.dueDateTime.getTime()
+            });
+        }
 
         if (item.element) item.element.classList.add('enemy-at-base');
         if (item.listItemElement) item.listItemElement.classList.add('overdue-list-item');
@@ -1432,6 +1489,9 @@ const Items = (() => {
                 if (typeof deps.getCurrentRunStats === 'function') {
                     RunStats.recordHabitMissed(deps.getCurrentRunStats());
                 }
+                recordDaily(deps, 'overdue', {
+                    kind: 'habit', category: item.category, at: item.dueDateTime.getTime()
+                });
 
                 if (result.wasReset) {
                     // Update streak display in list

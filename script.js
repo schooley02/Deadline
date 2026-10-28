@@ -438,7 +438,12 @@ document.addEventListener('DOMContentLoaded', () => {
             damageRoutineForItem: (item, amount) => Items.damageRoutineForItem(item, amount, itemsDeps()),
             // Run history sub-session 2, 2026-07-19 session 53 — blame
             // attribution for both offline/live-gap catch-up paths.
-            recordRunDamage: (item, amount, nowMs) => Items.recordRunDamageForItem(item, amount, nowMs, itemsDeps()),
+            recordRunDamage: (item, amount, nowMs) => {
+                Items.recordRunDamageForItem(item, amount, nowMs, itemsDeps());
+                // Daily record (D2): offline / live-gap back-charge. Kept apart
+                // from live ticks (hour of day is meaningless for a batch).
+                State.bumpToday('offline', { amount, hp: Math.max(0, State.getBaseHealth() - amount) });
+            },
         };
     }
 
@@ -494,7 +499,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Call only once the new due time is being applied.
     function commitReschedule(item, r) {
         if (!r || !r.later) return;
-        if (r.cost > 0) State.setPlayerPoints(Economy.subtractPoints(State.getPlayerPoints(), r.cost));
+        if (r.cost > 0) {
+            State.setPlayerPoints(Economy.subtractPoints(State.getPlayerPoints(), r.cost));
+            State.bumpToday('spend', { points: r.cost }); // daily record (D2)
+        }
+        State.bumpToday('reschedule', {});
         if (r.consumesFreeUse) {
             const t = Date.now();
             State.setRescheduleFreeUses(Economy.pruneRescheduleFreeUses(State.getRescheduleFreeUses(), t).concat([t]));
@@ -569,6 +578,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // definedRoutines is a GETTER too (added "Frozen routine slots" sub-session
     // 1, 2026-07-19) — same reassignment reason as definedHabits. FrozenSlots
     // is called as a bare stable global inside js/items.js, same as Habits/CONFIG.
+    // Daily record (D2, 2026-10-27): every Timer.stop reports the span it banked.
+    Timer.onSpan((item, spanMs) => State.bumpToday('timer', {
+        kind: Timer.isLimit(item) ? 'limit' : 'work', minutes: spanMs / 60000
+    }));
+
     function itemsDeps() {
         return {
             activeItems: State.getActiveItems(),
@@ -600,6 +614,8 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             // Completion (2026-10-26): the item's hero plays its `attack` row once.
             onItemDefeated: (item) => heroAttackOnDefeat(item),
+            // Daily record (D2, 2026-10-27): every gameplay seam bumps through here.
+            recordDaily: State.bumpToday,
             onRoutineDamaged: (routine) => {
                 // Hero spotlight `hurt` row: only plays on a hero that is already on screen.
                 if (heroSpotlightReady) HeroSpotlight.react(routine.id, 'hurt');
@@ -1289,7 +1305,14 @@ document.addEventListener('DOMContentLoaded', () => {
             damageRoutineForItem: (item, amount) => Items.damageRoutineForItem(item, amount, itemsDeps()),
             // Run history sub-session 2, 2026-07-19 session 53 — live-tick
             // blame attribution (loop.js's own overdue-damage call site).
-            recordRunDamage: (item, amount, nowMs) => Items.recordRunDamageForItem(item, amount, nowMs, itemsDeps()),
+            recordRunDamage: (item, amount, nowMs) => {
+                Items.recordRunDamageForItem(item, amount, nowMs, itemsDeps());
+                // Daily record (D2): a live overdue tick. hp = base HP AFTER the hit.
+                State.bumpToday('damage', {
+                    amount, category: item.category, at: nowMs,
+                    hp: Math.max(0, State.getBaseHealth() - amount)
+                });
+            },
             healBase: (amount) => Damage.healBase(amount, damageDeps()),
             updateMidnightLine,
             runLiveGapCatchUp: () => Damage.runLiveGapCatchUp(damageDeps()),
@@ -1856,6 +1879,7 @@ document.addEventListener('DOMContentLoaded', () => {
         Routines.toggleRoutineActive(routineId, {
             onGhostRevived: (item) => revivedItems.push(item),
             onGhostsRevived: (result) => handleGhostsRevived(revivedItems, result),
+            recordDaily: State.bumpToday, // daily record (D2)
             definedRoutines: State.getDefinedRoutines(),
             routineSlots: State.getRoutineSlots(),
             activeItems: State.getActiveItems(),
@@ -2154,6 +2178,8 @@ document.addEventListener('DOMContentLoaded', () => {
             buildExportEnvelope: () => ExportImport.buildEnvelope({
                 getPersistableState: () => State.getPersistableState(),
                 getSettings: () => Settings.load(),
+                // D2 (2026-10-27): closed daily records ride along in the export.
+                getDays: () => Persistence.loadDays(),
             }),
             currentSummary: ExportImport.buildSummary(State.getPersistableState()),
             onConfirmImport: handleConfirmImport,
@@ -2184,6 +2210,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 backedUpAt: new Date().toISOString(),
                 save: currentSaveRaw,
                 settings: currentSettingsRaw,
+                days: localStorage.getItem(Persistence.DAYS_KEY),
             }));
         } catch (e) {
             console.error('Deadline: pre-import backup failed (continuing with import anyway)', e);
@@ -2205,6 +2232,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         localStorage.setItem(Persistence.SAVE_KEY, JSON.stringify(envelope.save));
         Settings.save(envelope.settings || Settings.DEFAULTS);
+        // D2 (2026-10-27): daily records are LIFETIME data, so they MERGE by
+        // date (a day that already has data on this device is never
+        // overwritten) instead of following the full-replace rule above.
+        try {
+            if (envelope.days && typeof DailyRecord !== 'undefined') {
+                const merged = DailyRecord.mergeStores(Persistence.loadDays(), envelope.days);
+                Persistence.saveDays(merged.store);
+            }
+        } catch (e) {
+            console.error('Deadline: daily records import failed (save import continues)', e);
+        }
         window.location.reload();
     }
 
@@ -2293,6 +2331,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        State.bumpToday('spend', { points: State.getPlayerPoints() - result.newPoints }); // daily record (D2)
         State.setPlayerPoints(result.newPoints);
         State.setPlayerInventory(result.newInventory);
         Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, playerXpBar, levelButton, xpThresholds: CONFIG.LEVEL_XP_THRESHOLDS, playerPointsStat, playerPointsNudge });
@@ -2341,6 +2380,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         State.setPlayerInventory(result.newInventory);
         if (isRepairKit) {
+            State.bumpToday('token', { kind: 'kit' }); // daily record (D2)
             Damage.healBase(item.effect.healAmount, damageDeps());
         } else {
             handleUseSickDay();
@@ -2377,6 +2417,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return { ok: false };
         }
 
+        State.bumpToday('spend', { points: State.getPlayerPoints() - result.newPoints }); // daily record (D2)
+        State.bumpToday('token', { kind: 'pushback' });
         State.setPlayerPoints(result.newPoints);
         // Counts from the later of now and the current due (2026-10-26, Jeremy): an
         // overdue zombie is pushed to now + tier, so even the 1 hr tier clears it.
@@ -2440,6 +2482,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         State.setPlayerInventory(result.newInventory);
+        State.bumpToday('token', { kind: 'cheat' }); // daily record (D2)
         habitDef.cheatDayDate = Habits.toOccurrenceDate(targetItem.originalDueDate);
 
         Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, playerXpBar, levelButton, xpThresholds: CONFIG.LEVEL_XP_THRESHOLDS, playerPointsStat, playerPointsNudge });
@@ -2470,6 +2513,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         State.setPlayerInventory(result.newInventory);
+        State.bumpToday('token', { kind: 'skip' }); // daily record (D2)
         Items.useSkipDayOnItem(targetItem, itemsDeps());
 
         Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, playerXpBar, levelButton, xpThresholds: CONFIG.LEVEL_XP_THRESHOLDS, playerPointsStat, playerPointsNudge });
@@ -2486,6 +2530,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // "clear immediately" model). Routine tasks are untouched (fork 4,
     // docs/FROZEN_SLOTS_PLAN.md — Sick Day is habits-only).
     function handleUseSickDay() {
+        State.bumpToday('token', { kind: 'sick' }); // daily record (D2)
         Items.useSickDayGlobally(State.getCurrentGameDate(), itemsDeps());
         Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, playerXpBar, levelButton, xpThresholds: CONFIG.LEVEL_XP_THRESHOLDS, playerPointsStat, playerPointsNudge });
         saveGame();
@@ -2649,6 +2694,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // rollover just ran (above) and left any negative-habit pendingCheckIn
     // markers, prompt for them now.
     showCheckInIfPending();
+
+    // Daily record `active` window (D2, 2026-10-27): any pointer interaction
+    // counts as a touch, throttled so `active.touches` is roughly "half-minutes
+    // the player was actually using the app" and the hot path stays cheap.
+    // Capture phase so a handler that stopPropagation()s (see CLAUDE.md) can't hide it.
+    let lastDailyTouchMs = 0;
+    document.addEventListener('pointerdown', () => {
+        const nowMs = Date.now();
+        if (nowMs - lastDailyTouchMs < 30000) return;
+        lastDailyTouchMs = nowMs;
+        State.bumpToday('touch', { at: nowMs });
+    }, { capture: true, passive: true });
 
     // Flush any pending debounced save when the page hides or closes.
     // visibilitychange covers mobile Chrome, where beforeunload is unreliable.

@@ -69,6 +69,10 @@ const State = (() => {
     let rescheduleFreeUses = [];
     let currentRunStats = (typeof RunStats !== 'undefined') ? RunStats.freshRunStats() : {};
     let runHistory = [];
+    // D2 (2026-10-27, docs/DAILY_RECORD_PLAN.md): the live DailyRecord for the
+    // open local day (schema 15 `save.today`). null until ensureToday() runs.
+    // LIFETIME data like lifetimeStats: initGame never touches it.
+    let today = null;
     let lifetimeStats = (typeof Achievements !== 'undefined') ? Achievements.freshLifetimeStats() : {};
     let achievements = (typeof Achievements !== 'undefined') ? Achievements.freshUnlocked() : {};
     let activeItems = [];
@@ -102,6 +106,47 @@ const State = (() => {
     const setRunHistory = (arr) => { runHistory = arr; };
     const getLifetimeStats = () => lifetimeStats;
     const setLifetimeStats = (obj) => { lifetimeStats = obj; };
+    const getToday = () => today;
+    const setToday = (obj) => { today = obj; };
+
+    /**
+     * ensureToday -- the open day's DailyRecord, created on first use. A null
+     * slot (fresh install, or a save migrated from v14) is seeded with the REAL
+     * local date, never an older game date, so no phantom past day is ever
+     * written at rollover. No-op (returns null) when DailyRecord isn't loaded
+     * (tests that don't need it).
+     */
+    function ensureToday(now) {
+        if (typeof DailyRecord === 'undefined') return null;
+        if (!today) {
+            today = DailyRecord.fresh({
+                date: DailyRecord.dateKey(now || new Date()),
+                run: (Array.isArray(runHistory) ? runHistory.length : 0) + 1,
+                night: daysSurvived,
+                lvl: playerLevel,
+            });
+        }
+        return today;
+    }
+
+    /**
+     * bumpToday -- the ONE entry point every daily-record seam calls (via a
+     * `recordDaily` dep; gameplay modules never read State directly). Never
+     * throws: a stats bug must not break a game tick.
+     */
+    function bumpToday(event, payload) {
+        try {
+            const rec = ensureToday();
+            if (!rec) return;
+            // An undo whose completion belongs to an already-CLOSED day must not
+            // reach into today's record (closed days are never edited).
+            if (event === 'uncomplete' && payload && payload.at != null &&
+                DailyRecord.dateKey(payload.at) !== rec.date) return;
+            DailyRecord.bump(rec, event, payload);
+        } catch (e) {
+            console.error('Deadline: daily record bump failed', event, e);
+        }
+    }
     const getAchievements = () => achievements;
     const setAchievements = (obj) => { achievements = obj; };
     const getActiveItems = () => activeItems;
@@ -225,6 +270,7 @@ const State = (() => {
             runHistory: getRunHistory(),
             currentRunStats: getCurrentRunStats(),
             lifetimeStats: getLifetimeStats(),
+            today: getToday(),
             achievements: getAchievements(),
             routineSlots: getRoutineSlots(),
             itemIdCounter: getItemIdCounter(),
@@ -405,6 +451,15 @@ const State = (() => {
                 ? save.achievements
                 : Achievements.freshUnlocked();
         setLifetimeStats(restoredLifetimeStats);
+        // Daily record accumulator (D2, schema 15). The v14->v15 migration
+        // seeds null; ensureToday() builds the record. A malformed object is
+        // repaired through DailyRecord.normalize (additive-only fields).
+        setToday(
+            (typeof DailyRecord !== 'undefined' && save.today && typeof save.today === 'object')
+                ? DailyRecord.normalize(save.today)
+                : null
+        );
+        ensureToday();
         // One-time-per-load evaluate pass (sub-session 1's "retro sweep" —
         // see ACHIEVEMENTS_PLAN.md fork 4). Idempotent by construction
         // (Achievements.evaluateAll only returns tiers not already in the
@@ -634,6 +689,54 @@ const State = (() => {
                 }
             });
         deps.setCurrentGameDate(DayRollover.startOfDay(now));
+        // Daily record (D2): close the day that just ended. AFTER the settle loop
+        // above on purpose -- auto-avoided lurkers and misses it records belong
+        // to the closing day. Never allowed to break a rollover.
+        try { closeDailyRecord(now); } catch (e) { console.error('Deadline: daily record close failed', e); }
+        return true;
+    }
+
+    /**
+     * closeDailyRecord -- D2 (2026-10-27, docs/DAILY_RECORD_PLAN.md). Writes the
+     * open day's record into `deadline.days` ONCE (the only writer; never on the
+     * per-change save path), runs the 18-month roll-up, then seeds a fresh
+     * accumulator for the new local day. A multi-day gap closes only the day
+     * that was open; days the app never saw simply have no record (a signal).
+     * If the days store can't be written (quota), the accumulator is KEPT so
+     * nothing is lost silently; the next rollover retries with the same record.
+     * No-op when DailyRecord/Persistence aren't loaded (tests), or when the
+     * open record already belongs to today's date (fresh seed).
+     */
+    function closeDailyRecord(now) {
+        if (typeof DailyRecord === 'undefined' || typeof Persistence === 'undefined') return false;
+        const rec = today;
+        const key = DailyRecord.dateKey(now);
+        if (!rec) { ensureToday(now); return false; }
+        if (rec.date === key) return false;
+
+        const habits = (getDefinedHabits() || []).filter(h => h && !h.archivedAt);
+        const tasksDue = getActiveItems().concat(getCompletedItems()).filter(item =>
+            item && item.type === 'task' && !item.parentId && item.dueDateTime &&
+            DailyRecord.dateKey(new Date(item.dueDateTime)) === rec.date).length;
+        const closed = DailyRecord.close(rec, {
+            lvl: getPlayerLevel(),
+            run: (Array.isArray(runHistory) ? runHistory.length : 0) + 1,
+            night: daysSurvived,
+            load: { habits: habits.length, routines: (getDefinedRoutines() || []).length, tasksDue },
+            // Denominators: habit instances are removed once settled, so they are
+            // derived from what was resolved (done + missed); tasks from the
+            // items still on file for that date.
+            due: { task: tasksDue, habit: rec.done.habit + rec.missed.habit },
+            endHp: getBaseHealth(),
+            ptsEnd: getPlayerPoints(),
+            bestStreak: habits.reduce((m, h) => Math.max(m, h.streak || 0), 0),
+        });
+
+        let store = DailyRecord.normalizeStore(Persistence.loadDays());
+        store = DailyRecord.rollUp(DailyRecord.addDay(store, closed), now);
+        if (!Persistence.saveDays(store)) return false; // keep `today`; retry next rollover
+        today = null;
+        ensureToday(now);
         return true;
     }
 
@@ -707,6 +810,7 @@ const State = (() => {
         getCurrentRunStats, setCurrentRunStats,
         getRunHistory, setRunHistory,
         getLifetimeStats, setLifetimeStats,
+        getToday, setToday, ensureToday, bumpToday, closeDailyRecord,
         getAchievements, setAchievements,
         getActiveItems, setActiveItems,
         getCompletedItems, setCompletedItems,

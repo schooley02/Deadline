@@ -81,6 +81,7 @@ const ExportImport = (() => {
 
     /**
      * deps: { getPersistableState(): rawSaveState, getSettings(): settingsObj,
+     *         getDays(): closed-days store or null (optional; D2, 2026-10-27),
      *         now: Date (optional, defaults to new Date()) }
      * rawSaveState is the SAME shape state.js's getPersistableState()
      * returns (DOM refs and all) — we route it through Persistence.serialize
@@ -104,13 +105,19 @@ const ExportImport = (() => {
             save: saveObj,
             settings: settingsObj,
         };
+        // D2 (2026-10-27): the closed daily records ride along as an OPTIONAL
+        // field (older builds ignore it; older exports simply lack it, so
+        // EXPORT_FORMAT_VERSION stays 1). Unlike `save` it is MERGED on
+        // import by date, never replaced -- see DailyRecord.mergeStores.
+        const daysObj = deps.getDays ? deps.getDays() : null;
+        if (daysObj && typeof daysObj === 'object') envelope.days = daysObj;
         envelope.checksum = computeChecksum(envelope);
         return envelope;
     }
 
     /**
      * raw: either a JSON string (paste/file contents) or an already-parsed
-     * object. Returns { valid: true, envelope, save, settings, summary } or
+     * object. Returns { valid: true, envelope, save, settings, days, summary } or
      * { valid: false, reason: <short code>, message: <human string> }.
      * reason codes: 'parse' | 'shape' | 'checksum' | 'newer-version'.
      */
@@ -171,6 +178,7 @@ const ExportImport = (() => {
             envelope: parsed,
             save: parsed.save,
             settings: parsed.settings || {},
+            days: (parsed.days && typeof parsed.days === 'object') ? parsed.days : null,
             summary: parsed.summary || buildSummary(parsed.save),
         };
     }

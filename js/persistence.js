@@ -15,6 +15,9 @@
  */
 const Persistence = (() => {
     const SAVE_KEY = 'deadline.save';
+    // Closed daily records (DailyRecord store {v, days, months}). Lifetime data:
+    // survives Reset Game / new run (Persistence.clear() only removes SAVE_KEY).
+    const DAYS_KEY = 'deadline.days';
     // v2 (2026-07-18): habit definitions gained `routineId` (null = standalone).
     // v3 (2026-07-18): habit + routine-task definitions gained a `schedule`
     // object (replacing habits' bare `frequency` string; routine tasks had no
@@ -50,7 +53,14 @@ const Persistence = (() => {
     // `timerMinutes`. Only `koGhost` is read by code yet; the rest land now so
     // builds 2-4 need no further bump. The root `rescheduleFreeUses` list
     // lands with Build 2 (State does not persist it yet).
-    const SCHEMA_VERSION = 14;
+    // v15 (2026-10-27, D2 daily record; docs/DAILY_RECORD_PLAN.md): the save
+    // gains `today` -- the live DailyRecord accumulator for the open local day
+    // (js/dailyRecord.js). The migration seeds null; State builds a fresh
+    // record on restore when it is null/invalid, so the migration never needs
+    // DailyRecord. CLOSED days live in the separate `deadline.days` key
+    // (DAYS_KEY below), written once per day at rollover, never on the
+    // per-change save path.
+    const SCHEMA_VERSION = 15;
     const DEBOUNCE_MS = 500;
 
     // DOM references on item objects — never serialized, rebuilt on load.
@@ -458,6 +468,14 @@ const Persistence = (() => {
             save.schemaVersion = 14;
         }
 
+        // v14 -> v15 (2026-10-27): seed the daily-record accumulator slot.
+        // null = "no open day yet"; State.ensureToday builds the record.
+        // Existing values are never overwritten (idempotent).
+        if (save.schemaVersion === 14) {
+            if (save.today === undefined) save.today = null;
+            save.schemaVersion = 15;
+        }
+
         if (save.schemaVersion !== SCHEMA_VERSION) {
             console.warn(
                 'Deadline: save has unknown schemaVersion ' + save.schemaVersion +
@@ -488,8 +506,37 @@ const Persistence = (() => {
         } catch (e) { /* ignore */ }
     }
 
+    /**
+     * Closed-days store (`deadline.days`). Returns the parsed store object or
+     * null when absent/corrupt -- callers normalize via
+     * DailyRecord.normalizeStore. Never throws.
+     */
+    function loadDays() {
+        try {
+            const raw = localStorage.getItem(DAYS_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? parsed : null;
+        } catch (e) {
+            console.error('Deadline: days load failed', e);
+            return null;
+        }
+    }
+
+    /** Writes the closed-days store. Returns true on success; never throws. */
+    function saveDays(store) {
+        try {
+            localStorage.setItem(DAYS_KEY, JSON.stringify(store));
+            return true;
+        } catch (e) {
+            console.error('Deadline: days save failed', e);
+            return false;
+        }
+    }
+
     return {
         SAVE_KEY,
+        DAYS_KEY,
         SCHEMA_VERSION,
         serialize,     // exposed for tests
         deserialize,   // exposed for tests
@@ -497,7 +544,9 @@ const Persistence = (() => {
         requestSave,
         flush,
         load,
-        clear
+        clear,
+        loadDays,
+        saveDays
     };
 })();
 

@@ -64,6 +64,12 @@ A closed-out recurring instance charges NO offline base damage (removed before r
 
 **LIVE mid-session rollover (BUILT 2026-07-20, Cowork session).** The settle-and-advance fork above was originally restore-path-only; a tab left running past midnight just stayed stale until the next reload. `js/state.js`'s `performDayRollover(deps, now)` extracts that fork out of `restoreGameState` so both paths share one implementation — `restoreGameState` calls it on load (unchanged behavior), and a new `State.checkLiveDayRollover(deps)` calls it every tick from `js/loop.js`'s `updateGame` (optional collaborator, same "omitted = no-op" tolerance as `checkDayPagerRollover`), so a session left open across midnight settles yesterday's stale recurring instances and spawns today's live, with an immediate `saveGame()` rather than waiting for the 5s autosave window. No offline-catch-up animation runs on the live path (nothing was offline — the tab was live the whole time). See DECISIONS.md 2026-07-20.
 
+## Daily record (BUILT 2026-10-27, D2; `docs/DAILY_RECORD_PLAN.md`, shape in DATA_SCHEMA.md)
+A compact numeric summary per local day, kept for a future in-game AI ("what worked for you, when") and
+best/worst day per run in Stats (Stats part not built yet). It never changes gameplay: every seam is a
+`recordDaily` / `State.bumpToday` call that is a no-op when absent. The day closes at `performDayRollover`
+(live and restore paths) and is stored in `deadline.days`; Reset Game and new runs never touch it.
+
 ## Daily Check-in (BUILT 2026-07-19, sub-session 4, [P1-DATA-005])
 
 The check-in SURFACE for the previous day's negative-habit lurker (frozen routine slots — a separate later ticket — are NOT part of this). `Items.markPendingCheckIn` (called instead of `settleStaleRecurringInstance` for the previous day only, per the fork above) records `habitDef.pendingCheckIn = { originalDueDate }` — additive, no schema bump, absent on every pre-existing habit/save — and removes the lurker so today's fresh one spawns without a duplicate. On the next page load, `js/ui/checkIn.js`'s `showCheckInModal` renders one card per pending habit ("Did you successfully avoid [name] yesterday?") with **Successfully avoided** / **I indulged** buttons, resolved by `Items.resolvePendingCheckIn(habitDefId, outcome, deps)`:

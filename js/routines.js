@@ -780,6 +780,8 @@ const Routines = (() => {
             if (routine.koState) {
                 routine.koState = null;
                 routine.health = CONFIG.HERO_REVIVE_HEALTH;
+                // Daily record (D2, 2026-10-27): optional collaborator.
+                if (typeof deps.recordDaily === 'function') deps.recordDaily('revive', {});
                 // KO ghosts (2026-10-25): surviving ghosts come back to life.
                 const revived = reviveGhostInstancesForRoutine(routineId, deps);
                 if (typeof deps.onGhostsRevived === 'function') deps.onGhostsRevived(revived);

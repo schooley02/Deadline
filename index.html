@@ -417,6 +417,9 @@
          config.js, so js/damage.js (below) can call it directly at
          gameOver() time without a forward-reference problem (session 53). -->
     <script src="js/runStats.js"></script>
+    <!-- js/dailyRecord.js (D2, 2026-10-27): pure per-day record core, ZERO module
+         dependencies; state.js bumps it via State.bumpToday. -->
+    <script src="js/dailyRecord.js"></script>
     <script src="js/achievements.js"></script>
     <script src="js/schedule.js"></script>
     <script src="js/dayRollover.js"></script>

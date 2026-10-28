@@ -6,6 +6,20 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 
 
+## 2026-10-27 -- Daily record (D2) BUILT: semantics settled while wiring (Claude app session, Sonnet; no balance numbers changed)
+
+Small calls made during the build, all inside the DESIGNED plan (nothing here changes gameplay):
+- **Avoided lurker != done item.** `complete` with kind `lurker` bumps `lurk.avoided` (+ hours/byCat/pts) and NOT `done.*`, so done denominators stay clean. Real slips bump `lurk.slipped`; a cheat-day-excused indulge records nothing.
+- **Offline damage kept apart.** `dmg.offline` does not touch `dmg.taken`, `hoursDmg` or `byCat[2]` (a batch has no real hour). Both update `base.minHp`.
+- **Attribution.** Overdue hour = the due-time hour. A check-in answer lands in the day it is answered; the silent rollover auto-avoid lands in the closing day (it runs before the close). An undo of a completion from a closed day is skipped (closed days are never edited).
+- **`save.today` migrates to `null`, not a record**, so the migration never depends on `DailyRecord`; `State.ensureToday` seeds with the real local date (no phantom day).
+- **Close at the END of `performDayRollover`**, after the settle loop; a failed `deadline.days` write keeps the accumulator and retries next rollover. Multi-day gap: only the open day is written.
+- **Denominators:** `due.habit` = done + missed (instances vanish once settled); `due.task` = non-sub tasks due that day still on file.
+- **Tokens = uses, spend = purchases.** `tokens.*` count cheat/sick/skip/pushback/kit USES; `pts.spent` counts shop buys, pushbacks and paid reschedules.
+- **Timer minutes via `Timer.onSpan`** (one listener fed by every `Timer.stop`), so no stop path can be missed.
+- **Export:** optional checksummed `days` field, `EXPORT_FORMAT_VERSION` stays 1; import MERGES by date, never overwrites a day on the device (unlike `save`, which is full-replace).
+- `active.touches` is throttled to one per 30 s.
+
 ## 2026-10-27 — Daily record (D2): per-day summary for AI insights + Stats — DESIGNED
 
 **Decision — build the daily record BEFORE the V7 visuals.** Days not recorded are gone for good;
