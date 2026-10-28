@@ -302,12 +302,6 @@
     fill: #141426;
 }
 
-.scene-tree {
-    stroke: #0d0d1a;
-    stroke-width: 2;
-    stroke-linecap: round;
-}
-
 /* Ground band. EXPERIMENTAL (2026-07-21, testing live per Jeremy's request)
    — was fixed/no-transform per the original art-direction decision ("ground
    fixed" sells depth against the faster layers above it). Jeremy's
@@ -326,7 +320,7 @@
     bottom: 0;
     /* 2026-10-13: PixelLab floor art. Fixed 72px = floor-tile.png's height (the canvas is
        ~298px on desktop, so this is ~24% as before); tiled 1:1, pixelated. The old SVG
-       ground (fill/fence/tombstones) is hidden below; the fog ::before still drifts. */
+       ground (fill/fence) is hidden below; the fog ::before still drifts. */
     height: 72px;
     min-height: 44px;
     background: url("../Assets/scene/floor-tile.png") repeat-x 0 100% / 127px 72px;
@@ -351,10 +345,6 @@
 
 .scene-fence-post {
     stroke-width: 3;
-}
-
-.scene-tombstone {
-    fill: #1a1a1a;
 }
 
 /* Fog: slow ambient drift over the ground band, gated behind the existing

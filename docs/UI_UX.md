@@ -111,7 +111,7 @@ a same-origin iframe injected at 390×844 into Jeremy's live `node server.js`, n
 `#gameCanvas` (`css/gameCanvas.css`, `index.html`) gained a `.graveyard-scene` layer stack behind
 `#base`/`#heroBaseZone`/`#midnightLine`/`.enemy`: night-sky gradient + static moon glow, a faint
 cloud layer, a far hill + three bare-tree silhouettes (inline SVG), and a fixed ground band with a
-fence + three tombstone silhouettes (inline SVG). All decorative/`aria-hidden`. Matches
+fence silhouette (inline SVG; the 3 bare trees and 3 tombstones were removed 2026-10-28, sw v132). All decorative/`aria-hidden`. Matches
 `docs/ART_STYLE.md`'s "pixel art / cartoonish, playful, slightly eerie graveyard — never grim" —
 low-detail silhouettes only; V4 will regenerate the pixel-art church into this scene later.
 **Moon + Nights Survived (2026-10-26):** `#nightsSurvived` in `#gameCanvas` (top 8%, right 32px): PixelLab `Assets/scene/moon.png` (58x58, 1:1, pixelated, CSS box-shadow glow) with the run's night count (local midnights crossed) centred in Press Start 2P and a "NIGHTS SURVIVED" label in Inter below. Driven by `js/ui/nightsSurvivedView.js`; hidden in the portrait strip.
