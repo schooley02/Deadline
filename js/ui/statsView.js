@@ -89,6 +89,27 @@ const StatsView = (() => {
         return `<span class="stats-counter-delta${improved ? ' stats-delta-up' : ''}" title="vs last run">${text}</span>`;
     }
 
+    // Best / worst day of a run (D2 step 5, 2026-10-27). `bw` is
+    // DailyRecord.bestWorstByRun's { best, worst } or null -> '' (older runs
+    // and runs with fewer than 2 active days show nothing, never a placeholder).
+    function formatDayKey(key) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(key));
+        if (!m) return '';
+        return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+
+    function buildBestWorstDays(bw) {
+        if (!bw || !bw.best || !bw.worst) return '';
+        const row = (cls, label, e) => `
+            <li class="stats-best-worst-row ${cls}">
+                <span class="stats-best-worst-label">${label}</span>
+                <span class="stats-best-worst-day">${formatDayKey(e.date)}${e.night ? ` · night ${e.night}` : ''}</span>
+                <span class="stats-best-worst-nums">${e.done} done · ${e.missed} missed · ${e.damage} dmg</span>
+            </li>`;
+        return `<div class="stats-blame-heading">Best &amp; worst day</div>
+            <ul class="stats-best-worst">${row('stats-best-day', '▲ Best', bw.best)}${row('stats-worst-day', '▼ Worst', bw.worst)}</ul>`;
+    }
+
     // deps: { currentRunStats, daysSurvivedSoFar, currentRunNumber,
     //         lastRunRecord, achievementsCatalog, lifetimeStats, achievements }
     function buildCurrentRunPanel(deps) {
@@ -132,6 +153,7 @@ const StatsView = (() => {
                     </div>
                 </div>
                 ${nearMissHtml}
+                ${buildBestWorstDays(deps.bestWorst)}
                 <div class="stats-blame-heading">Top offenders so far</div>
                 ${buildBlameList(blameRows, 3)}
             </div>
@@ -179,7 +201,7 @@ const StatsView = (() => {
     // setTimeout(0) hazard) and the personal-record run gets a 🏆 badge
     // (`isBest` — RunStats.bestRunNumber, computed once in
     // renderStatsWindow, not per card).
-    function buildRunCard(record, isBest) {
+    function buildRunCard(record, isBest, bestWorst) {
         const bestBadge = (isBest
             ? '<span class="stats-run-card-best" title="Personal record">🏆 Best run</span>'
             : '') + buildTitleBadge(record, 'stats-run-card-title-badge');
@@ -201,6 +223,7 @@ const StatsView = (() => {
                 <div class="stats-run-card-summary-blame">${buildBlameList(record.blame, 3)}</div>
                 <div class="stats-run-card-details">
                     <div class="stats-run-card-span">Started ${formatDate(record.startedAtMs)} · ${record.endReason === 'base_destroyed' ? 'Base destroyed' : record.endReason}</div>
+                    ${buildBestWorstDays(bestWorst)}
                     <div class="stats-blame-heading">All offenders</div>
                     ${buildBlameList(record.blame, 10)}
                     ${routinesHtml}
@@ -330,7 +353,8 @@ const StatsView = (() => {
     }
 
     // deps: { currentRunStats, runHistory, daysSurvivedSoFar,
-    //         achievementsCatalog, lifetimeStats, achievements }
+    //         achievementsCatalog, lifetimeStats, achievements,
+    //         days (deadline.days store), todayRecord (open save.today), scoreWeights }
     function renderStatsWindow(deps) {
         const currentPanel = document.getElementById('statsCurrentPanel');
         const historyList = document.getElementById('statsHistoryList');
@@ -340,7 +364,15 @@ const StatsView = (() => {
         const runHistory = deps.runHistory || [];
         const currentRunNumber = runHistory.length + 1;
 
+        // D2 step 5: best/worst day per run from the closed-day store; the live
+        // run also counts today's open record. Missing store/module -> no rows.
+        const hasDaily = typeof DailyRecord !== 'undefined';
+        const bestWorstFor = (runNumber, extra) => hasDaily
+            ? DailyRecord.bestWorstByRun(deps.days, runNumber, { weights: deps.scoreWeights, extra })
+            : null;
+
         currentPanel.innerHTML = buildCurrentRunPanel({
+            bestWorst: bestWorstFor(currentRunNumber, deps.todayRecord ? [deps.todayRecord] : []),
             currentRunStats: deps.currentRunStats,
             daysSurvivedSoFar: deps.daysSurvivedSoFar,
             currentRunNumber,
@@ -353,7 +385,7 @@ const StatsView = (() => {
         const bestRun = RunStats.bestRunNumber(runHistory);
         historyList.innerHTML = (runHistory.length === 0)
             ? '<div class="stats-empty">No past runs yet — this is your first.</div>'
-            : runHistory.map(record => buildRunCard(record, record.runNumber === bestRun)).join('');
+            : runHistory.map(record => buildRunCard(record, record.runNumber === bestRun, bestWorstFor(record.runNumber, []))).join('');
 
         // Sub-session 5: expand/collapse delegation. ASSIGNED (not
         // addEventListener) so re-opening the window replaces rather than
@@ -397,6 +429,7 @@ const StatsView = (() => {
         formatDeltaBadge,
         buildCurrentRunPanel,
         buildRunCard,
+        buildBestWorstDays,
         buildRunRoutineRow,
         buildRoutineEntryRow,
         buildRoutineCard,

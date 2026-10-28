@@ -1,6 +1,6 @@
 # Daily Record — per-day summary for future AI insights + Stats (D2)
 
-**Status: DESIGNED 2026-10-27 (Fable). Build steps 1-4 + docs BUILT 2026-10-27 (Sonnet); step 5 (Stats best/worst day) still open.**
+**Status: DESIGNED 2026-10-27 (Fable). Build steps 1-5 + docs BUILT 2026-10-27 (Sonnet); step 5 (Stats best/worst day) built the same night.**
 Decisions logged in `docs/DECISIONS.md` 2026-10-27 "Daily record". Root shape in
 `docs/DATA_SCHEMA.md` "Daily record".
 
@@ -94,9 +94,13 @@ events, device info.
 Pure module **`js/dailyRecord.js`** (fresh(), bump(rec, event, payload), close(), rollUp(store,
 now)) with Jest tests; wiring is thin deps, like `RunStats`.
 
-## Stats surface (small, same build or next)
-Best / worst day per run: score = done.total − missed.total − dmg.taken (CONFIG weights). Shown
-on the run cards in Stats. Day Pager stays forward-only.
+## Stats surface (BUILT 2026-10-27)
+Best / worst day per run: score = done.total − missed.total − dmg.taken, weights in
+`CONFIG.DAILY_SCORE_WEIGHTS` (default 1/1/1). `DailyRecord.bestWorstByRun(store, run, {weights, extra})`
+reads closed days whose `run` matches (the live run adds today's open record via `extra`). Idle days
+(no done/missed/damage) are skipped; ties go to the earlier date; fewer than 2 scored days, or all
+scores equal, shows nothing. Shown in the expanded past-run cards and the live current-run panel.
+Runs that ended before D2 have no days, so they show nothing. Day Pager stays forward-only.
 
 ## Build steps (Sonnet, medium; one session)
 1. `js/dailyRecord.js` + tests (shape, bump, undo, close, 18-month roll-up).

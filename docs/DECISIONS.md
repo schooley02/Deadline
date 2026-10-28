@@ -6,6 +6,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 
 
+## 2026-10-27 -- Stats best/worst day per run (D2 step 5) BUILT (Claude app session, Sonnet; display only, no balance numbers)
+
+- **Score = done - missed - damage**, weights in `CONFIG.DAILY_SCORE_WEIGHTS` = 1/1/1 (Jeremy chose the defaults). `done` = tasks + sub-tasks + habits; `missed` = overdue tasks + habit misses; `damage` = base HP lost that day. Avoided lurkers are not in `done` (see the D2 BUILT entry).
+- **Idle days never count** (no done/missed/damage): a day the app was barely touched is not a "worst" day. Ties go to the earlier date. Fewer than 2 scored days, or all scores equal, shows nothing rather than naming the same day best and worst.
+- **Live run includes today's open record** so the current-run panel is useful before the first rollover; past runs read only closed days matched on `run`. Pre-D2 runs show nothing.
+- Rejected: storing best/worst on the run record at game over (the days store is the source of truth and weights stay tunable); a per-category best/worst (out of scope).
+
 ## 2026-10-27 -- Daily record (D2) BUILT: semantics settled while wiring (Claude app session, Sonnet; no balance numbers changed)
 
 Small calls made during the build, all inside the DESIGNED plan (nothing here changes gameplay):

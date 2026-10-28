@@ -330,3 +330,68 @@ describe('mergeStores (import)', () => {
         expect(Object.keys(store.days)).toEqual([DAY]);
     });
 });
+
+describe('dayScore / bestWorstByRun (D2 step 5)', () => {
+    function day(date, run, night, done, missed, dmg) {
+        const r = DailyRecord.fresh({ date, run, night });
+        r.run = run; r.night = night;
+        r.done.task = done; r.missed.task = missed; r.dmg.taken = dmg;
+        return r;
+    }
+    function storeOf(...recs) {
+        let s = DailyRecord.emptyStore();
+        recs.forEach(r => { s = DailyRecord.addDay(s, r); });
+        return s;
+    }
+
+    test('score = done - missed - damage, weights override', () => {
+        const r = day('2026-10-01', 1, 1, 5, 2, 3);
+        expect(DailyRecord.dayScore(r)).toBe(0);
+        expect(DailyRecord.dayScore(r, { damage: 0.5 })).toBe(1.5);
+        expect(DailyRecord.dayScore(null)).toBe(0);
+    });
+
+    test('CONFIG.DAILY_SCORE_WEIGHTS has all three weights', () => {
+        expect(Object.keys(CONFIG.DAILY_SCORE_WEIGHTS).sort()).toEqual(['damage', 'done', 'missed']);
+    });
+
+    test('picks best and worst of the matching run only', () => {
+        const s = storeOf(
+            day('2026-10-01', 1, 1, 4, 0, 0),   // +4
+            day('2026-10-02', 1, 2, 1, 3, 5),   // -7
+            day('2026-10-03', 1, 3, 2, 1, 0),   // +1
+            day('2026-10-04', 2, 1, 9, 0, 0),   // other run
+        );
+        const bw = DailyRecord.bestWorstByRun(s, 1);
+        expect(bw.best).toMatchObject({ date: '2026-10-01', night: 1, score: 4, done: 4 });
+        expect(bw.worst).toMatchObject({ date: '2026-10-02', night: 2, score: -7, missed: 3, damage: 5 });
+    });
+
+    test('ties go to the earlier date; idle days are skipped', () => {
+        const s = storeOf(
+            day('2026-10-01', 1, 1, 3, 0, 0),
+            day('2026-10-02', 1, 2, 3, 0, 0),
+            day('2026-10-03', 1, 3, 0, 0, 0),   // idle
+            day('2026-10-04', 1, 4, 0, 2, 0),   // -2
+        );
+        const bw = DailyRecord.bestWorstByRun(s, 1);
+        expect(bw.best.date).toBe('2026-10-01');
+        expect(bw.worst.date).toBe('2026-10-04');
+    });
+
+    test('null with fewer than 2 scored days or all-equal scores', () => {
+        expect(DailyRecord.bestWorstByRun(null, 1)).toBeNull();
+        expect(DailyRecord.bestWorstByRun(storeOf(day('2026-10-01', 1, 1, 3, 0, 0)), 1)).toBeNull();
+        expect(DailyRecord.bestWorstByRun(storeOf(
+            day('2026-10-01', 1, 1, 3, 0, 0), day('2026-10-02', 1, 2, 3, 0, 0)), 1)).toBeNull();
+        expect(DailyRecord.bestWorstByRun(storeOf(day('2026-10-01', 1, 1, 3, 0, 0)), 2)).toBeNull();
+    });
+
+    test("today's open record counts via opts.extra (and replaces a same-date day)", () => {
+        const s = storeOf(day('2026-10-01', 1, 1, 2, 0, 0));
+        const today = day('2026-10-02', 1, 2, 0, 4, 0);
+        const bw = DailyRecord.bestWorstByRun(s, 1, { extra: [today] });
+        expect(bw.worst.date).toBe('2026-10-02');
+        expect(bw.best.date).toBe('2026-10-01');
+    });
+});

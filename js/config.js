@@ -299,6 +299,9 @@ const CONFIG = {
     // minute moved (drag right = forward, left = reverse, finger still = frozen). 20 => a full 24h drag plays
     // ~29 s of animation. Higher = faster. Display only. js/ui/timeSliderView.js.
     SCRUB_ANIM_MS_PER_MINUTE: 20,
+    // Stats best/worst day per run (D2 step 5, 2026-10-27): score = done*done - missed*missed - damage*damage
+    // (done = tasks + sub-tasks + habits; damage = base HP lost that day). Display only -- not a balance number.
+    DAILY_SCORE_WEIGHTS: { done: 1, missed: 1, damage: 1 },
     HERO_ONESHOT_FRAMES: 9,
     HERO_ONESHOT_FRAME_OVERRIDES: { hurt: { financial: 7, health: 7 } },
     // A routine level-up opens the spotlight on that hero (it plays `levelup`) when no hero is showing.

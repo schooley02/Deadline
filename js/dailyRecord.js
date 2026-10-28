@@ -317,6 +317,65 @@ const DailyRecord = (() => {
         };
     }
 
+    const DEFAULT_SCORE_WEIGHTS = { done: 1, missed: 1, damage: 1 };
+
+    /**
+     * Day score for Stats best/worst day (D2 step 5, 2026-10-27):
+     * done*w.done - missed*w.missed - damage*w.damage. Weights come from
+     * CONFIG.DAILY_SCORE_WEIGHTS (passed in; this module never reads CONFIG).
+     */
+    function dayScore(rec, weights) {
+        const t = totals(rec);
+        const w = Object.assign({}, DEFAULT_SCORE_WEIGHTS, weights || {});
+        return t.done * w.done - t.missed * w.missed - t.damage * w.damage;
+    }
+
+    function dayEntry(rec, weights) {
+        const t = totals(rec);
+        return {
+            date: rec.date,
+            night: rec.night || 0,
+            score: dayScore(rec, weights),
+            done: t.done,
+            missed: t.missed,
+            damage: t.damage,
+        };
+    }
+
+    /**
+     * Best and worst day of one run. Candidates = closed days in the store
+     * whose `run` matches, plus `opts.extra` records (the open `save.today`
+     * for the live run; the caller only passes it for the current run).
+     * Days with no done / missed / damage are skipped (an idle day is not a
+     * "worst" day). Ties go to the earlier date. Returns null when fewer than
+     * 2 scored days exist or every score is equal (best and worst would be
+     * the same day). Result: { best, worst } of { date, night, score, done,
+     * missed, damage }.
+     */
+    function bestWorstByRun(store, runNumber, opts) {
+        const o = opts || {};
+        const s = normalizeStore(store);
+        const byDate = {};
+        Object.keys(s.days).forEach(key => {
+            const r = s.days[key];
+            if (r && r.run === runNumber) byDate[r.date || key] = r;
+        });
+        (o.extra || []).forEach(r => { if (r && r.date) byDate[r.date] = r; });
+
+        const entries = Object.keys(byDate).sort()
+            .map(k => dayEntry(byDate[k], o.weights))
+            .filter(e => e.done + e.missed + e.damage > 0);
+        if (entries.length < 2) return null;
+
+        let best = entries[0], worst = entries[0];
+        entries.forEach(e => {
+            if (e.score > best.score) best = e;
+            if (e.score < worst.score) worst = e;
+        });
+        if (best.score === worst.score) return null;
+        return { best, worst };
+    }
+
     // ---- store ({ v, days:{date:rec}, months:{ym:rec-shaped totals} }) ----
 
     function emptyStore() {
@@ -445,6 +504,8 @@ const DailyRecord = (() => {
         bump,
         close,
         totals,
+        dayScore,
+        bestWorstByRun,
         emptyStore,
         normalizeStore,
         addDay,

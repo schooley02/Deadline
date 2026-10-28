@@ -114,6 +114,10 @@ const ManagementWindows = (() => {
                     achievementsCatalog: deps.achievementsCatalog,
                     lifetimeStats: deps.lifetimeStats,
                     achievements: deps.achievements,
+                    // D2 step 5 (2026-10-27): best/worst day per run.
+                    days: deps.days,
+                    todayRecord: deps.todayRecord,
+                    scoreWeights: deps.scoreWeights,
                 });
             } else if (type === 'settings') {
                 // [P2-UI-009] session 59 — same pass-through-deps-only shape

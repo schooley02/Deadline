@@ -2171,6 +2171,8 @@ document.addEventListener('DOMContentLoaded', () => {
             onShopBuy: handleShopPurchase, onShopUse: handleShopUse, shopDiscount: currentShopDiscount(),
             currentRunStats: State.getCurrentRunStats(), runHistory: State.getRunHistory(), daysSurvivedSoFar: Damage.computeDaysSurvived(State.getRunStartedAtMs(), Date.now(), CONFIG.MS_PER_REAL_DAY),
             achievementsCatalog: CONFIG.ACHIEVEMENTS, lifetimeStats: State.getLifetimeStats(), achievements: State.getAchievements(),
+            // D2 step 5: closed days + today's open record for Stats best/worst day.
+            days: Persistence.loadDays(), todayRecord: State.getToday(), scoreWeights: CONFIG.DAILY_SCORE_WEIGHTS,
             currentEffectsIntensity: effectsIntensity,
             onChangeEffectsIntensity: handleEffectsIntensityChange,
             // Export/Import (Milestone 5 first item, 2026-07-20) — see
