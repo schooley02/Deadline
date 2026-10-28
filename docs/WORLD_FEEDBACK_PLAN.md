@@ -1,8 +1,20 @@
 # World Feedback Plan — sky, distant city, graveyard (visual track V7)
 
-**Status: DRAFT, brainstormed 2026-10-27 (Claude app session, Opus). Nothing decided yet** —
-every item marked PROPOSED waits for Jeremy's call. Once a fork is settled, log it in
-`docs/DECISIONS.md` and flip it to DECIDED here.
+**Status: DRAFT, brainstormed 2026-10-27 (Claude app session, Opus; mockups + first decisions
+same evening).** Items marked PROPOSED wait for Jeremy's call; DECIDED items are logged in
+`docs/DECISIONS.md` (2026-10-27 "World feedback V7").
+
+**Mockups:** Design canvas "Deadline World Feedback Mockups" (7 artboards: zone map, good day,
+bad day, horde vs meteor, graveyard tiers, stronghold Target types).
+
+**DECIDED 2026-10-27 (Jeremy):**
+- The existing V1 decorative trees + tombstones (inline SVG in `index.html` `.scene-silhouettes`
+  / `.scene-ground`) are REMOVED entirely when V7 lands — replaced by the real graveyard
+  markers, not kept alongside them.
+- Past-day review is NOT the reason to save per-day data. The daily record exists for (1) future
+  in-game AI insight ("what worked for you, at which times of year") and (2) best/worst days per
+  run in Stats. A back-paging Day Pager is unneeded unless a real use case shows up.
+- Mockups first for the deadline threat (horde vs meteor) — both drawn; pick pending.
 
 ## Goal
 
@@ -65,6 +77,14 @@ event log" for runs. So past-day review is NOT a visuals-only job. Options:
 - (c) Defer.
 Recommendation: (a) now; (b) as its own Fable/Opus design session if past-day review is wanted.
 
+**Update 2026-10-27 (Jeremy):** (b) is wanted, but for a different reason — not for paging the
+canvas back, but as the raw material for in-game AI insights (what worked, when, seasonality)
+and for "best / worst day per run" in Stats. So D2 becomes a DATA design session: what the daily
+record must hold to answer those questions later (per-category completions, damage taken,
+overdue counts, habits missed/kept, time-of-day of completions, points delta, weather level),
+compaction/size policy over months, export/import coverage. The aftermath decals stay
+today-only (a) regardless.
+
 ## Region 3 — Distant city: goals (depends on the Goals feature)
 
 Prerequisite: Goals + Targets (Jeremy's sketch: Number range, True/False, Currency, Task/list
@@ -116,8 +136,8 @@ list. PROPOSED extensions:
   for long streaks).
 - Optional: a fresh grave for a KO'd hero until revived (may be one thing too many).
 
-Open: the scene already has 3 decorative tombstones in the ground layer (V1) — keep, move,
-or replace with the real markers? Marker size vs tap-target minimum (44px hit area, visual can
+DECIDED 2026-10-27: the V1 decorative tombstones AND the 3 bare trees are removed outright
+(Jeremy); the graveyard markers + the growth tree replace them. Marker size vs tap-target minimum (44px hit area, visual can
 be smaller — the V3c-1 chip trick).
 
 ## Suggested build order (PROPOSED; one session each, commit each)
@@ -133,7 +153,8 @@ be smaller — the V3c-1 chip trick).
 - [ ] **D1 — Goals + Targets design (Fable):** schema, linking tasks/habits, UI, portrait entry.
 - [ ] **W5 — City strongholds (after Goals ships).**
 - [ ] **W6 — Horizon threat (after W5).**
-- [ ] **D2 (optional) — Daily summary record for past-day review (Fable/Opus).**
+- [ ] **D2 — Daily summary record for future AI insights + best/worst days (Fable/Opus; data
+  design, schema bump). Not for back-paging the canvas.**
 
 Art: PixelLab, matching the moon / church pixel scale; source files in `Assets/scene/_source/`;
 every new shell asset goes in `sw.js` `APP_SHELL` with a `CACHE_NAME` bump.

@@ -4,6 +4,27 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+
+## 2026-10-27 — World feedback V7 (sky / distant city / graveyard): brainstorm + first decisions
+
+**Context:** Jeremy wants the empty landscape/desktop scene regions (background, right side) to give
+game-like at-a-glance feedback. Brainstorm + draft plan in `docs/WORLD_FEEDBACK_PLAN.md`; mockups in
+the Design canvas "Deadline World Feedback Mockups". Nothing built this session.
+
+**Decision 1 — remove the V1 decorative trees + tombstones outright** when V7's graveyard lands
+(Jeremy). Rejected: keeping them as filler next to the real achievement markers (two kinds of
+tombstone in one scene would make the informative ones unreadable).
+
+**Decision 2 — a per-day record is for AI insight + Stats, not for paging the canvas back.** Jeremy is
+unsure a real user would ever go back to look at a past day's scene; the reason to save daily data is
+(a) future in-game AI that tells the player what has worked for them at different times of year, and
+(b) best/worst days per run in Stats. So the Day Pager stays forward-only, "battlefield aftermath"
+decals are today-only, and D2 is a data-design session (what to record, size policy, export coverage).
+Supersedes nothing: the 2026-07 "lean run totals, no raw event log" decision stands for RUN records;
+the daily record is a new, separate, compact object (design pending).
+
+**Decision 3 — mockups before the horde-vs-meteor call** (Jeremy). Both are drawn; the pick is open.
+
 ## 2026-10-27 -- Hero size fits reset to 1 (Jeremy: portrait nurse much bigger than her zombie; Claude app session; visual only, no balance numbers changed)
 - **Decision:** every per-category `--hero-fit` is now 1 (was 1.00-1.22). Hero scale = base only: 1 landscape / 0.5 portrait strip.
 - **Why:** the 2026-10-26 fits matched the hero's OUTLINE height to the zombie's, but zombie outlines include raised arms and props (syringe, guitar, book) and zombies hunch, so upright heroes (nurse 1.20, nun 1.22, businessman 1.16, rocker, tourist) came out about a head taller. Rendering both at the real portrait scales showed fit 1 lines up head-for-head with the attackers (0.5) in all 8 categories. Walking zombies draw at 0.4375, so a hero beside a walker still reads slightly larger; sized to the attackers on purpose since the hero usually stands by one.
