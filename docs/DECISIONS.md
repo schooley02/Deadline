@@ -6,6 +6,17 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 
 
+## 2026-10-28 (evening) -- Achievement village: 2x pixel scale, Americana direction, size test (Claude app session, Opus advice -> Sonnet docs; art spec only, no code, no balance numbers). SUPERSEDES the "1x scene / 48x56" parts of the entry below.
+
+- **Scene sprites are drawn at 2x (close-up 4x), not 1x.** The game is 2 screen px per art px everywhere (church 80x200 at 2x, zombies 64x64 at 2x, heroes); 1x village sprites looked finer than, and out of place beside, the rest (Jeremy; confirmed on a composite of the real 844x390 scene with real zombies). One sprite per building + tier serves both scene and close-up.
+- **Native size PROPOSED 64x80 (128x160 on screen); 56x64 is the floor.** To be settled by generating Clock tower T3 at both and comparing on the scene mock. Reason: at 2x a 48x56 sprite has far fewer art pixels than a zombie sprite, so it reads coarser; 64x80 matches zombie-level detail.
+- **Vertical budget measured** (canvas 334/356/298px tall; top-lane zombie heads at y~158/180/122; ~100px of a building shows above them at 844x390). Jeremy: bottoms may be lowered as long as the art above the top lane's zombies stays clickable. Rule: identifying detail in the top half of the sprite; depth = y position + tint (no 0.9x scaling).
+- **Style: Americana small-town USA, replacing violet/gothic** (red brick, white trim, slate/green-copper roofs, cast-iron street lamps, pale-yellow backlit clock faces: orange is not a believable lit-clock colour). Applies to the whole village (proposed kinds in ART_STYLE; confirm next session). The violet Clock tower T1-T5 is kept as an alternative in `Assets/Village/_source/gothic-violet/`.
+- **The 256x256 example tower is NOT used:** true 1px art, no 2x2 grid, 239px tall; any shrink wrecks it. Optional later "hero art" slot per building.
+- **Process learned:** low-medium reference strength when the silhouette must change; palette hexes in the prompt; fix colour in code (luminance remaps) rather than regenerating; never fill a ring around a face that nearly fills its stage; judge on the real scene at 1x and 2x with zombies in front.
+- Rejected: two full art sizes per building (workload, drift); generating big and shrinking; keeping 1x; a full gold ring on the clock stage (gold slab).
+- **Open:** the 64x80 vs 56x64 result; Americana mapping for the other 7 kinds + Memorial; neglected-brightness floor for dark tiers; the MIDNIGHT line z-order; Memorial rows tappable?
+
 ## 2026-10-28 -- Achievement village: building art size rule DECIDED (Claude app session, Opus advice -> Sonnet docs; art spec only, no code, no balance numbers)
 
 - **One native sprite per building + tier (48x56), shown at whole-number scales: 1x in the scene, 2x in the close-up village view.** No big-art-shrunk-down: pixel art loses its 1px outline and detail rows when downscaled, and a half-size shrink still blurs. No non-integer scaling, no rotation of pixel sprites.

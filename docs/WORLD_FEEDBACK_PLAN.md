@@ -185,11 +185,13 @@ Mockups: Design canvas "Deadline World Feedback Mockups", boards 7a-7f (7f is a 
   band was NOT reserved: it waits for Goals (W5), no placeholder skyline was added.
 - [ ] **W1 — Sky weather (Sonnet):** pure `skyModel` (state → weather level) + CSS layers,
   fx-gated; tap sky/moon → day summary.
-- [ ] **W2 — Achievement VILLAGE (Sonnet + PixelLab art; REPLACES the headstone-markers idea, DECIDED in the 2026-10-28 mockups):**
-  8 category buildings (5 tiers x 3 conditions) on a ridge behind the zombies + the Memorial on the right hill, tap -> close-up village
-  view. Art spec, sizes (48x56 native, 1x scene / 2x close-up) and the Clock-tower test: `docs/ART_STYLE.md` "Achievement village
-  art". Order: (a) Clock-tower test art -> size check, (b) remaining 8 kinds, (c) background ridge art, (d) build the scene layer +
-  close-up view. The W0 headstones on the hill become the Memorial only. Open: Memorial rows tappable for per-category history?
+- [ ] **W2 — Achievement VILLAGE, Americana small town (Sonnet + PixelLab art; REPLACES the headstone-markers idea; direction DECIDED 2026-10-28):**
+  8 category buildings (5 tiers x 3 conditions, state carried by the art + code filters) on the horizon hill behind the zombies + the
+  Memorial on the right hill; tap -> close-up village view (same sprite at 4x). Art spec, 2x pixel-scale rule, vertical budget, Americana
+  kit and the Clock-tower test: `docs/ART_STYLE.md` "Achievement village art". Order: (a) Clock tower T3 at 64x80 vs 56x64 on the real-scene
+  mock -> pick the size, (b) Clock tower T1-T5, (c) the other 7 kinds + Memorial, (d) ridge/hill background art, (e) build the scene
+  layer (draw under the MIDNIGHT line) + close-up view + overlays. The W0 headstones on the hill become the Memorial only.
+  Open: Memorial rows tappable for per-category history? Confirm the Americana mapping for the 8 kinds.
 - [ ] **W3 — Graveyard history (Sonnet):** run graves + growing tree.
 - [ ] **W4 — Today-only battlefield aftermath (Sonnet):** option (a) above.
 - [ ] **D1 — Goals + Targets design (Fable):** schema, linking tasks/habits, UI, portrait entry.
