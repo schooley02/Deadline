@@ -1,0 +1,119 @@
+/**
+ * V7 W2 first-slice wiring checks (2026-10-29): things Jest can verify about the village layer
+ * without loading script.js -- shell list, cache bump, script order, z-order vs the MIDNIGHT line,
+ * portrait hiding and script.js hook-up. Live behaviour is checked in a browser.
+ */
+const fs = require('fs');
+const path = require('path');
+const CONFIG = require('../js/config.js');
+
+const read = rel => fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
+const html = read('index.html');
+const sw = read('sw.js');
+const css = read('css/village.css');
+const canvasCss = read('css/gameCanvas.css');
+const strip = read('css/glanceStrip.css');
+const script = read('script.js');
+
+const FILES = ['css/village.css', 'js/villageLayout.js', 'js/ui/villageView.js'];
+const SPRITES = [1, 2, 3, 4, 5].map(t => `Assets/Village/punctuality_t${t}.png`);
+
+describe('shell + load order', () => {
+    test.each([...FILES, ...SPRITES])('%s is in the service worker APP_SHELL', f => {
+        expect(sw).toContain(`'${f}'`);
+    });
+
+    test('every village file and sprite exists on disk', () => {
+        [...FILES, ...SPRITES].forEach(f => expect(fs.existsSync(path.join(__dirname, '..', f))).toBe(true));
+    });
+
+    test('CACHE_NAME was bumped for the shell change (v134 or later)', () => {
+        const m = /CACHE_NAME = 'deadline-shell-v(\d+)'/.exec(sw);
+        expect(m).not.toBeNull();
+        expect(Number(m[1])).toBeGreaterThanOrEqual(134);
+    });
+
+    test('layout loads after config and before the view; the view before script.js', () => {
+        const at = s => html.indexOf(`"${s}"`);
+        expect(at('js/villageLayout.js')).toBeGreaterThan(at('js/config.js'));
+        expect(at('js/villageLayout.js')).toBeLessThan(at('js/ui/villageView.js'));
+        expect(at('js/ui/villageView.js')).toBeLessThan(at('script.js'));
+    });
+
+    test('village.css loads before glanceStrip.css (so the portrait hide wins)', () => {
+        const at = s => html.indexOf(`"${s}"`);
+        expect(at('css/village.css')).toBeGreaterThan(0);
+        expect(at('css/village.css')).toBeLessThan(at('css/glanceStrip.css'));
+    });
+
+    test('#villageLayer is a decorative child of #gameCanvas, before the church', () => {
+        const canvas = html.slice(html.indexOf('id="gameCanvas"'), html.indexOf('id="base"') + 30);
+        expect(canvas).toContain('id="villageLayer"');
+        expect(canvas).toMatch(/id="villageLayer"[^>]*aria-hidden="true"/);
+    });
+});
+
+describe('z-order: under the MIDNIGHT line, behind the zombies, above the scene', () => {
+    const z = (source, selector) => {
+        const start = source.indexOf(selector + ' {');
+        expect(start).toBeGreaterThanOrEqual(0);
+        const block = source.slice(start, source.indexOf('}', start));
+        const m = /z-index:\s*(-?\d+)/.exec(block);
+        expect(m).not.toBeNull();
+        return Number(m[1]);
+    };
+
+    test('village z-index sits between the scene layers (negative) and #midnightLine', () => {
+        const village = z(css, '.village-layer');
+        expect(village).toBeGreaterThan(-1);
+        expect(village).toBeLessThan(z(canvasCss, '#midnightLine'));
+    });
+
+    test('and far below the zombies (CONFIG.LIST_Z_MIN)', () => {
+        expect(z(css, '.village-layer')).toBeLessThan(CONFIG.LIST_Z_MIN);
+    });
+
+    test('the layer never takes taps (decorative this slice)', () => {
+        const block = css.slice(css.indexOf('.village-layer {'), css.indexOf('}', css.indexOf('.village-layer {')));
+        expect(block).toMatch(/pointer-events:\s*none/);
+    });
+
+    test('sprites are drawn pixelated', () => {
+        expect(css).toMatch(/image-rendering:\s*pixelated/);
+    });
+});
+
+describe('landscape / desktop only', () => {
+    test('the portrait strip hides the village layer', () => {
+        expect(strip).toMatch(/body\.glance-strip \.village-layer\s*\{\s*display:\s*none/);
+    });
+
+    test('the graveyard hide rule is untouched (graveyardWiring still matches it)', () => {
+        expect(strip).toMatch(/body\.glance-strip \.graveyard-zone,\s*body\.glance-strip \.run-graves\s*\{\s*display:\s*none/);
+    });
+});
+
+describe('script.js hook-up', () => {
+    test('VillageView is initialised right after the graveyard and fed the hill width + tier', () => {
+        expect(script).toContain('VillageView.init({');
+        expect(script.indexOf('VillageView.init({')).toBeGreaterThan(script.indexOf('GraveyardView.init({'));
+        expect(script).toContain('GraveyardView.zoneWidth()');
+        expect(script).toContain('VillageLayout.resolveDevTier(');
+    });
+
+    test('rendered after every layout change and every tick', () => {
+        const calls = script.split('VillageView.render(BASE_WIDTH);').length - 1;
+        expect(calls).toBe(2);
+    });
+});
+
+describe('CONFIG', () => {
+    test('the village is on by default and its numbers are sane', () => {
+        expect(CONFIG.VILLAGE_ENABLED).toBe(true);
+        expect(CONFIG.VILLAGE_TIERS).toBe(5);
+        expect(CONFIG.VILLAGE_CLOCK_X_FRAC).toBeGreaterThan(0);
+        expect(CONFIG.VILLAGE_CLOCK_X_FRAC).toBeLessThan(1);
+        expect(CONFIG.VILLAGE_DEV_CLOCK_TIER).toBeGreaterThanOrEqual(1);
+        expect(CONFIG.VILLAGE_DEV_CLOCK_TIER).toBeLessThanOrEqual(CONFIG.VILLAGE_TIERS);
+    });
+});

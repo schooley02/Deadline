@@ -72,6 +72,11 @@ body.glance-strip .run-graves {
     display: none;
 }
 
+/* The achievement village (Clock tower) is landscape/desktop only (V7 W2, 2026-10-29). */
+body.glance-strip .village-layer {
+    display: none;
+}
+
 /* The moon / Nights Survived count is landscape-only for now (2026-10-26). */
 body.glance-strip .nights-survived {
     display: none;

@@ -16,6 +16,12 @@ document.addEventListener('DOMContentLoaded', () => {
         getAchievementFamilies: () => CONFIG.ACHIEVEMENTS.map(a => ({ id: a.id, name: a.name })),
         onOpenStats: () => openManagementWindow('stats'),
     });
+    // Achievement village (V7 W2 first slice, 2026-10-29): the Clock tower on the horizon hill.
+    // DEV tier only until the punctuality tier exists (CONFIG.VILLAGE_DEV_CLOCK_TIER, or ?villageTier=1..5).
+    VillageView.init({
+        getHillWidth: () => GraveyardView.zoneWidth(),
+        getClockTier: () => VillageLayout.resolveDevTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
+    });
     const baseHealthDisplay = document.getElementById('baseHealthDisplay');
     const playerXpDisplay = document.getElementById('playerXpDisplay');
     const playerLevelDisplay = document.getElementById('playerLevelDisplay');
@@ -163,6 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
         GAME_SCREEN_WIDTH = gameCanvas.offsetWidth - GraveyardView.zoneWidth();
         BASE_WIDTH = baseElement.offsetWidth;
         GraveyardView.render(BASE_WIDTH);
+        VillageView.render(BASE_WIDTH);
         ENEMY_WIDTH = enemyWidthForMode(CONFIG.ENEMY_WIDTH);
         HABIT_ENEMY_WIDTH = enemyWidthForMode(CONFIG.HABIT_ENEMY_WIDTH);
         // Overdue items camp at the base edge and are only re-positioned when
@@ -1289,6 +1296,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 processTimers(Date.now());
                 refreshBaseChip();
                 GraveyardView.render(BASE_WIDTH);
+                VillageView.render(BASE_WIDTH);
                 refreshHeroAttack();
                 Layout.applyStripLayout(State.getActiveItems(), { baseWidth: BASE_WIDTH });
                 // Landscape/desktop: ground lanes in list order, overlap-avoiding (no-op in strip mode).

@@ -6,6 +6,19 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 
 
+## 2026-10-28 (night) -- Clock tower T3 art: 128-wide canvas at 1x, tall tower, night-value rule (Claude app session, Sonnet; art spec only, no code, no balance numbers). SUPERSEDES the "2x / 64x80" parts of the entry below.
+
+- **Village sprites are authored on a 128px-wide canvas and shown at 1x (close-up 2x).** Jeremy checked PixelLab: zombies and heroes were made on 128x128 canvases; the atlas JSONs agree (`characterSize: 128`, drawn 1:1). The earlier "2x everywhere" rule was judged against the static 64px zombie PNGs, which are only the fallback. The church stays the 2x exception.
+- **Clock tower T3 = 128x192, the tower filling the canvas height.** Chosen: `Assets/Village/_source/americana-t3/t3_128x192_tall_1.png` (~52x192, clock ~26px, top third). The clock tower must be the tallest building (landmark). Rejected: 56x64 / 64x80 / 64x64 batches (too little detail), the 128x128 carve (30x122 needle, 14px clock), and 1.5x / 2x scaling of it (uneven or chunky pixels, 244px tall into the HUD).
+- **Night-value rule:** buildings recede so zombies stand out: muted dusty brick, off-white upper trim capped at #c9c4b8, only the clock face and lit windows bright; the light budget grows by tier via lit details/lamps/glow, not brighter walls. Working palette in ART_STYLE. Rejected: an all-dark top half (lost the white belfry), bright red brick, pure-white trim.
+- **T5 shows an OPEN belfry with a visible bronze bell** (Jeremy); T1-T4 keep closed louvers. T5 may use a taller canvas (bottom-anchored).
+- **Scene-mock method corrected:** use the game's real lane feet (286/306/326 at H=334 from `GROUND_FLOOR_*`), the animated atlas idle frames, landscape/desktop only. Earlier mocks used guessed lane feet and static zombies.
+- **Open:** generate T1/T2/T4/T5 (prompts in ART_STYLE); confirm the Americana mapping for the other 7 kinds + Memorial; whether other buildings also use 128x128; neglected-brightness floor; MIDNIGHT line z-order.
+
+---
+
+
+
 ## 2026-10-28 (evening) -- Achievement village: 2x pixel scale, Americana direction, size test (Claude app session, Opus advice -> Sonnet docs; art spec only, no code, no balance numbers). SUPERSEDES the "1x scene / 48x56" parts of the entry below.
 
 - **Scene sprites are drawn at 2x (close-up 4x), not 1x.** The game is 2 screen px per art px everywhere (church 80x200 at 2x, zombies 64x64 at 2x, heroes); 1x village sprites looked finer than, and out of place beside, the rest (Jeremy; confirmed on a composite of the real 844x390 scene with real zombies). One sprite per building + tier serves both scene and close-up.

@@ -69,16 +69,20 @@ close-up village view. Buildings carry their own state (no floating markers by d
 **Kinds** (mockup ids; final code ids are a build-time call): `slain` Armory, `nights` Watchtower, `habits` Barn, `lurkers` Jailhouse,
 `heroes` Hall, `defense` Gatehouse (Church Defense), `punctuality` Clock tower, `bestdays` Windmill, `memorial`. 5 tiers x 3 conditions.
 
-**PIXEL-SCALE RULE (revised 2026-10-28 evening; supersedes the earlier "1x in the scene"):** the whole game is drawn at 2 screen px per
-art px (church 80x200 shown 160x400, zombies 64x64 shown 128, heroes, floor). Village sprites follow it: **scene = 2x, close-up = 4x
-(3x on a short screen)**. 1x looked finer than, and out of place beside, the church/zombies (Jeremy, confirmed on a mock of the real
-scene). Whole-number scales only; never rotate a pixel sprite; never author big and shrink (a 256-canvas example tower was 60x239 true
-1px art with no 2x2 grid, so it cannot be shrunk cleanly and is 239px tall: NOT used; it was only a quality example).
-- **Native canvas: PROPOSED 64x80 (128x160 on screen), bottom-centre anchored, 56x64 (112x128) as the floor.** Detail target = a zombie
-  sprite (64x64 = 4,096 art px); 64x80 = 5,120. Decide by generating Clock tower T3 at BOTH sizes and comparing on the scene mock
-  (recipe below). Existing 48x56 / 56x64 violet art is NOT final.
-- Close-up uses the SAME sprite at 4x (256x320 for 64x80: check it fits; 3x = 192x240 if not); no second art needed. Optional later
-  "hero art" slot per building if one needs more detail, with a code fallback to the scaled-up scene sprite.
+**PIXEL-SCALE RULE (REVISED 2026-10-28 late; supersedes BOTH the earlier "1x / 48x56" and the "2x / 64x80" rules):** zombies and heroes are
+authored on a 128px character canvas (atlas cells 180px zombies / 164px heroes, `characterSize: 128` in `Assets/Zombies|Heroes/anim/*.json`) and are drawn
+1:1 (1 art px = 1 screen px). The church is the exception (80x200 shown at 2x). The 64x64 zombie PNGs are only the static fallback (shown at 2x); the
+earlier "2x" rule was judged against those, the wrong reference. **Village sprites are therefore authored on a 128px-wide canvas and shown at 1x in the
+scene; close-up = 2x (whole numbers only).** Never rotate a pixel sprite, never author big and shrink, never use 1.5x (uneven pixels).
+- **Canvas (Jeremy generated at 128x128 in PixelLab, 2026-10-28): 128 wide, height per building, bottom-centre anchored.** Clock tower T3 = **128x192**
+  (tower ~52x192 px, clock ~26px across in the top third). T5 may use a taller canvas (e.g. 128x224) for the cupola/vane/flag because sprites are
+  bottom-anchored. Other buildings 128x128 unless they need height. Tested and REJECTED: the 128x128 carve of the tower alone (30x122 = a needle, clock
+  only ~14px) and 2x/1.5x of it (chunky / uneven pixels, 244px tall, runs into the HUD chips).
+- Detail target = the animated zombies. The tower must stand TALLER than the other buildings (landmark): the 128x192 tower vs a 128x128 courthouse
+  (~95px tall) reads right on the scene mock.
+- Scene-mock recipe: lane feet are `back = H - GROUND_FLOOR_HEIGHT(72) + GROUND_FLOOR_FEET_TOP_PAD(24)`, `front = H - GROUND_FLOOR_FEET_BOTTOM_PAD(8)`, middle
+  halfway (286/306/326 at H=334); draw the real atlas idle frame (cell 180, feet row 152) at those feet, back lane first; keep same-lane zombies >= ~0.4 x 128
+  px apart (`LANE_CONFLICT_FRAC` .6). Landscape/desktop ONLY (the portrait strip is 92px tall and has no village).
 
 **Vertical budget (measured in the running game, cloud Chromium, 2026-10-28):** `#gameCanvas` is 334px tall at 844x390, 356 at 915x412,
 298 at 1280x720; floor band 72px at the bottom; back-lane feet = floor top + 24 (y 286 at 844x390); zombie box 128 => top-lane zombie
@@ -93,23 +97,49 @@ slate and green-patina copper roofs, cast-iron street lamps, backlit clock faces
 colour). Whole village is one small town. PROPOSED kinds (confirm next session): Armory = brick National Guard armory, Watchtower =
 water tower, Barn = red barn, Jailhouse = brick sheriff's office, Hall = town hall with white columns, Gatehouse = fire station,
 Clock tower = courthouse clock tower, Windmill = farm water-pumping windmill, Memorial = obelisk / war memorial with a flag.
+**Mapping status (2026-10-29):** CONFIRMED only Jailhouse = small-town / country county jail + sheriff's office (star badge on the parapet,
+barred windows, off-centre door). Jeremy may change the others; they stay PROPOSED until he confirms them.
+
+**AT-A-GLANCE DISTINCTNESS RULE (Jeremy 2026-10-29):** each building must be quickly told apart from every other building at a glance,
+at 1x, with zombies in front. Red brick on every building makes the village blend into one mass once all 8 + the Memorial are on the
+ridge, so **vary the MATERIAL as well as the silhouette**: red brick is reserved for a few buildings (the Clock tower already uses it), and
+the others use different small-town materials, e.g. fieldstone / cut limestone (Jailhouse), white or weathered clapboard / board-and-batten
+timber, painted barn-red wood, galvanized metal / riveted steel (water tower, windmill), pale granite (Memorial). Each kind also gets its own
+top-half identifier (clock face, star badge, water tank, blades, dome, crenellations, hose tower, flag) and a distinct overall shape
+(tall / squat / wide / lattice). The whole village still shares the night palette and value rules above (muted walls, pale off-white
+trim, only the lit details are bright), so it reads as one town. **Check:** before locking any new building's T3, composite it on the
+scene mock next to the buildings already chosen; if two read alike at 1x, change the material or silhouette, not just the colour.
 
 **Clock tower tier ladder (each tier a new sprite; silhouette must change, not only colour):** T1 crumbling (missing bricks, boarded
 window, stopped dull face, damaged roof, leaning drawn into the pixels) - T2 intact plain brick, small dull face, dim window - T3 pale
 yellow lit face, white trim bands, white louvered belfry - T4 + cast-iron street lamps, painted trim, bigger belfry - T5 green copper
-cupola, rooster weather vane, flag, gold detail (optional bunting). Palette strip: `Assets/Village/_source/americana_palette.png`
-(outline #1a1020; brick #5b2a2b #7a3a34 #9a4a3f; white trim #d9d4c6 / shade #a9a4b4; slate #3b3550; patina #4f8f86 #6fb5a5; door #563434;
-window/lamp #ecba70; clock face #f3e3a2).
+cupola, rooster weather vane, flag, gold detail (optional bunting), and an OPEN belfry with a VISIBLE BRONZE BELL above the clock
+(Jeremy 2026-10-28; the bell appears at T5 only, T1-T4 keep closed louvers).
+**Night-scene value rule (Jeremy 2026-10-28):** the buildings must recede so the zombies stand out. Wall brick is MUTED (dusty
+warm brick, no bright red); the TOP HALF keeps a pale painted-off-white belfry/cornice (capped at #c9c4b8, never pure white; this
+is the identity Jeremy likes from the first batch); the clock face and lit windows are the brightest things on the sprite.
+The light budget grows by tier through lit details (windows, lamps, glow), not by brighter walls. A fully dark top half
+(batch 3, all-dark slate/plum) was rejected: it lost the white belfry. **Working palette (supersedes the 2026-10-28 afternoon strip):** outline #14101e;
+brick #4a3340 #6a4048 #845050; off-white trim #c9c4b8 / shade #8f8ba3; lower trim + stone #8a88a0; slate #34304a; door #3a2a32; clock face #f3e3a2;
+lit window #d8a860; (T5 only) patina #4f8f86 #6fb5a5, gold trim #c8a860, bronze bell #b08a4c. Colour that comes back too bright is pulled down in code
+(luminance remap, keep the clock/window pixels), not regenerated.
 
-**Prompt, Clock tower T3 baseline** (canvas 64x80, then repeat at 56x64):
-`pixel art, small-town American courthouse clock tower, front view, tall slim red brick tower, brick rows visible with light mortar
-lines, white painted wooden trim and cornice bands, white window frames, large round clock face glowing pale yellow with black hands and
-a white frame, white belfry section with louvered openings above the clock, steep dark slate roof with a small iron finial, one tall
-arched window lit warm yellow, arched wooden door with a white frame and two stone steps, night lighting from the upper right, 1px dark
-outline, palette: outline #1a1020, brick #5b2a2b #7a3a34 #9a4a3f, white trim #d9d4c6 and shade #a9a4b4, slate #3b3550, clock pale yellow
-#f3e3a2, window #ecba70, door #563434, no anti-aliasing, no dithering, transparent background, no ground line, 2px empty space above the roof`
+**CHOSEN T3 baseline (2026-10-28 late): `Assets/Village/_source/americana-t3/t3_128x192_tall_1.png`** (128x192, from the prompt below with `t3_128_carve_2.png` as a
+low-medium reference). Not shipped, not in sw.js. Other kept candidates in that folder: 56x64 / 64x80 / 64x64 batches, the four 128x128 courthouse
+originals (`t3_128_courthouse_1-4.png`; 1 = bell cupola, 2 = louvered belfry + portico) and the 128x128 carves.
 
-**Conditions are CODE, not art** (45 base sprites, not 135): tended = full colour + soft warm glow; slipping = CSS `saturate(.55)
+**Prompt, Clock tower T3 baseline (128x192, 16 variants, reference = carve at low-medium strength):**
+`pixel art, small-town American courthouse clock tower at night, front view, tall stately square tower about 76 pixels wide and 176 pixels tall, the whole tower fills the canvas height, muted dusty brick with a hint of warm red and visible mortar lines, pale cream-grey painted belfry section near the top with two arched louvered openings, very large round clock face about 26 pixels across glowing pale yellow with black hands set in a cream-grey clock stage with a white trim frame, steep dark slate pyramid roof with a small iron finial, tall brick shaft below the clock with two small arched windows, the upper one lit warm amber, cream-grey stone trim bands and cornice between the stages, stone pediment portico with columns over an arched dark wooden double door, stone steps, moonlit, medium-low contrast, only the clock and the one window are bright, 1px dark outline, palette: outline #14101e, brick #4a3340 #6a4048 #845050, trim #c9c4b8 and shade #8f8ba3, stone #8a88a0, slate #34304a, door #3a2a32, clock pale yellow #f3e3a2, window #d8a860, no anti-aliasing, no dithering, transparent background, no ground line, 4px empty space above the roof, nothing below the steps`
+(The generated tower came out ~52 px wide and touches the canvas top; fine, it is bottom-anchored.)
+
+**Tier prompts T1, T2, T4, T5:** same canvas (T5: 128x224), same palette and base prompt, reference = the T3 baseline at LOW-MEDIUM strength (silhouette must change),
+then replace the tier sentence: **T1** `crumbling and leaning slightly, missing bricks, boarded arched window, cracked stopped clock face dull #a89a68 with no glow, broken slate roof with missing tiles, no lit windows, plain arched door without a portico` -
+**T2** `intact plain brick, small dull clock face #c8b878, one dim window #8a6a40, simple closed louvered belfry, simple slate roof, plain arched door, little trim` -
+**T4** `as the baseline plus two cast-iron street lamps with warm lit lanterns beside the door, painted trim bands, a taller belfry with taller arched openings, two or three lit amber windows, bright clock face` -
+**T5** `as T4 but the slate roof is replaced by a green patina copper cupola #4f8f86 #6fb5a5, an OPEN arched belfry with a visible bronze bell #b08a4c hanging above the clock, a rooster weather vane on top, a small flag, gold trim accents #c8a860`.
+Dark tiers need the brightness floor (see below); T1-T2 lit details stay dim so the light budget grows by tier.
+
+**Conditions are CODE, not art** (45 base sprites, not 135; QUEUED LATER 2026-10-29: Jeremy wants baked overgrown/vine versions of each tier for the neglected state, see ROADMAP V7): tended = full colour + soft warm glow; slipping = CSS `saturate(.55)
 brightness(.74)` + weeds overlay; neglected = `saturate(.15) brightness(.48)` + boards/vines overlay (give dark tiers a brightness FLOOR
 ~0.6: a neglected T1 nearly vanishes into the ridge); tier-up = twinkle + accent glow. The lamp glow must switch OFF when neglected.
 Overlays are shared PNGs on the same canvas grid so they scale with the building.
@@ -127,8 +157,8 @@ arms (noise at small size), and gold/ornament fills that hide the clock hands.
 ALTERNATIVE look in `Assets/Village/_source/gothic-violet/` (not final, not shipped). Every shipped asset goes in `sw.js` `APP_SHELL`
 with a `CACHE_NAME` bump.
 
-**Test building: Clock tower, all 5 tiers, tended.** Pass = tiers readable side by side at 2x on the scene, the clock face reads in the
-top half with zombies in front, and 64x80 is visibly richer than 56x64 (else take 56x64).
+**Test building: Clock tower, all 5 tiers, tended, 128-wide canvases at 1x.** Pass = tiers readable side by side on the scene mock (real lanes + animated zombies),
+the clock face reads in the top third with zombies in front, silhouettes differ per tier, and the tower stands taller than the other buildings. (T3: PASSED 2026-10-28.)
 
 ## Asset Sources
 - **FINISHED sprites: `Assets/Zombies/<category>-zombie.png` + `-64.png` (64×64) for all 8 categories** — use these.

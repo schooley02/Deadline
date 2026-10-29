@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v133';
+const CACHE_NAME = 'deadline-shell-v134';
 
 const APP_SHELL = [
     './',
@@ -50,6 +50,7 @@ const APP_SHELL = [
     'css/dayPager.css',
     'css/enemyAnim.css',
     'css/graveyard.css',
+    'css/village.css',
     'css/glanceStrip.css',
     'css/responsive.css',
 
@@ -59,6 +60,7 @@ const APP_SHELL = [
     'js/listOrder.js',
     'js/layout.js',
     'js/graveyardLayout.js',
+    'js/villageLayout.js',
     'js/settings.js',
     'js/runStats.js',
     'js/dailyRecord.js',
@@ -108,6 +110,7 @@ const APP_SHELL = [
     'js/ui/timeSliderView.js',
     'js/ui/nightsSurvivedView.js',
     'js/ui/graveyardView.js',
+    'js/ui/villageView.js',
     'js/ui/dayPagerView.js',
     'js/IdCounter.js',
     'js/TaskManager.js',
@@ -169,6 +172,11 @@ const APP_SHELL = [
     'Assets/Heroes/anim/career.png',
     'Assets/Heroes/career-head.png',
     // Floor art: desktop/landscape ground (css/gameCanvas.css) + portrait strip floor (css/glanceStrip.css). NOT strip-floor-original/2/3.png or scene/_source/.
+    'Assets/Village/punctuality_t1.png',
+    'Assets/Village/punctuality_t2.png',
+    'Assets/Village/punctuality_t3.png',
+    'Assets/Village/punctuality_t4.png',
+    'Assets/Village/punctuality_t5.png',
     'Assets/scene/strip-floor.png',
     'Assets/scene/clouds-tile.png',
     'Assets/scene/floor-tile.png',

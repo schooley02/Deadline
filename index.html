@@ -42,6 +42,7 @@
     <link rel="stylesheet" href="css/dayPager.css">
     <link rel="stylesheet" href="css/enemyAnim.css">
     <link rel="stylesheet" href="css/graveyard.css">
+    <link rel="stylesheet" href="css/village.css">
     <link rel="stylesheet" href="css/glanceStrip.css">
     <link rel="stylesheet" href="css/responsive.css">
 </head>
@@ -96,6 +97,11 @@
                     </div>
                     <div class="scene-layer scene-ground"></div>
                 </div>
+                <!-- Achievement village (V7 W2 first slice, 2026-10-29; docs/ART_STYLE.md "Achievement village art"):
+                     the Clock tower on the horizon hill, behind the zombie lanes and UNDER #midnightLine
+                     (css/village.css z-index 1). Decorative, filled by js/ui/villageView.js. Landscape/desktop
+                     only (hidden in the portrait glance strip by css/glanceStrip.css). -->
+                <div id="villageLayer" class="village-layer" aria-hidden="true"></div>
                 <!-- Nights Survived (2026-10-26): the moon + run night count, top-right.
                      Lives OUTSIDE the aria-hidden scene so screen readers get the count
                      (aria-label set by js/ui/nightsSurvivedView.js). -->
@@ -393,6 +399,7 @@
     <script src="js/listOrder.js"></script>
     <script src="js/layout.js"></script>
     <script src="js/graveyardLayout.js"></script>
+    <script src="js/villageLayout.js"></script>
     <script src="js/settings.js"></script>
     <!-- js/runStats.js has ZERO module dependencies (pure data functions,
          no bare-global refs at load time) — loaded here, right after
@@ -454,6 +461,7 @@
     <script src="js/ui/timeSliderView.js"></script>
     <script src="js/ui/nightsSurvivedView.js"></script>
     <script src="js/ui/graveyardView.js"></script>
+    <script src="js/ui/villageView.js"></script>
     <!-- js/ui/dayPagerView.js needs DayPager (pure ghost conjuring) + Movement
          (top-position math) already loaded — see its header. -->
     <script src="js/ui/dayPagerView.js"></script>

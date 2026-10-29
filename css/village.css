@@ -1,0 +1,26 @@
+/*
+ * village.css -- V7 W2 first slice (2026-10-29): the achievement village layer. Plan:
+ * docs/WORLD_FEEDBACK_PLAN.md W2; art rules: docs/ART_STYLE.md "Achievement village art".
+ * Landscape + desktop only; css/glanceStrip.css hides the layer in the portrait strip (it loads
+ * after this file).
+ *
+ * z-index 1 puts the layer above the scene layers (negative z-index) and UNDER #midnightLine (5),
+ * the graveyard zone (6) and every zombie (30+). Sprites are positioned by js/ui/villageView.js
+ * (pure maths in js/villageLayout.js) and drawn 1:1, never scaled.
+ */
+
+.village-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.village-sprite {
+    position: absolute;
+    display: block;
+    max-width: none;
+    image-rendering: pixelated;
+    user-select: none;
+    -webkit-user-drag: none;
+}

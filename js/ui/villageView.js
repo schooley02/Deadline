@@ -1,0 +1,79 @@
+/**
+ * VillageView -- DOM half of the achievement village (V7 W2, first slice 2026-10-29). The maths
+ * is in js/villageLayout.js (pure, unit-tested); this file only measures the canvas and writes
+ * one sprite's position.
+ *
+ *   #villageLayer   decorative layer inside #gameCanvas (aria-hidden, pointer-events none,
+ *                   z-index 1: above the scene layers, UNDER #midnightLine (5), the church's
+ *                   hero layers and every zombie (30+)). One <img class="village-sprite">
+ *                   for the Clock tower. Not tappable yet (the close-up view is a later step).
+ *
+ * Landscape/desktop only: css/glanceStrip.css hides the layer in the portrait strip, and
+ * getHillWidth() is 0 there so nothing is placed. script.js calls render(BASE_WIDTH) after every
+ * layout change and every tick; render() is idempotent (a signature of everything it depends on
+ * gates the DOM writes).
+ *
+ * Deps: { getHillWidth: () => px of the graveyard hill (0 in the portrait strip),
+ *         getClockTier: () => 1..5 or null (DEV: CONFIG.VILLAGE_DEV_CLOCK_TIER / ?villageTier=) }
+ */
+const VillageView = (() => {
+    let deps = null;
+    let canvasEl = null;
+    let layerEl = null;
+    let lastSig = null;
+
+    function cfg() {
+        return (typeof CONFIG !== 'undefined') ? CONFIG : {};
+    }
+
+    function clear() {
+        if (layerEl) layerEl.textContent = '';
+    }
+
+    function render(baseWidth) {
+        if (!deps || !canvasEl || !layerEl) return;
+        const c = cfg();
+        if (c.VILLAGE_ENABLED === false) { lastSig = 'off'; clear(); return; }
+        const opts = VillageLayout.fromConfig(c);
+        const hillW = (deps.getHillWidth && deps.getHillWidth()) || 0;
+        const canvasW = canvasEl.offsetWidth || 0;
+        const canvasH = canvasEl.offsetHeight || 0;
+        const baseW = (typeof baseWidth === 'number' ? baseWidth : 0);
+        const tier = deps.getClockTier ? deps.getClockTier() : null;
+        const sig = [hillW, canvasW, canvasH, baseW, tier].join('|');
+        if (sig === lastSig) return;
+        lastSig = sig;
+        const slot = VillageLayout.clockTowerSlot(canvasW, canvasH, baseW, hillW, tier, opts);
+        if (!slot) { clear(); return; }
+        let img = layerEl.querySelector('.village-sprite');
+        if (!img) {
+            img = document.createElement('img');
+            img.className = 'village-sprite village-clock-tower';
+            img.alt = '';
+            img.draggable = false;
+            layerEl.appendChild(img);
+        }
+        if (img.getAttribute('src') !== slot.url) img.setAttribute('src', slot.url);
+        img.dataset.kind = slot.kind;
+        img.dataset.tier = String(slot.tier);
+        img.style.left = slot.left + 'px';
+        img.style.top = slot.top + 'px';
+        img.style.width = slot.width + 'px';
+        img.style.height = slot.height + 'px';
+    }
+
+    function init(d) {
+        deps = d;
+        canvasEl = document.getElementById('gameCanvas');
+        layerEl = document.getElementById('villageLayer');
+        lastSig = null;
+        if (!canvasEl || !layerEl) { deps = null; return; }
+        render();
+    }
+
+    return { init, render };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = VillageView;
+}

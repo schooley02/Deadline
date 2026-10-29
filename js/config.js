@@ -504,6 +504,17 @@ const CONFIG = {
     RUN_GRAVE_OPACITY: 0.7, // low contrast so zombies read first
     RUN_GRAVE_FADE_PX: 90, // oldest fade out over the last N px before the church
     RUN_GRAVE_GAP_PX: 22, // newest grave sits this far left of the hill edge
+    // --- V7 W2 village, first slice (2026-10-29; docs/ART_STYLE.md "Achievement village art") ---
+    // Layout constants, not balance. One building so far: the Clock tower (kind `punctuality`).
+    // Sprites are authored 128 wide and drawn 1:1 (same pixel scale as the animated zombies).
+    VILLAGE_ENABLED: true, // false hides the whole layer
+    VILLAGE_SPRITE_W_PX: 128, // Clock tower canvas width
+    VILLAGE_SPRITE_H_PX: 224, // Clock tower canvas height (T5 needs the headroom); bottom-anchored
+    VILLAGE_FEET_ABOVE_FLOOR_PX: 4, // feet sit this far above the floor band's top edge (the horizon)
+    VILLAGE_CLOCK_X_FRAC: 0.55, // tower centre = church edge + frac x walking-field width
+    VILLAGE_MIN_FIELD_PX: 220, // a narrower walking field hides the village
+    VILLAGE_TIERS: 5,
+    VILLAGE_DEV_CLOCK_TIER: 3, // DEV: no punctuality tier data yet. `?villageTier=1..5` in the URL overrides, `off` hides; null = hidden
 
     // --- Sub-task clustering ---
     SUBTASK_CLUSTER_GAP_PX: 8, // visual gap between clustered sprites' VISIBLE graphics (not their boxes)
