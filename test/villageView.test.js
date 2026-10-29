@@ -108,3 +108,98 @@ test('init without the DOM is a safe no-op', () => {
     document.body.innerHTML = '';
     expect(() => { VillageView.init({}); VillageView.render(0); }).not.toThrow();
 });
+
+// ---- Jailhouse (kind `lurkers`), added 2026-10-29 ----
+function initBoth({ hill = 140, clock = 3, jail = 3, ...size } = {}) {
+    build(size);
+    const state = { hill, clock, jail };
+    VillageView.init({
+        getHillWidth: () => state.hill,
+        getClockTier: () => state.clock,
+        getJailTier: () => state.jail,
+    });
+    VillageView.render(160);
+    return state;
+}
+const byKind = k => document.querySelector(`#villageLayer .village-sprite[data-kind="${k}"]`);
+
+test('draws the Jailhouse next to the Clock tower, each at its own layout slot', () => {
+    initBoth();
+    expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(2);
+    const want = VillageLayout.villageSlots(844, 334, 160, 140, { punctuality: 3, lurkers: 3 }, VillageLayout.fromConfig(CONFIG));
+    want.forEach(slot => {
+        const img = byKind(slot.kind);
+        expect(img.getAttribute('src')).toBe(slot.url);
+        expect(img.style.left).toBe(slot.left + 'px');
+        expect(img.style.top).toBe(slot.top + 'px');
+        expect(img.style.width).toBe(slot.width + 'px');
+        expect(img.style.height).toBe(slot.height + 'px');
+    });
+    expect(byKind('lurkers').getAttribute('src')).toBe('Assets/Village/lurkers_t3.png');
+    expect(byKind('lurkers').style.height).toBe('128px');
+});
+
+test('the jail is decorative like the tower and has its own class', () => {
+    initBoth();
+    expect(byKind('lurkers').classList.contains('village-lurkers')).toBe(true);
+    expect(byKind('lurkers').getAttribute('alt')).toBe('');
+    expect(byKind('lurkers').draggable).toBe(false);
+});
+
+test('a jail tier change swaps the image on the same element and leaves the tower alone', () => {
+    const state = initBoth({ jail: 1 });
+    const jail = byKind('lurkers');
+    const tower = byKind('punctuality');
+    state.jail = 5;
+    VillageView.render(160);
+    expect(byKind('lurkers')).toBe(jail);
+    expect(jail.getAttribute('src')).toBe('Assets/Village/lurkers_t5.png');
+    expect(byKind('punctuality')).toBe(tower);
+    expect(tower.getAttribute('src')).toBe('Assets/Village/punctuality_t3.png');
+});
+
+test('no jail tier: only the tower; no clock tier: only the jail', () => {
+    initBoth({ jail: null });
+    expect(byKind('lurkers')).toBeNull();
+    expect(byKind('punctuality')).not.toBeNull();
+    initBoth({ clock: null });
+    expect(byKind('punctuality')).toBeNull();
+    expect(byKind('lurkers')).not.toBeNull();
+});
+
+test('a tier going away removes only that building', () => {
+    const state = initBoth();
+    state.jail = null;
+    VillageView.render(160);
+    expect(byKind('lurkers')).toBeNull();
+    expect(byKind('punctuality')).not.toBeNull();
+});
+
+test('a window too narrow for both drops the jail, keeps the tower; widening brings it back', () => {
+    const state = initBoth({ canvasW: 640 });
+    expect(byKind('lurkers')).toBeNull();
+    expect(byKind('punctuality')).not.toBeNull();
+    setSize(document.getElementById('gameCanvas'), 844, 334);
+    VillageView.render(160);
+    expect(byKind('lurkers')).not.toBeNull();
+    expect(state.jail).toBe(3);
+});
+
+test('portrait strip and VILLAGE_ENABLED=false hide both', () => {
+    const state = initBoth();
+    state.hill = 0;
+    VillageView.render(160);
+    expect(document.querySelectorAll('.village-sprite')).toHaveLength(0);
+    state.hill = 140;
+    VillageView.render(160);
+    expect(document.querySelectorAll('.village-sprite')).toHaveLength(2);
+    global.CONFIG.VILLAGE_ENABLED = false;
+    VillageView.render(161);
+    expect(document.querySelectorAll('.village-sprite')).toHaveLength(0);
+});
+
+test('a view that only supplies getClockTier (the first-slice deps) still works, no jail', () => {
+    init();
+    expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(1);
+    expect(byKind('lurkers')).toBeNull();
+});

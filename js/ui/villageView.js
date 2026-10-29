@@ -1,12 +1,12 @@
 /**
  * VillageView -- DOM half of the achievement village (V7 W2, first slice 2026-10-29). The maths
  * is in js/villageLayout.js (pure, unit-tested); this file only measures the canvas and writes
- * one sprite's position.
+ * each building's sprite position (Clock tower + Jailhouse so far).
  *
  *   #villageLayer   decorative layer inside #gameCanvas (aria-hidden, pointer-events none,
  *                   z-index 1: above the scene layers, UNDER #midnightLine (5), the church's
  *                   hero layers and every zombie (30+)). One <img class="village-sprite">
- *                   for the Clock tower. Not tappable yet (the close-up view is a later step).
+ *                   one per building, keyed by data-kind. Not tappable yet (the close-up view is a later step).
  *
  * Landscape/desktop only: css/glanceStrip.css hides the layer in the portrait strip, and
  * getHillWidth() is 0 there so nothing is placed. script.js calls render(BASE_WIDTH) after every
@@ -14,7 +14,8 @@
  * gates the DOM writes).
  *
  * Deps: { getHillWidth: () => px of the graveyard hill (0 in the portrait strip),
- *         getClockTier: () => 1..5 or null (DEV: CONFIG.VILLAGE_DEV_CLOCK_TIER / ?villageTier=) }
+ *         getClockTier: () => 1..5 or null (DEV: CONFIG.VILLAGE_DEV_CLOCK_TIER / ?villageTier=),
+ *         getJailTier:  () => 1..5 or null (DEV: CONFIG.VILLAGE_DEV_JAIL_TIER / ?jailTier=; optional) }
  */
 const VillageView = (() => {
     let deps = null;
@@ -39,27 +40,36 @@ const VillageView = (() => {
         const canvasW = canvasEl.offsetWidth || 0;
         const canvasH = canvasEl.offsetHeight || 0;
         const baseW = (typeof baseWidth === 'number' ? baseWidth : 0);
-        const tier = deps.getClockTier ? deps.getClockTier() : null;
-        const sig = [hillW, canvasW, canvasH, baseW, tier].join('|');
+        const tiers = {
+            punctuality: deps.getClockTier ? deps.getClockTier() : null,
+            lurkers: deps.getJailTier ? deps.getJailTier() : null,
+        };
+        const sig = [hillW, canvasW, canvasH, baseW, tiers.punctuality, tiers.lurkers].join('|');
         if (sig === lastSig) return;
         lastSig = sig;
-        const slot = VillageLayout.clockTowerSlot(canvasW, canvasH, baseW, hillW, tier, opts);
-        if (!slot) { clear(); return; }
-        let img = layerEl.querySelector('.village-sprite');
-        if (!img) {
-            img = document.createElement('img');
-            img.className = 'village-sprite village-clock-tower';
-            img.alt = '';
-            img.draggable = false;
-            layerEl.appendChild(img);
-        }
-        if (img.getAttribute('src') !== slot.url) img.setAttribute('src', slot.url);
-        img.dataset.kind = slot.kind;
-        img.dataset.tier = String(slot.tier);
-        img.style.left = slot.left + 'px';
-        img.style.top = slot.top + 'px';
-        img.style.width = slot.width + 'px';
-        img.style.height = slot.height + 'px';
+        const slots = VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts);
+        if (!slots.length) { clear(); return; }
+        const keep = new Set(slots.map(sl => sl.kind));
+        Array.from(layerEl.querySelectorAll('.village-sprite')).forEach(el => {
+            if (!keep.has(el.dataset.kind)) el.remove();
+        });
+        slots.forEach(slot => {
+            let img = Array.from(layerEl.querySelectorAll('.village-sprite')).find(el => el.dataset.kind === slot.kind);
+            if (!img) {
+                img = document.createElement('img');
+                img.className = 'village-sprite village-' + slot.kind;
+                img.alt = '';
+                img.draggable = false;
+                img.dataset.kind = slot.kind;
+                layerEl.appendChild(img);
+            }
+            if (img.getAttribute('src') !== slot.url) img.setAttribute('src', slot.url);
+            img.dataset.tier = String(slot.tier);
+            img.style.left = slot.left + 'px';
+            img.style.top = slot.top + 'px';
+            img.style.width = slot.width + 'px';
+            img.style.height = slot.height + 'px';
+        });
     }
 
     function init(d) {

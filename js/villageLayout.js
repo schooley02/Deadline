@@ -3,8 +3,10 @@
  * (V7 W2, first slice 2026-10-29; docs/ART_STYLE.md "Achievement village art",
  * docs/WORLD_FEEDBACK_PLAN.md W2). No DOM, no State.
  *
- * This slice draws ONE building, the Clock tower (kind `punctuality`), at one tier. The other
- * kinds, the tier-from-achievements wiring and the close-up view are later W2 steps.
+ * This slice draws TWO buildings: the Clock tower (kind `punctuality`, 128x224) and the Jailhouse
+ * (kind `lurkers`, 128x128; added 2026-10-29). The other kinds, the tier-from-achievements wiring
+ * and the close-up view are later W2 steps. Each building is placed at a fraction of the walking
+ * field; a building that would overlap the church or another building is dropped, not moved.
  *
  *   SPRITE   authored on a 128px-wide canvas (Clock tower 128x224, bottom-anchored, tower art
  *            bottom-aligned inside it) and shown 1:1, the same pixel scale as the animated
@@ -27,6 +29,11 @@ const VillageLayout = (() => {
         minFieldPx: 220,
         tiers: 5,
         devClockTier: 3,
+        jailWidthPx: 128,
+        jailHeightPx: 128,
+        jailXFrac: 0.2,
+        devJailTier: 3,
+        minGapPx: 8,
     };
 
     function fromConfig(cfg) {
@@ -41,6 +48,11 @@ const VillageLayout = (() => {
             minFieldPx: pick(cfg.VILLAGE_MIN_FIELD_PX, DEFAULTS.minFieldPx),
             tiers: pick(cfg.VILLAGE_TIERS, DEFAULTS.tiers),
             devClockTier: (cfg.VILLAGE_DEV_CLOCK_TIER === null) ? null : pick(cfg.VILLAGE_DEV_CLOCK_TIER, DEFAULTS.devClockTier),
+            jailWidthPx: pick(cfg.VILLAGE_JAIL_W_PX, DEFAULTS.jailWidthPx),
+            jailHeightPx: pick(cfg.VILLAGE_JAIL_H_PX, DEFAULTS.jailHeightPx),
+            jailXFrac: pick(cfg.VILLAGE_JAIL_X_FRAC, DEFAULTS.jailXFrac),
+            devJailTier: (cfg.VILLAGE_DEV_JAIL_TIER === null) ? null : pick(cfg.VILLAGE_DEV_JAIL_TIER, DEFAULTS.devJailTier),
+            minGapPx: pick(cfg.VILLAGE_MIN_GAP_PX, DEFAULTS.minGapPx),
         };
     }
 
@@ -53,18 +65,29 @@ const VillageLayout = (() => {
         return Math.min(n, max);
     }
 
-    // DEV ONLY (no punctuality tier data exists yet): `?villageTier=1..5` in the URL picks the tier,
-    // `?villageTier=off` hides the village, otherwise CONFIG.VILLAGE_DEV_CLOCK_TIER (null = hidden).
-    function resolveDevTier(search, opts) {
-        const o = opts || DEFAULTS;
-        const m = /(?:^|[?&])villageTier=([^&]*)/.exec(search || '');
+    // DEV ONLY (no tier data exists yet): `?<param>=1..5` in the URL picks the tier, `?<param>=off`
+    // hides that building, otherwise the CONFIG default (null = hidden).
+    function resolveTierParam(search, param, def, tiers) {
+        const m = new RegExp('(?:^|[?&])' + param + '=([^&]*)').exec(search || '');
         if (m) {
             const v = decodeURIComponent(m[1]).trim().toLowerCase();
             if (v === 'off' || v === 'none') return null;
-            const t = clampTier(v, o.tiers);
+            const t = clampTier(v, tiers);
             if (t !== null) return t;
         }
-        return clampTier(o.devClockTier, o.tiers);
+        return clampTier(def, tiers);
+    }
+
+    // Clock tower: `?villageTier=`
+    function resolveDevTier(search, opts) {
+        const o = opts || DEFAULTS;
+        return resolveTierParam(search, 'villageTier', o.devClockTier, o.tiers);
+    }
+
+    // Jailhouse: `?jailTier=`
+    function resolveDevJailTier(search, opts) {
+        const o = opts || DEFAULTS;
+        return resolveTierParam(search, 'jailTier', o.devJailTier, o.tiers);
     }
 
     function fieldWidth(canvasW, baseW, hillW) {
@@ -75,30 +98,54 @@ const VillageLayout = (() => {
         return `Assets/Village/${kind}_t${tier}.png`;
     }
 
-    // Where the Clock tower sprite goes inside #gameCanvas, or null when it must not show.
-    function clockTowerSlot(canvasW, canvasH, baseW, hillW, tier, opts) {
-        const o = opts || DEFAULTS;
+    // Where one building's sprite goes inside #gameCanvas, or null when it must not show.
+    function slotFor(kind, spriteW, spriteH, xFrac, canvasW, canvasH, baseW, hillW, tier, o) {
         const t = clampTier(tier, o.tiers);
         if (t === null) return null;
         if (!(hillW > 0)) return null; // portrait strip: landscape/desktop only
         const field = fieldWidth(canvasW, baseW, hillW);
         if (field < o.minFieldPx) return null;
-        const frac = Math.min(1, Math.max(0, o.clockXFrac));
+        const frac = Math.min(1, Math.max(0, xFrac));
         const centreX = (baseW || 0) + frac * field;
         const feetY = canvasH - o.floorHeightPx - o.feetAboveFloorPx;
         return {
-            kind: 'punctuality',
+            kind,
             tier: t,
-            url: spriteUrl('punctuality', t),
-            left: Math.round(centreX - o.spriteWidthPx / 2),
-            top: Math.round(feetY - o.spriteHeightPx),
-            width: o.spriteWidthPx,
-            height: o.spriteHeightPx,
+            url: spriteUrl(kind, t),
+            left: Math.round(centreX - spriteW / 2),
+            top: Math.round(feetY - spriteH),
+            width: spriteW,
+            height: spriteH,
             feetY: Math.round(feetY),
         };
     }
 
-    return { DEFAULTS, fromConfig, clampTier, resolveDevTier, fieldWidth, spriteUrl, clockTowerSlot };
+    function clockTowerSlot(canvasW, canvasH, baseW, hillW, tier, opts) {
+        const o = opts || DEFAULTS;
+        return slotFor('punctuality', o.spriteWidthPx, o.spriteHeightPx, o.clockXFrac, canvasW, canvasH, baseW, hillW, tier, o);
+    }
+
+    function jailSlot(canvasW, canvasH, baseW, hillW, tier, opts) {
+        const o = opts || DEFAULTS;
+        return slotFor('lurkers', o.jailWidthPx, o.jailHeightPx, o.jailXFrac, canvasW, canvasH, baseW, hillW, tier, o);
+    }
+
+    // Every building to draw, in paint order. `tiers` = { punctuality, lurkers } (null/undefined = none).
+    // The Jailhouse is DROPPED (never nudged) when it would cover the church or touch the Clock tower,
+    // so a narrow window shows a clean tower instead of a pile-up.
+    function villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts) {
+        const o = opts || DEFAULTS;
+        const t = tiers || {};
+        const clock = clockTowerSlot(canvasW, canvasH, baseW, hillW, t.punctuality, o);
+        let jail = jailSlot(canvasW, canvasH, baseW, hillW, t.lurkers, o);
+        if (jail) {
+            if (jail.left < (baseW || 0)) jail = null;
+            else if (clock && jail.left + jail.width + o.minGapPx > clock.left) jail = null;
+        }
+        return [jail, clock].filter(Boolean); // jail first: the tower paints over any shared pixels
+    }
+
+    return { DEFAULTS, fromConfig, clampTier, resolveDevTier, resolveDevJailTier, fieldWidth, spriteUrl, clockTowerSlot, jailSlot, villageSlots };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

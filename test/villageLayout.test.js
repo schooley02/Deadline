@@ -171,3 +171,135 @@ describe('shipped sprites', () => {
         expect(h).toBe(CONFIG.VILLAGE_SPRITE_H_PX);
     });
 });
+
+// ---- Jailhouse (kind `lurkers`), added 2026-10-29 ----
+describe('Jailhouse config', () => {
+    test('fromConfig mirrors the jail CONFIG and DEFAULTS agree with it', () => {
+        expect(OPTS.jailWidthPx).toBe(CONFIG.VILLAGE_JAIL_W_PX);
+        expect(OPTS.jailHeightPx).toBe(CONFIG.VILLAGE_JAIL_H_PX);
+        expect(OPTS.jailXFrac).toBe(CONFIG.VILLAGE_JAIL_X_FRAC);
+        expect(OPTS.devJailTier).toBe(CONFIG.VILLAGE_DEV_JAIL_TIER);
+        expect(OPTS.minGapPx).toBe(CONFIG.VILLAGE_MIN_GAP_PX);
+        const d = VillageLayout.DEFAULTS;
+        expect(d.jailWidthPx).toBe(CONFIG.VILLAGE_JAIL_W_PX);
+        expect(d.jailHeightPx).toBe(CONFIG.VILLAGE_JAIL_H_PX);
+        expect(d.jailXFrac).toBe(CONFIG.VILLAGE_JAIL_X_FRAC);
+        expect(d.devJailTier).toBe(CONFIG.VILLAGE_DEV_JAIL_TIER);
+        expect(d.minGapPx).toBe(CONFIG.VILLAGE_MIN_GAP_PX);
+    });
+
+    test('a null dev jail tier means "hidden"', () => {
+        expect(VillageLayout.fromConfig({ VILLAGE_DEV_JAIL_TIER: null }).devJailTier).toBeNull();
+    });
+
+    test('the jail is shorter than the tower (the tower stays the landmark)', () => {
+        expect(CONFIG.VILLAGE_JAIL_H_PX).toBeLessThan(CONFIG.VILLAGE_SPRITE_H_PX);
+        expect(CONFIG.VILLAGE_JAIL_W_PX).toBe(CONFIG.VILLAGE_SPRITE_W_PX);
+    });
+});
+
+describe('resolveDevJailTier (dev only: ?jailTier=)', () => {
+    test('uses CONFIG.VILLAGE_DEV_JAIL_TIER with no query; the query overrides it', () => {
+        expect(VillageLayout.resolveDevJailTier('', OPTS)).toBe(CONFIG.VILLAGE_DEV_JAIL_TIER);
+        expect(VillageLayout.resolveDevJailTier('?jailTier=5', OPTS)).toBe(5);
+        expect(VillageLayout.resolveDevJailTier('?a=1&jailTier=2&b=2', OPTS)).toBe(2);
+    });
+    test('clamps, "off" hides, junk falls back', () => {
+        expect(VillageLayout.resolveDevJailTier('?jailTier=9', OPTS)).toBe(5);
+        expect(VillageLayout.resolveDevJailTier('?jailTier=off', OPTS)).toBeNull();
+        expect(VillageLayout.resolveDevJailTier('?jailTier=banana', OPTS)).toBe(CONFIG.VILLAGE_DEV_JAIL_TIER);
+        expect(VillageLayout.resolveDevJailTier('', { ...OPTS, devJailTier: null })).toBeNull();
+    });
+    test('the two dev params are independent', () => {
+        expect(VillageLayout.resolveDevTier('?jailTier=1', OPTS)).toBe(CONFIG.VILLAGE_DEV_CLOCK_TIER);
+        expect(VillageLayout.resolveDevJailTier('?villageTier=1', OPTS)).toBe(CONFIG.VILLAGE_DEV_JAIL_TIER);
+    });
+});
+
+describe('jailSlot', () => {
+    const jail = (over = {}) => {
+        const a = { canvasW: 844, canvasH: 334, baseW: 160, hillW: 140, tier: 3, ...over };
+        return VillageLayout.jailSlot(a.canvasW, a.canvasH, a.baseW, a.hillW, a.tier, OPTS);
+    };
+
+    test('844x390: same horizon as the tower, 128x128 at 1:1, centred at its field fraction', () => {
+        const s = jail();
+        // field 544 from x=160; centre = 160 + 0.2 * 544 = 268.8; feet = 334 - 72 - 4 = 258
+        expect(s.kind).toBe('lurkers');
+        expect(s.url).toBe('Assets/Village/lurkers_t3.png');
+        expect(s.left).toBe(Math.round(268.8 - 64));
+        expect(s.feetY).toBe(258);
+        expect(s.top).toBe(258 - 128);
+        expect(s.width).toBe(128);
+        expect(s.height).toBe(128);
+    });
+
+    test('feet line up with the Clock tower (same row)', () => {
+        const c = VillageLayout.clockTowerSlot(844, 334, 160, 140, 3, OPTS);
+        expect(jail().feetY).toBe(c.feetY);
+    });
+
+    test('hidden in the portrait strip, in a narrow field, and with no tier', () => {
+        expect(jail({ hillW: 0 })).toBeNull();
+        expect(jail({ canvasW: 160 + 140 + CONFIG.VILLAGE_MIN_FIELD_PX - 1 })).toBeNull();
+        expect(jail({ tier: null })).toBeNull();
+    });
+
+    test('each tier picks its own sprite; whole pixels only', () => {
+        expect(new Set([1, 2, 3, 4, 5].map(t => jail({ tier: t }).url)).size).toBe(5);
+        const s = jail({ canvasW: 915, canvasH: 356 });
+        [s.left, s.top, s.width, s.height, s.feetY].forEach(n => expect(Number.isInteger(n)).toBe(true));
+    });
+});
+
+describe('villageSlots', () => {
+    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 140) =>
+        VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, OPTS);
+
+    test('both buildings, jail painted first (the tower paints over it)', () => {
+        const s = slots(844, 334, { punctuality: 3, lurkers: 3 });
+        expect(s.map(x => x.kind)).toEqual(['lurkers', 'punctuality']);
+    });
+
+    test('they never overlap and keep the minimum gap, at common landscape sizes', () => {
+        [[844, 334], [915, 356], [1265, 298], [1100, 320]].forEach(([w, h]) => {
+            const s = slots(w, h, { punctuality: 3, lurkers: 3 });
+            expect(s).toHaveLength(2);
+            const [jail, clock] = s;
+            expect(jail.left + jail.width + CONFIG.VILLAGE_MIN_GAP_PX).toBeLessThanOrEqual(clock.left);
+            expect(jail.left).toBeGreaterThanOrEqual(160); // never over the church
+        });
+    });
+
+    test('when the field is too narrow for both, the JAIL is dropped (not moved) and the tower stays put', () => {
+        const alone = slots(640, 334, { punctuality: 3 });
+        const both = slots(640, 334, { punctuality: 3, lurkers: 3 });
+        expect(both).toHaveLength(1);
+        expect(both[0].kind).toBe('punctuality');
+        expect(both[0]).toEqual(alone[0]);
+    });
+
+    test('either building can be shown alone; no tiers or portrait strip = nothing', () => {
+        expect(slots(844, 334, { lurkers: 2 }).map(x => x.kind)).toEqual(['lurkers']);
+        expect(slots(844, 334, { punctuality: 2 }).map(x => x.kind)).toEqual(['punctuality']);
+        expect(slots(844, 334, {})).toEqual([]);
+        expect(slots(844, 334, undefined)).toEqual([]);
+        expect(slots(844, 334, { punctuality: 3, lurkers: 3 }, 160, 0)).toEqual([]);
+    });
+
+    test('the Clock tower slot is identical with or without the jail (adding a building never moves another)', () => {
+        const withJail = slots(844, 334, { punctuality: 4, lurkers: 4 }).find(x => x.kind === 'punctuality');
+        expect(withJail).toEqual(VillageLayout.clockTowerSlot(844, 334, 160, 140, 4, OPTS));
+    });
+});
+
+describe('shipped jail sprites', () => {
+    test.each([1, 2, 3, 4, 5])('lurkers tier %i exists and is the authored 128x128 canvas', tier => {
+        const file = path.join(__dirname, '..', VillageLayout.spriteUrl('lurkers', tier));
+        expect(fs.existsSync(file)).toBe(true);
+        const b = fs.readFileSync(file);
+        expect(b.slice(1, 4).toString()).toBe('PNG');
+        expect(b.readUInt32BE(16)).toBe(CONFIG.VILLAGE_JAIL_W_PX);
+        expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_JAIL_H_PX);
+    });
+});

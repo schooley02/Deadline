@@ -515,6 +515,12 @@ const CONFIG = {
     VILLAGE_MIN_FIELD_PX: 220, // a narrower walking field hides the village
     VILLAGE_TIERS: 5,
     VILLAGE_DEV_CLOCK_TIER: 3, // DEV: no punctuality tier data yet. `?villageTier=1..5` in the URL overrides, `off` hides; null = hidden
+    // Jailhouse (kind `lurkers`, added 2026-10-29): 128x128 canvas, fieldstone, left of the tower.
+    VILLAGE_JAIL_W_PX: 128,
+    VILLAGE_JAIL_H_PX: 128,
+    VILLAGE_JAIL_X_FRAC: 0.2, // jail centre = church edge + frac x walking-field width
+    VILLAGE_DEV_JAIL_TIER: 3, // DEV: no lurkers tier data yet. `?jailTier=1..5` overrides, `off` hides; null = hidden
+    VILLAGE_MIN_GAP_PX: 8, // the jail is dropped if it would sit closer than this to the Clock tower (or over the church)
 
     // --- Sub-task clustering ---
     SUBTASK_CLUSTER_GAP_PX: 8, // visual gap between clustered sprites' VISIBLE graphics (not their boxes)

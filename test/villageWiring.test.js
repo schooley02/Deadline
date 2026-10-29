@@ -16,7 +16,10 @@ const strip = read('css/glanceStrip.css');
 const script = read('script.js');
 
 const FILES = ['css/village.css', 'js/villageLayout.js', 'js/ui/villageView.js'];
-const SPRITES = [1, 2, 3, 4, 5].map(t => `Assets/Village/punctuality_t${t}.png`);
+const SPRITES = [
+    ...[1, 2, 3, 4, 5].map(t => `Assets/Village/punctuality_t${t}.png`),
+    ...[1, 2, 3, 4, 5].map(t => `Assets/Village/lurkers_t${t}.png`),
+];
 
 describe('shell + load order', () => {
     test.each([...FILES, ...SPRITES])('%s is in the service worker APP_SHELL', f => {
@@ -27,10 +30,10 @@ describe('shell + load order', () => {
         [...FILES, ...SPRITES].forEach(f => expect(fs.existsSync(path.join(__dirname, '..', f))).toBe(true));
     });
 
-    test('CACHE_NAME was bumped for the shell change (v134 or later)', () => {
+    test('CACHE_NAME was bumped for the shell change (v135 or later: the Jailhouse sprites)', () => {
         const m = /CACHE_NAME = 'deadline-shell-v(\d+)'/.exec(sw);
         expect(m).not.toBeNull();
-        expect(Number(m[1])).toBeGreaterThanOrEqual(134);
+        expect(Number(m[1])).toBeGreaterThanOrEqual(135);
     });
 
     test('layout loads after config and before the view; the view before script.js', () => {
@@ -101,6 +104,11 @@ describe('script.js hook-up', () => {
         expect(script).toContain('VillageLayout.resolveDevTier(');
     });
 
+    test('the Jailhouse tier is fed to the view too (dev ?jailTier= until lurkers tier data exists)', () => {
+        expect(script).toContain('getJailTier:');
+        expect(script).toContain('VillageLayout.resolveDevJailTier(');
+    });
+
     test('rendered after every layout change and every tick', () => {
         const calls = script.split('VillageView.render(BASE_WIDTH);').length - 1;
         expect(calls).toBe(2);
@@ -115,5 +123,8 @@ describe('CONFIG', () => {
         expect(CONFIG.VILLAGE_CLOCK_X_FRAC).toBeLessThan(1);
         expect(CONFIG.VILLAGE_DEV_CLOCK_TIER).toBeGreaterThanOrEqual(1);
         expect(CONFIG.VILLAGE_DEV_CLOCK_TIER).toBeLessThanOrEqual(CONFIG.VILLAGE_TIERS);
+        expect(CONFIG.VILLAGE_DEV_JAIL_TIER).toBeGreaterThanOrEqual(1);
+        expect(CONFIG.VILLAGE_DEV_JAIL_TIER).toBeLessThanOrEqual(CONFIG.VILLAGE_TIERS);
+        expect(CONFIG.VILLAGE_JAIL_X_FRAC).toBeLessThan(CONFIG.VILLAGE_CLOCK_X_FRAC); // jail stands left of the tower
     });
 });
