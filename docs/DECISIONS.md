@@ -6,6 +6,20 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 
 
+## 2026-10-29 (late afternoon) -- Radio tower (`nights`) art finished and wired as the first BACK-ROW building; Jailhouse re-keyed to `defense` (Claude app session, Opus advice -> Sonnet build; layout constants + art only, no balance numbers)
+
+- Radio tower T1-T5 shipped (`Assets/Village/nights_t1..t5.png`, 128x160) and wired: `CONFIG.VILLAGE_RADIO_*`, `VillageLayout.radioSlot`, `?radioTier=`. It stands BEHIND the front row between the Jailhouse and the Clock tower: feet 14 px higher, brightness 0.8, painted first.
+- The Jailhouse/sheriff's office art is now kind `defense` (Church Defense): sprites renamed `lurkers_t*` -> `defense_t*`, `VillageLayout` kind string, view tier key, tests, sw.js. Internal names (`jailSlot`, `VILLAGE_JAIL_*`, `?jailTier=`) kept on purpose. sw.js v139.
+- Why a back row: the one-row layout is already full at 844 wide with three buildings; depth by ridge position and tint keeps whole-number pixel scaling (the ART_STYLE rule). Why overlap is allowed (up to 40 px): the sprites are mostly empty air at the edges, so the mast and shack fit between the Jailhouse and the tower without hiding either.
+- Rejected: scaling the back row down (breaks the pixel rule), nudging a building to fit (every other building is dropped, never nudged), a second full row (needs the 3-depth-row spec and a layout session).
+- Open: where buildings 5-8 go (more back-row slots vs. a second row); phone check.
+
+## 2026-10-29 (afternoon) -- Village building mapping FINAL: Jailhouse -> Church Defense; gym, schoolhouse, radio tower (Claude app session, Opus; art spec only, no code, no balance numbers)
+
+- `defense` = existing Jailhouse/sheriff's office art (re-keyed from `lurkers`; sheriff protects the town). `lurkers` = boxing gym (willpower as resistance training). `heroes` = low wide schoolhouse, no cupola. `nights` = radio tower. `habits` = hospital. `bestdays` = windmill. Memorial = obelisk without a flag.
+- Why: each metaphor fits its stat (willpower = training, routines = learning, endurance = still broadcasting through the night); reusing the finished Jailhouse costs no art; no cupola/tower on the school keeps the Clock tower unique.
+- Rejected: fire station (odd fit for defense), town hall (no game meaning, clock-tower lookalike), water tower, quarantine checkpoint for lurkers (too close to the Armory's fenced camp), signal beacon / lighthouse for nights.
+
 ## 2026-10-29 -- Armory (`slain`) = survivor army camp with a skull and crossbones; shipped T1-T5 and placed right of the tower (Claude app session, Opus; layout constants + art only, no balance numbers)
 
 - **Kind confirmed (Jeremy):** the Armory is an army barracks TENT with a gate and a small guard tower, not the proposed brick National Guard armory. Reason: the Jailhouse and Clock tower already cover brick/stone boxes; canvas + timber is a new material (AT-A-GLANCE DISTINCTNESS RULE) and fits the survivor theme.

@@ -521,17 +521,26 @@ const CONFIG = {
     VILLAGE_MIN_FIELD_PX: 220, // a narrower walking field hides the village
     VILLAGE_TIERS: 5,
     VILLAGE_DEV_CLOCK_TIER: 3, // DEV: no punctuality tier data yet. `?villageTier=1..5` in the URL overrides, `off` hides; null = hidden
-    // Jailhouse (kind `lurkers`, added 2026-10-29): 128x128 canvas, fieldstone, left of the tower.
+    // Jailhouse / sheriff's office (kind `defense` = Church Defense; re-keyed from `lurkers` 2026-10-29): 128x128 canvas, fieldstone, left of the tower.
     VILLAGE_JAIL_W_PX: 128,
     VILLAGE_JAIL_H_PX: 128,
     VILLAGE_JAIL_X_FRAC: 0.2, // jail centre = church edge + frac x walking-field width
-    VILLAGE_DEV_JAIL_TIER: 3, // DEV: no lurkers tier data yet. `?jailTier=1..5` overrides, `off` hides; null = hidden
+    VILLAGE_DEV_JAIL_TIER: 3, // DEV: no defense tier data yet. `?jailTier=1..5` overrides, `off` hides; null = hidden
     VILLAGE_MIN_GAP_PX: 8, // the jail is dropped if it would sit closer than this to the Clock tower (or over the church)
     // Armory (kind `slain`, added 2026-10-29): survivor army camp (tent + guard tower), 128x128, RIGHT of the tower.
     VILLAGE_ARMORY_W_PX: 128,
     VILLAGE_ARMORY_H_PX: 128,
     VILLAGE_ARMORY_X_FRAC: 0.85, // armory centre = church edge + frac x walking-field width; dropped if it would touch the tower or reach the graveyard hill
     VILLAGE_DEV_ARMORY_TIER: 3, // DEV: no slain tier data yet. `?armoryTier=1..5` overrides, `off` hides; null = hidden
+    // Radio tower (kind `nights` = Nights Survived, added 2026-10-29): steel mast + radio shack, 128x160, a BACK-ROW building
+    // between the Jailhouse and the tower. Raised on the ridge, darker, painted first (the front row covers it).
+    VILLAGE_RADIO_W_PX: 128,
+    VILLAGE_RADIO_H_PX: 160,
+    VILLAGE_RADIO_X_FRAC: 0.38, // radio centre = church edge + frac x walking-field width; dropped if it would sink behind a front building by more than VILLAGE_BACK_MAX_OVERLAP_PX
+    VILLAGE_DEV_RADIO_TIER: 3, // DEV: no nights tier data yet. `?radioTier=1..5` overrides, `off` hides; null = hidden
+    VILLAGE_BACK_ROW_RAISE_PX: 14, // back-row feet stand this far above the front row's feet (depth by ridge position, same sprite size)
+    VILLAGE_BACK_ROW_BRIGHTNESS: 0.8, // back-row sprites are drawn at this brightness (CSS filter) so they recede behind the front row
+    VILLAGE_BACK_MAX_OVERLAP_PX: 40, // a back-row box may overlap a front building's box by this many px at most
 
     // --- Sub-task clustering ---
     SUBTASK_CLUSTER_GAP_PX: 8, // visual gap between clustered sprites' VISIBLE graphics (not their boxes)

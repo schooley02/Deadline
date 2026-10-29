@@ -109,7 +109,7 @@ test('init without the DOM is a safe no-op', () => {
     expect(() => { VillageView.init({}); VillageView.render(0); }).not.toThrow();
 });
 
-// ---- Jailhouse (kind `lurkers`), added 2026-10-29 ----
+// ---- Jailhouse (kind `defense`, was `lurkers`), added 2026-10-29 ----
 function initBoth({ hill = 140, clock = 3, jail = 3, ...size } = {}) {
     build(size);
     const state = { hill, clock, jail };
@@ -126,7 +126,7 @@ const byKind = k => document.querySelector(`#villageLayer .village-sprite[data-k
 test('draws the Jailhouse next to the Clock tower, each at its own layout slot', () => {
     initBoth();
     expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(2);
-    const want = VillageLayout.villageSlots(844, 334, 160, 140, { punctuality: 3, lurkers: 3 }, VillageLayout.fromConfig(CONFIG));
+    const want = VillageLayout.villageSlots(844, 334, 160, 140, { punctuality: 3, defense: 3 }, VillageLayout.fromConfig(CONFIG));
     want.forEach(slot => {
         const img = byKind(slot.kind);
         expect(img.getAttribute('src')).toBe(slot.url);
@@ -135,53 +135,53 @@ test('draws the Jailhouse next to the Clock tower, each at its own layout slot',
         expect(img.style.width).toBe(slot.width + 'px');
         expect(img.style.height).toBe(slot.height + 'px');
     });
-    expect(byKind('lurkers').getAttribute('src')).toBe('Assets/Village/lurkers_t3.png');
-    expect(byKind('lurkers').style.height).toBe('128px');
+    expect(byKind('defense').getAttribute('src')).toBe('Assets/Village/defense_t3.png');
+    expect(byKind('defense').style.height).toBe('128px');
 });
 
 test('the jail is decorative like the tower and has its own class', () => {
     initBoth();
-    expect(byKind('lurkers').classList.contains('village-lurkers')).toBe(true);
-    expect(byKind('lurkers').getAttribute('alt')).toBe('');
-    expect(byKind('lurkers').draggable).toBe(false);
+    expect(byKind('defense').classList.contains('village-defense')).toBe(true);
+    expect(byKind('defense').getAttribute('alt')).toBe('');
+    expect(byKind('defense').draggable).toBe(false);
 });
 
 test('a jail tier change swaps the image on the same element and leaves the tower alone', () => {
     const state = initBoth({ jail: 1 });
-    const jail = byKind('lurkers');
+    const jail = byKind('defense');
     const tower = byKind('punctuality');
     state.jail = 5;
     VillageView.render(160);
-    expect(byKind('lurkers')).toBe(jail);
-    expect(jail.getAttribute('src')).toBe('Assets/Village/lurkers_t5.png');
+    expect(byKind('defense')).toBe(jail);
+    expect(jail.getAttribute('src')).toBe('Assets/Village/defense_t5.png');
     expect(byKind('punctuality')).toBe(tower);
     expect(tower.getAttribute('src')).toBe('Assets/Village/punctuality_t3.png');
 });
 
 test('no jail tier: only the tower; no clock tier: only the jail', () => {
     initBoth({ jail: null });
-    expect(byKind('lurkers')).toBeNull();
+    expect(byKind('defense')).toBeNull();
     expect(byKind('punctuality')).not.toBeNull();
     initBoth({ clock: null });
     expect(byKind('punctuality')).toBeNull();
-    expect(byKind('lurkers')).not.toBeNull();
+    expect(byKind('defense')).not.toBeNull();
 });
 
 test('a tier going away removes only that building', () => {
     const state = initBoth();
     state.jail = null;
     VillageView.render(160);
-    expect(byKind('lurkers')).toBeNull();
+    expect(byKind('defense')).toBeNull();
     expect(byKind('punctuality')).not.toBeNull();
 });
 
 test('a window too narrow for both drops the jail, keeps the tower; widening brings it back', () => {
     const state = initBoth({ canvasW: 640 });
-    expect(byKind('lurkers')).toBeNull();
+    expect(byKind('defense')).toBeNull();
     expect(byKind('punctuality')).not.toBeNull();
     setSize(document.getElementById('gameCanvas'), 844, 334);
     VillageView.render(160);
-    expect(byKind('lurkers')).not.toBeNull();
+    expect(byKind('defense')).not.toBeNull();
     expect(state.jail).toBe(3);
 });
 
@@ -201,7 +201,7 @@ test('portrait strip and VILLAGE_ENABLED=false hide both', () => {
 test('a view that only supplies getClockTier (the first-slice deps) still works, no jail', () => {
     init();
     expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(1);
-    expect(byKind('lurkers')).toBeNull();
+    expect(byKind('defense')).toBeNull();
 });
 
 // ---- Armory (kind `slain`), added 2026-10-29 ----
@@ -217,7 +217,7 @@ test('draws the Armory right of the tower at its layout slot, and swaps tiers in
     VillageView.render(160);
     const q = k => document.querySelector(`#villageLayer .village-sprite[data-kind="${k}"]`);
     expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(3);
-    const want = VillageLayout.villageSlots(844, 334, 160, 140, { punctuality: 3, lurkers: 3, slain: 3 }, VillageLayout.fromConfig(CONFIG))
+    const want = VillageLayout.villageSlots(844, 334, 160, 140, { punctuality: 3, defense: 3, slain: 3 }, VillageLayout.fromConfig(CONFIG))
         .find(s => s.kind === 'slain');
     const img = q('slain');
     expect(img.getAttribute('src')).toBe('Assets/Village/slain_t3.png');
@@ -232,4 +232,95 @@ test('draws the Armory right of the tower at its layout slot, and swaps tiers in
     VillageView.render(160);
     expect(q('slain')).toBeNull();
     expect(q('punctuality')).not.toBeNull();
+});
+
+// ---- Radio tower (kind `nights`, back row), added 2026-10-29 ----
+describe('Radio tower (back row)', () => {
+    const q = k => document.querySelector(`#villageLayer .village-sprite[data-kind="${k}"]`);
+    function initAll(over = {}) {
+        build({});
+        const state = { radio: 3, ...over };
+        VillageView.init({
+            getHillWidth: () => 140,
+            getClockTier: () => 3,
+            getJailTier: () => 3,
+            getArmoryTier: () => 3,
+            getRadioTier: () => state.radio,
+        });
+        VillageView.render(160);
+        return state;
+    }
+
+    test('draws the radio at its layout slot with the back-row class and a brightness filter', () => {
+        initAll();
+        const want = VillageLayout.villageSlots(844, 334, 160, 140, { punctuality: 3, defense: 3, slain: 3, nights: 3 }, VillageLayout.fromConfig(CONFIG))
+            .find(s => s.kind === 'nights');
+        const img = q('nights');
+        expect(img.getAttribute('src')).toBe('Assets/Village/nights_t3.png');
+        expect(img.classList.contains('village-nights')).toBe(true);
+        expect(img.classList.contains('village-back')).toBe(true);
+        expect(img.style.left).toBe(want.left + 'px');
+        expect(img.style.top).toBe(want.top + 'px');
+        expect(img.style.height).toBe('160px');
+        expect(img.style.filter).toBe('brightness(' + CONFIG.VILLAGE_BACK_ROW_BRIGHTNESS + ')');
+        expect(img.getAttribute('alt')).toBe('');
+        expect(img.draggable).toBe(false);
+    });
+
+    test('front-row buildings are not darkened and are not back-row', () => {
+        initAll();
+        ['punctuality', 'defense', 'slain'].forEach(k => {
+            expect(q(k).classList.contains('village-back')).toBe(false);
+            expect(q(k).style.filter).toBe('');
+        });
+    });
+
+    test('z-index follows paint order: the radio lowest, the tower highest', () => {
+        initAll();
+        const z = k => Number(q(k).style.zIndex);
+        expect(z('nights')).toBeLessThan(z('defense'));
+        expect(z('defense')).toBeLessThan(z('slain'));
+        expect(z('slain')).toBeLessThan(z('punctuality'));
+    });
+
+    test('a radio that appears AFTER the others still paints behind them (z-index, not DOM order)', () => {
+        const state = initAll({ radio: null });
+        expect(q('nights')).toBeNull();
+        state.radio = 2;
+        VillageView.render(160);
+        expect(q('nights')).not.toBeNull();
+        expect(Number(q('nights').style.zIndex)).toBeLessThan(Number(q('punctuality').style.zIndex));
+        expect(Number(q('nights').style.zIndex)).toBeLessThan(Number(q('defense').style.zIndex));
+    });
+
+    test('a tier change swaps the image on the same element; clearing the tier removes only the radio', () => {
+        const state = initAll({ radio: 1 });
+        const img = q('nights');
+        state.radio = 5;
+        VillageView.render(160);
+        expect(q('nights')).toBe(img);
+        expect(img.getAttribute('src')).toBe('Assets/Village/nights_t5.png');
+        state.radio = null;
+        VillageView.render(160);
+        expect(q('nights')).toBeNull();
+        expect(q('punctuality')).not.toBeNull();
+        expect(q('defense')).not.toBeNull();
+    });
+
+    test('a window too narrow for the radio drops it and leaves the rest; widening brings it back', () => {
+        initAll();
+        build({ canvasW: 640 });
+        VillageView.init({ getHillWidth: () => 140, getClockTier: () => 3, getJailTier: () => 3, getArmoryTier: () => 3, getRadioTier: () => 3 });
+        VillageView.render(160);
+        expect(q('nights')).toBeNull();
+        expect(q('punctuality')).not.toBeNull();
+    });
+
+    test('a view that does not supply getRadioTier (the older deps) still works, no radio', () => {
+        build({});
+        VillageView.init({ getHillWidth: () => 140, getClockTier: () => 3, getJailTier: () => 3, getArmoryTier: () => 3 });
+        VillageView.render(160);
+        expect(q('nights')).toBeNull();
+        expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(3);
+    });
 });

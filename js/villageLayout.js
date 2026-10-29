@@ -3,11 +3,19 @@
  * (V7 W2, first slice 2026-10-29; docs/ART_STYLE.md "Achievement village art",
  * docs/WORLD_FEEDBACK_PLAN.md W2). No DOM, no State.
  *
- * This slice draws THREE buildings: the Clock tower (kind `punctuality`, 128x256), the Jailhouse
- * (kind `lurkers`, 128x128, left of the tower) and the Armory (kind `slain`, 128x128, right of the
- * tower; both added 2026-10-29). The other kinds, the tier-from-achievements wiring
- * and the close-up view are later W2 steps. Each building is placed at a fraction of the walking
- * field; a building that would overlap the church or another building is dropped, not moved.
+ * This slice draws FOUR buildings: the Clock tower (kind `punctuality`, 128x256), the Jailhouse /
+ * sheriff's office (kind `defense` = Church Defense, 128x128, left of the tower; re-keyed from
+ * `lurkers` 2026-10-29), the Armory (kind `slain`, 128x128, right of the tower) and the Radio tower
+ * (kind `nights`, 128x160, a BACK-ROW building between the Jailhouse and the tower). The other
+ * kinds, the tier-from-achievements wiring and the close-up view are later W2 steps. Each building
+ * is placed at a fraction of the walking field; a building that would overlap the church or another
+ * building is dropped, not moved.
+ *
+ *   BACK ROW  the Radio tower stands on the ridge BEHIND the front row: feet raised by
+ *            backRowRaisePx, drawn darker (backRowBrightness) and painted first, so the front
+ *            buildings cover it. It may overlap a front building's box by at most
+ *            backMaxOverlapPx (the sprites are mostly empty air there); more than that and it is
+ *            dropped, like every other building (never nudged).
  *
  *   SPRITE   authored on a 128px-wide canvas (Clock tower 128x256, bottom-anchored, tower art
  *            bottom-aligned inside it) and shown 1:1, the same pixel scale as the animated
@@ -38,6 +46,13 @@ const VillageLayout = (() => {
         armoryHeightPx: 128,
         armoryXFrac: 0.85,
         devArmoryTier: 3,
+        radioWidthPx: 128,
+        radioHeightPx: 160,
+        radioXFrac: 0.38,
+        devRadioTier: 3,
+        backRowRaisePx: 14,
+        backRowBrightness: 0.8,
+        backMaxOverlapPx: 40,
         minGapPx: 8,
         clockScale: 1,
         clockArtHeightPx: 246,
@@ -64,6 +79,13 @@ const VillageLayout = (() => {
             armoryHeightPx: pick(cfg.VILLAGE_ARMORY_H_PX, DEFAULTS.armoryHeightPx),
             armoryXFrac: pick(cfg.VILLAGE_ARMORY_X_FRAC, DEFAULTS.armoryXFrac),
             devArmoryTier: (cfg.VILLAGE_DEV_ARMORY_TIER === null) ? null : pick(cfg.VILLAGE_DEV_ARMORY_TIER, DEFAULTS.devArmoryTier),
+            radioWidthPx: pick(cfg.VILLAGE_RADIO_W_PX, DEFAULTS.radioWidthPx),
+            radioHeightPx: pick(cfg.VILLAGE_RADIO_H_PX, DEFAULTS.radioHeightPx),
+            radioXFrac: pick(cfg.VILLAGE_RADIO_X_FRAC, DEFAULTS.radioXFrac),
+            devRadioTier: (cfg.VILLAGE_DEV_RADIO_TIER === null) ? null : pick(cfg.VILLAGE_DEV_RADIO_TIER, DEFAULTS.devRadioTier),
+            backRowRaisePx: pick(cfg.VILLAGE_BACK_ROW_RAISE_PX, DEFAULTS.backRowRaisePx),
+            backRowBrightness: pick(cfg.VILLAGE_BACK_ROW_BRIGHTNESS, DEFAULTS.backRowBrightness),
+            backMaxOverlapPx: pick(cfg.VILLAGE_BACK_MAX_OVERLAP_PX, DEFAULTS.backMaxOverlapPx),
             minGapPx: pick(cfg.VILLAGE_MIN_GAP_PX, DEFAULTS.minGapPx),
             clockScale: pick(cfg.VILLAGE_CLOCK_SCALE, DEFAULTS.clockScale),
             clockArtHeightPx: pick(cfg.VILLAGE_CLOCK_ART_H_PX, DEFAULTS.clockArtHeightPx),
@@ -109,6 +131,12 @@ const VillageLayout = (() => {
     function resolveDevArmoryTier(search, opts) {
         const o = opts || DEFAULTS;
         return resolveTierParam(search, 'armoryTier', o.devArmoryTier, o.tiers);
+    }
+
+    // Radio tower: `?radioTier=`
+    function resolveDevRadioTier(search, opts) {
+        const o = opts || DEFAULTS;
+        return resolveTierParam(search, 'radioTier', o.devRadioTier, o.tiers);
     }
 
     function fieldWidth(canvasW, baseW, hillW) {
@@ -177,7 +205,7 @@ const VillageLayout = (() => {
     // `feetOverride` lets villageSlots put the jail on the same row as the (possibly lowered) tower.
     function jailSlot(canvasW, canvasH, baseW, hillW, tier, opts, feetOverride) {
         const o = opts || DEFAULTS;
-        return slotFor('lurkers', o.jailWidthPx, o.jailHeightPx, o.jailXFrac, canvasW, canvasH, baseW, hillW, tier, o, 1, feetOverride);
+        return slotFor('defense', o.jailWidthPx, o.jailHeightPx, o.jailXFrac, canvasW, canvasH, baseW, hillW, tier, o, 1, feetOverride);
     }
 
     // Same row rule as the jail: villageSlots passes the tower's feetY.
@@ -186,14 +214,32 @@ const VillageLayout = (() => {
         return slotFor('slain', o.armoryWidthPx, o.armoryHeightPx, o.armoryXFrac, canvasW, canvasH, baseW, hillW, tier, o, 1, feetOverride);
     }
 
-    // Every building to draw, in paint order. `tiers` = { punctuality, lurkers, slain } (null/undefined = none).
+    // Back-row Radio tower: its feet are `backRowRaisePx` above the front row's feet (`frontFeetY` = the tower's
+    // row when there is one, else the plain horizon), and the slot carries `back: true` + `brightness` so the
+    // view can darken it. Its box may overlap the front row (see villageSlots), so it is painted first.
+    function radioSlot(canvasW, canvasH, baseW, hillW, tier, opts, frontFeetY) {
+        const o = opts || DEFAULTS;
+        const front = (typeof frontFeetY === 'number') ? frontFeetY : horizonFeetY(canvasH, o);
+        const slot = slotFor('nights', o.radioWidthPx, o.radioHeightPx, o.radioXFrac, canvasW, canvasH, baseW, hillW, tier, o, 1,
+            front - Math.max(0, o.backRowRaisePx));
+        return slot ? { ...slot, back: true, brightness: o.backRowBrightness } : null;
+    }
+
+    // Horizontal overlap in px between two slot boxes (0 when they only touch or are apart).
+    function overlapPx(a, b) {
+        return Math.max(0, Math.min(a.left + a.width, b.left + b.width) - Math.max(a.left, b.left));
+    }
+
+    // Every building to draw, in paint order. `tiers` = { punctuality, defense, slain, nights } (null/undefined = none).
     // The Jailhouse and the Armory are DROPPED (never nudged) when they would cover the church, reach the
     // graveyard hill or touch the Clock tower, so a narrow window shows a clean tower instead of a pile-up.
+    // The back-row Radio tower is dropped when it would cover the church, reach the hill or sink behind a
+    // front building by more than backMaxOverlapPx.
     function villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts) {
         const o = opts || DEFAULTS;
         const t = tiers || {};
         const clock = clockTowerSlot(canvasW, canvasH, baseW, hillW, t.punctuality, o);
-        let jail = jailSlot(canvasW, canvasH, baseW, hillW, t.lurkers, o, clock ? clock.feetY : undefined);
+        let jail = jailSlot(canvasW, canvasH, baseW, hillW, t.defense, o, clock ? clock.feetY : undefined);
         if (jail) {
             if (jail.left < (baseW || 0)) jail = null;
             else if (clock && jail.left + jail.width + o.minGapPx > clock.left) jail = null;
@@ -205,10 +251,17 @@ const VillageLayout = (() => {
             else if (clock && armory.left < clock.left + clock.width + o.minGapPx) armory = null;
             else if (jail && armory.left < jail.left + jail.width + o.minGapPx) armory = null;
         }
-        return [jail, armory, clock].filter(Boolean); // the tower paints last, over any shared pixels
+        let radio = radioSlot(canvasW, canvasH, baseW, hillW, t.nights, o, clock ? clock.feetY : undefined);
+        if (radio) {
+            const fieldRight = (baseW || 0) + fieldWidth(canvasW, baseW, hillW);
+            if (radio.left < (baseW || 0) || radio.left + radio.width > fieldRight) radio = null;
+            else if ([jail, armory, clock].some(f => f && overlapPx(radio, f) > o.backMaxOverlapPx)) radio = null;
+        }
+        // back row first, the tower last (over any shared pixels)
+        return [radio, jail, armory, clock].filter(Boolean);
     }
 
-    return { DEFAULTS, fromConfig, clampTier, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, fieldWidth, spriteUrl, clockTowerSlot, clockScaleFor, clockFeetY, jailSlot, armorySlot, villageSlots };
+    return { DEFAULTS, fromConfig, clampTier, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, fieldWidth, spriteUrl, clockTowerSlot, clockScaleFor, clockFeetY, jailSlot, armorySlot, radioSlot, villageSlots };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

@@ -191,7 +191,7 @@ describe('shipped sprites', () => {
     });
 });
 
-// ---- Jailhouse (kind `lurkers`), added 2026-10-29 ----
+// ---- Jailhouse (kind `defense`, was `lurkers`), added 2026-10-29 ----
 describe('Jailhouse config', () => {
     test('fromConfig mirrors the jail CONFIG and DEFAULTS agree with it', () => {
         expect(OPTS.jailWidthPx).toBe(CONFIG.VILLAGE_JAIL_W_PX);
@@ -244,8 +244,8 @@ describe('jailSlot', () => {
     test('844x390: same horizon as the tower, 128x128 at 1:1, centred at its field fraction', () => {
         const s = jail();
         // field 544 from x=160; centre = 160 + 0.2 * 544 = 268.8; feet = 334 - 72 - 4 = 258
-        expect(s.kind).toBe('lurkers');
-        expect(s.url).toBe('Assets/Village/lurkers_t3.png');
+        expect(s.kind).toBe('defense');
+        expect(s.url).toBe('Assets/Village/defense_t3.png');
         expect(s.left).toBe(Math.round(268.8 - 64));
         expect(s.feetY).toBe(258);
         expect(s.top).toBe(258 - 128);
@@ -255,7 +255,7 @@ describe('jailSlot', () => {
 
     test('on its own the jail stands on the plain horizon; villageSlots puts it on the tower\'s row', () => {
         expect(jail().feetY).toBe(334 - CONFIG.GROUND_FLOOR_HEIGHT - CONFIG.VILLAGE_FEET_ABOVE_FLOOR_PX);
-        const both = VillageLayout.villageSlots(844, 334, 160, 140, { punctuality: 3, lurkers: 3 }, OPTS);
+        const both = VillageLayout.villageSlots(844, 334, 160, 140, { punctuality: 3, defense: 3 }, OPTS);
         expect(both[0].feetY).toBe(both[1].feetY);
     });
 
@@ -277,13 +277,13 @@ describe('villageSlots', () => {
         VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, OPTS);
 
     test('both buildings, jail painted first (the tower paints over it)', () => {
-        const s = slots(844, 334, { punctuality: 3, lurkers: 3 });
-        expect(s.map(x => x.kind)).toEqual(['lurkers', 'punctuality']);
+        const s = slots(844, 334, { punctuality: 3, defense: 3 });
+        expect(s.map(x => x.kind)).toEqual(['defense', 'punctuality']);
     });
 
     test('they never overlap and keep the minimum gap, at common landscape sizes', () => {
         [[844, 334], [915, 356], [1265, 298], [1100, 320]].forEach(([w, h]) => {
-            const s = slots(w, h, { punctuality: 3, lurkers: 3 });
+            const s = slots(w, h, { punctuality: 3, defense: 3 });
             expect(s).toHaveLength(2);
             const [jail, clock] = s;
             expect(jail.left + jail.width + CONFIG.VILLAGE_MIN_GAP_PX).toBeLessThanOrEqual(clock.left);
@@ -293,29 +293,29 @@ describe('villageSlots', () => {
 
     test('when the field is too narrow for both, the JAIL is dropped (not moved) and the tower stays put', () => {
         const alone = slots(640, 334, { punctuality: 3 });
-        const both = slots(640, 334, { punctuality: 3, lurkers: 3 });
+        const both = slots(640, 334, { punctuality: 3, defense: 3 });
         expect(both).toHaveLength(1);
         expect(both[0].kind).toBe('punctuality');
         expect(both[0]).toEqual(alone[0]);
     });
 
     test('either building can be shown alone; no tiers or portrait strip = nothing', () => {
-        expect(slots(844, 334, { lurkers: 2 }).map(x => x.kind)).toEqual(['lurkers']);
+        expect(slots(844, 334, { defense: 2 }).map(x => x.kind)).toEqual(['defense']);
         expect(slots(844, 334, { punctuality: 2 }).map(x => x.kind)).toEqual(['punctuality']);
         expect(slots(844, 334, {})).toEqual([]);
         expect(slots(844, 334, undefined)).toEqual([]);
-        expect(slots(844, 334, { punctuality: 3, lurkers: 3 }, 160, 0)).toEqual([]);
+        expect(slots(844, 334, { punctuality: 3, defense: 3 }, 160, 0)).toEqual([]);
     });
 
     test('the Clock tower slot is identical with or without the jail (adding a building never moves another)', () => {
-        const withJail = slots(844, 334, { punctuality: 4, lurkers: 4 }).find(x => x.kind === 'punctuality');
+        const withJail = slots(844, 334, { punctuality: 4, defense: 4 }).find(x => x.kind === 'punctuality');
         expect(withJail).toEqual(VillageLayout.clockTowerSlot(844, 334, 160, 140, 4, OPTS));
     });
 });
 
 describe('shipped jail sprites', () => {
-    test.each([1, 2, 3, 4, 5])('lurkers tier %i exists and is the authored 128x128 canvas', tier => {
-        const file = path.join(__dirname, '..', VillageLayout.spriteUrl('lurkers', tier));
+    test.each([1, 2, 3, 4, 5])('defense (Jailhouse) tier %i exists and is the authored 128x128 canvas', tier => {
+        const file = path.join(__dirname, '..', VillageLayout.spriteUrl('defense', tier));
         expect(fs.existsSync(file)).toBe(true);
         const b = fs.readFileSync(file);
         expect(b.slice(1, 4).toString()).toBe('PNG');
@@ -377,14 +377,14 @@ describe('clock tower fit on short canvases (the tower is 246px of art, so short
     });
 
     test('the jail stands on the same row as the tower when both show (even when lowered)', () => {
-        const s = VillageLayout.villageSlots(1265, 298, 160, 140, { punctuality: 3, lurkers: 3 }, OPTS);
+        const s = VillageLayout.villageSlots(1265, 298, 160, 140, { punctuality: 3, defense: 3 }, OPTS);
         expect(s).toHaveLength(2);
         expect(s[0].feetY).toBe(s[1].feetY);
         expect(s[0].feetY).toBe(feet(298));
     });
 
     test('with no tower the jail uses the plain horizon', () => {
-        const s = VillageLayout.villageSlots(1265, 298, 160, 140, { lurkers: 3 }, OPTS);
+        const s = VillageLayout.villageSlots(1265, 298, 160, 140, { defense: 3 }, OPTS);
         expect(s[0].feetY).toBe(base(298));
     });
 
@@ -397,7 +397,7 @@ describe('clock tower fit on short canvases (the tower is 246px of art, so short
 describe('Armory', () => {
     const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 140) =>
         VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, OPTS);
-    const ALL = { punctuality: 3, lurkers: 3, slain: 3 };
+    const ALL = { punctuality: 3, defense: 3, slain: 3 };
 
     test('fromConfig mirrors the armory CONFIG and DEFAULTS agree with it', () => {
         const d = VillageLayout.DEFAULTS;
@@ -442,7 +442,7 @@ describe('Armory', () => {
     test('all three: paint order jail, armory, tower; no overlaps, never on the hill, one row', () => {
         [[844, 334], [915, 356], [1265, 298], [1100, 320]].forEach(([w, h]) => {
             const s = slots(w, h, ALL);
-            expect(s.map(x => x.kind)).toEqual(['lurkers', 'slain', 'punctuality']);
+            expect(s.map(x => x.kind)).toEqual(['defense', 'slain', 'punctuality']);
             const [jail, armory, clock] = s;
             expect(clock.left + clock.width + CONFIG.VILLAGE_MIN_GAP_PX).toBeLessThanOrEqual(armory.left);
             expect(jail.left + jail.width + CONFIG.VILLAGE_MIN_GAP_PX).toBeLessThanOrEqual(clock.left);
@@ -452,14 +452,14 @@ describe('Armory', () => {
     });
 
     test('a narrow field DROPS the armory (never moves it); the tower and jail stay put', () => {
-        const without = slots(640, 334, { punctuality: 3, lurkers: 3 });
+        const without = slots(640, 334, { punctuality: 3, defense: 3 });
         const withArmory = slots(640, 334, ALL);
         expect(withArmory).toEqual(without);
     });
 
     test('adding the armory never moves another building', () => {
-        const without = slots(844, 334, { punctuality: 4, lurkers: 4 });
-        const withArmory = slots(844, 334, { punctuality: 4, lurkers: 4, slain: 4 }).filter(x => x.kind !== 'slain');
+        const without = slots(844, 334, { punctuality: 4, defense: 4 });
+        const withArmory = slots(844, 334, { punctuality: 4, defense: 4, slain: 4 }).filter(x => x.kind !== 'slain');
         expect(withArmory).toEqual(without);
     });
 
@@ -474,5 +474,140 @@ describe('Armory', () => {
         expect(b.slice(1, 4).toString()).toBe('PNG');
         expect(b.readUInt32BE(16)).toBe(CONFIG.VILLAGE_ARMORY_W_PX);
         expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_ARMORY_H_PX);
+    });
+});
+
+// ---- Radio tower (kind `nights`, a BACK-ROW building), added 2026-10-29 ----
+describe('Radio tower (back row)', () => {
+    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 140, opts = OPTS) =>
+        VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts);
+    const FRONT = { punctuality: 3, defense: 3, slain: 3 };
+    const ALL = { ...FRONT, nights: 3 };
+    const SIZES = [[844, 334], [915, 356], [1265, 298], [1100, 320]];
+
+    test('fromConfig mirrors the radio + back-row CONFIG and DEFAULTS agree with it', () => {
+        const d = VillageLayout.DEFAULTS;
+        expect(OPTS.radioWidthPx).toBe(CONFIG.VILLAGE_RADIO_W_PX);
+        expect(OPTS.radioHeightPx).toBe(CONFIG.VILLAGE_RADIO_H_PX);
+        expect(OPTS.radioXFrac).toBe(CONFIG.VILLAGE_RADIO_X_FRAC);
+        expect(OPTS.devRadioTier).toBe(CONFIG.VILLAGE_DEV_RADIO_TIER);
+        expect(OPTS.backRowRaisePx).toBe(CONFIG.VILLAGE_BACK_ROW_RAISE_PX);
+        expect(OPTS.backRowBrightness).toBe(CONFIG.VILLAGE_BACK_ROW_BRIGHTNESS);
+        expect(OPTS.backMaxOverlapPx).toBe(CONFIG.VILLAGE_BACK_MAX_OVERLAP_PX);
+        expect(d.radioWidthPx).toBe(CONFIG.VILLAGE_RADIO_W_PX);
+        expect(d.radioHeightPx).toBe(CONFIG.VILLAGE_RADIO_H_PX);
+        expect(d.radioXFrac).toBe(CONFIG.VILLAGE_RADIO_X_FRAC);
+        expect(d.devRadioTier).toBe(CONFIG.VILLAGE_DEV_RADIO_TIER);
+        expect(d.backRowRaisePx).toBe(CONFIG.VILLAGE_BACK_ROW_RAISE_PX);
+        expect(d.backRowBrightness).toBe(CONFIG.VILLAGE_BACK_ROW_BRIGHTNESS);
+        expect(d.backMaxOverlapPx).toBe(CONFIG.VILLAGE_BACK_MAX_OVERLAP_PX);
+        expect(VillageLayout.fromConfig({ VILLAGE_DEV_RADIO_TIER: null }).devRadioTier).toBeNull();
+    });
+
+    test('stands between the Jailhouse and the Clock tower, shorter than the tower', () => {
+        expect(CONFIG.VILLAGE_RADIO_X_FRAC).toBeGreaterThan(CONFIG.VILLAGE_JAIL_X_FRAC);
+        expect(CONFIG.VILLAGE_RADIO_X_FRAC).toBeLessThan(CONFIG.VILLAGE_CLOCK_X_FRAC);
+        expect(CONFIG.VILLAGE_RADIO_H_PX).toBeLessThan(CONFIG.VILLAGE_SPRITE_H_PX);
+        expect(CONFIG.VILLAGE_BACK_ROW_BRIGHTNESS).toBeGreaterThan(0);
+        expect(CONFIG.VILLAGE_BACK_ROW_BRIGHTNESS).toBeLessThan(1);
+    });
+
+    test('resolveDevRadioTier reads only ?radioTier=', () => {
+        expect(VillageLayout.resolveDevRadioTier('', OPTS)).toBe(CONFIG.VILLAGE_DEV_RADIO_TIER);
+        expect(VillageLayout.resolveDevRadioTier('?radioTier=5', OPTS)).toBe(5);
+        expect(VillageLayout.resolveDevRadioTier('?a=1&radioTier=1', OPTS)).toBe(1);
+        expect(VillageLayout.resolveDevRadioTier('?radioTier=9', OPTS)).toBe(5);
+        expect(VillageLayout.resolveDevRadioTier('?radioTier=off', OPTS)).toBeNull();
+        expect(VillageLayout.resolveDevRadioTier('?armoryTier=1', OPTS)).toBe(CONFIG.VILLAGE_DEV_RADIO_TIER);
+        expect(VillageLayout.resolveDevArmoryTier('?radioTier=1', OPTS)).toBe(CONFIG.VILLAGE_DEV_ARMORY_TIER);
+        expect(VillageLayout.resolveDevRadioTier('', { ...OPTS, devRadioTier: null })).toBeNull();
+    });
+
+    test('radioSlot: kind nights, 128x160 at 1:1, flagged back row, one url per tier, whole pixels', () => {
+        const s = VillageLayout.radioSlot(844, 334, 160, 140, 3, OPTS);
+        expect(s.kind).toBe('nights');
+        expect(s.url).toBe('Assets/Village/nights_t3.png');
+        expect(s.width).toBe(128);
+        expect(s.height).toBe(160);
+        expect(s.back).toBe(true);
+        expect(s.brightness).toBe(CONFIG.VILLAGE_BACK_ROW_BRIGHTNESS);
+        // field 544 from x=160; centre = 160 + 0.38 * 544 = 366.72
+        expect(s.left).toBe(Math.round(366.72 - 64));
+        [s.left, s.top, s.width, s.height, s.feetY].forEach(n => expect(Number.isInteger(n)).toBe(true));
+        expect(new Set([1, 2, 3, 4, 5].map(t => VillageLayout.radioSlot(844, 334, 160, 140, t, OPTS).url)).size).toBe(5);
+        expect(VillageLayout.radioSlot(844, 334, 160, 0, 3, OPTS)).toBeNull();
+        expect(VillageLayout.radioSlot(844, 334, 160, 140, null, OPTS)).toBeNull();
+    });
+
+    test('its feet stand backRowRaisePx above the front row (the horizon alone, the tower\'s row with the tower)', () => {
+        const horizon = 334 - CONFIG.GROUND_FLOOR_HEIGHT - CONFIG.VILLAGE_FEET_ABOVE_FLOOR_PX;
+        expect(slots(844, 334, { nights: 2 })[0].feetY).toBe(horizon - CONFIG.VILLAGE_BACK_ROW_RAISE_PX);
+        SIZES.forEach(([w, h]) => {
+            const s = slots(w, h, ALL);
+            const clock = s.find(x => x.kind === 'punctuality');
+            const radio = s.find(x => x.kind === 'nights');
+            expect(radio.feetY).toBe(clock.feetY - CONFIG.VILLAGE_BACK_ROW_RAISE_PX);
+        });
+        // the short desktop canvas lowers the tower's feet 24px; the radio follows it
+        const desk = slots(1265, 298, ALL);
+        expect(desk.find(x => x.kind === 'nights').feetY).toBe(desk.find(x => x.kind === 'punctuality').feetY - 14);
+    });
+
+    test('paint order: back row first, then jail, armory, and the tower last', () => {
+        SIZES.forEach(([w, h]) => {
+            expect(slots(w, h, ALL).map(x => x.kind)).toEqual(['nights', 'defense', 'slain', 'punctuality']);
+        });
+    });
+
+    test('never over the church or on the graveyard hill, and never sunk further behind a front building than allowed', () => {
+        SIZES.forEach(([w, h]) => {
+            const s = slots(w, h, ALL);
+            const radio = s.find(x => x.kind === 'nights');
+            expect(radio).toBeTruthy();
+            expect(radio.left).toBeGreaterThanOrEqual(160);
+            expect(radio.left + radio.width).toBeLessThanOrEqual(w - 140);
+            s.filter(x => x !== radio).forEach(f => {
+                const overlap = Math.max(0, Math.min(radio.left + radio.width, f.left + f.width) - Math.max(radio.left, f.left));
+                expect(overlap).toBeLessThanOrEqual(CONFIG.VILLAGE_BACK_MAX_OVERLAP_PX);
+            });
+        });
+    });
+
+    test('a narrow field DROPS the radio (never moves it); every other building stays put', () => {
+        expect(slots(640, 334, ALL)).toEqual(slots(640, 334, FRONT));
+        expect(slots(640, 334, ALL).map(x => x.kind)).not.toContain('nights');
+    });
+
+    test('adding the radio never moves another building', () => {
+        const without = slots(844, 334, FRONT);
+        const withRadio = slots(844, 334, ALL).filter(x => x.kind !== 'nights');
+        expect(withRadio).toEqual(without);
+    });
+
+    test('the overlap limit is a lever: 0 drops it at 844, a generous limit keeps it at 640', () => {
+        expect(slots(844, 334, ALL, 160, 140, { ...OPTS, backMaxOverlapPx: 0 }).map(x => x.kind)).not.toContain('nights');
+        expect(slots(640, 334, ALL, 160, 140, { ...OPTS, backMaxOverlapPx: 100 }).map(x => x.kind)).toContain('nights');
+    });
+
+    test('raise 0 puts it on the front row; brightness is carried through from the options', () => {
+        const flat = slots(844, 334, ALL, 160, 140, { ...OPTS, backRowRaisePx: 0, backRowBrightness: 0.5 });
+        const radio = flat.find(x => x.kind === 'nights');
+        expect(radio.feetY).toBe(flat.find(x => x.kind === 'punctuality').feetY);
+        expect(radio.brightness).toBe(0.5);
+    });
+
+    test('the radio can show alone; portrait strip or no tier = nothing; the old `lurkers` key places nothing', () => {
+        expect(slots(844, 334, { nights: 2 }).map(x => x.kind)).toEqual(['nights']);
+        expect(slots(844, 334, { nights: 3 }, 160, 0)).toEqual([]);
+        expect(slots(844, 334, { lurkers: 3 })).toEqual([]);
+    });
+
+    test.each([1, 2, 3, 4, 5])('shipped nights tier %i exists and is the authored 128x160 canvas', tier => {
+        const file = path.join(__dirname, '..', VillageLayout.spriteUrl('nights', tier));
+        expect(fs.existsSync(file)).toBe(true);
+        const b = fs.readFileSync(file);
+        expect(b.slice(1, 4).toString()).toBe('PNG');
+        expect(b.readUInt32BE(16)).toBe(CONFIG.VILLAGE_RADIO_W_PX);
+        expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_RADIO_H_PX);
     });
 });

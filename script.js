@@ -16,13 +16,14 @@ document.addEventListener('DOMContentLoaded', () => {
         getAchievementFamilies: () => CONFIG.ACHIEVEMENTS.map(a => ({ id: a.id, name: a.name })),
         onOpenStats: () => openManagementWindow('stats'),
     });
-    // Achievement village (V7 W2 first slice, 2026-10-29): the Clock tower + Jailhouse on the horizon hill.
+    // Achievement village (V7 W2 first slice, 2026-10-29): the Clock tower + Jailhouse + Armory + Radio tower on the horizon hill.
     // DEV tier only until the punctuality tier exists (CONFIG.VILLAGE_DEV_CLOCK_TIER, or ?villageTier=1..5).
     VillageView.init({
         getHillWidth: () => GraveyardView.zoneWidth(),
         getClockTier: () => VillageLayout.resolveDevTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
         getJailTier: () => VillageLayout.resolveDevJailTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
         getArmoryTier: () => VillageLayout.resolveDevArmoryTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
+        getRadioTier: () => VillageLayout.resolveDevRadioTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
     });
     const baseHealthDisplay = document.getElementById('baseHealthDisplay');
     const playerXpDisplay = document.getElementById('playerXpDisplay');
