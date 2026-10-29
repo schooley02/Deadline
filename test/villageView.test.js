@@ -203,3 +203,33 @@ test('a view that only supplies getClockTier (the first-slice deps) still works,
     expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(1);
     expect(byKind('lurkers')).toBeNull();
 });
+
+// ---- Armory (kind `slain`), added 2026-10-29 ----
+test('draws the Armory right of the tower at its layout slot, and swaps tiers in place', () => {
+    build({});
+    const state = { armory: 3 };
+    VillageView.init({
+        getHillWidth: () => 140,
+        getClockTier: () => 3,
+        getJailTier: () => 3,
+        getArmoryTier: () => state.armory,
+    });
+    VillageView.render(160);
+    const q = k => document.querySelector(`#villageLayer .village-sprite[data-kind="${k}"]`);
+    expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(3);
+    const want = VillageLayout.villageSlots(844, 334, 160, 140, { punctuality: 3, lurkers: 3, slain: 3 }, VillageLayout.fromConfig(CONFIG))
+        .find(s => s.kind === 'slain');
+    const img = q('slain');
+    expect(img.getAttribute('src')).toBe('Assets/Village/slain_t3.png');
+    expect(img.classList.contains('village-slain')).toBe(true);
+    expect(img.style.left).toBe(want.left + 'px');
+    expect(img.style.top).toBe(want.top + 'px');
+    state.armory = 5;
+    VillageView.render(160);
+    expect(q('slain')).toBe(img);
+    expect(img.getAttribute('src')).toBe('Assets/Village/slain_t5.png');
+    state.armory = null;
+    VillageView.render(160);
+    expect(q('slain')).toBeNull();
+    expect(q('punctuality')).not.toBeNull();
+});

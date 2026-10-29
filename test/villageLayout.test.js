@@ -392,3 +392,87 @@ describe('clock tower fit on short canvases (the tower is 246px of art, so short
         [334, 356, 298].forEach(h => expect(artTop(h)).toBeGreaterThanOrEqual(-12));
     });
 });
+
+// ---- Armory (kind `slain`), added 2026-10-29: survivor army camp, right of the tower ----
+describe('Armory', () => {
+    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 140) =>
+        VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, OPTS);
+    const ALL = { punctuality: 3, lurkers: 3, slain: 3 };
+
+    test('fromConfig mirrors the armory CONFIG and DEFAULTS agree with it', () => {
+        const d = VillageLayout.DEFAULTS;
+        expect(OPTS.armoryWidthPx).toBe(CONFIG.VILLAGE_ARMORY_W_PX);
+        expect(OPTS.armoryHeightPx).toBe(CONFIG.VILLAGE_ARMORY_H_PX);
+        expect(OPTS.armoryXFrac).toBe(CONFIG.VILLAGE_ARMORY_X_FRAC);
+        expect(OPTS.devArmoryTier).toBe(CONFIG.VILLAGE_DEV_ARMORY_TIER);
+        expect(d.armoryWidthPx).toBe(CONFIG.VILLAGE_ARMORY_W_PX);
+        expect(d.armoryHeightPx).toBe(CONFIG.VILLAGE_ARMORY_H_PX);
+        expect(d.armoryXFrac).toBe(CONFIG.VILLAGE_ARMORY_X_FRAC);
+        expect(d.devArmoryTier).toBe(CONFIG.VILLAGE_DEV_ARMORY_TIER);
+        expect(VillageLayout.fromConfig({ VILLAGE_DEV_ARMORY_TIER: null }).devArmoryTier).toBeNull();
+    });
+
+    test('stands right of the tower', () => {
+        expect(CONFIG.VILLAGE_ARMORY_X_FRAC).toBeGreaterThan(CONFIG.VILLAGE_CLOCK_X_FRAC);
+        expect(CONFIG.VILLAGE_ARMORY_X_FRAC).toBeLessThan(1);
+    });
+
+    test('resolveDevArmoryTier reads only ?armoryTier=', () => {
+        expect(VillageLayout.resolveDevArmoryTier('', OPTS)).toBe(CONFIG.VILLAGE_DEV_ARMORY_TIER);
+        expect(VillageLayout.resolveDevArmoryTier('?armoryTier=5', OPTS)).toBe(5);
+        expect(VillageLayout.resolveDevArmoryTier('?a=1&armoryTier=1', OPTS)).toBe(1);
+        expect(VillageLayout.resolveDevArmoryTier('?armoryTier=9', OPTS)).toBe(5);
+        expect(VillageLayout.resolveDevArmoryTier('?armoryTier=off', OPTS)).toBeNull();
+        expect(VillageLayout.resolveDevArmoryTier('?jailTier=1', OPTS)).toBe(CONFIG.VILLAGE_DEV_ARMORY_TIER);
+        expect(VillageLayout.resolveDevJailTier('?armoryTier=1', OPTS)).toBe(CONFIG.VILLAGE_DEV_JAIL_TIER);
+        expect(VillageLayout.resolveDevArmoryTier('', { ...OPTS, devArmoryTier: null })).toBeNull();
+    });
+
+    test('armorySlot: 128x128 at 1:1, kind slain, one url per tier', () => {
+        const s = VillageLayout.armorySlot(844, 334, 160, 140, 3, OPTS);
+        expect(s.kind).toBe('slain');
+        expect(s.url).toBe('Assets/Village/slain_t3.png');
+        expect(s.width).toBe(128);
+        expect(s.height).toBe(128);
+        expect(new Set([1, 2, 3, 4, 5].map(t => VillageLayout.armorySlot(844, 334, 160, 140, t, OPTS).url)).size).toBe(5);
+        expect(VillageLayout.armorySlot(844, 334, 160, 0, 3, OPTS)).toBeNull();
+        expect(VillageLayout.armorySlot(844, 334, 160, 140, null, OPTS)).toBeNull();
+    });
+
+    test('all three: paint order jail, armory, tower; no overlaps, never on the hill, one row', () => {
+        [[844, 334], [915, 356], [1265, 298], [1100, 320]].forEach(([w, h]) => {
+            const s = slots(w, h, ALL);
+            expect(s.map(x => x.kind)).toEqual(['lurkers', 'slain', 'punctuality']);
+            const [jail, armory, clock] = s;
+            expect(clock.left + clock.width + CONFIG.VILLAGE_MIN_GAP_PX).toBeLessThanOrEqual(armory.left);
+            expect(jail.left + jail.width + CONFIG.VILLAGE_MIN_GAP_PX).toBeLessThanOrEqual(clock.left);
+            expect(armory.left + armory.width).toBeLessThanOrEqual(w - 140); // never on the graveyard hill
+            expect(armory.feetY).toBe(clock.feetY);
+        });
+    });
+
+    test('a narrow field DROPS the armory (never moves it); the tower and jail stay put', () => {
+        const without = slots(640, 334, { punctuality: 3, lurkers: 3 });
+        const withArmory = slots(640, 334, ALL);
+        expect(withArmory).toEqual(without);
+    });
+
+    test('adding the armory never moves another building', () => {
+        const without = slots(844, 334, { punctuality: 4, lurkers: 4 });
+        const withArmory = slots(844, 334, { punctuality: 4, lurkers: 4, slain: 4 }).filter(x => x.kind !== 'slain');
+        expect(withArmory).toEqual(without);
+    });
+
+    test('the armory can show alone', () => {
+        expect(slots(844, 334, { slain: 2 }).map(x => x.kind)).toEqual(['slain']);
+    });
+
+    test.each([1, 2, 3, 4, 5])('shipped slain tier %i exists and is the authored 128x128 canvas', tier => {
+        const file = path.join(__dirname, '..', VillageLayout.spriteUrl('slain', tier));
+        expect(fs.existsSync(file)).toBe(true);
+        const b = fs.readFileSync(file);
+        expect(b.slice(1, 4).toString()).toBe('PNG');
+        expect(b.readUInt32BE(16)).toBe(CONFIG.VILLAGE_ARMORY_W_PX);
+        expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_ARMORY_H_PX);
+    });
+});

@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
         getHillWidth: () => GraveyardView.zoneWidth(),
         getClockTier: () => VillageLayout.resolveDevTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
         getJailTier: () => VillageLayout.resolveDevJailTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
+        getArmoryTier: () => VillageLayout.resolveDevArmoryTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
     });
     const baseHealthDisplay = document.getElementById('baseHealthDisplay');
     const playerXpDisplay = document.getElementById('playerXpDisplay');

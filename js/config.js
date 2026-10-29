@@ -527,6 +527,11 @@ const CONFIG = {
     VILLAGE_JAIL_X_FRAC: 0.2, // jail centre = church edge + frac x walking-field width
     VILLAGE_DEV_JAIL_TIER: 3, // DEV: no lurkers tier data yet. `?jailTier=1..5` overrides, `off` hides; null = hidden
     VILLAGE_MIN_GAP_PX: 8, // the jail is dropped if it would sit closer than this to the Clock tower (or over the church)
+    // Armory (kind `slain`, added 2026-10-29): survivor army camp (tent + guard tower), 128x128, RIGHT of the tower.
+    VILLAGE_ARMORY_W_PX: 128,
+    VILLAGE_ARMORY_H_PX: 128,
+    VILLAGE_ARMORY_X_FRAC: 0.85, // armory centre = church edge + frac x walking-field width; dropped if it would touch the tower or reach the graveyard hill
+    VILLAGE_DEV_ARMORY_TIER: 3, // DEV: no slain tier data yet. `?armoryTier=1..5` overrides, `off` hides; null = hidden
 
     // --- Sub-task clustering ---
     SUBTASK_CLUSTER_GAP_PX: 8, // visual gap between clustered sprites' VISIBLE graphics (not their boxes)

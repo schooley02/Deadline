@@ -3,8 +3,9 @@
  * (V7 W2, first slice 2026-10-29; docs/ART_STYLE.md "Achievement village art",
  * docs/WORLD_FEEDBACK_PLAN.md W2). No DOM, no State.
  *
- * This slice draws TWO buildings: the Clock tower (kind `punctuality`, 128x256) and the Jailhouse
- * (kind `lurkers`, 128x128; added 2026-10-29). The other kinds, the tier-from-achievements wiring
+ * This slice draws THREE buildings: the Clock tower (kind `punctuality`, 128x256), the Jailhouse
+ * (kind `lurkers`, 128x128, left of the tower) and the Armory (kind `slain`, 128x128, right of the
+ * tower; both added 2026-10-29). The other kinds, the tier-from-achievements wiring
  * and the close-up view are later W2 steps. Each building is placed at a fraction of the walking
  * field; a building that would overlap the church or another building is dropped, not moved.
  *
@@ -33,6 +34,10 @@ const VillageLayout = (() => {
         jailHeightPx: 128,
         jailXFrac: 0.2,
         devJailTier: 3,
+        armoryWidthPx: 128,
+        armoryHeightPx: 128,
+        armoryXFrac: 0.85,
+        devArmoryTier: 3,
         minGapPx: 8,
         clockScale: 1,
         clockArtHeightPx: 246,
@@ -55,6 +60,10 @@ const VillageLayout = (() => {
             jailHeightPx: pick(cfg.VILLAGE_JAIL_H_PX, DEFAULTS.jailHeightPx),
             jailXFrac: pick(cfg.VILLAGE_JAIL_X_FRAC, DEFAULTS.jailXFrac),
             devJailTier: (cfg.VILLAGE_DEV_JAIL_TIER === null) ? null : pick(cfg.VILLAGE_DEV_JAIL_TIER, DEFAULTS.devJailTier),
+            armoryWidthPx: pick(cfg.VILLAGE_ARMORY_W_PX, DEFAULTS.armoryWidthPx),
+            armoryHeightPx: pick(cfg.VILLAGE_ARMORY_H_PX, DEFAULTS.armoryHeightPx),
+            armoryXFrac: pick(cfg.VILLAGE_ARMORY_X_FRAC, DEFAULTS.armoryXFrac),
+            devArmoryTier: (cfg.VILLAGE_DEV_ARMORY_TIER === null) ? null : pick(cfg.VILLAGE_DEV_ARMORY_TIER, DEFAULTS.devArmoryTier),
             minGapPx: pick(cfg.VILLAGE_MIN_GAP_PX, DEFAULTS.minGapPx),
             clockScale: pick(cfg.VILLAGE_CLOCK_SCALE, DEFAULTS.clockScale),
             clockArtHeightPx: pick(cfg.VILLAGE_CLOCK_ART_H_PX, DEFAULTS.clockArtHeightPx),
@@ -94,6 +103,12 @@ const VillageLayout = (() => {
     function resolveDevJailTier(search, opts) {
         const o = opts || DEFAULTS;
         return resolveTierParam(search, 'jailTier', o.devJailTier, o.tiers);
+    }
+
+    // Armory: `?armoryTier=`
+    function resolveDevArmoryTier(search, opts) {
+        const o = opts || DEFAULTS;
+        return resolveTierParam(search, 'armoryTier', o.devArmoryTier, o.tiers);
     }
 
     function fieldWidth(canvasW, baseW, hillW) {
@@ -165,9 +180,15 @@ const VillageLayout = (() => {
         return slotFor('lurkers', o.jailWidthPx, o.jailHeightPx, o.jailXFrac, canvasW, canvasH, baseW, hillW, tier, o, 1, feetOverride);
     }
 
-    // Every building to draw, in paint order. `tiers` = { punctuality, lurkers } (null/undefined = none).
-    // The Jailhouse is DROPPED (never nudged) when it would cover the church or touch the Clock tower,
-    // so a narrow window shows a clean tower instead of a pile-up.
+    // Same row rule as the jail: villageSlots passes the tower's feetY.
+    function armorySlot(canvasW, canvasH, baseW, hillW, tier, opts, feetOverride) {
+        const o = opts || DEFAULTS;
+        return slotFor('slain', o.armoryWidthPx, o.armoryHeightPx, o.armoryXFrac, canvasW, canvasH, baseW, hillW, tier, o, 1, feetOverride);
+    }
+
+    // Every building to draw, in paint order. `tiers` = { punctuality, lurkers, slain } (null/undefined = none).
+    // The Jailhouse and the Armory are DROPPED (never nudged) when they would cover the church, reach the
+    // graveyard hill or touch the Clock tower, so a narrow window shows a clean tower instead of a pile-up.
     function villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts) {
         const o = opts || DEFAULTS;
         const t = tiers || {};
@@ -177,10 +198,17 @@ const VillageLayout = (() => {
             if (jail.left < (baseW || 0)) jail = null;
             else if (clock && jail.left + jail.width + o.minGapPx > clock.left) jail = null;
         }
-        return [jail, clock].filter(Boolean); // jail first: the tower paints over any shared pixels
+        let armory = armorySlot(canvasW, canvasH, baseW, hillW, t.slain, o, clock ? clock.feetY : undefined);
+        if (armory) {
+            const fieldRight = (baseW || 0) + fieldWidth(canvasW, baseW, hillW);
+            if (armory.left + armory.width > fieldRight) armory = null;
+            else if (clock && armory.left < clock.left + clock.width + o.minGapPx) armory = null;
+            else if (jail && armory.left < jail.left + jail.width + o.minGapPx) armory = null;
+        }
+        return [jail, armory, clock].filter(Boolean); // the tower paints last, over any shared pixels
     }
 
-    return { DEFAULTS, fromConfig, clampTier, resolveDevTier, resolveDevJailTier, fieldWidth, spriteUrl, clockTowerSlot, clockScaleFor, clockFeetY, jailSlot, villageSlots };
+    return { DEFAULTS, fromConfig, clampTier, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, fieldWidth, spriteUrl, clockTowerSlot, clockScaleFor, clockFeetY, jailSlot, armorySlot, villageSlots };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

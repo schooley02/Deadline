@@ -19,6 +19,7 @@ const FILES = ['css/village.css', 'js/villageLayout.js', 'js/ui/villageView.js']
 const SPRITES = [
     ...[1, 2, 3, 4, 5].map(t => `Assets/Village/punctuality_t${t}.png`),
     ...[1, 2, 3, 4, 5].map(t => `Assets/Village/lurkers_t${t}.png`),
+    ...[1, 2, 3, 4, 5].map(t => `Assets/Village/slain_t${t}.png`),
 ];
 
 describe('shell + load order', () => {
@@ -30,10 +31,10 @@ describe('shell + load order', () => {
         [...FILES, ...SPRITES].forEach(f => expect(fs.existsSync(path.join(__dirname, '..', f))).toBe(true));
     });
 
-    test('CACHE_NAME was bumped for the shell change (v135 or later: the Jailhouse sprites)', () => {
+    test('CACHE_NAME was bumped for the shell change (v138 or later: the Armory sprites)', () => {
         const m = /CACHE_NAME = 'deadline-shell-v(\d+)'/.exec(sw);
         expect(m).not.toBeNull();
-        expect(Number(m[1])).toBeGreaterThanOrEqual(135);
+        expect(Number(m[1])).toBeGreaterThanOrEqual(138);
     });
 
     test('layout loads after config and before the view; the view before script.js', () => {
@@ -107,6 +108,11 @@ describe('script.js hook-up', () => {
     test('the Jailhouse tier is fed to the view too (dev ?jailTier= until lurkers tier data exists)', () => {
         expect(script).toContain('getJailTier:');
         expect(script).toContain('VillageLayout.resolveDevJailTier(');
+    });
+
+    test('the Armory tier is fed to the view too (dev ?armoryTier= until slain tier data exists)', () => {
+        expect(script).toContain('getArmoryTier:');
+        expect(script).toContain('VillageLayout.resolveDevArmoryTier(');
     });
 
     test('rendered after every layout change and every tick', () => {

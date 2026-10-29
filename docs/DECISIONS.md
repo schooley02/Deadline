@@ -6,6 +6,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 
 
+## 2026-10-29 -- Armory (`slain`) = survivor army camp with a skull and crossbones; shipped T1-T5 and placed right of the tower (Claude app session, Opus; layout constants + art only, no balance numbers)
+
+- **Kind confirmed (Jeremy):** the Armory is an army barracks TENT with a gate and a small guard tower, not the proposed brick National Guard armory. Reason: the Jailhouse and Clock tower already cover brick/stone boxes; canvas + timber is a new material (AT-A-GLANCE DISTINCTNESS RULE) and fits the survivor theme.
+- **Identifier: skull and crossbones on the tent roof, on every tier (Jeremy).** Rejected: the WWII army star (the Jailhouse already owns a star), skull on a star (same reason), skull + crossed rifles (rifles read as an X at 1x; maybe a later T5 detail).
+- **SURVIVOR-CAMP RULE (Jeremy, repeated):** no American flags, stars and stripes, red-white-and-blue or bunting anywhere in the village. T5 upgrades are fortifications (scrap metal, stakes, barbed wire, searchlight, survivor banner). Recorded in `docs/ART_STYLE.md`.
+- **Placement:** `CONFIG.VILLAGE_ARMORY_X_FRAC` 0.85 (right of the tower), `VILLAGE_ARMORY_W_PX`/`H_PX` 128, `VILLAGE_DEV_ARMORY_TIER` 3 (dev `?armoryTier=1..5|off` until slain tier data exists). Same row as the tower (shares its possibly-lowered feet). Dropped, never nudged, when it would touch the tower (min gap), the jail or the graveyard hill; adding it never moves another building. Paint order jail -> armory -> tower. sw.js v137 -> v138.
+- **Accepted:** T4 is ~7 px narrower than T3 (PixelLab size drift); not visible in the lineup, so not regenerated.
+
 ## 2026-10-29 -- Clock tower regenerated at village scale and shipped: 1:1 on a 128x256 canvas, stretch stopgap removed, T5 trimmed to 246 (Claude app session, Opus advice -> Sonnet build; layout constants + art only, no balance numbers)
 
 - **Shipped: `Assets/Village/punctuality_t1..t5.png`, all 128x256, bottom-aligned, drawn 1:1.** `CONFIG.VILLAGE_CLOCK_SCALE` 1.5 -> 1 (the 1.3x stopgap stretch is gone; the lever stays in `VillageLayout.clockScaleFor` as a MAXIMUM but must stay 1), `VILLAGE_SPRITE_H_PX` 224 -> 256, `VILLAGE_CLOCK_ART_H_PX` 196 -> 246, sw.js v136 -> v137. Tower door ~16x28 now matches the Jailhouse's, so the "doors similar size across the village" rule holds without a non-whole scale.

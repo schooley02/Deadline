@@ -98,8 +98,16 @@ slate and green-patina copper roofs, cast-iron street lamps, backlit clock faces
 colour). Whole village is one small town. PROPOSED kinds (confirm next session): Armory = brick National Guard armory, Watchtower =
 water tower, Barn = red barn, Jailhouse = brick sheriff's office, Hall = town hall with white columns, Gatehouse = fire station,
 Clock tower = courthouse clock tower, Windmill = farm water-pumping windmill, Memorial = obelisk / war memorial with a flag.
-**Mapping status (2026-10-29):** CONFIRMED only Jailhouse = small-town / country county jail + sheriff's office (star badge on the parapet,
-barred windows, off-centre door). Jeremy may change the others; they stay PROPOSED until he confirms them.
+**Mapping status (2026-10-29):** CONFIRMED Jailhouse = small-town / country county jail + sheriff's office (star badge on the parapet,
+barred windows, off-centre door) and **Armory (`slain`) = SURVIVOR ARMY CAMP** (olive canvas barracks tent + small wooden guard tower +
+post-and-rail fence with a gate; cream stencilled SKULL AND CROSSBONES on the tent roof on every tier; NOT a brick armory). Jeremy may change the
+others; they stay PROPOSED until he confirms them.
+
+**SURVIVOR-CAMP RULE (Jeremy 2026-10-29, said more than once):** the village is a town of zombie-apocalypse SURVIVORS. NO American flags, stars and
+stripes, red-white-and-blue or bunting on any building or tier. Upgrades read as dug-in and fortified (scavenged scrap metal, sandbags, sharpened
+stakes, barbed wire, searchlights, tattered survivor banners), not patriotic or decorated. Prompts: drop "American" from the first line (PixelLab
+pulls in flags when it is there) and add `no flags, no stars, no stripes, no red white and blue, no bunting`. The Jailhouse/Clock tower T5 rust-red
+survivor flag is the one allowed flag style.
 
 **AT-A-GLANCE DISTINCTNESS RULE (Jeremy 2026-10-29):** each building must be quickly told apart from every other building at a glance,
 at 1x, with zombies in front. Red brick on every building makes the village blend into one mass once all 8 + the Memorial are on the
@@ -166,6 +174,8 @@ with a `CACHE_NAME` bump.
 
 **Test building: Clock tower, all 5 tiers, tended, 128-wide canvases at 1x.** Pass = tiers readable side by side on the scene mock (real lanes + animated zombies),
 the clock face reads in the top third with zombies in front, silhouettes differ per tier, and the tower stands taller than the other buildings. (T3: PASSED 2026-10-28.)
+
+**Armory (`slain`) T1-T5, DONE 2026-10-29 (Claude app session):** survivor army camp, 128x128, drawn 1:1, RIGHT of the Clock tower (`CONFIG.VILLAGE_ARMORY_X_FRAC` 0.85; dropped, never nudged, if it would touch the tower or reach the graveyard hill). Layout: olive-drab canvas barracks tent left, small boxy wooden guard tower right (no tank, so it never reads as the water tower), timber post-and-rail fence with a two-leaf gate across the front. **Identifier:** a cream SKULL AND CROSSBONES stencil on the centre roof panel, the same mark on every tier (the star was dropped because the Jailhouse owns the star; skull + crossed rifles was tried and the rifles turned into an X at 1x). The T3 mark was painted in code onto PixelLab variant 1, then the painted sprite was fed back to PixelLab as the reference. Ladder: T1 collapsed (tent slumped, torn roof, bare tower frame, wrecked fence), T2 intact but dark (flap shut, lantern off, patches, faded mark, sagging rail), T3 manned (lit tent flap, dim lantern), T4 active (campfire, guard in the tower, crates, fence lanterns), T5 fortified (scrap metal on tent and tower, searchlight fixture, tattered skull banner, stakes + barbed wire, fuel drum). Art: T1 105 px tall, T2 99, T3 93, T4 93 (~7 px narrower than T3, PixelLab size drift; left as is), T5 113 (banner); all bottom-anchored on row 127. Shipped as `Assets/Village/slain_t1..t5.png`; PixelLab picks, grids and the lineup in `Assets/Village/_source/americana-armory/`. **PixelLab lessons:** (1) build the ladder from the locked T3 (T2 reference = T3 medium-high, T1 reference = T2 medium so the silhouette can collapse; T4 reference = T3 medium-high, T5 reference = T4 medium-high); (2) every T4 batch came back ~6% smaller than the reference, so start up-tier prompts with `exact same size and position as the reference`; (3) PixelLab adds soldiers/figures on its own: a zombie-sized figure in front of a building may read as a zombie on the hill, keep figures in the tower/lookout; (4) a searchlight BEAM became the brightest thing on the hill, keep only the fixture. **TODO:** live-check in the real game and on a phone.
 
 ## Asset Sources
 - **FINISHED sprites: `Assets/Zombies/<category>-zombie.png` + `-64.png` (64×64) for all 8 categories** — use these.
