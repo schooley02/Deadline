@@ -512,9 +512,9 @@ const CONFIG = {
     VILLAGE_SPRITE_H_PX: 224, // Clock tower canvas height (T5 needs the headroom); bottom-anchored
     VILLAGE_FEET_ABOVE_FLOOR_PX: 4, // feet sit this far above the floor band's top edge (the horizon)
     // STOPGAP 2026-10-29 (Jeremy): the Clock tower art is ~1.3x too small next to the other buildings (door
-    // 12x20 vs the jail's 16x26). Until it is regenerated wider/taller, the sprite is STRETCHED by this factor
+    // 12x20 vs the jail's 16x26). Until it is regenerated wider/taller, the sprite is STRETCHED by up to this factor
     // (non-whole scale = slightly uneven pixels, against the ART_STYLE rule). Set to 1 once the new art ships.
-    VILLAGE_CLOCK_SCALE: 1.3,
+    VILLAGE_CLOCK_SCALE: 1.5, // MAXIMUM: short screens get the biggest scale that fits (VillageLayout.clockScaleFor)
     VILLAGE_CLOCK_ART_H_PX: 196, // tallest tier's visible art height (T5), unscaled; used to decide how far to lower the feet
     VILLAGE_FEET_MAX_DROP_PX: 24, // the tower's feet may sink this far below the horizon on short canvases
     VILLAGE_CLOCK_X_FRAC: 0.55, // tower centre = church edge + frac x walking-field width

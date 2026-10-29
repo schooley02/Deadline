@@ -34,7 +34,7 @@ const VillageLayout = (() => {
         jailXFrac: 0.2,
         devJailTier: 3,
         minGapPx: 8,
-        clockScale: 1.3,
+        clockScale: 1.5,
         clockArtHeightPx: 196,
         feetMaxDropPx: 24,
     };
@@ -135,12 +135,20 @@ const VillageLayout = (() => {
         return canvasH - o.floorHeightPx - o.feetAboveFloorPx;
     }
 
-    // The stretched tower is taller than a short canvas has room for (desktop 1280x720: 298px). Lower
-    // its feet into the top of the floor band, up to feetMaxDropPx (still behind the back zombie lane,
-    // which stands 24px below the floor's top edge); anything beyond that clips the spire tip.
+    // The stretched tower is taller than a short canvas has room for. Two levers, in order:
+    //  1. lower its feet into the top of the floor band, up to feetMaxDropPx (still behind the back zombie
+    //     lane, which stands 24px below the floor's top edge);
+    //  2. if it still would not fit, shrink the stretch (never below 1) to the biggest scale that does.
+    // So CONFIG.VILLAGE_CLOCK_SCALE is a MAXIMUM: roomy screens get it in full, short ones a little less.
+    function clockScaleFor(canvasH, o) {
+        const room = horizonFeetY(canvasH, o) + Math.max(0, o.feetMaxDropPx);
+        const fit = Math.floor((room / o.clockArtHeightPx) * 100) / 100;
+        return Math.max(1, Math.min(o.clockScale, fit));
+    }
+
     function clockFeetY(canvasH, o) {
         const base = horizonFeetY(canvasH, o);
-        const need = Math.ceil(o.clockArtHeightPx * o.clockScale);
+        const need = Math.ceil(o.clockArtHeightPx * clockScaleFor(canvasH, o));
         if (base >= need) return base;
         return Math.min(need, base + Math.max(0, o.feetMaxDropPx));
     }
@@ -148,7 +156,7 @@ const VillageLayout = (() => {
     function clockTowerSlot(canvasW, canvasH, baseW, hillW, tier, opts) {
         const o = opts || DEFAULTS;
         return slotFor('punctuality', o.spriteWidthPx, o.spriteHeightPx, o.clockXFrac, canvasW, canvasH, baseW, hillW, tier, o,
-            o.clockScale, clockFeetY(canvasH, o));
+            clockScaleFor(canvasH, o), clockFeetY(canvasH, o));
     }
 
     // `feetOverride` lets villageSlots put the jail on the same row as the (possibly lowered) tower.
@@ -172,7 +180,7 @@ const VillageLayout = (() => {
         return [jail, clock].filter(Boolean); // jail first: the tower paints over any shared pixels
     }
 
-    return { DEFAULTS, fromConfig, clampTier, resolveDevTier, resolveDevJailTier, fieldWidth, spriteUrl, clockTowerSlot, clockFeetY, jailSlot, villageSlots };
+    return { DEFAULTS, fromConfig, clampTier, resolveDevTier, resolveDevJailTier, fieldWidth, spriteUrl, clockTowerSlot, clockScaleFor, clockFeetY, jailSlot, villageSlots };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
