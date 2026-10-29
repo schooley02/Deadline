@@ -6,6 +6,19 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 
 
+## 2026-10-29 -- Clock tower regenerated at village scale and shipped: 1:1 on a 128x256 canvas, stretch stopgap removed, T5 trimmed to 246 (Claude app session, Opus advice -> Sonnet build; layout constants + art only, no balance numbers)
+
+- **Shipped: `Assets/Village/punctuality_t1..t5.png`, all 128x256, bottom-aligned, drawn 1:1.** `CONFIG.VILLAGE_CLOCK_SCALE` 1.5 -> 1 (the 1.3x stopgap stretch is gone; the lever stays in `VillageLayout.clockScaleFor` as a MAXIMUM but must stay 1), `VILLAGE_SPRITE_H_PX` 224 -> 256, `VILLAGE_CLOCK_ART_H_PX` 196 -> 246, sw.js v136 -> v137. Tower door ~16x28 now matches the Jailhouse's, so the "doors similar size across the village" rule holds without a non-whole scale.
+- **Why 246 and not the PixelLab 256:** the project's own fit test says the tallest tier must not poke out of the top at canvas 298 (desktop 1280x720) with the feet lowered the full `VILLAGE_FEET_MAX_DROP_PX` (24). T5 came out 256 px tall, so 10 rows of plain brick were deleted from its shaft (no stretching, seamless); T5 is now 246 and fits exactly. Alternatives rejected: letting the rooster vane clip on desktop, dropping the feet more than 24 (would pass behind the back zombie lane), re-prompting PixelLab for a shorter T5.
+- **Art choices (Jeremy):** T1 keeps the leaning-ruin take (the lean is baked in by PixelLab; shifting rows in code looked jagged), so it is 245 tall and a little taller than T2 on purpose. T4 is the wider, pinnacled, two-lamp design (a medium-strength reference had produced "T3 plus lamps"). T3 is the slim tower with a columned portico, a dentil band under the clock ledge (drawn in code) and arched belfry openings; its 7 plain-brick rows under the ledge were cut to keep it at 239.
+- **Process lesson recorded in ART_STYLE:** delete "the whole tower fills the canvas height" from prompts and ask for explicit empty space top and bottom; reference strength medium copies, low-medium varies; build each tier up from the one below.
+- **Checks:** village suites 118/118 in a cloud copy (tests updated for 1:1: `villageLayout.test.js` scale/height/fit cases, `villageView.test.js` comment); mock-scene screenshots at canvas 334 / 356 / 298 with placeholder zombies. NOT done: full `npm test`, live game, phone.
+- **Open:** real tier data for the Clock tower; the other 7 kinds + Memorial (confirm the Americana mapping first); baked overgrown variants (queued).
+
+---
+
+
+
 ## 2026-10-28 (night) -- Clock tower T3 art: 128-wide canvas at 1x, tall tower, night-value rule (Claude app session, Sonnet; art spec only, no code, no balance numbers). SUPERSEDES the "2x / 64x80" parts of the entry below.
 
 - **Village sprites are authored on a 128px-wide canvas and shown at 1x (close-up 2x).** Jeremy checked PixelLab: zombies and heroes were made on 128x128 canvases; the atlas JSONs agree (`characterSize: 128`, drawn 1:1). The earlier "2x everywhere" rule was judged against the static 64px zombie PNGs, which are only the fallback. The church stays the 2x exception.

@@ -509,13 +509,13 @@ const CONFIG = {
     // Sprites are authored 128 wide and drawn 1:1 (same pixel scale as the animated zombies).
     VILLAGE_ENABLED: true, // false hides the whole layer
     VILLAGE_SPRITE_W_PX: 128, // Clock tower canvas width
-    VILLAGE_SPRITE_H_PX: 224, // Clock tower canvas height (T5 needs the headroom); bottom-anchored
+    VILLAGE_SPRITE_H_PX: 256, // Clock tower canvas height (regenerated 2026-10-29, T1-T5 all 128x256); bottom-anchored
     VILLAGE_FEET_ABOVE_FLOOR_PX: 4, // feet sit this far above the floor band's top edge (the horizon)
-    // STOPGAP 2026-10-29 (Jeremy): the Clock tower art is ~1.3x too small next to the other buildings (door
-    // 12x20 vs the jail's 16x26). Until it is regenerated wider/taller, the sprite is STRETCHED by up to this factor
-    // (non-whole scale = slightly uneven pixels, against the ART_STYLE rule). Set to 1 once the new art ships.
-    VILLAGE_CLOCK_SCALE: 1.5, // MAXIMUM: short screens get the biggest scale that fits (VillageLayout.clockScaleFor)
-    VILLAGE_CLOCK_ART_H_PX: 196, // tallest tier's visible art height (T5), unscaled; used to decide how far to lower the feet
+    // The 1.3x STOPGAP stretch (2026-10-29 early) is OVER: the regenerated 128x256 Clock tower art has a door the same
+    // size as the Jailhouse's, so the tower is drawn 1:1 like every other building. Kept as a lever (it is a MAXIMUM
+    // scale in VillageLayout.clockScaleFor); leave it at 1 -- a non-whole scale breaks the ART_STYLE pixel rule.
+    VILLAGE_CLOCK_SCALE: 1, // 1 = clean 1:1 pixels
+    VILLAGE_CLOCK_ART_H_PX: 246, // tallest tier's visible art height (T5 = 246, T1 = 245), used to decide how far to lower the feet; must fit a 298px canvas (feet drop 24)
     VILLAGE_FEET_MAX_DROP_PX: 24, // the tower's feet may sink this far below the horizon on short canvases
     VILLAGE_CLOCK_X_FRAC: 0.55, // tower centre = church edge + frac x walking-field width
     VILLAGE_MIN_FIELD_PX: 220, // a narrower walking field hides the village

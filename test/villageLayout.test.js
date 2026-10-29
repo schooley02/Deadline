@@ -94,10 +94,10 @@ describe('clockTowerSlot', () => {
     test('844x390 landscape: feet on the horizon just above the floor band, centred in the field', () => {
         const s = slot();
         // field 544 wide from x=160; centre = 160 + 0.55 * 544 = 459.2; horizon = 334 - 72 - 4 = 258
-        // STOPGAP: stretched by the biggest scale that fits (here 1.43 of the 1.5 max), feet lowered into the floor band
+        // 2026-10-29: the stretch stopgap is gone, the regenerated 128x256 art is drawn 1:1
         const k = VillageLayout.clockScaleFor(334, OPTS);
-        expect(k).toBeGreaterThan(1.3);
-        expect(s.width).toBe(Math.round(128 * k));
+        expect(k).toBe(1);
+        expect(s.width).toBe(128);
         expect(s.left).toBe(Math.round(459.2 - s.width / 2));
         expect(s.feetY).toBe(VillageLayout.clockFeetY(334, OPTS));
         expect(s.top).toBe(s.feetY - s.height);
@@ -105,27 +105,24 @@ describe('clockTowerSlot', () => {
         expect(s.kind).toBe('punctuality');
     });
 
-    test('STOPGAP: the Clock tower is the authored canvas x the scale that fits (1 = clean 1:1 pixels)', () => {
+    test('the Clock tower is the authored 128x256 canvas drawn 1:1 (clean pixels, no stretch)', () => {
         const s = slot();
-        const k = VillageLayout.clockScaleFor(334, OPTS);
-        expect(s.width).toBe(Math.round(CONFIG.VILLAGE_SPRITE_W_PX * k));
-        expect(s.height).toBe(Math.round(CONFIG.VILLAGE_SPRITE_H_PX * k));
-        const unscaled = VillageLayout.clockTowerSlot(844, 334, 160, 140, 3, { ...OPTS, clockScale: 1 });
-        expect(unscaled.width).toBe(128);
-        expect(unscaled.height).toBe(224);
+        expect(s.width).toBe(CONFIG.VILLAGE_SPRITE_W_PX);
+        expect(s.height).toBe(CONFIG.VILLAGE_SPRITE_H_PX);
+        expect(s.width).toBe(128);
+        expect(s.height).toBe(256);
     });
 
-    test('CONFIG.VILLAGE_CLOCK_SCALE is a MAXIMUM: roomy canvases get it in full, short ones less (never below 1)', () => {
-        expect(VillageLayout.clockScaleFor(356, OPTS)).toBe(CONFIG.VILLAGE_CLOCK_SCALE);
-        expect(VillageLayout.clockScaleFor(298, OPTS)).toBeLessThan(CONFIG.VILLAGE_CLOCK_SCALE);
-        expect(VillageLayout.clockScaleFor(298, OPTS)).toBeGreaterThan(1);
-        expect(VillageLayout.clockScaleFor(100, OPTS)).toBe(1);
-        expect(VillageLayout.clockScaleFor(334, { ...OPTS, clockScale: 1 })).toBe(1);
+    test('CONFIG.VILLAGE_CLOCK_SCALE is 1: the 1.3x stopgap stretch was removed when the art was regenerated', () => {
+        expect(CONFIG.VILLAGE_CLOCK_SCALE).toBe(1);
+        [356, 334, 298, 100].forEach(h => expect(VillageLayout.clockScaleFor(h, OPTS)).toBe(1));
     });
 
-    test('the tower scale is sane (>= 1, <= 1.5)', () => {
-        expect(CONFIG.VILLAGE_CLOCK_SCALE).toBeGreaterThanOrEqual(1);
-        expect(CONFIG.VILLAGE_CLOCK_SCALE).toBeLessThanOrEqual(1.5);
+    test('the scale lever still works as a MAXIMUM if it is ever raised again (never below 1)', () => {
+        const o = { ...OPTS, clockScale: 1.5 };
+        expect(VillageLayout.clockScaleFor(500, o)).toBe(1.5);
+        expect(VillageLayout.clockScaleFor(298, o)).toBeLessThan(1.5);
+        expect(VillageLayout.clockScaleFor(100, o)).toBe(1);
     });
 
     test('every number is a whole pixel', () => {
@@ -185,7 +182,7 @@ describe('shipped sprites', () => {
         return { w: b.readUInt32BE(16), h: b.readUInt32BE(20) };
     }
 
-    test.each([1, 2, 3, 4, 5])('tier %i exists and is the authored 128x224 canvas', tier => {
+    test.each([1, 2, 3, 4, 5])('tier %i exists and is the authored 128x256 canvas', tier => {
         const file = path.join(__dirname, '..', VillageLayout.spriteUrl('punctuality', tier));
         expect(fs.existsSync(file)).toBe(true);
         const { w, h } = pngSize(file);
@@ -327,7 +324,7 @@ describe('shipped jail sprites', () => {
     });
 });
 
-describe('clock tower fit on short canvases (the stretched tower is taller)', () => {
+describe('clock tower fit on short canvases (the tower is 246px of art, so short canvases lower its feet)', () => {
     const feet = h => VillageLayout.clockFeetY(h, OPTS);
     const artTop = h => feet(h) - Math.ceil(CONFIG.VILLAGE_CLOCK_ART_H_PX * VillageLayout.clockScaleFor(h, OPTS));
     const base = h => h - CONFIG.GROUND_FLOOR_HEIGHT - CONFIG.VILLAGE_FEET_ABOVE_FLOOR_PX;
@@ -351,10 +348,23 @@ describe('clock tower fit on short canvases (the stretched tower is taller)', ()
         });
     });
 
-    test('a zero max drop means no lowering (and a smaller tower to fit)', () => {
-        const o = { ...OPTS, feetMaxDropPx: 0 };
+    test('a zero max drop means no lowering (and a smaller stretch to fit, if the stretch lever is raised)', () => {
+        const big = { ...OPTS, clockScale: 1.5 };
+        const o = { ...big, feetMaxDropPx: 0 };
         expect(VillageLayout.clockFeetY(298, o)).toBe(base(298));
-        expect(VillageLayout.clockScaleFor(298, o)).toBeLessThan(VillageLayout.clockScaleFor(298, OPTS));
+        expect(VillageLayout.clockScaleFor(334, o)).toBeLessThan(VillageLayout.clockScaleFor(334, big));
+    });
+
+    test('1:1 at 1280x720 (canvas 298): T5 is the tallest tier and fits exactly with the feet lowered the full 24px', () => {
+        expect(feet(298)).toBe(base(298) + CONFIG.VILLAGE_FEET_MAX_DROP_PX);
+        expect(artTop(298)).toBeGreaterThanOrEqual(0);
+    });
+
+    test('1:1 on the common phone canvases (334, 356): the tower fits with room above, feet on the horizon', () => {
+        [334, 356].forEach(h => {
+            expect(feet(h)).toBe(base(h));
+            expect(artTop(h)).toBeGreaterThanOrEqual(0);
+        });
     });
 
     test('the tower feet stay behind the back zombie lane', () => {

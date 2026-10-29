@@ -3,12 +3,12 @@
  * (V7 W2, first slice 2026-10-29; docs/ART_STYLE.md "Achievement village art",
  * docs/WORLD_FEEDBACK_PLAN.md W2). No DOM, no State.
  *
- * This slice draws TWO buildings: the Clock tower (kind `punctuality`, 128x224) and the Jailhouse
+ * This slice draws TWO buildings: the Clock tower (kind `punctuality`, 128x256) and the Jailhouse
  * (kind `lurkers`, 128x128; added 2026-10-29). The other kinds, the tier-from-achievements wiring
  * and the close-up view are later W2 steps. Each building is placed at a fraction of the walking
  * field; a building that would overlap the church or another building is dropped, not moved.
  *
- *   SPRITE   authored on a 128px-wide canvas (Clock tower 128x224, bottom-anchored, tower art
+ *   SPRITE   authored on a 128px-wide canvas (Clock tower 128x256, bottom-anchored, tower art
  *            bottom-aligned inside it) and shown 1:1, the same pixel scale as the animated
  *            zombies and heroes. Never scaled, never rotated.
  *   FEET     on the horizon: just above the floor band's top edge (CONFIG.GROUND_FLOOR_HEIGHT),
@@ -22,7 +22,7 @@
 const VillageLayout = (() => {
     const DEFAULTS = {
         spriteWidthPx: 128,
-        spriteHeightPx: 224,
+        spriteHeightPx: 256,
         floorHeightPx: 72,
         feetAboveFloorPx: 4,
         clockXFrac: 0.55,
@@ -34,8 +34,8 @@ const VillageLayout = (() => {
         jailXFrac: 0.2,
         devJailTier: 3,
         minGapPx: 8,
-        clockScale: 1.5,
-        clockArtHeightPx: 196,
+        clockScale: 1,
+        clockArtHeightPx: 246,
         feetMaxDropPx: 24,
     };
 
