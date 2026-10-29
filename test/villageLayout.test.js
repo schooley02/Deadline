@@ -94,17 +94,27 @@ describe('clockTowerSlot', () => {
     test('844x390 landscape: feet on the horizon just above the floor band, centred in the field', () => {
         const s = slot();
         // field 544 wide from x=160; centre = 160 + 0.55 * 544 = 459.2; feet = 334 - 72 - 4 = 258
-        expect(s.left).toBe(Math.round(459.2 - 64));
+        // STOPGAP: the sprite is stretched by VILLAGE_CLOCK_SCALE (1.3): 166 x 291
+        expect(s.width).toBe(Math.round(128 * CONFIG.VILLAGE_CLOCK_SCALE));
+        expect(s.left).toBe(Math.round(459.2 - s.width / 2));
         expect(s.feetY).toBe(258);
-        expect(s.top).toBe(258 - 224);
+        expect(s.top).toBe(258 - s.height);
         expect(s.url).toBe('Assets/Village/punctuality_t3.png');
         expect(s.kind).toBe('punctuality');
     });
 
-    test('the sprite is drawn 1:1 (never scaled): width/height are the authored canvas', () => {
+    test('STOPGAP: the Clock tower is the authored canvas x CONFIG.VILLAGE_CLOCK_SCALE (1 = clean 1:1 pixels)', () => {
         const s = slot();
-        expect(s.width).toBe(128);
-        expect(s.height).toBe(224);
+        expect(s.width).toBe(Math.round(CONFIG.VILLAGE_SPRITE_W_PX * CONFIG.VILLAGE_CLOCK_SCALE));
+        expect(s.height).toBe(Math.round(CONFIG.VILLAGE_SPRITE_H_PX * CONFIG.VILLAGE_CLOCK_SCALE));
+        const unscaled = VillageLayout.clockTowerSlot(844, 334, 160, 140, 3, { ...OPTS, clockScale: 1 });
+        expect(unscaled.width).toBe(128);
+        expect(unscaled.height).toBe(224);
+    });
+
+    test('the tower scale is sane (>= 1, <= 1.5)', () => {
+        expect(CONFIG.VILLAGE_CLOCK_SCALE).toBeGreaterThanOrEqual(1);
+        expect(CONFIG.VILLAGE_CLOCK_SCALE).toBeLessThanOrEqual(1.5);
     });
 
     test('every number is a whole pixel', () => {
@@ -301,5 +311,49 @@ describe('shipped jail sprites', () => {
         expect(b.slice(1, 4).toString()).toBe('PNG');
         expect(b.readUInt32BE(16)).toBe(CONFIG.VILLAGE_JAIL_W_PX);
         expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_JAIL_H_PX);
+    });
+});
+
+describe('clock tower feet on short canvases (the stretched tower is taller)', () => {
+    const feet = h => VillageLayout.clockFeetY(h, OPTS);
+    const artTop = h => feet(h) - Math.ceil(CONFIG.VILLAGE_CLOCK_ART_H_PX * CONFIG.VILLAGE_CLOCK_SCALE);
+    const base = h => h - CONFIG.GROUND_FLOOR_HEIGHT - CONFIG.VILLAGE_FEET_ABOVE_FLOOR_PX;
+
+    test('phone 844x390 (canvas 334) and 915x412 (356): no drop, the whole tower is on screen', () => {
+        [334, 356].forEach(h => {
+            expect(feet(h)).toBe(base(h));
+            expect(artTop(h)).toBeGreaterThanOrEqual(0);
+        });
+    });
+
+    test('desktop 1280x720 (canvas 298): feet sink, but never more than the max drop', () => {
+        expect(feet(298)).toBeGreaterThan(base(298));
+        expect(feet(298) - base(298)).toBeLessThanOrEqual(CONFIG.VILLAGE_FEET_MAX_DROP_PX);
+        expect(artTop(298)).toBeGreaterThanOrEqual(-12); // at most a few px of spire tip
+    });
+
+    test('the tower feet stay behind the back zombie lane', () => {
+        const back = 298 - CONFIG.GROUND_FLOOR_HEIGHT + CONFIG.GROUND_FLOOR_FEET_TOP_PAD;
+        expect(feet(298)).toBeLessThanOrEqual(back);
+    });
+
+    test('a zero max drop means no lowering', () => {
+        expect(VillageLayout.clockFeetY(298, { ...OPTS, feetMaxDropPx: 0 })).toBe(base(298));
+    });
+
+    test('the jail stands on the same row as the tower when both show (even when lowered)', () => {
+        const s = VillageLayout.villageSlots(1265, 298, 160, 140, { punctuality: 3, lurkers: 3 }, OPTS);
+        expect(s).toHaveLength(2);
+        expect(s[0].feetY).toBe(s[1].feetY);
+        expect(s[0].feetY).toBe(feet(298));
+    });
+
+    test('with no tower the jail uses the plain horizon', () => {
+        const s = VillageLayout.villageSlots(1265, 298, 160, 140, { lurkers: 3 }, OPTS);
+        expect(s[0].feetY).toBe(base(298));
+    });
+
+    test('a tier-1..5 tower never leaves the canvas more than a few px at the top, at any common size', () => {
+        [334, 356, 298].forEach(h => expect(artTop(h)).toBeGreaterThanOrEqual(-12));
     });
 });

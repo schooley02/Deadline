@@ -38,8 +38,8 @@ test('places one Clock tower sprite at the layout slot', () => {
     expect(imgs[0].getAttribute('src')).toBe('Assets/Village/punctuality_t3.png');
     expect(imgs[0].style.left).toBe(want.left + 'px');
     expect(imgs[0].style.top).toBe(want.top + 'px');
-    expect(imgs[0].style.width).toBe('128px');
-    expect(imgs[0].style.height).toBe('224px');
+    expect(imgs[0].style.width).toBe(want.width + 'px'); // stretched by CONFIG.VILLAGE_CLOCK_SCALE (stopgap)
+    expect(imgs[0].style.height).toBe(want.height + 'px');
     expect(imgs[0].dataset.kind).toBe('punctuality');
     expect(imgs[0].dataset.tier).toBe('3');
 });
