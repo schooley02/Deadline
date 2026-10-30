@@ -6,6 +6,17 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 
 
+## 2026-10-30 -- Boxing gym (`lurkers`) art finished and wired as a FRONT-row building; every collision rule now measured on the visible art, not the 128px box (Claude app session, Opus art + placement advice -> Sonnet wiring; layout constants + art only, no balance numbers)
+
+- Boxing gym T1-T5 shipped (`Assets/Village/lurkers_t1..t5.png`, 128x128) and wired: `CONFIG.VILLAGE_GYM_*`, `VillageLayout.gymSlot`, `?gymTier=`. `lurkers` is the gym again; the Jailhouse stays `defense`. sw v140.
+- **Placement change:** a fifth building does not fit one front row if gaps are measured on the 128px boxes (the sprites are mostly empty air at the edges). All rules (gaps, church, hill, back-row overlap) now use `artLeft/artRight` from `CONFIG.VILLAGE_ART_X` (union of the visible columns over a kind's five tiers; a test measures the real PNGs). Evaluation order tower, jail, armory, gym, radio so a later building never moves or drops an earlier one; dropped, never nudged, still holds.
+- **Fractions moved (layout constants, not balance):** Clock tower 0.55 -> 0.36, Jailhouse 0.20 -> 0.13, Radio tower 0.38 -> 0.26, Gym 0.59 (new), Armory stays 0.85. `VILLAGE_BACK_MAX_OVERLAP_PX` 40 -> 48 (now on art, so it is slightly looser in pixels but tighter in practice). **This breaks the 2026-10-29 line "the front buildings never move"**: they moved ONCE, this session, so the gym fits; the rule going forward is that adding or dropping a later building never moves an earlier one (tested).
+- Result: all five show at 800 px and wider; 760 shows the tower and armory; 700 and below the tower only. Phones in landscape (844 wide) show all five.
+- Why not a back-row gym or a second row: the gym is an identity building and should read at a glance on the horizon like the tower and armory; the back row is kept for tall thin buildings (radio mast) that hide well behind a front one.
+- Art: material is grey clapboard (never brick, never fieldstone), T4 gets a lit sign lamp and chimney smoke so it is not a near-copy of T3, T5 has an open lit door (the village is safer) and must be at least as bright as T4. Three-quarter view with the sidewall is a better look but out of style with the other buildings, so it is kept as a future direction for the next art generation.
+- Rejected: scaling buildings down for fit (pixel rule), nudging (dropped, never nudged), shrinking the gap constant (touching buildings read as one blob).
+- Open: where buildings 6-8 (schoolhouse, hospital, windmill) and the Memorial go; this is queued for a Fable layout session before the 6th building. Live-check on a real server and a phone still pending.
+
 ## 2026-10-29 (late afternoon) -- Radio tower (`nights`) art finished and wired as the first BACK-ROW building; Jailhouse re-keyed to `defense` (Claude app session, Opus advice -> Sonnet build; layout constants + art only, no balance numbers)
 
 - Radio tower T1-T5 shipped (`Assets/Village/nights_t1..t5.png`, 128x160) and wired: `CONFIG.VILLAGE_RADIO_*`, `VillageLayout.radioSlot`, `?radioTier=`. It stands BEHIND the front row between the Jailhouse and the Clock tower: feet 14 px higher, brightness 0.8, painted first.

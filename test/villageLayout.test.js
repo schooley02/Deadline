@@ -93,12 +93,12 @@ describe('clockTowerSlot', () => {
 
     test('844x390 landscape: feet on the horizon just above the floor band, centred in the field', () => {
         const s = slot();
-        // field 544 wide from x=160; centre = 160 + 0.55 * 544 = 459.2; horizon = 334 - 72 - 4 = 258
+        // field 544 wide from x=160; centre = 160 + CONFIG.VILLAGE_CLOCK_X_FRAC * 544; horizon = 334 - 72 - 4 = 258
         // 2026-10-29: the stretch stopgap is gone, the regenerated 128x256 art is drawn 1:1
         const k = VillageLayout.clockScaleFor(334, OPTS);
         expect(k).toBe(1);
         expect(s.width).toBe(128);
-        expect(s.left).toBe(Math.round(459.2 - s.width / 2));
+        expect(s.left).toBe(Math.round(160 + CONFIG.VILLAGE_CLOCK_X_FRAC * 544 - s.width / 2));
         expect(s.feetY).toBe(VillageLayout.clockFeetY(334, OPTS));
         expect(s.top).toBe(s.feetY - s.height);
         expect(s.url).toBe('Assets/Village/punctuality_t3.png');
@@ -243,10 +243,10 @@ describe('jailSlot', () => {
 
     test('844x390: same horizon as the tower, 128x128 at 1:1, centred at its field fraction', () => {
         const s = jail();
-        // field 544 from x=160; centre = 160 + 0.2 * 544 = 268.8; feet = 334 - 72 - 4 = 258
+        // field 544 from x=160; centre = 160 + CONFIG.VILLAGE_JAIL_X_FRAC * 544; feet = 334 - 72 - 4 = 258
         expect(s.kind).toBe('defense');
         expect(s.url).toBe('Assets/Village/defense_t3.png');
-        expect(s.left).toBe(Math.round(268.8 - 64));
+        expect(s.left).toBe(Math.round(160 + CONFIG.VILLAGE_JAIL_X_FRAC * 544 - 64));
         expect(s.feetY).toBe(258);
         expect(s.top).toBe(258 - 128);
         expect(s.width).toBe(128);
@@ -286,8 +286,9 @@ describe('villageSlots', () => {
             const s = slots(w, h, { punctuality: 3, defense: 3 });
             expect(s).toHaveLength(2);
             const [jail, clock] = s;
-            expect(jail.left + jail.width + CONFIG.VILLAGE_MIN_GAP_PX).toBeLessThanOrEqual(clock.left);
-            expect(jail.left).toBeGreaterThanOrEqual(160); // never over the church
+            // 2026-10-30: gaps are measured between the VISIBLE ART (artLeft/artRight), not the 128px boxes
+            expect(jail.artRight + CONFIG.VILLAGE_MIN_GAP_PX).toBeLessThanOrEqual(clock.artLeft);
+            expect(jail.artLeft).toBeGreaterThanOrEqual(160); // art never over the church
         });
     });
 
@@ -444,9 +445,9 @@ describe('Armory', () => {
             const s = slots(w, h, ALL);
             expect(s.map(x => x.kind)).toEqual(['defense', 'slain', 'punctuality']);
             const [jail, armory, clock] = s;
-            expect(clock.left + clock.width + CONFIG.VILLAGE_MIN_GAP_PX).toBeLessThanOrEqual(armory.left);
-            expect(jail.left + jail.width + CONFIG.VILLAGE_MIN_GAP_PX).toBeLessThanOrEqual(clock.left);
-            expect(armory.left + armory.width).toBeLessThanOrEqual(w - 140); // never on the graveyard hill
+            expect(clock.artRight + CONFIG.VILLAGE_MIN_GAP_PX).toBeLessThanOrEqual(armory.artLeft);
+            expect(jail.artRight + CONFIG.VILLAGE_MIN_GAP_PX).toBeLessThanOrEqual(clock.artLeft);
+            expect(armory.artRight).toBeLessThanOrEqual(w - 140); // art never on the graveyard hill
             expect(armory.feetY).toBe(clock.feetY);
         });
     });
@@ -531,8 +532,8 @@ describe('Radio tower (back row)', () => {
         expect(s.height).toBe(160);
         expect(s.back).toBe(true);
         expect(s.brightness).toBe(CONFIG.VILLAGE_BACK_ROW_BRIGHTNESS);
-        // field 544 from x=160; centre = 160 + 0.38 * 544 = 366.72
-        expect(s.left).toBe(Math.round(366.72 - 64));
+        // field 544 from x=160; centre = 160 + CONFIG.VILLAGE_RADIO_X_FRAC * 544
+        expect(s.left).toBe(Math.round(160 + CONFIG.VILLAGE_RADIO_X_FRAC * 544 - 64));
         [s.left, s.top, s.width, s.height, s.feetY].forEach(n => expect(Number.isInteger(n)).toBe(true));
         expect(new Set([1, 2, 3, 4, 5].map(t => VillageLayout.radioSlot(844, 334, 160, 140, t, OPTS).url)).size).toBe(5);
         expect(VillageLayout.radioSlot(844, 334, 160, 0, 3, OPTS)).toBeNull();
@@ -564,10 +565,11 @@ describe('Radio tower (back row)', () => {
             const s = slots(w, h, ALL);
             const radio = s.find(x => x.kind === 'nights');
             expect(radio).toBeTruthy();
-            expect(radio.left).toBeGreaterThanOrEqual(160);
-            expect(radio.left + radio.width).toBeLessThanOrEqual(w - 140);
+            expect(radio.artLeft).toBeGreaterThanOrEqual(160);
+            expect(radio.artRight).toBeLessThanOrEqual(w - 140);
             s.filter(x => x !== radio).forEach(f => {
-                const overlap = Math.max(0, Math.min(radio.left + radio.width, f.left + f.width) - Math.max(radio.left, f.left));
+                // art-to-art overlap (2026-10-30), not the 128px boxes
+                const overlap = Math.max(0, Math.min(radio.artRight, f.artRight) - Math.max(radio.artLeft, f.artLeft));
                 expect(overlap).toBeLessThanOrEqual(CONFIG.VILLAGE_BACK_MAX_OVERLAP_PX);
             });
         });
@@ -596,10 +598,10 @@ describe('Radio tower (back row)', () => {
         expect(radio.brightness).toBe(0.5);
     });
 
-    test('the radio can show alone; portrait strip or no tier = nothing; the old `lurkers` key places nothing', () => {
+    test('the radio can show alone; portrait strip or no tier = nothing; an unknown kind key places nothing', () => {
         expect(slots(844, 334, { nights: 2 }).map(x => x.kind)).toEqual(['nights']);
         expect(slots(844, 334, { nights: 3 }, 160, 0)).toEqual([]);
-        expect(slots(844, 334, { lurkers: 3 })).toEqual([]);
+        expect(slots(844, 334, { barn: 3 })).toEqual([]);
     });
 
     test.each([1, 2, 3, 4, 5])('shipped nights tier %i exists and is the authored 128x160 canvas', tier => {
@@ -610,4 +612,169 @@ describe('Radio tower (back row)', () => {
         expect(b.readUInt32BE(16)).toBe(CONFIG.VILLAGE_RADIO_W_PX);
         expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_RADIO_H_PX);
     });
+});
+
+// ---- Boxing gym (kind `lurkers` = willpower, a FRONT-row building), added 2026-10-30 ----
+describe('Boxing gym (front row) + art-box collision', () => {
+    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 140, opts = OPTS) =>
+        VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts);
+    const FOUR = { punctuality: 3, defense: 3, slain: 3, lurkers: 3 };
+    const ALL = { ...FOUR, nights: 3 };
+    const SIZES = [[844, 334], [915, 356], [1265, 298], [1100, 320], [800, 334], [1440, 400]];
+    const art = slots => slots.map(s => [s.artLeft, s.artRight]);
+
+    test('fromConfig mirrors the gym + art-extent CONFIG and DEFAULTS agree with it', () => {
+        const d = VillageLayout.DEFAULTS;
+        expect(OPTS.gymWidthPx).toBe(CONFIG.VILLAGE_GYM_W_PX);
+        expect(OPTS.gymHeightPx).toBe(CONFIG.VILLAGE_GYM_H_PX);
+        expect(OPTS.gymXFrac).toBe(CONFIG.VILLAGE_GYM_X_FRAC);
+        expect(OPTS.devGymTier).toBe(CONFIG.VILLAGE_DEV_GYM_TIER);
+        expect(OPTS.art).toEqual(CONFIG.VILLAGE_ART_X);
+        expect(d.gymWidthPx).toBe(CONFIG.VILLAGE_GYM_W_PX);
+        expect(d.gymHeightPx).toBe(CONFIG.VILLAGE_GYM_H_PX);
+        expect(d.gymXFrac).toBe(CONFIG.VILLAGE_GYM_X_FRAC);
+        expect(d.devGymTier).toBe(CONFIG.VILLAGE_DEV_GYM_TIER);
+        expect(d.art).toEqual(CONFIG.VILLAGE_ART_X);
+        expect(VillageLayout.fromConfig({ VILLAGE_DEV_GYM_TIER: null }).devGymTier).toBeNull();
+        expect(VillageLayout.fromConfig({ VILLAGE_ART_X: 'junk' }).art).toEqual(d.art);
+    });
+
+    test('every kind has an art extent inside its canvas', () => {
+        ['punctuality', 'defense', 'slain', 'nights', 'lurkers'].forEach(k => {
+            const [l, r] = CONFIG.VILLAGE_ART_X[k];
+            expect(l).toBeGreaterThanOrEqual(0);
+            expect(r).toBeGreaterThan(l);
+            expect(r).toBeLessThanOrEqual(128);
+        });
+    });
+
+    test('the front row reads jail, tower, gym, armory left to right', () => {
+        expect(CONFIG.VILLAGE_JAIL_X_FRAC).toBeLessThan(CONFIG.VILLAGE_CLOCK_X_FRAC);
+        expect(CONFIG.VILLAGE_GYM_X_FRAC).toBeGreaterThan(CONFIG.VILLAGE_CLOCK_X_FRAC);
+        expect(CONFIG.VILLAGE_GYM_X_FRAC).toBeLessThan(CONFIG.VILLAGE_ARMORY_X_FRAC);
+    });
+
+    test('resolveDevGymTier reads only ?gymTier=', () => {
+        expect(VillageLayout.resolveDevGymTier('', OPTS)).toBe(CONFIG.VILLAGE_DEV_GYM_TIER);
+        expect(VillageLayout.resolveDevGymTier('?gymTier=5', OPTS)).toBe(5);
+        expect(VillageLayout.resolveDevGymTier('?a=1&gymTier=1', OPTS)).toBe(1);
+        expect(VillageLayout.resolveDevGymTier('?gymTier=9', OPTS)).toBe(5);
+        expect(VillageLayout.resolveDevGymTier('?gymTier=off', OPTS)).toBeNull();
+        expect(VillageLayout.resolveDevGymTier('?radioTier=1', OPTS)).toBe(CONFIG.VILLAGE_DEV_GYM_TIER);
+        expect(VillageLayout.resolveDevRadioTier('?gymTier=1', OPTS)).toBe(CONFIG.VILLAGE_DEV_RADIO_TIER);
+        expect(VillageLayout.resolveDevGymTier('', { ...OPTS, devGymTier: null })).toBeNull();
+    });
+
+    test('gymSlot: kind lurkers, 128x128 at 1:1, one url per tier, whole pixels, art box carried on the slot', () => {
+        const s = VillageLayout.gymSlot(844, 334, 160, 140, 3, OPTS);
+        expect(s.kind).toBe('lurkers');
+        expect(s.url).toBe('Assets/Village/lurkers_t3.png');
+        expect(s.width).toBe(128);
+        expect(s.height).toBe(128);
+        expect(s.left).toBe(Math.round(160 + CONFIG.VILLAGE_GYM_X_FRAC * 544 - 64));
+        expect(s.artLeft).toBe(s.left + CONFIG.VILLAGE_ART_X.lurkers[0]);
+        expect(s.artRight).toBe(s.left + CONFIG.VILLAGE_ART_X.lurkers[1]);
+        [s.left, s.top, s.feetY, s.artLeft, s.artRight].forEach(n => expect(Number.isInteger(n)).toBe(true));
+        expect(new Set([1, 2, 3, 4, 5].map(t => VillageLayout.gymSlot(844, 334, 160, 140, t, OPTS).url)).size).toBe(5);
+        expect(VillageLayout.gymSlot(844, 334, 160, 0, 3, OPTS)).toBeNull();
+        expect(VillageLayout.gymSlot(844, 334, 160, 140, null, OPTS)).toBeNull();
+    });
+
+    test('all five show at every common landscape size from 800 up; paint order radio, jail, gym, armory, tower', () => {
+        SIZES.forEach(([w, h]) => {
+            expect(slots(w, h, ALL).map(x => x.kind)).toEqual(['nights', 'defense', 'lurkers', 'slain', 'punctuality']);
+        });
+    });
+
+    test('the four front buildings never touch: art gaps >= minGapPx, nothing over the church or the hill, one row', () => {
+        SIZES.forEach(([w, h]) => {
+            const front = slots(w, h, ALL).filter(x => !x.back);
+            expect(front).toHaveLength(4);
+            const sorted = [...front].sort((a, b) => a.artLeft - b.artLeft);
+            expect(sorted.map(x => x.kind)).toEqual(['defense', 'punctuality', 'lurkers', 'slain']);
+            for (let i = 1; i < sorted.length; i++) {
+                expect(sorted[i - 1].artRight + CONFIG.VILLAGE_MIN_GAP_PX).toBeLessThanOrEqual(sorted[i].artLeft);
+            }
+            expect(sorted[0].artLeft).toBeGreaterThanOrEqual(160);
+            expect(sorted[3].artRight).toBeLessThanOrEqual(w - 140);
+            expect(new Set(front.map(x => x.feetY)).size).toBe(1);
+        });
+    });
+
+    test('the gym stands on the tower\'s row (even when the short desktop canvas lowers it)', () => {
+        const desk = slots(1265, 298, ALL);
+        expect(desk.find(x => x.kind === 'lurkers').feetY).toBe(desk.find(x => x.kind === 'punctuality').feetY);
+        expect(slots(844, 334, { lurkers: 2 })[0].feetY).toBe(334 - CONFIG.GROUND_FLOOR_HEIGHT - CONFIG.VILLAGE_FEET_ABOVE_FLOOR_PX);
+    });
+
+    test('adding the gym never moves or drops another building (every width)', () => {
+        [[640, 334], [700, 334], [760, 334], [800, 334], ...SIZES].forEach(([w, h]) => {
+            const without = slots(w, h, { ...ALL, lurkers: null });
+            const withGym = slots(w, h, ALL).filter(x => x.kind !== 'lurkers');
+            expect(withGym).toEqual(without);
+        });
+    });
+
+    test('a field too narrow for the gym DROPS it (never moves it); the armory beside it stays', () => {
+        const s = slots(760, 334, ALL);
+        expect(s.map(x => x.kind)).not.toContain('lurkers');
+        expect(s.map(x => x.kind)).toContain('slain');
+        expect(s).toEqual(slots(760, 334, { ...ALL, lurkers: null }));
+    });
+
+    test('the gym can show alone; portrait strip or no tier = nothing', () => {
+        expect(slots(844, 334, { lurkers: 2 }).map(x => x.kind)).toEqual(['lurkers']);
+        expect(slots(844, 334, { lurkers: 3 }, 160, 0)).toEqual([]);
+        expect(slots(844, 334, {})).toEqual([]);
+    });
+
+    test('the Jailhouse and the Armory were evaluated before the gym: a tower-less row still places them by art', () => {
+        const s = slots(844, 334, { defense: 3, lurkers: 3, slain: 3 });
+        expect(s.map(x => x.kind)).toEqual(['defense', 'lurkers', 'slain']);
+        for (let i = 1; i < s.length; i++) expect(s[i - 1].artRight + CONFIG.VILLAGE_MIN_GAP_PX).toBeLessThanOrEqual(s[i].artLeft);
+    });
+
+    test('art-box collision is what makes room: the same row measured on the 128px BOXES would not fit', () => {
+        const s = slots(844, 334, ALL).filter(x => !x.back).sort((a, b) => a.left - b.left);
+        const boxesTouch = s.some((x, i) => i > 0 && s[i - 1].left + s[i - 1].width > x.left);
+        expect(boxesTouch).toBe(true); // boxes overlap, art does not
+    });
+
+    test('the radio still fits between the jail and the tower, behind both', () => {
+        SIZES.forEach(([w, h]) => {
+            const s = slots(w, h, ALL);
+            const radio = s.find(x => x.kind === 'nights');
+            const jail = s.find(x => x.kind === 'defense');
+            const clock = s.find(x => x.kind === 'punctuality');
+            const mid = (radio.artLeft + radio.artRight) / 2;
+            expect(mid).toBeGreaterThan(jail.artLeft);
+            expect(mid).toBeLessThan(clock.artRight);
+        });
+    });
+
+    test.each([1, 2, 3, 4, 5])('shipped lurkers tier %i exists and is the authored 128x128 canvas', tier => {
+        const file = path.join(__dirname, '..', VillageLayout.spriteUrl('lurkers', tier));
+        expect(fs.existsSync(file)).toBe(true);
+        const b = fs.readFileSync(file);
+        expect(b.slice(1, 4).toString()).toBe('PNG');
+        expect(b.readUInt32BE(16)).toBe(CONFIG.VILLAGE_GYM_W_PX);
+        expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_GYM_H_PX);
+    });
+
+    // CONFIG.VILLAGE_ART_X must match the real sprites: the union over the five tiers of each kind's visible columns.
+    let PNG = null;
+    try { PNG = require('pngjs').PNG; } catch (e) { PNG = null; }
+    (PNG ? test : test.skip).each(['punctuality', 'defense', 'slain', 'nights', 'lurkers'])(
+        'CONFIG.VILLAGE_ART_X.%s equals the union of its five tiers\' visible columns (measured from the PNGs)', kind => {
+            let lo = Infinity, hi = -Infinity;
+            [1, 2, 3, 4, 5].forEach(t => {
+                const png = PNG.sync.read(fs.readFileSync(path.join(__dirname, '..', VillageLayout.spriteUrl(kind, t))));
+                for (let y = 0; y < png.height; y++) {
+                    for (let x = 0; x < png.width; x++) {
+                        if (png.data[(y * png.width + x) * 4 + 3] > 0) { lo = Math.min(lo, x); hi = Math.max(hi, x + 1); }
+                    }
+                }
+            });
+            expect(CONFIG.VILLAGE_ART_X[kind]).toEqual([lo, hi]);
+        });
 });

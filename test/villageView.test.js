@@ -324,3 +324,76 @@ describe('Radio tower (back row)', () => {
         expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(3);
     });
 });
+
+// ---- Boxing gym (kind `lurkers`, front row), added 2026-10-30 ----
+describe('Boxing gym (front row)', () => {
+    const q = k => document.querySelector(`#villageLayer .village-sprite[data-kind="${k}"]`);
+    const ALL = { punctuality: 3, defense: 3, slain: 3, nights: 3, lurkers: 3 };
+    function initAll(over = {}, size = {}) {
+        build(size);
+        const state = { gym: 3, ...over };
+        VillageView.init({
+            getHillWidth: () => 140,
+            getClockTier: () => 3,
+            getJailTier: () => 3,
+            getArmoryTier: () => 3,
+            getRadioTier: () => 3,
+            getGymTier: () => state.gym,
+        });
+        VillageView.render(160);
+        return state;
+    }
+
+    test('draws the gym at its layout slot: front row (no back class, no filter), 128x128', () => {
+        initAll();
+        const want = VillageLayout.villageSlots(844, 334, 160, 140, ALL, VillageLayout.fromConfig(CONFIG)).find(s => s.kind === 'lurkers');
+        const img = q('lurkers');
+        expect(img.getAttribute('src')).toBe('Assets/Village/lurkers_t3.png');
+        expect(img.classList.contains('village-lurkers')).toBe(true);
+        expect(img.classList.contains('village-back')).toBe(false);
+        expect(img.style.filter).toBe('');
+        expect(img.style.left).toBe(want.left + 'px');
+        expect(img.style.top).toBe(want.top + 'px');
+        expect(img.style.width).toBe('128px');
+        expect(img.style.height).toBe('128px');
+        expect(img.getAttribute('alt')).toBe('');
+        expect(img.draggable).toBe(false);
+    });
+
+    test('all five buildings are in the layer at 844 wide, z-index in paint order', () => {
+        initAll();
+        expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(5);
+        const z = k => Number(q(k).style.zIndex);
+        expect(z('nights')).toBeLessThan(z('defense'));
+        expect(z('defense')).toBeLessThan(z('lurkers'));
+        expect(z('lurkers')).toBeLessThan(z('slain'));
+        expect(z('slain')).toBeLessThan(z('punctuality'));
+    });
+
+    test('a tier change swaps the image on the same element; clearing the tier removes only the gym', () => {
+        const state = initAll({ gym: 1 });
+        const img = q('lurkers');
+        state.gym = 5;
+        VillageView.render(160);
+        expect(q('lurkers')).toBe(img);
+        expect(img.getAttribute('src')).toBe('Assets/Village/lurkers_t5.png');
+        state.gym = null;
+        VillageView.render(160);
+        expect(q('lurkers')).toBeNull();
+        ['punctuality', 'defense', 'slain', 'nights'].forEach(k => expect(q(k)).not.toBeNull());
+    });
+
+    test('a window too narrow for the gym drops it and leaves the rest', () => {
+        initAll({}, { canvasW: 760 });
+        expect(q('lurkers')).toBeNull();
+        expect(q('slain')).not.toBeNull();
+    });
+
+    test('a view that does not supply getGymTier (the older deps) still works, no gym', () => {
+        build({});
+        VillageView.init({ getHillWidth: () => 140, getClockTier: () => 3, getJailTier: () => 3, getArmoryTier: () => 3, getRadioTier: () => 3 });
+        VillageView.render(160);
+        expect(q('lurkers')).toBeNull();
+        expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(4);
+    });
+});

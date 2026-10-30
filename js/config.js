@@ -517,14 +517,14 @@ const CONFIG = {
     VILLAGE_CLOCK_SCALE: 1, // 1 = clean 1:1 pixels
     VILLAGE_CLOCK_ART_H_PX: 246, // tallest tier's visible art height (T5 = 246, T1 = 245), used to decide how far to lower the feet; must fit a 298px canvas (feet drop 24)
     VILLAGE_FEET_MAX_DROP_PX: 24, // the tower's feet may sink this far below the horizon on short canvases
-    VILLAGE_CLOCK_X_FRAC: 0.55, // tower centre = church edge + frac x walking-field width
+    VILLAGE_CLOCK_X_FRAC: 0.36, // tower centre = church edge + frac x walking-field width (2026-10-30: 0.55 -> 0.36 so the front row holds FOUR buildings at 844 wide)
     VILLAGE_MIN_FIELD_PX: 220, // a narrower walking field hides the village
     VILLAGE_TIERS: 5,
     VILLAGE_DEV_CLOCK_TIER: 3, // DEV: no punctuality tier data yet. `?villageTier=1..5` in the URL overrides, `off` hides; null = hidden
     // Jailhouse / sheriff's office (kind `defense` = Church Defense; re-keyed from `lurkers` 2026-10-29): 128x128 canvas, fieldstone, left of the tower.
     VILLAGE_JAIL_W_PX: 128,
     VILLAGE_JAIL_H_PX: 128,
-    VILLAGE_JAIL_X_FRAC: 0.2, // jail centre = church edge + frac x walking-field width
+    VILLAGE_JAIL_X_FRAC: 0.13, // jail centre = church edge + frac x walking-field width
     VILLAGE_DEV_JAIL_TIER: 3, // DEV: no defense tier data yet. `?jailTier=1..5` overrides, `off` hides; null = hidden
     VILLAGE_MIN_GAP_PX: 8, // the jail is dropped if it would sit closer than this to the Clock tower (or over the church)
     // Armory (kind `slain`, added 2026-10-29): survivor army camp (tent + guard tower), 128x128, RIGHT of the tower.
@@ -536,11 +536,19 @@ const CONFIG = {
     // between the Jailhouse and the tower. Raised on the ridge, darker, painted first (the front row covers it).
     VILLAGE_RADIO_W_PX: 128,
     VILLAGE_RADIO_H_PX: 160,
-    VILLAGE_RADIO_X_FRAC: 0.38, // radio centre = church edge + frac x walking-field width; dropped if it would sink behind a front building by more than VILLAGE_BACK_MAX_OVERLAP_PX
+    VILLAGE_RADIO_X_FRAC: 0.26, // radio centre = church edge + frac x walking-field width; dropped if it would sink behind a front building by more than VILLAGE_BACK_MAX_OVERLAP_PX
     VILLAGE_DEV_RADIO_TIER: 3, // DEV: no nights tier data yet. `?radioTier=1..5` overrides, `off` hides; null = hidden
     VILLAGE_BACK_ROW_RAISE_PX: 14, // back-row feet stand this far above the front row's feet (depth by ridge position, same sprite size)
     VILLAGE_BACK_ROW_BRIGHTNESS: 0.8, // back-row sprites are drawn at this brightness (CSS filter) so they recede behind the front row
-    VILLAGE_BACK_MAX_OVERLAP_PX: 40, // a back-row box may overlap a front building's box by this many px at most
+    VILLAGE_BACK_MAX_OVERLAP_PX: 48, // a back-row building's VISIBLE ART may sink behind a front building's visible art by this many px at most (2026-10-30: was 40 on the 128px boxes; art-based now)
+    // Boxing gym (kind `lurkers` = willpower, added 2026-10-30): old grey clapboard gym, 128x128, FRONT row between the tower and the Armory.
+    VILLAGE_GYM_W_PX: 128,
+    VILLAGE_GYM_H_PX: 128,
+    VILLAGE_GYM_X_FRAC: 0.59, // gym centre = church edge + frac x walking-field width; dropped (never moved) if its art would touch the tower or the Armory, or reach the church / hill
+    VILLAGE_DEV_GYM_TIER: 3, // DEV: no lurkers tier data yet. `?gymTier=1..5` overrides, `off` hides; null = hidden
+    // Visible-art extent [left, right) inside each kind's 128px canvas, the UNION over its five tiers (measured from the shipped sprites, 2026-10-30).
+    // Collision, the church/hill edges and the back-row overlap use THESE, not the 128px boxes (most of a box is empty air), so five buildings fit.
+    VILLAGE_ART_X: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [11, 122] },
 
     // --- Sub-task clustering ---
     SUBTASK_CLUSTER_GAP_PX: 8, // visual gap between clustered sprites' VISIBLE graphics (not their boxes)

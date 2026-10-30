@@ -21,6 +21,7 @@ const SPRITES = [
     ...[1, 2, 3, 4, 5].map(t => `Assets/Village/defense_t${t}.png`),
     ...[1, 2, 3, 4, 5].map(t => `Assets/Village/slain_t${t}.png`),
     ...[1, 2, 3, 4, 5].map(t => `Assets/Village/nights_t${t}.png`),
+    ...[1, 2, 3, 4, 5].map(t => `Assets/Village/lurkers_t${t}.png`), // the boxing gym (2026-10-30)
 ];
 
 describe('shell + load order', () => {
@@ -32,10 +33,10 @@ describe('shell + load order', () => {
         [...FILES, ...SPRITES].forEach(f => expect(fs.existsSync(path.join(__dirname, '..', f))).toBe(true));
     });
 
-    test('CACHE_NAME was bumped for the shell change (v139 or later: the Radio tower sprites + the Jailhouse re-key)', () => {
+    test('CACHE_NAME was bumped for the shell change (v140 or later: the boxing gym sprites)', () => {
         const m = /CACHE_NAME = 'deadline-shell-v(\d+)'/.exec(sw);
         expect(m).not.toBeNull();
-        expect(Number(m[1])).toBeGreaterThanOrEqual(139);
+        expect(Number(m[1])).toBeGreaterThanOrEqual(140);
     });
 
     test('layout loads after config and before the view; the view before script.js', () => {
@@ -121,9 +122,17 @@ describe('script.js hook-up', () => {
         expect(script).toContain('VillageLayout.resolveDevRadioTier(');
     });
 
-    test('the old `lurkers` sprite names are gone from the shell (the Jailhouse is `defense_t*` now)', () => {
-        expect(sw).not.toContain('Assets/Village/lurkers_');
-        [1, 2, 3, 4, 5].forEach(t => expect(fs.existsSync(path.join(__dirname, '..', `Assets/Village/defense_t${t}.png`))).toBe(true));
+    test('the boxing gym tier is fed to the view too (dev ?gymTier= until lurkers tier data exists)', () => {
+        expect(script).toContain('getGymTier:');
+        expect(script).toContain('VillageLayout.resolveDevGymTier(');
+    });
+
+    test('`lurkers_t*` is the boxing gym now (128x128); the Jailhouse stays `defense_t*`', () => {
+        [1, 2, 3, 4, 5].forEach(t => {
+            ['lurkers', 'defense'].forEach(k => expect(fs.existsSync(path.join(__dirname, '..', `Assets/Village/${k}_t${t}.png`))).toBe(true));
+            expect(sw).toContain(`'Assets/Village/lurkers_t${t}.png'`);
+            expect(sw).toContain(`'Assets/Village/defense_t${t}.png'`);
+        });
     });
 
     test('rendered after every layout change and every tick', () => {
@@ -147,5 +156,9 @@ describe('CONFIG', () => {
         expect(CONFIG.VILLAGE_DEV_RADIO_TIER).toBeLessThanOrEqual(CONFIG.VILLAGE_TIERS);
         expect(CONFIG.VILLAGE_RADIO_X_FRAC).toBeGreaterThan(CONFIG.VILLAGE_JAIL_X_FRAC); // the radio stands between jail and tower
         expect(CONFIG.VILLAGE_RADIO_X_FRAC).toBeLessThan(CONFIG.VILLAGE_CLOCK_X_FRAC);
+        expect(CONFIG.VILLAGE_DEV_GYM_TIER).toBeGreaterThanOrEqual(1);
+        expect(CONFIG.VILLAGE_DEV_GYM_TIER).toBeLessThanOrEqual(CONFIG.VILLAGE_TIERS);
+        expect(CONFIG.VILLAGE_GYM_X_FRAC).toBeGreaterThan(CONFIG.VILLAGE_CLOCK_X_FRAC); // the gym stands between the tower and the armory
+        expect(CONFIG.VILLAGE_GYM_X_FRAC).toBeLessThan(CONFIG.VILLAGE_ARMORY_X_FRAC);
     });
 });
