@@ -8,7 +8,7 @@
  *                   hero layers and every zombie (30+)). One <img class="village-sprite">
  *                   one per building, keyed by data-kind, stacked in slot order (z-index = paint
  *                   order, so a building that appears later still lands in the right place). Back-row
- *                   buildings (the Radio tower, the high school, the hospital) carry `.village-back` and a brightness filter. Not
+ *                   buildings (the Radio tower, the high school, the hospital, the far-row windmill) carry `.village-back` and a brightness filter. Not
  *                   tappable yet (the close-up view is a later step).
  *
  * Landscape/desktop only: css/glanceStrip.css hides the layer in the portrait strip, and
@@ -23,7 +23,8 @@
  *         getRadioTier: () => 1..5 or null (kind `nights`; DEV: CONFIG.VILLAGE_DEV_RADIO_TIER / ?radioTier=; optional),
  *         getGymTier: () => 1..5 or null (kind `lurkers`; DEV: CONFIG.VILLAGE_DEV_GYM_TIER / ?gymTier=; optional),
  *         getSchoolTier: () => 1..5 or null (kind `heroes`; DEV: CONFIG.VILLAGE_DEV_SCHOOL_TIER / ?schoolTier=; optional),
- *         getHospitalTier: () => 1..5 or null (kind `habits`; DEV: CONFIG.VILLAGE_DEV_HOSPITAL_TIER / ?hospitalTier=; optional) }
+ *         getHospitalTier: () => 1..5 or null (kind `habits`; DEV: CONFIG.VILLAGE_DEV_HOSPITAL_TIER / ?hospitalTier=; optional),
+ *         getWindmillTier: () => 1..5 or null (kind `bestdays`, FAR row; DEV: CONFIG.VILLAGE_DEV_WINDMILL_TIER / ?windmillTier=; optional) }
  */
 const VillageView = (() => {
     let deps = null;
@@ -56,8 +57,9 @@ const VillageView = (() => {
             lurkers: deps.getGymTier ? deps.getGymTier() : null,
             heroes: deps.getSchoolTier ? deps.getSchoolTier() : null,
             habits: deps.getHospitalTier ? deps.getHospitalTier() : null,
+            bestdays: deps.getWindmillTier ? deps.getWindmillTier() : null,
         };
-        const sig = [hillW, canvasW, canvasH, baseW, tiers.punctuality, tiers.defense, tiers.slain, tiers.nights, tiers.lurkers, tiers.heroes, tiers.habits].join('|');
+        const sig = [hillW, canvasW, canvasH, baseW, tiers.punctuality, tiers.defense, tiers.slain, tiers.nights, tiers.lurkers, tiers.heroes, tiers.habits, tiers.bestdays].join('|');
         if (sig === lastSig) return;
         lastSig = sig;
         const slots = VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts);

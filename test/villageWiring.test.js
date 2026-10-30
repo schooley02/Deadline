@@ -24,6 +24,7 @@ const SPRITES = [
     ...[1, 2, 3, 4, 5].map(t => `Assets/Village/lurkers_t${t}.png`), // the boxing gym (2026-10-30)
     ...[1, 2, 3, 4, 5].map(t => `Assets/Village/heroes_t${t}.png`), // the high school (2026-10-30)
     ...[1, 2, 3, 4, 5].map(t => `Assets/Village/habits_t${t}.png`), // the hospital (2026-10-30, placeholder = T3 x5)
+    ...[1, 2, 3, 4, 5].map(t => `Assets/Village/bestdays_t${t}.png`), // the windmill, far row (2026-10-30, placeholder art)
 ];
 
 describe('shell + load order', () => {
@@ -35,10 +36,10 @@ describe('shell + load order', () => {
         [...FILES, ...SPRITES].forEach(f => expect(fs.existsSync(path.join(__dirname, '..', f))).toBe(true));
     });
 
-    test('CACHE_NAME was bumped for the shell change (v142 or later: the hospital sprites)', () => {
+    test('CACHE_NAME was bumped for the shell change (v143 or later: the windmill sprites)', () => {
         const m = /CACHE_NAME = 'deadline-shell-v(\d+)'/.exec(sw);
         expect(m).not.toBeNull();
-        expect(Number(m[1])).toBeGreaterThanOrEqual(142);
+        expect(Number(m[1])).toBeGreaterThanOrEqual(143);
     });
 
     test('layout loads after config and before the view; the view before script.js', () => {
@@ -137,6 +138,8 @@ describe('script.js hook-up', () => {
     test('the hospital tier is fed to the view too (dev ?hospitalTier= until habits tier data exists)', () => {
         expect(script).toContain('getHospitalTier:');
         expect(script).toContain('VillageLayout.resolveDevHospitalTier(');
+        expect(script).toContain('getWindmillTier:'); // the far-row windmill (2026-10-30)
+        expect(script).toContain('VillageLayout.resolveDevWindmillTier(');
     });
 
     test('`lurkers_t*` is the boxing gym now (128x128); the Jailhouse stays `defense_t*`', () => {

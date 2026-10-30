@@ -506,3 +506,57 @@ describe('Hospital (back row)', () => {
         expect(q('habits')).toBeNull();
     });
 });
+
+// ---- Windmill (kind `bestdays`, FAR row, placeholder art), added 2026-10-30 ----
+describe('Windmill (far row)', () => {
+    const q = k => document.querySelector(`#villageLayer .village-sprite[data-kind="${k}"]`);
+    const ALL = { punctuality: 3, defense: 3, slain: 3, nights: 3, lurkers: 3, heroes: 3, habits: 3, bestdays: 3 };
+    function initAll(over = {}, size = {}) {
+        build(size);
+        const state = { mill: 3, ...over };
+        VillageView.init({
+            getHillWidth: () => 140,
+            getClockTier: () => 3,
+            getJailTier: () => 3,
+            getArmoryTier: () => 3,
+            getRadioTier: () => 3,
+            getGymTier: () => 3,
+            getSchoolTier: () => 3,
+            getHospitalTier: () => 3,
+            getWindmillTier: () => state.mill,
+        });
+        VillageView.render(160);
+        return state;
+    }
+
+    test('draws the windmill at its layout slot, darker than the back row (class + far-row brightness filter)', () => {
+        initAll();
+        const want = VillageLayout.villageSlots(844, 334, 160, 140, ALL, VillageLayout.fromConfig(CONFIG)).find(s => s.kind === 'bestdays');
+        const img = q('bestdays');
+        expect(img.getAttribute('src')).toBe('Assets/Village/bestdays_t3.png');
+        expect(img.classList.contains('village-back')).toBe(true);
+        expect(img.style.filter).toBe('brightness(' + CONFIG.VILLAGE_FAR_ROW_BRIGHTNESS + ')');
+        expect(img.style.left).toBe(want.left + 'px');
+        expect(img.style.top).toBe(want.top + 'px');
+    });
+
+    test('all eight buildings at 844 wide; the windmill paints under every other building', () => {
+        initAll();
+        expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(8);
+        const z = k => Number(q(k).style.zIndex);
+        ['nights', 'heroes', 'habits', 'defense', 'lurkers', 'slain', 'punctuality'].forEach(k => expect(z('bestdays')).toBeLessThan(z(k)));
+    });
+
+    test('a tier change swaps the image; clearing it removes only the windmill', () => {
+        const state = initAll({ mill: 1 });
+        const img = q('bestdays');
+        state.mill = 5;
+        VillageView.render(160);
+        expect(q('bestdays')).toBe(img);
+        expect(img.getAttribute('src')).toBe('Assets/Village/bestdays_t5.png');
+        state.mill = null;
+        VillageView.render(160);
+        expect(q('bestdays')).toBeNull();
+        expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(7);
+    });
+});

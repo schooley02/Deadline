@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
         getGymTier: () => VillageLayout.resolveDevGymTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
         getSchoolTier: () => VillageLayout.resolveDevSchoolTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
         getHospitalTier: () => VillageLayout.resolveDevHospitalTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
+        getWindmillTier: () => VillageLayout.resolveDevWindmillTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
     });
     const baseHealthDisplay = document.getElementById('baseHealthDisplay');
     const playerXpDisplay = document.getElementById('playerXpDisplay');

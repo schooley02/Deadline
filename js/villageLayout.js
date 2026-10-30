@@ -69,8 +69,14 @@ const VillageLayout = (() => {
         hospitalWidthPx: 128,
         hospitalHeightPx: 160,
         hospitalXFrac: 0.719,
+        windmillWidthPx: 128,
+        windmillHeightPx: 160,
+        windmillXFrac: 0.57,
+        devWindmillTier: 3,
+        farRowRaisePx: 30,
+        farRowBrightness: 0.65,
         devHospitalTier: 3,
-        art: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [11, 122], heroes: [6, 125], habits: [9, 119] },
+        art: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [11, 122], heroes: [6, 125], habits: [9, 119], bestdays: [13, 116] },
         backRowRaisePx: 30,
         backRowBrightness: 0.8,
         backMaxOverlapPx: 48,
@@ -117,6 +123,12 @@ const VillageLayout = (() => {
             hospitalWidthPx: pick(cfg.VILLAGE_HOSPITAL_W_PX, DEFAULTS.hospitalWidthPx),
             hospitalHeightPx: pick(cfg.VILLAGE_HOSPITAL_H_PX, DEFAULTS.hospitalHeightPx),
             hospitalXFrac: pick(cfg.VILLAGE_HOSPITAL_X_FRAC, DEFAULTS.hospitalXFrac),
+            windmillWidthPx: pick(cfg.VILLAGE_WINDMILL_W_PX, DEFAULTS.windmillWidthPx),
+            windmillHeightPx: pick(cfg.VILLAGE_WINDMILL_H_PX, DEFAULTS.windmillHeightPx),
+            windmillXFrac: pick(cfg.VILLAGE_WINDMILL_X_FRAC, DEFAULTS.windmillXFrac),
+            devWindmillTier: (cfg.VILLAGE_DEV_WINDMILL_TIER === null) ? null : pick(cfg.VILLAGE_DEV_WINDMILL_TIER, DEFAULTS.devWindmillTier),
+            farRowRaisePx: pick(cfg.VILLAGE_FAR_ROW_RAISE_PX, DEFAULTS.farRowRaisePx),
+            farRowBrightness: pick(cfg.VILLAGE_FAR_ROW_BRIGHTNESS, DEFAULTS.farRowBrightness),
             devHospitalTier: (cfg.VILLAGE_DEV_HOSPITAL_TIER === null) ? null : pick(cfg.VILLAGE_DEV_HOSPITAL_TIER, DEFAULTS.devHospitalTier),
             art: (cfg.VILLAGE_ART_X && typeof cfg.VILLAGE_ART_X === 'object') ? cfg.VILLAGE_ART_X : DEFAULTS.art,
             backMaxOverlapPx: pick(cfg.VILLAGE_BACK_MAX_OVERLAP_PX, DEFAULTS.backMaxOverlapPx),
@@ -189,6 +201,12 @@ const VillageLayout = (() => {
     function resolveDevHospitalTier(search, opts) {
         const o = opts || DEFAULTS;
         return resolveTierParam(search, 'hospitalTier', o.devHospitalTier, o.tiers);
+    }
+
+    // Windmill: `?windmillTier=`
+    function resolveDevWindmillTier(search, opts) {
+        const o = opts || DEFAULTS;
+        return resolveTierParam(search, 'windmillTier', o.devWindmillTier, o.tiers);
     }
 
     function fieldWidth(canvasW, baseW, hillW) {
@@ -297,6 +315,16 @@ const VillageLayout = (() => {
         return slot ? { ...slot, back: true, brightness: o.backRowBrightness } : null;
     }
 
+    // FAR-ROW windmill (kind `bestdays`, 128x160, 2026-10-30): one ridge behind the back row (feet farRowRaisePx above the
+    // back row's), darker (farRowBrightness), painted first. `back: true` keeps the `.village-back` class + filter in the view.
+    function windmillSlot(canvasW, canvasH, baseW, hillW, tier, opts, frontFeetY) {
+        const o = opts || DEFAULTS;
+        const front = (typeof frontFeetY === 'number') ? frontFeetY : horizonFeetY(canvasH, o);
+        const slot = slotFor('bestdays', o.windmillWidthPx, o.windmillHeightPx, o.windmillXFrac, canvasW, canvasH, baseW, hillW, tier, o, 1,
+            front - Math.max(0, o.backRowRaisePx) - Math.max(0, o.farRowRaisePx));
+        return slot ? { ...slot, back: true, far: true, brightness: o.farRowBrightness } : null;
+    }
+
     // Back-row hospital (kind `habits`, 128x160): same rules as the Radio tower and the school.
     function hospitalSlot(canvasW, canvasH, baseW, hillW, tier, opts, frontFeetY) {
         const o = opts || DEFAULTS;
@@ -350,11 +378,16 @@ const VillageLayout = (() => {
         if (hospital && (hospital.artLeft < fieldLeft || hospital.artRight > fieldRight
             || [jail, gym, armory, clock].some(f => f && overlapPx(hospital, f) > o.backMaxOverlapPx)
             || [radio, school].some(b => b && overlapPx(hospital, b) > 0))) hospital = null;
-        // back row first, the tower last (over any shared pixels)
-        return [radio, school, hospital, jail, gym, armory, clock].filter(Boolean);
+        // far-row windmill: evaluated last (never moves or drops anything); it may hide behind any nearer building, but is
+        // dropped if its art would reach the church or the hill, or overlap the Clock tower's art
+        let windmill = windmillSlot(canvasW, canvasH, baseW, hillW, t.bestdays, o, feet);
+        if (windmill && (windmill.artLeft < fieldLeft || windmill.artRight > fieldRight
+            || (clock && overlapPx(windmill, clock) > 0))) windmill = null;
+        // far row first, then the back row, the tower last (over any shared pixels)
+        return [windmill, radio, school, hospital, jail, gym, armory, clock].filter(Boolean);
     }
 
-    return { DEFAULTS, fromConfig, clampTier, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, resolveDevHospitalTier, fieldWidth, spriteUrl, clockTowerSlot, clockScaleFor, clockFeetY, jailSlot, armorySlot, gymSlot, radioSlot, schoolSlot, hospitalSlot, villageSlots };
+    return { DEFAULTS, fromConfig, clampTier, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, resolveDevHospitalTier, resolveDevWindmillTier, fieldWidth, spriteUrl, clockTowerSlot, clockScaleFor, clockFeetY, jailSlot, armorySlot, gymSlot, radioSlot, schoolSlot, hospitalSlot, windmillSlot, villageSlots };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

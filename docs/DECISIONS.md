@@ -6,6 +6,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 
 
+## 2026-10-30 (evening) -- Windmill (`bestdays`) look decided; placeholder wired as the first FAR-ROW building (Claude app session, Opus; layout constants + art only, no balance numbers)
+- **Look:** timber four-post tower (NOT galvanized steel: a steel lattice would read as the Radio tower at 1x), big pale galvanized wheel + tail vane as the identifier, muted barn-red board-and-batten pump house on the RIGHT (the radio's shack is on its left), round galvanized stock tank. Ladder theme: water -> crops (best days). Jeremy approved the brief by generating it.
+- **Value fix:** the wheel came back brighter than the lit window; pale metal is scaled ~20% darker in code (proportional, keeps the blade shading). Wheel pixels stay at or under the trim cap #c9c4b8.
+- **Placeholder:** PixelLab credits ran out until Nov 7; T1-T2 = batch-1 variant 4, T3-T5 = variant 1 (fixed). Replace when the real ladder exists.
+- **Placement:** the hospital (pushed minutes earlier) took the back-row gap between the gym and the Armory, and at 844 wide no back-row gap was left. Options mocked on the real screen: (A) a new FAR row between the school and the hospital, (C) far row above the Jailhouse, (wide screens only). Jeremy picked A for now (C crowds the church) and asked to also SEE a back-row spot above the Jailhouse, which would overlap the radio's art (~17 px) and break the back-row no-overlap rule; mock saved, not built.
+- **FAR-ROW RULE:** feet `VILLAGE_FAR_ROW_RAISE_PX` (30) above the back row, `VILLAGE_FAR_ROW_BRIGHTNESS` 0.65, painted first, may hide behind anything, dropped only for the church / hill / an overlap with the Clock tower's art. Evaluated last, so it never moves or drops another building (tested at 640-1440 wide).
+
 ## 2026-10-30 (late afternoon) -- Hospital (`habits`) look decided; T3 shipped as a placeholder for all five tiers in the BACK row (Claude app session, Opus; layout constants + art only, no balance numbers)
 
 - **Look:** tall narrow 1920s three-storey hospital in muted SAGE-GREEN stucco with cream quoins, plus a one-storey ER wing (glass doors, lamp, "ER" lettered in code). Shape and material differ from every other building (tall/narrow vs the wide school and boxy gym; green is unused elsewhere).

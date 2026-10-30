@@ -640,7 +640,7 @@ describe('Boxing gym (front row) + art-box collision', () => {
     });
 
     test('every kind has an art extent inside its canvas', () => {
-        ['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes', 'habits'].forEach(k => {
+        ['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes', 'habits', 'bestdays'].forEach(k => {
             const [l, r] = CONFIG.VILLAGE_ART_X[k];
             expect(l).toBeGreaterThanOrEqual(0);
             expect(r).toBeGreaterThan(l);
@@ -764,7 +764,7 @@ describe('Boxing gym (front row) + art-box collision', () => {
     // CONFIG.VILLAGE_ART_X must match the real sprites: the union over the five tiers of each kind's visible columns.
     let PNG = null;
     try { PNG = require('pngjs').PNG; } catch (e) { PNG = null; }
-    (PNG ? test : test.skip).each(['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes', 'habits'])(
+    (PNG ? test : test.skip).each(['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes', 'habits', 'bestdays'])(
         'CONFIG.VILLAGE_ART_X.%s equals the union of its five tiers\' visible columns (measured from the PNGs)', kind => {
             let lo = Infinity, hi = -Infinity;
             [1, 2, 3, 4, 5].forEach(t => {
@@ -960,5 +960,97 @@ describe('Hospital (back row)', () => {
         expect(b.slice(1, 4).toString()).toBe('PNG');
         expect(b.readUInt32BE(16)).toBe(CONFIG.VILLAGE_HOSPITAL_W_PX);
         expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_HOSPITAL_H_PX);
+    });
+});
+
+// ---- Windmill (kind `bestdays`), the first FAR-ROW building, PLACEHOLDER art 2026-10-30 ----
+describe('Windmill (far row)', () => {
+    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 140, opts = OPTS) =>
+        VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts);
+    const SEVEN = { punctuality: 3, defense: 3, slain: 3, lurkers: 3, nights: 3, heroes: 3, habits: 3 };
+    const ALL = { ...SEVEN, bestdays: 3 };
+    const SIZES = [[844, 334], [915, 356], [1265, 298], [1100, 320], [1440, 400]];
+    const ov = (a, b) => Math.max(0, Math.min(a.artRight, b.artRight) - Math.max(a.artLeft, b.artLeft));
+
+    test('fromConfig mirrors the windmill + far-row CONFIG and DEFAULTS agree with it', () => {
+        const d = VillageLayout.DEFAULTS;
+        ['windmillWidthPx', 'windmillHeightPx', 'windmillXFrac', 'devWindmillTier', 'farRowRaisePx', 'farRowBrightness'].forEach(k => expect(OPTS[k]).toBe(d[k]));
+        expect(OPTS.windmillWidthPx).toBe(CONFIG.VILLAGE_WINDMILL_W_PX);
+        expect(OPTS.windmillHeightPx).toBe(CONFIG.VILLAGE_WINDMILL_H_PX);
+        expect(OPTS.windmillXFrac).toBe(CONFIG.VILLAGE_WINDMILL_X_FRAC);
+        expect(OPTS.devWindmillTier).toBe(CONFIG.VILLAGE_DEV_WINDMILL_TIER);
+        expect(OPTS.farRowRaisePx).toBe(CONFIG.VILLAGE_FAR_ROW_RAISE_PX);
+        expect(OPTS.farRowBrightness).toBe(CONFIG.VILLAGE_FAR_ROW_BRIGHTNESS);
+        expect(CONFIG.VILLAGE_FAR_ROW_BRIGHTNESS).toBeLessThan(CONFIG.VILLAGE_BACK_ROW_BRIGHTNESS);
+        expect(VillageLayout.fromConfig({ VILLAGE_DEV_WINDMILL_TIER: null }).devWindmillTier).toBeNull();
+    });
+
+    test('resolveDevWindmillTier reads only ?windmillTier=', () => {
+        expect(VillageLayout.resolveDevWindmillTier('', OPTS)).toBe(CONFIG.VILLAGE_DEV_WINDMILL_TIER);
+        expect(VillageLayout.resolveDevWindmillTier('?windmillTier=1', OPTS)).toBe(1);
+        expect(VillageLayout.resolveDevWindmillTier('?a=2&windmillTier=5', OPTS)).toBe(5);
+        expect(VillageLayout.resolveDevWindmillTier('?windmillTier=off', OPTS)).toBeNull();
+        expect(VillageLayout.resolveDevWindmillTier('?hospitalTier=1', OPTS)).toBe(CONFIG.VILLAGE_DEV_WINDMILL_TIER);
+        expect(VillageLayout.resolveDevHospitalTier('?windmillTier=1', OPTS)).toBe(CONFIG.VILLAGE_DEV_HOSPITAL_TIER);
+    });
+
+    test('windmillSlot: kind bestdays, 128x160, FAR row (raised above the back row, darker), art box on the slot', () => {
+        const s = VillageLayout.windmillSlot(844, 334, 160, 140, 3, OPTS);
+        expect(s.kind).toBe('bestdays');
+        expect(s.url).toBe('Assets/Village/bestdays_t3.png');
+        expect([s.width, s.height]).toEqual([128, 160]);
+        expect(s.back).toBe(true);
+        expect(s.far).toBe(true);
+        expect(s.brightness).toBe(CONFIG.VILLAGE_FAR_ROW_BRIGHTNESS);
+        expect(s.feetY).toBe(334 - CONFIG.GROUND_FLOOR_HEIGHT - CONFIG.VILLAGE_FEET_ABOVE_FLOOR_PX
+            - CONFIG.VILLAGE_BACK_ROW_RAISE_PX - CONFIG.VILLAGE_FAR_ROW_RAISE_PX);
+        expect(s.artLeft).toBe(s.left + CONFIG.VILLAGE_ART_X.bestdays[0]);
+        expect(s.artRight).toBe(s.left + CONFIG.VILLAGE_ART_X.bestdays[1]);
+        expect(VillageLayout.windmillSlot(844, 334, 160, 0, 3, OPTS)).toBeNull();
+        expect(VillageLayout.windmillSlot(844, 334, 160, 140, null, OPTS)).toBeNull();
+    });
+
+    test('all eight show from 844 wide up; the far row paints first', () => {
+        SIZES.forEach(([w, h]) => {
+            expect(slots(w, h, ALL).map(x => x.kind)).toEqual(['bestdays', 'nights', 'heroes', 'habits', 'defense', 'lurkers', 'slain', 'punctuality']);
+        });
+    });
+
+    test('it stands between the school and the hospital, one row behind them, clear of the Clock tower and inside the canvas', () => {
+        SIZES.forEach(([w, h]) => {
+            const s = slots(w, h, ALL);
+            const k = kind => s.find(x => x.kind === kind);
+            const mill = k('bestdays');
+            const mid = (mill.artLeft + mill.artRight) / 2;
+            expect(mid).toBeGreaterThan(k('heroes').artLeft);
+            expect(mid).toBeLessThan(k('habits').artRight);
+            expect(ov(mill, k('punctuality'))).toBe(0);
+            expect(mill.feetY).toBe(k('heroes').feetY - CONFIG.VILLAGE_FAR_ROW_RAISE_PX);
+            expect(mill.top).toBeGreaterThanOrEqual(0);
+        });
+    });
+
+    test('adding the windmill never moves or drops another building (every width)', () => {
+        [[640, 334], [700, 334], [760, 334], [800, 334], ...SIZES].forEach(([w, h]) => {
+            const without = slots(w, h, SEVEN);
+            const withMill = slots(w, h, ALL).filter(x => x.kind !== 'bestdays');
+            expect(withMill).toEqual(without);
+        });
+    });
+
+    test('it is DROPPED (never moved) if it would overlap the Clock tower; it can show alone; portrait strip = nothing', () => {
+        const near = { ...OPTS, windmillXFrac: CONFIG.VILLAGE_CLOCK_X_FRAC };
+        expect(slots(844, 334, ALL, 160, 140, near).map(x => x.kind)).not.toContain('bestdays');
+        expect(slots(844, 334, { bestdays: 2 }).map(x => x.kind)).toEqual(['bestdays']);
+        expect(slots(844, 334, { bestdays: 3 }, 160, 0)).toEqual([]);
+    });
+
+    test.each([1, 2, 3, 4, 5])('shipped bestdays tier %i exists and is the authored 128x160 canvas', tier => {
+        const file = path.join(__dirname, '..', VillageLayout.spriteUrl('bestdays', tier));
+        expect(fs.existsSync(file)).toBe(true);
+        const b = fs.readFileSync(file);
+        expect(b.slice(1, 4).toString()).toBe('PNG');
+        expect(b.readUInt32BE(16)).toBe(CONFIG.VILLAGE_WINDMILL_W_PX);
+        expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_WINDMILL_H_PX);
     });
 });

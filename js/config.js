@@ -559,9 +559,20 @@ const CONFIG = {
     VILLAGE_HOSPITAL_H_PX: 160,
     VILLAGE_HOSPITAL_X_FRAC: 0.719,
     VILLAGE_DEV_HOSPITAL_TIER: 3, // DEV: no habits tier data yet. `?hospitalTier=1..5` overrides, `off` hides; null = hidden
+    // Windmill (kind `bestdays`, 2026-10-30, PLACEHOLDER art until PixelLab credits return Nov 7): farm water-pumping windmill on a
+    // timber tower + barn-red pump house, 128x160, the first FAR-ROW building: one ridge further back than the back row (feet
+    // VILLAGE_FAR_ROW_RAISE_PX above the back row's), darker, painted first, so mostly its wheel shows, between the school and
+    // the hospital. The back row was full at 844 wide. A far-row building may hide behind any front/back building; it is
+    // dropped only if its art would reach the church or the hill, or overlap the Clock tower's art (the landmark stays clear).
+    VILLAGE_WINDMILL_W_PX: 128,
+    VILLAGE_WINDMILL_H_PX: 160,
+    VILLAGE_WINDMILL_X_FRAC: 0.57,
+    VILLAGE_DEV_WINDMILL_TIER: 3, // DEV: no bestdays tier data yet. `?windmillTier=1..5` overrides, `off` hides; null = hidden
+    VILLAGE_FAR_ROW_RAISE_PX: 30, // far-row feet stand this far above the BACK row's feet
+    VILLAGE_FAR_ROW_BRIGHTNESS: 0.65, // darker than the back row (0.8) so it reads as further away
     // Visible-art extent [left, right) inside each kind's 128px canvas, the UNION over its five tiers (measured from the shipped sprites, 2026-10-30).
     // Collision, the church/hill edges and the back-row overlap use THESE, not the 128px boxes (most of a box is empty air), so five buildings fit.
-    VILLAGE_ART_X: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [11, 122], heroes: [6, 125], habits: [9, 119] },
+    VILLAGE_ART_X: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [11, 122], heroes: [6, 125], habits: [9, 119], bestdays: [13, 116] },
 
     // --- Sub-task clustering ---
     SUBTASK_CLUSTER_GAP_PX: 8, // visual gap between clustered sprites' VISIBLE graphics (not their boxes)
