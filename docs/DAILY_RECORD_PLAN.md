@@ -102,6 +102,13 @@ reads closed days whose `run` matches (the live run adds today's open record via
 scores equal, shows nothing. Shown in the expanded past-run cards and the live current-run panel.
 Runs that ended before D2 have no days, so they show nothing. Day Pager stays forward-only.
 
+## v2 addition: routine attendance (BUILT 2026-10-30, Sonnet; village tiers Build 1)
+The village High school counts "perfect attendance" days (every active routine fully done; late counts), so the
+record gained `att { active, perfect }` (closed days) and a working `rt` tally on the open day. `Items` sends the owning
+routine's id (`routineId`) with `complete` / `uncomplete` / `overdue` / `lurk`-slipped; `DailyRecord.close` folds the tally
+into `att`. Details in `docs/DATA_SCHEMA.md` "Daily record" (v2). `V` is now 2; v1 days read as "no attendance data".
+The village counters that read the record live in `js/villageProgress.js` (plan: `docs/WORLD_FEEDBACK_PLAN.md`).
+
 ## Build steps (Sonnet, medium; one session)
 1. `js/dailyRecord.js` + tests (shape, bump, undo, close, 18-month roll-up).
 2. Schema 15 (`save.today`), `deadline.days` persistence helpers, export/import.

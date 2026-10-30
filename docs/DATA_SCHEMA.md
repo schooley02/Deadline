@@ -364,6 +364,15 @@ Save {
     (habit instances are removed once settled).
   - A check-in answer for yesterday's lurker lands in TODAY's record; the silent rollover auto-avoid lands in
     the day that just ended. An undo whose completion belongs to a closed day is skipped.
+  - **v2 (2026-10-30, village High school; additive, no schema bump):** `att { active, perfect }` on CLOSED days =
+    routine attendance: `active` = routines with any activity that day, `perfect` = how many of those had every item
+    finished (an item that went overdue and was finished late still counts). A day is "perfect attendance" when
+    `active >= 1 && perfect === active` (`DailyRecord.isPerfectAttendance`). `rt { "<routineId>": [done, missed, lateDone] }`
+    is the OPEN day's working tally (opaque numeric ids, no names), fed by the optional `routineId` on the
+    `complete` / `uncomplete` / `overdue` / `lurk` (slipped) events that `Items` now sends (`dailyRoutineId`);
+    `close()` folds it into `att` and clears it (so closed days carry `rt: {}`). A bad habit avoided inside a routine is a
+    done item; a slip is a miss. Frozen routines' tasks do not spawn, KO ghosts never go overdue. Month roll-up sums `att`.
+    Older v1 days simply have no `att` and never count as perfect.
 - **Rule:** a mechanic that changes what can happen in a day adds its counter in the same session
   (`DailyRecord.bump` event + a `recordDaily`/`State.bumpToday` seam) and bumps `DailyRecord.V`.
 

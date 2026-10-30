@@ -574,6 +574,25 @@ const CONFIG = {
     // Collision, the church/hill edges and the back-row overlap use THESE, not the 128px boxes (most of a box is empty air), so five buildings fit.
     VILLAGE_ART_X: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [11, 122], heroes: [6, 125], habits: [9, 119], bestdays: [13, 116] },
 
+    // ---- Village tiers (DECIDED 2026-10-30 night, DECISIONS "Village tiers"; docs/WORLD_FEEDBACK_PLAN.md "Village tiers + building cards") ----
+    // BALANCE numbers, approved by Jeremy as a THEORY pass (rates are estimates; re-check against real play, like the shop prices).
+    // Tier = progress in the CURRENT run only: it never goes down and every new run starts at T1. [T2, T3, T4, T5] = the per-run
+    // counter value that reaches each tier. Counters live in js/villageProgress.js. Target pacing for a player doing reasonably
+    // well: T2 ~4 days, T3 ~2.5 weeks, T4 ~7 weeks, T5 3+ months.
+    VILLAGE_TIER_THRESHOLDS: {
+        nights: [4, 18, 50, 100],         // Radio tower: nights survived (~1/day)
+        slain: [30, 150, 450, 1000],      // Armory: tasks + sub-tasks + habits completed (~10/day)
+        punctuality: [25, 120, 350, 750], // Clock tower: completed on time (~8/day)
+        habits: [20, 80, 250, 500],       // Hospital: habit check-ins (~5/day)
+        lurkers: [3, 14, 40, 80],         // Boxing gym: days with no slips (>= 1 bad habit resolved, none slipped)
+        defense: [3, 14, 40, 80],         // Jailhouse: nights the church ended at >= VILLAGE_DEFENSE_HELD_FRAC of max health
+        heroes: [3, 10, 30, 60],          // High school: perfect-attendance days (every active routine fully done)
+        bestdays: [2, 5, 15, 30],         // Windmill: heavy days handled (more due than the recent average, nothing missed)
+    },
+    VILLAGE_DEFENSE_HELD_FRAC: 0.75, // a night counts for the Jailhouse when the church ends the day at >= this fraction of MAX_BASE_HEALTH
+    VILLAGE_HEAVY_DAY_WINDOW: 14, // the Windmill's "recent average" = this run's last N closed days
+    VILLAGE_HEAVY_DAY_MIN_DAYS: 3, // ...and needs at least this many closed days of history before any day can be heavy
+
     // --- Sub-task clustering ---
     SUBTASK_CLUSTER_GAP_PX: 8, // visual gap between clustered sprites' VISIBLE graphics (not their boxes)
     SUBTASK_AHEAD_THRESHOLD_PX: 150, // how much closer to the base a sub-task's own due date must put it before it breaks from the cluster

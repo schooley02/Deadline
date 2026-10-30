@@ -20,12 +20,12 @@
  *
  * bump(rec, event, p) events (p = payload; `hour` 0-23, or `at` in ms from
  * which the local hour is derived):
- *   complete    {kind:'task'|'subtask'|'habit'|'lurker', category, hour|at, late?, points?}
+ *   complete    {kind:'task'|'subtask'|'habit'|'lurker', category, hour|at, late?, points?, routineId?}
  *               ('lurker' = a negative habit successfully avoided: counts in
  *               lurk.avoided, NOT done.*; hours / category / points as usual)
  *   uncomplete  same payload -- exact reverse of complete (floors at 0)
- *   overdue     {kind:'task'|'habit', category, hour|at}
- *   lurk        {outcome:'avoided'|'slipped'}
+ *   overdue     {kind:'task'|'habit', category, hour|at, routineId?}
+ *   lurk        {outcome:'avoided'|'slipped', routineId?}   (routineId only matters for 'slipped')
  *   damage      {amount, category, hour|at, hp?}     hp = base HP AFTER the hit
  *   offline     {amount, hp?}                        back-charged on load (kept apart
  *               from live damage: no hour / category, the hit time is unknown)
@@ -37,7 +37,8 @@
  *   touch       {hour|at}                            any UI interaction
  */
 const DailyRecord = (() => {
-    const V = 1;
+    // v2 (2026-10-30, village High school): `rt` (open-day per-routine tally) + `att` (closed-day routine attendance).
+    const V = 2;
 
     // Mirrors CONFIG.HERO_CATEGORIES (test/dailyRecord.test.js checks they
     // match). Kept local so this module has no global dependencies.
@@ -117,7 +118,52 @@ const DailyRecord = (() => {
             revived: 0,
             timer: { workMin: 0, limitMin: 0 },
             streak: { best: 0 },
+            // Routine attendance (v2). `rt` is the OPEN day's tally, { "<routineId>": [done, missed, lateDone] } (opaque numeric ids,
+            // no names); close() folds it into `att` and clears it. att.active = routines with activity that day, att.perfect = how
+            // many of those had every item finished (late counts). A day is "perfect attendance" when active >= 1 and perfect === active.
+            att: { active: 0, perfect: 0 },
+            rt: {},
         };
+    }
+
+    // ---- Routine attendance (v2) ----
+    function sanitizeRt(src) {
+        const out = {};
+        if (!src || typeof src !== 'object') return out;
+        Object.keys(src).forEach((k) => {
+            const t = src[k];
+            if (!Array.isArray(t)) return;
+            out[k] = [0, 1, 2].map((i) => (Number.isFinite(t[i]) && t[i] > 0 ? t[i] : 0));
+        });
+        return out;
+    }
+
+    // idx 0 = done, 1 = missed, 2 = completed late. Undo (dir < 0) floors at 0.
+    function tally(rec, routineId, idx, dir) {
+        if (routineId == null || !Number.isFinite(Number(routineId))) return;
+        if (!rec.rt || typeof rec.rt !== 'object') rec.rt = {};
+        const key = String(routineId);
+        const t = rec.rt[key] || (rec.rt[key] = [0, 0, 0]);
+        t[idx] = dir > 0 ? t[idx] + 1 : (t[idx] > 0 ? t[idx] - 1 : 0);
+    }
+
+    // A routine counts that day when it had any activity; it is perfect when every item that went overdue was
+    // finished anyway (misses minus late completions is <= 0).
+    function attendanceFromTally(rt) {
+        const out = { active: 0, perfect: 0 };
+        Object.keys(rt || {}).forEach((k) => {
+            const t = rt[k] || [0, 0, 0];
+            if ((t[0] || 0) + (t[1] || 0) <= 0) return;
+            out.active += 1;
+            if (Math.max(0, (t[1] || 0) - (t[2] || 0)) === 0) out.perfect += 1;
+        });
+        return out;
+    }
+
+    /** True when a CLOSED day had at least one active routine and every one of them was fully attended. */
+    function isPerfectAttendance(rec) {
+        const a = rec && rec.att;
+        return !!(a && a.active >= 1 && a.perfect === a.active);
     }
 
     // Repair a record read from storage so every field a bump touches exists
@@ -144,6 +190,7 @@ const DailyRecord = (() => {
             });
         }
         fill(f, rec);
+        f.rt = sanitizeRt(rec.rt);
         // `fill` skips null/undefined sources, but null IS a legal value for
         // active.first/last and base.*; copy those straight across.
         if (rec.active) { f.active.first = rec.active.first != null ? rec.active.first : null; f.active.last = rec.active.last != null ? rec.active.last : null; }
@@ -156,6 +203,8 @@ const DailyRecord = (() => {
 
     function bumpComplete(rec, p, dir) {
         const isLurker = p.kind === 'lurker';
+        tally(rec, p.routineId, 0, dir);
+        if (p.late) tally(rec, p.routineId, 2, dir);
         const kind = p.kind === 'subtask' || p.kind === 'habit' ? p.kind : 'task';
         const h = hourOf(p);
         const cat = rec.byCat[catKey(p.category)];
@@ -209,12 +258,13 @@ const DailyRecord = (() => {
                 const kind = p.kind === 'habit' ? 'habit' : 'task';
                 const h = hourOf(p);
                 rec.missed[kind] += 1;
+                tally(rec, p.routineId, 1, +1);
                 if (h != null) rec.hoursMissed[h] += 1;
                 rec.byCat[catKey(p.category)][1] += 1;
                 break;
             }
             case 'lurk':
-                if (p.outcome === 'slipped') rec.lurk.slipped += 1;
+                if (p.outcome === 'slipped') { rec.lurk.slipped += 1; tally(rec, p.routineId, 1, +1); }
                 else if (p.outcome === 'avoided') rec.lurk.avoided += 1;
                 break;
             case 'damage': {
@@ -303,6 +353,13 @@ const DailyRecord = (() => {
         }
         if (c.ptsEnd != null) r.pts.end = c.ptsEnd;
         if (c.bestStreak != null) r.streak.best = c.bestStreak;
+        // v2: fold the open-day routine tally into att and drop it (a second close of an already-closed record keeps its att).
+        if (Object.keys(r.rt).length) {
+            const a = attendanceFromTally(r.rt);
+            r.att.active = a.active;
+            r.att.perfect = a.perfect;
+        }
+        r.rt = {};
         return r;
     }
 
@@ -415,6 +472,8 @@ const DailyRecord = (() => {
         });
         dst.pts.earned += (src.pts && src.pts.earned) || 0;
         dst.pts.spent += (src.pts && src.pts.spent) || 0;
+        dst.att.active += (src.att && src.att.active) || 0;
+        dst.att.perfect += (src.att && src.att.perfect) || 0;
         dst.resched += src.resched || 0;
         dst.ko += src.ko || 0;
         dst.revived += src.revived || 0;
@@ -504,6 +563,8 @@ const DailyRecord = (() => {
         bump,
         close,
         totals,
+        attendanceFromTally,
+        isPerfectAttendance,
         dayScore,
         bestWorstByRun,
         emptyStore,
