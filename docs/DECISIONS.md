@@ -5,6 +5,32 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+## 2026-10-30 (night) -- Village tiers: per-run, only up, reset on game over; one counter + thresholds per building; building cards (Claude app session, Opus; balance-tuning THEORY pass, Jeremy approved; nothing wired yet)
+- **Tier = progress within the current run.** It only goes up, resets to T1 on game over, and every new player and every new run starts with a T1 village (Jeremy). Why: art you can lose feels like being robbed, not motivated; a reset gives game over weight and each run a fresh chance to earn the T4/T5 art; it fits "the horde overran the town, rebuild from the ruins".
+- **Condition is a separate layer that CAN go down** (overgrowth, dark windows, boarded doors over whatever tier was reached), per the queued "baked overgrown/neglected variants" item. Neglect shows without taking a tier away.
+- **Building card:** tapping a building opens a card: name, what it measures, T1-T5 pips, a progress bar "N / M <unit> to reach T<n+1>", "Fully rebuilt" at T5. Jeremy wants players to see how far they have to go.
+- **Game-over review card shows the village at its peak**, and run history keeps each building's best tier (later build).
+- **Rejected: blueprints** (a building's best past tier lowers next run's thresholds) -- runs would no longer compare apples to apples (Jeremy). Rejected: tiers read from current-state stats that can drop.
+- **Counters (all per run, all only go up):**
+  - Radio tower (`nights`): nights survived (same count as `Damage.computeDaysSurvived`).
+  - Armory (`slain`): tasks + sub-tasks + habits completed.
+  - Clock tower (`punctuality`): tasks + sub-tasks + habits completed ON TIME (daily record done minus late).
+  - Hospital (`habits`): habit check-ins (habits completed).
+  - Boxing gym (`lurkers`): **days with no slips** -- at least one bad habit was due that day and none slipped. A day with no bad habit due neither counts nor hurts. (Changed from "each bad habit resisted": that paced with how many bad habits someone tracks; Jeremy.)
+  - Jailhouse (`defense`, Church Defense): **nights the church held** -- the day ended with the church at >= 75% health. Full health only / no damage at all were too harsh. Jeremy: "keeping the church healthy means they are doing a pretty good job each day".
+  - High school (`heroes`): **perfect attendance days** -- every active routine (not frozen, not KO'd) finished every item due that day; late counts. Counts DAYS, not routine-days, so adding routines does not inflate it, and padding a routine with filler makes it harder, not easier (Jeremy's worry: a 2-item bedtime routine padded to pump stats). A day with no active routine does not count. The card shows the current streak as flavour only; the tier is never streak-based. Rejected: hero levels/XP (rewards padding), hero stars (can drop and re-climb, farmable, low ceiling), streak tiers (one miss after a 40-day streak would wipe weeks of progress).
+  - Windmill (`bestdays`): **heavy days handled** -- more items due than the average of this run's last 14 closed days (needs >= 3 days of history, so none before night 4) AND nothing missed. The bar rises with the player, so it keeps asking them to stretch (Jeremy: "difficult days that were overcome... out of their comfort zones"); padding mostly cancels out because filler raises the average too. The card also shows "comeback days" (a clean day right after a day with misses or damage) as a flavour line, not the tier. Rejected: clean days, day score above X (cannot be explained on a card), planned-ahead tasks, well-rounded days (3+ categories), a self-reported "stretch" task flag (new schema + form field), work-timer focus minutes (gameable by leaving the timer on).
+- **Thresholds (T2 / T3 / T4 / T5)**, pacing target for a player doing reasonably well: T2 ~4 days, T3 ~2.5 weeks, T4 ~7 weeks, T5 3+ months; front-loaded so a learner who dies early still sees T2-T3:
+  - nights 4 / 18 / 50 / 100 (1/day)
+  - slain 30 / 150 / 450 / 1000 (~10/day)
+  - punctuality 25 / 120 / 350 / 750 (~8/day)
+  - habits 20 / 80 / 250 / 500 (~5/day)
+  - lurkers 3 / 14 / 40 / 80 (~80% of days)
+  - defense 3 / 14 / 40 / 80 (~80% of days)
+  - heroes 3 / 10 / 30 / 60 (~60% of days)
+  - bestdays 2 / 5 / 15 / 30 (~30% of days)
+- **Theory pass only:** the rates are estimates (~6 habits + ~4 tasks a day for an established player); no long real save exists. Re-check against real play once Jeremy has played a while, like the shop prices. Typical run length hoped for: months (Jeremy).
+- Build plan: `docs/WORLD_FEEDBACK_PLAN.md` "Village tiers + building cards".
 
 ## 2026-10-30 (evening) -- Windmill (`bestdays`) look decided; placeholder wired as the first FAR-ROW building (Claude app session, Opus; layout constants + art only, no balance numbers)
 - **Look:** timber four-post tower (NOT galvanized steel: a steel lattice would read as the Radio tower at 1x), big pale galvanized wheel + tail vane as the identifier, muted barn-red board-and-batten pump house on the RIGHT (the radio's shack is on its left), round galvanized stock tank. Ladder theme: water -> crops (best days). Jeremy approved the brief by generating it.

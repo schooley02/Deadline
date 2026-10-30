@@ -178,6 +178,54 @@ Mockups: Design canvas "Deadline World Feedback Mockups", boards 7a-7f (7f is a 
   parent's sub-tasks can stand on the hill edge. (2) The "+" FAB (bottom-right) overlaps the lowest ~20px of
   the front-lane stones' tap boxes on a landscape phone. (3) Placeholder art only; no tier art or tree growth.
 
+## Village tiers + building cards -- DECIDED 2026-10-30 (night), build plan (Opus plan -> Sonnet build)
+
+Decisions, counters and thresholds: DECISIONS 2026-10-30 (night). Summary: each building's tier is progress in the CURRENT
+run (only up, back to T1 on game over), read from one per-run counter against `[T2, T3, T4, T5]` thresholds. Tapping a
+building opens a card that shows how far it is to the next tier.
+
+| Kind | Building | Counter (per run) | Source | T2 / T3 / T4 / T5 |
+|---|---|---|---|---|
+| `nights` | Radio tower | nights survived | `Damage.computeDaysSurvived` | 4 / 18 / 50 / 100 |
+| `slain` | Armory | tasks + sub-tasks + habits completed | `currentRunStats` | 30 / 150 / 450 / 1000 |
+| `punctuality` | Clock tower | completed on time | daily records: done - late | 25 / 120 / 350 / 750 |
+| `habits` | Hospital | habit check-ins | `currentRunStats.habitsCompleted` | 20 / 80 / 250 / 500 |
+| `lurkers` | Boxing gym | days with no slips (>= 1 bad habit due, 0 slipped) | daily records `lurk` | 3 / 14 / 40 / 80 |
+| `defense` | Jailhouse | nights the church held (day ended >= 75% health) | daily records `base.endHp` | 3 / 14 / 40 / 80 |
+| `heroes` | High school | perfect attendance days (every active routine fully done) | NEW daily-record field | 3 / 10 / 30 / 60 |
+| `bestdays` | Windmill | heavy days handled (due > avg of last 14 closed days, >= 3 days history, 0 missed) | daily records `due`/`missed` | 2 / 5 / 15 / 30 |
+
+Day-based counters use this run's closed days in `deadline.days` (matching `run`) plus the open `save.today` where it
+makes sense (a day only counts once it can no longer change: closed days for `defense`, `heroes`, `bestdays`, `lurkers`;
+`punctuality` may include today's running count). Days recorded before a field existed simply do not count.
+
+**Build 1 -- data + pure model (Sonnet, medium; Jest):**
+1. `CONFIG.VILLAGE_TIER_THRESHOLDS = { kind: [t2, t3, t4, t5] }` plus `VILLAGE_DEFENSE_HELD_FRAC` 0.75,
+   `VILLAGE_HEAVY_DAY_WINDOW` 14, `VILLAGE_HEAVY_DAY_MIN_DAYS` 3 (balance numbers, already approved; comment them as such).
+2. Daily record: add per-day routine attendance (e.g. `routines: { active, perfect }` or per-routine due/done, decide in the
+   build) bumped through the existing `recordDaily` seams; frozen/KO'd routines excluded; bump `DailyRecord.v`, note it in
+   `docs/DATA_SCHEMA.md` (CLAUDE.md daily-record rule). Check first whether `load.routines` already covers "active".
+3. New pure `js/villageProgress.js`: `counters(ctx)` -> `{ kind: value }` from `currentRunStats`, nights, this run's day
+   records + today; `tierFor(value, thresholds)` -> `{ tier, value, nextAt, toNext, maxed }`; `heavyDays`, `comebackDays`,
+   `attendanceStreak` helpers. Tests in `test/villageProgress.test.js` (each counter, threshold edges, history < 3 days,
+   no-routine / no-bad-habit days, reset on a new run).
+
+**Build 2 -- real tiers + building card (Sonnet, medium; Jest + live check):**
+1. script.js `get<Kind>Tier` read `VillageProgress`; the dev URL params (`?gymTier=` etc.) still override for art checks.
+   A new game shows a T1 village.
+2. Tappable buildings: `.village-layer` stays `pointer-events: none`, `.village-sprite` gets `pointer-events: auto` +
+   cursor; zombies (z 30+) stay above so they keep their taps. Watch the transparent corners of each 128px canvas (alpha
+   hit-test or the `VILLAGE_ART_X` box) and the back row tucked behind the front row.
+3. `js/ui/villageCard.js` + `css/villageCard.css`, opened through `Modal` like the level panel (the opening click MUST
+   `stopPropagation`): sprite at 2x, building name, one-line "what it measures", T1-T5 pips, progress bar
+   "N / M <unit> to reach T<n+1>", "Fully rebuilt" at T5. Extra lines: school = current attendance streak; windmill =
+   comeback days this run. Empty states: gym with no bad habits = "Add a habit to resist to start rebuilding"; school with
+   no routines = "Start a routine to open the school".
+4. sw.js bump + new files in `APP_SHELL`; ART_STYLE/UI_UX notes; live check in the pane and on a phone.
+
+**Build 3 -- later:** game-over review card shows the village at its peak; each run record keeps every building's best
+tier (additive field). Condition overlays stay their own queued item.
+
 ## Suggested build order (PROPOSED; one session each, commit each)
 
 - [x] **W0 — Layout pass (BUILT 2026-10-28, Opus plan / Sonnet build; sw v133):** graveyard hill on the
