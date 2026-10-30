@@ -640,7 +640,7 @@ describe('Boxing gym (front row) + art-box collision', () => {
     });
 
     test('every kind has an art extent inside its canvas', () => {
-        ['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes'].forEach(k => {
+        ['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes', 'habits'].forEach(k => {
             const [l, r] = CONFIG.VILLAGE_ART_X[k];
             expect(l).toBeGreaterThanOrEqual(0);
             expect(r).toBeGreaterThan(l);
@@ -764,7 +764,7 @@ describe('Boxing gym (front row) + art-box collision', () => {
     // CONFIG.VILLAGE_ART_X must match the real sprites: the union over the five tiers of each kind's visible columns.
     let PNG = null;
     try { PNG = require('pngjs').PNG; } catch (e) { PNG = null; }
-    (PNG ? test : test.skip).each(['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes'])(
+    (PNG ? test : test.skip).each(['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes', 'habits'])(
         'CONFIG.VILLAGE_ART_X.%s equals the union of its five tiers\' visible columns (measured from the PNGs)', kind => {
             let lo = Infinity, hi = -Infinity;
             [1, 2, 3, 4, 5].forEach(t => {
@@ -874,5 +874,91 @@ describe('High school (back row)', () => {
         expect(b.slice(1, 4).toString()).toBe('PNG');
         expect(b.readUInt32BE(16)).toBe(CONFIG.VILLAGE_SCHOOL_W_PX);
         expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_SCHOOL_H_PX);
+    });
+});
+
+// ---- Hospital (kind `habits`, a BACK-ROW building between the gym and the Armory), added 2026-10-30 (placeholder art) ----
+describe('Hospital (back row)', () => {
+    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 140, opts = OPTS) =>
+        VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts);
+    const SIX = { punctuality: 3, defense: 3, slain: 3, lurkers: 3, nights: 3, heroes: 3 };
+    const ALL = { ...SIX, habits: 3 };
+    const SIZES = [[844, 334], [915, 356], [1265, 298], [1100, 320], [1440, 400]];
+    const ov = (a, b) => Math.max(0, Math.min(a.artRight, b.artRight) - Math.max(a.artLeft, b.artLeft));
+
+    test('fromConfig mirrors the hospital CONFIG and DEFAULTS agree with it', () => {
+        const d = VillageLayout.DEFAULTS;
+        ['hospitalWidthPx', 'hospitalHeightPx', 'hospitalXFrac', 'devHospitalTier'].forEach(k => expect(OPTS[k]).toBe(d[k]));
+        expect(OPTS.hospitalWidthPx).toBe(CONFIG.VILLAGE_HOSPITAL_W_PX);
+        expect(OPTS.hospitalHeightPx).toBe(CONFIG.VILLAGE_HOSPITAL_H_PX);
+        expect(OPTS.hospitalXFrac).toBe(CONFIG.VILLAGE_HOSPITAL_X_FRAC);
+        expect(OPTS.devHospitalTier).toBe(CONFIG.VILLAGE_DEV_HOSPITAL_TIER);
+        expect(VillageLayout.fromConfig({ VILLAGE_DEV_HOSPITAL_TIER: null }).devHospitalTier).toBeNull();
+    });
+
+    test('resolveDevHospitalTier reads only ?hospitalTier=', () => {
+        expect(VillageLayout.resolveDevHospitalTier('', OPTS)).toBe(CONFIG.VILLAGE_DEV_HOSPITAL_TIER);
+        expect(VillageLayout.resolveDevHospitalTier('?hospitalTier=1', OPTS)).toBe(1);
+        expect(VillageLayout.resolveDevHospitalTier('?a=2&hospitalTier=5', OPTS)).toBe(5);
+        expect(VillageLayout.resolveDevHospitalTier('?hospitalTier=off', OPTS)).toBeNull();
+        expect(VillageLayout.resolveDevHospitalTier('?schoolTier=1', OPTS)).toBe(CONFIG.VILLAGE_DEV_HOSPITAL_TIER);
+    });
+
+    test('hospitalSlot: kind habits, 128x160, back row (raised, darker), art box carried on the slot', () => {
+        const s = VillageLayout.hospitalSlot(844, 334, 160, 140, 3, OPTS);
+        expect(s.kind).toBe('habits');
+        expect(s.url).toBe('Assets/Village/habits_t3.png');
+        expect(s.width).toBe(128);
+        expect(s.height).toBe(160);
+        expect(s.back).toBe(true);
+        expect(s.brightness).toBe(CONFIG.VILLAGE_BACK_ROW_BRIGHTNESS);
+        expect(s.artLeft).toBe(s.left + CONFIG.VILLAGE_ART_X.habits[0]);
+        expect(s.artRight).toBe(s.left + CONFIG.VILLAGE_ART_X.habits[1]);
+        expect(VillageLayout.hospitalSlot(844, 334, 160, 0, 3, OPTS)).toBeNull();
+        expect(VillageLayout.hospitalSlot(844, 334, 160, 140, null, OPTS)).toBeNull();
+    });
+
+    test('all seven show from 844 wide up; paint order radio, school, hospital, then the front row, tower last', () => {
+        SIZES.forEach(([w, h]) => {
+            expect(slots(w, h, ALL).map(x => x.kind)).toEqual(['nights', 'heroes', 'habits', 'defense', 'lurkers', 'slain', 'punctuality']);
+        });
+    });
+
+    test('it stands between the gym and the Armory, behind each by at most backMaxOverlapPx, clear of the school', () => {
+        SIZES.forEach(([w, h]) => {
+            const s = slots(w, h, ALL);
+            const k = kind => s.find(x => x.kind === kind);
+            const h2 = k('habits');
+            const mid = (h2.artLeft + h2.artRight) / 2;
+            expect(mid).toBeGreaterThan(k('lurkers').artRight - 48);
+            expect(mid).toBeLessThan(k('slain').artLeft + 48);
+            ['defense', 'punctuality', 'lurkers', 'slain'].forEach(f => expect(ov(h2, k(f))).toBeLessThanOrEqual(CONFIG.VILLAGE_BACK_MAX_OVERLAP_PX));
+            expect(k('heroes').artRight).toBeLessThanOrEqual(h2.artLeft); // back-row neighbours never overlap
+            expect(h2.feetY).toBe(k('nights').feetY); // one back row
+            expect(h2.top).toBeGreaterThanOrEqual(0);
+        });
+    });
+
+    test('adding the hospital never moves or drops another building (every width)', () => {
+        [[640, 334], [700, 334], [760, 334], [800, 334], ...SIZES].forEach(([w, h]) => {
+            const without = slots(w, h, SIX);
+            const withIt = slots(w, h, ALL).filter(x => x.kind !== 'habits');
+            expect(withIt).toEqual(without);
+        });
+    });
+
+    test('a field too narrow DROPS it (never moves it); portrait strip = nothing', () => {
+        expect(slots(800, 334, ALL).map(x => x.kind)).not.toContain('habits');
+        expect(slots(844, 334, { habits: 2 }).map(x => x.kind)).toEqual(['habits']);
+        expect(slots(844, 334, { habits: 3 }, 160, 0)).toEqual([]);
+    });
+
+    test.each([1, 2, 3, 4, 5])('shipped habits tier %i exists and is the authored 128x160 canvas', tier => {
+        const file = path.join(__dirname, '..', VillageLayout.spriteUrl('habits', tier));
+        expect(fs.existsSync(file)).toBe(true);
+        const b = fs.readFileSync(file);
+        expect(b.slice(1, 4).toString()).toBe('PNG');
+        expect(b.readUInt32BE(16)).toBe(CONFIG.VILLAGE_HOSPITAL_W_PX);
+        expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_HOSPITAL_H_PX);
     });
 });

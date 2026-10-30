@@ -451,3 +451,58 @@ describe('High school (back row)', () => {
         expect(q('heroes')).toBeNull();
     });
 });
+
+// ---- Hospital (kind `habits`, back row), added 2026-10-30 ----
+describe('Hospital (back row)', () => {
+    const q = k => document.querySelector(`#villageLayer .village-sprite[data-kind="${k}"]`);
+    const ALL = { punctuality: 3, defense: 3, slain: 3, nights: 3, lurkers: 3, heroes: 3, habits: 3 };
+    function initAll(over = {}, size = {}) {
+        build(size);
+        const state = { hospital: 3, ...over };
+        VillageView.init({
+            getHillWidth: () => 140,
+            getClockTier: () => 3,
+            getJailTier: () => 3,
+            getArmoryTier: () => 3,
+            getRadioTier: () => 3,
+            getGymTier: () => 3,
+            getSchoolTier: () => 3,
+            getHospitalTier: () => state.hospital,
+        });
+        VillageView.render(160);
+        return state;
+    }
+
+    test('draws the hospital at its layout slot as a back-row building (class + brightness filter)', () => {
+        initAll();
+        const want = VillageLayout.villageSlots(844, 334, 160, 140, ALL, VillageLayout.fromConfig(CONFIG)).find(s => s.kind === 'habits');
+        const img = q('habits');
+        expect(img.getAttribute('src')).toBe('Assets/Village/habits_t3.png');
+        expect(img.classList.contains('village-back')).toBe(true);
+        expect(img.style.filter).toBe('brightness(' + CONFIG.VILLAGE_BACK_ROW_BRIGHTNESS + ')');
+        expect(img.style.left).toBe(want.left + 'px');
+        expect(img.style.top).toBe(want.top + 'px');
+    });
+
+    test('all seven buildings at 844 wide; the hospital paints under every front building', () => {
+        initAll();
+        expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(7);
+        const z = k => Number(q(k).style.zIndex);
+        ['defense', 'lurkers', 'slain', 'punctuality'].forEach(k => expect(z('habits')).toBeLessThan(z(k)));
+    });
+
+    test('a tier change swaps the image; clearing it removes only the hospital; a narrow window drops it', () => {
+        const state = initAll({ hospital: 1 });
+        const img = q('habits');
+        state.hospital = 5;
+        VillageView.render(160);
+        expect(q('habits')).toBe(img);
+        expect(img.getAttribute('src')).toBe('Assets/Village/habits_t5.png');
+        state.hospital = null;
+        VillageView.render(160);
+        expect(q('habits')).toBeNull();
+        expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(6);
+        initAll({}, { canvasW: 800 });
+        expect(q('habits')).toBeNull();
+    });
+});

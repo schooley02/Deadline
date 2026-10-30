@@ -552,9 +552,16 @@ const CONFIG = {
     VILLAGE_SCHOOL_H_PX: 128,
     VILLAGE_SCHOOL_X_FRAC: 0.468,
     VILLAGE_DEV_SCHOOL_TIER: 3, // DEV: no heroes tier data yet. `?schoolTier=1..5` overrides, `off` hides; null = hidden
+    // Hospital (kind `habits`, 2026-10-30): sage stucco hospital + ER wing, 128x160, a BACK-ROW building in the gap between the gym
+    // and the Armory. PLACEHOLDER ART: habits_t1..t5 are all the locked T3 until the other tiers are generated (PixelLab, Nov 7).
+    // 0.719 centres its art in that gap at 844 wide (43px behind each neighbour, under VILLAGE_BACK_MAX_OVERLAP_PX).
+    VILLAGE_HOSPITAL_W_PX: 128,
+    VILLAGE_HOSPITAL_H_PX: 160,
+    VILLAGE_HOSPITAL_X_FRAC: 0.719,
+    VILLAGE_DEV_HOSPITAL_TIER: 3, // DEV: no habits tier data yet. `?hospitalTier=1..5` overrides, `off` hides; null = hidden
     // Visible-art extent [left, right) inside each kind's 128px canvas, the UNION over its five tiers (measured from the shipped sprites, 2026-10-30).
     // Collision, the church/hill edges and the back-row overlap use THESE, not the 128px boxes (most of a box is empty air), so five buildings fit.
-    VILLAGE_ART_X: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [11, 122], heroes: [6, 125] },
+    VILLAGE_ART_X: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [11, 122], heroes: [6, 125], habits: [9, 119] },
 
     // --- Sub-task clustering ---
     SUBTASK_CLUSTER_GAP_PX: 8, // visual gap between clustered sprites' VISIBLE graphics (not their boxes)

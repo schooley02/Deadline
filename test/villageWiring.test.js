@@ -23,6 +23,7 @@ const SPRITES = [
     ...[1, 2, 3, 4, 5].map(t => `Assets/Village/nights_t${t}.png`),
     ...[1, 2, 3, 4, 5].map(t => `Assets/Village/lurkers_t${t}.png`), // the boxing gym (2026-10-30)
     ...[1, 2, 3, 4, 5].map(t => `Assets/Village/heroes_t${t}.png`), // the high school (2026-10-30)
+    ...[1, 2, 3, 4, 5].map(t => `Assets/Village/habits_t${t}.png`), // the hospital (2026-10-30, placeholder = T3 x5)
 ];
 
 describe('shell + load order', () => {
@@ -34,10 +35,10 @@ describe('shell + load order', () => {
         [...FILES, ...SPRITES].forEach(f => expect(fs.existsSync(path.join(__dirname, '..', f))).toBe(true));
     });
 
-    test('CACHE_NAME was bumped for the shell change (v141 or later: the high school sprites)', () => {
+    test('CACHE_NAME was bumped for the shell change (v142 or later: the hospital sprites)', () => {
         const m = /CACHE_NAME = 'deadline-shell-v(\d+)'/.exec(sw);
         expect(m).not.toBeNull();
-        expect(Number(m[1])).toBeGreaterThanOrEqual(141);
+        expect(Number(m[1])).toBeGreaterThanOrEqual(142);
     });
 
     test('layout loads after config and before the view; the view before script.js', () => {
@@ -133,6 +134,11 @@ describe('script.js hook-up', () => {
         expect(script).toContain('VillageLayout.resolveDevSchoolTier(');
     });
 
+    test('the hospital tier is fed to the view too (dev ?hospitalTier= until habits tier data exists)', () => {
+        expect(script).toContain('getHospitalTier:');
+        expect(script).toContain('VillageLayout.resolveDevHospitalTier(');
+    });
+
     test('`lurkers_t*` is the boxing gym now (128x128); the Jailhouse stays `defense_t*`', () => {
         [1, 2, 3, 4, 5].forEach(t => {
             ['lurkers', 'defense'].forEach(k => expect(fs.existsSync(path.join(__dirname, '..', `Assets/Village/${k}_t${t}.png`))).toBe(true));
@@ -170,5 +176,9 @@ describe('CONFIG', () => {
         expect(CONFIG.VILLAGE_DEV_SCHOOL_TIER).toBeLessThanOrEqual(CONFIG.VILLAGE_TIERS);
         expect(CONFIG.VILLAGE_SCHOOL_X_FRAC).toBeGreaterThan(CONFIG.VILLAGE_CLOCK_X_FRAC); // the school stands behind, between the tower and the gym
         expect(CONFIG.VILLAGE_SCHOOL_X_FRAC).toBeLessThan(CONFIG.VILLAGE_GYM_X_FRAC);
+        expect(CONFIG.VILLAGE_DEV_HOSPITAL_TIER).toBeGreaterThanOrEqual(1);
+        expect(CONFIG.VILLAGE_DEV_HOSPITAL_TIER).toBeLessThanOrEqual(CONFIG.VILLAGE_TIERS);
+        expect(CONFIG.VILLAGE_HOSPITAL_X_FRAC).toBeGreaterThan(CONFIG.VILLAGE_GYM_X_FRAC); // the hospital stands behind, between the gym and the armory
+        expect(CONFIG.VILLAGE_HOSPITAL_X_FRAC).toBeLessThan(CONFIG.VILLAGE_ARMORY_X_FRAC);
     });
 });

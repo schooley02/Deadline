@@ -6,6 +6,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 
 
+## 2026-10-30 (late afternoon) -- Hospital (`habits`) look decided; T3 shipped as a placeholder for all five tiers in the BACK row (Claude app session, Opus; layout constants + art only, no balance numbers)
+
+- **Look:** tall narrow 1920s three-storey hospital in muted SAGE-GREEN stucco with cream quoins, plus a one-storey ER wing (glass doors, lamp, "ER" lettered in code). Shape and material differ from every other building (tall/narrow vs the wide school and boxy gym; green is unused elsewhere).
+- **Identifier = a lit GREEN cross** on a dark sign board on the roof parapet. Why: the red cross on white is a protected emblem (the Red Cross asks games not to use it); rust-red + cream is already on the jail flag and the school shield. Rejected: red cross, cream cross on rust-red cloth.
+- **Placement:** BACK row, centred in the gap between the gym and the Armory (`VILLAGE_HOSPITAL_X_FRAC` 0.719 -> 43 px behind each at 844 wide), evaluated after the school so it never moves or drops another building; shows at 844+, dropped at 800. Rejected: front row (no room at 844).
+- **Placeholder (Jeremy):** PixelLab tokens ran out until Nov 7, so `habits_t1..t5` are all the T3 for now.
+
 ## 2026-10-30 (afternoon) -- High school (`heroes`) art finished and wired as a BACK-ROW building; back row raised 14 -> 30 px (Claude app session, Opus art direction + wiring; layout constants + art only, no balance numbers)
 
 - **Brief changed from "low schoolhouse" to a 1950s HIGH SCHOOL:** the PixelLab one-room schoolhouse with no cupola read as a house. Wide flat-roofed tan concrete block (a new material in the village), a long grid of classroom windows, a taller entrance block and a faded yellow SCHOOL BUS (the only yellow in the village) as the at-a-glance identifier. Sign = "DHS" + rust-red shield: Deadline High **Defenders** (Jeremy picked it over Phoenixes / Lamplighters / Wardens); PixelLab garbles small text, so the sign is repainted in code when needed.
