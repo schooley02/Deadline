@@ -538,7 +538,7 @@ const CONFIG = {
     VILLAGE_RADIO_H_PX: 160,
     VILLAGE_RADIO_X_FRAC: 0.26, // radio centre = church edge + frac x walking-field width; dropped if it would sink behind a front building by more than VILLAGE_BACK_MAX_OVERLAP_PX
     VILLAGE_DEV_RADIO_TIER: 3, // DEV: no nights tier data yet. `?radioTier=1..5` overrides, `off` hides; null = hidden
-    VILLAGE_BACK_ROW_RAISE_PX: 14, // back-row feet stand this far above the front row's feet (depth by ridge position, same sprite size)
+    VILLAGE_BACK_ROW_RAISE_PX: 30, // back-row feet stand this far above the front row's feet (depth by ridge position, same sprite size; 2026-10-30: 14 -> 30, Jeremy: the village sits on a hill sloping down to the church and lanes)
     VILLAGE_BACK_ROW_BRIGHTNESS: 0.8, // back-row sprites are drawn at this brightness (CSS filter) so they recede behind the front row
     VILLAGE_BACK_MAX_OVERLAP_PX: 48, // a back-row building's VISIBLE ART may sink behind a front building's visible art by this many px at most (2026-10-30: was 40 on the 128px boxes; art-based now)
     // Boxing gym (kind `lurkers` = willpower, added 2026-10-30): old grey clapboard gym, 128x128, FRONT row between the tower and the Armory.
@@ -546,9 +546,15 @@ const CONFIG = {
     VILLAGE_GYM_H_PX: 128,
     VILLAGE_GYM_X_FRAC: 0.59, // gym centre = church edge + frac x walking-field width; dropped (never moved) if its art would touch the tower or the Armory, or reach the church / hill
     VILLAGE_DEV_GYM_TIER: 3, // DEV: no lurkers tier data yet. `?gymTier=1..5` overrides, `off` hides; null = hidden
+    // High school (kind `heroes`, 2026-10-30): a BACK-ROW building between the Clock tower and the gym. 0.468 puts its art
+    // exactly 48px behind both neighbours at 844 wide (VILLAGE_BACK_MAX_OVERLAP_PX); narrower windows drop it, wider ones keep it.
+    VILLAGE_SCHOOL_W_PX: 128,
+    VILLAGE_SCHOOL_H_PX: 128,
+    VILLAGE_SCHOOL_X_FRAC: 0.468,
+    VILLAGE_DEV_SCHOOL_TIER: 3, // DEV: no heroes tier data yet. `?schoolTier=1..5` overrides, `off` hides; null = hidden
     // Visible-art extent [left, right) inside each kind's 128px canvas, the UNION over its five tiers (measured from the shipped sprites, 2026-10-30).
     // Collision, the church/hill edges and the back-row overlap use THESE, not the 128px boxes (most of a box is empty air), so five buildings fit.
-    VILLAGE_ART_X: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [11, 122] },
+    VILLAGE_ART_X: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [11, 122], heroes: [6, 125] },
 
     // --- Sub-task clustering ---
     SUBTASK_CLUSTER_GAP_PX: 8, // visual gap between clustered sprites' VISIBLE graphics (not their boxes)

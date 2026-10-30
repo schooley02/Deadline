@@ -3,11 +3,12 @@
  * (V7 W2, first slice 2026-10-29; docs/ART_STYLE.md "Achievement village art",
  * docs/WORLD_FEEDBACK_PLAN.md W2). No DOM, no State.
  *
- * This slice draws FIVE buildings: the Clock tower (kind `punctuality`, 128x256), the Jailhouse /
+ * This slice draws SIX buildings: the Clock tower (kind `punctuality`, 128x256), the Jailhouse /
  * sheriff's office (kind `defense` = Church Defense, 128x128, left of the tower; re-keyed from
  * `lurkers` 2026-10-29), the boxing gym (kind `lurkers` = willpower, 128x128, between the tower and
  * the Armory; 2026-10-30), the Armory (kind `slain`, 128x128, right of the gym) and the Radio tower
- * (kind `nights`, 128x160, a BACK-ROW building between the Jailhouse and the tower). The other
+ * (kind `nights`, 128x160, a BACK-ROW building between the Jailhouse and the tower) and the high
+ * school (kind `heroes`, 128x128, a BACK-ROW building between the tower and the gym; 2026-10-30). The other
  * kinds, the tier-from-achievements wiring and the close-up view are later W2 steps. Each building
  * is placed at a fraction of the walking field; a building whose VISIBLE ART would overlap the
  * church, the hill or another building is dropped, not moved.
@@ -60,8 +61,12 @@ const VillageLayout = (() => {
         gymHeightPx: 128,
         gymXFrac: 0.59,
         devGymTier: 3,
-        art: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [11, 122] },
-        backRowRaisePx: 14,
+        schoolWidthPx: 128,
+        schoolHeightPx: 128,
+        schoolXFrac: 0.468,
+        devSchoolTier: 3,
+        art: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [11, 122], heroes: [6, 125] },
+        backRowRaisePx: 30,
         backRowBrightness: 0.8,
         backMaxOverlapPx: 48,
         minGapPx: 8,
@@ -100,6 +105,10 @@ const VillageLayout = (() => {
             gymHeightPx: pick(cfg.VILLAGE_GYM_H_PX, DEFAULTS.gymHeightPx),
             gymXFrac: pick(cfg.VILLAGE_GYM_X_FRAC, DEFAULTS.gymXFrac),
             devGymTier: (cfg.VILLAGE_DEV_GYM_TIER === null) ? null : pick(cfg.VILLAGE_DEV_GYM_TIER, DEFAULTS.devGymTier),
+            schoolWidthPx: pick(cfg.VILLAGE_SCHOOL_W_PX, DEFAULTS.schoolWidthPx),
+            schoolHeightPx: pick(cfg.VILLAGE_SCHOOL_H_PX, DEFAULTS.schoolHeightPx),
+            schoolXFrac: pick(cfg.VILLAGE_SCHOOL_X_FRAC, DEFAULTS.schoolXFrac),
+            devSchoolTier: (cfg.VILLAGE_DEV_SCHOOL_TIER === null) ? null : pick(cfg.VILLAGE_DEV_SCHOOL_TIER, DEFAULTS.devSchoolTier),
             art: (cfg.VILLAGE_ART_X && typeof cfg.VILLAGE_ART_X === 'object') ? cfg.VILLAGE_ART_X : DEFAULTS.art,
             backMaxOverlapPx: pick(cfg.VILLAGE_BACK_MAX_OVERLAP_PX, DEFAULTS.backMaxOverlapPx),
             minGapPx: pick(cfg.VILLAGE_MIN_GAP_PX, DEFAULTS.minGapPx),
@@ -159,6 +168,12 @@ const VillageLayout = (() => {
     function resolveDevGymTier(search, opts) {
         const o = opts || DEFAULTS;
         return resolveTierParam(search, 'gymTier', o.devGymTier, o.tiers);
+    }
+
+    // High school: `?schoolTier=`
+    function resolveDevSchoolTier(search, opts) {
+        const o = opts || DEFAULTS;
+        return resolveTierParam(search, 'schoolTier', o.devSchoolTier, o.tiers);
     }
 
     function fieldWidth(canvasW, baseW, hillW) {
@@ -258,6 +273,15 @@ const VillageLayout = (() => {
         return slot ? { ...slot, back: true, brightness: o.backRowBrightness } : null;
     }
 
+    // Back-row high school (kind `heroes`): same rules as the Radio tower (raised, darker, painted first).
+    function schoolSlot(canvasW, canvasH, baseW, hillW, tier, opts, frontFeetY) {
+        const o = opts || DEFAULTS;
+        const front = (typeof frontFeetY === 'number') ? frontFeetY : horizonFeetY(canvasH, o);
+        const slot = slotFor('heroes', o.schoolWidthPx, o.schoolHeightPx, o.schoolXFrac, canvasW, canvasH, baseW, hillW, tier, o, 1,
+            front - Math.max(0, o.backRowRaisePx));
+        return slot ? { ...slot, back: true, brightness: o.backRowBrightness } : null;
+    }
+
     // Horizontal overlap in px between two slots' VISIBLE ART (0 when they only touch or are apart).
     function overlapPx(a, b) {
         return Math.max(0, Math.min(a.artRight, b.artRight) - Math.max(a.artLeft, b.artLeft));
@@ -268,12 +292,14 @@ const VillageLayout = (() => {
         return a.artRight + gap <= b.artLeft || b.artRight + gap <= a.artLeft;
     }
 
-    // Every building to draw, in paint order. `tiers` = { punctuality, defense, lurkers, slain, nights } (null/undefined = none).
+    // Every building to draw, in paint order. `tiers` = { punctuality, defense, lurkers, slain, nights, heroes } (null/undefined = none).
     // Collision uses each building's VISIBLE ART (artLeft / artRight), not its 128px box. A front building is DROPPED
     // (never nudged) when its art would reach the church or the graveyard hill, or sit closer than minGapPx to a
     // building already placed. Evaluation order = tower, jail, armory, gym, so a later building can never displace an
     // earlier one (adding the gym never moves or drops the armory). The back-row Radio tower is dropped when it would
-    // reach the church or the hill or sink behind a front building's art by more than backMaxOverlapPx.
+    // reach the church or the hill or sink behind a front building's art by more than backMaxOverlapPx. The back-row
+    // school follows the same rules and is evaluated LAST, so it is also dropped when its art would overlap the Radio
+    // tower's (back-row buildings may stand close, minGapPx is a front-row rule); adding it never moves or drops anything.
     function villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts) {
         const o = opts || DEFAULTS;
         const t = tiers || {};
@@ -291,11 +317,15 @@ const VillageLayout = (() => {
         let radio = radioSlot(canvasW, canvasH, baseW, hillW, t.nights, o, feet);
         if (radio && (radio.artLeft < fieldLeft || radio.artRight > fieldRight
             || [jail, gym, armory, clock].some(f => f && overlapPx(radio, f) > o.backMaxOverlapPx))) radio = null;
+        let school = schoolSlot(canvasW, canvasH, baseW, hillW, t.heroes, o, feet);
+        if (school && (school.artLeft < fieldLeft || school.artRight > fieldRight
+            || [jail, gym, armory, clock].some(f => f && overlapPx(school, f) > o.backMaxOverlapPx)
+            || (radio && overlapPx(school, radio) > 0))) school = null;
         // back row first, the tower last (over any shared pixels)
-        return [radio, jail, gym, armory, clock].filter(Boolean);
+        return [radio, school, jail, gym, armory, clock].filter(Boolean);
     }
 
-    return { DEFAULTS, fromConfig, clampTier, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, fieldWidth, spriteUrl, clockTowerSlot, clockScaleFor, clockFeetY, jailSlot, armorySlot, gymSlot, radioSlot, villageSlots };
+    return { DEFAULTS, fromConfig, clampTier, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, fieldWidth, spriteUrl, clockTowerSlot, clockScaleFor, clockFeetY, jailSlot, armorySlot, gymSlot, radioSlot, schoolSlot, villageSlots };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

@@ -6,6 +6,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 
 
+## 2026-10-30 (afternoon) -- High school (`heroes`) art finished and wired as a BACK-ROW building; back row raised 14 -> 30 px (Claude app session, Opus art direction + wiring; layout constants + art only, no balance numbers)
+
+- **Brief changed from "low schoolhouse" to a 1950s HIGH SCHOOL:** the PixelLab one-room schoolhouse with no cupola read as a house. Wide flat-roofed tan concrete block (a new material in the village), a long grid of classroom windows, a taller entrance block and a faded yellow SCHOOL BUS (the only yellow in the village) as the at-a-glance identifier. Sign = "DHS" + rust-red shield: Deadline High **Defenders** (Jeremy picked it over Phoenixes / Lamplighters / Wardens); PixelLab garbles small text, so the sign is repainted in code when needed.
+- **Ladder (Jeremy):** T1 right corner collapsed + sign hanging crooked; T2 shut down, doors chained, all dark; T3 open, two lit windows; T4 REINFORCED, not only brighter (Jeremy: "aren't we going to have it start adding sandbags"): barbed wire on the roof, sandbags, searchlight, bus with brush guard + armor plate; T5 stronghold: survivor flag with the shield, rooftop lookout with sandbag rail, armored bus, nearly every window lit. Lit pixels 0 / 0 / 182 / 252 / 532. PixelLab returned grey (T1, T2) and dark navy (a T4 batch) walls; greys were remapped to the T3 tan ramp in code, the navy batch was rejected.
+- **Placement:** the school is drawn smaller than the front buildings, so in the front row it read as further away (Jeremy). It goes in the BACK row between the Clock tower and the gym (`VILLAGE_SCHOOL_X_FRAC` 0.468: exactly 48 px behind each at 844 wide; drops below that). A swap (school front, Armory back) was mocked and rejected for this. Back-row neighbours may stand closer than `VILLAGE_MIN_GAP_PX` (a front-row rule); they only must not overlap.
+- **Back row raised 14 -> 30 px** (`VILLAGE_BACK_ROW_RAISE_PX`, also lifts the Radio tower): Jeremy wants the village on a hill sloping down to the church and the zombie lanes. 45 px was mocked; it floats the back buildings above the ground on desktop until ridge art exists behind them, so 30 for now.
+- Rejected: front-row school (reads far away), Armory to the back row (fence gap looked odd behind the school), white-wall and navy PixelLab batches (break the value rule), a water-tower-like lookout (retired look).
+- Open: phone check; ridge/hill art behind the back row (would allow a higher raise); buildings 7-8 (hospital, windmill) and the Memorial placed as their art is made.
+
 ## 2026-10-30 -- Boxing gym (`lurkers`) art finished and wired as a FRONT-row building; every collision rule now measured on the visible art, not the 128px box (Claude app session, Opus art + placement advice -> Sonnet wiring; layout constants + art only, no balance numbers)
 
 - Boxing gym T1-T5 shipped (`Assets/Village/lurkers_t1..t5.png`, 128x128) and wired: `CONFIG.VILLAGE_GYM_*`, `VillageLayout.gymSlot`, `?gymTier=`. `lurkers` is the gym again; the Jailhouse stays `defense`. sw v140.

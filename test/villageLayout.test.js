@@ -551,7 +551,7 @@ describe('Radio tower (back row)', () => {
         });
         // the short desktop canvas lowers the tower's feet 24px; the radio follows it
         const desk = slots(1265, 298, ALL);
-        expect(desk.find(x => x.kind === 'nights').feetY).toBe(desk.find(x => x.kind === 'punctuality').feetY - 14);
+        expect(desk.find(x => x.kind === 'nights').feetY).toBe(desk.find(x => x.kind === 'punctuality').feetY - CONFIG.VILLAGE_BACK_ROW_RAISE_PX);
     });
 
     test('paint order: back row first, then jail, armory, and the tower last', () => {
@@ -640,7 +640,7 @@ describe('Boxing gym (front row) + art-box collision', () => {
     });
 
     test('every kind has an art extent inside its canvas', () => {
-        ['punctuality', 'defense', 'slain', 'nights', 'lurkers'].forEach(k => {
+        ['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes'].forEach(k => {
             const [l, r] = CONFIG.VILLAGE_ART_X[k];
             expect(l).toBeGreaterThanOrEqual(0);
             expect(r).toBeGreaterThan(l);
@@ -764,7 +764,7 @@ describe('Boxing gym (front row) + art-box collision', () => {
     // CONFIG.VILLAGE_ART_X must match the real sprites: the union over the five tiers of each kind's visible columns.
     let PNG = null;
     try { PNG = require('pngjs').PNG; } catch (e) { PNG = null; }
-    (PNG ? test : test.skip).each(['punctuality', 'defense', 'slain', 'nights', 'lurkers'])(
+    (PNG ? test : test.skip).each(['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes'])(
         'CONFIG.VILLAGE_ART_X.%s equals the union of its five tiers\' visible columns (measured from the PNGs)', kind => {
             let lo = Infinity, hi = -Infinity;
             [1, 2, 3, 4, 5].forEach(t => {
@@ -777,4 +777,102 @@ describe('Boxing gym (front row) + art-box collision', () => {
             });
             expect(CONFIG.VILLAGE_ART_X[kind]).toEqual([lo, hi]);
         });
+});
+
+// ---- High school (kind `heroes`, a BACK-ROW building between the tower and the gym), added 2026-10-30 ----
+describe('High school (back row)', () => {
+    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 140, opts = OPTS) =>
+        VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts);
+    const FIVE = { punctuality: 3, defense: 3, slain: 3, lurkers: 3, nights: 3 };
+    const ALL = { ...FIVE, heroes: 3 };
+    const SIZES = [[844, 334], [915, 356], [1265, 298], [1100, 320], [1440, 400]];
+    const ov = (a, b) => Math.max(0, Math.min(a.artRight, b.artRight) - Math.max(a.artLeft, b.artLeft));
+
+    test('fromConfig mirrors the school CONFIG and DEFAULTS agree with it', () => {
+        const d = VillageLayout.DEFAULTS;
+        ['schoolWidthPx', 'schoolHeightPx', 'schoolXFrac', 'devSchoolTier'].forEach(k => expect(OPTS[k]).toBe(d[k]));
+        expect(OPTS.schoolWidthPx).toBe(CONFIG.VILLAGE_SCHOOL_W_PX);
+        expect(OPTS.schoolHeightPx).toBe(CONFIG.VILLAGE_SCHOOL_H_PX);
+        expect(OPTS.schoolXFrac).toBe(CONFIG.VILLAGE_SCHOOL_X_FRAC);
+        expect(OPTS.devSchoolTier).toBe(CONFIG.VILLAGE_DEV_SCHOOL_TIER);
+        expect(d.backRowRaisePx).toBe(CONFIG.VILLAGE_BACK_ROW_RAISE_PX);
+        expect(VillageLayout.fromConfig({ VILLAGE_DEV_SCHOOL_TIER: null }).devSchoolTier).toBeNull();
+    });
+
+    test('resolveDevSchoolTier reads only ?schoolTier=', () => {
+        expect(VillageLayout.resolveDevSchoolTier('', OPTS)).toBe(CONFIG.VILLAGE_DEV_SCHOOL_TIER);
+        expect(VillageLayout.resolveDevSchoolTier('?schoolTier=1', OPTS)).toBe(1);
+        expect(VillageLayout.resolveDevSchoolTier('?a=2&schoolTier=5', OPTS)).toBe(5);
+        expect(VillageLayout.resolveDevSchoolTier('?schoolTier=off', OPTS)).toBeNull();
+        expect(VillageLayout.resolveDevSchoolTier('?gymTier=1', OPTS)).toBe(CONFIG.VILLAGE_DEV_SCHOOL_TIER);
+        expect(VillageLayout.resolveDevGymTier('?schoolTier=1', OPTS)).toBe(CONFIG.VILLAGE_DEV_GYM_TIER);
+    });
+
+    test('schoolSlot: kind heroes, 128x128, back row (raised, darker), art box carried on the slot', () => {
+        const s = VillageLayout.schoolSlot(844, 334, 160, 140, 3, OPTS);
+        expect(s.kind).toBe('heroes');
+        expect(s.url).toBe('Assets/Village/heroes_t3.png');
+        expect([s.width, s.height]).toEqual([128, 128]);
+        expect(s.back).toBe(true);
+        expect(s.brightness).toBe(CONFIG.VILLAGE_BACK_ROW_BRIGHTNESS);
+        expect(s.feetY).toBe(334 - CONFIG.GROUND_FLOOR_HEIGHT - CONFIG.VILLAGE_FEET_ABOVE_FLOOR_PX - CONFIG.VILLAGE_BACK_ROW_RAISE_PX);
+        expect(s.artLeft).toBe(s.left + CONFIG.VILLAGE_ART_X.heroes[0]);
+        expect(s.artRight).toBe(s.left + CONFIG.VILLAGE_ART_X.heroes[1]);
+        expect(VillageLayout.schoolSlot(844, 334, 160, 0, 3, OPTS)).toBeNull();
+        expect(VillageLayout.schoolSlot(844, 334, 160, 140, null, OPTS)).toBeNull();
+    });
+
+    test('all six show from 844 wide up; paint order radio, school, then the front row, tower last', () => {
+        SIZES.forEach(([w, h]) => {
+            expect(slots(w, h, ALL).map(x => x.kind)).toEqual(['nights', 'heroes', 'defense', 'lurkers', 'slain', 'punctuality']);
+        });
+    });
+
+    test('it stands between the tower and the gym, behind each by at most backMaxOverlapPx, clear of the radio', () => {
+        SIZES.forEach(([w, h]) => {
+            const s = slots(w, h, ALL);
+            const k = kind => s.find(x => x.kind === kind);
+            const school = k('heroes');
+            const mid = (school.artLeft + school.artRight) / 2;
+            expect(mid).toBeGreaterThan(k('punctuality').artRight - 48);
+            expect(mid).toBeLessThan(k('lurkers').artLeft + 48);
+            ['defense', 'punctuality', 'lurkers', 'slain'].forEach(f => expect(ov(school, k(f))).toBeLessThanOrEqual(CONFIG.VILLAGE_BACK_MAX_OVERLAP_PX));
+            expect(k('nights').artRight).toBeLessThanOrEqual(school.artLeft); // back-row neighbours never overlap
+            expect(school.feetY).toBe(k('punctuality').feetY - CONFIG.VILLAGE_BACK_ROW_RAISE_PX);
+            expect(school.feetY).toBe(k('nights').feetY); // one back row
+        });
+    });
+
+    test('adding the school never moves or drops another building (every width)', () => {
+        [[640, 334], [700, 334], [760, 334], [800, 334], ...SIZES].forEach(([w, h]) => {
+            const without = slots(w, h, FIVE);
+            const withSchool = slots(w, h, ALL).filter(x => x.kind !== 'heroes');
+            expect(withSchool).toEqual(without);
+        });
+    });
+
+    test('a field too narrow DROPS it (never moves it)', () => {
+        expect(slots(800, 334, ALL).map(x => x.kind)).not.toContain('heroes');
+        expect(slots(760, 334, ALL).map(x => x.kind)).not.toContain('heroes');
+    });
+
+    test('it can show alone; portrait strip or no tier = nothing', () => {
+        expect(slots(844, 334, { heroes: 2 }).map(x => x.kind)).toEqual(['heroes']);
+        expect(slots(844, 334, { heroes: 3 }, 160, 0)).toEqual([]);
+    });
+
+    test('its whole art fits above the canvas top on the short desktop canvas (raised back row)', () => {
+        [[1265, 298], [1280, 298], [844, 334]].forEach(([w, h]) => {
+            slots(w, h, ALL).filter(x => x.back).forEach(b => expect(b.top).toBeGreaterThanOrEqual(0));
+        });
+    });
+
+    test.each([1, 2, 3, 4, 5])('shipped heroes tier %i exists and is the authored 128x128 canvas', tier => {
+        const file = path.join(__dirname, '..', VillageLayout.spriteUrl('heroes', tier));
+        expect(fs.existsSync(file)).toBe(true);
+        const b = fs.readFileSync(file);
+        expect(b.slice(1, 4).toString()).toBe('PNG');
+        expect(b.readUInt32BE(16)).toBe(CONFIG.VILLAGE_SCHOOL_W_PX);
+        expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_SCHOOL_H_PX);
+    });
 });

@@ -397,3 +397,57 @@ describe('Boxing gym (front row)', () => {
         expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(4);
     });
 });
+
+// ---- High school (kind `heroes`, back row), added 2026-10-30 ----
+describe('High school (back row)', () => {
+    const q = k => document.querySelector(`#villageLayer .village-sprite[data-kind="${k}"]`);
+    const ALL = { punctuality: 3, defense: 3, slain: 3, nights: 3, lurkers: 3, heroes: 3 };
+    function initAll(over = {}, size = {}) {
+        build(size);
+        const state = { school: 3, ...over };
+        VillageView.init({
+            getHillWidth: () => 140,
+            getClockTier: () => 3,
+            getJailTier: () => 3,
+            getArmoryTier: () => 3,
+            getRadioTier: () => 3,
+            getGymTier: () => 3,
+            getSchoolTier: () => state.school,
+        });
+        VillageView.render(160);
+        return state;
+    }
+
+    test('draws the school at its layout slot as a back-row building (class + brightness filter)', () => {
+        initAll();
+        const want = VillageLayout.villageSlots(844, 334, 160, 140, ALL, VillageLayout.fromConfig(CONFIG)).find(s => s.kind === 'heroes');
+        const img = q('heroes');
+        expect(img.getAttribute('src')).toBe('Assets/Village/heroes_t3.png');
+        expect(img.classList.contains('village-back')).toBe(true);
+        expect(img.style.filter).toBe('brightness(' + CONFIG.VILLAGE_BACK_ROW_BRIGHTNESS + ')');
+        expect(img.style.left).toBe(want.left + 'px');
+        expect(img.style.top).toBe(want.top + 'px');
+    });
+
+    test('all six buildings at 844 wide; the school paints under every front building', () => {
+        initAll();
+        expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(6);
+        const z = k => Number(q(k).style.zIndex);
+        ['defense', 'lurkers', 'slain', 'punctuality'].forEach(k => expect(z('heroes')).toBeLessThan(z(k)));
+    });
+
+    test('a tier change swaps the image; clearing it removes only the school; a narrow window drops it', () => {
+        const state = initAll({ school: 1 });
+        const img = q('heroes');
+        state.school = 5;
+        VillageView.render(160);
+        expect(q('heroes')).toBe(img);
+        expect(img.getAttribute('src')).toBe('Assets/Village/heroes_t5.png');
+        state.school = null;
+        VillageView.render(160);
+        expect(q('heroes')).toBeNull();
+        expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(5);
+        initAll({}, { canvasW: 800 });
+        expect(q('heroes')).toBeNull();
+    });
+});
