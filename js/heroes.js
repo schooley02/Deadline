@@ -230,6 +230,64 @@ const Heroes = (() => {
         };
     }
 
+    // High school v2 (2026-10-31): the stars every routine BANKS when a day closes -- its current hero star rating
+    // (same window/rate as the chips: since max(routine.createdAt, runStartedAtMs), last HERO_STAR_RATE_WINDOW
+    // occurrences, habits AND tasks). Inactive, frozen and KO'd routines bank 0 (KO auto-deactivates, so !isActive
+    // covers it; koState is checked too). Returns { "<routineId>": 0..5 }, one key per routine (ids as strings).
+    // Pure: `config` supplies HERO_STAR_RATE_WINDOW + HERO_STAR_TIERS; definedTasks optional like completionRate.
+    function bankedStars(routines, definedHabits, config, runStartedAtMs, definedTasks) {
+        const out = {};
+        (routines || []).forEach(routine => {
+            if (!routine || routine.id == null) return;
+            if (!routine.isActive || routine.frozenState || routine.koState) { out[String(routine.id)] = 0; return; }
+            const windowStartMs = Math.max(routine.createdAt || 0, runStartedAtMs || 0);
+            const r = completionRate(routine, definedHabits, windowStartMs, config.HERO_STAR_RATE_WINDOW, definedTasks);
+            out[String(routine.id)] = starRating(r.rate, r.distinctDays, config.HERO_STAR_TIERS);
+        });
+        return out;
+    }
+
+    // High school v2 report card rows (2026-10-31). One row per routine: stars, completion % over its rate window, an
+    // honor-roll flag (>= config.HERO_HONOR_ROLL_STARS stars, default 3) and the NEXT STEP toward one more star -- the
+    // quick, everyday check (a single check-in moves the tier slowly, the % moves at once). Pure; same inputs as
+    // bankedStars. `banks` is false for an inactive / frozen / KO'd routine (it banks 0 stars at day close).
+    // next = null at the top rating; otherwise a short sentence like "90% for 4 stars", "3 more days for 3 stars",
+    // "80% and 4 more days for 3 stars", or "Finish a few check-ins to get rated." for a routine with no record yet.
+    function reportRows(routines, definedHabits, config, runStartedAtMs, definedTasks) {
+        const tiers = (config.HERO_STAR_TIERS || []).slice().sort((a, b) => a.stars - b.stars);
+        const honorAt = config.HERO_HONOR_ROLL_STARS || 3;
+        return (routines || []).filter(r => r && r.id != null).map(routine => {
+            const windowStartMs = Math.max(routine.createdAt || 0, runStartedAtMs || 0);
+            const r = completionRate(routine, definedHabits, windowStartMs, config.HERO_STAR_RATE_WINDOW, definedTasks);
+            const stars = starRating(r.rate, r.distinctDays, config.HERO_STAR_TIERS);
+            const target = tiers.find(t => t.stars === stars + 1) || null;
+            let next = null;
+            if (target) {
+                if (r.rate === null) {
+                    next = 'Finish a few check-ins to get rated.';
+                } else {
+                    const needRate = r.rate < target.minRate;
+                    const dayGap = Math.max(0, (target.minDays || 0) - r.distinctDays);
+                    const pct = Math.ceil(target.minRate * 100 - 1e-9) + '%';
+                    const days = dayGap + ' more day' + (dayGap === 1 ? '' : 's');
+                    const what = (needRate && dayGap > 0) ? pct + ' and ' + days : (needRate ? pct : days);
+                    next = what + ' for ' + target.stars + ' star' + (target.stars === 1 ? '' : 's');
+                }
+            }
+            return {
+                id: routine.id,
+                name: routine.name,
+                stars,
+                ratePct: r.rate === null ? null : Math.round(r.rate * 100),
+                samples: r.samples,
+                distinctDays: r.distinctDays,
+                honorRoll: stars >= honorAt,
+                banks: !!routine.isActive && !routine.frozenState && !routine.koState,
+                next,
+            };
+        });
+    }
+
     // Star rating for a completion rate. BOTH minRate (over the caller's
     // rolling window) AND minDays (distinctDays — the tenure gate added
     // 2026-07-21, see completionRate above) must be met; tiers checked
@@ -282,6 +340,8 @@ const Heroes = (() => {
         completionRate,
         setTaskDefsSource,
         starRating,
+        bankedStars,
+        reportRows,
         applyRoutineDamage,
         shouldKo,
     };

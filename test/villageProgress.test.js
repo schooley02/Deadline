@@ -183,12 +183,28 @@ describe('counters', () => {
         });
     });
 
-    describe('heroes (High school): perfect-attendance days', () => {
-        test('needs an active routine and every active routine fully attended', () => {
-            const perfect = day(dated(1), { att: { active: 2, perfect: 2 } });
-            const oneMissed = day(dated(2), { att: { active: 2, perfect: 1 } });
-            const noRoutine = day(dated(3), { att: { active: 0, perfect: 0 } });
-            expect(VillageProgress.counters(ctx({ days: [perfect, oneMissed, noRoutine] })).heroes).toBe(1);
+    describe('heroes (High school): hero stars banked (v2, 2026-10-31)', () => {
+        test('sums every routine\'s banked stars over this run\'s closed days', () => {
+            const a = day(dated(1), { stars: { 11: 3, 12: 1 } });
+            const b = day(dated(2), { stars: { 11: 4, 12: 0, 13: 2 } });
+            expect(VillageProgress.counters(ctx({ days: [a, b] })).heroes).toBe(10);
+        });
+        test('days from before the field existed (or with none banked) count 0; attendance no longer drives it', () => {
+            const old = day(dated(1), { att: { active: 2, perfect: 2 } });
+            delete old.stars;
+            const none = day(dated(2), { stars: {} });
+            expect(VillageProgress.counters(ctx({ days: [old, none] })).heroes).toBe(0);
+        });
+        test('the open day is not counted until it closes; bad values are ignored', () => {
+            const open = day(dated(3), { stars: { 11: 5 } });
+            const bad = day(dated(1), { stars: { 11: 'x', 12: -3, 13: 2 } });
+            expect(VillageProgress.counters(ctx({ days: [bad], today: open })).heroes).toBe(2);
+        });
+        test('thresholds are 10 / 75 / 300 / 750 banked stars', () => {
+            expect(VillageProgress.DEFAULT_THRESHOLDS.heroes).toEqual([10, 75, 300, 750]);
+            expect(VillageProgress.tierFor(9, [10, 75, 300, 750]).tier).toBe(1);
+            expect(VillageProgress.tierFor(10, [10, 75, 300, 750]).tier).toBe(2);
+            expect(VillageProgress.tierFor(750, [10, 75, 300, 750]).tier).toBe(5);
         });
     });
 
@@ -274,10 +290,11 @@ describe('DailyRecord routine attendance (feeds the High school)', () => {
     function rec() { return DailyRecord.fresh({ date: '2026-11-01', run: RUN }); }
 
     test('v2 and a zeroed att / empty rt on a fresh record', () => {
-        expect(DailyRecord.V).toBe(2);
+        expect(DailyRecord.V).toBe(3);
         const r = rec();
         expect(r.att).toEqual({ active: 0, perfect: 0 });
         expect(r.rt).toEqual({});
+        expect(r.stars).toEqual({});
     });
 
     test('items without a routine leave the tally alone', () => {

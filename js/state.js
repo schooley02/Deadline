@@ -694,7 +694,7 @@ const State = (() => {
         // Daily record (D2): close the day that just ended. AFTER the settle loop
         // above on purpose -- auto-avoided lurkers and misses it records belong
         // to the closing day. Never allowed to break a rollover.
-        try { closeDailyRecord(now); } catch (e) { console.error('Deadline: daily record close failed', e); }
+        try { closeDailyRecord(now, deps); } catch (e) { console.error('Deadline: daily record close failed', e); }
         return true;
     }
 
@@ -709,7 +709,7 @@ const State = (() => {
      * No-op when DailyRecord/Persistence aren't loaded (tests), or when the
      * open record already belongs to today's date (fresh seed).
      */
-    function closeDailyRecord(now) {
+    function closeDailyRecord(now, deps) {
         if (typeof DailyRecord === 'undefined' || typeof Persistence === 'undefined') return false;
         const rec = today;
         const key = DailyRecord.dateKey(now);
@@ -720,7 +720,15 @@ const State = (() => {
         const tasksDue = getActiveItems().concat(getCompletedItems()).filter(item =>
             item && item.type === 'task' && !item.parentId && item.dueDateTime &&
             DailyRecord.dateKey(new Date(item.dueDateTime)) === rec.date).length;
+        // High school v2: the stars every routine banks for the day that just ended. A pre-bound collaborator from
+        // script.js (Heroes loads after state.js, the same forward-reference reason as heroesCompletionRate); absent in
+        // tests -> nothing banked. Never allowed to break a close.
+        let bankedStars;
+        try {
+            if (deps && typeof deps.routineStarsNow === 'function') bankedStars = deps.routineStarsNow();
+        } catch (e) { console.error('Deadline: banked stars failed', e); }
         const closed = DailyRecord.close(rec, {
+            stars: bankedStars,
             lvl: getPlayerLevel(),
             run: (Array.isArray(runHistory) ? runHistory.length : 0) + 1,
             night: daysSurvived,

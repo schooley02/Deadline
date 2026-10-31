@@ -43,6 +43,18 @@
 .vc-empty { margin: 10px 0 0; padding: 8px; border: 1px dashed var(--color-primary-dark-green); border-radius: 8px; font-size: 13px; color: var(--color-primary-dark-green); }
 .vc-line { margin: 8px 0 0; font-size: 12px; color: var(--color-neutral); }
 
+/* Report card (High school v2, 2026-10-31): one row per routine on the High school card; one row in Manage Routine.
+   Markup: HeroesView.reportRowHtml (js/ui/heroes.js). */
+.rc-card { text-align: left; }
+.rc-row { margin: 6px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--color-bg-light); text-align: left; }
+.rc-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rc-name { font-weight: 600; font-size: 13px; color: var(--color-text-primary); min-width: 0; overflow-wrap: anywhere; }
+.rc-honor { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #6B5300; background: #F6E7A8; border-radius: 10px; padding: 1px 7px; }
+.rc-stars { margin-left: auto; color: var(--color-holy-gold); font-size: 14px; letter-spacing: 1px; }
+.rc-detail { margin-top: 2px; font-size: 12px; color: var(--color-neutral); }
+.rc-next { margin-top: 2px; font-size: 12px; color: var(--color-text-primary); }
+.rc-paused { margin-top: 2px; font-size: 11px; color: var(--color-neutral); font-style: italic; }
+
 /* Short screens (landscape phones): keep two columns, but cap the art so the card still fits the height. */
 @media (max-height: 520px) {
     .vc-sprite { width: auto !important; max-height: 50vh; }

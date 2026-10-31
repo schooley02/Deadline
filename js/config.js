@@ -239,6 +239,7 @@ const CONFIG = {
         { minRate: 0.70, minDays: 4, stars: 2 },
         { minRate: 0.60, minDays: 2, stars: 1 },
     ],
+    HERO_HONOR_ROLL_STARS: 3, // report card: a routine at this many stars or more is on the honor roll (a label, not a counter)
 
     // --- Hero rendering ([P1-UI-006] sub-session 3, 2026-07-19; js/ui/heroes.js) ---
     // Display-only constants, not gameplay balance (no balance-tuning protocol
@@ -590,7 +591,10 @@ const CONFIG = {
         habits: [20, 80, 250, 500],       // Hospital: habit check-ins (~5/day)
         lurkers: [3, 14, 40, 80],         // Boxing gym: days with no slips (>= 1 bad habit resolved, none slipped)
         defense: [3, 14, 40, 80],         // Jailhouse: nights the church ended at >= VILLAGE_DEFENSE_HELD_FRAC of max health
-        heroes: [3, 10, 30, 60],          // High school: perfect-attendance days (every active routine fully done)
+        // High school: hero stars banked (each closed day adds every routine's star rating, 0-5 each; High school v2, Jeremy 2026-10-31).
+        // THEORY PASS: ~85% completion, routines added as slots unlock (1 routine at the start, max 4 at Lv3/5/7) -> T2 about the end
+        // of week 1, T3 ~3 weeks, T4 ~7 weeks, T5 ~100 days (the Radio tower's pace). Re-check with real play data.
+        heroes: [10, 75, 300, 750],
         bestdays: [2, 5, 15, 30],         // Windmill: heavy days handled (more due than the recent average, nothing missed)
     },
     VILLAGE_DEFENSE_HELD_FRAC: 0.75, // a night counts for the Jailhouse when the church ends the day at >= this fraction of MAX_BASE_HEALTH

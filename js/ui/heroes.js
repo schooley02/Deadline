@@ -147,6 +147,31 @@ const HeroesView = (() => {
         return filled + empty;
     }
 
+    // Report card (High school v2, 2026-10-31): markup for Heroes.reportRows rows. Pure, escaped. `compact` drops the name (the
+    // Manage Routine window already shows it). Styles: css/villageCard.css (.rc-*).
+    const RC_ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    function rcEsc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => RC_ESC[c]); }
+
+    function reportRowHtml(row, compact) {
+        const detail = row.ratePct === null
+            ? 'Not rated yet'
+            : `${row.ratePct}% of your last ${row.samples} check-in${row.samples === 1 ? '' : 's'} · ${row.distinctDays} day${row.distinctDays === 1 ? '' : 's'} tracked`;
+        const honor = row.honorRoll ? '<span class="rc-honor">Honor roll</span>' : '';
+        const name = compact ? '' : `<span class="rc-name">${rcEsc(row.name)}</span>`;
+        const next = row.next ? `<div class="rc-next">Next: ${rcEsc(row.next)}</div>` : '<div class="rc-next">Top rating. Keep it up.</div>';
+        const paused = row.banks ? '' : '<div class="rc-paused">Not earning stars for the High school right now (routine is off, frozen or down).</div>';
+        return `<div class="rc-row">
+            <div class="rc-top">${name}${honor}<span class="rc-stars" title="${row.stars} of 5 stars">${starsHtml(row.stars)}</span></div>
+            <div class="rc-detail">${rcEsc(detail)}</div>${next}${paused}
+        </div>`;
+    }
+
+    function reportCardHtml(rows) {
+        if (!rows || rows.length === 0) return '';
+        const sorted = rows.slice().sort((a, b) => (b.stars - a.stars) || String(a.name).localeCompare(String(b.name)));
+        return `<div class="rc-card"><p class="vc-label">Report card</p>${sorted.map(r => reportRowHtml(r, false)).join('')}</div>`;
+    }
+
     // Health-bar color tier, mirroring Damage.resolveBaseImage's thresholds
     // (>75/>50/>25/>0) so the visual language matches the base's own health
     // states instead of inventing a new one.
@@ -253,6 +278,8 @@ const HeroesView = (() => {
         xpProgress,
         buildChipViewModel,
         starsHtml,
+        reportRowHtml,
+        reportCardHtml,
         healthColorVar,
         trackStarCrossing,
         rankRoutines,

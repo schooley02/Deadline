@@ -109,6 +109,14 @@ routine's id (`routineId`) with `complete` / `uncomplete` / `overdue` / `lurk`-s
 into `att`. Details in `docs/DATA_SCHEMA.md` "Daily record" (v2). `V` is now 2; v1 days read as "no attendance data".
 The village counters that read the record live in `js/villageProgress.js` (plan: `docs/WORLD_FEEDBACK_PLAN.md`).
 
+## v3 addition: banked hero stars (BUILT 2026-10-31, Sonnet; High school v2)
+At close, every routine banks its current hero star rating: the record gains `stars { "<routineId>": 0..5 }` (`DailyRecord.close`
+takes it from `ctx.stars`; `State.closeDailyRecord(now, deps)` gets it from the pre-bound `deps.routineStarsNow()`, which script.js
+wires to `Heroes.bankedStars`). Inactive, frozen and KO'd routines bank 0. The High school counter is the sum over the run's closed
+days (`DailyRecord.starsTotal`). `att` stays on the record (useful data) but no longer drives a counter. `V` is now 3; older days
+have no `stars` and count 0. A day that never gets closed (the app wasn't opened) banks nothing; only the last open day closes on a
+long-gap reload. The month roll-up does not carry per-routine stars (the counter only reads the current run's days).
+
 ## Build steps (Sonnet, medium; one session)
 1. `js/dailyRecord.js` + tests (shape, bump, undo, close, 18-month roll-up).
 2. Schema 15 (`save.today`), `deadline.days` persistence helpers, export/import.

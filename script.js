@@ -94,6 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
             extras: VillageProgress.extras(ctx),
             hasBadHabit: (State.getDefinedHabits() || []).some(h => h && !h.archivedAt && h.isNegative),
             hasRoutine: (State.getDefinedRoutines() || []).length > 0,
+            // High school v2 report card (2026-10-31): one row per routine.
+            reportRows: Heroes.reportRows(State.getDefinedRoutines(), State.getDefinedHabits(), CONFIG, State.getRunStartedAtMs()),
             spriteUrl: hit.url,
             spriteW: hit.width,
             spriteH: hit.height,
@@ -431,6 +433,8 @@ document.addEventListener('DOMContentLoaded', () => {
             heroesCompletionRate: (routine, habits, windowStartMs) =>
                 Heroes.completionRate(routine, habits, windowStartMs, CONFIG.HERO_STAR_RATE_WINDOW),
             heroesStarRating: (rate, distinctDays) => Heroes.starRating(rate, distinctDays, CONFIG.HERO_STAR_TIERS),
+            // High school v2 (2026-10-31): the stars each routine banks at day close (DailyRecord v3 `stars`).
+            routineStarsNow: () => Heroes.bankedStars(State.getDefinedRoutines(), State.getDefinedHabits(), CONFIG, State.getRunStartedAtMs()),
             // Game-over review card (Run history sub-session 4, session 55):
             // GameOverView (js/ui/gameOverView.js) loads after js/damage.js,
             // so it's reached through this pre-bound function — same

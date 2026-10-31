@@ -384,6 +384,11 @@ Save {
     `close()` folds it into `att` and clears it (so closed days carry `rt: {}`). A bad habit avoided inside a routine is a
     done item; a slip is a miss. Frozen routines' tasks do not spawn, KO ghosts never go overdue. Month roll-up sums `att`.
     Older v1 days simply have no `att` and never count as perfect.
+  - **v3 (2026-10-31, High school v2; additive, `V` 3):** `stars { "<routineId>": 0..5 }` on CLOSED days = the hero star rating each
+    routine banked when the day closed (`Heroes.bankedStars`: the chip rate/window, habits + tasks; an inactive, frozen or KO'd routine
+    banks 0). Written once by `DailyRecord.close` from `ctx.stars` (`State.closeDailyRecord` passes `deps.routineStarsNow()`); opaque
+    ids, no names. `DailyRecord.starsTotal(rec)` sums a day. The High school counter = the sum over this run's closed days. Older
+    days have no field and read as none. The month roll-up does not carry per-routine stars. `att` is kept but no longer drives a counter.
 - **Rule:** a mechanic that changes what can happen in a day adds its counter in the same session
   (`DailyRecord.bump` event + a `recordDaily`/`State.bumpToday` seam) and bumps `DailyRecord.V`.
 

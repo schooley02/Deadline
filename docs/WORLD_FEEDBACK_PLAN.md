@@ -192,7 +192,7 @@ building opens a card that shows how far it is to the next tier.
 | `habits` | Hospital | GOOD habit check-ins (2026-10-31: positive habits only; resisting bad habits is the Boxing gym's) | `currentRunStats.goodHabitsCompleted` (falls back to `habitsCompleted` on older runs) | 20 / 80 / 250 / 500 |
 | `lurkers` | Boxing gym | days with no slips (>= 1 bad habit due, 0 slipped) | daily records `lurk` | 3 / 14 / 40 / 80 |
 | `defense` | Jailhouse | nights the church held (day ended >= 75% health) | daily records `base.endHp` | 3 / 14 / 40 / 80 |
-| `heroes` | High school | perfect attendance days (every active routine fully done) | NEW daily-record field | 3 / 10 / 30 / 60 |
+| `heroes` | High school | hero stars banked (each closed day adds every routine's star rating, 0-5 each; High school v2, 2026-10-31) | daily records `stars` | 10 / 75 / 300 / 750 |
 | `bestdays` | Windmill | heavy days handled (due > avg of last 14 closed days, >= 3 days history, 0 missed) | daily records `due`/`missed` | 2 / 5 / 15 / 30 |
 
 Day-based counters use this run's closed days in `deadline.days` (matching `run`) plus the open `save.today` where it
@@ -230,7 +230,7 @@ its run from history length); the game-over card shows the eight thumbnails ("Vi
 peak while the game is over and Restart returns it to T1. Side fix: portrait game-over card centred on the viewport.
 Condition overlays stay their own queued item.
 
-## High school v2: banked hero stars + report card -- DECIDED 2026-10-31 (Claude app session, Opus; Jeremy). NOT BUILT.
+## High school v2: banked hero stars + report card -- DECIDED 2026-10-31 (Claude app session, Opus; Jeremy). BUILT 2026-10-31 (Sonnet; steps 0-5, sw v164; see DECISIONS 2026-10-31 "High school v2 BUILT").
 
 **Why:** the High school counted perfect-attendance days (every active routine fully done). One routine with one easy item
 farms a day every day, and every routine you add makes a perfect day HARDER -- it punished the player we want. Jeremy's goal:

@@ -559,6 +559,10 @@ const RoutineViews = (() => {
             ? ` · ${availablePoints} slot point${availablePoints === 1 ? '' : 's'} available`
             : '';
 
+        // High school v2 report card row for THIS routine (stars, %, honor roll, next step).
+        const reportRow = Heroes.reportRows([routine], definedHabits, CONFIG, runStartedAtMs)[0];
+        const reportRowHtml = reportRow ? `<p class="vc-label" style="margin: 10px 0 0;">Report card</p>${HeroesView.reportRowHtml(reportRow, true)}` : '';
+
         return `
             <div style="margin-bottom: 20px; padding: 12px; background: var(--color-bg-light); border-radius: 8px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -569,7 +573,8 @@ const RoutineViews = (() => {
                 <div style="height: 8px; border-radius: 4px; background: var(--color-bg); overflow: hidden; margin-bottom: 10px;">
                     <div style="height: 100%; width: ${Math.round(vm.healthPct * 100)}%; background: ${HeroesView.healthColorVar(vm.healthPct)};"></div>
                 </div>
-                <div style="font-size: 12px; color: var(--color-neutral);">
+                ${reportRowHtml}
+                <div style="font-size: 12px; color: var(--color-neutral); margin-top: 8px;">
                     ❤ ${vm.health}/${CONFIG.ROUTINE_MAX_HEALTH} &nbsp;·&nbsp; Habit slots: ${habitUsed}/${habitCapacity} &nbsp;·&nbsp; Task slots: ${taskUsed}/${taskCapacity}${pointsNote}
                 </div>
             </div>

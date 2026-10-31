@@ -38,7 +38,8 @@
  */
 const DailyRecord = (() => {
     // v2 (2026-10-30, village High school): `rt` (open-day per-routine tally) + `att` (closed-day routine attendance).
-    const V = 2;
+    // v3 (2026-10-31, High school v2): `stars` = { "<routineId>": 0..5 }, the hero star rating each routine banked when the day closed.
+    const V = 3;
 
     // Mirrors CONFIG.HERO_CATEGORIES (test/dailyRecord.test.js checks they
     // match). Kept local so this module has no global dependencies.
@@ -123,7 +124,26 @@ const DailyRecord = (() => {
             // many of those had every item finished (late counts). A day is "perfect attendance" when active >= 1 and perfect === active.
             att: { active: 0, perfect: 0 },
             rt: {},
+            // v3: banked hero stars per routine, written ONCE at close (opaque ids, no names). Missing on older days (reads as none).
+            stars: {},
         };
+    }
+
+    function sanitizeStars(src) {
+        const out = {};
+        if (!src || typeof src !== 'object') return out;
+        Object.keys(src).forEach((k) => {
+            const n = Number(src[k]);
+            if (Number.isFinite(n)) out[k] = Math.max(0, Math.min(5, Math.round(n)));
+        });
+        return out;
+    }
+
+    /** Sum of the stars a CLOSED day banked (the High school counter adds this over the run's days). */
+    function starsTotal(rec) {
+        const st = rec && rec.stars;
+        if (!st || typeof st !== 'object') return 0;
+        return Object.keys(st).reduce((sum, k) => sum + (Number.isFinite(st[k]) && st[k] > 0 ? st[k] : 0), 0);
     }
 
     // ---- Routine attendance (v2) ----
@@ -191,6 +211,7 @@ const DailyRecord = (() => {
         }
         fill(f, rec);
         f.rt = sanitizeRt(rec.rt);
+        f.stars = sanitizeStars(rec.stars);
         // `fill` skips null/undefined sources, but null IS a legal value for
         // active.first/last and base.*; copy those straight across.
         if (rec.active) { f.active.first = rec.active.first != null ? rec.active.first : null; f.active.last = rec.active.last != null ? rec.active.last : null; }
@@ -353,6 +374,8 @@ const DailyRecord = (() => {
         }
         if (c.ptsEnd != null) r.pts.end = c.ptsEnd;
         if (c.bestStreak != null) r.streak.best = c.bestStreak;
+        // v3: bank the routines' stars. Only when the caller supplied them (a second close keeps what the day already banked).
+        if (c.stars) r.stars = sanitizeStars(c.stars);
         // v2: fold the open-day routine tally into att and drop it (a second close of an already-closed record keeps its att).
         if (Object.keys(r.rt).length) {
             const a = attendanceFromTally(r.rt);
@@ -564,6 +587,8 @@ const DailyRecord = (() => {
         close,
         totals,
         attendanceFromTally,
+        starsTotal,
+        sanitizeStars,
         isPerfectAttendance,
         dayScore,
         bestWorstByRun,

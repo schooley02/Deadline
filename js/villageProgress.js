@@ -12,7 +12,7 @@
  *   habits       Hospital      habit check-ins this run
  *   lurkers      Boxing gym    days with no slips (at least one bad habit resolved, none slipped)
  *   defense      Jailhouse     nights the church ended at >= 75% health
- *   heroes       High school   perfect-attendance days (every active routine fully done; late counts)
+ *   heroes       High school   hero stars banked: each closed day adds every routine's star rating at day close (0-5 each)
  *   bestdays     Windmill      heavy days handled (> 1.25x this run's recent average and >= 1 item above it, nothing missed)
  *
  * Same pattern as runStats.js / dailyRecord.js: pure functions, no DOM, no State or CONFIG reads
@@ -41,7 +41,7 @@ const VillageProgress = (() => {
         habits: [20, 80, 250, 500],
         lurkers: [3, 14, 40, 80],
         defense: [3, 14, 40, 80],
-        heroes: [3, 10, 30, 60],
+        heroes: [10, 75, 300, 750],
         bestdays: [2, 5, 15, 30],
     };
     const DEFAULT_DEFENSE_FRAC = 0.75;
@@ -100,6 +100,13 @@ const VillageProgress = (() => {
         return Math.round(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000);
     }
     function consecutive(a, b) { return dayIndex(b.date) - dayIndex(a.date) === 1; }
+
+    /** Stars a closed day banked: the sum of its per-routine `stars` map (0 when the field is absent). */
+    function starsTotal(r) {
+        const st = r && r.stars;
+        if (!st || typeof st !== 'object') return 0;
+        return Object.keys(st).reduce((sum, k) => sum + num(st[k]), 0);
+    }
 
     function isPerfectAttendance(r) {
         const a = r && r.att;
@@ -194,7 +201,8 @@ const VillageProgress = (() => {
             habits: Number.isFinite(rs.goodHabitsCompleted) ? num(rs.goodHabitsCompleted) : num(rs.habitsCompleted),
             lurkers: days.filter(isNoSlipDay).length,
             defense: days.filter((r) => churchHeld(r, c.maxHp, o.defenseFrac)).length,
-            heroes: days.filter(isPerfectAttendance).length,
+            // High school v2 (2026-10-31): banked hero stars, summed over this run's closed days. Days from before the field existed count 0.
+            heroes: days.reduce((sum, r) => sum + starsTotal(r), 0),
             bestdays: heavyDays(days, o.heavyWindow, o.heavyMinDays, o.heavyFactor, o.heavyExtra).handled,
         };
     }
@@ -233,6 +241,7 @@ const VillageProgress = (() => {
         comebackDays,
         attendanceStreak,
         isPerfectAttendance,
+        starsTotal,
         isNoSlipDay,
         churchHeld,
     };

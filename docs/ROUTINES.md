@@ -140,6 +140,8 @@ game-loop tick (`CONFIG.GAME_TICK_MS` = 50ms) so the chips stay live across ever
 change a routine's health/XP/level/star-rate/frozen/KO/active state — without threading a new UI
 dependency through items.js/routines.js/damage.js, which stay DOM-free.
 
+**Report card (2026-10-31, High school v2):** the Manage Routine window's hero stats block carries a one-row report card for that routine (stars, completion % over its rate window, honor roll at 3+ stars, the next step toward another star); the High school building card carries one row per routine. Pure rows: `Heroes.reportRows`; markup: `HeroesView.reportRowHtml` / `reportCardHtml`.
+
 **Star-threshold-crossed notice** (PROJECT_SPEC ~84): fires the first time a routine's live star
 rating actually increases, via an ephemeral, NON-persisted per-session memory
 (`heroStarMemory` in script.js, reset on new game/reset) — a routine's first observation just

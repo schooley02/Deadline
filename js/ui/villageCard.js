@@ -13,7 +13,8 @@
  * buildModel(ctx): ctx = {
  *   kind,           'nights' | 'slain' | 'punctuality' | 'habits' | 'lurkers' | 'defense' | 'heroes' | 'bestdays'
  *   progress,       VillageProgress.compute(...)[kind] -> { tier, value, prevAt, nextAt, toNext, maxed, fraction }
- *   extras?,        VillageProgress.extras(...) -> { attendanceStreak, comebackDays }
+ *   extras?,        VillageProgress.extras(...) -> { attendanceStreak, comebackDays }  (the school no longer shows the streak)
+ *   reportRows?,    Heroes.reportRows(...) -> one row per routine for the High school's report card
  *   hasBadHabit?,   true when at least one active (non-archived) negative habit exists (gym empty state)
  *   hasRoutine?,    true when at least one routine exists (school empty state)
  *   spriteUrl?, spriteW?, spriteH?, spriteFlip?   the building's current sprite (mirrored like the scene when spriteFlip)
@@ -60,8 +61,8 @@ const VillageCard = (() => {
             why: 'A healthy base means you are not letting deadlines pile up. Protect and serve your future self: ending each day strong keeps you out of the hole, where catching up costs the most.',
         },
         heroes: {
-            name: 'High school', unit: 'perfect days',
-            measures: 'Perfect-attendance days: you showed up to every routine and finished it.',
+            name: 'High school', unit: 'stars',
+            measures: 'Hero stars banked: each night, every routine banks its star rating. Better routines, and more of them, fill the school faster.',
             why: "This game puts your routines to the test. If your routines aren't making the grade, you need to study why, learn new methods, and test them again to advance.",
         },
         bestdays: {
@@ -122,10 +123,6 @@ const VillageCard = (() => {
 
         const lines = [];
         const ex = c.extras || {};
-        if (c.kind === 'heroes') {
-            const streak = count(ex.attendanceStreak);
-            if (streak > 0) lines.push('Perfect-attendance streak: ' + streak + ' ' + plural(streak, 'day', 'days') + '.');
-        }
         if (c.kind === 'bestdays') {
             const back = count(ex.comebackDays);
             if (back > 0) lines.push('Comeback days this run: ' + back + '. A clean day right after a rough one.');
@@ -150,6 +147,7 @@ const VillageCard = (() => {
             pips: pipsFor(tier),
             barText,
             lines,
+            reportRows: (c.kind === 'heroes' && Array.isArray(c.reportRows)) ? c.reportRows : [],
             empty,
             spriteUrl: c.spriteUrl || null,
             spriteW: count(c.spriteW),
@@ -180,6 +178,9 @@ const VillageCard = (() => {
             : '';
         const emptyHtml = m.empty ? `<p class="vc-empty">${esc(m.empty)}</p>` : '';
         const linesHtml = m.lines.map(l => `<p class="vc-line">${esc(l)}</p>`).join('');
+        // High school report card (HeroesView loads before this module; tests without it simply skip the card).
+        const reportHtml = (m.reportRows && m.reportRows.length && typeof HeroesView !== 'undefined' && HeroesView.reportCardHtml)
+            ? HeroesView.reportCardHtml(m.reportRows) : '';
         return `
             <div class="modal-overlay village-card-overlay">
                 <div class="modal-content village-card" role="dialog" aria-label="${esc(m.name)}, tier ${m.tier}">
@@ -193,6 +194,7 @@ const VillageCard = (() => {
                             <div class="vc-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span class="vc-fill" style="width:${pct}%"></span></div>
                             <p class="vc-bar-text${m.maxed ? ' vc-bar-text--maxed' : ''}">${esc(m.barText)}</p>
                             ${emptyHtml}${linesHtml}
+                            ${reportHtml}
                             ${m.measures ? `<p class="vc-label">What we measure</p><p class="vc-measures">${esc(m.measures)}</p>` : ''}
                             ${m.why ? `<p class="vc-label">Why it helps</p><p class="vc-why">${esc(m.why)}</p>` : ''}
                         </div>

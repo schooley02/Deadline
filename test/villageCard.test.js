@@ -58,11 +58,21 @@ describe('buildModel', () => {
         expect(m.pips[0].state).toBe('current');
     });
 
-    test('school: streak line only when the streak is > 0 (singular for 1)', () => {
+    test('school: no streak line any more; it carries the report card rows instead (2026-10-31)', () => {
         const base = { kind: 'heroes', progress: progress(0, 'heroes'), hasRoutine: true };
-        expect(VillageCard.buildModel({ ...base, extras: { attendanceStreak: 0 } }).lines).toEqual([]);
-        expect(VillageCard.buildModel({ ...base, extras: { attendanceStreak: 1 } }).lines[0]).toMatch(/streak: 1 day\./);
-        expect(VillageCard.buildModel({ ...base, extras: { attendanceStreak: 4 } }).lines[0]).toMatch(/streak: 4 days\./);
+        expect(VillageCard.buildModel({ ...base, extras: { attendanceStreak: 4 } }).lines).toEqual([]);
+        const rows = [{ id: 1, name: 'Morning', stars: 3 }];
+        expect(VillageCard.buildModel({ ...base, reportRows: rows }).reportRows).toBe(rows);
+        expect(VillageCard.buildModel({ ...base }).reportRows).toEqual([]);
+        // other buildings never carry a report card
+        expect(VillageCard.buildModel({ kind: 'nights', progress: progress(0), reportRows: rows }).reportRows).toEqual([]);
+    });
+
+    test('school copy: banked hero stars, bar unit "stars"', () => {
+        const m = VillageCard.buildModel({ kind: 'heroes', progress: { tier: 1, value: 4, nextAt: 10, fraction: 0.4, toNext: 6 }, hasRoutine: true });
+        expect(m.unit).toBe('stars');
+        expect(m.barText).toBe('4 / 10 stars to earn star 2');
+        expect(m.measures).toMatch(/Hero stars banked/);
     });
 
     test('windmill: comeback line only when > 0; other buildings never show these lines', () => {
