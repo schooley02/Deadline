@@ -897,15 +897,21 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
         s.forEach(x => expect(x.artRight).toBe(fieldRight + P[x.kind].right));
     });
 
-    test('wider screens keep the phone arrangement pixel-for-pixel, shifted to the hill', () => {
+    test('wider screens keep the phone arrangement pixel-for-pixel, CENTRED in the field', () => {
         const phone = byKind(at(817));
-        [1100, 1366, 1920].forEach((w) => {
+        [1100, 1366, 1827, 1920].forEach((w) => {
             const s = byKind(at(w));
-            const shift = w - 817;
+            const shift = (w - 817) / 2; // half the extra width on each side
             Object.keys(ALL8).forEach((k) => {
-                expect(s[k].artLeft).toBe(phone[k].artLeft + shift);
+                expect(Math.abs(s[k].artLeft - (phone[k].artLeft + shift))).toBeLessThanOrEqual(0.5);
+                expect(s[k].artRight - s[k].artLeft).toBe(phone[k].artRight - phone[k].artLeft);
                 expect(s[k].feetY).toBe(phone[k].feetY);
             });
+            // the cluster sits in the middle: equal open field (within 1px) left of the leftmost and right of the rightmost design edge
+            const lefts = Object.values(s).map(x => x.artLeft);
+            const leftGap = Math.min(...lefts) - 160;
+            const designRight = (w - 140) - shift; // where the hill would be for the phone layout
+            expect(Math.abs(leftGap - ((w - 140) - designRight) - (phone.lurkers.artLeft - 160))).toBeLessThanOrEqual(1);
         });
     });
 
@@ -958,6 +964,11 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
                 for (let i = 1; i < r.length; i++) expect(r[i].artLeft).toBeGreaterThanOrEqual(r[i - 1].artRight);
             });
         });
+    });
+
+    test('the phone width is unchanged by centring (the field is exactly the design width)', () => {
+        const s = byKind(at(817));
+        expect(s.slain.artRight).toBe(817 - 140 + P.slain.right);
     });
 
     test('nothing stands BEHIND the Armory, and on the phone its left side tucks 30px behind the Jail', () => {

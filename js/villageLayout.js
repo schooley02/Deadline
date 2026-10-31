@@ -401,7 +401,7 @@ const VillageLayout = (() => {
      * PLACEMENT MODEL (2026-10-30 night, Jeremy + Claude; DECISIONS "Village arrangement"). The village is designed for a
      * landscape PHONE (817px wide, a 517px walking field) and anchored to the graveyard hill: each building's VISIBLE-ART
      * right edge sits `placement[kind].right` px from the field's right edge (the hill's left edge; > 0 = tucked behind the
-     * hill). Wider screens keep the exact phone arrangement (extra width becomes open field by the church); narrower ones
+     * hill). Wider screens keep the exact phone arrangement, CENTRED in the field (extra width = open field on both sides); narrower ones
      * pull every art-left offset in proportionally (field / designFieldPx). Rows set depth: `front` stands on the tower's row (feet
      * = the Clock tower's feet when it shows, else the horizon), `back` is backRowRaisePx higher and darker, `far` another
      * farRowRaisePx higher and darker still. `flip: true` mirrors the sprite (the view sets scaleX(-1); artLeft/artRight
@@ -419,6 +419,8 @@ const VillageLayout = (() => {
         const fieldLeft = baseW || 0;
         const fieldRight = fieldLeft + field;
         const k = (o.designFieldPx > 0) ? Math.min(1, field / o.designFieldPx) : 1;
+        // Wider than the phone: slide the whole (unchanged) cluster to the middle of the field (Jeremy 2026-10-30).
+        const centreShift = (o.designFieldPx > 0) ? Math.max(0, (field - o.designFieldPx) / 2) : 0;
         const clockTier = clampTier(t.punctuality, o.tiers);
         const frontFeet = clockTier !== null ? clockFeetY(canvasH, o) : horizonFeetY(canvasH, o);
         const feet = {
@@ -444,7 +446,7 @@ const VillageLayout = (() => {
             // `right` is authored at the design width; narrower fields scale the art's LEFT-edge offset (so a building that
             // cleared the church at the design width still clears it), keeping the sprite's width.
             const designLeft = (Number(p.right) || 0) - (a1 - a0);
-            const artLeft = Math.round(fieldRight + designLeft * k);
+            const artLeft = Math.round(fieldRight - centreShift + designLeft * k);
             const left = artLeft - a0;
             const artRight = left + a1;
             if (artLeft < fieldLeft || artRight > fieldRight + hillW) return;

@@ -575,7 +575,7 @@ const CONFIG = {
     // ---- Village ARRANGEMENT (2026-10-30 night, Jeremy + Claude; DECISIONS "Village arrangement"). Designed for a landscape
     // phone (817px wide = a 517px walking field) and anchored to the graveyard hill. `right` = px from the field's right edge
     // (the hill) to the building's visible-art right edge (> 0 = tucked behind the hill); narrower fields scale it by
-    // field / VILLAGE_DESIGN_FIELD_PX, wider ones keep it. Rows by DOOR SIZE: front doors ~26-31px, back ~16-21, far ~17-18.
+    // field / VILLAGE_DESIGN_FIELD_PX; wider ones keep the same cluster and CENTRE it in the field (Jeremy 2026-10-30). Rows by DOOR SIZE: front doors ~26-31px, back ~16-21, far ~17-18.
     // Only short buildings may stand in the ~90px under the moon + "NIGHTS SURVIVED" label. `flip` mirrors the sprite.
     // (The per-kind VILLAGE_*_X_FRAC keys below are the old model's, kept only for the legacy per-kind slot helpers.)
     VILLAGE_DESIGN_FIELD_PX: 517,

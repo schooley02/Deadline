@@ -217,7 +217,7 @@ canvas cannot be read, e.g. `file://`). The card is two columns (sprite left, fa
 ## Village ARRANGEMENT (2026-10-30 night; DECISIONS "Village arrangement")
 
 Designed for the landscape PHONE (817px wide, a 517px walking field) and anchored to the graveyard hill: `CONFIG.VILLAGE_PLACEMENT` gives each kind a row and the
-distance from the hill to its visible-art right edge; wider screens keep the phone arrangement pixel-for-pixel (extra width = open field by the church), narrower ones
+distance from the hill to its visible-art right edge; wider screens keep the phone arrangement pixel-for-pixel and CENTRE it in the field (Jeremy; extra width = open field on both sides, so on desktop the Armory no longer tucks behind the hill), narrower ones
 pull the art-left offsets in proportionally. Left to right: **front** Boxing gym, Clock tower, Jailhouse; **back** Hospital, High school, Armory (right end, left side
 30px behind the Jail, right side behind the graveyard slope, nothing behind it); **far** Windmill (mirrored, wheel over the gym + hospital) and the Radio mast
 (mirrored, right of the HUD Points button). **Door rule:** rows are set by door height at 1x (front ~26-31px, back ~16-21, far ~17-18), so doors shrink with depth; a new

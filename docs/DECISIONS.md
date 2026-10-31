@@ -13,6 +13,7 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 - **Moon rule:** the ~90px left of the hill lies under the moon + "NIGHTS SURVIVED" label; tall buildings there hide it, so only short ones may stand there (a test checks it at 817 and 1366).
 - **Taps:** forgiving hit test, an opaque pixel within 3 art px counts (the mast and spokes are thin); flipped sprites mirror the hit test and the card.
 - **Card Clock tower stays 1.5x** (Jeremy): written into ART_STYLE as an exception to the whole-number rule (card only; the scene is 1:1).
+- **Wide screens CENTRE the cluster (Jeremy, same night, sw v148):** anchoring to the hill left the village a small cluster in the corner of his ~1827px laptop. Wider than the phone, the unchanged cluster now sits in the middle of the field (half the extra width each side); the phone is unaffected (its field is exactly the design width). Trade-off accepted: on desktop the Armory no longer tucks behind the graveyard slope.
 - **Revisit:** the Armory's position after the Nov 7 graveyard stones/tree art (Jeremy).
 
 ## 2026-10-30 (night) -- Village Build 2 BUILT: real tiers in the scene + tappable building cards (Claude app session, Sonnet; no balance change)
