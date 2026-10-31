@@ -604,6 +604,9 @@ const Items = (() => {
                     if (item.parentId) RunStats.recordSubtaskCompleted(stats);
                     else RunStats.recordTaskCompleted(stats);
                 } else if (item.type === 'habit') {
+                    // Hospital (2026-10-31): good habits only. A negative habit "avoided" from the live pop-up comes
+                    // through here too; it still counts as a habit win (habitsCompleted -> Armory kills).
+                    if (item.isNegative !== true) RunStats.recordGoodHabitCompleted(stats);
                     RunStats.recordHabitCompleted(stats);
                 }
                 RunStats.recordPointsEarned(stats, pointsGained);
@@ -1040,11 +1043,17 @@ const Items = (() => {
             // ordering rationale as completeItem.
             awardRoutineXpForHabitDef(habitDef, deps);
             notifyStreakMilestone(habitDef, oldStreak, deps);
+            // Habit win counters (2026-10-31): an 'avoided' answer on the check-in card now counts exactly like
+            // "Successfully avoided" in the live pop-up, which goes through completeItem and always bumped
+            // habitsCompleted + lifetime habitCompleted. Before this, the same choice counted only when the
+            // app happened to be open (session-65 note below said 'avoided' never counted; the live path did).
+            // NOT goodHabitsCompleted: resisting a bad habit is the Boxing gym's stat, not the Hospital's.
+            if (typeof deps.getCurrentRunStats === 'function' && typeof RunStats !== 'undefined') {
+                RunStats.recordHabitCompleted(deps.getCurrentRunStats());
+            }
+            if (typeof deps.recordLifetime === 'function') deps.recordLifetime('habitCompleted', 1);
             // Achievements sub-session 2 (session 65): live streak seam, same
-            // as completeItem's habit branch. Deliberately NO habitCompleted
-            // bump here — currentRunStats doesn't count an 'avoided' outcome
-            // as a habit completion, and lifetimeStats mirrors its seams
-            // exactly. (The silent restore-time twin of this path,
+            // as completeItem's habit branch. (The silent restore-time twin of this path,
             // settleStaleRecurringInstance, gets NO lifetime wiring at all —
             // it already skips notifyStreakMilestone to stay quiet, and a
             // streak it advances self-heals into bestHabitStreak at the next

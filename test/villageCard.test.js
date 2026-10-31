@@ -23,7 +23,7 @@ describe('buildModel', () => {
     test('a mid tier marks earlier pips done and later pips locked', () => {
         const m = VillageCard.buildModel({ kind: 'slain', progress: progress(160, 'slain') });
         expect(m.tier).toBe(3);
-        expect(m.barText).toBe('160 / 450 done to earn star 4');
+        expect(m.barText).toBe('160 / 450 zombies to earn star 4');
         expect(m.pips.map(p => p.state)).toEqual(['done', 'done', 'current', 'locked', 'locked']);
         expect(m.fraction).toBeGreaterThan(0);
         expect(m.fraction).toBeLessThan(1);

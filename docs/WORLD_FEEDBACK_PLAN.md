@@ -189,7 +189,7 @@ building opens a card that shows how far it is to the next tier.
 | `nights` | Radio tower | nights survived | `Damage.computeDaysSurvived` | 4 / 18 / 50 / 100 |
 | `slain` | Armory | tasks + sub-tasks + habits completed | `currentRunStats` | 30 / 150 / 450 / 1000 |
 | `punctuality` | Clock tower | completed on time | daily records: done - late | 25 / 120 / 350 / 750 |
-| `habits` | Hospital | habit check-ins | `currentRunStats.habitsCompleted` | 20 / 80 / 250 / 500 |
+| `habits` | Hospital | GOOD habit check-ins (2026-10-31: positive habits only; resisting bad habits is the Boxing gym's) | `currentRunStats.goodHabitsCompleted` (falls back to `habitsCompleted` on older runs) | 20 / 80 / 250 / 500 |
 | `lurkers` | Boxing gym | days with no slips (>= 1 bad habit due, 0 slipped) | daily records `lurk` | 3 / 14 / 40 / 80 |
 | `defense` | Jailhouse | nights the church held (day ended >= 75% health) | daily records `base.endHp` | 3 / 14 / 40 / 80 |
 | `heroes` | High school | perfect attendance days (every active routine fully done) | NEW daily-record field | 3 / 10 / 30 / 60 |
@@ -223,7 +223,7 @@ makes sense (a day only counts once it can no longer change: closed days for `de
    no routines = "Start a routine to open the school".
 4. sw.js bump + new files in `APP_SHELL`; ART_STYLE/UI_UX notes; live check in the pane and on a phone.
 
-**Build 3 -- BUILT 2026-10-30 (Sonnet; sw v154; Jest 101 suites / 2,348):** each run record keeps every building's peak tier
+**Build 3 -- BUILT 2026-10-30 (Sonnet; sw v158; Jest 101 suites / 2,348):** each run record keeps every building's peak tier
 (`peakVillageTiers`, additive; read in `Damage.gameOver` BEFORE the record joins history, because the live village derives
 its run from history length); the game-over card shows the eight thumbnails ("Village at its peak, N / 40 tiers", shared
 `VillagePanel.peakStripHtml`); past-run cards show "Village: N / 40 tiers" plus the thumbnails when expanded; the scene holds the

@@ -190,7 +190,8 @@ const VillageProgress = (() => {
             nights: num(c.nightsSurvived),
             slain: num(rs.tasksCompleted) + num(rs.subtasksCompleted) + num(rs.habitsCompleted),
             punctuality: days.reduce((s, r) => s + onTimeTotal(r), 0) + (today ? onTimeTotal(today) : 0),
-            habits: num(rs.habitsCompleted),
+            // Hospital = good habits only (2026-10-31); a run from before the field existed falls back to the old count.
+            habits: Number.isFinite(rs.goodHabitsCompleted) ? num(rs.goodHabitsCompleted) : num(rs.habitsCompleted),
             lurkers: days.filter(isNoSlipDay).length,
             defense: days.filter((r) => churchHeld(r, c.maxHp, o.defenseFrac)).length,
             heroes: days.filter(isPerfectAttendance).length,

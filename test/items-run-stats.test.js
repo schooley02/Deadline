@@ -269,3 +269,38 @@ describe('recordRunDamageForItem attributes damage with the correct routineId', 
         expect(() => Items.recordRunDamageForItem(item, 5, Date.now(), deps)).not.toThrow();
     });
 });
+
+describe('Hospital good-habit counter (2026-10-31)', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => { jest.runOnlyPendingTimers(); jest.useRealTimers(); });
+
+    test('a good habit check-in bumps goodHabitsCompleted AND habitsCompleted', () => {
+        const stats = RunStats.freshRunStats();
+        const deps = makeDeps({ activeItems: [habitItem()], definedHabits: [positiveHabitDef()], currentRunStats: stats });
+        Items.completeItem(2, deps);
+        expect(stats.goodHabitsCompleted).toBe(1);
+        expect(stats.habitsCompleted).toBe(1);
+    });
+
+    test('a bad habit "avoided" from the live pop-up is a habit win (Armory) but NOT a good habit (Hospital)', () => {
+        const stats = RunStats.freshRunStats();
+        const deps = makeDeps({
+            activeItems: [habitItem({ isNegative: true })],
+            definedHabits: [positiveHabitDef({ isNegative: true })],
+            currentRunStats: stats,
+        });
+        Items.completeItem(2, deps);
+        expect(stats.habitsCompleted).toBe(1);
+        expect(stats.goodHabitsCompleted).toBe(0);
+    });
+
+    test('a run saved before the field existed seeds it from the old mixed count, so the Hospital never drops', () => {
+        const stats = RunStats.freshRunStats();
+        delete stats.goodHabitsCompleted;
+        stats.habitsCompleted = 40;
+        const deps = makeDeps({ activeItems: [habitItem()], definedHabits: [positiveHabitDef()], currentRunStats: stats });
+        Items.completeItem(2, deps);
+        expect(stats.goodHabitsCompleted).toBe(41);
+        expect(stats.habitsCompleted).toBe(41);
+    });
+});

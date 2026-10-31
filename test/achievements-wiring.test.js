@@ -234,7 +234,7 @@ describe('uncompleteItem dispatches symmetric decrements', () => {
     });
 });
 
-describe("check-in 'avoided' dispatches streakReached but NOT habitCompleted", () => {
+describe("check-in 'avoided' dispatches streakReached and habitCompleted (2026-10-31)", () => {
     function negativeHabitDef(overrides = {}) {
         return positiveHabitDef({
             isNegative: true,
@@ -243,12 +243,14 @@ describe("check-in 'avoided' dispatches streakReached but NOT habitCompleted", (
         });
     }
 
-    test("'avoided' fires streakReached with the new streak, no habit-count bump (mirrors currentRunStats)", () => {
+    // 2026-10-31: 'avoided' on the check-in card now bumps habitCompleted once, exactly like the live pop-up's
+    // "Successfully avoided" (which goes through completeItem). Before, the same choice counted only if the app was open.
+    test("'avoided' fires streakReached with the new streak AND one habitCompleted (same as the live pop-up)", () => {
         const habitDef = negativeHabitDef();
         const deps = makeDeps({ definedHabits: [habitDef] });
         Items.resolvePendingCheckIn('h1', 'avoided', deps);
         expect(deps._calls.filter(([e]) => e === 'streakReached')).toEqual([['streakReached', habitDef.streak]]);
-        expect(eventsOf(deps)).not.toContain('habitCompleted');
+        expect(deps._calls.filter(([e]) => e === 'habitCompleted')).toEqual([['habitCompleted', 1]]);
     });
 
     test("'avoided' award can also fire the Back in Black crossing", () => {

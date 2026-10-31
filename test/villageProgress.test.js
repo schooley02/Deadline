@@ -369,3 +369,15 @@ describe('DailyRecord routine attendance (feeds the High school)', () => {
         expect(rolled.months['2020-01'].att).toEqual({ active: 3, perfect: 2 });
     });
 });
+
+describe('Hospital reads good habits only (2026-10-31)', () => {
+    const base = { nightsSurvived: 0, days: [], today: null, runNumber: 1, maxHp: 100 };
+    test('uses goodHabitsCompleted when present, ignoring avoided bad habits in habitsCompleted', () => {
+        const c = VillageProgress.counters({ ...base, runStats: { habitsCompleted: 30, goodHabitsCompleted: 12 } });
+        expect(c.habits).toBe(12);
+        expect(c.slain).toBe(30); // the Armory still counts every habit win
+    });
+    test('a run from before the field existed falls back to the old count', () => {
+        expect(VillageProgress.counters({ ...base, runStats: { habitsCompleted: 30 } }).habits).toBe(30);
+    });
+});

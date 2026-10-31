@@ -173,8 +173,8 @@ describe('shell wiring', () => {
         expect(read('js/state.js')).toContain('getVillageTiers: deps.getVillageTiers');
     });
 
-    test('styles ship in the already-cached village panel stylesheet; sw bumped to v154', () => {
+    test('styles ship in the already-cached village panel stylesheet; sw bumped to v159', () => {
         expect(read('css/villagePanel.css')).toContain('.village-peak-strip');
-        expect(read('sw.js')).toContain("CACHE_NAME = 'deadline-shell-v154'");
+        expect(read('sw.js')).toContain("CACHE_NAME = 'deadline-shell-v159'");
     });
 });

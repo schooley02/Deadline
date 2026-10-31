@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function villageProgressNow() {
         try {
             const ctx = villageContext();
-            const key = [ctx.nightsSurvived, ctx.runStats.tasksCompleted, ctx.runStats.subtasksCompleted, ctx.runStats.habitsCompleted,
+            const key = [ctx.nightsSurvived, ctx.runStats.tasksCompleted, ctx.runStats.subtasksCompleted, ctx.runStats.habitsCompleted, ctx.runStats.goodHabitsCompleted,
                 villageCache.daysKey, JSON.stringify(ctx.today && ctx.today.done)].join('|');
             if (villageCache.key !== key) {
                 villageCache.progress = VillageProgress.compute(ctx);

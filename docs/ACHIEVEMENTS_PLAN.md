@@ -70,7 +70,7 @@ Tiered families (Bronze/Silver/Gold/…, one badge per tier crossed):
 |---|---|---|---|
 | `survivor` | Survivor | NIGHTS (local midnights) survived in a single run since 2026-10-27; was full 24h days (`finalizeRun` / live `computeDaysSurvived`) | 3 / 7 / 14 / 30 |
 | `task_slayer` | Task Slayer | lifetime tasks completed (`lifetimeStats.tasksCompleted`; sub-tasks are NOT counted since 2026-10-27 -- they feed `lifetimeStats.subtasksCompleted`) | 10 / 50 / 250 / 1000 |
-| `habit_hero` | Habit Hero | lifetime habit completions (`lifetimeStats.habitsCompleted`) | 10 / 50 / 250 / 1000 |
+| `habit_hero` | Habit Hero | lifetime habit completions (`lifetimeStats.habitsCompleted`; since 2026-10-31 a check-in card 'avoided' counts too, matching the live pop-up) | 10 / 50 / 250 / 1000 |
 | `on_fire` | On Fire | best single-habit streak (existing streak crossing site) | 7 / 14 / 30 |
 | `steady_hands` | Steady Hands | a routine ends a run ≥90% completion rate, ≥7 days survived (per-routine rollup at `finalizeRun`) | 1 / 5 / 25 runs |
 | `back_in_black` | Back in Black | recover from a negative balance to ≥0 (economy seam) | single badge |

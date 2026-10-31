@@ -82,6 +82,7 @@ PRESERVES history across `Persistence.clear()`.
 // live, run-scoped (persisted so a mid-run reload keeps accruing; reset by initGame)
 currentRunStats = {
   tasksCompleted: 0, habitsCompleted: 0, habitsMissed: 0,
+  goodHabitsCompleted: 0,        // 2026-10-31, additive: positive (good) habit check-ins only -> the village Hospital. habitsCompleted still counts every habit win (good done + bad avoided; never an indulgence). Absent on runs from before; the first bump seeds it from habitsCompleted.
   pointsEarned: 0,               // gross earnings (Economy.addPoints seam)
   blame: { [itemKey]: { name, category, isHabit, routineId, totalDamage,
                         firstDamageAt, lastDamageAt } }

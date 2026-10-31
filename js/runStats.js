@@ -37,6 +37,7 @@ const RunStats = (() => {
             // tasksCompleted. Additive; absent = 0 (no schema bump).
             subtasksCompleted: 0,
             habitsCompleted: 0,
+            goodHabitsCompleted: 0,
             habitsMissed: 0,
             pointsEarned: 0,
             // Distance-priced rescheduling (Build 2, 2026-10-25): times a task's
@@ -84,6 +85,15 @@ const RunStats = (() => {
     function recordTaskCompleted(stats) { if (stats) stats.tasksCompleted += 1; }
     function recordSubtaskCompleted(stats) { if (stats) stats.subtasksCompleted = (stats.subtasksCompleted || 0) + 1; }
     function recordHabitCompleted(stats) { if (stats) stats.habitsCompleted += 1; }
+    // Good (positive) habit check-ins only (2026-10-31, Jeremy: the Hospital measures habits you are BUILDING; resisting
+    // bad habits belongs to the Boxing gym). Additive, no schema bump. A run started before this field existed only has
+    // the mixed habitsCompleted count, so the first bump seeds from it (the Hospital never drops mid-run). Call it
+    // BEFORE recordHabitCompleted so the seed does not include this check-in.
+    function recordGoodHabitCompleted(stats) {
+        if (!stats) return;
+        if (!Number.isFinite(stats.goodHabitsCompleted)) stats.goodHabitsCompleted = stats.habitsCompleted || 0;
+        stats.goodHabitsCompleted += 1;
+    }
     function recordHabitMissed(stats) { if (stats) stats.habitsMissed += 1; }
     function recordReschedule(stats) { if (stats) stats.reschedules = (stats.reschedules || 0) + 1; }
 
@@ -299,6 +309,7 @@ const RunStats = (() => {
         recordTaskCompleted,
         recordSubtaskCompleted,
         recordHabitCompleted,
+        recordGoodHabitCompleted,
         recordHabitMissed,
         recordReschedule,
         recordPointsEarned,

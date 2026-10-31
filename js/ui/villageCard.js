@@ -31,13 +31,13 @@ const VillageCard = (() => {
     const KINDS = {
         nights: {
             name: 'Radio tower', unit: 'nights',
-            measures: 'Nights your base has survived in this run: every midnight that passes with the church still standing.',
-            why: 'Surviving night after night is the whole game. It rewards steady, everyday follow-through over one big push, so a long streak of small wins beats a single heroic day.',
+            measures: 'Nights survived. Each midnight you make it through, the tower broadcasts: "We are still here."',
+            why: 'Staying in the game is what counts. A long run of ordinary nights beats one heroic day, and every night is proof that you can keep showing up.',
         },
         slain: {
-            name: 'Armory', unit: 'done',
-            measures: 'Tasks, sub-tasks and habits you have completed in this run.',
-            why: 'Finishing things is what turns plans into progress. Breaking a big job into sub-tasks gives you more small wins to count, and every win keeps your momentum going.',
+            name: 'Armory', unit: 'zombies',
+            measures: 'Zombies Killed: Tasks, sub-tasks and habits you have completed in this run.',
+            why: 'Every task you finish is one more zombie down, and every kill makes the camp stronger. Breaking a big job into sub-tasks gives you more targets to take down, and a steady kill count keeps your momentum going.',
         },
         punctuality: {
             name: 'Clock tower', unit: 'on time',
@@ -45,9 +45,9 @@ const VillageCard = (() => {
             why: 'Done on time beats done late: it keeps the base safe and builds trust in your own schedule. Getting ahead of the clock, not just across the line, is what lowers stress.',
         },
         habits: {
-            name: 'Hospital', unit: 'check-ins',
-            measures: 'Habit check-ins in this run. Every habit you check off counts once.',
-            why: 'Habits grow through repetition. Every check-in is one more rep, and a long unbroken run of reps is how a routine starts to feel automatic instead of like effort.',
+            name: 'Hospital', unit: 'good habits',
+            measures: 'Good habits done: every check-in on a habit you are building. Bad habits you resist count at the Boxing gym.',
+            why: 'Habits grow through repetition. Every check-in is one more rep, and a long unbroken run of reps is how a habit starts to feel automatic instead of like effort.',
         },
         lurkers: {
             name: 'Boxing gym', unit: 'clean days',
@@ -61,12 +61,12 @@ const VillageCard = (() => {
         },
         heroes: {
             name: 'High school', unit: 'perfect days',
-            measures: 'Days every active routine was fully done, with nothing skipped.',
-            why: 'Routines are the habits that hold your day together. Finishing the whole set, not just part of it, is what makes a routine stick.',
+            measures: 'Perfect-attendance days: you showed up to every routine and finished it.',
+            why: "This game puts your routines to the test. If your routines aren't making the grade, you need to study why, learn new methods, and test them again to advance.",
         },
         bestdays: {
-            name: 'Windmill', unit: 'heavy days',
-            measures: 'Heavy days (busier than your recent average) that you got through with nothing missed.',
+            name: 'Windmill', unit: 'whirlwind days',
+            measures: 'Whirlwind days: busier than your recent average, and you got through them with nothing missed.',
             why: 'Anyone can keep up on a light day. Getting through a heavy one cleanly shows you can handle pressure, and that is how your capacity grows.',
         },
     };

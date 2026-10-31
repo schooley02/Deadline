@@ -42,7 +42,7 @@ describe('buildModel', () => {
         expect(nights.maxed).toBe(true);
         expect(nights.barText).toBe('Fully rebuilt');
         expect(slain.tier).toBe(2);
-        expect(slain.barText).toBe('3 / 10 done to earn star 3');
+        expect(slain.barText).toBe('3 / 10 zombies to earn star 3');
     });
 
     test('the title total adds the tiers: a new game is 8 of 40', () => {

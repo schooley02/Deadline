@@ -23,7 +23,7 @@ function makeHabitInstance(over = {}) {
 describe('freshRunStats', () => {
     test('zeroed counters and an empty blame map', () => {
         expect(RunStats.freshRunStats()).toEqual({
-            tasksCompleted: 0, subtasksCompleted: 0, habitsCompleted: 0, habitsMissed: 0,
+            tasksCompleted: 0, subtasksCompleted: 0, habitsCompleted: 0, goodHabitsCompleted: 0, habitsMissed: 0,
             pointsEarned: 0, reschedules: 0, blame: {},
         });
     });

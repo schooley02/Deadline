@@ -126,3 +126,36 @@ describe('Items.resolvePendingCheckIn', () => {
         expect(deps.getSaved()).toBe(0);
     });
 });
+
+describe('check-in card counts like the live pop-up (2026-10-31)', () => {
+    const RunStats = require('../js/runStats.js');
+    beforeAll(() => { global.RunStats = RunStats; });
+    afterAll(() => { delete global.RunStats; });
+
+    function setup(outcome) {
+        const habitDef = { id: 'd1', isNegative: true, streak: 0, occurrenceHistory: [], pendingCheckIn: { originalDueDate: yesterday() } };
+        const stats = RunStats.freshRunStats();
+        const lifetime = [];
+        const deps = makeDeps({
+            definedHabits: [habitDef],
+            getCurrentRunStats: () => stats,
+            recordLifetime: (event, value) => lifetime.push([event, value]),
+        });
+        Items.resolvePendingCheckIn('d1', outcome, deps);
+        return { stats, lifetime };
+    }
+
+    test("'avoided' counts as a habit win (run + lifetime) but not as a good habit", () => {
+        const { stats, lifetime } = setup('avoided');
+        expect(stats.habitsCompleted).toBe(1);
+        expect(stats.goodHabitsCompleted).toBe(0);
+        expect(lifetime).toContainEqual(['habitCompleted', 1]);
+    });
+
+    test("'indulged' counts nothing", () => {
+        const { stats, lifetime } = setup('indulged');
+        expect(stats.habitsCompleted).toBe(0);
+        expect(stats.goodHabitsCompleted).toBe(0);
+        expect(lifetime.some(([e]) => e === 'habitCompleted')).toBe(false);
+    });
+});
