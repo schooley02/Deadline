@@ -599,7 +599,7 @@ const State = (() => {
         // Items.markPendingCheckIn instead — the player answers it via the
         // check-in surface (js/ui/checkIn.js) rather than a silent
         // auto-resolve. Everything else — negative lurkers from OLDER days
-        // (session 26's generous default), positive habits (already
+        // (settled NEUTRAL since 2026-10-31; was session 26's auto-avoid), positive habits (already
         // miss-recorded above), routine tasks — still goes through
         // Items.settleStaleRecurringInstance exactly as before.
         //
@@ -678,8 +678,8 @@ const State = (() => {
             .forEach(item => {
                 const isExcusedCheatDay = item.type === 'habit' && item.isNegative === true &&
                     deps.isCheatDayExcusedForItem(item);
-                // KO ghosts skip the check-in card (the routine is down; the
-                // generous auto-avoid applies, minus points -- Items.ghostAdjustedPoints).
+                // KO ghosts skip the check-in card (the routine is down) and settle
+                // NEUTRAL like any unanswered Break habit (2026-10-31; was auto-avoid).
                 const isCheckInEligible = !isExcusedCheatDay && !item.koGhost && item.type === 'habit' && item.isNegative === true &&
                     DayRollover.isFromPreviousDay(item.originalDueDate, now);
                 if (isExcusedCheatDay) {

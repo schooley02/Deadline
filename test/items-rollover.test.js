@@ -48,31 +48,32 @@ function makeDeps(overrides = {}) {
 }
 
 describe('Items.settleStaleRecurringInstance', () => {
-    test('negative-habit lurker → auto-avoided: awards points, records a success occurrence, removes it', () => {
+    test('unanswered Break (negative) habit → NEUTRAL: no points/xp, no occurrence, streak untouched, removed (2026-10-31)', () => {
         const item = { id: 1, type: 'habit', definitionId: 'd1', isNegative: true,
             originalDueDate: yesterday(), element: fakeEl() };
-        const habitDef = { id: 'd1', isNegative: true, streak: 2, occurrenceHistory: [] };
+        const habitDef = { id: 'd1', isNegative: true, streak: 2, occurrenceHistory: [], lastCompletionDate: null };
         const deps = makeDeps({ activeItems: [item], definedHabits: [habitDef] });
 
         Items.settleStaleRecurringInstance(item, deps);
 
-        expect(deps.getPoints()).toBeGreaterThan(0);      // avoided earns points
-        expect(habitDef.occurrenceHistory.length).toBe(1); // a success occurrence recorded
-        expect(deps.activeItems.length).toBe(0);           // removed from the board
+        expect(deps.getPoints()).toBe(0);
+        expect(deps.getXP()).toBe(0);
+        expect(habitDef.occurrenceHistory).toEqual([]);
+        expect(habitDef.streak).toBe(2);
+        expect(habitDef.lastCompletionDate).toBeNull();
+        expect(deps.activeItems.length).toBe(0);
     });
 
-    test('auto-avoid keys lastCompletionDate to the instance day (yesterday), NOT today — so today can still spawn', () => {
-        const y = yesterday();
+    test('unanswered Break habit puts nothing in the daily record (no Boxing gym clean day)', () => {
         const item = { id: 1, type: 'habit', definitionId: 'd1', isNegative: true,
-            originalDueDate: y, element: fakeEl() };
+            originalDueDate: yesterday(), element: fakeEl() };
         const habitDef = { id: 'd1', isNegative: true, streak: 0, occurrenceHistory: [] };
-        const deps = makeDeps({ activeItems: [item], definedHabits: [habitDef] });
+        const daily = [];
+        const deps = makeDeps({ activeItems: [item], definedHabits: [habitDef], recordDaily: (...a) => daily.push(a) });
 
         Items.settleStaleRecurringInstance(item, deps);
 
-        const todayStr = new Date().toDateString();
-        expect(new Date(habitDef.lastCompletionDate).toDateString()).not.toBe(todayStr);
-        expect(new Date(habitDef.lastCompletionDate).toDateString()).toBe(y.toDateString());
+        expect(daily).toEqual([]);
     });
 
     test('positive habit → removed, no points; its miss was recorded earlier on re-add, so no second entry', () => {

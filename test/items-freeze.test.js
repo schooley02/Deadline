@@ -216,8 +216,8 @@ describe('recovery path 2 via Items.completeItem ("Successfully avoided")', () =
     });
 });
 
-describe('recovery path 2 via Items.settleStaleRecurringInstance (auto-avoid)', () => {
-    test('3 consecutive auto-avoided days clear a freeze caused by this habit', () => {
+describe('an unanswered Break habit is neutral: no recovery progress (2026-10-31)', () => {
+    test('settling an unanswered day does NOT clear the freeze (only answered days count)', () => {
         const habitDef = negativeHabitDef({
             occurrenceHistory: [
                 { date: 'd0', success: true },
@@ -231,7 +231,9 @@ describe('recovery path 2 via Items.settleStaleRecurringInstance (auto-avoid)', 
 
         Items.settleStaleRecurringInstance(item, deps);
 
-        expect(routine.frozenState).toBeNull();
+        expect(routine.frozenState).toEqual({ frozenBy: 'def1', frozenAt: 'X' });
+        expect(habitDef.occurrenceHistory).toHaveLength(2);
+        expect(deps.activeItems).toHaveLength(0);
     });
 });
 

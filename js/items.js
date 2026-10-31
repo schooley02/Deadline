@@ -843,15 +843,9 @@ const Items = (() => {
      * instance at day rollover (called from state.js's restoreGameState for each
      * item DayRollover.selectStaleRecurringInstances returned). Two cases:
      *
-     *   - NEGATIVE habit lurker → auto-resolve as AVOIDED (session-26's generous
-     *     default for prior days): the full avoid reward via applyHabitCompletion
-     *     — success occurrence keyed to the instance's originalDueDate (yesterday),
-     *     streak++, XP + rate-multiplied points, level check — exactly the manual
-     *     "Successfully avoided" economics. Because lastCompletionDate is keyed to
-     *     originalDueDate (yesterday), NOT today, today's generator still spawns a
-     *     fresh lurker — the temptation returns each day. Deliberately does NOT
-     *     push into completedItems (it happened yesterday, not today; surfacing
-     *     past auto-resolutions is the sub-session-4 check-in's job, not this).
+     *   - NEGATIVE (Break) habit lurker → NEUTRAL (2026-10-31; was auto-avoided,
+     *     session 26): no points/xp/streak/occurrence change, like an excused
+     *     Cheat Day. Only answered days earn credit. See the comment in the body.
      *
      *   - Everything else (POSITIVE habit, routine TASK) → just remove. A positive
      *     habit's miss was already recorded by markAsOverdue when addItemToGame
@@ -880,43 +874,16 @@ const Items = (() => {
     }
 
     function settleStaleRecurringInstance(item, deps) {
-        if (item.type === 'habit' && item.isNegative === true) {
-            const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
-            if (habitDef) {
-                const result = Habits.applyHabitCompletion(
-                    habitDef.streak, habitDef.occurrenceHistory, habitDef.isNegative, item.originalDueDate, {
-                        xpPerHabitComplete: deps.xpPerHabitComplete,
-                        pointsPerHabit: deps.pointsPerHabit,
-                        rateWindow: CONFIG.HABIT_RATE_WINDOW,
-                        rateMinSample: CONFIG.HABIT_RATE_MIN_SAMPLE,
-                        rateTiers: CONFIG.HABIT_RATE_TIERS
-                    });
-                habitDef.streak = result.streak;
-                habitDef.lastCompletionDate = result.lastCompletionDate;
-                habitDef.occurrenceHistory = result.occurrenceHistory;
-                deps.setPlayerXP(deps.getPlayerXP() + result.xpGained);
-                deps.setPlayerPoints(Economy.addPoints(deps.getPlayerPoints(), ghostAdjustedPoints(item, result.pointsGained)));
-                // Daily record (D2): the silent rollover auto-avoid. Runs BEFORE
-                // State closes the day, so it lands in the day that just ended.
-                recordDaily(deps, 'complete', {
-                    kind: 'lurker', category: item.category, at: item.dueDateTime ? item.dueDateTime.getTime() : Date.now(),
-                    points: ghostAdjustedPoints(item, result.pointsGained),
-                    routineId: dailyRoutineId(item, deps)
-                });
-                deps.updatePlayerDisplays();
-                deps.checkPlayerLevelUp();
-                // Frozen routine slots: auto-avoided is a success occurrence
-                // for a negative habit — check recovery path 2.
-                maybeRecoverRoutine(habitDef, deps);
-                // Hero/routine XP ([P1-UI-006]): after the recovery check,
-                // same ordering rationale as completeItem.
-                awardRoutineXpForHabitDef(habitDef, deps);
-            }
-        }
+        // Break (negative) habit nobody answered (older than the check-in day, or a KO ghost): NEUTRAL since
+        // 2026-10-31 (Jeremy) -- treated like an excused Cheat Day: no points, XP, streak or occurrence change,
+        // nothing in the daily record, no frozen-routine recovery progress. It used to auto-settle as AVOIDED
+        // (session 26's generous default), which now also earned a Boxing gym clean day and a routine-star
+        // success (High school banked stars) for never answering. Being away still costs nothing; only an
+        // answer earns credit. The lurker is just removed below.
         // Positive habit still undone at rollover with no entry for its day
         // (markAsOverdue normally recorded the miss already): a miss, via the same
         // applyHabitOverdue the overdue path uses so the streak stays consistent.
-        // Never for a negative habit (the branch above settled it as avoided) or a
+        // Never for a negative habit (settled neutral, see the top of this function) or a
         // KO ghost. Occurrence history only: run stats and the daily record are not
         // touched (2026-10-31, Jeremy: align habits with routine tasks).
         if (item.type === 'habit' && item.isNegative !== true && !item.koGhost) {

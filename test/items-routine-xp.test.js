@@ -336,7 +336,7 @@ describe('habit-def-only completion sites award routine XP (no stamp — nothing
         expect(routine.xp).toBe(CONFIG.ROUTINE_XP_PER_HABIT);
     });
 
-    test('settleStaleRecurringInstance (auto-avoid) awards the owning routine', () => {
+    test('settleStaleRecurringInstance on an unanswered Break habit awards NOTHING (neutral since 2026-10-31)', () => {
         const routine = activeRoutine({ habitDefinitionIds: ['h1'] });
         const habitDef = positiveHabitDef({ isNegative: true });
         const item = habitItem({ isNegative: true, originalDueDate: yesterdayNoon() });
@@ -346,7 +346,7 @@ describe('habit-def-only completion sites award routine XP (no stamp — nothing
 
         Items.settleStaleRecurringInstance(item, deps);
 
-        expect(routine.xp).toBe(CONFIG.ROUTINE_XP_PER_HABIT);
+        expect(routine.xp || 0).toBe(0);
     });
 
     test("a frozen routine's avoided check-in earns nothing UNLESS it just recovered on this very avoid (recovery-first ordering)", () => {

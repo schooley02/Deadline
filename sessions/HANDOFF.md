@@ -11,10 +11,16 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-10-31 (late morning, after the rename) -- Unanswered Break habits settle NEUTRAL (Claude app session, Opus; Jeremy)
+**Did:** `Items.settleStaleRecurringInstance`'s negative branch no longer auto-avoids: the lurker is just removed (no points/XP/streak/occurrence, no daily record, no recovery, no routine XP). Covers Break habits older than the check-in day and KO-ghost Break habits. Comments in items.js/state.js. Tests rewritten: items-rollover (neutral + no daily record), items-freeze (no recovery progress), items-routine-xp (no XP). Docs: DECISIONS, MECHANICS (old rule marked superseded), CLAUDE.md, ROADMAP. sw v165 -> v166.
+**State:** Jest 103 suites / 2,396 green on a cloud clone of origin/main 6374858 + the wording change + this. Written to the folder via the bridge. Not phone-checked.
+**Next:** phone-check High school v2, the Build/Break wording, and a day where a Break habit goes unanswered (no points, streak kept, no gym clean day).
+**Watch out:** Jeremy said "for now": revisit if frequent travellers find Break streaks/stars stall. The check-in card for the single most-recent prior day is unchanged.
+
 ## 2026-10-31 (late morning, after High school v2) -- Habit wording: Build / Break, Resisted / Slipped (Claude app session, Opus; Jeremy)
 **Did:** Text-only rename (DECISIONS same day): habit types Positive/Negative -> Build/Break (`js/ui/forms.js`, `js/ui/routineViews.js` create + edit forms, timer hints); bad-habit answers -> Resisted/Slipped in `js/ui/checkIn.js` (check-in card + arrival prompt), `js/ui/popups.js`, `js/ui/agendaList.js` (row buttons + "Resisted: N" streak label), `js/ui/dayPagerView.js` badges, `js/ui/frozenNotice.js`, the frozen banner in `routineViews.js`, Cheat Day note, `js/ui/shopView.js` hint; village Hospital/gym copy + gym empty state (`js/ui/villageCard.js`). Tests: agenda-list streak label, villageCard empty state. CLAUDE.md naming rule. sw v164 -> v165.
 **State:** Jest 103 suites / 2,396 green on a cloud clone of origin/main 6374858 + this change; headless page load clean. Written to the folder via the bridge. Not phone-checked.
-**Next:** Jeremy to decide the unanswered-Break-habit default (keep auto-avoid, or neutral like a Cheat Day -- recommended). Then phone-check High school v2 + this wording.
+**Next:** (decided right after: neutral, entry above.)
 **Watch out:** code/data names are unchanged (`isNegative`, `'avoided'`/`'indulged'`, `indulgeHabit`); test names still say Avoided/Indulged.
 
 ## 2026-10-31 (midday) -- High school v2 BUILT: banked hero stars + report card (Claude app session, Sonnet; Jeremy)
