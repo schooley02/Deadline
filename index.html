@@ -43,6 +43,7 @@
     <link rel="stylesheet" href="css/enemyAnim.css">
     <link rel="stylesheet" href="css/graveyard.css">
     <link rel="stylesheet" href="css/village.css">
+    <link rel="stylesheet" href="css/villageCard.css">
     <link rel="stylesheet" href="css/glanceStrip.css">
     <link rel="stylesheet" href="css/responsive.css">
 </head>
@@ -410,7 +411,7 @@
          dependencies; state.js bumps it via State.bumpToday. -->
     <script src="js/dailyRecord.js"></script>
     <!-- js/villageProgress.js (2026-10-30): pure village tier/progress model (counters from the run stats + daily
-         records vs CONFIG.VILLAGE_TIER_THRESHOLDS); zero module dependencies. Not wired into the scene yet (Build 2). -->
+         records vs CONFIG.VILLAGE_TIER_THRESHOLDS); zero module dependencies. Drives the village tiers + building cards since Build 2 (2026-10-30). -->
     <script src="js/villageProgress.js"></script>
     <script src="js/achievements.js"></script>
     <script src="js/schedule.js"></script>
@@ -465,6 +466,7 @@
     <script src="js/ui/nightsSurvivedView.js"></script>
     <script src="js/ui/graveyardView.js"></script>
     <script src="js/ui/villageView.js"></script>
+    <script src="js/ui/villageCard.js"></script>
     <!-- js/ui/dayPagerView.js needs DayPager (pure ghost conjuring) + Movement
          (top-position math) already loaded — see its header. -->
     <script src="js/ui/dayPagerView.js"></script>

@@ -161,6 +161,20 @@ const VillageLayout = (() => {
         return clampTier(def, tiers);
     }
 
+    // Build 2 (2026-10-30): the REAL tier unless the URL overrides it. `?<param>=1..5` pins the tier (art checks),
+    // `?<param>=off` hides the building; with no param the real tier (1..tiers) is used. CONFIG's VILLAGE_DEV_*
+    // defaults no longer apply, so a new game shows a T1 village. A null/invalid real tier = hidden.
+    function resolveTier(search, param, realTier, tiers) {
+        const m = new RegExp('(?:^|[?&])' + param + '=([^&]*)').exec(search || '');
+        if (m) {
+            const v = decodeURIComponent(m[1]).trim().toLowerCase();
+            if (v === 'off' || v === 'none') return null;
+            const t = clampTier(v, tiers);
+            if (t !== null) return t;
+        }
+        return clampTier(realTier, tiers);
+    }
+
     // Clock tower: `?villageTier=`
     function resolveDevTier(search, opts) {
         const o = opts || DEFAULTS;
@@ -387,7 +401,7 @@ const VillageLayout = (() => {
         return [windmill, radio, school, hospital, jail, gym, armory, clock].filter(Boolean);
     }
 
-    return { DEFAULTS, fromConfig, clampTier, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, resolveDevHospitalTier, resolveDevWindmillTier, fieldWidth, spriteUrl, clockTowerSlot, clockScaleFor, clockFeetY, jailSlot, armorySlot, gymSlot, radioSlot, schoolSlot, hospitalSlot, windmillSlot, villageSlots };
+    return { DEFAULTS, fromConfig, clampTier, resolveTier, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, resolveDevHospitalTier, resolveDevWindmillTier, fieldWidth, spriteUrl, clockTowerSlot, clockScaleFor, clockFeetY, jailSlot, armorySlot, gymSlot, radioSlot, schoolSlot, hospitalSlot, windmillSlot, villageSlots };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

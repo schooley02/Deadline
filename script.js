@@ -16,18 +16,78 @@ document.addEventListener('DOMContentLoaded', () => {
         getAchievementFamilies: () => CONFIG.ACHIEVEMENTS.map(a => ({ id: a.id, name: a.name })),
         onOpenStats: () => openManagementWindow('stats'),
     });
-    // Achievement village (V7 W2 first slice, 2026-10-29): the Clock tower + Jailhouse + Armory + Radio tower + boxing gym + high school + hospital on the horizon hill.
-    // DEV tier only until the punctuality tier exists (CONFIG.VILLAGE_DEV_CLOCK_TIER, or ?villageTier=1..5).
+    // Achievement village (V7 W2): eight buildings on the horizon hill. Build 2 (2026-10-30): each building's tier is
+    // the REAL per-run tier from VillageProgress (a new game = a T1 village); the DEV URL params (?villageTier=,
+    // ?jailTier=, ?armoryTier=, ?radioTier=, ?gymTier=, ?schoolTier=, ?hospitalTier=, ?windmillTier= = 1..5 | off)
+    // still override it for art checks. Tapping a building opens its card (js/ui/villageCard.js).
+    // The tier maths is cached: it re-runs only when a counter it reads changes (VillageView.render runs every tick).
+    const villageCache = { key: null, progress: null, daysKey: null, days: null };
+    function villageContext() {
+        const runStats = State.getCurrentRunStats() || {};
+        const today = State.getToday() || null;
+        const runNumber = (State.getRunHistory() || []).length + 1;
+        const daysKey = (today && today.date ? today.date : '') + '|' + runNumber;
+        // The closed-days store only changes at a day rollover or a game over, so read it once per such change.
+        if (villageCache.daysKey !== daysKey) {
+            villageCache.days = Persistence.loadDays();
+            villageCache.daysKey = daysKey;
+        }
+        return {
+            runStats,
+            nightsSurvived: Damage.computeDaysSurvived(State.getRunStartedAtMs(), Date.now(), CONFIG.MS_PER_REAL_DAY),
+            days: villageCache.days,
+            today,
+            runNumber,
+            maxHp: CONFIG.MAX_BASE_HEALTH,
+        };
+    }
+    function villageProgressNow() {
+        try {
+            const ctx = villageContext();
+            const key = [ctx.nightsSurvived, ctx.runStats.tasksCompleted, ctx.runStats.subtasksCompleted, ctx.runStats.habitsCompleted,
+                villageCache.daysKey, JSON.stringify(ctx.today && ctx.today.done)].join('|');
+            if (villageCache.key !== key) {
+                villageCache.progress = VillageProgress.compute(ctx);
+                villageCache.key = key;
+            }
+            return villageCache.progress;
+        } catch (err) {
+            console.error('Deadline: village progress failed', err);
+            return villageCache.progress; // last good value, or null = every building at T1
+        }
+    }
+    function villageTierDep(kind, param) {
+        return () => {
+            const p = villageProgressNow();
+            const real = (p && p[kind]) ? p[kind].tier : 1;
+            return VillageLayout.resolveTier(window.location.search, param, real, VillageLayout.fromConfig(CONFIG).tiers);
+        };
+    }
+    function openVillageCard(hit) {
+        const ctx = villageContext();
+        const progress = VillageProgress.compute(ctx);
+        VillageCard.open({
+            kind: hit.kind,
+            progress: progress[hit.kind],
+            extras: VillageProgress.extras(ctx),
+            hasBadHabit: (State.getDefinedHabits() || []).some(h => h && !h.archivedAt && h.isNegative),
+            hasRoutine: (State.getDefinedRoutines() || []).length > 0,
+            spriteUrl: hit.url,
+            spriteW: hit.width,
+            spriteH: hit.height,
+        });
+    }
     VillageView.init({
         getHillWidth: () => GraveyardView.zoneWidth(),
-        getClockTier: () => VillageLayout.resolveDevTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
-        getJailTier: () => VillageLayout.resolveDevJailTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
-        getArmoryTier: () => VillageLayout.resolveDevArmoryTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
-        getRadioTier: () => VillageLayout.resolveDevRadioTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
-        getGymTier: () => VillageLayout.resolveDevGymTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
-        getSchoolTier: () => VillageLayout.resolveDevSchoolTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
-        getHospitalTier: () => VillageLayout.resolveDevHospitalTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
-        getWindmillTier: () => VillageLayout.resolveDevWindmillTier(window.location.search, VillageLayout.fromConfig(CONFIG)),
+        getClockTier: villageTierDep('punctuality', 'villageTier'),
+        getJailTier: villageTierDep('defense', 'jailTier'),
+        getArmoryTier: villageTierDep('slain', 'armoryTier'),
+        getRadioTier: villageTierDep('nights', 'radioTier'),
+        getGymTier: villageTierDep('lurkers', 'gymTier'),
+        getSchoolTier: villageTierDep('heroes', 'schoolTier'),
+        getHospitalTier: villageTierDep('habits', 'hospitalTier'),
+        getWindmillTier: villageTierDep('bestdays', 'windmillTier'),
+        onOpenBuilding: openVillageCard,
     });
     const baseHealthDisplay = document.getElementById('baseHealthDisplay');
     const playerXpDisplay = document.getElementById('playerXpDisplay');

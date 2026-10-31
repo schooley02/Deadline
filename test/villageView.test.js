@@ -560,3 +560,55 @@ describe('Windmill (far row)', () => {
         expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(7);
     });
 });
+
+describe('tappable buildings (Build 2, 2026-10-30)', () => {
+    test('pickHit returns the topmost candidate that is actually hit, else null', () => {
+        const stack = [{ id: 'front' }, { id: 'mid' }, { id: 'back' }];
+        expect(VillageView.pickHit(stack, () => true).id).toBe('front');
+        expect(VillageView.pickHit(stack, c => c.id !== 'front').id).toBe('mid');   // transparent corner of the front sprite
+        expect(VillageView.pickHit(stack, c => c.id === 'back').id).toBe('back');   // back-row building tucked behind
+        expect(VillageView.pickHit(stack, () => false)).toBeNull();
+        expect(VillageView.pickHit([], () => true)).toBeNull();
+        expect(VillageView.pickHit(null, () => true)).toBeNull();
+    });
+
+    test('inArtBox uses the visible-art columns, scaled with the sprite', () => {
+        const rect = { left: 100, top: 50, right: 228, bottom: 178, width: 128, height: 128 };
+        const art = [20, 113];
+        expect(VillageView.inArtBox(rect, 128, art, 130, 100)).toBe(true);   // x 30 in canvas px
+        expect(VillageView.inArtBox(rect, 128, art, 105, 100)).toBe(false);  // x 5: transparent left margin
+        expect(VillageView.inArtBox(rect, 128, art, 225, 100)).toBe(false);  // x 125: transparent right margin
+        expect(VillageView.inArtBox(rect, 128, art, 130, 20)).toBe(false);   // above the sprite
+        expect(VillageView.inArtBox(rect, 128, null, 105, 100)).toBe(true);  // no art entry = whole canvas
+        const scaled = { left: 0, top: 0, right: 256, bottom: 256, width: 256, height: 256 }; // 2x
+        expect(VillageView.inArtBox(scaled, 128, art, 30, 100)).toBe(false); // canvas x 15 < 20
+        expect(VillageView.inArtBox(scaled, 128, art, 50, 100)).toBe(true);  // canvas x 25
+        expect(VillageView.inArtBox({ width: 0, height: 0 }, 128, art, 0, 0)).toBe(false);
+    });
+
+    test('a tap on a sprite calls onOpenBuilding with its kind/tier/url and stops propagation', () => {
+        build();
+        const opened = [];
+        VillageView.init({ getHillWidth: () => 140, getClockTier: () => 3, onOpenBuilding: h => opened.push(h) });
+        VillageView.render(160);
+        const img = sprite();
+        // jsdom: no layout, no canvas pixels, no elementsFromPoint -> stub the three it needs
+        img.getBoundingClientRect = () => ({ left: 0, top: 0, right: 128, bottom: 128, width: 128, height: 128 });
+        Object.defineProperty(img, 'naturalWidth', { configurable: true, get: () => 128 });
+        Object.defineProperty(img, 'naturalHeight', { configurable: true, get: () => 128 });
+        document.elementsFromPoint = () => [img];
+        window.HTMLCanvasElement.prototype.getContext = () => null; // no canvas in jsdom -> exercises the art-box fallback
+        let bubbled = false;
+        document.body.addEventListener('click', () => { bubbled = true; });
+        // inside the clock tower's art columns (CONFIG.VILLAGE_ART_X.punctuality = [20, 113])
+        img.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 60, clientY: 60 }));
+        expect(opened).toHaveLength(1);
+        expect(opened[0]).toMatchObject({ kind: 'punctuality', tier: 3, url: 'Assets/Village/punctuality_t3.png', width: 128, height: 128 });
+        expect(bubbled).toBe(false);
+        // a tap in the transparent margin opens nothing and is not swallowed
+        img.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 4, clientY: 60 }));
+        expect(opened).toHaveLength(1);
+        expect(bubbled).toBe(true);
+        delete document.elementsFromPoint;
+    });
+});

@@ -8,8 +8,11 @@
  *                   hero layers and every zombie (30+)). One <img class="village-sprite">
  *                   one per building, keyed by data-kind, stacked in slot order (z-index = paint
  *                   order, so a building that appears later still lands in the right place). Back-row
- *                   buildings (the Radio tower, the high school, the hospital, the far-row windmill) carry `.village-back` and a brightness filter. Not
- *                   tappable yet (the close-up view is a later step).
+ *                   buildings (the Radio tower, the high school, the hospital, the far-row windmill) carry `.village-back` and a brightness filter.
+ *                   TAPPABLE (Build 2, 2026-10-30): each sprite has pointer-events auto while the layer stays none; a tap
+ *                   is resolved by `pickHit` over every sprite under the finger (topmost first) using an alpha hit-test, so
+ *                   transparent corners and a back-row building tucked behind a front one still go to the right building.
+ *                   Zombies (z 30+) sit above the layer and keep their own taps.
  *
  * Landscape/desktop only: css/glanceStrip.css hides the layer in the portrait strip, and
  * getHillWidth() is 0 there so nothing is placed. script.js calls render(BASE_WIDTH) after every
@@ -24,7 +27,9 @@
  *         getGymTier: () => 1..5 or null (kind `lurkers`; DEV: CONFIG.VILLAGE_DEV_GYM_TIER / ?gymTier=; optional),
  *         getSchoolTier: () => 1..5 or null (kind `heroes`; DEV: CONFIG.VILLAGE_DEV_SCHOOL_TIER / ?schoolTier=; optional),
  *         getHospitalTier: () => 1..5 or null (kind `habits`; DEV: CONFIG.VILLAGE_DEV_HOSPITAL_TIER / ?hospitalTier=; optional),
- *         getWindmillTier: () => 1..5 or null (kind `bestdays`, FAR row; DEV: CONFIG.VILLAGE_DEV_WINDMILL_TIER / ?windmillTier=; optional) }
+ *         getWindmillTier: () => 1..5 or null (kind `bestdays`, FAR row; DEV: CONFIG.VILLAGE_DEV_WINDMILL_TIER / ?windmillTier=; optional),
+ *         onOpenBuilding: ({ kind, tier, url, width, height }) => void  (a tap landed on a building; optional) }
+ * (Since Build 2 the get<Kind>Tier deps return the REAL tier; the DEV params only override it. See VillageLayout.resolveTier.)
  */
 const VillageView = (() => {
     let deps = null;
@@ -34,6 +39,86 @@ const VillageView = (() => {
 
     function cfg() {
         return (typeof CONFIG !== 'undefined') ? CONFIG : {};
+    }
+
+    const HIT_ALPHA = 16; // 0..255: a pixel counts as part of the building above this alpha
+
+    /**
+     * Pure. `candidates` = the sprites under the tap, TOPMOST FIRST; `hitAt(candidate)` = true when the tap lands on a
+     * visible pixel of it. Returns the first candidate that is hit, or null (a tap on empty sky / a transparent corner).
+     */
+    function pickHit(candidates, hitAt) {
+        const list = Array.isArray(candidates) ? candidates : [];
+        for (let i = 0; i < list.length; i++) {
+            if (hitAt(list[i])) return list[i];
+        }
+        return null;
+    }
+
+    /**
+     * Pure. Is the point (clientX, clientY) inside the visible-art box of a sprite whose on-screen rect is `rect`
+     * and whose authored canvas is naturalW wide? `art` = [x0, x1] in canvas pixels (CONFIG.VILLAGE_ART_X); the whole
+     * canvas when absent. Used when the alpha channel cannot be read (file://, tainted canvas).
+     */
+    function inArtBox(rect, naturalW, art, clientX, clientY) {
+        if (!rect || !(rect.width > 0) || !(rect.height > 0)) return false;
+        if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return false;
+        const k = naturalW > 0 ? rect.width / naturalW : 1;
+        const x0 = rect.left + (Array.isArray(art) ? art[0] : 0) * k;
+        const x1 = rect.left + (Array.isArray(art) ? art[1] : naturalW) * k;
+        return clientX >= x0 && clientX <= x1;
+    }
+
+    const alphaCache = new Map(); // src -> { w, h, data } | null (unreadable)
+
+    function readAlpha(img) {
+        const src = img.currentSrc || img.getAttribute('src');
+        if (alphaCache.has(src)) return alphaCache.get(src);
+        let entry = null;
+        try {
+            const w = img.naturalWidth, h = img.naturalHeight;
+            if (w > 0 && h > 0) {
+                const cv = document.createElement('canvas');
+                cv.width = w; cv.height = h;
+                const ctx = cv.getContext('2d', { willReadFrequently: true });
+                if (!ctx) throw new Error('no 2d context');
+                ctx.drawImage(img, 0, 0);
+                entry = { w, h, data: ctx.getImageData(0, 0, w, h).data };
+            }
+        } catch (e) {
+            entry = null; // tainted canvas: fall back to the art box
+        }
+        if (entry || img.complete) alphaCache.set(src, entry);
+        return entry;
+    }
+
+    function spriteHit(img, clientX, clientY) {
+        const rect = img.getBoundingClientRect();
+        const c = cfg();
+        const art = c.VILLAGE_ART_X && c.VILLAGE_ART_X[img.dataset.kind];
+        if (!rect.width || !rect.height) return false;
+        if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return false;
+        const a = readAlpha(img);
+        if (!a) return inArtBox(rect, img.naturalWidth, art, clientX, clientY);
+        const px = Math.min(a.w - 1, Math.max(0, Math.floor((clientX - rect.left) * a.w / rect.width)));
+        const py = Math.min(a.h - 1, Math.max(0, Math.floor((clientY - rect.top) * a.h / rect.height)));
+        return a.data[(py * a.w + px) * 4 + 3] > HIT_ALPHA;
+    }
+
+    function onLayerClick(e) {
+        if (!deps || !deps.onOpenBuilding || !layerEl) return;
+        const under = (document.elementsFromPoint ? document.elementsFromPoint(e.clientX, e.clientY) : [])
+            .filter(el => el.classList && el.classList.contains('village-sprite') && layerEl.contains(el));
+        const hit = pickHit(under, (img) => spriteHit(img, e.clientX, e.clientY));
+        if (!hit) return;
+        e.stopPropagation(); // Modal's document click handler would close the card the same click opens
+        deps.onOpenBuilding({
+            kind: hit.dataset.kind,
+            tier: Number(hit.dataset.tier) || 1,
+            url: hit.getAttribute('src'),
+            width: hit.naturalWidth || 0,
+            height: hit.naturalHeight || 0,
+        });
     }
 
     function clear() {
@@ -96,10 +181,14 @@ const VillageView = (() => {
         layerEl = document.getElementById('villageLayer');
         lastSig = null;
         if (!canvasEl || !layerEl) { deps = null; return; }
+        if (!layerEl.dataset.tapWired) {
+            layerEl.dataset.tapWired = '1';
+            layerEl.addEventListener('click', onLayerClick);
+        }
         render();
     }
 
-    return { init, render };
+    return { init, render, pickHit, inArtBox };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

@@ -15,7 +15,7 @@ const canvasCss = read('css/gameCanvas.css');
 const strip = read('css/glanceStrip.css');
 const script = read('script.js');
 
-const FILES = ['css/village.css', 'js/villageLayout.js', 'js/ui/villageView.js'];
+const FILES = ['css/village.css', 'css/villageCard.css', 'js/villageLayout.js', 'js/villageProgress.js', 'js/ui/villageView.js', 'js/ui/villageCard.js'];
 const SPRITES = [
     ...[1, 2, 3, 4, 5].map(t => `Assets/Village/punctuality_t${t}.png`),
     ...[1, 2, 3, 4, 5].map(t => `Assets/Village/defense_t${t}.png`),
@@ -36,10 +36,10 @@ describe('shell + load order', () => {
         [...FILES, ...SPRITES].forEach(f => expect(fs.existsSync(path.join(__dirname, '..', f))).toBe(true));
     });
 
-    test('CACHE_NAME was bumped for the shell change (v143 or later: the windmill sprites)', () => {
+    test('CACHE_NAME was bumped for the shell change (v145 or later: the building card)', () => {
         const m = /CACHE_NAME = 'deadline-shell-v(\d+)'/.exec(sw);
         expect(m).not.toBeNull();
-        expect(Number(m[1])).toBeGreaterThanOrEqual(143);
+        expect(Number(m[1])).toBeGreaterThanOrEqual(145);
     });
 
     test('layout loads after config and before the view; the view before script.js', () => {
@@ -107,39 +107,39 @@ describe('script.js hook-up', () => {
         expect(script).toContain('VillageView.init({');
         expect(script.indexOf('VillageView.init({')).toBeGreaterThan(script.indexOf('GraveyardView.init({'));
         expect(script).toContain('GraveyardView.zoneWidth()');
-        expect(script).toContain('VillageLayout.resolveDevTier(');
+        expect(script).toContain("villageTierDep('punctuality', 'villageTier')"); // real tier, URL param overrides (Build 2)
     });
 
     test('the Jailhouse tier is fed to the view too (kind defense; dev ?jailTier= until defense tier data exists)', () => {
         expect(script).toContain('getJailTier:');
-        expect(script).toContain('VillageLayout.resolveDevJailTier(');
+        expect(script).toContain("villageTierDep('defense', 'jailTier')"); // real tier, URL param overrides (Build 2)
     });
 
     test('the Armory tier is fed to the view too (dev ?armoryTier= until slain tier data exists)', () => {
         expect(script).toContain('getArmoryTier:');
-        expect(script).toContain('VillageLayout.resolveDevArmoryTier(');
+        expect(script).toContain("villageTierDep('slain', 'armoryTier')"); // real tier, URL param overrides (Build 2)
     });
 
     test('the Radio tower tier is fed to the view too (dev ?radioTier= until nights tier data exists)', () => {
         expect(script).toContain('getRadioTier:');
-        expect(script).toContain('VillageLayout.resolveDevRadioTier(');
+        expect(script).toContain("villageTierDep('nights', 'radioTier')"); // real tier, URL param overrides (Build 2)
     });
 
     test('the boxing gym tier is fed to the view too (dev ?gymTier= until lurkers tier data exists)', () => {
         expect(script).toContain('getGymTier:');
-        expect(script).toContain('VillageLayout.resolveDevGymTier(');
+        expect(script).toContain("villageTierDep('lurkers', 'gymTier')"); // real tier, URL param overrides (Build 2)
     });
 
     test('the high school tier is fed to the view too (dev ?schoolTier= until heroes tier data exists)', () => {
         expect(script).toContain('getSchoolTier:');
-        expect(script).toContain('VillageLayout.resolveDevSchoolTier(');
+        expect(script).toContain("villageTierDep('heroes', 'schoolTier')"); // real tier, URL param overrides (Build 2)
     });
 
     test('the hospital tier is fed to the view too (dev ?hospitalTier= until habits tier data exists)', () => {
         expect(script).toContain('getHospitalTier:');
-        expect(script).toContain('VillageLayout.resolveDevHospitalTier(');
+        expect(script).toContain("villageTierDep('habits', 'hospitalTier')"); // real tier, URL param overrides (Build 2)
         expect(script).toContain('getWindmillTier:'); // the far-row windmill (2026-10-30)
-        expect(script).toContain('VillageLayout.resolveDevWindmillTier(');
+        expect(script).toContain("villageTierDep('bestdays', 'windmillTier')"); // real tier, URL param overrides (Build 2)
     });
 
     test('`lurkers_t*` is the boxing gym now (128x128); the Jailhouse stays `defense_t*`', () => {
@@ -183,5 +183,32 @@ describe('CONFIG', () => {
         expect(CONFIG.VILLAGE_DEV_HOSPITAL_TIER).toBeLessThanOrEqual(CONFIG.VILLAGE_TIERS);
         expect(CONFIG.VILLAGE_HOSPITAL_X_FRAC).toBeGreaterThan(CONFIG.VILLAGE_GYM_X_FRAC); // the hospital stands behind, between the gym and the armory
         expect(CONFIG.VILLAGE_HOSPITAL_X_FRAC).toBeLessThan(CONFIG.VILLAGE_ARMORY_X_FRAC);
+    });
+});
+
+describe('Build 2: real tiers + tappable buildings (2026-10-30)', () => {
+    test('the card + progress model load before script.js, after Modal', () => {
+        const at = f => html.indexOf(`"${f}"`);
+        expect(at('js/villageProgress.js')).toBeGreaterThan(0);
+        expect(at('js/villageProgress.js')).toBeLessThan(at('script.js'));
+        expect(at('js/ui/villageCard.js')).toBeGreaterThan(at('js/ui/modal.js'));
+        expect(at('js/ui/villageCard.js')).toBeLessThan(at('script.js'));
+        expect(at('css/villageCard.css')).toBeGreaterThan(0);
+    });
+
+    test('the layer stays pointer-events none; only the sprites take taps', () => {
+        const sp = css.slice(css.indexOf('.village-sprite {'), css.indexOf('}', css.indexOf('.village-sprite {')));
+        expect(sp).toMatch(/pointer-events:\s*auto/);
+        expect(sp).toMatch(/cursor:\s*pointer/);
+    });
+
+    test('script.js reads VillageProgress, opens the card, and keeps the dev params as overrides', () => {
+        expect(script).toContain('VillageProgress.compute(');
+        expect(script).toContain('VillageProgress.extras(');
+        expect(script).toContain('VillageCard.open(');
+        expect(script).toContain('onOpenBuilding: openVillageCard');
+        expect(script).toContain('VillageLayout.resolveTier(window.location.search');
+        // the closed-days store is read once per day/run change, not every tick
+        expect(script).toContain('villageCache.daysKey !== daysKey');
     });
 });

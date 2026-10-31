@@ -1054,3 +1054,22 @@ describe('Windmill (far row)', () => {
         expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_WINDMILL_H_PX);
     });
 });
+
+describe('resolveTier (Build 2, 2026-10-30): the REAL tier unless the URL overrides it', () => {
+    const o = VillageLayout.fromConfig(CONFIG);
+    test('no param: the real tier is used (CONFIG dev defaults no longer apply)', () => {
+        expect(VillageLayout.resolveTier('', 'gymTier', 1, o.tiers)).toBe(1);
+        expect(VillageLayout.resolveTier('?x=1', 'gymTier', 4, o.tiers)).toBe(4);
+    });
+    test('?param=1..5 pins the tier, off hides, a bad value falls back to the real tier', () => {
+        expect(VillageLayout.resolveTier('?gymTier=5', 'gymTier', 1, o.tiers)).toBe(5);
+        expect(VillageLayout.resolveTier('?a=1&gymTier=2', 'gymTier', 4, o.tiers)).toBe(2);
+        expect(VillageLayout.resolveTier('?gymTier=off', 'gymTier', 4, o.tiers)).toBeNull();
+        expect(VillageLayout.resolveTier('?gymTier=banana', 'gymTier', 3, o.tiers)).toBe(3);
+        expect(VillageLayout.resolveTier('?gymTier=9', 'gymTier', 3, o.tiers)).toBe(5);
+    });
+    test('a missing/invalid real tier hides the building; a real tier above the ladder clamps', () => {
+        expect(VillageLayout.resolveTier('', 'gymTier', null, o.tiers)).toBeNull();
+        expect(VillageLayout.resolveTier('', 'gymTier', 99, o.tiers)).toBe(5);
+    });
+});

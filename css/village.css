@@ -18,6 +18,9 @@
 
 .village-sprite {
     position: absolute;
+    pointer-events: auto; /* tappable (Build 2); the layer stays pointer-events: none. Transparent pixels are
+                             ignored by the alpha hit-test in js/ui/villageView.js. */
+    cursor: pointer;
     display: block;
     max-width: none;
     image-rendering: pixelated;

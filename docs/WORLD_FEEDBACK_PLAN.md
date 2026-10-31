@@ -210,7 +210,7 @@ makes sense (a day only counts once it can no longer change: closed days for `de
    `attendanceStreak` helpers. Tests in `test/villageProgress.test.js` (each counter, threshold edges, history < 3 days,
    no-routine / no-bad-habit days, reset on a new run).
 
-**Build 2 -- real tiers + building card (Sonnet, medium; Jest + live check):**
+**Build 2 -- real tiers + building card (Sonnet, medium; Jest + live check) -- BUILT 2026-10-30 (sw v145; see DECISIONS 2026-10-30 night "Village Build 2"):**
 1. script.js `get<Kind>Tier` read `VillageProgress`; the dev URL params (`?gymTier=` etc.) still override for art checks.
    A new game shows a T1 village.
 2. Tappable buildings: `.village-layer` stays `pointer-events: none`, `.village-sprite` gets `pointer-events: auto` +
