@@ -67,7 +67,7 @@ const VillageCard = (() => {
         bestdays: {
             name: 'Windmill', unit: 'whirlwind days',
             measures: 'Whirlwind days: busier than your recent average, and you got through them with nothing missed.',
-            why: 'Anyone can keep up on a light day. Getting through a heavy one cleanly shows you can handle pressure, and that is how your capacity grows.',
+            why: 'Anyone can keep up on a light day. A windmill turns the strongest winds into power. Weather the storm and every whirlwind day you get through cleanly makes you stronger for the next one.',
         },
     };
 
