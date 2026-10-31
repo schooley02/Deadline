@@ -148,7 +148,7 @@ const AgendaList = (() => {
         // and a habit instance have different shapes and different editors).
         const editIconButton = document.createElement('button');
         editIconButton.classList.add('edit-icon-btn');
-        editIconButton.textContent = '✏️';
+        editIconButton.setAttribute('aria-label', 'Edit'); // the pencil is drawn by css/popups.css (.edit-icon-btn::before)
         editIconButton.style.cssText = 'background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;';
         if (itemData.koGhost) editIconButton.style.display = 'none'; // no edits while KO'd
         if (itemData.type === 'habit') {
@@ -347,7 +347,7 @@ const AgendaList = (() => {
                     const subTaskEditIconButton = document.createElement('button');
                     subTaskEditIconButton.classList.add('edit-icon-btn');
                     subTaskEditIconButton.title = 'Edit Sub-task';
-                    subTaskEditIconButton.textContent = '✏️';
+                    subTaskEditIconButton.setAttribute('aria-label', 'Edit sub-task');
                     subTaskEditIconButton.style.cssText = 'background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;';
                     subTaskEditIconButton.addEventListener('click', () => deps.showEditTaskModal(subTaskData));
 
@@ -790,7 +790,7 @@ const AgendaList = (() => {
                 const editIconButton = document.createElement('button');
                 editIconButton.classList.add('edit-icon-btn');
                 editIconButton.title = 'Edit Task';
-                editIconButton.textContent = '✏️';
+                editIconButton.setAttribute('aria-label', 'Edit task');
                 editIconButton.addEventListener('click', () => deps.showEditTaskModal(item));
                 itemStatusDiv.appendChild(editIconButton);
 

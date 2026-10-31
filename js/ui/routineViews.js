@@ -309,7 +309,7 @@ const RoutineViews = (() => {
 
                         const editHabitBtn = document.createElement('button');
                         editHabitBtn.classList.add('edit-item-button');
-                        editHabitBtn.textContent = '✏️';
+                        editHabitBtn.setAttribute('aria-label', 'Edit habit');
                         editHabitBtn.title = 'Edit habit';
                         editHabitBtn.addEventListener('click', () => showEditHabitForm(routine.id, habitDef));
 
@@ -399,7 +399,7 @@ const RoutineViews = (() => {
 
                         const editTaskBtn = document.createElement('button');
                         editTaskBtn.classList.add('edit-item-button');
-                        editTaskBtn.textContent = '✏️';
+                        editTaskBtn.setAttribute('aria-label', 'Edit task');
                         editTaskBtn.title = 'Edit task';
                         editTaskBtn.addEventListener('click', () => showEditTaskForm(routine.id, taskDef));
 

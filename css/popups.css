@@ -117,6 +117,23 @@
     padding: 0;
 }
 
+/* Pencil-and-line edit icon (2026-10-31, Jeremy: replaces the pencil emoji). One shared drawing for every edit button
+   (task rows, popups, sub-tasks, routine editors): a mask, so it takes the button's text colour (dark on the rows, white
+   on the teal routine buttons). Black stroke here only defines the shape. */
+.edit-icon-btn::before,
+.edit-item-button::before {
+    content: "";
+    display: block;
+    width: 26px;
+    height: 26px;
+    margin: 0 auto;
+    background-color: currentColor;
+    -webkit-mask: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.2 18.4L4.4 12.53L15.01 1.92L19.68 6.59L9.07 17.2Z'/%3E%3Cpath d='M11.19 5.74L15.86 10.41'/%3E%3Cpath d='M3.2 22H20.8'/%3E%3C/svg%3E");
+    mask: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.2 18.4L4.4 12.53L15.01 1.92L19.68 6.59L9.07 17.2Z'/%3E%3Cpath d='M11.19 5.74L15.86 10.41'/%3E%3Cpath d='M3.2 22H20.8'/%3E%3C/svg%3E");
+}
+.edit-icon-btn::before { background-color: #1d1d1d; } /* near-black like the reference; the teal routine button keeps white via currentColor */
+.edit-item-button::before { width: 18px; height: 18px; }
+
 .edit-icon-btn:hover {
     background: var(--color-secondary-green-pale);
     transform: scale(1.1);

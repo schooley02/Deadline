@@ -194,7 +194,7 @@ const Popups = (() => {
             return `
                 <div class="task-actions negative-habit-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center; flex-wrap: wrap;">
                     ${limitHtml}
-                    <button id="editTaskBtn" class="edit-icon-btn" title="Edit Task">✏️</button>
+                    <button id="editTaskBtn" class="edit-icon-btn" title="Edit Task" aria-label="Edit task"></button>
                     <button type="button" id="avoidHabitBtn" class="negative-habit-button avoid-btn">Resisted</button>
                     <button type="button" id="indulgeHabitBtn" class="negative-habit-button indulge-btn">Slipped</button>
                 </div>
@@ -217,7 +217,7 @@ const Popups = (() => {
         return `
             <div class="task-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
                 ${timerHtml}
-                <button id="editTaskBtn" class="edit-icon-btn" title="Edit Task">✏️</button>
+                <button id="editTaskBtn" class="edit-icon-btn" title="Edit Task" aria-label="Edit task"></button>
                 <label class="completion-checkbox"${hasOpenSubTasks ? ` title="${openSubTaskCount} sub-task${remainingSuffix} remaining" style="cursor: not-allowed; opacity: 0.6;"` : ''}>
                     <input type="checkbox" id="completeTaskCheck" class="completion-checkbox-input" aria-label="Mark as complete"${hasOpenSubTasks ? ' disabled' : ''} />
                     ${hasOpenSubTasks ? `<span class="completion-remaining">(${openSubTaskCount} remaining)</span>` : ''}
