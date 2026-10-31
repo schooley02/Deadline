@@ -2,10 +2,7 @@
    Markup + model: js/ui/villageCard.js. Same overlay/content shell as the level panel. */
 
 .village-card { position: relative; max-width: 760px; width: calc(100vw - 32px); max-height: calc(100vh - 32px); overflow-y: auto; }
-/* Small x in the top-right corner (replaces the full-width Close row, 2026-10-30). The glyph is 12px; the button is 32px so it stays an easy tap. */
-.vc-close { position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: transparent; color: var(--color-neutral); cursor: pointer; z-index: 2; }
-.vc-close:hover, .vc-close:focus-visible { background: rgba(0, 0, 0, 0.08); color: var(--color-text-primary); }
-.vc-head { padding-right: 28px; } /* keep the tier label clear of the x */
+.vc-head { padding-right: 28px; } /* keep the tier label clear of the x (.modal-close-x, css/modal.css) */
 /* Two columns: the art on the left (as big as fits), the facts on the right. */
 .vc-body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px; align-items: center; }
 .vc-info { min-width: 0; text-align: left; }

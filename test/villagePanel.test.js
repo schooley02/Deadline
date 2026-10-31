@@ -71,7 +71,7 @@ describe('panelHtml', () => {
         expect(html).toContain('aria-label="Village"');
         expect((html.match(/data-action="open"/g) || [])).toHaveLength(8);
         ALL_KINDS.forEach(k => expect(html).toContain(`data-kind="${k}"`));
-        expect(html).toContain('class="vc-close"');
+        expect(html).toContain('class="modal-close-x"');
         expect(html).not.toContain('modal-buttons');
         expect(html).not.toContain('primary-button');
         expect(html).toContain('12 / 40 tiers');

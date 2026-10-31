@@ -52,8 +52,8 @@
 }
 
 /* ---- Panel ---- */
-.level-panel { max-width: 380px; }
-.lp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.level-panel { position: relative; max-width: 380px; }
+.lp-head { padding-right: 28px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .lp-head h3 { margin: 0; }
 .lp-xp-text { font-size: 13px; color: var(--color-neutral); }
 .lp-xp-bar { box-sizing: border-box; height: 10px; margin: 6px 0 10px; border-radius: 5px; background: #B8CBC6; border: 1px solid var(--color-primary-dark-green); overflow: hidden; }

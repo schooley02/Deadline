@@ -71,7 +71,7 @@ const VillagePanel = (() => {
                 <div class="modal-content village-panel" role="dialog" aria-label="Village">
                     <div class="vp-title"><h3>Village</h3><span class="vp-total">${m.tiersTotal} / ${m.tiersMax} tiers</span></div>
                     <div class="vp-list">${m.rows.map(rowHtml).join('')}</div>
-                    <button type="button" class="vc-close" data-action="close" aria-label="Close">
+                    <button type="button" class="modal-close-x" data-action="close" aria-label="Close">
                         <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M2 2 L10 10 M10 2 L2 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                     </button>
                 </div>

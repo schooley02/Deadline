@@ -132,6 +132,16 @@ describe('chipModel (HUD chip)', () => {
 });
 
 describe('markup', () => {
+    test('closes with a small corner x inside the sticky header, not a full-width Close row (2026-10-30)', () => {
+        const html = BasePanel.innerHtml(BasePanel.buildViewModel(ctxFor(40)));
+        expect(html).toContain('class="modal-close-x"');
+        expect(html).toContain('data-action="close"');
+        expect(html).not.toContain('modal-buttons');
+        expect(html).not.toContain('primary-button');
+        const head = html.slice(html.indexOf('class="bp-head"'), html.indexOf('bp-status'));
+        expect(head).toContain('modal-close-x'); // sticky: stays reachable while the panel scrolls
+    });
+
     test('structureSignature ignores ticking text but not structure', () => {
         const a = BasePanel.innerHtml(BasePanel.buildViewModel(ctxFor(40)));
         const b = BasePanel.innerHtml(BasePanel.buildViewModel(ctxFor(40, [], { nowMs: NOW + 60 * 1000, lastRegenTickMs: NOW - 1 * MIN })));

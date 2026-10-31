@@ -173,7 +173,9 @@ const LevelPanel = (() => {
                     <h4 class="lp-section">Perks</h4>
                     <ul class="lp-perks">${currentRows}${discountRow}</ul>
                     ${nextRows ? `<h4 class="lp-section lp-section--next">Coming up</h4><ul class="lp-perks lp-perks--next">${nextRows}</ul>` : ''}
-                    <div class="modal-buttons"><button type="button" class="primary-button" data-action="close">Close</button></div>
+                    <button type="button" class="modal-close-x" data-action="close" aria-label="Close">
+                        <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M2 2 L10 10 M10 2 L2 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                    </button>
                 </div>
             </div>`;
     }

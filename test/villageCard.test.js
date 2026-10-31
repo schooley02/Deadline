@@ -94,7 +94,7 @@ describe('cardHtml', () => {
         expect(html).toContain('30 / 120 on time to reach T3');
         expect(html).toContain('data-action="close"');
         // a small corner x, not a full-width Close row (2026-10-30)
-        expect(html).toContain('class="vc-close"');
+        expect(html).toContain('class="modal-close-x"');
         expect(html).toContain('aria-label="Close"');
         expect(html).not.toContain('modal-buttons');
         expect(html).not.toContain('primary-button');

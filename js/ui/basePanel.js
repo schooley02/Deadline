@@ -224,6 +224,9 @@ const BasePanel = (() => {
                 <span class="bp-chip bp-chip--${vm.color}" role="img" aria-label="${vm.health} of ${vm.max} health">${Math.round(vm.health)}</span>
                 <h3>Base Health</h3>
                 <span class="bp-points" aria-label="${vm.points} points">${vm.points} pts</span>
+                <button type="button" class="modal-close-x" data-action="close" data-key="close" aria-label="Close">
+                    <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M2 2 L10 10 M10 2 L2 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                </button>
             </div>
             <div class="bp-status bp-status--${vm.state}"><span aria-hidden="true">${vm.stateIcon}</span> ${esc(vm.stateLabel)}</div>
             <div class="bp-timer"><span class="bp-timer-label">${esc(t.label)}</span><span class="bp-timer-value">${bind(vm, 'timer')}</span>${sub}</div>
@@ -234,8 +237,7 @@ const BasePanel = (() => {
             ${warning}
             ${attackersHtml(vm)}
             ${kitsHtml(vm)}
-            <p class="bp-foot">${esc(vm.footnote)}</p>
-            <div class="modal-buttons"><button type="button" class="primary-button" data-action="close" data-key="close">Close</button></div>`;
+            <p class="bp-foot">${esc(vm.footnote)}</p>`;
     }
 
     function panelHtml(vm) {

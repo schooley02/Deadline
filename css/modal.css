@@ -189,3 +189,26 @@
 .reschedule-note-blocked {
     color: #e0795f;
 }
+
+/* Small x in the top-right corner of a modal (2026-10-30, replaces a lone full-width Close row on the info panels: village card,
+   village panel, level panel, base health panel). The glyph is 12px; the button is 32px so it stays an easy tap. The modal-content
+   needs position: relative, and its header needs padding-right ~28px so nothing sits under the x. Taps outside / Esc still close. */
+.modal-close-x {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--color-neutral);
+    cursor: pointer;
+    z-index: 2;
+}
+.modal-close-x:hover,
+.modal-close-x:focus-visible { background: rgba(0, 0, 0, 0.08); color: var(--color-text-primary); }

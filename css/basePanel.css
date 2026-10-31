@@ -2,6 +2,7 @@
    HP palette comes from the --color-base-health-* tokens in css/base.css. */
 
 .base-panel {
+    position: relative;
     max-width: 380px;
     max-height: min(80vh, 80dvh);
     overflow-y: auto;
@@ -16,7 +17,7 @@
 .bp-head {
     position: sticky; top: 0; z-index: 2;
     display: flex; align-items: center; gap: 10px;
-    margin: 0 0 8px; padding: 2px 0 8px;
+    margin: 0 0 8px; padding: 2px 40px 8px 0; /* room on the right for the corner x (.modal-close-x, css/modal.css) */
     background: var(--color-bg-white);
 }
 .bp-head h3 { margin: 0; flex: 1 1 auto; min-width: 0; }

@@ -1,5 +1,5 @@
 /* Village panel (2026-10-30): the overview the HUD village button opens (js/ui/villagePanel.js), and the button itself.
-   The corner x reuses .vc-close from villageCard.css. */
+   The corner x is the shared .modal-close-x (css/modal.css). */
 
 .village-button {
     display: inline-flex;

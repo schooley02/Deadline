@@ -105,6 +105,15 @@ describe('perksModel', () => {
 });
 
 describe('panelHtml', () => {
+    test('closes with a small corner x, not a full-width Close row (2026-10-30)', () => {
+        const html = LevelPanel.panelHtml(LevelPanel.buildModel(ctxFor(3, [routine({ id: 'a', name: 'Study' })], { xp: 300 })));
+        expect(html).toContain('class="modal-close-x"');
+        expect(html).toContain('data-action="close"');
+        expect(html).toContain('aria-label="Close"');
+        expect(html).not.toContain('modal-buttons');
+        expect(html).not.toContain('primary-button');
+    });
+
     test('renders level, XP text, slot pips (with "+" only on empty) and perk rows', () => {
         const html = LevelPanel.panelHtml(LevelPanel.buildModel(ctxFor(3, [routine({ id: 'a', name: 'Study' })], { xp: 300 })));
         expect(html).toContain('Level 3');
