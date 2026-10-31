@@ -48,7 +48,7 @@
     height: 64px;
     box-sizing: border-box;
     border-radius: 6px;
-    background: var(--color-secondary-green-pale); /* LIGHT like the building card and the peak strip (2026-10-30): the dark outlines read on it */
+    background: transparent; /* NO BOX (2026-10-31, Jeremy): the sprite sits straight on the grey row; the row box stays. The peak strip (.vps-thumb) keeps its light backdrop: it sits on the dark game-over card */
     overflow: hidden;
 }
 .vp-sprite { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }

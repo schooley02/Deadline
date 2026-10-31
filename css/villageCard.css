@@ -15,7 +15,7 @@
     margin: 0;
     padding: 12px 12px 8px;
     border-radius: 8px;
-    background: var(--color-secondary-green-pale); /* LIGHT (2026-10-30, Jeremy): the pixel art's dark outlines sank into the old night navy #2A3042 on a phone; the sprites keep their lit-window glow only on the hill itself */
+    background: transparent; /* NO BOX (2026-10-31, Jeremy): the sprite sits straight on the white card; was the pale green backdrop (2026-10-30) */
     overflow: hidden;
 }
 .vc-sprite { display: block; max-width: 100%; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }
