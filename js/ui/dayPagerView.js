@@ -103,9 +103,9 @@ const DayPagerView = (() => {
     function outcomeBadge(outcome) {
         switch (outcome) {
             case 'completed': return { icon: '✓', label: 'Completed', cssClass: 'outcome-completed' };
-            case 'avoided': return { icon: '✓', label: 'Avoided', cssClass: 'outcome-completed' };
+            case 'avoided': return { icon: '✓', label: 'Resisted', cssClass: 'outcome-completed' };
             case 'missed': return { icon: '✕', label: 'Missed', cssClass: 'outcome-missed' };
-            case 'indulged': return { icon: '✕', label: 'Indulged', cssClass: 'outcome-missed' };
+            case 'indulged': return { icon: '✕', label: 'Slipped', cssClass: 'outcome-missed' };
             default: return { icon: '—', label: 'No record', cssClass: 'outcome-unknown' };
         }
     }

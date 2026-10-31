@@ -475,8 +475,8 @@ const RoutineViews = (() => {
 
         return `
             <div class="routine-frozen-banner">
-                <p>🥶 <strong>This routine is frozen</strong> — "${offendingHabit.name}" has been
-                   indulged 3 days in a row. Its other habits and tasks won't spawn until it
+                <p>🥶 <strong>This routine is frozen</strong> — "${offendingHabit.name}" has
+                   slipped 3 days in a row. Its other habits and tasks won't spawn until it
                    recovers. This isn't a punishment, just a signal something about this habit
                    might be worth adjusting.</p>
                 <p class="routine-frozen-progress">Recovery progress: ${progress}/${CONFIG.RECOVERY_AVOIDED_DAYS} days
@@ -1075,14 +1075,14 @@ const RoutineViews = (() => {
                             <input type="radio" id="positiveHabit" name="habitType" value="positive" checked>
                             <label for="positiveHabit" class="habit-type-label positive">
                                 <span class="habit-icon">✅</span>
-                                <span class="habit-label">Positive</span>
-                                <span class="habit-description">Complete to earn points</span>
+                                <span class="habit-label">Build</span>
+                                <span class="habit-description">Do it to earn points</span>
                             </label>
                             <input type="radio" id="negativeHabit" name="habitType" value="negative">
                             <label for="negativeHabit" class="habit-type-label negative">
                                 <span class="habit-icon">🚫</span>
-                                <span class="habit-label">Negative</span>
-                                <span class="habit-description">Avoid to earn points</span>
+                                <span class="habit-label">Break</span>
+                                <span class="habit-description">Resist it to earn points</span>
                             </label>
                         </div>
                     </div>
@@ -1116,7 +1116,7 @@ const RoutineViews = (() => {
                     <div class="form-row">
                         <label for="newHabitTimerMinutes">Timer (minutes, optional):</label>
                         <input type="number" id="newHabitTimerMinutes" min="1" max="600" step="1" inputmode="numeric" value="" placeholder="e.g. 30">
-                        <small class="form-hint">Negative habit: a limit &mdash; start the timer and stop before it runs out to count as avoided. Positive habit: a work goal that completes it.</small>
+                        <small class="form-hint">Break habit: a limit &mdash; start the timer and stop before it runs out to count as resisted. Build habit: a work goal that completes it.</small>
                     </div>
                     <div class="modal-buttons">
                         <button class="primary-button" onclick="saveNewHabit('${routineId}')">Create Habit</button>
@@ -1185,14 +1185,14 @@ const RoutineViews = (() => {
                             <input type="radio" id="editPositiveHabit" name="editHabitType" value="positive" ${!habitDef.isNegative ? 'checked' : ''}>
                             <label for="editPositiveHabit" class="habit-type-label positive">
                                 <span class="habit-icon">✅</span>
-                                <span class="habit-label">Positive</span>
-                                <span class="habit-description">Complete to earn points</span>
+                                <span class="habit-label">Build</span>
+                                <span class="habit-description">Do it to earn points</span>
                             </label>
                             <input type="radio" id="editNegativeHabit" name="editHabitType" value="negative" ${habitDef.isNegative ? 'checked' : ''}>
                             <label for="editNegativeHabit" class="habit-type-label negative">
                                 <span class="habit-icon">🚫</span>
-                                <span class="habit-label">Negative</span>
-                                <span class="habit-description">Avoid to earn points</span>
+                                <span class="habit-label">Break</span>
+                                <span class="habit-description">Resist it to earn points</span>
                             </label>
                         </div>
                     </div>
@@ -1226,7 +1226,7 @@ const RoutineViews = (() => {
                     <div class="form-row">
                         <label for="editHabitTimerMinutes">Timer (minutes, optional):</label>
                         <input type="number" id="editHabitTimerMinutes" min="1" max="600" step="1" inputmode="numeric" value="${typeof habitDef.timerMinutes === 'number' ? habitDef.timerMinutes : ''}" placeholder="e.g. 30">
-                        <small class="form-hint">Negative habit: a limit &mdash; start the timer and stop before it runs out to count as avoided. Positive habit: a work goal that completes it.</small>
+                        <small class="form-hint">Break habit: a limit &mdash; start the timer and stop before it runs out to count as resisted. Build habit: a work goal that completes it.</small>
                     </div>
                     <div class="modal-buttons">
                         <button class="primary-button" onclick="saveEditedHabit('${habitDef.id}')">Save Changes</button>

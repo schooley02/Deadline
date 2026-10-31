@@ -46,13 +46,13 @@ const VillageCard = (() => {
             why: 'Done on time beats done late: it keeps the base safe and builds trust in your own schedule. Getting ahead of the clock, not just across the line, is what lowers stress.',
         },
         habits: {
-            name: 'Hospital', unit: 'good habits',
-            measures: 'Good habits done: every check-in on a habit you are building. Bad habits you resist count at the Boxing gym.',
+            name: 'Hospital', unit: 'habits built',
+            measures: 'Build habits done: every habit you are building, checked off in its window. Habits you are breaking count at the Boxing gym.',
             why: 'Habits grow through repetition. Every check-in is one more rep, and a long unbroken run of reps is how a habit starts to feel automatic instead of like effort.',
         },
         lurkers: {
             name: 'Boxing gym', unit: 'clean days',
-            measures: 'Days you had a bad habit due and did not slip. Days with nothing to resist do not count.',
+            measures: 'Days you had a habit to break due and did not slip. Days with nothing to resist do not count.',
             why: 'Resisting something you are trying to quit is a skill that gets stronger with practice. Counting clean days shows how often you win the fight, not how rarely you lose it.',
         },
         defense: {
@@ -73,7 +73,7 @@ const VillageCard = (() => {
     };
 
     const EMPTY_TEXT = {
-        lurkers: 'Add a habit to resist to start rebuilding.',
+        lurkers: 'Add a habit to break to start rebuilding.',
         heroes: 'Start a routine to open the school.',
     };
 

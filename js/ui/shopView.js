@@ -96,7 +96,7 @@ const ShopView = (() => {
         // pushback's targeting pattern. Only shown once you hold at least
         // one; nothing to target with zero held.
         const cheatDayHintRow = (item.category === 'cheatDay' && held > 0)
-            ? `<div class="shop-item-note shop-cheatday-hint">Tap a negative habit to use</div>`
+            ? `<div class="shop-item-note shop-cheatday-hint">Tap a Break habit to use</div>`
             : '';
 
         // Skip Day (frozen-slots sub-session 5, 2026-07-19): same targeted-

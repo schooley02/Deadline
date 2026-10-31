@@ -250,14 +250,14 @@ const Forms = (() => {
                     <input type="radio" id="modalPositiveHabit" name="modalHabitType" value="positive" checked>
                     <label for="modalPositiveHabit" class="habit-type-label positive">
                         <span class="habit-icon">✅</span>
-                        <span class="habit-label">Positive</span>
-                        <span class="habit-description">Complete to earn points</span>
+                        <span class="habit-label">Build</span>
+                        <span class="habit-description">Do it to earn points</span>
                     </label>
                     <input type="radio" id="modalNegativeHabit" name="modalHabitType" value="negative">
                     <label for="modalNegativeHabit" class="habit-type-label negative">
                         <span class="habit-icon">🚫</span>
-                        <span class="habit-label">Negative</span>
-                        <span class="habit-description">Avoid to earn points</span>
+                        <span class="habit-label">Break</span>
+                        <span class="habit-description">Resist it to earn points</span>
                     </label>
                 </div>
             </div>
@@ -291,7 +291,7 @@ const Forms = (() => {
             <div class="form-row">
                 <label for="modalHabitTimerMinutes">Timer (minutes, optional):</label>
                 <input type="number" id="modalHabitTimerMinutes" min="1" max="600" step="1" inputmode="numeric" placeholder="e.g. 30">
-                <small class="form-hint">Negative habit: a limit &mdash; start the timer and stop before it runs out to count as avoided. Positive habit: a work goal that completes it.</small>
+                <small class="form-hint">Break habit: a limit &mdash; start the timer and stop before it runs out to count as resisted. Build habit: a work goal that completes it.</small>
             </div>
             <div class="modal-buttons">
                 <button id="modalAddHabitButton" class="primary-button">Add Habit</button>

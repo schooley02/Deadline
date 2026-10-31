@@ -222,15 +222,15 @@ const AgendaList = (() => {
             const avoidBtn = document.createElement('button');
             avoidBtn.type = 'button';
             avoidBtn.classList.add('negative-habit-button', 'avoid-btn');
-            avoidBtn.textContent = 'Avoided';
-            avoidBtn.title = 'Successfully avoided';
+            avoidBtn.textContent = 'Resisted';
+            avoidBtn.title = 'I resisted it';
             avoidBtn.style.cssText = 'font-size: 12px; padding: 4px 8px;';
             avoidBtn.addEventListener('click', () => deps.completeItem(itemData.id));
             const indulgeBtn = document.createElement('button');
             indulgeBtn.type = 'button';
             indulgeBtn.classList.add('negative-habit-button', 'indulge-btn');
-            indulgeBtn.textContent = 'Indulged';
-            indulgeBtn.title = 'I indulged';
+            indulgeBtn.textContent = 'Slipped';
+            indulgeBtn.title = 'I slipped';
             indulgeBtn.style.cssText = 'font-size: 12px; padding: 4px 8px;';
             indulgeBtn.addEventListener('click', () => {
                 if (typeof deps.indulgeHabit === 'function') deps.indulgeHabit(itemData.id);
@@ -433,7 +433,7 @@ const AgendaList = (() => {
         if (itemData.type === 'habit') {
             const streakSpan = document.createElement('span');
             streakSpan.classList.add('item-streak');
-            const streakType = itemData.isNegative ? 'Avoided' : 'Streak';
+            const streakType = itemData.isNegative ? 'Resisted' : 'Streak';
             streakSpan.textContent = `${streakType}: ${itemData.streak}`;
             itemDetailsContainer.appendChild(streakSpan);
         } else if (itemData.type !== 'task') {

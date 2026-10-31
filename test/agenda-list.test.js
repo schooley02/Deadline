@@ -223,7 +223,7 @@ describe('AgendaList.createListItem — type branching', () => {
     test('a negative habit reads "Avoided" instead of "Streak"', () => {
         const habit = makeHabit({ isNegative: true, streak: 9 });
         AgendaList.createListItem(habit, makeDeps());
-        expect(findByClass(habit.listItemElement, 'item-streak')[0].textContent).toBe('Avoided: 9');
+        expect(findByClass(habit.listItemElement, 'item-streak')[0].textContent).toBe('Resisted: 9');
     });
 
     test('a negative habit row has Avoided / Indulged buttons instead of the checkbox', () => {

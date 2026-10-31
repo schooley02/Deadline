@@ -166,8 +166,8 @@ const Popups = (() => {
             if (isNegativeHabitInstance(item)) {
                 return `
                     <div class="task-actions negative-habit-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center; flex-wrap: wrap;">
-                        <button type="button" id="avoidHabitBtn" class="negative-habit-button avoid-btn">Successfully avoided</button>
-                        <button type="button" id="indulgeHabitBtn" class="negative-habit-button indulge-btn">I indulged</button>
+                        <button type="button" id="avoidHabitBtn" class="negative-habit-button avoid-btn">Resisted</button>
+                        <button type="button" id="indulgeHabitBtn" class="negative-habit-button indulge-btn">Slipped</button>
                     </div>`;
             }
             const openSubs = (item.type === 'task' && item.subTasks) ? item.subTasks.length : 0;
@@ -183,7 +183,7 @@ const Popups = (() => {
             const cheatDayActive = typeof deps.isCheatDayActiveForItem === 'function' && deps.isCheatDayActiveForItem(item);
             const heldCheatDays = typeof deps.getCheatDayHeldCount === 'function' ? deps.getCheatDayHeldCount() : 0;
             const cheatDayRow = cheatDayActive
-                ? `<p class="cheat-day-active-note">🎟️ Cheat Day active — indulging today is free.</p>`
+                ? `<p class="cheat-day-active-note">🎟️ Cheat Day active — slipping today is free.</p>`
                 : (heldCheatDays > 0
                     ? `<button type="button" id="useCheatDayBtn" class="negative-habit-button cheatday-btn">Use Cheat Day (${heldCheatDays} held)</button>`
                     : '');
@@ -195,8 +195,8 @@ const Popups = (() => {
                 <div class="task-actions negative-habit-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center; flex-wrap: wrap;">
                     ${limitHtml}
                     <button id="editTaskBtn" class="edit-icon-btn" title="Edit Task">✏️</button>
-                    <button type="button" id="avoidHabitBtn" class="negative-habit-button avoid-btn">Successfully avoided</button>
-                    <button type="button" id="indulgeHabitBtn" class="negative-habit-button indulge-btn">I indulged</button>
+                    <button type="button" id="avoidHabitBtn" class="negative-habit-button avoid-btn">Resisted</button>
+                    <button type="button" id="indulgeHabitBtn" class="negative-habit-button indulge-btn">Slipped</button>
                 </div>
                 ${cheatDayRow}
                 ${buildSkipDaySectionHtml(item, deps)}

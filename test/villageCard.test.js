@@ -84,7 +84,7 @@ describe('buildModel', () => {
 
     test('empty states: gym with no bad habit, school with no routine (only when explicitly false)', () => {
         expect(VillageCard.buildModel({ kind: 'lurkers', progress: progress(0, 'lurkers'), hasBadHabit: false }).empty)
-            .toBe('Add a habit to resist to start rebuilding.');
+            .toBe('Add a habit to break to start rebuilding.');
         expect(VillageCard.buildModel({ kind: 'heroes', progress: progress(0, 'heroes'), hasRoutine: false }).empty)
             .toBe('Start a routine to open the school.');
         expect(VillageCard.buildModel({ kind: 'lurkers', progress: progress(0, 'lurkers'), hasBadHabit: true }).empty).toBeNull();

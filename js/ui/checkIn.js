@@ -38,10 +38,10 @@ const CheckIn = (() => {
     function buildCardHtml(habitDef) {
         return `
             <div class="check-in-card" data-habit-id="${habitDef.id}">
-                <p class="check-in-question">Did you successfully avoid <strong>${habitDef.name}</strong> yesterday?</p>
+                <p class="check-in-question">Did you resist <strong>${habitDef.name}</strong> yesterday?</p>
                 <div class="check-in-actions">
-                    <button type="button" class="check-in-button avoid-btn negative-habit-button" data-outcome="avoided">Successfully avoided</button>
-                    <button type="button" class="check-in-button indulge-btn" data-outcome="indulged">I indulged</button>
+                    <button type="button" class="check-in-button avoid-btn negative-habit-button" data-outcome="avoided">Resisted</button>
+                    <button type="button" class="check-in-button indulge-btn" data-outcome="indulged">Slipped</button>
                 </div>
             </div>
         `;
@@ -109,13 +109,13 @@ const CheckIn = (() => {
     function buildArrivalCardHtml(item, expired) {
         const question = expired
             ? `its ${item.timerMinutes}-minute limit is up. Did you stay within it?`
-            : 'its time has arrived. Did you indulge or avoid it?';
+            : 'its time has arrived. Did you resist it?';
         return `
             <div class="check-in-card arrival-card" data-item-id="${item.id}">
                 <p class="check-in-question"><strong>${escapeHtml(item.name)}</strong>: ${question}</p>
                 <div class="check-in-actions">
-                    <button type="button" class="check-in-button avoid-btn negative-habit-button" data-outcome="avoided">Avoided</button>
-                    <button type="button" class="check-in-button indulge-btn" data-outcome="indulged">I indulged</button>
+                    <button type="button" class="check-in-button avoid-btn negative-habit-button" data-outcome="avoided">Resisted</button>
+                    <button type="button" class="check-in-button indulge-btn" data-outcome="indulged">Slipped</button>
                 </div>
             </div>
         `;

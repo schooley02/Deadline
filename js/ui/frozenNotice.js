@@ -49,13 +49,13 @@ const FrozenNotice = (() => {
             <div class="modal-overlay frozen-notice-overlay">
                 <div class="modal-content frozen-notice-modal">
                     <h3>🥶 ${routineName} is frozen</h3>
-                    <p>"${habitName}" has been indulged 3 days in a row, so ${routineName} is
+                    <p>"${habitName}" slipped 3 days in a row, so ${routineName} is
                        taking a break — its other habits and tasks won't spawn until it recovers.
                        This isn't a punishment, just a signal that something about this habit
                        might be worth adjusting.</p>
                     <p><strong>Two ways to unfreeze it:</strong></p>
                     <ul class="frozen-notice-recovery-list">
-                        <li>Successfully avoid "${habitName}" for 3 days in a row, or</li>
+                        <li>Resist "${habitName}" for 3 days in a row, or</li>
                         <li>Edit "${habitName}"'s details — any real change counts</li>
                     </ul>
                     <div class="modal-buttons">
