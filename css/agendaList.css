@@ -432,6 +432,12 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
+    transition: transform 0.2s ease;
+}
+/* Grows a little on hover, like the edit pencil (.edit-icon-btn:hover, css/popups.css) -- 2026-10-31. While the
+   attack pulse runs it drives the transform itself, so the hover grow is skipped there. */
+@media (hover: hover) {
+    .work-timer-btn:hover:not(.attacking) { transform: scale(1.1); }
 }
 /* Same 26px drawing size and stroke weight as the pencil edit icon (css/popups.css), 2026-10-31. */
 .work-timer-btn .timer-icon { display: block; flex-shrink: 0; width: 26px; height: 26px; }
