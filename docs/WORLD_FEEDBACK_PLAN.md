@@ -230,6 +230,51 @@ its run from history length); the game-over card shows the eight thumbnails ("Vi
 peak while the game is over and Restart returns it to T1. Side fix: portrait game-over card centred on the viewport.
 Condition overlays stay their own queued item.
 
+## High school v2: banked hero stars + report card -- DECIDED 2026-10-31 (Claude app session, Opus; Jeremy). NOT BUILT.
+
+**Why:** the High school counted perfect-attendance days (every active routine fully done). One routine with one easy item
+farms a day every day, and every routine you add makes a perfect day HARDER -- it punished the player we want. Jeremy's goal:
+players should SEE that their routines are working, through a number that measures it.
+
+**Decided:**
+- **Counter = banked hero stars.** At each day's close, every routine banks its CURRENT hero star rating (0-5, the existing
+  `Heroes.completionRate` + `Heroes.starRating`, same window as the hero chips: `max(routine.createdAt, runStartedAtMs)`,
+  last `HERO_STAR_RATE_WINDOW` = 28 occurrences, `HERO_STAR_TIERS` rate + tenure). The High school counter = the sum over
+  this run's closed days. Frozen or KO'd routines bank 0 that day. One-item routines count (Jeremy: yes).
+- **Honor roll = 3 stars or better (80%+ with >= 7 days).** It is a LABEL on the report card, not the counter. Rejected as
+  the counter: it pays nothing for lifting a 1-star routine to 2 (players would drop weak routines instead of fixing them)
+  and nothing extra for great routines.
+- **Cheating bounds:** routine slots cap the farm (1 slot at the start, max 4 at Lv3/5/7, so max 20 stars a day); stars need
+  tenure (2-21 days); a re-made routine restarts its history. Ticking items off without doing them is not detectable by any
+  metric.
+- **Thresholds (theory pass, replace `CONFIG.VILLAGE_TIER_THRESHOLDS.heroes` [3, 10, 30, 60]):** T2 **10** / T3 **75** /
+  T4 **300** / T5 **750** banked stars. Model: ~85% completion, routines added as slots unlock; lands ~end of week 1 / ~3
+  weeks / ~7 weeks / ~100 days (Radio tower pace: 100 nights for T5). Re-check with real play.
+- **Report card** (Jeremy: on the High school card AND on each routine's own card, the Manage Routine window): one row per
+  routine -- name, stars, completion % over its last 28 check-ins, an "Honor roll" mark at 3+ stars, and the next step
+  ("90% for 4 stars", or "N more days" when tenure is what is missing). This is the quick, everyday check; the hero tray keeps
+  showing stars only.
+- **Copy:** measures becomes something like "Hero stars banked: each night every routine banks its star rating"; the "Why
+  it helps" stays Jeremy's ("This game puts your routines to the test..."). Bar unit "stars". Final wording with Jeremy.
+- **Honest limit:** stars move slowly (one check-in shifts a routine's rate ~3-4%), so the instant feedback is the report
+  card's %, not the tier.
+
+**Build (one session, Sonnet medium; touches the daily record, so it is its own task):**
+1. `DailyRecord` v3: closed days carry `stars: { [routineId]: 0..5 }` (per routine, not a sum -- feeds best-routine and AI
+   insights later). `State.closeDailyRecord` gets it from a pre-bound `routineStarsNow()` collaborator passed from script.js
+   (Heroes loads after state.js; same forward-reference reason as `heroesCompletionRate`). Note in DATA_SCHEMA.md, bump `v`.
+2. `VillageProgress.counters().heroes` = sum of `stars` over this run's closed days; days without the field count 0.
+   Remove `isPerfectAttendance` from the counter (keep `att` in the record; it stays useful data). Thresholds in CONFIG with a
+   balance comment; DECISIONS entry.
+3. Pure `ReportCard.rows(routines, habits, config, runStartedAtMs)` (stars, rate, samples, distinctDays, honorRoll, next
+   step); rendered in `VillageCard` (heroes kind) and in the Manage Routine window (`js/ui/routineViews.js`, one row).
+4. Card copy + bar unit; empty state "Start a routine to open the school" stays.
+5. Tests: DailyRecord v3 close, counter sum (frozen/KO = 0, old days = 0), report-card rows (tenure gaps, honor-roll edge
+   at 80%), wiring. sw bump; live check of both report cards.
+
+**Open (decide in the build session):** routine TASKS do not affect a routine's stars today (`completionRate` reads habit
+occurrence history only). Keep that, or count routine-task instances too? Changing it would also change the hero chips.
+
 ## Suggested build order (PROPOSED; one session each, commit each)
 
 - [x] **W0 — Layout pass (BUILT 2026-10-28, Opus plan / Sonnet build; sw v133):** graveyard hill on the

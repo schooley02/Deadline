@@ -5,6 +5,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+## 2026-10-31 (later) -- High school v2: banked hero stars + report card (Claude app session, Opus; Jeremy) -- DECIDED, not built
+- **Problem (Jeremy):** perfect-attendance days are farmed by one routine with one easy item, and punish having more routines.
+- **Decided:** the High school counter = hero stars banked per day (each routine's current star rating at day close, summed over the run; frozen/KO'd = 0; one-item routines count). Honor roll (3+ stars = 80%+ with >= 7 days) is a label on a new **report card** (High school card + each routine's Manage Routine window: stars, completion %, honor-roll mark, next step). Thresholds T2/T3/T4/T5 = 10 / 75 / 300 / 750 banked stars (theory pass; replaces 3 / 10 / 30 / 60 perfect days). Data: `DailyRecord` v3 `stars: { routineId: n }` on closed days.
+- **Why banked stars over an honor-roll count (Jeremy asked for the best outcome):** partial credit for lifting a weak routine (fix it, don't drop it) and extra credit for great ones; routine slots (max 4) cap the farm at 20/day; stars need tenure. Honest limit: stars move slowly, so the report card's % is the day-to-day feedback.
+- **Rejected:** average completion rate (a rate can fall; tiers only go up; noisy on small samples), average habit rate (overlaps the Hospital), average streak (resets on one miss, farmable), honor-roll-days count (no credit for improving a weak routine).
+- Plan + build steps: `docs/WORLD_FEEDBACK_PLAN.md` "High school v2". Open: should routine TASKS count toward a routine's stars?
+
 ## 2026-10-31 -- Hospital counts GOOD habits only; check-in 'avoided' now counts like the live pop-up (Claude app session, Opus; Jeremy picked option 1)
 - **Problem (Jeremy):** the Hospital card said "habit check-ins", but what is a check-in for a bad habit: indulged, avoided, either? Found in code: a good habit done counted; "I indulged" never counted; a bad habit "Successfully avoided" counted from the live pop-up (it goes through `Items.completeItem`) but NOT from the check-in card after being away (`Items.resolvePendingCheckIn` skipped it, per the session-65 note that assumed 'avoided' never counted). Same choice, different result depending on whether the app was open.
 - **Decided (option 1):** the Hospital measures habits you are BUILDING -- good (positive) habit check-ins only. Resisting bad habits is the Boxing gym's stat (clean days). New additive run stat `goodHabitsCompleted` (no schema bump), bumped in `completeItem` for non-negative habits; a run saved before it existed seeds it from `habitsCompleted` on the first bump, and `VillageProgress` falls back to `habitsCompleted` while it is absent, so a Hospital mid-run never drops.
