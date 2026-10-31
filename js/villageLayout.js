@@ -84,6 +84,18 @@ const VillageLayout = (() => {
         clockScale: 1,
         clockArtHeightPx: 246,
         feetMaxDropPx: 24,
+        // Placement model (2026-10-30 night): mirrors CONFIG.VILLAGE_PLACEMENT / VILLAGE_DESIGN_FIELD_PX.
+        designFieldPx: 517,
+        placement: {
+            lurkers: { row: 'front', right: -401 },
+            punctuality: { row: 'front', right: -224 },
+            defense: { row: 'front', right: -24 },
+            habits: { row: 'back', right: -305 },
+            heroes: { row: 'back', right: -118 },
+            slain: { row: 'back', right: 66 },
+            bestdays: { row: 'far', right: -406, flip: true },
+            nights: { row: 'far', right: -119, flip: true },
+        },
     };
 
     function fromConfig(cfg) {
@@ -136,6 +148,8 @@ const VillageLayout = (() => {
             clockScale: pick(cfg.VILLAGE_CLOCK_SCALE, DEFAULTS.clockScale),
             clockArtHeightPx: pick(cfg.VILLAGE_CLOCK_ART_H_PX, DEFAULTS.clockArtHeightPx),
             feetMaxDropPx: pick(cfg.VILLAGE_FEET_MAX_DROP_PX, DEFAULTS.feetMaxDropPx),
+            designFieldPx: pick(cfg.VILLAGE_DESIGN_FIELD_PX, DEFAULTS.designFieldPx),
+            placement: (cfg.VILLAGE_PLACEMENT && typeof cfg.VILLAGE_PLACEMENT === 'object') ? cfg.VILLAGE_PLACEMENT : DEFAULTS.placement,
         };
     }
 
@@ -366,42 +380,85 @@ const VillageLayout = (() => {
     // reach the church or the hill or sink behind a front building's art by more than backMaxOverlapPx. The back-row
     // school follows the same rules and is evaluated LAST, so it is also dropped when its art would overlap the Radio
     // tower's (back-row buildings may stand close, minGapPx is a front-row rule); adding it never moves or drops anything.
+    // Canvas size of each kind, from opts.
+    function sizeOf(kind, o) {
+        switch (kind) {
+            case 'punctuality': return [o.spriteWidthPx, o.spriteHeightPx];
+            case 'defense': return [o.jailWidthPx, o.jailHeightPx];
+            case 'slain': return [o.armoryWidthPx, o.armoryHeightPx];
+            case 'nights': return [o.radioWidthPx, o.radioHeightPx];
+            case 'lurkers': return [o.gymWidthPx, o.gymHeightPx];
+            case 'heroes': return [o.schoolWidthPx, o.schoolHeightPx];
+            case 'habits': return [o.hospitalWidthPx, o.hospitalHeightPx];
+            case 'bestdays': return [o.windmillWidthPx, o.windmillHeightPx];
+            default: return [128, 128];
+        }
+    }
+
+    const ROW_ORDER = { far: 0, back: 1, front: 2 };
+
+    /**
+     * PLACEMENT MODEL (2026-10-30 night, Jeremy + Claude; DECISIONS "Village arrangement"). The village is designed for a
+     * landscape PHONE (817px wide, a 517px walking field) and anchored to the graveyard hill: each building's VISIBLE-ART
+     * right edge sits `placement[kind].right` px from the field's right edge (the hill's left edge; > 0 = tucked behind the
+     * hill). Wider screens keep the exact phone arrangement (extra width becomes open field by the church); narrower ones
+     * pull every art-left offset in proportionally (field / designFieldPx). Rows set depth: `front` stands on the tower's row (feet
+     * = the Clock tower's feet when it shows, else the horizon), `back` is backRowRaisePx higher and darker, `far` another
+     * farRowRaisePx higher and darker still. `flip: true` mirrors the sprite (the view sets scaleX(-1); artLeft/artRight
+     * are mirrored here). Rows are ordered by DOOR SIZE (front doors ~26-31px, back ~16-21, far ~17-18) so doors shrink with
+     * depth; the strip under the moon + "NIGHTS SURVIVED" label (about 90px left of the hill) only holds short buildings.
+     * A building is dropped (never moved) if its art would reach over the church or past the hill.
+     * Paint order: far row, back row, front row; left to right within a row.
+     */
     function villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts) {
         const o = opts || DEFAULTS;
         const t = tiers || {};
+        if (!(hillW > 0)) return [];
+        const field = fieldWidth(canvasW, baseW, hillW);
+        if (field < o.minFieldPx) return [];
         const fieldLeft = baseW || 0;
-        const fieldRight = fieldLeft + fieldWidth(canvasW, baseW, hillW);
-        const gap = o.minGapPx;
-        const clock = clockTowerSlot(canvasW, canvasH, baseW, hillW, t.punctuality, o);
-        const feet = clock ? clock.feetY : undefined;
-        let jail = jailSlot(canvasW, canvasH, baseW, hillW, t.defense, o, feet);
-        if (jail && (jail.artLeft < fieldLeft || (clock && !apart(jail, clock, gap)))) jail = null;
-        let armory = armorySlot(canvasW, canvasH, baseW, hillW, t.slain, o, feet);
-        if (armory && (armory.artRight > fieldRight || [clock, jail].some(f => f && !apart(armory, f, gap)))) armory = null;
-        let gym = gymSlot(canvasW, canvasH, baseW, hillW, t.lurkers, o, feet);
-        if (gym && (gym.artLeft < fieldLeft || gym.artRight > fieldRight || [clock, jail, armory].some(f => f && !apart(gym, f, gap)))) gym = null;
-        let radio = radioSlot(canvasW, canvasH, baseW, hillW, t.nights, o, feet);
-        if (radio && (radio.artLeft < fieldLeft || radio.artRight > fieldRight
-            || [jail, gym, armory, clock].some(f => f && overlapPx(radio, f) > o.backMaxOverlapPx))) radio = null;
-        let school = schoolSlot(canvasW, canvasH, baseW, hillW, t.heroes, o, feet);
-        if (school && (school.artLeft < fieldLeft || school.artRight > fieldRight
-            || [jail, gym, armory, clock].some(f => f && overlapPx(school, f) > o.backMaxOverlapPx)
-            || (radio && overlapPx(school, radio) > 0))) school = null;
-        // hospital: evaluated after the school, so it never moves or drops anything placed before it
-        let hospital = hospitalSlot(canvasW, canvasH, baseW, hillW, t.habits, o, feet);
-        if (hospital && (hospital.artLeft < fieldLeft || hospital.artRight > fieldRight
-            || [jail, gym, armory, clock].some(f => f && overlapPx(hospital, f) > o.backMaxOverlapPx)
-            || [radio, school].some(b => b && overlapPx(hospital, b) > 0))) hospital = null;
-        // far-row windmill: evaluated last (never moves or drops anything); it may hide behind any nearer building, but is
-        // dropped if its art would reach the church or the hill, or overlap the Clock tower's art
-        let windmill = windmillSlot(canvasW, canvasH, baseW, hillW, t.bestdays, o, feet);
-        if (windmill && (windmill.artLeft < fieldLeft || windmill.artRight > fieldRight
-            || (clock && overlapPx(windmill, clock) > 0))) windmill = null;
-        // far row first, then the back row, the tower last (over any shared pixels)
-        return [windmill, radio, school, hospital, jail, gym, armory, clock].filter(Boolean);
+        const fieldRight = fieldLeft + field;
+        const k = (o.designFieldPx > 0) ? Math.min(1, field / o.designFieldPx) : 1;
+        const clockTier = clampTier(t.punctuality, o.tiers);
+        const frontFeet = clockTier !== null ? clockFeetY(canvasH, o) : horizonFeetY(canvasH, o);
+        const feet = {
+            front: frontFeet,
+            back: frontFeet - Math.max(0, o.backRowRaisePx),
+            far: frontFeet - Math.max(0, o.backRowRaisePx) - Math.max(0, o.farRowRaisePx),
+        };
+        const bright = { front: 1, back: o.backRowBrightness, far: o.farRowBrightness };
+        const out = [];
+        Object.keys(o.placement || {}).forEach((kind) => {
+            const p = o.placement[kind] || {};
+            const tier = clampTier(t[kind], o.tiers);
+            if (tier === null) return;
+            const row = (p.row === 'back' || p.row === 'far') ? p.row : 'front';
+            const [w0, h0] = sizeOf(kind, o);
+            const scale = (kind === 'punctuality') ? clockScaleFor(canvasH, o) : 1;
+            const w = Math.round(w0 * scale);
+            const h = Math.round(h0 * scale);
+            const art = (o.art && o.art[kind]) || [0, w0];
+            const flip = !!p.flip;
+            const a0 = Math.round((flip ? w0 - art[1] : art[0]) * scale);
+            const a1 = Math.round((flip ? w0 - art[0] : art[1]) * scale);
+            // `right` is authored at the design width; narrower fields scale the art's LEFT-edge offset (so a building that
+            // cleared the church at the design width still clears it), keeping the sprite's width.
+            const designLeft = (Number(p.right) || 0) - (a1 - a0);
+            const artLeft = Math.round(fieldRight + designLeft * k);
+            const left = artLeft - a0;
+            const artRight = left + a1;
+            if (artLeft < fieldLeft || artRight > fieldRight + hillW) return;
+            const feetY = Math.round(feet[row]);
+            const slot = { kind, tier, url: spriteUrl(kind, tier), left, top: feetY - h, width: w, height: h, feetY, artLeft, artRight, row, flip };
+            if (row !== 'front') { slot.back = true; slot.brightness = bright[row]; }
+            if (row === 'far') slot.far = true;
+            out.push(slot);
+        });
+        out.sort((x, y) => (ROW_ORDER[x.row] - ROW_ORDER[y.row]) || (x.artLeft - y.artLeft));
+        return out;
     }
 
-    return { DEFAULTS, fromConfig, clampTier, resolveTier, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, resolveDevHospitalTier, resolveDevWindmillTier, fieldWidth, spriteUrl, clockTowerSlot, clockScaleFor, clockFeetY, jailSlot, armorySlot, gymSlot, radioSlot, schoolSlot, hospitalSlot, windmillSlot, villageSlots };
+    return { DEFAULTS, fromConfig, clampTier, resolveTier, sizeOf, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, resolveDevHospitalTier, resolveDevWindmillTier, fieldWidth, spriteUrl, clockTowerSlot, clockScaleFor, clockFeetY, jailSlot, armorySlot, gymSlot, radioSlot, schoolSlot, hospitalSlot, windmillSlot, villageSlots };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

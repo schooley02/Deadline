@@ -214,6 +214,20 @@ topmost first, so a transparent corner or a back-row building tucked behind a fr
 canvas cannot be read, e.g. `file://`). The card is two columns (sprite left, facts right) and shows the sprite at 3x (then 2x) when that fits, 3x for the 128px-tall canvases; the tall Clock tower canvas (128x256) is fitted to the same height at 1.5x, a non-whole scale that stays crisp with `image-rendering: pixelated`: `VillageCard.spriteScale`. Re-measure
 `VILLAGE_ART_X` whenever a sprite's width changes (a test checks it); the tap hit-test uses the same numbers only as its fallback.
 
+## Village ARRANGEMENT (2026-10-30 night; DECISIONS "Village arrangement")
+
+Designed for the landscape PHONE (817px wide, a 517px walking field) and anchored to the graveyard hill: `CONFIG.VILLAGE_PLACEMENT` gives each kind a row and the
+distance from the hill to its visible-art right edge; wider screens keep the phone arrangement pixel-for-pixel (extra width = open field by the church), narrower ones
+pull the art-left offsets in proportionally. Left to right: **front** Boxing gym, Clock tower, Jailhouse; **back** Hospital, High school, Armory (right end, left side
+30px behind the Jail, right side behind the graveyard slope, nothing behind it); **far** Windmill (mirrored, wheel over the gym + hospital) and the Radio mast
+(mirrored, right of the HUD Points button). **Door rule:** rows are set by door height at 1x (front ~26-31px, back ~16-21, far ~17-18), so doors shrink with depth; a new
+building joins the row whose doors match. **Moon rule:** the ~90px left of the hill sits under the moon + "NIGHTS SURVIVED" label, so only short buildings may stand
+there. Mirroring (`flip`) is allowed to show more of a building's art. The Armory's offset was tuned to the PLACEHOLDER graveyard stones/tree: re-check it after the
+Nov 7 graveyard art.
+
+**Card scale exception (Jeremy 2026-10-30):** the building card fits the 128x256 Clock tower to the 3x buildings' height at **1.5x**, a deliberate exception to the
+whole-number rule above (in the scene it is still 1:1). Every other card sprite uses 3x or 2x.
+
 ## Asset Sources
 - **FINISHED sprites: `Assets/Zombies/<category>-zombie.png` + `-64.png` (64×64) for all 8 categories** — use these.
 - Base damage states: `Assets/Base/base_000..100.png`.

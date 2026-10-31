@@ -572,6 +572,23 @@ const CONFIG = {
     VILLAGE_FAR_ROW_BRIGHTNESS: 0.65, // darker than the back row (0.8) so it reads as further away
     // Visible-art extent [left, right) inside each kind's 128px canvas, the UNION over its five tiers (measured from the shipped sprites, 2026-10-30).
     // Collision, the church/hill edges and the back-row overlap use THESE, not the 128px boxes (most of a box is empty air), so five buildings fit.
+    // ---- Village ARRANGEMENT (2026-10-30 night, Jeremy + Claude; DECISIONS "Village arrangement"). Designed for a landscape
+    // phone (817px wide = a 517px walking field) and anchored to the graveyard hill. `right` = px from the field's right edge
+    // (the hill) to the building's visible-art right edge (> 0 = tucked behind the hill); narrower fields scale it by
+    // field / VILLAGE_DESIGN_FIELD_PX, wider ones keep it. Rows by DOOR SIZE: front doors ~26-31px, back ~16-21, far ~17-18.
+    // Only short buildings may stand in the ~90px under the moon + "NIGHTS SURVIVED" label. `flip` mirrors the sprite.
+    // (The per-kind VILLAGE_*_X_FRAC keys below are the old model's, kept only for the legacy per-kind slot helpers.)
+    VILLAGE_DESIGN_FIELD_PX: 517,
+    VILLAGE_PLACEMENT: {
+        lurkers: { row: 'front', right: -401 },          // Boxing gym, by the church
+        punctuality: { row: 'front', right: -224 },      // Clock tower, centre
+        defense: { row: 'front', right: -24 },           // Jailhouse, under the moon (short)
+        habits: { row: 'back', right: -305 },            // Hospital, behind the gym / tower gap
+        heroes: { row: 'back', right: -118 },            // High school, between the tower and the jail
+        slain: { row: 'back', right: 66 },               // Armory: right end, left side 30px behind the jail (Jeremy's pick B), right side behind the hill
+        bestdays: { row: 'far', right: -406, flip: true }, // Windmill, wheel over the gym + hospital (mirrored)
+        nights: { row: 'far', right: -119, flip: true },   // Radio mast, right of the HUD Points button (mirrored)
+    },
     VILLAGE_ART_X: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [11, 122], heroes: [6, 125], habits: [9, 119], bestdays: [13, 116] },
 
     // ---- Village tiers (DECIDED 2026-10-30 night, DECISIONS "Village tiers"; docs/WORLD_FEEDBACK_PLAN.md "Village tiers + building cards") ----

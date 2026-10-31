@@ -34,7 +34,7 @@ test('places one Clock tower sprite at the layout slot', () => {
     init();
     const imgs = document.querySelectorAll('#villageLayer .village-sprite');
     expect(imgs).toHaveLength(1);
-    const want = VillageLayout.clockTowerSlot(844, 334, 160, 140, 3, VillageLayout.fromConfig(CONFIG));
+    const want = VillageLayout.villageSlots(844, 334, 160, 140, { punctuality: 3 }, VillageLayout.fromConfig(CONFIG))[0];
     expect(imgs[0].getAttribute('src')).toBe('Assets/Village/punctuality_t3.png');
     expect(imgs[0].style.left).toBe(want.left + 'px');
     expect(imgs[0].style.top).toBe(want.top + 'px');
@@ -175,16 +175,6 @@ test('a tier going away removes only that building', () => {
     expect(byKind('punctuality')).not.toBeNull();
 });
 
-test('a window too narrow for both drops the jail, keeps the tower; widening brings it back', () => {
-    const state = initBoth({ canvasW: 640 });
-    expect(byKind('defense')).toBeNull();
-    expect(byKind('punctuality')).not.toBeNull();
-    setSize(document.getElementById('gameCanvas'), 844, 334);
-    VillageView.render(160);
-    expect(byKind('defense')).not.toBeNull();
-    expect(state.jail).toBe(3);
-});
-
 test('portrait strip and VILLAGE_ENABLED=false hide both', () => {
     const state = initBoth();
     state.hill = 0;
@@ -251,38 +241,6 @@ describe('Radio tower (back row)', () => {
         return state;
     }
 
-    test('draws the radio at its layout slot with the back-row class and a brightness filter', () => {
-        initAll();
-        const want = VillageLayout.villageSlots(844, 334, 160, 140, { punctuality: 3, defense: 3, slain: 3, nights: 3 }, VillageLayout.fromConfig(CONFIG))
-            .find(s => s.kind === 'nights');
-        const img = q('nights');
-        expect(img.getAttribute('src')).toBe('Assets/Village/nights_t3.png');
-        expect(img.classList.contains('village-nights')).toBe(true);
-        expect(img.classList.contains('village-back')).toBe(true);
-        expect(img.style.left).toBe(want.left + 'px');
-        expect(img.style.top).toBe(want.top + 'px');
-        expect(img.style.height).toBe('160px');
-        expect(img.style.filter).toBe('brightness(' + CONFIG.VILLAGE_BACK_ROW_BRIGHTNESS + ')');
-        expect(img.getAttribute('alt')).toBe('');
-        expect(img.draggable).toBe(false);
-    });
-
-    test('front-row buildings are not darkened and are not back-row', () => {
-        initAll();
-        ['punctuality', 'defense', 'slain'].forEach(k => {
-            expect(q(k).classList.contains('village-back')).toBe(false);
-            expect(q(k).style.filter).toBe('');
-        });
-    });
-
-    test('z-index follows paint order: the radio lowest, the tower highest', () => {
-        initAll();
-        const z = k => Number(q(k).style.zIndex);
-        expect(z('nights')).toBeLessThan(z('defense'));
-        expect(z('defense')).toBeLessThan(z('slain'));
-        expect(z('slain')).toBeLessThan(z('punctuality'));
-    });
-
     test('a radio that appears AFTER the others still paints behind them (z-index, not DOM order)', () => {
         const state = initAll({ radio: null });
         expect(q('nights')).toBeNull();
@@ -305,15 +263,6 @@ describe('Radio tower (back row)', () => {
         expect(q('nights')).toBeNull();
         expect(q('punctuality')).not.toBeNull();
         expect(q('defense')).not.toBeNull();
-    });
-
-    test('a window too narrow for the radio drops it and leaves the rest; widening brings it back', () => {
-        initAll();
-        build({ canvasW: 640 });
-        VillageView.init({ getHillWidth: () => 140, getClockTier: () => 3, getJailTier: () => 3, getArmoryTier: () => 3, getRadioTier: () => 3 });
-        VillageView.render(160);
-        expect(q('nights')).toBeNull();
-        expect(q('punctuality')).not.toBeNull();
     });
 
     test('a view that does not supply getRadioTier (the older deps) still works, no radio', () => {
@@ -360,16 +309,6 @@ describe('Boxing gym (front row)', () => {
         expect(img.draggable).toBe(false);
     });
 
-    test('all five buildings are in the layer at 844 wide, z-index in paint order', () => {
-        initAll();
-        expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(5);
-        const z = k => Number(q(k).style.zIndex);
-        expect(z('nights')).toBeLessThan(z('defense'));
-        expect(z('defense')).toBeLessThan(z('lurkers'));
-        expect(z('lurkers')).toBeLessThan(z('slain'));
-        expect(z('slain')).toBeLessThan(z('punctuality'));
-    });
-
     test('a tier change swaps the image on the same element; clearing the tier removes only the gym', () => {
         const state = initAll({ gym: 1 });
         const img = q('lurkers');
@@ -381,12 +320,6 @@ describe('Boxing gym (front row)', () => {
         VillageView.render(160);
         expect(q('lurkers')).toBeNull();
         ['punctuality', 'defense', 'slain', 'nights'].forEach(k => expect(q(k)).not.toBeNull());
-    });
-
-    test('a window too narrow for the gym drops it and leaves the rest', () => {
-        initAll({}, { canvasW: 760 });
-        expect(q('lurkers')).toBeNull();
-        expect(q('slain')).not.toBeNull();
     });
 
     test('a view that does not supply getGymTier (the older deps) still works, no gym', () => {
@@ -436,20 +369,6 @@ describe('High school (back row)', () => {
         ['defense', 'lurkers', 'slain', 'punctuality'].forEach(k => expect(z('heroes')).toBeLessThan(z(k)));
     });
 
-    test('a tier change swaps the image; clearing it removes only the school; a narrow window drops it', () => {
-        const state = initAll({ school: 1 });
-        const img = q('heroes');
-        state.school = 5;
-        VillageView.render(160);
-        expect(q('heroes')).toBe(img);
-        expect(img.getAttribute('src')).toBe('Assets/Village/heroes_t5.png');
-        state.school = null;
-        VillageView.render(160);
-        expect(q('heroes')).toBeNull();
-        expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(5);
-        initAll({}, { canvasW: 800 });
-        expect(q('heroes')).toBeNull();
-    });
 });
 
 // ---- Hospital (kind `habits`, back row), added 2026-10-30 ----
@@ -491,20 +410,6 @@ describe('Hospital (back row)', () => {
         ['defense', 'lurkers', 'slain', 'punctuality'].forEach(k => expect(z('habits')).toBeLessThan(z(k)));
     });
 
-    test('a tier change swaps the image; clearing it removes only the hospital; a narrow window drops it', () => {
-        const state = initAll({ hospital: 1 });
-        const img = q('habits');
-        state.hospital = 5;
-        VillageView.render(160);
-        expect(q('habits')).toBe(img);
-        expect(img.getAttribute('src')).toBe('Assets/Village/habits_t5.png');
-        state.hospital = null;
-        VillageView.render(160);
-        expect(q('habits')).toBeNull();
-        expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(6);
-        initAll({}, { canvasW: 800 });
-        expect(q('habits')).toBeNull();
-    });
 });
 
 // ---- Windmill (kind `bestdays`, FAR row, placeholder art), added 2026-10-30 ----
@@ -610,5 +515,50 @@ describe('tappable buildings (Build 2, 2026-10-30)', () => {
         expect(opened).toHaveLength(1);
         expect(bubbled).toBe(true);
         delete document.elementsFromPoint;
+    });
+});
+
+
+describe('arrangement (2026-10-30 night): flips + forgiving taps', () => {
+    const ALL8 = { punctuality: 3, defense: 3, slain: 3, nights: 3, lurkers: 3, heroes: 3, habits: 3, bestdays: 3 };
+
+    test('mirrored buildings get scaleX(-1) and data-flip; the others do not', () => {
+        build({ canvasW: 817, canvasH: 296 });
+        VillageView.init({
+            getHillWidth: () => 140,
+            getClockTier: () => 3, getJailTier: () => 3, getArmoryTier: () => 3, getRadioTier: () => 3,
+            getGymTier: () => 3, getSchoolTier: () => 3, getHospitalTier: () => 3, getWindmillTier: () => 3,
+        });
+        VillageView.render(160);
+        const el = k => document.querySelector('.village-' + k);
+        Object.keys(ALL8).forEach((k) => {
+            const flipped = !!CONFIG.VILLAGE_PLACEMENT[k].flip;
+            expect(el(k).dataset.flip).toBe(flipped ? '1' : '0');
+            expect(el(k).style.transform).toBe(flipped ? 'scaleX(-1)' : '');
+        });
+        // z-index follows paint order: far row first, front row last
+        const z = k => Number(el(k).style.zIndex);
+        expect(z('bestdays')).toBeLessThan(z('habits'));
+        expect(z('habits')).toBeLessThan(z('lurkers'));
+    });
+
+    test('opaqueNear: a tap within the slop of an opaque pixel counts, farther away does not', () => {
+        const w = 10, h = 10, data = new Uint8ClampedArray(w * h * 4);
+        data[(5 * w + 5) * 4 + 3] = 255; // one opaque pixel at (5,5)
+        expect(VillageView.opaqueNear(data, w, h, 5, 5, 0, 16)).toBe(true);
+        expect(VillageView.opaqueNear(data, w, h, 8, 5, 3, 16)).toBe(true);
+        expect(VillageView.opaqueNear(data, w, h, 9, 5, 3, 16)).toBe(false);
+        expect(VillageView.opaqueNear(data, w, h, 8, 8, 3, 16)).toBe(true);
+        expect(VillageView.opaqueNear(data, w, h, 0, 0, 3, 16)).toBe(false);
+        expect(VillageView.opaqueNear(data, w, h, 9, 9, 50, 16)).toBe(true); // clamped to the image
+    });
+
+    test('inArtBox mirrors the art columns for a flipped sprite', () => {
+        const rect = { left: 0, top: 0, right: 128, bottom: 128, width: 128, height: 128 };
+        const art = [20, 113]; // mirrored -> [15, 108]
+        expect(VillageView.inArtBox(rect, 128, art, 17, 50, false)).toBe(false);
+        expect(VillageView.inArtBox(rect, 128, art, 17, 50, true)).toBe(true);
+        expect(VillageView.inArtBox(rect, 128, art, 111, 50, false)).toBe(true);
+        expect(VillageView.inArtBox(rect, 128, art, 111, 50, true)).toBe(false);
     });
 });

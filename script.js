@@ -75,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
             spriteUrl: hit.url,
             spriteW: hit.width,
             spriteH: hit.height,
+            spriteFlip: hit.flip,
         });
     }
     VillageView.init({

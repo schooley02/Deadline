@@ -16,7 +16,7 @@
  *   extras?,        VillageProgress.extras(...) -> { attendanceStreak, comebackDays }
  *   hasBadHabit?,   true when at least one active (non-archived) negative habit exists (gym empty state)
  *   hasRoutine?,    true when at least one routine exists (school empty state)
- *   spriteUrl?, spriteW?, spriteH?   the building's current sprite (shown at 2x)
+ *   spriteUrl?, spriteW?, spriteH?, spriteFlip?   the building's current sprite (mirrored like the scene when spriteFlip)
  * }
  */
 const VillageCard = (() => {
@@ -122,6 +122,7 @@ const VillageCard = (() => {
             spriteW: count(c.spriteW),
             spriteH: count(c.spriteH),
             spriteScale: spriteScale(count(c.spriteW), count(c.spriteH)),
+            spriteFlip: !!c.spriteFlip,
         };
     }
 
@@ -134,7 +135,7 @@ const VillageCard = (() => {
         const m = model;
         const pct = Math.round(m.fraction * 100);
         const sprite = m.spriteUrl
-            ? `<img class="vc-sprite" src="${esc(m.spriteUrl)}" alt="" draggable="false"${m.spriteW ? ` style="width:${Math.round(m.spriteW * m.spriteScale)}px"` : ''}>`
+            ? `<img class="vc-sprite" src="${esc(m.spriteUrl)}" alt="" draggable="false"${(m.spriteW || m.spriteFlip) ? ` style="${m.spriteW ? `width:${Math.round(m.spriteW * m.spriteScale)}px;` : ''}${m.spriteFlip ? 'transform:scaleX(-1);' : ''}"` : ''}>`
             : '';
         const emptyHtml = m.empty ? `<p class="vc-empty">${esc(m.empty)}</p>` : '';
         const linesHtml = m.lines.map(l => `<p class="vc-line">${esc(l)}</p>`).join('');

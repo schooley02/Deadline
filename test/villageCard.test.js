@@ -128,6 +128,12 @@ describe('spriteScale', () => {
         expect(html.indexOf('vc-info')).toBeLessThan(html.indexOf('vc-head'));
         expect(html.indexOf('vc-bar-text')).toBeLessThan(html.indexOf('data-action="close"'));
     });
+    test('a mirrored building is mirrored on the card too', () => {
+        const html = VillageCard.cardHtml(VillageCard.buildModel({ kind: 'nights', progress: progress(0), spriteUrl: 'a.png', spriteW: 128, spriteH: 160, spriteFlip: true }));
+        expect(html).toContain('transform:scaleX(-1)');
+        const plain = VillageCard.cardHtml(VillageCard.buildModel({ kind: 'nights', progress: progress(0), spriteUrl: 'a.png', spriteW: 128, spriteH: 160 }));
+        expect(plain).not.toContain('scaleX');
+    });
     test('the card html uses the model scale', () => {
         const tall = VillageCard.cardHtml(VillageCard.buildModel({ kind: 'punctuality', progress: progress(0, 'punctuality'), spriteUrl: 'a.png', spriteW: 146, spriteH: 262 }));
         expect(tall).toContain('width:215px'); // 146 * 1.47 (fitted to 384px tall)

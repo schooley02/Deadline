@@ -5,6 +5,16 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+## 2026-10-30 (night) -- Village arrangement: rows by door size, phone-first layout anchored to the graveyard (Claude app session, Opus; Jeremy picked each step)
+- **Why:** on Jeremy's phone the Armory stood in front of the Hospital and looked off; he asked for the tall buildings to go back and for the Armory to stand in front of nothing.
+- **Rows by DOOR size, not overall height.** Doors measured at 1x: Gym ~31, Clock tower ~28, Jail ~26 (front); Armory tent ~21, Hospital ~16/21, School ~19 (back); Windmill shed ~18, Radio shack ~17 (far). Scaling buildings so doors match was rejected (the whole-number pixel rule); the doors already sort into rows. So the Clock tower stays FRONT (its door matches the gym/jail; in the back it would look too big) and the School stays BACK.
+- **Layout (left to right):** front Gym, Clock tower, Jail; back Hospital, School, Armory; far Windmill (mirrored), Radio mast (mirrored, right of the HUD Points button, Jeremy's request). The Armory is at the right end with its left side 30px behind the Jail (Jeremy picked 30 of 15/30/45) and its right side behind the graveyard slope; nothing stands behind it.
+- **Phone-first (Jeremy):** designed at 817px (517px field) and anchored to the graveyard hill: wider screens keep it pixel-for-pixel (extra width = open field by the church; a stretched layout was rejected as gappy); narrower screens scale the art-left offsets so nothing crosses the church. `CONFIG.VILLAGE_PLACEMENT` + `VILLAGE_DESIGN_FIELD_PX`; the old per-kind `*_X_FRAC` and the overlap-drop rules no longer drive `villageSlots` (legacy per-kind slot helpers kept for now).
+- **Moon rule:** the ~90px left of the hill lies under the moon + "NIGHTS SURVIVED" label; tall buildings there hide it, so only short ones may stand there (a test checks it at 817 and 1366).
+- **Taps:** forgiving hit test, an opaque pixel within 3 art px counts (the mast and spokes are thin); flipped sprites mirror the hit test and the card.
+- **Card Clock tower stays 1.5x** (Jeremy): written into ART_STYLE as an exception to the whole-number rule (card only; the scene is 1:1).
+- **Revisit:** the Armory's position after the Nov 7 graveyard stones/tree art (Jeremy).
+
 ## 2026-10-30 (night) -- Village Build 2 BUILT: real tiers in the scene + tappable building cards (Claude app session, Sonnet; no balance change)
 - **Real tier unless the URL overrides it.** `script.js` feeds each `get<Kind>Tier` dep from `VillageProgress.compute` through `VillageLayout.resolveTier(search, param, realTier, tiers)`; `?<param>=1..5|off` still pins/hides a building for art checks. `CONFIG.VILLAGE_DEV_*` defaults (all 3) no longer apply, because a new game must show a T1 village. They stay in config only for the old `resolveDev*` helpers and their tests.
 - **Cached, not per-tick.** `VillageView.render` runs every tick, so the progress result is memoised on the counters it reads (nights, tasks/sub-tasks/habits completed, today's `done`) and `deadline.days` is re-read only when the open day's date or the run number changes (a rollover or a game over).

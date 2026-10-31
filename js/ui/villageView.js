@@ -42,6 +42,7 @@ const VillageView = (() => {
     }
 
     const HIT_ALPHA = 16; // 0..255: a pixel counts as part of the building above this alpha
+    const HIT_SLOP_PX = 3; // forgiving taps: an opaque pixel within this many art px of the finger counts (thin masts / spokes)
 
     /**
      * Pure. `candidates` = the sprites under the tap, TOPMOST FIRST; `hitAt(candidate)` = true when the tap lands on a
@@ -60,8 +61,9 @@ const VillageView = (() => {
      * and whose authored canvas is naturalW wide? `art` = [x0, x1] in canvas pixels (CONFIG.VILLAGE_ART_X); the whole
      * canvas when absent. Used when the alpha channel cannot be read (file://, tainted canvas).
      */
-    function inArtBox(rect, naturalW, art, clientX, clientY) {
+    function inArtBox(rect, naturalW, art, clientX, clientY, flip) {
         if (!rect || !(rect.width > 0) || !(rect.height > 0)) return false;
+        if (flip && Array.isArray(art)) art = [naturalW - art[1], naturalW - art[0]];
         if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return false;
         const k = naturalW > 0 ? rect.width / naturalW : 1;
         const x0 = rect.left + (Array.isArray(art) ? art[0] : 0) * k;
@@ -92,17 +94,33 @@ const VillageView = (() => {
         return entry;
     }
 
+    /**
+     * Pure. Is any pixel within `slop` of (px, py) more opaque than `minAlpha`? `data` = RGBA bytes of a w x h image.
+     * Forgiving taps: thin far-row art (the radio mast, the windmill spokes) is mostly transparent between its lines.
+     */
+    function opaqueNear(data, w, h, px, py, slop, minAlpha) {
+        const r = Math.max(0, slop | 0);
+        for (let y = Math.max(0, py - r); y <= Math.min(h - 1, py + r); y++) {
+            for (let x = Math.max(0, px - r); x <= Math.min(w - 1, px + r); x++) {
+                if (data[(y * w + x) * 4 + 3] > minAlpha) return true;
+            }
+        }
+        return false;
+    }
+
     function spriteHit(img, clientX, clientY) {
         const rect = img.getBoundingClientRect();
         const c = cfg();
         const art = c.VILLAGE_ART_X && c.VILLAGE_ART_X[img.dataset.kind];
+        const flip = img.dataset.flip === '1';
         if (!rect.width || !rect.height) return false;
         if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return false;
         const a = readAlpha(img);
-        if (!a) return inArtBox(rect, img.naturalWidth, art, clientX, clientY);
-        const px = Math.min(a.w - 1, Math.max(0, Math.floor((clientX - rect.left) * a.w / rect.width)));
+        if (!a) return inArtBox(rect, img.naturalWidth, art, clientX, clientY, flip);
+        let px = Math.min(a.w - 1, Math.max(0, Math.floor((clientX - rect.left) * a.w / rect.width)));
         const py = Math.min(a.h - 1, Math.max(0, Math.floor((clientY - rect.top) * a.h / rect.height)));
-        return a.data[(py * a.w + px) * 4 + 3] > HIT_ALPHA;
+        if (flip) px = a.w - 1 - px; // the sprite is drawn mirrored; its pixels are not
+        return opaqueNear(a.data, a.w, a.h, px, py, HIT_SLOP_PX, HIT_ALPHA);
     }
 
     function onLayerClick(e) {
@@ -118,6 +136,7 @@ const VillageView = (() => {
             url: hit.getAttribute('src'),
             width: hit.naturalWidth || 0,
             height: hit.naturalHeight || 0,
+            flip: hit.dataset.flip === '1',
         });
     }
 
@@ -171,6 +190,8 @@ const VillageView = (() => {
             img.style.height = slot.height + 'px';
             img.style.zIndex = String(order); // paint order = slot order (back row first, tower last)
             img.classList.toggle('village-back', !!slot.back);
+            img.dataset.flip = slot.flip ? '1' : '0';
+            img.style.transform = slot.flip ? 'scaleX(-1)' : '';
             img.style.filter = (slot.back && slot.brightness > 0 && slot.brightness < 1) ? 'brightness(' + slot.brightness + ')' : '';
         });
     }
@@ -188,7 +209,7 @@ const VillageView = (() => {
         render();
     }
 
-    return { init, render, pickHit, inArtBox };
+    return { init, render, pickHit, inArtBox, opaqueNear };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
