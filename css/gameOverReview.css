@@ -25,6 +25,17 @@
     padding: var(--space-6);
 }
 
+/* Portrait phones (Village Build 3, 2026-10-30): the canvas is only a short strip there, so a card centred on it
+   (the .message-overlay default) started ABOVE the screen -- the heading was cut off even before the village strip
+   made the card taller. Centre it on the viewport instead and scroll inside it if it is still too tall. Landscape /
+   desktop keep the canvas-centred card. */
+@media (orientation: portrait) {
+    #gameOverMessage.game-over-review-active {
+        position: fixed;
+        max-height: calc(100vh - 32px);
+    }
+}
+
 .game-over-heading {
     font-size: var(--text-h3);
     font-weight: 700;

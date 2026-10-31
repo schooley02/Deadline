@@ -92,6 +92,7 @@ runRecord = {
   runNumber, startedAtMs, endedAtMs, daysSurvived,
   endReason: 'base_destroyed',   // enum-ready for future end types
   peakPlayerLevel: 9,            // 2026-10-23, additive (no schema bump): player level when the run ended (never drops within a run); absent on older records. Drives the Steward title.
+  peakVillageTiers: { nights: 4, slain: 3, ... },   // 2026-10-30, additive (no schema bump): each building's tier when the run ended (= its peak). absent on older records. Drives the village strip on the game-over card and past-run cards.
   totals: { ...currentRunStats minus blame },
   blame: [ top blame rows, sorted by totalDamage desc ],
   routines: [ { routineId, name, level, stars, completionRate, memberDamage,

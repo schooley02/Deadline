@@ -2,9 +2,9 @@
  * VillageCard -- the building card (V7 W2 village, Build 2, 2026-10-30; plan docs/WORLD_FEEDBACK_PLAN.md
  * "Village tiers + building cards"). Tapping a village building opens it through `Modal`, like the level panel.
  *
- * Shows: the sprite at 3x/2x when that fits, else fitted to the column height (3x for the 128px canvases, 1.5x for the Clock tower), the building's name, one line on what it measures, five tier pips (T1..T5),
- * a progress bar "N / M <unit> to reach T<n+1>" ("Fully rebuilt" at T5), and the flavour lines that never
- * drive a tier (school = attendance streak, windmill = comeback days). Two empty states: the gym with no bad
+ * Shows: the sprite at 3x/2x when that fits, else fitted to the column height (3x for the 128px canvases, 1.5x for the Clock tower), the building's name, five tier STARS (filled = earned, in the header),
+ * a progress bar "N / M <unit> to earn star <n+1>" ("Fully rebuilt" at T5), the flavour lines that never
+ * drive a tier (school = attendance streak, windmill = comeback days), then "What we measure" and "Why it helps" (KINDS[kind].measures / .why). Two empty states: the gym with no bad
  * habit to resist, the school with no routine.
  *
  * PURE / DOM split like the other UI modules: `buildModel` and `cardHtml` are pure and unit-tested
@@ -29,14 +29,46 @@ const VillageCard = (() => {
 
     // One entry per building kind: its name, one line on what it measures, and the unit used in the bar.
     const KINDS = {
-        nights: { name: 'Radio tower', measures: 'Nights survived this run.', unit: 'nights' },
-        slain: { name: 'Armory', measures: 'Tasks, sub-tasks and habits completed this run.', unit: 'done' },
-        punctuality: { name: 'Clock tower', measures: 'Items completed on time this run.', unit: 'on time' },
-        habits: { name: 'Hospital', measures: 'Habit check-ins this run.', unit: 'check-ins' },
-        lurkers: { name: 'Boxing gym', measures: 'Days you resisted your bad habits with no slips.', unit: 'clean days' },
-        defense: { name: 'Jailhouse', measures: 'Nights the church ended the day at 75% health or better.', unit: 'nights' },
-        heroes: { name: 'High school', measures: 'Perfect-attendance days: every active routine fully done.', unit: 'perfect days' },
-        bestdays: { name: 'Windmill', measures: 'Heavy days handled with nothing missed.', unit: 'heavy days' },
+        nights: {
+            name: 'Radio tower', unit: 'nights',
+            measures: 'Nights your base has survived in this run: every midnight that passes with the church still standing.',
+            why: 'Surviving night after night is the whole game. It rewards steady, everyday follow-through over one big push, so a long streak of small wins beats a single heroic day.',
+        },
+        slain: {
+            name: 'Armory', unit: 'done',
+            measures: 'Tasks, sub-tasks and habits you have completed in this run.',
+            why: 'Finishing things is what turns plans into progress. Breaking a big job into sub-tasks gives you more small wins to count, and every win keeps your momentum going.',
+        },
+        punctuality: {
+            name: 'Clock tower', unit: 'on time',
+            measures: 'Things you completed before their due time. Finishing late still counts as done, just not here.',
+            why: 'Done on time beats done late: it keeps the base safe and builds trust in your own schedule. Getting ahead of the clock, not just across the line, is what lowers stress.',
+        },
+        habits: {
+            name: 'Hospital', unit: 'check-ins',
+            measures: 'Habit check-ins in this run. Every habit you check off counts once.',
+            why: 'Habits grow through repetition. Every check-in is one more rep, and a long unbroken run of reps is how a routine starts to feel automatic instead of like effort.',
+        },
+        lurkers: {
+            name: 'Boxing gym', unit: 'clean days',
+            measures: 'Days you had a bad habit due and did not slip. Days with nothing to resist do not count.',
+            why: 'Resisting something you are trying to quit is a skill that gets stronger with practice. Counting clean days shows how often you win the fight, not how rarely you lose it.',
+        },
+        defense: {
+            name: 'Jailhouse', unit: 'nights',
+            measures: 'Nights the church ended the day at 75% health or better.',
+            why: 'A healthy base means you are not letting deadlines pile up. Ending your days strong keeps you out of the hole, where catching up costs the most.',
+        },
+        heroes: {
+            name: 'High school', unit: 'perfect days',
+            measures: 'Days every active routine was fully done, with nothing skipped.',
+            why: 'Routines are the habits that hold your day together. Finishing the whole set, not just part of it, is what makes a routine stick.',
+        },
+        bestdays: {
+            name: 'Windmill', unit: 'heavy days',
+            measures: 'Heavy days (busier than your recent average) that you got through with nothing missed.',
+            why: 'Anyone can keep up on a light day. Getting through a heavy one cleanly shows you can handle pressure, and that is how your capacity grows.',
+        },
     };
 
     const EMPTY_TEXT = {
@@ -75,7 +107,7 @@ const VillageCard = (() => {
 
     function buildModel(ctx) {
         const c = ctx || {};
-        const meta = KINDS[c.kind] || { name: 'Building', measures: '', unit: '' };
+        const meta = KINDS[c.kind] || { name: 'Building', measures: '', why: '', unit: '' };
         const p = c.progress || {};
         const tier = Math.min(MAX_TIER, Math.max(1, Math.round(p.tier) || 1));
         const value = count(p.value);
@@ -86,7 +118,7 @@ const VillageCard = (() => {
         let barText;
         if (maxed) barText = 'Fully rebuilt';
         else if (nextAt === null) barText = value + ' ' + meta.unit;
-        else barText = value + ' / ' + nextAt + ' ' + meta.unit + ' to reach T' + (tier + 1);
+        else barText = value + ' / ' + nextAt + ' ' + meta.unit + ' to earn star ' + (tier + 1);
 
         const lines = [];
         const ex = c.extras || {};
@@ -107,6 +139,7 @@ const VillageCard = (() => {
             kind: c.kind,
             name: meta.name,
             measures: meta.measures,
+            why: meta.why || '',
             unit: meta.unit,
             tier,
             maxed,
@@ -126,9 +159,17 @@ const VillageCard = (() => {
         };
     }
 
-    function pipHtml(pip) {
-        const label = pip.state === 'current' ? 'Current tier' : (pip.state === 'done' ? 'Reached' : 'Locked');
-        return `<span class="vc-pip vc-pip--${pip.state}" title="T${pip.n}: ${label}" aria-label="Tier ${pip.n}: ${label}"><span class="vc-pip-n">T${pip.n}</span></span>`;
+    // Tier as five stars (2026-10-30, Jeremy): filled = earned (the current tier counts), empty = still to earn. One
+    // shared builder: the card header, the village panel rows. `size` is the star's px width/height.
+    const STAR_PATH = 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z';
+    function starsHtml(tier, size) {
+        const t = Math.min(MAX_TIER, Math.max(1, Math.round(tier) || 1));
+        const px = Number.isFinite(size) && size > 0 ? size : 18;
+        let out = '';
+        for (let n = 1; n <= MAX_TIER; n++) {
+            out += `<svg class="vc-star${n <= t ? ' vc-star--on' : ''}" viewBox="0 0 24 24" width="${px}" height="${px}" aria-hidden="true" focusable="false"><path d="${STAR_PATH}"/></svg>`;
+        }
+        return `<span class="vc-stars" role="img" aria-label="Tier ${t} of ${MAX_TIER}" title="Tier ${t} of ${MAX_TIER}">${out}</span>`;
     }
 
     function cardHtml(model) {
@@ -147,13 +188,13 @@ const VillageCard = (() => {
                         <div class="vc-info">
                             <div class="vc-head">
                                 <h3>${esc(m.name)}</h3>
-                                <span class="vc-tier">Tier ${m.tier}</span>
+                                ${starsHtml(m.tier, 18)}
                             </div>
-                            <p class="vc-measures">${esc(m.measures)}</p>
-                            <div class="vc-pips">${m.pips.map(pipHtml).join('')}</div>
                             <div class="vc-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span class="vc-fill" style="width:${pct}%"></span></div>
                             <p class="vc-bar-text${m.maxed ? ' vc-bar-text--maxed' : ''}">${esc(m.barText)}</p>
                             ${emptyHtml}${linesHtml}
+                            ${m.measures ? `<p class="vc-label">What we measure</p><p class="vc-measures">${esc(m.measures)}</p>` : ''}
+                            ${m.why ? `<p class="vc-label">Why it helps</p><p class="vc-why">${esc(m.why)}</p>` : ''}
                         </div>
                     </div>
                     <button type="button" class="modal-close-x" data-action="close" aria-label="Close">
@@ -180,7 +221,7 @@ const VillageCard = (() => {
         });
     }
 
-    return { KINDS, MAX_TIER, EMPTY_TEXT, pipsFor, spriteScale, buildModel, cardHtml, open };
+    return { KINDS, MAX_TIER, EMPTY_TEXT, pipsFor, starsHtml, spriteScale, buildModel, cardHtml, open };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

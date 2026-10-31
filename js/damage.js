@@ -461,6 +461,9 @@ const Damage = (() => {
                 daysSurvived,
                 endReason: 'base_destroyed',
                 playerLevel: deps.getPlayerLevel ? deps.getPlayerLevel() : undefined,
+                // Village Build 3: the real tiers at the moment of death (read BEFORE the record joins history,
+                // because the live village is derived from history length).
+                villageTiers: deps.getVillageTiers ? deps.getVillageTiers() : undefined,
                 definedRoutines: deps.getDefinedRoutines ? deps.getDefinedRoutines() : [],
                 definedHabits: deps.getDefinedHabits ? deps.getDefinedHabits() : [],
                 completionRate: deps.heroesCompletionRate,

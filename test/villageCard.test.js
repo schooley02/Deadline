@@ -10,11 +10,11 @@ const VillageCard = require('../js/ui/villageCard.js');
 const progress = (value, kind = 'nights') => VillageProgress.tierFor(value, VillageProgress.DEFAULT_THRESHOLDS[kind]);
 
 describe('buildModel', () => {
-    test('a T1 building shows "N / M unit to reach T2" and one current pip', () => {
+    test('a T1 building shows "N / M unit to earn star 2" and one current pip', () => {
         const m = VillageCard.buildModel({ kind: 'nights', progress: progress(1) });
         expect(m.name).toBe('Radio tower');
         expect(m.tier).toBe(1);
-        expect(m.barText).toBe('1 / 4 nights to reach T2');
+        expect(m.barText).toBe('1 / 4 nights to earn star 2');
         expect(m.toNext).toBe(3);
         expect(m.pips.map(p => p.state)).toEqual(['current', 'locked', 'locked', 'locked', 'locked']);
         expect(m.maxed).toBe(false);
@@ -23,7 +23,7 @@ describe('buildModel', () => {
     test('a mid tier marks earlier pips done and later pips locked', () => {
         const m = VillageCard.buildModel({ kind: 'slain', progress: progress(160, 'slain') });
         expect(m.tier).toBe(3);
-        expect(m.barText).toBe('160 / 450 done to reach T4');
+        expect(m.barText).toBe('160 / 450 done to earn star 4');
         expect(m.pips.map(p => p.state)).toEqual(['done', 'done', 'current', 'locked', 'locked']);
         expect(m.fraction).toBeGreaterThan(0);
         expect(m.fraction).toBeLessThan(1);
@@ -39,12 +39,14 @@ describe('buildModel', () => {
         expect(m.pips.map(p => p.state)).toEqual(['done', 'done', 'done', 'done', 'current']);
     });
 
-    test('every building kind has a name, a measures line and a unit', () => {
+    test('every building kind has a name, a unit, what it measures and why it helps the player', () => {
         VillageProgress.KINDS.forEach(k => {
             const meta = VillageCard.KINDS[k];
             expect(meta).toBeTruthy();
             expect(meta.name.length).toBeGreaterThan(0);
-            expect(meta.measures.length).toBeGreaterThan(0);
+            expect(meta.measures.length).toBeGreaterThan(20);
+            expect(meta.why.length).toBeGreaterThan(40);
+            expect(meta.why).not.toBe(meta.measures);
             expect(meta.unit.length).toBeGreaterThan(0);
         });
     });
@@ -83,15 +85,20 @@ describe('buildModel', () => {
 });
 
 describe('cardHtml', () => {
-    test('renders the name, tier, pips, bar and close button; escapes the sprite url', () => {
+    test('renders the name, tier stars, bar, measure + why copy and close button; escapes the sprite url', () => {
         const html = VillageCard.cardHtml(VillageCard.buildModel({
             kind: 'punctuality', progress: progress(30, 'punctuality'), spriteUrl: 'Assets/Village/p"x.png', spriteW: 128, spriteH: 128,
         }));
         expect(html).toContain('village-card-overlay');
         expect(html).toContain('Clock tower');
-        expect(html).toContain('Tier 2');
-        expect((html.match(/class="vc-pip /g) || [])).toHaveLength(5);
-        expect(html).toContain('30 / 120 on time to reach T3');
+        expect(html).toContain('aria-label="Tier 2 of 5"');
+        expect((html.match(/<svg class="vc-star/g) || [])).toHaveLength(5);
+        expect((html.match(/class="vc-star vc-star--on"/g) || [])).toHaveLength(2);
+        expect(html).not.toContain('vc-pip'); // the T1..T5 buttons are gone
+        expect(html).toContain('30 / 120 on time to earn star 3');
+        expect(html).toContain('What we measure');
+        expect(html).toContain('Why it helps');
+        expect(html).toContain(VillageCard.KINDS.punctuality.why);
         expect(html).toContain('data-action="close"');
         // a small corner x, not a full-width Close row (2026-10-30)
         expect(html).toContain('class="modal-close-x"');
@@ -164,5 +171,32 @@ describe('open', () => {
         expect(document.querySelectorAll('.village-card-overlay')).toHaveLength(1);
         document.querySelector('[data-action="close"]').click();
         expect(document.querySelectorAll('.village-card-overlay')).toHaveLength(0);
+    });
+});
+
+describe('starsHtml (tier as five stars, 2026-10-30)', () => {
+    test('filled stars = tier, the rest empty; always five; labelled for screen readers', () => {
+        [1, 2, 3, 4, 5].forEach((t) => {
+            const html = VillageCard.starsHtml(t);
+            expect((html.match(/<svg /g) || [])).toHaveLength(5);
+            expect((html.match(/vc-star--on/g) || [])).toHaveLength(t);
+            expect(html).toContain(`aria-label="Tier ${t} of 5"`);
+        });
+    });
+
+    test('out-of-range or missing tiers clamp to 1..5; size is applied', () => {
+        expect((VillageCard.starsHtml(0).match(/vc-star--on/g) || [])).toHaveLength(1);
+        expect((VillageCard.starsHtml(9).match(/vc-star--on/g) || [])).toHaveLength(5);
+        expect((VillageCard.starsHtml(undefined).match(/vc-star--on/g) || [])).toHaveLength(1);
+        expect(VillageCard.starsHtml(3, 14)).toContain('width="14" height="14"');
+    });
+
+    test('the village panel rows use stars, not "Tier N" text', () => {
+        const VillagePanel = require('../js/ui/villagePanel.js');
+        global.VillageCard = VillageCard;
+        const model = VillagePanel.buildModel({ progress: { nights: { tier: 3, value: 20, nextAt: 50, toNext: 30, maxed: false, fraction: 0.4 } } });
+        const row = VillagePanel.rowHtml(model.rows.find(r => r.kind === 'nights'));
+        expect(row).toContain('aria-label="Tier 3 of 5"');
+        expect(row).not.toContain('vp-tier');
     });
 });

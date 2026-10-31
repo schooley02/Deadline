@@ -56,10 +56,32 @@ document.addEventListener('DOMContentLoaded', () => {
             return villageCache.progress; // last good value, or null = every building at T1
         }
     }
+    // Village Build 3: every building's real tier now ({ kind: tier }), computed fresh (not from the cache) and never
+    // overridden by the ?xTier= URL params -- this is what a run record stores as its peak.
+    function realVillageTiers() {
+        try {
+            const progress = VillageProgress.compute(villageContext());
+            const out = {};
+            VillageProgress.KINDS.forEach((k) => { out[k] = progress[k] ? progress[k].tier : 1; });
+            return out;
+        } catch (err) {
+            console.error('Deadline: village tiers for the run record failed', err);
+            return undefined;
+        }
+    }
+    // While the game is over the village keeps showing the run's PEAK (the live maths would drop to T1 the moment the
+    // run joins history); Restart starts the next run and the real tiers take over again.
+    function peakTierWhileOver(kind) {
+        if (!State.isGameOver()) return null;
+        const last = (State.getRunHistory() || [])[0];
+        const t = last && last.peakVillageTiers ? last.peakVillageTiers[kind] : null;
+        return Number.isInteger(t) ? t : null;
+    }
     function villageTierDep(kind, param) {
         return () => {
             const p = villageProgressNow();
-            const real = (p && p[kind]) ? p[kind].tier : 1;
+            const peak = peakTierWhileOver(kind);
+            const real = peak != null ? peak : ((p && p[kind]) ? p[kind].tier : 1);
             return VillageLayout.resolveTier(window.location.search, param, real, VillageLayout.fromConfig(CONFIG).tiers);
         };
     }
@@ -415,6 +437,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // forward-reference reasoning as heroesCompletionRate/
             // heroesStarRating above.
             renderGameOverReview: (deps) => GameOverView.renderReviewCard(deps),
+            // Village Build 3: the run's real tiers, read by Damage.gameOver just before the record joins history.
+            getVillageTiers: () => realVillageTiers(),
             // Achievements sub-session 2 (session 65): run-end lifetime bump,
             // called by js/damage.js's gameOver ONLY on a real death (never
             // on an alreadyOver restore — gating lives at the call site).

@@ -353,6 +353,8 @@ const State = (() => {
             // GameOverView.renderReviewCard, pre-bound in script.js since
             // js/ui/*.js loads after js/damage.js.
             renderGameOverReview: deps.renderGameOverReview,
+            // Village Build 3 (2026-10-30): script.js's real (non-URL-overridden) tiers, saved on the run record.
+            getVillageTiers: deps.getVillageTiers,
             // Sub-session 4, session 55 — read back on gameOver(deps, true)
             // (restoring an already-dead save) instead of recomputing a
             // drifted day count. See js/damage.js's gameOver() header.

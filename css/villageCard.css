@@ -2,7 +2,7 @@
    Markup + model: js/ui/villageCard.js. Same overlay/content shell as the level panel. */
 
 .village-card { position: relative; max-width: 760px; width: calc(100vw - 32px); max-height: calc(100vh - 32px); overflow-y: auto; }
-.vc-head { padding-right: 28px; } /* keep the tier label clear of the x (.modal-close-x, css/modal.css) */
+.vc-head { padding-right: 28px; } /* keep the stars clear of the x (.modal-close-x, css/modal.css) */
 /* Two columns: the art on the left (as big as fits), the facts on the right. */
 .vc-body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px; align-items: center; }
 .vc-info { min-width: 0; text-align: left; }
@@ -15,31 +15,20 @@
     margin: 0;
     padding: 12px 12px 8px;
     border-radius: 8px;
-    background: #2A3042; /* the night scene, so the pixel art reads as it does on the hill */
+    background: var(--color-secondary-green-pale); /* LIGHT (2026-10-30, Jeremy): the pixel art's dark outlines sank into the old night navy #2A3042 on a phone; the sprites keep their lit-window glow only on the hill itself */
     overflow: hidden;
 }
 .vc-sprite { display: block; max-width: 100%; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }
-.vc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; text-align: left; }
+.vc-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left; }
 .vc-head h3 { margin: 0; }
-.vc-tier { font-size: 13px; color: var(--color-neutral); white-space: nowrap; }
-.vc-measures { margin: 6px 0 10px; font-size: 13px; text-align: left; color: var(--color-text-primary); }
-.vc-pips { display: flex; justify-content: space-between; gap: 6px; margin: 0 0 10px; }
-.vc-pip {
-    flex: 1 1 0;
-    box-sizing: border-box;
-    min-width: 0;
-    padding: 4px 0;
-    border: 1px solid var(--color-secondary-green-light);
-    border-radius: 6px;
-    background: var(--color-primary-white);
-    font-size: 12px;
-    color: var(--color-neutral);
-}
-.vc-pip { text-align: center; }
-.vc-pip--done { background: var(--color-accent-teal); border-color: var(--color-primary-dark-green); color: var(--color-primary-white); }
-.vc-pip--current { border: 2px solid var(--color-primary-dark-green); color: var(--color-primary-dark-green); font-weight: 700; }
-.vc-pip--locked { border-style: dotted; background: transparent; }
+.vc-stars { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.vc-star { display: block; fill: none; stroke: #9AA9A4; stroke-width: 1.6; stroke-linejoin: round; }
+.vc-star--on { fill: var(--color-holy-gold); stroke: #A88300; }
+.vc-label { margin: 14px 0 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-primary-dark-green); text-align: left; }
+.vc-measures { margin: 0; font-size: 13px; text-align: left; color: var(--color-text-primary); }
+.vc-why { margin: 0; font-size: 13px; text-align: left; color: var(--color-text-primary); }
 .vc-bar {
+    margin-top: 10px;
     box-sizing: border-box;
     height: 10px;
     border-radius: 5px;

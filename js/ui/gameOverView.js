@@ -44,11 +44,17 @@ const GameOverView = (() => {
         const titleBadge = record ? StatsView.buildTitleBadge(record, 'game-over-title-badge') : '';
         const titleLine = titleBadge ? `<div class="game-over-title">${titleBadge}</div>` : '';
 
+        // Village Build 3 (2026-10-30): the village at its peak. '' for older records / no village module.
+        const villageStrip = (record && record.peakVillageTiers && typeof VillagePanel !== 'undefined')
+            ? VillagePanel.peakStripHtml(record.peakVillageTiers)
+            : '';
+
         return `
             <div class="game-over-heading">GAME OVER! Your Base Survived ${daysSurvived} ${dayLabel}.</div>
             ${titleLine}
             <div class="game-over-prompt">What adjustments can you make to have a stronger Base in your life?</div>
             ${totalsLine}
+            ${villageStrip}
             <div class="game-over-blame-heading">What hit hardest</div>
             ${StatsView.buildBlameList(blameRows, BLAME_DISPLAY_LIMIT)}
         `;

@@ -48,6 +48,8 @@ Replaces the agenda list with routines ranked by level (top performers first). M
 - Urgent task: red glow around the zombie (enemy; V2) / bright border (list item).
 - Base damage: shake on hit, progressive destruction visuals.
 - Enemy defeat: explosion + points/XP popup.
+- Village cards + panel (2026-10-30): tier is FIVE STARS (filled = earned), not T1-T5 buttons or "Tier N" text; the building card shows name + stars, the progress bar ("N / M unit to earn star N+1"), then "What we measure" and "Why it helps" copy per building; thumbnails / card art sit on the light pale-green backdrop.
+- Game-over card village strip (2026-10-30): "Village at its peak  N / 40 tiers" with the eight buildings at the tier the run reached (T# under each), between the totals and "What hit hardest"; past-run cards show "Village: N / 40 tiers" and the same eight thumbnails when expanded; runs saved before 2026-10-30 show neither. The scene keeps the peak village behind the card until Restart. In portrait the card is centred on the viewport.
 - Game over: "Your Base survived X days. What adjustments can you make to have a stronger Base in your life?" + New Base button.
 
 ## Navigation

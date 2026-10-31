@@ -223,8 +223,12 @@ makes sense (a day only counts once it can no longer change: closed days for `de
    no routines = "Start a routine to open the school".
 4. sw.js bump + new files in `APP_SHELL`; ART_STYLE/UI_UX notes; live check in the pane and on a phone.
 
-**Build 3 -- later:** game-over review card shows the village at its peak; each run record keeps every building's best
-tier (additive field). Condition overlays stay their own queued item.
+**Build 3 -- BUILT 2026-10-30 (Sonnet; sw v154; Jest 101 suites / 2,348):** each run record keeps every building's peak tier
+(`peakVillageTiers`, additive; read in `Damage.gameOver` BEFORE the record joins history, because the live village derives
+its run from history length); the game-over card shows the eight thumbnails ("Village at its peak, N / 40 tiers", shared
+`VillagePanel.peakStripHtml`); past-run cards show "Village: N / 40 tiers" plus the thumbnails when expanded; the scene holds the
+peak while the game is over and Restart returns it to T1. Side fix: portrait game-over card centred on the viewport.
+Condition overlays stay their own queued item.
 
 ## Suggested build order (PROPOSED; one session each, commit each)
 

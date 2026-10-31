@@ -210,6 +210,12 @@ const StatsView = (() => {
             ? `<div class="stats-blame-heading">Routines this run</div>
                <ul class="stats-routine-entry-list">${routineRows}</ul>`
             : '';
+        // Village Build 3: peak village. A one-line total on the collapsed card, the eight thumbnails when expanded.
+        const hasVillage = !!(record.peakVillageTiers && typeof VillagePanel !== 'undefined');
+        const villageLine = hasVillage
+            ? `<div class="stats-run-card-village">Village: ${VillagePanel.peakTotal(record.peakVillageTiers)} / ${VillagePanel.kinds().length * 5} tiers</div>`
+            : '';
+        const villageStrip = hasVillage ? VillagePanel.peakStripHtml(record.peakVillageTiers, { label: '' }) : '';
         return `
             <li class="stats-run-card" data-run-number="${record.runNumber}" role="button" tabindex="0" aria-expanded="false">
                 <div class="stats-run-card-header">
@@ -220,8 +226,10 @@ const StatsView = (() => {
                     ${record.totals.tasksCompleted} tasks · ${record.totals.subtasksCompleted ? `${record.totals.subtasksCompleted} sub-tasks · ` : ''}${record.totals.habitsCompleted} habits ·
                     ${record.totals.habitsMissed} missed · ${record.totals.pointsEarned} pts
                 </div>
+                ${villageLine}
                 <div class="stats-run-card-summary-blame">${buildBlameList(record.blame, 3)}</div>
                 <div class="stats-run-card-details">
+                    ${villageStrip}
                     <div class="stats-run-card-span">Started ${formatDate(record.startedAtMs)} · ${record.endReason === 'base_destroyed' ? 'Base destroyed' : record.endReason}</div>
                     ${buildBestWorstDays(bestWorst)}
                     <div class="stats-blame-heading">All offenders</div>

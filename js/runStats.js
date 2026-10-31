@@ -116,6 +116,15 @@ const RunStats = (() => {
      *   starRating(rate, distinctDays),  // tiers pre-bound by the caller
      * }
      */
+    function cleanTiers(tiers) {
+        const out = {};
+        Object.keys(tiers).forEach((k) => {
+            const t = tiers[k];
+            if (Number.isInteger(t) && t >= 1 && t <= 5) out[k] = t;
+        });
+        return out;
+    }
+
     function finalizeRun(stats, ctx) {
         const blameRows = sortedBlame(stats && stats.blame);
         const windowStartMs = ctx.startedAtMs;
@@ -171,6 +180,10 @@ const RunStats = (() => {
             // keep their exact record shape. The Steward title is derived from
             // it (Progression.titleForLevel).
             ...(typeof ctx.playerLevel === 'number' ? { peakPlayerLevel: ctx.playerLevel } : {}),
+            // Village Build 3 (2026-10-30): every building's tier when the run ended. Tiers only go up inside a run, so
+            // the end tier IS the peak. Additive, no schema bump; absent on older records and when the caller supplies
+            // no tiers (readers show nothing). Shape { [kind]: tier 1..5 }; only whole numbers are kept.
+            ...(ctx.villageTiers && typeof ctx.villageTiers === 'object' ? { peakVillageTiers: cleanTiers(ctx.villageTiers) } : {}),
             totals,
             blame: blameRows,
             routines,

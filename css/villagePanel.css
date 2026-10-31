@@ -48,14 +48,13 @@
     height: 64px;
     box-sizing: border-box;
     border-radius: 6px;
-    background: #2A3042; /* the night scene, like the building card */
+    background: var(--color-secondary-green-pale); /* LIGHT like the building card and the peak strip (2026-10-30): the dark outlines read on it */
     overflow: hidden;
 }
 .vp-sprite { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }
 .vp-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .vp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .vp-name { font-weight: 600; font-size: 14px; }
-.vp-tier { font-size: 12px; color: var(--color-neutral); white-space: nowrap; }
 .vp-bar { display: block; box-sizing: border-box; height: 8px; border-radius: 4px; background: #B8CBC6; border: 1px solid var(--color-primary-dark-green); overflow: hidden; }
 .vp-fill { display: block; height: 100%; background: var(--color-accent-teal); }
 .vp-text { font-size: 12px; color: var(--color-text-primary); }
@@ -66,3 +65,28 @@
     .vp-row { grid-template-columns: 48px minmax(0, 1fr); gap: 10px; padding: 4px 8px; }
     .vp-thumb { width: 48px; height: 48px; }
 }
+
+/* Peak strip (Village Build 3, 2026-10-30): eight building thumbnails at the tier a run reached. Used on the game-over
+   card (dark card, white text) and inside the expanded past-run cards in Stats (light card). Built by
+   VillagePanel.peakStripHtml. 8 cells in one row; each thumb is a square so tall and short buildings share a baseline. */
+.village-peak-strip { margin: 0 0 var(--space-4, 12px); }
+.vps-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.vps-label { font-size: 12px; font-weight: 600; }
+.vps-total { font-size: 12px; opacity: 0.8; white-space: nowrap; }
+.vps-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+.vps-cell { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.vps-thumb {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    box-sizing: border-box;
+    border-radius: 4px;
+    background: var(--color-secondary-green-pale); /* LIGHT, not the night navy: the pixel art has dark outlines and sank into navy on a phone (Jeremy, 2026-10-30) */
+    overflow: hidden;
+}
+.vps-sprite { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }
+.vps-tier { font-size: 10px; line-height: 1; opacity: 0.85; }
+.stats-run-card-village { font-size: 12px; margin-top: 2px; opacity: 0.85; }
+.stats-run-card-details .village-peak-strip { margin-top: 8px; }
