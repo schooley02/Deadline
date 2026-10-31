@@ -174,8 +174,8 @@ const Popups = (() => {
             return `
                 <div class="task-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
                     <label class="completion-checkbox"${openSubs ? ` title="${openSubs} sub-task${openSubs === 1 ? '' : 's'} remaining" style="cursor: not-allowed; opacity: 0.6;"` : ''}>
-                        <input type="checkbox" id="completeTaskCheck" class="completion-checkbox-input"${openSubs ? ' disabled' : ''} />
-                        Mark as Complete${openSubs ? ` (${openSubs} remaining)` : ''}
+                        <input type="checkbox" id="completeTaskCheck" class="completion-checkbox-input" aria-label="Mark as complete"${openSubs ? ' disabled' : ''} />
+                        ${openSubs ? `<span class="completion-remaining">(${openSubs} remaining)</span>` : ''}
                     </label>
                 </div>`;
         }
@@ -189,7 +189,7 @@ const Popups = (() => {
                     : '');
             const limitOk = typeof deps.toggleWorkTimer === 'function' && typeof Timer !== 'undefined' && Timer.canLimitTimer(item);
             const limitHtml = limitOk
-                ? `<button type="button" id="workTimerBtn" class="work-timer-btn${Timer.isRunning(item) ? ' running' : ''}">${Timer.popupLabel(item)}</button>`
+                ? `<button type="button" id="workTimerBtn" class="work-timer-btn${Timer.isRunning(item) ? ' running' : ''}">${Timer.popupHtml(item)}</button>`
                 : '';
             return `
                 <div class="task-actions negative-habit-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -212,15 +212,15 @@ const Popups = (() => {
         const timerOk = typeof deps.toggleWorkTimer === 'function' && typeof Timer !== 'undefined' && Timer.canTimer(item);
         const timerRunning = timerOk && Timer.isRunning(item);
         const timerHtml = timerOk
-            ? `<button type="button" id="workTimerBtn" class="work-timer-btn${timerRunning ? ' running' : ''}">${Timer.popupLabel(item)}</button>`
+            ? `<button type="button" id="workTimerBtn" class="work-timer-btn${timerRunning ? ' running' : ''}${Timer.shouldNudge(item) ? ' attacking' : ''}"${Timer.shouldNudge(item) ? ` title="${Timer.NUDGE_TITLE}"` : ''}>${Timer.popupHtml(item)}</button>`
             : '';
         return `
             <div class="task-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
                 ${timerHtml}
                 <button id="editTaskBtn" class="edit-icon-btn" title="Edit Task">✏️</button>
                 <label class="completion-checkbox"${hasOpenSubTasks ? ` title="${openSubTaskCount} sub-task${remainingSuffix} remaining" style="cursor: not-allowed; opacity: 0.6;"` : ''}>
-                    <input type="checkbox" id="completeTaskCheck" class="completion-checkbox-input"${hasOpenSubTasks ? ' disabled' : ''} />
-                    Mark as Complete${hasOpenSubTasks ? ` (${openSubTaskCount} remaining)` : ''}
+                    <input type="checkbox" id="completeTaskCheck" class="completion-checkbox-input" aria-label="Mark as complete"${hasOpenSubTasks ? ' disabled' : ''} />
+                    ${hasOpenSubTasks ? `<span class="completion-remaining">(${openSubTaskCount} remaining)</span>` : ''}
                 </label>
             </div>
             ${buildPushbackSectionHtml(deps)}
@@ -323,7 +323,8 @@ const Popups = (() => {
                 if (r && r.ok) {
                     if (r.completed) { Modal.closeModal(); return; }
                     workTimerButton.classList.toggle('running', r.running);
-                    workTimerButton.textContent = Timer.popupLabel(item);
+                    workTimerButton.classList.toggle('attacking', Timer.shouldNudge(item));
+                    workTimerButton.innerHTML = Timer.popupHtml(item);
                 }
             });
         }

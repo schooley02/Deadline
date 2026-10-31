@@ -1194,8 +1194,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!btn) return;
             const running = Timer.isRunning(item);
             btn.classList.toggle('running', running);
-            btn.textContent = Timer.buttonLabel(item, nowMs);
-            btn.title = running ? (Timer.isLimit(item) ? 'Stop \u2014 I stayed within my limit' : 'Stop timer') : (Timer.isLimit(item) ? 'Start limit timer' : 'Start timer');
+            const html = Timer.buttonHtml(item, nowMs);
+            if (btn.dataset.html !== html) { btn.innerHTML = html; btn.dataset.html = html; } // skip the per-second rebuild while idle
+            const nudge = !State.isGameOver() && Timer.shouldNudge(item);
+            btn.classList.toggle('attacking', nudge);
+            btn.title = nudge ? Timer.NUDGE_TITLE : (running ? (Timer.isLimit(item) ? 'Stop \u2014 I stayed within my limit' : 'Stop timer') : (Timer.isLimit(item) ? 'Start limit timer' : 'Start timer'));
             btn.setAttribute('aria-label', btn.title);
         });
     }
@@ -1238,7 +1241,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function processTimers(nowMs) {
         const items = State.getActiveItems();
         const running = Timer.findRunning(items);
-        if (!running) { syncWorkHero(null); return; }
+        // Idle too (2026-10-31): a row turns overdue while NO timer runs, and that is exactly when its button must start pulsing.
+        if (!running) { syncWorkHero(null); if (nowMs - lastTimerLabelMs >= 1000) { lastTimerLabelMs = nowMs; updateTimerButtons(nowMs); } return; }
         if (running.koGhost) { Timer.stop(running, nowMs); syncWorkHero(null); updateTimerButtons(nowMs); saveGame(); return; }
         syncWorkHero(running);
         if (nowMs - lastTimerLabelMs >= 1000) { lastTimerLabelMs = nowMs; updateTimerButtons(nowMs); }

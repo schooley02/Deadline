@@ -429,9 +429,29 @@
     padding: 2px 8px;
     min-height: 28px;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
 }
+.work-timer-btn .timer-icon { display: block; flex-shrink: 0; }
 .work-timer-btn.running {
     border-color: #e0a84f;
     color: #e0a84f;
     font-variant-numeric: tabular-nums;
+}
+
+/* Attacking nudge (2026-10-31, Jeremy): a zombie is overdue and no timer runs on it, so the button flashes and
+   pulses to say "start me". Starting the timer drops the class (it turns amber .running) and halves the damage.
+   Reduced motion keeps the red glow but holds still. */
+.work-timer-btn.attacking {
+    border-color: #e5483a;
+    color: #e5483a;
+    box-shadow: 0 0 0 3px rgba(229, 72, 58, 0.35), 0 0 10px rgba(229, 72, 58, 0.6);
+}
+@media (prefers-reduced-motion: no-preference) {
+    .work-timer-btn.attacking { animation: timer-attack-pulse 1s ease-in-out infinite; }
+}
+@keyframes timer-attack-pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 72, 58, 0.55), 0 0 4px rgba(229, 72, 58, 0.3); opacity: 0.75; }
+    50% { transform: scale(1.14); box-shadow: 0 0 0 5px rgba(229, 72, 58, 0.3), 0 0 14px rgba(229, 72, 58, 0.8); opacity: 1; }
 }

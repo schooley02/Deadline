@@ -153,3 +153,42 @@ describe('definition target helpers', () => {
         expect(Timer.modeFor(true, null)).toBeNull();
     });
 });
+
+describe('attacking nudge + stopwatch icon (2026-10-31)', () => {
+    test('shouldNudge: overdue work item with no timer running', () => {
+        expect(Timer.shouldNudge(task({ isOverdue: true }))).toBe(true);
+        expect(Timer.shouldNudge({ type: 'habit', isNegative: false, isOverdue: true })).toBe(true);
+    });
+    test('shouldNudge: not when on time, already running, a KO ghost, or a break-habit', () => {
+        expect(Timer.shouldNudge(task({ isOverdue: false }))).toBe(false);
+        expect(Timer.shouldNudge(task())).toBe(false);
+        const running = task({ isOverdue: true });
+        Timer.start(running, 0);
+        expect(Timer.shouldNudge(running)).toBe(false);
+        expect(Timer.shouldNudge(task({ isOverdue: true, koGhost: true }))).toBe(false);
+        expect(Timer.shouldNudge({ type: 'habit', isNegative: true, timerMinutes: 30, isOverdue: true, timer: null })).toBe(false);
+        expect(Timer.shouldNudge(null)).toBe(false);
+    });
+    test('stopping the timer on a still-overdue item brings the nudge back', () => {
+        const t = task({ isOverdue: true });
+        Timer.start(t, 0);
+        Timer.stop(t, MIN);
+        expect(Timer.shouldNudge(t)).toBe(true);
+    });
+    test('work buttons use the SVG stopwatch; running adds the elapsed time', () => {
+        const t = task();
+        expect(Timer.buttonHtml(t, 0)).toBe(Timer.ICON_SVG);
+        expect(Timer.ICON_SVG).toContain('<svg');
+        expect(Timer.popupHtml(t)).toContain('Start timer');
+        Timer.start(t, 0);
+        expect(Timer.buttonHtml(t, 5 * MIN)).toContain('5:00');
+        expect(Timer.buttonHtml(t, 5 * MIN)).toContain('<svg');
+        expect(Timer.popupHtml(t)).toContain('Stop timer');
+    });
+    test('limit timers keep the hourglass text while running', () => {
+        const h = { type: 'habit', isNegative: true, timerMinutes: 30, timer: null, timerMsBanked: 0 };
+        Timer.start(h, 0);
+        expect(Timer.buttonHtml(h, 5 * MIN)).toBe('⏳ 25:00');
+        expect(Timer.popupHtml(h)).toContain('stayed within my limit');
+    });
+});

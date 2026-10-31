@@ -219,42 +219,53 @@
     cursor: pointer;
     margin: 0;
     height: 44px; /* Match edit button height */
+    min-width: 44px; /* the words used to widen the tap target; keep it 44px without them (2026-10-31) */
+    justify-content: center;
 }
 
 .completion-checkbox-input {
     width: 28px !important;
     height: 28px !important;
-    border: 3px solid var(--color-error) !important;
-    border-radius: 4px;
+    /* 2026-10-31 (Jeremy): a quiet grey outline with a faint grey check inside; checking it fills the box green
+       with a white check. Was a red outline (it read as a warning, not an invitation). */
+    border: 2px solid #8F9794 !important;
+    border-radius: 6px;
     cursor: pointer;
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
     background: white;
     position: relative;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     margin: 0 !important;
     transform: none !important;
 }
 
-.completion-checkbox-input:hover {
-    border-color: #c0392b;
-    box-shadow: 0 0 8px rgba(229, 57, 53, 0.3);
+/* Check icon: an SVG so the stroke stays crisp at any size. Grey while empty, white once filled. */
+.completion-checkbox-input::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: no-repeat center / 70% 70% url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B9C0BE' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+    transition: opacity 0.2s ease;
+}
+
+.completion-checkbox-input:hover:not(:disabled) {
+    border-color: var(--color-success) !important; /* !important: the base border above is, to beat the legacy input rules */
+    box-shadow: 0 0 6px rgba(67, 160, 71, 0.35);
 }
 
 .completion-checkbox-input:checked {
-    background: var(--color-error);
-    border-color: var(--color-error);
+    background: var(--color-success);
+    border-color: var(--color-success) !important;
 }
 
 .completion-checkbox-input:checked::after {
-    content: "✓";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: white;
-    font-size: 16px;
-    font-weight: bold;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
 }
+
+.completion-checkbox-input:focus-visible { outline: 2px solid var(--color-primary-dark-green); outline-offset: 2px; }
+
+/* "(N remaining)": shown only while open sub-tasks keep the box disabled. */
+.completion-remaining { font-size: 12px; font-weight: 500; color: var(--color-neutral); white-space: nowrap; }
 

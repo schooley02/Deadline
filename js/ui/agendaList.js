@@ -186,11 +186,16 @@ const AgendaList = (() => {
             }
         });
 
-        const checkboxLabel = document.createTextNode(
-            hasOpenSubTasks ? `Mark as Complete (${openSubTaskCount} remaining)` : 'Mark as Complete'
-        );
+        // 2026-10-31 (Jeremy): no "Mark as Complete" words, the box speaks for itself. aria-label keeps it
+        // readable to screen readers; the "(N remaining)" note stays only while the box is disabled, to say why.
+        completeCheckbox.setAttribute('aria-label', 'Mark as complete');
         completeCheckboxLabel.appendChild(completeCheckbox);
-        completeCheckboxLabel.appendChild(checkboxLabel);
+        if (hasOpenSubTasks) {
+            const remainingNote = document.createElement('span');
+            remainingNote.classList.add('completion-remaining');
+            remainingNote.textContent = `(${openSubTaskCount} remaining)`;
+            completeCheckboxLabel.appendChild(remainingNote);
+        }
 
         // Work timer (Build 3): start/stop on the row; script.js refreshes the label each second.
         if (typeof deps.toggleWorkTimer === 'function' && typeof Timer !== 'undefined' && Timer.canTimer(itemData)) {
@@ -199,9 +204,11 @@ const AgendaList = (() => {
             timerBtn.classList.add('work-timer-btn');
             timerBtn.dataset.itemId = itemData.id;
             const running = Timer.isRunning(itemData);
-            timerBtn.textContent = Timer.buttonLabel(itemData, Date.now());
+            timerBtn.innerHTML = Timer.buttonHtml(itemData, Date.now());
             timerBtn.classList.toggle('running', running);
-            timerBtn.title = running ? (Timer.isLimit(itemData) ? 'Stop \u2014 I stayed within my limit' : 'Stop timer') : (Timer.isLimit(itemData) ? 'Start limit timer' : 'Start timer');
+            const nudge = Timer.shouldNudge(itemData);
+            timerBtn.classList.toggle('attacking', nudge);
+            timerBtn.title = nudge ? Timer.NUDGE_TITLE : (running ? (Timer.isLimit(itemData) ? 'Stop \u2014 I stayed within my limit' : 'Stop timer') : (Timer.isLimit(itemData) ? 'Start limit timer' : 'Start timer'));
             timerBtn.setAttribute('aria-label', timerBtn.title);
             timerBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -366,9 +373,8 @@ const AgendaList = (() => {
                         }
                     });
 
-                    const subTaskCheckboxText = document.createTextNode('Mark as Complete');
+                    subTaskCheckbox.setAttribute('aria-label', 'Mark as complete');
                     subTaskCheckboxLabel.appendChild(subTaskCheckbox);
-                    subTaskCheckboxLabel.appendChild(subTaskCheckboxText);
 
                     // Add controls to container
                     subTaskControls.appendChild(subTaskEditIconButton);

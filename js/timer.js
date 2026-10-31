@@ -67,6 +67,33 @@ const Timer = (() => {
             ? `\u23F3 ${formatElapsed(remainingMs(item, nowMs))}`
             : `\u23F9 ${formatElapsed(elapsedMs(item, nowMs))}`;
     }
+    // Stopwatch icon (2026-10-31, Jeremy: coach's stopwatch like ClickUp's track-time icon). Inline SVG so it
+    // takes the button's text colour; the emoji labels above stay for tests and text-only callers.
+    const ICON_SVG = '<svg class="timer-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" ' +
+        'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
+        '<path d="M10 2h4"/><path d="M12 2v3"/><path d="M19.2 6.3l1.4-1.4"/><circle cx="12" cy="14" r="8"/>' +
+        '<path d="M12 14V9.5"/><circle cx="12" cy="14" r="0.6" fill="currentColor"/></svg>';
+    // Row button: stopwatch alone when idle; stopwatch + elapsed while a work timer runs. A limit timer
+    // keeps the hourglass countdown (it counts a budget down and never reduces damage).
+    function buttonHtml(item, nowMs) {
+        if (!isRunning(item)) return ICON_SVG;
+        return isLimit(item)
+            ? `\u23F3 ${formatElapsed(remainingMs(item, nowMs))}`
+            : `${ICON_SVG}<span class="timer-elapsed">${formatElapsed(elapsedMs(item, nowMs))}</span>`;
+    }
+    // Popup button: stopwatch + the same words as popupLabel (limit timers keep their emoji text).
+    function popupHtml(item) {
+        if (isLimit(item)) return popupLabel(item);
+        return `${ICON_SVG}<span>${isRunning(item) ? 'Stop timer' : 'Start timer'}</span>`;
+    }
+    // "A zombie is attacking and starting this timer would help" (2026-10-31): overdue, still a threat
+    // (canWorkTimer rules out KO ghosts and break-habits), and no timer running on it yet. The UI pulses
+    // the timer button on this. Running a timer already halves the damage (damageIntervalMs); this only
+    // makes that visible.
+    function shouldNudge(item) {
+        return canWorkTimer(item) && !isRunning(item) && item.isOverdue === true;
+    }
+    const NUDGE_TITLE = 'Zombie attacking: start the timer to halve the damage';
     function popupLabel(item) {
         if (isLimit(item)) {
             return isRunning(item) ? '\u23F9 Stop \u2014 I stayed within my limit' : `\u23F3 Start ${item.timerMinutes}-min limit`;
@@ -174,7 +201,7 @@ const Timer = (() => {
 
     return {
         normalizeTarget, modeFor, isRunning, canWorkTimer, isLimit, canLimitTimer, canTimer,
-        remainingMs, buttonLabel, popupLabel, elapsedMs, onSpan, start, stop, findRunning,
+        remainingMs, buttonLabel, popupLabel, ICON_SVG, buttonHtml, popupHtml, shouldNudge, NUDGE_TITLE, elapsedMs, onSpan, start, stop, findRunning,
         pendingAction, promptDueAt, markPrompted, confirmStillWorking, autoStop,
         damageIntervalMs, formatElapsed,
     };
