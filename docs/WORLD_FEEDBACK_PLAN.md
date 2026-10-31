@@ -272,8 +272,19 @@ players should SEE that their routines are working, through a number that measur
 5. Tests: DailyRecord v3 close, counter sum (frozen/KO = 0, old days = 0), report-card rows (tenure gaps, honor-roll edge
    at 80%), wiring. sw bump; live check of both report cards.
 
-**Open (decide in the build session):** routine TASKS do not affect a routine's stars today (`completionRate` reads habit
-occurrence history only). Keep that, or count routine-task instances too? Changing it would also change the hero chips.
+**Routine tasks count too (DECIDED 2026-10-31, Jeremy: "anything inside a routine, habit or task, should count toward the
+stars rating"):** today `Heroes.completionRate` reads only the member HABITS' `occurrenceHistory`; routine task definitions
+(`definedTasks`, ids in `routine.taskDefinitionIds`) keep no history. Build step 0 (before step 1):
+- Give routine task defs an `occurrenceHistory` (additive; a missing one reads as `[]`, no schema bump; note in DATA_SCHEMA),
+  one entry per spawned instance per day, same `{ date, success }` shape as habits: **success** = the instance was completed
+  that day; **failure** = it went overdue / was still undone when the day rolled over. Check in the build how a routine task
+  instance currently ends at rollover (carried over vs removed) and record exactly one entry per instance-day. Late
+  completion after it went overdue: follow the habit rule (`Habits.applyHabitCompletion` on an overdue habit) so habits and
+  tasks grade the same way.
+- `Heroes.completionRate(routine, definedHabits, ...)` also reads the routine's task defs (new param or a merged list), so
+  the hero chips, the hero tray, the level-up star notice and the report card all use ONE rate. This changes stars for
+  routines that hold tasks -- expected.
+- Tests: a routine with one habit + one task (both done, one missed), tenure counts days from both, task-only routine.
 
 ## Suggested build order (PROPOSED; one session each, commit each)
 
