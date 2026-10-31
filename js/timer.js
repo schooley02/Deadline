@@ -69,8 +69,8 @@ const Timer = (() => {
     }
     // Stopwatch icon (2026-10-31, Jeremy: coach's stopwatch like ClickUp's track-time icon). Inline SVG so it
     // takes the button's text colour; the emoji labels above stay for tests and text-only callers.
-    const ICON_SVG = '<svg class="timer-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" ' +
-        'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
+    const ICON_SVG = '<svg class="timer-icon" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" ' +
+        'stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
         '<path d="M10 2h4"/><path d="M12 2v3"/><path d="M19.2 6.3l1.4-1.4"/><circle cx="12" cy="14" r="8"/>' +
         '<path d="M12 14V9.5"/><circle cx="12" cy="14" r="0.6" fill="currentColor"/></svg>';
     // Row button: stopwatch alone when idle; stopwatch + elapsed while a work timer runs. A limit timer

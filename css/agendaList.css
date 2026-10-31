@@ -433,7 +433,8 @@
     align-items: center;
     gap: 5px;
 }
-.work-timer-btn .timer-icon { display: block; flex-shrink: 0; }
+/* Same 26px drawing size and stroke weight as the pencil edit icon (css/popups.css), 2026-10-31. */
+.work-timer-btn .timer-icon { display: block; flex-shrink: 0; width: 26px; height: 26px; }
 .work-timer-btn.running {
     border-color: #e0a84f;
     color: #e0a84f;
