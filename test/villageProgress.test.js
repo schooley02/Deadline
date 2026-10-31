@@ -56,6 +56,8 @@ describe('thresholds', () => {
         expect(CONFIG.VILLAGE_DEFENSE_HELD_FRAC).toBe(0.75);
         expect(CONFIG.VILLAGE_HEAVY_DAY_WINDOW).toBe(14);
         expect(CONFIG.VILLAGE_HEAVY_DAY_MIN_DAYS).toBe(3);
+        expect(CONFIG.VILLAGE_HEAVY_DAY_FACTOR).toBe(1.25);
+        expect(CONFIG.VILLAGE_HEAVY_DAY_MIN_EXTRA).toBe(1);
     });
 });
 
@@ -198,9 +200,22 @@ describe('counters', () => {
             const days = [due(dated(1), 5), due(dated(2), 5), due(dated(3), 50)];
             expect(VillageProgress.counters(ctx({ days })).bestdays).toBe(0);
         });
-        test('the 4th day counts when it is heavier than the average and nothing was missed', () => {
-            const days = [due(dated(1), 4), due(dated(2), 4), due(dated(3), 4), due(dated(4), 5)];
+        test('the 4th day counts when it is clearly heavier than the average and nothing was missed', () => {
+            const days = [due(dated(1), 4), due(dated(2), 4), due(dated(3), 4), due(dated(4), 6)];
             expect(VillageProgress.counters(ctx({ days })).bestdays).toBe(1);
+        });
+        test('a slightly-above-average day is not heavy: it needs > 1.25x the average AND at least 1 more item', () => {
+            // avg 4: 5 is only 1.25x (not more than), 5 vs avg 4 passes the +1 test but fails the factor
+            expect(VillageProgress.heavyDays([due(dated(1), 4), due(dated(2), 4), due(dated(3), 4), due(dated(4), 5)], 14, 3).heavy).toBe(0);
+            // tiny average: avg 1, 1.5x would pass the factor (1.25) but needs +1 -> 2 is enough, 1.2 is not
+            const tiny = [due(dated(1), 1), due(dated(2), 1), due(dated(3), 1)];
+            expect(VillageProgress.heavyDays(tiny.concat([due(dated(4), 2)]), 14, 3).heavy).toBe(1);
+            expect(VillageProgress.heavyDays(tiny.concat([due(dated(4), 1)]), 14, 3).heavy).toBe(0);
+        });
+        test('factor / extra are parameters', () => {
+            const days = [due(dated(1), 4), due(dated(2), 4), due(dated(3), 4), due(dated(4), 5)];
+            expect(VillageProgress.heavyDays(days, 14, 3, 1, 0).heavy).toBe(1);
+            expect(VillageProgress.counters(ctx({ days, heavyFactor: 1, heavyExtra: 0 })).bestdays).toBe(1);
         });
         test('a heavy day with a miss is heavy but not handled', () => {
             const days = [due(dated(1), 4), due(dated(2), 4), due(dated(3), 4), due(dated(4), 9, 1)];
@@ -211,15 +226,13 @@ describe('counters', () => {
             const days = [due(dated(1), 4), due(dated(2), 4), due(dated(3), 4), due(dated(4), 4)];
             expect(VillageProgress.counters(ctx({ days })).bestdays).toBe(0);
         });
-        test('KNOWN BEHAVIOUR: after a permanent step up, every day stays heavy until the window fills with the new level', () => {
-            // 3 light days, then 10 a day: the average (< 10 until the whole window is 10s) trails the new level, so each
-            // of these days is "heavier than average". Sustained padding therefore keeps scoring for up to the window
-            // length per ramp-up. Flagged to Jeremy 2026-10-30 as an open balance question (margin / shorter window);
-            // the approved rule is implemented as written.
+        test('a permanent step up (4 -> 10 a day) scores 6 days, not 14, then the plateau stops (the 1.25x margin, Jeremy 2026-10-30)', () => {
+            // Without the margin (factor 1, extra 0) the whole 14-day window scored, because the trailing average lags the new level.
             const days = [due(dated(1), 4), due(dated(2), 4), due(dated(3), 4)];
-            for (let n = 4; n <= 10; n++) days.push(due(dated(n), 10));
-            expect(VillageProgress.heavyDays(days, 14, 3).handled).toBe(7);
-            // ...but once the window is all 10s the plateau stops scoring.
+            for (let n = 4; n <= 28; n++) days.push(due(dated(n), 10));
+            expect(VillageProgress.heavyDays(days, 14, 3, 1, 0).handled).toBe(14);
+            expect(VillageProgress.heavyDays(days, 14, 3).handled).toBe(6);
+            // ...and once the window is all 10s the plateau scores nothing.
             const plateau = [due(dated(1), 10), due(dated(2), 10), due(dated(3), 10), due(dated(4), 10)];
             expect(VillageProgress.heavyDays(plateau, 14, 3).handled).toBe(0);
         });

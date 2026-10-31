@@ -592,6 +592,8 @@ const CONFIG = {
     VILLAGE_DEFENSE_HELD_FRAC: 0.75, // a night counts for the Jailhouse when the church ends the day at >= this fraction of MAX_BASE_HEALTH
     VILLAGE_HEAVY_DAY_WINDOW: 14, // the Windmill's "recent average" = this run's last N closed days
     VILLAGE_HEAVY_DAY_MIN_DAYS: 3, // ...and needs at least this many closed days of history before any day can be heavy
+    VILLAGE_HEAVY_DAY_FACTOR: 1.25, // a day is HEAVY only when more than this x the recent average was due (Jeremy 2026-10-30, option 2: a permanent step up stops scoring once the average catches up)
+    VILLAGE_HEAVY_DAY_MIN_EXTRA: 1, // ...and at least this many items above that average (keeps a tiny average from making every +1 "heavy")
 
     // --- Sub-task clustering ---
     SUBTASK_CLUSTER_GAP_PX: 8, // visual gap between clustered sprites' VISIBLE graphics (not their boxes)

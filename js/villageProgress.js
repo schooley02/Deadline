@@ -13,7 +13,7 @@
  *   lurkers      Boxing gym    days with no slips (at least one bad habit resolved, none slipped)
  *   defense      Jailhouse     nights the church ended at >= 75% health
  *   heroes       High school   perfect-attendance days (every active routine fully done; late counts)
- *   bestdays     Windmill      heavy days handled (more due than this run's recent average, nothing missed)
+ *   bestdays     Windmill      heavy days handled (> 1.25x this run's recent average and >= 1 item above it, nothing missed)
  *
  * Same pattern as runStats.js / dailyRecord.js: pure functions, no DOM, no State or CONFIG reads
  * (the caller passes everything in), so it is unit-tested directly. Day-based counters use this
@@ -28,7 +28,7 @@
  *     runNumber,       the current run (runHistory.length + 1); only days with rec.run === runNumber count
  *     maxHp,           CONFIG.MAX_BASE_HEALTH
  *     thresholds?,     defaults to DEFAULT_THRESHOLDS (a test checks it matches CONFIG)
- *     defenseFrac?, heavyWindow?, heavyMinDays? }   defaults mirror CONFIG
+ *     defenseFrac?, heavyWindow?, heavyMinDays?, heavyFactor?, heavyExtra? }   defaults mirror CONFIG
  */
 const VillageProgress = (() => {
     const KINDS = ['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes', 'habits', 'bestdays'];
@@ -47,6 +47,8 @@ const VillageProgress = (() => {
     const DEFAULT_DEFENSE_FRAC = 0.75;
     const DEFAULT_HEAVY_WINDOW = 14;
     const DEFAULT_HEAVY_MIN_DAYS = 3;
+    const DEFAULT_HEAVY_FACTOR = 1.25;
+    const DEFAULT_HEAVY_EXTRA = 1;
     const MAX_TIER = 5;
 
     function num(v) { return Number.isFinite(v) && v > 0 ? v : 0; }
@@ -118,16 +120,22 @@ const VillageProgress = (() => {
     }
 
     /**
-     * Windmill: a day is HEAVY when more was due than the average of this run's previous `window` closed days
-     * (needs >= `minDays` of history), and HANDLED when nothing was missed.
+     * Windmill: a day is HEAVY when what was due is MORE THAN `factor` x the average of this run's previous `window`
+     * closed days AND at least `extra` items above that average (needs >= `minDays` of history), and HANDLED when
+     * nothing was missed. The margin matters: with a bare "above average" rule a permanent step up (4 -> 10 a day) kept
+     * scoring every day until the whole window filled with the new level (~11 days per ramp-up); with 1.25x it stops
+     * after about 5. Decided 2026-10-30 (Jeremy, option 2).
      */
-    function heavyDays(days, window, minDays) {
+    function heavyDays(days, window, minDays, factor, extra) {
+        const f = factor != null ? factor : DEFAULT_HEAVY_FACTOR;
+        const x = extra != null ? extra : DEFAULT_HEAVY_EXTRA;
         let heavy = 0, handled = 0;
         for (let i = 0; i < days.length; i++) {
             const prior = days.slice(Math.max(0, i - window), i);
             if (prior.length < minDays) continue;
             const avg = prior.reduce((s, r) => s + dueTotal(r), 0) / prior.length;
-            if (dueTotal(days[i]) > avg) {
+            const due = dueTotal(days[i]);
+            if (due > avg * f && due >= avg + x) {
                 heavy += 1;
                 if (missedTotal(days[i]) === 0) handled += 1;
             }
@@ -166,6 +174,8 @@ const VillageProgress = (() => {
             defenseFrac: c.defenseFrac != null ? c.defenseFrac : DEFAULT_DEFENSE_FRAC,
             heavyWindow: c.heavyWindow != null ? c.heavyWindow : DEFAULT_HEAVY_WINDOW,
             heavyMinDays: c.heavyMinDays != null ? c.heavyMinDays : DEFAULT_HEAVY_MIN_DAYS,
+            heavyFactor: c.heavyFactor != null ? c.heavyFactor : DEFAULT_HEAVY_FACTOR,
+            heavyExtra: c.heavyExtra != null ? c.heavyExtra : DEFAULT_HEAVY_EXTRA,
         };
     }
 
@@ -184,7 +194,7 @@ const VillageProgress = (() => {
             lurkers: days.filter(isNoSlipDay).length,
             defense: days.filter((r) => churchHeld(r, c.maxHp, o.defenseFrac)).length,
             heroes: days.filter(isPerfectAttendance).length,
-            bestdays: heavyDays(days, o.heavyWindow, o.heavyMinDays).handled,
+            bestdays: heavyDays(days, o.heavyWindow, o.heavyMinDays, o.heavyFactor, o.heavyExtra).handled,
         };
     }
 
@@ -205,7 +215,7 @@ const VillageProgress = (() => {
         return {
             attendanceStreak: attendanceStreak(days),
             comebackDays: comebackDays(days),
-            heavyDays: heavyDays(days, o.heavyWindow, o.heavyMinDays).heavy,
+            heavyDays: heavyDays(days, o.heavyWindow, o.heavyMinDays, o.heavyFactor, o.heavyExtra).heavy,
         };
     }
 
