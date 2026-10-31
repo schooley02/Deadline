@@ -57,7 +57,7 @@ const VillageCard = (() => {
         defense: {
             name: 'Jailhouse', unit: 'nights',
             measures: 'Nights the church ended the day at 75% health or better.',
-            why: 'A healthy base means you are not letting deadlines pile up. Ending your days strong keeps you out of the hole, where catching up costs the most.',
+            why: 'A healthy base means you are not letting deadlines pile up. Protect and serve your future self: ending each day strong keeps you out of the hole, where catching up costs the most.',
         },
         heroes: {
             name: 'High school', unit: 'perfect days',
