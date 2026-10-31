@@ -55,7 +55,7 @@
 
 /* Short screens (landscape phones): keep two columns, but cap the art so the card still fits the height. */
 @media (max-height: 520px) {
-    .vc-sprite { width: auto !important; max-height: 58vh; }
+    .vc-sprite { width: auto !important; max-height: 50vh; }
     .vc-body { gap: 14px; }
 }
 

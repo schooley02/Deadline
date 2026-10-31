@@ -211,7 +211,7 @@ The village now shows the REAL tier of each building (`VillageProgress.compute`,
 `?hospitalTier=`, `?windmillTier=`, each `1..5` or `off`) still pin a tier for art checks (`VillageLayout.resolveTier`). Buildings are TAPPABLE: each `.village-sprite` takes taps
 (the layer itself stays `pointer-events: none`, zombies z30+ stay above) and `VillageView` resolves the tap with an alpha hit-test over every sprite under the finger,
 topmost first, so a transparent corner or a back-row building tucked behind a front one goes to the right building (art-box fallback from `CONFIG.VILLAGE_ART_X` when the
-canvas cannot be read, e.g. `file://`). The card is two columns (sprite left, facts right) and shows the sprite at the largest whole-number scale that fits, 3x for the 128px canvases and 1x for the tall Clock tower: `VillageCard.spriteScale`. Re-measure
+canvas cannot be read, e.g. `file://`). The card is two columns (sprite left, facts right) and shows the sprite at 3x (then 2x) when that fits, 3x for the 128px-tall canvases; the tall Clock tower canvas (128x256) is fitted to the same height at 1.5x, a non-whole scale that stays crisp with `image-rendering: pixelated`: `VillageCard.spriteScale`. Re-measure
 `VILLAGE_ART_X` whenever a sprite's width changes (a test checks it); the tap hit-test uses the same numbers only as its fallback.
 
 ## Asset Sources

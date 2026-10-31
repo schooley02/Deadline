@@ -2,7 +2,7 @@
  * VillageCard -- the building card (V7 W2 village, Build 2, 2026-10-30; plan docs/WORLD_FEEDBACK_PLAN.md
  * "Village tiers + building cards"). Tapping a village building opens it through `Modal`, like the level panel.
  *
- * Shows: the sprite at the largest whole-number scale that fits (3x for the 128px canvases), the building's name, one line on what it measures, five tier pips (T1..T5),
+ * Shows: the sprite at 3x/2x when that fits, else fitted to the column height (3x for the 128px canvases, 1.5x for the Clock tower), the building's name, one line on what it measures, five tier pips (T1..T5),
  * a progress bar "N / M <unit> to reach T<n+1>" ("Fully rebuilt" at T5), and the flavour lines that never
  * drive a tier (school = attendance streak, windmill = comeback days). Two empty states: the gym with no bad
  * habit to resist, the school with no routine.
@@ -58,15 +58,19 @@ const VillageCard = (() => {
         return out;
     }
 
-    // Two-column card (art left, text right): the sprite is shown at the largest whole-number scale that fits the art
-    // column (3x for the 128px canvases, 2x/1x for bigger ones; the Clock tower's canvas is tall, so it stays at 1x).
+    // Two-column card (art left, text right). Whole-number scales keep the pixels perfectly even, so the sprite uses 3x
+    // (then 2x) when that fits the art column: 3x for the 128px-tall canvases. A canvas too tall for 2x (the Clock tower,
+    // 128x256) is instead fitted to the column height (FIT_H), so its height matches the 3x buildings: 1.5x, a
+    // non-whole scale that image-rendering: pixelated keeps crisp (some pixels come out a hair wider than others).
     const MAX_ART_W = 384;
     const MAX_ART_H = 400;
+    const FIT_H = 384;
     function spriteScale(w, h) {
-        for (let k = 3; k > 1; k--) {
+        for (let k = 3; k >= 2; k--) {
             if (w * k <= MAX_ART_W && h * k <= MAX_ART_H) return k;
         }
-        return 1;
+        if (!(w > 0) || !(h > 0)) return 1;
+        return Math.round(Math.min(FIT_H / h, MAX_ART_W / w) * 100) / 100;
     }
 
     function buildModel(ctx) {
@@ -130,7 +134,7 @@ const VillageCard = (() => {
         const m = model;
         const pct = Math.round(m.fraction * 100);
         const sprite = m.spriteUrl
-            ? `<img class="vc-sprite" src="${esc(m.spriteUrl)}" alt="" draggable="false"${m.spriteW ? ` style="width:${m.spriteW * m.spriteScale}px"` : ''}>`
+            ? `<img class="vc-sprite" src="${esc(m.spriteUrl)}" alt="" draggable="false"${m.spriteW ? ` style="width:${Math.round(m.spriteW * m.spriteScale)}px"` : ''}>`
             : '';
         const emptyHtml = m.empty ? `<p class="vc-empty">${esc(m.empty)}</p>` : '';
         const linesHtml = m.lines.map(l => `<p class="vc-line">${esc(l)}</p>`).join('');

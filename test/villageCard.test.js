@@ -113,12 +113,13 @@ describe('cardHtml', () => {
 });
 
 describe('spriteScale', () => {
-    test('3x for a 128px canvas, a smaller whole scale (down to 1x) for bigger ones (the Clock tower)', () => {
+    test('3x for a 128px canvas, 2x when only that fits, else fitted to the column height (the Clock tower)', () => {
         expect(VillageCard.spriteScale(128, 128)).toBe(3);
         expect(VillageCard.spriteScale(128, 133)).toBe(3);
+        expect(VillageCard.spriteScale(128, 160)).toBe(2);
         expect(VillageCard.spriteScale(146, 150)).toBe(2);
-        expect(VillageCard.spriteScale(146, 262)).toBe(1);
-        expect(VillageCard.spriteScale(0, 0)).toBe(3);
+        expect(VillageCard.spriteScale(128, 256)).toBe(1.5); // Clock tower: 256 * 1.5 = 384 tall, same as a 3x building
+        expect(VillageCard.spriteScale(0, 0)).toBe(3); // unknown size: the card omits the width style
     });
     test('the card is two columns: art (.vc-art) beside the info (.vc-info)', () => {
         const html = VillageCard.cardHtml(VillageCard.buildModel({ kind: 'nights', progress: progress(0) }));
@@ -129,7 +130,7 @@ describe('spriteScale', () => {
     });
     test('the card html uses the model scale', () => {
         const tall = VillageCard.cardHtml(VillageCard.buildModel({ kind: 'punctuality', progress: progress(0, 'punctuality'), spriteUrl: 'a.png', spriteW: 146, spriteH: 262 }));
-        expect(tall).toContain('width:146px');
+        expect(tall).toContain('width:215px'); // 146 * 1.47 (fitted to 384px tall)
     });
 });
 
