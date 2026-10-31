@@ -273,7 +273,7 @@ players should SEE that their routines are working, through a number that measur
    at 80%), wiring. sw bump; live check of both report cards.
 
 **Routine tasks count too (DECIDED 2026-10-31, Jeremy: "anything inside a routine, habit or task, should count toward the
-stars rating"):** today `Heroes.completionRate` reads only the member HABITS' `occurrenceHistory`; routine task definitions
+stars rating") -- step 0 BUILT 2026-10-31 (sw v162; see DECISIONS 2026-10-31 late morning). Steps 1-5 still to build.** today `Heroes.completionRate` reads only the member HABITS' `occurrenceHistory`; routine task definitions
 (`definedTasks`, ids in `routine.taskDefinitionIds`) keep no history. Build step 0 (before step 1):
 - Give routine task defs an `occurrenceHistory` (additive; a missing one reads as `[]`, no schema bump; note in DATA_SCHEMA),
   one entry per spawned instance per day, same `{ date, success }` shape as habits: **success** = the instance was completed

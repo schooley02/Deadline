@@ -173,8 +173,10 @@ describe('shell wiring', () => {
         expect(read('js/state.js')).toContain('getVillageTiers: deps.getVillageTiers');
     });
 
-    test('styles ship in the already-cached village panel stylesheet; sw bumped to v161', () => {
+    test('styles ship in the already-cached village panel stylesheet; sw bumped to v160 or later', () => {
         expect(read('css/villagePanel.css')).toContain('.village-peak-strip');
-        expect(read('sw.js')).toContain("CACHE_NAME = 'deadline-shell-v161'");
+        // At least v160 (the Build 3 bump); later sessions bump it again, so no exact match.
+        const v = Number((read('sw.js').match(/CACHE_NAME = 'deadline-shell-v(\d+)'/) || [])[1]);
+        expect(v).toBeGreaterThanOrEqual(160);
     });
 });

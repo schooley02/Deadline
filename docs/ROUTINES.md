@@ -23,8 +23,9 @@ routine still earns; a frozen or inactive routine earns nothing (`FrozenSlots.is
 the session-36 "no XP while frozen" no-op is now real). Uncompletion refunds EXACTLY off an
 `item.routineXpAwarded` stamp, and level is DERIVED from xp (can de-level on refund — perfect
 round-trip by construction). Star ratings (`completionRate`/`starRating`, spec tiers 60-95% → 1-5★,
-HABIT members only in v1 — routine-task misses are recorded nowhere, so no honest task denominator
-exists) built in this sub-session; rendered in sub-session 3. **Redesigned 2026-07-21** (found via
+HABIT members only in v1 — routine-task misses were recorded nowhere then; **since 2026-10-31 routine
+TASKS count too**: task defs keep their own `occurrenceHistory`, merged into the same rate + tenure,
+see DECISIONS 2026-10-31 late morning) built in this sub-session; rendered in sub-session 3. **Redesigned 2026-07-21** (found via
 Jeremy's phone playtest: completing ONE habit once instantly rated a brand-new routine 5★ — see
 DECISIONS.md): `completionRate` now returns a rate over a ROLLING window of the most recent
 `CONFIG.HERO_STAR_RATE_WINDOW` (28) occurrences across ALL member habits merged/sorted

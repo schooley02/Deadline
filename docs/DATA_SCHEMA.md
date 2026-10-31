@@ -108,7 +108,8 @@ the definition was transferred to another routine in between; refund falls back 
 ownership when the id stamp is absent (pre-transfer-era saves).
 Star ratings (`Heroes.completionRate`/`starRating`, spec tiers 60/70/80/90/95% → 1-5★) are
 computed fresh from habit `occurrenceHistory`, never persisted. v7→v8 migration in
-`js/persistence.js`. See DECISIONS.md session 41.
+`js/persistence.js`. See DECISIONS.md session 41. Since 2026-10-31 the rate also reads routine
+TASK definitions' `occurrenceHistory` (see "Routine task definitions" below).
 
 ### schemaVersion 6 (2026-07-19): frozen routine slots — `routine.frozenState` + habit `modificationHistory` landed
 Sub-session 1 of the "Frozen routine slots + recovery" ticket (see docs/FROZEN_SLOTS_PLAN.md
@@ -241,6 +242,16 @@ Habit {
   modificationHistory: { timestamp: "ISOString", changedFields: string[] }[]
 }
 
+// Routine task definitions (`definedTasks`) -- ADDITIVE 2026-10-31, no schema
+// bump (High school v2 step 0): `occurrenceHistory` with the SAME
+// { date: "YYYY-MM-DD", success: boolean }[] shape as a habit's. Written by
+// js/items.js: success on completion (a late completion overwrites the day's
+// miss), miss when the instance goes overdue or is still undone at rollover
+// with no entry yet, the day's entry removed on an undo before the due time.
+// KO ghosts and Skip Day record nothing. Trimmed to CONFIG.HERO_STAR_RATE_WINDOW
+// (28). Read only by Heroes.completionRate (hero star rate). Missing reads as
+// [] -- defs saved earlier simply start with no history.
+//
 // BUILT 2026-07-18: js/schedule.js + schemaVersion 2→3 migration (session 14),
 // scheduling UI in all 5 recurring-definition forms (session 15). Replaces the
 // former bare `frequency: 'daily'` string on both `definedHabits` entries and

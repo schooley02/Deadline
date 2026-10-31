@@ -691,11 +691,22 @@ document.addEventListener('DOMContentLoaded', () => {
         kind: Timer.isLimit(item) ? 'limit' : 'work', minutes: spanMs / 60000
     }));
 
+    // High school v2 step 0 (2026-10-31): routine TASKS count toward a
+    // routine's hero star rate. Heroes.completionRate reads task definitions
+    // from this source whenever a caller doesn't pass them, so every star
+    // display uses one rate. Getter, because window.definedTasks is
+    // reassigned on restore/restart.
+    Heroes.setTaskDefsSource(() => window.definedTasks || []);
+
     function itemsDeps() {
         return {
             activeItems: State.getActiveItems(),
             completedItems: () => State.getCompletedItems(),
             definedHabits: () => State.getDefinedHabits(),
+            // Routine task occurrence history (2026-10-31): items.js records
+            // success/miss on the task definition. Getter for the same
+            // reassignment reason as definedHabits.
+            definedTasks: () => window.definedTasks || [],
             // Frozen routine slots ("Frozen routine slots + recovery" ticket,
             // sub-session 1, 2026-07-19): items.js looks up a negative
             // habit's owning routine to check/clear frozenState. GETTER for

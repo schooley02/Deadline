@@ -247,9 +247,11 @@ const DayPager = (() => {
         return Schedule.isScheduledForDay(taskDef.schedule, targetDate);
     }
 
-    // Routine tasks have no occurrenceHistory (habits-only field) — outcome
-    // is read off completedItems instead: a matching definitionId+day means
+    // Outcome is read off completedItems: a matching definitionId+day means
     // it was defeated, otherwise it's presumed missed (the day has passed).
+    // (Routine task defs gained an occurrenceHistory on 2026-10-31 for the
+    // hero star rate; this pager view doesn't read it yet -- defs created
+    // earlier have no entries for older days.)
     function outcomeForTaskOnDay(taskDef, completedItems, targetDate) {
         const dayString = targetDate.toDateString();
         const wasCompleted = (completedItems || []).some(item =>

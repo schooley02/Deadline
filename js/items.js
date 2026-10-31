@@ -219,6 +219,47 @@ const Items = (() => {
         return null;
     }
 
+    // Routine TASK occurrence history (High school v2 step 0, 2026-10-31,
+    // Jeremy: "anything inside a routine, habit or task, should count toward
+    // the stars rating"). A routine task definition keeps the same
+    // { date, success } occurrenceHistory a habit does, written at the same
+    // moments: a MISS when the instance goes overdue (markAsOverdue) or is
+    // still undone at rollover with no entry yet (settleStaleRecurringInstance),
+    // a SUCCESS on completion (a late completion overwrites that day's miss,
+    // the habit rule), and the day's entry removed on uncompletion. Keyed to
+    // the instance's originalDueDate. Trimmed to CONFIG.HERO_STAR_RATE_WINDOW
+    // (the only reader is Heroes.completionRate). `deps.definedTasks` is an
+    // optional getter (script.js passes window.definedTasks); omitted -> no-op.
+    function routineTaskDefFor(item, deps) {
+        if (!item || item.type !== 'task' || item.definitionId == null || item.parentId) return null;
+        if (typeof deps.definedTasks !== 'function') return null;
+        return (deps.definedTasks() || []).find(def => def.id === item.definitionId) || null;
+    }
+
+    function recordRoutineTaskOccurrence(item, success, deps) {
+        const taskDef = routineTaskDefFor(item, deps);
+        if (!taskDef || !item.originalDueDate) return;
+        taskDef.occurrenceHistory = Habits.recordOccurrence(
+            taskDef.occurrenceHistory, Habits.toOccurrenceDate(item.originalDueDate), success,
+            CONFIG.HERO_STAR_RATE_WINDOW
+        );
+    }
+
+    function removeRoutineTaskOccurrence(item, deps) {
+        const taskDef = routineTaskDefFor(item, deps);
+        if (!taskDef || !item.originalDueDate || !Array.isArray(taskDef.occurrenceHistory)) return;
+        taskDef.occurrenceHistory = Habits.removeOccurrence(
+            taskDef.occurrenceHistory, Habits.toOccurrenceDate(item.originalDueDate)
+        );
+    }
+
+    function hasRoutineTaskOccurrence(item, deps) {
+        const taskDef = routineTaskDefFor(item, deps);
+        if (!taskDef || !item.originalDueDate) return false;
+        const dateStr = Habits.toOccurrenceDate(item.originalDueDate);
+        return (taskDef.occurrenceHistory || []).some(o => o && o.date === dateStr);
+    }
+
     // Award routine XP for a routine-owned completion, STAMPING the awarded
     // amount on the item (`item.routineXpAwarded` — persists wholesale like
     // every other item field) so refundRoutineXpForItem can mirror it
@@ -528,6 +569,8 @@ const Items = (() => {
             xpGained = isSub ? CONFIG.SUBTASK_XP : deps.xpPerTaskDefeat;
             const basePoints = isSub ? CONFIG.SUBTASK_POINTS : (hadSubTasks ? 0 : deps.pointsPerTask);
             pointsGained = Economy.taskPoints(item.isHighPriority, basePoints);
+            // Routine task: a success occurrence for the hero star rate.
+            recordRoutineTaskOccurrence(item, true, deps);
         } else if (item.type === 'habit') {
             const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
             if (habitDef) {
@@ -869,6 +912,13 @@ const Items = (() => {
                 // same ordering rationale as completeItem.
                 awardRoutineXpForHabitDef(habitDef, deps);
             }
+        }
+        // Routine task still undone at rollover: a miss, unless markAsOverdue
+        // already recorded one (or a late completion) for that day. KO ghosts
+        // record nothing (their routine is down; same as a ghost never going
+        // overdue).
+        if (item.type === 'task' && !item.koGhost && !hasRoutineTaskOccurrence(item, deps)) {
+            recordRoutineTaskOccurrence(item, false, deps);
         }
         removeItem(item.id, deps);
     }
@@ -1397,6 +1447,12 @@ const Items = (() => {
             if (typeof deps.recordLifetime === 'function') {
                 deps.recordLifetime(item.parentId ? 'subtaskCompleted' : 'taskCompleted', -1);
             }
+            // Routine task: undo the success occurrence. Back on the board
+            // already overdue (re-added above past its due time) -> it is a
+            // miss again; otherwise the day is open, so no entry until it
+            // completes or goes overdue.
+            if (item.isOverdue) recordRoutineTaskOccurrence(item, false, deps);
+            else removeRoutineTaskOccurrence(item, deps);
         } else if (item.type === 'habit') {
             const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
             if (habitDef) {
@@ -1468,6 +1524,10 @@ const Items = (() => {
                 kind: 'task', category: item.category, at: item.dueDateTime.getTime(),
                 routineId: dailyRoutineId(item, deps)
             });
+            // Routine task: a miss occurrence for the hero star rate (an edit
+            // into the past is a correction, not a miss -- same skipHabitMiss
+            // rule as habits below).
+            if (!deps.skipHabitMiss) recordRoutineTaskOccurrence(item, false, deps);
         }
 
         if (item.element) item.element.classList.add('enemy-at-base');

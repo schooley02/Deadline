@@ -27,12 +27,14 @@
  * max(routine.createdAt, runStartedAtMs), gated by a SEPARATE minDays tenure
  * requirement per tier (2026-07-21 redesign — see docs/DECISIONS.md,
  * docs/ROUTINES.md; fixes the bug where completing one habit once produced
- * a 100% rate that instantly cleared the top tier). Routine TASKS are
- * deliberately EXCLUDED from the v1 rate: habit occurrenceHistory is the
- * only honest, complete record — routine-task misses are recorded nowhere
- * (rollover drops them without a trace), so any task denominator would be
- * reconstructed guesswork. Logged in DECISIONS.md session 41; revisit when
- * run history lands.
+ * a 100% rate that instantly cleared the top tier). Routine TASKS count too
+ * since 2026-10-31 (High school v2 step 0, Jeremy: "anything inside a
+ * routine, habit or task, should count toward the stars rating"): routine
+ * task definitions now keep their own `occurrenceHistory` (same
+ * { date, success } shape, written by js/items.js — success on completion,
+ * miss when the instance goes overdue or is still undone at rollover), and
+ * completionRate merges it with the habits'. Before that date tasks were
+ * excluded because their misses were recorded nowhere (DECISIONS session 41).
  */
 const Heroes = (() => {
     // XP a routine earns when one of its member items is completed.
@@ -124,6 +126,14 @@ const Heroes = (() => {
         };
     }
 
+    // Where completionRate finds routine task definitions when a caller
+    // doesn't pass them (see completionRate). Defaults to none, so a page or
+    // test that never registers a source rates habits only, as before.
+    let taskDefsSource = () => [];
+    function setTaskDefsSource(fn) {
+        taskDefsSource = (typeof fn === 'function') ? fn : (() => []);
+    }
+
     // 'YYYY-MM-DD' for a ms timestamp, LOCAL time (matches
     // Habits.toOccurrenceDate's local-date discipline — occurrence entries
     // are local calendar days, so the window boundary must be too).
@@ -159,23 +169,44 @@ const Heroes = (() => {
      * the rate (see starRating below). Omitting rateWindowSize (or passing a
      * non-positive number) preserves the old all-time-average behavior.
      *
+     * Routine TASK members (2026-10-31): task defs whose id is in
+     * routine.taskDefinitionIds add their own occurrenceHistory to the same
+     * merged pool (rate AND tenure). `definedTasks` is optional: omitted, it
+     * comes from the source registered with setTaskDefsSource (script.js
+     * registers `window.definedTasks` at boot), so every caller -- hero chips,
+     * hero tray, level panel, run history, the report card -- rates a routine
+     * the SAME way without threading a new argument through each view. Pure
+     * callers and tests pass an explicit array.
+     *
      * Returns { rate, samples, distinctDays }: rate is null when samples
      * === 0 (a brand-new routine is UNRATED, not 0%); samples is the count
      * actually used for the rate (<= rateWindowSize).
      */
-    function completionRate(routine, definedHabits, windowStartMs, rateWindowSize) {
+    function completionRate(routine, definedHabits, windowStartMs, rateWindowSize, definedTasks) {
         const memberIds = new Set(routine.habitDefinitionIds || []);
+        const taskIds = new Set(routine.taskDefinitionIds || []);
         const windowStart = toLocalDateStr(windowStartMs);
         const entries = [];
 
-        (definedHabits || []).forEach(def => {
-            if (def.routineId !== routine.id && !memberIds.has(def.id)) return;
+        const collect = def => {
             (def.occurrenceHistory || []).forEach(entry => {
                 if (!entry || typeof entry.date !== 'string') return;
                 if (entry.date < windowStart) return;
                 entries.push(entry);
             });
+        };
+
+        (definedHabits || []).forEach(def => {
+            if (def.routineId !== routine.id && !memberIds.has(def.id)) return;
+            collect(def);
         });
+
+        const tasks = Array.isArray(definedTasks) ? definedTasks : taskDefsSource();
+        if (taskIds.size > 0) {
+            (tasks || []).forEach(def => {
+                if (def && taskIds.has(def.id)) collect(def);
+            });
+        }
 
         const distinctDays = new Set(entries.map(e => e.date)).size;
 
@@ -249,6 +280,7 @@ const Heroes = (() => {
         slotCapacity,
         spendSlotPoint,
         completionRate,
+        setTaskDefsSource,
         starRating,
         applyRoutineDamage,
         shouldKo,
