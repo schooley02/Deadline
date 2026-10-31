@@ -154,6 +154,53 @@ describe('Items: routine task occurrence history', () => {
     });
 });
 
+function habit(id, definitionId, due) {
+    return { id, type: 'habit', definitionId, isNegative: false, name: 'H', category: 'other', streak: 3,
+        dueDateTime: due, originalDueDate: new Date(due), isOverdue: false, lastDamageTickTime: null,
+        parentId: null, subTasks: [], element: fakeEl(), listItemElement: null };
+}
+function habitDeps(items, def, done) {
+    return Object.assign(makeDepsBase(items, DailyRecord.fresh({ date: '2026-11-01', run: 1 }), done),
+        { definedHabits: () => [def] });
+}
+
+describe('Items: undoing a positive habit (habit alignment, 2026-10-31)', () => {
+    test('check off a PAST-DUE habit, then uncheck it: the day ends as a MISS, not erased', () => {
+        const def = { id: 'h1', isNegative: false, streak: 3, occurrenceHistory: [] };
+        const a = habit(1, 'h1', dueAt(-60e3));
+        const done = [];
+        const deps = habitDeps([a], def, done);
+        Items.markAsOverdue(a, Date.now(), deps);
+        Items.completeItem(1, deps);
+        jest.runOnlyPendingTimers();
+        expect(def.occurrenceHistory).toEqual([{ date: dateOf(a.originalDueDate), success: true }]);
+        Items.uncompleteItem(1, deps);
+        expect(def.occurrenceHistory).toEqual([{ date: dateOf(a.originalDueDate), success: false }]);
+    });
+
+    test('check off before the due time, then uncheck: the day is cleared (still open)', () => {
+        const def = { id: 'h1', isNegative: false, streak: 3, occurrenceHistory: [] };
+        const a = habit(1, 'h1', dueAt(3600e3));
+        const deps = habitDeps([a], def, []);
+        Items.completeItem(1, deps);
+        jest.runOnlyPendingTimers();
+        Items.uncompleteItem(1, deps);
+        expect(def.occurrenceHistory).toEqual([]);
+    });
+
+    test('other days in the history are left alone', () => {
+        const def = { id: 'h1', isNegative: false, streak: 3, occurrenceHistory: [{ date: '2020-01-01', success: true }] };
+        const a = habit(1, 'h1', dueAt(-60e3));
+        const deps = habitDeps([a], def, []);
+        Items.markAsOverdue(a, Date.now(), deps);
+        Items.completeItem(1, deps);
+        jest.runOnlyPendingTimers();
+        Items.uncompleteItem(1, deps);
+        expect(def.occurrenceHistory).toEqual([
+            { date: '2020-01-01', success: true }, { date: dateOf(a.originalDueDate), success: false }]);
+    });
+});
+
 describe('Heroes.completionRate: habits + routine tasks', () => {
     const START = new Date(2026, 9, 1).getTime();
     const routine = { id: 'r1', habitDefinitionIds: ['h1'], taskDefinitionIds: ['t1'] };

@@ -75,10 +75,11 @@ describe('Items.settleStaleRecurringInstance', () => {
         expect(new Date(habitDef.lastCompletionDate).toDateString()).toBe(y.toDateString());
     });
 
-    test('positive habit → just removed, no points awarded (its miss was recorded earlier on re-add)', () => {
+    test('positive habit → removed, no points; its miss was recorded earlier on re-add, so no second entry', () => {
         const item = { id: 1, type: 'habit', definitionId: 'd1', isNegative: false,
             originalDueDate: yesterday(), element: fakeEl() };
-        const habitDef = { id: 'd1', isNegative: false, streak: 0, occurrenceHistory: [] };
+        const day = Habits.toOccurrenceDate(item.originalDueDate);
+        const habitDef = { id: 'd1', isNegative: false, streak: 0, occurrenceHistory: [{ date: day, success: false }] };
         const deps = makeDeps({ activeItems: [item], definedHabits: [habitDef] });
 
         Items.settleStaleRecurringInstance(item, deps);
@@ -86,7 +87,35 @@ describe('Items.settleStaleRecurringInstance', () => {
         expect(deps.getPoints()).toBe(0);
         expect(deps.getXP()).toBe(0);
         expect(deps.activeItems.length).toBe(0);
-        expect(habitDef.occurrenceHistory.length).toBe(0); // settlement itself records nothing for a positive
+        expect(habitDef.occurrenceHistory).toEqual([{ date: day, success: false }]);
+    });
+
+    test('positive habit with NO entry for its day → safety-net miss, streak reset, no points (2026-10-31)', () => {
+        const item = { id: 1, type: 'habit', definitionId: 'd1', isNegative: false,
+            originalDueDate: yesterday(), element: fakeEl() };
+        const day = Habits.toOccurrenceDate(item.originalDueDate);
+        const habitDef = { id: 'd1', isNegative: false, streak: 4, occurrenceHistory: [] };
+        const deps = makeDeps({ activeItems: [item], definedHabits: [habitDef] });
+
+        Items.settleStaleRecurringInstance(item, deps);
+
+        expect(habitDef.occurrenceHistory).toEqual([{ date: day, success: false }]);
+        expect(habitDef.streak).toBe(0);
+        expect(deps.getPoints()).toBe(0);
+        expect(deps.getXP()).toBe(0);
+        expect(deps.activeItems.length).toBe(0);
+    });
+
+    test('KO ghost positive habit → removed, nothing recorded', () => {
+        const item = { id: 1, type: 'habit', definitionId: 'd1', isNegative: false, koGhost: true,
+            originalDueDate: yesterday(), element: fakeEl() };
+        const habitDef = { id: 'd1', isNegative: false, streak: 2, occurrenceHistory: [] };
+        const deps = makeDeps({ activeItems: [item], definedHabits: [habitDef] });
+
+        Items.settleStaleRecurringInstance(item, deps);
+
+        expect(habitDef.occurrenceHistory).toEqual([]);
+        expect(habitDef.streak).toBe(2);
     });
 
     test('routine task → just removed, no habit math', () => {

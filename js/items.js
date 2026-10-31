@@ -913,6 +913,24 @@ const Items = (() => {
                 awardRoutineXpForHabitDef(habitDef, deps);
             }
         }
+        // Positive habit still undone at rollover with no entry for its day
+        // (markAsOverdue normally recorded the miss already): a miss, via the same
+        // applyHabitOverdue the overdue path uses so the streak stays consistent.
+        // Never for a negative habit (the branch above settled it as avoided) or a
+        // KO ghost. Occurrence history only: run stats and the daily record are not
+        // touched (2026-10-31, Jeremy: align habits with routine tasks).
+        if (item.type === 'habit' && item.isNegative !== true && !item.koGhost) {
+            const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
+            const dayStr = Habits.toOccurrenceDate(item.originalDueDate);
+            if (habitDef && !(habitDef.occurrenceHistory || []).some(o => o && o.date === dayStr)) {
+                const missed = Habits.applyHabitOverdue(
+                    habitDef.streak, habitDef.occurrenceHistory, false,
+                    item.originalDueDate, CONFIG.HABIT_RATE_WINDOW
+                );
+                habitDef.streak = missed.streak;
+                habitDef.occurrenceHistory = missed.occurrenceHistory;
+            }
+        }
         // Routine task still undone at rollover: a miss, unless markAsOverdue
         // already recorded one (or a late completion) for that day. KO ghosts
         // record nothing (their routine is down; same as a ghost never going
@@ -1467,6 +1485,17 @@ const Items = (() => {
                 habitDef.streak = result.streak;
                 habitDef.lastCompletionDate = result.lastCompletionDate;
                 habitDef.occurrenceHistory = result.occurrenceHistory;
+                // Back on the board already overdue (markAsOverdue above recorded
+                // the day's miss, then the removal just wiped it): a positive habit
+                // you un-check after its due time is a MISS again, not a day that
+                // vanished from the record. Same rule routine tasks follow
+                // (2026-10-31, Jeremy). An open day (not yet due) stays empty.
+                if (item.isOverdue && !habitDef.isNegative) {
+                    habitDef.occurrenceHistory = Habits.recordOccurrence(
+                        habitDef.occurrenceHistory, Habits.toOccurrenceDate(item.originalDueDate),
+                        false, CONFIG.HABIT_RATE_WINDOW
+                    );
+                }
 
                 dailyPointsLost = refundPoints(result.pointsLost);
                 deps.setPlayerXP(Math.max(0, deps.getPlayerXP() - result.xpLost));
