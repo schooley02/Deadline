@@ -156,14 +156,17 @@ const VillageCard = (() => {
                             ${emptyHtml}${linesHtml}
                         </div>
                     </div>
-                    <div class="modal-buttons"><button type="button" class="primary-button" data-action="close">Close</button></div>
+                    <button type="button" class="vc-close" data-action="close" aria-label="Close">
+                        <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M2 2 L10 10 M10 2 L2 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                    </button>
                 </div>
             </div>`;
     }
 
     /**
      * ctx: buildModel's ctx. Opens the card (one at a time). Whatever tap opens it MUST stopPropagation, or
-     * Modal's document click handler closes the card in the same click.
+     * Modal's document click handler closes the card in the same click. Closing: the small corner x, a tap on the
+     * backdrop (Modal's document handler removes the overlay when the click lands on it), or Esc.
      */
     function open(ctx) {
         const model = buildModel(ctx);
@@ -177,7 +180,7 @@ const VillageCard = (() => {
         });
     }
 
-    return { KINDS, EMPTY_TEXT, pipsFor, spriteScale, buildModel, cardHtml, open };
+    return { KINDS, MAX_TIER, EMPTY_TEXT, pipsFor, spriteScale, buildModel, cardHtml, open };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

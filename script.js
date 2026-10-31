@@ -2027,6 +2027,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (levelButton) levelButton.addEventListener('click', openLevelPanel);
 
+    // ---- Village panel (2026-10-30): the HUD village button lists all eight buildings (tier + progress); a row opens
+    // that building's card on top. Works on every screen, including the portrait strip where the scene hides the village.
+    const villageButton = document.getElementById('villageButton');
+    function villageSpriteFor(kind, tier) {
+        const size = VillageLayout.sizeOf(kind, VillageLayout.fromConfig(CONFIG));
+        return { url: VillageLayout.spriteUrl(kind, tier), width: size[0], height: size[1] };
+    }
+    function openVillagePanel() {
+        const progress = VillageProgress.compute(villageContext());
+        VillagePanel.open({
+            progress,
+            spriteFor: villageSpriteFor,
+            onOpenBuilding: (kind) => {
+                const sprite = villageSpriteFor(kind, progress[kind] ? progress[kind].tier : 1);
+                const placement = (CONFIG.VILLAGE_PLACEMENT || {})[kind] || {};
+                openVillageCard({ kind, url: sprite.url, width: sprite.width, height: sprite.height, flip: !!placement.flip });
+            },
+        });
+    }
+    if (villageButton) villageButton.addEventListener('click', openVillagePanel);
+
     // ---- Base Health panel (docs/BASE_PANEL_PLAN.md steps 3-4, 2026-10-26) ----
     // Everything the panel and the HUD chip show is derived from live state on each call
     // (never cached): attackers are the overdue items that actually hit the base

@@ -93,6 +93,11 @@ describe('cardHtml', () => {
         expect((html.match(/class="vc-pip /g) || [])).toHaveLength(5);
         expect(html).toContain('30 / 120 on time to reach T3');
         expect(html).toContain('data-action="close"');
+        // a small corner x, not a full-width Close row (2026-10-30)
+        expect(html).toContain('class="vc-close"');
+        expect(html).toContain('aria-label="Close"');
+        expect(html).not.toContain('modal-buttons');
+        expect(html).not.toContain('primary-button');
         expect(html).toContain('width:384px'); // 3x the 128px canvas
         expect(html).not.toContain('p"x.png');
     });
@@ -153,7 +158,7 @@ describe('open', () => {
     });
     afterEach(() => { delete global.Modal; });
 
-    test('opens one card at a time and the Close button removes it', () => {
+    test('opens one card at a time and the corner x removes it', () => {
         VillageCard.open({ kind: 'nights', progress: progress(2) });
         VillageCard.open({ kind: 'slain', progress: progress(2, 'slain') });
         expect(document.querySelectorAll('.village-card-overlay')).toHaveLength(1);

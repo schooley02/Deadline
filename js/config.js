@@ -517,47 +517,36 @@ const CONFIG = {
     VILLAGE_CLOCK_SCALE: 1, // 1 = clean 1:1 pixels
     VILLAGE_CLOCK_ART_H_PX: 246, // tallest tier's visible art height (T5 = 246, T1 = 245), used to decide how far to lower the feet; must fit a 298px canvas (feet drop 24)
     VILLAGE_FEET_MAX_DROP_PX: 24, // the tower's feet may sink this far below the horizon on short canvases
-    VILLAGE_CLOCK_X_FRAC: 0.36, // tower centre = church edge + frac x walking-field width (2026-10-30: 0.55 -> 0.36 so the front row holds FOUR buildings at 844 wide)
     VILLAGE_MIN_FIELD_PX: 220, // a narrower walking field hides the village
     VILLAGE_TIERS: 5,
     VILLAGE_DEV_CLOCK_TIER: 3, // DEV: no punctuality tier data yet. `?villageTier=1..5` in the URL overrides, `off` hides; null = hidden
     // Jailhouse / sheriff's office (kind `defense` = Church Defense; re-keyed from `lurkers` 2026-10-29): 128x128 canvas, fieldstone, left of the tower.
     VILLAGE_JAIL_W_PX: 128,
     VILLAGE_JAIL_H_PX: 128,
-    VILLAGE_JAIL_X_FRAC: 0.13, // jail centre = church edge + frac x walking-field width
     VILLAGE_DEV_JAIL_TIER: 3, // DEV: no defense tier data yet. `?jailTier=1..5` overrides, `off` hides; null = hidden
-    VILLAGE_MIN_GAP_PX: 8, // the jail is dropped if it would sit closer than this to the Clock tower (or over the church)
     // Armory (kind `slain`, added 2026-10-29): survivor army camp (tent + guard tower), 128x128, RIGHT of the tower.
     VILLAGE_ARMORY_W_PX: 128,
     VILLAGE_ARMORY_H_PX: 128,
-    VILLAGE_ARMORY_X_FRAC: 0.85, // armory centre = church edge + frac x walking-field width; dropped if it would touch the tower or reach the graveyard hill
     VILLAGE_DEV_ARMORY_TIER: 3, // DEV: no slain tier data yet. `?armoryTier=1..5` overrides, `off` hides; null = hidden
     // Radio tower (kind `nights` = Nights Survived, added 2026-10-29): steel mast + radio shack, 128x160, a BACK-ROW building
     // between the Jailhouse and the tower. Raised on the ridge, darker, painted first (the front row covers it).
     VILLAGE_RADIO_W_PX: 128,
     VILLAGE_RADIO_H_PX: 160,
-    VILLAGE_RADIO_X_FRAC: 0.26, // radio centre = church edge + frac x walking-field width; dropped if it would sink behind a front building by more than VILLAGE_BACK_MAX_OVERLAP_PX
     VILLAGE_DEV_RADIO_TIER: 3, // DEV: no nights tier data yet. `?radioTier=1..5` overrides, `off` hides; null = hidden
     VILLAGE_BACK_ROW_RAISE_PX: 30, // back-row feet stand this far above the front row's feet (depth by ridge position, same sprite size; 2026-10-30: 14 -> 30, Jeremy: the village sits on a hill sloping down to the church and lanes)
     VILLAGE_BACK_ROW_BRIGHTNESS: 0.8, // back-row sprites are drawn at this brightness (CSS filter) so they recede behind the front row
-    VILLAGE_BACK_MAX_OVERLAP_PX: 48, // a back-row building's VISIBLE ART may sink behind a front building's visible art by this many px at most (2026-10-30: was 40 on the 128px boxes; art-based now)
     // Boxing gym (kind `lurkers` = willpower, added 2026-10-30): old grey clapboard gym, 128x128, FRONT row between the tower and the Armory.
     VILLAGE_GYM_W_PX: 128,
     VILLAGE_GYM_H_PX: 128,
-    VILLAGE_GYM_X_FRAC: 0.59, // gym centre = church edge + frac x walking-field width; dropped (never moved) if its art would touch the tower or the Armory, or reach the church / hill
     VILLAGE_DEV_GYM_TIER: 3, // DEV: no lurkers tier data yet. `?gymTier=1..5` overrides, `off` hides; null = hidden
-    // High school (kind `heroes`, 2026-10-30): a BACK-ROW building between the Clock tower and the gym. 0.468 puts its art
-    // exactly 48px behind both neighbours at 844 wide (VILLAGE_BACK_MAX_OVERLAP_PX); narrower windows drop it, wider ones keep it.
+    // High school (kind `heroes`, 2026-10-30): a BACK-ROW building; position in VILLAGE_PLACEMENT.
     VILLAGE_SCHOOL_W_PX: 128,
     VILLAGE_SCHOOL_H_PX: 128,
-    VILLAGE_SCHOOL_X_FRAC: 0.468,
     VILLAGE_DEV_SCHOOL_TIER: 3, // DEV: no heroes tier data yet. `?schoolTier=1..5` overrides, `off` hides; null = hidden
     // Hospital (kind `habits`, 2026-10-30): sage stucco hospital + ER wing, 128x160, a BACK-ROW building in the gap between the gym
     // and the Armory. PLACEHOLDER ART: habits_t1..t5 are all the locked T3 until the other tiers are generated (PixelLab, Nov 7).
-    // 0.719 centres its art in that gap at 844 wide (43px behind each neighbour, under VILLAGE_BACK_MAX_OVERLAP_PX).
     VILLAGE_HOSPITAL_W_PX: 128,
     VILLAGE_HOSPITAL_H_PX: 160,
-    VILLAGE_HOSPITAL_X_FRAC: 0.719,
     VILLAGE_DEV_HOSPITAL_TIER: 3, // DEV: no habits tier data yet. `?hospitalTier=1..5` overrides, `off` hides; null = hidden
     // Windmill (kind `bestdays`, 2026-10-30, PLACEHOLDER art until PixelLab credits return Nov 7): farm water-pumping windmill on a
     // timber tower + barn-red pump house, 128x160, the first FAR-ROW building: one ridge further back than the back row (feet
@@ -566,7 +555,6 @@ const CONFIG = {
     // dropped only if its art would reach the church or the hill, or overlap the Clock tower's art (the landmark stays clear).
     VILLAGE_WINDMILL_W_PX: 128,
     VILLAGE_WINDMILL_H_PX: 160,
-    VILLAGE_WINDMILL_X_FRAC: 0.57,
     VILLAGE_DEV_WINDMILL_TIER: 3, // DEV: no bestdays tier data yet. `?windmillTier=1..5` overrides, `off` hides; null = hidden
     VILLAGE_FAR_ROW_RAISE_PX: 30, // far-row feet stand this far above the BACK row's feet
     VILLAGE_FAR_ROW_BRIGHTNESS: 0.65, // darker than the back row (0.8) so it reads as further away
@@ -577,7 +565,6 @@ const CONFIG = {
     // (the hill) to the building's visible-art right edge (> 0 = tucked behind the hill); narrower fields scale it by
     // field / VILLAGE_DESIGN_FIELD_PX; wider ones keep the same cluster and CENTRE it in the field (Jeremy 2026-10-30). Rows by DOOR SIZE: front doors ~26-31px, back ~16-21, far ~17-18.
     // Only short buildings may stand in the ~90px under the moon + "NIGHTS SURVIVED" label. `flip` mirrors the sprite.
-    // (The per-kind VILLAGE_*_X_FRAC keys below are the old model's, kept only for the legacy per-kind slot helpers.)
     VILLAGE_DESIGN_FIELD_PX: 517,
     VILLAGE_PLACEMENT: {
         lurkers: { row: 'front', right: -401 },          // Boxing gym, by the church

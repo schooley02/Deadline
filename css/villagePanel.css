@@ -1,0 +1,68 @@
+/* Village panel (2026-10-30): the overview the HUD village button opens (js/ui/villagePanel.js), and the button itself.
+   The corner x reuses .vc-close from villageCard.css. */
+
+.village-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    cursor: pointer;
+    min-height: 32px;
+    min-width: 36px;
+    padding-left: 8px;
+    padding-right: 8px; /* icon only: squarer than the text buttons */
+    color: var(--color-primary-dark-green);
+}
+.village-button:focus-visible { outline: 2px solid var(--color-primary-dark-green); outline-offset: 2px; }
+.village-button svg { display: block; }
+
+.village-panel { position: relative; max-width: 520px; width: calc(100vw - 32px); max-height: calc(100vh - 32px); overflow-y: auto; text-align: left; }
+.vp-title { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding-right: 28px; margin-bottom: 10px; }
+.vp-title h3 { margin: 0; }
+.vp-total { font-size: 13px; color: var(--color-neutral); white-space: nowrap; }
+.vp-list { display: flex; flex-direction: column; gap: 6px; }
+
+.vp-row {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    border: 1px solid var(--color-secondary-green-pale);
+    border-radius: 8px;
+    background: var(--color-primary-white);
+    font-family: inherit;
+    text-align: left;
+    color: var(--color-text-primary);
+    cursor: pointer;
+}
+.vp-row:hover { background: rgba(0, 0, 0, 0.04); }
+.vp-row:focus-visible { outline: 2px solid var(--color-primary-dark-green); outline-offset: 2px; }
+.vp-thumb {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    box-sizing: border-box;
+    border-radius: 6px;
+    background: #2A3042; /* the night scene, like the building card */
+    overflow: hidden;
+}
+.vp-sprite { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }
+.vp-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.vp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.vp-name { font-weight: 600; font-size: 14px; }
+.vp-tier { font-size: 12px; color: var(--color-neutral); white-space: nowrap; }
+.vp-bar { display: block; box-sizing: border-box; height: 8px; border-radius: 4px; background: #B8CBC6; border: 1px solid var(--color-primary-dark-green); overflow: hidden; }
+.vp-fill { display: block; height: 100%; background: var(--color-accent-teal); }
+.vp-text { font-size: 12px; color: var(--color-text-primary); }
+.vp-row--maxed .vp-text { font-weight: 600; color: var(--color-holy-gold); }
+
+/* Short screens (landscape phones): tighter rows so more of the list shows. */
+@media (max-height: 520px) {
+    .vp-row { grid-template-columns: 48px minmax(0, 1fr); gap: 10px; padding: 4px 8px; }
+    .vp-thumb { width: 48px; height: 48px; }
+}

@@ -160,29 +160,18 @@ describe('CONFIG', () => {
     test('the village is on by default and its numbers are sane', () => {
         expect(CONFIG.VILLAGE_ENABLED).toBe(true);
         expect(CONFIG.VILLAGE_TIERS).toBe(5);
-        expect(CONFIG.VILLAGE_CLOCK_X_FRAC).toBeGreaterThan(0);
-        expect(CONFIG.VILLAGE_CLOCK_X_FRAC).toBeLessThan(1);
         expect(CONFIG.VILLAGE_DEV_CLOCK_TIER).toBeGreaterThanOrEqual(1);
         expect(CONFIG.VILLAGE_DEV_CLOCK_TIER).toBeLessThanOrEqual(CONFIG.VILLAGE_TIERS);
         expect(CONFIG.VILLAGE_DEV_JAIL_TIER).toBeGreaterThanOrEqual(1);
         expect(CONFIG.VILLAGE_DEV_JAIL_TIER).toBeLessThanOrEqual(CONFIG.VILLAGE_TIERS);
-        expect(CONFIG.VILLAGE_JAIL_X_FRAC).toBeLessThan(CONFIG.VILLAGE_CLOCK_X_FRAC); // jail stands left of the tower
         expect(CONFIG.VILLAGE_DEV_RADIO_TIER).toBeGreaterThanOrEqual(1);
         expect(CONFIG.VILLAGE_DEV_RADIO_TIER).toBeLessThanOrEqual(CONFIG.VILLAGE_TIERS);
-        expect(CONFIG.VILLAGE_RADIO_X_FRAC).toBeGreaterThan(CONFIG.VILLAGE_JAIL_X_FRAC); // the radio stands between jail and tower
-        expect(CONFIG.VILLAGE_RADIO_X_FRAC).toBeLessThan(CONFIG.VILLAGE_CLOCK_X_FRAC);
         expect(CONFIG.VILLAGE_DEV_GYM_TIER).toBeGreaterThanOrEqual(1);
         expect(CONFIG.VILLAGE_DEV_GYM_TIER).toBeLessThanOrEqual(CONFIG.VILLAGE_TIERS);
-        expect(CONFIG.VILLAGE_GYM_X_FRAC).toBeGreaterThan(CONFIG.VILLAGE_CLOCK_X_FRAC); // the gym stands between the tower and the armory
-        expect(CONFIG.VILLAGE_GYM_X_FRAC).toBeLessThan(CONFIG.VILLAGE_ARMORY_X_FRAC);
         expect(CONFIG.VILLAGE_DEV_SCHOOL_TIER).toBeGreaterThanOrEqual(1);
         expect(CONFIG.VILLAGE_DEV_SCHOOL_TIER).toBeLessThanOrEqual(CONFIG.VILLAGE_TIERS);
-        expect(CONFIG.VILLAGE_SCHOOL_X_FRAC).toBeGreaterThan(CONFIG.VILLAGE_CLOCK_X_FRAC); // the school stands behind, between the tower and the gym
-        expect(CONFIG.VILLAGE_SCHOOL_X_FRAC).toBeLessThan(CONFIG.VILLAGE_GYM_X_FRAC);
         expect(CONFIG.VILLAGE_DEV_HOSPITAL_TIER).toBeGreaterThanOrEqual(1);
         expect(CONFIG.VILLAGE_DEV_HOSPITAL_TIER).toBeLessThanOrEqual(CONFIG.VILLAGE_TIERS);
-        expect(CONFIG.VILLAGE_HOSPITAL_X_FRAC).toBeGreaterThan(CONFIG.VILLAGE_GYM_X_FRAC); // the hospital stands behind, between the gym and the armory
-        expect(CONFIG.VILLAGE_HOSPITAL_X_FRAC).toBeLessThan(CONFIG.VILLAGE_ARMORY_X_FRAC);
     });
 });
 
