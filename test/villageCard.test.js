@@ -93,7 +93,7 @@ describe('cardHtml', () => {
         expect((html.match(/class="vc-pip /g) || [])).toHaveLength(5);
         expect(html).toContain('30 / 120 on time to reach T3');
         expect(html).toContain('data-action="close"');
-        expect(html).toContain('width:256px'); // 2x the 128px canvas
+        expect(html).toContain('width:384px'); // 3x the 128px canvas
         expect(html).not.toContain('p"x.png');
     });
 
@@ -113,11 +113,19 @@ describe('cardHtml', () => {
 });
 
 describe('spriteScale', () => {
-    test('2x for a 128px canvas, 1x for one too tall to fit at 2x (the Clock tower)', () => {
-        expect(VillageCard.spriteScale(128, 128)).toBe(2);
-        expect(VillageCard.spriteScale(128, 133)).toBe(2);
+    test('3x for a 128px canvas, a smaller whole scale (down to 1x) for bigger ones (the Clock tower)', () => {
+        expect(VillageCard.spriteScale(128, 128)).toBe(3);
+        expect(VillageCard.spriteScale(128, 133)).toBe(3);
+        expect(VillageCard.spriteScale(146, 150)).toBe(2);
         expect(VillageCard.spriteScale(146, 262)).toBe(1);
-        expect(VillageCard.spriteScale(0, 0)).toBe(2);
+        expect(VillageCard.spriteScale(0, 0)).toBe(3);
+    });
+    test('the card is two columns: art (.vc-art) beside the info (.vc-info)', () => {
+        const html = VillageCard.cardHtml(VillageCard.buildModel({ kind: 'nights', progress: progress(0) }));
+        expect(html.indexOf('vc-body')).toBeLessThan(html.indexOf('vc-art'));
+        expect(html.indexOf('vc-art')).toBeLessThan(html.indexOf('vc-info'));
+        expect(html.indexOf('vc-info')).toBeLessThan(html.indexOf('vc-head'));
+        expect(html.indexOf('vc-bar-text')).toBeLessThan(html.indexOf('data-action="close"'));
     });
     test('the card html uses the model scale', () => {
         const tall = VillageCard.cardHtml(VillageCard.buildModel({ kind: 'punctuality', progress: progress(0, 'punctuality'), spriteUrl: 'a.png', spriteW: 146, spriteH: 262 }));

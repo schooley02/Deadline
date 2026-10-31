@@ -2,7 +2,7 @@
  * VillageCard -- the building card (V7 W2 village, Build 2, 2026-10-30; plan docs/WORLD_FEEDBACK_PLAN.md
  * "Village tiers + building cards"). Tapping a village building opens it through `Modal`, like the level panel.
  *
- * Shows: the sprite at 2x (1x when the canvas is too tall), the building's name, one line on what it measures, five tier pips (T1..T5),
+ * Shows: the sprite at the largest whole-number scale that fits (3x for the 128px canvases), the building's name, one line on what it measures, five tier pips (T1..T5),
  * a progress bar "N / M <unit> to reach T<n+1>" ("Fully rebuilt" at T5), and the flavour lines that never
  * drive a tier (school = attendance streak, windmill = comeback days). Two empty states: the gym with no bad
  * habit to resist, the school with no routine.
@@ -58,12 +58,15 @@ const VillageCard = (() => {
         return out;
     }
 
-    // The sprite is shown at 2x (the plan's pixel-scale rule) when that fits the card, else 1x: the Clock tower's
-    // canvas is much taller than the 128px buildings, and 2x of it would push the text off a phone screen.
-    const MAX_ART_W = 296;
-    const MAX_ART_H = 270;
+    // Two-column card (art left, text right): the sprite is shown at the largest whole-number scale that fits the art
+    // column (3x for the 128px canvases, 2x/1x for bigger ones; the Clock tower's canvas is tall, so it stays at 1x).
+    const MAX_ART_W = 384;
+    const MAX_ART_H = 400;
     function spriteScale(w, h) {
-        return (w * 2 <= MAX_ART_W && h * 2 <= MAX_ART_H) ? 2 : 1;
+        for (let k = 3; k > 1; k--) {
+            if (w * k <= MAX_ART_W && h * k <= MAX_ART_H) return k;
+        }
+        return 1;
     }
 
     function buildModel(ctx) {
@@ -134,16 +137,20 @@ const VillageCard = (() => {
         return `
             <div class="modal-overlay village-card-overlay">
                 <div class="modal-content village-card" role="dialog" aria-label="${esc(m.name)}, tier ${m.tier}">
-                    <div class="vc-art">${sprite}</div>
-                    <div class="vc-head">
-                        <h3>${esc(m.name)}</h3>
-                        <span class="vc-tier">Tier ${m.tier}</span>
+                    <div class="vc-body">
+                        <div class="vc-art">${sprite}</div>
+                        <div class="vc-info">
+                            <div class="vc-head">
+                                <h3>${esc(m.name)}</h3>
+                                <span class="vc-tier">Tier ${m.tier}</span>
+                            </div>
+                            <p class="vc-measures">${esc(m.measures)}</p>
+                            <div class="vc-pips">${m.pips.map(pipHtml).join('')}</div>
+                            <div class="vc-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span class="vc-fill" style="width:${pct}%"></span></div>
+                            <p class="vc-bar-text${m.maxed ? ' vc-bar-text--maxed' : ''}">${esc(m.barText)}</p>
+                            ${emptyHtml}${linesHtml}
+                        </div>
                     </div>
-                    <p class="vc-measures">${esc(m.measures)}</p>
-                    <div class="vc-pips">${m.pips.map(pipHtml).join('')}</div>
-                    <div class="vc-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span class="vc-fill" style="width:${pct}%"></span></div>
-                    <p class="vc-bar-text${m.maxed ? ' vc-bar-text--maxed' : ''}">${esc(m.barText)}</p>
-                    ${emptyHtml}${linesHtml}
                     <div class="modal-buttons"><button type="button" class="primary-button" data-action="close">Close</button></div>
                 </div>
             </div>`;

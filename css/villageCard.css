@@ -1,14 +1,18 @@
 /* Village building card (V7 W2 Build 2, 2026-10-30): the window a tap on a village building opens.
    Markup + model: js/ui/villageCard.js. Same overlay/content shell as the level panel. */
 
-.village-card { max-width: 340px; max-height: calc(100vh - 32px); overflow-y: auto; text-align: center; }
+.village-card { max-width: 760px; width: calc(100vw - 32px); max-height: calc(100vh - 32px); overflow-y: auto; }
+/* Two columns: the art on the left (as big as fits), the facts on the right. */
+.vc-body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px; align-items: center; }
+.vc-info { min-width: 0; text-align: left; }
 .vc-art {
     display: flex;
     align-items: flex-end;
     justify-content: center;
     min-height: 60px;
-    margin: 0 0 8px;
-    padding: 8px 0 4px;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 12px 12px 8px;
     border-radius: 8px;
     background: #2A3042; /* the night scene, so the pixel art reads as it does on the hill */
     overflow: hidden;
@@ -30,6 +34,7 @@
     font-size: 12px;
     color: var(--color-neutral);
 }
+.vc-pip { text-align: center; }
 .vc-pip--done { background: var(--color-accent-teal); border-color: var(--color-primary-dark-green); color: var(--color-primary-white); }
 .vc-pip--current { border: 2px solid var(--color-primary-dark-green); color: var(--color-primary-dark-green); font-weight: 700; }
 .vc-pip--locked { border-style: dotted; background: transparent; }
@@ -48,7 +53,14 @@
 .vc-empty { margin: 10px 0 0; padding: 8px; border: 1px dashed var(--color-primary-dark-green); border-radius: 8px; font-size: 13px; color: var(--color-primary-dark-green); }
 .vc-line { margin: 8px 0 0; font-size: 12px; color: var(--color-neutral); }
 
-/* Short landscape phones: the 2x sprite would fill the screen, so scale it down to a third of the height. */
+/* Short screens (landscape phones): keep two columns, but cap the art so the card still fits the height. */
 @media (max-height: 520px) {
-    .vc-sprite { width: auto !important; max-height: 34vh; }
+    .vc-sprite { width: auto !important; max-height: 58vh; }
+    .vc-body { gap: 14px; }
+}
+
+/* Narrow windows: stack the columns (art on top). */
+@media (max-width: 560px) {
+    .vc-body { grid-template-columns: minmax(0, 1fr); }
+    .vc-art { justify-self: center; }
 }
