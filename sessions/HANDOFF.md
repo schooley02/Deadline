@@ -11,6 +11,12 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-01 (afternoon) -- Habit Goals designed (Claude app session, Opus; Jeremy)
+**Did:** design session, no code. Plan `docs/HABIT_GOALS_PLAN.md`; DECISIONS 2026-11-01 (afternoon); ROADMAP Habit Goals Builds 1-3. Window-mode checkboxes (v177) phone-confirmed.
+**State:** code unchanged since dc8ec81 (sw v177), green.
+**Next:** Habit Goals Build 1 (Sonnet, medium). Two open points in the plan: Break habits with a Time/Amount limit skip the tempting-time arrival prompt (Build 3), and Build habits without a Time goal lose the stopwatch (confirm in Build 1).
+**Watch out:** no schema bump planned: `Habits.goalOf(def)` derives a Time goal from an old `timerMinutes`; keep `timerMinutes` in step so js/timer.js keeps working. DailyRecord v4 lands in Build 3 (guardrail).
+
 ## 2026-11-01 (night, later) -- Habit window-mode checkboxes (Claude app session, Sonnet; Jeremy)
 **Did:** two paired checkboxes (Completion window / Custom times) on Add Habit, New Habit (routine) and Edit Habit; the unused control hides. `Forms.habitWindowModeHtml`, `Modal.wireHabitTimeLabels`, css/forms.css; 2 new tests; sw v177. Jest 105 suites / 2,442; live-checked headlessly at 390x844 (no errors).
 **State:** green; written to the folder, not yet committed. **Next:** phone-check it; the Start time checks still open.
