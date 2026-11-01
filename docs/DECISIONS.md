@@ -5,6 +5,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+## 2026-10-31 (afternoon) -- UI polish: no art boxes, attack-pulsing stopwatch, plain checkbox, pencil edit icon (Claude app session, Opus then Sonnet; Jeremy)
+- **Village art boxes (sw v167):** the pale-green box behind each building is gone on the building card (`.vc-art`) and on the village list thumbnails (`.vp-thumb`); the grey row boxes stay. The game-over peak strip (`.vps-thumb`) KEEPS its light backdrop because it sits on the dark card. Why: Jeremy: the art reads fine straight on white and the boxes were clutter.
+- **Timer button (sw v168-v172):** stopwatch SVG replaces the emoji (work timers; limit timers keep the hourglass); it pulses red when its item is overdue and no timer runs (`Timer.shouldNudge`), to tell the player to start it (that already halves the damage). Grows on hover like the pencil. Why: the halved-damage rule was invisible; the pulse makes it discoverable without any balance change. Rejected: auto-starting a timer; a toast.
+- **Completion checkbox (sw v169):** no label; grey outline + faint grey check, green fill + white check when done. Why (Jeremy): the box is self-explanatory and red read as a warning. Kept the small "(N remaining)" note beside a disabled box so the player can see why it can't be ticked (Jeremy can drop it).
+- **Edit icon (sw v170):** pencil-with-underline drawn once as a CSS mask for every edit button (task row, sub-task, popups, completed list, routine editors). The legacy `TaskManager.js` buttons were left alone (that class isn't used by the app).
+- **Bug found while building:** `processTimers` returned early when no timer was running, so nothing refreshed the buttons while idle -- the pulse would never have started. It now refreshes once a second in both cases.
+- Tests: 5 new in `test/timer.test.js`; Jest 103 suites / 2,401 green on 2026-10-31 (on 2026-11-01, the DST fall-back day, 2 clock-dependent `timeSliderView` tests fail on a clean checkout too: not a regression, to be pinned). Not phone-checked except the village change (confirmed on the phone at v167).
+
 ## 2026-10-31 (late morning, after the rename) -- Unanswered Break habits settle NEUTRAL (Claude app session, Opus; Jeremy: "yes to neutral for now")
 - **Was (session 26, Fable):** a Break (negative) habit lurker from a day OLDER than the check-in day -- or a KO-ghost one on any day -- auto-settled at rollover as AVOIDED: success occurrence, streak++, XP, points, a `lurk` avoided in the daily record, frozen-routine recovery progress, routine XP.
 - **Why change:** that default was written when it only paid a few points. Since 2026-10-30/31 it also earned a Boxing gym clean day (daily record `lurk.avoided`) and a routine-star success (-> High school banked stars), so NOT answering earned credit in three systems.
