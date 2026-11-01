@@ -97,3 +97,8 @@
 /* Custom habit start/end pair (Build B, 2026-11-01): .form-row-group sets display:grid, which would override the
    hidden attribute, so restate it. Shown only while "Custom times..." is selected (Modal.wireHabitTimeLabels). */
 .form-row-group.custom-habit-times[hidden] { display: none; }
+
+/* Window-mode toggle (2026-11-01): two checkboxes side by side, "Completion window" / "Custom times". */
+.habit-window-mode { display: flex; gap: var(--space-4, 16px); align-items: center; flex-wrap: wrap; }
+.habit-window-mode-opt { display: inline-flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; }
+.habit-window-mode-opt[hidden] { display: none; }

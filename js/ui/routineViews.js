@@ -1105,6 +1105,7 @@ const RoutineViews = (() => {
                         </select>
                     </div>
                     ${scheduleFieldsHtml('newHabit', Schedule.defaultSchedule())}
+                    ${Forms.habitWindowModeHtml('newHabitTimeOfDay', false)}
                     <div class="form-row">
                         <label>Time of Day:</label>
                         <select id="newHabitTimeOfDay">
@@ -1214,6 +1215,7 @@ const RoutineViews = (() => {
                         </select>
                     </div>
                     ${scheduleFieldsHtml('editHabit', habitDef.schedule ? Schedule.normalize(habitDef.schedule) : Schedule.fromLegacyFrequency(habitDef.frequency))}
+                    ${Forms.habitWindowModeHtml('editHabitTimeOfDay', habitDef.timeOfDay === 'custom')}
                     <div class="form-row">
                         <label>Time of Day:</label>
                         <select id="editHabitTimeOfDay">

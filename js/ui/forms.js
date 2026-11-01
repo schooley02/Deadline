@@ -212,6 +212,16 @@ const Forms = (() => {
         });
     }
 
+    // Window-mode toggle (2026-11-01, Jeremy): two checkboxes -- "Completion window" / "Custom times" -- that behave
+    // like a pair (checking one unchecks the other, one is always on). The matching control shows, the other hides, which
+    // frees form space. The <select> stays the data model ('custom' = Custom times). Wired by Modal.wireHabitTimeLabels.
+    function habitWindowModeHtml(selectId, custom) {
+        return `<div class="form-row habit-window-mode" id="${selectId}Mode">
+                <label class="habit-window-mode-opt"><input type="checkbox" data-window-mode="window"${custom ? '' : ' checked'}> Completion window</label>
+                <label class="habit-window-mode-opt"><input type="checkbox" data-window-mode="custom"${custom ? ' checked' : ''}> Custom times</label>
+            </div>`;
+    }
+
     // Pure. Returns an error string for a custom habit window, else null: "custom" needs an End time, and Start
     // (when given) must be earlier than End. Not custom, or a Break habit, is always fine (Break habits cannot be custom).
     function customHabitTimesError(timeOfDay, isNegative, startTime, endTime) {
@@ -334,6 +344,7 @@ const Forms = (() => {
                 </select>
             </div>
             ${scheduleFieldsHtml('modalHabit', Schedule.defaultSchedule())}
+            ${habitWindowModeHtml('modalHabitTimeOfDay', false)}
             <div class="form-row">
                 <label for="modalHabitTimeOfDay">Completion Window:</label>
                 <select id="modalHabitTimeOfDay">
@@ -600,6 +611,7 @@ const Forms = (() => {
         startDueTimeGroupHtml,
         startBeforeDueError,
         customHabitTimesHtml,
+        habitWindowModeHtml,
         customHabitTimesError,
     };
 })();

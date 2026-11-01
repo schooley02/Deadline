@@ -11,6 +11,11 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-01 (night, later) -- Habit window-mode checkboxes (Claude app session, Sonnet; Jeremy)
+**Did:** two paired checkboxes (Completion window / Custom times) on Add Habit, New Habit (routine) and Edit Habit; the unused control hides. `Forms.habitWindowModeHtml`, `Modal.wireHabitTimeLabels`, css/forms.css; 2 new tests; sw v177. Jest 105 suites / 2,442; live-checked headlessly at 390x844 (no errors).
+**State:** green; written to the folder, not yet committed. **Next:** phone-check it; the Start time checks still open.
+**Watch out:** Break habits hide the Custom times box. Edit Habit with an old 'custom' habit opens in Custom mode.
+
 ## 2026-11-01 (night) -- Default Start/Due window (Claude app session, Sonnet; Jeremy)
 **Did:** Add Task opens with Start = now, Due = now + 1 h (cap 23:59); Add Habit + routine New Habit prefill the hidden custom Start/End pair the same. `Forms.computeDefaultWindow`; `createHabitFormHtml(now)`; test/forms-due-time-default.test.js rewritten; docs (UI_UX, CLAUDE, DECISIONS); sw v175. Jest 105 suites / 2,440.
 **State:** green; Build B (v174) + the defaults (v175) pushed (b6f5278). **Later, same day (sw v176, pushed 0546b2e):** Jeremy phone-checked Start time ("everything works") and saw a colored circle behind idle waiting zombies in portrait: the category-dot rules in css/glanceStrip.css (`.enemy.category-x:not(.zombie-subtask):not(.enemy-at-base)`) out-ranked the parked-lurker rule, so its `background-image: none` lost. Fixed with a higher-specificity second selector on `.enemy.lurker-parked.has-anim-sprite`; it also clears the dot on parked Break-habit lurkers. Verified headlessly at 390x844; Jeremy confirmed on phone. Jest 105 suites / 2,440.

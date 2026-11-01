@@ -147,6 +147,14 @@ describe('Form helpers and wiring', () => {
             ${Forms.customHabitTimesHtml({ selectId: 'sel', startId: 'st', endId: 'en', startValue: '', endValue: '', visible: selected === 'custom' })}`;
         Modal.wireHabitTimeLabels('t', 'sel');
     }
+    function mountWithMode(typeValue, selected) {
+        mount(typeValue, selected);
+        const row = document.createElement('div');
+        row.innerHTML = Forms.habitWindowModeHtml('sel', selected === 'custom');
+        document.body.insertBefore(row.firstElementChild, document.body.firstChild.nextSibling);
+        document.body.querySelector('select').dispatchEvent(new Event('change', { bubbles: true })); // no-op until wired below
+        Modal.wireHabitTimeLabels('t', 'sel');
+    }
     const fire = (el, type) => el.dispatchEvent(new Event(type, { bubbles: true }));
 
     test('choosing Custom shows the pair; choosing another bucket hides it', () => {
@@ -175,5 +183,47 @@ describe('Form helpers and wiring', () => {
         const pos = document.getElementById('tp');
         pos.checked = true; fire(pos, 'change');
         expect(customOpt.hidden).toBe(false);
+    });
+
+    test('window-mode checkboxes: one control shows, the other hides; one box is always on', () => {
+        document.body.innerHTML = '';
+        mountWithMode('positive', 'anytime');
+        const sel = document.getElementById('sel');
+        const selRow = sel.closest('.form-row');
+        const group = document.getElementById('selCustom');
+        const win = document.querySelector('[data-window-mode="window"]');
+        const cus = document.querySelector('[data-window-mode="custom"]');
+        expect(win.checked).toBe(true); expect(cus.checked).toBe(false);
+        expect(selRow.style.display).toBe('');
+        expect(group.hidden).toBe(true);
+        sel.value = 'morning'; fire(sel, 'change');
+        cus.checked = true; fire(cus, 'change');
+        expect(sel.value).toBe('custom');
+        expect(win.checked).toBe(false);
+        expect(selRow.style.display).toBe('none');
+        expect(group.hidden).toBe(false);
+        // unticking Custom (nothing else ticked) falls back to the last bucket, never to "neither"
+        cus.checked = false; fire(cus, 'change');
+        expect(sel.value).toBe('morning');
+        expect(win.checked).toBe(true); expect(cus.checked).toBe(false);
+        expect(group.hidden).toBe(true);
+        // ticking Completion window while Custom is on switches back
+        cus.checked = true; fire(cus, 'change');
+        win.checked = true; fire(win, 'change');
+        expect(sel.value).not.toBe('custom');
+        expect(cus.checked).toBe(false);
+    });
+
+    test('a Break habit hides the Custom times checkbox and returns to the window', () => {
+        document.body.innerHTML = '';
+        mountWithMode('positive', 'custom');
+        const cus = document.querySelector('[data-window-mode="custom"]');
+        expect(cus.checked).toBe(true);
+        const neg = document.getElementById('tn');
+        neg.checked = true; fire(neg, 'change');
+        expect(cus.closest('label').hidden).toBe(true);
+        expect(cus.checked).toBe(false);
+        expect(document.getElementById('sel').value).toBe('anytime');
+        expect(document.getElementById('sel').closest('.form-row').style.display).toBe('');
     });
 });

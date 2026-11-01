@@ -337,9 +337,35 @@ const Modal = (() => {
                 if (isNegative && sel.value === 'custom') sel.value = 'anytime';
             }
             const customGroup = document.getElementById(selectId + 'Custom');
-            if (customGroup) customGroup.hidden = sel.value !== 'custom';
+            const isCustom = sel.value === 'custom';
+            if (customGroup) customGroup.hidden = !isCustom;
+            // Window-mode checkboxes (2026-11-01): "Completion window" vs "Custom times" -- show one control, hide the other.
+            const modeRow = document.getElementById(selectId + 'Mode');
+            if (modeRow) {
+                const winBox = modeRow.querySelector('[data-window-mode="window"]');
+                const customBox = modeRow.querySelector('[data-window-mode="custom"]');
+                if (winBox) winBox.checked = !isCustom;
+                if (customBox) {
+                    customBox.checked = isCustom;
+                    const customLabel = customBox.closest('label');
+                    if (customLabel) customLabel.hidden = isNegative; // Break habits keep their tempting-time buckets
+                }
+                const selRow = sel.closest('.form-row');
+                if (selRow) selRow.style.display = isCustom ? 'none' : '';
+            }
         };
-        sel.addEventListener('change', apply);
+        const modeRow = document.getElementById(selectId + 'Mode');
+        let lastBucket = sel.value !== 'custom' ? sel.value : 'anytime';
+        sel.addEventListener('change', () => { if (sel.value !== 'custom') lastBucket = sel.value; apply(); });
+        if (modeRow) {
+            modeRow.querySelectorAll('input[data-window-mode]').forEach(box => box.addEventListener('change', () => {
+                // One of the pair is always on: re-ticking/unticking resolves to the box that was just ticked.
+                const wantCustom = box.dataset.windowMode === 'custom' ? box.checked : !box.checked;
+                sel.value = wantCustom ? 'custom' : lastBucket;
+                apply();
+            }));
+        }
+
         document.querySelectorAll(`input[name="${radioName}"]`).forEach(r => r.addEventListener('change', apply));
         apply();
     }

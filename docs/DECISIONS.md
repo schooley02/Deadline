@@ -5,6 +5,10 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+## 2026-11-01 (night, later still) -- Habit window-mode checkboxes (sw v177; Jeremy)
+**Decision:** a pair of checkboxes ("Completion window" / "Custom times") choose which control shows on the habit forms; the other hides. Data model unchanged (the select's `custom` value).
+**Why:** Jeremy: free up space on the form. **Alternative:** radio buttons or a segmented control (same behavior; he asked for checkboxes).
+
 ## 2026-11-01 (night, later) -- Portrait: no category dot behind idle parked zombies (sw v176; Jeremy)
 **Decision:** `body.glance-strip .enemy.lurker-parked.has-anim-sprite` also matches with `:not(.zombie-subtask):not(.enemy-at-base)` so its `background-image: none !important` out-ranks the per-category dot rules. Applies to waiting tasks/Build habits and parked Break lurkers alike.
 **Why:** Jeremy saw colored circles behind the idle due-time animations on his phone (portrait). **Alternative:** limit to `.work-waiting` only (not needed; Jeremy said remove them).
