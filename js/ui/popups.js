@@ -212,7 +212,7 @@ const Popups = (() => {
         const timerOk = typeof deps.toggleWorkTimer === 'function' && typeof Timer !== 'undefined' && Timer.canTimer(item);
         const timerRunning = timerOk && Timer.isRunning(item);
         const timerHtml = timerOk
-            ? `<button type="button" id="workTimerBtn" class="work-timer-btn${timerRunning ? ' running' : ''}${Timer.shouldNudge(item) ? ' attacking' : ''}"${Timer.shouldNudge(item) ? ` title="${Timer.NUDGE_TITLE}"` : ''}>${Timer.popupHtml(item)}</button>`
+            ? `<button type="button" id="workTimerBtn" class="work-timer-btn${timerRunning ? ' running' : ''}${Timer.shouldNudge(item) ? ' attacking' : ''}${Timer.shouldPrompt(item) ? ' planned' : ''}"${Timer.shouldNudge(item) ? ` title="${Timer.NUDGE_TITLE}"` : Timer.shouldPrompt(item) ? ` title="${Timer.PROMPT_TITLE}"` : ''}>${Timer.popupHtml(item)}</button>`
             : '';
         return `
             <div class="task-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
@@ -324,6 +324,7 @@ const Popups = (() => {
                     if (r.completed) { Modal.closeModal(); return; }
                     workTimerButton.classList.toggle('running', r.running);
                     workTimerButton.classList.toggle('attacking', Timer.shouldNudge(item));
+                    workTimerButton.classList.toggle('planned', Timer.shouldPrompt(item));
                     workTimerButton.innerHTML = Timer.popupHtml(item);
                 }
             });
@@ -464,6 +465,8 @@ const Popups = (() => {
     function showEditTaskModal(item, deps) {
         const dueDate = formatDateInputValue(item.dueDateTime);
         const dueTime = formatTimeInputValue(item.dueDateTime);
+        // Optional planned start (2026-11-01): blank when none, or when it no longer sits before the due time.
+        const startTime = Clock.hasWorkWindow(item) ? formatTimeInputValue(item.startDateTime) : '';
 
         // Dependent due dates ([P1-DATA-004] sub-session 2): editing a SUB
         // caps its date at the parent's deadline (max attr + loud save-time
@@ -500,16 +503,11 @@ const Popups = (() => {
                         <input type="checkbox" id="editTaskHighPriority" ${item.isHighPriority ? 'checked' : ''}>
                         <label for="editTaskHighPriority">High Priority</label>
                     </div>
-                    <div class="form-row-group">
-                        <div class="form-row">
-                            <label for="editDueDate">Due Date:</label>
-                            <input type="date" id="editDueDate" value="${dueDate}"${maxDateAttr} required>
-                        </div>
-                        <div class="form-row">
-                            <label for="editDueTime">Due Time:</label>
-                            <input type="time" id="editDueTime" value="${dueTime}">
-                        </div>
+                    <div class="form-row">
+                        <label for="editDueDate">Due Date:</label>
+                        <input type="date" id="editDueDate" value="${dueDate}"${maxDateAttr} required>
                     </div>
+                    ${Forms.startDueTimeGroupHtml({ startId: 'editStartTime', dueId: 'editDueTime', startValue: startTime, dueValue: dueTime, startAttrs: `data-initial="${startTime}"` })}
                     <div class="form-row">
                         <label for="editTimerMinutes">Timer target (min, optional):</label>
                         <input type="number" id="editTimerMinutes" min="1" max="600" step="1" inputmode="numeric" value="${typeof item.timerMinutes === 'number' ? item.timerMinutes : ''}" placeholder="e.g. 30">
@@ -582,6 +580,21 @@ const Popups = (() => {
 
                 const newDueDateTime = new Date(`${newDueDate}T${newDueTime}`);
 
+                // Optional Start time: unchanged box keeps the stored Date as-is; a changed box is
+                // re-read on the due date; blank clears it. Must be strictly earlier than due.
+                const startInput = document.getElementById('editStartTime');
+                const startValue = startInput ? startInput.value : '';
+                const startInitial = startInput ? (startInput.getAttribute('data-initial') || '') : '';
+                let newStartDateTime = item.startDateTime || null;
+                if (startValue !== startInitial) {
+                    newStartDateTime = startValue ? new Date(`${newDueDate}T${startValue}`) : null;
+                }
+                if (startValue && newStartDateTime instanceof Date && !isNaN(newStartDateTime.getTime())
+                    && newStartDateTime.getTime() >= newDueDateTime.getTime()) {
+                    alert('Start time must be earlier than the due time.');
+                    return;
+                }
+
                 // Clamp model ([P1-DATA-004] sub-session 2): a sub-task may
                 // not be saved with a due date later than its parent's
                 // deadline. Loud rejection on manual entry (form validation),
@@ -606,6 +619,7 @@ const Popups = (() => {
                 item.category = category;
                 item.isHighPriority = isHighPriority;
                 item.dueDateTime = newDueDateTime;
+                item.startDateTime = (newStartDateTime instanceof Date && !isNaN(newStartDateTime.getTime())) ? newStartDateTime : null;
                 const editTarget = Math.floor(Number(document.getElementById('editTimerMinutes').value));
                 item.timerMinutes = (editTarget >= 1 && editTarget <= 600) ? editTarget : null;
                 if (reschedule && typeof deps.commitReschedule === 'function') deps.commitReschedule(item, reschedule);
@@ -719,16 +733,11 @@ const Popups = (() => {
                         <input type="checkbox" id="subTaskHighPriority" ${parentTask.isHighPriority ? 'checked' : ''}>
                         <label for="subTaskHighPriority">High Priority</label>
                     </div>
-                    <div class="form-row-group">
-                        <div class="form-row">
-                            <label for="subTaskDueDate">Due Date:</label>
-                            <input type="date" id="subTaskDueDate" value="${parentDueDate}" max="${parentDueDate}" required>
-                        </div>
-                        <div class="form-row">
-                            <label for="subTaskDueTime">Due Time:</label>
-                            <input type="time" id="subTaskDueTime" value="${parentDueTime}">
-                        </div>
+                    <div class="form-row">
+                        <label for="subTaskDueDate">Due Date:</label>
+                        <input type="date" id="subTaskDueDate" value="${parentDueDate}" max="${parentDueDate}" required>
                     </div>
+                    ${Forms.startDueTimeGroupHtml({ startId: 'subTaskStartTime', dueId: 'subTaskDueTime', startValue: '', dueValue: parentDueTime })}
                     <div class="modal-buttons">
                         <button id="createSubTaskBtn" class="primary-button">Create Sub-task</button>
                         <button class="secondary-button" onclick="closeModal()">Cancel</button>
@@ -766,6 +775,15 @@ const Popups = (() => {
                     return;
                 }
 
+                // Optional Start time (2026-11-01): must be earlier than the due time.
+                const subStartInput = document.getElementById('subTaskStartTime');
+                const subStartTime = subStartInput ? subStartInput.value : '';
+                const subStartError = Forms.startBeforeDueError(subStartTime, dueTime);
+                if (subStartError) {
+                    alert(subStartError);
+                    return;
+                }
+
                 // Clamp model ([P1-DATA-004] sub-session 2): reject a due
                 // date later than the parent's deadline. Mirrors
                 // createTaskItemData's parse rules (date-only → 23:59:59.999)
@@ -794,7 +812,8 @@ const Popups = (() => {
                     isHighPriority,
                     dueDate,
                     dueTime,
-                    parentId
+                    parentId,
+                    subStartTime || undefined
                 );
 
                 // Add to parent's subTasks array

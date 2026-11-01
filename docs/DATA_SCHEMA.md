@@ -392,3 +392,7 @@ Save {
 - **Rule:** a mechanic that changes what can happen in a day adds its counter in the same session
   (`DailyRecord.bump` event + a `recordDaily`/`State.bumpToday` seam) and bumps `DailyRecord.V`.
 
+### Start time fields (2026-11-01, additive, NO schema bump)
+- `item.startDateTime: Date | null` on tasks / sub-tasks / routine task instances (ISO string on disk, revived to a Date by the persistence reviver like `dueDateTime`). Missing or null = no work window. Only honoured while strictly before `dueDateTime` (`Clock.hasWorkWindow`). Old saves load unchanged.
+- `taskDefinition.defaultStartTime: "HH:MM" | null` -- copied onto each spawned instance for its own day (`Routines.getRoutineTaskInstanceStartTime`).
+- Build B (next): habit definitions get optional custom start/end times (see ROADMAP "Start time").

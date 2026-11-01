@@ -208,7 +208,9 @@ const AgendaList = (() => {
             timerBtn.classList.toggle('running', running);
             const nudge = Timer.shouldNudge(itemData);
             timerBtn.classList.toggle('attacking', nudge);
-            timerBtn.title = nudge ? Timer.NUDGE_TITLE : (running ? (Timer.isLimit(itemData) ? 'Stop \u2014 I stayed within my limit' : 'Stop timer') : (Timer.isLimit(itemData) ? 'Start limit timer' : 'Start timer'));
+            const planned = !nudge && Timer.shouldPrompt(itemData);
+            timerBtn.classList.toggle('planned', planned);
+            timerBtn.title = nudge ? Timer.NUDGE_TITLE : planned ? Timer.PROMPT_TITLE : (running ? (Timer.isLimit(itemData) ? 'Stop \u2014 I stayed within my limit' : 'Stop timer') : (Timer.isLimit(itemData) ? 'Start limit timer' : 'Start timer'));
             timerBtn.setAttribute('aria-label', timerBtn.title);
             timerBtn.addEventListener('click', (e) => {
                 e.stopPropagation();

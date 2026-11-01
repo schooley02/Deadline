@@ -94,6 +94,15 @@ const Timer = (() => {
         return canWorkTimer(item) && !isRunning(item) && item.isOverdue === true;
     }
     const NUDGE_TITLE = 'Zombie attacking: start the timer to halve the damage';
+    // "Planned work time" prompt (2026-11-01): the item has a Start time, now is inside [start, due),
+    // and no timer runs on it. Only a running stopwatch proves the player is working, so the button
+    // glows amber (softer than the red attack pulse) and invites a start. Clock is the optional global.
+    function shouldPrompt(item, nowMs) {
+        if (!canWorkTimer(item) || isRunning(item) || item.isOverdue === true) return false;
+        if (typeof Clock === 'undefined' || typeof Clock.isInWorkWindow !== 'function') return false;
+        return Clock.isInWorkWindow(item, nowMs === undefined ? Date.now() : nowMs);
+    }
+    const PROMPT_TITLE = 'Planned work time: start the timer';
     function popupLabel(item) {
         if (isLimit(item)) {
             return isRunning(item) ? '\u23F9 Stop \u2014 I stayed within my limit' : `\u23F3 Start ${item.timerMinutes}-min limit`;
@@ -201,7 +210,7 @@ const Timer = (() => {
 
     return {
         normalizeTarget, modeFor, isRunning, canWorkTimer, isLimit, canLimitTimer, canTimer,
-        remainingMs, buttonLabel, popupLabel, ICON_SVG, buttonHtml, popupHtml, shouldNudge, NUDGE_TITLE, elapsedMs, onSpan, start, stop, findRunning,
+        remainingMs, buttonLabel, popupLabel, ICON_SVG, buttonHtml, popupHtml, shouldNudge, NUDGE_TITLE, shouldPrompt, PROMPT_TITLE, elapsedMs, onSpan, start, stop, findRunning,
         pendingAction, promptDueAt, markPrompted, confirmStillWorking, autoStop,
         damageIntervalMs, formatElapsed,
     };

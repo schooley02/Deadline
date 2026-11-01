@@ -27,15 +27,41 @@ const Clock = (() => {
     const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
     const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
 
+    // Optional START time (2026-11-01, Jeremy): when the player plans to begin. An item
+    // with a valid `startDateTime` strictly BEFORE its dueDateTime has a work window
+    // [start, due). The zombie walks the lane toward the church by its START time, then
+    // waits at the church (idle, no attack, no damage) until the due time arrives.
+    // Anything else (missing, invalid, start >= due) behaves exactly as before.
+    function hasWorkWindow(item) {
+        if (!item || !(item.startDateTime instanceof Date) || !(item.dueDateTime instanceof Date)) return false;
+        const s = item.startDateTime.getTime();
+        const d = item.dueDateTime.getTime();
+        return !isNaN(s) && !isNaN(d) && s < d;
+    }
+
+    // True while now is inside [start, due): arrived at the church, waiting for the due time.
+    function isInWorkWindow(item, currentTime) {
+        if (!hasWorkWindow(item)) return false;
+        const now = (currentTime instanceof Date) ? currentTime.getTime() : Number(currentTime);
+        return now >= item.startDateTime.getTime() && now < item.dueDateTime.getTime();
+    }
+
+    // The moment the zombie is meant to REACH the church: start time when there is a
+    // work window, otherwise the due time. Walk position and walk-urgency use this.
+    function arrivalDateTime(item) {
+        return hasWorkWindow(item) ? item.startDateTime : item.dueDateTime;
+    }
+
     // Calculate position based on timeline system with 2-hour and 4-hour marks
     function calculateTimelinePosition(item, currentTime, dims) {
         const { gameScreenWidth, baseWidth, enemyWidth, habitEnemyWidth } = dims;
         const currentItemWidth = (item.type === 'habit') ? habitEnemyWidth : enemyWidth;
         const currentTimeMs = currentTime.getTime();
-        const taskDueMs = item.dueDateTime.getTime();
+        const arrival = arrivalDateTime(item);
+        const taskDueMs = arrival.getTime();
 
         // Calculate next midnight from the task's due date, not current time
-        const taskDueDate = new Date(item.dueDateTime);
+        const taskDueDate = new Date(arrival);
         const nextMidnight = new Date(taskDueDate);
         nextMidnight.setDate(taskDueDate.getDate() + 1);
         nextMidnight.setHours(0, 0, 0, 0);
@@ -82,9 +108,9 @@ const Clock = (() => {
     // anymore. Pure — no DOM, no ctx object needed (only needs the item's
     // own due date + current time, unlike position which needs screen dims).
     function getWalkUrgencyTier(item, currentTime) {
-        const dueMs = item.dueDateTime.getTime();
+        const dueMs = arrivalDateTime(item).getTime();
         const currentTimeMs = currentTime.getTime();
-        if (dueMs <= currentTimeMs) return null; // overdue/arrived — enemy-at-base owns this state instead
+        if (dueMs <= currentTimeMs) return null; // overdue/arrived (or waiting at the church) — enemy-at-base owns this state instead
         const timeToDue = dueMs - currentTimeMs;
         if (timeToDue <= TWO_HOURS_MS) return 'urgent';
         if (timeToDue <= FOUR_HOURS_MS) return 'approaching';
@@ -132,6 +158,9 @@ const Clock = (() => {
     }
 
     return {
+        hasWorkWindow,
+        isInWorkWindow,
+        arrivalDateTime,
         calculateTimelinePosition,
         getWalkUrgencyTier,
         calculateMidnightLinePosition,

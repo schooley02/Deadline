@@ -38,6 +38,19 @@ const Routines = (() => {
     // Task definitions carry a "HH:MM" defaultDueTime rather than the habit
     // system's coarse timeOfDay buckets (see Habits.getHabitInstanceDueTime),
     // so they get their own due-time helper.
+    // Optional default START time ("HH:MM", 2026-11-01): the instance's planned start on its
+    // own day. Returns a Date or null (blank, invalid, or not strictly before the due time).
+    function getRoutineTaskInstanceStartTime(defaultStartTime, referenceDate, dueDateTime) {
+        if (!defaultStartTime || !/^\d{1,2}:\d{2}$/.test(String(defaultStartTime))) return null;
+        const [hours, minutes] = String(defaultStartTime).split(':').map(Number);
+        if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+        const start = new Date(referenceDate);
+        start.setSeconds(0, 0);
+        start.setHours(hours, minutes);
+        if (dueDateTime instanceof Date && start.getTime() >= dueDateTime.getTime()) return null;
+        return start;
+    }
+
     function getRoutineTaskInstanceDueTime(defaultDueTime, referenceDate) {
         const due = new Date(referenceDate);
         due.setSeconds(0, 0);
@@ -126,6 +139,7 @@ const Routines = (() => {
             category: taskDef.category || 'other',
             isHighPriority: taskDef.isHighPriority || false,
             dueDateTime: dueDateTime,
+            startDateTime: getRoutineTaskInstanceStartTime(taskDef.defaultStartTime, forDate, dueDateTime),
             creationTime: instanceCreationTime,
             timeToDueAtCreationMs: Math.max(0, dueDateTime.getTime() - instanceCreationTime.getTime()),
             x: deps.gameScreenWidth - deps.enemyWidth, // recalculated below
@@ -410,6 +424,8 @@ const Routines = (() => {
             category: taskData.category,
             isHighPriority: taskData.isHighPriority,
             defaultDueTime: taskData.defaultDueTime || '17:00',
+            // Optional planned start ("HH:MM", additive, 2026-11-01); null = none.
+            defaultStartTime: taskData.defaultStartTime || null,
             // schemaVersion 3 (2026-07-18): routine tasks gained recurrence.
             // Default daily (all 7 days) preserves the prior "spawns every day
             // the routine is active" behavior. taskData carries no schedule
@@ -498,6 +514,7 @@ const Routines = (() => {
         task.category = updatedData.category;
         task.isHighPriority = updatedData.isHighPriority;
         task.defaultDueTime = updatedData.defaultDueTime;
+        task.defaultStartTime = updatedData.defaultStartTime || null;
         // schemaVersion 3 (2026-07-18, session 15): routine tasks gained a
         // schedule. Preserves the existing schedule if the caller doesn't
         // provide one (rather than silently resetting a custom weekly/monthly
@@ -798,6 +815,7 @@ const Routines = (() => {
 
     return {
         getRoutineTaskInstanceDueTime,
+        getRoutineTaskInstanceStartTime,
         selectTaskDefsToSpawn,
         createRoutineTaskInstanceData,
         generateDailyRoutineTaskInstances,

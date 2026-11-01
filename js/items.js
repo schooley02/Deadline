@@ -419,11 +419,22 @@ const Items = (() => {
         );
     }
 
+    // Optional START time (2026-11-01, Jeremy). The form's Start box is a time of day on the
+    // same date as the due date. Returns a Date, or null when blank/invalid/not strictly
+    // before the (final) due time -- null means "no work window", i.e. the old behaviour.
+    function resolveStartDateTime(dueDateStr, startTimeStr, dueDateTime) {
+        if (!dueDateStr || !startTimeStr || !(dueDateTime instanceof Date) || isNaN(dueDateTime.getTime())) return null;
+        const start = new Date(`${dueDateStr}T${startTimeStr}`);
+        if (isNaN(start.getTime()) || start.getTime() >= dueDateTime.getTime()) return null;
+        return start;
+    }
+
     /**
      * deps: { getNextId, activeItems, gameScreenWidth, enemyWidth,
      *         calculateTimelineXWithClustering }
+     * startTimeStr (optional, 8th arg, "HH:MM"): see resolveStartDateTime.
      */
-    function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, deps) {
+    function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, deps, startTimeStr) {
         const creationTime = new Date();
         let dueDateTime;
 
@@ -470,6 +481,8 @@ const Items = (() => {
             category: category || "other",
             isHighPriority: isHighPriority,
             dueDateTime: dueDateTime,
+            // Optional planned start (null = none). Additive field, no schema bump.
+            startDateTime: resolveStartDateTime(dueDateStr, startTimeStr, dueDateTime),
             creationTime: creationTime,
             timeToDueAtCreationMs: Math.max(0, dueDateTime.getTime() - creationTime.getTime()),
             x: deps.gameScreenWidth - deps.enemyWidth, // Will be recalculated below
@@ -1526,8 +1539,15 @@ const Items = (() => {
             if (!deps.skipHabitMiss) recordRoutineTaskOccurrence(item, false, deps);
         }
 
-        if (item.element) item.element.classList.add('enemy-at-base');
-        if (item.listItemElement) item.listItemElement.classList.add('overdue-list-item');
+        if (item.element) {
+            item.element.classList.add('enemy-at-base');
+            // Start-time work window is over: no longer waiting at the church, it attacks.
+            item.element.classList.remove('work-waiting', 'lurker-parked');
+        }
+        if (item.listItemElement) {
+            item.listItemElement.classList.add('overdue-list-item');
+            item.listItemElement.classList.remove('work-waiting-list-item');
+        }
 
         // [P2-GAME-010] Stage 1 (2026-07-19, session 60): drop any walk-
         // urgency tier class — the item has arrived, `enemy-at-base` above
@@ -1684,6 +1704,7 @@ const Items = (() => {
         ghostAdjustedPoints,
         syncGhostLook,
         createTaskItemData,
+        resolveStartDateTime,
         clampedSubTaskDueDate,
         clampSubTasksToParentDeadline,
         completeItem,

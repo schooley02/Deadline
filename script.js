@@ -884,7 +884,7 @@ document.addEventListener('DOMContentLoaded', () => {
             createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()),
             sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()),
             saveGame, recomputeOverdueStateAfterEdit: (item) => Items.recomputeOverdueStateAfterEdit(item, itemsDeps()),
-            createTaskItemData: (name, category, isHighPriority, dueDateStr, dueTimeStr, parentId) => Items.createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, itemsDeps()),
+            createTaskItemData: (name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, startTimeStr) => Items.createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, itemsDeps(), startTimeStr),
             addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => handleEnemyClick(itemId), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay: () => Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay }), sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
             // Pushback ([P1-UI-008] session 4): the pushback tiers, a live
             // points getter (popup re-checks affordability after each buy),
@@ -1198,7 +1198,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (btn.dataset.html !== html) { btn.innerHTML = html; btn.dataset.html = html; } // skip the per-second rebuild while idle
             const nudge = !State.isGameOver() && Timer.shouldNudge(item);
             btn.classList.toggle('attacking', nudge);
-            btn.title = nudge ? Timer.NUDGE_TITLE : (running ? (Timer.isLimit(item) ? 'Stop \u2014 I stayed within my limit' : 'Stop timer') : (Timer.isLimit(item) ? 'Start limit timer' : 'Start timer'));
+            const planned = !State.isGameOver() && !nudge && Timer.shouldPrompt(item, nowMs);
+            btn.classList.toggle('planned', planned);
+            btn.title = nudge ? Timer.NUDGE_TITLE : planned ? Timer.PROMPT_TITLE : (running ? (Timer.isLimit(item) ? 'Stop \u2014 I stayed within my limit' : 'Stop timer') : (Timer.isLimit(item) ? 'Start limit timer' : 'Start timer'));
             btn.setAttribute('aria-label', btn.title);
         });
     }
@@ -2703,7 +2705,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // saveGame() call) — see js/ui/forms.js header and DECISIONS.md.
     function formsDeps() {
         return {
-            createTaskItemData: (name, category, isHighPriority, dueDateStr, dueTimeStr, parentId) => Items.createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, itemsDeps()),
+            createTaskItemData: (name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, startTimeStr) => Items.createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, itemsDeps(), startTimeStr),
             addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => handleEnemyClick(itemId), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay: () => Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay }), sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
             sortAndRenderActiveList,
             managementWindows, populateTasksWindow,

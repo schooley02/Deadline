@@ -172,6 +172,32 @@ const Forms = (() => {
         return localDateStr(defaultDueDateTime(now)); // tomorrow when now + 5 min crosses midnight
     }
 
+    // Optional START time (2026-11-01, Jeremy): a "Start | Due" pair of time boxes. Start sits to
+    // the LEFT of Due, is optional (blank = none), and is a time of day on the due date. Shared by
+    // the Add / Edit / Add Sub-task / routine-task forms. o = { startId, dueId, startValue,
+    // dueValue, dueAttrs, startAttrs, startLabel, dueLabel }.
+    function startDueTimeGroupHtml(o) {
+        return `<div class="form-row-group time-pair">
+                <div class="form-row">
+                    <label for="${o.startId}">${o.startLabel || 'Start Time (optional):'}</label>
+                    <input type="time" id="${o.startId}" value="${o.startValue || ''}"${o.startAttrs ? ' ' + o.startAttrs : ''}>
+                </div>
+                <div class="form-row">
+                    <label for="${o.dueId}">${o.dueLabel || 'Due Time:'}</label>
+                    <input type="time" id="${o.dueId}" value="${o.dueValue || ''}"${o.dueAttrs ? ' ' + o.dueAttrs : ''}>
+                </div>
+            </div>`;
+    }
+
+    // Pure. Returns an error string when a Start time is given and is not strictly earlier than the
+    // due time (same day, "HH:MM" strings), else null. Blank start is always fine.
+    function startBeforeDueError(startTime, dueTime) {
+        if (!startTime) return null;
+        if (!dueTime) return null;
+        if (startTime >= dueTime) return 'Start time must be earlier than the due time.';
+        return null;
+    }
+
     // Pure. Returns { dueDate, dueTime } to hand to createTaskItemData. A due time
     // at or before `now` is bumped to now + NOW_BUMP_MINUTES when the time field
     // was left at its prefilled value OR is less than NOW_BUMP_MINUTES in the past
@@ -220,16 +246,11 @@ const Forms = (() => {
                 <input type="checkbox" id="modalTaskHighPriority">
                 <label for="modalTaskHighPriority">High Priority</label>
             </div>
-            <div class="form-row-group">
-                <div class="form-row">
-                    <label for="modalDueDate">Due Date:</label>
-                    <input type="date" id="modalDueDate" value="${todayString}" required>
-                </div>
-                <div class="form-row">
-                    <label for="modalDueTime">Due Time:</label>
-                    <input type="time" id="modalDueTime" value="${defaultDueTime}" data-prefilled="${defaultDueTime}">
-                </div>
+            <div class="form-row">
+                <label for="modalDueDate">Due Date:</label>
+                <input type="date" id="modalDueDate" value="${todayString}" required>
             </div>
+            ${startDueTimeGroupHtml({ startId: 'modalStartTime', dueId: 'modalDueTime', startValue: '', dueValue: defaultDueTime, dueAttrs: `data-prefilled="${defaultDueTime}"` })}
             <div class="form-row">
                 <label for="modalTimerMinutes">Timer target (min, optional):</label>
                 <input type="number" id="modalTimerMinutes" min="1" max="600" step="1" inputmode="numeric" placeholder="e.g. 30">
@@ -409,7 +430,14 @@ const Forms = (() => {
 
                         const resolved = resolveSubmittedDueTime(dueDate, dueTime,
                             timeInput ? timeInput.getAttribute('data-prefilled') : null, new Date());
-                        const taskData = deps.createTaskItemData(name, category, isHighPriority, resolved.dueDate, resolved.dueTime);
+                        const startInput = modal.querySelector('#modalStartTime');
+                        const startTime = startInput ? startInput.value : '';
+                        const startError = startBeforeDueError(startTime, resolved.dueTime);
+                        if (startError) {
+                            alert(startError);
+                            return;
+                        }
+                        const taskData = deps.createTaskItemData(name, category, isHighPriority, resolved.dueDate, resolved.dueTime, undefined, startTime || undefined);
                         const targetInput = modal.querySelector('#modalTimerMinutes');
                         const targetMin = targetInput ? Math.floor(Number(targetInput.value)) : NaN;
                         taskData.timerMinutes = (targetMin >= 1 && targetMin <= 600) ? targetMin : null;
@@ -523,6 +551,8 @@ const Forms = (() => {
         computeDefaultDueTime,
         computeDefaultDueDate,
         resolveSubmittedDueTime,
+        startDueTimeGroupHtml,
+        startBeforeDueError,
     };
 })();
 

@@ -133,7 +133,7 @@ const DayPagerView = (() => {
             if (ghost.isNegative) el.classList.add('negative-habit');
         }
 
-        const x = Clock.calculateTimelinePosition({ type: ghost.isHabit ? 'habit' : 'task', dueDateTime: ghost.dueTime }, previewTime, dims);
+        const x = Clock.calculateTimelinePosition({ type: ghost.isHabit ? 'habit' : 'task', dueDateTime: ghost.dueTime, startDateTime: ghost.startTime || null }, previewTime, dims);
         el.style.left = Math.max(dims.baseWidth, x) + 'px';
         // Vertical placement: stand on the V1 ground band like live zombies
         // do (Movement.getItemTopPosition), spread deterministically by index

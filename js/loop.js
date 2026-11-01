@@ -145,6 +145,25 @@ const Loop = (() => {
                         item.element.classList.remove('lurker-parked');
                     }
 
+                    // Optional START time (2026-11-01, Jeremy): between start and due the
+                    // zombie has reached the church and WAITS there -- idle animation (it
+                    // reuses the lurker-parked look/pile), no attack, no damage, no
+                    // overdue state. `work-waiting` marks it; markAsOverdue clears both
+                    // classes when the due time arrives. Not for lurkers (they park by
+                    // their own rule above).
+                    if (!isLurker && item.element && item.element.classList) {
+                        const waiting = Clock.isInWorkWindow(item, currentTime);
+                        const cl = item.element.classList;
+                        if (waiting && !cl.contains('work-waiting')) {
+                            cl.add('work-waiting', 'lurker-parked');
+                        } else if (!waiting && cl.contains('work-waiting')) {
+                            cl.remove('work-waiting', 'lurker-parked');
+                        }
+                        if (item.listItemElement && item.listItemElement.classList) {
+                            item.listItemElement.classList.toggle('work-waiting-list-item', waiting);
+                        }
+                    }
+
                     // [P2-GAME-010] Stage 1 (2026-07-19, session 60): CSS-only
                     // walk-speed-up ahead of real animated sprites (see
                     // DECISIONS.md). Only touch classList on an actual tier

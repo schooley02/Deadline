@@ -108,6 +108,7 @@ const DayPager = (() => {
                 isHighPriority: !!def.isHighPriority,
                 routineId: owningRoutine ? owningRoutine.id : null,
                 dueTime: Routines.getRoutineTaskInstanceDueTime(def.defaultDueTime, targetDate),
+                startTime: Routines.getRoutineTaskInstanceStartTime(def.defaultStartTime, targetDate, Routines.getRoutineTaskInstanceDueTime(def.defaultDueTime, targetDate)),
                 parentId: null,
             };
         });
@@ -140,6 +141,7 @@ const DayPager = (() => {
                 isHighPriority: !!item.isHighPriority,
                 routineId: null,
                 dueTime: item.dueDateTime,
+            startTime: item.startDateTime || null,
                 parentId: item.parentId != null ? item.parentId : null,
             }));
     }
@@ -276,6 +278,7 @@ const DayPager = (() => {
                     isNegative: false,
                     routineId: owningRoutine ? owningRoutine.id : null,
                     dueTime: Routines.getRoutineTaskInstanceDueTime(def.defaultDueTime, targetDate),
+                    startTime: Routines.getRoutineTaskInstanceStartTime(def.defaultStartTime, targetDate, Routines.getRoutineTaskInstanceDueTime(def.defaultDueTime, targetDate)),
                     parentId: null,
                     outcome: outcomeForTaskOnDay(def, completedItems, targetDate),
                 };
@@ -305,6 +308,7 @@ const DayPager = (() => {
             isNegative: false,
             routineId: null,
             dueTime: item.dueDateTime,
+            startTime: item.startDateTime || null,
             parentId: item.parentId != null ? item.parentId : null,
             outcome,
         });

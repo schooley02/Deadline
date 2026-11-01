@@ -1153,10 +1153,7 @@ const RoutineViews = (() => {
                             <option value="spirituality">Spirituality</option>
                         </select>
                     </div>
-                    <div class="form-row">
-                        <label>Default Due Time:</label>
-                        <input type="time" id="newTaskDueTime" value="17:00">
-                    </div>
+                    ${Forms.startDueTimeGroupHtml({ startId: 'newTaskStartTime', dueId: 'newTaskDueTime', startValue: '', dueValue: '17:00', startLabel: 'Default Start Time (optional):', dueLabel: 'Default Due Time:' })}
                     <div class="form-row priority-row">
                         <input type="checkbox" id="newTaskHighPriority">
                         <label for="newTaskHighPriority">High Priority</label>
@@ -1266,10 +1263,7 @@ const RoutineViews = (() => {
                             <option value="spirituality" ${taskDef.category === 'spirituality' ? 'selected' : ''}>Spirituality</option>
                         </select>
                     </div>
-                    <div class="form-row">
-                        <label>Default Due Time:</label>
-                        <input type="time" id="editTaskDueTime" value="${taskDef.defaultDueTime || '17:00'}">
-                    </div>
+                    ${Forms.startDueTimeGroupHtml({ startId: 'editTaskStartTime', dueId: 'editTaskDueTime', startValue: taskDef.defaultStartTime || '', dueValue: taskDef.defaultDueTime || '17:00', startLabel: 'Default Start Time (optional):', dueLabel: 'Default Due Time:' })}
                     <div class="form-row priority-row">
                         <input type="checkbox" id="editTaskHighPriority" ${taskDef.isHighPriority ? 'checked' : ''}>
                         <label for="editTaskHighPriority">High Priority</label>
@@ -1322,11 +1316,18 @@ const RoutineViews = (() => {
         const name = document.getElementById('newTaskName').value.trim();
         const category = document.getElementById('newTaskCategory').value;
         const defaultDueTime = document.getElementById('newTaskDueTime').value;
+        const defaultStartTime = document.getElementById('newTaskStartTime').value;
         const isHighPriority = document.getElementById('newTaskHighPriority').checked;
         const schedule = readScheduleFromFields('newTask');
 
         if (!name) {
             alert('Please enter a task name.');
+            return;
+        }
+        const startError = (defaultStartTime && defaultDueTime && defaultStartTime >= defaultDueTime)
+            ? 'Start time must be earlier than the due time.' : null;
+        if (startError) {
+            alert(startError);
             return;
         }
         if (schedule.frequency !== 'monthly' && schedule.daysOfWeek.length === 0) {
@@ -1337,7 +1338,7 @@ const RoutineViews = (() => {
         const routine = deps.definedRoutines().find(r => r.id === routineId);
         if (routine && !ensureRoutineSlotAvailable(routine, 'task', deps)) return;
 
-        deps.createNewTaskInRoutine(routineId, { name, category, defaultDueTime, isHighPriority, schedule });
+        deps.createNewTaskInRoutine(routineId, { name, category, defaultDueTime, defaultStartTime, isHighPriority, schedule });
         Modal.closeModal();
     }
 
@@ -1409,6 +1410,7 @@ const RoutineViews = (() => {
         const name = document.getElementById('editTaskName').value.trim();
         const category = document.getElementById('editTaskCategory').value;
         const defaultDueTime = document.getElementById('editTaskDueTime').value;
+        const defaultStartTime = document.getElementById('editTaskStartTime').value;
         const isHighPriority = document.getElementById('editTaskHighPriority').checked;
         const schedule = readScheduleFromFields('editTask');
 
@@ -1416,12 +1418,18 @@ const RoutineViews = (() => {
             alert('Please enter a task name.');
             return;
         }
+        const startError = (defaultStartTime && defaultDueTime && defaultStartTime >= defaultDueTime)
+            ? 'Start time must be earlier than the due time.' : null;
+        if (startError) {
+            alert(startError);
+            return;
+        }
         if (schedule.frequency !== 'monthly' && schedule.daysOfWeek.length === 0) {
             alert('Please select at least one day.');
             return;
         }
 
-        deps.editTaskInRoutine(taskId, { name, category, defaultDueTime, isHighPriority, schedule });
+        deps.editTaskInRoutine(taskId, { name, category, defaultDueTime, defaultStartTime, isHighPriority, schedule });
 
         // Keep today's already-spawned instance in sync (2026-10-21), same as
         // saveEditedHabit: name/category/priority + zombie sprite + list row.

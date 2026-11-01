@@ -5,6 +5,17 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+## 2026-11-01 -- Optional Start time: a planned work window before the due time (Claude app session, Opus planned, Sonnet built; Jeremy)
+- **Ask (Jeremy):** an optional Start Time to the left of Due Time. The zombie's lane position is dictated by the start time; once at the church it only plays idle, no attack, no damage, until the due time arrives.
+- **Clarified with Jeremy:** "if the clock is running during this time" = the time of day being inside start->due, NOT the stopwatch. Start is when he PLANS to begin; due is when he expects to be done or must be done; he may work on and off in between. Only a running stopwatch proves work, so there is no automatic "working" status and no damage halving without it -- instead the stopwatch button is prompted (amber dashed glow, `Timer.shouldPrompt`).
+- **Scope:** Build A = tasks, sub-tasks, routine tasks (`defaultStartTime` on the definition). Build B (next session) = habits: a "Custom times..." choice in the Completion Window picker that opens Start + End boxes, for BUILD habits only (Break habits keep their tempting-time buckets). Routines get both indirectly because they are made of tasks and habits.
+- **Design:** start is a time of day on the due date; start must be strictly before due (forms reject, data layer ignores). No schema bump (additive Date field). The waiting state reuses the parked-lurker idle look and pile (`work-waiting` + `lurker-parked`), is cleared by `markAsOverdue`, and never marks the item overdue, so regen, miss recording, pushback pricing and the hero star rate all still key off the DUE time. `Clock.calculateTimelinePosition` and `getWalkUrgencyTier` use `Clock.arrivalDateTime` (start if there is a window, else due), which also makes the time slider, day pager ghosts and the portrait strip agree.
+- **Rejected:** a separate start date field (kept a time of day on the due date; a multi-day plan can be added later); making the waiting zombie "working" automatically (nothing proves it); halving damage for the whole window (would reward a plan, not work).
+- Tests: new `test/startTime.test.js` (25); Jest 104 suites / 2,426 green. Headless live check: Add Task form (pair order, bad start rejected), zombie idles at the church, no damage, flips to attacking at due, the button goes planned -> red nudge, no console errors; 390px form has no overflow. sw v172 -> v173.
+
+---
+
+
 ## 2026-10-31 (afternoon) -- UI polish: no art boxes, attack-pulsing stopwatch, plain checkbox, pencil edit icon (Claude app session, Opus then Sonnet; Jeremy)
 - **Village art boxes (sw v167):** the pale-green box behind each building is gone on the building card (`.vc-art`) and on the village list thumbnails (`.vp-thumb`); the grey row boxes stay. The game-over peak strip (`.vps-thumb`) KEEPS its light backdrop because it sits on the dark card. Why: Jeremy: the art reads fine straight on white and the boxes were clutter.
 - **Timer button (sw v168-v172):** stopwatch SVG replaces the emoji (work timers; limit timers keep the hourglass); it pulses red when its item is overdue and no timer runs (`Timer.shouldNudge`), to tell the player to start it (that already halves the damage). Grows on hover like the pencil. Why: the halved-damage rule was invisible; the pulse makes it discoverable without any balance change. Rejected: auto-starting a timer; a toast.
