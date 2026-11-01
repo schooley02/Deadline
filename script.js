@@ -1200,7 +1200,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.toggle('attacking', nudge);
             const planned = !State.isGameOver() && !nudge && Timer.shouldPrompt(item, nowMs);
             btn.classList.toggle('planned', planned);
-            btn.title = nudge ? Timer.NUDGE_TITLE : planned ? Timer.PROMPT_TITLE : (running ? (Timer.isLimit(item) ? 'Stop \u2014 I stayed within my limit' : 'Stop timer') : (Timer.isLimit(item) ? 'Start limit timer' : 'Start timer'));
+            btn.title = nudge ? Timer.NUDGE_TITLE : planned ? Timer.PROMPT_TITLE : (running ? 'Stop timer' : 'Start timer');
             btn.setAttribute('aria-label', btn.title);
         });
     }
@@ -1212,30 +1212,45 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!item) return { ok: false };
         const now = Date.now();
         if (Timer.isRunning(item)) {
-            if (Timer.isLimit(item)) {
-                // Stopping a limit timer inside its budget = Avoided (completeItem stops + banks it).
-                Items.completeItem(itemId, itemsDeps());
-                syncWorkHero(null);
-                updateTimerButtons(now);
-                saveGame();
-                return { ok: true, running: false, completed: true };
-            }
+            // Stop only banks the time. A Break habit's limit timer is a "logged so far" helper
+            // (Habit Goals Build 2): it never answers Resisted / Slipped for the player.
             Timer.stop(item, now);
         } else {
             if (!Timer.canTimer(item)) return { ok: false };
             const other = Timer.findRunning(items);
             if (other) Timer.stop(other, now);
             Timer.start(item, now);
-            if (Timer.isLimit(item)) {
-                // Starting a limit timer IS the day's arrival prompt (no second popup at the time of day).
-                const def = State.getDefinedHabits().find(d => d.id === item.definitionId);
-                if (def) def.arrivalPromptedFor = Habits.toOccurrenceDate(item.originalDueDate || item.dueDateTime);
-            }
         }
         syncWorkHero(Timer.findRunning(items));
         updateTimerButtons(now);
         saveGame();
         return { ok: true, running: Timer.isRunning(item) };
+    }
+
+    // Goal reached (Habit Goals Build 2): the 4-button popup. One popup per timer run: if the player
+    // dismisses it (tap outside / Esc) it does not re-open every tick; the timer keeps running and it
+    // asks again on the next app open (goalAcked is only set by a real answer).
+    let goalPopupKey = null;
+    function showGoalReachedPopup(item, nowMs) {
+        const key = item.id + ':' + (item.timer && item.timer.startedAt);
+        if (goalPopupKey === key) return;
+        goalPopupKey = key;
+        const refresh = () => { syncWorkHero(Timer.findRunning(State.getActiveItems())); updateTimerButtons(Date.now()); saveGame(); };
+        TimerView.showGoalReached(item, {
+            goalMinutes: item.timerMinutes,
+            loggedMinutes: Timer.loggedMinutes(item, nowMs),
+        }, {
+            onMarkDone: () => {
+                Timer.stop(item, Date.now());
+                Items.completeItem(item.id, itemsDeps());
+                const completed = !State.getActiveItems().includes(item);
+                refresh();
+                if (!completed) TimerView.showGoalBlocked(item);
+            },
+            onKeepGoing: () => { Timer.acknowledgeGoal(item); saveGame(); },
+            onStopNotDone: () => { Timer.stop(item, Date.now()); Timer.acknowledgeGoal(item); refresh(); },
+            onMistake: () => { Timer.discardSession(item, Date.now()); refresh(); },
+        });
     }
 
     // Per-tick (afterTick): keeps the hero in step with whatever is running (also after a
@@ -1250,27 +1265,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (nowMs - lastTimerLabelMs >= 1000) { lastTimerLabelMs = nowMs; updateTimerButtons(nowMs); }
         const action = Timer.pendingAction(running, nowMs);
         if (!action) return;
-        if (action === 'limit-expired') {
-            // Budget used up: stop (banking it all) and open the "Time's up" popup.
-            Timer.stop(running, nowMs);
-            updateTimerButtons(nowMs);
-            saveGame();
-            if (typeof CheckIn !== 'undefined') {
-                CheckIn.queueArrivalPrompt(running, {
-                    expired: true,
-                    completeItem: (id) => Items.completeItem(id, itemsDeps()),
-                    indulgeHabit: (id) => Items.indulgeHabit(id, itemsDeps()),
-                });
-            }
-        } else if (action === 'target') {
-            const minutes = running.timerMinutes;
-            Timer.stop(running, nowMs);
-            syncWorkHero(null);
-            Items.completeItem(running.id, itemsDeps());
-            const completed = !State.getActiveItems().includes(running);
-            updateTimerButtons(nowMs);
-            saveGame();
-            TimerView.showTargetReached(running, minutes, completed);
+        if (action === 'goal-reached') {
+            showGoalReachedPopup(running, nowMs);
         } else if (action === 'prompt') {
             Timer.markPrompted(running, Timer.promptDueAt(running));
             saveGame();

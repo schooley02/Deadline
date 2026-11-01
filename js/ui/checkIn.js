@@ -106,10 +106,8 @@ const CheckIn = (() => {
         return String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
 
-    function buildArrivalCardHtml(item, expired) {
-        const question = expired
-            ? `its ${item.timerMinutes}-minute limit is up. Did you stay within it?`
-            : 'its time has arrived. Did you resist it?';
+    function buildArrivalCardHtml(item) {
+        const question = 'its time has arrived. Did you resist it?';
         return `
             <div class="check-in-card arrival-card" data-item-id="${item.id}">
                 <p class="check-in-question"><strong>${escapeHtml(item.name)}</strong>: ${question}</p>
@@ -137,7 +135,7 @@ const CheckIn = (() => {
         if (existing) {
             if (existing.querySelector('.arrival-card[data-item-id="' + item.id + '"]')) return;
             const tmp = document.createElement('div');
-            tmp.innerHTML = buildArrivalCardHtml(item, deps.expired);
+            tmp.innerHTML = buildArrivalCardHtml(item);
             const card = tmp.firstElementChild;
             existing.querySelector('.arrival-cards').appendChild(card);
             wireArrivalCard(card, existing, item, deps);
@@ -147,7 +145,7 @@ const CheckIn = (() => {
             <div class="modal-overlay arrival-overlay">
                 <div class="modal-content check-in-modal">
                     <h3>Time's up</h3>
-                    <div class="arrival-cards">${buildArrivalCardHtml(item, deps.expired)}</div>
+                    <div class="arrival-cards">${buildArrivalCardHtml(item)}</div>
                     <p class="check-in-snooze"><a href="#" class="arrival-later-link">Later</a></p>
                 </div>
             </div>

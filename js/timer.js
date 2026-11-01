@@ -49,9 +49,10 @@ const Timer = (() => {
         return item.type === 'habit' && item.isNegative !== true && hasTimeGoal(item);
     }
 
-    // Limit timer (Build 4): a NEGATIVE habit with a budget (item.timerMinutes) counts DOWN.
-    // Stopping inside the budget = Avoided (caller completes the item); running out opens the
-    // "Time's up" arrival popup. Limit timers have no "Still working?" prompt and no damage.
+    // Limit timer (Habit Goals Build 2, 2026-11-01): a Break (negative) habit with a Time goal
+    // (item.timerMinutes = the limit) is a count-UP "logged so far" helper across the day's sessions.
+    // It never decides anything: Stop only banks the time (no Resisted), going over opens no popup,
+    // and the player answers Resisted / Slipped themselves. No "Still working?" prompt, no damage change.
     function isLimit(item) {
         return !!item && item.type === 'habit' && item.isNegative === true;
     }
@@ -61,15 +62,27 @@ const Timer = (() => {
     function canTimer(item) {
         return canWorkTimer(item) || canLimitTimer(item);
     }
-    function remainingMs(item, nowMs) {
+    // Whole minutes logged so far (banked + the live span) and the "18 / 60 min" readout.
+    function loggedMinutes(item, nowMs) {
+        return Math.floor(elapsedMs(item, nowMs) / 60000);
+    }
+    function isOverLimit(item, nowMs) {
         const budget = (item && typeof item.timerMinutes === 'number') ? item.timerMinutes * 60000 : 0;
-        return Math.max(0, budget - elapsedMs(item, nowMs));
+        return isLimit(item) && budget > 0 && elapsedMs(item, nowMs) > budget;
+    }
+    function limitReadout(item, nowMs) {
+        return `${loggedMinutes(item, nowMs)} / ${item.timerMinutes} min`;
+    }
+    // Limit helper readout span for the buttons: shown while running or once any time is banked.
+    function limitReadoutHtml(item, nowMs) {
+        if (!isRunning(item) && !(typeof item.timerMsBanked === 'number' && item.timerMsBanked > 0)) return '';
+        return `<span class="timer-elapsed${isOverLimit(item, nowMs) ? ' over' : ''}">${limitReadout(item, nowMs)}</span>`;
     }
     // Row button text and popup button text.
     function buttonLabel(item, nowMs) {
         if (!isRunning(item)) return '\u23F1';
         return isLimit(item)
-            ? `\u23F3 ${formatElapsed(remainingMs(item, nowMs))}`
+            ? `\u23F9 ${limitReadout(item, nowMs)}`
             : `\u23F9 ${formatElapsed(elapsedMs(item, nowMs))}`;
     }
     // Stopwatch icon (2026-10-31, Jeremy: coach's stopwatch like ClickUp's track-time icon). Inline SVG so it
@@ -79,17 +92,17 @@ const Timer = (() => {
         '<path d="M10 2h4"/><path d="M12 2v3"/><path d="M19.2 6.3l1.4-1.4"/><circle cx="12" cy="14" r="8"/>' +
         '<path d="M12 14V9.5"/><circle cx="12" cy="14" r="0.6" fill="currentColor"/></svg>';
     // Row button: stopwatch alone when idle; stopwatch + elapsed while a work timer runs. A limit timer
-    // keeps the hourglass countdown (it counts a budget down and never reduces damage).
+    // shows "18 / 60 min" (turns red once over) whenever time is logged; it never reduces damage.
     function buttonHtml(item, nowMs) {
+        if (isLimit(item)) return ICON_SVG + limitReadoutHtml(item, nowMs);
         if (!isRunning(item)) return ICON_SVG;
-        return isLimit(item)
-            ? `\u23F3 ${formatElapsed(remainingMs(item, nowMs))}`
-            : `${ICON_SVG}<span class="timer-elapsed">${formatElapsed(elapsedMs(item, nowMs))}</span>`;
+        return `${ICON_SVG}<span class="timer-elapsed">${formatElapsed(elapsedMs(item, nowMs))}</span>`;
     }
-    // Popup button: stopwatch + the same words as popupLabel (limit timers keep their emoji text).
-    function popupHtml(item) {
-        if (isLimit(item)) return popupLabel(item);
-        return `${ICON_SVG}<span>${isRunning(item) ? 'Stop timer' : 'Start timer'}</span>`;
+    // Popup button: stopwatch + the same words as popupLabel (a limit helper adds its readout).
+    function popupHtml(item, nowMs) {
+        const now = nowMs === undefined ? Date.now() : nowMs;
+        const readout = isLimit(item) ? limitReadoutHtml(item, now) : '';
+        return `${ICON_SVG}<span>${isRunning(item) ? 'Stop timer' : 'Start timer'}</span>${readout}`;
     }
     // "A zombie is attacking and starting this timer would help" (2026-10-31): overdue, still a threat
     // (canWorkTimer rules out KO ghosts and break-habits), and no timer running on it yet. The UI pulses
@@ -109,9 +122,6 @@ const Timer = (() => {
     }
     const PROMPT_TITLE = 'Planned work time: start the timer';
     function popupLabel(item) {
-        if (isLimit(item)) {
-            return isRunning(item) ? '\u23F9 Stop \u2014 I stayed within my limit' : `\u23F3 Start ${item.timerMinutes}-min limit`;
-        }
         return isRunning(item) ? '\u23F9 Stop timer' : '\u23F1 Start timer';
     }
 
@@ -153,15 +163,33 @@ const Timer = (() => {
         return (items || []).find(isRunning) || null;
     }
 
+    // Goal popup answers. "Keep going" / "Stop, not done yet" stop the popup from firing again.
+    function acknowledgeGoal(item) {
+        if (item) item.goalAcked = true;
+    }
+    // "Started by mistake": drop the RUNNING span without banking it (earlier banked sessions stay).
+    // Returns the discarded ms. The daily-record span listener is never told, so it is not counted.
+    // If the logged time is back under the goal the popup may fire again later.
+    function discardSession(item, nowMs) {
+        if (!isRunning(item)) return 0;
+        const span = Math.max(0, nowMs - item.timer.startedAt);
+        item.timer = null;
+        if (typeof item.timerMinutes === 'number' && elapsedMs(item, nowMs) < item.timerMinutes * 60000) {
+            item.goalAcked = false;
+        }
+        return span;
+    }
+
     // What the game should do for a running timer right now:
-    // 'target' (optional timerMinutes reached) > 'autostop' (prompt unanswered)
-    // > 'prompt' (continuous run reached the check interval) > null.
+    // 'goal-reached' (Time goal / old task target reached and not yet answered: the caller opens the
+    // 4-button popup, nothing auto-completes) > 'autostop' (prompt unanswered) > 'prompt' (continuous
+    // run reached the check interval) > null. A limit helper (Break habit) never has a pending action.
     function pendingAction(item, nowMs, c) {
         if (!isRunning(item)) return null;
         const t = item.timer;
-        if (isLimit(item)) return remainingMs(item, nowMs) <= 0 ? 'limit-expired' : null;
-        if (typeof item.timerMinutes === 'number' && item.timerMinutes > 0
-            && elapsedMs(item, nowMs) >= item.timerMinutes * 60000) return 'target';
+        if (isLimit(item)) return null;
+        if (typeof item.timerMinutes === 'number' && item.timerMinutes > 0 && item.goalAcked !== true
+            && elapsedMs(item, nowMs) >= item.timerMinutes * 60000) return 'goal-reached';
         if (typeof t.promptedAt === 'number') {
             return nowMs - t.promptedAt >= cfg('WORK_TIMER_AUTO_STOP_MS', c) ? 'autostop' : null;
         }
@@ -215,7 +243,7 @@ const Timer = (() => {
 
     return {
         normalizeTarget, modeFor, isRunning, canWorkTimer, isLimit, canLimitTimer, canTimer,
-        remainingMs, buttonLabel, popupLabel, ICON_SVG, buttonHtml, popupHtml, shouldNudge, NUDGE_TITLE, shouldPrompt, PROMPT_TITLE, elapsedMs, onSpan, start, stop, findRunning,
+        loggedMinutes, isOverLimit, limitReadout, acknowledgeGoal, discardSession, buttonLabel, popupLabel, ICON_SVG, buttonHtml, popupHtml, shouldNudge, NUDGE_TITLE, shouldPrompt, PROMPT_TITLE, elapsedMs, onSpan, start, stop, findRunning,
         pendingAction, promptDueAt, markPrompted, confirmStillWorking, autoStop,
         damageIntervalMs, formatElapsed,
     };

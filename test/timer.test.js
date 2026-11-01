@@ -68,10 +68,41 @@ describe('pendingAction', () => {
         expect(Timer.pendingAction(t, 122 * MIN)).toBe('prompt');
         expect(Timer.elapsedMs(t, 122 * MIN)).toBe(122 * MIN);
     });
-    test('target reached wins and counts banked time', () => {
+    test('goal reached wins and counts banked time', () => {
         const t = task({ timerMinutes: 30, timerMsBanked: 20 * MIN }); Timer.start(t, 0);
         expect(Timer.pendingAction(t, 9 * MIN)).toBeNull();
-        expect(Timer.pendingAction(t, 10 * MIN)).toBe('target');
+        expect(Timer.pendingAction(t, 10 * MIN)).toBe('goal-reached');
+    });
+    test('goal popup is one-shot per answer: Keep going / Stop-not-done set goalAcked', () => {
+        const t = task({ timerMinutes: 30 }); Timer.start(t, 0);
+        expect(Timer.pendingAction(t, 30 * MIN)).toBe('goal-reached');
+        Timer.acknowledgeGoal(t);
+        expect(Timer.pendingAction(t, 31 * MIN)).toBeNull();
+        expect(Timer.pendingAction(t, 60 * MIN)).toBe('prompt'); // normal hourly check resumes
+        // a later start on the same item does not re-ask while the goal is acknowledged
+        Timer.stop(t, 61 * MIN);
+        Timer.start(t, 62 * MIN);
+        expect(Timer.pendingAction(t, 63 * MIN)).toBeNull();
+    });
+    test('goal reached while the app was closed is still pending on the next look', () => {
+        const t = task({ timerMinutes: 30 }); Timer.start(t, 0);
+        expect(Timer.pendingAction(t, 8 * 60 * MIN)).toBe('goal-reached');
+    });
+    test('Started by mistake: drops only the running span, never banks or reports it', () => {
+        const t = task({ timerMinutes: 30, timerMsBanked: 5 * MIN, goalAcked: true }); Timer.start(t, 0);
+        const seen = []; Timer.onSpan((i, ms) => seen.push(ms));
+        expect(Timer.discardSession(t, 40 * MIN)).toBe(40 * MIN);
+        Timer.onSpan(null);
+        expect(seen).toEqual([]);
+        expect(t.timer).toBeNull();
+        expect(t.timerMsBanked).toBe(5 * MIN);
+        expect(t.goalAcked).toBe(false); // back under the goal (5 < 30): it may ask again later
+        expect(Timer.discardSession(t, 41 * MIN)).toBe(0); // not running
+    });
+    test('discard keeps the acknowledgement when banked time alone still meets the goal', () => {
+        const t = task({ timerMinutes: 30, timerMsBanked: 35 * MIN, goalAcked: true }); Timer.start(t, 0);
+        Timer.discardSession(t, 5 * MIN);
+        expect(t.goalAcked).toBe(true);
     });
     test('not running -> null', () => {
         expect(Timer.pendingAction(task(), 1e9)).toBeNull();
@@ -122,26 +153,48 @@ describe('limit timer (Build 4)', () => {
         expect(Timer.canTimer(lurker())).toBe(true);
         expect(Timer.canTimer(lurker({ timerMinutes: null }))).toBe(false);
     });
-    test('start works; remaining counts down; expiry fires limit-expired (not prompt/target)', () => {
+    test('start works; a limit helper never has a pending action (no limit-expired popup)', () => {
         const h = lurker();
         expect(Timer.start(h, 0)).toBe(true);
-        expect(Timer.remainingMs(h, 10 * MIN)).toBe(20 * MIN);
         expect(Timer.pendingAction(h, 29 * MIN)).toBeNull();
-        expect(Timer.pendingAction(h, 30 * MIN)).toBe('limit-expired');
-        expect(Timer.pendingAction(h, 90 * MIN)).toBe('limit-expired'); // app was closed past expiry
+        expect(Timer.pendingAction(h, 30 * MIN)).toBeNull();
+        expect(Timer.pendingAction(h, 90 * MIN)).toBeNull(); // over the limit and even closed: still nothing
     });
     test('no "Still working?" prompt for limits (budget <= 600 min can still pass 60)', () => {
         const h = lurker({ timerMinutes: 120 });
         Timer.start(h, 0);
         expect(Timer.pendingAction(h, 61 * MIN)).toBeNull();
     });
+    test('counts UP across sessions: logged minutes and the "18 / 60 min" readout', () => {
+        const h = lurker({ timerMinutes: 60 });
+        Timer.start(h, 0);
+        Timer.stop(h, 10 * MIN);
+        Timer.start(h, 100 * MIN);
+        expect(Timer.loggedMinutes(h, 108 * MIN)).toBe(18);
+        expect(Timer.limitReadout(h, 108 * MIN)).toBe('18 / 60 min');
+        expect(Timer.isOverLimit(h, 108 * MIN)).toBe(false);
+    });
+    test('over the limit once logged time passes it (exactly at the limit is not over)', () => {
+        const h = lurker({ timerMinutes: 30 });
+        Timer.start(h, 0);
+        expect(Timer.isOverLimit(h, 30 * MIN)).toBe(false);
+        expect(Timer.isOverLimit(h, 30 * MIN + 1000)).toBe(true);
+        expect(Timer.isOverLimit(lurker({ timerMinutes: 30 }), 1e12)).toBe(false); // not a start: nothing logged
+    });
+    test('Stop only banks the time (the caller does not complete the habit)', () => {
+        const h = lurker();
+        Timer.start(h, 0);
+        expect(Timer.stop(h, 12 * MIN)).toBe(12 * MIN);
+        expect(h.timerMsBanked).toBe(12 * MIN);
+        expect(h.timer).toBeNull();
+    });
     test('labels', () => {
         const h = lurker();
         expect(Timer.buttonLabel(h, 0)).toBe('\u23F1');
-        expect(Timer.popupLabel(h)).toBe('\u23F3 Start 30-min limit');
+        expect(Timer.popupLabel(h)).toBe('\u23F1 Start timer');
         Timer.start(h, 0);
-        expect(Timer.buttonLabel(h, 5 * MIN)).toBe('\u23F3 25:00');
-        expect(Timer.popupLabel(h)).toContain('stayed within my limit');
+        expect(Timer.buttonLabel(h, 5 * MIN)).toBe('\u23F9 5 / 30 min');
+        expect(Timer.popupLabel(h)).toBe('\u23F9 Stop timer');
     });
 });
 
@@ -190,10 +243,16 @@ describe('attacking nudge + stopwatch icon (2026-10-31)', () => {
         expect(Timer.buttonHtml(t, 5 * MIN)).toContain('<svg');
         expect(Timer.popupHtml(t)).toContain('Stop timer');
     });
-    test('limit timers keep the hourglass text while running', () => {
+    test('limit helper row button: icon alone until time is logged, then "N / M min", red once over', () => {
         const h = { type: 'habit', isNegative: true, timerMinutes: 30, timer: null, timerMsBanked: 0 };
+        expect(Timer.buttonHtml(h, 0)).toBe(Timer.ICON_SVG);
         Timer.start(h, 0);
-        expect(Timer.buttonHtml(h, 5 * MIN)).toBe('⏳ 25:00');
-        expect(Timer.popupHtml(h)).toContain('stayed within my limit');
+        expect(Timer.buttonHtml(h, 5 * MIN)).toContain('5 / 30 min');
+        expect(Timer.buttonHtml(h, 5 * MIN)).not.toContain(' over');
+        expect(Timer.buttonHtml(h, 31 * MIN)).toContain('timer-elapsed over');
+        Timer.stop(h, 31 * MIN);
+        expect(Timer.buttonHtml(h, 40 * MIN)).toContain('31 / 30 min'); // stays visible after Stop
+        expect(Timer.popupHtml(h, 40 * MIN)).toContain('Start timer');
+        expect(Timer.popupHtml(h, 40 * MIN)).toContain('31 / 30 min');
     });
 });

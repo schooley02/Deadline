@@ -70,13 +70,17 @@ change); it changes how a Break habit's result is decided and what data we keep.
 
 ## Builds (each one session, Sonnet medium; tests + docs + sw bump each)
 
-1. **Goal data + forms + card.** `Habits.goalOf/formatGoal`, Habit Goal section (type select; Time = number + min/hr;
+1. **[BUILT 2026-11-01, sw v178] Goal data + forms + card.** `Habits.goalOf/formatGoal`, Habit Goal section (type select; Time = number + min/hr;
    Amount = number + unit datalist; Note = text; label flips At least / At most with Build/Break) on Add Habit, routine
    New Habit and Edit Habit, replacing "Timer (minutes)"; `FormHint` ⓘ popover with the examples above; goal line on
    the row + popup; stopwatch hidden on habits without a Time goal; remove the task timer-target fields.
-2. **Timer behavior.** Build Time goal → Decision-5 popup (replaces `pendingAction` 'target' auto-complete; also for old
+2. **[BUILT 2026-11-01, sw v179] Timer behavior.** Build Time goal → Decision-5 popup (replaces `pendingAction` 'target' auto-complete; also for old
    task targets). Break limit → count-up helper, Stop = bank only, no expiry prompt (`'limit-expired'` path and the
    `expired` arrival card go away); row shows "18 / 60 min", red when over.
+   *Built as:* `pendingAction` returns `'goal-reached'` (once per answer, `item.goalAcked`); `Timer.discardSession`
+   for "Started by mistake"; limit timers return no pending action; starting a limit timer no longer sets
+   `arrivalPromptedFor` (the timer answers nothing now); `TimerView.showGoalReached`; dismissing the popup
+   (outside tap / Esc) leaves the timer running and asks again on the next app open.
 3. **Evening check + How much? + DailyRecord v4.** Evening modal (reuses check-in card styles), Settings time field,
    How much? box on evening / check-in / popup answers, `goalActual` storage, daily record tally.
 

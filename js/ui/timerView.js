@@ -44,11 +44,53 @@ const TimerView = (() => {
             </div>`, { defer: true });
     }
 
-    function showTargetReached(item, minutes, completed) {
-        notice(`⏱ ${minutes} min done`,
-            completed
-                ? `"${esc(item.name)}" is complete.`
-                : `You reached your ${minutes}-minute target on "${esc(item.name)}", but it still has open sub-tasks, so it isn't complete yet.`);
+    // "X min logged" for the goal popup: whole minutes, hours past 60.
+    function formatMinutes(min) {
+        const m = Math.max(0, Math.floor(min));
+        if (m < 60) return `${m} min`;
+        const h = Math.floor(m / 60), r = m % 60;
+        return r ? `${h} hr ${r} min` : `${h} hr`;
+    }
+
+    // Goal reached (Habit Goals Build 2, 2026-11-01): nothing auto-completes. The player decides.
+    // Mark done / Keep going (timer runs on) / Stop, not done yet (time stays logged) / Started by
+    // mistake (this session's time is thrown away). `info` = { goalMinutes, loggedMinutes }.
+    function showGoalReached(item, info, handlers) {
+        if (document.getElementById('goalReachedOverlay')) return null;
+        const goal = formatMinutes(info.goalMinutes);
+        const logged = formatMinutes(info.loggedMinutes);
+        const line = Math.floor(info.loggedMinutes) === Math.floor(info.goalMinutes)
+            ? `${logged} logged \u2014 your goal.`
+            : `${logged} logged \u2014 your goal was ${goal}.`;
+        const overlay = Modal.open(`
+            <div class="modal-overlay" id="goalReachedOverlay">
+                <div class="modal-content frozen-notice-modal">
+                    <h3>\u23F1 ${esc(item.name)}</h3>
+                    <p>${line}</p>
+                    <div class="modal-buttons goal-reached-buttons">
+                        <button type="button" id="goalMarkDone" class="primary-button">Mark done</button>
+                        <button type="button" id="goalKeepGoing" class="secondary-button">Keep going</button>
+                        <button type="button" id="goalStopNotDone" class="secondary-button">Stop, not done yet</button>
+                        <button type="button" id="goalMistake" class="secondary-button">Started by mistake</button>
+                    </div>
+                </div>
+            </div>`);
+        if (!overlay) return null;
+        const wire = (id, fn) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('click', () => { Modal.closeModal(); if (handlers && handlers[fn]) handlers[fn](); });
+        };
+        wire('goalMarkDone', 'onMarkDone');
+        wire('goalKeepGoing', 'onKeepGoing');
+        wire('goalStopNotDone', 'onStopNotDone');
+        wire('goalMistake', 'onMistake');
+        return overlay;
+    }
+
+    // "Mark done" on a task that still has open sub-tasks: it stays open, the timer is stopped.
+    function showGoalBlocked(item) {
+        notice('\u23F1 Goal reached',
+            `You reached your goal on "${esc(item.name)}", but it still has open sub-tasks, so it isn't complete yet.`);
     }
 
     function showAutoStopped(item) {
@@ -56,7 +98,7 @@ const TimerView = (() => {
             `No answer to "Still working?", so the timer on "${esc(item.name)}" stopped. Time up to the check was kept.`);
     }
 
-    return { showStillWorking, closeStillWorking, showTargetReached, showAutoStopped };
+    return { showStillWorking, closeStillWorking, showGoalReached, showGoalBlocked, formatMinutes, showAutoStopped };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
