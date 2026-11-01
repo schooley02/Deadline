@@ -94,6 +94,41 @@ const TimerView = (() => {
         return overlay;
     }
 
+    // Break limit passed (Habit Goals Build 2b, 2026-11-01): the timer is running and the logged time is over the
+    // limit. Passing it answers nothing by itself; the player says what happened. `info` = { limitMinutes, loggedMinutes }.
+    // Handlers: onSlipped / onWithin / onMistake / onKeepGoing.
+    function showLimitPassed(item, info, handlers) {
+        if (document.getElementById('limitPassedOverlay')) return null;
+        const limit = formatMinutes(info.limitMinutes);
+        const logged = formatMinutes(info.loggedMinutes);
+        const opt = (id, cls, label, desc) =>
+            `<button type="button" id="${id}" class="${cls}"><span class="goal-opt-label">${label}</span>` +
+            `<span class="goal-opt-desc">${desc}</span></button>`;
+        const overlay = Modal.open(`
+            <div class="modal-overlay" id="limitPassedOverlay">
+                <div class="modal-content frozen-notice-modal">
+                    <h3>\u23F1 ${esc(item.name)}</h3>
+                    <p>${logged} logged \u2014 past your limit of ${limit}.</p>
+                    <div class="modal-buttons goal-reached-buttons">
+                        ${opt('limitSlipped', 'primary-button', 'I slipped', 'Counts as Slipped for today. The timer stops and the time stays logged.')}
+                        ${opt('limitWithin', 'secondary-button', 'I stayed within it', 'Counts as Resisted and stops the timer. Use this if you forgot to stop it.')}
+                        ${opt('limitMistake', 'secondary-button', 'Started by mistake', 'Stops the timer and throws away this session\u2019s time.')}
+                        ${opt('limitKeepGoing', 'secondary-button', 'Keep going', 'The timer keeps running. It won\u2019t ask again.')}
+                    </div>
+                </div>
+            </div>`);
+        if (!overlay) return null;
+        const wire = (id, fn) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('click', () => { Modal.closeModal(); if (handlers && handlers[fn]) handlers[fn](); });
+        };
+        wire('limitSlipped', 'onSlipped');
+        wire('limitWithin', 'onWithin');
+        wire('limitMistake', 'onMistake');
+        wire('limitKeepGoing', 'onKeepGoing');
+        return overlay;
+    }
+
     // "Mark done" on a task that still has open sub-tasks: it stays open, the timer is stopped.
     function showGoalBlocked(item) {
         notice('\u23F1 Goal reached',
@@ -105,7 +140,7 @@ const TimerView = (() => {
             `No answer to "Still working?", so the timer on "${esc(item.name)}" stopped. Time up to the check was kept.`);
     }
 
-    return { showStillWorking, closeStillWorking, showGoalReached, showGoalBlocked, formatMinutes, showAutoStopped };
+    return { showStillWorking, closeStillWorking, showGoalReached, showLimitPassed, showGoalBlocked, formatMinutes, showAutoStopped };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

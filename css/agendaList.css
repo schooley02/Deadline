@@ -466,6 +466,7 @@
 .timer-ctl-btn .timer-ctl-icon { display: block; }
 .work-timer-btn .timer-elapsed { font-variant-numeric: tabular-nums; }
 .work-timer-btn .timer-elapsed.paused { opacity: 0.7; }
+.work-timer-btn .timer-elapsed.stopped { opacity: 1; } /* logged total after Stop: shown plainly (Build 2b) */
 .work-timer-btn .timer-elapsed.over { color: #ff6b5b; font-weight: 600; }
 /* Break limit passed (2026-11-01, Jeremy): the stopwatch icon, border and the Pause / Play / Stop controls go red too.
    After .running and .timer-ctl-btn so it wins over their amber. */

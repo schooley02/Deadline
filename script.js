@@ -1278,6 +1278,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Break limit passed (Habit Goals Build 2b): same once-per-run guard as the goal popup. Slipped / Resisted answer
+    // the habit through the same paths as the Slipped / Resisted buttons (both stop the timer and keep its time);
+    // Started by mistake drops this session's time; Keep going stops further asking. Dismissing asks again next open.
+    let limitPopupKey = null;
+    function showLimitPassedPopup(item, nowMs) {
+        const key = item.id + ':' + (item.timer && item.timer.startedAt);
+        if (limitPopupKey === key) return;
+        limitPopupKey = key;
+        const refresh = () => { syncWorkHero(Timer.findRunning(State.getActiveItems())); updateTimerButtons(Date.now()); saveGame(); };
+        TimerView.showLimitPassed(item, {
+            limitMinutes: item.timerMinutes,
+            loggedMinutes: Timer.loggedMinutes(item, nowMs),
+        }, {
+            onSlipped: () => { Items.indulgeHabit(item.id, itemsDeps()); refresh(); },
+            onWithin: () => { Items.completeItem(item.id, itemsDeps()); refresh(); },
+            onMistake: () => { Timer.discardSession(item, Date.now()); refresh(); },
+            onKeepGoing: () => { Timer.acknowledgeGoal(item); saveGame(); },
+        });
+    }
+
     // Per-tick (afterTick): keeps the hero in step with whatever is running (also after a
     // reload), updates row labels once a second, and fires the prompt / auto-stop / target.
     function processTimers(nowMs) {
@@ -1292,6 +1312,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!action) return;
         if (action === 'goal-reached') {
             showGoalReachedPopup(running, nowMs);
+        } else if (action === 'limit-passed') {
+            showLimitPassedPopup(running, nowMs);
         } else if (action === 'prompt') {
             Timer.markPrompted(running, Timer.promptDueAt(running));
             saveGame();

@@ -120,12 +120,25 @@ const Timer = (() => {
         'aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="1.6"/></svg>';
     // Row button: stopwatch alone when idle; stopwatch + elapsed while a work timer runs. A limit timer
     // shows "18 / 60 min" (turns red once over) whenever time is logged; it never reduces damage.
+    // Logged time stays visible after Stop (2026-11-01, Jeremy; Build 2b): any timer with banked time shows the total.
+    function hasLogged(item) {
+        return !!item && typeof item.timerMsBanked === 'number' && item.timerMsBanked > 0;
+    }
+    // "Logged: 45 min" / "Logged: 1 hr 5 min" for a completed row; '' when nothing was logged. Under a minute rounds up
+    // to "1 min" so a short real session is not hidden.
+    function loggedText(item) {
+        if (!hasLogged(item)) return '';
+        const m = Math.max(1, Math.round(item.timerMsBanked / 60000));
+        if (m < 60) return `Logged: ${m} min`;
+        const h = Math.floor(m / 60), r = m % 60;
+        return r ? `Logged: ${h} hr ${r} min` : `Logged: ${h} hr`;
+    }
     function buttonHtml(item, nowMs) {
         if (isLimit(item)) return ICON_SVG + limitReadoutHtml(item, nowMs);
         // Paused: keep the logged time on the button (dimmed) so it is clear the time is held, not lost.
         if (!isRunning(item)) return isPaused(item)
             ? `${ICON_SVG}<span class="timer-elapsed paused">${formatElapsed(item.timerMsBanked)}</span>`
-            : ICON_SVG;
+            : hasLogged(item) ? `${ICON_SVG}<span class="timer-elapsed stopped">${formatElapsed(item.timerMsBanked)}</span>` : ICON_SVG;
         return `${ICON_SVG}<span class="timer-elapsed">${formatElapsed(elapsedMs(item, nowMs))}</span>`;
     }
     // Pause vs Stop (2026-11-01, Jeremy): both bank the time and lose nothing. PAUSE holds the timer
@@ -147,7 +160,9 @@ const Timer = (() => {
     // Popup button: stopwatch + the same words as buttonTitle (a limit helper adds its readout).
     function popupHtml(item, nowMs) {
         const now = nowMs === undefined ? Date.now() : nowMs;
-        const readout = isLimit(item) ? limitReadoutHtml(item, now) : '';
+        const readout = isLimit(item) ? limitReadoutHtml(item, now)
+            : (!isRunning(item) && hasLogged(item)
+                ? `<span class="timer-elapsed ${isPaused(item) ? 'paused' : 'stopped'}">${formatElapsed(item.timerMsBanked)}</span>` : '');
         return `${isPaused(item) ? PLAY_ICON_SVG : ICON_SVG}<span>${buttonTitle(item)}</span>${readout}`;
     }
     // "A zombie is attacking and starting this timer would help" (2026-10-31): overdue, still a threat
@@ -247,11 +262,13 @@ const Timer = (() => {
     // What the game should do for a running timer right now:
     // 'goal-reached' (Time goal / old task target reached and not yet answered: the caller opens the
     // 4-button popup, nothing auto-completes) > 'autostop' (prompt unanswered) > 'prompt' (continuous
-    // run reached the check interval) > null. A limit helper (Break habit) never has a pending action.
+    // run reached the check interval) > null. A Break limit timer only ever returns 'limit-passed' (running, over the
+    // limit, not yet answered); it has no "Still working?" prompt.
     function pendingAction(item, nowMs, c) {
         if (!isRunning(item)) return null;
         const t = item.timer;
-        if (isLimit(item)) return null;
+        // Break limit passed (Build 2b): the 4-choice popup, once per answer. It never answers the habit by itself.
+        if (isLimit(item)) return item.goalAcked !== true && isOverLimit(item, nowMs) ? 'limit-passed' : null;
         if (typeof item.timerMinutes === 'number' && item.timerMinutes > 0 && item.goalAcked !== true
             && elapsedMs(item, nowMs) >= item.timerMinutes * 60000) return 'goal-reached';
         if (typeof t.promptedAt === 'number') {
@@ -307,7 +324,7 @@ const Timer = (() => {
 
     return {
         normalizeTarget, modeFor, isRunning, canWorkTimer, isLimit, canLimitTimer, canTimer,
-        isPaused, buttonTitle, pause, endPaused, controlState, stopButtonHtml, PAUSE_ICON_SVG, PLAY_ICON_SVG, STOP_ICON_SVG, loggedMinutes, isOverLimit, limitReadout, limitText, limitCaptionHtml, acknowledgeGoal, discardSession, buttonLabel, popupLabel, ICON_SVG, buttonHtml, popupHtml, shouldNudge, NUDGE_TITLE, shouldPrompt, PROMPT_TITLE, elapsedMs, onSpan, start, stop, findRunning,
+        isPaused, buttonTitle, pause, endPaused, controlState, stopButtonHtml, PAUSE_ICON_SVG, PLAY_ICON_SVG, STOP_ICON_SVG, loggedMinutes, hasLogged, loggedText, isOverLimit, limitReadout, limitText, limitCaptionHtml, acknowledgeGoal, discardSession, buttonLabel, popupLabel, ICON_SVG, buttonHtml, popupHtml, shouldNudge, NUDGE_TITLE, shouldPrompt, PROMPT_TITLE, elapsedMs, onSpan, start, stop, findRunning,
         pendingAction, promptDueAt, markPrompted, confirmStillWorking, autoStop,
         damageIntervalMs, formatElapsed,
     };

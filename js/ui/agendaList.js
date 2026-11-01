@@ -804,6 +804,13 @@ const AgendaList = (() => {
 
                 itemInfoDiv.appendChild(itemNameSpan);
                 itemInfoDiv.appendChild(itemCompletedSpan);
+                // Logged time (Habit Goals Build 2b): any entry with timer time shows it, e.g. "Logged: 45 min".
+                if (typeof Timer !== 'undefined' && Timer.loggedText && Timer.hasLogged(item)) {
+                    const loggedSpan = document.createElement('span');
+                    loggedSpan.classList.add('item-completed', 'item-logged');
+                    loggedSpan.textContent = Timer.loggedText(item);
+                    itemInfoDiv.appendChild(loggedSpan);
+                }
 
                 // Add category badge
                 const itemCategorySpan = document.createElement('span');

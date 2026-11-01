@@ -11,6 +11,12 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-01 (late afternoon) -- Habit Goals Build 2b: over-limit popup + logged total (Claude app session, Sonnet; Jeremy)
+**Did:** Break limit timer running past its limit now opens a 4-choice popup (I slipped / I stayed within it / Started by mistake / Keep going; `Timer.pendingAction` 'limit-passed', `TimerView.showLimitPassed`, script.js `showLimitPassedPopup`). Every timer keeps its logged total after Stop (row + popup button); completed rows show "Logged: N min". sw v189. Jest 108 suites / 2,501 (scratch copy). Popup rendered at 390x844, no console errors; the full flow with a live timer was NOT exercised in a browser.
+**State:** green; written into the folder, not committed.
+**Next:** phone-check 2b (let a Break timer run past its limit); then Build 2c (Sonnet, high): logged-time editing + DailyRecord v4 + Slipped entries kept in Completed.
+**Watch out:** "I stayed within it" does not ask for the real time yet (2c). Resuming a timer that was stopped over the limit without answering asks again at once (goalAcked unset). Slipped entries still vanish from the list until 2c.
+
 ## 2026-11-01 (night, Opus) -- Over-limit + logged-time design (Claude app session, Opus; Jeremy)
 **Did:** design only, no code. `docs/HABIT_GOALS_PLAN.md` "Over the limit + logged time" (Decisions 10-14, Builds 2b and 2c); DECISIONS entry; ROADMAP 2b / 2c added before Build 3. Jeremy agreed: edit in the popup + Edit form (completed = entry edit), an edit never changes the answer, How much? for Time goals = logged time, dismissed popup asks again next open. sw v188 pushed (3120fcf), phone-confirmed.
 **State:** code unchanged since 3120fcf; green.

@@ -147,7 +147,7 @@ Decisions (Jeremy, 2026-11-01):
 - Editing a habit's time does not move streaks, points or XP (Decision 13), so no balance change.
 
 ### Builds
-- **2b. Over-limit popup + always-visible total** (Decisions 10-11). `pendingAction` returns `'limit-passed'` for a
+- **2b. [BUILT 2026-11-01, sw v189] Over-limit popup + always-visible total** (Decisions 10-11). *Built as:* `Timer.pendingAction` returns `'limit-passed'` (running Break limit timer, over the limit, `goalAcked !== true`); `TimerView.showLimitPassed` (I slipped -> `Items.indulgeHabit`; I stayed within it -> `Items.completeItem`, i.e. Resisted; Started by mistake -> `Timer.discardSession`, which re-arms the popup if back under the limit; Keep going -> `acknowledgeGoal`); script.js `showLimitPassedPopup` (once per run, dismiss = asks again next open); `Timer.hasLogged/loggedText`; stopped timers keep the total on the row and popup button (`.timer-elapsed.stopped`); completed rows show 'Logged: N min'. NOT in 2b: 'I stayed within it' does not yet ask how much time was spent (the editor is 2c). Original spec: `pendingAction` returns `'limit-passed'` for a
   running limit timer once over (not acked); `TimerView.showLimitPassed` (4 options); `buttonHtml` shows the total
   after Stop for every timer; completed-row "Logged" line. sw bump. **Sonnet, medium.**
 - **2c. Logged-time editing + daily-record correction** (Decisions 12-14 + DailyRecord v4). `Forms.loggedTimeHtml`

@@ -153,12 +153,25 @@ describe('limit timer (Build 4)', () => {
         expect(Timer.canTimer(lurker())).toBe(true);
         expect(Timer.canTimer(lurker({ timerMinutes: null }))).toBe(false);
     });
-    test('start works; a limit helper never has a pending action (no limit-expired popup)', () => {
+    test('start works; a running limit timer asks "limit-passed" once over the limit, never before, never after an answer', () => {
         const h = lurker();
         expect(Timer.start(h, 0)).toBe(true);
         expect(Timer.pendingAction(h, 29 * MIN)).toBeNull();
-        expect(Timer.pendingAction(h, 30 * MIN)).toBeNull();
-        expect(Timer.pendingAction(h, 90 * MIN)).toBeNull(); // over the limit and even closed: still nothing
+        expect(Timer.pendingAction(h, 30 * MIN)).toBeNull(); // exactly at the limit is not over
+        expect(Timer.pendingAction(h, 31 * MIN)).toBe('limit-passed');
+        Timer.acknowledgeGoal(h); // Keep going
+        expect(Timer.pendingAction(h, 90 * MIN)).toBeNull();
+    });
+    test('limit-passed needs a RUNNING timer: time banked over the limit and stopped never opens it', () => {
+        const h = lurker({ timerMsBanked: 45 * MIN });
+        expect(Timer.pendingAction(h, 60 * MIN)).toBeNull();
+    });
+    test('Started by mistake under the limit re-arms the popup (goalAcked cleared)', () => {
+        const h = lurker();
+        Timer.start(h, 0);
+        Timer.acknowledgeGoal(h);
+        Timer.discardSession(h, 40 * MIN);
+        expect(h.goalAcked).toBe(false);
     });
     test('no "Still working?" prompt for limits (budget <= 600 min can still pass 60)', () => {
         const h = lurker({ timerMinutes: 120 });
@@ -266,14 +279,16 @@ describe('attacking nudge + stopwatch icon (2026-10-31)', () => {
         expect(Timer.elapsedMs(t, 35 * MIN)).toBe(17 * MIN);
         expect(Timer.buttonHtml(t, 35 * MIN)).not.toContain('paused');
     });
-    test('Stop ends the session but keeps the time: back to Start, no held time on the button', () => {
+    test('Stop ends the session but keeps the time: back to Start, with the logged total still shown', () => {
         const t = task();
         Timer.start(t, 0);
         expect(Timer.stop(t, 12 * MIN)).toBe(12 * MIN);
         expect(t.timerMsBanked).toBe(12 * MIN); // nothing lost
         expect(Timer.isPaused(t)).toBe(false);
         expect(Timer.buttonTitle(t)).toBe('Start timer');
-        expect(Timer.buttonHtml(t, 20 * MIN)).toBe(Timer.ICON_SVG);
+        expect(Timer.buttonHtml(t, 20 * MIN)).toContain('12:00'); // the logged total stays visible after Stop (Build 2b)
+        expect(Timer.buttonHtml(t, 20 * MIN)).toContain('timer-elapsed stopped');
+        expect(Timer.popupHtml(t)).toContain('12:00');
         // Start again after a Stop still adds to the logged time
         Timer.start(t, 30 * MIN);
         expect(Timer.elapsedMs(t, 35 * MIN)).toBe(17 * MIN);
@@ -369,5 +384,19 @@ describe('attacking nudge + stopwatch icon (2026-10-31)', () => {
         h.timerMsBanked = 31 * MIN;
         expect(Timer.limitCaptionHtml(h, 0, 'cap')).toContain('timer-limit-caption over');
         expect(Timer.limitCaptionHtml(h, 0, 'cap')).toContain('id="cap"');
+    });
+});
+
+describe('logged time text (Build 2b)', () => {
+    test('loggedText: empty when nothing logged, minutes, hours', () => {
+        expect(Timer.loggedText({ timerMsBanked: 0 })).toBe('');
+        expect(Timer.loggedText({})).toBe('');
+        expect(Timer.loggedText({ timerMsBanked: 20000 })).toBe('Logged: 1 min');
+        expect(Timer.loggedText({ timerMsBanked: 45 * MIN })).toBe('Logged: 45 min');
+        expect(Timer.loggedText({ timerMsBanked: 60 * MIN })).toBe('Logged: 1 hr');
+        expect(Timer.loggedText({ timerMsBanked: 65 * MIN })).toBe('Logged: 1 hr 5 min');
+    });
+    test('a task with no time logged keeps the bare stopwatch', () => {
+        expect(Timer.buttonHtml({ type: 'task', timer: null, timerMsBanked: 0 }, 0)).toBe(Timer.ICON_SVG);
     });
 });
