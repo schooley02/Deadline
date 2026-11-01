@@ -1,8 +1,8 @@
 /**
  * Add Task default due time.
  *
- * 2026-10-27 (Jeremy): the time input defaults to the CURRENT time + 5 min (supersedes
- * the 2026-07-20 "max(5 PM, now + 1h rounded to :30)" rule). An untouched or
+ * 2026-11-01 (Jeremy): Add Task / Build habit open with Start = now, Due = now + 1 hour (capped 23:59),
+ * superseding the 2026-10-27 "now + 5 min" default. An untouched or
  * just-passed time is nudged 5 minutes ahead on submit so a new task never
  * spawns already attacking (the original 2026-07-20 playtest bug).
  *
@@ -10,22 +10,29 @@
  * use local wall-clock HH:MM.
  */
 
+global.Schedule = require('../js/schedule.js');
 const Forms = require('../js/ui/forms.js');
 
-describe('computeDefaultDueTime / computeDefaultDueDate', () => {
-    test('is the current local time + 5 minutes (HH:MM)', () => {
-        expect(Forms.computeDefaultDueTime(new Date(2026, 6, 20, 8, 5))).toBe('08:10');
-        expect(Forms.computeDefaultDueTime(new Date(2026, 6, 20, 19, 35, 42))).toBe('19:40');
+describe('computeDefaultWindow / computeDefaultDueTime / computeDefaultDueDate', () => {
+    test('Start is the current local time, Due is one hour later (HH:MM)', () => {
+        expect(Forms.computeDefaultWindow(new Date(2026, 6, 20, 8, 5)))
+            .toEqual({ date: '2026-07-20', start: '08:05', due: '09:05' });
+        expect(Forms.computeDefaultDueTime(new Date(2026, 6, 20, 19, 35, 42))).toBe('20:35');
         expect(Forms.computeDefaultDueDate(new Date(2026, 6, 20, 19, 35))).toBe('2026-07-20');
     });
 
-    test('rolls the date to tomorrow when now + 5 min crosses midnight', () => {
-        const late = new Date(2026, 6, 20, 23, 57);
-        expect(Forms.computeDefaultDueTime(late)).toBe('00:02');
-        expect(Forms.computeDefaultDueDate(late)).toBe('2026-07-21');
+    test('Due is capped at 23:59 today (never rolls into tomorrow)', () => {
+        const late = new Date(2026, 6, 20, 23, 10);
+        expect(Forms.computeDefaultWindow(late)).toEqual({ date: '2026-07-20', start: '23:10', due: '23:59' });
+        expect(Forms.computeDefaultDueDate(new Date(2026, 6, 20, 23, 57))).toBe('2026-07-20');
     });
 
-    test('createTaskFormHtml embeds it as the value and remembers it as data-prefilled', () => {
+    test('Start is left blank when there is no room before the cap', () => {
+        expect(Forms.computeDefaultWindow(new Date(2026, 6, 20, 23, 59)))
+            .toEqual({ date: '2026-07-20', start: '', due: '23:59' });
+    });
+
+    test('createTaskFormHtml prefills Start = now and Due = now + 1h (Due remembered as data-prefilled)', () => {
         const now = new Date(2026, 6, 20, 19, 35);
         const originalDate = global.Date;
         global.Date = class extends originalDate {
@@ -36,11 +43,19 @@ describe('computeDefaultDueTime / computeDefaultDueDate', () => {
         };
         try {
             const html = Forms.createTaskFormHtml();
-            expect(html).toContain('id="modalDueTime" value="19:40" data-prefilled="19:40"');
+            expect(html).toContain('id="modalDueTime" value="20:35" data-prefilled="20:35"');
+            expect(html).toContain('id="modalStartTime" value="19:35"');
             expect(html).toContain('id="modalDueDate" value="2026-07-20"');
         } finally {
             global.Date = originalDate;
         }
+    });
+
+    test('createHabitFormHtml prefills the (hidden) custom Start/End pair the same way', () => {
+        const html = Forms.createHabitFormHtml(new Date(2026, 6, 20, 9, 0));
+        expect(html).toContain('id="modalHabitStartTime"');
+        expect(html).toMatch(/id="modalHabitStartTime"[^>]*value="09:00"/);
+        expect(html).toMatch(/id="modalHabitEndTime"[^>]*value="10:00"/);
     });
 });
 

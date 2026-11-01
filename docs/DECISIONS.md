@@ -5,6 +5,11 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+## 2026-11-01 (night) -- Default Start/Due window: Start = now, Due = now + 1 h (Claude app session, Sonnet; Jeremy)
+**Decision:** Add Task opens with Start Time = current time and Due Time = one hour later; the Build-habit custom Start/End pair (Add Habit + routine New Habit) is prefilled the same way. Due is capped at 23:59 today (no rolling to tomorrow); Start is blank when it would not be before Due. Completion Window still defaults to Anytime Today; routine task templates keep 17:00. Form default, not balance.
+**Why:** Jeremy: "default start time to be current time ... and the default due time an hour later". Supersedes 2026-10-27 now + 5 min.
+**Alternatives:** roll Due into tomorrow after 23:00 (rejected: a start-to-due window spanning midnight is not supported); default the habit window to Custom (not done; changes the habit's meaning).
+
 ## 2026-11-01 (later) -- Start time Build B: custom start/end times for Build habits (Claude app session, Sonnet; Jeremy)
 - **Ask (Jeremy):** habits get an option for a start time and an end time, instead of the completion-window buckets, if the player wants it. Tasks, sub-tasks and habits all have it; routines get it indirectly. Break habits stay on their tempting-time buckets (Jeremy, 2026-11-01: "Build habits only").
 - **Design:** a "Custom times..." choice in the Completion Window picker (`habitDef.timeOfDay = 'custom'`) reveals Start (optional) and End (required, = the due time). Stored as `habitDef.startTime` / `endTime` "HH:MM"; instances get `startDateTime` and then reuse Build A's window rules unchanged (walk by start, idle at the church, attack at End). One sanitizer, `Habits.normalizeCustomTimes`, collapses a Break habit, a missing End or a bad Start to no custom times. End is required because "custom" with no end would silently mean 23:59, which is the Anytime bucket. Start blank is allowed (a custom due time only).

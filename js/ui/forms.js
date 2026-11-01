@@ -161,15 +161,25 @@ const Forms = (() => {
     const localDateStr = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
     const localTimeStr = (d) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 
-    // Default = now + NOW_BUMP_MINUTES (Jeremy, same day: "make it 5 minutes out").
-    function defaultDueDateTime(now) {
-        return new Date(now.getTime() + NOW_BUMP_MINUTES * 60 * 1000);
+    // Default window (2026-11-01, Jeremy): a new Task / Build habit opens with Start = the
+    // CURRENT time and Due = one hour later. Due is capped at 23:59 today so the window never
+    // spills into tomorrow; if that leaves no room (start >= due) Start is left blank.
+    // This supersedes the 2026-10-27 "due = now + 5 min" default (NOW_BUMP_MINUTES still backs
+    // resolveSubmittedDueTime for a due time that is untouched or just passed).
+    const DEFAULT_WINDOW_MINUTES = 60;
+    function computeDefaultWindow(now) {
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 0, 0);
+        const plus = new Date(now.getTime() + DEFAULT_WINDOW_MINUTES * 60 * 1000);
+        const due = plus.getTime() > endOfDay.getTime() ? endOfDay : plus;
+        const startStr = localTimeStr(now);
+        const dueStr = localTimeStr(due);
+        return { date: localDateStr(now), start: startStr < dueStr ? startStr : '', due: dueStr };
     }
     function computeDefaultDueTime(now) {
-        return localTimeStr(defaultDueDateTime(now));
+        return computeDefaultWindow(now).due;
     }
     function computeDefaultDueDate(now) {
-        return localDateStr(defaultDueDateTime(now)); // tomorrow when now + 5 min crosses midnight
+        return computeDefaultWindow(now).date;
     }
 
     // Optional START time (2026-11-01, Jeremy): a "Start | Due" pair of time boxes. Start sits to
@@ -243,8 +253,9 @@ const Forms = (() => {
         // date in positive-offset timezones (latent for CDT; same bug family
         // as the popups.js UTC pre-fill fix — see DECISIONS.md 2026-07-18).
         const now = new Date();
-        const todayString = computeDefaultDueDate(now); // usually today; tomorrow if now + 5 min passes midnight
-        const defaultDueTime = computeDefaultDueTime(now);
+        const win = computeDefaultWindow(now);
+        const todayString = win.date;
+        const defaultDueTime = win.due;
         return `
             <h3>Add New Task</h3>
             <div class="form-row">
@@ -272,7 +283,7 @@ const Forms = (() => {
                 <label for="modalDueDate">Due Date:</label>
                 <input type="date" id="modalDueDate" value="${todayString}" required>
             </div>
-            ${startDueTimeGroupHtml({ startId: 'modalStartTime', dueId: 'modalDueTime', startValue: '', dueValue: defaultDueTime, dueAttrs: `data-prefilled="${defaultDueTime}"` })}
+            ${startDueTimeGroupHtml({ startId: 'modalStartTime', dueId: 'modalDueTime', startValue: win.start, dueValue: defaultDueTime, dueAttrs: `data-prefilled="${defaultDueTime}"` })}
             <div class="form-row">
                 <label for="modalTimerMinutes">Timer target (min, optional):</label>
                 <input type="number" id="modalTimerMinutes" min="1" max="600" step="1" inputmode="numeric" placeholder="e.g. 30">
@@ -284,7 +295,8 @@ const Forms = (() => {
         `;
     }
 
-    function createHabitFormHtml() {
+    function createHabitFormHtml(now = new Date()) {
+        const win = computeDefaultWindow(now);
         return `
             <h3>Add New Habit</h3>
             <div class="form-row">
@@ -332,7 +344,7 @@ const Forms = (() => {
                     <option value="custom">Custom times...</option>
                 </select>
             </div>
-            ${customHabitTimesHtml({ selectId: 'modalHabitTimeOfDay', startId: 'modalHabitStartTime', endId: 'modalHabitEndTime', startValue: '', endValue: '', visible: false })}
+            ${customHabitTimesHtml({ selectId: 'modalHabitTimeOfDay', startId: 'modalHabitStartTime', endId: 'modalHabitEndTime', startValue: win.start, endValue: win.due, visible: false })}
             <div class="form-row">
                 <label for="modalHabitTimerMinutes">Timer (minutes, optional):</label>
                 <input type="number" id="modalHabitTimerMinutes" min="1" max="600" step="1" inputmode="numeric" placeholder="e.g. 30">
@@ -581,6 +593,7 @@ const Forms = (() => {
         createRoutineFormHtml,
         showFormModal,
         attachModalEventListeners,
+        computeDefaultWindow,
         computeDefaultDueTime,
         computeDefaultDueDate,
         resolveSubmittedDueTime,

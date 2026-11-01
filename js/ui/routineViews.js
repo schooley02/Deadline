@@ -1065,6 +1065,7 @@ const RoutineViews = (() => {
     // onclick="saveNewHabit(...)" reaches the window-level global (script.js
     // thin wrapper), same as every other inline onclick in this project.
     function showCreateHabitForm(routineId) {
+        const defaultWin = Forms.computeDefaultWindow(new Date());
         const formHtml = `
             <div class="modal-overlay" id="habitFormModal">
                 <div class="modal-content">
@@ -1114,7 +1115,7 @@ const RoutineViews = (() => {
                             <option value="custom">Custom times...</option>
                         </select>
                     </div>
-                    ${Forms.customHabitTimesHtml({ selectId: 'newHabitTimeOfDay', startId: 'newHabitStartTime', endId: 'newHabitEndTime', startValue: '', endValue: '', visible: false })}
+                    ${Forms.customHabitTimesHtml({ selectId: 'newHabitTimeOfDay', startId: 'newHabitStartTime', endId: 'newHabitEndTime', startValue: defaultWin.start, endValue: defaultWin.due, visible: false })}
                     <div class="form-row">
                         <label for="newHabitTimerMinutes">Timer (minutes, optional):</label>
                         <input type="number" id="newHabitTimerMinutes" min="1" max="600" step="1" inputmode="numeric" value="" placeholder="e.g. 30">
