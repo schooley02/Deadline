@@ -129,10 +129,21 @@ Decisions (Jeremy, 2026-11-01):
 - New `DailyRecord` helper: `adjustTimer(rec, kind, deltaMin)` (pure); `State.adjustDayTimer(dateKey, kind, deltaMin)`
   picks the working record or the closed one and saves.
 
-### Known limit / open
-- **A Slipped Break habit has no completed entry** (`indulgeHabit` removes it; only Resisted goes to Completed), so its
-  time can't be edited after the answer. Options for 2c: (a) accept it (edit before answering; the over-limit
-  "I slipped" path could ask How much? first), or (b) keep Slipped entries in the Completed list as well. Decide in 2c.
+### Slipped entries join the Completed list (DECIDED 2026-11-01, Jeremy)
+15. **A Slipped Break habit is kept in the Completed list, clearly marked as Slipped** (today `indulgeHabit` just
+    removes it; only Resisted is kept). So its logged time can be seen and edited like any other entry.
+    - Data: the entry gets `item.outcome = 'indulged'` (code word; UI says Slipped) and `completedAt` = when it was
+      answered. Resisted entries get `item.outcome = 'avoided'`; Build habits / tasks have no `outcome` (= done).
+      Additive fields, no schema bump; old saves have no Slipped entries.
+    - Look: a red **Slipped** tag (and a muted row, no strike-through "done" styling), a green **Resisted** tag on
+      Resisted entries so a Break habit's day reads either way. Applies to every Slipped path: the Slipped button,
+      the over-limit "I slipped", the check-in card, the evening check (Build 3), and a Cheat-Day-excused slip
+      ("Slipped (Cheat Day)", nothing charged, as today).
+    - **No undo on a Slipped entry** in v1 (there is no "un-slip" path today; undoing it would have to give back the
+      points and streak). The entry's checkbox is replaced by the tag. Editing it (name / category / goal / logged
+      time) works like any completed entry.
+    - Anything that reads the Completed list must not count a Slipped entry as a completion (check the day pager's
+      outcome lookup, `uncompleteItem`, completed counts, first-run check).
 - Editing a habit's time does not move streaks, points or XP (Decision 13), so no balance change.
 
 ### Builds
@@ -141,7 +152,7 @@ Decisions (Jeremy, 2026-11-01):
   after Stop for every timer; completed-row "Logged" line. sw bump. **Sonnet, medium.**
 - **2c. Logged-time editing + daily-record correction** (Decisions 12-14 + DailyRecord v4). `Forms.loggedTimeHtml`
   (h + min), popup + Edit forms (+ completed-entry edit), `Timer.setLogged(item, ms)` returns the delta,
-  `DailyRecord.adjustTimer`, `State.adjustDayTimer`, DATA_SCHEMA note. Decide the Slipped-entry question first.
+  `DailyRecord.adjustTimer`, `State.adjustDayTimer`, DATA_SCHEMA note; Slipped entries kept in Completed with tags (Decision 15).
   **Sonnet, high** (it touches closed daily records).
 - Build 3 then follows (evening check, How much? for Amount goals; DailyRecord v5).
 
