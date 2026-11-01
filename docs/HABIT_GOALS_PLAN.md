@@ -81,8 +81,69 @@ change); it changes how a Break habit's result is decided and what data we keep.
    for "Started by mistake"; limit timers return no pending action; starting a limit timer no longer sets
    `arrivalPromptedFor` (the timer answers nothing now); `TimerView.showGoalReached`; dismissing the popup
    (outside tap / Esc) leaves the timer running and asks again on the next app open.
-3. **Evening check + How much? + DailyRecord v4.** Evening modal (reuses check-in card styles), Settings time field,
+3. **Evening check + How much? + DailyRecord v5** (after 2b/2c below; How much? for a Time goal edits the logged time, see Decision 14). Evening modal (reuses check-in card styles), Settings time field,
    How much? box on evening / check-in / popup answers, `goalActual` storage, daily record tally.
+
+## Over the limit + logged time (DESIGNED 2026-11-01 evening, Opus; Jeremy)
+
+Phone check of Build 2 raised it: when a Break habit's timer passes the limit, nothing asks the player anything,
+and once a timer is stopped the player can't see or fix the total. Jeremy's four real situations when the timer is
+over a limit, and what each does:
+
+| Player says | What the game does |
+|---|---|
+| **I slipped** | Answers the habit Slipped for today (same as the Slipped button). The timer stops and its time is kept. |
+| **I stayed within it** (forgot to stop the timer) | Answers Resisted, stops the timer, then asks "How much time did you actually spend?" (the logged-time editor, prefilled with the limit, editable). |
+| **Started by mistake** | Throws away the time since the last Start / Resume (`Timer.discardSession`); earlier logged sessions stay. |
+| **Keep going** (went over, keep counting) | The timer keeps running and this popup does not ask again; the habit stays unanswered (arrival prompt / evening check / Resisted-Slipped buttons still apply). |
+
+Decisions (Jeremy, 2026-11-01):
+
+10. **Over-limit popup for Break habits** with a Time limit: the four choices above, each with a one-line
+    explanation (same style as the Build goal popup). Asks once per answer (reuse `item.goalAcked`); passing the
+    limit never answers anything by itself; dismissing the popup leaves the timer running and it asks again on the
+    next app open (same as the Build popup). Only while the timer is RUNNING when it passes the limit; time edited
+    over the limit later does not open it.
+11. **Logged time is always visible.** Every timer (task, Build habit, Break habit) shows the total logged so far
+    when running, paused AND stopped (today a task / Build habit button goes back to a bare stopwatch after Stop).
+    Paused stays dimmed with the Play icon; stopped shows the total plainly with the normal stopwatch. Completed rows
+    show "Logged: 45 min" when any time was logged.
+12. **Logged time is editable at any time, even after completion.** A "Logged time" field (hours + minutes) in the
+    item popup and in the Edit form; for a COMPLETED habit it is part of the entry edit (the three-way choice, an
+    entry-level change: "Just this entry" or "This entry and all following" both change this entry's time; the
+    habit definition has no logged time). Not editable while the timer is running (pause first). Range 0..24 h.
+13. **An edit never changes the answer.** Resisted / Slipped / done stays the player's; editing a Break habit's time
+    over its limit does not make it Slipped, and editing a Build habit's time under its goal does not un-complete it.
+14. **For a Time goal, "How much?" (Build 3) IS the logged time.** One number, one place: Build 3's How much? box
+    for a Time-goal habit edits `timerMsBanked`; `goalActual` is used only for Amount goals (and Note goals have none).
+
+### Data for 11-14
+- No new item field: the logged time is `item.timerMsBanked` (+ the live span while running). Completed items keep it.
+- **Daily record correction (the hard part).** Stopped spans are added to that day's `timer.workMin` /
+  `timer.limitMin` as they happen. An edit applies the DIFFERENCE (new - old) to the record of the day the item
+  belongs to: an active item -> today's working record; a completed item -> the day of `completedAt` (today's working
+  record, or the closed record in `deadline.days` if that day has closed). Minutes never go below 0. Each edit also
+  bumps a new counter `timer.edits` (count) and `timer.editMin` (signed net minutes) so insights can tell measured
+  time from corrected time. That is a DailyRecord change: **v3 -> v4** here (Build 2c), so Build 3's goal tally
+  becomes **v5**. Documented in DATA_SCHEMA.md in that build.
+- New `DailyRecord` helper: `adjustTimer(rec, kind, deltaMin)` (pure); `State.adjustDayTimer(dateKey, kind, deltaMin)`
+  picks the working record or the closed one and saves.
+
+### Known limit / open
+- **A Slipped Break habit has no completed entry** (`indulgeHabit` removes it; only Resisted goes to Completed), so its
+  time can't be edited after the answer. Options for 2c: (a) accept it (edit before answering; the over-limit
+  "I slipped" path could ask How much? first), or (b) keep Slipped entries in the Completed list as well. Decide in 2c.
+- Editing a habit's time does not move streaks, points or XP (Decision 13), so no balance change.
+
+### Builds
+- **2b. Over-limit popup + always-visible total** (Decisions 10-11). `pendingAction` returns `'limit-passed'` for a
+  running limit timer once over (not acked); `TimerView.showLimitPassed` (4 options); `buttonHtml` shows the total
+  after Stop for every timer; completed-row "Logged" line. sw bump. **Sonnet, medium.**
+- **2c. Logged-time editing + daily-record correction** (Decisions 12-14 + DailyRecord v4). `Forms.loggedTimeHtml`
+  (h + min), popup + Edit forms (+ completed-entry edit), `Timer.setLogged(item, ms)` returns the delta,
+  `DailyRecord.adjustTimer`, `State.adjustDayTimer`, DATA_SCHEMA note. Decide the Slipped-entry question first.
+  **Sonnet, high** (it touches closed daily records).
+- Build 3 then follows (evening check, How much? for Amount goals; DailyRecord v5).
 
 ## Open (decide before the build that needs it)
 

@@ -11,6 +11,12 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-01 (night, Opus) -- Over-limit + logged-time design (Claude app session, Opus; Jeremy)
+**Did:** design only, no code. `docs/HABIT_GOALS_PLAN.md` "Over the limit + logged time" (Decisions 10-14, Builds 2b and 2c); DECISIONS entry; ROADMAP 2b / 2c added before Build 3. Jeremy agreed: edit in the popup + Edit form (completed = entry edit), an edit never changes the answer, How much? for Time goals = logged time, dismissed popup asks again next open. sw v188 pushed (3120fcf), phone-confirmed.
+**State:** code unchanged since 3120fcf; green.
+**Next:** Build 2b (over-limit popup + logged total always visible) -- Sonnet, medium. Then 2c (Sonnet, high), then Build 3.
+**Watch out:** DailyRecord numbering moved: 2c takes v4 (timer edits), Build 3 takes v5. A Slipped Break habit is removed, not completed, so its time can't be edited after answering -- decide at the start of 2c.
+
 ## 2026-11-01 (night, later) -- Break limit caption under the timer (Claude app session, Sonnet; Jeremy)
 **Did:** the Break habit limit now shows as a small "Limit: N min" caption under the timer on the row and popup, always visible, red when over; the button shows only time logged (`Timer.limitCaptionHtml/limitText`, `.timer-stack`, sw v188). Jest 108 suites / 2,497. Live-checked row + popup at 390x844.
 **State:** green; in the folder, not committed. **Next:** phone-check; Habit Goals Build 3 (Opus).

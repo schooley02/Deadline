@@ -5,6 +5,12 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+## 2026-11-01 (night, Opus design) -- Over-limit popup, always-visible logged time, editable logged time (Claude app session, Opus; Jeremy)
+**Decision:** plan `docs/HABIT_GOALS_PLAN.md` "Over the limit + logged time" (Decisions 10-14): (10) a Break habit whose running timer passes its limit gets a once-per-answer popup: I slipped (Slipped) / I stayed within it (Resisted + correct the time, prefilled with the limit) / Started by mistake (discard the current session) / Keep going (keep counting, don't ask again); dismiss = ask again next open. (11) Every timer shows its total logged time when running, paused and stopped; completed rows show it. (12) Logged time is editable at any time, including on completed entries (entry-level; not while running). (13) An edit never changes the Resisted/Slipped/done answer. (14) For a Time goal, Build 3's How much? IS the logged time (`goalActual` only for Amount goals). Edits correct the daily record by the difference on the item's own day (closed days too) and count `timer.edits` / `timer.editMin` (DailyRecord v4, so Build 3 becomes v5).
+**Why:** Jeremy: over the limit has exactly four real stories (slipped / forgot to stop / mistake / keep counting), and a timer people forget to stop is only useful if the total can be seen and fixed.
+**Alternatives rejected:** auto-Slipped at the limit (the timer never decides); editing only before completion; a separate "How much?" number for Time goals alongside logged time (two numbers for one thing); re-asking at 2x the limit.
+**Open:** a Slipped Break habit has no completed entry, so its time can't be edited after answering (decide in Build 2c).
+
 ## 2026-11-01 (night, later) -- Break limit shown under the timer (sw v188; Claude app session, Sonnet; Jeremy)
 **Decision:** a Break habit's time limit is a small caption under the timer ("Limit: 1 hr"), always visible, red once over, on the row and in the popup. The timer button shows only the time logged; the "18:20 / 60 min" readout inside the button is gone. Supersedes the "m:ss / N min" wording in HABIT_GOALS_PLAN Decision 6 and the 2026-11-01 Build 2 entry.
 **Why:** Jeremy: the limit should be visible before the timer starts, and not crowd the button.

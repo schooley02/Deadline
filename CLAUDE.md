@@ -30,7 +30,7 @@ At the end of every session, run `/end-session` (append HANDOFF entry, log decis
 | `docs/VISUAL_DESIGN_PLAN.md` | Visual track V1–V6 (scene, glow, layouts, church, tokens, juice) |
 | `docs/WORLD_FEEDBACK_PLAN.md` | Visual track V7: sky weather, distant-city goals, right-side graveyard achievements |
 | `docs/DAILY_RECORD_PLAN.md` | The per-day summary record (`deadline.days`), its seams and roll-up; any new mechanic |
-| `docs/HABIT_GOALS_PLAN.md` | Habit goals (None/Time/Amount/Note), timer-as-helper, evening check, How much? (designed 2026-11-01; Builds 1-2 built, Build 3 next) |
+| `docs/HABIT_GOALS_PLAN.md` | Habit goals (None/Time/Amount/Note), timer-as-helper, evening check, How much? (designed 2026-11-01; Builds 1-2 built; 2b over-limit popup + logged total, 2c logged-time editing, then Build 3) |
 
 ## Codebase State (refreshed 2026-10-14 — last code change 2026-10-14, V4: pixel church art at 160px/2x, front-lane line, paths unified on Assets/Base/)
 
