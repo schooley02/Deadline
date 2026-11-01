@@ -319,7 +319,8 @@ body.glance-strip .enemy.enemy-at-base:not(.has-anim-sprite) {
 /* --- Parked lurker (negative habit past its tempting time): the real sprite,
    small and IDLE, standing BEHIND the overdue attackers at the base.
    Never overdue, never damaging. 2026-10-13. ------------------------------ */
-body.glance-strip .enemy.lurker-parked.has-anim-sprite {
+body.glance-strip .enemy.lurker-parked.has-anim-sprite,
+body.glance-strip .enemy.lurker-parked.has-anim-sprite:not(.zombie-subtask):not(.enemy-at-base) { /* 2nd selector out-ranks the category-dot rules above */
     width: 64px !important;
     height: 64px !important;
     top: auto !important;
@@ -329,6 +330,7 @@ body.glance-strip .enemy.lurker-parked.has-anim-sprite {
     border: 0 !important;
     border-radius: 0 !important;
     background-color: transparent !important;
+    background-image: none !important; /* no category dot / color circle behind the idle sprite (Jeremy, 2026-11-01: waiting-at-church zombies showed one in portrait) */
     box-shadow: none;
 }
 body.glance-strip .enemy.lurker-parked.has-anim-sprite .enemy-sprite {
