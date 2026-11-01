@@ -253,11 +253,18 @@ describe('damage/routine HP preview (optional collaborator group)', () => {
     });
 });
 
+// A fixed ordinary day for tests that assert MINUTES since midnight. The slider counts real elapsed minutes, so on a
+// daylight-saving change day "today at 9:05" is 545 +/- 60 (the 2026-11-01 fall-back day made two of these fail). Mid-June
+// never has a DST change anywhere, so the answer no longer depends on the day the suite runs (2026-11-01).
+function atPinnedDay(hours, minutes = 0) {
+    return new Date(2026, 5, 15, hours, minutes, 0, 0);
+}
+
 describe('TimeSliderView.syncHandle (live-tick hook)', () => {
     test('sets the slider value and label from a given time', () => {
         const { deps, sliderEl, labelEl } = makeDeps();
         TimeSliderView.init(deps);
-        TimeSliderView.syncHandle(new Date(new Date().setHours(9, 5, 0, 0)));
+        TimeSliderView.syncHandle(atPinnedDay(9, 5));
         expect(Number(sliderEl.value)).toBe(9 * 60 + 5);
         expect(labelEl.textContent).toBe('9:05 AM');
     });
@@ -327,7 +334,7 @@ describe('scrub-coupled animation (2026-10-27)', () => {
 
         const { deps, sliderEl } = makeDeps();
         TimeSliderView.init(deps);
-        TimeSliderView.syncHandle(new Date(new Date().setHours(10, 0, 0, 0))); // rest at 10:00, away from the ends
+        TimeSliderView.syncHandle(atPinnedDay(10, 0)); // rest at 10:00, away from the ends
         const start = Number(sliderEl.value);
         expect(start).toBe(600);
 
