@@ -35,6 +35,11 @@ const Routines = (() => {
     // Pure cores — routine task spawn selection
     // ---------------------------------------------------------------------
 
+    // Habits is a browser global (loaded before this file); Node tests that don't bind it get the module.
+    function habitsModule() {
+        return (typeof Habits !== 'undefined') ? Habits : require('./habits.js');
+    }
+
     // Task definitions carry a "HH:MM" defaultDueTime rather than the habit
     // system's coarse timeOfDay buckets (see Habits.getHabitInstanceDueTime),
     // so they get their own due-time helper.
@@ -377,6 +382,9 @@ const Routines = (() => {
             // older caller.
             schedule: habitData.schedule ? Schedule.normalize(habitData.schedule) : Schedule.fromLegacyFrequency(habitData.frequency),
             timeOfDay: habitData.timeOfDay,
+            // Custom window (Build B, 2026-11-01): "HH:MM" or null; only meaningful when timeOfDay === 'custom'.
+            startTime: null,
+            endTime: null,
             isNegative: habitData.isNegative || false,
             // Timer (Build 4): limit budget (negative) or work goal (positive), minutes or null.
             timerMode: habitData.timerMinutes ? (habitData.isNegative ? 'limit' : 'work') : null,
@@ -403,6 +411,10 @@ const Routines = (() => {
             skipDayDate: null
         };
 
+        {
+            const ct = habitsModule().normalizeCustomTimes(newHabit.timeOfDay, newHabit.isNegative, habitData.startTime, habitData.endTime);
+            newHabit.timeOfDay = ct.timeOfDay; newHabit.startTime = ct.startTime; newHabit.endTime = ct.endTime;
+        }
         definedHabits.push(newHabit);
         routine.habitDefinitionIds.push(newHabit.id);
 
@@ -473,13 +485,16 @@ const Routines = (() => {
         if (updatedData.name !== habit.name) changedFields.push('name');
         if (updatedData.category !== habit.category) changedFields.push('category');
         if (JSON.stringify(newSchedule) !== JSON.stringify(habit.schedule)) changedFields.push('schedule');
-        if (updatedData.timeOfDay !== habit.timeOfDay) changedFields.push('timeOfDay');
+        const customTimes = habitsModule().normalizeCustomTimes(updatedData.timeOfDay, updatedData.isNegative, updatedData.startTime, updatedData.endTime);
+        if (customTimes.timeOfDay !== habit.timeOfDay || customTimes.startTime !== (habit.startTime || null) || customTimes.endTime !== (habit.endTime || null)) changedFields.push('timeOfDay');
         if (updatedData.isNegative !== habit.isNegative) changedFields.push('isNegative');
 
         habit.name = updatedData.name;
         habit.category = updatedData.category;
         habit.schedule = newSchedule;
-        habit.timeOfDay = updatedData.timeOfDay;
+        habit.timeOfDay = customTimes.timeOfDay;
+        habit.startTime = customTimes.startTime;
+        habit.endTime = customTimes.endTime;
         habit.isNegative = updatedData.isNegative;
         // Timer (Build 4): not a "meaningful" edit for frozen-slot recovery, so it isn't
         // added to changedFields.

@@ -83,7 +83,8 @@ const DayPager = (() => {
             // Economy high-priority ×2 rule) — always false.
             isHighPriority: false,
             routineId: def.routineId != null ? def.routineId : null,
-            dueTime: Habits.getHabitInstanceDueTime(def.timeOfDay, targetDate),
+            dueTime: Habits.getHabitInstanceDueTime(def.timeOfDay, targetDate, def.endTime),
+            startTime: Habits.getHabitInstanceStartTime(def, targetDate),
             parentId: null,
         }));
     }
@@ -230,7 +231,8 @@ const DayPager = (() => {
                 isHabit: true,
                 isNegative: !!def.isNegative,
                 routineId: def.routineId != null ? def.routineId : null,
-                dueTime: Habits.getHabitInstanceDueTime(def.timeOfDay, targetDate),
+                dueTime: Habits.getHabitInstanceDueTime(def.timeOfDay, targetDate, def.endTime),
+                startTime: Habits.getHabitInstanceStartTime(def, targetDate),
                 parentId: null,
                 outcome: outcomeForHabitOnDay(def, targetDate),
             }));

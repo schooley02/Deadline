@@ -177,7 +177,7 @@ const Forms = (() => {
     // the Add / Edit / Add Sub-task / routine-task forms. o = { startId, dueId, startValue,
     // dueValue, dueAttrs, startAttrs, startLabel, dueLabel }.
     function startDueTimeGroupHtml(o) {
-        return `<div class="form-row-group time-pair">
+        return `<div class="form-row-group time-pair${o.groupClass ? ' ' + o.groupClass : ''}"${o.groupAttrs ? ' ' + o.groupAttrs : ''}>
                 <div class="form-row">
                     <label for="${o.startId}">${o.startLabel || 'Start Time (optional):'}</label>
                     <input type="time" id="${o.startId}" value="${o.startValue || ''}"${o.startAttrs ? ' ' + o.startAttrs : ''}>
@@ -187,6 +187,28 @@ const Forms = (() => {
                     <input type="time" id="${o.dueId}" value="${o.dueValue || ''}"${o.dueAttrs ? ' ' + o.dueAttrs : ''}>
                 </div>
             </div>`;
+    }
+
+    // Custom-window times for a BUILD habit (Build B, 2026-11-01): the same Start | End pair, shown only while the
+    // Completion Window select is "Custom times...". `selectId` is that select's id; the group's id is
+    // `${selectId}Custom` (Modal.wireHabitTimeLabels toggles it). End is the due time and is required once custom
+    // is chosen; Start is optional. o = { selectId, startId, endId, startValue, endValue, visible }.
+    function customHabitTimesHtml(o) {
+        return startDueTimeGroupHtml({
+            startId: o.startId, dueId: o.endId, startValue: o.startValue, dueValue: o.endValue,
+            startLabel: 'Start Time (optional):', dueLabel: 'End Time (due):',
+            groupClass: 'custom-habit-times',
+            groupAttrs: `id="${o.selectId}Custom"${o.visible ? '' : ' hidden'}`,
+        });
+    }
+
+    // Pure. Returns an error string for a custom habit window, else null: "custom" needs an End time, and Start
+    // (when given) must be earlier than End. Not custom, or a Break habit, is always fine (Break habits cannot be custom).
+    function customHabitTimesError(timeOfDay, isNegative, startTime, endTime) {
+        if (timeOfDay !== 'custom' || isNegative) return null;
+        if (!endTime) return 'Pick an end time for the custom window.';
+        if (startTime && startTime >= endTime) return 'Start time must be earlier than the end time.';
+        return null;
     }
 
     // Pure. Returns an error string when a Start time is given and is not strictly earlier than the
@@ -307,8 +329,10 @@ const Forms = (() => {
                     <option value="morning">Morning (by 12 PM)</option>
                     <option value="afternoon">Afternoon (by 5 PM)</option>
                     <option value="evening">Evening (by 10 PM)</option>
+                    <option value="custom">Custom times...</option>
                 </select>
             </div>
+            ${customHabitTimesHtml({ selectId: 'modalHabitTimeOfDay', startId: 'modalHabitStartTime', endId: 'modalHabitEndTime', startValue: '', endValue: '', visible: false })}
             <div class="form-row">
                 <label for="modalHabitTimerMinutes">Timer (minutes, optional):</label>
                 <input type="number" id="modalHabitTimerMinutes" min="1" max="600" step="1" inputmode="numeric" placeholder="e.g. 30">
@@ -478,6 +502,15 @@ const Forms = (() => {
                             alert('Habit Name is required.');
                             return;
                         }
+                        const habitStartInput = modal.querySelector('#modalHabitStartTime');
+                        const habitEndInput = modal.querySelector('#modalHabitEndTime');
+                        const habitStartTime = habitStartInput ? habitStartInput.value : '';
+                        const habitEndTime = habitEndInput ? habitEndInput.value : '';
+                        const customError = customHabitTimesError(timeOfDay, isNegative, habitStartTime, habitEndTime);
+                        if (customError) {
+                            alert(customError);
+                            return;
+                        }
                         if (schedule.frequency !== 'monthly' && schedule.daysOfWeek.length === 0) {
                             alert('Please select at least one day.');
                             return;
@@ -485,7 +518,7 @@ const Forms = (() => {
 
                         const habitTimerInput = modal.querySelector('#modalHabitTimerMinutes');
                         const habitTimerMinutes = habitTimerInput ? Timer.normalizeTarget(habitTimerInput.value) : null;
-                        deps.createHabitDefinition(name, category, schedule, timeOfDay, isNegative, habitTimerMinutes);
+                        deps.createHabitDefinition(name, category, schedule, timeOfDay, isNegative, habitTimerMinutes, habitStartTime || null, habitEndTime || null);
                         Modal.closeModal();
 
                         // Update habits window if open
@@ -553,6 +586,8 @@ const Forms = (() => {
         resolveSubmittedDueTime,
         startDueTimeGroupHtml,
         startBeforeDueError,
+        customHabitTimesHtml,
+        customHabitTimesError,
     };
 })();
 

@@ -1598,7 +1598,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Habit system functions
-    function createHabitDefinition(name, category, scheduleOrFrequency, timeOfDay, isNegative = false, timerMinutes = null) {
+    function createHabitDefinition(name, category, scheduleOrFrequency, timeOfDay, isNegative = false, timerMinutes = null, startTime = null, endTime = null) {
+        const customTimes = Habits.normalizeCustomTimes(timeOfDay, isNegative, startTime, endTime);
         const newHabitDef = {
             id: `habitDef_${State.getDefinedHabits().length}_${Date.now()}`,
             name,
@@ -1608,7 +1609,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // scheduling UI, session 15) or a legacy bare frequency string
             // (any older caller), so this one call handles both.
             schedule: Schedule.normalize(scheduleOrFrequency),
-            timeOfDay,
+            timeOfDay: customTimes.timeOfDay,
+            // Custom window (Build B, 2026-11-01): "HH:MM" or null; only for a Build habit with timeOfDay 'custom'.
+            startTime: customTimes.startTime,
+            endTime: customTimes.endTime,
             isNegative,
             timerMode: timerMinutes ? (isNegative ? 'limit' : 'work') : null,
             timerMinutes: timerMinutes || null,

@@ -94,3 +94,6 @@
     background: #e68900;
 }
 
+/* Custom habit start/end pair (Build B, 2026-11-01): .form-row-group sets display:grid, which would override the
+   hidden attribute, so restate it. Shown only while "Custom times..." is selected (Modal.wireHabitTimeLabels). */
+.form-row-group.custom-habit-times[hidden] { display: none; }

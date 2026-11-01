@@ -42,12 +42,58 @@ const Habits = (() => {
     // Pure cores
     // ---------------------------------------------------------------------
 
+    // "HH:MM" -> [h, m] or null.
+    function parseHHMM(str) {
+        const m = /^(\d{1,2}):(\d{2})$/.exec(String(str || ''));
+        if (!m) return null;
+        const h = Number(m[1]), mi = Number(m[2]);
+        return (h >= 0 && h <= 23 && mi >= 0 && mi <= 59) ? [h, mi] : null;
+    }
+
+    // Custom start/end for a habit definition (Build B, 2026-11-01). Only BUILD (positive) habits
+    // may be 'custom'; End is required (it is the due time), Start is optional and must be strictly
+    // earlier than End. Returns the sanitized { timeOfDay, startTime, endTime } to store:
+    // a Break habit, a missing/invalid End, or a non-custom bucket collapses to no custom times.
+    function normalizeCustomTimes(timeOfDay, isNegative, startTime, endTime) {
+        if (timeOfDay !== 'custom') return { timeOfDay, startTime: null, endTime: null };
+        const end = parseHHMM(endTime);
+        if (isNegative === true || !end) return { timeOfDay: 'anytime', startTime: null, endTime: null };
+        const start = parseHHMM(startTime);
+        const endStr = String(endTime);
+        const startOk = start && (start[0] * 60 + start[1]) < (end[0] * 60 + end[1]);
+        return { timeOfDay: 'custom', startTime: startOk ? String(startTime) : null, endTime: endStr };
+    }
+
+    // The planned start of a custom-window habit instance on its own day, or null (not custom,
+    // no start, a Break habit, or a start that is not before the end).
+    function getHabitInstanceStartTime(habitDef, referenceDate) {
+        if (!habitDef || habitDef.timeOfDay !== 'custom' || habitDef.isNegative === true) return null;
+        const n = normalizeCustomTimes('custom', false, habitDef.startTime, habitDef.endTime);
+        if (!n.startTime) return null;
+        const hm = parseHHMM(n.startTime);
+        const start = new Date(referenceDate);
+        start.setSeconds(0, 0);
+        start.setHours(hm[0], hm[1]);
+        return start;
+    }
+
     // Habit instances use coarse timeOfDay buckets (unlike routine tasks,
     // which parse an HH:MM defaultDueTime — see getRoutineTaskInstanceDueTime
     // in script.js).
-    function getHabitInstanceDueTime(timeOfDayString, referenceDate) {
+    //
+    // Custom times (Build B, 2026-11-01, Jeremy): timeOfDay 'custom' uses the optional 3rd arg
+    // `endTime` ("HH:MM") as the due time of day (a missing/invalid one falls back to 'anytime').
+    // BUILD habits only -- see normalizeCustomTimes.
+    function getHabitInstanceDueTime(timeOfDayString, referenceDate, endTime) {
         const due = new Date(referenceDate);
         due.setSeconds(0, 0);
+
+        if (timeOfDayString === 'custom') {
+            const hm = parseHHMM(endTime);
+            if (hm) { due.setHours(hm[0], hm[1]); return due; }
+            due.setHours(23, 59);
+            return due;
+        }
 
         switch (timeOfDayString) {
             case 'morning':
@@ -76,9 +122,15 @@ const Habits = (() => {
     // the due time actually changed so the caller knows to re-evaluate
     // overdue state (Items.recomputeOverdueStateAfterEdit). Pure apart from
     // setting item.dueDateTime.
-    function retimeHabitInstance(item, timeOfDay) {
+    // `times` (Build B, 2026-11-01) = { startTime, endTime } for a 'custom' window; the instance's
+    // startDateTime is re-derived too (cleared for any other bucket). The return value still only
+    // says whether the DUE time changed (the caller re-evaluates overdue state on that).
+    function retimeHabitInstance(item, timeOfDay, times) {
         if (!item || !(item.dueDateTime instanceof Date)) return false;
-        const newDue = getHabitInstanceDueTime(timeOfDay, item.dueDateTime);
+        const t = times || {};
+        item.startDateTime = getHabitInstanceStartTime(
+            { timeOfDay, isNegative: item.isNegative, startTime: t.startTime, endTime: t.endTime }, item.dueDateTime);
+        const newDue = getHabitInstanceDueTime(timeOfDay, item.dueDateTime, t.endTime);
         if (newDue.getTime() === item.dueDateTime.getTime()) return false;
         item.dueDateTime = newDue;
         return true;
@@ -411,7 +463,7 @@ const Habits = (() => {
     function createHabitInstanceData(habitDef, forDate, deps) {
         const instanceCreationTime = new Date();
         const targetInstanceDate = new Date(forDate);
-        const dueDateTime = getHabitInstanceDueTime(habitDef.timeOfDay, targetInstanceDate);
+        const dueDateTime = getHabitInstanceDueTime(habitDef.timeOfDay, targetInstanceDate, habitDef.endTime);
 
         const habitInstanceData = {
             id: deps.getNextId(),
@@ -421,6 +473,8 @@ const Habits = (() => {
             category: habitDef.category,
             isHighPriority: false,
             dueDateTime: dueDateTime,
+            // Custom-window habit (Build B): planned start on its own day, else null.
+            startDateTime: getHabitInstanceStartTime(habitDef, targetInstanceDate),
             creationTime: instanceCreationTime,
             timeToDueAtCreationMs: Math.max(0, dueDateTime.getTime() - instanceCreationTime.getTime()),
             x: deps.gameScreenWidth - deps.habitEnemyWidth, // Will be recalculated below
@@ -511,6 +565,8 @@ const Habits = (() => {
         timeOfDayLabels,
         dueLineText,
         getHabitInstanceDueTime,
+        getHabitInstanceStartTime,
+        normalizeCustomTimes,
         retimeHabitInstance,
         selectHabitDefsToSpawn,
         // rate-based bonus (session 16)

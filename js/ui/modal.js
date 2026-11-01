@@ -327,7 +327,19 @@ const Modal = (() => {
             const labels = Habits.timeOfDayLabels(!!checked && checked.value === 'negative');
             if (labelEl) labelEl.textContent = labels.fieldLabel || originalLabel;
             Array.from(sel.options).forEach(o => { if (labels.options[o.value]) o.textContent = labels.options[o.value]; });
+            // Custom start/end times (Build B, 2026-11-01) are for BUILD habits only: hide the option for a Break habit
+            // (falling back to Anytime) and show the Start | End pair only while "Custom times..." is selected.
+            const isNegative = !!checked && checked.value === 'negative';
+            const customOpt = Array.from(sel.options).find(o => o.value === 'custom');
+            if (customOpt) {
+                customOpt.hidden = isNegative;
+                customOpt.disabled = isNegative;
+                if (isNegative && sel.value === 'custom') sel.value = 'anytime';
+            }
+            const customGroup = document.getElementById(selectId + 'Custom');
+            if (customGroup) customGroup.hidden = sel.value !== 'custom';
         };
+        sel.addEventListener('change', apply);
         document.querySelectorAll(`input[name="${radioName}"]`).forEach(r => r.addEventListener('change', apply));
         apply();
     }

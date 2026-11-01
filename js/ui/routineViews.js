@@ -1111,8 +1111,10 @@ const RoutineViews = (() => {
                             <option value="morning">Morning (by 12 PM)</option>
                             <option value="afternoon">Afternoon (by 5 PM)</option>
                             <option value="evening">Evening (by 10 PM)</option>
+                            <option value="custom">Custom times...</option>
                         </select>
                     </div>
+                    ${Forms.customHabitTimesHtml({ selectId: 'newHabitTimeOfDay', startId: 'newHabitStartTime', endId: 'newHabitEndTime', startValue: '', endValue: '', visible: false })}
                     <div class="form-row">
                         <label for="newHabitTimerMinutes">Timer (minutes, optional):</label>
                         <input type="number" id="newHabitTimerMinutes" min="1" max="600" step="1" inputmode="numeric" value="" placeholder="e.g. 30">
@@ -1218,8 +1220,10 @@ const RoutineViews = (() => {
                             <option value="morning" ${habitDef.timeOfDay === 'morning' ? 'selected' : ''}>Morning (by 12 PM)</option>
                             <option value="afternoon" ${habitDef.timeOfDay === 'afternoon' ? 'selected' : ''}>Afternoon (by 5 PM)</option>
                             <option value="evening" ${habitDef.timeOfDay === 'evening' ? 'selected' : ''}>Evening (by 10 PM)</option>
+                            <option value="custom" ${habitDef.timeOfDay === 'custom' ? 'selected' : ''}>Custom times...</option>
                         </select>
                     </div>
+                    ${Forms.customHabitTimesHtml({ selectId: 'editHabitTimeOfDay', startId: 'editHabitStartTime', endId: 'editHabitEndTime', startValue: habitDef.startTime || '', endValue: habitDef.endTime || '', visible: habitDef.timeOfDay === 'custom' })}
                     <div class="form-row">
                         <label for="editHabitTimerMinutes">Timer (minutes, optional):</label>
                         <input type="number" id="editHabitTimerMinutes" min="1" max="600" step="1" inputmode="numeric" value="${typeof habitDef.timerMinutes === 'number' ? habitDef.timerMinutes : ''}" placeholder="e.g. 30">
@@ -1280,6 +1284,15 @@ const RoutineViews = (() => {
         wireScheduleFieldsToggle('editTask');
     }
 
+    // Custom habit window check (Build B, 2026-11-01); same rules as Forms.customHabitTimesError, kept local
+    // so the save paths don't depend on the Forms global.
+    function customHabitWindowError(timeOfDay, isNegative, startTime, endTime) {
+        if (timeOfDay !== 'custom' || isNegative) return null;
+        if (!endTime) return 'Pick an end time for the custom window.';
+        if (startTime && startTime >= endTime) return 'Start time must be earlier than the end time.';
+        return null;
+    }
+
     /**
      * deps: { definedRoutines (getter), createNewHabitInRoutine, saveGame }
      * Called by script.js's window.saveNewHabit thin wrapper (inline
@@ -1291,9 +1304,16 @@ const RoutineViews = (() => {
         const schedule = readScheduleFromFields('newHabit');
         const timeOfDay = document.getElementById('newHabitTimeOfDay').value;
         const isNegative = document.querySelector('input[name="habitType"]:checked').value === 'negative';
+        const startTime = document.getElementById('newHabitStartTime').value;
+        const endTime = document.getElementById('newHabitEndTime').value;
 
         if (!name) {
             alert('Please enter a habit name.');
+            return;
+        }
+        const customError = customHabitWindowError(timeOfDay, isNegative, startTime, endTime);
+        if (customError) {
+            alert(customError);
             return;
         }
         if (schedule.frequency !== 'monthly' && schedule.daysOfWeek.length === 0) {
@@ -1305,7 +1325,7 @@ const RoutineViews = (() => {
         if (routine && !ensureRoutineSlotAvailable(routine, 'habit', deps)) return;
 
         const timerMinutes = Timer.normalizeTarget(document.getElementById('newHabitTimerMinutes').value);
-        deps.createNewHabitInRoutine(routineId, { name, category, schedule, timeOfDay, isNegative, timerMinutes });
+        deps.createNewHabitInRoutine(routineId, { name, category, schedule, timeOfDay, isNegative, timerMinutes, startTime: startTime || null, endTime: endTime || null });
         Modal.closeModal();
     }
 
@@ -1352,9 +1372,16 @@ const RoutineViews = (() => {
         const schedule = readScheduleFromFields('editHabit');
         const timeOfDay = document.getElementById('editHabitTimeOfDay').value;
         const isNegative = document.querySelector('input[name="editHabitType"]:checked').value === 'negative';
+        const startTime = document.getElementById('editHabitStartTime').value;
+        const endTime = document.getElementById('editHabitEndTime').value;
 
         if (!name) {
             alert('Please enter a habit name.');
+            return;
+        }
+        const customError = customHabitWindowError(timeOfDay, isNegative, startTime, endTime);
+        if (customError) {
+            alert(customError);
             return;
         }
         if (schedule.frequency !== 'monthly' && schedule.daysOfWeek.length === 0) {
@@ -1363,7 +1390,7 @@ const RoutineViews = (() => {
         }
 
         const timerMinutes = Timer.normalizeTarget(document.getElementById('editHabitTimerMinutes').value);
-        deps.editHabitInRoutine(habitId, { name, category, schedule, timeOfDay, isNegative, timerMinutes });
+        deps.editHabitInRoutine(habitId, { name, category, schedule, timeOfDay, isNegative, timerMinutes, startTime: startTime || null, endTime: endTime || null });
 
         // Keep any already-spawned instance of this habit in sync, so editing
         // from today's agenda row (or anywhere else) doesn't go stale until
@@ -1381,7 +1408,8 @@ const RoutineViews = (() => {
                 item.isNegative = isNegative;
                 // Timer target follows the definition unless a timer is mid-run.
                 if (typeof Timer !== 'undefined' && !Timer.isRunning(item)) item.timerMinutes = timerMinutes;
-                if (Habits.retimeHabitInstance(item, timeOfDay) && deps.recomputeOverdueStateAfterEdit) {
+                const stored = Habits.normalizeCustomTimes(timeOfDay, isNegative, startTime, endTime);
+                if (Habits.retimeHabitInstance(item, stored.timeOfDay, { startTime: stored.startTime, endTime: stored.endTime }) && deps.recomputeOverdueStateAfterEdit) {
                     deps.recomputeOverdueStateAfterEdit(item);
                 }
 

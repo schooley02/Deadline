@@ -5,6 +5,17 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+## 2026-11-01 (later) -- Start time Build B: custom start/end times for Build habits (Claude app session, Sonnet; Jeremy)
+- **Ask (Jeremy):** habits get an option for a start time and an end time, instead of the completion-window buckets, if the player wants it. Tasks, sub-tasks and habits all have it; routines get it indirectly. Break habits stay on their tempting-time buckets (Jeremy, 2026-11-01: "Build habits only").
+- **Design:** a "Custom times..." choice in the Completion Window picker (`habitDef.timeOfDay = 'custom'`) reveals Start (optional) and End (required, = the due time). Stored as `habitDef.startTime` / `endTime` "HH:MM"; instances get `startDateTime` and then reuse Build A's window rules unchanged (walk by start, idle at the church, attack at End). One sanitizer, `Habits.normalizeCustomTimes`, collapses a Break habit, a missing End or a bad Start to no custom times. End is required because "custom" with no end would silently mean 23:59, which is the Anytime bucket. Start blank is allowed (a custom due time only).
+- **Edit:** saving a habit re-times today's live instance, start and due, with the same no-back-charge, no-miss rule as a bucket change (DECISIONS 2026-10-21). Day pager ghosts use the window.
+- **Not changed:** daily record, damage, streak and star-rate rules (they key off the due time, as before). No `DailyRecord` change, because a window does not change what can happen in a day.
+- **Rejected:** letting Break habits be custom (their time is a trigger, not a deadline); a custom window on the habit's schedule (kept per-definition, same every scheduled day).
+- Tests: new `test/startTimeHabits.test.js` (12, jsdom); Jest 105 suites / 2,438 green. Headless live check at 390x844: the pair is hidden until Custom is picked, Break hides the option, no End is rejected, a habit with start in the past and end in the future waits at the church with the planned stopwatch glow, then flips to attacking at End, no console errors. sw v173 -> v174.
+
+---
+
+
 ## 2026-11-01 -- Optional Start time: a planned work window before the due time (Claude app session, Opus planned, Sonnet built; Jeremy)
 - **Ask (Jeremy):** an optional Start Time to the left of Due Time. The zombie's lane position is dictated by the start time; once at the church it only plays idle, no attack, no damage, until the due time arrives.
 - **Clarified with Jeremy:** "if the clock is running during this time" = the time of day being inside start->due, NOT the stopwatch. Start is when he PLANS to begin; due is when he expects to be done or must be done; he may work on and off in between. Only a running stopwatch proves work, so there is no automatic "working" status and no damage halving without it -- instead the stopwatch button is prompted (amber dashed glow, `Timer.shouldPrompt`).

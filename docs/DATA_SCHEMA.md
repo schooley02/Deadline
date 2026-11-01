@@ -395,4 +395,4 @@ Save {
 ### Start time fields (2026-11-01, additive, NO schema bump)
 - `item.startDateTime: Date | null` on tasks / sub-tasks / routine task instances (ISO string on disk, revived to a Date by the persistence reviver like `dueDateTime`). Missing or null = no work window. Only honoured while strictly before `dueDateTime` (`Clock.hasWorkWindow`). Old saves load unchanged.
 - `taskDefinition.defaultStartTime: "HH:MM" | null` -- copied onto each spawned instance for its own day (`Routines.getRoutineTaskInstanceStartTime`).
-- Build B (next): habit definitions get optional custom start/end times (see ROADMAP "Start time").
+- Build B (2026-11-01): `habitDef.timeOfDay` may be `'custom'` (Build habits only), with `habitDef.startTime: "HH:MM" | null` (optional) and `habitDef.endTime: "HH:MM" | null` (the due time; required when custom). Both are null for every other bucket and absent on older saves (read as null). Habit instances carry `startDateTime` like tasks. Additive, no schema bump (`Habits.normalizeCustomTimes` is the single sanitizer).
