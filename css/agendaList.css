@@ -447,10 +447,31 @@
     font-variant-numeric: tabular-nums;
 }
 /* Break-habit limit helper (Habit Goals Build 2): "18 / 60 min" logged so far; red once over the limit. */
+/* Pause / Stop icons beside a running timer (row + popup): same pill look as the timer button, amber while running. */
+.timer-ctl-btn {
+    background: none;
+    border: 1px solid #e0a84f;
+    border-radius: 12px;
+    color: #e0a84f;
+    cursor: pointer;
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.timer-ctl-btn[hidden] { display: none; }
+.timer-ctl-btn .timer-ctl-icon { display: block; }
 .work-timer-btn .timer-elapsed { font-variant-numeric: tabular-nums; }
+.work-timer-btn .timer-elapsed.paused { opacity: 0.7; }
 .work-timer-btn .timer-elapsed.over { color: #ff6b5b; font-weight: 600; }
-/* Goal-reached popup: four stacked, full-width choices. */
+/* Goal-reached popup: four stacked, full-width choices, each with a one-line explanation under its label. */
 .goal-reached-buttons { flex-direction: column; align-items: stretch; gap: 8px; }
+.goal-reached-buttons button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding-top: 8px; padding-bottom: 8px; }
+.goal-opt-label { font-weight: 600; }
+.goal-opt-desc { font-size: 12px; font-weight: 400; line-height: 1.3; opacity: 0.9; }
 
 /* Attacking nudge (2026-10-31, Jeremy): a zombie is overdue and no timer runs on it, so the button flashes and
    pulses to say "start me". Starting the timer drops the class (it turns amber .running) and halves the damage.

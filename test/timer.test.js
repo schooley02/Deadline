@@ -171,7 +171,8 @@ describe('limit timer (Build 4)', () => {
         Timer.stop(h, 10 * MIN);
         Timer.start(h, 100 * MIN);
         expect(Timer.loggedMinutes(h, 108 * MIN)).toBe(18);
-        expect(Timer.limitReadout(h, 108 * MIN)).toBe('18 / 60 min');
+        expect(Timer.limitReadout(h, 108 * MIN)).toBe('18:00 / 60 min');
+        expect(Timer.limitReadout(h, 108 * MIN + 20000)).toBe('18:20 / 60 min'); // ticks each second
         expect(Timer.isOverLimit(h, 108 * MIN)).toBe(false);
     });
     test('over the limit once logged time passes it (exactly at the limit is not over)', () => {
@@ -193,8 +194,8 @@ describe('limit timer (Build 4)', () => {
         expect(Timer.buttonLabel(h, 0)).toBe('\u23F1');
         expect(Timer.popupLabel(h)).toBe('\u23F1 Start timer');
         Timer.start(h, 0);
-        expect(Timer.buttonLabel(h, 5 * MIN)).toBe('\u23F9 5 / 30 min');
-        expect(Timer.popupLabel(h)).toBe('\u23F9 Stop timer');
+        expect(Timer.buttonLabel(h, 5 * MIN)).toBe('\u23F9 5:00 / 30 min');
+        expect(Timer.popupLabel(h)).toBe('\u23F8 Pause timer');
     });
 });
 
@@ -241,18 +242,81 @@ describe('attacking nudge + stopwatch icon (2026-10-31)', () => {
         Timer.start(t, 0);
         expect(Timer.buttonHtml(t, 5 * MIN)).toContain('5:00');
         expect(Timer.buttonHtml(t, 5 * MIN)).toContain('<svg');
-        expect(Timer.popupHtml(t)).toContain('Stop timer');
+        expect(Timer.popupHtml(t)).toContain('Pause timer');
+    });
+    test('pause / resume (2026-11-01): Pause holds the timer, the same button resumes it', () => {
+        const t = task();
+        expect(Timer.isPaused(t)).toBe(false);
+        expect(Timer.buttonTitle(t)).toBe('Start timer');
+        Timer.start(t, 0);
+        expect(Timer.buttonTitle(t)).toBe('Pause timer');
+        expect(Timer.isPaused(t)).toBe(false); // running is not paused
+        expect(Timer.pause(t, 12 * MIN)).toBe(12 * MIN);
+        expect(t.timerMsBanked).toBe(12 * MIN);
+        expect(Timer.isPaused(t)).toBe(true);
+        expect(Timer.buttonTitle(t)).toBe('Resume timer');
+        expect(Timer.popupLabel(t)).toBe('\u25B6 Resume timer');
+        expect(Timer.popupHtml(t)).toContain('Resume timer');
+        // a paused button shows the held time, dimmed
+        expect(Timer.buttonHtml(t, 20 * MIN)).toContain('timer-elapsed paused');
+        expect(Timer.buttonHtml(t, 20 * MIN)).toContain('12:00');
+        // resuming keeps logging on top of the banked time and clears the paused flag
+        expect(Timer.start(t, 30 * MIN)).toBe(true);
+        expect(t.timerPaused).toBe(false);
+        expect(Timer.elapsedMs(t, 35 * MIN)).toBe(17 * MIN);
+        expect(Timer.buttonHtml(t, 35 * MIN)).not.toContain('paused');
+    });
+    test('Stop ends the session but keeps the time: back to Start, no held time on the button', () => {
+        const t = task();
+        Timer.start(t, 0);
+        expect(Timer.stop(t, 12 * MIN)).toBe(12 * MIN);
+        expect(t.timerMsBanked).toBe(12 * MIN); // nothing lost
+        expect(Timer.isPaused(t)).toBe(false);
+        expect(Timer.buttonTitle(t)).toBe('Start timer');
+        expect(Timer.buttonHtml(t, 20 * MIN)).toBe(Timer.ICON_SVG);
+        // Start again after a Stop still adds to the logged time
+        Timer.start(t, 30 * MIN);
+        expect(Timer.elapsedMs(t, 35 * MIN)).toBe(17 * MIN);
+    });
+    test('Stop after Pause (via a fresh run) ends it; auto-stop and discard are ended sessions, not pauses', () => {
+        const a = task(); Timer.start(a, 0); Timer.pause(a, MIN);
+        expect(Timer.isPaused(a)).toBe(true);
+        Timer.start(a, 2 * MIN); Timer.stop(a, 3 * MIN);
+        expect(Timer.isPaused(a)).toBe(false);
+        const b = task({ timerMinutes: 30 }); Timer.start(b, 0); Timer.markPrompted(b, 60 * MIN); Timer.autoStop(b, 70 * MIN);
+        expect(Timer.isPaused(b)).toBe(false);
+        const c = task({ timerMsBanked: 5 * MIN }); Timer.start(c, 0); Timer.discardSession(c, MIN);
+        expect(Timer.isPaused(c)).toBe(false);
+    });
+    test('pause on an idle timer does nothing', () => {
+        const t = task();
+        expect(Timer.pause(t, 5 * MIN)).toBe(0);
+        expect(Timer.isPaused(t)).toBe(false);
+    });
+    test('control glyphs and the popup Stop button (hidden until running)', () => {
+        expect(Timer.PAUSE_ICON_SVG).toContain('<svg');
+        expect(Timer.STOP_ICON_SVG).toContain('<svg');
+        const t = task();
+        expect(Timer.stopButtonHtml(t, 'x')).toContain(' hidden');
+        Timer.start(t, 0);
+        const html = Timer.stopButtonHtml(t, 'workTimerStopBtn');
+        expect(html).not.toContain(' hidden');
+        expect(html).toContain('id="workTimerStopBtn"');
+        expect(html).toContain('aria-label="Stop timer"');
     });
     test('limit helper row button: icon alone until time is logged, then "N / M min", red once over', () => {
         const h = { type: 'habit', isNegative: true, timerMinutes: 30, timer: null, timerMsBanked: 0 };
         expect(Timer.buttonHtml(h, 0)).toBe(Timer.ICON_SVG);
         Timer.start(h, 0);
-        expect(Timer.buttonHtml(h, 5 * MIN)).toContain('5 / 30 min');
+        expect(Timer.buttonHtml(h, 5 * MIN + 7000)).toContain('5:07 / 30 min');
         expect(Timer.buttonHtml(h, 5 * MIN)).not.toContain(' over');
         expect(Timer.buttonHtml(h, 31 * MIN)).toContain('timer-elapsed over');
         Timer.stop(h, 31 * MIN);
-        expect(Timer.buttonHtml(h, 40 * MIN)).toContain('31 / 30 min'); // stays visible after Stop
-        expect(Timer.popupHtml(h, 40 * MIN)).toContain('Start timer');
-        expect(Timer.popupHtml(h, 40 * MIN)).toContain('31 / 30 min');
+        expect(Timer.buttonHtml(h, 40 * MIN)).toContain('31:00 / 30 min'); // stays visible after Stop
+        expect(Timer.popupHtml(h, 40 * MIN)).toContain('Start timer'); // Stop ended the session
+        expect(Timer.popupHtml(h, 40 * MIN)).toContain('31:00 / 30 min');
+        Timer.start(h, 50 * MIN); Timer.pause(h, 51 * MIN);
+        expect(Timer.popupHtml(h, 60 * MIN)).toContain('Resume timer'); // Pause holds it
+        expect(Timer.popupHtml(h, 60 * MIN)).toContain('32:00 / 30 min');
     });
 });

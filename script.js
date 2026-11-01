@@ -1200,23 +1200,27 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.toggle('attacking', nudge);
             const planned = !State.isGameOver() && !nudge && Timer.shouldPrompt(item, nowMs);
             btn.classList.toggle('planned', planned);
-            btn.title = nudge ? Timer.NUDGE_TITLE : planned ? Timer.PROMPT_TITLE : (running ? 'Stop timer' : 'Start timer');
+            btn.title = nudge ? Timer.NUDGE_TITLE : planned ? Timer.PROMPT_TITLE : Timer.buttonTitle(item);
             btn.setAttribute('aria-label', btn.title);
+            // Pause / Stop icons beside a running timer.
+            item.listItemElement.querySelectorAll('.timer-ctl-btn').forEach(c => { c.hidden = !running; });
         });
     }
 
-    function toggleWorkTimer(itemId) {
+    // action: undefined = the main timer button (start / resume when idle, pause when running);
+    // 'pause' holds a running timer (resumable); 'stop' ends the session (the time stays logged either way).
+    function toggleWorkTimer(itemId, action) {
         if (State.isGameOver()) return { ok: false };
         const items = State.getActiveItems();
         const item = items.find(i => i.id === itemId);
         if (!item) return { ok: false };
         const now = Date.now();
         if (Timer.isRunning(item)) {
-            // Stop only banks the time. A Break habit's limit timer is a "logged so far" helper
+            // Pause / Stop only bank the time. A Break habit's limit timer is a "logged so far" helper
             // (Habit Goals Build 2): it never answers Resisted / Slipped for the player.
-            Timer.stop(item, now);
+            if (action === 'stop') Timer.stop(item, now); else Timer.pause(item, now);
         } else {
-            if (!Timer.canTimer(item)) return { ok: false };
+            if (action || !Timer.canTimer(item)) return { ok: false };
             const other = Timer.findRunning(items);
             if (other) Timer.stop(other, now);
             Timer.start(item, now);
@@ -1239,6 +1243,7 @@ document.addEventListener('DOMContentLoaded', () => {
         TimerView.showGoalReached(item, {
             goalMinutes: item.timerMinutes,
             loggedMinutes: Timer.loggedMinutes(item, nowMs),
+            hasOpenSubTasks: item.type === 'task' && Array.isArray(item.subTasks) && item.subTasks.length > 0,
         }, {
             onMarkDone: () => {
                 Timer.stop(item, Date.now());
@@ -1248,7 +1253,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!completed) TimerView.showGoalBlocked(item);
             },
             onKeepGoing: () => { Timer.acknowledgeGoal(item); saveGame(); },
-            onStopNotDone: () => { Timer.stop(item, Date.now()); Timer.acknowledgeGoal(item); refresh(); },
+            onPause: () => { Timer.pause(item, Date.now()); Timer.acknowledgeGoal(item); refresh(); },
             onMistake: () => { Timer.discardSession(item, Date.now()); refresh(); },
         });
     }

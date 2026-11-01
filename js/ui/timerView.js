@@ -53,8 +53,9 @@ const TimerView = (() => {
     }
 
     // Goal reached (Habit Goals Build 2, 2026-11-01): nothing auto-completes. The player decides.
-    // Mark done / Keep going (timer runs on) / Stop, not done yet (time stays logged) / Started by
-    // mistake (this session's time is thrown away). `info` = { goalMinutes, loggedMinutes }.
+    // Mark done / Keep going (timer runs on) / Pause (time stays logged, the stopwatch resumes it) / Started by
+    // mistake (this session's time is thrown away). Each button carries a one-line explanation of what it does.
+    // `info` = { goalMinutes, loggedMinutes, hasOpenSubTasks }.
     function showGoalReached(item, info, handlers) {
         if (document.getElementById('goalReachedOverlay')) return null;
         const goal = formatMinutes(info.goalMinutes);
@@ -62,16 +63,22 @@ const TimerView = (() => {
         const line = Math.floor(info.loggedMinutes) === Math.floor(info.goalMinutes)
             ? `${logged} logged \u2014 your goal.`
             : `${logged} logged \u2014 your goal was ${goal}.`;
+        const doneDesc = info.hasOpenSubTasks
+            ? 'Stops the timer. Open sub-tasks keep it from completing.'
+            : 'Completes it and stops the timer.';
+        const opt = (id, cls, label, desc) =>
+            `<button type="button" id="${id}" class="${cls}"><span class="goal-opt-label">${label}</span>` +
+            `<span class="goal-opt-desc">${desc}</span></button>`;
         const overlay = Modal.open(`
             <div class="modal-overlay" id="goalReachedOverlay">
                 <div class="modal-content frozen-notice-modal">
                     <h3>\u23F1 ${esc(item.name)}</h3>
                     <p>${line}</p>
                     <div class="modal-buttons goal-reached-buttons">
-                        <button type="button" id="goalMarkDone" class="primary-button">Mark done</button>
-                        <button type="button" id="goalKeepGoing" class="secondary-button">Keep going</button>
-                        <button type="button" id="goalStopNotDone" class="secondary-button">Stop, not done yet</button>
-                        <button type="button" id="goalMistake" class="secondary-button">Started by mistake</button>
+                        ${opt('goalMarkDone', 'primary-button', 'Mark done', doneDesc)}
+                        ${opt('goalKeepGoing', 'secondary-button', 'Keep going', 'The timer keeps running. It won\u2019t ask again.')}
+                        ${opt('goalPause', 'secondary-button', 'Pause', 'Pauses the timer and keeps the time logged. Tap the stopwatch to resume.')}
+                        ${opt('goalMistake', 'secondary-button', 'Started by mistake', 'Stops the timer and throws away this session\u2019s time.')}
                     </div>
                 </div>
             </div>`);
@@ -82,7 +89,7 @@ const TimerView = (() => {
         };
         wire('goalMarkDone', 'onMarkDone');
         wire('goalKeepGoing', 'onKeepGoing');
-        wire('goalStopNotDone', 'onStopNotDone');
+        wire('goalPause', 'onPause');
         wire('goalMistake', 'onMistake');
         return overlay;
     }

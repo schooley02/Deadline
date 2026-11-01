@@ -37,7 +37,7 @@ change); it changes how a Break habit's result is decided and what data we keep.
 4. **Stopwatch on habits only for a Time goal.** (Tasks keep the stopwatch: damage halving + the planned-work cue.)
 5. **Build habit, Time goal — no auto-complete.** Reaching the goal opens a popup:
    "**Meditate:** 30 min logged — your goal." → **Mark done** · **Keep going** (timer keeps running) ·
-   **Stop, not done yet** (time stays logged) · **Started by mistake** (this session's time is discarded).
+   **Pause** (time stays logged; the stopwatch resumes it; was "Stop, not done yet" until 2026-11-01) · **Started by mistake** (this session's time is discarded).
    If the app was closed when the goal was reached, the popup shows on the next open.
 6. **Break habit, Time limit — the timer is a "logged so far" helper.** It counts UP across sessions in the day
    ("18 / 60 min"), turns red once over, and never decides anything: Stop just banks time (no Resisted), going over
@@ -74,9 +74,9 @@ change); it changes how a Break habit's result is decided and what data we keep.
    Amount = number + unit datalist; Note = text; label flips At least / At most with Build/Break) on Add Habit, routine
    New Habit and Edit Habit, replacing "Timer (minutes)"; `FormHint` ⓘ popover with the examples above; goal line on
    the row + popup; stopwatch hidden on habits without a Time goal; remove the task timer-target fields.
-2. **[BUILT 2026-11-01, sw v179] Timer behavior.** Build Time goal → Decision-5 popup (replaces `pendingAction` 'target' auto-complete; also for old
+2. **[BUILT 2026-11-01, sw v179; popup button explanations v180, Pause/Resume v181, Pause + Stop icons v182] Timer behavior.** Build Time goal → Decision-5 popup (replaces `pendingAction` 'target' auto-complete; also for old
    task targets). Break limit → count-up helper, Stop = bank only, no expiry prompt (`'limit-expired'` path and the
-   `expired` arrival card go away); row shows "18 / 60 min", red when over.
+   `expired` arrival card go away); row shows a live "18:20 / 60 min", red when over.
    *Built as:* `pendingAction` returns `'goal-reached'` (once per answer, `item.goalAcked`); `Timer.discardSession`
    for "Started by mistake"; limit timers return no pending action; starting a limit timer no longer sets
    `arrivalPromptedFor` (the timer answers nothing now); `TimerView.showGoalReached`; dismissing the popup

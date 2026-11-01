@@ -2,14 +2,14 @@
  * @jest-environment jsdom
  *
  * TimerView goal-reached popup (Habit Goals Build 2, 2026-11-01): nothing auto-completes; the
- * player picks Mark done / Keep going / Stop, not done yet / Started by mistake.
+ * player picks Mark done / Keep going / Pause / Started by mistake.
  */
 global.Modal = require('../js/ui/modal.js');
 const TimerView = require('../js/ui/timerView.js');
 
 const item = { id: 'h1', name: 'Meditate <b>' };
 function handlers() {
-    return { onMarkDone: jest.fn(), onKeepGoing: jest.fn(), onStopNotDone: jest.fn(), onMistake: jest.fn() };
+    return { onMarkDone: jest.fn(), onKeepGoing: jest.fn(), onPause: jest.fn(), onMistake: jest.fn() };
 }
 
 beforeEach(() => { document.body.innerHTML = ''; });
@@ -33,6 +33,22 @@ describe('TimerView.showGoalReached', () => {
         expect(o.querySelector('p').textContent).toBe('30 min logged — your goal.');
     });
 
+    test('every button explains what it does when tapped', () => {
+        TimerView.showGoalReached(item, { goalMinutes: 30, loggedMinutes: 30 }, handlers());
+        const desc = id => document.querySelector('#' + id + ' .goal-opt-desc').textContent;
+        expect(desc('goalMarkDone')).toBe('Completes it and stops the timer.');
+        expect(desc('goalKeepGoing')).toContain('keeps running');
+        expect(desc('goalPause')).toContain('keeps the time logged');
+        expect(desc('goalPause')).toContain('resume');
+        expect(desc('goalMistake')).toContain('throws away');
+        expect(document.querySelector('#goalMistake .goal-opt-label').textContent).toBe('Started by mistake');
+    });
+
+    test('Mark done says open sub-tasks keep a task from completing', () => {
+        TimerView.showGoalReached(item, { goalMinutes: 30, loggedMinutes: 30, hasOpenSubTasks: true }, handlers());
+        expect(document.querySelector('#goalMarkDone .goal-opt-desc').textContent).toContain('sub-tasks');
+    });
+
     test('past the goal (app was closed) names both numbers', () => {
         TimerView.showGoalReached(item, { goalMinutes: 30, loggedMinutes: 95 }, handlers());
         expect(document.querySelector('#goalReachedOverlay p').textContent)
@@ -42,7 +58,7 @@ describe('TimerView.showGoalReached', () => {
     test.each([
         ['goalMarkDone', 'onMarkDone'],
         ['goalKeepGoing', 'onKeepGoing'],
-        ['goalStopNotDone', 'onStopNotDone'],
+        ['goalPause', 'onPause'],
         ['goalMistake', 'onMistake'],
     ])('%s closes the popup and calls only %s', (id, fn) => {
         const h = handlers();

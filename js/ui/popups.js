@@ -189,7 +189,7 @@ const Popups = (() => {
                     : '');
             const limitOk = typeof deps.toggleWorkTimer === 'function' && typeof Timer !== 'undefined' && Timer.canLimitTimer(item);
             const limitHtml = limitOk
-                ? `<button type="button" id="workTimerBtn" class="work-timer-btn${Timer.isRunning(item) ? ' running' : ''}">${Timer.popupHtml(item)}</button>`
+                ? `<button type="button" id="workTimerBtn" class="work-timer-btn${Timer.isRunning(item) ? ' running' : ''}">${Timer.popupHtml(item)}</button>${Timer.stopButtonHtml(item, 'workTimerStopBtn')}`
                 : '';
             return `
                 <div class="task-actions negative-habit-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -212,7 +212,7 @@ const Popups = (() => {
         const timerOk = typeof deps.toggleWorkTimer === 'function' && typeof Timer !== 'undefined' && Timer.canTimer(item);
         const timerRunning = timerOk && Timer.isRunning(item);
         const timerHtml = timerOk
-            ? `<button type="button" id="workTimerBtn" class="work-timer-btn${timerRunning ? ' running' : ''}${Timer.shouldNudge(item) ? ' attacking' : ''}${Timer.shouldPrompt(item) ? ' planned' : ''}"${Timer.shouldNudge(item) ? ` title="${Timer.NUDGE_TITLE}"` : Timer.shouldPrompt(item) ? ` title="${Timer.PROMPT_TITLE}"` : ''}>${Timer.popupHtml(item)}</button>`
+            ? `<button type="button" id="workTimerBtn" class="work-timer-btn${timerRunning ? ' running' : ''}${Timer.shouldNudge(item) ? ' attacking' : ''}${Timer.shouldPrompt(item) ? ' planned' : ''}"${Timer.shouldNudge(item) ? ` title="${Timer.NUDGE_TITLE}"` : Timer.shouldPrompt(item) ? ` title="${Timer.PROMPT_TITLE}"` : ''}>${Timer.popupHtml(item)}</button>${Timer.stopButtonHtml(item, 'workTimerStopBtn')}`
             : '';
         return `
             <div class="task-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
@@ -319,17 +319,23 @@ const Popups = (() => {
         }
 
         const workTimerButton = document.getElementById('workTimerBtn');
+        const workTimerStopButton = document.getElementById('workTimerStopBtn');
         if (workTimerButton) {
-            workTimerButton.addEventListener('click', () => {
-                const r = deps.toggleWorkTimer(item.id);
+            // Main button: start / resume when idle, pause when running; the Stop icon beside it (shown while running)
+            // ends the session. Time is kept either way.
+            const timerClick = (action) => {
+                const r = deps.toggleWorkTimer(item.id, action);
                 if (r && r.ok) {
                     if (r.completed) { Modal.closeModal(); return; }
                     workTimerButton.classList.toggle('running', r.running);
                     workTimerButton.classList.toggle('attacking', Timer.shouldNudge(item));
                     workTimerButton.classList.toggle('planned', Timer.shouldPrompt(item));
                     workTimerButton.innerHTML = Timer.popupHtml(item);
+                    if (workTimerStopButton) workTimerStopButton.hidden = !r.running;
                 }
-            });
+            };
+            workTimerButton.addEventListener('click', () => timerClick());
+            if (workTimerStopButton) workTimerStopButton.addEventListener('click', () => timerClick('stop'));
         }
 
         if (editButton) {

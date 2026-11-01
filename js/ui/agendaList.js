@@ -210,13 +210,29 @@ const AgendaList = (() => {
             timerBtn.classList.toggle('attacking', nudge);
             const planned = !nudge && Timer.shouldPrompt(itemData);
             timerBtn.classList.toggle('planned', planned);
-            timerBtn.title = nudge ? Timer.NUDGE_TITLE : planned ? Timer.PROMPT_TITLE : (running ? 'Stop timer' : 'Start timer');
+            timerBtn.title = nudge ? Timer.NUDGE_TITLE : planned ? Timer.PROMPT_TITLE : Timer.buttonTitle(itemData);
             timerBtn.setAttribute('aria-label', timerBtn.title);
+            // Tapping the timer: start / resume when idle, pause when running (Pause and Stop icons sit beside it).
             timerBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 deps.toggleWorkTimer(itemData.id);
             });
             itemActionsContainer.appendChild(timerBtn);
+            // Pause + Stop controls: only visible while the timer runs (script.js updateTimerButtons toggles `hidden`).
+            [['pause', 'Pause timer', Timer.PAUSE_ICON_SVG], ['stop', 'Stop timer', Timer.STOP_ICON_SVG]].forEach(([action, label, svg]) => {
+                const ctl = document.createElement('button');
+                ctl.type = 'button';
+                ctl.className = `timer-ctl-btn timer-ctl-${action}`;
+                ctl.title = label;
+                ctl.setAttribute('aria-label', label);
+                ctl.innerHTML = svg;
+                ctl.hidden = !running;
+                ctl.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deps.toggleWorkTimer(itemData.id, action);
+                });
+                itemActionsContainer.appendChild(ctl);
+            });
         }
         itemActionsContainer.appendChild(editIconButton);
         if (itemData.type === 'habit' && itemData.isNegative === true) {
