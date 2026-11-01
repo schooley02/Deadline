@@ -6,7 +6,11 @@ const task = (o) => Object.assign({ type: 'task', timer: null, timerMsBanked: 0 
 describe('Timer eligibility', () => {
     test('tasks and positive habits yes; negative habits and ghosts no', () => {
         expect(Timer.canWorkTimer(task())).toBe(true);
-        expect(Timer.canWorkTimer({ type: 'habit', isNegative: false })).toBe(true);
+        // Habit Goals (2026-11-01): a Build habit gets the stopwatch only with a Time goal.
+        expect(Timer.canWorkTimer({ type: 'habit', isNegative: false, goal: { type: 'time', amount: 30 } })).toBe(true);
+        expect(Timer.canWorkTimer({ type: 'habit', isNegative: false })).toBe(false);
+        expect(Timer.canWorkTimer({ type: 'habit', isNegative: false, goal: { type: 'amount', amount: 8, unit: 'glasses' } })).toBe(false);
+        expect(Timer.canWorkTimer({ type: 'habit', isNegative: false, timerMinutes: 20 })).toBe(true); // pre-goal save
         expect(Timer.canWorkTimer({ type: 'habit', isNegative: true })).toBe(false);
         expect(Timer.canWorkTimer(task({ koGhost: true }))).toBe(false);
     });
@@ -157,7 +161,8 @@ describe('definition target helpers', () => {
 describe('attacking nudge + stopwatch icon (2026-10-31)', () => {
     test('shouldNudge: overdue work item with no timer running', () => {
         expect(Timer.shouldNudge(task({ isOverdue: true }))).toBe(true);
-        expect(Timer.shouldNudge({ type: 'habit', isNegative: false, isOverdue: true })).toBe(true);
+        expect(Timer.shouldNudge({ type: 'habit', isNegative: false, goal: { type: 'time', amount: 30 }, isOverdue: true })).toBe(true);
+        expect(Timer.shouldNudge({ type: 'habit', isNegative: false, isOverdue: true })).toBe(false); // no Time goal, no stopwatch
     });
     test('shouldNudge: not when on time, already running, a KO ghost, or a break-habit', () => {
         expect(Timer.shouldNudge(task({ isOverdue: false }))).toBe(false);

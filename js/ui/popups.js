@@ -242,6 +242,8 @@ const Popups = (() => {
                             : `<p><strong>Due:</strong> <span class="task-due-display">${item.dueDateTime.toLocaleString()}</span></p>`}
                         <p><strong>Priority:</strong> ${item.isHighPriority ? 'High' : 'Normal'}</p>
                         ${item.type === 'habit' ? `<p><strong>Streak:</strong> ${item.streak}</p>` : ''}
+                        ${(item.type === 'habit' && typeof Habits !== 'undefined' && Habits.formatGoal && Habits.formatGoal(item.goal, item.isNegative))
+                            ? `<p class="habit-goal-line"><strong>${item.isNegative ? 'Limit' : 'Goal'}:</strong> ${Habits.formatGoal(item.goal, item.isNegative).replace(/^(Goal|Limit): /, '').replace(/</g, '&lt;')}</p>` : ''}
                         ${buildActionsHtml(item, deps)}
                     </div>
                 </div>
@@ -508,10 +510,6 @@ const Popups = (() => {
                         <input type="date" id="editDueDate" value="${dueDate}"${maxDateAttr} required>
                     </div>
                     ${Forms.startDueTimeGroupHtml({ startId: 'editStartTime', dueId: 'editDueTime', startValue: startTime, dueValue: dueTime, startAttrs: `data-initial="${startTime}"` })}
-                    <div class="form-row">
-                        <label for="editTimerMinutes">Timer target (min, optional):</label>
-                        <input type="number" id="editTimerMinutes" min="1" max="600" step="1" inputmode="numeric" value="${typeof item.timerMinutes === 'number' ? item.timerMinutes : ''}" placeholder="e.g. 30">
-                    </div>
                     <p id="editRescheduleNote" class="reschedule-note" aria-live="polite"></p>
                     <div class="modal-buttons">
                         <button id="saveTaskChanges" class="primary-button">Save Changes</button>
@@ -620,8 +618,6 @@ const Popups = (() => {
                 item.isHighPriority = isHighPriority;
                 item.dueDateTime = newDueDateTime;
                 item.startDateTime = (newStartDateTime instanceof Date && !isNaN(newStartDateTime.getTime())) ? newStartDateTime : null;
-                const editTarget = Math.floor(Number(document.getElementById('editTimerMinutes').value));
-                item.timerMinutes = (editTarget >= 1 && editTarget <= 600) ? editTarget : null;
                 if (reschedule && typeof deps.commitReschedule === 'function') deps.commitReschedule(item, reschedule);
 
                 // Re-derive overdue state from the NEW due date. Without this,

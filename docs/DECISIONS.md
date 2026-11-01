@@ -5,6 +5,10 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+## 2026-11-01 (afternoon, later) -- Habit Goals Build 1 built (sw v178; Claude app session, Sonnet; Jeremy)
+**Decision:** built per docs/HABIT_GOALS_PLAN.md Build 1: `habitDef.goal` / `item.goal` (additive, no schema bump; old `timerMinutes` derives a Time goal), Habit Goal form section + (i) hints on all three habit forms, goal line on the row and popup, task timer-target fields removed, and a Build habit gets the stopwatch only with a Time goal (the plan's open point, built as planned: Build habits without a Time goal lose the stopwatch and its halved-damage effect). Timer behavior (Build 2) and the evening check + How much? (Build 3) are not built.
+**Why:** Jeremy: the player judges, the timer only helps.
+
 ## 2026-11-01 (afternoon) -- Habit Goals designed: the player judges, the timer only helps (Claude app session, Opus; Jeremy)
 **Decision:** replace the habit "Timer (minutes)" with a Habit Goal (None / Time / Amount / Custom note; Build = at least, Break = at most), shown on the card. Timers never decide: a Build Time goal reached opens a popup (Mark done / Keep going / Stop, not done / Started by mistake) instead of auto-completing; a Break limit timer is a count-up "logged so far" helper (no Resisted on Stop, no expiry prompt). New evening check (default 9 PM, in-app) asks about today's unanswered Break habits; the next-morning check-in card stays as the backstop. Optional How much? actual is recorded (DailyRecord v4). Task timer-target field removed. Examples via ⓘ tap hints (hover tooltips don't exist on phones). Full plan: `docs/HABIT_GOALS_PLAN.md`.
 **Why:** Jeremy: people won't reliably start/stop a timer, a Break limit like social media happens in many short bursts (checking screen time at night is realistic), an accidental timer shouldn't complete a habit, and he never used task targets.

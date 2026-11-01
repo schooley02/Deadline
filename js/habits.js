@@ -491,7 +491,9 @@ const Habits = (() => {
             // timerMinutes is the LIMIT budget; for a positive habit a work goal.
             timer: null,
             timerMsBanked: 0,
-            timerMinutes: (typeof habitDef.timerMinutes === 'number' && habitDef.timerMinutes > 0) ? habitDef.timerMinutes : null
+            // Habit Goal (2026-11-01): the goal of this day's instance. A Time goal is also the timer budget.
+            goal: goalOf(habitDef),
+            timerMinutes: goalTimerMinutes(goalOf(habitDef))
         };
 
         // [P1-DATA-005] A negative habit lurker spawns on the normal timeline
@@ -561,12 +563,100 @@ const Habits = (() => {
         return `Due: ${item.dueDateTime.toLocaleString(locale || [], { dateStyle: 'short', timeStyle: 'short' })}`;
     }
 
+    // ---------------------------------------------------------------------
+    // Habit Goal (2026-11-01, Jeremy; plan docs/HABIT_GOALS_PLAN.md). The habit title is the activity ("Meditate");
+    // the goal is the measure: none / time (minutes) / amount (number + unit) / note (free text). Build = "at least",
+    // Break = "at most". The PLAYER judges met / not met -- a timer never decides. Additive, no schema bump:
+    // `goalOf` derives a Time goal from an old `timerMinutes`.
+    // ---------------------------------------------------------------------
+    const GOAL_MAX_MINUTES = 1440;
+    const GOAL_EXAMPLES = {
+        build: ['Meditate 10 min', 'Read 20 min', 'Work out 45 min', '20 pages', '8 glasses of water', '10,000 steps', '3 miles', '50 push-ups', '500 words', '$10 saved'],
+        break: ['Social media 1 hr or less', 'Gaming 2 hr or less', '2 drinks or fewer', '5 cigarettes or fewer', '2 cups of coffee or fewer', '$20 impulse spending or less'],
+    };
+    const GOAL_UNIT_SUGGESTIONS = ['pages', 'glasses', 'oz', 'steps', 'miles', 'km', 'reps', 'words', 'servings', 'drinks', 'cigarettes', 'cups', '$', 'times'];
+
+    // Pure. Raw goal-ish input -> a clean goal object ({type:'none'} when nothing valid). A Time goal is minutes.
+    function normalizeGoal(raw) {
+        const none = { type: 'none', amount: null, unit: null, note: null };
+        if (!raw || typeof raw !== 'object') return none;
+        if (raw.type === 'time') {
+            const m = Math.floor(Number(raw.amount));
+            return (m >= 1 && m <= GOAL_MAX_MINUTES) ? { type: 'time', amount: m, unit: 'min', note: null } : none;
+        }
+        if (raw.type === 'amount') {
+            const a = Number(raw.amount);
+            if (!(a > 0) || !isFinite(a)) return none;
+            const unit = typeof raw.unit === 'string' ? raw.unit.trim().slice(0, 24) : '';
+            return { type: 'amount', amount: Math.round(a * 100) / 100, unit: unit || null, note: null };
+        }
+        if (raw.type === 'note') {
+            const note = typeof raw.note === 'string' ? raw.note.trim().slice(0, 80) : '';
+            return note ? { type: 'note', amount: null, unit: null, note } : none;
+        }
+        return none;
+    }
+
+    // Pure. The goal of a habit definition or instance: its own `goal`, else a Time goal derived from an old
+    // `timerMinutes`, else none.
+    function goalOf(def) {
+        if (def && def.goal && typeof def.goal === 'object') return normalizeGoal(def.goal);
+        if (def && typeof def.timerMinutes === 'number' && def.timerMinutes > 0) {
+            return normalizeGoal({ type: 'time', amount: def.timerMinutes });
+        }
+        return normalizeGoal(null);
+    }
+
+    function goalTimerMinutes(goal) {
+        return goal && goal.type === 'time' ? goal.amount : null;
+    }
+
+    function formatMinutes(min) {
+        if (min >= 60 && min % 60 === 0) return `${min / 60} hr`;
+        if (min > 60) return `${Math.floor(min / 60)} hr ${min % 60} min`;
+        return `${min} min`;
+    }
+    function formatAmount(goal) {
+        const n = String(goal.amount);
+        if (goal.unit === '$') return `$${n}`;
+        return goal.unit ? `${n} ${goal.unit}` : n;
+    }
+
+    // Pure. One short line for the card: "Goal: 30 min", "Limit: 1 hr", "Goal: 8 glasses", or the note. '' for none.
+    function formatGoal(goal, isNegative) {
+        const g = normalizeGoal(goal);
+        const lead = isNegative ? 'Limit' : 'Goal';
+        if (g.type === 'time') return `${lead}: ${formatMinutes(g.amount)}`;
+        if (g.type === 'amount') return `${lead}: ${formatAmount(g)}`;
+        if (g.type === 'note') return g.note;
+        return '';
+    }
+
+    // Writes the goal onto a habit definition and keeps the legacy timer fields in step so js/timer.js (which reads
+    // timerMinutes) keeps working: only a Time goal gives a timer budget. `legacyMinutes` is the old bare "Timer (min)"
+    // value, used when no goal object is passed (older callers/tests).
+    function applyGoalToDef(def, rawGoal, legacyMinutes) {
+        const goal = rawGoal ? normalizeGoal(rawGoal)
+            : normalizeGoal(legacyMinutes ? { type: 'time', amount: legacyMinutes } : null);
+        def.goal = goal;
+        def.timerMinutes = goalTimerMinutes(goal);
+        def.timerMode = def.timerMinutes ? (def.isNegative ? 'limit' : 'work') : null;
+        return def;
+    }
+
     return {
         timeOfDayLabels,
         dueLineText,
         getHabitInstanceDueTime,
         getHabitInstanceStartTime,
         normalizeCustomTimes,
+        GOAL_EXAMPLES,
+        GOAL_UNIT_SUGGESTIONS,
+        normalizeGoal,
+        goalOf,
+        goalTimerMinutes,
+        formatGoal,
+        applyGoalToDef,
         retimeHabitInstance,
         selectHabitDefsToSpawn,
         // rate-based bonus (session 16)

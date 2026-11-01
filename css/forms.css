@@ -102,3 +102,11 @@
 .habit-window-mode { display: flex; gap: var(--space-4, 16px); align-items: center; flex-wrap: wrap; }
 .habit-window-mode-opt { display: inline-flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; }
 .habit-window-mode-opt[hidden] { display: none; }
+
+
+/* Habit Goal section (2026-11-01): fields hidden until their type is chosen; tap-to-show examples popover. */
+.form-row-group.goal-fields[hidden], .form-row.goal-fields[hidden], .form-hint-pop[hidden] { display: none; }
+.form-hint-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-left: 6px; padding: 0; border: 1px solid var(--color-border, #888); border-radius: 50%; background: transparent; color: inherit; font-size: 14px; line-height: 1; cursor: pointer; vertical-align: middle; }
+.form-hint-pop { margin-top: var(--space-2, 8px); padding: 8px 12px; border: 1px solid var(--color-border, #888); border-radius: 8px; font-size: 0.85em; }
+.form-hint-pop ul { margin: 4px 0; padding-left: 18px; }
+.form-hint-pop p { margin: 4px 0 0; opacity: 0.8; }

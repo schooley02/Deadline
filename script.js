@@ -1598,7 +1598,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Habit system functions
-    function createHabitDefinition(name, category, scheduleOrFrequency, timeOfDay, isNegative = false, timerMinutes = null, startTime = null, endTime = null) {
+    function createHabitDefinition(name, category, scheduleOrFrequency, timeOfDay, isNegative = false, timerMinutes = null, startTime = null, endTime = null, goal = null) {
         const customTimes = Habits.normalizeCustomTimes(timeOfDay, isNegative, startTime, endTime);
         const newHabitDef = {
             id: `habitDef_${State.getDefinedHabits().length}_${Date.now()}`,
@@ -1614,8 +1614,9 @@ document.addEventListener('DOMContentLoaded', () => {
             startTime: customTimes.startTime,
             endTime: customTimes.endTime,
             isNegative,
-            timerMode: timerMinutes ? (isNegative ? 'limit' : 'work') : null,
-            timerMinutes: timerMinutes || null,
+            goal: null, // Habit Goal (2026-11-01): set by applyGoalToDef below (also sets timerMinutes/timerMode)
+            timerMode: null,
+            timerMinutes: null,
             // null = standalone (not owned by any routine), so it spawns daily
             // regardless of routine state. See docs/DATA_SCHEMA.md's Habit shape
             // and Habits.selectHabitDefsToSpawn.
@@ -1642,6 +1643,7 @@ document.addEventListener('DOMContentLoaded', () => {
             skipDayDate: null
         };
 
+        Habits.applyGoalToDef(newHabitDef, goal, timerMinutes);
         State.getDefinedHabits().push(newHabitDef);
         generateDailyHabitInstances(State.getCurrentGameDate());
         saveGame();

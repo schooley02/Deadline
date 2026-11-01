@@ -222,6 +222,99 @@ const Forms = (() => {
             </div>`;
     }
 
+    // ---------------------------------------------------------------------
+    // Habit Goal section (2026-11-01, Jeremy; plan docs/HABIT_GOALS_PLAN.md): replaces the old "Timer (minutes)" box on
+    // the three habit forms. A type select (none / time / amount / note) reveals its fields; the label flips
+    // at-least / at-most with the Build / Break toggle and a tap-to-show (i) lists examples (hover tooltips do not
+    // exist on phones). `prefix` namespaces the ids (modalHabit / newHabit / editHabit); Modal.wireHabitGoal wires it.
+    // ---------------------------------------------------------------------
+    const escAttr = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+    function habitGoalHtml(prefix, goal, isNegative) {
+        const g = (goal && typeof goal === 'object') ? goal : { type: 'none' };
+        const type = ['time', 'amount', 'note'].includes(g.type) ? g.type : 'none';
+        const asHours = type === 'time' && g.amount >= 60 && g.amount % 60 === 0;
+        const timeValue = type === 'time' ? (asHours ? g.amount / 60 : g.amount) : '';
+        const sel = (v) => (type === v ? ' selected' : '');
+        const units = (typeof Habits !== 'undefined' && Habits.GOAL_UNIT_SUGGESTIONS) ? Habits.GOAL_UNIT_SUGGESTIONS : [];
+        return `<div class="habit-goal" id="${prefix}Goal">
+                <div class="form-row">
+                    <label for="${prefix}GoalType"><span data-goal-label>${isNegative ? 'Daily limit (optional):' : 'Habit goal (optional):'}</span>
+                        <button type="button" class="form-hint-btn" data-hint-for="${prefix}GoalHint" aria-label="Goal examples" aria-expanded="false">&#9432;</button></label>
+                    <select id="${prefix}GoalType">
+                        <option value="none"${sel('none')}>No numeric goal</option>
+                        <option value="time"${sel('time')}>Time (minutes / hours)</option>
+                        <option value="amount"${sel('amount')}>Amount (number + unit)</option>
+                        <option value="note"${sel('note')}>Custom note</option>
+                    </select>
+                    <div class="form-hint-pop" id="${prefix}GoalHint" hidden></div>
+                </div>
+                <div class="form-row-group time-pair goal-fields" id="${prefix}GoalTimeFields"${type === 'time' ? '' : ' hidden'}>
+                    <div class="form-row">
+                        <label for="${prefix}GoalTimeValue">Time:</label>
+                        <input type="number" id="${prefix}GoalTimeValue" min="1" step="1" inputmode="numeric" placeholder="e.g. 30" value="${escAttr(timeValue)}">
+                    </div>
+                    <div class="form-row">
+                        <label for="${prefix}GoalTimeUnit">Unit:</label>
+                        <select id="${prefix}GoalTimeUnit"><option value="min"${asHours ? '' : ' selected'}>minutes</option><option value="hr"${asHours ? ' selected' : ''}>hours</option></select>
+                    </div>
+                </div>
+                <div class="form-row-group time-pair goal-fields" id="${prefix}GoalAmountFields"${type === 'amount' ? '' : ' hidden'}>
+                    <div class="form-row">
+                        <label for="${prefix}GoalAmountValue">Amount:</label>
+                        <input type="number" id="${prefix}GoalAmountValue" min="0" step="any" inputmode="decimal" placeholder="e.g. 8" value="${type === 'amount' ? escAttr(g.amount) : ''}">
+                    </div>
+                    <div class="form-row">
+                        <label for="${prefix}GoalAmountUnit">Unit:</label>
+                        <input type="text" id="${prefix}GoalAmountUnit" list="${prefix}GoalUnits" maxlength="24" placeholder="e.g. glasses" value="${type === 'amount' ? escAttr(g.unit) : ''}">
+                        <datalist id="${prefix}GoalUnits">${units.map(u => `<option value="${escAttr(u)}"></option>`).join('')}</datalist>
+                    </div>
+                </div>
+                <div class="form-row goal-fields" id="${prefix}GoalNoteFields"${type === 'note' ? '' : ' hidden'}>
+                    <label for="${prefix}GoalNote">Goal note:</label>
+                    <input type="text" id="${prefix}GoalNote" maxlength="80" placeholder="e.g. Call Mom" value="${type === 'note' ? escAttr(g.note) : ''}">
+                </div>
+            </div>`;
+    }
+
+    // Pure. Raw field values -> a goal object for Habits.normalizeGoal. A Time goal is converted to minutes.
+    function goalFromFields(f) {
+        if (!f) return { type: 'none' };
+        if (f.type === 'time') {
+            const v = Number(f.timeValue);
+            return { type: 'time', amount: (f.timeUnit === 'hr' ? v * 60 : v) };
+        }
+        if (f.type === 'amount') return { type: 'amount', amount: Number(f.amountValue), unit: f.amountUnit || '' };
+        if (f.type === 'note') return { type: 'note', note: f.note || '' };
+        return { type: 'none' };
+    }
+
+    // Pure. Error string when a chosen goal type has no usable value, else null (none is always fine).
+    function habitGoalError(f) {
+        if (!f || !f.type || f.type === 'none') return null;
+        const g = goalFromFields(f);
+        if (f.type === 'time') {
+            return (g.amount >= 1 && g.amount <= 1440) ? null : 'Enter a time goal between 1 minute and 24 hours.';
+        }
+        if (f.type === 'amount') return (g.amount > 0) ? null : 'Enter an amount for the goal.';
+        if (f.type === 'note') return String(g.note).trim() ? null : 'Type a note for the goal.';
+        return null;
+    }
+
+    // Reads the section's current field values from the document.
+    function readHabitGoalFields(prefix, root) {
+        const doc = root || document;
+        const val = (id) => { const el = doc.querySelector('#' + id); return el ? el.value : ''; };
+        const typeEl = doc.querySelector('#' + prefix + 'GoalType');
+        if (!typeEl) return null;
+        return {
+            type: typeEl.value,
+            timeValue: val(prefix + 'GoalTimeValue'), timeUnit: val(prefix + 'GoalTimeUnit'),
+            amountValue: val(prefix + 'GoalAmountValue'), amountUnit: val(prefix + 'GoalAmountUnit'),
+            note: val(prefix + 'GoalNote'),
+        };
+    }
+
     // Pure. Returns an error string for a custom habit window, else null: "custom" needs an End time, and Start
     // (when given) must be earlier than End. Not custom, or a Break habit, is always fine (Break habits cannot be custom).
     function customHabitTimesError(timeOfDay, isNegative, startTime, endTime) {
@@ -294,10 +387,6 @@ const Forms = (() => {
                 <input type="date" id="modalDueDate" value="${todayString}" required>
             </div>
             ${startDueTimeGroupHtml({ startId: 'modalStartTime', dueId: 'modalDueTime', startValue: win.start, dueValue: defaultDueTime, dueAttrs: `data-prefilled="${defaultDueTime}"` })}
-            <div class="form-row">
-                <label for="modalTimerMinutes">Timer target (min, optional):</label>
-                <input type="number" id="modalTimerMinutes" min="1" max="600" step="1" inputmode="numeric" placeholder="e.g. 30">
-            </div>
             <div class="modal-buttons">
                 <button id="modalAddTaskButton" class="primary-button">Add Task</button>
                 <button class="secondary-button" onclick="closeModal()">Cancel</button>
@@ -356,11 +445,7 @@ const Forms = (() => {
                 </select>
             </div>
             ${customHabitTimesHtml({ selectId: 'modalHabitTimeOfDay', startId: 'modalHabitStartTime', endId: 'modalHabitEndTime', startValue: win.start, endValue: win.due, visible: false })}
-            <div class="form-row">
-                <label for="modalHabitTimerMinutes">Timer (minutes, optional):</label>
-                <input type="number" id="modalHabitTimerMinutes" min="1" max="600" step="1" inputmode="numeric" placeholder="e.g. 30">
-                <small class="form-hint">Break habit: a limit &mdash; start the timer and stop before it runs out to count as resisted. Build habit: a work goal that completes it.</small>
-            </div>
+            ${habitGoalHtml('modalHabit', null, false)}
             <div class="modal-buttons">
                 <button id="modalAddHabitButton" class="primary-button">Add Habit</button>
                 <button class="secondary-button" onclick="closeModal()">Cancel</button>
@@ -435,6 +520,7 @@ const Forms = (() => {
         if (formType === 'habit') {
             wireScheduleFieldsToggle('modalHabit');
             Modal.wireHabitTimeLabels('modalHabitType', 'modalHabitTimeOfDay');
+            Modal.wireHabitGoal('modalHabitType', 'modalHabit');
         }
     }
 
@@ -485,9 +571,6 @@ const Forms = (() => {
                             return;
                         }
                         const taskData = deps.createTaskItemData(name, category, isHighPriority, resolved.dueDate, resolved.dueTime, undefined, startTime || undefined);
-                        const targetInput = modal.querySelector('#modalTimerMinutes');
-                        const targetMin = targetInput ? Math.floor(Number(targetInput.value)) : NaN;
-                        taskData.timerMinutes = (targetMin >= 1 && targetMin <= 600) ? targetMin : null;
                         deps.addItemToGame(taskData);
                         deps.sortAndRenderActiveList();
                         Modal.closeModal();
@@ -539,9 +622,13 @@ const Forms = (() => {
                             return;
                         }
 
-                        const habitTimerInput = modal.querySelector('#modalHabitTimerMinutes');
-                        const habitTimerMinutes = habitTimerInput ? Timer.normalizeTarget(habitTimerInput.value) : null;
-                        deps.createHabitDefinition(name, category, schedule, timeOfDay, isNegative, habitTimerMinutes, habitStartTime || null, habitEndTime || null);
+                        const goalFields = readHabitGoalFields('modalHabit', modal);
+                        const goalError = habitGoalError(goalFields);
+                        if (goalError) {
+                            alert(goalError);
+                            return;
+                        }
+                        deps.createHabitDefinition(name, category, schedule, timeOfDay, isNegative, null, habitStartTime || null, habitEndTime || null, goalFromFields(goalFields));
                         Modal.closeModal();
 
                         // Update habits window if open
@@ -611,6 +698,10 @@ const Forms = (() => {
         startDueTimeGroupHtml,
         startBeforeDueError,
         customHabitTimesHtml,
+        habitGoalHtml,
+        goalFromFields,
+        habitGoalError,
+        readHabitGoalFields,
         habitWindowModeHtml,
         customHabitTimesError,
     };

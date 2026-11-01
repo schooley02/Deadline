@@ -1117,11 +1117,7 @@ const RoutineViews = (() => {
                         </select>
                     </div>
                     ${Forms.customHabitTimesHtml({ selectId: 'newHabitTimeOfDay', startId: 'newHabitStartTime', endId: 'newHabitEndTime', startValue: defaultWin.start, endValue: defaultWin.due, visible: false })}
-                    <div class="form-row">
-                        <label for="newHabitTimerMinutes">Timer (minutes, optional):</label>
-                        <input type="number" id="newHabitTimerMinutes" min="1" max="600" step="1" inputmode="numeric" value="" placeholder="e.g. 30">
-                        <small class="form-hint">Break habit: a limit &mdash; start the timer and stop before it runs out to count as resisted. Build habit: a work goal that completes it.</small>
-                    </div>
+                    ${Forms.habitGoalHtml('newHabit', null, false)}
                     <div class="modal-buttons">
                         <button class="primary-button" onclick="saveNewHabit('${routineId}')">Create Habit</button>
                         <button class="secondary-button" onclick="closeModal()">Cancel</button>
@@ -1132,6 +1128,7 @@ const RoutineViews = (() => {
         Modal.open(formHtml);
         wireScheduleFieldsToggle('newHabit');
         Modal.wireHabitTimeLabels('habitType', 'newHabitTimeOfDay');
+        Modal.wireHabitGoal('habitType', 'newHabit');
     }
 
     // No deps — pure HTML-string builder (see showCreateHabitForm note).
@@ -1227,11 +1224,7 @@ const RoutineViews = (() => {
                         </select>
                     </div>
                     ${Forms.customHabitTimesHtml({ selectId: 'editHabitTimeOfDay', startId: 'editHabitStartTime', endId: 'editHabitEndTime', startValue: habitDef.startTime || '', endValue: habitDef.endTime || '', visible: habitDef.timeOfDay === 'custom' })}
-                    <div class="form-row">
-                        <label for="editHabitTimerMinutes">Timer (minutes, optional):</label>
-                        <input type="number" id="editHabitTimerMinutes" min="1" max="600" step="1" inputmode="numeric" value="${typeof habitDef.timerMinutes === 'number' ? habitDef.timerMinutes : ''}" placeholder="e.g. 30">
-                        <small class="form-hint">Break habit: a limit &mdash; start the timer and stop before it runs out to count as resisted. Build habit: a work goal that completes it.</small>
-                    </div>
+                    ${Forms.habitGoalHtml('editHabit', Habits.goalOf(habitDef), !!habitDef.isNegative)}
                     <div class="modal-buttons">
                         <button class="primary-button" onclick="saveEditedHabit('${habitDef.id}')">Save Changes</button>
                         <button class="secondary-button" onclick="closeModal()">Cancel</button>
@@ -1245,6 +1238,7 @@ const RoutineViews = (() => {
         Modal.open(formHtml);
         wireScheduleFieldsToggle('editHabit');
         Modal.wireHabitTimeLabels('editHabitType', 'editHabitTimeOfDay');
+        Modal.wireHabitGoal('editHabitType', 'editHabit');
     }
 
     // No deps — pure HTML-string builder (see showCreateHabitForm note).
@@ -1327,8 +1321,14 @@ const RoutineViews = (() => {
         const routine = deps.definedRoutines().find(r => r.id === routineId);
         if (routine && !ensureRoutineSlotAvailable(routine, 'habit', deps)) return;
 
-        const timerMinutes = Timer.normalizeTarget(document.getElementById('newHabitTimerMinutes').value);
-        deps.createNewHabitInRoutine(routineId, { name, category, schedule, timeOfDay, isNegative, timerMinutes, startTime: startTime || null, endTime: endTime || null });
+        const goalFields = Forms.readHabitGoalFields('newHabit');
+        const goalError = Forms.habitGoalError(goalFields);
+        if (goalError) {
+            alert(goalError);
+            return;
+        }
+        const goal = Forms.goalFromFields(goalFields);
+        deps.createNewHabitInRoutine(routineId, { name, category, schedule, timeOfDay, isNegative, goal, startTime: startTime || null, endTime: endTime || null });
         Modal.closeModal();
     }
 
@@ -1392,8 +1392,15 @@ const RoutineViews = (() => {
             return;
         }
 
-        const timerMinutes = Timer.normalizeTarget(document.getElementById('editHabitTimerMinutes').value);
-        deps.editHabitInRoutine(habitId, { name, category, schedule, timeOfDay, isNegative, timerMinutes, startTime: startTime || null, endTime: endTime || null });
+        const goalFields = Forms.readHabitGoalFields('editHabit');
+        const goalError = Forms.habitGoalError(goalFields);
+        if (goalError) {
+            alert(goalError);
+            return;
+        }
+        const goal = Habits.normalizeGoal(Forms.goalFromFields(goalFields));
+        const timerMinutes = Habits.goalTimerMinutes(goal);
+        deps.editHabitInRoutine(habitId, { name, category, schedule, timeOfDay, isNegative, goal, startTime: startTime || null, endTime: endTime || null });
 
         // Keep any already-spawned instance of this habit in sync, so editing
         // from today's agenda row (or anywhere else) doesn't go stale until
@@ -1410,6 +1417,8 @@ const RoutineViews = (() => {
                 item.category = category;
                 item.isNegative = isNegative;
                 // Timer target follows the definition unless a timer is mid-run.
+                // Goal follows the definition; a Time goal's budget waits while a timer is mid-run.
+                item.goal = goal;
                 if (typeof Timer !== 'undefined' && !Timer.isRunning(item)) item.timerMinutes = timerMinutes;
                 const stored = Habits.normalizeCustomTimes(timeOfDay, isNegative, startTime, endTime);
                 if (Habits.retimeHabitInstance(item, stored.timeOfDay, { startTime: stored.startTime, endTime: stored.endTime }) && deps.recomputeOverdueStateAfterEdit) {

@@ -11,6 +11,11 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-01 (afternoon, later) -- Habit Goals Build 1 (Claude app session, Sonnet; Jeremy)
+**Did:** `Habits.normalizeGoal/goalOf/formatGoal/applyGoalToDef`; `Forms.habitGoalHtml/goalFromFields/habitGoalError/readHabitGoalFields`; `Modal.wireHabitGoal` (type fields, Build/Break wording, tap (i) popover); Add Habit, routine New/Edit Habit use it; goal line on the agenda row + popup; task timer-target fields removed; `Timer.canWorkTimer` needs a Time goal for habits. test/habitGoals.test.js (14), timer tests updated; sw v178. Jest 106 suites / 2,454; headless 390x844 check (no errors).
+**State:** green; in the folder, not yet committed. **Next:** Build 2 (goal-reached popup, Break limit = count-up helper) -- Sonnet, medium.
+**Watch out:** an existing Break habit's limit still behaves the old way until Build 2 (Stop = Resisted, expiry prompt). Existing task `timerMinutes` still auto-completes at target until Build 2 replaces it with the popup. Build habits with no Time goal no longer show the stopwatch.
+
 ## 2026-11-01 (afternoon) -- Habit Goals designed (Claude app session, Opus; Jeremy)
 **Did:** design session, no code. Plan `docs/HABIT_GOALS_PLAN.md`; DECISIONS 2026-11-01 (afternoon); ROADMAP Habit Goals Builds 1-3. Window-mode checkboxes (v177) phone-confirmed.
 **State:** code unchanged since dc8ec81 (sw v177), green.

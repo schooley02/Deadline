@@ -387,8 +387,9 @@ const Routines = (() => {
             endTime: null,
             isNegative: habitData.isNegative || false,
             // Timer (Build 4): limit budget (negative) or work goal (positive), minutes or null.
-            timerMode: habitData.timerMinutes ? (habitData.isNegative ? 'limit' : 'work') : null,
-            timerMinutes: habitData.timerMinutes || null,
+            goal: null, // set by applyGoalToDef below
+            timerMode: null,
+            timerMinutes: null,
             // Owned by this routine — only spawns while the routine isActive.
             routineId: routineId,
             streak: 0,
@@ -415,6 +416,7 @@ const Routines = (() => {
             const ct = habitsModule().normalizeCustomTimes(newHabit.timeOfDay, newHabit.isNegative, habitData.startTime, habitData.endTime);
             newHabit.timeOfDay = ct.timeOfDay; newHabit.startTime = ct.startTime; newHabit.endTime = ct.endTime;
         }
+        habitsModule().applyGoalToDef(newHabit, habitData.goal, habitData.timerMinutes);
         definedHabits.push(newHabit);
         routine.habitDefinitionIds.push(newHabit.id);
 
@@ -498,8 +500,8 @@ const Routines = (() => {
         habit.isNegative = updatedData.isNegative;
         // Timer (Build 4): not a "meaningful" edit for frozen-slot recovery, so it isn't
         // added to changedFields.
-        habit.timerMinutes = updatedData.timerMinutes || null;
-        habit.timerMode = habit.timerMinutes ? (habit.isNegative ? 'limit' : 'work') : null;
+        // Habit Goal (2026-11-01): a Time goal also sets timerMinutes/timerMode; legacy callers pass timerMinutes.
+        habitsModule().applyGoalToDef(habit, updatedData.goal, updatedData.timerMinutes);
 
         if (changedFields.length > 0) {
             if (!Array.isArray(habit.modificationHistory)) habit.modificationHistory = [];

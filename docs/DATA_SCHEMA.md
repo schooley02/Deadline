@@ -347,6 +347,7 @@ Save {
 
 - **Timer fields now live (Build 3, 2026-10-25):** `item.timer {startedAt, checkedAt, promptedAt} | null` (ms epoch), `item.timerMsBanked`, `item.timerMinutes` (set from the Add/Edit Task forms; new items are created with the schema-14 defaults). `habitDef/taskDef.timerMode/timerMinutes` are still unread.
 - **Definition timer fields now live (Build 4):** `habitDef.timerMinutes` (1-600 | null) and `habitDef.timerMode` ('limit' for negative, 'work' for positive, null if no minutes); spawned habit instances copy `timerMinutes`. Routine `taskDef.timerMode/timerMinutes` remain unread.
+- **Habit Goals Build 1 (2026-11-01, additive, no schema bump):** `habitDef.goal` / `item.goal` = `{ type: 'none'|'time'|'amount'|'note', amount, unit, note }` (Time = minutes, `unit: 'min'`). `Habits.goalOf(def)` falls back to a Time goal derived from an old `timerMinutes`. A Time goal keeps `timerMinutes`/`timerMode` in step (`Habits.applyGoalToDef`); other goal types leave them null. Build 2 + 3 (docs/HABIT_GOALS_PLAN.md) add the actual-amount record (`item.goalActual`) and DailyRecord v4.
 
 ## Daily record (BUILT 2026-10-27, D2 steps 1-4 -- `docs/DAILY_RECORD_PLAN.md`)
 - `save.today` (schema 15): the in-progress `DailyRecord` for the current local day. The v14->v15

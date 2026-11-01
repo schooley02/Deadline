@@ -38,10 +38,15 @@ const Timer = (() => {
 
     // Work timers run on tasks (incl. sub-tasks) and POSITIVE habits. Negative
     // habits get the limit timer (Build 4); KO ghosts are inert.
+    function hasTimeGoal(item) {
+        if (item && item.goal && typeof item.goal === 'object') return item.goal.type === 'time';
+        return !!item && typeof item.timerMinutes === 'number' && item.timerMinutes > 0; // pre-goal save
+    }
     function canWorkTimer(item) {
         if (!item || item.koGhost === true) return false;
         if (item.type === 'task') return true;
-        return item.type === 'habit' && item.isNegative !== true;
+        // Habit Goals (2026-11-01): a Build habit gets the stopwatch only when its goal is a Time goal.
+        return item.type === 'habit' && item.isNegative !== true && hasTimeGoal(item);
     }
 
     // Limit timer (Build 4): a NEGATIVE habit with a budget (item.timerMinutes) counts DOWN.

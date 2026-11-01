@@ -272,6 +272,12 @@ const AgendaList = (() => {
                 ? Habits.dueLineText(itemData)
                 : `Due: ${itemData.dueDateTime.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`);
 
+        // Habit Goal line (2026-11-01): "Goal: 30 min" / "Limit: 1 hr" after the due/tempting line.
+        if (itemData.type === 'habit' && !itemData.koGhost && typeof Habits !== 'undefined' && Habits.formatGoal) {
+            const goalText = Habits.formatGoal(itemData.goal, itemData.isNegative);
+            if (goalText) itemDetailsSpan.textContent += ' \u00B7 ' + goalText;
+        }
+
         itemDetailsContainer.appendChild(itemDetailsSpan);
         detailsAndSubTaskRow.appendChild(itemDetailsContainer);
 

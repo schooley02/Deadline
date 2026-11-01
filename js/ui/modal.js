@@ -370,8 +370,51 @@ const Modal = (() => {
         apply();
     }
 
+    // Habit Goal section (2026-11-01): show only the fields of the chosen goal type, flip the wording with the
+    // Build / Break toggle (at least / at most), and make the (i) button toggle a tap-to-show examples popover.
+    // radioName = the habit-type radio group's `name`, prefix = the ids' prefix (see Forms.habitGoalHtml).
+    function wireHabitGoal(radioName, prefix) {
+        const typeSel = document.getElementById(prefix + 'GoalType');
+        if (!typeSel) return;
+        const labelEl = document.querySelector(`#${prefix}Goal [data-goal-label]`);
+        const hintBtn = document.querySelector(`#${prefix}Goal .form-hint-btn`);
+        const pop = document.getElementById(prefix + 'GoalHint');
+        const show = (id, on) => { const el = document.getElementById(id); if (el) el.hidden = !on; };
+        const apply = () => {
+            const checked = document.querySelector(`input[name="${radioName}"]:checked`);
+            const isNegative = !!checked && checked.value === 'negative';
+            const t = typeSel.value;
+            show(prefix + 'GoalTimeFields', t === 'time');
+            show(prefix + 'GoalAmountFields', t === 'amount');
+            show(prefix + 'GoalNoteFields', t === 'note');
+            if (labelEl) labelEl.textContent = isNegative ? 'Daily limit (optional):' : 'Habit goal (optional):';
+            // Labels read "at least" for Build, "at most" for Break.
+            const timeLbl = document.querySelector(`label[for="${prefix}GoalTimeValue"]`);
+            const amtLbl = document.querySelector(`label[for="${prefix}GoalAmountValue"]`);
+            if (timeLbl) timeLbl.textContent = isNegative ? 'At most:' : 'At least:';
+            if (amtLbl) amtLbl.textContent = isNegative ? 'At most:' : 'At least:';
+            if (pop && typeof Habits !== 'undefined' && Habits.GOAL_EXAMPLES) {
+                const list = isNegative ? Habits.GOAL_EXAMPLES.break : Habits.GOAL_EXAMPLES.build;
+                pop.innerHTML = `<strong>${isNegative ? 'Limit examples' : 'Goal examples'}</strong><ul>${list.map(e => `<li>${e}</li>`).join('')}</ul>` +
+                    '<p>Your habit name is the activity (e.g. "Meditate"); the goal is the number. You decide whether you met it.</p>';
+            }
+        };
+        typeSel.addEventListener('change', apply);
+        document.querySelectorAll(`input[name="${radioName}"]`).forEach(r => r.addEventListener('change', apply));
+        if (hintBtn && pop) {
+            hintBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation(); // Modal's outside-click dismiss must not see this tap
+                pop.hidden = !pop.hidden;
+                hintBtn.setAttribute('aria-expanded', String(!pop.hidden));
+            });
+        }
+        apply();
+    }
+
     return {
         wireHabitTimeLabels,
+        wireHabitGoal,
         open,
         closeModal,
         closeTopmost,
