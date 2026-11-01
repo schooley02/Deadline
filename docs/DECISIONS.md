@@ -5,6 +5,10 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+## 2026-11-01 (night, later) -- Portrait: no category dot behind idle parked zombies (sw v176; Jeremy)
+**Decision:** `body.glance-strip .enemy.lurker-parked.has-anim-sprite` also matches with `:not(.zombie-subtask):not(.enemy-at-base)` so its `background-image: none !important` out-ranks the per-category dot rules. Applies to waiting tasks/Build habits and parked Break lurkers alike.
+**Why:** Jeremy saw colored circles behind the idle due-time animations on his phone (portrait). **Alternative:** limit to `.work-waiting` only (not needed; Jeremy said remove them).
+
 ## 2026-11-01 (night) -- Default Start/Due window: Start = now, Due = now + 1 h (Claude app session, Sonnet; Jeremy)
 **Decision:** Add Task opens with Start Time = current time and Due Time = one hour later; the Build-habit custom Start/End pair (Add Habit + routine New Habit) is prefilled the same way. Due is capped at 23:59 today (no rolling to tomorrow); Start is blank when it would not be before Due. Completion Window still defaults to Anytime Today; routine task templates keep 17:00. Form default, not balance.
 **Why:** Jeremy: "default start time to be current time ... and the default due time an hour later". Supersedes 2026-10-27 now + 5 min.
