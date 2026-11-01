@@ -74,7 +74,7 @@ change); it changes how a Break habit's result is decided and what data we keep.
    Amount = number + unit datalist; Note = text; label flips At least / At most with Build/Break) on Add Habit, routine
    New Habit and Edit Habit, replacing "Timer (minutes)"; `FormHint` ⓘ popover with the examples above; goal line on
    the row + popup; stopwatch hidden on habits without a Time goal; remove the task timer-target fields.
-2. **[BUILT 2026-11-01, sw v179; popup button explanations v180, Pause/Resume v181, Pause + Stop icons v182] Timer behavior.** Build Time goal → Decision-5 popup (replaces `pendingAction` 'target' auto-complete; also for old
+2. **[BUILT 2026-11-01, sw v179; popup button explanations v180, Pause/Resume v181, Pause + Stop icons v182, Play icon when paused v183] Timer behavior.** Build Time goal → Decision-5 popup (replaces `pendingAction` 'target' auto-complete; also for old
    task targets). Break limit → count-up helper, Stop = bank only, no expiry prompt (`'limit-expired'` path and the
    `expired` arrival card go away); row shows a live "18:20 / 60 min", red when over.
    *Built as:* `pendingAction` returns `'goal-reached'` (once per answer, `item.goalAcked`); `Timer.discardSession`
@@ -86,10 +86,11 @@ change); it changes how a Break habit's result is decided and what data we keep.
 
 ## Open (decide before the build that needs it)
 
-- **Arrival prompt for Break habits with a Time/Amount limit:** today a Break habit's tempting-time bucket fires an
-  "its time has arrived — did you resist?" prompt. For a cumulative limit that's premature. Proposed: Break habits with
-  a Time or Amount goal skip the arrival prompt and are asked at the evening check; None/Note Break habits keep it.
-  (Build 3.)
+- **Arrival prompt for Break habits with a Time/Amount limit: DECIDED 2026-11-01 (Jeremy) -- KEEP IT.** If the player knows
+  they'll be tempted at certain times of day / days of the week, the popup asks "did you resist?" when that time arrives, for
+  EVERY Break habit including Time/Amount limits. A Resisted / Slipped answer settles the habit for the day; the evening check
+  (Build 3) only asks about Break habits still unanswered. Nothing to build for this in Build 2 (starting a Break timer simply
+  doesn't suppress the prompt).
 - **Build habits without a Time goal lose the stopwatch** (and its overdue-damage halving). Fine for Floss / 8 glasses;
   confirm in Build 1.
 - **Partial credit** (e.g. 25 of 30 min) is out of scope: met/not met stays the player's answer. Any reward for actual

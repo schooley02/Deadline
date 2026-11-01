@@ -221,3 +221,34 @@ describe('ensureRoutineSlotAvailable', () => {
         expect(r.boughtHabitSlots).toBe(0);
     });
 });
+
+describe('Edit Habit from a completed entry (2026-11-01): note + three-way scope choice', () => {
+    test('note is empty unless fromCompleted is exactly true', () => {
+        expect(RoutineViews.editHabitNoteHtml()).toBe('');
+        expect(RoutineViews.editHabitNoteHtml({})).toBe('');
+        expect(RoutineViews.editHabitNoteHtml({ fromCompleted: false })).toBe('');
+        expect(RoutineViews.editHabitNoteHtml({ startsTomorrow: true })).toBe('');
+    });
+    test('note says a choice comes on save and never promises "tomorrow"', () => {
+        const html = RoutineViews.editHabitNoteHtml({ fromCompleted: true });
+        expect(html).toContain('id="editHabitScopeNote"');
+        expect(html).toContain('already completed');
+        expect(html).toContain('this entry');
+        expect(html).toContain('all following');
+        expect(html.toLowerCase()).not.toContain('tomorrow');
+    });
+    test('the scope dialog offers exactly: both, just this entry, all following only, plus Cancel', () => {
+        const html = RoutineViews.editScopeChoicesHtml('Floss');
+        ['editScopeBoth', 'editScopeEntry', 'editScopeFollowing', 'editScopeCancel'].forEach(id => expect(html).toContain(`id="${id}"`));
+        expect(html).toContain('This entry and all following');
+        expect(html).toContain('Just this entry');
+        expect(html).toContain('All following only');
+        expect(html).toContain('Floss');
+        expect(html.toLowerCase()).not.toContain('tomorrow');
+    });
+    test('the habit name is escaped in the scope dialog', () => {
+        const html = RoutineViews.editScopeChoicesHtml('<b>x</b> & y');
+        expect(html).not.toContain('<b>x</b>');
+        expect(html).toContain('&lt;b&gt;x&lt;/b&gt; &amp; y');
+    });
+});

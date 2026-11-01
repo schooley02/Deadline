@@ -1171,12 +1171,46 @@ const RoutineViews = (() => {
         wireScheduleFieldsToggle('newTask');
     }
 
-    // No deps — pure HTML-string builder (see showCreateHabitForm note).
-    function showEditHabitForm(routineId, habitDef) {
+    // Completed-entry edit (2026-11-01, Jeremy): Edit Habit opened from the Completed list. Saving asks where the
+    // change applies (this entry / all following / both), so the form says so up front. No "tomorrow" wording:
+    // the habit's next instance may not be tomorrow.
+    function editHabitNoteHtml(opts) {
+        if (!opts || opts.fromCompleted !== true) return '';
+        return '<p class="edit-habit-note" id="editHabitScopeNote" role="note">' +
+            'You’ve already completed this one. When you save, you’ll choose whether the change applies to this entry, ' +
+            'to all following ones, or both.</p>';
+    }
+
+    // The three-way choice shown on Save from a completed entry.
+    function editScopeChoicesHtml(habitName) {
+        const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const opt = (id, label, desc) => `<button type="button" id="${id}" class="secondary-button">` +
+            `<span class="choice-opt-label">${label}</span><span class="choice-opt-desc">${desc}</span></button>`;
+        return `
+            <div class="modal-overlay" id="editScopeModal">
+                <div class="modal-content frozen-notice-modal">
+                    <h3>Where should this change apply?</h3>
+                    <p>“${esc(habitName)}” is already completed.</p>
+                    <div class="modal-buttons choice-buttons">
+                        ${opt('editScopeBoth', 'This entry and all following', 'Updates this completed entry and every following instance.')}
+                        ${opt('editScopeEntry', 'Just this entry', 'Updates only this completed entry’s name, category and goal. The habit stays as it was.')}
+                        ${opt('editScopeFollowing', 'All following only', 'This completed entry stays as it is. Following instances use your changes.')}
+                        <button type="button" id="editScopeCancel" class="secondary-button choice-cancel">Cancel</button>
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    // No deps — pure HTML-string builder (see showCreateHabitForm note). `opts.fromCompleted` (+ `completedItemId`)
+    // adds the note above and makes Save ask where the change applies.
+    function showEditHabitForm(routineId, habitDef, opts) {
+        const completedArg = (opts && opts.fromCompleted === true && opts.completedItemId !== undefined)
+            ? ", '" + String(opts.completedItemId).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'" : '';
         const formHtml = `
             <div class="modal-overlay" id="editHabitFormModal">
                 <div class="modal-content">
                     <h3>Edit Habit</h3>
+                    ${editHabitNoteHtml(opts)}
                     <div class="form-row">
                         <label>Habit Type:</label>
                         <div class="habit-type-toggle">
@@ -1226,7 +1260,7 @@ const RoutineViews = (() => {
                     ${Forms.customHabitTimesHtml({ selectId: 'editHabitTimeOfDay', startId: 'editHabitStartTime', endId: 'editHabitEndTime', startValue: habitDef.startTime || '', endValue: habitDef.endTime || '', visible: habitDef.timeOfDay === 'custom' })}
                     ${Forms.habitGoalHtml('editHabit', Habits.goalOf(habitDef), !!habitDef.isNegative)}
                     <div class="modal-buttons">
-                        <button class="primary-button" onclick="saveEditedHabit('${habitDef.id}')">Save Changes</button>
+                        <button class="primary-button" onclick="saveEditedHabit('${habitDef.id}'${completedArg})">Save Changes</button>
                         <button class="secondary-button" onclick="closeModal()">Cancel</button>
                     </div>
                     <div class="modal-buttons delete-habit-row">
@@ -1369,7 +1403,7 @@ const RoutineViews = (() => {
      * deps: { editHabitInRoutine, activeItems (plain reference — see header
      *         note), createListItem, sortAndRenderActiveList, saveGame }
      */
-    function saveEditedHabit(habitId, deps) {
+    function saveEditedHabit(habitId, deps, completedItemId) {
         const name = document.getElementById('editHabitName').value.trim();
         const category = document.getElementById('editHabitCategory').value;
         const schedule = readScheduleFromFields('editHabit');
@@ -1399,6 +1433,18 @@ const RoutineViews = (() => {
             return;
         }
         const goal = Habits.normalizeGoal(Forms.goalFromFields(goalFields));
+        const data = { name, category, schedule, timeOfDay, isNegative, goal, startTime, endTime };
+        // Edit opened from the Completed list (2026-11-01): ask where the change applies before saving anything.
+        if (completedItemId !== undefined && completedItemId !== null && completedItemId !== '') {
+            showEditScopeChoice(habitId, data, deps, completedItemId);
+            return;
+        }
+        commitEditedHabit(habitId, data, deps);
+    }
+
+    // Save the edited fields to the habit definition and every live instance (the pre-2026-11-01 saveEditedHabit body).
+    function commitEditedHabit(habitId, data, deps) {
+        const { name, category, schedule, timeOfDay, isNegative, goal, startTime, endTime } = data;
         const timerMinutes = Habits.goalTimerMinutes(goal);
         deps.editHabitInRoutine(habitId, { name, category, schedule, timeOfDay, isNegative, goal, startTime: startTime || null, endTime: endTime || null });
 
@@ -1440,6 +1486,27 @@ const RoutineViews = (() => {
         deps.saveGame();
 
         Modal.closeModal();
+    }
+
+    // Three-way choice for a completed entry: this entry + all following (both), just this entry, or all following
+    // only. Nothing is saved until one is picked; Cancel returns to the edit form.
+    function showEditScopeChoice(habitId, data, deps, completedItemId) {
+        const entry = (typeof deps.completedItems === 'function' ? deps.completedItems() : []).find(i => String(i.id) === String(completedItemId));
+        const overlay = Modal.open(editScopeChoicesHtml((entry && entry.name) || data.name), { dedupeSelector: '#editScopeModal' });
+        if (!overlay) return;
+        const apply = (scope) => {
+            if ((scope === 'both' || scope === 'entry') && entry) Habits.applyEntryEdit(entry, data);
+            if (scope === 'both' || scope === 'following') commitEditedHabit(habitId, data, deps); // saves + closes
+            else { deps.saveGame(); Modal.closeModal(); }
+            if (typeof deps.renderCompletedItems === 'function') deps.renderCompletedItems();
+            if (scope !== 'following') deps.saveGame();
+        };
+        const wire = (id, scope) => { const el = document.getElementById(id); if (el) el.addEventListener('click', () => apply(scope)); };
+        wire('editScopeBoth', 'both');
+        wire('editScopeEntry', 'entry');
+        wire('editScopeFollowing', 'following');
+        const cancel = document.getElementById('editScopeCancel');
+        if (cancel) cancel.addEventListener('click', () => Modal.closeTopmost());
     }
 
     /**
@@ -1523,6 +1590,8 @@ const RoutineViews = (() => {
         saveNewHabit,
         saveNewTask,
         saveEditedHabit,
+        editHabitNoteHtml,
+        editScopeChoicesHtml,
         saveEditedTask
     };
 })();

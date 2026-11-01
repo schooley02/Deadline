@@ -95,6 +95,14 @@ const Timer = (() => {
     // Pause / Stop glyphs for the controls shown beside a running timer (same drawing language as ICON_SVG).
     const PAUSE_ICON_SVG = '<svg class="timer-ctl-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" ' +
         'aria-hidden="true" focusable="false"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>';
+    const PLAY_ICON_SVG = '<svg class="timer-ctl-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" ' +
+        'aria-hidden="true" focusable="false"><path d="M8 5.2v13.6a.9.9 0 0 0 1.4.75l10.4-6.8a.9.9 0 0 0 0-1.5L9.4 4.45A.9.9 0 0 0 8 5.2z"/></svg>';
+    // Which control icons show beside the timer: Pause while running; Play (resume) while paused; Stop while running
+    // or paused (a paused timer can be ended without resuming it first).
+    function controlState(item) {
+        const running = isRunning(item), paused = isPaused(item);
+        return { pause: running, play: paused, stop: running || paused };
+    }
     const STOP_ICON_SVG = '<svg class="timer-ctl-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" ' +
         'aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="1.6"/></svg>';
     // Row button: stopwatch alone when idle; stopwatch + elapsed while a work timer runs. A limit timer
@@ -121,13 +129,13 @@ const Timer = (() => {
     // Popup: the Stop control beside the Pause button; only visible while running.
     function stopButtonHtml(item, id) {
         return `<button type="button" id="${id}" class="timer-ctl-btn timer-ctl-stop" title="Stop timer" ` +
-            `aria-label="Stop timer"${isRunning(item) ? '' : ' hidden'}>${STOP_ICON_SVG}</button>`;
+            `aria-label="Stop timer"${controlState(item).stop ? '' : ' hidden'}>${STOP_ICON_SVG}</button>`;
     }
     // Popup button: stopwatch + the same words as buttonTitle (a limit helper adds its readout).
     function popupHtml(item, nowMs) {
         const now = nowMs === undefined ? Date.now() : nowMs;
         const readout = isLimit(item) ? limitReadoutHtml(item, now) : '';
-        return `${ICON_SVG}<span>${buttonTitle(item)}</span>${readout}`;
+        return `${isPaused(item) ? PLAY_ICON_SVG : ICON_SVG}<span>${buttonTitle(item)}</span>${readout}`;
     }
     // "A zombie is attacking and starting this timer would help" (2026-10-31): overdue, still a threat
     // (canWorkTimer rules out KO ghosts and break-habits), and no timer running on it yet. The UI pulses
@@ -192,6 +200,13 @@ const Timer = (() => {
         const span = stop(item, nowMs);
         item.timerPaused = true;
         return span;
+    }
+
+    // Stop while PAUSED: the time is already banked, so this only ends the session (button back to Start).
+    function endPaused(item) {
+        if (!isPaused(item)) return false;
+        item.timerPaused = false;
+        return true;
     }
 
     function findRunning(items) {
@@ -279,7 +294,7 @@ const Timer = (() => {
 
     return {
         normalizeTarget, modeFor, isRunning, canWorkTimer, isLimit, canLimitTimer, canTimer,
-        isPaused, buttonTitle, pause, stopButtonHtml, PAUSE_ICON_SVG, STOP_ICON_SVG, loggedMinutes, isOverLimit, limitReadout, acknowledgeGoal, discardSession, buttonLabel, popupLabel, ICON_SVG, buttonHtml, popupHtml, shouldNudge, NUDGE_TITLE, shouldPrompt, PROMPT_TITLE, elapsedMs, onSpan, start, stop, findRunning,
+        isPaused, buttonTitle, pause, endPaused, controlState, stopButtonHtml, PAUSE_ICON_SVG, PLAY_ICON_SVG, STOP_ICON_SVG, loggedMinutes, isOverLimit, limitReadout, acknowledgeGoal, discardSession, buttonLabel, popupLabel, ICON_SVG, buttonHtml, popupHtml, shouldNudge, NUDGE_TITLE, shouldPrompt, PROMPT_TITLE, elapsedMs, onSpan, start, stop, findRunning,
         pendingAction, promptDueAt, markPrompted, confirmStillWorking, autoStop,
         damageIntervalMs, formatElapsed,
     };

@@ -579,3 +579,61 @@ describe('AgendaList.sortAndRenderActiveList — first-run onboarding empty stat
         expect(fabButton.classList.contains('onboarding-hint')).toBe(false);
     });
 });
+
+describe('AgendaList.renderCompletedItems — edit icon (2026-11-01: a completed habit edits its habit)', () => {
+    let completedItemsList;
+
+    beforeEach(() => {
+        completedItemsList = makeElement('ul');
+        const elementsById = { completedTasksSection: makeElement('div'), completedItemsList };
+        global.document.getElementById = jest.fn(id => elementsById[id]);
+    });
+
+    const styles = { work: { bgColor: '#123456' }, other: { bgColor: '#ccc' } };
+    const done = (o) => Object.assign({ id: 'i1', name: 'Floss', category: 'work', completedAt: new Date('2026-11-01T10:00:00Z') }, o);
+    function deps(items, extra) {
+        return Object.assign({
+            completedItems: () => items, categoryStyles: styles,
+            showEditTaskModal: jest.fn(), showEditHabitInstanceModal: jest.fn(),
+            definedHabits: () => [{ id: 'hd1', name: 'Floss' }], uncompleteItem: jest.fn()
+        }, extra);
+    }
+    const editBtn = () => findByClass(completedItemsList.children[0], 'edit-icon-btn')[0];
+
+    test('a completed habit with a definition opens the habit editor, flagged fromCompleted with its entry id', () => {
+        const habit = done({ type: 'habit', definitionId: 'hd1' });
+        const d = deps([habit]);
+        AgendaList.renderCompletedItems(d);
+        expect(editBtn().title).toBe('Edit Habit');
+        editBtn().fire('click');
+        expect(d.showEditHabitInstanceModal).toHaveBeenCalledWith(habit, { fromCompleted: true, completedItemId: habit.id });
+        expect(d.showEditTaskModal).not.toHaveBeenCalled();
+    });
+
+    test('a completed task still opens the task editor', () => {
+        const task = done({ type: 'task' });
+        const d = deps([task]);
+        AgendaList.renderCompletedItems(d);
+        editBtn().fire('click');
+        expect(d.showEditTaskModal).toHaveBeenCalledWith(task);
+        expect(d.showEditHabitInstanceModal).not.toHaveBeenCalled();
+    });
+
+    test('a completed habit whose definition is gone falls back to the task editor', () => {
+        const habit = done({ type: 'habit', definitionId: 'gone' });
+        const d = deps([habit]);
+        AgendaList.renderCompletedItems(d);
+        editBtn().fire('click');
+        expect(d.showEditTaskModal).toHaveBeenCalledWith(habit);
+        expect(d.showEditHabitInstanceModal).not.toHaveBeenCalled();
+    });
+});
+
+describe('AgendaList.showEditHabitInstanceModal — passes opts to the habit form', () => {
+    test('opts reach showEditHabitForm', () => {
+        const form = jest.fn();
+        const def = { id: 'hd1' };
+        AgendaList.showEditHabitInstanceModal({ definitionId: 'hd1' }, { definedHabits: () => [def], showEditHabitForm: form }, { fromCompleted: true, completedItemId: 'i1' });
+        expect(form).toHaveBeenCalledWith(null, def, { fromCompleted: true, completedItemId: 'i1' });
+    });
+});

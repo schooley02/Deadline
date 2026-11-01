@@ -288,6 +288,37 @@ describe('attacking nudge + stopwatch icon (2026-10-31)', () => {
         const c = task({ timerMsBanked: 5 * MIN }); Timer.start(c, 0); Timer.discardSession(c, MIN);
         expect(Timer.isPaused(c)).toBe(false);
     });
+    test('control icons: Pause while running, Play while paused, Stop while running or paused (2026-11-01)', () => {
+        const t = task();
+        expect(Timer.controlState(t)).toEqual({ pause: false, play: false, stop: false });
+        Timer.start(t, 0);
+        expect(Timer.controlState(t)).toEqual({ pause: true, play: false, stop: true });
+        Timer.pause(t, MIN);
+        expect(Timer.controlState(t)).toEqual({ pause: false, play: true, stop: true });
+        Timer.start(t, 2 * MIN); Timer.stop(t, 3 * MIN);
+        expect(Timer.controlState(t)).toEqual({ pause: false, play: false, stop: false });
+    });
+    test('a paused popup button leads with the Play glyph and Resume wording; the Stop button stays shown', () => {
+        expect(Timer.PLAY_ICON_SVG).toContain('<svg');
+        const t = task();
+        Timer.start(t, 0); Timer.pause(t, MIN);
+        const html = Timer.popupHtml(t);
+        expect(html).toContain(Timer.PLAY_ICON_SVG);
+        expect(html).not.toContain(Timer.ICON_SVG);
+        expect(html).toContain('Resume timer');
+        expect(Timer.stopButtonHtml(t, 'x')).not.toContain(' hidden');
+    });
+    test('Stop while paused ends the session without touching the banked time', () => {
+        const t = task();
+        Timer.start(t, 0); Timer.pause(t, 5 * MIN);
+        expect(Timer.endPaused(t)).toBe(true);
+        expect(t.timerMsBanked).toBe(5 * MIN);
+        expect(Timer.isPaused(t)).toBe(false);
+        expect(Timer.buttonTitle(t)).toBe('Start timer');
+        expect(Timer.controlState(t)).toEqual({ pause: false, play: false, stop: false });
+        expect(Timer.endPaused(t)).toBe(false); // nothing paused any more
+        expect(Timer.endPaused(task())).toBe(false);
+    });
     test('pause on an idle timer does nothing', () => {
         const t = task();
         expect(Timer.pause(t, 5 * MIN)).toBe(0);

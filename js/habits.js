@@ -125,6 +125,17 @@ const Habits = (() => {
     // `times` (Build B, 2026-11-01) = { startTime, endTime } for a 'custom' window; the instance's
     // startDateTime is re-derived too (cleared for any other bucket). The return value still only
     // says whether the DUE time changed (the caller re-evaluates overdue state on that).
+    // Editing ONE completed entry (Edit Habit opened from the Completed list, "this entry" scopes; 2026-11-01):
+    // only what the Completed row shows changes (name, category, goal). The habit itself, Build/Break type,
+    // schedule, timing, points and streak are untouched.
+    function applyEntryEdit(item, data) {
+        if (!item || !data) return false;
+        if (typeof data.name === 'string' && data.name) item.name = data.name;
+        if (typeof data.category === 'string' && data.category) item.category = data.category;
+        if (data.goal) item.goal = normalizeGoal(data.goal);
+        return true;
+    }
+
     function retimeHabitInstance(item, timeOfDay, times) {
         if (!item || !(item.dueDateTime instanceof Date)) return false;
         const t = times || {};
@@ -658,6 +669,7 @@ const Habits = (() => {
         formatGoal,
         applyGoalToDef,
         retimeHabitInstance,
+        applyEntryEdit,
         selectHabitDefsToSpawn,
         // rate-based bonus (session 16)
         toOccurrenceDate,

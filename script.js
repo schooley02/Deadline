@@ -838,7 +838,9 @@ document.addEventListener('DOMContentLoaded', () => {
             isGameOver: State.isGameOver,
             showEditTaskModal: (item) => Popups.showEditTaskModal(item, popupsDeps()),
             toggleWorkTimer,
-            showEditHabitInstanceModal: (itemData) => AgendaList.showEditHabitInstanceModal(itemData, agendaListDeps()),
+            // opts { fromCompleted, completedItemId } (completed-list edit icon) reach the Edit Habit form, whose Save then
+            // asks where the change applies (this entry / all following / both).
+            showEditHabitInstanceModal: (itemData, opts) => AgendaList.showEditHabitInstanceModal(itemData, agendaListDeps(), opts),
             createSubTaskPrompt: (parentId) => Popups.createSubTaskPrompt(parentId, popupsDeps()),
             activeItemsListUL,
             completedItems: () => State.getCompletedItems(),
@@ -846,7 +848,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 promptNewDueTime: (item, cb) => Popups.promptNewDueTime(item, popupsDeps(), cb)
             })),
             definedHabits: () => State.getDefinedHabits(),
-            showEditHabitForm: (routineId, habitDef) => RoutineViews.showEditHabitForm(routineId, habitDef),
+            showEditHabitForm: (routineId, habitDef, opts) => RoutineViews.showEditHabitForm(routineId, habitDef, opts),
             // Milestone 5 first-run/onboarding pass (2026-07-20): definedRoutines
             // completes the "has the player ever engaged with the app" check
             // (AgendaList.isFirstRunEmpty); openManagementWindow lets the
@@ -1202,13 +1204,18 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.toggle('planned', planned);
             btn.title = nudge ? Timer.NUDGE_TITLE : planned ? Timer.PROMPT_TITLE : Timer.buttonTitle(item);
             btn.setAttribute('aria-label', btn.title);
-            // Pause / Stop icons beside a running timer.
-            item.listItemElement.querySelectorAll('.timer-ctl-btn').forEach(c => { c.hidden = !running; });
+            // Pause / Play (resume) / Stop icons beside the timer.
+            const controls = Timer.controlState(item);
+            item.listItemElement.querySelectorAll('.timer-ctl-btn').forEach(c => {
+                const action = c.classList.contains('timer-ctl-play') ? 'play' : c.classList.contains('timer-ctl-stop') ? 'stop' : 'pause';
+                c.hidden = !controls[action];
+            });
         });
     }
 
     // action: undefined = the main timer button (start / resume when idle, pause when running);
-    // 'pause' holds a running timer (resumable); 'stop' ends the session (the time stays logged either way).
+    // 'pause' holds a running timer (resumable); 'play' resumes a paused one; 'stop' ends the session
+    // (the time stays logged either way).
     function toggleWorkTimer(itemId, action) {
         if (State.isGameOver()) return { ok: false };
         const items = State.getActiveItems();
@@ -1216,11 +1223,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!item) return { ok: false };
         const now = Date.now();
         if (Timer.isRunning(item)) {
+            if (action === 'play') return { ok: true, running: true };
             // Pause / Stop only bank the time. A Break habit's limit timer is a "logged so far" helper
             // (Habit Goals Build 2): it never answers Resisted / Slipped for the player.
             if (action === 'stop') Timer.stop(item, now); else Timer.pause(item, now);
         } else {
-            if (action || !Timer.canTimer(item)) return { ok: false };
+            if (action === 'stop') {
+                // Stop on a paused timer: its time is already banked, so just end the session.
+                if (!Timer.endPaused(item)) return { ok: false };
+                updateTimerButtons(now);
+                saveGame();
+                return { ok: true, running: false };
+            }
+            if ((action && action !== 'play') || !Timer.canTimer(item)) return { ok: false };
             const other = Timer.findRunning(items);
             if (other) Timer.stop(other, now);
             Timer.start(item, now);
@@ -1922,6 +1937,9 @@ document.addEventListener('DOMContentLoaded', () => {
             transferHabitBetweenRoutines, transferTaskBetweenRoutines,
             createNewHabitInRoutine, createNewTaskInRoutine, editHabitInRoutine, editTaskInRoutine,
             activeItems: State.getActiveItems(), createListItem, sortAndRenderActiveList,
+            // 2026-11-01: Edit Habit from the Completed list edits one completed entry (name/category/goal) and re-renders the list.
+            completedItems: State.getCompletedItems,
+            renderCompletedItems: () => AgendaList.renderCompletedItems(agendaListDeps()),
             // 2026-10-21: saveEditedHabit retimes today's instance, then re-evaluates overdue state.
             recomputeOverdueStateAfterEdit: (item) => Items.recomputeOverdueStateAfterEdit(item, itemsDeps()),
             // [P1-UI-006] sub-session 4, 2026-07-19 — star-rating window start
@@ -2239,8 +2257,8 @@ document.addEventListener('DOMContentLoaded', () => {
         RoutineViews.saveNewTask(routineId, routineViewsDeps());
     };
 
-    window.saveEditedHabit = function(habitId) {
-        RoutineViews.saveEditedHabit(habitId, routineViewsDeps());
+    window.saveEditedHabit = function(habitId, completedItemId) {
+        RoutineViews.saveEditedHabit(habitId, routineViewsDeps(), completedItemId);
     };
 
     // "Delete Habit" button in the Edit Habit modal (2026-10-16). Archives

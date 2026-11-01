@@ -331,7 +331,7 @@ const Popups = (() => {
                     workTimerButton.classList.toggle('attacking', Timer.shouldNudge(item));
                     workTimerButton.classList.toggle('planned', Timer.shouldPrompt(item));
                     workTimerButton.innerHTML = Timer.popupHtml(item);
-                    if (workTimerStopButton) workTimerStopButton.hidden = !r.running;
+                    if (workTimerStopButton) workTimerStopButton.hidden = !Timer.controlState(item).stop;
                 }
             };
             workTimerButton.addEventListener('click', () => timerClick());

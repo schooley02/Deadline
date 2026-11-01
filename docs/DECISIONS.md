@@ -5,6 +5,16 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+## 2026-11-01 (evening, later) -- Break habits keep the arrival prompt, limits included (Claude app session, Sonnet; Jeremy)
+**Decision:** every Break habit, including ones with a Time or Amount limit, still asks "did you resist?" when its tempting time arrives (time of day / day of week). Resisted / Slipped settles it; the Build 3 evening check only asks about Break habits still unanswered. Resolves the open item in HABIT_GOALS_PLAN.
+**Why:** Jeremy: a player who knows when they'll be tempted needs the prompt at that moment, not hours later.
+**Alternatives rejected:** skipping the arrival prompt for Time/Amount Break habits and asking only at the evening check.
+
+## 2026-11-01 (evening) -- Habit Goals Build 2 built; Pause vs Stop; completed-habit edit scope (sw v179-v185; Claude app session, Sonnet; Jeremy)
+**Decision:** (1) Build 2 as designed, plus: the goal-reached popup asks once per answer (`item.goalAcked`); dismissing it leaves the timer running and it re-asks on next app open; "Started by mistake" discards the session's time. (2) Starting a Break timer no longer sets `arrivalPromptedFor` (the timer answers nothing now); whether Time/Amount Break habits skip the arrival prompt stays a Build 3 decision. (3) Break Time limit shows a count-up "m:ss / N min", red past the limit; Stop only banks. (4) Pause and Stop are different: Pause banks time and is resumable (`item.timerPaused`, Play icon to resume); Stop banks time and ENDS the session (back to Start). Stop on a paused timer ends it too. Completion, auto-stop, "Still working?" Stop and starting another timer also end a session. (5) The Edit icon on a COMPLETED habit opens the habit editor; Save asks where the change applies: this entry and all following / just this entry / all following only (Cancel saves nothing). An entry edit changes only name, category and goal. Wording never says "tomorrow". Pending habits keep the old edit flow.
+**Why:** Jeremy: the player judges, so a timer can't auto-complete or auto-resist; stopping a timer should not look like quitting; a habit's next instance may not be tomorrow, so the scope choice names entries, not days.
+**Alternatives rejected:** auto-complete at goal; "Stop, not done yet" as the only pause; a "takes effect tomorrow" notice; editing a completed entry's points/type/timing (would reopen completion and touch streaks).
+
 ## 2026-11-01 (afternoon, later) -- Habit Goals Build 1 built (sw v178; Claude app session, Sonnet; Jeremy)
 **Decision:** built per docs/HABIT_GOALS_PLAN.md Build 1: `habitDef.goal` / `item.goal` (additive, no schema bump; old `timerMinutes` derives a Time goal), Habit Goal form section + (i) hints on all three habit forms, goal line on the row and popup, task timer-target fields removed, and a Build habit gets the stopwatch only with a Time goal (the plan's open point, built as planned: Build habits without a Time goal lose the stopwatch and its halved-damage effect). Timer behavior (Build 2) and the evening check + How much? (Build 3) are not built.
 **Why:** Jeremy: the player judges, the timer only helps.

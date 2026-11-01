@@ -153,3 +153,30 @@ describe('edit pulls a habit into the past (retime + recomputeOverdueStateAfterE
         expect(item.isOverdue).toBe(false);
     });
 });
+
+describe('Habits.applyEntryEdit — editing ONE completed entry (2026-11-01)', () => {
+    const Habits = require('../js/habits.js');
+    const entry = () => ({ id: 'i1', type: 'habit', name: 'Floss', category: 'health', isNegative: false, goal: { type: 'none' }, timerMinutes: null, completedAt: 123 });
+
+    test('changes only what the Completed row shows: name, category, goal', () => {
+        const e = entry();
+        expect(Habits.applyEntryEdit(e, { name: 'Floss nightly', category: 'work', goal: { type: 'time', amount: 5, unit: 'min' }, isNegative: true, timeOfDay: 'evening' })).toBe(true);
+        expect(e.name).toBe('Floss nightly');
+        expect(e.category).toBe('work');
+        expect(e.goal).toEqual(expect.objectContaining({ type: 'time', amount: 5 }));
+        // untouched: the Build/Break type, timing, completion stamp
+        expect(e.isNegative).toBe(false);
+        expect(e.timerMinutes).toBeNull();
+        expect(e.completedAt).toBe(123);
+        expect(e.timeOfDay).toBeUndefined();
+    });
+    test('blank name / category are ignored, a missing goal leaves the goal alone, bad input is a no-op', () => {
+        const e = entry();
+        Habits.applyEntryEdit(e, { name: '', category: '' });
+        expect(e.name).toBe('Floss');
+        expect(e.category).toBe('health');
+        expect(e.goal).toEqual({ type: 'none' });
+        expect(Habits.applyEntryEdit(null, { name: 'x' })).toBe(false);
+        expect(Habits.applyEntryEdit(e, null)).toBe(false);
+    });
+});

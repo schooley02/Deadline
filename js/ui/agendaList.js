@@ -218,15 +218,17 @@ const AgendaList = (() => {
                 deps.toggleWorkTimer(itemData.id);
             });
             itemActionsContainer.appendChild(timerBtn);
-            // Pause + Stop controls: only visible while the timer runs (script.js updateTimerButtons toggles `hidden`).
-            [['pause', 'Pause timer', Timer.PAUSE_ICON_SVG], ['stop', 'Stop timer', Timer.STOP_ICON_SVG]].forEach(([action, label, svg]) => {
+            // Pause / Play (resume) / Stop controls beside the timer: Pause while running, Play while paused, Stop while
+            // running or paused (script.js updateTimerButtons toggles `hidden` from Timer.controlState).
+            const controls = Timer.controlState(itemData);
+            [['pause', 'Pause timer', Timer.PAUSE_ICON_SVG], ['play', 'Resume timer', Timer.PLAY_ICON_SVG], ['stop', 'Stop timer', Timer.STOP_ICON_SVG]].forEach(([action, label, svg]) => {
                 const ctl = document.createElement('button');
                 ctl.type = 'button';
                 ctl.className = `timer-ctl-btn timer-ctl-${action}`;
                 ctl.title = label;
                 ctl.setAttribute('aria-label', label);
                 ctl.innerHTML = svg;
-                ctl.hidden = !running;
+                ctl.hidden = !controls[action];
                 ctl.addEventListener('click', (e) => {
                     e.stopPropagation();
                     deps.toggleWorkTimer(itemData.id, action);
@@ -815,7 +817,15 @@ const AgendaList = (() => {
                 editIconButton.classList.add('edit-icon-btn');
                 editIconButton.title = 'Edit Task';
                 editIconButton.setAttribute('aria-label', 'Edit task');
-                editIconButton.addEventListener('click', () => deps.showEditTaskModal(item));
+                // A completed HABIT opens the Edit Habit form (not a one-off task copy); Save then asks where the change
+                // applies: this entry / all following / both (2026-11-01, Jeremy). Anything else keeps the task editor.
+                const habitDefOk = item.type === 'habit' && item.definitionId && typeof deps.showEditHabitInstanceModal === 'function'
+                    && typeof deps.definedHabits === 'function' && deps.definedHabits().some(d => d.id === item.definitionId);
+                if (habitDefOk) editIconButton.title = 'Edit Habit';
+                editIconButton.addEventListener('click', () => {
+                    if (habitDefOk) deps.showEditHabitInstanceModal(item, { fromCompleted: true, completedItemId: item.id });
+                    else deps.showEditTaskModal(item);
+                });
                 itemStatusDiv.appendChild(editIconButton);
 
                 // Completion checkbox (pre-checked for completed items)
@@ -869,13 +879,13 @@ const AgendaList = (() => {
      *
      * deps: { definedHabits (getter), showEditHabitForm }
      */
-    function showEditHabitInstanceModal(itemData, deps) {
+    function showEditHabitInstanceModal(itemData, deps, opts) {
         const habitDef = deps.definedHabits().find(d => d.id === itemData.definitionId);
         if (!habitDef) {
             console.error('Edit habit: no definedHabits entry for definitionId', itemData.definitionId);
             return;
         }
-        deps.showEditHabitForm(null, habitDef);
+        deps.showEditHabitForm(null, habitDef, opts);
     }
 
     return {
