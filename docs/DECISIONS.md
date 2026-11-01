@@ -5,6 +5,11 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+## 2026-11-01 (night) -- Over-limit Break timer goes fully red; Start moves Due (sw v186-v187; Claude app session, Sonnet; Jeremy)
+**Decision:** (1) When a Break habit's time limit is passed, the timer button's icon and border and the Pause / Play / Stop buttons all turn red (`.over-limit`), not just the readout. (2) Changing a Start time that already had a value moves the Due time by the same number of minutes (clamped 00:00-23:59); Due stays editable so the player can override before saving; adding or clearing a Start does not move Due. Applies to every Start | Due pair (task forms, sub-task, routine task, habit custom times).
+**Why:** Jeremy: red everywhere reads as "over" at a glance (phone check); moving a planned window should keep its length.
+**Alternatives rejected:** shifting Due only on save (no chance to see or override it); locking Due.
+
 ## 2026-11-01 (evening, later) -- Break habits keep the arrival prompt, limits included (Claude app session, Sonnet; Jeremy)
 **Decision:** every Break habit, including ones with a Time or Amount limit, still asks "did you resist?" when its tempting time arrives (time of day / day of week). Resisted / Slipped settles it; the Build 3 evening check only asks about Break habits still unanswered. Resolves the open item in HABIT_GOALS_PLAN.
 **Why:** Jeremy: a player who knows when they'll be tempted needs the prompt at that moment, not hours later.

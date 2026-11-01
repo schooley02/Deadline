@@ -335,6 +335,14 @@ describe('attacking nudge + stopwatch icon (2026-10-31)', () => {
         expect(html).toContain('id="workTimerStopBtn"');
         expect(html).toContain('aria-label="Stop timer"');
     });
+    test('stopButtonHtml carries over-limit only once a Break limit is passed', () => {
+        const under = { type: 'habit', isNegative: true, timerMinutes: 30, timer: null, timerMsBanked: 5 * MIN, timerPaused: true };
+        const over = { ...under, timerMsBanked: 31 * MIN };
+        expect(Timer.stopButtonHtml(under, 'x')).not.toContain('over-limit');
+        expect(Timer.stopButtonHtml(over, 'x')).toContain('over-limit');
+        expect(Timer.isOverLimit({ type: 'task', timerMinutes: 1, timerMsBanked: 5 * MIN }, 0)).toBe(false); // work timers never go "over"
+    });
+
     test('limit helper row button: icon alone until time is logged, then "N / M min", red once over', () => {
         const h = { type: 'habit', isNegative: true, timerMinutes: 30, timer: null, timerMsBanked: 0 };
         expect(Timer.buttonHtml(h, 0)).toBe(Timer.ICON_SVG);

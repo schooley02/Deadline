@@ -11,6 +11,12 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-01 (night) -- Over-limit red + Start moves Due (Claude app session, Sonnet; Jeremy)
+**Did:** after the Build 2 phone check: over-limit Break timer now turns the icon, border and Pause/Play/Stop red (`.over-limit`, css/agendaList.css; row, popup, `updateTimerButtons`); sw v186. Then Start moves Due: `Forms.shiftDueForStart` + one document `change` listener over every Start | Due pair (sw v187). test/start-shifts-due.test.js (6), timer test (1). Jest 108 suites / 2,496. Live-checked at 390x844.
+**State:** green; in the folder, not committed.
+**Next:** phone-check both; then Habit Goals Build 3 (Opus).
+**Watch out:** the shift is by minutes of the day, so a shift that would cross midnight is clamped to 23:59/00:00. The listener keys off input ids (`START_DUE_PAIRS` in js/ui/forms.js): a new Start | Due pair needs an entry there.
+
 ## 2026-11-01 (evening) -- Habit Goals Build 2 + timer controls + completed-habit edit (Claude app session, Sonnet; Jeremy)
 **Did:** Build 2 per `docs/HABIT_GOALS_PLAN.md`: `pendingAction` 'goal-reached' (once per answer, `item.goalAcked`), `TimerView.showGoalReached` (Mark done / Keep going / Pause / Started by mistake, each with a one-line explanation), `Timer.discardSession`; Break Time limit = count-up readout "m:ss / N min", red when over, Stop only banks, expiry prompt and `expired` arrival card removed. Then Jeremy's follow-ups: Pause (resumable, `item.timerPaused`) vs Stop (ends session); Pause / Play / Stop icon buttons on the row and popup (`Timer.controlState`, `stopButtonHtml`, `endPaused`); Edit icon on a COMPLETED habit opens the habit editor and Save asks: this entry and all following / just this entry / all following only / Cancel (`RoutineViews.showEditScopeChoice/commitEditedHabit`, `Habits.applyEntryEdit` = name/category/goal only). Docs: HABIT_GOALS_PLAN, MECHANICS, UI_UX, DATA_SCHEMA. sw v185. Jest 107 suites / 2,489. Roadmap Build 2 checked.
 **State:** green; headless 390x844 checks of every path, no console errors. In the folder, NOT committed yet.

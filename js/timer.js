@@ -128,7 +128,7 @@ const Timer = (() => {
     }
     // Popup: the Stop control beside the Pause button; only visible while running.
     function stopButtonHtml(item, id) {
-        return `<button type="button" id="${id}" class="timer-ctl-btn timer-ctl-stop" title="Stop timer" ` +
+        return `<button type="button" id="${id}" class="timer-ctl-btn timer-ctl-stop${isOverLimit(item, Date.now()) ? ' over-limit' : ''}" title="Stop timer" ` +
             `aria-label="Stop timer"${controlState(item).stop ? '' : ' hidden'}>${STOP_ICON_SVG}</button>`;
     }
     // Popup button: stopwatch + the same words as buttonTitle (a limit helper adds its readout).

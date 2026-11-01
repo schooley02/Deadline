@@ -199,6 +199,46 @@ const Forms = (() => {
             </div>`;
     }
 
+    // Start moves Due with it (2026-11-01, Jeremy): when the player changes a Start time that already had a value,
+    // the Due time moves by the same number of minutes. Due stays an ordinary editable box, so the player can
+    // still override it before saving. No shift when Start was blank before (adding one) or is cleared, or when Due
+    // is blank. A time of day cannot cross midnight, so the result is held to 00:00..23:59. Returns the new "HH:MM"
+    // Due, or null for "leave Due alone".
+    function shiftDueForStart(prevStart, newStart, due) {
+        const toMin = (t) => {
+            const m = /^(\d{1,2}):(\d{2})$/.exec(t || '');
+            return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+        };
+        const p = toMin(prevStart), n = toMin(newStart), d = toMin(due);
+        if (p === null || n === null || d === null || p === n) return null;
+        const moved = Math.min(23 * 60 + 59, Math.max(0, d + (n - p)));
+        const pad = (x) => String(x).padStart(2, '0');
+        return `${pad(Math.floor(moved / 60))}:${pad(moved % 60)}`;
+    }
+
+    // Start input id -> its Due input id, for every Start | Due pair (task forms, sub-task, routine task, habit custom times).
+    const START_DUE_PAIRS = {
+        modalStartTime: 'modalDueTime', editStartTime: 'editDueTime', subTaskStartTime: 'subTaskDueTime',
+        newTaskStartTime: 'newTaskDueTime', editTaskStartTime: 'editTaskDueTime',
+        modalHabitStartTime: 'modalHabitEndTime', newHabitStartTime: 'newHabitEndTime', editHabitStartTime: 'editHabitEndTime',
+    };
+    // One document-level listener covers every form, however and whenever its modal is built. `defaultValue` is the
+    // value the form opened with; after each change `data-prev-start` holds the last value.
+    function onStartTimeChange(e) {
+        const el = e.target;
+        const dueId = el && START_DUE_PAIRS[el.id];
+        if (!dueId) return;
+        const due = document.getElementById(dueId);
+        const prev = el.dataset.prevStart !== undefined ? el.dataset.prevStart : el.defaultValue;
+        el.dataset.prevStart = el.value;
+        if (!due) return;
+        const next = shiftDueForStart(prev, el.value, due.value);
+        if (next !== null) due.value = next;
+    }
+    if (typeof document !== 'undefined' && document.addEventListener) {
+        document.addEventListener('change', onStartTimeChange);
+    }
+
     // Custom-window times for a BUILD habit (Build B, 2026-11-01): the same Start | End pair, shown only while the
     // Completion Window select is "Custom times...". `selectId` is that select's id; the group's id is
     // `${selectId}Custom` (Modal.wireHabitTimeLabels toggles it). End is the due time and is required once custom
@@ -696,6 +736,8 @@ const Forms = (() => {
         computeDefaultDueDate,
         resolveSubmittedDueTime,
         startDueTimeGroupHtml,
+        shiftDueForStart,
+        onStartTimeChange,
         startBeforeDueError,
         customHabitTimesHtml,
         habitGoalHtml,

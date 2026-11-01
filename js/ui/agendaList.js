@@ -206,6 +206,8 @@ const AgendaList = (() => {
             const running = Timer.isRunning(itemData);
             timerBtn.innerHTML = Timer.buttonHtml(itemData, Date.now());
             timerBtn.classList.toggle('running', running);
+            const overLimit = Timer.isOverLimit(itemData, Date.now()); // Break limit passed: icon, border and controls go red
+            timerBtn.classList.toggle('over-limit', overLimit);
             const nudge = Timer.shouldNudge(itemData);
             timerBtn.classList.toggle('attacking', nudge);
             const planned = !nudge && Timer.shouldPrompt(itemData);
@@ -224,7 +226,7 @@ const AgendaList = (() => {
             [['pause', 'Pause timer', Timer.PAUSE_ICON_SVG], ['play', 'Resume timer', Timer.PLAY_ICON_SVG], ['stop', 'Stop timer', Timer.STOP_ICON_SVG]].forEach(([action, label, svg]) => {
                 const ctl = document.createElement('button');
                 ctl.type = 'button';
-                ctl.className = `timer-ctl-btn timer-ctl-${action}`;
+                ctl.className = `timer-ctl-btn timer-ctl-${action}${overLimit ? ' over-limit' : ''}`;
                 ctl.title = label;
                 ctl.setAttribute('aria-label', label);
                 ctl.innerHTML = svg;

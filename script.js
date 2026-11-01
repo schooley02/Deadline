@@ -1196,6 +1196,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!btn) return;
             const running = Timer.isRunning(item);
             btn.classList.toggle('running', running);
+            const overLimit = Timer.isOverLimit(item, nowMs); // Break limit passed: timer + Pause/Play/Stop turn red
+            btn.classList.toggle('over-limit', overLimit);
             const html = Timer.buttonHtml(item, nowMs);
             if (btn.dataset.html !== html) { btn.innerHTML = html; btn.dataset.html = html; } // skip the per-second rebuild while idle
             const nudge = !State.isGameOver() && Timer.shouldNudge(item);
@@ -1209,6 +1211,7 @@ document.addEventListener('DOMContentLoaded', () => {
             item.listItemElement.querySelectorAll('.timer-ctl-btn').forEach(c => {
                 const action = c.classList.contains('timer-ctl-play') ? 'play' : c.classList.contains('timer-ctl-stop') ? 'stop' : 'pause';
                 c.hidden = !controls[action];
+                c.classList.toggle('over-limit', overLimit);
             });
         });
     }

@@ -467,6 +467,13 @@
 .work-timer-btn .timer-elapsed { font-variant-numeric: tabular-nums; }
 .work-timer-btn .timer-elapsed.paused { opacity: 0.7; }
 .work-timer-btn .timer-elapsed.over { color: #ff6b5b; font-weight: 600; }
+/* Break limit passed (2026-11-01, Jeremy): the stopwatch icon, border and the Pause / Play / Stop controls go red too.
+   After .running and .timer-ctl-btn so it wins over their amber. */
+.work-timer-btn.over-limit,
+.timer-ctl-btn.over-limit {
+    border-color: #ff6b5b;
+    color: #ff6b5b;
+}
 /* Goal-reached popup: four stacked, full-width choices, each with a one-line explanation under its label. */
 .goal-reached-buttons { flex-direction: column; align-items: stretch; gap: 8px; }
 .goal-reached-buttons button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding-top: 8px; padding-bottom: 8px; }
