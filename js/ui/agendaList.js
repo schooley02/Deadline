@@ -219,7 +219,14 @@ const AgendaList = (() => {
                 e.stopPropagation();
                 deps.toggleWorkTimer(itemData.id);
             });
-            itemActionsContainer.appendChild(timerBtn);
+            // A Break habit's limit sits UNDER the timer as a caption (2026-11-01): wrap button + controls in a stack.
+            const isLimitTimer = Timer.canLimitTimer(itemData);
+            const timerHost = document.createElement('div');
+            timerHost.className = isLimitTimer ? 'timer-stack' : 'timer-plain';
+            const timerRow = isLimitTimer ? document.createElement('div') : timerHost;
+            if (isLimitTimer) { timerRow.className = 'timer-row'; timerHost.appendChild(timerRow); }
+            timerRow.appendChild(timerBtn);
+            itemActionsContainer.appendChild(timerHost);
             // Pause / Play (resume) / Stop controls beside the timer: Pause while running, Play while paused, Stop while
             // running or paused (script.js updateTimerButtons toggles `hidden` from Timer.controlState).
             const controls = Timer.controlState(itemData);
@@ -235,8 +242,9 @@ const AgendaList = (() => {
                     e.stopPropagation();
                     deps.toggleWorkTimer(itemData.id, action);
                 });
-                itemActionsContainer.appendChild(ctl);
+                timerRow.appendChild(ctl);
             });
+            if (isLimitTimer) timerHost.insertAdjacentHTML('beforeend', Timer.limitCaptionHtml(itemData, Date.now()));
         }
         itemActionsContainer.appendChild(editIconButton);
         if (itemData.type === 'habit' && itemData.isNegative === true) {

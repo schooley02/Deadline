@@ -11,6 +11,11 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-01 (night, later) -- Break limit caption under the timer (Claude app session, Sonnet; Jeremy)
+**Did:** the Break habit limit now shows as a small "Limit: N min" caption under the timer on the row and popup, always visible, red when over; the button shows only time logged (`Timer.limitCaptionHtml/limitText`, `.timer-stack`, sw v188). Jest 108 suites / 2,497. Live-checked row + popup at 390x844.
+**State:** green; in the folder, not committed. **Next:** phone-check; Habit Goals Build 3 (Opus).
+**Watch out:** `Timer.limitReadout` ("18:20 / 60 min") still exists for the text-only `buttonLabel`; the buttons no longer use it.
+
 ## 2026-11-01 (night) -- Over-limit red + Start moves Due (Claude app session, Sonnet; Jeremy)
 **Did:** after the Build 2 phone check: over-limit Break timer now turns the icon, border and Pause/Play/Stop red (`.over-limit`, css/agendaList.css; row, popup, `updateTimerButtons`); sw v186. Then Start moves Due: `Forms.shiftDueForStart` + one document `change` listener over every Start | Due pair (sw v187). test/start-shifts-due.test.js (6), timer test (1). Jest 108 suites / 2,496. Live-checked at 390x844.
 **State:** green; in the folder, not committed.

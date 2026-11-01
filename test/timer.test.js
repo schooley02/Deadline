@@ -343,19 +343,31 @@ describe('attacking nudge + stopwatch icon (2026-10-31)', () => {
         expect(Timer.isOverLimit({ type: 'task', timerMinutes: 1, timerMsBanked: 5 * MIN }, 0)).toBe(false); // work timers never go "over"
     });
 
-    test('limit helper row button: icon alone until time is logged, then "N / M min", red once over', () => {
+    test('limit helper row button: icon alone until time is logged, then the time logged (limit sits in the caption), red once over', () => {
         const h = { type: 'habit', isNegative: true, timerMinutes: 30, timer: null, timerMsBanked: 0 };
         expect(Timer.buttonHtml(h, 0)).toBe(Timer.ICON_SVG);
         Timer.start(h, 0);
-        expect(Timer.buttonHtml(h, 5 * MIN + 7000)).toContain('5:07 / 30 min');
+        expect(Timer.buttonHtml(h, 5 * MIN + 7000)).toContain('5:07');
+        expect(Timer.buttonHtml(h, 5 * MIN + 7000)).not.toContain('30 min');
         expect(Timer.buttonHtml(h, 5 * MIN)).not.toContain(' over');
         expect(Timer.buttonHtml(h, 31 * MIN)).toContain('timer-elapsed over');
         Timer.stop(h, 31 * MIN);
-        expect(Timer.buttonHtml(h, 40 * MIN)).toContain('31:00 / 30 min'); // stays visible after Stop
+        expect(Timer.buttonHtml(h, 40 * MIN)).toContain('31:00'); // stays visible after Stop
         expect(Timer.popupHtml(h, 40 * MIN)).toContain('Start timer'); // Stop ended the session
-        expect(Timer.popupHtml(h, 40 * MIN)).toContain('31:00 / 30 min');
+        expect(Timer.popupHtml(h, 40 * MIN)).toContain('31:00');
         Timer.start(h, 50 * MIN); Timer.pause(h, 51 * MIN);
         expect(Timer.popupHtml(h, 60 * MIN)).toContain('Resume timer'); // Pause holds it
-        expect(Timer.popupHtml(h, 60 * MIN)).toContain('32:00 / 30 min');
+        expect(Timer.popupHtml(h, 60 * MIN)).toContain('32:00');
+    });
+
+    test('limit caption: always shown under the timer, "Limit: N min", red once over', () => {
+        const h = { type: 'habit', isNegative: true, timerMinutes: 30, timer: null, timerMsBanked: 0 };
+        expect(Timer.limitCaptionHtml(h, 0)).toContain('Limit: 30 min');
+        expect(Timer.limitCaptionHtml(h, 0)).not.toContain(' over');
+        expect(Timer.limitText({ timerMinutes: 60 })).toBe('Limit: 1 hr');
+        expect(Timer.limitText({ timerMinutes: 90 })).toBe('Limit: 1 hr 30 min');
+        h.timerMsBanked = 31 * MIN;
+        expect(Timer.limitCaptionHtml(h, 0, 'cap')).toContain('timer-limit-caption over');
+        expect(Timer.limitCaptionHtml(h, 0, 'cap')).toContain('id="cap"');
     });
 });

@@ -1198,6 +1198,8 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.toggle('running', running);
             const overLimit = Timer.isOverLimit(item, nowMs); // Break limit passed: timer + Pause/Play/Stop turn red
             btn.classList.toggle('over-limit', overLimit);
+            const limitCaption = item.listItemElement.querySelector('.timer-limit-caption');
+            if (limitCaption) limitCaption.classList.toggle('over', overLimit);
             const html = Timer.buttonHtml(item, nowMs);
             if (btn.dataset.html !== html) { btn.innerHTML = html; btn.dataset.html = html; } // skip the per-second rebuild while idle
             const nudge = !State.isGameOver() && Timer.shouldNudge(item);

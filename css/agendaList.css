@@ -469,6 +469,12 @@
 .work-timer-btn .timer-elapsed.over { color: #ff6b5b; font-weight: 600; }
 /* Break limit passed (2026-11-01, Jeremy): the stopwatch icon, border and the Pause / Play / Stop controls go red too.
    After .running and .timer-ctl-btn so it wins over their amber. */
+/* Break limit caption UNDER the timer (2026-11-01, Jeremy): button + Pause/Stop on top, "Limit: 60 min" below. */
+.timer-stack { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.timer-row { display: inline-flex; align-items: center; gap: 6px; }
+.timer-plain { display: inline-flex; align-items: center; gap: 6px; }
+.timer-limit-caption { font-size: 11px; line-height: 1.2; opacity: 0.8; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.timer-limit-caption.over { color: #ff6b5b; opacity: 1; font-weight: 600; }
 .work-timer-btn.over-limit,
 .timer-ctl-btn.over-limit {
     border-color: #ff6b5b;

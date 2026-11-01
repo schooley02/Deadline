@@ -189,7 +189,7 @@ const Popups = (() => {
                     : '');
             const limitOk = typeof deps.toggleWorkTimer === 'function' && typeof Timer !== 'undefined' && Timer.canLimitTimer(item);
             const limitHtml = limitOk
-                ? `<button type="button" id="workTimerBtn" class="work-timer-btn${Timer.isRunning(item) ? ' running' : ''}${Timer.isOverLimit(item, Date.now()) ? ' over-limit' : ''}">${Timer.popupHtml(item)}</button>${Timer.stopButtonHtml(item, 'workTimerStopBtn')}`
+                ? `<div class="timer-stack"><div class="timer-row"><button type="button" id="workTimerBtn" class="work-timer-btn${Timer.isRunning(item) ? ' running' : ''}${Timer.isOverLimit(item, Date.now()) ? ' over-limit' : ''}">${Timer.popupHtml(item)}</button>${Timer.stopButtonHtml(item, 'workTimerStopBtn')}</div>${Timer.limitCaptionHtml(item, Date.now(), 'workTimerCaption')}</div>`
                 : '';
             return `
                 <div class="task-actions negative-habit-actions" style="display: flex; justify-content: flex-end; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -334,6 +334,8 @@ const Popups = (() => {
                     const over = Timer.isOverLimit(item, Date.now());
                     workTimerButton.classList.toggle('over-limit', over);
                     if (workTimerStopButton) workTimerStopButton.classList.toggle('over-limit', over);
+                    const caption = document.getElementById('workTimerCaption');
+                    if (caption) caption.classList.toggle('over', over);
                     if (workTimerStopButton) workTimerStopButton.hidden = !Timer.controlState(item).stop;
                 }
             };

@@ -40,7 +40,7 @@ change); it changes how a Break habit's result is decided and what data we keep.
    **Pause** (time stays logged; the stopwatch resumes it; was "Stop, not done yet" until 2026-11-01) · **Started by mistake** (this session's time is discarded).
    If the app was closed when the goal was reached, the popup shows on the next open.
 6. **Break habit, Time limit — the timer is a "logged so far" helper.** It counts UP across sessions in the day
-   ("18 / 60 min"), turns red once over, and never decides anything: Stop just banks time (no Resisted), going over
+   (time logged in the button, the limit as a "Limit: 60 min" caption under it since 2026-11-01), turns red once over, and never decides anything: Stop just banks time (no Resisted), going over
    pops nothing (the old "Time's up — did you stay within it?" limit-expiry prompt is removed).
 7. **Evening check** (new): at an evening time (default 9 PM, a Settings field) the game asks about every Break habit
    still unanswered TODAY — one modal, one card each: the goal line, the timer hint if any ("timer logged 18 min"),

@@ -74,10 +74,23 @@ const Timer = (() => {
     function limitReadout(item, nowMs) {
         return `${formatElapsed(elapsedMs(item, nowMs))} / ${item.timerMinutes} min`;
     }
-    // Limit helper readout span for the buttons: shown while running or once any time is banked.
+    // Limit helper readout span for the buttons: shown while running or once any time is banked. It shows the time
+    // logged only; the limit itself sits UNDER the timer as a caption (limitCaptionHtml), always visible.
     function limitReadoutHtml(item, nowMs) {
         if (!isRunning(item) && !(typeof item.timerMsBanked === 'number' && item.timerMsBanked > 0)) return '';
-        return `<span class="timer-elapsed${isOverLimit(item, nowMs) ? ' over' : ''}">${limitReadout(item, nowMs)}</span>`;
+        return `<span class="timer-elapsed${isOverLimit(item, nowMs) ? ' over' : ''}">${formatElapsed(elapsedMs(item, nowMs))}</span>`;
+    }
+    // "Limit: 60 min" / "Limit: 1 hr 30 min" caption under a Break habit's timer (2026-11-01, Jeremy): always shown,
+    // even before the timer starts; red once the limit is passed.
+    function limitText(item) {
+        const m = Math.max(0, Math.floor(item.timerMinutes || 0));
+        if (m < 60) return `Limit: ${m} min`;
+        const h = Math.floor(m / 60), r = m % 60;
+        return r ? `Limit: ${h} hr ${r} min` : `Limit: ${h} hr`;
+    }
+    function limitCaptionHtml(item, nowMs, id) {
+        const now = nowMs === undefined ? Date.now() : nowMs;
+        return `<span${id ? ` id="${id}"` : ''} class="timer-limit-caption${isOverLimit(item, now) ? ' over' : ''}">${limitText(item)}</span>`;
     }
     // Row button text and popup button text.
     function buttonLabel(item, nowMs) {
@@ -294,7 +307,7 @@ const Timer = (() => {
 
     return {
         normalizeTarget, modeFor, isRunning, canWorkTimer, isLimit, canLimitTimer, canTimer,
-        isPaused, buttonTitle, pause, endPaused, controlState, stopButtonHtml, PAUSE_ICON_SVG, PLAY_ICON_SVG, STOP_ICON_SVG, loggedMinutes, isOverLimit, limitReadout, acknowledgeGoal, discardSession, buttonLabel, popupLabel, ICON_SVG, buttonHtml, popupHtml, shouldNudge, NUDGE_TITLE, shouldPrompt, PROMPT_TITLE, elapsedMs, onSpan, start, stop, findRunning,
+        isPaused, buttonTitle, pause, endPaused, controlState, stopButtonHtml, PAUSE_ICON_SVG, PLAY_ICON_SVG, STOP_ICON_SVG, loggedMinutes, isOverLimit, limitReadout, limitText, limitCaptionHtml, acknowledgeGoal, discardSession, buttonLabel, popupLabel, ICON_SVG, buttonHtml, popupHtml, shouldNudge, NUDGE_TITLE, shouldPrompt, PROMPT_TITLE, elapsedMs, onSpan, start, stop, findRunning,
         pendingAction, promptDueAt, markPrompted, confirmStillWorking, autoStop,
         damageIntervalMs, formatElapsed,
     };
