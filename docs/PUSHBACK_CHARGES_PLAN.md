@@ -1,0 +1,132 @@
+# Pushback Charges — Plan
+
+Designed 2026-11-02 (Claude app session, Opus; Jeremy). Decision logged in `docs/DECISIONS.md` 2026-11-02. **Status: DESIGNED, not built.** Numbers below are a THEORY pass. A Fable balance-tuning session confirms them before Build A.
+
+## Why
+Jeremy (2026-11-01): the pushback items in the shop have no Buy button (by design: they are applied from the zombie popup), which confuses players. Pushing a deadline and editing its due time are two doors to the same room with different rules. Both are priced far above the goal of **"a few small and medium adjustments a day, a few long ones a week."**
+
+## Facts that shaped it
+- Earn rate is about 7 pts/day (`POINTS_PER_TASK`/`HABIT` = 1, re-tuned 2026-07-21). Pushback today costs 50 / 100 / 300 pts (1 hr / 2 hr / 1 day). A 1 hr push is about a week of earnings.
+- Editing the due time (`Economy.reschedulePrice`) is free more than 4 h out (calm zone), free within 10 min of creation, has 1 free paid-zone edit per rolling week, then charges the same pushback prices (×0.5 at 2–4 h).
+- Points cannot fund "several a day": at ~7 pts/day that would need prices of 1–2 pts, which are meaningless against the rest of the shop. **Everyday flexibility must come from a refilling free allowance; points only pay for going past it.**
+- Village building tiers are visual only today. The Clock tower (kind `punctuality`) counts items completed before their due time.
+- Hover tooltips do not exist on phones. The app's pattern is a tap-to-show ⓘ (`.form-hint-btn`, `data-hint-for`, `js/ui/forms.js` Habit Goal section).
+
+## The design
+
+### 1. One system, two doors
+The zombie popup's pushback row and the edit form's due-time change draw from **the same charges**. The edit form shows what a save will use instead of a price, e.g. *"Uses 1 Medium pushback (1 left today)."*
+
+### 2. When rescheduling is free (unchanged rules, now explained everywhere)
+- Moving a task **earlier**: always free.
+- Any move while the task is **more than 4 hours away**: free. This is planning ahead.
+- Any due-time edit **within 10 minutes of creating** the task: free (typo grace).
+
+Charges only come into play when a zombie is close (4 h or less, or overdue), which is where the game's tension belongs.
+
+### 3. Three sizes; a move uses the smallest that covers it
+Distance is measured from the later of the current due time and now (2026-10-26 rule, unchanged).
+
+| Size | Covers | Free allowance (T1) |
+|---|---|---|
+| Short | up to 30 min | 3 per day |
+| Medium | up to 2 hr | 2 per day |
+| Long | up to 1 day | 2 per rolling 7 days |
+
+- Medium is 2 hr (Jeremy, 2026-11-02). With 1 hr, a 90-minute push would cost a Long.
+- More than 1 day uses ceil(distance / 1 day) Longs.
+- Daily charges refill at day rollover (`js/dayRollover.js`) and do not stack. Longs are a rolling 7-day window of use timestamps, like today's `rescheduleFreeUses`.
+- The 2–4 h half-price zone factor goes away: inside 4 h any later move uses a charge.
+
+### 4. Overflow: held tokens, then points (Jeremy, 2026-11-02: keep both systems)
+When the free charges of a size are spent, the move uses the first available of:
+1. a **held token** of that size (buy-to-hold in the shop, like Cheat Day; `consumable: true`), then
+2. **points**: the popup button shows the price and pays and applies in one tap. The edit form shows the price before Save, as today.
+
+THEORY prices for the Fable pass: **Short 5, Medium 10, Long 30** (under a day's earnings, about 1.5 days, about 4 days). Level discount applies. The 1.5^held price curve applies to held tokens as it does for every consumable.
+
+The three new token items **replace** `pushback_1hr` / `pushback_2hr` / `pushback_1day` (50/100/300) and `RESCHEDULE_FREE_PER_WEEK`.
+
+### 5. Clock tower stars add charges
+Stars are per run, so they reset when the church falls. This adds stakes to the run without any new punishment.
+
+| Clock tower | ~When | Allowance | Added |
+|---|---|---|---|
+| ★1 | start | 3 Short / 2 Medium a day, 2 Long a week | base |
+| ★2 | ~4 days | 4 Short a day | +1 Short |
+| ★3 | ~2.5 weeks | 3 Medium a day | +1 Medium |
+| ★4 | ~7 weeks | 3 Long a week | +1 Long |
+| ★5 | 3+ months | one unused Medium carries over to the next day (max 1 extra) | rollover |
+
+Why the Clock tower and not player level (Jeremy, 2026-11-02: prioritise long-term engagement):
+- It is the matching behaviour: keeping your word earns slack.
+- Buildings gain a real, felt benefit, so the village matters.
+- Tier pacing (4 days → 3+ months) gives a steady line of goals across months.
+- Player levels end at 9 and already have a perk on every level.
+
+### 6. Clock tower loophole (Jeremy, 2026-11-02: agreed)
+A task moved **later while 4 h or less from due (or overdue)**, by charge, token or points, does **not** count for the Clock tower when completed. It still pays points and XP and counts for the Armory. Moves made more than 4 h out still count (planning ahead). Implementation: set an item flag (e.g. `pushedLate: true`) when a paid-zone move is applied. `js/villageProgress.js`'s punctuality counter skips flagged items. The flag is additive with no schema bump; document it in DATA_SCHEMA.
+
+## Where the player learns the rules
+All the ⓘ panels render ONE shared copy builder (`js/ui/pushbackHelp.js`, `PushbackHelp.hintHtml(ctx)`) so the wording never drifts. `ctx` supplies live counts.
+
+| # | Place | What it shows |
+|---|---|---|
+| 1 | **Zombie popup**, pushback row | `Push back: [+30 min ●●●] [+2 hr ●●] [+1 day ●●]`, with dots = charges left (a hollow dot = will use a token or points) and an ⓘ that opens the full rules. |
+| 2 | **Edit form**, the live `#editRescheduleNote` line | "Free: more than 4 hours away" / "Free: moving earlier" / "Uses 1 Medium pushback (1 left today)" / "Uses a held Medium token" / "Costs 10 pts", plus an ⓘ. |
+| 3 | **Shop**, pushback token section | A one-line header "Used automatically when your free pushbacks run out" plus an ⓘ. The cards get normal Buy buttons, which fixes the original confusion. |
+| 4 | **Clock tower card** | "What we measure" gets the loophole sentence (below). A new **"Your reward"** block shows the current allowance and what the next star adds. |
+| 5 | **Base Health panel**, "what my items buy" | Its pushback buttons use the same charges and show charges left. |
+| 6 | **Clock tower star-up toast** | Names the new allowance, e.g. "Clock tower ★2: +1 Short pushback a day". |
+
+### Copy (draft; Jeremy to approve wording in Build C)
+
+**ⓘ panel (shared):**
+> **Rescheduling is free when:**
+> • you move it earlier
+> • it's more than 4 hours away
+> • you fix the time within 10 minutes of creating it
+>
+> **Inside 4 hours, moving it later uses a pushback:**
+> Short (up to 30 min): 3 a day · Medium (up to 2 hr): 2 a day · Long (up to 1 day): 2 a week
+> Daily pushbacks refill each new day; Long ones refill over the week.
+> Out of pushbacks? A held token is used, then points.
+>
+> Clock tower stars give you more. A task pushed inside its last 4 hours won't count as on time at the Clock tower.
+
+**Clock tower "What we measure" (replaces the current text in `VillageCard.KINDS.punctuality.measures`):**
+> Things you completed before their due time. Finishing late still counts as done, just not here. A task you pushed back inside its last 4 hours doesn't count here either; rescheduling while it's still more than 4 hours away is planning ahead, and still counts.
+
+The live card copy changes in Build C, not before: until the charges exist, the loophole rule would describe something the game doesn't do.
+
+## Build sub-sessions (Sonnet, medium; after the Fable balance pass)
+
+### A — Pure logic + config (Jest)
+- `CONFIG`: `PUSHBACK_SIZES` (`short` 30 min / `medium` 2 h / `long` 24 h), `PUSHBACK_ALLOWANCE` per Clock tower star, `PUSHBACK_PAID_ZONE_MS` (4 h), three token rows in `SHOP_ITEMS`. Remove the old pushback rows, `RESCHEDULE_FREE_PER_WEEK`, and the `approaching` 0.5 factor.
+- `js/economy.js` (or a new `js/pushback.js`): `sizeFor(deltaMs)` → `{size, count}`; `chargesLeft(uses, nowMs, allowance, dayStartMs)`; `allowanceForStar(star)`; `resolvePayment({size, count, chargesLeft, held, points, price})` → `charge` | `token` | `points` | `blocked`; `isFreeMove({currentDue, newDue, now, createdAt})` → reason. Replaces `reschedulePrice`'s pricing branch.
+- Tests: boundaries (exactly 30 min / 2 h / 24 h / 4 h), overdue distance, multi-day Longs, rollover at ★5, weekly window pruning, payment order.
+
+### B — State + both doors
+- Persist `pushbackUses: { short: [ts], medium: [ts], long: [ts] }` (+ ★5 carry-over) in state. Additive; document it in DATA_SCHEMA; old saves default to empty.
+- The zombie popup row (`js/ui/popups.js` `buildPushbackSectionHtml`), `handlePushback`, the edit form save path and the Base Health panel all route through `resolvePayment`.
+- Set the `pushedLate` flag; the Clock tower counter skips it.
+- Day rollover clears daily uses.
+
+### C — Shop, help and copy
+- Shop token cards with Buy buttons (remove `.shop-pushback-hint`), plus the section header + ⓘ.
+- `js/ui/pushbackHelp.js` + the ⓘ in the popup, edit form and shop.
+- Clock tower card: new measures copy + "Your reward" block. Star-up toast line.
+- Update ECONOMY.md, MECHANICS.md, UI_UX.md, SHOP_PLAN.md (pushback section superseded).
+- sw bump; phone check of all six places.
+
+## Open (for the Fable pass)
+- Token prices 5 / 10 / 30.
+- ★5 reward: Medium rollover vs a simpler +1 Long/week.
+- Whether positive habits use the same charges (today the popup offers pushback on habits too) or habits are excluded.
+
+## Rejected
+- Pushback as player-level perks (levels already have a perk every level and end at 9; the Clock tower matches the behaviour and spans months).
+- Points-only pushback at low prices (meaningless against the rest of the shop; undoes the 07-21 re-tune).
+- Allowance only, with no points or tokens (a player who runs out on a bad day has no move, which is a common reason to quit).
+- Keeping the 2–4 h half-price zone (a third rule nobody can predict).
+- Medium = 1 hr (a 90-minute push would cost a Long).
