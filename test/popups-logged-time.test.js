@@ -117,7 +117,7 @@ describe('Edit Task modal: Logged time field', () => {
         expect(d.setLoggedTime).toHaveBeenCalledWith(3, 120 * MIN);
     });
 
-    test('a bad time blocks the whole save: nothing changes, an alert says why', () => {
+    test('a bad time blocks the whole save: nothing changes, an inline error says why', () => {
         const d = deps();
         const t = task();
         Popups.showEditTaskModal(t, d);
@@ -126,6 +126,9 @@ describe('Edit Task modal: Logged time field', () => {
         document.getElementById('saveTaskChanges').click();
         expect(t.name).toBe('Write report');
         expect(d.setLoggedTime).not.toHaveBeenCalled();
-        expect(global.alert).toHaveBeenCalled();
+        expect(global.alert).not.toHaveBeenCalled();
+        const err = document.querySelector('.form-error');
+        expect(err).not.toBeNull();
+        expect(err.textContent).toMatch(/Minutes must be 0 to 59/);
     });
 });

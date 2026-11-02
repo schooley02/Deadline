@@ -1,6 +1,6 @@
 /**
  * Guard (2026-11-01, Jeremy; docs/DIALOG_PLAN.md): the game draws its own dialogs. No new alert()/confirm()/prompt() calls.
- * ALLOWLIST = calls still to be migrated (Build 2: inline form validation; Build 3: errors), counted per file. The count must
+ * ALLOWLIST = calls still to be migrated (Build 2 done: inline form validation; Build 3: the D errors), counted per file. The count must
  * match EXACTLY, so converting a call without lowering the number here also fails -- the list can only shrink. A genuine
  * system-level alert would be added here with a one-line reason.
  */
@@ -10,10 +10,9 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const ALLOWLIST = {
     'js/TaskManager.js': 1,        // D: error creating sub-task
-    'js/ui/forms.js': 7,           // A: create-form validation
-    'js/ui/popups.js': 8,          // A/D: edit / sub-task validation, parent not found
-    'js/ui/routineViews.js': 19,   // A/D: routine create/edit validation, add/move pickers, move failure
-    'script.js': 2,                // A/D: routine name, habit-already-in-routine
+    'js/ui/popups.js': 1,          // D: parent task not found
+    'js/ui/routineViews.js': 1,    // D: move failed
+    'script.js': 1,                // D: routine/habit not found, habit already in routine
 };
 
 function sourceFiles() {

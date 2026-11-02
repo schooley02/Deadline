@@ -353,7 +353,7 @@ const RoutineViews = (() => {
                     deps.addHabitToRoutine(routine.id, selectedHabitId);
                     habitSelect.value = '';
                 } else {
-                    alert('Please select a habit to add.');
+                    Forms.showFormError('Please select a habit to add.', habitSelect, { after: addHabitDiv });
                 }
             });
 
@@ -940,7 +940,7 @@ const RoutineViews = (() => {
                         showRoutineManagement(routineId, deps);
                     }, 100);
                 } else {
-                    alert(`Please select a ${itemType} to add.`);
+                    Forms.showFormError(`Please select a ${itemType} to add.`, selectEl);
                 }
             });
         }
@@ -1029,7 +1029,7 @@ const RoutineViews = (() => {
             confirmBtn.addEventListener('click', async () => {
                 const destId = selectEl.value;
                 if (!destId) {
-                    alert(`Please select a routine to move this ${label} to.`);
+                    Forms.showFormError(`Please select a routine to move this ${label} to.`, selectEl);
                     return;
                 }
                 const dest = deps.definedRoutines().find(r => r.id === destId);
@@ -1348,16 +1348,16 @@ const RoutineViews = (() => {
         const endTime = document.getElementById('newHabitEndTime').value;
 
         if (!name) {
-            alert('Please enter a habit name.');
+            Forms.showFormError('Please enter a habit name.', 'newHabitName');
             return;
         }
         const customError = customHabitWindowError(timeOfDay, isNegative, startTime, endTime);
         if (customError) {
-            alert(customError);
+            Forms.showFormError(customError, 'newHabitStartTime');
             return;
         }
         if (schedule.frequency !== 'monthly' && schedule.daysOfWeek.length === 0) {
-            alert('Please select at least one day.');
+            Forms.showFormError('Please select at least one day.');
             return;
         }
 
@@ -1367,7 +1367,7 @@ const RoutineViews = (() => {
         const goalFields = Forms.readHabitGoalFields('newHabit');
         const goalError = Forms.habitGoalError(goalFields);
         if (goalError) {
-            alert(goalError);
+            Forms.showFormError(goalError);
             return;
         }
         const goal = Forms.goalFromFields(goalFields);
@@ -1387,17 +1387,17 @@ const RoutineViews = (() => {
         const schedule = readScheduleFromFields('newTask');
 
         if (!name) {
-            alert('Please enter a task name.');
+            Forms.showFormError('Please enter a task name.', 'newTaskName');
             return;
         }
         const startError = (defaultStartTime && defaultDueTime && defaultStartTime >= defaultDueTime)
             ? 'Start time must be earlier than the due time.' : null;
         if (startError) {
-            alert(startError);
+            Forms.showFormError(startError, 'newTaskStartTime');
             return;
         }
         if (schedule.frequency !== 'monthly' && schedule.daysOfWeek.length === 0) {
-            alert('Please select at least one day.');
+            Forms.showFormError('Please select at least one day.');
             return;
         }
 
@@ -1422,23 +1422,23 @@ const RoutineViews = (() => {
         const endTime = document.getElementById('editHabitEndTime').value;
 
         if (!name) {
-            alert('Please enter a habit name.');
+            Forms.showFormError('Please enter a habit name.', 'editHabitName');
             return;
         }
         const customError = customHabitWindowError(timeOfDay, isNegative, startTime, endTime);
         if (customError) {
-            alert(customError);
+            Forms.showFormError(customError, 'editHabitStartTime');
             return;
         }
         if (schedule.frequency !== 'monthly' && schedule.daysOfWeek.length === 0) {
-            alert('Please select at least one day.');
+            Forms.showFormError('Please select at least one day.');
             return;
         }
 
         const goalFields = Forms.readHabitGoalFields('editHabit');
         const goalError = Forms.habitGoalError(goalFields);
         if (goalError) {
-            alert(goalError);
+            Forms.showFormError(goalError);
             return;
         }
         const goal = Habits.normalizeGoal(Forms.goalFromFields(goalFields));
@@ -1446,7 +1446,7 @@ const RoutineViews = (() => {
         // Logged time of a completed entry (Habit Goals Build 2c): entry-level, so it rides along with the scope choice.
         const loggedEdit = Forms.readLoggedTime('editHabitLogged');
         if (loggedEdit.error) {
-            alert(loggedEdit.error);
+            Forms.showFormError(loggedEdit.error);
             return;
         }
         if (loggedEdit.changed) data.loggedMs = loggedEdit.ms;
@@ -1543,17 +1543,17 @@ const RoutineViews = (() => {
         const schedule = readScheduleFromFields('editTask');
 
         if (!name) {
-            alert('Please enter a task name.');
+            Forms.showFormError('Please enter a task name.', 'editTaskName');
             return;
         }
         const startError = (defaultStartTime && defaultDueTime && defaultStartTime >= defaultDueTime)
             ? 'Start time must be earlier than the due time.' : null;
         if (startError) {
-            alert(startError);
+            Forms.showFormError(startError, 'editTaskStartTime');
             return;
         }
         if (schedule.frequency !== 'monthly' && schedule.daysOfWeek.length === 0) {
-            alert('Please select at least one day.');
+            Forms.showFormError('Please select at least one day.');
             return;
         }
 

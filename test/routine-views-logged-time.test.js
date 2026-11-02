@@ -97,7 +97,8 @@ describe('Edit Habit save from a completed entry', () => {
         const { deps } = setup(75 * MIN);
         document.getElementById('editHabitLoggedMinutes').value = '75';
         save(deps);
-        expect(global.alert).toHaveBeenCalled();
+        expect(global.alert).not.toHaveBeenCalled();
+        expect(document.querySelector('.form-error').textContent).toMatch(/Minutes must be 0 to 59/);
         expect(document.getElementById('editScopeModal')).toBeNull();
         expect(deps.setLoggedTime).not.toHaveBeenCalled();
     });

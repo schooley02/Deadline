@@ -233,3 +233,17 @@
 .dialog-content { max-width: 340px; }
 .dialog-title { margin: 0 0 8px; }
 .dialog-message { margin: 0 0 16px; line-height: 1.4; white-space: pre-line; }
+
+/* Inline form error (Dialog Build 2, 2026-11-01): one red line above the Save row; cleared on the next edit. */
+.form-error {
+    margin: var(--space-3, 12px) 0 0;
+    padding: 8px 10px;
+    border-left: 3px solid #d9534f;
+    border-radius: 6px;
+    background: rgba(217, 83, 79, 0.14);
+    color: #b3261e;
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.35;
+}
+[aria-invalid="true"] { outline: 2px solid #d9534f; outline-offset: 1px; }

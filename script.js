@@ -1793,7 +1793,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function createRoutineDefinition() {
         const result = Routines.createRoutineDefinition(routineNameInput.value, State.getDefinedRoutines());
         if (!result.ok) {
-            alert(result.reason === 'empty' ? "Please enter a routine name." : "Routine name already exists.");
+            Forms.showFormError(result.reason === 'empty' ? "Please enter a routine name." : "Routine name already exists.", routineNameInput, { before: createRoutineButton });
             return;
         }
 

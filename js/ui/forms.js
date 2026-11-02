@@ -597,7 +597,7 @@ const Forms = (() => {
                         const dueTime = timeInput ? timeInput.value : '17:00';
 
                         if (!name || !dueDate) {
-                            alert('Task Name and Due Date are required.');
+                            showFormError('Task Name and Due Date are required.', !name ? nameInput : dateInput);
                             return;
                         }
 
@@ -607,7 +607,7 @@ const Forms = (() => {
                         const startTime = startInput ? startInput.value : '';
                         const startError = startBeforeDueError(startTime, resolved.dueTime);
                         if (startError) {
-                            alert(startError);
+                            showFormError(startError, startInput);
                             return;
                         }
                         const taskData = deps.createTaskItemData(name, category, isHighPriority, resolved.dueDate, resolved.dueTime, undefined, startTime || undefined);
@@ -645,7 +645,7 @@ const Forms = (() => {
                         const isNegative = typeRadio ? typeRadio.value === 'negative' : false;
 
                         if (!name) {
-                            alert('Habit Name is required.');
+                            showFormError('Habit Name is required.', nameInput);
                             return;
                         }
                         const habitStartInput = modal.querySelector('#modalHabitStartTime');
@@ -654,18 +654,18 @@ const Forms = (() => {
                         const habitEndTime = habitEndInput ? habitEndInput.value : '';
                         const customError = customHabitTimesError(timeOfDay, isNegative, habitStartTime, habitEndTime);
                         if (customError) {
-                            alert(customError);
+                            showFormError(customError, habitStartInput);
                             return;
                         }
                         if (schedule.frequency !== 'monthly' && schedule.daysOfWeek.length === 0) {
-                            alert('Please select at least one day.');
+                            showFormError('Please select at least one day.');
                             return;
                         }
 
                         const goalFields = readHabitGoalFields('modalHabit', modal);
                         const goalError = habitGoalError(goalFields);
                         if (goalError) {
-                            alert(goalError);
+                            showFormError(goalError);
                             return;
                         }
                         deps.createHabitDefinition(name, category, schedule, timeOfDay, isNegative, null, habitStartTime || null, habitEndTime || null, goalFromFields(goalFields));
@@ -699,7 +699,7 @@ const Forms = (() => {
                         const heroSelect = modal.querySelector('#modalRoutineHeroCategory');
                         const result = Routines.createRoutineDefinition(name, deps.definedRoutines, heroSelect ? heroSelect.value : 'other');
                         if (!result.ok) {
-                            alert(result.reason === 'empty' ? 'Please enter a routine name.' : 'Routine name already exists.');
+                            showFormError(result.reason === 'empty' ? 'Please enter a routine name.' : 'Routine name already exists.', nameInput);
                             return;
                         }
 
@@ -765,7 +765,75 @@ const Forms = (() => {
         return { ms: total * 60000, changed: total !== initial };
     }
 
+    // ---------------------------------------------------------------------
+    // Inline form errors (Dialog Build 2, 2026-11-01, docs/DIALOG_PLAN.md): a failed Save writes ONE red line in the form
+    // (under the bad field, else above its button row) and focuses the field, instead of the browser's alert(). It clears on the next edit.
+    // showFormError(message, field?, opts?)
+    //   field: the offending input (element or id) -- focused, marked aria-invalid, and used to find the form.
+    //   opts.before / opts.after: place the line next to that element instead (default: under the field's `.form-row`, else above `.modal-buttons`).
+    // ---------------------------------------------------------------------
+    const FORM_ERROR_CLASS = 'form-error';
+
+    function resolveField(field) {
+        if (!field) return null;
+        return typeof field === 'string' ? document.getElementById(field) : field;
+    }
+
+    function formRoot(fieldEl) {
+        if (fieldEl && fieldEl.closest) {
+            const overlay = fieldEl.closest('.modal-overlay, .management-window');
+            if (overlay) return overlay;
+        }
+        const overlays = document.querySelectorAll('.modal-overlay');
+        return overlays.length ? overlays[overlays.length - 1] : document.body;
+    }
+
+    function clearFormError(root) {
+        const scope = root || document;
+        scope.querySelectorAll('.' + FORM_ERROR_CLASS + '[data-inline-error]').forEach(el => el.remove());
+        scope.querySelectorAll('[aria-invalid="true"]').forEach(el => el.removeAttribute('aria-invalid'));
+    }
+
+    function showFormError(message, field, opts) {
+        const fieldEl = resolveField(field);
+        const root = formRoot(fieldEl);
+        clearFormError(root);
+
+        const el = document.createElement('div');
+        el.className = FORM_ERROR_CLASS;
+        el.setAttribute('data-inline-error', '');
+        el.setAttribute('role', 'alert');
+        el.textContent = message;
+
+        const before = opts && opts.before;
+        const after = opts && opts.after;
+        const buttons = root.querySelector ? root.querySelector('.modal-buttons') : null;
+        if (before && before.parentNode) before.parentNode.insertBefore(el, before);
+        else if (after && after.parentNode) after.parentNode.insertBefore(el, after.nextSibling);
+        else if (fieldEl && fieldEl.closest && fieldEl.closest('.form-row') && root.contains(fieldEl.closest('.form-row'))) {
+            // Long forms scroll on a phone: put the line under the bad field so it is on screen with the focus.
+            const row = fieldEl.closest('.form-row');
+            row.parentNode.insertBefore(el, row.nextSibling);
+        }
+        else if (buttons && buttons.parentNode) buttons.parentNode.insertBefore(el, buttons);
+        else root.appendChild(el);
+
+        if (fieldEl) {
+            fieldEl.setAttribute('aria-invalid', 'true');
+            if (typeof fieldEl.focus === 'function') fieldEl.focus();
+        } else if (typeof el.scrollIntoView === 'function') {
+            el.scrollIntoView({ block: 'nearest' });   // no single field to focus: bring the line itself on screen
+        }
+        // Clear on the next edit anywhere in the same form (once).
+        const clear = () => { clearFormError(root); root.removeEventListener('input', clear); root.removeEventListener('change', clear); };
+        root.addEventListener('input', clear);
+        root.addEventListener('change', clear);
+        return el;
+    }
+
     return {
+        showFormError,
+        clearFormError,
         createTaskFormHtml,
         createHabitFormHtml,
         createRoutineFormHtml,

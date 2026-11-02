@@ -633,7 +633,7 @@ const Popups = (() => {
                 const newDueTime = document.getElementById('editDueTime').value;
 
                 if (!name || !newDueDate) {
-                    alert('Task Name and Due Date are required.');
+                    Forms.showFormError('Task Name and Due Date are required.', !name ? 'editTaskName' : 'editDueDate');
                     return;
                 }
 
@@ -650,7 +650,7 @@ const Popups = (() => {
                 }
                 if (startValue && newStartDateTime instanceof Date && !isNaN(newStartDateTime.getTime())
                     && newStartDateTime.getTime() >= newDueDateTime.getTime()) {
-                    alert('Start time must be earlier than the due time.');
+                    Forms.showFormError('Start time must be earlier than the due time.', startInput);
                     return;
                 }
 
@@ -660,14 +660,14 @@ const Popups = (() => {
                 // NOT a silent clamp — the data-layer clamp in items.js only
                 // backstops programmatic paths.
                 if (editParentTask && newDueDateTime > editParentTask.dueDateTime) {
-                    alert(`Sub-task due date can't be later than the parent's deadline (${formatDateInputValue(editParentTask.dueDateTime)} ${formatTimeInputValue(editParentTask.dueDateTime)}).`);
+                    Forms.showFormError(`Sub-task due date can't be later than the parent's deadline (${formatDateInputValue(editParentTask.dueDateTime)} ${formatTimeInputValue(editParentTask.dueDateTime)}).`, 'editDueDate');
                     return;
                 }
 
                 // Logged time (Habit Goals Build 2c): validated with the other fields, applied after they save.
                 const loggedEdit = Forms.readLoggedTime('editLogged');
                 if (loggedEdit.error) {
-                    alert(loggedEdit.error);
+                    Forms.showFormError(loggedEdit.error);
                     return;
                 }
 
@@ -837,7 +837,7 @@ const Popups = (() => {
 
                 if (!name || !dueDate) {
                     console.log('⚠️ Subtask creation stopped - missing name or date');
-                    alert('Sub-task Name and Due Date are required.');
+                    Forms.showFormError('Sub-task Name and Due Date are required.', !name ? 'subTaskName' : 'subTaskDueDate');
                     return;
                 }
 
@@ -846,7 +846,7 @@ const Popups = (() => {
                 const subStartTime = subStartInput ? subStartInput.value : '';
                 const subStartError = Forms.startBeforeDueError(subStartTime, dueTime);
                 if (subStartError) {
-                    alert(subStartError);
+                    Forms.showFormError(subStartError, subStartInput);
                     return;
                 }
 
@@ -865,7 +865,7 @@ const Popups = (() => {
                 }
                 if (!isNaN(candidateDue.getTime()) && candidateDue > parentTask.dueDateTime) {
                     console.log('⚠️ Subtask creation stopped - due date later than parent deadline');
-                    alert(`Sub-task due date can't be later than the parent's deadline (${parentDueDate} ${parentDueTime}).`);
+                    Forms.showFormError(`Sub-task due date can't be later than the parent's deadline (${parentDueDate} ${parentDueTime}).`, 'subTaskDueDate');
                     return;
                 }
 
