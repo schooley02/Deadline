@@ -90,6 +90,24 @@
                      (fixed, per the 2026-07-21 art-direction decision). -->
                 <div id="graveyardScene" class="graveyard-scene" aria-hidden="true">
                     <div class="scene-layer scene-sky"></div>
+                    <!-- Twinkling pixel stars (2026-11-01, Jeremy): 10 small 2px dots + 4 larger "+" stars in the
+                         top of the sky, each on its own stepped blink (css/gameCanvas.css). Decorative. -->
+                    <div class="scene-layer scene-stars">
+                        <span class="scene-star scene-star--s scene-star--a" style="left:6%;top:10%;--star-dur:3.4s;--star-delay:-0.6s"></span>
+                        <span class="scene-star scene-star--s scene-star--b" style="left:14%;top:26%;--star-dur:4.6s;--star-delay:-2.1s"></span>
+                        <span class="scene-star scene-star--s scene-star--b" style="left:23%;top:8%;--star-dur:3.0s;--star-delay:-1.4s"></span>
+                        <span class="scene-star scene-star--s scene-star--a" style="left:31%;top:31%;--star-dur:5.2s;--star-delay:-3.3s"></span>
+                        <span class="scene-star scene-star--s scene-star--a" style="left:40%;top:15%;--star-dur:3.8s;--star-delay:-0.2s"></span>
+                        <span class="scene-star scene-star--s scene-star--b" style="left:49%;top:6%;--star-dur:4.2s;--star-delay:-2.8s"></span>
+                        <span class="scene-star scene-star--s scene-star--b" style="left:57%;top:28%;--star-dur:2.8s;--star-delay:-1.9s"></span>
+                        <span class="scene-star scene-star--s scene-star--a" style="left:66%;top:12%;--star-dur:5.6s;--star-delay:-4.4s"></span>
+                        <span class="scene-star scene-star--s scene-star--b" style="left:74%;top:24%;--star-dur:3.5s;--star-delay:-0.9s"></span>
+                        <span class="scene-star scene-star--s scene-star--a" style="left:79%;top:6%;--star-dur:4.8s;--star-delay:-3.6s"></span>
+                        <span class="scene-star scene-star--l scene-star--a" style="left:10%;top:18%;--star-dur:4.4s;--star-delay:-1.2s"></span>
+                        <span class="scene-star scene-star--l scene-star--b" style="left:36%;top:23%;--star-dur:5.8s;--star-delay:-3.9s"></span>
+                        <span class="scene-star scene-star--l scene-star--a" style="left:61%;top:9%;--star-dur:3.9s;--star-delay:-2.4s"></span>
+                        <span class="scene-star scene-star--l scene-star--b" style="left:69%;top:33%;--star-dur:5.0s;--star-delay:-0.5s"></span>
+                    </div>
                     <div class="scene-layer scene-clouds">
                         <div class="scene-clouds-drift"></div>
                     </div>

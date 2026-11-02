@@ -206,6 +206,73 @@
     background: linear-gradient(180deg, #0b0b24 0%, #171735 35%, #2b2a4a 68%, #3d3a5c 100%);
 }
 
+/* Twinkling pixel stars (2026-11-01, Jeremy: "a few small ones and a few slightly larger ones",
+   pixel art, not star shapes). Own layer just above the sky gradient (same z-index -4, later in
+   the DOM) so the moon (-3) and the clouds (-2) pass in front. Sized to the canvas (not the
+   112%-wide scene layer) so the % positions are plain canvas fractions; all sit in the top ~35%,
+   left of the moon. Small = a 2x2px dot; large = the same dot with a 2px arm on each side (a
+   pixel "+") drawn with box-shadow, no blur so it stays crisp. The blink is STEPPED
+   (steps(1) per keyframe) so it flickers like pixel art instead of fading; each star has its
+   own period (--star-dur) and phase (--star-delay, negative so they are already mid-cycle on
+   load). Not part of the time-slider scrub targets: they keep twinkling while you drag. */
+.scene-stars {
+    z-index: -4;
+    width: 100%;
+    left: 0;
+}
+
+.scene-star {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: #f6f0d4;
+    opacity: 0.85;
+    animation: star-twinkle-a var(--star-dur, 4s) infinite;
+    animation-delay: var(--star-delay, 0s);
+}
+
+.scene-star--b { animation-name: star-twinkle-b; }
+
+.scene-star--l {
+    background: #fffdf2;
+    box-shadow:
+        -2px 0 0 #fffdf2,
+        2px 0 0 #fffdf2,
+        0 -2px 0 #fffdf2,
+        0 2px 0 #fffdf2;
+}
+
+@keyframes star-twinkle-a {
+    0%   { opacity: 0.35; animation-timing-function: steps(1, end); }
+    30%  { opacity: 1;    animation-timing-function: steps(1, end); }
+    45%  { opacity: 0.6;  animation-timing-function: steps(1, end); }
+    70%  { opacity: 0.95; animation-timing-function: steps(1, end); }
+    85%  { opacity: 0.4;  animation-timing-function: steps(1, end); }
+    100% { opacity: 0.35; }
+}
+
+@keyframes star-twinkle-b {
+    0%   { opacity: 0.9;  animation-timing-function: steps(1, end); }
+    20%  { opacity: 0.45; animation-timing-function: steps(1, end); }
+    40%  { opacity: 1;    animation-timing-function: steps(1, end); }
+    62%  { opacity: 0.3;  animation-timing-function: steps(1, end); }
+    80%  { opacity: 0.75; animation-timing-function: steps(1, end); }
+    100% { opacity: 0.9; }
+}
+
+.fx-reduced .scene-star,
+.fx-off .scene-star {
+    animation: none;
+    opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .scene-star {
+        animation: none;
+        opacity: 0.8;
+    }
+}
+
 /* Nights Survived (2026-10-26, Jeremy): PixelLab moon (Assets/scene/moon.png,
    58x58 trimmed disc, shown 1:1 pixelated) with the run's night count centred on
    it in the Press Start 2P pixel font, and a "Nights Survived" label in Inter
