@@ -725,6 +725,46 @@ const Forms = (() => {
         }
     }
 
+    // ---- Logged time (Habit Goals Build 2c, 2026-11-01) -------------------------------------------------------------
+    // An hours + minutes field for a timer's logged total. Whole minutes: the field shows the logged time rounded to the
+    // minute, and `readLoggedTime` reports `changed` only when the player typed a different number of minutes, so saving
+    // an untouched form never rewrites a precise value (e.g. 1 h 5 min 20 s) or counts a fake edit.
+    function loggedTimeMinutes(ms) {
+        return (typeof ms === 'number' && ms > 0) ? Math.round(ms / 60000) : 0;
+    }
+    // opts: { idPrefix, ms, disabled?, note? } -> inputs `${idPrefix}Hours` / `${idPrefix}Minutes` inside `#${idPrefix}Group`.
+    function loggedTimeHtml(opts) {
+        const o = opts || {};
+        const p = o.idPrefix || 'loggedTime';
+        const total = loggedTimeMinutes(o.ms);
+        const dis = o.disabled ? ' disabled' : '';
+        return `<div class="form-row logged-time-row" id="${p}Group" data-initial-min="${total}">` +
+            `<label for="${p}Hours">Logged time:</label>` +
+            `<div class="logged-time-inputs">` +
+            `<input type="number" id="${p}Hours" class="logged-time-input" min="0" max="24" step="1" inputmode="numeric" value="${Math.floor(total / 60)}" aria-label="Logged hours"${dis}> <span>hr</span> ` +
+            `<input type="number" id="${p}Minutes" class="logged-time-input" min="0" max="59" step="1" inputmode="numeric" value="${total % 60}" aria-label="Logged minutes"${dis}> <span>min</span>` +
+            `</div>` +
+            (o.note ? `<p class="logged-time-note" id="${p}Note">${o.note}</p>` : '') +
+            `</div>`;
+    }
+    // Reads the field. Returns { ms, changed } or { error }. Blank counts as 0; hours 0..24, minutes 0..59, total <= 24 h.
+    // `changed` compares against the minutes the field was drawn with. Missing field -> { absent: true }.
+    function readLoggedTime(idPrefix) {
+        const p = idPrefix || 'loggedTime';
+        const group = document.getElementById(`${p}Group`);
+        const hEl = document.getElementById(`${p}Hours`);
+        const mEl = document.getElementById(`${p}Minutes`);
+        if (!group || !hEl || !mEl) return { absent: true };
+        const h = hEl.value.trim() === '' ? 0 : Number(hEl.value);
+        const m = mEl.value.trim() === '' ? 0 : Number(mEl.value);
+        if (!Number.isInteger(h) || !Number.isInteger(m) || h < 0 || m < 0) return { error: 'Logged time must be whole hours and minutes.' };
+        if (m > 59) return { error: 'Minutes must be 0 to 59.' };
+        const total = h * 60 + m;
+        if (total > 24 * 60) return { error: 'Logged time can\u2019t be more than 24 hours.' };
+        const initial = Number(group.getAttribute('data-initial-min'));
+        return { ms: total * 60000, changed: total !== initial };
+    }
+
     return {
         createTaskFormHtml,
         createHabitFormHtml,
@@ -746,6 +786,9 @@ const Forms = (() => {
         readHabitGoalFields,
         habitWindowModeHtml,
         customHabitTimesError,
+        loggedTimeMinutes,
+        loggedTimeHtml,
+        readLoggedTime,
     };
 })();
 

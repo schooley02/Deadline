@@ -147,6 +147,31 @@ const State = (() => {
             console.error('Deadline: daily record bump failed', event, e);
         }
     }
+    /**
+     * adjustDayTimer -- Habit Goals Build 2c (DailyRecord v4). Applies a signed minutes delta (an edited logged time) to the
+     * record of `dateKey`: the OPEN day's working record, or that day's CLOSED record in `deadline.days`. Returns true when a
+     * record was corrected. A day with no record (the app never saw it, or it was rolled into a month) is left alone: false.
+     * A closed record is written back only when the correction actually changed it. Never throws.
+     */
+    function adjustDayTimer(dateKey, kind, deltaMin) {
+        try {
+            if (typeof DailyRecord === 'undefined' || !dateKey) return false;
+            const rec = ensureToday();
+            if (rec && rec.date === dateKey) {
+                DailyRecord.adjustTimer(rec, kind, deltaMin);
+                return true;
+            }
+            if (typeof Persistence === 'undefined') return false;
+            const store = DailyRecord.normalizeStore(Persistence.loadDays());
+            const closed = store.days[dateKey];
+            if (!closed || typeof closed !== 'object') return false;
+            if (DailyRecord.adjustTimer(closed, kind, deltaMin) === 0) return true; // nothing to change (e.g. already 0 minutes)
+            return Persistence.saveDays(store) !== false;
+        } catch (e) {
+            console.error('Deadline: daily record timer adjust failed', e);
+            return false;
+        }
+    }
     const getAchievements = () => achievements;
     const setAchievements = (obj) => { achievements = obj; };
     const getActiveItems = () => activeItems;
@@ -820,7 +845,7 @@ const State = (() => {
         getCurrentRunStats, setCurrentRunStats,
         getRunHistory, setRunHistory,
         getLifetimeStats, setLifetimeStats,
-        getToday, setToday, ensureToday, bumpToday, closeDailyRecord,
+        getToday, setToday, ensureToday, bumpToday, adjustDayTimer, closeDailyRecord,
         getAchievements, setAchievements,
         getActiveItems, setActiveItems,
         getCompletedItems, setCompletedItems,

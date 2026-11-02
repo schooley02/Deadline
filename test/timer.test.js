@@ -400,3 +400,51 @@ describe('logged time text (Build 2b)', () => {
         expect(Timer.buttonHtml({ type: 'task', timer: null, timerMsBanked: 0 }, 0)).toBe(Timer.ICON_SVG);
     });
 });
+
+describe('setLogged (Build 2c)', () => {
+    const habit = (o) => Object.assign({ type: 'habit', isNegative: true, timerMinutes: 30, timer: null, timerMsBanked: 20 * MIN }, o);
+
+    test('sets the logged total and returns the signed change in ms', () => {
+        const h = habit();
+        expect(Timer.setLogged(h, 35 * MIN)).toBe(15 * MIN);
+        expect(h.timerMsBanked).toBe(35 * MIN);
+        expect(Timer.setLogged(h, 10 * MIN)).toBe(-25 * MIN);
+        expect(h.timerMsBanked).toBe(10 * MIN);
+    });
+
+    test('works on a task that never had time, and on a completed item (no timer running)', () => {
+        const t = { type: 'task', completedAt: new Date() };
+        expect(Timer.setLogged(t, 45 * MIN)).toBe(45 * MIN);
+        expect(t.timerMsBanked).toBe(45 * MIN);
+    });
+
+    test('refuses while the timer is running: null, nothing changes', () => {
+        const h = habit({ timer: { startedAt: 1000, checkedAt: 1000, promptedAt: null } });
+        expect(Timer.setLogged(h, 5 * MIN)).toBeNull();
+        expect(h.timerMsBanked).toBe(20 * MIN);
+    });
+
+    test('clamps to 0..24 h and rejects non-numbers', () => {
+        const h = habit();
+        expect(Timer.setLogged(h, -5 * MIN)).toBe(-20 * MIN);
+        expect(h.timerMsBanked).toBe(0);
+        expect(Timer.setLogged(h, 99 * 60 * MIN)).toBe(24 * 60 * MIN);
+        expect(h.timerMsBanked).toBe(24 * 60 * MIN);
+        expect(Timer.setLogged(h, 'abc')).toBeNull();
+        expect(Timer.setLogged(null, MIN)).toBeNull();
+    });
+
+    test('setting 0 clears a paused hold; it never touches goalAcked or the answer', () => {
+        const h = habit({ timerPaused: true, goalAcked: true, outcome: 'indulged' });
+        Timer.setLogged(h, 0);
+        expect(h.timerPaused).toBe(false);
+        expect(h.goalAcked).toBe(true);
+        expect(h.outcome).toBe('indulged');
+    });
+
+    test('recordKind: Break habits are "limit", everything else "work"', () => {
+        expect(Timer.recordKind(habit())).toBe('limit');
+        expect(Timer.recordKind({ type: 'habit', isNegative: false })).toBe('work');
+        expect(Timer.recordKind({ type: 'task' })).toBe('work');
+    });
+});

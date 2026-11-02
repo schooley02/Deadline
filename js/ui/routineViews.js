@@ -1259,6 +1259,9 @@ const RoutineViews = (() => {
                     </div>
                     ${Forms.customHabitTimesHtml({ selectId: 'editHabitTimeOfDay', startId: 'editHabitStartTime', endId: 'editHabitEndTime', startValue: habitDef.startTime || '', endValue: habitDef.endTime || '', visible: habitDef.timeOfDay === 'custom' })}
                     ${Forms.habitGoalHtml('editHabit', Habits.goalOf(habitDef), !!habitDef.isNegative)}
+                    ${(opts && opts.fromCompleted === true && typeof opts.loggedMs === 'number')
+                        ? Forms.loggedTimeHtml({ idPrefix: 'editHabitLogged', ms: opts.loggedMs, note: 'Only changes this completed entry. It never changes whether you ' + (habitDef.isNegative ? 'resisted or slipped' : 'finished it') + '.' })
+                        : ''}
                     <div class="modal-buttons">
                         <button class="primary-button" onclick="saveEditedHabit('${habitDef.id}'${completedArg})">Save Changes</button>
                         <button class="secondary-button" onclick="closeModal()">Cancel</button>
@@ -1434,6 +1437,13 @@ const RoutineViews = (() => {
         }
         const goal = Habits.normalizeGoal(Forms.goalFromFields(goalFields));
         const data = { name, category, schedule, timeOfDay, isNegative, goal, startTime, endTime };
+        // Logged time of a completed entry (Habit Goals Build 2c): entry-level, so it rides along with the scope choice.
+        const loggedEdit = Forms.readLoggedTime('editHabitLogged');
+        if (loggedEdit.error) {
+            alert(loggedEdit.error);
+            return;
+        }
+        if (loggedEdit.changed) data.loggedMs = loggedEdit.ms;
         // Edit opened from the Completed list (2026-11-01): ask where the change applies before saving anything.
         if (completedItemId !== undefined && completedItemId !== null && completedItemId !== '') {
             showEditScopeChoice(habitId, data, deps, completedItemId);
@@ -1495,7 +1505,12 @@ const RoutineViews = (() => {
         const overlay = Modal.open(editScopeChoicesHtml((entry && entry.name) || data.name), { dedupeSelector: '#editScopeModal' });
         if (!overlay) return;
         const apply = (scope) => {
-            if ((scope === 'both' || scope === 'entry') && entry) Habits.applyEntryEdit(entry, data);
+            if ((scope === 'both' || scope === 'entry') && entry) {
+                Habits.applyEntryEdit(entry, data);
+                // The habit definition has no logged time, so "this entry" and "this entry + all following" both change it;
+                // "all following only" leaves this entry's time alone.
+                if (data.loggedMs !== undefined && typeof deps.setLoggedTime === 'function') deps.setLoggedTime(entry.id, data.loggedMs);
+            }
             if (scope === 'both' || scope === 'following') commitEditedHabit(habitId, data, deps); // saves + closes
             else { deps.saveGame(); Modal.closeModal(); }
             if (typeof deps.renderCompletedItems === 'function') deps.renderCompletedItems();

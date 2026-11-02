@@ -706,6 +706,8 @@ const Items = (() => {
 
         // Move item to completed list
         item.completedAt = new Date();
+        // Habit Goals Build 2c (Decision 15): a Break habit's Completed entry is a Resisted one (green tag); code word 'avoided'.
+        if (item.type === 'habit' && item.isNegative === true) item.outcome = 'avoided';
         deps.completedItems().push(item);
         // Daily record (D2): `late` = completed after it went overdue.
         recordDaily(deps, 'complete', {
@@ -1018,6 +1020,14 @@ const Items = (() => {
         const habitDef = deps.definedHabits().find(def => def.id === item.definitionId);
         if (habitDef) {
             habitDef.pendingCheckIn = { originalDueDate: item.originalDueDate };
+            // Habit Goals Build 2c: what a Slipped answer on the check-in card keeps in Completed (the lurker itself is
+            // removed below). Plain values only, so it saves and loads as JSON.
+            habitDef.pendingCheckIn.entry = {
+                name: item.name, category: item.category,
+                goal: item.goal || null,
+                timerMinutes: typeof item.timerMinutes === 'number' ? item.timerMinutes : null,
+                timerMsBanked: typeof item.timerMsBanked === 'number' ? item.timerMsBanked : 0,
+            };
         }
         removeItem(item.id, deps);
     }
@@ -1110,8 +1120,21 @@ const Items = (() => {
                 deps.recordLifetime('streakReached', habitDef.streak);
             }
         } else if (outcome === 'indulged') {
+            // Habit Goals Build 2c: the Slipped answer is kept in Completed too (the lurker was removed at rollover, so the
+            // entry is rebuilt from the snapshot markPendingCheckIn saved). Logged time from that day rides along.
+            const snap = habitDef.pendingCheckIn.entry;
+            const makeSlipEntry = () => ({
+                id: typeof deps.getNextId === 'function' ? deps.getNextId() : Date.now(),
+                type: 'habit', definitionId: habitDef.id, isNegative: true,
+                name: (snap && snap.name) || habitDef.name, category: (snap && snap.category) || habitDef.category,
+                goal: (snap && snap.goal) || null,
+                timerMinutes: snap && typeof snap.timerMinutes === 'number' ? snap.timerMinutes : null,
+                timerMsBanked: snap && typeof snap.timerMsBanked === 'number' ? snap.timerMsBanked : 0,
+                timer: null, originalDueDate, dueDateTime: originalDueDate, element: null, listItemElement: null,
+            });
             if (isCheatDayExcused(habitDef, originalDueDate)) {
                 habitDef.cheatDayDate = null;
+                keepSlippedEntry(makeSlipEntry(), { cheatDayExcused: true }, deps);
             } else {
                 const result = Habits.applyHabitIndulgence(
                     habitDef.streak, habitDef.occurrenceHistory, habitDef.isNegative, originalDueDate, config
@@ -1124,6 +1147,7 @@ const Items = (() => {
                     // Frozen routine slots: 'indulged' is a failure occurrence
                     // for a negative habit — check the freeze trigger.
                     maybeFreezeRoutine(habitDef, deps);
+                    keepSlippedEntry(makeSlipEntry(), null, deps);
                 }
             }
         }
@@ -1131,6 +1155,21 @@ const Items = (() => {
         delete habitDef.pendingCheckIn;
         deps.updatePlayerDisplays();
         deps.saveGame();
+    }
+
+    /**
+     * Habit Goals Build 2c (Decision 15, 2026-11-01): a Slipped Break habit is KEPT in the Completed list, tagged Slipped, so
+     * its logged time can be seen and edited like any other entry. It is NOT a completion: it carries `outcome: 'indulged'`
+     * (code word; the UI says Slipped) and nothing that counts completions reads habit entries from this list. No undo.
+     * `extra` merges onto the entry (e.g. { cheatDayExcused: true }). Re-renders the list when the dep exists.
+     */
+    function keepSlippedEntry(entry, extra, deps) {
+        if (!entry || typeof deps.completedItems !== 'function') return;
+        entry.outcome = 'indulged';
+        entry.completedAt = new Date();
+        if (extra) Object.assign(entry, extra);
+        deps.completedItems().push(entry);
+        if (typeof deps.renderCompletedItems === 'function') deps.renderCompletedItems();
     }
 
     /**
@@ -1147,9 +1186,10 @@ const Items = (() => {
      * negative-habit instance (applyHabitIndulgence's own no-op guard also
      * covers a misrouted positive habit, belt-and-suspenders).
      *
-     * Deliberately does NOT push into completedItems / call
-     * renderCompletedItems: indulging is a lapse, not an accomplishment, so
-     * it shouldn't appear in the completed list. The fade-and-remove exit
+     * Since Habit Goals Build 2c (2026-11-01) the item IS kept in the Completed list as a Slipped
+     * entry (keepSlippedEntry; it is not a completion and counts for nothing), so its logged time
+     * stays visible and editable. Before that it was dropped, on the reasoning that a lapse isn't an
+     * accomplishment. The fade-and-remove exit
      * mirrors completeItem's animation (no separate "got you" asset exists
      * yet — same visual treatment, different bookkeeping).
      *
@@ -1188,6 +1228,7 @@ const Items = (() => {
 
         if (isCheatDayExcused(habitDef, item.originalDueDate)) {
             // Marker intentionally kept — see the header comment (session 57).
+            keepSlippedEntry(item, { cheatDayExcused: true }, deps);
             deps.updatePlayerDisplays();
             deps.saveGame();
         } else {
@@ -1210,6 +1251,7 @@ const Items = (() => {
             // Frozen routine slots: this indulge is a failure occurrence for
             // a negative habit — check the freeze trigger.
             maybeFreezeRoutine(habitDef, deps);
+            keepSlippedEntry(item, null, deps);
             deps.updatePlayerDisplays();
             deps.saveGame();
         }
@@ -1224,6 +1266,37 @@ const Items = (() => {
         setTimeout(() => {
             removeItem(itemId, deps);
         }, 500);
+    }
+
+    /**
+     * setLoggedTime -- Habit Goals Build 2c (2026-11-01, plan Decisions 12-14). Sets an item's logged time (`timerMsBanked`)
+     * to `ms`, whether the item is still active or already in the Completed list (done / Resisted / Slipped), and corrects the
+     * daily record by the difference on the item's OWN day: an active item -> today's working record; a completed item -> the
+     * day of `completedAt` (the open record, or that day's closed record in deadline.days). An edit NEVER changes the answer
+     * (done / Resisted / Slipped), points, XP or streaks, and it is refused while the timer is running (pause first).
+     * deps: { activeItems, completedItems (getter), adjustDayTimer(when: Date, kind, deltaMin), saveGame,
+     *         renderCompletedItems? }. Returns { ok, deltaMin, completed } or { ok:false, reason }.
+     */
+    function setLoggedTime(itemId, ms, deps) {
+        if (typeof Timer === 'undefined') return { ok: false, reason: 'unavailable' };
+        // Completed list first: a just-answered item can still sit in activeItems for its 0.5 s exit animation.
+        const done = (typeof deps.completedItems === 'function') ? (deps.completedItems().find(i => i.id === itemId) || null) : null;
+        const active = done ? null : (deps.activeItems || []).find(i => i.id === itemId);
+        const item = done || active;
+        if (!item) return { ok: false, reason: 'missing' };
+        if (Timer.isRunning(item)) return { ok: false, reason: 'running' };
+        const delta = Timer.setLogged(item, ms);
+        if (delta === null) return { ok: false, reason: 'invalid' };
+        const deltaMin = delta / 60000;
+        if (deltaMin !== 0 && typeof deps.adjustDayTimer === 'function') {
+            try {
+                const when = done && item.completedAt ? new Date(item.completedAt) : new Date();
+                deps.adjustDayTimer(when, Timer.recordKind(item), deltaMin);
+            } catch (e) { /* a stats bug must never lose the edit */ }
+        }
+        if (typeof deps.saveGame === 'function') deps.saveGame();
+        if (done && typeof deps.renderCompletedItems === 'function') deps.renderCompletedItems();
+        return { ok: true, deltaMin, completed: !!done };
     }
 
     /**
@@ -1245,6 +1318,13 @@ const Items = (() => {
         if (completedIndex === -1) return;
 
         const item = deps.completedItems()[completedIndex];
+
+        // Habit Goals Build 2c (Decision 15): a Slipped entry has no undo in v1 (it would have to give back the points and the
+        // streak). Its checkbox is replaced by a tag in the list; this is the backstop for any other caller.
+        if (item.outcome === 'indulged') {
+            if (typeof deps.renderCompletedItems === 'function') deps.renderCompletedItems();
+            return;
+        }
 
         // A completed row whose habit was since archived ("deleted") can't be
         // undone — it would respawn a zombie for a habit that no longer
@@ -1276,8 +1356,9 @@ const Items = (() => {
         const dailyWasLate = item.isOverdue === true;
         let dailyPointsLost = 0;
 
-        // Remove completion timestamp
+        // Remove completion timestamp (and the Resisted tag: it is a live zombie again)
         delete item.completedAt;
+        delete item.outcome;
 
         // Reset overdue status (they can start fresh)
         item.isOverdue = false;
@@ -1709,6 +1790,7 @@ const Items = (() => {
         clampSubTasksToParentDeadline,
         completeItem,
         indulgeHabit,
+        setLoggedTime,
         removeItem,
         settleStaleRecurringInstance,
         markPendingCheckIn,

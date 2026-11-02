@@ -148,7 +148,7 @@ describe('State.closeDailyRecord banks the routines\' stars', () => {
         State.closeDailyRecord(NEXT_DAY(), { routineStarsNow: () => ({ 1: 4, 2: 2 }) });
         const day = JSON.parse(store['deadline.days']).days['2026-10-26'];
         expect(day.stars).toEqual({ 1: 4, 2: 2 });
-        expect(day.v).toBe(3);
+        expect(day.v).toBe(4);
     });
 
     test('no collaborator (tests, older callers) or a throwing one still closes the day, with nothing banked', () => {

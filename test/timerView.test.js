@@ -75,3 +75,54 @@ describe('TimerView.showGoalReached', () => {
         expect(document.querySelectorAll('#goalReachedOverlay')).toHaveLength(1);
     });
 });
+
+describe('TimerView.showLoggedTimeEditor (Habit Goals Build 2c)', () => {
+    beforeEach(() => { global.Forms = require('../js/ui/forms.js'); });
+    afterEach(() => { delete global.Forms; });
+    const mins = (m) => m * 60000;
+
+    test('asks how much time was really spent, prefilled with the given value, naming the logged total', () => {
+        TimerView.showLoggedTimeEditor(item, { loggedMinutes: 95, prefillMs: mins(60) }, {});
+        const o = document.getElementById('loggedTimeOverlay');
+        expect(o.querySelector('p').textContent).toContain('1 hr 35 min');
+        expect(o.querySelector('p').textContent).toContain('actually spend');
+        expect(document.getElementById('editorLoggedHours').value).toBe('1');
+        expect(document.getElementById('editorLoggedMinutes').value).toBe('0');
+        expect(document.getElementById('loggedTimeSkip').textContent).toBe('Keep 1 hr 35 min logged');
+    });
+
+    test('Save time hands back the typed milliseconds (even if unchanged from the prefill) and closes', () => {
+        const h = { onSave: jest.fn(), onSkip: jest.fn() };
+        TimerView.showLoggedTimeEditor(item, { loggedMinutes: 95, prefillMs: mins(60) }, h);
+        document.getElementById('editorLoggedMinutes').value = '20';
+        document.getElementById('loggedTimeSave').click();
+        expect(h.onSave).toHaveBeenCalledWith(mins(80));
+        expect(h.onSkip).not.toHaveBeenCalled();
+        expect(document.getElementById('loggedTimeOverlay')).toBeNull();
+    });
+
+    test('an invalid entry shows the error and keeps the prompt open', () => {
+        const h = { onSave: jest.fn() };
+        TimerView.showLoggedTimeEditor(item, { loggedMinutes: 10, prefillMs: mins(10) }, h);
+        document.getElementById('editorLoggedMinutes').value = '75';
+        document.getElementById('loggedTimeSave').click();
+        expect(h.onSave).not.toHaveBeenCalled();
+        expect(document.getElementById('editorLoggedError').textContent).toMatch(/0 to 59/);
+        expect(document.getElementById('loggedTimeOverlay')).not.toBeNull();
+    });
+
+    test('Keep ... logged leaves the timer total alone', () => {
+        const h = { onSave: jest.fn(), onSkip: jest.fn() };
+        TimerView.showLoggedTimeEditor(item, { loggedMinutes: 95, prefillMs: mins(60) }, h);
+        document.getElementById('loggedTimeSkip').click();
+        expect(h.onSkip).toHaveBeenCalled();
+        expect(h.onSave).not.toHaveBeenCalled();
+    });
+
+    test('never opens two at once; the item name is escaped', () => {
+        TimerView.showLoggedTimeEditor(item, { loggedMinutes: 5, prefillMs: 0 }, {});
+        expect(TimerView.showLoggedTimeEditor(item, { loggedMinutes: 5, prefillMs: 0 }, {})).toBeNull();
+        expect(document.querySelectorAll('#loggedTimeOverlay')).toHaveLength(1);
+        expect(document.querySelector('#loggedTimeOverlay h3 b')).toBeNull();
+    });
+});

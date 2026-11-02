@@ -228,6 +228,21 @@ const Popups = (() => {
         `;
     }
 
+    // Logged time (Habit Goals Build 2c): an hours + minutes field with its own Save, shown for any item that has (or can
+    // have) a timer. Disabled while the timer runs (pause first). An edit never changes the answer.
+    function hasLoggedTimeField(item, deps) {
+        return typeof deps.setLoggedTime === 'function' && typeof Timer !== 'undefined' && typeof Forms !== 'undefined'
+            && (Timer.canTimer(item) || Timer.hasLogged(item));
+    }
+    const LOGGED_RUNNING_NOTE = 'Pause the timer to edit the logged time.';
+    function buildLoggedTimeSectionHtml(item, deps) {
+        if (!hasLoggedTimeField(item, deps)) return '';
+        const running = Timer.isRunning(item);
+        return `<div class="logged-time-section">${Forms.loggedTimeHtml({ idPrefix: 'popupLogged', ms: item.timerMsBanked, disabled: running, note: running ? LOGGED_RUNNING_NOTE : '' })}` +
+            `<div class="logged-time-actions"><button type="button" id="popupLoggedSave" class="secondary-button"${running ? ' disabled' : ''}>Save time</button>` +
+            `<span id="popupLoggedMsg" class="logged-time-msg" role="status" aria-live="polite"></span></div></div>`;
+    }
+
     function showTaskDetailsPopup(item, deps) {
         const modalHtml = `
             <div class="modal-overlay">
@@ -244,6 +259,7 @@ const Popups = (() => {
                         ${item.type === 'habit' ? `<p><strong>Streak:</strong> ${item.streak}</p>` : ''}
                         ${(item.type === 'habit' && typeof Habits !== 'undefined' && Habits.formatGoal && Habits.formatGoal(item.goal, item.isNegative))
                             ? `<p class="habit-goal-line"><strong>${item.isNegative ? 'Limit' : 'Goal'}:</strong> ${Habits.formatGoal(item.goal, item.isNegative).replace(/^(Goal|Limit): /, '').replace(/</g, '&lt;')}</p>` : ''}
+                        ${buildLoggedTimeSectionHtml(item, deps)}
                         ${buildActionsHtml(item, deps)}
                     </div>
                 </div>
@@ -320,6 +336,8 @@ const Popups = (() => {
 
         const workTimerButton = document.getElementById('workTimerBtn');
         const workTimerStopButton = document.getElementById('workTimerStopBtn');
+        const loggedSave = document.getElementById('popupLoggedSave');
+        const loggedMsg = document.getElementById('popupLoggedMsg');
         if (workTimerButton) {
             // Main button: start / resume when idle, pause when running; the Stop icon beside it (shown while running)
             // ends the session. Time is kept either way.
@@ -337,10 +355,41 @@ const Popups = (() => {
                     const caption = document.getElementById('workTimerCaption');
                     if (caption) caption.classList.toggle('over', over);
                     if (workTimerStopButton) workTimerStopButton.hidden = !Timer.controlState(item).stop;
+                    // Logged-time field: locked while the timer runs, refreshed from the banked total otherwise.
+                    const running = Timer.isRunning(item);
+                    const lh = document.getElementById('popupLoggedHours');
+                    const lm = document.getElementById('popupLoggedMinutes');
+                    if (lh && lm) {
+                        lh.disabled = running; lm.disabled = running;
+                        if (loggedSave) loggedSave.disabled = running;
+                        if (!running) {
+                            const total = Forms.loggedTimeMinutes(item.timerMsBanked);
+                            lh.value = String(Math.floor(total / 60)); lm.value = String(total % 60);
+                            const g = document.getElementById('popupLoggedGroup');
+                            if (g) g.setAttribute('data-initial-min', String(total));
+                        }
+                        if (loggedMsg) loggedMsg.textContent = running ? LOGGED_RUNNING_NOTE : '';
+                    }
                 }
             };
             workTimerButton.addEventListener('click', () => timerClick());
             if (workTimerStopButton) workTimerStopButton.addEventListener('click', () => timerClick('stop'));
+        }
+
+        // Logged-time field: Save time sets it through deps.setLoggedTime (daily record corrected by the difference).
+        if (loggedSave) {
+            loggedSave.addEventListener('click', () => {
+                const say = (t) => { if (loggedMsg) loggedMsg.textContent = t; };
+                const r = Forms.readLoggedTime('popupLogged');
+                if (r.error) { say(r.error); return; }
+                if (r.absent || !r.changed) { say('No change.'); return; }
+                const res = deps.setLoggedTime(item.id, r.ms);
+                if (!res || !res.ok) { say(res && res.reason === 'running' ? LOGGED_RUNNING_NOTE : 'Couldn\u2019t save the time.'); return; }
+                const group = document.getElementById('popupLoggedGroup');
+                if (group) group.setAttribute('data-initial-min', String(Forms.loggedTimeMinutes(r.ms)));
+                if (workTimerButton) workTimerButton.innerHTML = Timer.popupHtml(item);
+                say('Saved.');
+            });
         }
 
         if (editButton) {
@@ -522,6 +571,7 @@ const Popups = (() => {
                     </div>
                     ${Forms.startDueTimeGroupHtml({ startId: 'editStartTime', dueId: 'editDueTime', startValue: startTime, dueValue: dueTime, startAttrs: `data-initial="${startTime}"` })}
                     <p id="editRescheduleNote" class="reschedule-note" aria-live="polite"></p>
+                    ${hasLoggedTimeField(item, deps) ? Forms.loggedTimeHtml({ idPrefix: 'editLogged', ms: item.timerMsBanked, disabled: Timer.isRunning(item), note: Timer.isRunning(item) ? LOGGED_RUNNING_NOTE : '' }) : ''}
                     <div class="modal-buttons">
                         <button id="saveTaskChanges" class="primary-button">Save Changes</button>
                         <button class="secondary-button" onclick="closeModal()">Cancel</button>
@@ -614,6 +664,13 @@ const Popups = (() => {
                     return;
                 }
 
+                // Logged time (Habit Goals Build 2c): validated with the other fields, applied after they save.
+                const loggedEdit = Forms.readLoggedTime('editLogged');
+                if (loggedEdit.error) {
+                    alert(loggedEdit.error);
+                    return;
+                }
+
                 // Price against the CURRENT due (before it's overwritten) and
                 // re-check affordability at click time.
                 const reschedule = (typeof deps.reschedulePricingFor === 'function')
@@ -681,6 +738,8 @@ const Popups = (() => {
                 }
 
                 deps.sortAndRenderActiveList();
+                // The logged time is an entry-level edit; it never changes the answer (done / Resisted / Slipped).
+                if (loggedEdit.changed && typeof deps.setLoggedTime === 'function') deps.setLoggedTime(item.id, loggedEdit.ms);
                 deps.saveGame();
                 Modal.closeModal();
             });

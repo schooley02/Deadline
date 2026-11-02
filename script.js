@@ -739,6 +739,8 @@ document.addEventListener('DOMContentLoaded', () => {
             onItemDefeated: (item) => heroAttackOnDefeat(item),
             // Daily record (D2, 2026-10-27): every gameplay seam bumps through here.
             recordDaily: State.bumpToday,
+            // Habit Goals Build 2c: an edited logged time corrects the daily record of the item's own day.
+            adjustDayTimer: (when, kind, deltaMin) => State.adjustDayTimer(DailyRecord.dateKey(when), kind, deltaMin),
             onRoutineDamaged: (routine) => {
                 // Hero spotlight `hurt` row: only plays on a hero that is already on screen.
                 if (heroSpotlightReady) HeroSpotlight.react(routine.id, 'hurt');
@@ -898,6 +900,7 @@ document.addEventListener('DOMContentLoaded', () => {
             reschedulePricingFor,
             commitReschedule,
             toggleWorkTimer,
+            setLoggedTime,
             // Cheat Day targeting ([P1-DATA-005] sub-session 5, 2026-07-19):
             // held count for the popup's "Use Cheat Day (N held)" button,
             // whether THIS lurker's day already has one active (shows the
@@ -1251,6 +1254,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return { ok: true, running: Timer.isRunning(item) };
     }
 
+    // Logged-time edit (Habit Goals Build 2c): active or completed item; refuses while the timer runs.
+    // Returns Items.setLoggedTime's { ok, deltaMin, completed } | { ok:false, reason }.
+    function setLoggedTime(itemId, ms) {
+        const r = Items.setLoggedTime(itemId, ms, itemsDeps());
+        if (r.ok) updateTimerButtons(Date.now());
+        return r;
+    }
+
     // Goal reached (Habit Goals Build 2): the 4-button popup. One popup per timer run: if the player
     // dismisses it (tap outside / Esc) it does not re-open every tick; the timer keeps running and it
     // asks again on the next app open (goalAcked is only set by a real answer).
@@ -1292,7 +1303,19 @@ document.addEventListener('DOMContentLoaded', () => {
             loggedMinutes: Timer.loggedMinutes(item, nowMs),
         }, {
             onSlipped: () => { Items.indulgeHabit(item.id, itemsDeps()); refresh(); },
-            onWithin: () => { Items.completeItem(item.id, itemsDeps()); refresh(); },
+            // "I stayed within it" = Resisted, the timer stops, then the real time spent is asked (Build 2c): the field
+            // starts at the limit; "Keep ... logged" leaves the timer's own total.
+            onWithin: () => {
+                const limitMs = item.timerMinutes * 60000;
+                Items.completeItem(item.id, itemsDeps());
+                refresh();
+                // One tick later: this click is still bubbling, and the dismiss handler must not see the new overlay.
+                const loggedMinutes = Timer.loggedMinutes(item, Date.now());
+                setTimeout(() => TimerView.showLoggedTimeEditor(item, {
+                    loggedMinutes,
+                    prefillMs: limitMs,
+                }, { onSave: (ms) => { setLoggedTime(item.id, ms); } }), 0);
+            },
             onMistake: () => { Timer.discardSession(item, Date.now()); refresh(); },
             onKeepGoing: () => { Timer.acknowledgeGoal(item); saveGame(); },
         });
@@ -1967,6 +1990,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // 2026-11-01: Edit Habit from the Completed list edits one completed entry (name/category/goal) and re-renders the list.
             completedItems: State.getCompletedItems,
             renderCompletedItems: () => AgendaList.renderCompletedItems(agendaListDeps()),
+            // Habit Goals Build 2c: the completed entry's logged time is part of its entry edit.
+            setLoggedTime,
             // 2026-10-21: saveEditedHabit retimes today's instance, then re-evaluates overdue state.
             recomputeOverdueStateAfterEdit: (item) => Items.recomputeOverdueStateAfterEdit(item, itemsDeps()),
             // [P1-UI-006] sub-session 4, 2026-07-19 — star-rating window start

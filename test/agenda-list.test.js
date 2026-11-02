@@ -637,3 +637,86 @@ describe('AgendaList.showEditHabitInstanceModal — passes opts to the habit for
         expect(form).toHaveBeenCalledWith(null, def, { fromCompleted: true, completedItemId: 'i1' });
     });
 });
+
+describe('AgendaList.renderCompletedItems — Break habit answers (Habit Goals Build 2c, Decision 15)', () => {
+    let completedTasksSection, completedItemsList;
+    const categoryStyles2 = { lifestyle: { bgColor: '#123456' }, other: { bgColor: '#ccc' } };
+
+    beforeEach(() => {
+        completedTasksSection = makeElement('div');
+        completedItemsList = makeElement('ul');
+        const elementsById = { completedTasksSection, completedItemsList };
+        global.document.getElementById = jest.fn(id => elementsById[id]);
+        global.Timer = require('../js/timer.js');
+    });
+    afterEach(() => { delete global.Timer; });
+
+    const entry = (o) => Object.assign({
+        id: 'b1', type: 'habit', definitionId: 'd1', isNegative: true, name: 'Social media', category: 'lifestyle',
+        completedAt: new Date('2026-11-01T20:00:00Z'), timerMsBanked: 0,
+    }, o);
+    function render(items, over) {
+        const deps = Object.assign({
+            completedItems: () => items, categoryStyles: categoryStyles2,
+            definedHabits: () => [{ id: 'd1' }],
+            showEditTaskModal: jest.fn(), showEditHabitInstanceModal: jest.fn(), uncompleteItem: jest.fn(),
+        }, over);
+        AgendaList.renderCompletedItems(deps);
+        return deps;
+    }
+    const checkboxes = (li) => walk(li).filter(e => e.tagName === 'input' && e.type === 'checkbox');
+
+    test('a Slipped entry is kept: red Slipped tag, muted row, NO checkbox (no undo)', () => {
+        render([entry({ outcome: 'indulged' })]);
+        const li = completedItemsList.children[0];
+        expect(li.classList.contains('completed-item-slipped')).toBe(true);
+        const tag = findByClass(li, 'outcome-tag')[0];
+        expect(tag.textContent).toBe('Slipped');
+        expect(tag.classList.contains('slipped')).toBe(true);
+        expect(checkboxes(li)).toHaveLength(0);
+        expect(findByClass(li, 'edit-icon-btn')).toHaveLength(1); // still editable
+    });
+
+    test('a Cheat Day slip says so', () => {
+        render([entry({ outcome: 'indulged', cheatDayExcused: true })]);
+        expect(findByClass(completedItemsList.children[0], 'outcome-tag')[0].textContent).toBe('Slipped (Cheat Day)');
+    });
+
+    test('a Resisted entry gets a green tag and keeps its checkbox (undo allowed)', () => {
+        const deps = render([entry({ outcome: 'avoided' })]);
+        const li = completedItemsList.children[0];
+        const tag = findByClass(li, 'outcome-tag')[0];
+        expect(tag.textContent).toBe('Resisted');
+        expect(tag.classList.contains('resisted')).toBe(true);
+        expect(li.classList.contains('completed-item-slipped')).toBe(false);
+        const boxes = checkboxes(li);
+        expect(boxes).toHaveLength(1);
+        boxes[0].checked = false;
+        boxes[0].fire('change');
+        expect(deps.uncompleteItem).toHaveBeenCalledWith('b1');
+    });
+
+    test('ordinary entries (tasks, Build habits) carry no tag and still say Completed', () => {
+        render([entry({ isNegative: false, id: 'b2' }), { id: 't1', type: 'task', name: 'Task', category: 'other', completedAt: new Date('2026-11-01T19:00:00Z') }]);
+        completedItemsList.children.forEach(li => {
+            expect(findByClass(li, 'outcome-tag')).toHaveLength(0);
+            expect(walk(li).some(e => /^Completed: /.test(e.textContent || ''))).toBe(true);
+        });
+    });
+
+    test('logged time shows on a Slipped entry, and its edit opens the habit editor with the logged time', () => {
+        const deps = render([entry({ outcome: 'indulged', timerMinutes: 60, timerMsBanked: 75 * 60000 })]);
+        const li = completedItemsList.children[0];
+        expect(walk(li).some(e => e.textContent === 'Logged: 1 hr 15 min')).toBe(true);
+        findByClass(li, 'edit-icon-btn')[0].fire('click');
+        expect(deps.showEditHabitInstanceModal).toHaveBeenCalledWith(
+            expect.objectContaining({ id: 'b1' }),
+            { fromCompleted: true, completedItemId: 'b1', loggedMs: 75 * 60000 });
+    });
+
+    test('an entry that could never have had timer time offers no logged-time field', () => {
+        const deps = render([entry({ outcome: 'avoided' })]);
+        findByClass(completedItemsList.children[0], 'edit-icon-btn')[0].fire('click');
+        expect(deps.showEditHabitInstanceModal).toHaveBeenCalledWith(expect.anything(), { fromCompleted: true, completedItemId: 'b1' });
+    });
+});

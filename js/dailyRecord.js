@@ -34,12 +34,16 @@
  *   reschedule  {}
  *   ko / revive {}
  *   timer       {kind:'work'|'limit', minutes}
+ * adjustTimer(rec, kind, deltaMin) is the one NON-bump writer: it corrects timer.workMin / limitMin by a signed delta
+ * when a logged time is edited (v4), on the item's own day -- today's working record or a closed one.
  *   touch       {hour|at}                            any UI interaction
  */
 const DailyRecord = (() => {
     // v2 (2026-10-30, village High school): `rt` (open-day per-routine tally) + `att` (closed-day routine attendance).
     // v3 (2026-10-31, High school v2): `stars` = { "<routineId>": 0..5 }, the hero star rating each routine banked when the day closed.
-    const V = 3;
+    // v4 (2026-11-01, Habit Goals Build 2c): `timer.edits` (count) + `timer.editMin` (signed net minutes) record corrections made when
+    // the player edits a logged time, so insights can tell measured time from corrected time. `adjustTimer` applies the edit.
+    const V = 4;
 
     // Mirrors CONFIG.HERO_CATEGORIES (test/dailyRecord.test.js checks they
     // match). Kept local so this module has no global dependencies.
@@ -117,7 +121,7 @@ const DailyRecord = (() => {
             resched: 0,
             ko: 0,
             revived: 0,
-            timer: { workMin: 0, limitMin: 0 },
+            timer: { workMin: 0, limitMin: 0, edits: 0, editMin: 0 },
             streak: { best: 0 },
             // Routine attendance (v2). `rt` is the OPEN day's tally, { "<routineId>": [done, missed, lateDone] } (opaque numeric ids,
             // no names); close() folds it into `att` and clears it. att.active = routines with activity that day, att.perfect = how
@@ -218,6 +222,30 @@ const DailyRecord = (() => {
         if (rec.base) { f.base.endHp = rec.base.endHp != null ? rec.base.endHp : null; f.base.minHp = rec.base.minHp != null ? rec.base.minHp : null; }
         f.v = rec.v != null ? rec.v : V;
         return f;
+    }
+
+    /**
+     * Correct a day's timer minutes by a signed delta (an edited logged time, v4). `kind` is 'work' | 'limit'. The
+     * minutes never go below 0; `timer.editMin` records the delta actually APPLIED (so measured = total - editMin) and
+     * `timer.edits` counts the edits. A zero / invalid delta, or one the floor swallows, changes nothing. Works on older (v3) records that lack the
+     * edit counters. Returns the delta applied in minutes (0 when nothing changed).
+     */
+    function adjustTimer(rec, kind, deltaMin) {
+        if (!rec || typeof rec !== 'object') return 0;
+        const d = Number(deltaMin);
+        if (!Number.isFinite(d) || d === 0) return 0;
+        const key = kind === 'limit' ? 'limitMin' : kind === 'work' ? 'workMin' : null;
+        if (!key) return 0;
+        if (!rec.timer || typeof rec.timer !== 'object') rec.timer = {};
+        const t = rec.timer;
+        const before = Number.isFinite(t[key]) ? t[key] : 0;
+        const after = Math.max(0, before + d);
+        const applied = after - before;
+        if (applied === 0) return 0; // e.g. a negative edit on a day already at 0 minutes: nothing to correct, nothing to count
+        t[key] = after;
+        t.edits = (Number.isFinite(t.edits) ? t.edits : 0) + 1;
+        t.editMin = (Number.isFinite(t.editMin) ? t.editMin : 0) + applied;
+        return applied;
     }
 
     function dec(n) { return n > 0 ? n - 1 : 0; }
@@ -597,6 +625,7 @@ const DailyRecord = (() => {
         addDay,
         rollUp,
         mergeStores,
+        adjustTimer,
     };
 })();
 

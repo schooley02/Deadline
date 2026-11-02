@@ -782,6 +782,12 @@ const AgendaList = (() => {
                 const li = document.createElement('li');
                 li.classList.add('completed-item');
                 li.classList.add(`category-${item.category}`);
+                // Habit Goals Build 2c (Decision 15): a Break habit's answer. Slipped is kept here as a muted, tagged entry
+                // (no checkbox, no undo); Resisted gets a green tag. Code words: 'indulged' = Slipped, 'avoided' = Resisted.
+                const isSlipped = item.outcome === 'indulged';
+                const isResisted = item.outcome === 'avoided';
+                if (isSlipped) li.classList.add('completed-item-slipped');
+                if (isResisted) li.classList.add('completed-item-resisted');
 
                 // Create sprite column
                 const itemSpriteDiv = document.createElement('div');
@@ -797,12 +803,18 @@ const AgendaList = (() => {
 
                 const itemCompletedSpan = document.createElement('span');
                 itemCompletedSpan.classList.add('item-completed');
-                itemCompletedSpan.textContent = `Completed: ${item.completedAt.toLocaleString([], {
+                itemCompletedSpan.textContent = `${(isSlipped || isResisted) ? 'Answered' : 'Completed'}: ${item.completedAt.toLocaleString([], {
                     dateStyle: 'short',
                     timeStyle: 'short'
                 })}`;
 
                 itemInfoDiv.appendChild(itemNameSpan);
+                if (isSlipped || isResisted) {
+                    const outcomeTag = document.createElement('span');
+                    outcomeTag.classList.add('outcome-tag', isSlipped ? 'slipped' : 'resisted');
+                    outcomeTag.textContent = isSlipped ? (item.cheatDayExcused ? 'Slipped (Cheat Day)' : 'Slipped') : 'Resisted';
+                    itemInfoDiv.appendChild(outcomeTag);
+                }
                 itemInfoDiv.appendChild(itemCompletedSpan);
                 // Logged time (Habit Goals Build 2b): any entry with timer time shows it, e.g. "Logged: 45 min".
                 if (typeof Timer !== 'undefined' && Timer.loggedText && Timer.hasLogged(item)) {
@@ -840,12 +852,25 @@ const AgendaList = (() => {
                     && typeof deps.definedHabits === 'function' && deps.definedHabits().some(d => d.id === item.definitionId);
                 if (habitDefOk) editIconButton.title = 'Edit Habit';
                 editIconButton.addEventListener('click', () => {
-                    if (habitDefOk) deps.showEditHabitInstanceModal(item, { fromCompleted: true, completedItemId: item.id });
+                    // loggedMs (Build 2c): the completed entry's logged time is editable inside the habit editor when the entry
+                    // has (or could have had) timer time. The task editor shows its own Logged time field.
+                    const canLog = typeof Timer !== 'undefined' && (Timer.hasLogged(item) || (typeof item.timerMinutes === 'number' && item.timerMinutes > 0));
+                    const editOpts = { fromCompleted: true, completedItemId: item.id };
+                    if (canLog) editOpts.loggedMs = (typeof item.timerMsBanked === 'number' && item.timerMsBanked > 0) ? item.timerMsBanked : 0;
+                    if (habitDefOk) deps.showEditHabitInstanceModal(item, editOpts);
                     else deps.showEditTaskModal(item);
                 });
                 itemStatusDiv.appendChild(editIconButton);
 
-                // Completion checkbox (pre-checked for completed items)
+                // Completion checkbox (pre-checked for completed items). A Slipped entry has none: the tag above replaces it
+                // (no undo in v1, Decision 15).
+                if (isSlipped) {
+                    li.appendChild(itemSpriteDiv);
+                    li.appendChild(itemInfoDiv);
+                    li.appendChild(itemStatusDiv);
+                    completedItemsList.appendChild(li);
+                    return;
+                }
                 const completeCheckboxLabel = document.createElement('label');
                 completeCheckboxLabel.classList.add('completion-checkbox');
 

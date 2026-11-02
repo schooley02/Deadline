@@ -140,7 +140,7 @@ describe('bump', () => {
         expect(r.pts.spent).toBe(40);
         expect(r.tokens).toEqual({ cheat: 0, sick: 0, skip: 0, pushback: 1, kit: 1 });
         expect([r.resched, r.ko, r.revived]).toEqual([1, 1, 1]);
-        expect(r.timer).toEqual({ workMin: 45, limitMin: 20 });
+        expect(r.timer).toEqual({ workMin: 45, limitMin: 20, edits: 0, editMin: 0 });
     });
 
     test('touch tracks first / last hour and count', () => {
@@ -393,5 +393,58 @@ describe('dayScore / bestWorstByRun (D2 step 5)', () => {
         const bw = DailyRecord.bestWorstByRun(s, 1, { extra: [today] });
         expect(bw.worst.date).toBe('2026-10-02');
         expect(bw.best.date).toBe('2026-10-01');
+    });
+});
+
+describe('adjustTimer (v4, Habit Goals Build 2c)', () => {
+    test('version is 4 and a fresh record carries the edit counters', () => {
+        expect(DailyRecord.V).toBe(4);
+        expect(rec().timer).toEqual({ workMin: 0, limitMin: 0, edits: 0, editMin: 0 });
+    });
+
+    test('adds a signed delta to the right bucket and counts the edit', () => {
+        const r = rec();
+        DailyRecord.bump(r, 'timer', { kind: 'work', minutes: 30 });
+        DailyRecord.bump(r, 'timer', { kind: 'limit', minutes: 20 });
+        expect(DailyRecord.adjustTimer(r, 'work', 15)).toBe(15);
+        expect(DailyRecord.adjustTimer(r, 'limit', -5)).toBe(-5);
+        expect(r.timer).toEqual({ workMin: 45, limitMin: 15, edits: 2, editMin: 10 });
+    });
+
+    test('never goes below 0; editMin records what was actually applied', () => {
+        const r = rec();
+        DailyRecord.bump(r, 'timer', { kind: 'work', minutes: 10 });
+        expect(DailyRecord.adjustTimer(r, 'work', -25)).toBe(-10);
+        expect(r.timer.workMin).toBe(0);
+        expect(r.timer.editMin).toBe(-10);
+        expect(r.timer.edits).toBe(1);
+    });
+
+    test('a correction the floor swallows, a zero, or bad input changes nothing', () => {
+        const r = rec();
+        expect(DailyRecord.adjustTimer(r, 'work', -5)).toBe(0);
+        expect(DailyRecord.adjustTimer(r, 'work', 0)).toBe(0);
+        expect(DailyRecord.adjustTimer(r, 'work', NaN)).toBe(0);
+        expect(DailyRecord.adjustTimer(r, 'bogus', 5)).toBe(0);
+        expect(DailyRecord.adjustTimer(null, 'work', 5)).toBe(0);
+        expect(r.timer).toEqual({ workMin: 0, limitMin: 0, edits: 0, editMin: 0 });
+    });
+
+    test('corrects an older (v3) closed record that has no edit counters', () => {
+        const old = { v: 3, date: DAY, timer: { workMin: 40, limitMin: 0 } };
+        expect(DailyRecord.adjustTimer(old, 'work', 20)).toBe(20);
+        expect(old.timer).toEqual({ workMin: 60, limitMin: 0, edits: 1, editMin: 20 });
+        expect(old.v).toBe(3); // an old day keeps the version it was written at
+    });
+
+    test('normalize fills the counters on a v3 record; the month roll-up sums them', () => {
+        const n = DailyRecord.normalize({ v: 3, date: DAY, timer: { workMin: 5, limitMin: 7 } });
+        expect(n.timer).toEqual({ workMin: 5, limitMin: 7, edits: 0, editMin: 0 });
+        let store = DailyRecord.emptyStore();
+        const a = rec({ date: '2024-01-03' }); a.timer = { workMin: 10, limitMin: 0, edits: 1, editMin: 4 };
+        const b = rec({ date: '2024-01-04' }); b.timer = { workMin: 5, limitMin: 0, edits: 2, editMin: -3 };
+        store = DailyRecord.addDay(DailyRecord.addDay(store, a), b);
+        const rolled = DailyRecord.rollUp(store, new Date(2026, 9, 27));
+        expect(rolled.months['2024-01'].timer).toEqual({ workMin: 15, limitMin: 0, edits: 3, editMin: 1 });
     });
 });

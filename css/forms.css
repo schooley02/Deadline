@@ -110,3 +110,14 @@
 .form-hint-pop { margin-top: var(--space-2, 8px); padding: 8px 12px; border: 1px solid var(--color-border, #888); border-radius: 8px; font-size: 0.85em; }
 .form-hint-pop ul { margin: 4px 0; padding-left: 18px; }
 .form-hint-pop p { margin: 4px 0 0; opacity: 0.8; }
+
+/* Logged time (Habit Goals Build 2c, 2026-11-01): hours + minutes field in the item popup, Edit Task, the completed-habit
+   editor and the "How much time did you actually spend?" prompt. */
+.logged-time-inputs { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+/* Specific on purpose: the modal's generic input rules set width: 100% and would stretch these (found live 2026-11-01). */
+.modal-content .logged-time-inputs input.logged-time-input { width: 4.5em; min-width: 0; flex: 0 0 auto; margin: 0; text-align: center; }
+.logged-time-note { margin: 6px 0 0; font-size: 0.85em; opacity: 0.8; }
+.logged-time-section { margin-top: var(--space-2, 8px); }
+.logged-time-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.logged-time-msg { font-size: 0.85em; opacity: 0.85; }
+.logged-time-error { min-height: 1.2em; margin: 4px 0 0; color: #ff6b5b; font-size: 0.85em; }

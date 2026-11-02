@@ -129,6 +129,40 @@ const TimerView = (() => {
         return overlay;
     }
 
+    // Logged-time prompt (Habit Goals Build 2c, 2026-11-01): "How much time did you actually spend?" after the player says
+    // they stayed within a Break limit (the timer was left running, so its total is wrong). `info` = { loggedMinutes,
+    // prefillMs, message? }; the field starts at prefillMs (the limit). Save time -> handlers.onSave(ms); Keep as logged ->
+    // handlers.onSkip(). Dismissing (outside tap / Esc) is the same as keeping the logged time. Needs the Forms global.
+    function showLoggedTimeEditor(item, info, handlers) {
+        if (document.getElementById('loggedTimeOverlay')) return null;
+        const logged = formatMinutes(info.loggedMinutes || 0);
+        const message = info.message || `The timer logged ${logged}. How much time did you actually spend?`;
+        const overlay = Modal.open(`
+            <div class="modal-overlay" id="loggedTimeOverlay">
+                <div class="modal-content frozen-notice-modal">
+                    <h3>\u23F1 ${esc(item.name)}</h3>
+                    <p>${message}</p>
+                    ${Forms.loggedTimeHtml({ idPrefix: 'editorLogged', ms: info.prefillMs })}
+                    <p class="logged-time-error" id="editorLoggedError" role="alert"></p>
+                    <div class="modal-buttons">
+                        <button type="button" id="loggedTimeSave" class="primary-button">Save time</button>
+                        <button type="button" id="loggedTimeSkip" class="secondary-button">Keep ${logged} logged</button>
+                    </div>
+                </div>
+            </div>`);
+        if (!overlay) return null;
+        const save = document.getElementById('loggedTimeSave');
+        const skip = document.getElementById('loggedTimeSkip');
+        if (save) save.addEventListener('click', () => {
+            const r = Forms.readLoggedTime('editorLogged');
+            if (r.error) { const e = document.getElementById('editorLoggedError'); if (e) e.textContent = r.error; return; }
+            Modal.closeModal();
+            if (handlers && handlers.onSave) handlers.onSave(r.ms);
+        });
+        if (skip) skip.addEventListener('click', () => { Modal.closeModal(); if (handlers && handlers.onSkip) handlers.onSkip(); });
+        return overlay;
+    }
+
     // "Mark done" on a task that still has open sub-tasks: it stays open, the timer is stopped.
     function showGoalBlocked(item) {
         notice('\u23F1 Goal reached',
@@ -140,7 +174,7 @@ const TimerView = (() => {
             `No answer to "Still working?", so the timer on "${esc(item.name)}" stopped. Time up to the check was kept.`);
     }
 
-    return { showStillWorking, closeStillWorking, showGoalReached, showLimitPassed, showGoalBlocked, formatMinutes, showAutoStopped };
+    return { showStillWorking, closeStillWorking, showGoalReached, showLimitPassed, showLoggedTimeEditor, showGoalBlocked, formatMinutes, showAutoStopped };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

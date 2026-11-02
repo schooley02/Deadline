@@ -259,6 +259,26 @@ const Timer = (() => {
         return span;
     }
 
+    // Logged-time edit (Habit Goals Build 2c, 2026-11-01). The logged time is `item.timerMsBanked`; this sets it to `ms`
+    // (clamped 0..24 h, whole minutes are the editor's job) and returns the signed CHANGE in ms so the caller can correct
+    // the daily record. It returns null -- and changes nothing -- while the timer is RUNNING (pause first) or for an
+    // item that never had a timer. An edit never touches the answer (done / Resisted / Slipped) or `goalAcked`.
+    const MAX_LOGGED_MS = 24 * 60 * 60 * 1000;
+    function setLogged(item, ms) {
+        if (!item || isRunning(item)) return null;
+        const n = Number(ms);
+        if (!Number.isFinite(n)) return null;
+        const next = Math.min(MAX_LOGGED_MS, Math.max(0, Math.round(n)));
+        const prev = (typeof item.timerMsBanked === 'number' && item.timerMsBanked > 0) ? item.timerMsBanked : 0;
+        item.timerMsBanked = next;
+        if (next === 0) item.timerPaused = false; // nothing left to resume
+        return next - prev;
+    }
+    // Which daily-record bucket an item's timer minutes land in (matches the Timer.onSpan seam in script.js).
+    function recordKind(item) {
+        return isLimit(item) ? 'limit' : 'work';
+    }
+
     // What the game should do for a running timer right now:
     // 'goal-reached' (Time goal / old task target reached and not yet answered: the caller opens the
     // 4-button popup, nothing auto-completes) > 'autostop' (prompt unanswered) > 'prompt' (continuous
@@ -324,7 +344,7 @@ const Timer = (() => {
 
     return {
         normalizeTarget, modeFor, isRunning, canWorkTimer, isLimit, canLimitTimer, canTimer,
-        isPaused, buttonTitle, pause, endPaused, controlState, stopButtonHtml, PAUSE_ICON_SVG, PLAY_ICON_SVG, STOP_ICON_SVG, loggedMinutes, hasLogged, loggedText, isOverLimit, limitReadout, limitText, limitCaptionHtml, acknowledgeGoal, discardSession, buttonLabel, popupLabel, ICON_SVG, buttonHtml, popupHtml, shouldNudge, NUDGE_TITLE, shouldPrompt, PROMPT_TITLE, elapsedMs, onSpan, start, stop, findRunning,
+        isPaused, buttonTitle, pause, endPaused, controlState, stopButtonHtml, PAUSE_ICON_SVG, PLAY_ICON_SVG, STOP_ICON_SVG, loggedMinutes, hasLogged, loggedText, isOverLimit, limitReadout, limitText, limitCaptionHtml, acknowledgeGoal, discardSession, setLogged, recordKind, MAX_LOGGED_MS, buttonLabel, popupLabel, ICON_SVG, buttonHtml, popupHtml, shouldNudge, NUDGE_TITLE, shouldPrompt, PROMPT_TITLE, elapsedMs, onSpan, start, stop, findRunning,
         pendingAction, promptDueAt, markPrompted, confirmStillWorking, autoStop,
         damageIntervalMs, formatElapsed,
     };

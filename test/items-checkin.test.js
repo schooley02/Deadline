@@ -58,7 +58,7 @@ describe('Items.markPendingCheckIn', () => {
 
         Items.markPendingCheckIn(item, deps);
 
-        expect(habitDef.pendingCheckIn).toEqual({ originalDueDate: y });
+        expect(habitDef.pendingCheckIn).toEqual({ originalDueDate: y, entry: expect.any(Object) }); // + the Build 2c entry snapshot
         expect(deps.activeItems.length).toBe(0);
         expect(deps.getPoints()).toBe(0);
         expect(deps.getXP()).toBe(0);
