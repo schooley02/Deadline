@@ -744,6 +744,36 @@ const CONFIG = {
     RESCHEDULE_GRACE_MS: 10 * 60 * 1000,
     // Free paid-zone reschedules per rolling 7 days (per player).
     RESCHEDULE_FREE_PER_WEEK: 1,
+    // ---- Pushback charges (docs/PUSHBACK_CHARGES_PLAN.md; DECIDED 2026-11-02,
+    // Fable balance pass; Build A 2026-11-02). Pure logic in js/pushback.js, NOT
+    // wired yet: Build B routes the zombie popup, edit form and Base Health panel
+    // through it and then deletes the old pushback_* SHOP_ITEMS rows,
+    // RESCHEDULE_ZONE_FACTORS, RESCHEDULE_FREE_PER_WEEK and Economy.reschedulePrice.
+    // Sizes, ascending: a move uses the SMALLEST size that covers its distance
+    // (measured from the later of the current due and now); beyond the largest,
+    // ceil(distance / largest.ms) of the largest. baseCost = points to pay
+    // instead of a charge or held token (level discount applies; the 1.5^held
+    // curve applies only when BUYING a held token). window: 'day' charges refill
+    // at day rollover, 'week' charges are a rolling 7-day window of use timestamps.
+    PUSHBACK_SIZES: [
+        { id: 'short',  ms: 30 * 60 * 1000,      baseCost: 5,  window: 'day' },
+        { id: 'medium', ms: 2 * 60 * 60 * 1000,  baseCost: 10, window: 'day' },
+        { id: 'long',   ms: 24 * 60 * 60 * 1000, baseCost: 30, window: 'week' },
+    ],
+    // Free charges by Clock tower star (1-5): per day for short/medium, per
+    // rolling 7 days for long. Stars are per run, so they reset at game over.
+    // Each star adds one charge: 2 = +1 Short, 3 = +1 Medium, 4 = +1 Long, 5 = +1 Long.
+    PUSHBACK_ALLOWANCE: {
+        1: { short: 3, medium: 2, long: 2 },
+        2: { short: 4, medium: 2, long: 2 },
+        3: { short: 4, medium: 3, long: 2 },
+        4: { short: 4, medium: 3, long: 3 },
+        5: { short: 4, medium: 3, long: 4 },
+    },
+    // Inside this much time to the CURRENT due (or overdue) a later move uses a
+    // pushback (and, from Build B, flags the item so the Clock tower skips it).
+    // More than this far out, moving later is free planning.
+    PUSHBACK_PAID_ZONE_MS: 4 * 60 * 60 * 1000,
     // Work timer: overdue base + routine damage is multiplied by this while a
     // timer runs on the item (never 0 — a running timer is not a free pass).
     WORK_TIMER_DAMAGE_FACTOR: 0.5,

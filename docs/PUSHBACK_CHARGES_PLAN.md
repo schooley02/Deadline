@@ -1,6 +1,6 @@
 # Pushback Charges — Plan
 
-Designed 2026-11-02 (Claude app session, Opus; Jeremy); balance pass the same morning (Fable, balance-tuning protocol). Decisions logged in `docs/DECISIONS.md` 2026-11-02. **Status: DESIGNED + BALANCED, not built.** Numbers are a THEORY pass against the ~7 pts/day earn rate; re-check against real play data once Jeremy has some.
+Designed 2026-11-02 (Claude app session, Opus; Jeremy); balance pass the same morning (Fable, balance-tuning protocol). Decisions logged in `docs/DECISIONS.md` 2026-11-02. **Status: DESIGNED + BALANCED; Build A BUILT 2026-11-02 (pure logic + config + tests, sw v205, not wired); Builds B and C not built.** Numbers are a THEORY pass against the ~7 pts/day earn rate; re-check against real play data once Jeremy has some.
 
 ## Why
 Jeremy (2026-11-01): the pushback items in the shop have no Buy button (by design: they are applied from the zombie popup), which confuses players. Pushing a deadline and editing its due time are two doors to the same room with different rules. Both are priced far above the goal of **"a few small and medium adjustments a day, a few long ones a week."**
@@ -102,6 +102,7 @@ The live card copy changes in Build C, not before: until the charges exist, the 
 ## Build sub-sessions (Sonnet, medium; after the Fable balance pass)
 
 ### A — Pure logic + config (Jest)
+**BUILT 2026-11-02 (Sonnet).** New `js/pushback.js` (not `economy.js`) with `sizeFor(deltaMs, sizes)`, `isFreeMove({currentDue,newDue,now,createdAt,graceMs,paidZoneMs})` -> `{later, free, reason, deltaMs, paidZone}`, `allowanceForStar(star, table)`, `chargesLeft(uses, nowMs, allowance, dayStartMs, sizes)` and `resolvePayment({size,count,chargesLeft,held,points,price})` -> `{ok, kind, charges, tokens, pointUnits, cost}` (unit by unit; `kind` = last source reached). `CONFIG.PUSHBACK_SIZES` (array, ascending, with `baseCost` and `window`), `PUSHBACK_ALLOWANCE` (stars 1-5), `PUSHBACK_PAID_ZONE_MS`. 49 tests in `test/pushback.test.js`. **Deviations (approved):** the old `pushback_*` rows, the `RESCHEDULE_*` keys and `Economy.reschedulePrice` stay until B (script.js still uses them); the three token rows go into `SHOP_ITEMS` in B (category `pushback` would change live reschedule prices). See DECISIONS 2026-11-02 (Build A).
 - `CONFIG`: `PUSHBACK_SIZES` (`short` 30 min / `medium` 2 h / `long` 24 h), `PUSHBACK_ALLOWANCE` per Clock tower star, `PUSHBACK_PAID_ZONE_MS` (4 h), three token rows in `SHOP_ITEMS`. Remove the old pushback rows, `RESCHEDULE_FREE_PER_WEEK`, and the `approaching` 0.5 factor.
 - `js/economy.js` (or a new `js/pushback.js`): `sizeFor(deltaMs)` → `{size, count}`; `chargesLeft(uses, nowMs, allowance, dayStartMs)`; `allowanceForStar(star)`; `resolvePayment({size, count, chargesLeft, held, points, price})` → `charge` | `token` | `points` | `blocked`; `isFreeMove({currentDue, newDue, now, createdAt})` → reason. Replaces `reschedulePrice`'s pricing branch.
 - Tests: boundaries (exactly 30 min / 2 h / 24 h / 4 h), overdue distance, multi-day Longs, rollover at ★5, weekly window pruning, payment order.
@@ -109,7 +110,8 @@ The live card copy changes in Build C, not before: until the charges exist, the 
 ### B — State + both doors
 - Persist `pushbackUses: { short: [ts], medium: [ts], long: [ts] }` (+ ★5 carry-over) in state. Additive; document it in DATA_SCHEMA; old saves default to empty.
 - The zombie popup row (`js/ui/popups.js` `buildPushbackSectionHtml`), `handlePushback`, the edit form save path and the Base Health panel all route through `resolvePayment`.
-- Set the `pushedLate` flag; the Clock tower counter skips it.
+- Set the `pushedLate` flag when `isFreeMove` says `paidZone` (grace and calm moves never flag); the Clock tower counter skips it. NOTE: `VillageProgress` takes punctuality from the daily record (`done` minus `done.late`), not from items, so a completion of a flagged item must be counted as late in `DailyRecord` at the `Items` completion seam.
+- Remove the old `pushback_1hr/2hr/1day` rows, `RESCHEDULE_ZONE_FACTORS`, `RESCHEDULE_FREE_PER_WEEK` and `Economy.reschedulePrice` (+ `test/reschedule-price.test.js`), add the three token rows to `SHOP_ITEMS`, and rewire `reschedulePricingFor` / `commitReschedule` / `baseHealthContext` / `handlePushback` in script.js.
 - Day rollover clears daily uses.
 
 ### C — Shop, help and copy
