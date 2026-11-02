@@ -5,6 +5,10 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+## 2026-11-01 (night, Sonnet build) -- Dialog Build 2: form validation is drawn inline, not as a dialog (Claude app session; Jeremy)
+**Decision:** a failed Save shows ONE red line in the form (`Forms.showFormError`), placed under the offending field (not above the Save button), with the field focused and marked `aria-invalid`; it clears on the next edit. Errors with no single field (days, goal) sit above the button row and scroll into view. No `Dialog.notice` for validation. The 33 validation `alert()`s were converted; 4 category D errors stay allowlisted for Build 3.
+**Why:** the create/edit forms scroll on a phone, so a line above Save was off-screen when the name field was focused; under the field it is visible with the focus. Inline is also how DIALOG_PLAN category A was decided (no dialog at all). **Rejected:** a `Dialog.notice` for each error (an extra tap, loses the form context); a line above Save only (off-screen on long forms); a toast (disappears before it is read). sw v201; Jest 118 suites / 2,596.
+
 ## 2026-11-01 (night, final) -- HUD interaction polish (Claude app session; Jeremy)
 **Decision:** level icon = stacked chevrons (option A of six), points icon = a plain $ (no circle), icons 22px. HUD buttons get a hover lift (hover-capable pointers only) and a pressed state that eases back over 240 ms (a tap opens its panel in ~100 ms, so a fast release was invisible). A HUD button stays sunk in, teal-bordered, while ITS window is open (`js/ui/hudButtons.js` watches the DOM; new HUD windows need an entry in `HudButtons.WINDOWS`). Tapping the church (`#base`) opens Base Health. Phone-confirmed by Jeremy 2026-11-01.
 **Why:** make the HUD read as buttons and show which window is open. **Rejected:** star level icon (Jeremy); a coin for points (Jeremy: plain $). sw v200; Jest 117 suites / 2,590.

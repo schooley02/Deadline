@@ -1,4 +1,4 @@
-# In-game dialogs instead of browser boxes (DECIDED 2026-11-01, Jeremy; Build 1 BUILT 2026-11-01, sw v193)
+# In-game dialogs instead of browser boxes (DECIDED 2026-11-01, Jeremy; Build 1 BUILT 2026-11-01, sw v193; Build 2 BUILT 2026-11-01, sw v201)
 
 **Problem.** `alert()` / `confirm()` draw the BROWSER's box ("localhost:8000 says ..."), which breaks the look of the game, can behave
 differently in an installed PWA, and freezes browser automation (see CLAUDE.md playtesting notes). Jeremy's rule: anything that is part of a
@@ -45,6 +45,9 @@ Each build: bump sw, live-check at 390x844 (the Playwright run no longer needs d
 
 ## Build 1 -- built as (2026-11-01, Sonnet; Jest 116 suites / 2,586)
 `js/ui/dialog.js` (`Dialog.notice` / `Dialog.confirm`, queued, promise-based; dismissing by Esc / backdrop / `Modal.closeModal` resolves false via a MutationObserver so nothing hangs; inserted one tick later; removes only itself); styles in css/modal.css (`.dialog-*`); loaded after modal.js in index.html and in sw.js. Converted: slot-point spend (`ensureRoutineSlotAvailable`, now ASYNC, so `saveNewHabit` / `saveNewTask` and the add / move click handlers `await` it), slot-limit notice, move-item confirm, frozen-habit and no-other-routine notices, delete routine (danger confirm; the Manage modal now closes only AFTER the confirmed delete -- the inline onclick used to close it first), delete habit (danger confirm), and `routines.js`'s two game-rule alerts (script.js passes `alert: msg => Dialog.notice(msg)`). Guard: `test/no-native-dialogs.test.js` (exact per-file allowlist of the 37 remaining: forms 7, popups 8, routineViews 19, TaskManager 1, script.js 2 -- it must shrink as Builds 2-3 land). Live check at 390x844: styled confirm, OK -> true, Esc -> false, 0 native dialogs, 0 console errors. Jeremy: no need to pause the game while a dialog is open.
+
+## Build 2 -- built as (2026-11-01, Sonnet; Jest 118 suites / 2,596)
+`Forms.showFormError(message, field?, opts?)` + `Forms.clearFormError` in js/ui/forms.js; styles `.form-error` / `[aria-invalid="true"]` in css/modal.css. Placement: under the field's `.form-row` (so it is on screen on a scrolling phone form), else above `.modal-buttons`, or beside `opts.before` / `opts.after` (used for the inline Add Habit/Task pickers and the routine-name form in script.js). Focuses the field, clears on the next input/change in the same form, replaces any earlier error (never stacks). Converted 33 calls (the audit said 34): forms.js 7, popups.js 7, routineViews.js 18, script.js 1. Guard allowlist now 4 (popups.js 1, routineViews.js 1, script.js 1, TaskManager.js 1 -- all category D). Tests: formError.test.js (6); popups-logged-time and routine-views-logged-time expect the inline line. Live check at 390x844: 0 native dialogs, 0 console errors; Jeremy phone-confirmed.
 
 ## Open
 - Notice vs toast for category D (rare, so a notice is fine).
