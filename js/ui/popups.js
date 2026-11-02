@@ -279,9 +279,28 @@ const Popups = (() => {
                     ${hasOpenSubTasks ? `<span class="completion-remaining">(${openSubTaskCount} remaining)</span>` : ''}
                 </label>
             </div>
+            ${timerOk ? nudgeNoteHtml(item, deps) : ''}
             ${buildPushbackSectionHtml(item, deps)}
             ${buildSkipDaySectionHtml(item, deps)}
         `;
+    }
+
+    // The words behind the red timer pulse (2026-11-02, Jeremy). Always rendered for a timer item (hidden when
+    // there is nothing to say) so a timer click can refresh it in place; see refreshNudgeNote.
+    function escapeNoteText(text) {
+        return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function nudgeNoteHtml(item, deps) {
+        const note = Timer.nudgeNote(item, deps.activeItems);
+        return `<p id="timerNudgeNote" class="timer-nudge-note${note ? ' timer-nudge-' + note.kind : ''}" role="status"${note ? '' : ' hidden'}>${note ? escapeNoteText(note.text) : ''}</p>`;
+    }
+    function refreshNudgeNote(item, deps) {
+        const el = document.getElementById('timerNudgeNote');
+        if (!el) return;
+        const note = Timer.nudgeNote(item, deps.activeItems);
+        el.hidden = !note;
+        el.className = 'timer-nudge-note' + (note ? ' timer-nudge-' + note.kind : '');
+        el.textContent = note ? note.text : '';
     }
 
     // Logged time (Habit Goals Build 2c): an hours + minutes field with its own Save, shown for any item that has (or can
@@ -420,6 +439,7 @@ const Popups = (() => {
                     workTimerButton.classList.toggle('running', r.running);
                     workTimerButton.classList.toggle('attacking', Timer.shouldNudge(item));
                     workTimerButton.classList.toggle('planned', Timer.shouldPrompt(item));
+                    refreshNudgeNote(item, deps);
                     workTimerButton.innerHTML = Timer.popupHtml(item);
                     const over = Timer.isOverLimit(item, Date.now());
                     workTimerButton.classList.toggle('over-limit', over);

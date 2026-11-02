@@ -46,22 +46,22 @@ afterEach(() => {
 
 describe('Settings.load', () => {
     test('returns the default (full) when nothing is stored', () => {
-        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00' });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false });
     });
 
     test('round-trips a saved value', () => {
         Settings.save({ effectsIntensity: 'reduced' });
-        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '21:00' });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '21:00', timerHintSeen: false });
     });
 
     test('falls back to full for an invalid stored value (defensive)', () => {
         global.localStorage.setItem('deadline.settings', JSON.stringify({ effectsIntensity: 'nonsense' }));
-        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00' });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false });
     });
 
     test('falls back to full for corrupt JSON (never breaks gameplay)', () => {
         global.localStorage.setItem('deadline.settings', '{not valid json');
-        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00' });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false });
     });
 });
 
@@ -108,5 +108,22 @@ describe('Settings.applyEffectsIntensity (DOM wrapper)', () => {
 
     test('a missing element is a safe no-op (no throw)', () => {
         expect(() => Settings.applyEffectsIntensity('off', null)).not.toThrow();
+    });
+});
+
+describe('Settings timerHintSeen (2026-11-02)', () => {
+    beforeEach(() => { localStorage.clear(); });
+
+    test('defaults to false, saves true, and a later save of another field keeps it', () => {
+        expect(Settings.load().timerHintSeen).toBe(false);
+        Settings.save({ timerHintSeen: true });
+        expect(Settings.load().timerHintSeen).toBe(true);
+        Settings.save({ effectsIntensity: 'reduced' });
+        expect(Settings.load().timerHintSeen).toBe(true);
+    });
+
+    test('anything but a real true is false', () => {
+        localStorage.setItem(Settings.SETTINGS_KEY, JSON.stringify({ timerHintSeen: 'yes' }));
+        expect(Settings.load().timerHintSeen).toBe(false);
     });
 });

@@ -1625,6 +1625,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 GraveyardView.render(BASE_WIDTH);
                 VillageView.render(BASE_WIDTH);
                 refreshHeroAttack();
+                maybeShowTimerHint();
                 const canvasItems = State.getActiveItems().filter(i => !Clock.isDueAfterDay(i, new Date()));
                 Layout.applyStripLayout(canvasItems, { baseWidth: BASE_WIDTH });
                 // Landscape/desktop: ground lanes in list order, overlap-avoiding (no-op in strip mode).
@@ -1813,6 +1814,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Habit system functions
+    // One-time teaching notice (2026-11-02, Jeremy): the first time a timer item is overdue and attacking, say what the
+    // pulsing timer button does. Flag lives in Settings (timerHintSeen); the session flag keeps the per-tick check
+    // to a cheap scan until then.
+    let timerHintHandled = false;
+    function maybeShowTimerHint() {
+        if (timerHintHandled || State.isGameOver()) return;
+        if (!State.getActiveItems().some(i => Timer.shouldNudge(i))) return;
+        timerHintHandled = true;
+        if (Settings.load().timerHintSeen) return;
+        Settings.save({ timerHintSeen: true });
+        Dialog.notice('A zombie is attacking the church! Tap the pulsing timer on its row and work on it: the damage is halved while the timer runs. Only one timer can run at a time, and starting a new one keeps the time on the old one.', { title: 'Slow the damage', okLabel: 'Got it' });
+    }
+
     function createHabitDefinition(name, category, scheduleOrFrequency, timeOfDay, isNegative = false, timerMinutes = null, startTime = null, endTime = null, goal = null) {
         const customTimes = Habits.normalizeCustomTimes(timeOfDay, isNegative, startTime, endTime);
         const newHabitDef = {

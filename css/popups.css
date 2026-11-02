@@ -298,3 +298,19 @@
 .pushback-help { margin: var(--space-2) 0 var(--space-3) 0; }
 .pushback-help-caption { font-size: var(--text-caption, 12px); opacity: 0.8; margin-left: 2px; vertical-align: middle; }
 .pushback-hint-pop .pb-live { opacity: 1; }
+
+/* Words behind the red timer pulse (2026-11-02, Jeremy): shown under the popup's timer button while an
+   overdue timer item is attacking. Attack = red, switch (another timer runs) = amber, running = green. */
+.timer-nudge-note {
+    margin: 8px 0 0;
+    padding: 6px 10px;
+    border-left: 3px solid #e5483a;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    line-height: 1.35;
+    text-align: left;
+    background: rgba(229, 72, 58, 0.08);
+}
+.timer-nudge-note[hidden] { display: none; }
+.timer-nudge-note.timer-nudge-switch { border-left-color: #e0a84f; background: rgba(224, 168, 79, 0.12); }
+.timer-nudge-note.timer-nudge-running { border-left-color: #2e8b57; background: rgba(46, 139, 87, 0.1); }

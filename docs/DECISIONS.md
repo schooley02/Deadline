@@ -144,6 +144,12 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 **Decision:** `body.glance-strip .enemy.lurker-parked.has-anim-sprite` also matches with `:not(.zombie-subtask):not(.enemy-at-base)` so its `background-image: none !important` out-ranks the per-category dot rules. Applies to waiting tasks/Build habits and parked Break lurkers alike.
 **Why:** Jeremy saw colored circles behind the idle due-time animations on his phone (portrait). **Alternative:** limit to `.work-waiting` only (not needed; Jeremy said remove them).
 
+## 2026-11-02 (evening) -- Words for the timer pulse (Claude app session, Sonnet; Jeremy)
+**Decision:** the red pulse on an attacking item's timer button gets words where a phone user can see them: (1) a note under the popup's timer button (red: start the timer to cut the damage in half; amber when another item's timer is running, naming it and saying its time is kept; green once this item's timer runs); (2) a one-time "Slow the damage" notice the first time any timer item attacks, also stating the one-timer-at-a-time rule (`Settings.timerHintSeen`, never shown again). Wording as Jeremy approved. Display only: no damage, timer or balance change.
+**Why:** the explanation lived only in a hover tooltip. One timer at a time means starting a new timer ends the old session (time kept), so the note says so before the tap.
+**Alternatives:** a speech bubble pointing at the button (rejected: needs new layout/positioning work; the existing `Dialog.notice` does the one-time teaching); picking one of several attacking items to pulse (rejected: the player knows which task they are working on).
+**Known limit:** the note is computed when the popup opens and on a timer click, not live while it stays open.
+
 ## 2026-11-02 (later still) -- Hero healing by completion: DECIDED, NOT BUILT; base heal number BUILT (Claude app session, Sonnet; Jeremy)
 **Decided (design only, no code; numbers go through the balance-tuning process before any build):**
 - **Routine heroes heal by completing the routine's habits/tasks, not with items.** Heal per completion is about one third of a miss's damage, so health holds steady near 75% completion and drifts down below it. Flat heal: no streak or level scaling. A Break habit heals the same when answered Resisted (never for an unanswered day). No healing while the hero is KO'd (revive stays the calendar gate). Only items that were actually due heal, so nothing can be added and finished to farm healing. A small "+N" floats off the hero chip when a completion heals.

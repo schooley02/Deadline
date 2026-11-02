@@ -173,6 +173,22 @@ const Timer = (() => {
         return canWorkTimer(item) && !isRunning(item) && item.isOverdue === true;
     }
     const NUDGE_TITLE = 'Zombie attacking: start the timer to halve the damage';
+    // Words for the popup (2026-11-02, Jeremy): the red pulse had only a hover tooltip, which a phone never shows.
+    // nudgeNote says what the pulse means for THIS overdue item: start the timer, or (one timer at a time) that
+    // starting it moves the timer off another item, or that the timer is already halving the damage. activeItems
+    // is only read to find the other running timer. Pure; the popup escapes the name.
+    const NUDGE_NOTE_ATTACK = 'Attacking the church. Start the timer while you work on it to cut the damage in half.';
+    const NUDGE_NOTE_RUNNING = 'Timer running: this zombie\'s damage is halved.';
+    function nudgeNote(item, activeItems) {
+        if (!canWorkTimer(item) || item.isOverdue !== true) return null;
+        if (isRunning(item)) return { kind: 'running', text: NUDGE_NOTE_RUNNING };
+        const other = (activeItems || []).find(i => i !== item && i && i.id !== item.id && canWorkTimer(i) && isRunning(i));
+        if (other) {
+            const name = other.name || 'another item';
+            return { kind: 'switch', otherName: name, text: `Your timer is running on ${name}. Start this one to halve this zombie's damage instead. Your time on ${name} is kept.` };
+        }
+        return { kind: 'attack', text: NUDGE_NOTE_ATTACK };
+    }
     // "Planned work time" prompt (2026-11-01): the item has a Start time, now is inside [start, due),
     // and no timer runs on it. Only a running stopwatch proves the player is working, so the button
     // glows amber (softer than the red attack pulse) and invites a start. Clock is the optional global.
@@ -344,7 +360,7 @@ const Timer = (() => {
 
     return {
         normalizeTarget, modeFor, isRunning, canWorkTimer, isLimit, canLimitTimer, canTimer,
-        isPaused, buttonTitle, pause, endPaused, controlState, stopButtonHtml, PAUSE_ICON_SVG, PLAY_ICON_SVG, STOP_ICON_SVG, loggedMinutes, hasLogged, loggedText, isOverLimit, limitReadout, limitText, limitCaptionHtml, acknowledgeGoal, discardSession, setLogged, recordKind, MAX_LOGGED_MS, buttonLabel, popupLabel, ICON_SVG, buttonHtml, popupHtml, shouldNudge, NUDGE_TITLE, shouldPrompt, PROMPT_TITLE, elapsedMs, onSpan, start, stop, findRunning,
+        isPaused, buttonTitle, pause, endPaused, controlState, stopButtonHtml, PAUSE_ICON_SVG, PLAY_ICON_SVG, STOP_ICON_SVG, loggedMinutes, hasLogged, loggedText, isOverLimit, limitReadout, limitText, limitCaptionHtml, acknowledgeGoal, discardSession, setLogged, recordKind, MAX_LOGGED_MS, buttonLabel, popupLabel, ICON_SVG, buttonHtml, popupHtml, shouldNudge, NUDGE_TITLE, nudgeNote, shouldPrompt, PROMPT_TITLE, elapsedMs, onSpan, start, stop, findRunning,
         pendingAction, promptDueAt, markPrompted, confirmStillWorking, autoStop,
         damageIntervalMs, formatElapsed,
     };

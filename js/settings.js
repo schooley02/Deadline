@@ -23,7 +23,8 @@ const Settings = (() => {
     const VALID_INTENSITIES = ['full', 'reduced', 'off'];
     // eveningCheckTime (Habit Goals Build 3, 2026-11-01): "HH:MM" 24 h, when the evening check asks about Break habits still
     // unanswered today. Same default as CONFIG.EVENING_CHECK_DEFAULT (test/settings.test.js keeps the two in step).
-    const DEFAULTS = { effectsIntensity: 'full', eveningCheckTime: '21:00' };
+    // timerHintSeen (2026-11-02): the one-time "a zombie is attacking, use the timer" notice has been shown.
+    const DEFAULTS = { effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false };
     const TIME_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
 
     function cleanEveningTime(value) {
@@ -40,7 +41,7 @@ const Settings = (() => {
             const intensity = VALID_INTENSITIES.indexOf(parsed && parsed.effectsIntensity) !== -1
                 ? parsed.effectsIntensity
                 : DEFAULTS.effectsIntensity;
-            return { effectsIntensity: intensity, eveningCheckTime: cleanEveningTime(parsed && parsed.eveningCheckTime) };
+            return { effectsIntensity: intensity, eveningCheckTime: cleanEveningTime(parsed && parsed.eveningCheckTime), timerHintSeen: !!(parsed && parsed.timerHintSeen === true) };
         } catch (e) {
             console.error('Deadline: settings load failed', e);
             return Object.assign({}, DEFAULTS);
@@ -53,6 +54,7 @@ const Settings = (() => {
             // { effectsIntensity }) must not drop the others. Missing fields keep what is already stored.
             const merged = Object.assign({}, load(), settings || {});
             merged.eveningCheckTime = cleanEveningTime(merged.eveningCheckTime);
+            merged.timerHintSeen = merged.timerHintSeen === true;
             if (VALID_INTENSITIES.indexOf(merged.effectsIntensity) === -1) merged.effectsIntensity = DEFAULTS.effectsIntensity;
             localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
             return true;

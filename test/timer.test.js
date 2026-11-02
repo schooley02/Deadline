@@ -448,3 +448,47 @@ describe('setLogged (Build 2c)', () => {
         expect(Timer.recordKind({ type: 'task' })).toBe('work');
     });
 });
+
+describe('Timer.nudgeNote (words behind the red pulse, 2026-11-02)', () => {
+    const over = (o) => task(Object.assign({ id: 1, name: 'Write report', isOverdue: true }, o));
+
+    test('nothing unless the item is an overdue timer item', () => {
+        expect(Timer.nudgeNote(task({ id: 1, isOverdue: false }), [])).toBeNull();
+        expect(Timer.nudgeNote(over({ koGhost: true }), [])).toBeNull();
+        expect(Timer.nudgeNote({ type: 'habit', isNegative: true, isOverdue: true }, [])).toBeNull();
+    });
+
+    test('attacking, no timer anywhere: says to start the timer to halve the damage', () => {
+        const n = Timer.nudgeNote(over(), []);
+        expect(n.kind).toBe('attack');
+        expect(n.text).toMatch(/Start the timer/);
+        expect(n.text).toMatch(/half/);
+    });
+
+    test('this item is running: reassurance', () => {
+        const t = over();
+        Timer.start(t, 0);
+        const n = Timer.nudgeNote(t, [t]);
+        expect(n.kind).toBe('running');
+        expect(n.text).toMatch(/halved/);
+    });
+
+    test('another item is running: names it and says its time is kept', () => {
+        const a = over({ id: 1, name: 'Fix the roof' });
+        const b = task({ id: 2, name: 'Write report', isOverdue: false });
+        Timer.start(b, 0);
+        const n = Timer.nudgeNote(a, [a, b]);
+        expect(n.kind).toBe('switch');
+        expect(n.otherName).toBe('Write report');
+        expect(n.text).toContain('Your timer is running on Write report.');
+        expect(n.text).toContain('Your time on Write report is kept.');
+    });
+
+    test('a paused timer on another item does not count as running', () => {
+        const a = over({ id: 1 });
+        const b = task({ id: 2, name: 'Other' });
+        Timer.start(b, 0);
+        Timer.pause(b, 1000);
+        expect(Timer.nudgeNote(a, [a, b]).kind).toBe('attack');
+    });
+});
