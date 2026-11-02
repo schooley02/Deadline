@@ -243,6 +243,21 @@ const Popups = (() => {
             `<span id="popupLoggedMsg" class="logged-time-msg" role="status" aria-live="polite"></span></div></div>`;
     }
 
+    // How much? (Habit Goals Build 3): an Amount-goal habit's popup offers an optional number when it is answered here. A Time goal
+    // has no second box: the Logged time field above IS its How much? (plan Decision 14). The row checkbox never asks.
+    function buildHowMuchSectionHtml(item) {
+        if (item.type !== 'habit' || typeof GoalCheck === 'undefined' || typeof CheckIn === 'undefined' || typeof Habits === 'undefined') return '';
+        const goal = Habits.goalOf(item);
+        if (GoalCheck.howMuchKind(goal) !== 'amount') return '';
+        return `<div id="popupHowMuch" class="popup-how-much">${CheckIn.howMuchHtml(goal, item)}</div>`;
+    }
+    function readPopupHowMuch() {
+        const box = document.getElementById('popupHowMuch');
+        if (!box || typeof CheckIn === 'undefined') return undefined;
+        const how = CheckIn.readHowMuch(box);
+        return how.actual !== undefined ? { actual: how.actual } : undefined;
+    }
+
     function showTaskDetailsPopup(item, deps) {
         const modalHtml = `
             <div class="modal-overlay">
@@ -260,6 +275,7 @@ const Popups = (() => {
                         ${(item.type === 'habit' && typeof Habits !== 'undefined' && Habits.formatGoal && Habits.formatGoal(item.goal, item.isNegative))
                             ? `<p class="habit-goal-line"><strong>${item.isNegative ? 'Limit' : 'Goal'}:</strong> ${Habits.formatGoal(item.goal, item.isNegative).replace(/^(Goal|Limit): /, '').replace(/</g, '&lt;')}</p>` : ''}
                         ${buildLoggedTimeSectionHtml(item, deps)}
+                        ${buildHowMuchSectionHtml(item)}
                         ${buildActionsHtml(item, deps)}
                     </div>
                 </div>
@@ -277,7 +293,7 @@ const Popups = (() => {
         if (completeCheckbox) {
             completeCheckbox.addEventListener('change', () => {
                 if (completeCheckbox.checked) {
-                    deps.completeItem(item.id);
+                    deps.completeItem(item.id, readPopupHowMuch());
                     Modal.closeModal();
                 }
             });
@@ -285,14 +301,14 @@ const Popups = (() => {
 
         if (avoidButton) {
             avoidButton.addEventListener('click', () => {
-                deps.completeItem(item.id);
+                deps.completeItem(item.id, readPopupHowMuch());
                 Modal.closeModal();
             });
         }
 
         if (indulgeButton) {
             indulgeButton.addEventListener('click', () => {
-                deps.indulgeHabit(item.id);
+                deps.indulgeHabit(item.id, readPopupHowMuch());
                 Modal.closeModal();
             });
         }

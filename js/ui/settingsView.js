@@ -14,6 +14,7 @@
  *
  * deps: {
  *   currentIntensity, onChangeIntensity(intensity),
+ *   currentEveningTime ("HH:MM"), onChangeEveningTime(value),   (Habit Goals Build 3)
  *   buildExportEnvelope(): envelope,       — script.js: ExportImport.buildEnvelope(...)
  *   currentSummary: ExportImport summary shape (this device's live state, for the confirm compare),
  *   onConfirmImport(envelope)              — script.js: backup + localStorage write + reload
@@ -88,6 +89,14 @@ const SettingsView = (() => {
                 <p class="settings-section-hint">Controls the on-fire/blazing visual for high-streak habits.</p>
                 <div class="settings-radio-group">${optionsHtml}</div>
             </div>
+            <div class="settings-section settings-evening-section">
+                <h4>Evening Check</h4>
+                <p class="settings-section-hint">Each evening the game asks about every Break habit you haven't answered yet today. It only shows while the game is open; tomorrow morning's check-in still catches anything you miss.</p>
+                <label class="settings-time-row">
+                    <span class="settings-radio-label">Ask me at</span>
+                    <input type="time" id="eveningCheckTime" class="settings-time-input" value="${deps.currentEveningTime || '21:00'}" required>
+                </label>
+            </div>
             <div class="settings-section settings-data-section">
                 <h4>Backup &amp; Transfer</h4>
                 <p class="settings-section-hint">Move your full game (tasks, habits, routines, stats, tokens) between devices, or back it up before testing a new build.</p>
@@ -132,6 +141,13 @@ const SettingsView = (() => {
                 }
             });
         });
+
+        const eveningInput = container.querySelector('#eveningCheckTime');
+        if (eveningInput) {
+            eveningInput.addEventListener('change', (e) => {
+                if (typeof deps.onChangeEveningTime === 'function') deps.onChangeEveningTime(e.target.value);
+            });
+        }
 
         wireExportControls(container, deps);
         wireImportControls(container, deps);

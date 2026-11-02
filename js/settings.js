@@ -21,7 +21,16 @@
 const Settings = (() => {
     const SETTINGS_KEY = 'deadline.settings';
     const VALID_INTENSITIES = ['full', 'reduced', 'off'];
-    const DEFAULTS = { effectsIntensity: 'full' };
+    // eveningCheckTime (Habit Goals Build 3, 2026-11-01): "HH:MM" 24 h, when the evening check asks about Break habits still
+    // unanswered today. Same default as CONFIG.EVENING_CHECK_DEFAULT (test/settings.test.js keeps the two in step).
+    const DEFAULTS = { effectsIntensity: 'full', eveningCheckTime: '21:00' };
+    const TIME_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
+
+    function cleanEveningTime(value) {
+        if (typeof value !== 'string' || !TIME_RE.test(value.trim())) return DEFAULTS.eveningCheckTime;
+        const [h, m] = value.trim().split(':');
+        return (h.length === 1 ? '0' + h : h) + ':' + m;
+    }
 
     function load() {
         try {
@@ -31,7 +40,7 @@ const Settings = (() => {
             const intensity = VALID_INTENSITIES.indexOf(parsed && parsed.effectsIntensity) !== -1
                 ? parsed.effectsIntensity
                 : DEFAULTS.effectsIntensity;
-            return { effectsIntensity: intensity };
+            return { effectsIntensity: intensity, eveningCheckTime: cleanEveningTime(parsed && parsed.eveningCheckTime) };
         } catch (e) {
             console.error('Deadline: settings load failed', e);
             return Object.assign({}, DEFAULTS);
@@ -40,7 +49,12 @@ const Settings = (() => {
 
     function save(settings) {
         try {
-            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+            // Always write a COMPLETE, valid object: a caller that passes only one field (older code saved just
+            // { effectsIntensity }) must not drop the others. Missing fields keep what is already stored.
+            const merged = Object.assign({}, load(), settings || {});
+            merged.eveningCheckTime = cleanEveningTime(merged.eveningCheckTime);
+            if (VALID_INTENSITIES.indexOf(merged.effectsIntensity) === -1) merged.effectsIntensity = DEFAULTS.effectsIntensity;
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
             return true;
         } catch (e) {
             console.error('Deadline: settings save failed', e);
@@ -72,6 +86,7 @@ const Settings = (() => {
         SETTINGS_KEY, // exposed for export/import's pre-import backup (js/exportImport.js wiring in script.js)
         load,
         save,
+        cleanEveningTime,
         bodyClassesForIntensity,
         applyEffectsIntensity,
         VALID_INTENSITIES,

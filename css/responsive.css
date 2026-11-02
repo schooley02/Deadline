@@ -142,9 +142,9 @@
         min-height: 300px;
     }
 
-    .task-section {
-        max-height: 50vh;
-    }
+    /* 2026-11-01 (Jeremy): the old `.task-section { max-height: 50vh }` stopped the list
+       short of the page bottom, leaving a grey body-background band under it with the
+       floating + button sitting in it. The list now fills to the bottom like on phones. */
 
     .controls-section {
         overflow-y: auto;

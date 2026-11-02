@@ -140,7 +140,8 @@ const State = (() => {
             if (!rec) return;
             // An undo whose completion belongs to an already-CLOSED day must not
             // reach into today's record (closed days are never edited).
-            if (event === 'uncomplete' && payload && payload.at != null &&
+            // 'goalClear' (v5) is the goal-entry half of the same undo, so it gets the same guard.
+            if ((event === 'uncomplete' || event === 'goalClear') && payload && payload.at != null &&
                 DailyRecord.dateKey(payload.at) !== rec.date) return;
             DailyRecord.bump(rec, event, payload);
         } catch (e) {
@@ -169,6 +170,27 @@ const State = (() => {
             return Persistence.saveDays(store) !== false;
         } catch (e) {
             console.error('Deadline: daily record timer adjust failed', e);
+            return false;
+        }
+    }
+    /**
+     * updateDayGoalActual -- Habit Goals Build 3 (DailyRecord v5). After an edited logged time, refreshes the `actual` of the
+     * habit's ALREADY-recorded goal entry on `dateKey` (the open day's working record, or that day's closed record in
+     * `deadline.days`). Same routing as adjustDayTimer; a day or entry that does not exist is left alone (false). Never throws.
+     */
+    function updateDayGoalActual(dateKey, habitId, actual) {
+        try {
+            if (typeof DailyRecord === 'undefined' || !dateKey || habitId == null) return false;
+            const rec = ensureToday();
+            if (rec && rec.date === dateKey) return DailyRecord.setGoalActual(rec, habitId, actual);
+            if (typeof Persistence === 'undefined') return false;
+            const store = DailyRecord.normalizeStore(Persistence.loadDays());
+            const closed = store.days[dateKey];
+            if (!closed || typeof closed !== 'object') return false;
+            if (!DailyRecord.setGoalActual(closed, habitId, actual)) return false;
+            return Persistence.saveDays(store) !== false;
+        } catch (e) {
+            console.error('Deadline: daily record goal update failed', e);
             return false;
         }
     }
@@ -845,7 +867,7 @@ const State = (() => {
         getCurrentRunStats, setCurrentRunStats,
         getRunHistory, setRunHistory,
         getLifetimeStats, setLifetimeStats,
-        getToday, setToday, ensureToday, bumpToday, adjustDayTimer, closeDailyRecord,
+        getToday, setToday, ensureToday, bumpToday, adjustDayTimer, updateDayGoalActual, closeDailyRecord,
         getAchievements, setAchievements,
         getActiveItems, setActiveItems,
         getCompletedItems, setCompletedItems,

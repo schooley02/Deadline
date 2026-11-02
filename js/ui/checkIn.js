@@ -35,10 +35,56 @@ const CheckIn = (() => {
         return (definedHabits || []).filter(habitDef => !!habitDef.pendingCheckIn);
     }
 
+    // --- Habit Goals Build 3 (2026-11-01): goal line + optional "How much?" on every Break-habit answer card ------------
+    // An Amount goal asks for a number (stored on the entry as goalActual); a Time goal asks for minutes, which IS the logged
+    // time (plan Decision 14). Note / none goals show no box. Always optional: a blank box records nothing.
+    function goalLineHtml(goal, isNegative) {
+        const text = (typeof Habits !== 'undefined' && Habits.formatGoal) ? Habits.formatGoal(goal, isNegative) : '';
+        return text ? `<p class="check-in-goal">${escapeHtml(text)}</p>` : '';
+    }
+
+    function howMuchHtml(goal, entry) {
+        const kind = (typeof GoalCheck !== 'undefined') ? GoalCheck.howMuchKind(goal) : null;
+        if (!kind) return '';
+        if (kind === 'amount') {
+            const unit = goal.unit ? ` <span class="how-much-unit">(${escapeHtml(goal.unit)})</span>` : '';
+            return `<label class="how-much"><span class="how-much-label">How much?${unit}</span>` +
+                `<input type="number" class="how-much-input" data-kind="amount" inputmode="decimal" min="0" step="any" placeholder="optional"></label>`;
+        }
+        const logged = GoalCheck.loggedMinutes(entry);
+        return `<label class="how-much"><span class="how-much-label">How many minutes?</span>` +
+            `<input type="number" class="how-much-input" data-kind="time" data-logged="${logged === null ? '' : logged}" inputmode="numeric" min="0" max="1440" step="1" ` +
+            `placeholder="optional"${logged === null ? '' : ` value="${logged}"`}></label>`;
+    }
+
+    // Reads the card's How much? box -> { actual?, loggedMinutes? }. Blank / invalid = nothing recorded. A Time goal reports its
+    // minutes only when they differ from the prefilled logged time, so an untouched box never rewrites a precise value.
+    function readHowMuch(card) {
+        const out = {};
+        const input = card && card.querySelector ? card.querySelector('.how-much-input') : null;
+        if (!input || typeof GoalCheck === 'undefined') return out;
+        const kind = input.getAttribute('data-kind');
+        const n = GoalCheck.parseHowMuch(input.value, kind);
+        if (n === null) return out;
+        if (kind === 'amount') out.actual = n;
+        else if (String(n) !== input.getAttribute('data-logged')) out.loggedMinutes = n;
+        return out;
+    }
+
+    function timerHintHtml(item) {
+        if (typeof Timer === 'undefined' || !Timer.hasLogged(item)) return '';
+        return `<p class="check-in-hint">${escapeHtml(Timer.loggedText(item).replace(/^Logged:\s*/, 'Timer logged '))}</p>`;
+    }
+
     function buildCardHtml(habitDef) {
+        // The goal and logged time come from the snapshot taken when the lurker was cleared at rollover; older markers fall
+        // back to the habit definition's own goal.
+        const snap = habitDef.pendingCheckIn && habitDef.pendingCheckIn.entry;
+        const goal = (typeof Habits !== 'undefined' && Habits.goalOf) ? Habits.goalOf(snap && snap.goal ? snap : habitDef) : null;
         return `
             <div class="check-in-card" data-habit-id="${habitDef.id}">
                 <p class="check-in-question">Did you resist <strong>${habitDef.name}</strong> yesterday?</p>
+                ${goalLineHtml(goal, true)}${snap ? timerHintHtml(snap) : ''}${howMuchHtml(goal, snap || habitDef)}
                 <div class="check-in-actions">
                     <button type="button" class="check-in-button avoid-btn negative-habit-button" data-outcome="avoided">Resisted</button>
                     <button type="button" class="check-in-button indulge-btn" data-outcome="indulged">Slipped</button>
@@ -75,7 +121,7 @@ const CheckIn = (() => {
             const habitDefId = card.getAttribute('data-habit-id');
             card.querySelectorAll('.check-in-button').forEach(button => {
                 button.addEventListener('click', () => {
-                    deps.resolvePendingCheckIn(habitDefId, button.getAttribute('data-outcome'));
+                    deps.resolvePendingCheckIn(habitDefId, button.getAttribute('data-outcome'), readHowMuch(card));
                     card.remove();
                     if (!overlay.querySelector('.check-in-card')) {
                         overlay.remove();
@@ -158,10 +204,91 @@ const CheckIn = (() => {
         });
     }
 
+    // --- Evening check (Habit Goals Build 3, plan Decision 7) -------------------------------------------------------------
+    // One modal, one card per Break habit still unanswered today (and whose time has arrived): the goal line, a timer hint,
+    // an optional How much?, and Resisted / Slipped / Later. "Later" leaves that habit unanswered (the arrival prompt and
+    // the next-morning card still apply); closing the modal with cards left hides it until the next app open.
+    // deps: { getCandidates() -> active items, completeItem(id, opts), indulgeHabit(id, opts), setLoggedMinutes(id, min),
+    //         onDismiss() }. Returns the overlay, or null when there is nothing to ask / one is already open.
+    function buildEveningCardHtml(item) {
+        const goal = (typeof Habits !== 'undefined' && Habits.goalOf) ? Habits.goalOf(item) : null;
+        return `
+            <div class="check-in-card evening-card" data-item-id="${item.id}">
+                <p class="check-in-question">Did you resist <strong>${escapeHtml(item.name)}</strong> today?</p>
+                ${goalLineHtml(goal, true)}${timerHintHtml(item)}${howMuchHtml(goal, item)}
+                <div class="check-in-actions">
+                    <button type="button" class="check-in-button avoid-btn negative-habit-button" data-outcome="avoided">Resisted</button>
+                    <button type="button" class="check-in-button indulge-btn" data-outcome="indulged">Slipped</button>
+                    <button type="button" class="check-in-button check-in-later" data-outcome="later">Later</button>
+                </div>
+            </div>
+        `;
+    }
+
+    function showEveningModal(deps) {
+        const items = deps.getCandidates();
+        if (!items || items.length === 0) return null;
+
+        const overlay = Modal.open(`
+            <div class="modal-overlay evening-overlay">
+                <div class="modal-content check-in-modal">
+                    <h3>Tonight's check-in</h3>
+                    <p class="check-in-intro">Before the day ends: how did these go?</p>
+                    <div class="evening-cards">${items.map(buildEveningCardHtml).join('')}</div>
+                    <p class="check-in-snooze"><a href="#" class="evening-later-link">I'll check this later</a></p>
+                </div>
+            </div>
+        `, { dedupeSelector: '.evening-overlay' });
+        if (!overlay) return null;
+
+        let skipped = false;
+        overlay.querySelectorAll('.evening-card').forEach((card) => {
+            const itemId = Number(card.getAttribute('data-item-id'));
+            card.querySelectorAll('.check-in-button').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const outcome = button.getAttribute('data-outcome');
+                    if (outcome === 'later') {
+                        skipped = true;
+                    } else {
+                        const how = readHowMuch(card);
+                        const opts = how.actual !== undefined ? { actual: how.actual } : undefined;
+                        if (outcome === 'avoided') deps.completeItem(itemId, opts);
+                        else deps.indulgeHabit(itemId, opts);
+                        // A Time goal's How much? is the logged time: applied AFTER the answer (which stops a running timer).
+                        if (how.loggedMinutes !== undefined && typeof deps.setLoggedMinutes === 'function') {
+                            deps.setLoggedMinutes(itemId, how.loggedMinutes);
+                        }
+                    }
+                    card.remove();
+                    if (!overlay.querySelector('.evening-card')) overlay.remove();
+                });
+            });
+        });
+
+        const later = overlay.querySelector('.evening-later-link');
+        if (later) later.addEventListener('click', (e) => { e.preventDefault(); overlay.remove(); });
+
+        // However it closes (answered, Later, the link, an outside tap or Esc): if any habit was left unanswered, tell the
+        // caller so tonight's check stays quiet until the next app open.
+        if (typeof MutationObserver !== 'undefined' && typeof deps.onDismiss === 'function') {
+            const observer = new MutationObserver(() => {
+                if (overlay.isConnected) return;
+                observer.disconnect();
+                if (skipped || overlay.querySelector('.evening-card')) deps.onDismiss();
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
+        return overlay;
+    }
+
     return {
         collectPendingCheckIns,
         showCheckInModal,
         queueArrivalPrompt,
+        showEveningModal,
+        howMuchHtml,
+        readHowMuch,
+        goalLineHtml,
     };
 })();
 

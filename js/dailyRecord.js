@@ -34,6 +34,9 @@
  *   reschedule  {}
  *   ko / revive {}
  *   timer       {kind:'work'|'limit', minutes}
+ *   goal        {habitId, type:'time'|'amount'|'note', amount, unit, met, actual}   (v5: an answered habit's goal)
+ *   goalClear   {habitId}                                                           (v5: that answer was undone)
+ * setGoalActual(rec, habitId, actual) corrects an already-recorded entry's `actual` (v5, an edited logged time).
  * adjustTimer(rec, kind, deltaMin) is the one NON-bump writer: it corrects timer.workMin / limitMin by a signed delta
  * when a logged time is edited (v4), on the item's own day -- today's working record or a closed one.
  *   touch       {hour|at}                            any UI interaction
@@ -43,7 +46,14 @@ const DailyRecord = (() => {
     // v3 (2026-10-31, High school v2): `stars` = { "<routineId>": 0..5 }, the hero star rating each routine banked when the day closed.
     // v4 (2026-11-01, Habit Goals Build 2c): `timer.edits` (count) + `timer.editMin` (signed net minutes) record corrections made when
     // the player edits a logged time, so insights can tell measured time from corrected time. `adjustTimer` applies the edit.
-    const V = 4;
+    // v5 (2026-11-01, Habit Goals Build 3): `goals` = { "<habitDefId>": { type, amount, unit, met, actual } }, one entry per habit that
+    // had a goal and was ANSWERED that day (Build: done; Break: Resisted / Slipped). `met` is the player's own answer, never computed
+    // from `actual`. `actual` = the optional How much? (an Amount goal's number) or the logged minutes (a Time goal). Opaque ids and
+    // numbers only; `unit` is kept only when it is one of the suggested units (else 'other'), so no free text lands in the record.
+    const V = 5;
+    // Mirrors Habits.GOAL_UNIT_SUGGESTIONS (test/dailyRecord.test.js checks they match). Kept local: no global dependencies.
+    const GOAL_UNITS = ['pages', 'glasses', 'oz', 'steps', 'miles', 'km', 'reps', 'words', 'servings', 'drinks', 'cigarettes', 'cups', '$', 'times'];
+    const GOAL_TYPES = ['time', 'amount', 'note'];
 
     // Mirrors CONFIG.HERO_CATEGORIES (test/dailyRecord.test.js checks they
     // match). Kept local so this module has no global dependencies.
@@ -130,6 +140,8 @@ const DailyRecord = (() => {
             rt: {},
             // v3: banked hero stars per routine, written ONCE at close (opaque ids, no names). Missing on older days (reads as none).
             stars: {},
+            // v5: answered habit goals of the day (see V above). Written live by the 'goal' event; kept as-is at close.
+            goals: {},
         };
     }
 
@@ -139,6 +151,33 @@ const DailyRecord = (() => {
         Object.keys(src).forEach((k) => {
             const n = Number(src[k]);
             if (Number.isFinite(n)) out[k] = Math.max(0, Math.min(5, Math.round(n)));
+        });
+        return out;
+    }
+
+    // v5: one clean goal entry (or null when it cannot be one). Numbers, booleans and a whitelisted unit only.
+    function sanitizeGoalEntry(src) {
+        if (!src || typeof src !== 'object' || GOAL_TYPES.indexOf(src.type) < 0) return null;
+        const num = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null);
+        let unit = null;
+        if (src.type === 'amount' && typeof src.unit === 'string' && src.unit) {
+            unit = GOAL_UNITS.indexOf(src.unit) >= 0 ? src.unit : 'other';
+        }
+        return {
+            type: src.type,
+            amount: src.type === 'note' ? null : num(src.amount),
+            unit,
+            met: src.met === true,
+            actual: src.type === 'note' ? null : num(src.actual),
+        };
+    }
+
+    function sanitizeGoals(src) {
+        const out = {};
+        if (!src || typeof src !== 'object') return out;
+        Object.keys(src).forEach((k) => {
+            const e = sanitizeGoalEntry(src[k]);
+            if (e) out[k] = e;
         });
         return out;
     }
@@ -216,6 +255,7 @@ const DailyRecord = (() => {
         fill(f, rec);
         f.rt = sanitizeRt(rec.rt);
         f.stars = sanitizeStars(rec.stars);
+        f.goals = sanitizeGoals(rec.goals);
         // `fill` skips null/undefined sources, but null IS a legal value for
         // active.first/last and base.*; copy those straight across.
         if (rec.active) { f.active.first = rec.active.first != null ? rec.active.first : null; f.active.last = rec.active.last != null ? rec.active.last : null; }
@@ -246,6 +286,21 @@ const DailyRecord = (() => {
         t.edits = (Number.isFinite(t.edits) ? t.edits : 0) + 1;
         t.editMin = (Number.isFinite(t.editMin) ? t.editMin : 0) + applied;
         return applied;
+    }
+
+    /**
+     * Correct the `actual` of an ALREADY-recorded goal entry (v5): an edited logged time on a Time-goal habit must reach the
+     * day's goal tally too, not only timer.workMin / limitMin. Only touches an existing entry (an unanswered habit has none),
+     * never creates one and never changes `met`. `actual` null clears it. Returns true when an entry was changed.
+     */
+    function setGoalActual(rec, habitId, actual) {
+        if (!rec || typeof rec !== 'object' || !rec.goals || typeof rec.goals !== 'object') return false;
+        const e = rec.goals[String(habitId)];
+        if (!e || typeof e !== 'object' || e.type === 'note') return false;
+        const next = typeof actual === 'number' && Number.isFinite(actual) && actual >= 0 ? actual : null;
+        if (e.actual === next) return false;
+        e.actual = next;
+        return true;
     }
 
     function dec(n) { return n > 0 ? n - 1 : 0; }
@@ -360,6 +415,19 @@ const DailyRecord = (() => {
                 else if (p.kind === 'work') rec.timer.workMin += m;
                 break;
             }
+            case 'goal': {
+                // v5: an answered habit's goal. Keyed by the habit definition id, so a repeat (undo + answer again) overwrites.
+                if (p.habitId == null) break;
+                const e = sanitizeGoalEntry(p);
+                if (!e) break;
+                if (!rec.goals || typeof rec.goals !== 'object') rec.goals = {};
+                rec.goals[String(p.habitId)] = e;
+                break;
+            }
+            case 'goalClear':
+                // v5: the answer was undone (a Build habit un-completed): its goal entry goes with it.
+                if (p.habitId != null && rec.goals && typeof rec.goals === 'object') delete rec.goals[String(p.habitId)];
+                break;
             case 'touch': {
                 const h = hourOf(p);
                 rec.active.touches += 1;
@@ -626,6 +694,9 @@ const DailyRecord = (() => {
         rollUp,
         mergeStores,
         adjustTimer,
+        setGoalActual,
+        sanitizeGoals,
+        GOAL_UNITS,
     };
 })();
 

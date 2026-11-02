@@ -741,6 +741,8 @@ document.addEventListener('DOMContentLoaded', () => {
             recordDaily: State.bumpToday,
             // Habit Goals Build 2c: an edited logged time corrects the daily record of the item's own day.
             adjustDayTimer: (when, kind, deltaMin) => State.adjustDayTimer(DailyRecord.dateKey(when), kind, deltaMin),
+            // Habit Goals Build 3 (daily record v5): an edited logged time refreshes the habit's recorded goal `actual` on that day.
+            updateDayGoalActual: (when, habitId, actual) => State.updateDayGoalActual(DailyRecord.dateKey(when), habitId, actual),
             onRoutineDamaged: (routine) => {
                 // Hero spotlight `hurt` row: only plays on a hero that is already on screen.
                 if (heroSpotlightReady) HeroSpotlight.react(routine.id, 'hurt');
@@ -833,10 +835,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     onTap: (r) => spotlightRoutine(r.id, { bringCanvasIntoView: true }),
                 });
             },
-            completeItem: (itemId) => Items.completeItem(itemId, itemsDeps()),
+            completeItem: (itemId, opts) => Items.completeItem(itemId, itemsDeps(), opts),
             // Row-body tap: hero only, no popup (2026-10-26).
             onRowTap: (itemId) => { if (!State.isGameOver()) toggleHeroSelection(itemId); },
-            indulgeHabit: (itemId) => Items.indulgeHabit(itemId, itemsDeps()),
+            indulgeHabit: (itemId, opts) => Items.indulgeHabit(itemId, itemsDeps(), opts),
             isGameOver: State.isGameOver,
             showEditTaskModal: (item) => Popups.showEditTaskModal(item, popupsDeps()),
             toggleWorkTimer,
@@ -883,8 +885,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function popupsDeps() {
         return {
             gameIsOver: State.isGameOver(), activeItems: State.getActiveItems(),
-            completeItem: (itemId) => Items.completeItem(itemId, itemsDeps()),
-            indulgeHabit: (itemId) => Items.indulgeHabit(itemId, itemsDeps()),
+            completeItem: (itemId, opts) => Items.completeItem(itemId, itemsDeps(), opts),
+            indulgeHabit: (itemId, opts) => Items.indulgeHabit(itemId, itemsDeps(), opts),
             createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()),
             sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()),
             saveGame, recomputeOverdueStateAfterEdit: (item) => Items.recomputeOverdueStateAfterEdit(item, itemsDeps()),
@@ -962,8 +964,60 @@ document.addEventListener('DOMContentLoaded', () => {
     function checkInDeps() {
         return {
             getDefinedHabits: State.getDefinedHabits,
-            resolvePendingCheckIn: (habitDefId, outcome) => Items.resolvePendingCheckIn(habitDefId, outcome, itemsDeps()),
+            // Habit Goals Build 3: `opts` = the card's optional How much? ({ actual } for an Amount goal, { loggedMinutes } for a
+            // Time goal). A typed time is applied to the entry the answer just kept, through the normal logged-time edit.
+            resolvePendingCheckIn: (habitDefId, outcome, opts) => {
+                const deps = itemsDeps();
+                const result = Items.resolvePendingCheckIn(habitDefId, outcome, deps, opts);
+                if (result && result.entryId != null && opts && typeof opts.loggedMinutes === 'number') {
+                    Items.setLoggedTime(result.entryId, opts.loggedMinutes * 60000, deps);
+                }
+            },
         };
+    }
+
+    // ---- Evening check (Habit Goals Build 3, plan Decision 7) ----------------------------------------------------------
+    // At the player's evening time (Settings, default 9 PM) the game asks about every Break habit still unanswered today whose
+    // time has arrived. In-app only: it shows while the app is open, polled from afterTick. "Later" / closing it with habits left
+    // hides it until the next app open (boot, or the app coming back to the foreground); the next-morning check-in stays the backstop.
+    let eveningDismissedFor = null;   // local dateKey the player closed tonight's check for (in memory only, on purpose)
+    let lastEveningPollMs = 0;
+
+    function eveningCheckDeps() {
+        return {
+            getCandidates: () => GoalCheck.eveningCandidates(State.getActiveItems(), State.getDefinedHabits(), Date.now()),
+            completeItem: (id, opts) => Items.completeItem(id, itemsDeps(), opts),
+            indulgeHabit: (id, opts) => Items.indulgeHabit(id, itemsDeps(), opts),
+            setLoggedMinutes: (id, minutes) => Items.setLoggedTime(id, minutes * 60000, itemsDeps()),
+            onDismiss: () => { eveningDismissedFor = DailyRecord.dateKey(Date.now()); },
+        };
+    }
+
+    // True while the evening check is the thing that will ask about a Break habit right now: the evening time has arrived and
+    // the player has not closed tonight's check. The same-day "Time's up" arrival popup stands down in that window (it would ask
+    // the same question a moment earlier, on top of the evening modal). It skips WITHOUT using its once-per-day stamp, so a habit
+    // that arrives after the player closed tonight's check still gets its own arrival prompt.
+    function eveningCheckCovers(nowMs) {
+        if (typeof CheckIn === 'undefined' || typeof GoalCheck === 'undefined' || State.isGameOver()) return false;
+        if (eveningDismissedFor === DailyRecord.dateKey(nowMs)) return false;
+        return GoalCheck.isEveningTime(nowMs, Settings.load().eveningCheckTime);
+    }
+
+    function maybeShowEveningCheck() {
+        if (typeof CheckIn === 'undefined' || typeof GoalCheck === 'undefined' || State.isGameOver()) return;
+        if (timePreviewActive || offlineCatchUpActive) return;
+        const nowMs = Date.now();
+        if (!eveningCheckCovers(nowMs)) return;
+        // Never stack on another dialog (a form, a popup, the morning check-in): try again on the next poll.
+        if (document.querySelector('.modal-overlay')) return;
+        CheckIn.showEveningModal(eveningCheckDeps());
+    }
+
+    // Throttled poll for afterTick (the settings read hits localStorage, so not every frame).
+    function pollEveningCheck(nowMs) {
+        if (nowMs - lastEveningPollMs < 15000) return;
+        lastEveningPollMs = nowMs;
+        maybeShowEveningCheck();
     }
 
     // Negative-habit "time has arrived" prompt (2026-10-21, Jeremy). Once per habit per
@@ -974,6 +1028,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof CheckIn === 'undefined' || !item || item.type !== 'habit') return;
         const def = State.getDefinedHabits().find(d => d.id === item.definitionId);
         if (!def || !def.isNegative) return;
+        // Habit Goals Build 3: after the evening time the evening check asks instead (see eveningCheckCovers).
+        if (eveningCheckCovers(Date.now())) return;
         const day = Habits.toOccurrenceDate(item.originalDueDate || item.dueDateTime);
         if (def.arrivalPromptedFor === day) return;
         def.arrivalPromptedFor = day;
@@ -1473,6 +1529,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     isNonThreatening: Items.isNonThreatening,
                 });
                 processTimers(Date.now());
+                pollEveningCheck(Date.now());
                 refreshBaseChip();
                 GraveyardView.render(BASE_WIDTH);
                 VillageView.render(BASE_WIDTH);
@@ -2421,6 +2478,9 @@ document.addEventListener('DOMContentLoaded', () => {
             days: Persistence.loadDays(), todayRecord: State.getToday(), scoreWeights: CONFIG.DAILY_SCORE_WEIGHTS,
             currentEffectsIntensity: effectsIntensity,
             onChangeEffectsIntensity: handleEffectsIntensityChange,
+            // Evening check time (Habit Goals Build 3): read fresh each time the Settings window opens.
+            currentEveningTime: Settings.load().eveningCheckTime,
+            onChangeEveningTime: handleEveningCheckTimeChange,
             // Export/Import (Milestone 5 first item, 2026-07-20) — see
             // js/exportImport.js header + handleConfirmImport below.
             buildExportEnvelope: () => ExportImport.buildEnvelope({
@@ -2525,8 +2585,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // checked without needing a page reload.
     function handleEffectsIntensityChange(intensity) {
         effectsIntensity = intensity;
-        Settings.save({ effectsIntensity: intensity });
+        Settings.save({ effectsIntensity: intensity });   // Settings.save keeps the other stored fields (eveningCheckTime)
         Settings.applyEffectsIntensity(intensity);
+    }
+
+    // Habit Goals Build 3: the Settings "Evening check" time. A new time re-arms tonight's check (the player may have just moved it
+    // earlier on purpose); an empty / invalid input falls back to the default.
+    function handleEveningCheckTimeChange(value) {
+        Settings.save({ eveningCheckTime: GoalCheck.normalizeEveningTime(value, CONFIG.EVENING_CHECK_DEFAULT) });
+        eveningDismissedFor = null;
     }
 
     // (closeAllManagementWindows wrapper inlined at its one call site
@@ -2942,6 +3009,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // rollover just ran (above) and left any negative-habit pendingCheckIn
     // markers, prompt for them now.
     showCheckInIfPending();
+    // Evening check (Habit Goals Build 3): an app open at or after the evening time asks right away (the poll covers the rest).
+    maybeShowEveningCheck();
 
     // Daily record `active` window (D2, 2026-10-27): any pointer interaction
     // counts as a touch, throttled so `active.touches` is roughly "half-minutes
@@ -2960,6 +3029,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden' && typeof Persistence !== 'undefined') {
             Persistence.flush();
+        }
+        // Coming back to the app counts as opening it: a "Later" from earlier tonight is forgotten and the check asks again.
+        if (document.visibilityState === 'visible') {
+            eveningDismissedFor = null;
+            maybeShowEveningCheck();
         }
     });
     window.addEventListener('beforeunload', () => {

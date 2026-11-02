@@ -188,3 +188,17 @@
 .reset-confirm-modal {
     max-width: 420px;
 }
+
+/* Evening check time (Habit Goals Build 3, 2026-11-01) */
+.settings-time-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.settings-time-input {
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--color-neutral);
+    border-radius: 6px;
+    font-size: 16px;
+}

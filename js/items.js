@@ -396,6 +396,22 @@ const Items = (() => {
     function recordDaily(deps, event, payload) {
         if (deps && typeof deps.recordDaily === 'function') deps.recordDaily(event, payload);
     }
+    // Habit Goals Build 3 (2026-11-01): the optional "How much?" of an Amount goal rides on the answered entry as
+    // `goalActual`. A Time goal's How much? is the logged time (plan Decision 14), so it never lands here. Only a valid,
+    // non-negative number is kept; anything else leaves the entry untouched.
+    function applyGoalActual(entry, habitDef, opts) {
+        if (!entry || !opts || typeof opts.actual !== 'number' || !Number.isFinite(opts.actual) || opts.actual < 0) return;
+        const goal = Habits.goalOf(entry.goal ? entry : habitDef);
+        if (goal.type === 'amount') entry.goalActual = Math.round(opts.actual * 100) / 100;
+    }
+    // Daily record v5: one goal entry per answered habit that has a goal. `met` is the player's own answer (done / Resisted =
+    // true, Slipped = false), never computed from the number. The instance's own goal wins, else the habit definition's.
+    function recordGoalAnswer(entry, habitDef, met, deps) {
+        if (typeof GoalCheck === 'undefined' || !habitDef) return;
+        const goal = Habits.goalOf(entry && entry.goal ? entry : habitDef);
+        const rec = GoalCheck.goalRecord(goal, met, GoalCheck.actualFor(entry, goal));
+        if (rec) recordDaily(deps, 'goal', Object.assign({ habitId: habitDef.id }, rec));
+    }
     // Routine id for the daily record's attendance tally (village High school, 2026-10-30). null = a standalone item,
     // or the lookup deps are unavailable. Never throws: a stats lookup must not break a completion or a tick.
     function dailyRoutineId(item, deps) {
@@ -530,7 +546,7 @@ const Items = (() => {
      * script.js owns the semantics (bump lifetimeStats → evaluate → toast).
      * Habits (applyHabitCompletion) called as a bare stable global.
      */
-    function completeItem(itemId, deps) {
+    function completeItem(itemId, deps, opts) {
         if (deps.isGameOver()) return;
 
         const itemIndex = deps.activeItems.findIndex(i => i.id === itemId);
@@ -708,6 +724,13 @@ const Items = (() => {
         item.completedAt = new Date();
         // Habit Goals Build 2c (Decision 15): a Break habit's Completed entry is a Resisted one (green tag); code word 'avoided'.
         if (item.type === 'habit' && item.isNegative === true) item.outcome = 'avoided';
+        // Habit Goals Build 3: a habit with a goal records its answer (done / Resisted = met) and the optional How much?.
+        // `opts.actual` comes only from a surface that asked (popup, evening check); the row checkbox passes nothing.
+        if (item.type === 'habit') {
+            const goalDef = deps.definedHabits().find(def => def.id === item.definitionId);
+            applyGoalActual(item, goalDef, opts);
+            recordGoalAnswer(item, goalDef, true, deps);
+        }
         deps.completedItems().push(item);
         // Daily record (D2): `late` = completed after it went overdue.
         recordDaily(deps, 'complete', {
@@ -1056,9 +1079,13 @@ const Items = (() => {
      * indulgeHabit's live equivalent) in case a token was somehow applied
      * after the marker was already set.
      */
-    function resolvePendingCheckIn(habitDefId, outcome, deps) {
+    function resolvePendingCheckIn(habitDefId, outcome, deps, opts) {
         const habitDef = deps.definedHabits().find(def => def.id === habitDefId);
         if (!habitDef || !habitDef.pendingCheckIn) return;
+        // Habit Goals Build 3: the kept entry's id is returned so a caller can apply a typed How much? time to it afterwards.
+        let keptEntryId = null;
+        // Goal tally + optional How much? for the entry about to be kept (Resisted, Slipped, or an excused slip).
+        const stampGoal = (entry, met) => { applyGoalActual(entry, habitDef, opts); recordGoalAnswer(entry, habitDef, met, deps); keptEntryId = entry.id; return entry; };
 
         const originalDueDate = habitDef.pendingCheckIn.originalDueDate;
         const config = {
@@ -1134,11 +1161,11 @@ const Items = (() => {
             }
             // 2026-11-01 (Jeremy): the Resisted answer is listed in Completed too (green tag). `fromCheckIn` = no undo, because the
             // lurker is gone and the points/streak were already settled at answer time.
-            keepAnsweredEntry(makeSlipEntry(), 'avoided', { fromCheckIn: true }, deps);
+            keepAnsweredEntry(stampGoal(makeSlipEntry(), true), 'avoided', { fromCheckIn: true }, deps);
         } else if (outcome === 'indulged') {
             if (isCheatDayExcused(habitDef, originalDueDate)) {
                 habitDef.cheatDayDate = null;
-                keepSlippedEntry(makeSlipEntry(), { cheatDayExcused: true }, deps);
+                keepSlippedEntry(stampGoal(makeSlipEntry(), false), { cheatDayExcused: true }, deps);
             } else {
                 const result = Habits.applyHabitIndulgence(
                     habitDef.streak, habitDef.occurrenceHistory, habitDef.isNegative, originalDueDate, config
@@ -1151,7 +1178,7 @@ const Items = (() => {
                     // Frozen routine slots: 'indulged' is a failure occurrence
                     // for a negative habit — check the freeze trigger.
                     maybeFreezeRoutine(habitDef, deps);
-                    keepSlippedEntry(makeSlipEntry(), null, deps);
+                    keepSlippedEntry(stampGoal(makeSlipEntry(), false), null, deps);
                 }
             }
         }
@@ -1159,6 +1186,7 @@ const Items = (() => {
         delete habitDef.pendingCheckIn;
         deps.updatePlayerDisplays();
         deps.saveGame();
+        return { entryId: keptEntryId };
     }
 
     /**
@@ -1224,7 +1252,7 @@ const Items = (() => {
      * (resolvePendingCheckIn) still clear it — by then the day is over.
      * Still exits with the same fade animation either path.
      */
-    function indulgeHabit(itemId, deps) {
+    function indulgeHabit(itemId, deps, opts) {
         if (deps.isGameOver()) return;
 
         const item = deps.activeItems.find(i => i.id === itemId);
@@ -1237,6 +1265,9 @@ const Items = (() => {
 
         if (isCheatDayExcused(habitDef, item.originalDueDate)) {
             // Marker intentionally kept — see the header comment (session 57).
+            // Goal tally (Build 3): an excused slip is still a slip for the goal (met = false); nothing is charged.
+            applyGoalActual(item, habitDef, opts);
+            recordGoalAnswer(item, habitDef, false, deps);
             keepSlippedEntry(item, { cheatDayExcused: true }, deps);
             deps.updatePlayerDisplays();
             deps.saveGame();
@@ -1260,6 +1291,8 @@ const Items = (() => {
             // Frozen routine slots: this indulge is a failure occurrence for
             // a negative habit — check the freeze trigger.
             maybeFreezeRoutine(habitDef, deps);
+            applyGoalActual(item, habitDef, opts);
+            recordGoalAnswer(item, habitDef, false, deps);
             keepSlippedEntry(item, null, deps);
             deps.updatePlayerDisplays();
             deps.saveGame();
@@ -1301,6 +1334,17 @@ const Items = (() => {
             try {
                 const when = done && item.completedAt ? new Date(item.completedAt) : new Date();
                 deps.adjustDayTimer(when, Timer.recordKind(item), deltaMin);
+            } catch (e) { /* a stats bug must never lose the edit */ }
+        }
+        // Habit Goals Build 3 (daily record v5): a Time-goal habit's goal entry carries the logged minutes as its `actual`; keep it in
+        // step with the edit (only an ALREADY-recorded entry changes, so an unanswered habit gets nothing).
+        if (deltaMin !== 0 && item.type === 'habit' && typeof deps.updateDayGoalActual === 'function' && typeof GoalCheck !== 'undefined') {
+            try {
+                const goal = Habits.goalOf(item.goal ? item : (typeof deps.definedHabits === 'function' ? deps.definedHabits().find(d => d.id === item.definitionId) : null));
+                if (goal.type === 'time') {
+                    const when = done && item.completedAt ? new Date(item.completedAt) : new Date();
+                    deps.updateDayGoalActual(when, item.definitionId, GoalCheck.loggedMinutes(item));
+                }
             } catch (e) { /* a stats bug must never lose the edit */ }
         }
         if (typeof deps.saveGame === 'function') deps.saveGame();
@@ -1592,6 +1636,11 @@ const Items = (() => {
             at: dailyCompletedAtMs, late: dailyWasLate, points: dailyPointsLost,
             routineId: dailyRoutineId(item, deps)
         });
+        // Habit Goals Build 3 (daily record v5): the undone answer's goal entry goes with it (same closed-day guard via `at`).
+        if (item.type === 'habit') {
+            recordDaily(deps, 'goalClear', { habitId: item.definitionId, at: dailyCompletedAtMs });
+            delete item.goalActual;
+        }
 
         deps.updatePlayerDisplays();
         deps.saveGame();

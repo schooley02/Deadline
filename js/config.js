@@ -19,6 +19,11 @@ const CONFIG = {
     // THIS session only — not persisted across reload (see js/ui/checkIn.js).
     CHECK_IN_SNOOZE_MS: 4 * 60 * 60 * 1000,
 
+    // Evening check (Habit Goals Build 3, 2026-11-01): the default time ("HH:MM", 24 h) the game asks about every Break habit
+    // still unanswered today. The player's own time lives in `deadline.settings` (Settings.eveningCheckTime); this is only the
+    // default. "Later" hides it until the next app open; the next-morning check-in card stays as the backstop.
+    EVENING_CHECK_DEFAULT: '21:00',
+
     // --- Base ---
     MAX_BASE_HEALTH: 100,
     OVERDUE_DAMAGE: 1,

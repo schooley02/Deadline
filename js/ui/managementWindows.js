@@ -125,6 +125,9 @@ const ManagementWindows = (() => {
                 SettingsView.renderSettingsWindow({
                     currentIntensity: deps.currentEffectsIntensity,
                     onChangeIntensity: deps.onChangeEffectsIntensity,
+                    // Evening check time (Habit Goals Build 3, 2026-11-01).
+                    currentEveningTime: deps.currentEveningTime,
+                    onChangeEveningTime: deps.onChangeEveningTime,
                     // Export/Import (Milestone 5, 2026-07-20) — same
                     // pass-through-deps-only shape as everything else here.
                     buildExportEnvelope: deps.buildExportEnvelope,

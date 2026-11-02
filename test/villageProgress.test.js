@@ -290,7 +290,7 @@ describe('DailyRecord routine attendance (feeds the High school)', () => {
     function rec() { return DailyRecord.fresh({ date: '2026-11-01', run: RUN }); }
 
     test('v2 and a zeroed att / empty rt on a fresh record', () => {
-        expect(DailyRecord.V).toBe(4); // v4 (Habit Goals Build 2c: timer edits)
+        expect(DailyRecord.V).toBe(5); // v5 (Habit Goals Build 3: goals); v4 was Build 2c timer edits
         const r = rec();
         expect(r.att).toEqual({ active: 0, perfect: 0 });
         expect(r.rt).toEqual({});
