@@ -207,3 +207,31 @@ describe('updateMidnightLine (DOM wrapper)', () => {
         }
     });
 });
+
+describe('Clock.isDueAfterDay (canvas shows only the selected day, 2026-11-02)', () => {
+    const now = new Date(2026, 10, 2, 11, 30);
+
+    test('due later today is false, due tomorrow is true, due any later day is true', () => {
+        expect(Clock.isDueAfterDay({ dueDateTime: new Date(2026, 10, 2, 17, 0) }, now)).toBe(false);
+        expect(Clock.isDueAfterDay({ dueDateTime: new Date(2026, 10, 2, 23, 59, 59) }, now)).toBe(false);
+        expect(Clock.isDueAfterDay({ dueDateTime: new Date(2026, 10, 3, 0, 0, 0) }, now)).toBe(true);
+        expect(Clock.isDueAfterDay({ dueDateTime: new Date(2026, 10, 3, 17, 0) }, now)).toBe(true);
+        expect(Clock.isDueAfterDay({ dueDateTime: new Date(2027, 0, 1) }, now)).toBe(true);
+    });
+
+    test('overdue items (earlier days or earlier today) are never hidden', () => {
+        expect(Clock.isDueAfterDay({ dueDateTime: new Date(2026, 10, 1, 9, 0) }, now)).toBe(false);
+        expect(Clock.isDueAfterDay({ dueDateTime: new Date(2026, 10, 2, 8, 0) }, now)).toBe(false);
+    });
+
+    test('month and year boundaries compare as calendar days', () => {
+        expect(Clock.isDueAfterDay({ dueDateTime: new Date(2026, 11, 1, 9, 0) }, new Date(2026, 10, 30, 22, 0))).toBe(true);
+        expect(Clock.isDueAfterDay({ dueDateTime: new Date(2027, 0, 1, 9, 0) }, new Date(2026, 11, 31, 22, 0))).toBe(true);
+    });
+
+    test('missing or invalid dates are false', () => {
+        expect(Clock.isDueAfterDay(null, now)).toBe(false);
+        expect(Clock.isDueAfterDay({}, now)).toBe(false);
+        expect(Clock.isDueAfterDay({ dueDateTime: new Date('nope') }, now)).toBe(false);
+    });
+});

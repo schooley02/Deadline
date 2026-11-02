@@ -679,3 +679,9 @@ body.fx-off #base {
     100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
 }
 
+/* Today's canvas shows only today's zombies (2026-11-02, Jeremy): js/loop.js tags an item
+   due on a later calendar day; it appears on that day's pager page (ghost) and, at midnight,
+   here. Overdue items are never tagged. */
+#gameCanvas .enemy.due-later-day {
+    display: none;
+}

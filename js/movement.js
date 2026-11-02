@@ -148,6 +148,10 @@ const Movement = (() => {
             return Math.max(ownTimelineX + getSubTaskClusterOffset(item, offsetCtx), dims.baseWidth);
         }
 
+        // A sub due on an EARLIER day than its parent stands on its own day's timeline: the
+        // parent is hidden on this day's canvas (Clock.isDueAfterDay), so there is nothing to cluster with.
+        if (Clock.isDueAfterDay(parentTask, item.dueDateTime)) return ownTimelineX;
+
         if (parentTask.x - ownTimelineX > CONFIG.SUBTASK_AHEAD_THRESHOLD_PX) {
             return ownTimelineX; // due much earlier than parent — show real urgency
         }

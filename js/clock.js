@@ -157,7 +157,22 @@ const Clock = (() => {
         }
     }
 
+    // True when the item is due on a LATER local calendar day than `now` (2026-11-02, Jeremy:
+    // the canvas shows only the selected day's zombies; tomorrow's appear on tomorrow's pager
+    // page). Overdue items (earlier days) and today's items are false. calculateTimelinePosition
+    // is deliberately unchanged -- the day pager's ghosts still use it for their own day.
+    function isDueAfterDay(item, now) {
+        if (!item || !(item.dueDateTime instanceof Date) || isNaN(item.dueDateTime.getTime())) return false;
+        const ref = (now instanceof Date) ? now : new Date(now);
+        if (isNaN(ref.getTime())) return false;
+        const d = item.dueDateTime;
+        const dKey = d.getFullYear() * 10000 + d.getMonth() * 100 + d.getDate();
+        const rKey = ref.getFullYear() * 10000 + ref.getMonth() * 100 + ref.getDate();
+        return dKey > rKey;
+    }
+
     return {
+        isDueAfterDay,
         hasWorkWindow,
         isInWorkWindow,
         arrivalDateTime,

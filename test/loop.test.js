@@ -610,3 +610,30 @@ describe('Loop.updateGame', () => {
         });
     });
 });
+
+describe('Loop.updateActiveItems — later-day items are hidden on the canvas (2026-11-02, Jeremy)', () => {
+    afterEach(() => jest.useRealTimers());
+
+    test('an item due tomorrow gets due-later-day; today\'s and overdue items do not', () => {
+        jest.useFakeTimers({ now: new Date(2026, 10, 2, 11, 30) });
+        const tomorrow = makeItem({ id: 1, dueDateTime: new Date(2026, 10, 3, 17, 0) });
+        const today = makeItem({ id: 2, dueDateTime: new Date(2026, 10, 2, 17, 0) });
+        const late = makeItem({ id: 3, dueDateTime: new Date(2026, 10, 1, 9, 0), isOverdue: true });
+        const deps = makeDeps({ state: { activeItems: [tomorrow, today, late] } });
+        Loop.updateActiveItems(deps);
+        expect(tomorrow.element.classList.contains('due-later-day')).toBe(true);
+        expect(today.element.classList.contains('due-later-day')).toBe(false);
+        expect(late.element.classList.contains('due-later-day')).toBe(false);
+    });
+
+    test('the class comes off when midnight makes the item due today', () => {
+        jest.useFakeTimers({ now: new Date(2026, 10, 2, 23, 59, 30) });
+        const item = makeItem({ id: 1, dueDateTime: new Date(2026, 10, 3, 17, 0) });
+        const deps = makeDeps({ state: { activeItems: [item] } });
+        Loop.updateActiveItems(deps);
+        expect(item.element.classList.contains('due-later-day')).toBe(true);
+        jest.setSystemTime(new Date(2026, 10, 3, 0, 0, 30));
+        Loop.updateActiveItems(deps);
+        expect(item.element.classList.contains('due-later-day')).toBe(false);
+    });
+});

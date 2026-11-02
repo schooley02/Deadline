@@ -315,3 +315,21 @@ describe('getItemTopPosition', () => {
         expect(top).toBe(276);
     });
 });
+
+describe('calculateTimelineXWithClustering — sub due on an earlier day than its parent (2026-11-02)', () => {
+    test('stands on its own timeline instead of clustering with the hidden parent', () => {
+        const now = new Date(2026, 10, 2, 11, 30);
+        const parent = { id: 1, category: 'creativity', x: 1000, type: 'task', dueDateTime: new Date(2026, 10, 3, 17, 0) };
+        const sub = { id: 2, parentId: 1, category: 'creativity', type: 'task', dueDateTime: new Date(2026, 10, 2, 17, 0) };
+        const x = Movement.calculateTimelineXWithClustering(sub, now, { activeItems: [parent, sub], dims: DIMS });
+        expect(x).toBe(Clock.calculateTimelinePosition(sub, now, DIMS));
+    });
+
+    test('same-day parent still clusters', () => {
+        const now = new Date(2026, 10, 2, 11, 30);
+        const parent = { id: 1, category: 'creativity', x: 600, type: 'task', dueDateTime: new Date(2026, 10, 2, 17, 0) };
+        const sub = { id: 2, parentId: 1, category: 'creativity', type: 'task', dueDateTime: new Date(2026, 10, 2, 16, 0) };
+        const x = Movement.calculateTimelineXWithClustering(sub, now, { activeItems: [parent, sub], dims: DIMS });
+        expect(x).toBeCloseTo(Math.max(600 + Movement.getSubTaskClusterOffset(sub, { activeItems: [parent, sub], enemyWidth: DIMS.enemyWidth }), DIMS.baseWidth), 6);
+    });
+});

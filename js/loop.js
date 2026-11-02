@@ -105,6 +105,17 @@ const Loop = (() => {
                 if (typeof SpriteAnim !== 'undefined') SpriteAnim.syncScale(item.element, renderWidth);
             }
 
+            // Today's canvas shows only today's zombies (2026-11-02, Jeremy): an item due on a
+            // later calendar day is hidden (`due-later-day`, css/gameCanvas.css) until its day
+            // comes; it shows on that day's pager page as a ghost. Overdue items stay visible.
+            if (item.element && item.element.classList) {
+                const later = Clock.isDueAfterDay(item, currentTime);
+                if (later !== item.element.classList.contains('due-later-day')) {
+                    if (later) item.element.classList.add('due-later-day');
+                    else item.element.classList.remove('due-later-day');
+                }
+            }
+
             // [P1-DATA-005] session 27 -- a negative-habit lurker never goes
             // overdue and never damages the base (A2 model, DECISIONS
             // sessions 26/29). CHANGED 2026-10-13 (Jeremy): no fixed far-right

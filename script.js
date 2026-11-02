@@ -1625,9 +1625,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 GraveyardView.render(BASE_WIDTH);
                 VillageView.render(BASE_WIDTH);
                 refreshHeroAttack();
-                Layout.applyStripLayout(State.getActiveItems(), { baseWidth: BASE_WIDTH });
+                const canvasItems = State.getActiveItems().filter(i => !Clock.isDueAfterDay(i, new Date()));
+                Layout.applyStripLayout(canvasItems, { baseWidth: BASE_WIDTH });
                 // Landscape/desktop: ground lanes in list order, overlap-avoiding (no-op in strip mode).
-                if (!Layout.isActive()) Layout.applyGroundLanes(State.getActiveItems(), gameCanvas.offsetHeight, { baseWidth: BASE_WIDTH, fieldRight: GAME_SCREEN_WIDTH });
+                if (!Layout.isActive()) Layout.applyGroundLanes(canvasItems, gameCanvas.offsetHeight, { baseWidth: BASE_WIDTH, fieldRight: GAME_SCREEN_WIDTH });
             },
             isGameOver: State.isGameOver,
             isOfflineCatchUpActive: () => offlineCatchUpActive,
