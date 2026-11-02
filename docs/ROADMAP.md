@@ -226,16 +226,16 @@ Scoped from a structured live playtest.
     - [ ] Phone check: goal popup buttons, Break timer red when over, Pause/Play/Stop icons, completed-habit edit dialog
   - [x] Build 2b (BUILT 2026-11-01, sw v189, Sonnet; Jest 108 suites / 2,501) (DESIGNED 2026-11-01 night, Opus): Break over-limit popup (I slipped / I stayed within it / Started by mistake / Keep going) + every timer shows its logged total when stopped; completed rows show logged time (Sonnet, medium)
   - [x] Build 2c (BUILT 2026-11-01, sw v190, Sonnet; Jest 114 suites / 2,572): logged time editable anywhere incl. completed entries; daily-record correction on the item's day + DailyRecord v4 `timer.edits/editMin`; Slipped entries kept in Completed with a red Slipped tag, Resisted tag green, no undo on Slipped; "I stayed within it" asks the real time (Sonnet, high)
-    - [ ] Phone check: Logged time field in the popup / Edit Task / completed-habit editor, the "How much time" prompt after "I stayed within it", Slipped + Resisted tags in Completed
+    - [x] Phone check: Logged time field in the popup (phone-confirmed 2026-11-01, Jeremy) / Edit Task / completed-habit editor, the "How much time" prompt after "I stayed within it", Slipped + Resisted tags in Completed
   - [x] Slot-point display (BUILT 2026-11-01, sw v192, Sonnet; Jest 114 suites / 2,578): tray "N points" pill + Manage Routine callout
-    - [ ] Phone check: the blue "N points" pill in the Hero tray and the callout in Manage Routine
+    - [x] Phone check: the blue "N points" pill in the Hero tray (phone-confirmed 2026-11-01, Jeremy) and the callout in Manage Routine
   - [x] In-game dialogs Build 1 (BUILT 2026-11-01, sw v193, Sonnet; Jest 116 suites / 2,586; plan `docs/DIALOG_PLAN.md`): `Dialog` helper + the 4 confirms + 5 game-rule notices + guard test
-    - [ ] Phone check: add a habit past the slot limit (styled "Unlock a slot?"), move an item, delete a routine and a habit (red Delete)
+    - [x] Phone check: add a habit past the slot limit (phone-confirmed 2026-11-01, Jeremy) (styled "Unlock a slot?"), move an item, delete a routine and a habit (red Delete)
   - [x] Heroes button + popup (BUILT 2026-11-01, sw v194, Sonnet; Jest 116 suites / 2,586): icon-C button next to the village button shows routine slots used/total + status dots; the tray is a centred popup; `#heroTab` removed
-    - [ ] Phone check: button next to the village button, popup open/close, row tap -> Manage Routine, Points wrapping to a second row at phone width
+    - [x] Phone check: button next to the village button, popup open/close (phone-confirmed 2026-11-01, Jeremy), row tap -> Manage Routine, Points wrapping to a second row at phone width
     - [x] Jeremy confirmed: badge = ROUTINE slots used/total
   - [x] HUD buttons restyled (BUILT 2026-11-01, sw v195): icons (shield/star/coin), raised button look, arrows removed; fits one row at 390 px
-    - [ ] Phone check: the five HUD buttons look tappable and fit one row
+    - [x] Phone check: the five HUD buttons look tappable (phone-confirmed 2026-11-01, Jeremy) and fit one row
   - [ ] In-game dialogs Build 2: inline form validation (34 alerts), then Build 3: the rest + remove the allowlist. Sonnet, medium each.
   - [ ] **Design session (parked 2026-11-01, Jeremy; does NOT block Build 3): timer + logged-time UI.** Decide which cards/rows show the timer, Pause / Play / Stop, the logged total and the logged-time edit, and how each looks in the LIST VIEW (row vs popup vs Edit forms; Build vs Break habits vs tasks; running vs stopped vs completed rows). Today's behaviour is in `docs/HABIT_GOALS_PLAN.md` "Timer + logged-time UI (parked)". UI-only, likely Opus/Fable for the design, then Sonnet to build.
   - [ ] Build 3: evening check (Settings time, default 9 PM) + How much? (Amount goals; Time goals use logged time) + DailyRecord v5 goal tally (Sonnet, medium)

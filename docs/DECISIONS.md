@@ -5,6 +5,10 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+## 2026-11-01 (night, final) -- HUD interaction polish (Claude app session; Jeremy)
+**Decision:** level icon = stacked chevrons (option A of six), points icon = a plain $ (no circle), icons 22px. HUD buttons get a hover lift (hover-capable pointers only) and a pressed state that eases back over 240 ms (a tap opens its panel in ~100 ms, so a fast release was invisible). A HUD button stays sunk in, teal-bordered, while ITS window is open (`js/ui/hudButtons.js` watches the DOM; new HUD windows need an entry in `HudButtons.WINDOWS`). Tapping the church (`#base`) opens Base Health. Phone-confirmed by Jeremy 2026-11-01.
+**Why:** make the HUD read as buttons and show which window is open. **Rejected:** star level icon (Jeremy); a coin for points (Jeremy: plain $). sw v200; Jest 117 suites / 2,590.
+
 ## 2026-11-01 (night, later) -- HUD buttons: icons, raised look, no arrows (Claude app session; Jeremy)
 **Decision:** Jeremy confirmed the heroes badge = ROUTINE slots used/total. To make room (Points wrapped to a second row) and to make the HUD read as buttons: the up-right arrows on base health, level and points were removed; "Lv" and "Points:" became a star and a coin icon; the health ring got a small shield; all five buttons share a raised look (dark-green border, gradient, pressed state). Number, XP bar, ring and state chip kept.
 **Why:** obvious tappability without the arrows' width. Fits one row at 390 px; wraps at 360. sw v195; Jest 116 suites / 2,586.

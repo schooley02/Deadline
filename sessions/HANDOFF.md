@@ -15,6 +15,7 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Did:** new `js/ui/hudButtons.js` (`HudButtons.init()` in script.js; pure `openButtons` + MutationObservers) toggles `.hud-button--open` on the five HUD buttons; css/gameCanvas.css sunk-in style; test/hudButtons.test.js (4); index.html + sw.js entries (v200). Jest 117 suites / 2,590.
 **State:** live-checked at 390 px: each of the five windows pressed its own button and cleared on close; 0 console errors. Not phone-checked. In the folder, not committed.
 **Watch out:** a new HUD window needs an entry in `HudButtons.WINDOWS`.
+**Wrap-up:** Jeremy pushed everything through sw v200 and phone-confirmed the HUD, heroes popup, "N points" pill, dialogs and 2c. **Next:** Dialog Build 2 (inline form validation replacing the 34 remaining `alert()`s; `docs/DIALOG_PLAN.md`; Sonnet, medium).
 
 ## 2026-11-01 (night, last) -- HUD polish + church tap (Claude app session, Sonnet; Jeremy)
 **Did:** level icon = stacked chevrons, plain $ for points, 22px icons, hover + slow-release pressed styles on the HUD buttons, tap the church (`#base`) to open Base Health (script.js, `stopPropagation`). sw v199; Jest 116 / 2,586.
