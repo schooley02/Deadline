@@ -52,7 +52,9 @@ const Persistence = (() => {
     // `rescheduleCount`; habit + routine-task definitions gain `timerMode` /
     // `timerMinutes`. Only `koGhost` is read by code yet; the rest land now so
     // builds 2-4 need no further bump. The root `rescheduleFreeUses` list
-    // lands with Build 2 (State does not persist it yet).
+    // (Build 2) was replaced 2026-11-02 by the root `pushbackUses` map
+    // ({ short, medium, long } use stamps, additive, no bump); old saves keep
+    // the dead field until their next save.
     // v15 (2026-10-27, D2 daily record; docs/DAILY_RECORD_PLAN.md): the save
     // gains `today` -- the live DailyRecord accumulator for the open local day
     // (js/dailyRecord.js). The migration seeds null; State builds a fresh

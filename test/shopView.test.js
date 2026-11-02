@@ -35,7 +35,7 @@ describe('repair kit heal amount on the shop card', () => {
 
     test('non-repair items get no heal line', () => {
         expect(card('cheat_day').querySelector('.shop-item-effect')).toBeNull();
-        expect(card('pushback_1hr').querySelector('.shop-item-effect')).toBeNull();
+        expect(card('pushback_short').querySelector('.shop-item-effect')).toBeNull();
     });
 });
 

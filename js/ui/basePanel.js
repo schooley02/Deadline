@@ -11,8 +11,12 @@
  * open(deps):
  *   getContext()          -> BaseModel.build ctx { health, nowMs, lastRegenTickMs, attackers,
  *                            inventory, shopItems, config } PLUS { points, pushbackPrice,
- *                            pushbackLabel?, nextDue?: { name, dueMs } }. Called every second.
- *   onPushback(attackerId) -> { ok }   buys the 1 hr tier for that attacker
+ *                            pushbackLabel?, pushbackNote?, nextDue?: { name, dueMs } }.
+ *                            Called every second. pushbackNote (Pushback charges Build B) is
+ *                            the button's second line when the push is NOT paid in points
+ *                            ("free · 2 left", "uses a token"): the button is then always
+ *                            enabled; without it the price is paid in points as before.
+ *   onPushback(attackerId) -> { ok }   pushes that attacker back by the label's size
  *   onUseKit(kitId)        -> any      uses a held repair kit
  * Live refresh: text that ticks lives in <span data-bind="key"> and is patched in place;
  * the markup is rebuilt only when its structure changes (an HP step, a button state), so
@@ -102,11 +106,15 @@ const BasePanel = (() => {
         if (m.state === 'attacked') {
             const price = (typeof ctx.pushbackPrice === 'number') ? ctx.pushbackPrice : null;
             const label = ctx.pushbackLabel || '1 hr';
+            const note = (typeof ctx.pushbackNote === 'string' && ctx.pushbackNote) ? ctx.pushbackNote : null;
             const rows = m.attackers.map(a => {
                 binds['over_' + a.id] = `overdue ${fmt(a.overdueMs)}`;
                 binds['hit_' + a.id] = cd(a.nextHitMs);
-                const row = { id: a.id, name: a.name || 'Zombie', price, label, canBuy: false, need: 0, ariaLabel: '' };
-                if (price !== null) {
+                const row = { id: a.id, name: a.name || 'Zombie', price, label, note, canBuy: false, need: 0, ariaLabel: '' };
+                if (note !== null && price !== null) {
+                    row.canBuy = true;
+                    row.ariaLabel = `Push back ${row.name} by ${label}, ${note}.`;
+                } else if (price !== null) {
                     row.need = Math.max(0, price - points);
                     row.canBuy = row.need === 0;
                     row.ariaLabel = `Push back ${row.name} by ${label}, costs ${price} points.` +
@@ -182,7 +190,7 @@ const BasePanel = (() => {
             const btn = r.price === null ? '' :
                 `<button type="button" class="bp-push" data-action="pushback" data-attacker-id="${esc(r.id)}" data-key="push-${esc(r.id)}"${r.canBuy ? '' : ' disabled'} aria-label="${esc(r.ariaLabel)}">` +
                 `<span class="bp-push-main">Push back ${esc(r.label)}</span>` +
-                `<span class="bp-push-sub">${r.canBuy ? `${r.price} pts` : `Need ${r.need} more pts`}</span></button>`;
+                `<span class="bp-push-sub">${r.note ? esc(r.note) : (r.canBuy ? `${r.price} pts` : `Need ${r.need} more pts`)}</span></button>`;
             return `<li class="bp-attacker"><div class="bp-attacker-info"><span class="bp-attacker-name">${esc(r.name)}</span>` +
                 `<span class="bp-attacker-meta">${bind(vm, 'over_' + r.id)} · hits in ${bind(vm, 'hit_' + r.id)}</span></div>${btn}</li>`;
         }).join('');

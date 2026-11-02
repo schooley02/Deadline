@@ -348,19 +348,23 @@ const CONFIG = {
     //   category  'repair' | 'pushback' | 'cheatDay' (drives UI grouping + effect dispatch)
     //   baseCost  points, before the exponential owned-multiplier
     //   consumable true = held in inventory then used later (repair kits,
-    //             Cheat Day); false = applied instantly on purchase (pushback)
+    //             Cheat Day, pushback tokens); false = applied instantly on purchase
     //   effect    category-specific params:
     //             repair   -> { healAmount }  HP restored per use
-    //             pushback -> { pushbackMs }   ms added to the LATER of now and the target's due date (2026-10-26)
+    //             pushback -> { pushbackSize }  a PUSHBACK_SIZES id: a held token of that size is used
+    //                         automatically when the free charges of the size run out (Build B, 2026-11-02)
     //             cheatDay -> {} (no numeric effect — applying it just sets
     //                         the target habit's cheatDayDate; see items.js)
     SHOP_ITEMS: [
         { id: 'repair_small',  name: 'Repair Kit (Small)',  category: 'repair',   baseCost: 25,  consumable: true,  effect: { healAmount: 15 } },
         { id: 'repair_medium', name: 'Repair Kit (Medium)', category: 'repair',   baseCost: 50,  consumable: true,  effect: { healAmount: 35 } },
         { id: 'repair_large',  name: 'Repair Kit (Large)',  category: 'repair',   baseCost: 100, consumable: true,  effect: { healAmount: 75 } },
-        { id: 'pushback_1hr',  name: 'Enemy Pushback (1 hr)',  category: 'pushback', baseCost: 50,  consumable: false, effect: { pushbackMs: 1 * 60 * 60 * 1000 } },
-        { id: 'pushback_2hr',  name: 'Enemy Pushback (2 hr)',  category: 'pushback', baseCost: 100, consumable: false, effect: { pushbackMs: 2 * 60 * 60 * 1000 } },
-        { id: 'pushback_1day', name: 'Enemy Pushback (1 day)', category: 'pushback', baseCost: 300, consumable: false, effect: { pushbackMs: 24 * 60 * 60 * 1000 } },
+        // Pushback tokens (Build B, 2026-11-02; docs/PUSHBACK_CHARGES_PLAN.md). Held like repair kits (1.5^held
+        // price); used AUTOMATICALLY when a move needs a pushback and the free charges of that size are spent.
+        // baseCost mirrors PUSHBACK_SIZES (test/pushback.test.js checks they match).
+        { id: 'pushback_short',  name: 'Short Pushback (30 min)', category: 'pushback', baseCost: 5,  consumable: true, effect: { pushbackSize: 'short' } },
+        { id: 'pushback_medium', name: 'Medium Pushback (2 hr)',  category: 'pushback', baseCost: 10, consumable: true, effect: { pushbackSize: 'medium' } },
+        { id: 'pushback_long',   name: 'Long Pushback (1 day)',   category: 'pushback', baseCost: 30, consumable: true, effect: { pushbackSize: 'long' } },
         // [P1-DATA-005] sub-session 5 (2026-07-19): 200 pts is the unchanged
         // ECONOMY.md/spec face value (Fable session 26). Held-inventory
         // exponential pricing like repair kits — "using" one targets a
@@ -734,21 +738,14 @@ const CONFIG = {
     // factor (0 = the routine's economy is down while KO'd). Leaving one
     // undone is excused (no miss, no streak reset, no damage).
     KO_GHOST_POINTS_FACTOR: 0,
-    // Distance-priced rescheduling: moving a one-off task/sub-task LATER
-    // costs the pushback tier for the distance moved (SHOP_ITEMS pushback
-    // rows, rounded up) × the factor for the urgency zone of the time left
-    // to the CURRENT due at save time (zones = Clock.getWalkUrgencyTier's
-    // 2h/4h boundaries). Moving earlier is always free.
-    RESCHEDULE_ZONE_FACTORS: { calm: 0, approaching: 0.5, urgent: 1, overdue: 1 },
-    // Any due-time edit this soon after the item's creation is free (typo fix).
+    // Any due-time edit this soon after the item's creation is free (typo fix). Grace moves are never
+    // flagged `pushedLate` and never use a charge.
     RESCHEDULE_GRACE_MS: 10 * 60 * 1000,
-    // Free paid-zone reschedules per rolling 7 days (per player).
-    RESCHEDULE_FREE_PER_WEEK: 1,
     // ---- Pushback charges (docs/PUSHBACK_CHARGES_PLAN.md; DECIDED 2026-11-02,
-    // Fable balance pass; Build A 2026-11-02). Pure logic in js/pushback.js, NOT
-    // wired yet: Build B routes the zombie popup, edit form and Base Health panel
-    // through it and then deletes the old pushback_* SHOP_ITEMS rows,
-    // RESCHEDULE_ZONE_FACTORS, RESCHEDULE_FREE_PER_WEEK and Economy.reschedulePrice.
+    // Fable balance pass; Build A 2026-11-02). Pure logic in js/pushback.js; wired
+    // in Build B (2026-11-02): the zombie popup, edit form and Base Health panel
+    // all go through it. It replaced the distance-priced rescheduling (zone factors,
+    // 1 free paid-zone edit a week) and the 50/100/300 pushback shop rows.
     // Sizes, ascending: a move uses the SMALLEST size that covers its distance
     // (measured from the later of the current due and now); beyond the largest,
     // ceil(distance / largest.ms) of the largest. baseCost = points to pay

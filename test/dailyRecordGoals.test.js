@@ -9,10 +9,10 @@ const rec = () => DailyRecord.fresh({ date: '2026-11-01' });
 const amountEntry = (o) => Object.assign({ habitId: 'h1', type: 'amount', amount: 2, unit: 'drinks', met: false, actual: 4 }, o);
 
 describe('v5 shape', () => {
-    test('version is 5 and a fresh record starts with an empty goals map', () => {
-        expect(DailyRecord.V).toBe(5);
+    test('version is 6 (v6 adds pb) and a fresh record starts with an empty goals map', () => {
+        expect(DailyRecord.V).toBe(6);
         const r = rec();
-        expect(r.v).toBe(5);
+        expect(r.v).toBe(6);
         expect(r.goals).toEqual({});
     });
 
@@ -122,7 +122,7 @@ describe('close + store round trips keep the goals', () => {
         DailyRecord.bump(r, 'goal', amountEntry());
         const closed = DailyRecord.close(r, { lvl: 3 });
         expect(closed.goals.h1).toEqual({ type: 'amount', amount: 2, unit: 'drinks', met: false, actual: 4 });
-        expect(closed.v).toBe(5);
+        expect(closed.v).toBe(DailyRecord.V);
     });
 
     test('a closed day written into a store and merged on import keeps its goals', () => {

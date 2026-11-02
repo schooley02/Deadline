@@ -64,9 +64,12 @@ const State = (() => {
     let baseHealth, playerXP, playerLevel, playerPoints, routineSlots;
     let playerInventory = {};
     let sickDayDate = null;
-    // Build 2 (2026-10-25): timestamps (ms) of free paid-zone reschedules used in
-    // the last 7 days. Additive root field, no schema bump.
-    let rescheduleFreeUses = [];
+    // Pushback charges (Build B, 2026-11-02): use timestamps (ms) of the FREE charges spent,
+    // per size -- { short: [ts], medium: [ts], long: [ts] }. Daily sizes count the stamps since
+    // today's local midnight, Long a rolling 7 days (Pushback.chargesLeft), so nothing needs
+    // clearing at rollover. Additive root field, no schema bump; replaces Build 2's
+    // `rescheduleFreeUses` (old saves still carry it; it is ignored and dropped on the next save).
+    let pushbackUses = { short: [], medium: [], long: [] };
     let currentRunStats = (typeof RunStats !== 'undefined') ? RunStats.freshRunStats() : {};
     let runHistory = [];
     // D2 (2026-10-27, docs/DAILY_RECORD_PLAN.md): the live DailyRecord for the
@@ -98,8 +101,15 @@ const State = (() => {
     const setPlayerInventory = (obj) => { playerInventory = obj; };
     const getSickDayDate = () => sickDayDate;
     const setSickDayDate = (d) => { sickDayDate = d; };
-    const getRescheduleFreeUses = () => rescheduleFreeUses;
-    const setRescheduleFreeUses = (a) => { rescheduleFreeUses = Array.isArray(a) ? a : []; };
+    const getPushbackUses = () => pushbackUses;
+    // Keeps only finite ms stamps for the three known sizes; anything else (junk, old saves) becomes empty.
+    const setPushbackUses = (obj) => {
+        const out = {};
+        ['short', 'medium', 'long'].forEach((z) => {
+            out[z] = (obj && Array.isArray(obj[z])) ? obj[z].filter(n => typeof n === 'number' && isFinite(n)) : [];
+        });
+        pushbackUses = out;
+    };
     const getCurrentRunStats = () => currentRunStats;
     const setCurrentRunStats = (obj) => { currentRunStats = obj; };
     const getRunHistory = () => runHistory;
@@ -232,7 +242,7 @@ const State = (() => {
         setPlayerLevel(1);
         setPlayerPoints(0);
         setPlayerInventory({}); // shop inventory — fresh run starts empty
-        setRescheduleFreeUses([]);
+        setPushbackUses(null); // a fresh run: no charges used (Clock tower stars reset too)
         setSickDayDate(null); // frozen-slots sub-session 5 — fresh run has no active Sick Day
         // Run stats reset with the run; runHistory is deliberately NOT
         // touched here — it must survive restart (session 52, RUN_HISTORY_PLAN).
@@ -313,7 +323,7 @@ const State = (() => {
             playerPoints: getPlayerPoints(),
             inventory: getPlayerInventory(),
             sickDayDate: getSickDayDate(),
-            rescheduleFreeUses: getRescheduleFreeUses(),
+            pushbackUses: getPushbackUses(),
             runHistory: getRunHistory(),
             currentRunStats: getCurrentRunStats(),
             lifetimeStats: getLifetimeStats(),
@@ -474,7 +484,7 @@ const State = (() => {
         // migration seeds null on older saves, but guard here too (any
         // non-string, e.g. malformed data) so a bad save can never crash boot.
         setSickDayDate((typeof save.sickDayDate === 'string') ? save.sickDayDate : null);
-        setRescheduleFreeUses(Array.isArray(save.rescheduleFreeUses) ? save.rescheduleFreeUses.filter(n => typeof n === 'number') : []);
+        setPushbackUses(save.pushbackUses);
         // Run history (session 52, docs/RUN_HISTORY_PLAN.md). The v9→v10
         // migration seeds both, but guard here too so a malformed save can
         // never crash boot. currentRunStats keeps accruing across a mid-run
@@ -863,7 +873,7 @@ const State = (() => {
         getRoutineSlots, setRoutineSlots,
         getPlayerInventory, setPlayerInventory,
         getSickDayDate, setSickDayDate,
-        getRescheduleFreeUses, setRescheduleFreeUses,
+        getPushbackUses, setPushbackUses,
         getCurrentRunStats, setCurrentRunStats,
         getRunHistory, setRunHistory,
         getLifetimeStats, setLifetimeStats,

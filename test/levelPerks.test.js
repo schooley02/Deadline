@@ -229,10 +229,11 @@ describe('Economy.shopPrice / Shop.price with a discount', () => {
         expect(bought.newPoints).toBe(80);
     });
 
-    test('pushback is discounted too (the popup uses Shop.price with {} inventory)', () => {
-        const pb = Shop.getItem('pushback_1day', CONFIG.SHOP_ITEMS); // base 300
-        expect(Shop.price(pb, {}, 0.2)).toBe(240);
-        expect(Shop.price(pb, {})).toBe(300);
+    test('pushback tokens are discounted too (held price rises 1.5^held)', () => {
+        const pb = Shop.getItem('pushback_long', CONFIG.SHOP_ITEMS); // base 30
+        expect(Shop.price(pb, {}, 0.2)).toBe(24);
+        expect(Shop.price(pb, {})).toBe(30);
+        expect(Shop.price(pb, { pushback_long: 1 }, 0.2)).toBe(36); // 45 x 0.8
     });
 });
 
@@ -249,7 +250,7 @@ describe('Shop.grant', () => {
         expect(Shop.grant('sick_day', 1, CONFIG.SHOP_ITEMS, {}).newInventory).toEqual({ sick_day: 1 });
     });
 
-    test('refuses pushback (instant, can\'t be held), unknown ids and non-positive counts', () => {
+    test('refuses unknown ids and non-positive counts', () => {
         const inv = { repair_small: 1 };
         [['pushback_1hr', 1], ['nope', 1], ['repair_small', 0], ['repair_small', -3]].forEach(([id, n]) => {
             const g = Shop.grant(id, n, CONFIG.SHOP_ITEMS, inv);

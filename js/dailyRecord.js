@@ -32,6 +32,7 @@
  *   spend       {points}
  *   token       {kind:'cheat'|'sick'|'skip'|'pushback'|'kit'}
  *   reschedule  {}
+ *   pushback    {size:'short'|'medium'|'long', charges, tokens, points}   (v6: one paid-zone move, counts in units of that size)
  *   ko / revive {}
  *   timer       {kind:'work'|'limit', minutes}
  *   goal        {habitId, type:'time'|'amount'|'note', amount, unit, met, actual}   (v5: an answered habit's goal)
@@ -50,7 +51,12 @@ const DailyRecord = (() => {
     // had a goal and was ANSWERED that day (Build: done; Break: Resisted / Slipped). `met` is the player's own answer, never computed
     // from `actual`. `actual` = the optional How much? (an Amount goal's number) or the logged minutes (a Time goal). Opaque ids and
     // numbers only; `unit` is kept only when it is one of the suggested units (else 'other'), so no free text lands in the record.
-    const V = 5;
+    // v6 (2026-11-02, Pushback charges Build B): `pb` = pushbacks used inside the paid zone (a due time moved later while the
+    // item was 4 h or less from due, or overdue), counted in UNITS per size and per payment source: pb.<short|medium|long> =
+    // { charge, token, points } (a 3-day move is 3 Longs), and pb.late = how many such MOVES there were (each one flags the item
+    // `pushedLate`, so it can't count toward the Clock tower). Free moves (earlier, calm, grace) are only in `resched`. The old
+    // `tokens.pushback` key is kept in the shape for old days but is no longer bumped.
+    const V = 6;
     // Mirrors Habits.GOAL_UNIT_SUGGESTIONS (test/dailyRecord.test.js checks they match). Kept local: no global dependencies.
     const GOAL_UNITS = ['pages', 'glasses', 'oz', 'steps', 'miles', 'km', 'reps', 'words', 'servings', 'drinks', 'cigarettes', 'cups', '$', 'times'];
     const GOAL_TYPES = ['time', 'amount', 'note'];
@@ -59,6 +65,14 @@ const DailyRecord = (() => {
     // match). Kept local so this module has no global dependencies.
     const CATEGORIES = ['other', 'career', 'creativity', 'financial', 'health', 'lifestyle', 'relationships', 'spirituality'];
     const TOKEN_KINDS = ['cheat', 'sick', 'skip', 'pushback', 'kit'];
+    // Mirrors CONFIG.PUSHBACK_SIZES ids (test/dailyRecord.test.js checks they match). Kept local: no global dependencies.
+    const PB_SIZES = ['short', 'medium', 'long'];
+    const PB_SOURCES = ['charge', 'token', 'points'];
+    function freshPb() {
+        const pb = { late: 0 };
+        PB_SIZES.forEach((z) => { pb[z] = { charge: 0, token: 0, points: 0 }; });
+        return pb;
+    }
 
     // Days older than this many months collapse into months["YYYY-MM"].
     const RETAIN_MONTHS = 18;
@@ -129,6 +143,8 @@ const DailyRecord = (() => {
             pts: { earned: 0, spent: 0, end: 0 },
             tokens: { cheat: 0, sick: 0, skip: 0, pushback: 0, kit: 0 },
             resched: 0,
+            // v6: paid-zone pushbacks by size and source (see V above).
+            pb: freshPb(),
             ko: 0,
             revived: 0,
             timer: { workMin: 0, limitMin: 0, edits: 0, editMin: 0 },
@@ -402,6 +418,18 @@ const DailyRecord = (() => {
             case 'reschedule':
                 rec.resched += 1;
                 break;
+            case 'pushback': {
+                // One paid-zone move: p = { size, charges, tokens, points } in units of that size.
+                if (!rec.pb) rec.pb = freshPb();
+                rec.pb.late += 1;
+                if (PB_SIZES.indexOf(p.size) < 0) break;
+                const row = rec.pb[p.size];
+                [['charge', p.charges], ['token', p.tokens], ['points', p.points]].forEach((pair) => {
+                    const n = Math.floor(Number(pair[1]));
+                    if (n > 0) row[pair[0]] += n;
+                });
+                break;
+            }
             case 'ko':
                 rec.ko += 1;
                 break;
@@ -594,6 +622,11 @@ const DailyRecord = (() => {
         dst.att.active += (src.att && src.att.active) || 0;
         dst.att.perfect += (src.att && src.att.perfect) || 0;
         dst.resched += src.resched || 0;
+        if (!dst.pb) dst.pb = freshPb();
+        dst.pb.late += (src.pb && src.pb.late) || 0;
+        PB_SIZES.forEach((z) => {
+            PB_SOURCES.forEach((k) => { dst.pb[z][k] += (src.pb && src.pb[z] && src.pb[z][k]) || 0; });
+        });
         dst.ko += src.ko || 0;
         dst.revived += src.revived || 0;
         dst.active.touches += (src.active && src.active.touches) || 0;
@@ -697,6 +730,7 @@ const DailyRecord = (() => {
         setGoalActual,
         sanitizeGoals,
         GOAL_UNITS,
+        PB_SIZES,
     };
 })();
 

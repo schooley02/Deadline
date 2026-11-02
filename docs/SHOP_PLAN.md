@@ -37,7 +37,7 @@ Source of truth for items/prices/effects is `docs/ECONOMY.md`; pricing math alre
 
 ---
 
-## The pushback pricing wrinkle (RESOLVED — session 4, 2026-07-19)
+## The pushback pricing wrinkle (RESOLVED — session 4, 2026-07-19; SUPERSEDED 2026-11-02: pushback is now free daily charges, then held tokens (Short/Medium/Long, 5/10/30, Buy-to-hold) then points; see `docs/PUSHBACK_CHARGES_PLAN.md`. The flat-price text below is history.)
 
 `owned = currently held` works for repair kits (you can stockpile them). But pushback is an
 **instant-consume** effect — nothing is held, so "currently held" is always 0 and the exponential

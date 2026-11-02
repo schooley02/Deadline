@@ -584,45 +584,99 @@ document.addEventListener('DOMContentLoaded', () => {
         return Progression.shopDiscount(CONFIG.LEVEL_PERKS, State.getPlayerLevel());
     }
 
-    // Distance-priced rescheduling (Build 2, 2026-10-25). Pure pricing lives in
-    // Economy.reschedulePrice; these two adapters read live state. The price is
-    // computed against the item's CURRENT due at save time; the distance moved is
-    // measured from the later of that due and now (2026-10-26), matching the shop
-    // pushback, so an overdue item moved to 1 h from now costs the 1 hr tier.
-    function reschedulePricingFor(item, newDue) {
-        const now = new Date();
-        const zone = Clock.getWalkUrgencyTier({ dueDateTime: item.dueDateTime }, now) || 'overdue';
-        const r = Economy.reschedulePrice({
-            currentDue: item.dueDateTime, newDue, now,
-            createdAt: item.creationTime || null,
-            zone,
-            tiers: Economy.reschedulePriceTiers(CONFIG.SHOP_ITEMS),
-            zoneFactors: CONFIG.RESCHEDULE_ZONE_FACTORS,
-            graceMs: CONFIG.RESCHEDULE_GRACE_MS,
-            freeUsesLeft: Economy.rescheduleFreeUsesLeft(State.getRescheduleFreeUses(), now.getTime(), CONFIG.RESCHEDULE_FREE_PER_WEEK),
-            discount: currentShopDiscount(),
-        });
-        r.zone = zone;
-        r.canAfford = r.cost <= State.getPlayerPoints();
-        return r;
+    // ---- Pushback charges (Build B, 2026-11-02; docs/PUSHBACK_CHARGES_PLAN.md) ----
+    // ONE system behind both doors (the zombie popup's size buttons and the edit form's due-time change)
+    // and the Base Health panel. All the rules live in the pure js/pushback.js (quote / quoteFixed / apply);
+    // these adapters only read live state and write the result back.
+    function localDayStartMs(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); }
+
+    // Clock tower stars (= the building's tier in THIS run, 1..5) set the free allowance. Real tier, never the
+    // ?punctualityTier= style URL override; 1 until the first progress compute succeeds.
+    function clockTowerStar() {
+        const p = villageProgressNow();
+        const t = p && p.punctuality ? p.punctuality.tier : 1;
+        return t >= 1 ? t : 1;
     }
 
-    // Pays for / records a reschedule that was priced by reschedulePricingFor.
-    // Call only once the new due time is being applied.
+    // Everything Pushback.quote needs besides the move itself.
+    function pushbackInputs(now) {
+        const inv = State.getPlayerInventory();
+        const discount = currentShopDiscount();
+        const held = {};
+        const prices = {};
+        CONFIG.PUSHBACK_SIZES.forEach((z) => {
+            held[z.id] = Shop.heldCount(inv, 'pushback_' + z.id);
+            // Overflow price in points: the level discount applies; the 1.5^held curve is for BUYING a token only.
+            prices[z.id] = Economy.shopPrice(z.baseCost, 0, discount);
+        });
+        return {
+            now, graceMs: CONFIG.RESCHEDULE_GRACE_MS, paidZoneMs: CONFIG.PUSHBACK_PAID_ZONE_MS,
+            sizes: CONFIG.PUSHBACK_SIZES,
+            allowance: Pushback.allowanceForStar(clockTowerStar(), CONFIG.PUSHBACK_ALLOWANCE),
+            uses: State.getPushbackUses(), dayStartMs: localDayStartMs(now),
+            held, prices, points: State.getPlayerPoints(),
+        };
+    }
+
+    // Edit form door: what saving this new due time would use, priced against the item's CURRENT due (the distance
+    // is measured from the later of that due and now). Returns Pushback.quote's result (kind 'free' for
+    // earlier / calm / grace moves); r.canAfford is false only when points can't cover it.
+    function reschedulePricingFor(item, newDue) {
+        return Pushback.quote(Object.assign(pushbackInputs(new Date()), {
+            currentDue: item.dueDateTime, newDue, createdAt: item.creationTime || null,
+        }));
+    }
+
+    // Pays for / records a move that was quoted by reschedulePricingFor or Pushback.quoteFixed. Call only once
+    // the new due time is being applied. Free moves (earlier / calm / grace) only count as a reschedule; a
+    // paid-zone move also spends the charge / held token / points, flags the item `pushedLate` (the Clock tower
+    // skips it when completed) and lands in the daily record's `pb` tally.
     function commitReschedule(item, r) {
         if (!r || !r.later) return;
-        if (r.cost > 0) {
-            State.setPlayerPoints(Economy.subtractPoints(State.getPlayerPoints(), r.cost));
-            State.bumpToday('spend', { points: r.cost }); // daily record (D2)
+        const now = new Date();
+        if (!r.free && r.ok) {
+            const a = Pushback.apply(r, { now, sizes: CONFIG.PUSHBACK_SIZES, uses: State.getPushbackUses() });
+            if (a.ok) {
+                State.setPushbackUses(a.uses);
+                Object.keys(a.tokensUsed).forEach((sizeId) => {
+                    let inv = State.getPlayerInventory();
+                    for (let i = 0; i < a.tokensUsed[sizeId]; i++) {
+                        const used = Shop.consume('pushback_' + sizeId, inv);
+                        if (used.ok) inv = used.newInventory;
+                    }
+                    State.setPlayerInventory(inv);
+                });
+                if (a.pointsSpent > 0) {
+                    State.setPlayerPoints(Economy.subtractPoints(State.getPlayerPoints(), a.pointsSpent));
+                    State.bumpToday('spend', { points: a.pointsSpent }); // daily record (D2)
+                }
+                State.bumpToday('pushback', { size: r.size, charges: r.charges, tokens: r.tokens, points: r.pointUnits }); // daily record (v6)
+                if (a.pushedLate) item.pushedLate = true;
+            }
         }
         State.bumpToday('reschedule', {});
-        if (r.consumesFreeUse) {
-            const t = Date.now();
-            State.setRescheduleFreeUses(Economy.pruneRescheduleFreeUses(State.getRescheduleFreeUses(), t).concat([t]));
-        }
         item.rescheduleCount = (item.rescheduleCount || 0) + 1;
         RunStats.recordReschedule(State.getCurrentRunStats());
         Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, playerXpBar, levelButton, xpThresholds: CONFIG.LEVEL_XP_THRESHOLDS, playerPointsStat, playerPointsNudge });
+    }
+
+    // Popup door: the buttons for one item, { sizeId, label, kind, left, cost } per size it may use. Habits get
+    // Short and Medium only (a 1-day push would land on tomorrow's spawn); negative habits and KO ghosts never
+    // show the section, so they are not asked about here.
+    function pushbackOptionsFor(item) {
+        const now = new Date();
+        const inputs = pushbackInputs(now);
+        const habit = item.type === 'habit';
+        return CONFIG.PUSHBACK_SIZES
+            .filter(z => !(habit && z.id === 'long'))
+            .map((z) => {
+                const q = Pushback.quoteFixed(z.id, Object.assign({}, inputs, {
+                    currentDue: item.dueDateTime, createdAt: item.creationTime || null,
+                }));
+                if (!q) return null;
+                return { sizeId: z.id, label: Pushback.plusLabel(z.ms), kind: q.kind, left: q.left[z.id], cost: q.cost };
+            })
+            .filter(Boolean);
     }
 
     function checkPlayerLevelUp() {
@@ -892,11 +946,9 @@ document.addEventListener('DOMContentLoaded', () => {
             saveGame, recomputeOverdueStateAfterEdit: (item) => Items.recomputeOverdueStateAfterEdit(item, itemsDeps()),
             createTaskItemData: (name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, startTimeStr) => Items.createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, itemsDeps(), startTimeStr),
             addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => handleEnemyClick(itemId), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay: () => Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay }), sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
-            // Pushback ([P1-UI-008] session 4): the pushback tiers, a live
-            // points getter (popup re-checks affordability after each buy),
-            // and the handler that pays + shifts the target's due date.
-            pushbackCatalog: CONFIG.SHOP_ITEMS.filter(i => i.category === 'pushback'),
-            getShopDiscount: currentShopDiscount,
+            // Pushback charges (Build B): the size buttons for an item (free / charge / token / points),
+            // a live points getter, and the handler that pays + shifts the target's due date.
+            pushbackOptionsFor,
             getPlayerPoints: State.getPlayerPoints,
             onPushback: handlePushback,
             reschedulePricingFor,
@@ -2253,13 +2305,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const dueMs = i.dueDateTime.getTime();
             if (dueMs > nowMs && (!nextDue || dueMs < nextDue.dueMs)) nextDue = { name: i.name, dueMs };
         });
-        const pushback = Shop.getItem('pushback_1hr', CONFIG.SHOP_ITEMS);
+        // The panel's push-back button is a Medium (+2 hr) for an overdue attacker: it clears the zombie and
+        // draws on the same charges as the popup. Quoted for a just-overdue item, so the price/note is the same
+        // for every row; handlePushback re-quotes the real item when tapped.
+        const medium = CONFIG.PUSHBACK_SIZES.find(z => z.id === 'medium');
+        const mq = medium ? Pushback.quoteFixed('medium', Object.assign(pushbackInputs(new Date(nowMs)), {
+            currentDue: new Date(nowMs - 1), createdAt: null,
+        })) : null;
+        let pushbackNote = null;
+        if (mq && mq.kind === 'charge') pushbackNote = `free \u00B7 ${mq.left.medium} left`;
+        else if (mq && mq.kind === 'token') pushbackNote = 'uses a token';
         return {
             health: State.getBaseHealth(), nowMs, lastRegenTickMs: State.getLastRegenTickMs(),
             attackers, inventory: State.getPlayerInventory(), shopItems: CONFIG.SHOP_ITEMS, config: CONFIG,
             points: State.getPlayerPoints(),
-            pushbackPrice: pushback ? Shop.price(pushback, {}, currentShopDiscount()) : null,
-            pushbackLabel: '1 hr', nextDue,
+            pushbackPrice: mq ? mq.cost : null,
+            pushbackLabel: medium ? Pushback.plusLabel(medium.ms).replace('+', '') : '2 hr', pushbackNote, nextDue,
         };
     }
 
@@ -2293,7 +2354,7 @@ document.addEventListener('DOMContentLoaded', () => {
             getContext: baseHealthContext,
             onPushback: (attackerId) => {
                 const item = State.getActiveItems().find(i => String(i.id) === String(attackerId));
-                if (item) handlePushback('pushback_1hr', item);
+                if (item) handlePushback('medium', item);
                 refreshBaseChip(true);
             },
             onUseKit: (kitId) => { handleShopUse(kitId); refreshBaseChip(true); },
@@ -2707,37 +2768,34 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(populateShopWindow, 0);
     }
 
-    // Pushback handler wired to each enemy popup's tier buttons (session 4,
-    // SHOP_PLAN.md). Called with the shop item id + the TARGET enemy the popup
-    // is about. Pays via Shop.purchase (pushback is non-consumable, so
-    // inventory is returned unchanged — it just does the affordability check +
-    // point math in one place), then shifts the target's due date later by the
-    // tier's amount (pure Shop.pushedBackDueDate), re-derives overdue state
-    // (un-camps + repositions the zombie if it crossed into the future), and
-    // re-renders the agenda row. Pricing is flat this session (Jeremy's call
-    // 2026-07-19) — no per-run inflation; that's a session-5 balance decision.
-    // Returns { ok } so the popup can refresh its UI in place. Stacking is
-    // allowed (ECONOMY.md) — repeated calls just push the same item further.
-    function handlePushback(itemId, targetItem) {
-        const item = Shop.getItem(itemId, CONFIG.SHOP_ITEMS);
-        if (!item || item.category !== 'pushback' || !item.effect || typeof item.effect.pushbackMs !== 'number') {
-            return { ok: false };
-        }
-        if (!targetItem) return { ok: false };
+    // Pushback handler wired to each enemy popup's size buttons and the Base Health panel (session 4;
+    // rebuilt for pushback charges in Build B, docs/PUSHBACK_CHARGES_PLAN.md). Called with a size id
+    // ('short' | 'medium' | 'long') + the TARGET enemy. Quotes the move (Pushback.quoteFixed: free when the
+    // zombie is more than 4 hours away, else a free charge, a held token, then points), shifts the target's
+    // due date later by the size (pure Shop.pushedBackDueDate, counted from the later of now and the current
+    // due), pays through commitReschedule (which also flags the item `pushedLate` for paid-zone moves),
+    // re-derives overdue state (un-camps + repositions the zombie if it crossed into the future) and
+    // re-renders the agenda row. Returns { ok } so the popup can refresh its UI in place. Stacking is
+    // allowed -- repeated calls just push the same item further (each one uses another charge).
+    function handlePushback(sizeId, targetItem) {
+        const size = CONFIG.PUSHBACK_SIZES.find(z => z.id === sizeId);
+        if (!size || !targetItem) return { ok: false };
+        // Habits get Short/Medium only (a Long would land on tomorrow's instance); negative habits and
+        // KO ghosts keep no pushback at all.
+        if (targetItem.type === 'habit' && sizeId === 'long') return { ok: false };
+        if (targetItem.koGhost || Items.isNonThreatening(targetItem)) return { ok: false };
 
-        const result = Shop.purchase(itemId, CONFIG.SHOP_ITEMS, State.getPlayerInventory(), State.getPlayerPoints(), currentShopDiscount());
-        if (!result.ok) {
-            // Tier buttons are disabled when unaffordable, so this is a
-            // defensive guard rather than the expected path.
-            return { ok: false };
-        }
+        const now = new Date();
+        const q = Pushback.quoteFixed(sizeId, Object.assign(pushbackInputs(now), {
+            currentDue: targetItem.dueDateTime, createdAt: targetItem.creationTime || null,
+        }));
+        // Buttons are disabled when blocked, so this is a defensive guard rather than the expected path.
+        if (!q || !q.ok) return { ok: false };
 
-        State.bumpToday('spend', { points: State.getPlayerPoints() - result.newPoints }); // daily record (D2)
-        State.bumpToday('token', { kind: 'pushback' });
-        State.setPlayerPoints(result.newPoints);
+        commitReschedule(targetItem, q);
         // Counts from the later of now and the current due (2026-10-26, Jeremy): an
-        // overdue zombie is pushed to now + tier, so even the 1 hr tier clears it.
-        targetItem.dueDateTime = Shop.pushedBackDueDate(targetItem.dueDateTime, item.effect.pushbackMs, Date.now());
+        // overdue zombie is pushed to now + size, so even a Short clears it.
+        targetItem.dueDateTime = Shop.pushedBackDueDate(targetItem.dueDateTime, size.ms, now.getTime());
 
         // Dependent due dates ([P1-DATA-004] sub-session 2): a SUB-TASK can't
         // be pushed past its parent's deadline — the pushed date clamps to the
@@ -2763,7 +2821,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!targetItem.parentId) createListItem(targetItem);
         }
         sortAndRenderActiveList();
-        Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, playerXpBar, levelButton, xpThresholds: CONFIG.LEVEL_XP_THRESHOLDS, playerPointsStat, playerPointsNudge });
         saveGame();
 
         return { ok: true, newPoints: State.getPlayerPoints() };

@@ -389,6 +389,11 @@ const Items = (() => {
     // is an OPTIONAL collaborator (script.js wires State.bumpToday), tolerated
     // when absent like every other optional dep so old test deps keep working.
     // kind: 'lurker' = a negative habit (avoided = a win but not a "done" item).
+    // Late for the Clock tower: it went overdue, or it was pushed back inside its last 4 hours
+    // (`item.pushedLate`, set by the pushback handlers; grace and calm moves never set it).
+    function dailyIsLate(item) {
+        return item.isOverdue === true || item.pushedLate === true;
+    }
     function dailyKindFor(item) {
         if (item.type === 'habit') return item.isNegative === true ? 'lurker' : 'habit';
         return item.parentId ? 'subtask' : 'task';
@@ -732,10 +737,11 @@ const Items = (() => {
             recordGoalAnswer(item, goalDef, true, deps);
         }
         deps.completedItems().push(item);
-        // Daily record (D2): `late` = completed after it went overdue.
+        // Daily record (D2): `late` = completed after it went overdue, OR pushed back inside its last 4 hours
+        // (`pushedLate`, Pushback charges Build B): the Clock tower counts punctuality as done minus late.
         recordDaily(deps, 'complete', {
             kind: dailyKindFor(item), category: item.category,
-            at: item.completedAt.getTime(), late: item.isOverdue === true, points: pointsGained,
+            at: item.completedAt.getTime(), late: dailyIsLate(item), points: pointsGained,
             routineId: dailyRoutineId(item, deps)
         });
         deps.saveGame();
@@ -1406,7 +1412,7 @@ const Items = (() => {
         // Daily record (D2): remember when it was completed and whether it was
         // late BEFORE both are cleared, so the undo reverses the same buckets.
         const dailyCompletedAtMs = item.completedAt ? new Date(item.completedAt).getTime() : Date.now();
-        const dailyWasLate = item.isOverdue === true;
+        const dailyWasLate = dailyIsLate(item);
         let dailyPointsLost = 0;
 
         // Remove completion timestamp (and the Resisted tag: it is a live zombie again)

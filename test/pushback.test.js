@@ -31,10 +31,19 @@ describe('CONFIG pushback keys', () => {
         expect(t[4]).toEqual({ short: 4, medium: 3, long: 3 });
         expect(t[5]).toEqual({ short: 4, medium: 3, long: 4 });
     });
-    test('old pushback rows and reschedule keys are still there until Build B', () => {
-        expect(CONFIG.SHOP_ITEMS.filter(i => i.category === 'pushback').map(i => i.id))
-            .toEqual(['pushback_1hr', 'pushback_2hr', 'pushback_1day']);
-        expect(CONFIG.RESCHEDULE_FREE_PER_WEEK).toBe(1);
+    test('the three held-token shop rows mirror the sizes (Build B)', () => {
+        const rows = CONFIG.SHOP_ITEMS.filter(i => i.category === 'pushback');
+        expect(rows.map(i => i.id)).toEqual(['pushback_short', 'pushback_medium', 'pushback_long']);
+        rows.forEach((row, i) => {
+            expect(row.consumable).toBe(true);
+            expect(row.effect.pushbackSize).toBe(SIZES[i].id);
+            expect(row.baseCost).toBe(SIZES[i].baseCost);
+        });
+    });
+    test('plusLabel names a size for a button', () => {
+        expect(SIZES.map(s => Pushback.plusLabel(s.ms))).toEqual(['+30 min', '+2 hr', '+1 day']);
+        expect(Pushback.plusLabel(90 * MIN)).toBe('+1.5 hr');
+        expect(Pushback.plusLabel(3 * DAY)).toBe('+3 days');
     });
 });
 
@@ -280,5 +289,93 @@ describe('end to end: a move through the three functions', () => {
         expect(need).toEqual({ size: 'medium', count: 1 });
         expect(charges.medium).toBe(0);
         expect(r).toMatchObject({ ok: true, kind: 'points', cost: 10 });
+    });
+});
+
+// ---- Build B: quote / quoteFixed / apply ----
+describe('quote / quoteFixed / apply', () => {
+    const allowance = CONFIG.PUSHBACK_ALLOWANCE[1]; // 3 / 2 / 2
+    const base = (over) => Object.assign({
+        currentDue: new Date(nowMs + 1 * H), newDue: new Date(nowMs + 1 * H + 20 * MIN),
+        now, createdAt: new Date(nowMs - DAY), graceMs: CONFIG.RESCHEDULE_GRACE_MS,
+        paidZoneMs: CONFIG.PUSHBACK_PAID_ZONE_MS, sizes: SIZES, allowance, uses: {},
+        dayStartMs, held: {}, points: 100, prices: { short: 5, medium: 10, long: 30 },
+    }, over);
+
+    test('a calm move (due more than 4 h away) is free and flags nothing', () => {
+        const q = Pushback.quote(base({ currentDue: new Date(nowMs + 5 * H), newDue: new Date(nowMs + 8 * H) }));
+        expect(q).toMatchObject({ later: true, free: true, reason: 'calm', kind: 'free', ok: true, cost: 0, size: null, paidZone: false });
+        const a = Pushback.apply(q, { now, sizes: SIZES, uses: {} });
+        expect(a).toMatchObject({ ok: true, pushedLate: false, pointsSpent: 0, chargesUsed: {}, tokensUsed: {} });
+    });
+    test('an earlier move is free', () => {
+        const q = Pushback.quote(base({ newDue: new Date(nowMs + 30 * MIN) }));
+        expect(q).toMatchObject({ later: false, kind: 'free', ok: true });
+    });
+    test('grace move is free even in the paid zone and does not flag', () => {
+        const q = Pushback.quote(base({ createdAt: new Date(nowMs - 2 * MIN) }));
+        expect(q).toMatchObject({ reason: 'grace', kind: 'free', ok: true });
+        expect(Pushback.apply(q, { now, sizes: SIZES }).pushedLate).toBe(false);
+    });
+    test('a paid-zone move takes the smallest covering size and a free charge', () => {
+        const q = Pushback.quote(base());
+        expect(q).toMatchObject({ size: 'short', count: 1, kind: 'charge', ok: true, charges: 1, cost: 0, paidZone: true });
+        expect(q.left).toEqual({ short: 3, medium: 2, long: 2 });
+    });
+    test('a 90 minute move uses a Medium', () => {
+        const q = Pushback.quote(base({ newDue: new Date(nowMs + 1 * H + 90 * MIN) }));
+        expect(q).toMatchObject({ size: 'medium', kind: 'charge' });
+    });
+    test('charges spent: a held token is used next, then points', () => {
+        const spent = { short: [nowMs - H, nowMs - 2 * H, nowMs - 3 * H] };
+        const withToken = Pushback.quote(base({ uses: spent, held: { short: 1 } }));
+        expect(withToken).toMatchObject({ kind: 'token', tokens: 1, charges: 0, cost: 0, ok: true });
+        const withPoints = Pushback.quote(base({ uses: spent }));
+        expect(withPoints).toMatchObject({ kind: 'points', pointUnits: 1, cost: 5, ok: true });
+    });
+    test('not enough points -> blocked, canAfford false, apply refuses', () => {
+        const spent = { short: [nowMs - H, nowMs - 2 * H, nowMs - 3 * H] };
+        const q = Pushback.quote(base({ uses: spent, points: 4 }));
+        expect(q).toMatchObject({ kind: 'blocked', ok: false, canAfford: false, cost: 5 });
+        expect(Pushback.apply(q, { now, sizes: SIZES })).toEqual({ ok: false });
+    });
+    test('overdue item moved 20 min from now is a Short', () => {
+        const q = Pushback.quote(base({ currentDue: new Date(nowMs - 6 * H), newDue: new Date(nowMs + 20 * MIN) }));
+        expect(q).toMatchObject({ size: 'short', count: 1, paidZone: true });
+    });
+    test('multi-day move needs several Longs, mixing charge + points', () => {
+        const q = Pushback.quote(base({ newDue: new Date(nowMs + 1 * H + 3 * DAY), uses: { long: [nowMs - H] } }));
+        expect(q).toMatchObject({ size: 'long', count: 3, charges: 1, pointUnits: 2, cost: 60, kind: 'points' });
+    });
+    test('quoteFixed: popup buttons push from the later of due and now', () => {
+        const q = Pushback.quoteFixed('medium', base({ newDue: undefined }));
+        expect(q).toMatchObject({ size: 'medium', kind: 'charge', paidZone: true });
+        const overdue = Pushback.quoteFixed('short', base({ currentDue: new Date(nowMs - 3 * H), newDue: undefined }));
+        expect(overdue).toMatchObject({ size: 'short', kind: 'charge' });
+        expect(Pushback.quoteFixed('huge', base())).toBeNull();
+    });
+    test('quoteFixed on a calm zombie is free', () => {
+        const q = Pushback.quoteFixed('long', base({ currentDue: new Date(nowMs + 6 * H), newDue: undefined }));
+        expect(q).toMatchObject({ kind: 'free', ok: true, paidZone: false });
+    });
+    test('apply stamps charges, reports tokens/points and flags every paid-zone move', () => {
+        const q = Pushback.quote(base({ uses: { short: [nowMs - 10 * DAY, nowMs - H] } }));
+        const a = Pushback.apply(q, { now, sizes: SIZES, uses: { short: [nowMs - 10 * DAY, nowMs - H] } });
+        expect(a.ok).toBe(true);
+        expect(a.pushedLate).toBe(true);
+        expect(a.chargesUsed).toEqual({ short: 1 });
+        expect(a.uses.short).toEqual([nowMs - H, nowMs]); // the 10-day-old stamp is pruned
+        expect(a.uses.medium).toEqual([]);
+        const spent = { short: [nowMs - H, nowMs - 2 * H, nowMs - 3 * H] };
+        const tok = Pushback.apply(Pushback.quote(base({ uses: spent, held: { short: 1 } })), { now, sizes: SIZES, uses: spent });
+        expect(tok).toMatchObject({ pushedLate: true, tokensUsed: { short: 1 }, pointsSpent: 0 });
+        const pts = Pushback.apply(Pushback.quote(base({ uses: spent })), { now, sizes: SIZES, uses: spent });
+        expect(pts).toMatchObject({ pushedLate: true, pointsSpent: 5, tokensUsed: {} });
+    });
+    test('apply does not mutate its inputs', () => {
+        const uses = { short: [nowMs - H] };
+        const copy = JSON.stringify(uses);
+        Pushback.apply(Pushback.quote(base({ uses })), { now, sizes: SIZES, uses });
+        expect(JSON.stringify(uses)).toBe(copy);
     });
 });

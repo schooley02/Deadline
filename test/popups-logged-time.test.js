@@ -28,7 +28,7 @@ function deps(over) {
         activeItems: [], completeItem: jest.fn(), indulgeHabit: jest.fn(), toggleWorkTimer: jest.fn(() => ({ ok: true, running: false })),
         setLoggedTime: jest.fn(() => ({ ok: true, deltaMin: 5, completed: false })),
         recomputeOverdueStateAfterEdit: jest.fn(), sortAndRenderActiveList: jest.fn(), createListItem: jest.fn(), saveGame: jest.fn(),
-        pushbackCatalog: [],
+        pushbackOptionsFor: () => [],
     }, over);
 }
 beforeEach(() => { document.body.innerHTML = ''; global.alert = jest.fn(); });

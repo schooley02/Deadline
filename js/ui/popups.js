@@ -13,8 +13,8 @@
  * Everything else — script.js closure state/functions (activeItems,
  * gameIsOver, completeItem, createListItem, sortAndRenderActiveList,
  * saveGame, recomputeOverdueStateAfterEdit, createTaskItemData,
- * addItemToGame) plus the pushback deps (pushbackCatalog, getPlayerPoints,
- * onPushback) — arrives via an explicit deps object. The functions in this
+ * addItemToGame) plus the pushback deps (pushbackOptionsFor, onPushback,
+ * reschedulePricingFor, commitReschedule) — arrives via an explicit deps object. The functions in this
  * cluster call each other directly (module-internal), not through deps,
  * since they're all defined in this same file.
  *
@@ -74,39 +74,72 @@ const Popups = (() => {
     }
 
     // Builds the "Push back this deadline" section HTML for the enemy popup
-    // (session 4). Empty string when pushback isn't wired (no deps.onPushback
-    // or no catalog) so the popup degrades cleanly. Prices are live via
-    // Shop.price (bare global, loaded before this module — same as Modal);
-    // a tier is disabled when the player can't afford it. Pushback applies to
-    // ANY enemy (task/sub-task/habit), Jeremy's call 2026-07-19.
-    // Level-perk shop discount (2026-10-23) — optional dep, 0 when not wired.
-    function shopDiscountOf(deps) {
-        return typeof deps.getShopDiscount === 'function' ? deps.getShopDiscount() : 0;
+    // (session 4; rebuilt for pushback charges in Build B). Empty string when
+    // pushback isn't wired (no deps.onPushback / pushbackOptionsFor) so the
+    // popup degrades cleanly. Pushback applies to tasks, sub-tasks and habits
+    // (Jeremy's call 2026-07-19); habits are offered Short/Medium only.
+    // Pushback charges (Build B, 2026-11-02): the buttons come from deps.pushbackOptionsFor(item), one per size the
+    // item may use, each { sizeId, label ('+30 min'), kind ('free'|'charge'|'token'|'points'|'blocked'), left, cost }.
+    // 'free' = the zombie is still more than 4 hours away (planning ahead), 'charge' = a free charge of that size is
+    // used (left = how many are available), 'token' = a held token is used, 'points' = the price is paid in points,
+    // 'blocked' = points can't cover it (disabled).
+    function pushbackOptionsOf(item, deps) {
+        if (!deps.onPushback || typeof deps.pushbackOptionsFor !== 'function') return [];
+        const opts = deps.pushbackOptionsFor(item);
+        return Array.isArray(opts) ? opts : [];
     }
 
-    function buildPushbackSectionHtml(deps) {
-        if (!deps.onPushback || !Array.isArray(deps.pushbackCatalog) || deps.pushbackCatalog.length === 0) {
-            return '';
+    function pushbackButtonText(o) {
+        if (o.kind === 'free') return `${o.label} — free`;
+        if (o.kind === 'charge') return `${o.label} — free (${o.left} left)`;
+        if (o.kind === 'token') return `${o.label} — uses a token`;
+        return `${o.label} — ${o.cost} pts`;
+    }
+
+    // The edit form's live line under Due Date/Time (Pushback charges Build B). `r` is Pushback.quote()'s result
+    // (script.js reschedulePricingFor). Returns { text, blocked }: blocked = the move can't be paid (Save disabled).
+    // Free moves say why; a paid-zone move says which size it uses and how it is paid.
+    const PB_NAMES = { short: 'Short', medium: 'Medium', long: 'Long' };
+    function pushbackNoteText(r, points) {
+        if (!r || !r.later) return { text: '', blocked: false };
+        if (r.kind === 'free') {
+            return { text: r.reason === 'grace' ? 'Free: just created' : 'Free: more than 4 hours away', blocked: false };
         }
+        if (!r.ok) return { text: `Costs ${r.cost} pts \u2014 you have ${points}`, blocked: true };
+        const name = PB_NAMES[r.size] || r.size;
+        const when = r.size === 'long' ? 'this week' : 'today';
+        if (r.count === 1) {
+            if (r.kind === 'charge') {
+                const left = Math.max(0, ((r.left && r.left[r.size]) || 0) - 1);
+                return { text: `Uses 1 ${name} pushback (${left} left ${when})`, blocked: false };
+            }
+            if (r.kind === 'token') return { text: `Uses a held ${name} token`, blocked: false };
+            return { text: `Costs ${r.cost} pts`, blocked: false };
+        }
+        const parts = [];
+        if (r.charges) parts.push(`${r.charges} free`);
+        if (r.tokens) parts.push(`${r.tokens} held`);
+        if (r.pointUnits) parts.push(`${r.pointUnits} for ${r.cost} pts`);
+        return { text: `Uses ${r.count} ${name} pushbacks: ${parts.join(' + ')}`, blocked: false };
+    }
+
+    function buildPushbackSectionHtml(item, deps) {
+        const options = pushbackOptionsOf(item, deps);
+        if (options.length === 0) return '';
         const points = typeof deps.getPlayerPoints === 'function' ? deps.getPlayerPoints() : 0;
 
-        const buttons = deps.pushbackCatalog.map(p => {
-            const price = Shop.price(p, {}, shopDiscountOf(deps));
-            const affordable = points >= price;
-            // Short label from the catalog name: "Enemy Pushback (1 hr)" -> "1 hr".
-            const m = /\(([^)]+)\)/.exec(p.name);
-            const label = m ? m[1] : p.name;
-            return `<button type="button" class="pushback-btn" data-item-id="${p.id}"${affordable ? '' : ' disabled'}>
-                        ${label} — ${price} pts
-                    </button>`;
-        }).join('');
+        const buttons = options.map(o =>
+            `<button type="button" class="pushback-btn" data-size-id="${o.sizeId}"${o.kind === 'blocked' ? ' disabled' : ''}>
+                        ${pushbackButtonText(o)}
+                    </button>`
+        ).join('');
 
         // Affordability feedback (parity with the shop's "Not enough points"
-        // Buy-button text): a disabled tier with no explanation reads as
+        // Buy-button text): a disabled button with no explanation reads as
         // broken, and a title= tooltip is invisible on mobile (this app's
         // primary target). Showing the live balance makes the disabled state
-        // self-explanatory; refreshPushbackUI keeps it current after a buy.
-        const anyUnaffordable = deps.pushbackCatalog.some(p => points < Shop.price(p, {}, shopDiscountOf(deps)));
+        // self-explanatory; refreshPushbackUI keeps it current after a push.
+        const anyUnaffordable = options.some(o => o.kind === 'blocked');
         const balanceNote = anyUnaffordable
             ? ` <span class="pushback-balance-note">(you have ${points} pts)</span>`
             : ` <span class="pushback-balance-note"></span>`;
@@ -125,7 +158,7 @@ const Popups = (() => {
         return item.type === 'habit' && item.isNegative === true;
     }
 
-    // deps: { completeItem, indulgeHabit, pushbackCatalog?, getPlayerPoints?,
+    // deps: { completeItem, indulgeHabit, pushbackOptionsFor?, getPlayerPoints?,
     //         onPushback?, getCheatDayHeldCount?, isCheatDayActiveForItem?, onUseCheatDay?,
     //         getSkipDayHeldCount?, onUseSkipDay? }
     //
@@ -223,7 +256,7 @@ const Popups = (() => {
                     ${hasOpenSubTasks ? `<span class="completion-remaining">(${openSubTaskCount} remaining)</span>` : ''}
                 </label>
             </div>
-            ${buildPushbackSectionHtml(deps)}
+            ${buildPushbackSectionHtml(item, deps)}
             ${buildSkipDaySectionHtml(item, deps)}
         `;
     }
@@ -432,11 +465,13 @@ const Popups = (() => {
             if (dueDisplay) dueDisplay.textContent = item.dueDateTime.toLocaleString();
 
             const points = typeof deps.getPlayerPoints === 'function' ? deps.getPlayerPoints() : 0;
+            const options = pushbackOptionsOf(item, deps);
             let anyUnaffordable = false;
             overlay.querySelectorAll('.pushback-btn').forEach(btn => {
-                const p = deps.pushbackCatalog.find(i => i.id === btn.dataset.itemId);
-                if (p) {
-                    btn.disabled = points < Shop.price(p, {}, shopDiscountOf(deps));
+                const o = options.find(x => x.sizeId === btn.dataset.sizeId);
+                if (o) {
+                    btn.disabled = o.kind === 'blocked';
+                    btn.textContent = pushbackButtonText(o);
                     if (btn.disabled) anyUnaffordable = true;
                 }
             });
@@ -449,7 +484,7 @@ const Popups = (() => {
 
         overlay.querySelectorAll('.pushback-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                const result = deps.onPushback(btn.dataset.itemId, item);
+                const result = deps.onPushback(btn.dataset.sizeId, item);
                 if (result && result.ok) refreshPushbackUI();
             });
         });
@@ -598,9 +633,9 @@ const Popups = (() => {
 
         Modal.open(modalHtml);
 
-        // Distance-priced rescheduling (Build 2): moving the due time LATER may
-        // cost points. Live price line under the date/time; Save is blocked when
-        // it can't be afforded (never debt). Optional dep — older callers
+        // Pushback charges (Build B): moving the due time LATER while the zombie is close uses a
+        // pushback (free charge, held token, then points). Live line under the date/time says
+        // which; Save is blocked when it can't be paid (never debt). Optional dep — older callers
         // without it keep the old free behavior.
         const saveButton = document.getElementById('saveTaskChanges');
         const priceNote = document.getElementById('editRescheduleNote');
@@ -616,18 +651,9 @@ const Popups = (() => {
             const nd = readNewDue();
             if (!nd) { priceNote.textContent = ''; return null; }
             const r = deps.reschedulePricingFor(item, nd);
-            let text = '';
-            let blocked = false;
-            if (r.later) {
-                if (!r.free) {
-                    text = `Moving this later costs ${r.cost} pts`;
-                    if (!r.canAfford) { text += ` — you have ${deps.getPlayerPoints()}`; blocked = true; }
-                } else if (r.reason === 'weekly') {
-                    text = 'Free this time — your weekly reschedule';
-                } else if (r.reason === 'grace') {
-                    text = 'Free — just created';
-                }
-            }
+            const note = pushbackNoteText(r, typeof deps.getPlayerPoints === 'function' ? deps.getPlayerPoints() : 0);
+            const text = note.text;
+            const blocked = note.blocked;
             priceNote.textContent = text;
             priceNote.classList.toggle('reschedule-note-blocked', blocked);
             if (saveButton) saveButton.disabled = blocked;
@@ -931,6 +957,8 @@ const Popups = (() => {
         // Exposed for tests (test/popups-prefill.test.js)
         formatDateInputValue,
         formatTimeInputValue,
+        pushbackNoteText,
+        pushbackButtonText,
     };
 })();
 

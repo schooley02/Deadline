@@ -75,6 +75,17 @@ describe('buildViewModel', () => {
         const ok = BasePanel.buildViewModel(ctxFor(80, [att('a', 10)], { points: 50 })).attackers.rows[0];
         expect(ok.canBuy).toBe(true);
     });
+    test('pushbackNote (Build B): a free charge / token push is always enabled and says how it is paid', () => {
+        const vm = BasePanel.buildViewModel(ctxFor(80, [att('a', 10)], { points: 0, pushbackPrice: 0, pushbackLabel: '2 hr', pushbackNote: 'free \u00B7 2 left' }));
+        const row = vm.attackers.rows[0];
+        expect(row.canBuy).toBe(true);
+        expect(row.note).toBe('free \u00B7 2 left');
+        expect(row.ariaLabel).toContain('free');
+        const html = BasePanel.innerHtml(vm);
+        expect(html).toContain('Push back 2 hr');
+        expect(html).toContain('free \u00B7 2 left');
+        expect(html).not.toContain('Need ');
+    });
     test('no pushback price -> no buy buttons', () => {
         const vm = BasePanel.buildViewModel(ctxFor(80, [att('a', 10)], { pushbackPrice: null }));
         expect(vm.attackers.rows[0].price).toBeNull();

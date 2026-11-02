@@ -12,7 +12,9 @@ const CONFIG = require('../js/config.js');
 
 const CATALOG = CONFIG.SHOP_ITEMS;
 const smallKit = CATALOG.find(i => i.id === 'repair_small');   // baseCost 25, consumable
-const pushback1hr = CATALOG.find(i => i.id === 'pushback_1hr'); // baseCost 50, not consumable
+// No catalog item is instant-consume any more (the pushback rows became held tokens in Build B), so the
+// non-consumable branch of Shop is covered with a synthetic row.
+const instantItem = { id: 'instant_x', name: 'Instant', category: 'x', baseCost: 50, consumable: false, effect: {} };
 const cheatDay = CATALOG.find(i => i.id === 'cheat_day');       // baseCost 200, consumable ([P1-DATA-005] sub-session 5)
 const sickDay = CATALOG.find(i => i.id === 'sick_day');         // baseCost 200, consumable (frozen-slots sub-session 5)
 const skipDay = CATALOG.find(i => i.id === 'skip_day');         // baseCost 200, consumable (frozen-slots sub-session 5)
@@ -52,8 +54,8 @@ describe('price', () => {
         expect(Shop.price(smallKit, { repair_small: 2 })).toBe(56); // 56.25 → 56
     });
     test('non-consumable ignores inventory (always baseCost today)', () => {
-        expect(Shop.price(pushback1hr, {})).toBe(50);
-        expect(Shop.price(pushback1hr, { pushback_1hr: 5 })).toBe(50);
+        expect(Shop.price(instantItem, {})).toBe(50);
+        expect(Shop.price(instantItem, { instant_x: 5 })).toBe(50);
     });
 });
 
@@ -102,7 +104,7 @@ describe('purchase', () => {
     });
 
     test('non-consumable purchase deducts points but does NOT add inventory', () => {
-        const r = Shop.purchase('pushback_1hr', CATALOG, {}, 100);
+        const r = Shop.purchase('instant_x', CATALOG.concat([instantItem]), {}, 100);
         expect(r.ok).toBe(true);
         expect(r.cost).toBe(50);
         expect(r.newPoints).toBe(50);
@@ -120,14 +122,12 @@ describe('pushedBackDueDate', () => {
         expect(shifted.toISOString()).toBe('2026-07-19T13:00:00.000Z');
     });
 
-    test('uses the catalog pushback amounts (1hr/2hr/1day)', () => {
+    test('uses the configured pushback sizes (30 min / 2 hr / 1 day)', () => {
         const due = new Date('2026-07-19T12:00:00.000Z');
-        const p1hr = CATALOG.find(i => i.id === 'pushback_1hr');
-        const p1day = CATALOG.find(i => i.id === 'pushback_1day');
-        expect(Shop.pushedBackDueDate(due, p1hr.effect.pushbackMs).getTime())
-            .toBe(due.getTime() + ONE_HOUR);
-        expect(Shop.pushedBackDueDate(due, p1day.effect.pushbackMs).getTime())
-            .toBe(due.getTime() + 24 * ONE_HOUR);
+        const [short, medium, long] = CONFIG.PUSHBACK_SIZES;
+        expect(Shop.pushedBackDueDate(due, short.ms).getTime()).toBe(due.getTime() + ONE_HOUR / 2);
+        expect(Shop.pushedBackDueDate(due, medium.ms).getTime()).toBe(due.getTime() + 2 * ONE_HOUR);
+        expect(Shop.pushedBackDueDate(due, long.ms).getTime()).toBe(due.getTime() + 24 * ONE_HOUR);
     });
 
     test('never mutates the input Date', () => {
