@@ -227,3 +227,9 @@
 }
 .modal-close-x:hover,
 .modal-close-x:focus-visible { background: rgba(0, 0, 0, 0.08); color: var(--color-text-primary); }
+
+/* In-game dialogs (js/ui/dialog.js, 2026-11-01): replaces the browser's alert()/confirm(). */
+.dialog-overlay { z-index: 1100; } /* above any modal it was raised from */
+.dialog-content { max-width: 340px; }
+.dialog-title { margin: 0 0 8px; }
+.dialog-message { margin: 0 0 16px; line-height: 1.4; white-space: pre-line; }

@@ -639,7 +639,7 @@ const RoutineViews = (() => {
 
                     <div class="modal-buttons">
                         <button class="primary-button" onclick="closeModal()">Done</button>
-                        <button class="secondary-button" onclick="deleteRoutine('${routine.id}'); closeModal();">Delete Routine</button>
+                        <button class="secondary-button" onclick="deleteRoutine('${routine.id}')">Delete Routine</button>
                     </div>
                 </div>
             </div>
@@ -813,7 +813,8 @@ const RoutineViews = (() => {
     // file's existing convention (buildFrozenBannerHtml's FrozenSlots/CONFIG
     // usage).
     // deps: { saveGame }
-    function ensureRoutineSlotAvailable(routine, itemType, deps) {
+    // Async since 2026-11-01 (in-game Dialog instead of the browser's confirm/alert): resolves true/false, so callers `await` it.
+    async function ensureRoutineSlotAvailable(routine, itemType, deps) {
         const label = itemType === 'task' ? 'task' : 'habit';
         const used = itemType === 'task'
             ? (routine.taskDefinitionIds || []).length
@@ -824,12 +825,13 @@ const RoutineViews = (() => {
 
         const available = Heroes.availableSlotPoints(routine, CONFIG);
         if (available <= 0) {
-            alert(`"${routine.name}" is at its ${label} slot limit (${capacity}). Level up this routine to earn a slot point.`);
+            await Dialog.notice(`"${routine.name}" is at its ${label} slot limit (${capacity}). Level up this routine to earn a slot point.`, { title: 'Slot limit reached' });
             return false;
         }
 
-        const wantsToSpend = confirm(
-            `"${routine.name}" is at its ${label} slot limit (${capacity}). Spend 1 slot point to unlock another ${label} slot? (${available} available)`
+        const wantsToSpend = await Dialog.confirm(
+            `"${routine.name}" is at its ${label} slot limit (${capacity}). Spend 1 slot point to unlock another ${label} slot? (${available} available)`,
+            { title: 'Unlock a slot?', confirmLabel: 'Spend 1 point', cancelLabel: 'Not now' }
         );
         if (!wantsToSpend) return false;
 
@@ -912,10 +914,10 @@ const RoutineViews = (() => {
         const selectEl = document.getElementById('existingItemSelect');
 
         if (addBtn) {
-            addBtn.addEventListener('click', () => {
+            addBtn.addEventListener('click', async () => {
                 const selectedId = selectEl.value;
                 if (selectedId) {
-                    if (!ensureRoutineSlotAvailable(routine, itemType, deps)) return;
+                    if (!(await ensureRoutineSlotAvailable(routine, itemType, deps))) return;
 
                     if (itemType === 'habit') {
                         if (!routine.habitDefinitionIds) routine.habitDefinitionIds = [];
@@ -980,7 +982,7 @@ const RoutineViews = (() => {
             // Frozen-offender: blocked in the core too, but catching it here
             // gives a decent message instead of a dead-end picker.
             if (source.frozenState && source.frozenState.frozenBy === itemId) {
-                alert(`"${itemName}" is the habit that froze "${source.name}" — it can't be moved until the routine recovers (edit the habit or avoid it 3 days running).`);
+                Dialog.notice(`"${itemName}" is the habit that froze "${source.name}" — it can't be moved until the routine recovers (edit the habit or avoid it 3 days running).`, { title: "Can't move this habit" });
                 return;
             }
         } else {
@@ -991,7 +993,7 @@ const RoutineViews = (() => {
 
         const destinations = deps.definedRoutines().filter(r => r.id !== sourceRoutineId);
         if (destinations.length === 0) {
-            alert('No other routines to move to. Create another routine first.');
+            Dialog.notice('No other routines to move to. Create another routine first.');
             return;
         }
 
@@ -1024,7 +1026,7 @@ const RoutineViews = (() => {
         const selectEl = document.getElementById('transferDestSelect');
 
         if (confirmBtn) {
-            confirmBtn.addEventListener('click', () => {
+            confirmBtn.addEventListener('click', async () => {
                 const destId = selectEl.value;
                 if (!destId) {
                     alert(`Please select a routine to move this ${label} to.`);
@@ -1034,9 +1036,9 @@ const RoutineViews = (() => {
                 if (!dest) return;
 
                 // Destination capacity first — may spend a banked point.
-                if (!ensureRoutineSlotAvailable(dest, itemType, deps)) return;
+                if (!(await ensureRoutineSlotAvailable(dest, itemType, deps))) return;
 
-                if (!confirm(`Move "${itemName}" from "${source.name}" to "${dest.name}"?`)) return;
+                if (!(await Dialog.confirm(`Move "${itemName}" from "${source.name}" to "${dest.name}"?`, { title: 'Move to another routine?', confirmLabel: 'Move', cancelLabel: 'Cancel' }))) return;
 
                 const result = itemType === 'habit'
                     ? deps.transferHabitBetweenRoutines(sourceRoutineId, destId, itemId)
@@ -1336,7 +1338,7 @@ const RoutineViews = (() => {
      * Called by script.js's window.saveNewHabit thin wrapper (inline
      * onclick="saveNewHabit(...)" needs the window-level name).
      */
-    function saveNewHabit(routineId, deps) {
+    async function saveNewHabit(routineId, deps) {
         const name = document.getElementById('newHabitName').value.trim();
         const category = document.getElementById('newHabitCategory').value;
         const schedule = readScheduleFromFields('newHabit');
@@ -1360,7 +1362,7 @@ const RoutineViews = (() => {
         }
 
         const routine = deps.definedRoutines().find(r => r.id === routineId);
-        if (routine && !ensureRoutineSlotAvailable(routine, 'habit', deps)) return;
+        if (routine && !(await ensureRoutineSlotAvailable(routine, 'habit', deps))) return;
 
         const goalFields = Forms.readHabitGoalFields('newHabit');
         const goalError = Forms.habitGoalError(goalFields);
@@ -1376,7 +1378,7 @@ const RoutineViews = (() => {
     /**
      * deps: { definedRoutines (getter), createNewTaskInRoutine, saveGame }
      */
-    function saveNewTask(routineId, deps) {
+    async function saveNewTask(routineId, deps) {
         const name = document.getElementById('newTaskName').value.trim();
         const category = document.getElementById('newTaskCategory').value;
         const defaultDueTime = document.getElementById('newTaskDueTime').value;
@@ -1400,7 +1402,7 @@ const RoutineViews = (() => {
         }
 
         const routine = deps.definedRoutines().find(r => r.id === routineId);
-        if (routine && !ensureRoutineSlotAvailable(routine, 'task', deps)) return;
+        if (routine && !(await ensureRoutineSlotAvailable(routine, 'task', deps))) return;
 
         deps.createNewTaskInRoutine(routineId, { name, category, defaultDueTime, defaultStartTime, isHighPriority, schedule });
         Modal.closeModal();

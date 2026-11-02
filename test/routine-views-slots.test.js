@@ -164,66 +164,63 @@ describe('buildCompletionRateLabel', () => {
 });
 
 describe('ensureRoutineSlotAvailable', () => {
+    // 2026-11-01: prompts are in-game Dialogs (no browser confirm/alert), so the helper is async.
     let saveGame;
     let confirmSpy;
-    let alertSpy;
+    let noticeSpy;
 
     beforeEach(() => {
         saveGame = jest.fn();
-        // Node has no confirm()/alert() globals (unlike the browser these
-        // modules ship to) — define them fresh each test rather than
-        // jest.spyOn, which requires the property to already exist.
-        global.confirm = jest.fn(() => true);
-        global.alert = jest.fn();
-        confirmSpy = global.confirm;
-        alertSpy = global.alert;
+        confirmSpy = jest.fn(() => Promise.resolve(true));
+        noticeSpy = jest.fn(() => Promise.resolve());
+        global.Dialog = { confirm: confirmSpy, notice: noticeSpy };
     });
 
     afterEach(() => {
-        delete global.confirm;
-        delete global.alert;
+        delete global.Dialog;
     });
 
-    test('under capacity: proceeds without prompting', () => {
+    test('under capacity: proceeds without prompting', async () => {
         const r = routine({ habitDefinitionIds: [] }); // capacity 1, used 0
-        const ok = RoutineViews.ensureRoutineSlotAvailable(r, 'habit', { saveGame });
+        const ok = await RoutineViews.ensureRoutineSlotAvailable(r, 'habit', { saveGame });
         expect(ok).toBe(true);
         expect(confirmSpy).not.toHaveBeenCalled();
-        expect(alertSpy).not.toHaveBeenCalled();
+        expect(noticeSpy).not.toHaveBeenCalled();
         expect(saveGame).not.toHaveBeenCalled();
     });
 
-    test('at capacity with a point available and the player agrees: spends the point, saves, and proceeds', () => {
+    test('at capacity with a point available and the player agrees: spends the point, saves, and proceeds', async () => {
         const r = routine({ level: 2, habitDefinitionIds: ['h1'] }); // capacity 1, used 1, 1 point earned
-        confirmSpy.mockReturnValue(true);
-        const ok = RoutineViews.ensureRoutineSlotAvailable(r, 'habit', { saveGame });
+        confirmSpy.mockResolvedValue(true);
+        const ok = await RoutineViews.ensureRoutineSlotAvailable(r, 'habit', { saveGame });
         expect(ok).toBe(true);
         expect(r.boughtHabitSlots).toBe(1);
         expect(saveGame).toHaveBeenCalledTimes(1);
+        expect(confirmSpy.mock.calls[0][0]).toContain('Spend 1 slot point');
     });
 
-    test('at capacity with a point available but the player declines: no mutation, no save', () => {
+    test('at capacity with a point available but the player declines: no mutation, no save', async () => {
         const r = routine({ level: 2, habitDefinitionIds: ['h1'] });
-        confirmSpy.mockReturnValue(false);
-        const ok = RoutineViews.ensureRoutineSlotAvailable(r, 'habit', { saveGame });
+        confirmSpy.mockResolvedValue(false);
+        const ok = await RoutineViews.ensureRoutineSlotAvailable(r, 'habit', { saveGame });
         expect(ok).toBe(false);
         expect(r.boughtHabitSlots).toBe(0);
         expect(saveGame).not.toHaveBeenCalled();
     });
 
-    test('at capacity with zero points available: alerts (not confirms) and blocks', () => {
+    test('at capacity with zero points available: shows a notice (not a confirm) and blocks', async () => {
         const r = routine({ level: 1, habitDefinitionIds: ['h1'] }); // capacity 1, used 1, 0 points earned
-        const ok = RoutineViews.ensureRoutineSlotAvailable(r, 'habit', { saveGame });
+        const ok = await RoutineViews.ensureRoutineSlotAvailable(r, 'habit', { saveGame });
         expect(ok).toBe(false);
         expect(confirmSpy).not.toHaveBeenCalled();
-        expect(alertSpy).toHaveBeenCalledTimes(1);
+        expect(noticeSpy).toHaveBeenCalledTimes(1);
         expect(saveGame).not.toHaveBeenCalled();
     });
 
-    test('spends into the correct pool for tasks, independent of habit slots', () => {
+    test('spends into the correct pool for tasks, independent of habit slots', async () => {
         const r = routine({ level: 2, taskDefinitionIds: ['t1'] }); // capacity 1, used 1
-        confirmSpy.mockReturnValue(true);
-        const ok = RoutineViews.ensureRoutineSlotAvailable(r, 'task', { saveGame });
+        confirmSpy.mockResolvedValue(true);
+        const ok = await RoutineViews.ensureRoutineSlotAvailable(r, 'task', { saveGame });
         expect(ok).toBe(true);
         expect(r.boughtTaskSlots).toBe(1);
         expect(r.boughtHabitSlots).toBe(0);

@@ -5,6 +5,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+## 2026-11-01 (evening, Sonnet build) -- In-game Dialog Build 1 built (Claude app session; Jeremy)
+**Decision:** built DIALOG_PLAN Build 1 (see "Build 1 -- built as" there). Choices: promise-based `Dialog.notice/confirm` with a MutationObserver so a dismissed dialog resolves false instead of hanging; async `ensureRoutineSlotAvailable` (Jeremy: no need to pause the game for these steps, so non-blocking is fine); Delete Routine closes the Manage modal only after the confirm; `routines.js` keeps its `deps.alert` seam, now wired to `Dialog.notice` (not a native call); the guard test uses an exact per-file allowlist so it can only shrink.
+**Why:** Jeremy's rule that game-mechanic prompts stay in the game. 37 native calls remain (Builds 2-3). sw v193; Jest 116 suites / 2,586.
+
+## 2026-11-01 (evening, Sonnet planning) -- No native browser dialogs; in-game Dialog plan (Claude app session; Jeremy)
+**Decision (Jeremy):** the browser's `alert()` / `confirm()` boxes ("localhost:8000 says ...") are replaced by in-game UI. Anything part of a game mechanic stays in the game; only a genuine system-level alert may use the browser's box, and new code must not use them (CLAUDE.md Guardrail + a guard test in Build 1). Audit: 4 `confirm()` + 42 `alert()` (an earlier chat estimate of 11 confirms was wrong), 0 `prompt()`; plan, inventory by category (validation -> inline form errors, game rules -> notice, decisions -> styled confirm, errors -> notice) and build order in `docs/DIALOG_PLAN.md`.
+**Why:** the box breaks the game's look (it was the slot-point prompt that prompted this), behaves differently in an installed PWA, and freezes browser automation. Reset Game and Import already use `Modal.open` confirms, so the pattern exists.
+**Not built yet.**
+
 ## 2026-11-01 (evening, Sonnet build) -- Slot points shown as a labelled chip (Claude app session, Sonnet; Jeremy)
 **Decision:** the Hero tray's unspent slot points are one blue pill ("N points") instead of one dashed "+" per point; the Manage Routine screen shows a blue callout ("N slot points available -- tap + Add Habit or + Add Task ...") instead of a small grey tail. Slot-point RULES unchanged (DECISIONS 2026-07-19: a level-up banks a point, spent on a habit OR task slot at add time).
 **Why:** Jeremy read the blue dashed "+" as an open slot (it looked just like the grey dashed open-slot "+"); the blue + has nothing to do with a new routine (routine count is the player-level system). A row tap already opened Manage Routine, so no tap target was added.

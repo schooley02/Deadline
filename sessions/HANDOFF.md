@@ -11,6 +11,12 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-01 (evening, last) -- In-game Dialog Build 1 (Claude app session, Sonnet; Jeremy)
+**Did:** `js/ui/dialog.js` (`Dialog.notice/confirm`), css/modal.css `.dialog-*`, index.html + sw.js entries; converted the slot-point prompt, slot-limit / frozen-habit / no-routines notices, move-item confirm, delete routine + delete habit (red confirm), and routines.js's two alerts (script.js `alert` dep -> `Dialog.notice`). New tests: dialog.test.js (7), no-native-dialogs.test.js (allowlist of the 37 left), routine-views-slots rewritten for async. sw v193, Jest 116 suites / 2,586.
+**State:** green; live-checked at 390x844 (0 native dialogs, 0 console errors). Not phone-checked. In the folder, not committed.
+**Next:** phone-check the dialogs; Dialog Build 2 (inline form validation, 34 alerts); the parked timer UI session; Build 3.
+**Watch out:** `ensureRoutineSlotAvailable` is async now (await it). Delete Routine's inline onclick no longer calls closeModal (deleteRoutine does it after the confirm). `index.html` has mixed line endings: keep the device file's endings when editing it.
+
 ## 2026-11-01 (evening, later) -- Slot points shown as a chip (Claude app session, Sonnet; Jeremy)
 **Did:** Hero tray: unspent slot points are one blue "N points" pill (`HeroTray.slotCells` returns one `{kind:'point',count}`; `slotCellHtml` exported); a "+" now means only a real open slot. Manage Routine: visible `.slot-point-callout` pointing at + Add Habit / + Add Task (no new spending path). Tests: heroTray (chip, signature), routine-views-slots (callout). sw v192, Jest 114 suites / 2,578.
 **State:** green; chip live-checked at 390 px (screenshot of the injected cells; 0 console errors). Not phone-checked.

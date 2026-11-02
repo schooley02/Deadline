@@ -1803,11 +1803,14 @@ document.addEventListener('DOMContentLoaded', () => {
         saveGame();
     }
 
-    function deleteRoutine(routineId) {
+    async function deleteRoutine(routineId) {
         const routine = State.getDefinedRoutines().find(r => r.id === routineId);
         if (!routine) return;
 
-        if (confirm(`Are you sure you want to delete the routine "${routine.name}"?`)) {
+        // In-game confirm (2026-11-01, docs/DIALOG_PLAN.md), not the browser's box.
+        if (await Dialog.confirm(`Are you sure you want to delete the routine "${routine.name}"?`, { title: 'Delete routine?', confirmLabel: 'Delete', cancelLabel: 'Cancel', danger: true })) {
+            // Close the Manage Routine modal only once the delete is confirmed (the inline onclick used to close it before the answer).
+            Modal.closeModal();
             // Recalls active habit/task instances before removing the routine
             // — see js/routines.js's deleteRoutine for the bugfix rationale
             // and DECISIONS.md.
@@ -2092,7 +2095,7 @@ document.addEventListener('DOMContentLoaded', () => {
             routineSlots: State.getRoutineSlots(),
             activeItems: State.getActiveItems(),
             removeItem,
-            alert,
+            alert: (message) => Dialog.notice(message),
             generateDailyHabitInstances,
             generateDailyRoutineTaskInstances,
             currentGameDate: State.getCurrentGameDate(),
@@ -2317,10 +2320,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // rather than hard-deletes — see Routines.archiveHabit. window-exposed
     // because the modal button is an inline onclick string (same contract as
     // window.deleteRoutine / window.saveEditedHabit).
-    window.archiveHabit = function(habitId) {
+    window.archiveHabit = async function(habitId) {
         const habitDef = State.getDefinedHabits().find(h => h.id === habitId);
         if (!habitDef) return;
-        if (!confirm(`Delete the habit "${habitDef.name}"? It will be removed from the board and from any routine.`)) return;
+        if (!(await Dialog.confirm(`Delete the habit "${habitDef.name}"? It will be removed from the board and from any routine.`, { title: 'Delete habit?', confirmLabel: 'Delete', cancelLabel: 'Cancel', danger: true }))) return;
 
         Routines.archiveHabit(habitId, {
             definedHabits: State.getDefinedHabits(),
