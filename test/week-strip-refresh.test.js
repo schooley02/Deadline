@@ -51,14 +51,30 @@ describe('week strip refresh: script.js wiring guard', () => {
         'createNewTaskInRoutine',
         'editHabitInRoutine',
         'editTaskInRoutine',
+        'removeHabitFromRoutine',
+        'removeTaskFromRoutine',
+        'transferHabitBetweenRoutines',
+        'transferTaskBetweenRoutines',
+        'addHabitToRoutine',
+        'toggleRoutineActive',
+        'deleteRoutine',
     ])('%s refreshes the count/strip', (fn) => {
         const rows = script.split(/\r?\n/);
         const start = rows.findIndex(l => new RegExp(`^\\s*(async )?function ${fn}\\(`).test(l));
         expect(start).toBeGreaterThan(-1);
-        // function bodies here end at the first line that is exactly 4 spaces + "}"
+        // function bodies here end at the first line that is exactly 4 spaces + "}" (the lines are indented 4 or 5 spaces,
+        // so match either)
         let end = start + 1;
-        while (end < rows.length && !/^ {4}\}\s*$/.test(rows[end])) end++;
+        while (end < rows.length && !/^ {4,5}\}\s*$/.test(rows[end])) end++;
         expect(rows.slice(start, end).join('\n')).toMatch(/updateTaskCountDisplay\(\)/);
+    });
+
+    test('the routine picker (Add Selected) refreshes the strip and routineViewsDeps provides the function', () => {
+        const rows = script.split(/\r?\n/);
+        const start = rows.findIndex(l => /^\s*function routineViewsDeps\(\)/.test(l));
+        expect(start).toBeGreaterThan(-1);
+        expect(rows.slice(start, start + 20).join('\n')).toMatch(/updateTaskCountDisplay,/);
+        expect(read('js/ui/routineViews.js')).toMatch(/deps\.updateTaskCountDisplay\(\)/);
     });
 
     test('popupsDeps hands the shared function to the Edit Task save', () => {
@@ -131,5 +147,45 @@ describe('week strip refresh: the view recounts after a save', () => {
         const counts = cellCounts();
         expect(counts[2]).toBe(0);
         expect(counts[4]).toBe(1);
+    });
+
+    test('turning a routine off removes its habit from later days, turning it on brings it back', () => {
+        const routine = { id: 'r1', name: 'Morning', habitDefinitionIds: ['h2'], taskDefinitionIds: [], isActive: true };
+        habits.push({ id: 'h2', name: 'Pray', category: 'other', timeOfDay: 'morning', isNegative: false, routineId: 'r1', streak: 0,
+            schedule: { frequency: 'daily', daysOfWeek: [0, 1, 2, 3, 4, 5, 6] } });
+        const routines = [routine];
+        DayPagerView.init({
+            weekStripRowEl: row, getCurrentGameDate: () => TODAY, getDefinedHabits: () => habits,
+            getDefinedRoutines: () => routines, getDefinedTasks: () => tasks, getCompletedItems: () => [],
+            getActiveItems: () => active, getSickDayDate: () => null, setTimePreviewActive: () => {},
+        });
+        expect(cellCounts()[3]).toBe(1);
+        routine.isActive = false; // toggleRoutineActive flips this, then script.js refreshes the strip
+        DayPagerView.refreshWeekStrip();
+        expect(cellCounts()[3]).toBe(0);
+        routine.isActive = true;
+        DayPagerView.refreshWeekStrip();
+        expect(cellCounts()[3]).toBe(1);
+    });
+
+    test('moving a habit into an inactive routine takes it off later days; moving it out puts it back', () => {
+        const off = { id: 'rOff', name: 'Off', habitDefinitionIds: [], taskDefinitionIds: [], isActive: false };
+        const on = { id: 'rOn', name: 'On', habitDefinitionIds: ['h3'], taskDefinitionIds: [], isActive: true };
+        const h = { id: 'h3', name: 'Read', category: 'other', timeOfDay: 'evening', isNegative: false, routineId: 'rOn', streak: 0,
+            schedule: { frequency: 'daily', daysOfWeek: [0, 1, 2, 3, 4, 5, 6] } };
+        habits.push(h);
+        DayPagerView.init({
+            weekStripRowEl: row, getCurrentGameDate: () => TODAY, getDefinedHabits: () => habits,
+            getDefinedRoutines: () => [off, on], getDefinedTasks: () => tasks, getCompletedItems: () => [],
+            getActiveItems: () => active, getSickDayDate: () => null, setTimePreviewActive: () => {},
+        });
+        expect(cellCounts()[2]).toBe(1);
+        // Routines.transferHabitBetweenRoutines: move the id and the habit's routineId
+        on.habitDefinitionIds = []; off.habitDefinitionIds = ['h3']; h.routineId = 'rOff';
+        DayPagerView.refreshWeekStrip();
+        expect(cellCounts()[2]).toBe(0);
+        off.habitDefinitionIds = []; on.habitDefinitionIds = ['h3']; h.routineId = 'rOn';
+        DayPagerView.refreshWeekStrip();
+        expect(cellCounts()[2]).toBe(1);
     });
 });

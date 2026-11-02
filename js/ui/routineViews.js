@@ -933,6 +933,8 @@ const RoutineViews = (() => {
                         if (!routine.taskDefinitionIds) routine.taskDefinitionIds = [];
                         routine.taskDefinitionIds.push(selectedId);
                     }
+                    // Week strip (2026-11-02): the habit/task now follows this routine (an inactive one hides it on later days).
+                    if (typeof deps.updateTaskCountDisplay === 'function') deps.updateTaskCountDisplay();
                     deps.saveGame();
                     Modal.closeModal();
                     // Refresh the routine management modal

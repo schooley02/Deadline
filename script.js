@@ -1982,6 +1982,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // — see js/routines.js's deleteRoutine for the bugfix rationale
             // and DECISIONS.md.
             Routines.deleteRoutine(routineId, { definedRoutines: State.getDefinedRoutines(), activeItems: State.getActiveItems(), removeItem, definedHabits: State.getDefinedHabits() });
+            // Week strip (2026-11-02): the routine's habits are released as standalone ones, so later-day counts change.
+            updateTaskCountDisplay();
             saveGame();
 
             // Update routines window if open
@@ -2007,6 +2009,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // sites in script.js — deleted sub-session 3, docs/STATE_OWNERSHIP_PLAN.md.)
     function removeHabitFromRoutine(routineId, habitDefId) {
         if (Routines.removeHabitFromRoutine(routineId, habitDefId, State.getDefinedRoutines(), State.getDefinedHabits())) {
+            updateTaskCountDisplay(); // week strip (2026-11-02): the habit may now be standalone (or gone) on later days
             RoutineViews.renderDefinedRoutines(routineViewsDeps());
             saveGame();
         }
@@ -2072,6 +2075,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function removeTaskFromRoutine(routineId, taskId) {
         Routines.removeTaskFromRoutine(routineId, taskId, State.getDefinedRoutines());
+        updateTaskCountDisplay(); // week strip (2026-11-02)
     }
 
     // ------------------------------------------------------------------
@@ -2107,6 +2111,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.ok) {
             recallInstancesIfRoutineUnusable(destRoutineId, habitDefId, 'habit');
             generateDailyHabitInstances(State.getCurrentGameDate());
+            updateTaskCountDisplay(); // week strip (2026-11-02): the new routine may be inactive
             RoutineViews.renderDefinedRoutines(routineViewsDeps());
             saveGame();
         }
@@ -2119,6 +2124,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.ok) {
             recallInstancesIfRoutineUnusable(destRoutineId, taskId, 'task');
             generateDailyRoutineTaskInstances(State.getCurrentGameDate());
+            updateTaskCountDisplay(); // week strip (2026-11-02): the new routine may be inactive
             RoutineViews.renderDefinedRoutines(routineViewsDeps());
             saveGame();
         }
@@ -2161,6 +2167,7 @@ document.addEventListener('DOMContentLoaded', () => {
             transferHabitBetweenRoutines, transferTaskBetweenRoutines,
             createNewHabitInRoutine, createNewTaskInRoutine, editHabitInRoutine, editTaskInRoutine,
             activeItems: State.getActiveItems(), createListItem, sortAndRenderActiveList,
+            updateTaskCountDisplay, // week strip (2026-11-02): the Add Selected picker changes routine membership itself
             // 2026-11-01: Edit Habit from the Completed list edits one completed entry (name/category/goal) and re-renders the list.
             completedItems: State.getCompletedItems,
             renderCompletedItems: () => AgendaList.renderCompletedItems(agendaListDeps()),
@@ -2186,6 +2193,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        updateTaskCountDisplay(); // week strip (2026-11-02): an inactive routine hides the habit on later days
         RoutineViews.renderDefinedRoutines(routineViewsDeps());
     }
 
@@ -2272,6 +2280,9 @@ document.addEventListener('DOMContentLoaded', () => {
             currentGameDate: State.getCurrentGameDate(),
             saveGame
         });
+        // Week strip (2026-11-02): turning a routine on/off adds or removes its habits and tasks on later days, and
+        // nothing refreshes when none of them is due today.
+        updateTaskCountDisplay();
     }
     
     // (showAddItemToRoutineModal wrapper was dead code — no call sites in
