@@ -21,6 +21,8 @@ Points math + this pricing formula live in `js/economy.js` (built 2026-07-18 ses
 
 **2026-07-21 points re-tune — prices deliberately left unchanged (Jeremy's call, see DECISIONS.md):** the earn-rate drop above (~10x) was NOT applied to shop prices — the whole point was to make tokens cost real sustained effort against these same numbers. A solid day's earnings is now ≈ 5–9 pts (was ≈75–85), so "days to afford" figures above are now roughly 10x longer (e.g. a 200-pt Cheat Day token is now a multi-week save, not a multi-day one). The HP-per-point / break-even RATIOS between shop items still hold — only the real-time cost of everything changed, on purpose.
 
+**Pushback REDESIGN (DESIGNED + BALANCED 2026-11-02, not built; `docs/PUSHBACK_CHARGES_PLAN.md`, DECISIONS 2026-11-02):** the three pushback rows below and the rescheduling price in the next section are replaced by daily charges (Short <=30 min 3/day, Medium <=2 h 2/day, Long <=1 day 2/week, more from Clock tower stars), then held tokens (5 / 10 / 30 pts, Buy-to-hold), then points. Until Build A lands, the rows below are what the game does.
+
 | Item | Base cost | Effect |
 |---|---|---|
 | Repair kit (small) | 25 pts | Instant base HP restoration (mid-run top-up on top of the free gradual regen decided 2026-07-18 — see MECHANICS.md Base) |

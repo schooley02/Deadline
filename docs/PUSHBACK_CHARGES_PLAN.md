@@ -1,6 +1,6 @@
 # Pushback Charges — Plan
 
-Designed 2026-11-02 (Claude app session, Opus; Jeremy). Decision logged in `docs/DECISIONS.md` 2026-11-02. **Status: DESIGNED, not built.** Numbers below are a THEORY pass. A Fable balance-tuning session confirms them before Build A.
+Designed 2026-11-02 (Claude app session, Opus; Jeremy); balance pass the same morning (Fable, balance-tuning protocol). Decisions logged in `docs/DECISIONS.md` 2026-11-02. **Status: DESIGNED + BALANCED, not built.** Numbers are a THEORY pass against the ~7 pts/day earn rate; re-check against real play data once Jeremy has some.
 
 ## Why
 Jeremy (2026-11-01): the pushback items in the shop have no Buy button (by design: they are applied from the zombie popup), which confuses players. Pushing a deadline and editing its due time are two doors to the same room with different rules. Both are priced far above the goal of **"a few small and medium adjustments a day, a few long ones a week."**
@@ -43,7 +43,7 @@ When the free charges of a size are spent, the move uses the first available of:
 1. a **held token** of that size (buy-to-hold in the shop, like Cheat Day; `consumable: true`), then
 2. **points**: the popup button shows the price and pays and applies in one tap. The edit form shows the price before Save, as today.
 
-THEORY prices for the Fable pass: **Short 5, Medium 10, Long 30** (under a day's earnings, about 1.5 days, about 4 days). Level discount applies. The 1.5^held price curve applies to held tokens as it does for every consumable.
+Prices (DECIDED 2026-11-02, Fable): **Short 5, Medium 10, Long 30** (under a day's earnings, about 1.5 days, about 4 days). Level discount applies. The ratio is deliberate: Medium buys 4x the time of a Short for 2x the price, Long 12x for 3x, so committing to the bigger size is rewarded the way repair kits reward tier (HP per point). Chain-pushing with the small sizes is self-limiting (12 Mediums = 120 pts for what a Long does for 30). The 1.5^held price curve applies to held tokens as it does for every consumable.
 
 The three new token items **replace** `pushback_1hr` / `pushback_2hr` / `pushback_1day` (50/100/300) and `RESCHEDULE_FREE_PER_WEEK`.
 
@@ -56,7 +56,7 @@ Stars are per run, so they reset when the church falls. This adds stakes to the 
 | ★2 | ~4 days | 4 Short a day | +1 Short |
 | ★3 | ~2.5 weeks | 3 Medium a day | +1 Medium |
 | ★4 | ~7 weeks | 3 Long a week | +1 Long |
-| ★5 | 3+ months | one unused Medium carries over to the next day (max 1 extra) | rollover |
+| ★5 | 3+ months | 4 Long a week | +1 Long |
 
 Why the Clock tower and not player level (Jeremy, 2026-11-02: prioritise long-term engagement):
 - It is the matching behaviour: keeping your word earns slack.
@@ -119,14 +119,29 @@ The live card copy changes in Build C, not before: until the charges exist, the 
 - Update ECONOMY.md, MECHANICS.md, UI_UX.md, SHOP_PLAN.md (pushback section superseded).
 - sw bump; phone check of all six places.
 
-## Open (for the Fable pass)
-- Token prices 5 / 10 / 30.
-- ★5 reward: Medium rollover vs a simpler +1 Long/week.
-- Whether positive habits use the same charges (today the popup offers pushback on habits too) or habits are excluded.
+### 7. Habits (DECIDED 2026-11-02, Fable)
+A positive habit's popup offers **Short and Medium only**, applied to **today's instance** (the instance's own `dueDateTime`, which is what the popup already moves; the definition's time of day is untouched). No Long for habits: a 1-day push would land on top of tomorrow's spawn. Negative habits (lurkers) and KO ghosts keep no pushback, as today. Changing a habit's time of day for every day stays a free definition edit. The `pushedLate` flag applies to habits too (the Clock tower counts habits done on time). The sub-task clamp to its parent's due (existing rule) stays.
+
+### 8. Daily record (CLAUDE.md rule)
+Build B adds, in the same session: `DailyRecord` counters for pushbacks by size and by source (`charge` / `token` / `points`), bumps `DailyRecord.v`, and notes them in DATA_SCHEMA. Today's `token: {kind:'pushback'}` bump is replaced.
+
+## Balance pass (2026-11-02, Fable) -- sanity check by run day
+- **Day 1** (0 pts, ★1): 3 Short / 2 Medium / 2 Long free. Nothing to buy, nothing needed.
+- **Day 7** (~50 pts, Lv4 10% off, Clock tower ★2 likely): a Long token is 27 pts, about half the balance, so buying one is a real choice against a Repair Kit (Small, 25). Shorts at 5 are cheap enough to cover one bad afternoon.
+- **Day 30** (~200 pts, ★3): the allowance (4 / 3 / 2) covers an ordinary week; points go to day tokens (200) and kits, as intended. Held pushback tokens inflate 1.5^held like every consumable, so hoarding is discouraged.
+- **Red flags:** a Long defers one item one day and avoids at most 12 HP of offline damage (the per-item cap) plus a miss; at 4 days of earnings it cannot save a run on its own, and the free allowance is capped per day/week. A pushed task never counts as on time (section 6), so pushback cannot farm the Clock tower. Nothing softens damage, freezes or the earn rate. Failure stays reflective: the allowance runs out exactly on the days worth noticing.
+
+## Decided (Fable, 2026-11-02)
+- Token prices 5 / 10 / 30 (above).
+- ★5 = +1 Long a week (4). The Medium-rollover idea is rejected: it needs carry-over state, takes two sentences to explain, and is worth less than it sounds (one extra Medium on some days). The top two stars both add Longs on purpose: the Clock tower's late rewards are about the big slips.
+- Habits: Short/Medium on today's instance, no Long (section 7).
 
 ## Rejected
 - Pushback as player-level perks (levels already have a perk every level and end at 9; the Clock tower matches the behaviour and spans months).
 - Points-only pushback at low prices (meaningless against the rest of the shop; undoes the 07-21 re-tune).
 - Allowance only, with no points or tokens (a player who runs out on a bad day has no move, which is a common reason to quit).
 - Keeping the 2–4 h half-price zone (a third rule nobody can predict).
+- ★5 Medium rollover (see Decided).
+- Long pushback on habits (collides with tomorrow's instance).
+- Unlimited Shorts at ★5 (chain-deferring 30 min at a time undermines the behaviour change).
 - Medium = 1 hr (a 90-minute push would cost a Long).
