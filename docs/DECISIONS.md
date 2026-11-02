@@ -6,7 +6,7 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ## 2026-11-02 (Build C follow-up) -- Pushback grace applies to tasks and sub-tasks only (Jeremy, phone check)
 **Decision:** the 10-minute free "typo" window counts only for items the player typed in: a plain task or sub-task (`type 'task'`, no `definitionId`). Habit instances and routine task instances get none (`Pushback.graceCreatedAt(item)` returns null for them; script.js's three quote sites use it). **Why:** found on the phone: an edited habit showed "+30 min — free" with no charge count and no dots, because its instance's `creationTime` is when the game spawned (or re-timed) it, so every habit instance would have had a free 10-minute window after the app made it, which nobody typed in. Jeremy: "agree to applying grace to tasks and sub-tasks only for now."
-**Also:** the ⓘ line now says "within 10 minutes of creating a task". Dots during grace stay hidden (no charge is used there); offered to show them, not asked for.
+**Also:** the ⓘ line now says "within 10 minutes of creating a task". Dots during grace stay hidden (no charge is used there); Jeremy decided: no dots in the grace window. Phone-confirmed after v208: the dots issue is fixed.
 **Verified:** Jest (graceCreatedAt cases + a quote-level habit-vs-task check). sw bumped to v208 (JS shell files changed).
 **Alternatives rejected:** exempting only habits (routine task instances have the same problem); resetting `creationTime` handling on edit (it is not reset on edit; the habit case came from spawn/re-time).
 
@@ -143,6 +143,12 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ## 2026-11-01 (night, later) -- Portrait: no category dot behind idle parked zombies (sw v176; Jeremy)
 **Decision:** `body.glance-strip .enemy.lurker-parked.has-anim-sprite` also matches with `:not(.zombie-subtask):not(.enemy-at-base)` so its `background-image: none !important` out-ranks the per-category dot rules. Applies to waiting tasks/Build habits and parked Break lurkers alike.
 **Why:** Jeremy saw colored circles behind the idle due-time animations on his phone (portrait). **Alternative:** limit to `.work-waiting` only (not needed; Jeremy said remove them).
+
+## 2026-11-02 -- Add Task Start opens blank (Claude app session, Sonnet; Jeremy)
+**Decision:** the Add Task form's Start box opens empty; Due still defaults to now + 1 h. The Build-habit custom Start/End pair keeps Start = now (hidden until Custom times is chosen). `Forms.computeDefaultWindow` is unchanged. Form default, not balance.
+**Why:** Jeremy saw a sub-task spawn at the church although it was due hours later. Cause: a Start of "now" means the zombie's arrival time is already past at creation, so it parks at the church and waits (and a sub-task breaks from its parent's cluster only when its own arrival is much earlier). With Start prefilled, almost every new task looked like an attack that was not happening, which undercuts the at-a-glance read.
+**Alternatives:** keep the default but make Start only a "planned to begin" marker with the walk driven by due time (rejected: reverses the 2026-11-01 wait-at-the-church design, much bigger change).
+**Supersedes:** the Add Task part of 2026-11-01 (night).
 
 ## 2026-11-01 (night) -- Default Start/Due window: Start = now, Due = now + 1 h (Claude app session, Sonnet; Jeremy)
 **Decision:** Add Task opens with Start Time = current time and Due Time = one hour later; the Build-habit custom Start/End pair (Add Habit + routine New Habit) is prefilled the same way. Due is capped at 23:59 today (no rolling to tomorrow); Start is blank when it would not be before Due. Completion Window still defaults to Anytime Today; routine task templates keep 17:00. Form default, not balance.

@@ -426,7 +426,7 @@ const Forms = (() => {
                 <label for="modalDueDate">Due Date:</label>
                 <input type="date" id="modalDueDate" value="${todayString}" required>
             </div>
-            ${startDueTimeGroupHtml({ startId: 'modalStartTime', dueId: 'modalDueTime', startValue: win.start, dueValue: defaultDueTime, dueAttrs: `data-prefilled="${defaultDueTime}"` })}
+            ${startDueTimeGroupHtml({ startId: 'modalStartTime', dueId: 'modalDueTime', startValue: '', dueValue: defaultDueTime, dueAttrs: `data-prefilled="${defaultDueTime}"` })}
             <div class="modal-buttons">
                 <button id="modalAddTaskButton" class="primary-button">Add Task</button>
                 <button class="secondary-button" onclick="closeModal()">Cancel</button>

@@ -1,7 +1,8 @@
 /**
  * Add Task default due time.
  *
- * 2026-11-01 (Jeremy): Add Task / Build habit open with Start = now, Due = now + 1 hour (capped 23:59),
+ * 2026-11-01 (Jeremy): Add Task / Build habit opened with Start = now, Due = now + 1 hour (capped 23:59),
+ * 2026-11-02 (Jeremy): Add Task now opens with Start BLANK (the habit custom pair keeps Start = now),
  * superseding the 2026-10-27 "now + 5 min" default. An untouched or
  * just-passed time is nudged 5 minutes ahead on submit so a new task never
  * spawns already attacking (the original 2026-07-20 playtest bug).
@@ -32,7 +33,7 @@ describe('computeDefaultWindow / computeDefaultDueTime / computeDefaultDueDate',
             .toEqual({ date: '2026-07-20', start: '', due: '23:59' });
     });
 
-    test('createTaskFormHtml prefills Start = now and Due = now + 1h (Due remembered as data-prefilled)', () => {
+    test('createTaskFormHtml leaves Start blank and prefills Due = now + 1h (Due remembered as data-prefilled)', () => {
         const now = new Date(2026, 6, 20, 19, 35);
         const originalDate = global.Date;
         global.Date = class extends originalDate {
@@ -44,7 +45,8 @@ describe('computeDefaultWindow / computeDefaultDueTime / computeDefaultDueDate',
         try {
             const html = Forms.createTaskFormHtml();
             expect(html).toContain('id="modalDueTime" value="20:35" data-prefilled="20:35"');
-            expect(html).toContain('id="modalStartTime" value="19:35"');
+            // 2026-11-02 (Jeremy): Start is opt-in on Add Task, so the zombie walks by its due time.
+            expect(html).toContain('id="modalStartTime" value=""');
             expect(html).toContain('id="modalDueDate" value="2026-07-20"');
         } finally {
             global.Date = originalDate;
