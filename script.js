@@ -2172,6 +2172,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     if (villageButton) villageButton.addEventListener('click', openVillagePanel);
+    // Keep each HUD button looking pressed while its window is open (js/ui/hudButtons.js).
+    HudButtons.init();
 
     // ---- Base Health panel (docs/BASE_PANEL_PLAN.md steps 3-4, 2026-10-26) ----
     // Everything the panel and the HUD chip show is derived from live state on each call

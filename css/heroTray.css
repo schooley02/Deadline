@@ -9,7 +9,6 @@
  */
 .hero-button { position: relative; gap: 5px; }
 .hero-button-slots { font: 700 12px/1 var(--font-primary, sans-serif); color: var(--color-text-primary, #424242); white-space: nowrap; }
-.hero-button[aria-expanded="true"] { outline: 2px solid var(--color-primary-dark-green); outline-offset: 1px; }
 
 /* Status dots sit on the button's top-right corner. */
 .hero-tab-dot {

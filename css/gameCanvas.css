@@ -72,6 +72,14 @@
     transform: translateY(2px);
     transition-duration: 40ms; /* snap down on press, ease back up on release */
 }
+/* Window open: the button that owns it stays sunk in (js/ui/hudButtons.js). Listed after :hover so a hover can't lift it. */
+.resource-panel > button.stat-item.hud-button--open,
+.resource-panel > button.stat-item.hud-button--open:hover {
+    background: linear-gradient(#cfe3dc, #e0ece8);
+    border-color: var(--color-accent-teal);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.28);
+    transform: translateY(2px);
+}
 @media (prefers-reduced-motion: reduce) {
     .resource-panel > button.stat-item { transition: none; }
 }
