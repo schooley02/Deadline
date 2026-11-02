@@ -536,7 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
             settleExcusedCheatDay: (item) => Items.settleExcusedCheatDay(item, itemsDeps()),
             // KO ghosts (2026-10-25): re-apply the fade + badge to restored ghosts.
             syncGhostLook: (item) => Items.syncGhostLook(item),
-            addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => handleEnemyClick(itemId), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay: () => Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay }), sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
+            addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => handleEnemyClick(itemId), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay, sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
             createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()),
             renderDefinedRoutines: () => RoutineViews.renderDefinedRoutines(routineViewsDeps()),
             renderCompletedItems: () => AgendaList.renderCompletedItems(agendaListDeps()),
@@ -980,9 +980,10 @@ document.addEventListener('DOMContentLoaded', () => {
             indulgeHabit: (itemId, opts) => Items.indulgeHabit(itemId, itemsDeps(), opts),
             createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()),
             sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()),
+            updateTaskCountDisplay, // week strip (2026-11-02): Edit Task can move a due date to another day
             saveGame, recomputeOverdueStateAfterEdit: (item) => Items.recomputeOverdueStateAfterEdit(item, itemsDeps()),
             createTaskItemData: (name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, startTimeStr) => Items.createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, itemsDeps(), startTimeStr),
-            addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => handleEnemyClick(itemId), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay: () => Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay }), sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
+            addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => handleEnemyClick(itemId), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay, sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
             // Pushback charges (Build B): the size buttons for an item (free / charge / token / points),
             // a live points getter, and the handler that pays + shifts the target's due date.
             pushbackOptionsFor,
@@ -1875,6 +1876,9 @@ document.addEventListener('DOMContentLoaded', () => {
         Habits.applyGoalToDef(newHabitDef, goal, timerMinutes);
         State.getDefinedHabits().push(newHabitDef);
         generateDailyHabitInstances(State.getCurrentGameDate());
+        // Week strip (2026-11-02): a habit that isn't due today spawns nothing, so
+        // no spawn-time refresh runs, yet its day's count just changed.
+        updateTaskCountDisplay();
         saveGame();
     }
 
@@ -1900,7 +1904,7 @@ document.addEventListener('DOMContentLoaded', () => {
             definedHabits: State.getDefinedHabits(),
             definedRoutines: State.getDefinedRoutines(),
             activeItems: State.getActiveItems(),
-            addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => handleEnemyClick(itemId), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay: () => Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay }), sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
+            addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => handleEnemyClick(itemId), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay, sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
             sortAndRenderActiveList,
             // Frozen-slots sub-session 5 (2026-07-19): the global Sick Day
             // spawn gate — see Habits.selectHabitDefsToSpawn.
@@ -1939,7 +1943,7 @@ document.addEventListener('DOMContentLoaded', () => {
             definedRoutines: State.getDefinedRoutines(),
             activeItems: State.getActiveItems(),
             completedItems: State.getCompletedItems(),
-            addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => handleEnemyClick(itemId), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay: () => Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay }), sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
+            addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => handleEnemyClick(itemId), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay, sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
             sortAndRenderActiveList
         };
     }
@@ -2013,6 +2017,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!newHabit) return;
 
         generateDailyHabitInstances(State.getCurrentGameDate());
+        updateTaskCountDisplay(); // week strip (2026-11-02): later-day counts change even when nothing spawns today
         RoutineViews.renderDefinedRoutines(routineViewsDeps());
         saveGame();
     }
@@ -2026,6 +2031,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Without this the definition existed but never became a live enemy —
         // the task appeared in the routine window only. See DECISIONS.md.
         generateDailyRoutineTaskInstances(State.getCurrentGameDate());
+        updateTaskCountDisplay(); // week strip (2026-11-02)
         RoutineViews.renderDefinedRoutines(routineViewsDeps());
         saveGame();
     }
@@ -2042,6 +2048,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 FrozenNotice.showRoutineUnfrozenNotice(routine.name, habitDef.name);
             }
         })) {
+            updateTaskCountDisplay(); // week strip (2026-11-02): a schedule edit moves ghosts between days
             RoutineViews.renderDefinedRoutines(routineViewsDeps());
 
             // Update the FAB->Routines popup if open — same staleness fix as
@@ -2058,6 +2065,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function editTaskInRoutine(taskId, updatedData) {
         if (Routines.editTaskInRoutine(taskId, updatedData, definedTasks)) {
+            updateTaskCountDisplay(); // week strip (2026-11-02)
             RoutineViews.renderDefinedRoutines(routineViewsDeps());
         }
     }
@@ -2978,7 +2986,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function formsDeps() {
         return {
             createTaskItemData: (name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, startTimeStr) => Items.createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, itemsDeps(), startTimeStr),
-            addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => handleEnemyClick(itemId), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay: () => Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay }), sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
+            addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => handleEnemyClick(itemId), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay, sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
             sortAndRenderActiveList,
             managementWindows, populateTasksWindow,
             createHabitDefinition, populateHabitsWindow,

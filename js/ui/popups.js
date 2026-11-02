@@ -831,6 +831,8 @@ const Popups = (() => {
                 }
 
                 deps.sortAndRenderActiveList();
+                // Week strip (2026-11-02): a changed due date moves this task to another day's count. Optional dep.
+                if (typeof deps.updateTaskCountDisplay === 'function') deps.updateTaskCountDisplay();
                 // The logged time is an entry-level edit; it never changes the answer (done / Resisted / Slipped).
                 if (loggedEdit.changed && typeof deps.setLoggedTime === 'function') deps.setLoggedTime(item.id, loggedEdit.ms);
                 deps.saveGame();
