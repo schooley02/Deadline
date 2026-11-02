@@ -2241,6 +2241,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     if (baseHealthButton) baseHealthButton.addEventListener('click', openBasePanel);
+    // The church itself opens the same panel (Jeremy 2026-11-01). stopPropagation: Modal's document click handler
+    // would otherwise treat this tap as an outside click and close the panel at once.
+    if (baseElement) {
+        baseElement.setAttribute('role', 'button');
+        baseElement.setAttribute('aria-label', 'Church. Open base health panel');
+        baseElement.tabIndex = 0;
+        baseElement.addEventListener('click', (e) => { e.stopPropagation(); openBasePanel(); });
+        baseElement.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openBasePanel(); }
+        });
+    }
 
     // HUD points button opens the Shop (2026-10-27). Same path as the FAB's
     // Shop item, so the shop renders through ManagementWindows as usual.

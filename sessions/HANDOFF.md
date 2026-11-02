@@ -11,6 +11,11 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-01 (night, last) -- HUD polish + church tap (Claude app session, Sonnet; Jeremy)
+**Did:** level icon = stacked chevrons, plain $ for points, 22px icons, hover + slow-release pressed styles on the HUD buttons, tap the church (`#base`) to open Base Health (script.js, `stopPropagation`). sw v199; Jest 116 / 2,586.
+**State:** live-checked at 390 and 1000 px; not phone-checked. In the folder, not committed.
+**Watch out:** the pressed look only lasts while the pointer is down, so release eases back over 240 ms to be visible; the whole 160px `#base` column is the tap target.
+
 ## 2026-11-01 (night, later) -- HUD buttons restyled (Claude app session, Sonnet; Jeremy)
 **Did:** removed the three up-right arrows, "Lv"/"Points:" -> star/coin icons, shield in the health ring, shared raised button look (v196: icons 22px, plain $ instead of a coin, XP bar 38px so it still fits one row) (css/gameCanvas.css `.resource-panel > button.stat-item`, `.hud-icon`, `.bh-shield`), sw v195. Jeremy confirmed the heroes badge = routine slots used/total.
 **State:** Jest green (116 / 2,586); live-checked at 390 (one row) and 360 (Points wraps); not phone-checked. In the folder, not committed.

@@ -52,11 +52,28 @@
     border: 1.5px solid var(--color-primary-dark-green);
     background: linear-gradient(#ffffff, #e6efec);
     box-shadow: 0 2px 0 rgba(0, 0, 0, 0.22);
-    transition: transform 80ms ease, box-shadow 80ms ease;
+    /* Slow release: a tap opens a panel within ~100 ms, so the press must ease back out slowly to be seen. */
+    transition: transform 240ms ease-out, box-shadow 240ms ease-out, background 240ms ease-out, border-color 240ms ease-out;
 }
-.resource-panel > button.stat-item:active {
-    transform: translateY(1px);
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.22);
+/* Hover only where a real pointer exists (a phone tap would leave it stuck on). */
+@media (hover: hover) {
+    .resource-panel > button.stat-item:hover {
+        background: linear-gradient(#ffffff, #d6e7e1);
+        border-color: var(--color-accent-teal);
+        box-shadow: 0 3px 0 rgba(0, 0, 0, 0.22), 0 4px 8px rgba(0, 0, 0, 0.12);
+        transform: translateY(-1px);
+    }
+}
+/* Pressed: sinks into the page, slightly darker fill. Listed after :hover so it wins while the pointer is down. */
+.resource-panel > button.stat-item:active,
+.resource-panel > button.stat-item:hover:active {
+    background: linear-gradient(#d6e7e1, #e6efec);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0), inset 0 2px 3px rgba(0, 0, 0, 0.22);
+    transform: translateY(2px);
+    transition-duration: 40ms; /* snap down on press, ease back up on release */
+}
+@media (prefers-reduced-motion: reduce) {
+    .resource-panel > button.stat-item { transition: none; }
 }
 .hud-icon { flex: none; display: block; color: var(--color-primary-dark-green); }
 /* Icon size (2026-11-01: bumped from 16-18px to 22px; the health ring is 26px). */
@@ -392,6 +409,7 @@
    color / border -- the art is transparent and sits on the scene. 160px wide = room for
    4 hero chips per row. BASE_WIDTH is re-measured from this element. */
 #base {
+    cursor: pointer; /* tap the church = Base Health panel (2026-11-01) */
     /* Frame geometry for the idle-loop strips (2026-10-20): one 80x200 frame at 2x.
        glanceStrip.css overrides these for the 1:1 portrait strip. A static png is
        just a 1-frame strip, so the same background-size works for both. */
