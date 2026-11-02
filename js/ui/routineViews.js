@@ -555,8 +555,11 @@ const RoutineViews = (() => {
         const habitUsed = (routine.habitDefinitionIds || []).length;
         const taskUsed = (routine.taskDefinitionIds || []).length;
         const availablePoints = Heroes.availableSlotPoints(routine, CONFIG);
-        const pointsNote = availablePoints > 0
-            ? ` · ${availablePoints} slot point${availablePoints === 1 ? '' : 's'} available`
+        // 2026-11-01: a visible callout (was a small grey tail on the slots line) that says what to do with the point.
+        const pointsCalloutHtml = availablePoints > 0
+            ? `<div class="slot-point-callout" style="margin-top: 10px; padding: 8px 10px; border: 1px dashed #378add; background: #e6f1fb; color: #185fa5; border-radius: 8px; font-size: 13px;">
+                    <strong>${availablePoints} slot point${availablePoints === 1 ? '' : 's'} available</strong> &mdash; tap + Add Habit or + Add Task below and choose to spend one to unlock another slot.
+                </div>`
             : '';
 
         // High school v2 report card row for THIS routine (stars, %, honor roll, next step).
@@ -575,8 +578,9 @@ const RoutineViews = (() => {
                 </div>
                 ${reportRowHtml}
                 <div style="font-size: 12px; color: var(--color-neutral); margin-top: 8px;">
-                    ❤ ${vm.health}/${CONFIG.ROUTINE_MAX_HEALTH} &nbsp;·&nbsp; Habit slots: ${habitUsed}/${habitCapacity} &nbsp;·&nbsp; Task slots: ${taskUsed}/${taskCapacity}${pointsNote}
+                    ❤ ${vm.health}/${CONFIG.ROUTINE_MAX_HEALTH} &nbsp;·&nbsp; Habit slots: ${habitUsed}/${habitCapacity} &nbsp;·&nbsp; Task slots: ${taskUsed}/${taskCapacity}
                 </div>
+                ${pointsCalloutHtml}
             </div>
         `;
     }

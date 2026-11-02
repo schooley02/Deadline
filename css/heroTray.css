@@ -196,7 +196,7 @@
 .hero-slot--empty { background: transparent; border-style: dashed; color: #9a9a9a; font-weight: 600; }
 .hero-slot--empty.hero-slot--habit { border-radius: 50%; }
 .hero-slot--empty.hero-slot--task { border-radius: 6px; }
-.hero-slot--point { background: #e6f1fb; border: 1px dashed #378add; color: #185fa5; font-weight: 700; border-radius: 6px; }
+.hero-slot--point { background: #e6f1fb; border: 1px dashed #378add; color: #185fa5; font-weight: 700; border-radius: 13px; width: auto; min-width: 26px; padding: 0 9px; font-size: 11px; white-space: nowrap; }
 .hero-slot--locked { background: transparent; border-color: transparent; opacity: 0.55; font-size: 13px; }
 .hero-tray-row--pulse .hero-slot--point { animation: hero-slot-pulse 900ms ease-in-out 3; }
 @keyframes hero-slot-pulse {

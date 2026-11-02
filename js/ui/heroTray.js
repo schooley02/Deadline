@@ -54,7 +54,8 @@ const HeroTray = (() => {
         for (let i = 0; i < emptyTasks; i++) cells.push({ kind: 'empty', itemType: 'task' });
 
         const points = Heroes.availableSlotPoints(routine, config);
-        for (let i = 0; i < points; i++) cells.push({ kind: 'point' });
+        // 2026-11-01: ONE labelled chip for all unspent points (was one dashed '+' per point, which read as an open slot).
+        if (points > 0) cells.push({ kind: 'point', count: points });
 
         const level = routine.level || 1;
         if (level < config.ROUTINE_MAX_SLOT_POINTS + 1) cells.push({ kind: 'locked', level: level + 1 });
@@ -108,7 +109,7 @@ const HeroTray = (() => {
 
     function rowSignature(row) {
         const c = row.chip;
-        const cells = row.cells.map(x => [x.kind, x.category || x.itemType || x.level || '', x.frozen ? 'f' : ''].join(':')).join(',');
+        const cells = row.cells.map(x => [x.kind, x.category || x.itemType || x.level || x.count || '', x.frozen ? 'f' : ''].join(':')).join(',');
         return [c.id, c.name, c.level, c.stars, c.health, c.state, c.emoji, c.headSrc || '', row.points, cells].join('|');
     }
 
@@ -148,7 +149,9 @@ const HeroTray = (() => {
             return `<span class="hero-slot hero-slot--empty hero-slot--${cell.itemType}" title="Open ${cell.itemType} slot">+</span>`;
         }
         if (cell.kind === 'point') {
-            return '<span class="hero-slot hero-slot--point" title="Unspent slot point">+</span>';
+            const n = cell.count || 1;
+            const label = `${n} slot point${n === 1 ? '' : 's'} to spend`;
+            return `<span class="hero-slot hero-slot--point" title="${label}. Open this routine, then tap + Add Habit or + Add Task to unlock a slot." aria-label="${label}">${n} point${n === 1 ? '' : 's'}</span>`;
         }
         return `<span class="hero-slot hero-slot--locked" title="Next slot point at Lv ${cell.level}">🔒</span>`;
     }
@@ -351,6 +354,7 @@ const HeroTray = (() => {
 
     return {
         slotCells,
+        slotCellHtml,
         buildRowViewModel,
         summarize,
         tabModel,

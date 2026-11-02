@@ -21,6 +21,27 @@ const baseRoutine = (extra) => Object.assign({
 }, extra);
 const kinds = cells => cells.map(c => c.kind + (c.itemType ? ':' + c.itemType : ''));
 
+describe('slotCellHtml: the unspent-point chip (2026-11-01)', () => {
+    test('reads as a labelled chip, not a "+", and pluralises', () => {
+        const one = HeroTray.slotCellHtml({ kind: 'point', count: 1 }, CONFIG);
+        expect(one).toContain('hero-slot--point');
+        expect(one).toContain('>1 point<');
+        expect(one).toContain('1 slot point to spend');
+        const two = HeroTray.slotCellHtml({ kind: 'point', count: 2 }, CONFIG);
+        expect(two).toContain('>2 points<');
+        expect(two).not.toContain('>+<');
+    });
+
+    test('a real open slot keeps the plain "+"', () => {
+        expect(HeroTray.slotCellHtml({ kind: 'empty', itemType: 'task' }, CONFIG)).toContain('>+<');
+    });
+
+    test('the row signature changes when the point count changes (so the chip re-renders)', () => {
+        const row = n => ({ chip: { id: 1, name: 'A', level: 3, stars: 0, health: 100, state: 'active' }, points: n, cells: [{ kind: 'point', count: n }] });
+        expect(HeroTray.rowSignature(row(1))).not.toBe(HeroTray.rowSignature(row(2)));
+    });
+});
+
 describe('slotCells', () => {
     test('a level-1 routine with one habit: filled habit, open task slot, lock for Lv 2', () => {
         const cells = HeroTray.slotCells(baseRoutine(), habitDefs, taskDefs, CONFIG);
@@ -54,7 +75,8 @@ describe('slotCells', () => {
         // level 4 = 3 points earned; 1 spent on a habit slot -> 2 unspent, habit capacity 2
         const r = baseRoutine({ level: 4, boughtHabitSlots: 1 });
         const cells = HeroTray.slotCells(r, habitDefs, taskDefs, CONFIG);
-        expect(kinds(cells)).toEqual(['habit', 'empty:habit', 'empty:task', 'point', 'point', 'locked']);
+        expect(kinds(cells)).toEqual(['habit', 'empty:habit', 'empty:task', 'point', 'locked']);
+        expect(cells.find(c => c.kind === 'point').count).toBe(2); // one chip carries the whole count
         expect(cells[cells.length - 1].level).toBe(5);
     });
 

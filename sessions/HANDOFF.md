@@ -11,6 +11,12 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-01 (evening, later) -- Slot points shown as a chip (Claude app session, Sonnet; Jeremy)
+**Did:** Hero tray: unspent slot points are one blue "N points" pill (`HeroTray.slotCells` returns one `{kind:'point',count}`; `slotCellHtml` exported); a "+" now means only a real open slot. Manage Routine: visible `.slot-point-callout` pointing at + Add Habit / + Add Task (no new spending path). Tests: heroTray (chip, signature), routine-views-slots (callout). sw v192, Jest 114 suites / 2,578.
+**State:** green; chip live-checked at 390 px (screenshot of the injected cells; 0 console errors). Not phone-checked.
+**Next:** commit; phone-check the pill; then the parked timer/logged-time UI design session or Build 3.
+**Watch out:** I first told Jeremy tapping the + "does nothing" -- wrong: the whole tray row is a button that opens Manage Routine.
+
 ## 2026-11-01 (evening) -- Habit Goals Build 2c: logged-time editing, DailyRecord v4, Slipped entries kept (Claude app session, Sonnet; Jeremy)
 **Did:** plan Decisions 12-15. `Timer.setLogged` + `recordKind`; `DailyRecord.adjustTimer` + `timer.edits/editMin` (v4); `State.adjustDayTimer` (open day or the closed record in `deadline.days`); `Items.setLoggedTime` (one write path) + `keepSlippedEntry`; `Forms.loggedTimeHtml/readLoggedTime`; Logged time field in the item popup (own Save time button, locked while running), Edit Task, and the completed-habit Edit form (applies for "just this entry" / "this entry + following"); "I stayed within it" now asks the real time (`TimerView.showLoggedTimeEditor`, prefilled with the limit). Slipped Break habits (button, over-limit, Cheat Day, check-in card via `pendingCheckIn.entry`) stay in Completed with a red tag and no checkbox; Resisted entries get a green tag and `outcome 'avoided'`; `uncompleteItem` refuses a Slipped entry. Docs: DATA_SCHEMA, MECHANICS, UI_UX, HABIT_GOALS_PLAN, DECISIONS, ROADMAP, CLAUDE.md. sw v190, then v191 (check-in Resisted entry).
 **State:** Jest 114 suites / 2,574 green; headless 390x844 checks (over-limit popup, "stayed within" + 20 min correction, popup edit, Slip kept + reload, editing a Slipped entry through the three-way choice), 0 console errors. Closed-day correction is covered by unit tests only. In the folder, NOT committed yet.

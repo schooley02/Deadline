@@ -109,6 +109,14 @@ describe('buildHeroStatsHtml', () => {
         expect(html).toContain('2 slot points available');
     });
 
+    test('the banked point is a visible callout that says what to do with it', () => {
+        const r = routine({ level: 2, boughtHabitSlots: 0, boughtTaskSlots: 0 });
+        const html = RoutineViews.buildHeroStatsHtml(r, [], 0);
+        expect(html).toContain('slot-point-callout');
+        expect(html).toContain('1 slot point available');
+        expect(html).toContain('Add Habit or + Add Task');
+    });
+
     test('omits the slot-points note when none are available', () => {
         const r = routine({ level: 1 });
         const html = RoutineViews.buildHeroStatsHtml(r, [], 0);
