@@ -401,7 +401,7 @@ class TaskManager {
             
             console.log('Subtask created successfully:', subtask);
         } catch (error) {
-            alert('Error creating subtask: ' + error.message);
+            Dialog.notice('Error creating subtask: ' + error.message, { title: 'Couldn\'t create the sub-task' });
             console.error('Subtask creation error:', error);
         }
     }

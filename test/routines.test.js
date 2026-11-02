@@ -597,7 +597,7 @@ describe('toggleRoutineActive', () => {
                 routineSlots: 3,
                 activeItems: [],
                 removeItem: (id) => calls.removed.push(id),
-                alert: (msg) => calls.alerts.push(msg),
+                notice: (msg) => calls.alerts.push(msg),
                 generateDailyHabitInstances: () => calls.habitsGenerated++,
                 generateDailyRoutineTaskInstances: () => calls.tasksGenerated++,
                 currentGameDate: DAY,

@@ -1051,7 +1051,7 @@ const RoutineViews = (() => {
                         'same-routine': `That's the same routine.`,
                         'not-found': `Couldn't complete the move — please close and reopen this window.`,
                     };
-                    alert(messages[result.reason] || messages['not-found']);
+                    Dialog.notice(messages[result.reason] || messages['not-found'], { title: 'Couldn\'t move it' });
                     return;
                 }
 
@@ -1600,6 +1600,7 @@ const RoutineViews = (() => {
         buildCompletionRateLabel,
         buildHeroStatsHtml,
         ensureRoutineSlotAvailable,
+        showTransferItemModal,
         showRoutineManagement,
         attachRoutineManagementListeners,
         populateHabitSelectDropdown,

@@ -1,19 +1,13 @@
 /**
  * Guard (2026-11-01, Jeremy; docs/DIALOG_PLAN.md): the game draws its own dialogs. No new alert()/confirm()/prompt() calls.
- * ALLOWLIST = calls still to be migrated (Build 2 done: inline form validation; Build 3: the D errors), counted per file. The count must
- * match EXACTLY, so converting a call without lowering the number here also fails -- the list can only shrink. A genuine
- * system-level alert would be added here with a one-line reason.
+ * ALLOWLIST is EMPTY (Builds 1-3 done 2026-11-01): ANY alert()/confirm()/prompt() in script.js or js/ fails this test. A genuine
+ * system-level alert (storage blocked, a crash before the UI exists) would be added here as 'path': count with a one-line reason.
  */
 const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const ALLOWLIST = {
-    'js/TaskManager.js': 1,        // D: error creating sub-task
-    'js/ui/popups.js': 1,          // D: parent task not found
-    'js/ui/routineViews.js': 1,    // D: move failed
-    'script.js': 1,                // D: routine/habit not found, habit already in routine
-};
+const ALLOWLIST = {};
 
 function sourceFiles() {
     const out = ['script.js'];
@@ -27,9 +21,9 @@ function sourceFiles() {
     return out;
 }
 
-// bare alert( / confirm( / prompt( or window.alert( etc.; skips comment lines. `deps.alert(` is a passthrough that script.js
-// routes to Dialog.notice, so it is not a native call.
-const NATIVE = /(^|[^.\w$])(?:window\.)?(alert|confirm|prompt)\(/;
+// bare alert( / confirm( / prompt( or window.alert( etc.; skips comment lines. A `deps.alert(` passthrough is flagged too: it is
+// gone (routines.js takes a `notice` dep now), so nothing should bring it back.
+const NATIVE = /(^|[^.\w$])(?:window\.)?(alert|confirm|prompt)\(|\bdeps\.alert\(/;
 function countNative(rel) {
     return fs.readFileSync(path.join(ROOT, rel), 'utf8').split(/\r?\n/).filter(line => {
         const t = line.trim();

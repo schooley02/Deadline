@@ -2011,7 +2011,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function addHabitToRoutine(routineId, habitDefId) {
         const result = Routines.addHabitToRoutine(routineId, habitDefId, State.getDefinedRoutines(), State.getDefinedHabits());
         if (!result.ok) {
-            alert(result.reason === 'not-found' ? 'Error finding routine or habit.' : 'Habit already in routine.');
+            Dialog.notice(result.reason === 'not-found' ? 'Error finding routine or habit.' : 'Habit already in routine.', { title: 'Couldn\'t add the habit' });
             return;
         }
 
@@ -2095,7 +2095,7 @@ document.addEventListener('DOMContentLoaded', () => {
             routineSlots: State.getRoutineSlots(),
             activeItems: State.getActiveItems(),
             removeItem,
-            alert: (message) => Dialog.notice(message),
+            notice: (message) => Dialog.notice(message),
             generateDailyHabitInstances,
             generateDailyRoutineTaskInstances,
             currentGameDate: State.getCurrentGameDate(),

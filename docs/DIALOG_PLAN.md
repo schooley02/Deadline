@@ -1,4 +1,4 @@
-# In-game dialogs instead of browser boxes (DECIDED 2026-11-01, Jeremy; Build 1 BUILT 2026-11-01, sw v193; Build 2 BUILT 2026-11-01, sw v201)
+# In-game dialogs instead of browser boxes (DECIDED 2026-11-01, Jeremy; Build 1 BUILT 2026-11-01, sw v193; Build 2 BUILT 2026-11-01, sw v201; Build 3 BUILT 2026-11-01, sw v202 -- plan complete)
 
 **Problem.** `alert()` / `confirm()` draw the BROWSER's box ("localhost:8000 says ..."), which breaks the look of the game, can behave
 differently in an installed PWA, and freezes browser automation (see CLAUDE.md playtesting notes). Jeremy's rule: anything that is part of a
@@ -49,6 +49,9 @@ Each build: bump sw, live-check at 390x844 (the Playwright run no longer needs d
 ## Build 2 -- built as (2026-11-01, Sonnet; Jest 118 suites / 2,596)
 `Forms.showFormError(message, field?, opts?)` + `Forms.clearFormError` in js/ui/forms.js; styles `.form-error` / `[aria-invalid="true"]` in css/modal.css. Placement: under the field's `.form-row` (so it is on screen on a scrolling phone form), else above `.modal-buttons`, or beside `opts.before` / `opts.after` (used for the inline Add Habit/Task pickers and the routine-name form in script.js). Focuses the field, clears on the next input/change in the same form, replaces any earlier error (never stacks). Converted 33 calls (the audit said 34): forms.js 7, popups.js 7, routineViews.js 18, script.js 1. Guard allowlist now 4 (popups.js 1, routineViews.js 1, script.js 1, TaskManager.js 1 -- all category D). Tests: formError.test.js (6); popups-logged-time and routine-views-logged-time expect the inline line. Live check at 390x844: 0 native dialogs, 0 console errors; Jeremy phone-confirmed.
 
+## Build 3 -- built as (2026-11-01, Sonnet; Jest 119 suites / 2,599)
+The 4 category D errors are `Dialog.notice` with a short title: popups.js "Parent task not found." (title "Can't add a sub-task"), TaskManager.js "Error creating subtask: ..." (the `console.error` stays), routineViews.js move-failed messages (title "Couldn't move it"; the picker stays open), script.js `addHabitToRoutine` not-found / already-in-routine (title "Couldn't add the habit"). `routines.js` `toggleRoutineActive` now takes a `notice` dep (was `alert`; script.js passes `notice: msg => Dialog.notice(msg)`; ko-ghosts and routines tests renamed). Guard: ALLOWLIST is `{}` and the regex also flags `deps.alert(`. `RoutineViews.showTransferItemModal` is exported for testing. New test/dialog-errors.test.js (3). Not live-checked in a browser (these paths are rare); the Jest tests assert the notice is shown and no native alert fires.
+
 ## Open
 - Notice vs toast for category D (rare, so a notice is fine).
-- Keep a real system alert at all? Nothing needs it today; the allowlist stays empty unless something appears.
+- Keep a real system alert at all? Nothing needs it today; the allowlist is empty and stays that way unless a true system-level failure appears (add it with a one-line reason).

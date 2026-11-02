@@ -5,6 +5,11 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+## 2026-11-01 (night, Sonnet build) -- Dialog Build 3: the last 4 errors are notices; allowlist empty; `deps.alert` renamed `notice` (Claude app session; Jeremy)
+**Decision:** the 4 category D "should not happen" errors use `Dialog.notice` (a rare error does not need a toast); `routines.js` takes a `notice` dep instead of `alert`; the no-native-dialogs guard allowlist is `{}` and also flags `deps.alert(`.
+**Why:** Jeremy's rule is no browser boxes for anything in the game; a dep named `alert` invited the old habit back. Jeremy left the dep name to Claude.
+**Alternatives rejected:** keeping the name `alert` and only changing what it does (misleading); a toast for category D (new UI for 4 near-impossible cases).
+
 ## 2026-11-01 (night, Sonnet build) -- Dialog Build 2: form validation is drawn inline, not as a dialog (Claude app session; Jeremy)
 **Decision:** a failed Save shows ONE red line in the form (`Forms.showFormError`), placed under the offending field (not above the Save button), with the field focused and marked `aria-invalid`; it clears on the next edit. Errors with no single field (days, goal) sit above the button row and scroll into view. No `Dialog.notice` for validation. The 33 validation `alert()`s were converted; 4 category D errors stay allowlisted for Build 3.
 **Why:** the create/edit forms scroll on a phone, so a line above Save was off-screen when the name field was focused; under the field it is visible with the focus. Inline is also how DIALOG_PLAN category A was decided (no dialog at all). **Rejected:** a `Dialog.notice` for each error (an extra tap, loses the form context); a line above Save only (off-screen on long forms); a toast (disappears before it is read). sw v201; Jest 118 suites / 2,596.

@@ -267,7 +267,7 @@ describe('toggleRoutineActive revive brings ghosts back', () => {
 
         Routines.toggleRoutineActive('r1', {
             definedRoutines: [r], routineSlots: 3, activeItems: [ghost], removeItem: () => {},
-            alert: () => {}, generateDailyHabitInstances: () => {}, generateDailyRoutineTaskInstances: () => {},
+            notice: () => {}, generateDailyHabitInstances: () => {}, generateDailyRoutineTaskInstances: () => {},
             currentGameDate: new Date(), saveGame: () => {},
             onGhostRevived: (item) => revived.push(item.id),
             onGhostsRevived: (res) => { hookResult = res; },
@@ -287,7 +287,7 @@ describe('toggleRoutineActive revive brings ghosts back', () => {
 
         Routines.toggleRoutineActive('r1', {
             definedRoutines: [r], routineSlots: 3, activeItems: [item], removeItem: (id) => removed.push(id),
-            alert: () => {}, generateDailyHabitInstances: () => {}, generateDailyRoutineTaskInstances: () => {},
+            notice: () => {}, generateDailyHabitInstances: () => {}, generateDailyRoutineTaskInstances: () => {},
             currentGameDate: new Date(), saveGame: () => {},
         });
 

@@ -765,7 +765,7 @@ const Popups = (() => {
         if (!parentTask) {
             console.log('❌ Parent task not found for parentId:', parentId);
             console.log('Available active items:', deps.activeItems.map(item => ({ id: item.id, name: item.name, type: item.type })));
-            alert('Parent task not found.');
+            Dialog.notice('Parent task not found.', { title: 'Can\'t add a sub-task' });
             return;
         }
 

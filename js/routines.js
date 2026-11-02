@@ -771,7 +771,7 @@ const Routines = (() => {
     }
 
     // deps = {
-    //   definedRoutines, routineSlots, activeItems, removeItem, alert,
+    //   definedRoutines, routineSlots, activeItems, removeItem, notice,
     //   generateDailyHabitInstances, generateDailyRoutineTaskInstances,
     //   currentGameDate, saveGame, now?,
     //   onGhostsRevived? (result of reviveGhostInstancesForRoutine) + the
@@ -790,7 +790,7 @@ const Routines = (() => {
         if (!routine.isActive && routine.koState) {
             const now = deps.now ? deps.now() : new Date();
             if (!DayRollover.hasDayRolledOver(new Date(routine.koState.koAt), now)) {
-                deps.alert(`${routine.name} is knocked out — it can be revived starting tomorrow.`);
+                deps.notice(`${routine.name} is knocked out — it can be revived starting tomorrow.`);
                 return;
             }
         }
@@ -798,7 +798,7 @@ const Routines = (() => {
         const activeRoutines = deps.definedRoutines.filter(r => r.isActive).length;
 
         if (!routine.isActive && activeRoutines >= deps.routineSlots) {
-            deps.alert(`You can only have ${deps.routineSlots} active routine${deps.routineSlots !== 1 ? 's' : ''} at your current level.`);
+            deps.notice(`You can only have ${deps.routineSlots} active routine${deps.routineSlots !== 1 ? 's' : ''} at your current level.`);
             return;
         }
 
