@@ -153,6 +153,21 @@ Decisions (Jeremy, 2026-11-01):
 - **2c. Logged-time editing + daily-record correction** [BUILT 2026-11-01, sw v190, Sonnet; Jest 114 suites / 2,572] (Decisions 12-15 + DailyRecord v4). *Built as:* `Timer.setLogged(item, ms)` (clamps 0..24 h, null while running, returns the ms change, never touches `goalAcked` or the answer) + `Timer.recordKind`; `DailyRecord.adjustTimer` + `timer.edits/editMin` (v4); `State.adjustDayTimer(dateKey, kind, deltaMin)` (open day or the closed record in `deadline.days`); `Items.setLoggedTime(itemId, ms, deps)` (completed list first, then active; corrects the day of `completedAt` for a completed item, today for an active one); `Forms.loggedTimeHtml/readLoggedTime` (hours + minutes, `changed` only when the typed minutes differ, so an untouched save never rewrites a precise value). Where it shows: a **Logged time** field with its own Save time button in the item popup (locked with a pause-first note while running, refreshed on pause/stop); in the Edit Task modal; and in the Edit Habit form for a COMPLETED entry (rides with the three-way choice: this entry / this entry + all following apply it, all following only does not). **"I stayed within it"** now Resisted-completes, then opens `TimerView.showLoggedTimeEditor` ("How much time did you actually spend?", prefilled with the limit; Keep N logged leaves the timer's total). **Slipped kept (Decision 15):** `Items.indulgeHabit` (and a check-in Slipped via `pendingCheckIn.entry`) keep the entry in `completedItems` with `outcome 'indulged'` (+ `cheatDayExcused`); `completeItem` tags a Break habit's Resisted entry `outcome 'avoided'`; the Completed list shows a red Slipped tag (muted row, no checkbox) or a green Resisted tag; `uncompleteItem` refuses a Slipped entry. Audit of the Completed-list readers: `dayPager` (tasks / one-offs only), `routines` task spawn (tasks only), `state` tasksDue (tasks only), habit spawn dedupe (uses `lastCompletionDate` / occurrences, not the list) and the first-run check (any entry counts as engaged) -- none counts a Slipped habit as a completion. A check-in Resisted answer is listed too since 2026-11-01 (Jeremy; `fromCheckIn`, no undo, sw v191). **Sonnet, high.**
 - Build 3 then follows (evening check, How much? for Amount goals; DailyRecord v5).
 
+## Timer + logged-time UI (PARKED 2026-11-01, Jeremy -- own design session, does not block Build 3)
+
+Jeremy wants one dedicated session on HOW the timer controls and logged time are shown, because they grew build by build. To decide:
+which cards/rows get the stopwatch, Pause / Play / Stop, the logged total and the logged-time edit; and how each looks on the
+LIST VIEW (agenda rows, item popup, Edit Task, Edit Habit, Completed rows). What exists today, as input:
+- Row: stopwatch button (`Timer.buttonHtml`, `.planned` glow in a Start window) with the logged total after Stop; Break habits add a
+  "Limit: N min" caption (`.timer-stack`) and go red over the limit; Pause (resumable) and Stop (ends the session) are separate icon buttons.
+- Item popup: same controls plus the **Logged time** field with its own Save time button (Build 2c; locked while running).
+- Edit Task modal and the completed-habit Edit Habit form: a Logged time field (hours + minutes).
+- Completed rows: "Logged: N min" line; Break habits get Slipped / Resisted tags.
+- Prompts: goal reached (Build 2), over the limit (2b), "How much time did you actually spend?" (2c).
+Questions to settle: is the edit field needed in the popup AND both Edit forms; should rows show the logged total while paused;
+what a Note / Amount / None goal shows; icon-only vs labelled controls on a narrow phone; one place to edit vs several.
+Roadmap: ROADMAP Habit Goals section, "Design session (parked)". Do not change the UI until that session.
+
 ## Open (decide before the build that needs it)
 
 - **Arrival prompt for Break habits with a Time/Amount limit: DECIDED 2026-11-01 (Jeremy) -- KEEP IT.** If the player knows
