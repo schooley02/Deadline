@@ -161,6 +161,54 @@ describe('[P2-GAME-012] computeRegenTicks', () => {
 });
 
 // ---------------------------------------------------------------------------
+describe('healBase floating +N (2026-11-02, Jeremy)', () => {
+    function floatBase() {
+        const base = fakeEl();
+        const added = [];
+        const doc = { createElement: () => ({ style: {}, className: '', textContent: '', setAttribute() {}, parentNode: null }) };
+        base.ownerDocument = doc;
+        base.appendChild = (el) => { added.push(el); el.parentNode = { removeChild: () => {} }; };
+        return { base, added };
+    }
+
+    test('shows +N for the HP actually gained', () => {
+        const { base, added } = floatBase();
+        const deps = makeDeps({ state: { baseHealth: 50 } });
+        deps.baseElement = base;
+        Damage.healBase(10, deps);
+        expect(added).toHaveLength(1);
+        expect(added[0].textContent).toBe('+10');
+        expect(added[0].className).toBe('base-heal-float');
+        expect(added[0].style.animationDuration).toBe(CONFIG.BASE_HEAL_FLOAT_MS + 'ms');
+    });
+
+    test('a heal clamped at max shows only what fit', () => {
+        const { base, added } = floatBase();
+        const deps = makeDeps({ state: { baseHealth: CONFIG.MAX_BASE_HEALTH - 3 } });
+        deps.baseElement = base;
+        Damage.healBase(10, deps);
+        expect(added[0].textContent).toBe('+3');
+    });
+
+    test('no float at full health, on zero, or after game over', () => {
+        const { base, added } = floatBase();
+        const full = makeDeps({ state: { baseHealth: CONFIG.MAX_BASE_HEALTH } });
+        full.baseElement = base;
+        Damage.healBase(5, full);
+        Damage.healBase(0, full);
+        const over = makeDeps({ state: { baseHealth: 50, gameIsOver: true } });
+        over.baseElement = base;
+        Damage.healBase(5, over);
+        expect(added).toHaveLength(0);
+    });
+
+    test('a base element with no DOM (unit-test fake) heals without throwing', () => {
+        const deps = makeDeps({ state: { baseHealth: 50 } });
+        expect(() => Damage.healBase(5, deps)).not.toThrow();
+        expect(deps._state.baseHealth).toBe(55);
+    });
+});
+
 describe('[P2-GAME-012] healBase', () => {
     test('heals by the given amount', () => {
         const deps = makeDeps({ state: { baseHealth: 50 } });

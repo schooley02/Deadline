@@ -327,11 +327,12 @@ const Damage = (() => {
     // damageBase's shape: clamp, display, visuals, save. No-ops on 0/negative
     // amounts and once the run is over.
     function healBase(amount, deps) {
-        const { getBaseHealth, setBaseHealth, isGameOver, baseHealthDisplay, saveGame } = deps;
+        const { getBaseHealth, setBaseHealth, isGameOver, baseElement, baseHealthDisplay, saveGame } = deps;
         if (isGameOver()) return;
         if (!amount || amount <= 0) return;
 
-        let baseHealth = getBaseHealth() + amount;
+        const before = getBaseHealth();
+        let baseHealth = before + amount;
         if (baseHealth > CONFIG.MAX_BASE_HEALTH) baseHealth = CONFIG.MAX_BASE_HEALTH;
         setBaseHealth(baseHealth);
 
@@ -339,6 +340,33 @@ const Damage = (() => {
 
         updateBaseVisuals(deps);
         saveGame();
+
+        // Floating "+N" over the church for the HP actually gained (2026-11-02, Jeremy):
+        // regen ticks, a repair kit, an away-time catch-up total. Nothing at full health.
+        const gained = baseHealth - before;
+        if (gained > 0 && baseElement) showHealFloat(baseElement, gained);
+    }
+
+    // Visual only: a "+N" that rises off the church and fades (css/gameCanvas.css
+    // .base-heal-float). Skipped under fx-off like the other base effects; under
+    // prefers-reduced-motion the CSS fades it in place. Removes itself, and never
+    // throws (no DOM in unit tests, a detached element, a fake document).
+    function showHealFloat(baseElement, amount) {
+        try {
+            if (typeof document !== 'undefined' && document.body && document.body.classList.contains('fx-off')) return null;
+            const doc = baseElement.ownerDocument || (typeof document !== 'undefined' ? document : null);
+            if (!doc || typeof doc.createElement !== 'function' || typeof baseElement.appendChild !== 'function') return null;
+            const el = doc.createElement('span');
+            el.className = 'base-heal-float';
+            el.textContent = '+' + amount;
+            el.setAttribute('aria-hidden', 'true');
+            el.style.animationDuration = CONFIG.BASE_HEAL_FLOAT_MS + 'ms';
+            baseElement.appendChild(el);
+            setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, CONFIG.BASE_HEAL_FLOAT_MS + 100);
+            return el;
+        } catch (e) {
+            return null;
+        }
     }
 
     // Applies regen for a span of elapsed time (offline window, or the gap
@@ -697,6 +725,7 @@ const Damage = (() => {
         resetShakeForTests,
         damageBase,
         healBase,
+        showHealFloat,
         applyElapsedRegen,
         hasThreateningOverdue,
         gameOver,

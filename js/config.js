@@ -39,6 +39,7 @@ const CONFIG = {
     // shakes at most once per cooldown; the flash still fires on every hit.
     BASE_SHAKE_COOLDOWN_MS: 3000,
     BASE_SHAKE_DURATION_MS: 300,
+    BASE_HEAL_FLOAT_MS: 1400, // the floating "+N" over the church when the base heals (2026-11-02, Jeremy); js/damage.js showHealFloat
 
     // --- Offline catch-up (decided 2026-07-17, see DECISIONS.md) ---
     // Per-item cap on back-charged overdue damage for time spent offline.
