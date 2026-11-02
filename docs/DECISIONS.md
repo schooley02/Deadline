@@ -5,6 +5,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 ---
 
 
+## 2026-11-01 (night, later) -- HUD buttons: icons, raised look, no arrows (Claude app session; Jeremy)
+**Decision:** Jeremy confirmed the heroes badge = ROUTINE slots used/total. To make room (Points wrapped to a second row) and to make the HUD read as buttons: the up-right arrows on base health, level and points were removed; "Lv" and "Points:" became a star and a coin icon; the health ring got a small shield; all five buttons share a raised look (dark-green border, gradient, pressed state). Number, XP bar, ring and state chip kept.
+**Why:** obvious tappability without the arrows' width. Fits one row at 390 px; wraps at 360. sw v195; Jest 116 suites / 2,586.
+
+## 2026-11-01 (night, Sonnet build) -- Heroes button + popup replaces the Heroes tab and tray (Claude app session; Jeremy)
+**Decision:** a HUD `#heroesButton` (icon C, two hero figures, chosen by Jeremy from four mockups) sits right after the village button and opens the hero list as a centred popup. It shows routine slots used/total and the same status dots the tab had. The bottom `#heroTab`, the pull-up sheet animation and the spotlit-hero tab mode were removed. Kept: row tap -> Manage Routine, level-up auto-open, tap-while-spotlit dismisses the spotlight and focuses that row. The popup stays the existing `#heroTray` element (restyled, not rebuilt on `Modal`) so row reconciliation and the star notice are untouched.
+**Why:** Jeremy asked for a popup opened from an icon beside the village button, with the slots visible at a glance.
+**Assumed / open:** "used and open slots" = ROUTINE slots (player level), used/total, like the old "Routines 3/4"; hero habit/task slots are inside the popup rows. Four HUD buttons overflow one row at 390 px, so Points wraps to a second row; not decided whether that is OK. sw v194; Jest 116 suites / 2,586.
+
 ## 2026-11-01 (evening, Sonnet build) -- In-game Dialog Build 1 built (Claude app session; Jeremy)
 **Decision:** built DIALOG_PLAN Build 1 (see "Build 1 -- built as" there). Choices: promise-based `Dialog.notice/confirm` with a MutationObserver so a dismissed dialog resolves false instead of hanging; async `ensureRoutineSlotAvailable` (Jeremy: no need to pause the game for these steps, so non-blocking is fine); Delete Routine closes the Manage modal only after the confirm; `routines.js` keeps its `deps.alert` seam, now wired to `Dialog.notice` (not a native call); the guard test uses an exact per-file allowlist so it can only shrink.
 **Why:** Jeremy's rule that game-mechanic prompts stay in the game. 37 native calls remain (Builds 2-3). sw v193; Jest 116 suites / 2,586.

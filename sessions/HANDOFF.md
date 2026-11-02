@@ -11,6 +11,18 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-01 (night, later) -- HUD buttons restyled (Claude app session, Sonnet; Jeremy)
+**Did:** removed the three up-right arrows, "Lv"/"Points:" -> star/coin icons, shield in the health ring, shared raised button look (css/gameCanvas.css `.resource-panel > button.stat-item`, `.hud-icon`, `.bh-shield`), sw v195. Jeremy confirmed the heroes badge = routine slots used/total.
+**State:** Jest green (116 / 2,586); live-checked at 390 (one row) and 360 (Points wraps); not phone-checked. In the folder, not committed.
+**Next:** phone-check the HUD + heroes popup; Dialog Build 2.
+**Watch out:** `script.js` swaps the ring's class attribute (`bh-ring bh-ring--<color>`), so keep the shield styled by its own `.bh-shield` class.
+
+## 2026-11-01 (night) -- Heroes button + popup (Claude app session, Sonnet; Jeremy)
+**Did:** icon-C `#heroesButton` after `#villageButton` (index.html), `HeroTray` now drives it (`buttonModel/buttonSignature` replace `tabModel/tabSignature`; `getSlots` dep from `LevelPanel.slotsModel`), `#heroTab` removed, css/heroTray.css popup + button/dots, test/heroTray.test.js updated, sw v194; docs: CLAUDE.md, UI_UX, ROADMAP, DECISIONS.
+**State:** Jest green (116 suites / 2,586); live-checked at 390x844 (button, open, close, 0 console errors, no horizontal overflow). Not phone-checked. In the folder, not committed (with Dialog Build 1 and the slot-point pill if not yet pushed).
+**Next:** phone-check the button/popup; answer the open questions (slot count meaning, Points wrap); Dialog Build 2.
+**Watch out:** assumed the badge is routine slots used/total. At 390 px the Points button wraps to row 2 (four HUD buttons). The button click MUST stopPropagation (done in `HeroTray.init`).
+
 ## 2026-11-01 (evening, last) -- In-game Dialog Build 1 (Claude app session, Sonnet; Jeremy)
 **Did:** `js/ui/dialog.js` (`Dialog.notice/confirm`), css/modal.css `.dialog-*`, index.html + sw.js entries; converted the slot-point prompt, slot-limit / frozen-habit / no-routines notices, move-item confirm, delete routine + delete habit (red confirm), and routines.js's two alerts (script.js `alert` dep -> `Dialog.notice`). New tests: dialog.test.js (7), no-native-dialogs.test.js (allowlist of the 37 left), routine-views-slots rewritten for async. sw v193, Jest 116 suites / 2,586.
 **State:** green; live-checked at 390x844 (0 native dialogs, 0 console errors). Not phone-checked. In the folder, not committed.

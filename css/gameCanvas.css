@@ -46,6 +46,20 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* HUD buttons (2026-11-01): the five buttons in the top row read as raised, tappable buttons -- dark-green
+   border, light gradient and a bottom edge that presses in. The up-right arrows are gone. */
+.resource-panel > button.stat-item {
+    border: 1.5px solid var(--color-primary-dark-green);
+    background: linear-gradient(#ffffff, #e6efec);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.22);
+    transition: transform 80ms ease, box-shadow 80ms ease;
+}
+.resource-panel > button.stat-item:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.22);
+}
+.hud-icon { flex: none; display: block; color: var(--color-primary-dark-green); }
+
 .stat-label {
     color: var(--color-neutral);
     margin-right: var(--space-1);

@@ -111,13 +111,13 @@ describe('row view model, summary and tab model', () => {
         expect(HeroTray.summarize([rowFor({ health: CONFIG.ROUTINE_MAX_HEALTH })], CONFIG).hasHurt).toBe(false);
     });
 
-    test('tabModel: idle shows count + dots, a spotlit hero turns it into that hero\'s status', () => {
+    test('buttonModel: hero count, dots and routine slots used / total / open', () => {
         const rows = [rowFor({ level: 2 })];
-        expect(HeroTray.tabModel(rows, null, CONFIG)).toEqual({ mode: 'idle', count: 1, hasOpenSlot: true, hasHurt: false });
-        const spot = HeroTray.tabModel(rows, 'r1', CONFIG);
-        expect(spot).toMatchObject({ mode: 'spot', id: 'r1', name: 'Study', level: 2, health: 100, maxHealth: CONFIG.ROUTINE_MAX_HEALTH });
-        // an id that no longer exists falls back to idle
-        expect(HeroTray.tabModel(rows, 'gone', CONFIG).mode).toBe('idle');
+        expect(HeroTray.buttonModel(rows, { used: 3, total: 4 }, CONFIG)).toEqual({ count: 1, used: 3, total: 4, open: 1, hasOpenSlot: true, hasHurt: false });
+        // slots unknown (not wired yet): no numbers, never NaN
+        expect(HeroTray.buttonModel(rows, null, CONFIG)).toMatchObject({ used: null, total: null, open: null });
+        // never a negative open count
+        expect(HeroTray.buttonModel(rows, { used: 5, total: 4 }, CONFIG).open).toBe(0);
     });
 
     test('signatures change only when something visible changes', () => {
@@ -125,9 +125,10 @@ describe('row view model, summary and tab model', () => {
         expect(HeroTray.rowSignature(a)).toBe(HeroTray.rowSignature(rowFor({})));
         expect(HeroTray.rowSignature(a)).not.toBe(HeroTray.rowSignature(rowFor({ health: 90 })));
         expect(HeroTray.rowSignature(a)).not.toBe(HeroTray.rowSignature(rowFor({ level: 2 })));
-        const t1 = HeroTray.tabModel([a], null, CONFIG);
-        expect(HeroTray.tabSignature(t1)).toBe(HeroTray.tabSignature(HeroTray.tabModel([rowFor({})], null, CONFIG)));
-        expect(HeroTray.tabSignature(t1)).not.toBe(HeroTray.tabSignature(HeroTray.tabModel([a], 'r1', CONFIG)));
+        const sig = (slots) => HeroTray.buttonSignature(HeroTray.buttonModel([a], slots, CONFIG));
+        expect(sig({ used: 3, total: 4 })).toBe(sig({ used: 3, total: 4 }));
+        expect(sig({ used: 3, total: 4 })).not.toBe(sig({ used: 4, total: 4 }));
+        expect(sig({ used: 3, total: 4 })).not.toBe(sig({ used: 3, total: 5 }));
     });
 });
 

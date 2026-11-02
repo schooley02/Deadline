@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeItemsListUL = document.getElementById('activeItemsList');
     const taskCountDisplay = document.getElementById('taskCountDisplay');
     // [P1-UI-006] sub-session 3, 2026-07-19 — hero chips container over the base.
-    const heroTabEl = document.getElementById('heroTab');
+    const heroTabEl = document.getElementById('heroesButton');
     const baseScrimEl = document.getElementById('baseScrim');
     const heroSpotlightEl = document.getElementById('heroSpotlight');
     // Time slider (Milestone 4, 2026-07-20) — canvas/list seam, Today scope.
@@ -2261,6 +2261,7 @@ document.addEventListener('DOMContentLoaded', () => {
             closeEl: document.getElementById('heroTrayClose'),
             summaryEl: document.getElementById('heroTraySummary'),
             getSlotsSummary: () => LevelPanel.slotsSummary(LevelPanel.slotsModel(levelPanelContext())),
+            getSlots: () => LevelPanel.slotsModel(levelPanelContext()),
             onOpenLevelPanel: openLevelPanel,
             config: CONFIG,
             onManage: (routineKey) => {

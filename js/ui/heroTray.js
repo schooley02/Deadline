@@ -1,13 +1,14 @@
 /**
- * HeroTray — the "Heroes" tab on the canvas and the pull-up tray behind it
- * (docs/HERO_SPOTLIGHT_PLAN.md sub-session 3, 2026-10-21). Replaces the old
- * per-routine chips at the base (`#heroBaseZone`, retired this session).
+ * HeroTray — the HUD heroes button and the popup window behind it
+ * (docs/HERO_SPOTLIGHT_PLAN.md sub-session 3, 2026-10-21; the bottom tab + pull-up
+ * sheet became this button + popup on 2026-11-01).
  *
- *   TAB   (#heroTab, bottom centre of the canvas): "Heroes" + status dots --
- *         blue = some hero has an unspent slot point, red = some hero is
- *         knocked out or hurt (health <= CONFIG.HERO_HURT_PCT). While a hero is
- *         spotlighted it becomes that hero's status (emoji, name, Lv, health bar).
- *   TRAY  (#heroTray, fixed bottom sheet that rises up in every layout): one row
+ *   BUTTON (#heroesButton, HUD, right after the village button): two-figures icon,
+ *         the routine slots used/total ("3/4") and status dots -- blue = some hero
+ *         has an unspent slot point, red = some hero is knocked out or hurt
+ *         (health <= CONFIG.HERO_HURT_PCT). While a hero is spotlighted, tapping it
+ *         dismisses the spotlight and opens the popup on that hero's row.
+ *   POPUP (#heroTray, centred window over a dimmed backdrop in every layout): one row
  *         per routine ranked by HeroesView.rankRoutines -- avatar with a health
  *         ring, name, Lv, stars, state, and the slot row: filled habit/task
  *         cells (category icon; ice when frozen), empty slots, dashed-blue
@@ -15,7 +16,7 @@
  *         that routine's Manage Routine window (the add flow there spends points).
  *
  * PURE / DOM split like the other UI modules: slotCells, buildRowViewModel,
- * summarize, tabModel, tabSignature, rowSignature, shouldAutoOpenOnLevelUp are
+ * summarize, buttonModel, buttonSignature, rowSignature, shouldAutoOpenOnLevelUp are
  * pure and unit-tested; init/render/open/close are DOM and live-checked.
  * `render` is called every game tick (script.js renderHeroesAtBase), so DOM is
  * touched only when a signature changes (rows are reconciled in place, never
@@ -79,32 +80,19 @@ const HeroTray = (() => {
         };
     }
 
-    /** What the tab shows: the spotlit hero's status, else "Heroes" + dots. */
-    function tabModel(rows, spotlitId, config) {
-        const spot = (spotlitId !== null && spotlitId !== undefined)
-            ? rows.find(r => r.chip.id === spotlitId) : null;
-        if (spot) {
-            return {
-                mode: 'spot',
-                id: spot.chip.id,
-                emoji: spot.chip.emoji,
-                headSrc: spot.chip.headSrc || null,
-                state: spot.chip.state,
-                name: spot.chip.name,
-                level: spot.chip.level,
-                health: spot.chip.health,
-                maxHealth: config.ROUTINE_MAX_HEALTH,
-                healthPct: spot.chip.healthPct,
-            };
-        }
+    /**
+     * What the HUD button shows: hero count, status dots, and the routine slots
+     * used/total (slots = { used, total } from LevelPanel.slotsModel; null = unknown).
+     */
+    function buttonModel(rows, slots, config) {
         const s = summarize(rows, config);
-        return { mode: 'idle', count: rows.length, hasOpenSlot: s.hasOpenSlot, hasHurt: s.hasHurt };
+        const used = slots && typeof slots.used === 'number' ? slots.used : null;
+        const total = slots && typeof slots.total === 'number' ? slots.total : null;
+        return { count: rows.length, used, total, open: used !== null && total !== null ? Math.max(0, total - used) : null, hasOpenSlot: s.hasOpenSlot, hasHurt: s.hasHurt };
     }
 
-    function tabSignature(model) {
-        return model.mode === 'spot'
-            ? ['spot', model.id, model.name, model.level, model.health, model.emoji, model.headSrc || '', model.state].join('|')
-            : ['idle', model.count, model.hasOpenSlot ? 1 : 0, model.hasHurt ? 1 : 0].join('|');
+    function buttonSignature(model) {
+        return [model.count, model.used, model.total, model.hasOpenSlot ? 1 : 0, model.hasHurt ? 1 : 0].join('|');
     }
 
     function rowSignature(row) {
@@ -136,6 +124,8 @@ const HeroTray = (() => {
     let pulseId = null;
     let tabSig = null;
     const levelMemory = {};
+
+    const HEROES_ICON = '<svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="7" cy="6.5" r="2.4"/><path d="M2.5 17c0-3 2-5 4.5-5s4.5 2 4.5 5"/><circle cx="14" cy="7.5" r="2"/><path d="M13 12.3c2.6-.2 4.5 1.6 4.5 4.7"/></svg>';
 
     const STATE_LABEL = { ko: 'Knocked out', frozen: 'Frozen', inactive: 'Inactive', active: 'Active' };
 
@@ -214,25 +204,19 @@ const HeroTray = (() => {
         if (!same) listEl.replaceChildren(...desired);
     }
 
-    function updateTab(model, config) {
-        const sig = tabSignature(model);
+    function updateButton(model) {
+        const sig = buttonSignature(model);
         if (sig === tabSig) return;
         tabSig = sig;
-        const tab = els.tabEl;
-        if (model.mode === 'spot') {
-            const pct = Math.round(model.healthPct * 100);
-            tab.className = 'hero-tab hero-tab--spot' + (model.state === 'ko' ? ' hero-tab--ko' : '');
-            tab.innerHTML = `<span class="hero-tab-emoji" aria-hidden="true">${HeroesView.avatarHtml(model)}</span><span class="hero-tab-name">${esc(model.name)} · Lv ${model.level}</span><span class="hero-tab-track" aria-hidden="true"><span class="hero-tab-fill" style="width:${pct}%; background:${HeroesView.healthColorVar(model.healthPct)};"></span></span><span class="hero-tab-hp">${model.health}/${config.ROUTINE_MAX_HEALTH}</span>`;
-            tab.setAttribute('aria-label', `${model.name}, level ${model.level}, health ${model.health} of ${config.ROUTINE_MAX_HEALTH}. Open heroes`);
-        } else {
-            const notes = [];
-            if (model.hasOpenSlot) notes.push('open slot');
-            if (model.hasHurt) notes.push('hero hurt');
-            tab.className = 'hero-tab';
-            tab.innerHTML = `<span class="hero-tab-chevron" aria-hidden="true">▲</span><span>Heroes</span>${model.hasOpenSlot ? '<span class="hero-tab-dot hero-tab-dot--open" aria-hidden="true"></span>' : ''}${model.hasHurt ? '<span class="hero-tab-dot hero-tab-dot--hurt" aria-hidden="true"></span>' : ''}`;
-            tab.setAttribute('aria-label', `Heroes${notes.length ? ': ' + notes.join(', ') : ''}`);
-        }
-        tab.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        const btn = els.tabEl;
+        const hasSlots = model.used !== null && model.total !== null;
+        const notes = [];
+        if (hasSlots) notes.push(`${model.used} of ${model.total} routine slots used, ${model.open} open`);
+        if (model.hasOpenSlot) notes.push('slot point to spend');
+        if (model.hasHurt) notes.push('hero hurt');
+        btn.innerHTML = `${HEROES_ICON}${hasSlots ? `<span class="hero-button-slots" aria-hidden="true">${model.used}/${model.total}</span>` : ''}${model.hasOpenSlot ? '<span class="hero-tab-dot hero-tab-dot--open" aria-hidden="true"></span>' : ''}${model.hasHurt ? '<span class="hero-tab-dot hero-tab-dot--hurt" aria-hidden="true"></span>' : ''}`;
+        btn.setAttribute('aria-label', `Heroes${notes.length ? ': ' + notes.join(', ') : ''}. Open heroes window`);
+        btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     }
 
     function open(routineId, opts) {
@@ -266,14 +250,16 @@ const HeroTray = (() => {
     function toggle() { if (isOpen) close(); else open(); }
 
     /**
-     * d: { tabEl, trayEl, backdropEl, listEl, closeEl, summaryEl?, config,
+     * d: { tabEl (the HUD button), trayEl, backdropEl, listEl, closeEl, summaryEl?, config,
      *      onManage(routineId), onOpenRoutines(), getSpotlitId(), dismissSpotlight(),
-     *      isModalOpen(), getSlotsSummary()?, onOpenLevelPanel()? }
+     *      isModalOpen(), getSlotsSummary()?, getSlots()? ({used,total}), onOpenLevelPanel()? }
      */
     function init(d) {
         deps = d;
         els = { tabEl: d.tabEl, trayEl: d.trayEl, backdropEl: d.backdropEl, listEl: d.listEl, summaryEl: d.summaryEl || null };
-        d.tabEl.addEventListener('click', () => {
+        d.tabEl.addEventListener('click', (e) => {
+            // stopPropagation: Modal's document click handler would otherwise see this tap as an outside click.
+            e.stopPropagation();
             const spotlit = d.getSpotlitId();
             if (spotlit !== null && spotlit !== undefined) {
                 d.dismissSpotlight();
@@ -342,8 +328,7 @@ const HeroTray = (() => {
             if (shouldAutoOpenOnLevelUp(levelMemory, routine, row.points) && autoOpenId === null) autoOpenId = routine.id;
         });
 
-        const spotlitId = deps.getSpotlitId();
-        updateTab(tabModel(rows, spotlitId, config), config);
+        updateButton(buttonModel(rows, deps.getSlots ? deps.getSlots() : null, config));
         if (isOpen) updateList();
         if (autoOpenId !== null && !isOpen && !deps.isModalOpen()) open(autoOpenId, { pulse: true });
     }
@@ -357,8 +342,9 @@ const HeroTray = (() => {
         slotCellHtml,
         buildRowViewModel,
         summarize,
-        tabModel,
-        tabSignature,
+        buttonModel,
+        buttonSignature,
+        HEROES_ICON,
         rowSignature,
         shouldAutoOpenOnLevelUp,
         init,
