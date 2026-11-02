@@ -96,6 +96,26 @@ const Popups = (() => {
         return `${o.label} — ${o.cost} pts`;
     }
 
+    // Button inner HTML: the label plus the charge dots (filled = free charges left, hollow = will use a token or
+    // points). A free-because-calm move (kind 'free') has no limit, so no dots. Needs PushbackHelp (loaded first).
+    function pushbackButtonHtml(o) {
+        const dots = (o.kind !== 'free' && typeof PushbackHelp !== 'undefined' && o.total > 0)
+            ? ' ' + PushbackHelp.dotsHtml(o.kind === 'charge' ? o.left : 0, o.total) : '';
+        return pushbackButtonText(o) + dots; // static labels and numbers only, nothing user-typed
+    }
+
+    // The (i) panel's live context, from the optional dep. Null when not wired.
+    function pushbackHelpCtx(deps) {
+        return (deps && typeof deps.pushbackHelpCtx === 'function') ? deps.pushbackHelpCtx() : null;
+    }
+
+    // The edit form's (i): "How rescheduling works" under the live note. Only when both the pricing and the help ctx are wired.
+    function editPushbackHelpHtml(deps) {
+        const ctx = pushbackHelpCtx(deps);
+        if (!ctx || typeof deps.reschedulePricingFor !== 'function' || typeof PushbackHelp === 'undefined') return '';
+        return `<div class="pushback-help">${PushbackHelp.hintBlockHtml('editPushbackHint', ctx, 'How rescheduling works', 'How rescheduling works')}</div>`;
+    }
+
     // The edit form's live line under Due Date/Time (Pushback charges Build B). `r` is Pushback.quote()'s result
     // (script.js reschedulePricingFor). Returns { text, blocked }: blocked = the move can't be paid (Save disabled).
     // Free moves say why; a paid-zone move says which size it uses and how it is paid.
@@ -130,7 +150,7 @@ const Popups = (() => {
 
         const buttons = options.map(o =>
             `<button type="button" class="pushback-btn" data-size-id="${o.sizeId}"${o.kind === 'blocked' ? ' disabled' : ''}>
-                        ${pushbackButtonText(o)}
+                        ${pushbackButtonHtml(o)}
                     </button>`
         ).join('');
 
@@ -144,9 +164,12 @@ const Popups = (() => {
             ? ` <span class="pushback-balance-note">(you have ${points} pts)</span>`
             : ` <span class="pushback-balance-note"></span>`;
 
+        const ctx = pushbackHelpCtx(deps);
+        const hint = (ctx && typeof PushbackHelp !== 'undefined') ? PushbackHelp.hintBlockHtml('popupPushbackHint', ctx) : '';
+
         return `
             <div class="pushback-section">
-                <p class="pushback-label"><strong>Push back this deadline:</strong>${balanceNote}</p>
+                <p class="pushback-label"><strong>Push back this deadline:</strong>${balanceNote}${hint}</p>
                 <div class="pushback-options">${buttons}</div>
             </div>
         `;
@@ -471,7 +494,7 @@ const Popups = (() => {
                 const o = options.find(x => x.sizeId === btn.dataset.sizeId);
                 if (o) {
                     btn.disabled = o.kind === 'blocked';
-                    btn.textContent = pushbackButtonText(o);
+                    btn.innerHTML = pushbackButtonHtml(o);
                     if (btn.disabled) anyUnaffordable = true;
                 }
             });
@@ -480,7 +503,13 @@ const Popups = (() => {
             // unaffordable, updates as points drop across stacked pushes).
             const note = overlay.querySelector('.pushback-balance-note');
             if (note) note.textContent = anyUnaffordable ? `(you have ${points} pts)` : '';
+
+            // The (i) panel's "Right now" numbers follow the charges just spent.
+            const pop = overlay.querySelector('#popupPushbackHint');
+            const ctx = pushbackHelpCtx(deps);
+            if (pop && ctx && typeof PushbackHelp !== 'undefined') pop.innerHTML = PushbackHelp.hintHtml(ctx);
         }
+        if (typeof PushbackHelp !== 'undefined') PushbackHelp.wireHint(overlay);
 
         overlay.querySelectorAll('.pushback-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -622,6 +651,7 @@ const Popups = (() => {
                     </div>
                     ${Forms.startDueTimeGroupHtml({ startId: 'editStartTime', dueId: 'editDueTime', startValue: startTime, dueValue: dueTime, startAttrs: `data-initial="${startTime}"` })}
                     <p id="editRescheduleNote" class="reschedule-note" aria-live="polite"></p>
+                    ${editPushbackHelpHtml(deps)}
                     ${hasLoggedTimeField(item, deps) ? Forms.loggedTimeHtml({ idPrefix: 'editLogged', ms: item.timerMsBanked, disabled: Timer.isRunning(item), note: Timer.isRunning(item) ? LOGGED_RUNNING_NOTE : '' }) : ''}
                     <div class="modal-buttons">
                         <button id="saveTaskChanges" class="primary-button">Save Changes</button>
@@ -632,6 +662,7 @@ const Popups = (() => {
         `;
 
         Modal.open(modalHtml);
+        if (typeof PushbackHelp !== 'undefined') PushbackHelp.wireHint(document.getElementById('editRescheduleNote') ? document.getElementById('editRescheduleNote').parentElement : document);
 
         // Pushback charges (Build B): moving the due time LATER while the zombie is close uses a
         // pushback (free charge, held token, then points). Live line under the date/time says
@@ -959,6 +990,7 @@ const Popups = (() => {
         formatTimeInputValue,
         pushbackNoteText,
         pushbackButtonText,
+        pushbackButtonHtml,
     };
 })();
 

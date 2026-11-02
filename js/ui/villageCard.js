@@ -17,6 +17,7 @@
  *   reportRows?,    Heroes.reportRows(...) -> one row per routine for the High school's report card
  *   hasBadHabit?,   true when at least one active (non-archived) negative habit exists (gym empty state)
  *   hasRoutine?,    true when at least one routine exists (school empty state)
+ *   reward?,        the Clock tower's "Your reward" block: PushbackHelp.rewardModel(...) -> { current, next, maxed } (Build C)
  *   spriteUrl?, spriteW?, spriteH?, spriteFlip?   the building's current sprite (mirrored like the scene when spriteFlip)
  * }
  */
@@ -42,7 +43,7 @@ const VillageCard = (() => {
         },
         punctuality: {
             name: 'Clock tower', unit: 'on time',
-            measures: 'Things you completed before their due time. Finishing late still counts as done, just not here.',
+            measures: 'Things you completed before their due time. Finishing late still counts as done, just not here. A task you pushed back inside its last 4 hours doesn\u2019t count here either; rescheduling while it\u2019s still more than 4 hours away is planning ahead, and still counts. Fixing the time within 10 minutes of creating a task doesn\u2019t count against you.',
             why: 'Done on time beats done late: it keeps the base safe and builds trust in your own schedule. Getting ahead of the clock, not just across the line, is what lowers stress.',
         },
         habits: {
@@ -136,6 +137,9 @@ const VillageCard = (() => {
             kind: c.kind,
             name: meta.name,
             measures: meta.measures,
+            reward: (c.kind === 'punctuality' && c.reward && typeof c.reward.current === 'string') ? {
+                current: c.reward.current, next: c.reward.next || null, maxed: !!c.reward.maxed,
+            } : null,
             why: meta.why || '',
             unit: meta.unit,
             tier,
@@ -176,6 +180,12 @@ const VillageCard = (() => {
         const sprite = m.spriteUrl
             ? `<img class="vc-sprite" src="${esc(m.spriteUrl)}" alt="" draggable="false"${(m.spriteW || m.spriteFlip) ? ` style="${m.spriteW ? `width:${Math.round(m.spriteW * m.spriteScale)}px;` : ''}${m.spriteFlip ? 'transform:scaleX(-1);' : ''}"` : ''}>`
             : '';
+        // Clock tower only (Build C): the free pushbacks the current star gives and what the next star adds.
+        const rewardHtml = m.reward
+            ? `<p class="vc-label">Your reward</p><p class="vc-reward">Free pushbacks: ${esc(m.reward.current)}.</p>` +
+              (m.reward.next ? `<p class="vc-reward vc-reward--next">${esc(m.reward.next)}.</p>`
+                  : (m.reward.maxed ? '<p class="vc-reward vc-reward--next">Top star: nothing more to earn here.</p>' : ''))
+            : '';
         const emptyHtml = m.empty ? `<p class="vc-empty">${esc(m.empty)}</p>` : '';
         const linesHtml = m.lines.map(l => `<p class="vc-line">${esc(l)}</p>`).join('');
         // High school report card (HeroesView loads before this module; tests without it simply skip the card).
@@ -196,6 +206,7 @@ const VillageCard = (() => {
                             ${emptyHtml}${linesHtml}
                             ${reportHtml}
                             ${m.measures ? `<p class="vc-label">What we measure</p><p class="vc-measures">${esc(m.measures)}</p>` : ''}
+                            ${rewardHtml}
                             ${m.why ? `<p class="vc-label">Why it helps</p><p class="vc-why">${esc(m.why)}</p>` : ''}
                         </div>
                     </div>

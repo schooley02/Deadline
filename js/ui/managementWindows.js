@@ -43,7 +43,7 @@ const ManagementWindows = (() => {
 
     // deps: { managementWindows, closeFabMenu, activeItems, definedHabits,
     //         definedRoutines, routineSlots, showRoutineManagement,
-    //         toggleRoutineActive, runStartedAtMs, shopCatalog, shopDiscount?,
+    //         toggleRoutineActive, runStartedAtMs, shopCatalog, shopDiscount?, pushbackHelpCtx?,
     //         playerInventory, playerPoints, baseHealth, onShopBuy, onShopUse,
     //         currentRunStats, runHistory, daysSurvivedSoFar,
     //         currentEffectsIntensity, onChangeEffectsIntensity }
@@ -104,6 +104,7 @@ const ManagementWindows = (() => {
                     // places — here (window open) and script.js populateShopWindow
                     // (after a buy/use) — so any new shop dep must be added to both.
                     discount: deps.shopDiscount,
+                    pushbackHelpCtx: deps.pushbackHelpCtx,
                 });
             } else if (type === 'stats') {
                 StatsView.renderStatsWindow({

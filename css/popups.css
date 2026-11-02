@@ -286,3 +286,15 @@
 /* "(N remaining)": shown only while open sub-tasks keep the box disabled. */
 .completion-remaining { font-size: 12px; font-weight: 500; color: var(--color-neutral); white-space: nowrap; }
 
+
+/* Pushback charges (Build C, 2026-11-02): charge dots on the size buttons (filled = free charge left, hollow = used up,
+   the next one uses a token or points) and the (i) help under the edit form's live note. currentColor so the dots follow
+   the button's hover/disabled colours. */
+.pb-dots { display: inline-flex; gap: 3px; margin-left: 4px; vertical-align: middle; }
+.pb-dot { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; box-sizing: border-box; }
+.pb-dot--on { background: currentColor; }
+.pushback-label .form-hint-btn { margin-left: 4px; width: 22px; height: 22px; }
+.pushback-section .pushback-hint-pop { margin-bottom: var(--space-2); font-weight: 400; }
+.pushback-help { margin: var(--space-2) 0 var(--space-3) 0; }
+.pushback-help-caption { font-size: var(--text-caption, 12px); opacity: 0.8; margin-left: 2px; vertical-align: middle; }
+.pushback-hint-pop .pb-live { opacity: 1; }

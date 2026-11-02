@@ -11,6 +11,7 @@ global.Timer = require('../js/timer.js');
 global.Habits = require('../js/habits.js');
 global.Clock = require('../js/clock.js');
 global.SpriteAnim = { setEnemyCategory: () => {} };
+global.PushbackHelp = require('../js/ui/pushbackHelp.js');
 const Popups = require('../js/ui/popups.js');
 
 const task = (o) => Object.assign({
@@ -137,5 +138,55 @@ describe('edit form live line', () => {
         expect(document.getElementById('editRescheduleNote').textContent).toBe('Uses 1 Short pushback (2 left today)');
         document.getElementById('saveTaskChanges').click();
         expect(commit).toHaveBeenCalledWith(item, quote);
+    });
+});
+
+describe('charge dots and the (i) help (Build C)', () => {
+    const withTotals = () => [
+        opt('short', '+30 min', 'charge', { left: 2, total: 3 }),
+        opt('medium', '+2 hr', 'token', { left: 0, total: 2 }),
+        opt('long', '+1 day', 'free', { total: 2 }),
+    ];
+    const ctx = () => ({ star: 1, allowance: { short: 3, medium: 2, long: 2 }, left: { short: 2, medium: 2, long: 2 }, held: { short: 0, medium: 1, long: 0 } });
+
+    test('dots: filled = free charges left, all hollow once a token/points will be used, none for a calm free move', () => {
+        Popups.showTaskDetailsPopup(task(), deps({ pushbackOptionsFor: withTotals, onPushback: jest.fn(), pushbackHelpCtx: ctx }));
+        const btns = [...document.querySelectorAll('.pushback-btn')];
+        expect(btns[0].querySelectorAll('.pb-dot').length).toBe(3);
+        expect(btns[0].querySelectorAll('.pb-dot--on').length).toBe(2);
+        expect(btns[1].querySelectorAll('.pb-dot').length).toBe(2);
+        expect(btns[1].querySelectorAll('.pb-dot--on').length).toBe(0);
+        expect(btns[2].querySelectorAll('.pb-dot').length).toBe(0);
+        expect(btns[0].textContent.replace(/\s+/g, ' ').trim()).toBe('+30 min — free (2 left)');
+    });
+
+    test('the (i) opens a panel with live numbers; tapping it does not press a pushback button', () => {
+        const onPushback = jest.fn();
+        Popups.showTaskDetailsPopup(task(), deps({ pushbackOptionsFor: withTotals, onPushback, pushbackHelpCtx: ctx }));
+        const btn = document.querySelector('.pushback-label .form-hint-btn');
+        const pop = document.getElementById('popupPushbackHint');
+        expect(pop.hidden).toBe(true);
+        btn.click();
+        expect(pop.hidden).toBe(false);
+        expect(pop.textContent).toContain('Short 2 of 3 left today');
+        expect(pop.textContent).toContain('Tokens held: 1 Medium');
+        expect(onPushback).not.toHaveBeenCalled();
+    });
+
+    test('no (i) without the help ctx dep; buttons still work', () => {
+        Popups.showTaskDetailsPopup(task(), deps({ pushbackOptionsFor: withTotals, onPushback: jest.fn() }));
+        expect(document.querySelector('.pushback-label .form-hint-btn')).toBeNull();
+        expect(document.querySelectorAll('.pushback-btn').length).toBe(3);
+    });
+
+    test('after a push the dots and the panel numbers follow the new state', () => {
+        let left = 2;
+        const opts = () => [opt('short', '+30 min', 'charge', { left, total: 3 })];
+        const c = () => ({ star: 1, allowance: { short: 3, medium: 2, long: 2 }, left: { short: left, medium: 2, long: 2 }, held: {} });
+        const onPushback = jest.fn(() => { left -= 1; return { ok: true }; });
+        Popups.showTaskDetailsPopup(task(), deps({ pushbackOptionsFor: opts, onPushback, pushbackHelpCtx: c }));
+        document.querySelector('.pushback-btn').click();
+        expect(document.querySelectorAll('.pushback-btn .pb-dot--on').length).toBe(1);
+        expect(document.getElementById('popupPushbackHint').textContent).toContain('Short 1 of 3 left today');
     });
 });

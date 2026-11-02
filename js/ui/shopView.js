@@ -80,15 +80,11 @@ const ShopView = (() => {
             ? `<div class="shop-item-effect">Heals +${item.effect.healAmount} HP</div>`
             : '';
 
-        // Pushback (non-consumable) can't be bought-to-hold — it's applied to
-        // a specific zombie from the enemy-click popup (session 4). So its card
-        // shows the price but routes the player to the real action instead of
-        // a Buy button that would spend points for nothing.
-        const actionRow = item.consumable
-            ? `<button type="button" class="shop-buy-button"${affordable ? '' : ' disabled'}>
+        // Every shop item is a consumable you hold (pushback charges, Build C, 2026-11-02: the old "Tap a zombie to push it
+        // back" hint is gone; the pushback tokens are held and used automatically, see pushbackSectionHeaderHtml).
+        const actionRow = `<button type="button" class="shop-buy-button"${affordable ? '' : ' disabled'}>
                    ${affordable ? 'Buy' : 'Not enough points'}
-               </button>`
-            : `<div class="shop-item-note shop-pushback-hint">Tap a zombie to push it back</div>`;
+               </button>`;
 
         // Cheat Day ([P1-DATA-005] sub-session 5, 2026-07-19): consumable
         // (Buy-to-hold, like repair kits) but "used" by tapping a specific
@@ -140,7 +136,23 @@ const ShopView = (() => {
         return card;
     }
 
-    // deps: { catalog, inventory, playerPoints, baseHealth, onBuy, onUse, discount? }
+    // Pushback tokens section header (Build C): title, the one-line "used automatically" explanation and the shared (i)
+    // panel (PushbackHelp, with live numbers when `getCtx` is given). Spans the whole grid row.
+    function buildPushbackHeader(getCtx) {
+        const head = document.createElement('div');
+        head.className = 'shop-section-header';
+        const ctx = typeof getCtx === 'function' ? getCtx() : null;
+        const has = typeof PushbackHelp !== 'undefined';
+        const line = has ? PushbackHelp.SHOP_LINE : 'Used automatically when your free pushbacks run out.';
+        head.innerHTML = `<div class="shop-section-title-row"><h4 class="shop-section-title">Pushback tokens</h4>` +
+            `${has ? PushbackHelp.hintButtonHtml('shopPushbackHint', 'How pushbacks work') : ''}</div>` +
+            `<p class="shop-section-line">${line}</p>` +
+            `${has ? PushbackHelp.hintPopHtml('shopPushbackHint', ctx || {}) : ''}`;
+        if (typeof PushbackHelp !== 'undefined') PushbackHelp.wireHint(head);
+        return head;
+    }
+
+    // deps: { catalog, inventory, playerPoints, baseHealth, onBuy, onUse, discount?, pushbackHelpCtx? }
     function renderShopWindow(deps) {
         const list = document.getElementById('shopWindowList');
         if (!list) return;
@@ -154,7 +166,13 @@ const ShopView = (() => {
         }
 
         list.innerHTML = '';
+        let pushbackHeaderDone = false;
         deps.catalog.forEach(item => {
+            // Section header + (i) once, above the first pushback token card.
+            if (item.category === 'pushback' && !pushbackHeaderDone) {
+                pushbackHeaderDone = true;
+                list.appendChild(buildPushbackHeader(deps.pushbackHelpCtx));
+            }
             list.appendChild(buildItemCard(
                 item, deps.inventory, deps.playerPoints, deps.onBuy, deps.baseHealth, deps.onUse, deps.discount
             ));

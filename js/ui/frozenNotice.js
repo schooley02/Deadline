@@ -257,7 +257,48 @@ const FrozenNotice = (() => {
         unlockWaiterId = setTimeout(tryShow, 0);
     }
 
+    // Clock tower star-up notice (pushback charges, Build C, 2026-11-02): the Clock tower reached a new star, which gives
+    // a free pushback. ONE-TIME like an achievement unlock (the star is already earned), so it QUEUES behind any open
+    // modal instead of being dropped, and several stars earned together batch into one notice.
+    // `gains`: the lines for each new star, e.g. ['+1 Short pushback a day']; `star`: the highest star reached.
+    let pendingClockGains = [];
+    let pendingClockStar = 0;
+    let clockWaiterId = null;
+    function showClockTowerStarUpNotice(star, gains) {
+        const lines = (Array.isArray(gains) ? gains : []).filter(Boolean);
+        if (lines.length === 0) return;
+        pendingClockGains.push(...lines);
+        pendingClockStar = Math.max(pendingClockStar, Number(star) || 0);
+        if (clockWaiterId !== null) return;
+        const tryShow = () => {
+            if (document.querySelector('.modal-overlay')) {
+                clockWaiterId = setTimeout(tryShow, 400);
+                return;
+            }
+            const rows = pendingClockGains;
+            const top = pendingClockStar;
+            pendingClockGains = [];
+            pendingClockStar = 0;
+            clockWaiterId = null;
+            if (!rows.length) return;
+            const li = rows.map(r => `<li>${r.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</li>`).join('');
+            Modal.open(`
+                <div class="modal-overlay frozen-notice-overlay">
+                    <div class="modal-content frozen-notice-modal">
+                        <h3>Clock tower ${'\u2605'.repeat(Math.max(1, Math.min(5, top)))}</h3>
+                        <p>Your Clock tower earned a new star. Your free pushbacks grow:</p>
+                        <ul class="frozen-notice-recovery-list">${li}</ul>
+                        <div class="modal-buttons">
+                            <button class="primary-button" onclick="closeModal()">Nice</button>
+                        </div>
+                    </div>
+                </div>`);
+        };
+        clockWaiterId = setTimeout(tryShow, 0);
+    }
+
     return {
+        showClockTowerStarUpNotice,
         showFrozenRoutineNotice,
         showRoutineUnfrozenNotice,
         showRoutineKoNotice,

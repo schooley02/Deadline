@@ -118,6 +118,7 @@ The live card copy changes in Build C, not before: until the charges exist, the 
 - Day rollover clears daily uses.
 
 ### C — Shop, help and copy
+**BUILT 2026-11-02 (Sonnet).** `js/ui/pushbackHelp.js` (pure: `hintHtml`, `hintBlockHtml`, `dotsHtml`, `starGain`, `starUpText`, `rewardModel`, `wireHint`) is the one copy builder; live numbers come from script.js `pushbackHelpCtx()` (the same inputs the quotes use). ⓘ: popup (`#popupPushbackHint`), edit form (`#editPushbackHint`), Shop header (`#shopPushbackHint`). Dots on popup buttons (`o.total` = the star's allowance; none when the move is free because the zombie is calm). The copy is the draft above plus the grace line ("this never counts as pushed back" in the free-when list; "Fixing the time within 10 minutes of creating a task doesn't count against you." in the Clock tower card). Clock tower card: "Your reward" = current allowance + "Star N adds +1 X pushback a day/week" (or "Top star"). Star-up: `observeClockStar` (afterTick, 1/s) compares the Clock tower tier with the last one seen in memory; first reading after boot / new run / game over / offline catch-up only records it; notice is a queued modal (`FrozenNotice.showClockTowerStarUpNotice`). The Base Health panel keeps its one-line note ("free · 2 left", no ⓘ). Bullets below are the original build list.
 - Shop token cards with Buy buttons (remove `.shop-pushback-hint`), plus the section header + ⓘ.
 - `js/ui/pushbackHelp.js` + the ⓘ in the popup, edit form and shop.
 - Clock tower card: new measures copy + "Your reward" block. Star-up toast line.

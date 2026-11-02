@@ -94,6 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
             extras: VillageProgress.extras(ctx),
             hasBadHabit: (State.getDefinedHabits() || []).some(h => h && !h.archivedAt && h.isNegative),
             hasRoutine: (State.getDefinedRoutines() || []).length > 0,
+            // Clock tower "Your reward" (pushback charges, Build C): the free allowance at this star + what the next adds.
+            reward: hit.kind === 'punctuality' && progress.punctuality
+                ? PushbackHelp.rewardModel({ star: progress.punctuality.tier, table: CONFIG.PUSHBACK_ALLOWANCE }) : null,
             // High school v2 report card (2026-10-31): one row per routine.
             reportRows: Heroes.reportRows(State.getDefinedRoutines(), State.getDefinedHabits(), CONFIG, State.getRunStartedAtMs()),
             spriteUrl: hit.url,
@@ -197,6 +200,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // schema bump this session) per-routine star-rating memory for
     // HeroesView's star-threshold-crossed notice. See js/ui/heroes.js header.
     let heroStarMemory = {};
+    // Clock tower star-up notice memory (Build C; see observeClockStar). Declared up here: initGame resets it.
+    let clockStarSeen = null;
+    let clockStarCheckedMs = 0;
     // Hero spotlight / tray lazy-init flags live up here (not beside their functions) because
     // renderHeroesAtBase can run during boot, before those function bodies' lines are reached.
     let heroSpotlightReady = false;
@@ -301,6 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // without a full page reload, so this can't rely on module-load init
         // alone).
         heroStarMemory = {};
+        clockStarSeen = null; // a new run starts at star 1 with no crossing history (no star-up notice for it)
         HeroTray.resetMemory();
         State.initGame(stateDeps());
     }
@@ -663,6 +670,36 @@ document.addEventListener('DOMContentLoaded', () => {
     // Popup door: the buttons for one item, { sizeId, label, kind, left, cost } per size it may use. Habits get
     // Short and Medium only (a 1-day push would land on tomorrow's spawn); negative habits and KO ghosts never
     // show the section, so they are not asked about here.
+    // Clock tower star-up notice (Build C): the tier is only ever read, never stored, so the "last star seen" lives in
+    // memory. The first reading after boot / a new run / game over / offline catch-up only records it (no notice for
+    // stars earned before this session looked); a later increase shows what each new star added.
+    function observeClockStar(nowMs) {
+        if (nowMs - clockStarCheckedMs < 1000) return;
+        clockStarCheckedMs = nowMs;
+        if (State.isGameOver()) { clockStarSeen = null; return; }
+        const p = villageProgressNow();
+        if (!p || !p.punctuality) return; // progress not computed yet: don't treat "unknown" as star 1
+        const star = Math.max(1, p.punctuality.tier);
+        const prev = clockStarSeen;
+        clockStarSeen = star;
+        if (prev === null || star <= prev || offlineCatchUpActive) return;
+        const gains = [];
+        for (let s = prev + 1; s <= star; s++) {
+            const g = PushbackHelp.starGain(s, CONFIG.PUSHBACK_ALLOWANCE);
+            if (g) gains.push(g.text);
+        }
+        FrozenNotice.showClockTowerStarUpNotice(star, gains);
+    }
+
+    // Live numbers for the (i) help panels (popup, edit form, Shop): Clock tower star, free allowance, charges left, tokens held.
+    // Same inputs the quotes use, so the panel can never disagree with the buttons.
+    function pushbackHelpCtx() {
+        const now = new Date();
+        const inputs = pushbackInputs(now);
+        const left = Pushback.chargesLeft(inputs.uses, now.getTime(), inputs.allowance, inputs.dayStartMs, CONFIG.PUSHBACK_SIZES);
+        return { star: clockTowerStar(), allowance: inputs.allowance, left, held: inputs.held };
+    }
+
     function pushbackOptionsFor(item) {
         const now = new Date();
         const inputs = pushbackInputs(now);
@@ -674,7 +711,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentDue: item.dueDateTime, createdAt: item.creationTime || null,
                 }));
                 if (!q) return null;
-                return { sizeId: z.id, label: Pushback.plusLabel(z.ms), kind: q.kind, left: q.left[z.id], cost: q.cost };
+                return { sizeId: z.id, label: Pushback.plusLabel(z.ms), kind: q.kind, left: q.left[z.id], total: inputs.allowance[z.id], cost: q.cost };
             })
             .filter(Boolean);
     }
@@ -949,6 +986,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Pushback charges (Build B): the size buttons for an item (free / charge / token / points),
             // a live points getter, and the handler that pays + shifts the target's due date.
             pushbackOptionsFor,
+            pushbackHelpCtx,
             getPlayerPoints: State.getPlayerPoints,
             onPushback: handlePushback,
             reschedulePricingFor,
@@ -1582,6 +1620,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 processTimers(Date.now());
                 pollEveningCheck(Date.now());
+                observeClockStar(Date.now());
                 refreshBaseChip();
                 GraveyardView.render(BASE_WIDTH);
                 VillageView.render(BASE_WIDTH);
@@ -2532,7 +2571,7 @@ document.addEventListener('DOMContentLoaded', () => {
             definedRoutines: State.getDefinedRoutines(), routineSlots: State.getRoutineSlots(), showRoutineManagement, toggleRoutineActive,
             runStartedAtMs: State.getRunStartedAtMs(),
             shopCatalog: CONFIG.SHOP_ITEMS, playerInventory: State.getPlayerInventory(), playerPoints: State.getPlayerPoints(), baseHealth: State.getBaseHealth(),
-            onShopBuy: handleShopPurchase, onShopUse: handleShopUse, shopDiscount: currentShopDiscount(),
+            onShopBuy: handleShopPurchase, onShopUse: handleShopUse, shopDiscount: currentShopDiscount(), pushbackHelpCtx,
             currentRunStats: State.getCurrentRunStats(), runHistory: State.getRunHistory(), daysSurvivedSoFar: Damage.computeDaysSurvived(State.getRunStartedAtMs(), Date.now(), CONFIG.MS_PER_REAL_DAY),
             achievementsCatalog: CONFIG.ACHIEVEMENTS, lifetimeStats: State.getLifetimeStats(), achievements: State.getAchievements(),
             // D2 step 5: closed days + today's open record for Stats best/worst day.
@@ -2687,7 +2726,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function populateShopWindow() {
         ShopView.renderShopWindow({
             catalog: CONFIG.SHOP_ITEMS, inventory: State.getPlayerInventory(), playerPoints: State.getPlayerPoints(), baseHealth: State.getBaseHealth(),
-            discount: currentShopDiscount(),
+            discount: currentShopDiscount(), pushbackHelpCtx,
             onBuy: handleShopPurchase, onUse: handleShopUse
         });
     }

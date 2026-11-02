@@ -8,6 +8,7 @@
 global.CONFIG = require('../js/config.js');
 global.Economy = require('../js/economy.js');
 global.Shop = require('../js/shop.js');
+global.PushbackHelp = require('../js/ui/pushbackHelp.js');
 const ShopView = require('../js/ui/shopView.js');
 
 const CATALOG = CONFIG.SHOP_ITEMS;
@@ -66,5 +67,47 @@ describe('points balance in the shop window header (2026-10-27)', () => {
     test('renders fine when the header element is missing', () => {
         document.body.innerHTML = '<div id="shopWindowList"></div>';
         expect(() => ShopView.renderShopWindow({ catalog: CATALOG, inventory: {}, playerPoints: 5, baseHealth: 50, onBuy: noop, onUse: noop, discount: 0 })).not.toThrow();
+    });
+});
+
+describe('pushback tokens section (Build C)', () => {
+    const render = (extra) => {
+        document.body.innerHTML = '<span id="shopWindowPoints"></span><div id="shopWindowList"></div>';
+        ShopView.renderShopWindow(Object.assign({
+            catalog: CATALOG, inventory: {}, playerPoints: 1000, baseHealth: 50, onBuy: noop, onUse: noop, discount: 0,
+        }, extra));
+        return document.getElementById('shopWindowList');
+    };
+
+    test('one header above the first pushback token, with the one-line explanation and an (i)', () => {
+        const list = render({ pushbackHelpCtx: () => ({ star: 2, allowance: { short: 4, medium: 2, long: 2 }, left: { short: 4, medium: 2, long: 2 }, held: {} }) });
+        const headers = list.querySelectorAll('.shop-section-header');
+        expect(headers.length).toBe(1);
+        expect(headers[0].querySelector('.shop-section-title').textContent).toBe('Pushback tokens');
+        expect(headers[0].querySelector('.shop-section-line').textContent).toBe('Used automatically when your free pushbacks run out.');
+        const kids = [...list.children];
+        const idx = kids.indexOf(headers[0]);
+        expect(kids[idx + 1].textContent).toContain('Short Pushback');
+        const pop = list.querySelector('#shopPushbackHint');
+        expect(pop.hidden).toBe(true);
+        list.querySelector('.form-hint-btn').click();
+        expect(pop.hidden).toBe(false);
+        expect(pop.textContent).toContain('Short 4 of 4 left today');
+    });
+
+    test('every pushback token has a Buy button and the old "Tap a zombie" hint is gone', () => {
+        const list = render();
+        expect(list.textContent).not.toContain('Tap a zombie to push it back');
+        expect(list.querySelector('.shop-pushback-hint')).toBeNull();
+        ['Short', 'Medium', 'Long'].forEach((n) => {
+            const card = [...list.querySelectorAll('.shop-item-card')].find(c => c.textContent.includes(n + ' Pushback'));
+            expect(card.querySelector('.shop-buy-button')).not.toBeNull();
+        });
+    });
+
+    test('without the help ctx the header still renders (rules only)', () => {
+        const list = render();
+        expect(list.querySelector('.shop-section-header')).not.toBeNull();
+        expect(list.querySelector('#shopPushbackHint').textContent).toContain('Rescheduling is free when');
     });
 });

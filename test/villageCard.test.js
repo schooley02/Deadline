@@ -210,3 +210,30 @@ describe('starsHtml (tier as five stars, 2026-10-30)', () => {
         expect(row).not.toContain('vp-tier');
     });
 });
+
+describe('Clock tower copy and "Your reward" (pushback charges, Build C)', () => {
+    const reward = { current: 'Short 3 a day \u00B7 Medium 2 a day \u00B7 Long 2 a week', next: 'Star 2 adds +1 Short pushback a day', maxed: false };
+
+    test('What we measure explains the 4-hour rule and the 10-minute grace', () => {
+        const html = VillageCard.cardHtml(VillageCard.buildModel({ kind: 'punctuality', progress: progress(0, 'punctuality') }));
+        expect(html).toContain('A task you pushed back inside its last 4 hours');
+        expect(html).toContain('more than 4 hours away is planning ahead, and still counts');
+        expect(html).toContain('Fixing the time within 10 minutes of creating a task');
+    });
+
+    test('Clock tower shows the reward block: current allowance and what the next star adds', () => {
+        const html = VillageCard.cardHtml(VillageCard.buildModel({ kind: 'punctuality', progress: progress(0, 'punctuality'), reward }));
+        expect(html).toContain('Your reward');
+        expect(html).toContain('Free pushbacks: Short 3 a day');
+        expect(html).toContain('Star 2 adds +1 Short pushback a day.');
+        expect(html.indexOf('Your reward')).toBeGreaterThan(html.indexOf('What we measure'));
+        expect(html.indexOf('Your reward')).toBeLessThan(html.indexOf('Why it helps'));
+    });
+
+    test('top star says so; other buildings and a missing reward show no block', () => {
+        const top = VillageCard.cardHtml(VillageCard.buildModel({ kind: 'punctuality', progress: progress(0, 'punctuality'), reward: { current: 'x', next: null, maxed: true } }));
+        expect(top).toContain('Top star');
+        expect(VillageCard.cardHtml(VillageCard.buildModel({ kind: 'punctuality', progress: progress(0, 'punctuality') }))).not.toContain('Your reward');
+        expect(VillageCard.cardHtml(VillageCard.buildModel({ kind: 'nights', progress: progress(0, 'nights'), reward }))).not.toContain('Your reward');
+    });
+});
