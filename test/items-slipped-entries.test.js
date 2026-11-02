@@ -144,11 +144,24 @@ describe('check-in card: a Slipped answer keeps an entry', () => {
         expect(deps.calls.rendered).toBe(1);
     });
 
-    test('Resisted (as today): no entry is added', () => {
+    test('Resisted (Jeremy, 2026-11-01): the answer is listed too, tagged avoided, with the logged time and no undo', () => {
         const def = pending();
         const deps = makeDeps({ definedHabits: () => [def] });
         Items.resolvePendingCheckIn('def1', 'avoided', deps);
-        expect(deps.completed).toHaveLength(0);
+        expect(deps.completed).toHaveLength(1);
+        expect(deps.completed[0]).toMatchObject({ type: 'habit', definitionId: 'def1', isNegative: true, outcome: 'avoided', fromCheckIn: true, timerMsBanked: 90 * 60000 });
+        expect(deps.completed[0].completedAt).toBeInstanceOf(Date);
+        expect(def.pendingCheckIn).toBeUndefined();
+    });
+
+    test('a Resisted check-in entry has no undo: nothing is refunded and it stays listed', () => {
+        const def = pending();
+        const deps = makeDeps({ definedHabits: () => [def] });
+        Items.resolvePendingCheckIn('def1', 'avoided', deps);
+        const pts = deps.getPoints();
+        Items.uncompleteItem(deps.completed[0].id, deps);
+        expect(deps.completed).toHaveLength(1);
+        expect(deps.getPoints()).toBe(pts);
     });
 
     test('a marker from before this build (no snapshot) still produces a plain Slipped entry from the definition', () => {

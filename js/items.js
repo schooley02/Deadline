@@ -1069,6 +1069,19 @@ const Items = (() => {
             rateTiers: CONFIG.HABIT_RATE_TIERS
         };
 
+        // Habit Goals Build 2c: a check-in answer (Slipped, and since 2026-11-01 Resisted) is kept in Completed too. The lurker was
+        // removed at rollover, so the entry is rebuilt from the snapshot markPendingCheckIn saved. Logged time from that day rides along.
+        const snap = habitDef.pendingCheckIn.entry;
+        const makeSlipEntry = () => ({
+            id: typeof deps.getNextId === 'function' ? deps.getNextId() : Date.now(),
+            type: 'habit', definitionId: habitDef.id, isNegative: true,
+            name: (snap && snap.name) || habitDef.name, category: (snap && snap.category) || habitDef.category,
+            goal: (snap && snap.goal) || null,
+            timerMinutes: snap && typeof snap.timerMinutes === 'number' ? snap.timerMinutes : null,
+            timerMsBanked: snap && typeof snap.timerMsBanked === 'number' ? snap.timerMsBanked : 0,
+            timer: null, originalDueDate, dueDateTime: originalDueDate, element: null, listItemElement: null,
+        });
+
         if (outcome === 'avoided') {
             const oldStreak = habitDef.streak;
             const result = Habits.applyHabitCompletion(
@@ -1119,19 +1132,10 @@ const Items = (() => {
             if (typeof deps.recordLifetime === 'function') {
                 deps.recordLifetime('streakReached', habitDef.streak);
             }
+            // 2026-11-01 (Jeremy): the Resisted answer is listed in Completed too (green tag). `fromCheckIn` = no undo, because the
+            // lurker is gone and the points/streak were already settled at answer time.
+            keepAnsweredEntry(makeSlipEntry(), 'avoided', { fromCheckIn: true }, deps);
         } else if (outcome === 'indulged') {
-            // Habit Goals Build 2c: the Slipped answer is kept in Completed too (the lurker was removed at rollover, so the
-            // entry is rebuilt from the snapshot markPendingCheckIn saved). Logged time from that day rides along.
-            const snap = habitDef.pendingCheckIn.entry;
-            const makeSlipEntry = () => ({
-                id: typeof deps.getNextId === 'function' ? deps.getNextId() : Date.now(),
-                type: 'habit', definitionId: habitDef.id, isNegative: true,
-                name: (snap && snap.name) || habitDef.name, category: (snap && snap.category) || habitDef.category,
-                goal: (snap && snap.goal) || null,
-                timerMinutes: snap && typeof snap.timerMinutes === 'number' ? snap.timerMinutes : null,
-                timerMsBanked: snap && typeof snap.timerMsBanked === 'number' ? snap.timerMsBanked : 0,
-                timer: null, originalDueDate, dueDateTime: originalDueDate, element: null, listItemElement: null,
-            });
             if (isCheatDayExcused(habitDef, originalDueDate)) {
                 habitDef.cheatDayDate = null;
                 keepSlippedEntry(makeSlipEntry(), { cheatDayExcused: true }, deps);
@@ -1164,8 +1168,13 @@ const Items = (() => {
      * `extra` merges onto the entry (e.g. { cheatDayExcused: true }). Re-renders the list when the dep exists.
      */
     function keepSlippedEntry(entry, extra, deps) {
+        keepAnsweredEntry(entry, 'indulged', extra, deps);
+    }
+
+    /** Shared by keepSlippedEntry and the check-in Resisted answer: tags `outcome` ('indulged' | 'avoided'), stamps completedAt, lists it. */
+    function keepAnsweredEntry(entry, outcome, extra, deps) {
         if (!entry || typeof deps.completedItems !== 'function') return;
-        entry.outcome = 'indulged';
+        entry.outcome = outcome;
         entry.completedAt = new Date();
         if (extra) Object.assign(entry, extra);
         deps.completedItems().push(entry);
@@ -1321,7 +1330,7 @@ const Items = (() => {
 
         // Habit Goals Build 2c (Decision 15): a Slipped entry has no undo in v1 (it would have to give back the points and the
         // streak). Its checkbox is replaced by a tag in the list; this is the backstop for any other caller.
-        if (item.outcome === 'indulged') {
+        if (item.outcome === 'indulged' || item.fromCheckIn === true) {
             if (typeof deps.renderCompletedItems === 'function') deps.renderCompletedItems();
             return;
         }

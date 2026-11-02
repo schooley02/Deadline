@@ -696,6 +696,13 @@ describe('AgendaList.renderCompletedItems — Break habit answers (Habit Goals B
         expect(deps.uncompleteItem).toHaveBeenCalledWith('b1');
     });
 
+    test('a Resisted entry that came from the check-in card has the green tag but no checkbox (no undo)', () => {
+        render([entry({ outcome: 'avoided', fromCheckIn: true })]);
+        const li = completedItemsList.children[0];
+        expect(findByClass(li, 'outcome-tag')[0].textContent).toBe('Resisted');
+        expect(checkboxes(li)).toHaveLength(0);
+    });
+
     test('ordinary entries (tasks, Build habits) carry no tag and still say Completed', () => {
         render([entry({ isNegative: false, id: 'b2' }), { id: 't1', type: 'task', name: 'Task', category: 'other', completedAt: new Date('2026-11-01T19:00:00Z') }]);
         completedItemsList.children.forEach(li => {

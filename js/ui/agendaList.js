@@ -864,7 +864,7 @@ const AgendaList = (() => {
 
                 // Completion checkbox (pre-checked for completed items). A Slipped entry has none: the tag above replaces it
                 // (no undo in v1, Decision 15).
-                if (isSlipped) {
+                if (isSlipped || item.fromCheckIn === true) {
                     li.appendChild(itemSpriteDiv);
                     li.appendChild(itemInfoDiv);
                     li.appendChild(itemStatusDiv);
