@@ -59,6 +59,9 @@
     box-shadow: 0 1px 0 rgba(0, 0, 0, 0.22);
 }
 .hud-icon { flex: none; display: block; color: var(--color-primary-dark-green); }
+/* Icon size (2026-11-01: bumped from 16-18px to 22px; the health ring is 26px). */
+.resource-panel > button.stat-item > svg:not(.bh-ring) { width: 22px; height: 22px; }
+.resource-panel > button.stat-item > svg.bh-ring { width: 26px; height: 26px; }
 
 .stat-label {
     color: var(--color-neutral);

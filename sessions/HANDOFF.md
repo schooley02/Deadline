@@ -12,7 +12,7 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 ```
 
 ## 2026-11-01 (night, later) -- HUD buttons restyled (Claude app session, Sonnet; Jeremy)
-**Did:** removed the three up-right arrows, "Lv"/"Points:" -> star/coin icons, shield in the health ring, shared raised button look (css/gameCanvas.css `.resource-panel > button.stat-item`, `.hud-icon`, `.bh-shield`), sw v195. Jeremy confirmed the heroes badge = routine slots used/total.
+**Did:** removed the three up-right arrows, "Lv"/"Points:" -> star/coin icons, shield in the health ring, shared raised button look (v196: icons 22px, plain $ instead of a coin, XP bar 38px so it still fits one row) (css/gameCanvas.css `.resource-panel > button.stat-item`, `.hud-icon`, `.bh-shield`), sw v195. Jeremy confirmed the heroes badge = routine slots used/total.
 **State:** Jest green (116 / 2,586); live-checked at 390 (one row) and 360 (Points wraps); not phone-checked. In the folder, not committed.
 **Next:** phone-check the HUD + heroes popup; Dialog Build 2.
 **Watch out:** `script.js` swaps the ring's class attribute (`bh-ring bh-ring--<color>`), so keep the shield styled by its own `.bh-shield` class.
