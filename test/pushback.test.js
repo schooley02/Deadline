@@ -379,3 +379,32 @@ describe('quote / quoteFixed / apply', () => {
         expect(JSON.stringify(uses)).toBe(copy);
     });
 });
+
+describe('graceCreatedAt (grace is for tasks and sub-tasks only, Jeremy 2026-11-02)', () => {
+    const made = new Date(2026, 10, 2, 9, 0);
+    test('a typed-in task or sub-task counts', () => {
+        expect(Pushback.graceCreatedAt({ type: 'task', creationTime: made })).toBe(made);
+        expect(Pushback.graceCreatedAt({ type: 'task', parentId: 7, definitionId: null, creationTime: made })).toBe(made);
+    });
+    test('habit instances and routine task instances never get the grace', () => {
+        expect(Pushback.graceCreatedAt({ type: 'habit', creationTime: made })).toBeNull();
+        expect(Pushback.graceCreatedAt({ type: 'task', definitionId: 12, creationTime: made })).toBeNull();
+    });
+    test('missing item or creation time = no grace', () => {
+        expect(Pushback.graceCreatedAt(null)).toBeNull();
+        expect(Pushback.graceCreatedAt({ type: 'task' })).toBeNull();
+    });
+    test('through quote: a habit just spawned is in the paid zone, a task just typed is free', () => {
+        const justNow = new Date(nowMs - 2 * MIN);
+        const inputs = {
+            currentDue: new Date(nowMs + 2 * H), newDue: new Date(nowMs + 2 * H + 30 * MIN), now, graceMs: CONFIG.RESCHEDULE_GRACE_MS,
+            paidZoneMs: CONFIG.PUSHBACK_PAID_ZONE_MS, sizes: SIZES, allowance: CONFIG.PUSHBACK_ALLOWANCE[1], uses: {},
+            dayStartMs, held: {}, points: 100, prices: { short: 5, medium: 10, long: 30 },
+        };
+        const habit = Pushback.quote(Object.assign({}, inputs, { createdAt: Pushback.graceCreatedAt({ type: 'habit', creationTime: justNow }) }));
+        const task = Pushback.quote(Object.assign({}, inputs, { createdAt: Pushback.graceCreatedAt({ type: 'task', creationTime: justNow }) }));
+        expect(habit.reason).toBe('paid');
+        expect(habit.kind).toBe('charge');
+        expect(task.reason).toBe('grace');
+    });
+});

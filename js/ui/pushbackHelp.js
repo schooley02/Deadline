@@ -69,7 +69,7 @@ const PushbackHelp = (() => {
             `<ul>` +
             `<li>you move it earlier</li>` +
             `<li>it’s more than 4 hours away</li>` +
-            `<li>you fix the time within 10 minutes of creating it (this never counts as pushed back)</li>` +
+            `<li>you fix the time within 10 minutes of creating a task (this never counts as pushed back)</li>` +
             `</ul>` +
             `<strong>Inside 4 hours, moving it later uses a pushback:</strong>` +
             `<p>${esc(rulesLine(allowance))}</p>` +

@@ -15,7 +15,7 @@ describe('PushbackHelp.hintHtml', () => {
     test('rules only without ctx: names the sizes, no numbers, grace line says it is never flagged', () => {
         const html = PushbackHelp.hintHtml();
         expect(html).toContain('Rescheduling is free when');
-        expect(html).toContain('within 10 minutes of creating it (this never counts as pushed back)');
+        expect(html).toContain('within 10 minutes of creating a task (this never counts as pushed back)');
         expect(html).toContain('Short (up to 30 min)');
         expect(html).not.toMatch(/a day<\/p>|a week<\/p>.*Short \(up/);
         expect(html).not.toContain('Right now');

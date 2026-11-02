@@ -630,7 +630,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // earlier / calm / grace moves); r.canAfford is false only when points can't cover it.
     function reschedulePricingFor(item, newDue) {
         return Pushback.quote(Object.assign(pushbackInputs(new Date()), {
-            currentDue: item.dueDateTime, newDue, createdAt: item.creationTime || null,
+            currentDue: item.dueDateTime, newDue, createdAt: Pushback.graceCreatedAt(item),
         }));
     }
 
@@ -708,7 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .filter(z => !(habit && z.id === 'long'))
             .map((z) => {
                 const q = Pushback.quoteFixed(z.id, Object.assign({}, inputs, {
-                    currentDue: item.dueDateTime, createdAt: item.creationTime || null,
+                    currentDue: item.dueDateTime, createdAt: Pushback.graceCreatedAt(item),
                 }));
                 if (!q) return null;
                 return { sizeId: z.id, label: Pushback.plusLabel(z.ms), kind: q.kind, left: q.left[z.id], total: inputs.allowance[z.id], cost: q.cost };
@@ -2826,7 +2826,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const now = new Date();
         const q = Pushback.quoteFixed(sizeId, Object.assign(pushbackInputs(now), {
-            currentDue: targetItem.dueDateTime, createdAt: targetItem.creationTime || null,
+            currentDue: targetItem.dueDateTime, createdAt: Pushback.graceCreatedAt(targetItem),
         }));
         // Buttons are disabled when blocked, so this is a defensive guard rather than the expected path.
         if (!q || !q.ok) return { ok: false };

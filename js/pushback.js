@@ -92,6 +92,15 @@ const Pushback = (() => {
         return { later: true, free: false, reason: 'paid', deltaMs, paidZone: true };
     }
 
+    // The creation time the 10-minute typo grace is measured from (Jeremy 2026-11-02: tasks and sub-tasks only for now).
+    // Only an item the player typed in counts: a plain task or sub-task (type 'task', not a routine's instance, which
+    // has a definitionId). Habit instances and routine task instances are made by the game (when the day's instance
+    // spawns or a habit is edited and re-timed), so "just created" would be a free window nobody typed in -> null.
+    function graceCreatedAt(item) {
+        if (!item || item.type !== 'task' || item.definitionId != null) return null;
+        return item.creationTime || null;
+    }
+
     // "+30 min" / "+2 hr" / "+1 day": the short label of a size's length, for buttons.
     function plusLabel(ms) {
         const m = Math.round(num(ms) / 60000);
@@ -245,6 +254,7 @@ const Pushback = (() => {
     return {
         sizeFor,
         plusLabel,
+        graceCreatedAt,
         isFreeMove,
         allowanceForStar,
         chargesLeft,
