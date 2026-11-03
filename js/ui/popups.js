@@ -347,6 +347,16 @@ const Popups = (() => {
         return `<p class="habit-points-line"><strong>Points:</strong> ${line}${ghost}</p>`;
     }
 
+    // The popup's "Due:" value. An anytime task (2026-11-02) reads "<date> \u00B7 Anytime" instead of 11:59 PM, but only
+    // while its due time is still 23:59 (a stale flag falls back to the real time).
+    function taskDueDisplayText(item) {
+        const d = item.dueDateTime;
+        if (item.type === 'task' && item.anytime === true && d.getHours() === 23 && d.getMinutes() === 59) {
+            return d.toLocaleDateString() + ' \u00B7 Anytime';
+        }
+        return d.toLocaleString();
+    }
+
     function showTaskDetailsPopup(item, deps) {
         const modalHtml = `
             <div class="modal-overlay">
@@ -358,7 +368,7 @@ const Popups = (() => {
                         <p><strong>Category:</strong> ${item.category}</p>
                         ${isNegativeHabitInstance(item)
                             ? `<p><strong>Tempting around:</strong> <span class="task-due-display">${item.dueDateTime.toLocaleTimeString([], { timeStyle: 'short' })}</span></p>`
-                            : `<p><strong>Due:</strong> <span class="task-due-display">${item.dueDateTime.toLocaleString()}</span></p>`}
+                            : `<p><strong>Due:</strong> <span class="task-due-display">${taskDueDisplayText(item)}</span></p>`}
                         <p><strong>Priority:</strong> ${item.isHighPriority ? 'High' : 'Normal'}</p>
                         ${item.type === 'habit' ? `<p><strong>Streak:</strong> ${item.streak}</p>` : ''}
                         ${buildHabitPointsLineHtml(item, deps)}
@@ -520,7 +530,7 @@ const Popups = (() => {
 
         function refreshPushbackUI() {
             const dueDisplay = overlay.querySelector('.task-due-display');
-            if (dueDisplay) dueDisplay.textContent = item.dueDateTime.toLocaleString();
+            if (dueDisplay) dueDisplay.textContent = taskDueDisplayText(item);
 
             const points = typeof deps.getPlayerPoints === 'function' ? deps.getPlayerPoints() : 0;
             const options = pushbackOptionsOf(item, deps);
@@ -655,6 +665,9 @@ const Popups = (() => {
             ? ` max="${formatDateInputValue(editParentTask.dueDateTime)}"`
             : '';
 
+        // "Anytime" (2026-11-02): top-level, non-routine tasks only (sub-tasks follow their parent; routine tasks keep their template time).
+        const showAnytimeRow = !item.parentId && item.definitionId == null;
+
         const modalHtml = `
             <div class="modal-overlay">
                 <div class="modal-content">
@@ -684,6 +697,7 @@ const Popups = (() => {
                         <label for="editDueDate">Due Date:</label>
                         <input type="date" id="editDueDate" value="${dueDate}"${maxDateAttr} required>
                     </div>
+                    ${showAnytimeRow ? Forms.anytimeRowHtml({ id: 'editTaskAnytime', checked: item.anytime === true }) : ''}
                     ${Forms.startDueTimeGroupHtml({ startId: 'editStartTime', dueId: 'editDueTime', startValue: startTime, dueValue: dueTime, startAttrs: `data-initial="${startTime}"` })}
                     <p id="editRescheduleNote" class="reschedule-note" aria-live="polite"></p>
                     ${editPushbackHelpHtml(deps)}
@@ -697,6 +711,7 @@ const Popups = (() => {
         `;
 
         Modal.open(modalHtml);
+        if (showAnytimeRow) Forms.applyAnytimeToggle('editTaskAnytime');
         if (typeof PushbackHelp !== 'undefined') PushbackHelp.wireHint(document.getElementById('editRescheduleNote') ? document.getElementById('editRescheduleNote').parentElement : document);
 
         // Pushback charges (Build B): moving the due time LATER while the zombie is close uses a
@@ -707,7 +722,8 @@ const Popups = (() => {
         const priceNote = document.getElementById('editRescheduleNote');
         const readNewDue = () => {
             const d = document.getElementById('editDueDate').value;
-            const t = document.getElementById('editDueTime').value;
+            const anyBox = document.getElementById('editTaskAnytime');
+            const t = (anyBox && anyBox.checked) ? Forms.ANYTIME_DUE_TIME : document.getElementById('editDueTime').value;
             if (!d) return null;
             const dt = new Date(`${d}T${t || '00:00'}`);
             return isNaN(dt.getTime()) ? null : dt;
@@ -725,7 +741,7 @@ const Popups = (() => {
             if (saveButton) saveButton.disabled = blocked;
             return r;
         };
-        ['editDueDate', 'editDueTime'].forEach(id => {
+        ['editDueDate', 'editDueTime', 'editTaskAnytime'].forEach(id => {
             const el = document.getElementById(id);
             if (el) { el.addEventListener('input', refreshPrice); el.addEventListener('change', refreshPrice); }
         });
@@ -738,7 +754,9 @@ const Popups = (() => {
                 const category = document.getElementById('editTaskCategory').value;
                 const isHighPriority = document.getElementById('editTaskHighPriority').checked;
                 const newDueDate = document.getElementById('editDueDate').value;
-                const newDueTime = document.getElementById('editDueTime').value;
+                const anytimeBox = document.getElementById('editTaskAnytime');
+                const isAnytime = !!(anytimeBox && anytimeBox.checked);
+                const newDueTime = isAnytime ? Forms.ANYTIME_DUE_TIME : document.getElementById('editDueTime').value;
 
                 if (!name || !newDueDate) {
                     Forms.showFormError('Task Name and Due Date are required.', !name ? 'editTaskName' : 'editDueDate');
@@ -756,6 +774,7 @@ const Popups = (() => {
                 if (startValue !== startInitial) {
                     newStartDateTime = startValue ? new Date(`${newDueDate}T${startValue}`) : null;
                 }
+                if (isAnytime) newStartDateTime = null; // an anytime task has no work window
                 if (startValue && newStartDateTime instanceof Date && !isNaN(newStartDateTime.getTime())
                     && newStartDateTime.getTime() >= newDueDateTime.getTime()) {
                     Forms.showFormError('Start time must be earlier than the due time.', startInput);
@@ -794,6 +813,7 @@ const Popups = (() => {
                 item.isHighPriority = isHighPriority;
                 item.dueDateTime = newDueDateTime;
                 item.startDateTime = (newStartDateTime instanceof Date && !isNaN(newStartDateTime.getTime())) ? newStartDateTime : null;
+                if (isAnytime) item.anytime = true; else delete item.anytime;
                 if (reschedule && typeof deps.commitReschedule === 'function') deps.commitReschedule(item, reschedule);
 
                 // Re-derive overdue state from the NEW due date. Without this,

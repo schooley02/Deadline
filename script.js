@@ -983,7 +983,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()),
             updateTaskCountDisplay, // week strip (2026-11-02): Edit Task can move a due date to another day
             saveGame, recomputeOverdueStateAfterEdit: (item) => Items.recomputeOverdueStateAfterEdit(item, itemsDeps()),
-            createTaskItemData: (name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, startTimeStr) => Items.createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, itemsDeps(), startTimeStr),
+            createTaskItemData: (name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, startTimeStr, anytime) => Items.createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, itemsDeps(), startTimeStr, anytime),
             addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => handleEnemyClick(itemId), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay, sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
             // Pushback charges (Build B): the size buttons for an item (free / charge / token / points),
             // a live points getter, and the handler that pays + shifts the target's due date.
@@ -2251,6 +2251,7 @@ document.addEventListener('DOMContentLoaded', () => {
             Popups.promptNewDueTime(item, popupsDeps(), (res) => {
                 if (res && res.dueDateTime instanceof Date && res.dueDateTime.getTime() > Date.now()) {
                     item.dueDateTime = res.dueDateTime;
+                    Items.syncAnytimeFlag(item); // not 23:59 any more -> an ordinary timed task
                     // A new future time un-overdues it (and re-positions it).
                     Items.recomputeOverdueStateAfterEdit(item, itemsDeps());
                 }
@@ -2881,6 +2882,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 targetItem.dueDateTime = Items.clampedSubTaskDueDate(targetItem.dueDateTime, pushParent);
             }
         }
+        // Anytime (2026-11-02): the flag survives a pushback only while the due time is still exactly 23:59 (e.g. a Long
+        // from a not-yet-overdue task); a Short / Medium, or any push from an overdue task, makes it an ordinary timed task.
+        Items.syncAnytimeFlag(targetItem);
 
         // Re-derive overdue state from the NEW due date — same reasoning as the
         // Edit Task save path (js/ui/popups.js showEditTaskModal): without this
@@ -2997,7 +3001,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // saveGame() call) — see js/ui/forms.js header and DECISIONS.md.
     function formsDeps() {
         return {
-            createTaskItemData: (name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, startTimeStr) => Items.createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, itemsDeps(), startTimeStr),
+            createTaskItemData: (name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, startTimeStr, anytime) => Items.createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, itemsDeps(), startTimeStr, anytime),
             addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => handleEnemyClick(itemId), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay, sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
             sortAndRenderActiveList,
             managementWindows, populateTasksWindow,

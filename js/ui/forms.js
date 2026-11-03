@@ -239,6 +239,46 @@ const Forms = (() => {
         document.addEventListener('change', onStartTimeChange);
     }
 
+    // "Anytime" checkbox (2026-11-02, Jeremy; DECISIONS 2026-11-02 night): a task due by 11:59 PM on its date. Shared by
+    // Add Task and Edit Task (never sub-tasks or routine tasks). Checked: the Due Time box shows 23:59 and is greyed
+    // out, the Start box is hidden and emptied. Unchecked: Due Time is editable again (it keeps 23:59; no memory of an
+    // older time) and Start comes back. Ids: checkbox -> { due, start } input ids.
+    const ANYTIME_DUE_TIME = '23:59';
+    const ANYTIME_TOGGLES = {
+        modalTaskAnytime: { due: 'modalDueTime', start: 'modalStartTime' },
+        editTaskAnytime: { due: 'editDueTime', start: 'editStartTime' },
+    };
+    function anytimeRowHtml(o) {
+        return `<div class="form-row priority-row anytime-row">
+                <input type="checkbox" id="${o.id}"${o.checked ? ' checked' : ''}>
+                <label for="${o.id}">Anytime (due by 11:59 PM)</label>
+            </div>`;
+    }
+    // Applies the checkbox's state to its Due / Start boxes. Safe to call when any element is missing.
+    function applyAnytimeToggle(checkboxId) {
+        const map = ANYTIME_TOGGLES[checkboxId];
+        const box = typeof document !== 'undefined' ? document.getElementById(checkboxId) : null;
+        if (!map || !box) return;
+        const due = document.getElementById(map.due);
+        const start = document.getElementById(map.start);
+        const startRow = start && start.closest ? start.closest('.form-row') : null;
+        if (box.checked) {
+            if (due) { due.value = ANYTIME_DUE_TIME; due.disabled = true; }
+            if (start) start.value = '';
+            if (startRow) startRow.hidden = true;
+        } else {
+            if (due) due.disabled = false;
+            if (startRow) startRow.hidden = false;
+        }
+    }
+    function onAnytimeChange(e) {
+        const el = e.target;
+        if (el && ANYTIME_TOGGLES[el.id]) applyAnytimeToggle(el.id);
+    }
+    if (typeof document !== 'undefined' && document.addEventListener) {
+        document.addEventListener('change', onAnytimeChange);
+    }
+
     // Custom-window times for a BUILD habit (Build B, 2026-11-01): the same Start | End pair, shown only while the
     // Completion Window select is "Custom times...". `selectId` is that select's id; the group's id is
     // `${selectId}Custom` (Modal.wireHabitTimeLabels toggles it). End is the due time and is required once custom
@@ -426,6 +466,7 @@ const Forms = (() => {
                 <label for="modalDueDate">Due Date:</label>
                 <input type="date" id="modalDueDate" value="${todayString}" required>
             </div>
+            ${anytimeRowHtml({ id: 'modalTaskAnytime' })}
             ${startDueTimeGroupHtml({ startId: 'modalStartTime', dueId: 'modalDueTime', startValue: '', dueValue: defaultDueTime, dueAttrs: `data-prefilled="${defaultDueTime}"` })}
             <div class="modal-buttons">
                 <button id="modalAddTaskButton" class="primary-button">Add Task</button>
@@ -595,22 +636,27 @@ const Forms = (() => {
                         const isHighPriority = priorityInput ? priorityInput.checked : false;
                         const dueDate = dateInput ? dateInput.value : '';
                         const dueTime = timeInput ? timeInput.value : '17:00';
+                        const anytimeInput = modal.querySelector('#modalTaskAnytime');
+                        const isAnytime = !!(anytimeInput && anytimeInput.checked);
 
                         if (!name || !dueDate) {
                             showFormError('Task Name and Due Date are required.', !name ? nameInput : dateInput);
                             return;
                         }
 
-                        const resolved = resolveSubmittedDueTime(dueDate, dueTime,
-                            timeInput ? timeInput.getAttribute('data-prefilled') : null, new Date());
+                        // Anytime: due 23:59 on the chosen date, no Start, and no "just passed" nudge (23:59 is never "now-ish").
+                        const resolved = isAnytime
+                            ? { dueDate, dueTime: ANYTIME_DUE_TIME }
+                            : resolveSubmittedDueTime(dueDate, dueTime,
+                                timeInput ? timeInput.getAttribute('data-prefilled') : null, new Date());
                         const startInput = modal.querySelector('#modalStartTime');
-                        const startTime = startInput ? startInput.value : '';
+                        const startTime = isAnytime ? '' : (startInput ? startInput.value : '');
                         const startError = startBeforeDueError(startTime, resolved.dueTime);
                         if (startError) {
                             showFormError(startError, startInput);
                             return;
                         }
-                        const taskData = deps.createTaskItemData(name, category, isHighPriority, resolved.dueDate, resolved.dueTime, undefined, startTime || undefined);
+                        const taskData = deps.createTaskItemData(name, category, isHighPriority, resolved.dueDate, resolved.dueTime, undefined, startTime || undefined, isAnytime ? true : undefined);
                         deps.addItemToGame(taskData);
                         deps.sortAndRenderActiveList();
                         Modal.closeModal();
@@ -844,6 +890,9 @@ const Forms = (() => {
         computeDefaultDueDate,
         resolveSubmittedDueTime,
         startDueTimeGroupHtml,
+        anytimeRowHtml,
+        applyAnytimeToggle,
+        ANYTIME_DUE_TIME,
         shiftDueForStart,
         onStartTimeChange,
         startBeforeDueError,

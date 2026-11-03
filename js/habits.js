@@ -571,6 +571,11 @@ const Habits = (() => {
             const t = item.dueDateTime.toLocaleTimeString(locale || [], { timeStyle: 'short' });
             return `Tempting around ${t} \u00B7 avoiding today`;
         }
+        // Anytime task (2026-11-02): the date, then "Anytime" instead of 11:59 PM (only while the due time is still 23:59).
+        if (item && item.type === 'task' && item.anytime === true
+            && item.dueDateTime.getHours() === 23 && item.dueDateTime.getMinutes() === 59) {
+            return `Due: ${item.dueDateTime.toLocaleDateString(locale || [], { dateStyle: 'short' })} \u00B7 Anytime`;
+        }
         return `Due: ${item.dueDateTime.toLocaleString(locale || [], { dateStyle: 'short', timeStyle: 'short' })}`;
     }
 

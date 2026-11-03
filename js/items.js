@@ -450,14 +450,37 @@ const Items = (() => {
         return start;
     }
 
+    // "Anytime" tasks (2026-11-02, Jeremy; DECISIONS 2026-11-02 night): a task due by 11:59 PM on its date, the same
+    // time an Anytime habit uses. `item.anytime === true` (absent = false, additive, no schema bump). It only means
+    // anything while the due time is exactly 23:59, so a later move that lands anywhere else drops it.
+    const ANYTIME_DUE_TIME = '23:59';
+    function isAnytimeTask(item) {
+        return !!item && item.type === 'task' && item.anytime === true;
+    }
+    function isAnytimeDueTime(date) {
+        return date instanceof Date && !isNaN(date.getTime()) && date.getHours() === 23 && date.getMinutes() === 59;
+    }
+    // Call after ANY due-time change: keeps the flag only while the due time is still 23:59.
+    function syncAnytimeFlag(item) {
+        if (item && item.anytime === true && !isAnytimeDueTime(item.dueDateTime)) delete item.anytime;
+        return item;
+    }
+
     /**
      * deps: { getNextId, activeItems, gameScreenWidth, enemyWidth,
      *         calculateTimelineXWithClustering }
      * startTimeStr (optional, 8th arg, "HH:MM"): see resolveStartDateTime.
+     * anytime (optional, 9th arg): true makes a top-level task due 23:59 on dueDateStr with no Start;
+     * ignored for sub-tasks and when there is no due date.
      */
-    function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, deps, startTimeStr) {
+    function createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, deps, startTimeStr, anytime) {
         const creationTime = new Date();
         let dueDateTime;
+        const makeAnytime = anytime === true && !parentId && !!dueDateStr;
+        if (makeAnytime) {
+            dueTimeStr = ANYTIME_DUE_TIME;
+            startTimeStr = undefined;
+        }
 
         if (dueDateStr && dueTimeStr) {
             dueDateTime = new Date(`${dueDateStr}T${dueTimeStr}`);
@@ -527,6 +550,9 @@ const Items = (() => {
             timerMinutes: null,
             rescheduleCount: 0
         };
+
+        // Only present when true (absent = false), so existing task shapes are unchanged.
+        if (makeAnytime) taskData.anytime = true;
 
         // Calculate initial position based on new timeline system
         taskData.x = deps.calculateTimelineXWithClustering(taskData, creationTime);
@@ -870,6 +896,7 @@ const Items = (() => {
             if (!result || result.cancel) return;
             if (result.dueDateTime instanceof Date && result.dueDateTime.getTime() > Date.now()) {
                 item.dueDateTime = result.dueDateTime;
+                syncAnytimeFlag(item); // a new picked time that is not 23:59 makes it an ordinary timed task
             }
             uncompleteItem(itemId, deps);
         });
@@ -1850,6 +1877,10 @@ const Items = (() => {
         syncGhostLook,
         createTaskItemData,
         resolveStartDateTime,
+        isAnytimeTask,
+        isAnytimeDueTime,
+        syncAnytimeFlag,
+        ANYTIME_DUE_TIME,
         clampedSubTaskDueDate,
         clampSubTasksToParentDeadline,
         completeItem,

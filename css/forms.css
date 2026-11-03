@@ -121,3 +121,6 @@
 .logged-time-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
 .logged-time-msg { font-size: 0.85em; opacity: 0.85; }
 .logged-time-error { min-height: 1.2em; margin: 4px 0 0; color: #ff6b5b; font-size: 0.85em; }
+
+/* "Anytime" task checkbox (2026-11-02): a greyed Due Time box shows the fixed 11:59 PM. */
+.time-pair input[type="time"]:disabled { opacity: 0.55; cursor: not-allowed; }
