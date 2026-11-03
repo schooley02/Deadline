@@ -25,10 +25,14 @@ describe('fieldRight', () => {
 describe('stoneSlots', () => {
     const slots = GraveyardLayout.stoneSlots(6, CONFIG.GRAVEYARD_HILL_WIDTH_PX, 8, OPTS);
 
-    test('the 140px hill holds all 6 achievement families (the point of the width)', () => {
-        expect(CONFIG.ACHIEVEMENTS.length).toBe(6);
-        expect(GraveyardLayout.stoneCapacity(CONFIG.GRAVEYARD_HILL_WIDTH_PX, OPTS)).toBeGreaterThanOrEqual(CONFIG.ACHIEVEMENTS.length);
+    test('the 140px hill holds 6 stones; more families than that get no stone (every stone opens Stats, so nothing is lost)', () => {
+        // 2026-11-03 achievements swap: 8 families now (Steady Hands out; Honor Roll, Clean Sweep, Iron Will in).
+        // The hill was sized for exactly 6, so the last families have no headstone. Widening it (or a 4th lane) is a
+        // design call: the headstones are placeholders for the village (WORLD_FEEDBACK_PLAN W2).
+        const capacity = GraveyardLayout.stoneCapacity(CONFIG.GRAVEYARD_HILL_WIDTH_PX, OPTS);
+        expect(capacity).toBe(6);
         expect(slots).toHaveLength(6);
+        expect(GraveyardLayout.stoneSlots(CONFIG.ACHIEVEMENTS.length, CONFIG.GRAVEYARD_HILL_WIDTH_PX, 8, OPTS)).toHaveLength(capacity);
     });
 
     test('front lane stands on the bottom pad; each back lane is LANE_RISE higher', () => {

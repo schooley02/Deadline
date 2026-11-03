@@ -562,7 +562,8 @@ describe('migrate: v10 -> v11 seeds achievements + retro-derived lifetimeStats (
         expect(save.achievements).toEqual({});
         expect(save.lifetimeStats).toEqual({
             tasksCompleted: 0, habitsCompleted: 0, bestRunDaysSurvived: 0,
-            bestHabitStreak: 0, steadyRoutineRuns: 0, pointsRecoveries: 0,
+            bestHabitStreak: 0, pointsRecoveries: 0,
+            heroHonorDays: 0, cleanDays: 0, breaksResisted: 0, // v16 (achievements swap); Steady Hands' counter is gone
         });
     });
 
@@ -596,33 +597,15 @@ describe('migrate: v10 -> v11 seeds achievements + retro-derived lifetimeStats (
         expect(save.lifetimeStats.bestHabitStreak).toBe(11);
     });
 
-    test('steadyRoutineRuns counts routines at >=90% completionRate.rate in a run that lasted >=7 days', () => {
+    test('the retired Steady Hands counter is dropped even when old runs would have qualified (v16)', () => {
         const save = Persistence.migrate({
             schemaVersion: 10,
-            runHistory: [
-                {
-                    daysSurvived: 8,
-                    routines: [
-                        { routineId: 'r1', completionRate: { rate: 0.95, samples: 20 } }, // qualifies
-                        { routineId: 'r2', completionRate: { rate: 0.5, samples: 20 } },  // rate too low
-                        { routineId: 'r3', completionRate: null },                        // no samples
-                    ],
-                },
-                {
-                    daysSurvived: 3, // run too short, doesn't count even at 100%
-                    routines: [{ routineId: 'r1', completionRate: { rate: 1, samples: 5 } }],
-                },
-            ],
+            runHistory: [{
+                daysSurvived: 8,
+                routines: [{ routineId: 'r1', completionRate: { rate: 0.95, samples: 20 } }],
+            }],
         });
-        expect(save.lifetimeStats.steadyRoutineRuns).toBe(1);
-    });
-
-    test('a bare-number completionRate (not the real {rate,samples} shape) does not qualify (defensive, not the expected shape)', () => {
-        const save = Persistence.migrate({
-            schemaVersion: 10,
-            runHistory: [{ daysSurvived: 8, routines: [{ routineId: 'r1', completionRate: 0.95 }] }],
-        });
-        expect(save.lifetimeStats.steadyRoutineRuns).toBe(0);
+        expect(save.lifetimeStats).not.toHaveProperty('steadyRoutineRuns');
     });
 
     test('pointsRecoveries always starts at 0 (no historical data to sweep)', () => {
@@ -648,7 +631,8 @@ describe('migrate: v10 -> v11 seeds achievements + retro-derived lifetimeStats (
         expect(save.achievements).toEqual({});
         expect(save.lifetimeStats).toEqual({
             tasksCompleted: 0, habitsCompleted: 0, bestRunDaysSurvived: 0,
-            bestHabitStreak: 0, steadyRoutineRuns: 0, pointsRecoveries: 0,
+            bestHabitStreak: 0, pointsRecoveries: 0,
+            heroHonorDays: 0, cleanDays: 0, breaksResisted: 0, // v16 (achievements swap); Steady Hands' counter is gone
         });
     });
 });
@@ -662,8 +646,8 @@ describe('migrate: v11 -> v12 (list-order layering, 2026-10-13)', () => {
         expect(save.activeItems[0].listRank).toBeUndefined();
         expect(save.activeItems[1].listRank).toBe(5);
     });
-    test('SCHEMA_VERSION is 15', () => {
-        expect(Persistence.SCHEMA_VERSION).toBe(15);
+    test('SCHEMA_VERSION is 16', () => {
+        expect(Persistence.SCHEMA_VERSION).toBe(16);
     });
 });
 
@@ -774,9 +758,9 @@ describe('migrate: v13 -> v14 (KO ghosts / timers / reschedule fields, 2026-10-2
 describe('migrate: v14 -> v15 (daily record accumulator slot, 2026-10-27)', () => {
     const migrate14 = extra => Persistence.migrate(Object.assign({ schemaVersion: 14 }, extra));
 
-    test('seeds today = null and stamps v15', () => {
+    test('seeds today = null and the chain continues to the current version', () => {
         const save = migrate14({});
-        expect(save.schemaVersion).toBe(15);
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
         expect(save.today).toBeNull();
     });
 

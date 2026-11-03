@@ -29,8 +29,10 @@ describe('freshLifetimeStats', () => {
             habitsCompleted: 0,
             bestRunDaysSurvived: 0,
             bestHabitStreak: 0,
-            steadyRoutineRuns: 0,
             pointsRecoveries: 0,
+            heroHonorDays: 0,
+            cleanDays: 0,
+            breaksResisted: 0,
         });
     });
 

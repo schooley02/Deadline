@@ -126,7 +126,7 @@ call, not a visual one — default: visual only).
 Jeremy's idea: graveyard + spooky tree; tapping a headstone opens that aspect's achievement
 list. PROPOSED extensions:
 - **One marker per achievement family** (`CONFIG.ACHIEVEMENTS` has ~6: Survivor, Task
-  Slayer, Habit Hero, On Fire, Steady Hands, Back in Black), material upgrades with tier:
+  Slayer, Habit Hero, On Fire, Honor Roll, Clean Sweep, Iron Will, Back in Black since the 2026-11-03 swap, so 8), material upgrades with tier:
   none → wooden cross → stone (Bronze) → … → mausoleum (Platinum). Progress readable before
   tapping. Tap → that family's tiers + near-miss nudge (reuse `Achievements.nextLockedTier` /
   `nearMissNudges` and the Stats badge markup).

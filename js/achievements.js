@@ -33,9 +33,31 @@ const Achievements = (() => {
             habitsCompleted: 0,
             bestRunDaysSurvived: 0,
             bestHabitStreak: 0,
-            steadyRoutineRuns: 0,
             pointsRecoveries: 0,
+            // Achievements swap (2026-11-03, schema 16; docs/HOW_IT_WORKS_PLAN.md): the lifetime counters behind
+            // Honor Roll / Clean Sweep / Iron Will (they replace the retired Steady Hands `steadyRoutineRuns`).
+            heroHonorDays: 0,   // hero-days banked at >= CONFIG.HERO_HONOR_ROLL_STARS (one per routine per closed day)
+            cleanDays: 0,       // closed days with something due and nothing missed
+            breaksResisted: 0,  // Break habits resisted (live pop-up, check-in card, evening check); undo reverses
         };
+    }
+
+    // What ONE closed daily record adds to the day-based lifetime counters. Pure; `honorStars` is passed in
+    // (CONFIG.HERO_HONOR_ROLL_STARS) like every other number here. Rules:
+    //   honor = routines whose banked stars (record.stars, DailyRecord v3) are >= honorStars
+    //   clean = 1 when something was due (due.task + due.habit > 0) and nothing was missed (missed.task + missed.habit === 0)
+    // js/persistence.js's v15->v16 retro sweep inlines the SAME math (Persistence has no module deps) --
+    // test/achievements-swap.test.js compares the two so they cannot drift.
+    function dayDeltas(record, honorStars) {
+        const num = (v) => (Number.isFinite(v) && v > 0 ? v : 0);
+        const r = record || {};
+        const stars = (r.stars && typeof r.stars === 'object') ? r.stars : {};
+        const honor = Object.keys(stars).filter(k => num(stars[k]) >= honorStars).length;
+        const due = r.due || {};
+        const missed = r.missed || {};
+        const dueTotal = num(due.task) + num(due.habit);
+        const missedTotal = num(missed.task) + num(missed.habit);
+        return { honor, clean: (dueTotal > 0 && missedTotal === 0) ? 1 : 0 };
     }
 
     function freshUnlocked() {
@@ -132,6 +154,7 @@ const Achievements = (() => {
     return {
         freshLifetimeStats,
         freshUnlocked,
+        dayDeltas,
         evaluateFamily,
         evaluateAll,
         recordUnlocks,

@@ -58,6 +58,11 @@ Rules:
   state is thrown away by the reload regardless — same class of hazard as the session-52
   stub-before-edit trick, see CLAUDE.md's Cowork section).
 
+### schemaVersion 16 (2026-11-03, achievements swap): `lifetimeStats` counters for Honor Roll / Clean Sweep / Iron Will
+- `lifetimeStats.steadyRoutineRuns` is REMOVED (Steady Hands retired). New numbers: `heroHonorDays`, `cleanDays`, `breaksResisted` (all >= 0, lifetime, survive a restart, wiped only by dev-Reset). `achievements` is untouched (old `steady_hands_*` keys stay, harmlessly).
+- The v15 -> v16 migration seeds them once from `deadline.days` (closed days: routines with `stars` >= 3, days with `due` > 0 and `missed` = 0, `lurk.avoided`), plus the open `save.today`'s `lurk.avoided` unless its date is already closed. Counters that already exist are never overwritten. `Persistence.migrate(save, daysStore?)` takes an optional days store for tests. (Schema 15, the `today` slot, is described under DailyRecord.)
+- Live: honor/clean from `State.closeDailyRecord` -> `recordLifetimeDayClose`; resisted from `Items` -> `recordLifetime('breakResisted', +/-1)`. DailyRecord is unchanged (no `v` bump): every field used already exists.
+
 ### schemaVersion 14 (BUILT 2026-10-25, KO-ghosts build; only `koGhost` is read by code so far — the timer/reschedule fields are defaults until Builds 2-4): timers, reschedule tracking, KO ghosts
 - `item.koGhost: boolean` (default false) — true while the owning routine is KO'd; set on KO, cleared on revive; persisted so a reload can't un-ghost.
 - `item.timer: { startedAt: ISO } | null`, `item.timerMsBanked: number` (default 0), `item.timerMinutes: number | null` (one-off tasks' optional target).

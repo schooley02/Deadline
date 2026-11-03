@@ -62,7 +62,9 @@ const Persistence = (() => {
     // DailyRecord. CLOSED days live in the separate `deadline.days` key
     // (DAYS_KEY below), written once per day at rollover, never on the
     // per-change save path.
-    const SCHEMA_VERSION = 15;
+    // v16 (2026-11-03, achievements swap): `lifetimeStats` loses `steadyRoutineRuns` and gains `heroHonorDays`,
+    // `cleanDays`, `breaksResisted`, seeded by a one-time sweep of `deadline.days` (see the v15 -> v16 step).
+    const SCHEMA_VERSION = 16;
     const DEBOUNCE_MS = 500;
 
     // DOM references on item objects — never serialized, rebuilt on load.
@@ -138,7 +140,7 @@ const Persistence = (() => {
      * Migration chain. Each future schema bump adds a step that upgrades
      * save in place (v1→v2, v2→v3, …). Log every migration in DECISIONS.md.
      */
-    function migrate(save) {
+    function migrate(save, daysStoreOverride) {
         // v1 → v2 (2026-07-18): habit definitions gained `routineId`
         // (null = standalone). v1 saves have no such field, so infer it from
         // routine membership: a habit listed in some routine's
@@ -476,6 +478,45 @@ const Persistence = (() => {
         if (save.schemaVersion === 14) {
             if (save.today === undefined) save.today = null;
             save.schemaVersion = 15;
+        }
+
+        // v15 -> v16 (2026-11-03): achievements swap (docs/HOW_IT_WORKS_PLAN.md, DECISIONS 2026-11-03). Steady Hands is
+        // retired: its `steadyRoutineRuns` counter is dropped (unlocked tiers stay in `achievements`, they just stop being
+        // listed). Three lifetime counters are seeded with a one-time retro sweep of the closed days in `deadline.days`
+        // (read through loadDays(); `daysStoreOverride` lets tests pass a store). The math is INLINED (Persistence has no
+        // module deps) and MIRRORS Achievements.dayDeltas + the live breakResisted wiring: honor = routines banked at
+        // >= 3 stars (CONFIG.HERO_HONOR_ROLL_STARS), clean = something due and nothing missed, resisted = lurk.avoided.
+        // The still-open day (`save.today`) adds only its resisted count (honor/clean land at close), and is skipped when
+        // its date is already a closed day. Days before the daily record (2026-10-27) and rolled-up months are not
+        // recoverable and count as zero. Existing counters are never overwritten (idempotent).
+        if (save.schemaVersion === 15) {
+            if (!save.lifetimeStats || typeof save.lifetimeStats !== 'object') save.lifetimeStats = {};
+            const stats = save.lifetimeStats;
+            delete stats.steadyRoutineRuns;
+            const needsSweep = typeof stats.heroHonorDays !== 'number' || typeof stats.cleanDays !== 'number' ||
+                typeof stats.breaksResisted !== 'number';
+            if (needsSweep) {
+                const num = (v) => (Number.isFinite(v) && v > 0 ? v : 0);
+                const store = daysStoreOverride !== undefined ? daysStoreOverride
+                    : (typeof localStorage !== 'undefined' ? loadDays() : null);
+                const days = (store && typeof store.days === 'object' && store.days) ? store.days : {};
+                let honor = 0, clean = 0, resisted = 0;
+                Object.keys(days).forEach((key) => {
+                    const r = days[key];
+                    if (!r || typeof r !== 'object') return;
+                    const stars = (r.stars && typeof r.stars === 'object') ? r.stars : {};
+                    honor += Object.keys(stars).filter(k => num(stars[k]) >= 3).length;
+                    const due = r.due || {}, missed = r.missed || {};
+                    if (num(due.task) + num(due.habit) > 0 && num(missed.task) + num(missed.habit) === 0) clean += 1;
+                    resisted += num(r.lurk && r.lurk.avoided);
+                });
+                const open = save.today;
+                if (open && typeof open === 'object' && !days[open.date]) resisted += num(open.lurk && open.lurk.avoided);
+                if (typeof stats.heroHonorDays !== 'number') stats.heroHonorDays = honor;
+                if (typeof stats.cleanDays !== 'number') stats.cleanDays = clean;
+                if (typeof stats.breaksResisted !== 'number') stats.breaksResisted = resisted;
+            }
+            save.schemaVersion = 16;
         }
 
         if (save.schemaVersion !== SCHEMA_VERSION) {

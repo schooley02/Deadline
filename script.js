@@ -411,6 +411,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 stats.bestHabitStreak = Math.max(stats.bestHabitStreak || 0, value || 0);
             } else if (event === 'pointsRecovered') {
                 stats.pointsRecoveries = (stats.pointsRecoveries || 0) + 1;
+            } else if (event === 'breakResisted') {
+                // Iron Will (2026-11-03): +1 per resisted Break habit, -1 on undo; clamps at 0.
+                stats.breaksResisted = Math.max(0, (stats.breaksResisted || 0) + value);
             }
         });
     }
@@ -454,24 +457,19 @@ document.addEventListener('DOMContentLoaded', () => {
             getVillageTiers: () => realVillageTiers(),
             // Achievements sub-session 2 (session 65): run-end lifetime bump,
             // called by js/damage.js's gameOver ONLY on a real death (never
-            // on an alreadyOver restore — gating lives at the call site).
-            // Steady Hands rule (CONFIG.STEADY_HANDS_MIN_DAYS survived,
-            // routine rate ≥ CONFIG.STEADY_HANDS_MIN_RATE) and the
-            // {rate, samples} unwrap MIRROR the v10→v11 retro sweep in
-            // js/persistence.js — if one changes, change both (the migration
-            // inlines the same values as literals by Persistence's
-            // no-module-deps convention).
+            // on an alreadyOver restore -- gating lives at the call site).
+            // Steady Hands was retired 2026-11-03 (achievements swap), so the
+            // run end only raises the best-run high-water mark now.
             recordLifetimeRunEnd: (record, days) => applyLifetimeProgress((stats) => {
                 stats.bestRunDaysSurvived = Math.max(stats.bestRunDaysSurvived || 0, days || 0);
-                if ((days || 0) >= CONFIG.STEADY_HANDS_MIN_DAYS) {
-                    const qualifying = ((record && record.routines) || []).filter((r) => {
-                        const rate = r.completionRate && typeof r.completionRate.rate === 'number'
-                            ? r.completionRate.rate
-                            : null;
-                        return rate !== null && rate >= CONFIG.STEADY_HANDS_MIN_RATE;
-                    }).length;
-                    stats.steadyRoutineRuns = (stats.steadyRoutineRuns || 0) + qualifying;
-                }
+            }),
+            // Achievements swap (2026-11-03): State.closeDailyRecord hands over each CLOSED day (after the days store
+            // saved) so Honor Roll (hero-days at >= CONFIG.HERO_HONOR_ROLL_STARS) and Clean Sweep (a clean day) grow
+            // live. Iron Will is counted at the resist seams in items.js, not here.
+            recordLifetimeDayClose: (closedDay) => applyLifetimeProgress((stats) => {
+                const d = Achievements.dayDeltas(closedDay, CONFIG.HERO_HONOR_ROLL_STARS);
+                stats.heroHonorDays = (stats.heroHonorDays || 0) + d.honor;
+                stats.cleanDays = (stats.cleanDays || 0) + d.clean;
             }),
             getItemIdCounter: State.getItemIdCounter,
             getDaysSurvived: State.getDaysSurvived,

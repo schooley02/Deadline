@@ -1,6 +1,6 @@
 # "How Deadline works" page + achievements swap (PLAN, 2026-11-03)
 
-Designed in a Claude app session (Opus advice, Jeremy deciding). Status: **PLANNED, NOT BUILT.** Decisions are in `docs/DECISIONS.md` 2026-11-03. Build order: (1) hero window 28 -> 22 (DONE 2026-11-03), (2) achievements swap, (3) this page. The page is built LAST so its words match what is in the game.
+Designed in a Claude app session (Opus advice, Jeremy deciding). Status: **the achievements swap is BUILT (2026-11-03, schema 16, sw v223); the page itself is PLANNED, NOT BUILT.** Decisions are in `docs/DECISIONS.md` 2026-11-03. Build order: (1) hero window 28 -> 22 (DONE 2026-11-03), (2) achievements swap (DONE 2026-11-03), (3) this page. The page is built LAST so its words match what is in the game.
 
 ## Why
 The game shows streaks, hero rankings and badges but never says what they are for, and one trap exists: streaks are VISUAL ONLY (no points since 2026-07-18), the points bonus comes from the hit rate over the last 22 scheduled times. Nothing in the game tells the player that.
@@ -27,9 +27,9 @@ A "How Deadline works" button in Settings opens a window of short tappable topic
 - Iron Will (NEW): "Every time you resist a Break habit counts."
 - Back in Black: "Dig out of debt: slip into negative points, then earn your way back to zero or above." (single badge)
 Why: badges count your whole history across runs, so a run that ends in game over still adds to them.
-(Steady Hands is RETIRED: it only counted when a run ended and stopped growing in long runs. Unlocked tiers are kept.)
+(Steady Hands is RETIRED and removed from the game: it only counted when a run ended and stopped growing in long runs. Tiers already unlocked stay in the save but are no longer listed. Built tiers: Honor Roll 30/150/500/1500, Clean Sweep 7/30/100/365, Iron Will 7/30/100/365. Dropping Steady Hands completely was Jeremy's call 2026-11-03; the Iron Will ladder is a proposed starting point to retune with play data.)
 
-## Achievements swap (build task 2; Fable/Opus for tiers, Sonnet to build)
+## Achievements swap (build task 2; BUILT 2026-11-03: see docs/ECONOMY.md "Achievements swap" and DATA_SCHEMA schema 16)
 Retire `steady_hands`; add three families. New lifetime counters: `heroHonorDays` (each closed day, every hero banked at >= `HERO_HONOR_ROLL_STARS` (3) adds 1; data is DailyRecord v3 `stars`), `cleanDays` (a closed day with something due and nothing missed; same rule as VillageProgress' clean-day helper), `breaksResisted` (an avoided Break habit; DailyRecord `lurk.avoided`). Needs: `lifetimeStats` shape + schema bump + one-time retro sweep of `deadline.days`, live wiring at day close, tier thresholds via the balance-tuning protocol (suggested start: Clean Sweep 7/30/100/365, Honor Roll 30/150/500/1500, Iron Will TBD), catalog entries in `CONFIG.ACHIEVEMENTS`, stats view, tests with negative controls. `STEADY_HANDS_MIN_*` config and the run-end code can be removed once nothing reads them.
 
 ## Model

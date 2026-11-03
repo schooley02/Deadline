@@ -734,6 +734,8 @@ const Items = (() => {
                     deps.recordLifetime(item.parentId ? 'subtaskCompleted' : 'taskCompleted', 1);
                 } else if (item.type === 'habit') {
                     deps.recordLifetime('habitCompleted', 1);
+                    // Iron Will (2026-11-03): completing a Break habit IS resisting it (outcome 'avoided').
+                    if (item.isNegative === true) deps.recordLifetime('breakResisted', 1);
                 }
             }
         }
@@ -1189,6 +1191,8 @@ const Items = (() => {
                 RunStats.recordHabitCompleted(deps.getCurrentRunStats());
             }
             if (typeof deps.recordLifetime === 'function') deps.recordLifetime('habitCompleted', 1);
+            // Iron Will (2026-11-03): the check-in card's 'avoided' answer is a resisted Break habit too.
+            if (typeof deps.recordLifetime === 'function') deps.recordLifetime('breakResisted', 1);
             // Achievements sub-session 2 (session 65): live streak seam, same
             // as completeItem's habit branch. (The silent restore-time twin of this path,
             // settleStaleRecurringInstance, gets NO lifetime wiring at all —
@@ -1660,6 +1664,8 @@ const Items = (() => {
                 // deliberately does NOT roll back with it.
                 if (typeof deps.recordLifetime === 'function') {
                     deps.recordLifetime('habitCompleted', -1);
+                    // Iron Will: un-resisting a Break habit reverses its count (no farming by redo).
+                    if (habitDef.isNegative === true) deps.recordLifetime('breakResisted', -1);
                 }
             }
         }

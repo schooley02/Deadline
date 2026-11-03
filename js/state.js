@@ -813,6 +813,11 @@ const State = (() => {
         let store = DailyRecord.normalizeStore(Persistence.loadDays());
         store = DailyRecord.rollUp(DailyRecord.addDay(store, closed), now);
         if (!Persistence.saveDays(store)) return false; // keep `today`; retry next rollover
+        // Achievements swap (2026-11-03): feed the closed day to the Honor Roll / Clean Sweep counters. AFTER the save
+        // succeeded on purpose: a failed save keeps `today` and retries, so counting earlier would double count.
+        try {
+            if (deps && typeof deps.recordLifetimeDayClose === 'function') deps.recordLifetimeDayClose(closed);
+        } catch (e) { console.error('Deadline: lifetime day close failed', e); }
         today = null;
         ensureToday(now);
         return true;

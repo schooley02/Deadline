@@ -249,7 +249,7 @@ const CONFIG = {
         { minRate: 0.70, minDays: 4, stars: 2 },
         { minRate: 0.60, minDays: 2, stars: 1 },
     ],
-    HERO_HONOR_ROLL_STARS: 3, // report card: a routine at this many stars or more is on the honor roll (a label, not a counter)
+    HERO_HONOR_ROLL_STARS: 3, // report card: a routine at this many stars or more is on the honor roll (report-card label; also the Honor Roll badge counter, via Achievements.dayDeltas)
 
     // --- Hero rendering ([P1-UI-006] sub-session 3, 2026-07-19; js/ui/heroes.js) ---
     // Display-only constants, not gameplay balance (no balance-tuning protocol
@@ -707,12 +707,35 @@ const CONFIG = {
                 { id: 'on_fire_3', label: 'Gold', threshold: 30 },
             ],
         },
+        // Achievements swap (2026-11-03, Jeremy; DECISIONS 2026-11-03): Steady Hands is RETIRED (it only counted at
+        // game over and stopped growing in long runs) and replaced by three LIFETIME day/resist counters. Tiers:
+        // Clean Sweep and Iron Will 7/30/100/365 (a week, a month, 100 days, a year of one-a-day), Honor Roll
+        // 30/150/500/1500 (hero-days: three honor-roll routines reach Bronze in 10 days). Retune via balance-tuning.
         {
-            id: 'steady_hands', name: 'Steady Hands', metric: 'steadyRoutineRuns', nearMissUnit: 'run',
+            id: 'honor_roll', name: 'Honor Roll', metric: 'heroHonorDays', nearMissUnit: 'hero-day',
             tiers: [
-                { id: 'steady_hands_1', label: 'Bronze', threshold: 1 },
-                { id: 'steady_hands_2', label: 'Silver', threshold: 5 },
-                { id: 'steady_hands_3', label: 'Gold', threshold: 25 },
+                { id: 'honor_roll_1', label: 'Bronze', threshold: 30 },
+                { id: 'honor_roll_2', label: 'Silver', threshold: 150 },
+                { id: 'honor_roll_3', label: 'Gold', threshold: 500 },
+                { id: 'honor_roll_4', label: 'Platinum', threshold: 1500 },
+            ],
+        },
+        {
+            id: 'clean_sweep', name: 'Clean Sweep', metric: 'cleanDays', nearMissUnit: 'day',
+            tiers: [
+                { id: 'clean_sweep_1', label: 'Bronze', threshold: 7 },
+                { id: 'clean_sweep_2', label: 'Silver', threshold: 30 },
+                { id: 'clean_sweep_3', label: 'Gold', threshold: 100 },
+                { id: 'clean_sweep_4', label: 'Platinum', threshold: 365 },
+            ],
+        },
+        {
+            id: 'iron_will', name: 'Iron Will', metric: 'breaksResisted', nearMissUnit: 'time',
+            tiers: [
+                { id: 'iron_will_1', label: 'Bronze', threshold: 7 },
+                { id: 'iron_will_2', label: 'Silver', threshold: 30 },
+                { id: 'iron_will_3', label: 'Gold', threshold: 100 },
+                { id: 'iron_will_4', label: 'Platinum', threshold: 365 },
             ],
         },
         {
@@ -722,11 +745,6 @@ const CONFIG = {
             ],
         },
     ],
-    // "Steady Hands" qualifying-run definition (sub-session 2 wiring +
-    // migration retro-sweep both use these): a routine's completion rate at
-    // run end, and the run's minimum length for the sample to be meaningful.
-    STEADY_HANDS_MIN_RATE: 0.9,
-    STEADY_HANDS_MIN_DAYS: 7,
     // Achievements sub-session 4 (polish, 2026-07-20 session 68): how close
     // (as a fraction of a locked tier's threshold) a family's next tier has
     // to be before the Stats current-run panel nudges it. UI-only constant
