@@ -478,6 +478,18 @@ const AgendaList = (() => {
             const streakType = itemData.isNegative ? 'Resisted' : 'Streak';
             streakSpan.textContent = `${streakType}: ${itemData.streak}`;
             itemDetailsContainer.appendChild(streakSpan);
+            // Bonus tag (2026-11-02): x2 / x3 only while the habit's record earns one; nothing at x1.
+            if (typeof PointsInfo !== 'undefined' && deps && typeof deps.definedHabits === 'function' && typeof CONFIG !== 'undefined') {
+                const def = (deps.definedHabits() || []).find(h => h.id === itemData.definitionId);
+                const tag = def ? PointsInfo.habitBonusInfo(def, CONFIG).tag : '';
+                if (tag && !itemData.koGhost) {
+                    const bonusSpan = document.createElement('span');
+                    bonusSpan.classList.add('item-bonus');
+                    bonusSpan.title = 'Points bonus for a strong record';
+                    bonusSpan.textContent = tag;
+                    itemDetailsContainer.appendChild(bonusSpan);
+                }
+            }
         } else if (itemData.type !== 'task') {
             // Defensive: any future item type falls through to the shared
             // shell only, rather than silently breaking like habits used to.

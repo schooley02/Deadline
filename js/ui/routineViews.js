@@ -544,7 +544,63 @@ const RoutineViews = (() => {
         return ` <span style="font-size: 11px; color: var(--color-neutral);">(${text})</span>`;
     }
 
-    function buildHeroStatsHtml(routine, definedHabits, runStartedAtMs) {
+    // Routine earnings line (2026-11-02, Jeremy): "what is this routine paying on the day I'm looking at".
+    // Starts on the day the pager is on (Yesterday starts at Today: the record has no per-routine points).
+    // The pager sits behind this window, so the line carries its own < > to peek at other days (Today .. +6).
+    // Display only: every number comes from PointsInfo.routineDayEarning. '' if a dep is missing.
+    function earningsLineDeps(deps) {
+        return {
+            definedHabits: deps.definedHabits(),
+            definedRoutines: deps.definedRoutines(),
+            definedTasks: typeof deps.definedTasks === 'function' ? deps.definedTasks() : [],
+            activeItems: deps.activeItems,
+            completedItems: typeof deps.completedItems === 'function' ? deps.completedItems() : [],
+            sickDayDate: typeof deps.getSickDayDate === 'function' ? deps.getSickDayDate() : null,
+        };
+    }
+    function earningsLineText(routine, offset, deps) {
+        const out = PointsInfo.routineDayEarning({
+            routine, offset, config: CONFIG,
+            referenceTime: deps.getCurrentGameDate(),
+            deps: earningsLineDeps(deps),
+        });
+        return out ? out.line : '';
+    }
+    function startingEarningsOffset(deps) {
+        const viewed = typeof deps.getViewedDayOffset === 'function' ? deps.getViewedDayOffset() : 0;
+        return Math.max(0, Math.min(DayPager.MAX_OFFSET, Number(viewed) || 0));
+    }
+    function buildEarningsLineHtml(routine, deps) {
+        if (typeof PointsInfo === 'undefined' || typeof DayPager === 'undefined' || typeof deps.getCurrentGameDate !== 'function') return '';
+        let text = '';
+        try { text = earningsLineText(routine, startingEarningsOffset(deps), deps); } catch (e) { return ''; }
+        if (!text) return '';
+        const btn = 'background: transparent; border: 1px solid var(--color-border, #888); border-radius: 50%; width: 24px; height: 24px; cursor: pointer; color: inherit; line-height: 1; padding: 0;';
+        return `<div id="routineEarningsRow" data-offset="${startingEarningsOffset(deps)}" style="display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px;">
+                    <button type="button" id="routineEarningsPrev" aria-label="Previous day" style="${btn}">&lsaquo;</button>
+                    <span id="routineEarningsText" aria-live="polite" style="flex: 1; text-align: center;">${text}</span>
+                    <button type="button" id="routineEarningsNext" aria-label="Next day" style="${btn}">&rsaquo;</button>
+                </div>`;
+    }
+    function wireEarningsLine(routine, deps) {
+        const row = document.getElementById('routineEarningsRow');
+        if (!row) return;
+        const textEl = document.getElementById('routineEarningsText');
+        const prev = document.getElementById('routineEarningsPrev');
+        const next = document.getElementById('routineEarningsNext');
+        function show(offset) {
+            const clamped = Math.max(0, Math.min(DayPager.MAX_OFFSET, offset));
+            row.dataset.offset = String(clamped);
+            textEl.textContent = earningsLineText(routine, clamped, deps);
+            prev.disabled = clamped <= 0;
+            next.disabled = clamped >= DayPager.MAX_OFFSET;
+        }
+        prev.addEventListener('click', () => show(Number(row.dataset.offset) - 1));
+        next.addEventListener('click', () => show(Number(row.dataset.offset) + 1));
+        show(Number(row.dataset.offset) || 0);
+    }
+
+    function buildHeroStatsHtml(routine, definedHabits, runStartedAtMs, earningsHtml) {
         const vm = HeroesView.buildChipViewModel(routine, definedHabits, CONFIG, runStartedAtMs);
         const xpLabel = vm.xpForNext === null
             ? `${vm.xp} XP (max level)`
@@ -580,6 +636,7 @@ const RoutineViews = (() => {
                 <div style="font-size: 12px; color: var(--color-neutral); margin-top: 8px;">
                     ❤ ${vm.health}/${CONFIG.ROUTINE_MAX_HEALTH} &nbsp;·&nbsp; Habit slots: ${habitUsed}/${habitCapacity} &nbsp;·&nbsp; Task slots: ${taskUsed}/${taskCapacity}
                 </div>
+                ${earningsHtml || ''}
                 ${pointsCalloutHtml}
             </div>
         `;
@@ -612,7 +669,7 @@ const RoutineViews = (() => {
 
                     ${buildStatusRowHtml(routine)}
 
-                    ${buildHeroStatsHtml(routine, deps.definedHabits(), deps.runStartedAtMs)}
+                    ${buildHeroStatsHtml(routine, deps.definedHabits(), deps.runStartedAtMs, buildEarningsLineHtml(routine, deps))}
 
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
                         <label for="routineHeroCategory" style="font-size: 14px;">Hero type:</label>
@@ -652,6 +709,7 @@ const RoutineViews = (() => {
         // Populate the routine content (module-internal calls, same file)
         populateRoutineHabits(routine, { definedHabits: deps.definedHabits });
         populateRoutineTasks(routine);
+        wireEarningsLine(routine, deps);
 
         // Attach event listeners — module-internal as of session 9 (part 2)
         attachRoutineManagementListeners(routine.id, deps);

@@ -171,6 +171,13 @@
     font-weight: 500;
 }
 
+.item-bonus {
+    font-size: var(--text-caption);
+    color: var(--color-accent-yellow);
+    margin-left: var(--space-1, 4px);
+    font-weight: 700;
+}
+
 .item-category {
     font-size: var(--text-caption);
     color: white;

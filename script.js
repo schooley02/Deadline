@@ -976,6 +976,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function popupsDeps() {
         return {
             gameIsOver: State.isGameOver(), activeItems: State.getActiveItems(),
+            definedHabits: () => State.getDefinedHabits(), // habit popup 'Points:' line (PointsInfo)
             completeItem: (itemId, opts) => Items.completeItem(itemId, itemsDeps(), opts),
             indulgeHabit: (itemId, opts) => Items.indulgeHabit(itemId, itemsDeps(), opts),
             createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()),
@@ -2167,6 +2168,10 @@ document.addEventListener('DOMContentLoaded', () => {
             transferHabitBetweenRoutines, transferTaskBetweenRoutines,
             createNewHabitInRoutine, createNewTaskInRoutine, editHabitInRoutine, editTaskInRoutine,
             activeItems: State.getActiveItems(), createListItem, sortAndRenderActiveList,
+            // Manage Routine earnings line (2026-11-02, PointsInfo.routineDayEarning): read-only getters.
+            definedTasks: () => window.definedTasks || [], getSickDayDate: State.getSickDayDate,
+            getCurrentGameDate: State.getCurrentGameDate,
+            getViewedDayOffset: () => DayPagerView.getViewedDayOffset(),
             updateTaskCountDisplay, // week strip (2026-11-02): the Add Selected picker changes routine membership itself
             // 2026-11-01: Edit Habit from the Completed list edits one completed entry (name/category/goal) and re-renders the list.
             completedItems: State.getCompletedItems,

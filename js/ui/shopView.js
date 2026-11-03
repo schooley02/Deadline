@@ -165,6 +165,16 @@ const ShopView = (() => {
             pointsEl.classList.toggle('shop-points--debt', deps.playerPoints < 0);
         }
 
+        // "How points work" (i) next to the balance (2026-11-02). Words come from PointsInfo.rulesLines(CONFIG), so the
+        // numbers can't drift from the real rules. Same tap-to-show pattern as the pushback (i); wireHint is idempotent.
+        const pointsHintBtn = document.getElementById('shopPointsHintBtn');
+        const pointsHintPop = document.getElementById('shopPointsHint');
+        if (pointsHintBtn && pointsHintPop && typeof PointsInfo !== 'undefined') {
+            pointsHintPop.innerHTML = '<ul>' + PointsInfo.rulesLines(CONFIG).map(l => `<li>${l}</li>`).join('') + '</ul>';
+            pointsHintBtn.hidden = false;
+            if (typeof PushbackHelp !== 'undefined') PushbackHelp.wireHint(document.getElementById('shopWindow'));
+        }
+
         list.innerHTML = '';
         let pushbackHeaderDone = false;
         deps.catalog.forEach(item => {

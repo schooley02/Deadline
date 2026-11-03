@@ -333,6 +333,20 @@ const Popups = (() => {
         return how.actual !== undefined ? { actual: how.actual } : undefined;
     }
 
+    // "Pays x2 . 19 of last 22 done . x3 at 22/22" (2026-11-02, Jeremy). Display only: the numbers come from
+    // PointsInfo, which reads the same history Habits.pointsMultiplier awards from. '' if anything is missing.
+    function buildHabitPointsLineHtml(item, deps) {
+        if (!item || item.type !== 'habit' || typeof PointsInfo === 'undefined') return '';
+        if (!deps || typeof deps.definedHabits !== 'function') return '';
+        const def = (deps.definedHabits() || []).find(h => h.id === item.definitionId);
+        if (!def) return '';
+        const cfg = typeof CONFIG !== 'undefined' ? CONFIG : null;
+        if (!cfg) return '';
+        const line = PointsInfo.habitBonusInfo(def, cfg).line;
+        const ghost = item.koGhost ? ' (no points while knocked out)' : '';
+        return `<p class="habit-points-line"><strong>Points:</strong> ${line}${ghost}</p>`;
+    }
+
     function showTaskDetailsPopup(item, deps) {
         const modalHtml = `
             <div class="modal-overlay">
@@ -347,6 +361,7 @@ const Popups = (() => {
                             : `<p><strong>Due:</strong> <span class="task-due-display">${item.dueDateTime.toLocaleString()}</span></p>`}
                         <p><strong>Priority:</strong> ${item.isHighPriority ? 'High' : 'Normal'}</p>
                         ${item.type === 'habit' ? `<p><strong>Streak:</strong> ${item.streak}</p>` : ''}
+                        ${buildHabitPointsLineHtml(item, deps)}
                         ${(item.type === 'habit' && typeof Habits !== 'undefined' && Habits.formatGoal && Habits.formatGoal(item.goal, item.isNegative))
                             ? `<p class="habit-goal-line"><strong>${item.isNegative ? 'Limit' : 'Goal'}:</strong> ${Habits.formatGoal(item.goal, item.isNegative).replace(/^(Goal|Limit): /, '').replace(/</g, '&lt;')}</p>` : ''}
                         ${buildLoggedTimeSectionHtml(item, deps)}

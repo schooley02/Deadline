@@ -308,6 +308,7 @@
                 <div class="shop-title-group">
                     <h3 id="shopWindowTitle">Shop</h3>
                     <span id="shopWindowPoints" class="shop-points" aria-live="polite">0 pts</span>
+                    <button type="button" id="shopPointsHintBtn" class="form-hint-btn" data-hint-for="shopPointsHint" aria-label="How points work" aria-expanded="false" hidden>&#9432;</button>
                 </div>
                 <button class="close-window" data-window="shopWindow" aria-label="Close Shop window">×</button>
             </div>
@@ -315,6 +316,7 @@
                 <!-- [P1-UI-008] SHOP_PLAN.md session 2: catalog grid only.
                      Repair-kit USE (session 3) and pushback targeting
                      (session 4) come later — buying only fills inventory today. -->
+                <div id="shopPointsHint" class="form-hint-pop points-hint-pop" hidden></div>
                 <div id="shopMessage" class="shop-message hidden"></div>
                 <div id="shopWindowList" class="shop-grid">
                     <!-- Catalog cards populated by js/ui/shopView.js -->
@@ -447,6 +449,8 @@
     <script src="js/progression.js"></script>
     <script src="js/heroes.js"></script>
     <script src="js/economy.js"></script>
+    <!-- js/pointsInfo.js (2026-11-02): display-only "how points work" text/numbers; needs Economy, Habits, Routines, DayPager at CALL time only -->
+    <script src="js/pointsInfo.js"></script>
     <!-- js/pushback.js (2026-11-02, Build A): pure pushback-charges logic; not wired until Build B -->
     <script src="js/pushback.js"></script>
     <script src="js/shop.js"></script>
