@@ -49,7 +49,7 @@ const Shop = (() => {
 
     /**
      * Level-perk gift: returns a NEW inventory with `count` more of a HELD
-     * (consumable) item. Non-consumables (pushback — instant, can't be held)
+     * (consumable) item. Non-consumables (none today: pushback tokens are held items since 2026-11-02)
      * and unknown ids are refused as { ok: false } with the inventory
      * unchanged, so a bad LEVEL_PERKS row is a visible no-op, never a
      * corrupted inventory.

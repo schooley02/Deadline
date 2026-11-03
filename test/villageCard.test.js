@@ -237,3 +237,92 @@ describe('Clock tower copy and "Your reward" (pushback charges, Build C)', () =>
         expect(VillageCard.cardHtml(VillageCard.buildModel({ kind: 'nights', progress: progress(0, 'nights'), reward }))).not.toContain('Your reward');
     });
 });
+
+describe('"Next item" -- the item the next star pays (village tier drops, 2026-11-03)', () => {
+    const VillageDrops = require('../js/villageDrops.js');
+    const CONFIG = require('../js/config.js');
+    const ctxFor = (kind, value) => {
+        const p = VillageProgress.tierFor(value, VillageProgress.DEFAULT_THRESHOLDS[kind]);
+        const d = VillageDrops.nextDrop(kind, p.tier, CONFIG.VILLAGE_TIER_DROPS);
+        return { kind, progress: p, nextDrop: d ? { star: d.star, label: VillageDrops.label(d, CONFIG.SHOP_ITEMS) } : null };
+    };
+
+    test('a T1 building shows the star-2 item under the bar', () => {
+        const m = VillageCard.buildModel(ctxFor('slain', 1));
+        expect(m.nextItem).toEqual({ star: 2, label: 'Medium Pushback (2 hr) ×1' });
+        const html = VillageCard.cardHtml(m);
+        expect(html).toContain('Next item');
+        expect(html).toContain('Star 2: Medium Pushback (2 hr) ×1');
+    });
+
+    test('it moves up the ladder with the tier', () => {
+        expect(VillageCard.buildModel(ctxFor('slain', 30)).nextItem).toEqual({ star: 3, label: 'Repair Kit (Small) ×1' });
+        expect(VillageCard.buildModel(ctxFor('slain', 150)).nextItem).toEqual({ star: 4, label: 'Repair Kit (Medium) ×1' });
+        expect(VillageCard.buildModel(ctxFor('slain', 450)).nextItem).toEqual({ star: 5, label: 'Repair Kit (Large) ×1' });
+    });
+
+    test('the themed star-5 prize shows on the building that earns it', () => {
+        expect(VillageCard.buildModel(ctxFor('lurkers', 40)).nextItem).toEqual({ star: 5, label: 'Habit Cheat Day ×1' });
+        expect(VillageCard.buildModel(ctxFor('habits', 250)).nextItem).toEqual({ star: 5, label: 'Skip Day ×1' });
+        expect(VillageCard.buildModel(ctxFor('nights', 50)).nextItem).toEqual({ star: 5, label: 'Sick Day ×1' });
+    });
+
+    test('at the top star the card says every item reward is earned', () => {
+        const m = VillageCard.buildModel(ctxFor('slain', 1000));
+        expect(m.nextItem).toBeNull();
+        expect(m.maxed).toBe(true);
+        const html = VillageCard.cardHtml(m);
+        expect(html).toContain('All item rewards earned.');
+        expect(html).not.toContain('Next item');
+    });
+
+    test('a top-star building ignores a stale nextDrop', () => {
+        const m = VillageCard.buildModel({ kind: 'slain', progress: progress(1000, 'slain'), nextDrop: { star: 2, label: 'Stale ×1' } });
+        expect(m.nextItem).toBeNull();
+    });
+
+    test('no nextDrop given (older callers) = no line and no crash', () => {
+        const m = VillageCard.buildModel({ kind: 'nights', progress: progress(1) });
+        expect(m.nextItem).toBeNull();
+        const html = VillageCard.cardHtml(m);
+        expect(html).not.toContain('Next item');
+        expect(html).not.toContain('All item rewards earned.');
+    });
+
+    test('malformed nextDrop values are ignored', () => {
+        [{ star: 'x', label: 'A' }, { star: 3, label: '' }, { star: 3 }, { label: 'A' }, null, 'junk'].forEach((nd) => {
+            expect(VillageCard.buildModel({ kind: 'nights', progress: progress(1), nextDrop: nd }).nextItem).toBeNull();
+        });
+    });
+
+    test('the label is escaped', () => {
+        const html = VillageCard.cardHtml(VillageCard.buildModel({ kind: 'nights', progress: progress(1), nextDrop: { star: 2, label: '<b>x</b>' } }));
+        expect(html).toContain('&lt;b&gt;x&lt;/b&gt;');
+        expect(html).not.toContain('<b>x</b>');
+    });
+
+    test('the item line sits under the progress bar text, above the explanations', () => {
+        const html = VillageCard.cardHtml(VillageCard.buildModel(ctxFor('slain', 1)));
+        const bar = html.indexOf('vc-bar-text');
+        const item = html.indexOf('vc-next-item');
+        const measures = html.indexOf('What we measure');
+        expect(bar).toBeGreaterThan(-1);
+        expect(item).toBeGreaterThan(bar);
+        expect(measures).toBeGreaterThan(item);
+    });
+
+    test('every building gets a next-item line at star 1 (all eight kinds)', () => {
+        VillageProgress.KINDS.forEach((kind) => {
+            const m = VillageCard.buildModel(ctxFor(kind, 0));
+            expect(m.nextItem).not.toBeNull();
+            expect(m.nextItem.star).toBe(2);
+        });
+    });
+
+    test('the Clock tower shows BOTH its pushback reward block and the next item line', () => {
+        const reward = { current: '3 Short a day', next: 'Star 2 adds +1 Short a day', maxed: false };
+        const html = VillageCard.cardHtml(VillageCard.buildModel(Object.assign(ctxFor('punctuality', 1), { reward })));
+        expect(html).toContain('Your reward');
+        expect(html).toContain('Next item');
+    });
+});

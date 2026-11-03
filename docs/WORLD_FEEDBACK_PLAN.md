@@ -230,6 +230,8 @@ its run from history length); the game-over card shows the eight thumbnails ("Vi
 peak while the game is over and Restart returns it to T1. Side fix: portrait game-over card centred on the viewport.
 Condition overlays stay their own queued item.
 
+**Tier drops BUILT 2026-11-03 (Claude app session, Opus design -> Sonnet build; sw v235; Jest 151 suites / 3,258; DECISIONS 2026-11-03 "village tier drops"; docs/ECONOMY.md "Village tier drops"):** reaching star 2-5 on any building pays one fixed item into the held inventory (shared ladder Medium Pushback / Small / Medium / Large kit, themed star-5 Cheat Day / Skip Day / Sick Day on the gym / hospital / radio tower), once per star per run via the ledger `currentRunStats.villageDropsPaid`, shown as a Next item line on each card and one batched notice. Paid from the real tiers only; existing stars are paid once on first load.
+
 ## High school v2: banked hero stars + report card -- DECIDED 2026-10-31 (Claude app session, Opus; Jeremy). BUILT 2026-10-31 (Sonnet; steps 0-5, sw v164; see DECISIONS 2026-10-31 "High school v2 BUILT").
 
 **Why:** the High school counted perfect-attendance days (every active routine fully done). One routine with one easy item

@@ -42,6 +42,10 @@
 .vc-fill { display: block; height: 100%; background: var(--color-accent-teal); }
 .vc-bar-text { margin: 6px 0 0; font-size: 13px; color: var(--color-text-primary); }
 .vc-bar-text--maxed { font-weight: 600; color: var(--color-holy-gold); }
+/* Village tier drops (2026-11-03): the item the next star pays, one line under the progress bar. */
+.vc-next-item { margin: 6px 0 0; font-size: 13px; font-weight: 600; text-align: left; color: var(--color-text-primary); }
+.vc-next-item-label { margin-right: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-primary-dark-green); }
+.vc-next-item--done { font-weight: 400; opacity: 0.8; }
 .vc-empty { margin: 10px 0 0; padding: 8px; border: 1px dashed var(--color-primary-dark-green); border-radius: 8px; font-size: 13px; color: var(--color-primary-dark-green); }
 .vc-line { margin: 8px 0 0; font-size: 12px; color: var(--color-neutral); }
 

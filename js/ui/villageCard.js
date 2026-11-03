@@ -18,6 +18,9 @@
  *   hasBadHabit?,   true when at least one active (non-archived) negative habit exists (gym empty state)
  *   hasRoutine?,    true when at least one routine exists (school empty state)
  *   reward?,        the Clock tower's "Your reward" block: PushbackHelp.rewardModel(...) -> { current, next, maxed } (Build C)
+ *   nextDrop?,      the item the NEXT star pays (village tier drops, 2026-11-03): { star, label } from VillageDrops.nextDrop + .label,
+ *                   or null/absent. Shown as a "Next item" line under the progress bar; at the top star the card says all item rewards
+ *                   are earned.
  *   spriteUrl?, spriteW?, spriteH?, spriteFlip?   the building's current sprite (mirrored like the scene when spriteFlip)
  * }
  */
@@ -137,6 +140,8 @@ const VillageCard = (() => {
             kind: c.kind,
             name: meta.name,
             measures: meta.measures,
+            nextItem: (!maxed && c.nextDrop && Number.isFinite(c.nextDrop.star) && typeof c.nextDrop.label === 'string' && c.nextDrop.label)
+                ? { star: Math.round(c.nextDrop.star), label: c.nextDrop.label } : null,
             reward: (c.kind === 'punctuality' && c.reward && typeof c.reward.current === 'string') ? {
                 current: c.reward.current, next: c.reward.next || null, maxed: !!c.reward.maxed,
                 credit: typeof c.reward.credit === 'string' ? c.reward.credit : '',
@@ -188,6 +193,10 @@ const VillageCard = (() => {
                   : (m.reward.maxed ? '<p class="vc-reward vc-reward--next">Top star: nothing more to earn here.</p>' : '')) +
               (m.reward.credit ? `<p class="vc-reward">${esc(m.reward.credit)}</p>` : '')
             : '';
+        // Village tier drops: the item the next star pays (always a fixed item), or a done line once every star is earned.
+        const nextItemHtml = m.nextItem
+            ? `<p class="vc-next-item"><span class="vc-next-item-label">Next item</span> Star ${m.nextItem.star}: ${esc(m.nextItem.label)}</p>`
+            : (m.maxed ? '<p class="vc-next-item vc-next-item--done">All item rewards earned.</p>' : '');
         const emptyHtml = m.empty ? `<p class="vc-empty">${esc(m.empty)}</p>` : '';
         const linesHtml = m.lines.map(l => `<p class="vc-line">${esc(l)}</p>`).join('');
         // High school report card (HeroesView loads before this module; tests without it simply skip the card).
@@ -205,6 +214,7 @@ const VillageCard = (() => {
                             </div>
                             <div class="vc-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span class="vc-fill" style="width:${pct}%"></span></div>
                             <p class="vc-bar-text${m.maxed ? ' vc-bar-text--maxed' : ''}">${esc(m.barText)}</p>
+                            ${nextItemHtml}
                             ${emptyHtml}${linesHtml}
                             ${reportHtml}
                             ${m.measures ? `<p class="vc-label">What we measure</p><p class="vc-measures">${esc(m.measures)}</p>` : ''}

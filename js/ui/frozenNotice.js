@@ -300,7 +300,44 @@ const FrozenNotice = (() => {
         clockWaiterId = setTimeout(tryShow, 0);
     }
 
+    // Village tier drops (2026-11-03): ONE notice listing every item a village building just paid. `entries` = [{ building, star, label }]
+    // (building = the card's name, e.g. "Radio tower"; label = "Repair Kit (Small) \u00d71"). Rows that arrive while a notice is waiting
+    // (or while another modal is open) join the same modal, so a first-load payout of several stars is one window, not eight.
+    let pendingVillageRewards = [];
+    let villageRewardWaiterId = null;
+    function showVillageRewardNotice(entries) {
+        const rows = (Array.isArray(entries) ? entries : []).filter(e => e && e.label);
+        if (rows.length === 0) return;
+        pendingVillageRewards.push(...rows);
+        if (villageRewardWaiterId !== null) return;
+        const tryShow = () => {
+            if (document.querySelector('.modal-overlay')) {
+                villageRewardWaiterId = setTimeout(tryShow, 400);
+                return;
+            }
+            const list = pendingVillageRewards;
+            pendingVillageRewards = [];
+            villageRewardWaiterId = null;
+            if (!list.length) return;
+            const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+            const li = list.map(r => `<li>${esc(r.building)} ${'\u2605'.repeat(Math.max(1, Math.min(5, Math.round(Number(r.star) || 1))))}: ${esc(r.label)}</li>`).join('');
+            Modal.open(`
+                <div class="modal-overlay frozen-notice-overlay">
+                    <div class="modal-content frozen-notice-modal">
+                        <h3>Village rewards</h3>
+                        <p>${list.length === 1 ? 'A village building earned a new star. This item was added to the items you hold (see the Shop):' : 'Your village earned new stars. These items were added to the items you hold (see the Shop):'}</p>
+                        <ul class="frozen-notice-recovery-list">${li}</ul>
+                        <div class="modal-buttons">
+                            <button class="primary-button" onclick="closeModal()">Nice</button>
+                        </div>
+                    </div>
+                </div>`);
+        };
+        villageRewardWaiterId = setTimeout(tryShow, 0);
+    }
+
     return {
+        showVillageRewardNotice,
         showClockTowerStarUpNotice,
         showFrozenRoutineNotice,
         showRoutineUnfrozenNotice,

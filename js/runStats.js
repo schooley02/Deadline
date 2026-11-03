@@ -43,6 +43,10 @@ const RunStats = (() => {
             // Distance-priced rescheduling (Build 2, 2026-10-25): times a task's
             // due time was moved LATER (paid or free). Additive; absent = 0.
             reschedules: 0,
+            // Village tier drops (2026-11-03, js/villageDrops.js): { "<building kind>": highest star already PAID }. Only ever rises,
+            // resets with the run (this object is rebuilt by initGame), so every run pays each star once. Additive; absent = {}
+            // (nothing paid yet, so the first check on an older run pays the stars it already has). No schema bump.
+            villageDropsPaid: {},
             blame: {},
         };
     }

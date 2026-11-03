@@ -9,7 +9,7 @@ const rec = () => DailyRecord.fresh({ date: '2025-01-03', tz: 0 });
 describe('v6 pb tally', () => {
     test('a fresh record starts with an empty pb tally for every size', () => {
         const r = rec();
-        expect(r.v).toBe(6);
+        expect(r.v).toBe(7);
         expect(r.pb).toEqual({
             late: 0,
             short: { charge: 0, token: 0, points: 0 },

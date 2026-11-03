@@ -99,6 +99,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? Object.assign(PushbackHelp.rewardModel({ star: progress.punctuality.tier, table: CONFIG.PUSHBACK_ALLOWANCE }),
                     // Anytime morning on-time credits (2026-11-02): how many are left and when the next one returns.
                     { credit: 'Anytime morning card. ' + AnytimeCheck.creditText(anytimeCreditInfo()) }) : null,
+            // Village tier drops (2026-11-03): the item the NEXT star pays, shown as the card's "Next item" line.
+            nextDrop: (() => {
+                const d = VillageDrops.nextDrop(hit.kind, progress[hit.kind] ? progress[hit.kind].tier : 1, CONFIG.VILLAGE_TIER_DROPS);
+                return d ? { star: d.star, label: VillageDrops.label(d, CONFIG.SHOP_ITEMS) } : null;
+            })(),
             // High school v2 report card (2026-10-31): one row per routine.
             reportRows: Heroes.reportRows(State.getDefinedRoutines(), State.getDefinedHabits(), CONFIG, State.getRunStartedAtMs()),
             spriteUrl: hit.url,
@@ -689,6 +694,50 @@ document.addEventListener('DOMContentLoaded', () => {
             if (g) gains.push(g.text);
         }
         FrozenNotice.showClockTowerStarUpNotice(star, gains);
+    }
+
+    // Village tier drops (2026-11-03; js/villageDrops.js, CONFIG.VILLAGE_TIER_DROPS, docs/ECONOMY.md "Village tier drops"): once a second,
+    // pay every star a building has reached that the ledger (currentRunStats.villageDropsPaid) has not paid yet. Uses the REAL tiers
+    // (realVillageTiers: fresh, never the ?xTier= dev overrides). Does nothing while the game is over (the scene shows the PEAK then, and
+    // a restart rebuilds the ledger with the run) or during offline catch-up (the first tick after it pays everything owed in one batch,
+    // so the player sees one notice, not one per star). The first check on a run that predates the feature pays every star it already
+    // has (Jeremy, 2026-11-03). The pure maths -- what is owed, the once-per-star ledger -- is VillageDrops.settle.
+    let villageDropsCheckedMs = 0;
+    function payVillageDrops(nowMs) {
+        if (nowMs - villageDropsCheckedMs < 1000) return;
+        villageDropsCheckedMs = nowMs;
+        if (State.isGameOver() || offlineCatchUpActive) return;
+        try {
+            const tiers = realVillageTiers();
+            const stats = State.getCurrentRunStats();
+            if (!tiers || !stats) return; // progress not computable yet: unknown is not "star 1 reached"
+            const res = VillageDrops.settle({
+                tiers,
+                paid: stats.villageDropsPaid,
+                inventory: State.getPlayerInventory(),
+                catalog: CONFIG.SHOP_ITEMS,
+                table: CONFIG.VILLAGE_TIER_DROPS,
+                grant: Shop.grant,
+            });
+            if (!res.changed) return;
+            stats.villageDropsPaid = res.newPaid;
+            res.failed.forEach(row => console.error('Deadline: village drop could not be granted (check CONFIG.VILLAGE_TIER_DROPS)', row));
+            if (res.granted.length > 0) {
+                State.setPlayerInventory(res.newInventory);
+                State.bumpToday('drop', {
+                    count: res.granted.reduce((n, g) => n + g.count, 0),
+                    value: res.granted.reduce((n, g) => n + g.value, 0),
+                });
+            }
+            saveGame();
+            FrozenNotice.showVillageRewardNotice(res.granted.map(g => ({
+                building: (VillageCard.KINDS[g.kind] || {}).name || g.kind,
+                star: g.star,
+                label: g.label,
+            })));
+        } catch (err) {
+            console.error('Deadline: village drops failed', err);
+        }
     }
 
     // Live numbers for the (i) help panels (popup, edit form, Shop): Clock tower star, free allowance, charges left, tokens held.
@@ -1728,6 +1777,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 processTimers(Date.now());
                 pollEveningCheck(Date.now());
                 observeClockStar(Date.now());
+                payVillageDrops(Date.now());
                 refreshBaseChip();
                 GraveyardView.render(BASE_WIDTH);
                 VillageView.render(BASE_WIDTH);

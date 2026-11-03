@@ -165,8 +165,8 @@ const CONFIG = {
     // for the level panel only), convenience on the even levels, a capstone
     // at max level. Everything resets with the run, like level and XP.
     // Perk types: 'slot' (display only), 'item' (adds `count` of a SHOP_ITEMS
-    // id to the held inventory — HELD items only, pushbacks are instant and
-    // can't be gifted), 'discount' (shop price multiplier = 1 - value; the
+    // id to the held inventory — HELD (consumable) items only; pushback
+    // tokens are held items since 2026-11-02 and can be gifted too), 'discount' (shop price multiplier = 1 - value; the
     // highest reached level's discount applies, derived from level, not
     // persisted), 'title' (cosmetic; `skin` is a hook for V4+ church art).
     // Red-line kept on purpose: no 200-pt token before max level, nothing
@@ -616,6 +616,30 @@ const CONFIG = {
     VILLAGE_HEAVY_DAY_MIN_DAYS: 3, // ...and needs at least this many closed days of history before any day can be heavy
     VILLAGE_HEAVY_DAY_FACTOR: 1.25, // a day is HEAVY only when more than this x the recent average was due (Jeremy 2026-10-30, option 2: a permanent step up stops scoring once the average catches up)
     VILLAGE_HEAVY_DAY_MIN_EXTRA: 1, // ...and at least this many items above that average (keeps a tiny average from making every +1 "heavy")
+
+    // ---- Village tier DROPS (DECIDED 2026-11-03, Jeremy + Claude; DECISIONS "Village tier drops"; docs/ECONOMY.md "Village tier drops") ----
+    // Reaching star N of a building (N = 2..5; every building starts at star 1, which pays nothing) adds ONE fixed item to the HELD
+    // inventory, once per star per run (js/villageDrops.js, ledger `currentRunStats.villageDropsPaid`). The harder stars pay more: the
+    // thresholds above are tuned to the same pace for every building (about 4 days / 2.5 weeks / 7 weeks / 3+ months), so ONE shared ladder
+    // by star. `default` = the ladder; any other key is a building kind whose rows REPLACE the ladder's for those stars (the star-5 prizes
+    // are themed to what the building measures: the gym counts Break habits resisted -> Cheat Day, the hospital counts good habits ->
+    // Skip Day, the radio tower counts nights survived -> Sick Day). Every itemId must be a held (`consumable`) SHOP_ITEMS id
+    // (test/villageDrops.test.js checks). Theory-pass value per star: 10 / 25 / 50 / 100 pts (200 at the themed star-5 prizes);
+    // Jeremy's leaner alternative (Short Pushback at star 2, Medium Pushback at star 3, 5 / 10 pts) is kept for a future difficulty
+    // setting or a post-playtest retune. Retune through the balance-tuning protocol; never hardcode in js/.
+    // Red line relaxed on purpose (Jeremy, 2026-11-03): LEVEL_PERKS keeps "no 200-pt token before max level", but a village star 5 is a
+    // 3+ month feat, about when Lv 9 lands, so it may pay a 200-pt token.
+    VILLAGE_TIER_DROPS: {
+        default: {
+            2: { itemId: 'pushback_medium', count: 1 }, // Medium Pushback (2 hr), 10 pts
+            3: { itemId: 'repair_small',    count: 1 }, // Repair Kit (Small), 25 pts
+            4: { itemId: 'repair_medium',   count: 1 }, // Repair Kit (Medium), 50 pts
+            5: { itemId: 'repair_large',    count: 1 }, // Repair Kit (Large), 100 pts
+        },
+        lurkers: { 5: { itemId: 'cheat_day', count: 1 } }, // Boxing gym: Habit Cheat Day (Break habits only, like the gym)
+        habits:  { 5: { itemId: 'skip_day',  count: 1 } }, // Hospital: Skip Day (one habit)
+        nights:  { 5: { itemId: 'sick_day',  count: 1 } }, // Radio tower: Sick Day (every habit)
+    },
 
     // --- Sub-task clustering ---
     SUBTASK_CLUSTER_GAP_PX: 8, // visual gap between clustered sprites' VISIBLE graphics (not their boxes)

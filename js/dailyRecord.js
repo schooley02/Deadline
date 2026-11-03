@@ -33,6 +33,7 @@
  *   token       {kind:'cheat'|'sick'|'skip'|'pushback'|'kit'}
  *   reschedule  {}
  *   pushback    {size:'short'|'medium'|'long', charges, tokens, points}   (v6: one paid-zone move, counts in units of that size)
+ *   drop        {count, value}                       (v7: a village tier drop was paid -- items added, their shop value in points)
  *   ko / revive {}
  *   timer       {kind:'work'|'limit', minutes}
  *   goal        {habitId, type:'time'|'amount'|'note', amount, unit, met, actual}   (v5: an answered habit's goal)
@@ -56,7 +57,10 @@ const DailyRecord = (() => {
     // { charge, token, points } (a 3-day move is 3 Longs), and pb.late = how many such MOVES there were (each one flags the item
     // `pushedLate`, so it can't count toward the Clock tower). Free moves (earlier, calm, grace) are only in `resched`. The old
     // `tokens.pushback` key is kept in the shape for old days but is no longer bumped.
-    const V = 6;
+    // v7 (2026-11-03, Village tier drops): `drops` = { n, pts }, the items a village building paid when it reached a new star that
+    // day (n = items added to the held inventory, pts = their shop value, baseCost x count). Free items, so insights can tell them
+    // apart from bought ones (`pts.spent`) and from the level-perk gifts (not recorded).
+    const V = 7;
     // Mirrors Habits.GOAL_UNIT_SUGGESTIONS (test/dailyRecord.test.js checks they match). Kept local: no global dependencies.
     const GOAL_UNITS = ['pages', 'glasses', 'oz', 'steps', 'miles', 'km', 'reps', 'words', 'servings', 'drinks', 'cigarettes', 'cups', '$', 'times'];
     const GOAL_TYPES = ['time', 'amount', 'note'];
@@ -145,6 +149,8 @@ const DailyRecord = (() => {
             resched: 0,
             // v6: paid-zone pushbacks by size and source (see V above).
             pb: freshPb(),
+            // v7: village tier drops paid today (see V above).
+            drops: { n: 0, pts: 0 },
             ko: 0,
             revived: 0,
             timer: { workMin: 0, limitMin: 0, edits: 0, editMin: 0 },
@@ -437,6 +443,15 @@ const DailyRecord = (() => {
                 });
                 break;
             }
+            case 'drop': {
+                // A village tier drop was paid: p = { count, value } (items added, their shop value in points).
+                if (!rec.drops) rec.drops = { n: 0, pts: 0 };
+                const n = Math.floor(Number(p.count));
+                const pts = Math.floor(Number(p.value));
+                if (n > 0) rec.drops.n += n;
+                if (pts > 0) rec.drops.pts += pts;
+                break;
+            }
             case 'ko':
                 rec.ko += 1;
                 break;
@@ -634,6 +649,9 @@ const DailyRecord = (() => {
         PB_SIZES.forEach((z) => {
             PB_SOURCES.forEach((k) => { dst.pb[z][k] += (src.pb && src.pb[z] && src.pb[z][k]) || 0; });
         });
+        if (!dst.drops) dst.drops = { n: 0, pts: 0 };
+        dst.drops.n += (src.drops && src.drops.n) || 0;
+        dst.drops.pts += (src.drops && src.drops.pts) || 0;
         dst.ko += src.ko || 0;
         dst.revived += src.revived || 0;
         dst.active.touches += (src.active && src.active.touches) || 0;
