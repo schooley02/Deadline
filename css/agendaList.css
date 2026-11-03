@@ -534,17 +534,29 @@
 .completed-item-slipped .item-name { text-decoration: none; opacity: 0.8; }
 .completed-item-slipped { opacity: 0.85; }
 
-/* Completed block: reveal entries from before today (2026-11-03). */
+/* Completed block: reveal entries from before today (2026-11-03). Styled like the FAB / HUD buttons so it reads as a button. */
 .completed-show-older {
     display: block;
-    margin: 8px auto 0;
-    padding: 6px 14px;
-    border: 1px solid var(--border-color, #c9d6d0);
+    min-height: 42px;
+    margin: 12px auto 4px;
+    padding: 10px 24px;
+    border: 0;
     border-radius: 999px;
-    background: transparent;
-    color: inherit;
+    background: linear-gradient(135deg, var(--color-primary-dark-green) 0%, var(--color-secondary-green-light) 100%);
+    color: #fff;
     font: inherit;
-    font-size: 0.85rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    box-shadow: 0 3px 8px rgba(10, 95, 85, 0.35);
     cursor: pointer;
 }
+.completed-show-older::after {
+    content: '\25BE';            /* small down triangle */
+    margin-left: 8px;
+}
+.completed-show-older.is-open::after { content: '\25B4'; }  /* small up triangle */
+.completed-show-older:hover { filter: brightness(1.08); }
+.completed-show-older:active { transform: translateY(1px); box-shadow: 0 1px 4px rgba(10, 95, 85, 0.35); }
+.completed-show-older:focus-visible { outline: 3px solid var(--color-accent-yellow); outline-offset: 2px; }
 .completed-show-older[hidden] { display: none; }

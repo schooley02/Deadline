@@ -785,6 +785,7 @@ const AgendaList = (() => {
         if (showOlderBtn.parentNode !== section) section.appendChild(showOlderBtn);
         showOlderBtn.hidden = false;
         showOlderBtn.textContent = showOlderCompleted ? 'Hide older' : `Show older (${olderCount})`;
+        showOlderBtn.classList.toggle('is-open', showOlderCompleted);
         showOlderBtn.onclick = () => { showOlderCompleted = !showOlderCompleted; rerender(); };
     }
 
