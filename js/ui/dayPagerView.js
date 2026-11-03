@@ -167,8 +167,17 @@ const DayPagerView = (() => {
     }
 
     function clearGhostSprites() {
+        shownGhosts = [];
         if (!deps.gameCanvasEl) return;
         deps.gameCanvasEl.querySelectorAll('.day-pager-ghost').forEach(el => el.remove());
+    }
+
+    // Horizontal spot for a ghost when the viewed day's clock reads `previewTime` (the same timeline math live
+    // zombies use). Split out so the slider can slide a day's ghosts without rebuilding them (2026-11-03).
+    function positionGhostSprite(el, ghost, previewTime) {
+        const dims = deps.dims();
+        const x = Clock.calculateTimelinePosition({ type: ghost.isHabit ? 'habit' : 'task', dueDateTime: ghost.dueTime, startDateTime: ghost.startTime || null }, previewTime, dims);
+        el.style.left = Math.max(dims.baseWidth, x) + 'px';
     }
 
     function buildGhostSprite(ghost, previewTime, ghostList, index) {
@@ -189,8 +198,7 @@ const DayPagerView = (() => {
             if (ghost.isNegative) el.classList.add('negative-habit');
         }
 
-        const x = Clock.calculateTimelinePosition({ type: ghost.isHabit ? 'habit' : 'task', dueDateTime: ghost.dueTime, startDateTime: ghost.startTime || null }, previewTime, dims);
-        el.style.left = Math.max(dims.baseWidth, x) + 'px';
+        positionGhostSprite(el, ghost, previewTime);
         // Vertical placement: stand on the V1 ground band like live zombies
         // do (Movement.getItemTopPosition), spread deterministically by index
         // across the band so ghosts don't stack. (Was a fixed 20-180px offset,
@@ -226,8 +234,12 @@ const DayPagerView = (() => {
         return el;
     }
 
+    // The ghosts currently on the canvas, in sprite order (so a scrub can reposition them by index).
+    let shownGhosts = [];
+
     function renderGhostCanvas(ghosts, previewTime) {
         clearGhostSprites();
+        shownGhosts = ghosts.slice();
         if (!deps.gameCanvasEl) return;
         ghosts.forEach((ghost, i) => {
             deps.gameCanvasEl.appendChild(buildGhostSprite(ghost, previewTime, ghosts, i));
@@ -513,6 +525,7 @@ const DayPagerView = (() => {
             clearGhostSprites();
             if (deps.taskSectionTitleEl) deps.taskSectionTitleEl.textContent = "Today's Deadlines";
             deps.setTimePreviewActive(false);
+            syncSliderTo(new Date());
             // Live play was paused while another day was shown: refresh the
             // real rows once on the way back.
             if (!restoreToday && previousOffset !== 0 && deps.renderTodayAgenda) deps.renderTodayAgenda();
@@ -526,8 +539,8 @@ const DayPagerView = (() => {
             deps.taskSectionTitleEl.textContent = formatDayLabel(viewedDayOffset, bounds) + "'s Deadlines";
         }
         const ghosts = DayPager.conjureGhostsForDay(conjureDeps(), currentGameDate, viewedDayOffset);
-        const previewTime = new Date(bounds.start);
-        previewTime.setHours(12, 0, 0, 0);
+        const previewTime = startOfViewedDay(bounds);
+        syncSliderTo(previewTime);
         renderGhostCanvas(ghosts, previewTime);
         setDayScopedTaskCount(ghosts.length);
     }
@@ -540,6 +553,7 @@ const DayPagerView = (() => {
             clearGhostSprites();
             if (deps.taskSectionTitleEl) deps.taskSectionTitleEl.textContent = "Today's Deadlines";
             deps.setTimePreviewActive(false);
+            syncSliderTo(new Date());
             listShowsSwapped = false;
             if (deps.renderTodayAgenda) deps.renderTodayAgenda();
             // Playtest finding #3 (2026-07-20): restore the REAL global
@@ -599,18 +613,40 @@ const DayPagerView = (() => {
 
         const ghosts = DayPager.conjureGhostsForDay(cd, currentGameDate, viewedDayOffset);
 
-        // Preview anchor: noon of the viewed day (a stable, representative
-        // hour — see file header's "not fully hour-scrubbable this
-        // sub-session" note). Every ghost that's due before noon renders
-        // camped at the base like an overdue item would; due-after-noon
-        // ghosts spread out toward the right edge by time-to-due, same
-        // interpolation Today scope already uses.
-        const previewTime = new Date(bounds.start);
-        previewTime.setHours(12, 0, 0, 0);
+        // Preview anchor: the START of the viewed day (2026-11-03, Jeremy: the slider should begin at the start of
+        // the day, because ghosts placed from a noon anchor piled every morning item at the base and confused
+        // the picture). The slider is set to 12:00 AM to match, and dragging it slides that day's ghosts
+        // (previewGhostsAt). Nothing is due before the anchor, so every ghost walks in from the right by its due time.
+        const previewTime = startOfViewedDay(bounds);
+        syncSliderTo(previewTime);
 
         renderGhostCanvas(ghosts, previewTime);
         renderGhostAgenda(ghosts, 'Nothing scheduled');
         setDayScopedTaskCount(ghosts.length);
+    }
+
+    // The clock a viewed day starts at (its first minute) and the matching slider reset.
+    function startOfViewedDay(bounds) {
+        return new Date(bounds.start);
+    }
+
+    // Point the hour slider (handle + label) at `time`. Optional dep: absent in tests / before script.js wires it.
+    function syncSliderTo(time) {
+        if (deps && typeof deps.syncSlider === 'function') deps.syncSlider(time);
+    }
+
+    // Start of the day on screen when that day is a ghosted preview (offsets 1..6), else null (Today, Yesterday).
+    // TimeSliderView asks this to decide whether a drag moves the REAL board (Today) or the viewed day's ghosts.
+    function getViewedDayStart() {
+        if (!deps || viewedDayOffset <= 0) return null;
+        return DayPager.dayBoundsForOffset(deps.getCurrentGameDate(), viewedDayOffset).start;
+    }
+
+    // Slider drag on a viewed day: slide that day's ghosts to `time` (no rebuild, no damage preview).
+    function previewGhostsAt(time) {
+        if (!deps || !deps.gameCanvasEl || viewedDayOffset <= 0) return;
+        const sprites = deps.gameCanvasEl.querySelectorAll('.day-pager-ghost');
+        sprites.forEach((el, i) => { if (shownGhosts[i]) positionGhostSprite(el, shownGhosts[i], time); });
     }
 
     // Playtest finding #3 (2026-07-20): matches Hud.updateTaskCountDisplay's
@@ -700,6 +736,8 @@ const DayPagerView = (() => {
         goToOffset,
         stepDay,
         getViewedDayOffset,
+        getViewedDayStart,
+        previewGhostsAt,
         isViewingToday,
         checkRolloverReset,
         formatDayLabel,

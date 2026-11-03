@@ -297,3 +297,7 @@ Portrait phones and desktop (everything except phone landscape): the canvas stri
 ## Completed list: today only (built 2026-11-03; DECISIONS 2026-11-03 (completed))
 
 The block under the agenda ("Completed Today") shows only entries finished on the current game day, newest first, time only on each row; it hides itself when there are none. Tapping the ‹ arrow to Yesterday retitles it "Completed Yesterday" and fills it with yesterday's entries, read-only (undo checkbox and edit pencil hidden via `.completed-readonly`). Back on Today it is redrawn. An "Older (N)" button in the heading row, right-aligned (Today view only), reveals the last 7 days of earlier completions below today's, with full dates; "Hide older" puts it away. Anything older than 7 days is not listed in the agenda (Stats and the daily record hold everything regardless). Phone landscape hides the block on later days, as before.
+
+## Time slider on a viewed day (built 2026-11-03; DECISIONS 2026-11-03 (slider))
+
+On a future day (week-strip offsets 1-6) the hour slider belongs to that day. Moving there resets it to 12:00 AM and places the ghost zombies as the day looks at its first minute (most walk in from the right; none are camped at the base). Dragging the slider slides that day's ghosts; it never changes the real board, the damage preview or the freeze. Releasing leaves the handle where you put it. Changing day resets it; returning to Today points it back at the current time. Yesterday keeps its disabled slider and static snapshot.

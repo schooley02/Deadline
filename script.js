@@ -1828,6 +1828,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 habitEnemyWidth: HABIT_ENEMY_WIDTH,
             }),
             setTimePreviewActive: (v) => { timePreviewActive = v; },
+            // While the day pager shows a future day, the slider belongs to that day: it slides that day's ghosts
+            // (2026-11-03). Both are null/no-ops on Today.
+            getViewedDayStart: () => (typeof DayPagerView !== 'undefined' ? DayPagerView.getViewedDayStart() : null),
+            onOtherDayScrub: (time) => { if (typeof DayPagerView !== 'undefined') DayPagerView.previewGhostsAt(time); },
 
             // Damage/routine-HP projection (2026-07-20, same session —
             // Jeremy's follow-up: "the preview also needs to show base
@@ -1878,6 +1882,8 @@ document.addEventListener('DOMContentLoaded', () => {
             taskCountDisplayEl: taskCountDisplay,
             updateTaskCountDisplay,
             completedTasksSectionEl: document.getElementById('completedTasksSection'),
+            // Point the hour slider at a time (a viewed day's first minute, or now on Today).
+            syncSlider: (time) => TimeSliderView.syncHandle(time),
             renderCompletedItems: () => AgendaList.renderCompletedItems(agendaListDeps()),
             // 2026-11-03: the scrolling list box (continuous day list, see dayPagerView.js).
             listScrollEl: document.querySelector('.task-list-container'),

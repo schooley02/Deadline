@@ -326,6 +326,6 @@ describe('script.js wiring', () => {
         const src = fs.readFileSync(path.join(__dirname, '..', 'script.js'), 'utf8');
         expect(src).toMatch(/currentGameDate:\s*State\.getCurrentGameDate,/);
         expect(src).toMatch(/completedView:\s*\(\)\s*=>\s*\{[\s\S]{0,400}getViewedDayOffset\(\)\s*!==\s*-1/);
-        expect(src).toMatch(/completedTasksSectionEl:[^\n]*\n\s*renderCompletedItems:\s*\(\)\s*=>\s*AgendaList\.renderCompletedItems\(agendaListDeps\(\)\)/);
+        expect(src).toMatch(/completedTasksSectionEl:[^\n]*\n(?:[^\n]*\n){0,4}?\s*renderCompletedItems:\s*\(\)\s*=>\s*AgendaList\.renderCompletedItems\(agendaListDeps\(\)\)/);
     });
 });

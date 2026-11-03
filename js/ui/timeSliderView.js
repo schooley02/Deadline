@@ -231,7 +231,24 @@ const TimeSliderView = (() => {
         updateParallax(minutes);
     }
 
+    // The day on screen when it is a ghosted future day (offsets 1..6 of the day pager), else null. While one is
+    // showing, the slider belongs to THAT day: dragging slides its ghosts and never touches the real board, the
+    // damage preview or the preview flag (the pager holds it on), and releasing leaves the handle where it is.
+    function viewedOtherDayStart() {
+        return (deps && typeof deps.getViewedDayStart === 'function') ? deps.getViewedDayStart() : null;
+    }
+
     function handleScrubInput() {
+        const otherDayStart = viewedOtherDayStart();
+        if (otherDayStart) {
+            const otherMinutes = Number(deps.sliderEl.value);
+            const otherTime = TimeSlider.minutesOfDayToTime(otherMinutes, otherDayStart);
+            if (deps.labelEl) deps.labelEl.textContent = TimeSlider.formatLabel(otherTime);
+            if (typeof deps.onOtherDayScrub === 'function') deps.onOtherDayScrub(otherTime);
+            lastScrubMinutes = otherMinutes;
+            updateParallax(otherMinutes);
+            return;
+        }
         const now = new Date();
         const dayStart = TimeSlider.getDayBounds(now).start;
         const minutes = Number(deps.sliderEl.value);
@@ -253,6 +270,8 @@ const TimeSliderView = (() => {
     // time is harmless (same values, maybe a few ms later). Simpler and more
     // robust than tracking which listener "owns" the release.
     function handleRelease() {
+        // A viewed future day keeps its preview on and the handle where the player left it.
+        if (viewedOtherDayStart()) return;
         deps.setTimePreviewActive(false);
         const now = new Date();
         applyPreview(now, false);
