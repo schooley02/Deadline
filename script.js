@@ -1103,9 +1103,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // record, the Clock tower `pushedLate` flag and the charge / token / points payment all behave exactly as there. Returns
     // { ok: false } and changes nothing when the move can't be paid for.
     function moveAnytimeTaskToTomorrow(itemId) {
+        return moveAnytimeTaskTo(itemId, AnytimeCheck.tomorrowDue(Date.now()));
+    }
+
+    // The morning card's "Today": the same move to 11:59 PM today (an overdue pushback, priced by the same quote).
+    function moveAnytimeTaskToToday(itemId) {
+        return moveAnytimeTaskTo(itemId, AnytimeCheck.morningDue(Date.now()));
+    }
+
+    function moveAnytimeTaskTo(itemId, newDue) {
         const task = State.getActiveItems().find(i => i.id === itemId && i.type === 'task');
         if (!task || State.isGameOver()) return { ok: false };
-        const newDue = AnytimeCheck.tomorrowDue(Date.now());
         const quote = reschedulePricingFor(task, newDue);
         if (!quote || !quote.ok) return { ok: false };
         commitReschedule(task, quote);
@@ -1120,6 +1128,43 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTaskCountDisplay(); // the week strip: the task changed days
         saveGame();
         return { ok: true };
+    }
+
+    // ---- Next-morning card for anytime tasks (Anytime Build 3, 2026-11-02; DECISIONS 2026-11-02 night) -------------------------
+    // On the first open after midnight (and on the poll, if the app stayed open) the game asks about every anytime task that
+    // already attacked, in case the player fell asleep before marking it. Done counts as ON TIME for the Clock tower (the overnight
+    // damage stays); Today moves it to 11:59 PM today through the pushback quote; Leave it records the answer. Closing it with
+    // cards left hides it until the next app open.
+    let morningTaskDismissed = false;
+
+    function morningTaskDeps() {
+        const findTask = (id) => State.getActiveItems().find(i => i.id === id && i.type === 'task');
+        return {
+            getTaskCandidates: () => AnytimeCheck.morningCandidates(State.getActiveItems(), Date.now()),
+            completeTask: (id) => {
+                const task = findTask(id);
+                if (!task) return;
+                AnytimeCheck.stampMorning(task);
+                Items.completeItem(id, itemsDeps(), { onTime: true });
+            },
+            leaveTask: (id) => {
+                const task = findTask(id);
+                if (!task) return;
+                AnytimeCheck.stampMorning(task);
+                saveGame();
+            },
+            describeMove: (task) => Popups.pushbackNoteText(reschedulePricingFor(task, AnytimeCheck.morningDue(Date.now())), State.getPlayerPoints()),
+            moveTaskToToday: moveAnytimeTaskToToday,
+            onDismiss: () => { morningTaskDismissed = true; },
+        };
+    }
+
+    function maybeShowMorningTaskCheck() {
+        if (typeof CheckIn === 'undefined' || typeof AnytimeCheck === 'undefined' || State.isGameOver()) return;
+        if (morningTaskDismissed || timePreviewActive || offlineCatchUpActive) return;
+        // Never stack on another dialog (the morning check-in, the evening check, a form): the next poll tries again.
+        if (document.querySelector('.modal-overlay')) return;
+        CheckIn.showMorningTaskModal(morningTaskDeps());
     }
 
     // True while the evening check is the thing that will ask about a Break habit right now: the evening time has arrived and
@@ -1147,6 +1192,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (nowMs - lastEveningPollMs < 15000) return;
         lastEveningPollMs = nowMs;
         maybeShowEveningCheck();
+        maybeShowMorningTaskCheck();
     }
 
     // Negative-habit "time has arrived" prompt (2026-10-21, Jeremy). Once per habit per
@@ -3183,6 +3229,8 @@ document.addEventListener('DOMContentLoaded', () => {
     showCheckInIfPending();
     // Evening check (Habit Goals Build 3): an app open at or after the evening time asks right away (the poll covers the rest).
     maybeShowEveningCheck();
+    // Anytime tasks that attacked overnight (Anytime Build 3): ask right away on the first open (waits behind any dialog above).
+    maybeShowMorningTaskCheck();
 
     // Daily record `active` window (D2, 2026-10-27): any pointer interaction
     // counts as a touch, throttled so `active.touches` is roughly "half-minutes
@@ -3205,7 +3253,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Coming back to the app counts as opening it: a "Later" from earlier tonight is forgotten and the check asks again.
         if (document.visibilityState === 'visible') {
             eveningDismissedFor = null;
+            morningTaskDismissed = false;
             maybeShowEveningCheck();
+            maybeShowMorningTaskCheck();
         }
     });
     window.addEventListener('beforeunload', () => {

@@ -6,11 +6,14 @@
  *    overdue, and not already answered tonight (a per-item stamp, `item.anytimeAsked.evening` = the local date);
  *  - the "Tomorrow" target: 11:59 PM on the next calendar day (calendar math, so a DST change cannot move the clock time);
  *  - the stamp helpers.
- * The next-morning card (Build 3) will add its own candidate function and the `morning` stamp here.
+ * Build 3 (2026-11-02) adds the NEXT-MORNING card: the anytime tasks whose 11:59 PM has already passed on an earlier day
+ * (they have attacked), the "Today" target, and the `morning` stamp.
  */
 const AnytimeCheck = (() => {
     const DUE_HOUR = 23;
     const DUE_MINUTE = 59;
+    // The morning card shows at most this many tasks per sitting, newest first; the rest are asked once these are answered.
+    const MORNING_MAX = 5;
 
     const pad2 = (n) => String(n).padStart(2, '0');
 
@@ -62,6 +65,36 @@ const AnytimeCheck = (() => {
         return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, DUE_HOUR, DUE_MINUTE, 0, 0);
     }
 
+    /** True when this task was already answered by the next-morning card. */
+    function askedMorning(item) {
+        return !!(item && item.anytimeAsked && item.anytimeAsked.morning === true);
+    }
+
+    /**
+     * The anytime tasks the next-morning card should ask about right now: open, flagged anytime, due 11:59 PM on an EARLIER
+     * local date (so they have attacked), not KO-ghosted and not already answered by this card. No age limit: it asks
+     * whenever the player next opens the app, however many days later. Newest due first, at most MORNING_MAX.
+     */
+    function morningCandidates(activeItems, nowMs) {
+        const now = typeof nowMs === 'number' ? nowMs : Date.now();
+        const today = dateKey(now);
+        return (Array.isArray(activeItems) ? activeItems : []).filter((item) => {
+            if (!isOpenAnytimeTask(item) || item.koGhost || askedMorning(item)) return false;
+            return toMs(item.dueDateTime) <= now && dateKey(item.dueDateTime) < today;
+        }).sort((a, b) => toMs(b.dueDateTime) - toMs(a.dueDateTime)).slice(0, MORNING_MAX);
+    }
+
+    /**
+     * The morning card's "Today" target: 11:59 PM today; if that moment has already passed (the app was opened in the last
+     * minute of the day) 11:59 PM tomorrow, so the move never lands in the past.
+     */
+    function morningDue(nowMs) {
+        const now = typeof nowMs === 'number' ? nowMs : Date.now();
+        const d = new Date(now);
+        const today = new Date(d.getFullYear(), d.getMonth(), d.getDate(), DUE_HOUR, DUE_MINUTE, 0, 0);
+        return today.getTime() > now ? today : tomorrowDue(now);
+    }
+
     /** A parent with sub-tasks still open cannot be marked done from the card (same rule as its row checkbox). */
     function hasOpenSubTasks(item) {
         return !!(item && Array.isArray(item.subTasks) && item.subTasks.length > 0);
@@ -74,14 +107,26 @@ const AnytimeCheck = (() => {
         return item;
     }
 
+    /** Records that the next-morning card answered this task. Returns the item. */
+    function stampMorning(item) {
+        if (!item) return item;
+        item.anytimeAsked = Object.assign({}, item.anytimeAsked, { morning: true });
+        return item;
+    }
+
     return {
+        MORNING_MAX,
         dateKey,
         isOpenAnytimeTask,
         askedTonight,
         eveningCandidates,
+        askedMorning,
+        morningCandidates,
+        morningDue,
         tomorrowDue,
         hasOpenSubTasks,
         stampEvening,
+        stampMorning,
     };
 })();
 

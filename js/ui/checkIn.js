@@ -233,23 +233,40 @@ const CheckIn = (() => {
     }
 
     // One card for an open anytime task. `tomorrow` = { text, blocked } from deps.describeTomorrow (blank when unknown).
-    function buildEveningTaskCardHtml(item, tomorrow) {
+    // mode 'morning' (Anytime Build 3): the next-morning card for a task that already attacked overnight; the move button
+    // reads "Today" and the wording is past tense.
+    function buildEveningTaskCardHtml(item, tomorrow, mode) {
+        const morning = mode === 'morning';
         const t = tomorrow || { text: '', blocked: false };
         const openSubs = Array.isArray(item.subTasks) && item.subTasks.length > 0;
         const done = openSubs
             ? `<button type="button" class="check-in-button avoid-btn" data-outcome="done" disabled title="Finish the sub-tasks first">Finish the sub-tasks first</button>`
             : `<button type="button" class="check-in-button avoid-btn" data-outcome="done">Done</button>`;
         return `
-            <div class="check-in-card evening-card evening-task-card" data-card-kind="task" data-item-id="${item.id}">
-                <p class="check-in-question">Did you finish <strong>${escapeHtml(item.name)}</strong> today?</p>
-                <p class="check-in-goal">Due by midnight.${t.text ? ` Moving it to tomorrow: <span class="evening-task-cost${t.blocked ? ' evening-task-cost--blocked' : ''}">${escapeHtml(t.text)}</span>` : ''}</p>
+            <div class="check-in-card evening-card evening-task-card${morning ? ' morning-task-card' : ''}" data-card-kind="task" data-item-id="${item.id}">
+                <p class="check-in-question">Did you finish <strong>${escapeHtml(item.name)}</strong>${morning ? '' : ' today'}?</p>
+                <p class="check-in-goal">${morning ? 'It was due at midnight and has already attacked.' : 'Due by midnight.'}${t.text ? ` Moving it to ${morning ? 'today' : 'tomorrow'}: <span class="evening-task-cost${t.blocked ? ' evening-task-cost--blocked' : ''}">${escapeHtml(t.text)}</span>` : ''}</p>
                 <div class="check-in-actions">
                     ${done}
-                    <button type="button" class="check-in-button" data-outcome="tomorrow"${t.blocked ? ' disabled' : ''}>Tomorrow</button>
+                    <button type="button" class="check-in-button" data-outcome="${morning ? 'today' : 'tomorrow'}"${t.blocked ? ' disabled' : ''}>${morning ? 'Today' : 'Tomorrow'}</button>
                     <button type="button" class="check-in-button check-in-later" data-outcome="leave">Leave it</button>
                 </div>
             </div>
         `;
+    }
+
+    // What one task-card button does, shared by the evening and morning modals. `moveFn` is the modal's own move dep.
+    // Returns true when the card was answered (remove it), false when a move was refused (keep the card, disable the button).
+    function answerTaskCard(outcome, button, itemId, deps, moveFn) {
+        if (outcome === 'done') {
+            if (typeof deps.completeTask === 'function') deps.completeTask(itemId);
+        } else if (outcome === 'tomorrow' || outcome === 'today') {
+            const res = typeof moveFn === 'function' ? moveFn(itemId) : null;
+            if (!res || res.ok === false) { button.disabled = true; return false; }
+        } else if (typeof deps.leaveTask === 'function') {
+            deps.leaveTask(itemId);
+        }
+        return true;
     }
 
     function showEveningModal(deps) {
@@ -280,14 +297,7 @@ const CheckIn = (() => {
                     if (isTaskCard) {
                         // Anytime task: Done completes it on time; Tomorrow pays through the pushback rules (a refused
                         // move leaves the card open and disables the button); Leave it just records tonight's answer.
-                        if (outcome === 'done') {
-                            if (typeof deps.completeTask === 'function') deps.completeTask(itemId);
-                        } else if (outcome === 'tomorrow') {
-                            const res = typeof deps.moveTaskToTomorrow === 'function' ? deps.moveTaskToTomorrow(itemId) : null;
-                            if (!res || res.ok === false) { button.disabled = true; return; }
-                        } else if (typeof deps.leaveTask === 'function') {
-                            deps.leaveTask(itemId);
-                        }
+                        if (!answerTaskCard(outcome, button, itemId, deps, deps.moveTaskToTomorrow)) return;
                     } else if (outcome === 'later') {
                         skipped = true;
                     } else {
@@ -322,11 +332,61 @@ const CheckIn = (() => {
         return overlay;
     }
 
+    // --- Next-morning card for anytime tasks (Anytime Build 3, 2026-11-02; DECISIONS 2026-11-02 night) --------------------
+    // The first open after midnight asks about each anytime task that already attacked, in case the player fell asleep
+    // before marking it. Done counts as ON TIME (the overnight damage stays), Today moves it to 11:59 PM today as an
+    // overdue pushback, Leave it records the answer. Closing the modal with cards left hides it until the next app open.
+    // deps: { getTaskCandidates() -> anytime tasks, completeTask(id), leaveTask(id), describeMove(item) -> { text, blocked },
+    //         moveTaskToToday(id) -> { ok }, onDismiss() }. Returns the overlay, or null when there is nothing to ask.
+    function showMorningTaskModal(deps) {
+        const tasks = typeof deps.getTaskCandidates === 'function' ? (deps.getTaskCandidates() || []) : [];
+        if (tasks.length === 0) return null;
+        const describe = typeof deps.describeMove === 'function' ? deps.describeMove : () => null;
+
+        const overlay = Modal.open(`
+            <div class="modal-overlay morning-task-overlay">
+                <div class="modal-content check-in-modal">
+                    <h3>Yesterday's anytime tasks</h3>
+                    <p class="check-in-intro">These were due at midnight and have already attacked. Did you finish them? Done counts as on time; the damage stays.</p>
+                    <div class="evening-cards morning-task-cards">${tasks.map(t => buildEveningTaskCardHtml(t, describe(t), 'morning')).join('')}</div>
+                    <p class="check-in-snooze"><a href="#" class="morning-later-link">I'll check this later</a></p>
+                </div>
+            </div>
+        `, { dedupeSelector: '.morning-task-overlay' });
+        if (!overlay) return null;
+
+        overlay.querySelectorAll('.morning-task-card').forEach((card) => {
+            const itemId = Number(card.getAttribute('data-item-id'));
+            card.querySelectorAll('.check-in-button').forEach((button) => {
+                button.addEventListener('click', () => {
+                    if (!answerTaskCard(button.getAttribute('data-outcome'), button, itemId, deps, deps.moveTaskToToday)) return;
+                    card.remove();
+                    if (!overlay.querySelector('.morning-task-card')) overlay.remove();
+                });
+            });
+        });
+
+        const later = overlay.querySelector('.morning-later-link');
+        if (later) later.addEventListener('click', (e) => { e.preventDefault(); overlay.remove(); });
+
+        // However it closes: if any card was left unanswered, tell the caller so this morning's check stays quiet until the next app open.
+        if (typeof MutationObserver !== 'undefined' && typeof deps.onDismiss === 'function') {
+            const observer = new MutationObserver(() => {
+                if (overlay.isConnected) return;
+                observer.disconnect();
+                if (overlay.querySelector('.morning-task-card')) deps.onDismiss();
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
+        return overlay;
+    }
+
     return {
         collectPendingCheckIns,
         showCheckInModal,
         queueArrivalPrompt,
         showEveningModal,
+        showMorningTaskModal,
         howMuchHtml,
         readHowMuch,
         goalLineHtml,

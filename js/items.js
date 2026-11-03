@@ -604,6 +604,12 @@ const Items = (() => {
             return { ok: false, reason: 'subtasks_remaining', remaining: item.subTasks.length };
         }
 
+        // opts.onTime (Anytime Build 3, 2026-11-02, Jeremy): the next-morning card's "Done" for an anytime task that attacked
+        // overnight counts as ON TIME (forgiveness for falling asleep before marking it). Clearing the overdue state here makes the
+        // daily record store the completion as not late (the Clock tower counts done minus late) and keeps a later undo consistent.
+        // The overnight damage already charged is NOT refunded.
+        if (opts && opts.onTime === true) item.isOverdue = false;
+
         // Work timer (Build 3, 2026-10-25): completing an item ends its timer, banking the time.
         if (typeof Timer !== 'undefined' && Timer.isRunning(item)) Timer.stop(item, Date.now());
 
