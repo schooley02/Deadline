@@ -71,6 +71,9 @@ Replaces the agenda list with routines ranked by level (top performers first). M
 ## Navigation
 Plus icon / hamburger menu opens options. Keep taps-to-action minimal — completing a task should be 1-2 taps.
 
+## Settings window — "How Deadline works" (2026-11-03)
+FAB -> Settings now opens with a first section, "How Deadline works" + an Open button (`#howItWorksBtn`). It opens a centred window (`js/ui/howItWorks.js`, `css/howItWorks.css`) of five tappable topics, native `<details>` (44px rows, custom chevron): Points, Pushbacks, Streaks, Hero ranking, Achievements. Each says what the thing is and, for Streaks / Hero ranking / Achievements, a tinted "Why:" block. Closes with the corner x (`.modal-close-x`), a tap outside or Esc; opens over Settings (one at a time via `dedupeSelector '.hiw-overlay'`). The Settings button MUST `stopPropagation`. All numbers are read from CONFIG (see DECISIONS 2026-11-03 (page)); `HowItWorks.open({topic})` opens one topic first, for the later inline (i) buttons.
+
 ## Settings window — "Backup & Transfer" (Milestone 5 first item, 2026-07-20)
 FAB → Settings gained a second section below Streak Fire Effects: Export (Download file / Copy to
 clipboard) and Import (file picker / paste textarea → "Import pasted text"). A bad/corrupt/

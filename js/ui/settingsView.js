@@ -84,6 +84,11 @@ const SettingsView = (() => {
         `).join('');
 
         container.innerHTML = `
+            <div class="settings-section settings-howitworks-section">
+                <h4>How Deadline works</h4>
+                <p class="settings-section-hint">What points, pushbacks, streaks, hero ranking and badges are for.</p>
+                <button type="button" id="howItWorksBtn" class="secondary-button">Open</button>
+            </div>
             <div class="settings-section">
                 <h4>Streak Fire Effects</h4>
                 <p class="settings-section-hint">Controls the on-fire/blazing visual for high-streak habits.</p>
@@ -146,6 +151,16 @@ const SettingsView = (() => {
         if (eveningInput) {
             eveningInput.addEventListener('change', (e) => {
                 if (typeof deps.onChangeEveningTime === 'function') deps.onChangeEveningTime(e.target.value);
+            });
+        }
+
+        // "How Deadline works" (2026-11-03): opens its own window on top. stopPropagation, or Modal's document
+        // click dismiss would see this same tap and close the window it just opened.
+        const howBtn = container.querySelector('#howItWorksBtn');
+        if (howBtn) {
+            howBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (typeof HowItWorks !== 'undefined') HowItWorks.open();
             });
         }
 
