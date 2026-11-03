@@ -2,20 +2,13 @@
  * PointsInfo tests (2026-11-02, "how points work" display).
  *
  * The module is display-only, so the important guarantee is that its words and
- * numbers agree with the REAL award code. Requires the real Economy / Habits /
- * Routines / DayPager (day-pager.test.js precedent) and the real CONFIG.
+ * numbers agree with the REAL award code. Requires the real Habits and CONFIG.
  */
 global.Schedule = require('../js/schedule.js');
 global.FrozenSlots = require('../js/frozenSlots.js');
 global.Habits = require('../js/habits.js');
-global.Routines = require('../js/routines.js');
-global.TimeSlider = require('../js/timeSlider.js');
-global.Economy = require('../js/economy.js');
-global.DayPager = require('../js/dayPager.js');
 const CONFIG = require('../js/config.js');
 const PointsInfo = require('../js/pointsInfo.js');
-
-const TODAY = new Date(2026, 10, 2, 12, 0, 0); // Mon Nov 2 2026, local noon
 
 function history(successes, misses) {
     const out = [];
@@ -135,143 +128,49 @@ describe('PointsInfo.habitBonusInfo', () => {
     });
 });
 
-describe('PointsInfo.activeItemPoints', () => {
-    const habits = [habitDef(1, { occurrenceHistory: history(22, 0) })];
-
-    test('task, high-priority task, habit at x3', () => {
-        expect(PointsInfo.activeItemPoints({ type: 'task', id: 1 }, habits, [], CONFIG)).toBe(1);
-        expect(PointsInfo.activeItemPoints({ type: 'task', id: 2, isHighPriority: true }, habits, [], CONFIG)).toBe(2);
-        expect(PointsInfo.activeItemPoints({ type: 'habit', id: 3, definitionId: 1 }, habits, [], CONFIG)).toBe(3);
-    });
-
-    test('a parent with sub-tasks pays 0; each sub-task pays SUBTASK_POINTS (x2 if high priority)', () => {
-        const parent = { type: 'task', id: 10 };
-        const subA = { type: 'task', id: 11, parentId: 10 };
-        const subB = { type: 'task', id: 12, parentId: 10, isHighPriority: true };
-        const all = [parent, subA, subB];
-        expect(PointsInfo.activeItemPoints(parent, [], all, CONFIG)).toBe(0);
-        expect(PointsInfo.activeItemPoints(subA, [], all, CONFIG)).toBe(CONFIG.SUBTASK_POINTS);
-        expect(PointsInfo.activeItemPoints(subB, [], all, CONFIG)).toBe(CONFIG.SUBTASK_POINTS * 2);
-    });
-
-    test('a KO ghost pays points x KO_GHOST_POINTS_FACTOR (0 today)', () => {
-        expect(PointsInfo.activeItemPoints({ type: 'task', id: 1, koGhost: true }, [], [], CONFIG)).toBe(0);
-    });
-});
-
-describe('PointsInfo.routineDayEarning', () => {
-    const r = routine(5, { habitDefinitionIds: [1, 2], taskDefinitionIds: [7] });
+describe('PointsInfo.routineBonusSummary', () => {
+    const r = routine(5, { habitDefinitionIds: [1, 2, 3, 4], taskDefinitionIds: [7, 8] });
     const defs = [
         habitDef(1, { routineId: 5, occurrenceHistory: history(22, 0) }), // x3
-        habitDef(2, { routineId: 5, occurrenceHistory: history(5, 0) }),  // x1
+        habitDef(2, { routineId: 5, occurrenceHistory: history(22, 0) }), // x3
+        habitDef(3, { routineId: 5, occurrenceHistory: history(19, 3) }), // x2
+        habitDef(4, { routineId: 5, occurrenceHistory: history(5, 0) }),  // x1
     ];
-    const tasks = [taskDef(7, { isHighPriority: true })];
-    const baseDeps = (over = {}) => Object.assign({
-        definedHabits: defs, definedRoutines: [r], definedTasks: tasks, activeItems: [], completedItems: [], sickDayDate: null,
-    }, over);
+    const tasks = [taskDef(7, { isHighPriority: true }), taskDef(8)];
 
-    function args(offset, depsOver, extra = {}) {
-        return Object.assign({ routine: r, offset, referenceTime: TODAY, config: CONFIG, deps: baseDeps(depsOver) }, extra);
-    }
-
-    test('yesterday returns null (the record has no per-routine points)', () => {
-        expect(PointsInfo.routineDayEarning(args(-1))).toBeNull();
+    test('lists only the bonuses being applied, highest first, with counts', () => {
+        const out = PointsInfo.routineBonusSummary(r, defs, tasks, CONFIG);
+        expect(out.habits).toEqual({ 3: 2, 2: 1 });
+        expect(out.priorityTasks).toBe(1);
+        expect(out.line).toBe('Bonus: 2 habits \u00D73 \u00B7 1 habit \u00D72 \u00B7 1 task \u00D72');
     });
 
-    test('tomorrow: habits at today\'s multipliers plus the high-priority routine task', () => {
-        const out = PointsInfo.routineDayEarning(args(1));
-        expect(out.kind).toBe('future');
-        expect(out.total).toBe(3);
-        expect(out.pts).toBe(3 + 1 + 2); // x3 habit + x1 habit + high-priority task
-        expect(out.line).toBe('Tomorrow: up to 6 pts at current rates');
+    test('a routine with no bonus returns an empty line (nothing is shown)', () => {
+        const plain = routine(6, { habitDefinitionIds: [4], taskDefinitionIds: [8] });
+        expect(PointsInfo.routineBonusSummary(plain, defs, tasks, CONFIG).line).toBe('');
+        expect(PointsInfo.routineBonusSummary(routine(9), defs, tasks, CONFIG).line).toBe('');
     });
 
-    test('a later day is labelled with its weekday', () => {
-        const out = PointsInfo.routineDayEarning(args(3));
-        expect(out.line).toMatch(/^Thursday: up to 6 pts/);
+    test('habits and tasks from other routines are ignored', () => {
+        const other = routine(7, { habitDefinitionIds: [3], taskDefinitionIds: [] });
+        expect(PointsInfo.routineBonusSummary(other, defs, tasks, CONFIG).line).toBe('Bonus: 1 habit \u00D72');
     });
 
-    test('a habit not scheduled that weekday is left out', () => {
-        const weekendOnly = [defs[0], Object.assign({}, defs[1], { schedule: { frequency: 'weekly', daysOfWeek: [0, 6], dayOfMonth: null } })];
-        const out = PointsInfo.routineDayEarning(args(1, { definedHabits: weekendOnly }));
-        // Tue Nov 3: the weekend-only habit does not spawn
-        expect(out.total).toBe(2);
-        expect(out.pts).toBe(3 + 2); // x3 habit + high-priority task
+    test('archived habits and tasks do not count', () => {
+        const archivedDefs = defs.map(d => (d.id === 1 ? Object.assign({}, d, { archivedAt: 123 }) : d));
+        const archivedTasks = [Object.assign({}, tasks[0], { archivedAt: 123 }), tasks[1]];
+        const out = PointsInfo.routineBonusSummary(r, archivedDefs, archivedTasks, CONFIG);
+        expect(out.line).toBe('Bonus: 1 habit \u00D73 \u00B7 1 habit \u00D72');
     });
 
-    test('an inactive routine says it is off', () => {
-        const off = routine(5, { habitDefinitionIds: [1], isActive: false });
-        const out = PointsInfo.routineDayEarning(Object.assign(args(1), { routine: off }));
-        expect(out.kind).toBe('off');
-        expect(out.pts).toBe(0);
+    test('Break (negative) habits count too, and bad input never throws', () => {
+        const neg = [habitDef(1, { isNegative: true, occurrenceHistory: history(22, 0) })];
+        expect(PointsInfo.routineBonusSummary(routine(5, { habitDefinitionIds: [1] }), neg, [], CONFIG).line).toBe('Bonus: 1 habit \u00D73');
+        expect(PointsInfo.routineBonusSummary(null, null, null, CONFIG).line).toBe('');
     });
 
-    test('a day with nothing due says so', () => {
-        const empty = routine(6);
-        const out = PointsInfo.routineDayEarning(Object.assign(args(1), { routine: empty }));
-        expect(out.line).toBe('Tomorrow: nothing due');
-    });
-
-    const doneToday = (id, type, definitionId, extra = {}) =>
-        Object.assign({ id, type, definitionId, completedAt: new Date(2026, 10, 2, 9, 30) }, extra);
-
-    test('today: points still to earn from live items, plus done count from today\'s completed items', () => {
-        const active = [
-            { id: 100, type: 'habit', definitionId: 1 },                       // x3 -> 3
-            { id: 101, type: 'task', definitionId: 7, isHighPriority: true },  // 2
-            { id: 102, type: 'task', definitionId: null },                     // not in the routine
-        ];
-        const completed = [
-            doneToday(200, 'habit', 2),                                        // in the routine, today
-            doneToday(201, 'habit', 1, { completedAt: new Date(2026, 10, 1, 9, 30) }), // yesterday: not counted
-            doneToday(202, 'habit', 99),                                       // another routine's habit
-            doneToday(203, 'task', 7),                                         // routine task, today
-        ];
-        const out = PointsInfo.routineDayEarning(args(0, { activeItems: active, completedItems: completed }));
-        expect(out.kind).toBe('today');
-        expect(out.pts).toBe(5);
-        expect(out.done).toBe(2);
-        expect(out.total).toBe(4);
-        expect(out.line).toBe('Today: 5 pts left to earn \u00B7 2 of 4 done');
-    });
-
-    test('today: completed sub-tasks of a routine task count as done; other sub-tasks do not', () => {
-        const completed = [
-            doneToday(300, 'task', 7),
-            doneToday(301, 'task', null, { parentId: 300 }),
-            doneToday(302, 'task', null, { parentId: 999 }),
-        ];
-        const out = PointsInfo.routineDayEarning(args(0, { completedItems: completed }));
-        expect(out.done).toBe(2);
-    });
-
-    test('today: completedAt that came back from a save as a string still counts', () => {
-        const completed = [doneToday(400, 'habit', 1, { completedAt: new Date(2026, 10, 2, 8, 0).toISOString() })];
-        expect(PointsInfo.routineDayEarning(args(0, { completedItems: completed })).done).toBe(1);
-    });
-
-    test('today: everything finished', () => {
-        const completed = [doneToday(1, 'habit', 1), doneToday(2, 'habit', 2), doneToday(3, 'task', 7)];
-        const out = PointsInfo.routineDayEarning(args(0, { completedItems: completed }));
-        expect(out.line).toBe('Today: all 3 done');
-    });
-
-    test('today: nothing due', () => {
-        expect(PointsInfo.routineDayEarning(args(0)).line).toBe('Today: nothing due');
-    });
-
-    test('today: a knocked-out routine pays 0', () => {
-        const ko = routine(5, { habitDefinitionIds: [1], koState: { koAt: Date.now() } });
-        const active = [{ id: 100, type: 'habit', definitionId: 1, koGhost: true }];
-        const out = PointsInfo.routineDayEarning(Object.assign(args(0, { activeItems: active }), { routine: ko }));
-        expect(out.kind).toBe('ko');
-        expect(out.pts).toBe(0);
-    });
-
-    test('singular "pt"', () => {
-        const solo = routine(5, { habitDefinitionIds: [2] });
-        const active = [{ id: 100, type: 'habit', definitionId: 2 }];
-        const out = PointsInfo.routineDayEarning(Object.assign(args(0, { activeItems: active }), { routine: solo }));
-        expect(out.line).toBe('Today: 1 pt left to earn · 0 of 1 done');
+    test('numbers follow CONFIG tiers', () => {
+        const custom = Object.assign({}, CONFIG, { HABIT_RATE_TIERS: [{ minRate: 1.0, multiplier: 4 }] });
+        expect(PointsInfo.routineBonusSummary(r, defs, [], custom).line).toBe('Bonus: 2 habits \u00D74');
     });
 });

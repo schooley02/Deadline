@@ -469,6 +469,15 @@ const AgendaList = (() => {
                 subTaskProgressSpan.textContent = `${completedSubTasks}/${totalSubTasksEver} sub-tasks`;
                 itemDetailsContainer.appendChild(subTaskProgressSpan);
             }
+            // x2 tag (2026-11-02, Jeremy): a high-priority task or sub-task pays double. Not on a parent that has
+            // sub-tasks (it pays nothing itself) or on a knocked-out ghost (no points).
+            if (itemData.isHighPriority && totalSubTasksEver === 0 && !itemData.koGhost) {
+                const bonusSpan = document.createElement('span');
+                bonusSpan.classList.add('item-bonus');
+                bonusSpan.title = 'High-priority tasks pay double';
+                bonusSpan.textContent = '\u00D72';
+                itemDetailsContainer.appendChild(bonusSpan);
+            }
         }
 
         // Add streak info for habits
