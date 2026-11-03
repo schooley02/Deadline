@@ -291,6 +291,7 @@
         <div id="routinesWindow" class="management-window hidden" role="dialog" aria-labelledby="routinesWindowTitle" tabindex="-1">
             <div class="window-header">
                 <h3 id="routinesWindowTitle">Routines</h3>
+                <button type="button" class="hiw-info-btn hiw-info-btn--title" data-hiw-topic="heroes" aria-label="How hero ranking works">&#9432;</button>
                 <button class="close-window" data-window="routinesWindow" aria-label="Close Routines window">×</button>
             </div>
             <div class="window-content">
@@ -350,7 +351,7 @@
                 <!-- ACHIEVEMENTS_PLAN.md sub-session 3: lifetime badge grid
                      (locked cards w/ progress, unlocked w/ dates). Populated
                      by js/ui/statsView.js -->
-                <h4 class="stats-history-heading">Achievements</h4>
+                <h4 class="stats-history-heading">Achievements <button type="button" class="hiw-info-btn" data-hiw-topic="achievements" aria-label="How achievements work">&#9432;</button></h4>
                 <div id="statsAchievements">
                     <!-- Badge grid populated by js/ui/statsView.js -->
                 </div>
@@ -408,7 +409,7 @@
     <div id="heroTrayBackdrop" class="hero-tray-backdrop"></div>
     <section id="heroTray" class="hero-tray" role="dialog" aria-label="Heroes" aria-hidden="true" tabindex="-1">
         <header class="hero-tray-header">
-            <h3>Heroes</h3>
+            <h3>Heroes <button type="button" class="hiw-info-btn" data-hiw-topic="heroes" aria-label="How hero ranking works">&#9432;</button></h3>
             <button id="heroTraySummary" class="hero-tray-summary" type="button" aria-label="Routine slots. Open level panel"></button>
             <button id="heroTrayClose" class="hero-tray-close" type="button" aria-label="Close heroes">&times;</button>
         </header>

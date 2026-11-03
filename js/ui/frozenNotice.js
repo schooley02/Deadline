@@ -160,12 +160,15 @@ const FrozenNotice = (() => {
         const body = isBlazing
             ? `${streak}-day streak — that's serious consistency. Keep it going!`
             : `${streak}-day streak — this habit is heating up.`;
+        // The inline (i) opens "How Deadline works" on Streaks (2026-11-03).
+        const infoButton = (typeof HowItWorks !== 'undefined' && HowItWorks.buttonHtml)
+            ? HowItWorks.buttonHtml('streaks', 'How streaks work') : '';
 
         const modalHtml = `
             <div class="modal-overlay frozen-notice-overlay">
                 <div class="modal-content frozen-notice-modal">
                     <h3>${emoji} ${headline}</h3>
-                    <p>${body}</p>
+                    <p>${body}${infoButton}</p>
                     <div class="modal-buttons">
                         <button class="primary-button" onclick="closeModal()">Nice</button>
                     </div>

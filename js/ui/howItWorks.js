@@ -15,6 +15,11 @@
  *                                          markup from PushbackHelp)
  *   HowItWorks.windowHtml(topics, openId?) -> the overlay markup (pure string)
  *   HowItWorks.open({ topic?, config? })  -> shows it (DOM: Modal.open; one at a time)
+ *   HowItWorks.buttonHtml(topicId, label?) -> the inline (i) button markup ('' for an unknown topic id). A document
+ *                                          capture listener (installed when this file loads) opens the window on that topic
+ *                                          for any `.hiw-info-btn[data-hiw-topic]`, so buttons written by hand in
+ *                                          index.html work too. Used on: habit popup + streak notice (streaks), Heroes
+ *                                          popup + Routines window (heroes), Stats > Achievements (achievements).
  */
 const HowItWorks = (() => {
     function esc(value) {
@@ -171,7 +176,33 @@ const HowItWorks = (() => {
         return overlay;
     }
 
-    return { topics, windowHtml, topicHtml, andList, open };
+    // ---- Inline (i) buttons (2026-11-03) ------------------------------------------------------------------------
+    // A small circled i that opens this window on one topic. Markup comes from buttonHtml (dynamic UI) or is written
+    // by hand in index.html (static headers); ONE capture-phase listener on the document opens the window for both.
+    // Capture + stopPropagation is deliberate: Modal's outside-click dismiss (a bubbling document handler) would
+    // otherwise see the same tap and close the popup or window the button sits in, and a row's own tap handler
+    // (agenda rows, hero rows) must not fire as well.
+    const TOPIC_IDS = ['points', 'pushbacks', 'streaks', 'heroes', 'achievements'];
+
+    function buttonHtml(topicId, label) {
+        if (TOPIC_IDS.indexOf(topicId) === -1) return '';
+        return `<button type="button" class="hiw-info-btn" data-hiw-topic="${esc(topicId)}" aria-label="${esc(label || 'How this works')}">&#9432;</button>`;
+    }
+
+    function onInfoClick(e) {
+        const target = e.target;
+        const btn = target && target.closest ? target.closest('.hiw-info-btn[data-hiw-topic]') : null;
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        open({ topic: btn.getAttribute('data-hiw-topic') });
+    }
+
+    if (typeof document !== 'undefined' && document.addEventListener) {
+        document.addEventListener('click', onInfoClick, true);
+    }
+
+    return { topics, windowHtml, topicHtml, andList, open, buttonHtml, TOPIC_IDS };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

@@ -55,6 +55,11 @@ const Popups = (() => {
     // DECISIONS.md 2026-07-18.
     // -----------------------------------------------------------------------
 
+    // The inline (i) that opens "How Deadline works" on one topic (2026-11-03). '' when that module is not loaded.
+    function howItWorksButton(topicId, label) {
+        return (typeof HowItWorks !== 'undefined' && HowItWorks.buttonHtml) ? HowItWorks.buttonHtml(topicId, label) : '';
+    }
+
     function formatDateInputValue(date) {
         const pad = (n) => String(n).padStart(2, '0');
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -370,7 +375,7 @@ const Popups = (() => {
                             ? `<p><strong>Tempting around:</strong> <span class="task-due-display">${item.dueDateTime.toLocaleTimeString([], { timeStyle: 'short' })}</span></p>`
                             : `<p><strong>Due:</strong> <span class="task-due-display">${taskDueDisplayText(item)}</span></p>`}
                         <p><strong>Priority:</strong> ${item.isHighPriority ? 'High' : 'Normal'}</p>
-                        ${item.type === 'habit' ? `<p><strong>Streak:</strong> ${item.streak}</p>` : ''}
+                        ${item.type === 'habit' ? `<p><strong>Streak:</strong> ${item.streak}${howItWorksButton('streaks', 'How streaks work')}</p>` : ''}
                         ${buildHabitPointsLineHtml(item, deps)}
                         ${(item.type === 'habit' && typeof Habits !== 'undefined' && Habits.formatGoal && Habits.formatGoal(item.goal, item.isNegative))
                             ? `<p class="habit-goal-line"><strong>${item.isNegative ? 'Limit' : 'Goal'}:</strong> ${Habits.formatGoal(item.goal, item.isNegative).replace(/^(Goal|Limit): /, '').replace(/</g, '&lt;')}</p>` : ''}

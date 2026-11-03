@@ -65,3 +65,29 @@
 @media (prefers-reduced-motion: reduce) {
     .hiw-topic > summary::after { transition: none; }
 }
+
+/* Inline (i) buttons (2026-11-03): the small circled i beside a streak, the Heroes title, the Routines title and the
+   Achievements heading. Same look as the pushback hint (.form-hint-btn); the ::after widens the tap target to ~44px
+   without changing the layout. A document-level listener in js/ui/howItWorks.js opens the window on the data-hiw-topic. */
+.hiw-info-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    margin-left: 6px;
+    padding: 0;
+    border: 1px solid var(--color-border, #888);
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1;
+    cursor: pointer;
+    vertical-align: middle;
+}
+.hiw-info-btn::after { content: ''; position: absolute; inset: -11px; }
+/* In a flex window header (h3 + button + close x): keep the i beside the title and let the x sit at the far end. */
+.hiw-info-btn--title { margin-right: auto; }

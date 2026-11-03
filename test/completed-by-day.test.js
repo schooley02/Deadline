@@ -84,12 +84,20 @@ describe('renderCompletedItems: today only', () => {
         expect(section.classList.contains('hidden')).toBe(true);
     });
 
-    test('the row shows just the time, not a date', () => {
+    test('the row shows just the time: no date and no "Completed:" label (the heading says it)', () => {
         const { list } = mountDom();
         AgendaList.renderCompletedItems(deps([done('a', at(3, 9, 5))]));
         const text = list.querySelector('.item-completed').textContent;
-        expect(text).toBe('Completed: ' + at(3, 9, 5).toLocaleTimeString([], { timeStyle: 'short' }));
+        expect(text).toBe(at(3, 9, 5).toLocaleTimeString([], { timeStyle: 'short' }));
         expect(text).not.toMatch(/\d+\/\d+/);
+        expect(text).not.toMatch(/Completed/);
+    });
+
+    test('Yesterday\'s rows are time-only too', () => {
+        const { list } = mountDom();
+        AgendaList.renderCompletedItems(deps([done('y', at(2, 20, 15))]), { day: at(2, 12) });
+        const text = list.querySelector('.item-completed').textContent;
+        expect(text).toBe(at(2, 20, 15).toLocaleTimeString([], { timeStyle: 'short' }));
     });
 
     test('a sub-task finished today nests under its parent; one finished on another day still nests under a parent finished today', () => {
@@ -154,8 +162,9 @@ describe('renderCompletedItems: Older toggle', () => {
         expect(names(list)).toEqual(['Item t', 'Item y', 'Item w']);
         expect(btn().textContent).toBe('Hide older');
         const stamps = [...list.querySelectorAll('.completed-item:not(.completed-sub-item) .item-completed')].map(e => e.textContent);
-        expect(stamps[0]).toBe('Completed: ' + at(3, 9).toLocaleTimeString([], { timeStyle: 'short' }));
+        expect(stamps[0]).toBe(at(3, 9).toLocaleTimeString([], { timeStyle: 'short' }));
         expect(stamps[1]).toMatch(/\d+\/\d+/);
+        expect(stamps[1]).toMatch(/^Completed: /); // the Older rows keep their label with the full date
         btn().click();
         expect(names(list)).toEqual(['Item t']);
         expect(btn().textContent).toBe('Older (2)');

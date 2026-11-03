@@ -912,10 +912,17 @@ const AgendaList = (() => {
                 const itemCompletedSpan = document.createElement('span');
                 itemCompletedSpan.classList.add('item-completed');
                 // One day on screen => the date is redundant, show just the time.
-                const completedStamp = (dayFiltered && new Date(item.completedAt).getTime() >= dayStartMs)
+                const timeOnly = dayFiltered && new Date(item.completedAt).getTime() >= dayStartMs;
+                const completedStamp = timeOnly
                     ? new Date(item.completedAt).toLocaleTimeString([], { timeStyle: 'short' })
                     : item.completedAt.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
-                itemCompletedSpan.textContent = `${(isSlipped || isResisted) ? 'Answered' : 'Completed'}: ${completedStamp}`;
+                const isAnswer = isSlipped || isResisted;
+                // 2026-11-03: on a single-day page the heading already says "Completed Today/Yesterday", so a finished
+                // row shows only the time ("Completed: 1:05 AM" wrapped onto two lines and squeezed the name). Answered
+                // (Break habit) rows keep their label, and the Older list keeps the label with its full date.
+                itemCompletedSpan.textContent = (timeOnly && !isAnswer)
+                    ? completedStamp
+                    : `${isAnswer ? 'Answered' : 'Completed'}: ${completedStamp}`;
 
                 itemInfoDiv.appendChild(itemNameSpan);
                 if (isSlipped || isResisted) {
