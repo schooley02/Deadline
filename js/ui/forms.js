@@ -251,7 +251,7 @@ const Forms = (() => {
     function anytimeRowHtml(o) {
         return `<div class="form-row priority-row anytime-row">
                 <input type="checkbox" id="${o.id}"${o.checked ? ' checked' : ''}>
-                <label for="${o.id}">Anytime (due by 11:59 PM)</label>
+                <label for="${o.id}">Anytime today</label>
             </div>`;
     }
     // Applies the checkbox's state to its Due / Start boxes. Safe to call when any element is missing.

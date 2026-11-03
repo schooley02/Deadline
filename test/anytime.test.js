@@ -119,8 +119,9 @@ describe('Add Task form', () => {
     }
     const $ = (id) => document.getElementById(id);
 
-    test('the Anytime row is on the form, unchecked, Due editable, Start visible', () => {
+    test('the Anytime row is on the form (labelled "Anytime today"), unchecked, Due editable, Start visible', () => {
         open();
+        expect(document.querySelector('label[for="modalTaskAnytime"]').textContent).toBe('Anytime today');
         expect($('modalTaskAnytime')).not.toBeNull();
         expect($('modalTaskAnytime').checked).toBe(false);
         expect($('modalDueTime').disabled).toBe(false);
@@ -260,9 +261,9 @@ describe('Agenda row text', () => {
         dueDateTime: new Date(2099, 2, 4, 23, 59),
     }, o);
 
-    test('an anytime task reads "Due: <date> \u00B7 Anytime", not 11:59 PM', () => {
+    test('an anytime task reads "Due: <date> \u00B7 Midnight", not 11:59 PM', () => {
         const text = details(row({ anytime: true }));
-        expect(text).toMatch(/^Due: .+ \u00B7 Anytime$/);
+        expect(text).toMatch(/^Due: .+ \u00B7 Midnight$/);
         expect(text).not.toMatch(/11:59/);
     });
 
@@ -272,7 +273,7 @@ describe('Agenda row text', () => {
 
     test('a stale flag on a task no longer due at 23:59 prints the real time', () => {
         const text = details(row({ anytime: true, dueDateTime: new Date(2099, 2, 4, 18, 30) }));
-        expect(text).not.toMatch(/Anytime/);
+        expect(text).not.toMatch(/Midnight/);
         expect(text).toMatch(/6:30|18:30/);
     });
 });
@@ -289,9 +290,9 @@ describe('Task popup Due line', () => {
     const dueText = () => document.querySelector('.task-due-display').textContent;
     beforeEach(() => { document.body.innerHTML = ''; });
 
-    test('an anytime task reads "\u00B7 Anytime", not the 11:59 PM time', () => {
+    test('an anytime task reads "\u00B7 Midnight", not the 11:59 PM time', () => {
         Popups.showTaskDetailsPopup(item({ anytime: true }), popupDeps());
-        expect(dueText()).toMatch(/\u00B7 Anytime$/);
+        expect(dueText()).toMatch(/\u00B7 Midnight$/);
         expect(dueText()).not.toMatch(/11:59/);
     });
 
@@ -300,6 +301,6 @@ describe('Task popup Due line', () => {
         expect(dueText()).toMatch(/11:59/);
         document.body.innerHTML = '';
         Popups.showTaskDetailsPopup(item({ anytime: true, dueDateTime: new Date(2099, 2, 4, 18, 30) }), popupDeps());
-        expect(dueText()).not.toMatch(/Anytime/);
+        expect(dueText()).not.toMatch(/Midnight/);
     });
 });

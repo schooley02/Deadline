@@ -347,12 +347,12 @@ const Popups = (() => {
         return `<p class="habit-points-line"><strong>Points:</strong> ${line}${ghost}</p>`;
     }
 
-    // The popup's "Due:" value. An anytime task (2026-11-02) reads "<date> \u00B7 Anytime" instead of 11:59 PM, but only
+    // The popup's "Due:" value. An anytime task (2026-11-02) reads "<date> \u00B7 Midnight" instead of 11:59 PM (same word as the list row), but only
     // while its due time is still 23:59 (a stale flag falls back to the real time).
     function taskDueDisplayText(item) {
         const d = item.dueDateTime;
         if (item.type === 'task' && item.anytime === true && d.getHours() === 23 && d.getMinutes() === 59) {
-            return d.toLocaleDateString() + ' \u00B7 Anytime';
+            return d.toLocaleDateString() + ' \u00B7 Midnight';
         }
         return d.toLocaleString();
     }
