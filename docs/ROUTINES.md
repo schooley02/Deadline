@@ -28,9 +28,9 @@ TASKS count too**: task defs keep their own `occurrenceHistory`, merged into the
 see DECISIONS 2026-10-31 late morning) built in this sub-session; rendered in sub-session 3. **Redesigned 2026-07-21** (found via
 Jeremy's phone playtest: completing ONE habit once instantly rated a brand-new routine 5★ — see
 DECISIONS.md): `completionRate` now returns a rate over a ROLLING window of the most recent
-`CONFIG.HERO_STAR_RATE_WINDOW` (28) occurrences across ALL member habits merged/sorted
+`CONFIG.HERO_STAR_RATE_WINDOW` (22; was 28 until 2026-11-03, now the same as the habit window) occurrences across ALL member habits merged/sorted
 chronologically, not an all-time average — plus a separate `distinctDays` tenure count (distinct
-calendar days with a recorded occurrence, since routine creation, NOT limited to the 28-window).
+calendar days with a recorded occurrence, since routine creation, NOT limited to the rate window).
 `starRating` now requires BOTH the tier's `minRate` (spec's 60/70/80/90/95%, unchanged) AND its
 `minDays` (2/4/7/14/21 for 1★-5★) — a perfect rate with no track record stays unrated. No schema
 change (both numbers derive from existing `occurrenceHistory`, same "derive don't store" precedent

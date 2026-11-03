@@ -250,7 +250,7 @@ Habit {
 // miss), miss when the instance goes overdue or is still undone at rollover
 // with no entry yet, the day's entry removed on an undo before the due time.
 // KO ghosts and Skip Day record nothing. Trimmed to CONFIG.HERO_STAR_RATE_WINDOW
-// (28). Read only by Heroes.completionRate (hero star rate). Missing reads as
+// (22; was 28 until 2026-11-03). Read only by Heroes.completionRate (hero star rate). Missing reads as
 // [] -- defs saved earlier simply start with no history.
 //
 // BUILT 2026-07-18: js/schedule.js + schemaVersion 2→3 migration (session 14),

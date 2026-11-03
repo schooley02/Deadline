@@ -224,17 +224,21 @@ const CONFIG = {
     ROUTINE_MAX_HEALTH: 100,
     HERO_REVIVE_HEALTH: 50,
     // Rolling occurrence window for the star-rating RATE (2026-07-21 redesign,
-    // see docs/DECISIONS.md and docs/ROUTINES.md) — distinct from
-    // HABIT_RATE_WINDOW's 14 (which feeds the habit points multiplier). A
-    // routine's rate is "how am I doing over my last ~28 recorded
-    // occurrences," not an all-time average that stops moving once a routine
-    // has months of history behind it.
-    HERO_STAR_RATE_WINDOW: 28,
+    // see docs/DECISIONS.md and docs/ROUTINES.md). 22 since 2026-11-03: the SAME
+    // window as HABIT_RATE_WINDOW (the habit points multiplier), because 22 is the
+    // "it takes ~22 repetitions to form a habit" figure the game tracks. It was 28
+    // (double the habit window when that was 14); the habit window moved to 22
+    // the same day and this one never followed. A routine's rate is "how am I
+    // doing over my last 22 recorded occurrences," not an all-time average that
+    // stops moving once a routine has months of history behind it. Note: the
+    // occurrences are merged across ALL of the routine's habits and tasks, so a
+    // routine with several items covers fewer days than a single-habit one.
+    HERO_STAR_RATE_WINDOW: 22,
     // Star tiers (PROJECT_SPEC ~78-83 sets the rate cutoffs; minDays is the
     // 2026-07-21 addition, see DECISIONS.md). BOTH minRate (over the rolling
     // window above) AND minDays (distinct calendar days with at least one
     // recorded occurrence, since routine creation — NOT limited to the
-    // 28-window) must be satisfied; checked high-to-low, first match wins;
+    // rate window) must be satisfied; checked high-to-low, first match wins;
     // below the lowest tier (or unrated) = 0. minDays is what fixes the
     // reported bug: completing one habit once produced a 100% rate that
     // instantly cleared the 95% tier with zero track record behind it.
