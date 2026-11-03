@@ -72,7 +72,7 @@ close-up village view. Buildings carry their own state (no floating markers by d
 
 **PIXEL-SCALE RULE (REVISED 2026-10-28 late; supersedes BOTH the earlier "1x / 48x56" and the "2x / 64x80" rules):** zombies and heroes are
 authored on a 128px character canvas (atlas cells 180px zombies / 164px heroes, `characterSize: 128` in `Assets/Zombies|Heroes/anim/*.json`) and are drawn
-1:1 (1 art px = 1 screen px). The church is the exception (80x200 shown at 2x). The 64x64 zombie PNGs are only the static fallback (shown at 2x); the
+1:1 (1 art px = 1 screen px). The church is the exception (80x200 shown at 2x). The static zombie PNGs (`Assets/Zombies/<cat>-zombie.png` 128px and `-64.png`; 2026-11-03: the idle frame of each animated atlas, so they match the canvas) are the static fallback (shown at 2x), the agenda-row sprite (50px; greyscale in the Completed list) and the hero KO zombie; the
 earlier "2x" rule was judged against those, the wrong reference. **Village sprites are therefore authored on a 128px-wide canvas and shown at 1x in the
 scene; close-up = 2x (whole numbers only).** Never rotate a pixel sprite, never author big and shrink, never use 1.5x (uneven pixels).
 - **Canvas (Jeremy generated at 128x128 in PixelLab, 2026-10-28): 128 wide, height per building, bottom-centre anchored.** Clock tower: **128x256 for ALL

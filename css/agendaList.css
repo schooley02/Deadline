@@ -234,7 +234,8 @@
 }
 
 /* Task List Category Sprites - Using background images instead of emoji */
-.task-list li.category-career .item-sprite {
+.task-list li.category-career .item-sprite,
+.completed-tasks-list li.category-career .item-sprite {
     background-image: url('../Assets/Zombies/career-zombie.png');
     background-size: 50px 50px;
     background-position: center;
@@ -246,7 +247,8 @@
     background-size: 32px 32px;
 }
 
-.task-list li.category-creativity .item-sprite {
+.task-list li.category-creativity .item-sprite,
+.completed-tasks-list li.category-creativity .item-sprite {
     background-image: url('../Assets/Zombies/creativity-zombie.png');
     background-size: 50px 50px;
     background-position: center;
@@ -257,7 +259,8 @@
     background-size: 32px 32px;
 }
 
-.task-list li.category-financial .item-sprite {
+.task-list li.category-financial .item-sprite,
+.completed-tasks-list li.category-financial .item-sprite {
     background-image: url('../Assets/Zombies/financial-zombie.png');
     background-size: 50px 50px;
     background-position: center;
@@ -268,7 +271,8 @@
     background-size: 32px 32px;
 }
 
-.task-list li.category-health .item-sprite {
+.task-list li.category-health .item-sprite,
+.completed-tasks-list li.category-health .item-sprite {
     background-image: url('../Assets/Zombies/health-zombie.png');
     background-size: 50px 50px;
     background-position: center;
@@ -279,7 +283,8 @@
     background-size: 32px 32px;
 }
 
-.task-list li.category-lifestyle .item-sprite {
+.task-list li.category-lifestyle .item-sprite,
+.completed-tasks-list li.category-lifestyle .item-sprite {
     background-image: url('../Assets/Zombies/lifestyle-zombie.png');
     background-size: 50px 50px;
     background-position: center;
@@ -290,7 +295,8 @@
     background-size: 32px 32px;
 }
 
-.task-list li.category-relationships .item-sprite {
+.task-list li.category-relationships .item-sprite,
+.completed-tasks-list li.category-relationships .item-sprite {
     background-image: url('../Assets/Zombies/relationships-zombie.png');
     background-size: 50px 50px;
     background-position: center;
@@ -301,7 +307,8 @@
     background-size: 32px 32px;
 }
 
-.task-list li.category-spirituality .item-sprite {
+.task-list li.category-spirituality .item-sprite,
+.completed-tasks-list li.category-spirituality .item-sprite {
     background-image: url('../Assets/Zombies/spiritual-zombie.png');
     background-size: 50px 50px;
     background-position: center;
@@ -312,7 +319,8 @@
     background-size: 32px 32px;
 }
 
-.task-list li.category-other .item-sprite {
+.task-list li.category-other .item-sprite,
+.completed-tasks-list li.category-other .item-sprite {
     background-image: url('../Assets/Zombies/other-zombie.png');
     background-size: 50px 50px;
     background-position: center;
@@ -324,8 +332,19 @@
 }
 
 /* Hide the pseudo-element content since we're using background images */
-.task-list li .item-sprite::before {
+.task-list li .item-sprite::before,
+.completed-tasks-list li .item-sprite::before {
     display: none;
+}
+
+/* Completed rows (2026-11-03): the same category zombie as the active list (the PNGs are the idle frames of the
+   animated atlases the canvas uses), drawn in GREYSCALE so a finished entry reads as "defeated". Nested completed
+   sub-tasks get the smaller 32px box. The sprite fills what used to be an empty 50px column. */
+.completed-tasks-list li .item-sprite {
+    filter: grayscale(1);
+}
+.completed-tasks-list li.completed-sub-item .item-sprite {
+    background-size: 32px 32px;
 }
 
 

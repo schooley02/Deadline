@@ -4,6 +4,16 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-03 (completed sprites) -- Completed rows show the category zombie in greyscale; list sprites are now the animated art's idle frames (Claude app session, Sonnet; Jeremy)
+
+**Decision:** (1) the Completed list's empty sprite column now draws the item's category zombie, in GREYSCALE (`filter: grayscale(1)`), so a finished entry reads as defeated; nested completed sub-tasks get the 32px size. Jeremy picked greyscale over the same coloured zombie or a "slain" (lying down) drawing. (2) The 16 static zombie PNGs (`Assets/Zombies/<cat>-zombie.png` 128px, `-64.png` 64px) were REPLACED IN PLACE with frame 0 of each animated atlas's idle row (`Assets/Zombies/anim/<cat>.png`), cropped to the figure and placed bottom-centre in the 128 canvas (feet at row 126, like the old files), the 64 a LANCZOS half-size of it. Display-only: no schema, balance or daily-record change.
+**Why:** the list rows used the OLD static art, which no longer matched the animated zombies on the canvas (creativity guitarist, lifestyle traveller, nun, career suit colours all differed). The old sprite rules were scoped to `.task-list`, so the Completed list had no sprite at all.
+**Details worth knowing:** the same PNGs are the canvas static fallback (`css/enemySprites.css`) and the hero KO spotlight zombie (`HeroSpotlight.zombieSpriteFor`, the `-64` files), so those now match too; filenames and sizes are unchanged, so `sw.js` needed only the v232 cache bump. The rules are `.task-list li.category-X .item-sprite, .completed-tasks-list li.category-X .item-sprite`; the greyscale is on `.completed-tasks-list li .item-sprite` only (the active list keeps colour). Recipe to regenerate if an atlas is re-exported: crop `bbox` of frame 0 of the idle row (`json.animations.idle.row`, `frameWidth`), paste at `((128-w)//2, 126-h)` into a transparent 128x128. `test/completed-row-sprites.test.js` (20) checks the shared rules, the greyscale, the sub-task size, the PNG sizes and the sw list (mutation-checked: removing the greyscale or one category's selector fails it).
+**Checked:** full Jest 147 suites / 3,171; headless Chromium at 390px: sprite 50px, `grayscale(1)` computed, no horizontal overflow, no console errors.
+**Still open:** the Completed rows' NAME column is still narrow now that the sprite fills the left (the "Completed" word and check on the right take about 120px; a long name wraps to 4 lines). Not changed; a layout call.
+
+---
+
 ## 2026-11-03 (info buttons + rows) -- Inline (i) buttons open "How Deadline works" on a topic; Completed rows show just the time (Claude app session, Sonnet; Jeremy)
 
 **Decision:** two small display-only changes, no schema or balance change. (1) **Inline (i) buttons** in four places, each opening the "How Deadline works" window on one topic, expanded: the habit popup's Streak line and the streak-milestone notice -> Streaks; the Heroes popup title and the Routines window title -> Hero ranking; Stats > Achievements heading -> Achievements. (2) **Completed rows** on a single-day page (Today, Yesterday) show only the time ("1:05 AM"), not "Completed: 1:05 AM".
