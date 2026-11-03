@@ -769,6 +769,25 @@ const AgendaList = (() => {
         return li;
     }
 
+    // "Show older" toggle for the Completed block (Today view only). Module state: it survives re-renders.
+    let showOlderCompleted = false;
+    let showOlderBtn = null;
+    function syncShowOlderButton(section, olderCount, rerender) {
+        if (olderCount === 0 || typeof document.createElement !== 'function' || typeof section.appendChild !== 'function') {
+            if (showOlderBtn) showOlderBtn.hidden = true;
+            return;
+        }
+        if (!showOlderBtn) {
+            showOlderBtn = document.createElement('button');
+            showOlderBtn.type = 'button';
+            showOlderBtn.className = 'completed-show-older';
+        }
+        if (showOlderBtn.parentNode !== section) section.appendChild(showOlderBtn);
+        showOlderBtn.hidden = false;
+        showOlderBtn.textContent = showOlderCompleted ? 'Hide older' : `Show older (${olderCount})`;
+        showOlderBtn.onclick = () => { showOlderCompleted = !showOlderCompleted; rerender(); };
+    }
+
     /**
      * Top-level (non-sub-task) completed entries whose completedAt falls on dayDate's calendar day.
      * Pure; exported for tests. Sub-tasks are excluded here because they render nested under their parent.
@@ -811,7 +830,14 @@ const AgendaList = (() => {
         const viewDay = view.day || (typeof deps.currentGameDate === 'function' ? deps.currentGameDate() : null);
         const dayFiltered = !!viewDay;
         const readOnly = !!view.readOnly;
-        const topLevelShown = dayFiltered ? completedOnDay(completedItems, viewDay) : completedItems.filter(i => !i.parentId);
+        let topLevelShown = dayFiltered ? completedOnDay(completedItems, viewDay) : completedItems.filter(i => !i.parentId);
+        // "Show older" (2026-11-03, Jeremy): on Today only, a button reveals every earlier completion below today's.
+        const dayStartMs = dayFiltered ? new Date(new Date(viewDay).setHours(0, 0, 0, 0)).getTime() : 0;
+        const olderItems = (dayFiltered && !readOnly)
+            ? completedItems.filter(i => !i.parentId && i.completedAt && new Date(i.completedAt).getTime() < dayStartMs)
+            : [];
+        if (showOlderCompleted && olderItems.length > 0) topLevelShown = topLevelShown.concat(olderItems);
+        syncShowOlderButton(completedTasksSection, olderItems.length, () => renderCompletedItems(deps, opts));
 
         if (dayFiltered && typeof completedTasksSection.querySelector === 'function') {
             const heading = completedTasksSection.querySelector('h3');
@@ -821,7 +847,8 @@ const AgendaList = (() => {
         completedItemsList.classList.toggle('completed-readonly', readOnly);
 
         // Show the completed tasks section if there is something to show for this day
-        if (topLevelShown.length > 0) {
+        // (or older entries to offer, so the "Show older" button stays reachable on a day with none yet)
+        if (topLevelShown.length > 0 || olderItems.length > 0) {
             completedTasksSection.classList.remove('hidden');
 
             // Clear existing list
@@ -862,7 +889,7 @@ const AgendaList = (() => {
                 const itemCompletedSpan = document.createElement('span');
                 itemCompletedSpan.classList.add('item-completed');
                 // One day on screen => the date is redundant, show just the time.
-                const completedStamp = dayFiltered
+                const completedStamp = (dayFiltered && new Date(item.completedAt).getTime() >= dayStartMs)
                     ? new Date(item.completedAt).toLocaleTimeString([], { timeStyle: 'short' })
                     : item.completedAt.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
                 itemCompletedSpan.textContent = `${(isSlipped || isResisted) ? 'Answered' : 'Completed'}: ${completedStamp}`;

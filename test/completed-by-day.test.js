@@ -77,12 +77,11 @@ describe('renderCompletedItems: today only', () => {
         expect(names(list)).toEqual(['Item b', 'Item a']);
     });
 
-    test('nothing today hides the section even when older entries exist', () => {
-        const { list, section } = mountDom();
+    test('nothing today and nothing older hides the section', () => {
+        const { section } = mountDom();
         section.classList.remove('hidden');
-        AgendaList.renderCompletedItems(deps([done('old', at(1, 9))]));
+        AgendaList.renderCompletedItems(deps([]));
         expect(section.classList.contains('hidden')).toBe(true);
-        expect(list.children.length).toBe(0);
     });
 
     test('the row shows just the time, not a date', () => {
@@ -133,6 +132,53 @@ describe('renderCompletedItems: today only', () => {
         delete d.currentGameDate;
         AgendaList.renderCompletedItems(d);
         expect(names(list).sort()).toEqual(['Item a', 'Item old']);
+    });
+});
+
+describe('renderCompletedItems: Show older', () => {
+    const items = () => [done('t', at(3, 9)), done('y', at(2, 20)), done('w', at(1, 8)), done('sub', at(1, 8), { parentId: 'w' })];
+    const btn = () => document.querySelector('.completed-show-older');
+
+    test('a button offers the older entries and counts top-level ones only', () => {
+        const { list } = mountDom();
+        AgendaList.renderCompletedItems(deps(items()));
+        expect(btn().hidden).toBe(false);
+        expect(btn().textContent).toBe('Show older (2)');
+        expect(names(list)).toEqual(['Item t']);
+    });
+
+    test('tapping it adds the older entries below today\'s, with a full date on the older rows; tapping again hides them', () => {
+        const { list } = mountDom();
+        AgendaList.renderCompletedItems(deps(items()));
+        btn().click();
+        expect(names(list)).toEqual(['Item t', 'Item y', 'Item w']);
+        expect(btn().textContent).toBe('Hide older');
+        const stamps = [...list.querySelectorAll('.completed-item:not(.completed-sub-item) .item-completed')].map(e => e.textContent);
+        expect(stamps[0]).toBe('Completed: ' + at(3, 9).toLocaleTimeString([], { timeStyle: 'short' }));
+        expect(stamps[1]).toMatch(/\d+\/\d+/);
+        btn().click();
+        expect(names(list)).toEqual(['Item t']);
+        expect(btn().textContent).toBe('Show older (2)');
+    });
+
+    test('with nothing today the section still shows so the button can be reached', () => {
+        const { section, list } = mountDom();
+        AgendaList.renderCompletedItems(deps([done('y', at(2, 20))]));
+        expect(section.classList.contains('hidden')).toBe(false);
+        expect(list.children.length).toBe(0);
+        expect(btn().textContent).toBe('Show older (1)');
+    });
+
+    test('no older entries, no button', () => {
+        mountDom();
+        AgendaList.renderCompletedItems(deps([done('t', at(3, 9))]));
+        expect(btn() === null || btn().hidden).toBe(true);
+    });
+
+    test('Yesterday\'s page has no Show older button', () => {
+        mountDom();
+        AgendaList.renderCompletedItems(deps(items(), { completedView: () => ({ day: at(2, 12), readOnly: true, heading: 'Completed Yesterday' }) }));
+        expect(btn() === null || btn().hidden).toBe(true);
     });
 });
 

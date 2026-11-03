@@ -533,3 +533,18 @@
 .outcome-tag.resisted { background: #2e8b57; }
 .completed-item-slipped .item-name { text-decoration: none; opacity: 0.8; }
 .completed-item-slipped { opacity: 0.85; }
+
+/* Completed block: reveal entries from before today (2026-11-03). */
+.completed-show-older {
+    display: block;
+    margin: 8px auto 0;
+    padding: 6px 14px;
+    border: 1px solid var(--border-color, #c9d6d0);
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+.completed-show-older[hidden] { display: none; }
