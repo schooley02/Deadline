@@ -135,7 +135,7 @@ describe('renderCompletedItems: today only', () => {
     });
 });
 
-describe('renderCompletedItems: Show older', () => {
+describe('renderCompletedItems: Older toggle', () => {
     const items = () => [done('t', at(3, 9)), done('y', at(2, 20)), done('w', at(1, 8)), done('sub', at(1, 8), { parentId: 'w' })];
     const btn = () => document.querySelector('.completed-show-older');
 
@@ -143,7 +143,7 @@ describe('renderCompletedItems: Show older', () => {
         const { list } = mountDom();
         AgendaList.renderCompletedItems(deps(items()));
         expect(btn().hidden).toBe(false);
-        expect(btn().textContent).toBe('Show older (2)');
+        expect(btn().textContent).toBe('Older (2)');
         expect(names(list)).toEqual(['Item t']);
     });
 
@@ -158,7 +158,7 @@ describe('renderCompletedItems: Show older', () => {
         expect(stamps[1]).toMatch(/\d+\/\d+/);
         btn().click();
         expect(names(list)).toEqual(['Item t']);
-        expect(btn().textContent).toBe('Show older (2)');
+        expect(btn().textContent).toBe('Older (2)');
     });
 
     test('with nothing today the section still shows so the button can be reached', () => {
@@ -166,7 +166,47 @@ describe('renderCompletedItems: Show older', () => {
         AgendaList.renderCompletedItems(deps([done('y', at(2, 20))]));
         expect(section.classList.contains('hidden')).toBe(false);
         expect(list.children.length).toBe(0);
-        expect(btn().textContent).toBe('Show older (1)');
+        expect(btn().textContent).toBe('Older (1)');
+    });
+
+    test('it sits in the heading row, right beside the title', () => {
+        const { heading } = mountDom();
+        AgendaList.renderCompletedItems(deps(items()));
+        const row = heading.parentNode;
+        expect(row.classList.contains('completed-heading-row')).toBe(true);
+        expect(btn().parentNode).toBe(row);
+        expect(row.parentNode.id).toBe('completedTasksSection');
+        // a second render must not wrap the heading again
+        AgendaList.renderCompletedItems(deps(items()));
+        expect(document.querySelectorAll('.completed-heading-row').length).toBe(1);
+        expect(heading.parentNode).toBe(row);
+    });
+
+    test('the title text still updates inside the row', () => {
+        const { heading } = mountDom();
+        AgendaList.renderCompletedItems(deps(items()));
+        heading.textContent = 'stale';
+        AgendaList.renderCompletedItems(deps(items()));
+        expect(heading.textContent).toBe('Completed Today');
+        expect(btn().textContent).toBe('Older (2)');
+    });
+
+    test('only the last 7 days are offered: 7 days back counts, 8 does not', () => {
+        const { list } = mountDom();
+        const day = (d, h) => new Date(2026, 10, 3 - d, h, 0, 0);
+        const cap = [done('t', day(0, 9)), done('d7', day(7, 0)), done('d6', day(6, 12)), done('d8', day(8, 23)), done('d30', day(30, 9))];
+        AgendaList.renderCompletedItems(deps(cap));
+        expect(btn().textContent).toBe('Older (2)');
+        btn().click();
+        expect(names(list)).toEqual(['Item t', 'Item d6', 'Item d7']);
+        btn().click();
+    });
+
+    test('everything older than 7 days: no button and a hidden block', () => {
+        const { section } = mountDom();
+        AgendaList.renderCompletedItems(deps([done('d30', new Date(2026, 9, 4, 9, 0, 0))]));
+        expect(section.classList.contains('hidden')).toBe(true);
+        expect(btn() === null || btn().hidden).toBe(true);
     });
 
     test('no older entries, no button', () => {
@@ -175,7 +215,7 @@ describe('renderCompletedItems: Show older', () => {
         expect(btn() === null || btn().hidden).toBe(true);
     });
 
-    test('Yesterday\'s page has no Show older button', () => {
+    test('Yesterday\'s page has no Older button', () => {
         mountDom();
         AgendaList.renderCompletedItems(deps(items(), { completedView: () => ({ day: at(2, 12), readOnly: true, heading: 'Completed Yesterday' }) }));
         expect(btn() === null || btn().hidden).toBe(true);

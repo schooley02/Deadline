@@ -769,7 +769,8 @@ const AgendaList = (() => {
         return li;
     }
 
-    // "Show older" toggle for the Completed block (Today view only). Module state: it survives re-renders.
+    // "Older" toggle for the Completed block (Today view only, heading row). Module state: it survives re-renders.
+    const OLDER_COMPLETED_DAYS = 7;   // how far back "Older" reaches
     let showOlderCompleted = false;
     let showOlderBtn = null;
     function syncShowOlderButton(section, olderCount, rerender) {
@@ -782,9 +783,22 @@ const AgendaList = (() => {
             showOlderBtn.type = 'button';
             showOlderBtn.className = 'completed-show-older';
         }
-        if (showOlderBtn.parentNode !== section) section.appendChild(showOlderBtn);
+        // The button lives in the heading row, right-aligned: the h3 is wrapped once, in JS (index.html stays untouched).
+        let host = section;
+        const heading = typeof section.querySelector === 'function' ? section.querySelector('h3') : null;
+        if (heading && heading.parentNode) {
+            const wrapped = heading.parentNode.classList && heading.parentNode.classList.contains('completed-heading-row');
+            if (!wrapped) {
+                const row = document.createElement('div');
+                row.className = 'completed-heading-row';
+                heading.parentNode.insertBefore(row, heading);
+                row.appendChild(heading);
+            }
+            host = heading.parentNode;
+        }
+        if (showOlderBtn.parentNode !== host) host.appendChild(showOlderBtn);
         showOlderBtn.hidden = false;
-        showOlderBtn.textContent = showOlderCompleted ? 'Hide older' : `Show older (${olderCount})`;
+        showOlderBtn.textContent = showOlderCompleted ? 'Hide older' : `Older (${olderCount})`;
         showOlderBtn.classList.toggle('is-open', showOlderCompleted);
         showOlderBtn.onclick = () => { showOlderCompleted = !showOlderCompleted; rerender(); };
     }
@@ -832,10 +846,18 @@ const AgendaList = (() => {
         const dayFiltered = !!viewDay;
         const readOnly = !!view.readOnly;
         let topLevelShown = dayFiltered ? completedOnDay(completedItems, viewDay) : completedItems.filter(i => !i.parentId);
-        // "Show older" (2026-11-03, Jeremy): on Today only, a button reveals every earlier completion below today's.
+        // "Show older" (2026-11-03, Jeremy): on Today only, a button reveals the last 7 days of earlier completions below today's.
         const dayStartMs = dayFiltered ? new Date(new Date(viewDay).setHours(0, 0, 0, 0)).getTime() : 0;
+        // Capped at the 7 days before the viewed day (Jeremy, 2026-11-03); nothing older is listed in the agenda.
+        const capStart = new Date(dayStartMs);
+        capStart.setDate(capStart.getDate() - OLDER_COMPLETED_DAYS);
+        const capStartMs = capStart.getTime();
         const olderItems = (dayFiltered && !readOnly)
-            ? completedItems.filter(i => !i.parentId && i.completedAt && new Date(i.completedAt).getTime() < dayStartMs)
+            ? completedItems.filter(i => {
+                if (i.parentId || !i.completedAt) return false;
+                const t = new Date(i.completedAt).getTime();
+                return t < dayStartMs && t >= capStartMs;
+            })
             : [];
         if (showOlderCompleted && olderItems.length > 0) topLevelShown = topLevelShown.concat(olderItems);
         syncShowOlderButton(completedTasksSection, olderItems.length, () => renderCompletedItems(deps, opts));
