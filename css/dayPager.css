@@ -303,3 +303,9 @@
         font-size: 13px;
     }
 }
+
+/* Yesterday's completions (2026-11-03): a record, not a to-do, so no undo checkbox and no edit pencil. */
+.completed-readonly .completion-checkbox,
+.completed-readonly .edit-icon-btn {
+    display: none;
+}

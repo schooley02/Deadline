@@ -294,3 +294,6 @@ Portrait phones and desktop (everything except phone landscape): the canvas stri
 - The last day has a list-height spacer under it so it can reach the top; an empty Today shows a "Nothing due today" band.
 - Checked in headless Chromium at 390, 360, 320 (no horizontal overflow), phone landscape and 1280 desktop; not yet on a phone.
 
+## Completed list: today only (built 2026-11-03; DECISIONS 2026-11-03 (completed))
+
+The block under the agenda ("Completed Today") shows only entries finished on the current game day, newest first, time only on each row; it hides itself when there are none. Tapping the ‹ arrow to Yesterday retitles it "Completed Yesterday" and fills it with yesterday's entries, read-only (undo checkbox and edit pencil hidden via `.completed-readonly`). Back on Today it is redrawn. Older days are not listed anywhere in the agenda (Stats and the daily record still hold them). Phone landscape hides the block on later days, as before.

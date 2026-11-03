@@ -502,6 +502,8 @@ const DayPagerView = (() => {
             listShowsSwapped = false;
             deps.renderTodayAgenda();
         }
+        // Yesterday's page showed yesterday's completions; Today's go back (no-op if unchanged).
+        if (restoreToday && deps.renderCompletedItems) deps.renderCompletedItems();
         // "Completed Today" is Today's own block and stays in the list.
         if (deps.completedTasksSectionEl) deps.completedTasksSectionEl.classList.remove('day-pager-hidden');
         renderFutureSections();
@@ -553,6 +555,8 @@ const DayPagerView = (() => {
             // -> script.js's sortAndRenderActiveList path elsewhere. Here we
             // only undo OUR forced hide from the branch below.
             if (deps.completedTasksSectionEl) deps.completedTasksSectionEl.classList.remove('day-pager-hidden');
+            // ...and it may have been showing YESTERDAY's completions a moment ago: draw Today's again.
+            if (deps.renderCompletedItems) deps.renderCompletedItems();
             return;
         }
 
@@ -568,7 +572,14 @@ const DayPagerView = (() => {
         // toggles itself based on whether there are any real completions —
         // stomping that would fight with renderCompletedItems on the next
         // real completion/uncompletion while still off Today).
-        if (deps.completedTasksSectionEl) deps.completedTasksSectionEl.classList.add('day-pager-hidden');
+        // Exception (2026-11-03, Jeremy): Yesterday shows YESTERDAY's completions (read-only). script.js's
+        // completedView() keys off this pager's offset, so the same render call draws the right day.
+        if (viewedDayOffset === DayPager.MIN_OFFSET) {
+            if (deps.completedTasksSectionEl) deps.completedTasksSectionEl.classList.remove('day-pager-hidden');
+            if (deps.renderCompletedItems) deps.renderCompletedItems();
+        } else if (deps.completedTasksSectionEl) {
+            deps.completedTasksSectionEl.classList.add('day-pager-hidden');
+        }
 
         const cd = conjureDeps();
 

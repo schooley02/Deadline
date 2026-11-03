@@ -770,15 +770,33 @@ const AgendaList = (() => {
     }
 
     /**
+     * Top-level (non-sub-task) completed entries whose completedAt falls on dayDate's calendar day.
+     * Pure; exported for tests. Sub-tasks are excluded here because they render nested under their parent.
+     */
+    function completedOnDay(completedItems, dayDate) {
+        const start = new Date(dayDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 1);
+        return (completedItems || []).filter(item => {
+            if (!item || item.parentId || !item.completedAt) return false;
+            const t = new Date(item.completedAt).getTime();
+            return Number.isFinite(t) && t >= start.getTime() && t < end.getTime();
+        });
+    }
+
+    /**
      * Render the completed-items list (below the active agenda). Completed
      * sub-tasks render nested/greyed directly under their parent's entry
      * ([P1-DATA-004] sub-session 5, 2026-07-19 — via buildCompletedSubTaskRow)
      * rather than as their own top-level rows.
      *
      * deps: { completedItems (getter), categoryStyles, showEditTaskModal,
-     *         uncompleteItem }
+     *         uncompleteItem, currentGameDate? (getter -> Date), completedView? (getter ->
+     *         { day, readOnly, heading } | null) }
+     * opts (optional, same shape as completedView()): show that day, read-only or not.
      */
-    function renderCompletedItems(deps) {
+    function renderCompletedItems(deps, opts) {
         const completedTasksSection = document.getElementById('completedTasksSection');
         const completedItemsList = document.getElementById('completedItemsList');
 
@@ -786,8 +804,24 @@ const AgendaList = (() => {
 
         const completedItems = deps.completedItems();
 
-        // Show the completed tasks section if there are completed items
-        if (completedItems.length > 0) {
+        // Which day's completions to show (2026-11-03, Jeremy: "just today's completions, and pull up yesterday's
+        // when they tap over to yesterday"). opts wins; else deps.completedView() (the day pager says "yesterday");
+        // else the game's current day (deps.currentGameDate). Callers that supply none of these get every entry.
+        const view = opts || (typeof deps.completedView === 'function' ? deps.completedView() : null) || {};
+        const viewDay = view.day || (typeof deps.currentGameDate === 'function' ? deps.currentGameDate() : null);
+        const dayFiltered = !!viewDay;
+        const readOnly = !!view.readOnly;
+        const topLevelShown = dayFiltered ? completedOnDay(completedItems, viewDay) : completedItems.filter(i => !i.parentId);
+
+        if (dayFiltered && typeof completedTasksSection.querySelector === 'function') {
+            const heading = completedTasksSection.querySelector('h3');
+            if (heading) heading.textContent = view.heading || 'Completed Today';
+        }
+        // A past day is a record, not a to-do: no undo checkbox, no edit pencil (css/dayPager.css).
+        completedItemsList.classList.toggle('completed-readonly', readOnly);
+
+        // Show the completed tasks section if there is something to show for this day
+        if (topLevelShown.length > 0) {
             completedTasksSection.classList.remove('hidden');
 
             // Clear existing list
@@ -797,8 +831,11 @@ const AgendaList = (() => {
             const sortedCompletedItems = [...completedItems].sort((a, b) => b.completedAt - a.completedAt);
 
             sortedCompletedItems.forEach(item => {
-                // Only show top-level completed items (not sub-tasks) in the completed list
+                // Only show top-level completed items (not sub-tasks) in the completed list,
+                // and (when a day is in view) only the ones finished on that day. Nested subs
+                // below still come from the full sorted list, matched by parentId.
                 if (item.parentId) return;
+                if (dayFiltered && !topLevelShown.includes(item)) return;
 
                 const li = document.createElement('li');
                 li.classList.add('completed-item');
@@ -824,10 +861,11 @@ const AgendaList = (() => {
 
                 const itemCompletedSpan = document.createElement('span');
                 itemCompletedSpan.classList.add('item-completed');
-                itemCompletedSpan.textContent = `${(isSlipped || isResisted) ? 'Answered' : 'Completed'}: ${item.completedAt.toLocaleString([], {
-                    dateStyle: 'short',
-                    timeStyle: 'short'
-                })}`;
+                // One day on screen => the date is redundant, show just the time.
+                const completedStamp = dayFiltered
+                    ? new Date(item.completedAt).toLocaleTimeString([], { timeStyle: 'short' })
+                    : item.completedAt.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+                itemCompletedSpan.textContent = `${(isSlipped || isResisted) ? 'Answered' : 'Completed'}: ${completedStamp}`;
 
                 itemInfoDiv.appendChild(itemNameSpan);
                 if (isSlipped || isResisted) {
@@ -956,6 +994,7 @@ const AgendaList = (() => {
         sortAndRenderActiveList,
         resetAllSubTaskCheckboxes,
         renderCompletedItems,
+        completedOnDay,
         buildCompletedSubTaskRow,
         showEditHabitInstanceModal,
         isFirstRunEmpty,

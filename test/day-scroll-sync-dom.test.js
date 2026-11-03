@@ -274,7 +274,8 @@ describe('continuous list: Yesterday keeps the static snapshot', () => {
         expect(view.getViewedDayOffset()).toBe(-1);
         expect(deps.activeItemsListEl.innerHTML).toContain('Nothing was scheduled');
         expect(document.getElementById('dayListFuture').classList.contains('day-pager-hidden')).toBe(true);
-        expect(deps.completedTasksSectionEl.classList.contains('day-pager-hidden')).toBe(true);
+        // Yesterday shows yesterday's completions now (2026-11-03), so the block stays; completed-by-day.test.js covers what it holds.
+        expect(deps.completedTasksSectionEl.classList.contains('day-pager-hidden')).toBe(false);
         expect(deps.timeSliderEl.disabled).toBe(true);
     });
 

@@ -939,6 +939,15 @@ document.addEventListener('DOMContentLoaded', () => {
             createSubTaskPrompt: (parentId) => Popups.createSubTaskPrompt(parentId, popupsDeps()),
             activeItemsListUL,
             completedItems: () => State.getCompletedItems(),
+            // "Completed Today" lists only today's finishes (2026-11-03); tapping over to Yesterday swaps in
+            // yesterday's, read-only. The day pager owns which day is on screen.
+            currentGameDate: State.getCurrentGameDate,
+            completedView: () => {
+                if (typeof DayPagerView === 'undefined' || DayPagerView.getViewedDayOffset() !== -1) return null;
+                const yesterday = new Date(State.getCurrentGameDate());
+                yesterday.setDate(yesterday.getDate() - 1);
+                return { day: yesterday, readOnly: true, heading: 'Completed Yesterday' };
+            },
             uncompleteItem: (itemId) => Items.uncompleteItemWithDuePrompt(itemId, Object.assign({}, itemsDeps(), {
                 promptNewDueTime: (item, cb) => Popups.promptNewDueTime(item, popupsDeps(), cb)
             })),
@@ -1869,6 +1878,7 @@ document.addEventListener('DOMContentLoaded', () => {
             taskCountDisplayEl: taskCountDisplay,
             updateTaskCountDisplay,
             completedTasksSectionEl: document.getElementById('completedTasksSection'),
+            renderCompletedItems: () => AgendaList.renderCompletedItems(agendaListDeps()),
             // 2026-11-03: the scrolling list box (continuous day list, see dayPagerView.js).
             listScrollEl: document.querySelector('.task-list-container'),
             getCurrentGameDate: State.getCurrentGameDate,
