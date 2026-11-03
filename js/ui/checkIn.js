@@ -235,13 +235,19 @@ const CheckIn = (() => {
     // One card for an open anytime task. `tomorrow` = { text, blocked } from deps.describeTomorrow (blank when unknown).
     // mode 'morning' (Anytime Build 3): the next-morning card for a task that already attacked overnight; the move button
     // reads "Today" and the wording is past tense.
-    function buildEveningTaskCardHtml(item, tomorrow, mode) {
+    // `credit` (morning only) = { left } from deps.getCredit: Done reads "Done (on time)" while a credit is left, else "Done (counts late)".
+    function doneLabel(credit) {
+        if (!credit) return 'Done';
+        return credit.left > 0 ? 'Done (on time)' : 'Done (counts late)';
+    }
+
+    function buildEveningTaskCardHtml(item, tomorrow, mode, credit) {
         const morning = mode === 'morning';
         const t = tomorrow || { text: '', blocked: false };
         const openSubs = Array.isArray(item.subTasks) && item.subTasks.length > 0;
         const done = openSubs
             ? `<button type="button" class="check-in-button avoid-btn" data-outcome="done" disabled title="Finish the sub-tasks first">Finish the sub-tasks first</button>`
-            : `<button type="button" class="check-in-button avoid-btn" data-outcome="done">Done</button>`;
+            : `<button type="button" class="check-in-button avoid-btn" data-outcome="done">${doneLabel(morning ? credit : null)}</button>`;
         return `
             <div class="check-in-card evening-card evening-task-card${morning ? ' morning-task-card' : ''}" data-card-kind="task" data-item-id="${item.id}">
                 <p class="check-in-question">Did you finish <strong>${escapeHtml(item.name)}</strong>${morning ? '' : ' today'}?</p>
@@ -336,19 +342,24 @@ const CheckIn = (() => {
     // The first open after midnight asks about each anytime task that already attacked, in case the player fell asleep
     // before marking it. Done counts as ON TIME (the overnight damage stays), Today moves it to 11:59 PM today as an
     // overdue pushback, Leave it records the answer. Closing the modal with cards left hides it until the next app open.
+    // Done counts as on time only while the player has a credit (2 per rolling week, 2026-11-02): deps.getCredit() -> { left, text }
+    // is read again after every answer, so the line and the Done labels follow each spend.
     // deps: { getTaskCandidates() -> anytime tasks, completeTask(id), leaveTask(id), describeMove(item) -> { text, blocked },
-    //         moveTaskToToday(id) -> { ok }, onDismiss() }. Returns the overlay, or null when there is nothing to ask.
+    //         moveTaskToToday(id) -> { ok }, getCredit() -> { left, text }, onDismiss() }. Returns the overlay, or null when there is nothing to ask.
     function showMorningTaskModal(deps) {
         const tasks = typeof deps.getTaskCandidates === 'function' ? (deps.getTaskCandidates() || []) : [];
         if (tasks.length === 0) return null;
         const describe = typeof deps.describeMove === 'function' ? deps.describeMove : () => null;
+        const getCredit = () => (typeof deps.getCredit === 'function' ? deps.getCredit() : null);
+        const credit = getCredit();
 
         const overlay = Modal.open(`
             <div class="modal-overlay morning-task-overlay">
                 <div class="modal-content check-in-modal">
                     <h3>Yesterday's anytime tasks</h3>
-                    <p class="check-in-intro">These were due at midnight and have already attacked. Did you finish them? Done counts as on time; the damage stays.</p>
-                    <div class="evening-cards morning-task-cards">${tasks.map(t => buildEveningTaskCardHtml(t, describe(t), 'morning')).join('')}</div>
+                    <p class="check-in-intro">These were due at midnight and have already attacked. Did you finish them? Done counts as on time while you have credit; the damage stays.</p>
+                    ${credit ? `<p class="morning-credit">${escapeHtml(credit.text)}</p>` : ''}
+                    <div class="evening-cards morning-task-cards">${tasks.map(t => buildEveningTaskCardHtml(t, describe(t), 'morning', credit)).join('')}</div>
                     <p class="check-in-snooze"><a href="#" class="morning-later-link">I'll check this later</a></p>
                 </div>
             </div>
@@ -361,7 +372,13 @@ const CheckIn = (() => {
                 button.addEventListener('click', () => {
                     if (!answerTaskCard(button.getAttribute('data-outcome'), button, itemId, deps, deps.moveTaskToToday)) return;
                     card.remove();
-                    if (!overlay.querySelector('.morning-task-card')) overlay.remove();
+                    if (!overlay.querySelector('.morning-task-card')) { overlay.remove(); return; }
+                    // A Done may have spent the credit: refresh the line and the remaining Done labels.
+                    const now = getCredit();
+                    if (!now) return;
+                    const line = overlay.querySelector('.morning-credit');
+                    if (line) line.textContent = now.text;
+                    overlay.querySelectorAll('.morning-task-card [data-outcome="done"]:not([disabled])').forEach((b) => { b.textContent = doneLabel(now); });
                 });
             });
         });

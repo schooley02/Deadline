@@ -139,6 +139,7 @@ const VillageCard = (() => {
             measures: meta.measures,
             reward: (c.kind === 'punctuality' && c.reward && typeof c.reward.current === 'string') ? {
                 current: c.reward.current, next: c.reward.next || null, maxed: !!c.reward.maxed,
+                credit: typeof c.reward.credit === 'string' ? c.reward.credit : '',
             } : null,
             why: meta.why || '',
             unit: meta.unit,
@@ -184,7 +185,8 @@ const VillageCard = (() => {
         const rewardHtml = m.reward
             ? `<p class="vc-label">Your reward</p><p class="vc-reward">Free pushbacks: ${esc(m.reward.current)}.</p>` +
               (m.reward.next ? `<p class="vc-reward vc-reward--next">${esc(m.reward.next)}.</p>`
-                  : (m.reward.maxed ? '<p class="vc-reward vc-reward--next">Top star: nothing more to earn here.</p>' : ''))
+                  : (m.reward.maxed ? '<p class="vc-reward vc-reward--next">Top star: nothing more to earn here.</p>' : '')) +
+              (m.reward.credit ? `<p class="vc-reward">${esc(m.reward.credit)}</p>` : '')
             : '';
         const emptyHtml = m.empty ? `<p class="vc-empty">${esc(m.empty)}</p>` : '';
         const linesHtml = m.lines.map(l => `<p class="vc-line">${esc(l)}</p>`).join('');

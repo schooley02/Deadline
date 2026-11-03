@@ -70,6 +70,9 @@ const State = (() => {
     // clearing at rollover. Additive root field, no schema bump; replaces Build 2's
     // `rescheduleFreeUses` (old saves still carry it; it is ignored and dropped on the next save).
     let pushbackUses = { short: [], medium: [], long: [] };
+    // Anytime morning-card credits (2026-11-02): use stamps (ms) of the on-time credits spent, a rolling window read by
+    // AnytimeCheck.creditInfo. Additive root save field, no schema bump; a fresh run starts with none spent.
+    let anytimeCreditUses = [];
     let currentRunStats = (typeof RunStats !== 'undefined') ? RunStats.freshRunStats() : {};
     let runHistory = [];
     // D2 (2026-10-27, docs/DAILY_RECORD_PLAN.md): the live DailyRecord for the
@@ -109,6 +112,11 @@ const State = (() => {
             out[z] = (obj && Array.isArray(obj[z])) ? obj[z].filter(n => typeof n === 'number' && isFinite(n)) : [];
         });
         pushbackUses = out;
+    };
+    const getAnytimeCreditUses = () => anytimeCreditUses;
+    // Keeps only finite ms stamps; anything else (junk, old saves) becomes empty.
+    const setAnytimeCreditUses = (arr) => {
+        anytimeCreditUses = Array.isArray(arr) ? arr.filter(n => typeof n === 'number' && isFinite(n)) : [];
     };
     const getCurrentRunStats = () => currentRunStats;
     const setCurrentRunStats = (obj) => { currentRunStats = obj; };
@@ -243,6 +251,7 @@ const State = (() => {
         setPlayerPoints(0);
         setPlayerInventory({}); // shop inventory — fresh run starts empty
         setPushbackUses(null); // a fresh run: no charges used (Clock tower stars reset too)
+        setAnytimeCreditUses(null); // ...and no anytime morning credits spent
         setSickDayDate(null); // frozen-slots sub-session 5 — fresh run has no active Sick Day
         // Run stats reset with the run; runHistory is deliberately NOT
         // touched here — it must survive restart (session 52, RUN_HISTORY_PLAN).
@@ -324,6 +333,7 @@ const State = (() => {
             inventory: getPlayerInventory(),
             sickDayDate: getSickDayDate(),
             pushbackUses: getPushbackUses(),
+            anytimeCreditUses: getAnytimeCreditUses(),
             runHistory: getRunHistory(),
             currentRunStats: getCurrentRunStats(),
             lifetimeStats: getLifetimeStats(),
@@ -485,6 +495,7 @@ const State = (() => {
         // non-string, e.g. malformed data) so a bad save can never crash boot.
         setSickDayDate((typeof save.sickDayDate === 'string') ? save.sickDayDate : null);
         setPushbackUses(save.pushbackUses);
+        setAnytimeCreditUses(save.anytimeCreditUses);
         // Run history (session 52, docs/RUN_HISTORY_PLAN.md). The v9→v10
         // migration seeds both, but guard here too so a malformed save can
         // never crash boot. currentRunStats keeps accruing across a mid-run
@@ -874,6 +885,7 @@ const State = (() => {
         getPlayerInventory, setPlayerInventory,
         getSickDayDate, setSickDayDate,
         getPushbackUses, setPushbackUses,
+        getAnytimeCreditUses, setAnytimeCreditUses,
         getCurrentRunStats, setCurrentRunStats,
         getRunHistory, setRunHistory,
         getLifetimeStats, setLifetimeStats,

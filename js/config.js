@@ -772,6 +772,12 @@ const CONFIG = {
     // pushback (and, from Build B, flags the item so the Clock tower skips it).
     // More than this far out, moving later is free planning.
     PUSHBACK_PAID_ZONE_MS: 4 * 60 * 60 * 1000,
+    // Anytime next-morning card (2026-11-02, Jeremy; DECISIONS 2026-11-02 night, credit cap): "Done" there counts as ON TIME only
+    // while the player has credits. ANYTIME_MORNING_CREDITS per rolling ANYTIME_MORNING_CREDIT_WINDOW_MS (7 days), one slot coming
+    // back at a time (the same rolling shape as the Long pushback). Out of credits, Done still completes the task but counts late.
+    // Starting number: 2. Balance numbers change only through the balance-tuning process.
+    ANYTIME_MORNING_CREDITS: 2,
+    ANYTIME_MORNING_CREDIT_WINDOW_MS: 7 * 24 * 60 * 60 * 1000,
     // Work timer: overdue base + routine damage is multiplied by this while a
     // timer runs on the item (never 0 — a running timer is not a free pass).
     WORK_TIMER_DAMAGE_FACTOR: 0.5,

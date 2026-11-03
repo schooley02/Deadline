@@ -126,3 +126,18 @@
 
 /* Anytime task cards in the evening check (Anytime Build 2, 2026-11-02): the cost of "Tomorrow" turns red when it can't be paid. */
 .evening-task-cost--blocked { color: #e0795f; font-weight: 600; }
+
+/* Anytime task cards (evening + next-morning): the Done and Tomorrow / Today buttons had no background, so white text sat on the
+   default pale grey and could not be read (phone check, 2026-11-02). Done = green, the move button = dark green; a disabled one
+   keeps readable dark text on a light grey instead of fading out. */
+.evening-task-card .check-in-button[data-outcome="done"] { background-color: var(--color-success); }
+.evening-task-card .check-in-button[data-outcome="tomorrow"],
+.evening-task-card .check-in-button[data-outcome="today"] { background-color: var(--color-primary-dark-green); }
+.evening-task-card .check-in-button:disabled {
+    background-color: #E0E0E0;
+    color: #424242;
+    cursor: not-allowed;
+}
+
+/* Anytime morning card: how many on-time credits are left and when the next one returns. */
+.morning-credit { margin: var(--space-2) 0; font-size: var(--text-caption); font-weight: 600; color: var(--color-primary-dark-green); }

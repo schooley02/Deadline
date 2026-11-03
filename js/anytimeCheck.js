@@ -8,6 +8,8 @@
  *  - the stamp helpers.
  * Build 3 (2026-11-02) adds the NEXT-MORNING card: the anytime tasks whose 11:59 PM has already passed on an earlier day
  * (they have attacked), the "Today" target, and the `morning` stamp.
+ * The morning card's "Done counts as on time" is a LIMITED credit (2026-11-02, Jeremy): `creditInfo` / `spendCredit` keep a
+ * rolling window of use stamps (same shape as the Long pushback), and `creditText` words it for the card and the Clock tower.
  */
 const AnytimeCheck = (() => {
     const DUE_HOUR = 23;
@@ -114,8 +116,45 @@ const AnytimeCheck = (() => {
         return item;
     }
 
+    // --- On-time credit (the morning card's Done) ----------------------------------------------------------------------
+    // `uses` = ms stamps of spent credits. A stamp is live for `windowMs` after it was spent; `max` credits can be live at once,
+    // and each one comes back on its own, windowMs after it was used (rolling, not a fixed weekday).
+    function liveUses(uses, nowMs, windowMs) {
+        const now = typeof nowMs === 'number' ? nowMs : Date.now();
+        return (Array.isArray(uses) ? uses : [])
+            .filter(t => typeof t === 'number' && isFinite(t) && t > now - windowMs)
+            .sort((a, b) => a - b);
+    }
+
+    /** { left, max, nextBackAt } -- nextBackAt = ms the next credit returns, null when none is spent. */
+    function creditInfo(uses, nowMs, max, windowMs) {
+        const live = liveUses(uses, nowMs, windowMs);
+        const left = Math.max(0, max - live.length);
+        const nextBackAt = live.length === 0 ? null : live[Math.max(0, live.length - max)] + windowMs;
+        return { left, max, nextBackAt };
+    }
+
+    /** The uses list after spending one credit now (expired stamps dropped). Does not check that one is left. */
+    function spendCredit(uses, nowMs, windowMs) {
+        const now = typeof nowMs === 'number' ? nowMs : Date.now();
+        return liveUses(uses, now, windowMs).concat([now]);
+    }
+
+    /** One line for the card and the Clock tower: "On-time credit: 1 of 2 left. Next back Tue, Nov 10, 7:30 AM." */
+    function creditText(info, locale) {
+        let text = `On-time credit: ${info.left} of ${info.max} left`;
+        if (info.nextBackAt != null) {
+            const when = new Date(info.nextBackAt).toLocaleString(locale || [], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+            text += `. Next back ${when}`;
+        }
+        return text + '.';
+    }
+
     return {
         MORNING_MAX,
+        creditInfo,
+        spendCredit,
+        creditText,
         dateKey,
         isOpenAnytimeTask,
         askedTonight,

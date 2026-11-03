@@ -96,7 +96,9 @@ document.addEventListener('DOMContentLoaded', () => {
             hasRoutine: (State.getDefinedRoutines() || []).length > 0,
             // Clock tower "Your reward" (pushback charges, Build C): the free allowance at this star + what the next adds.
             reward: hit.kind === 'punctuality' && progress.punctuality
-                ? PushbackHelp.rewardModel({ star: progress.punctuality.tier, table: CONFIG.PUSHBACK_ALLOWANCE }) : null,
+                ? Object.assign(PushbackHelp.rewardModel({ star: progress.punctuality.tier, table: CONFIG.PUSHBACK_ALLOWANCE }),
+                    // Anytime morning on-time credits (2026-11-02): how many are left and when the next one returns.
+                    { credit: 'Anytime morning card. ' + AnytimeCheck.creditText(anytimeCreditInfo()) }) : null,
             // High school v2 report card (2026-10-31): one row per routine.
             reportRows: Heroes.reportRows(State.getDefinedRoutines(), State.getDefinedHabits(), CONFIG, State.getRunStartedAtMs()),
             spriteUrl: hit.url,
@@ -1137,16 +1139,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // cards left hides it until the next app open.
     let morningTaskDismissed = false;
 
+    // The player's on-time credits for the morning card's Done: { left, max, nextBackAt } (rolling window, CONFIG).
+    function anytimeCreditInfo() {
+        return AnytimeCheck.creditInfo(State.getAnytimeCreditUses(), Date.now(), CONFIG.ANYTIME_MORNING_CREDITS, CONFIG.ANYTIME_MORNING_CREDIT_WINDOW_MS);
+    }
+
     function morningTaskDeps() {
         const findTask = (id) => State.getActiveItems().find(i => i.id === id && i.type === 'task');
         return {
             getTaskCandidates: () => AnytimeCheck.morningCandidates(State.getActiveItems(), Date.now()),
+            // Done counts as on time only while an on-time credit is left (CONFIG.ANYTIME_MORNING_CREDITS per rolling 7 days);
+            // out of credits it is an ordinary late completion. The credit is spent first so completeItem's own save keeps it,
+            // and handed back if the completion is refused (open sub-tasks).
             completeTask: (id) => {
                 const task = findTask(id);
                 if (!task) return;
                 AnytimeCheck.stampMorning(task);
-                Items.completeItem(id, itemsDeps(), { onTime: true });
+                const before = State.getAnytimeCreditUses();
+                const useCredit = anytimeCreditInfo().left > 0;
+                if (useCredit) State.setAnytimeCreditUses(AnytimeCheck.spendCredit(before, Date.now(), CONFIG.ANYTIME_MORNING_CREDIT_WINDOW_MS));
+                const res = Items.completeItem(id, itemsDeps(), useCredit ? { onTime: true } : undefined);
+                if (res && res.ok === false) State.setAnytimeCreditUses(before);
             },
+            getCredit: () => { const info = anytimeCreditInfo(); return { left: info.left, text: AnytimeCheck.creditText(info) }; },
             leaveTask: (id) => {
                 const task = findTask(id);
                 if (!task) return;
