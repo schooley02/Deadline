@@ -149,7 +149,7 @@ const DailyRecord = (() => {
             revived: 0,
             timer: { workMin: 0, limitMin: 0, edits: 0, editMin: 0 },
             streak: { best: 0 },
-            // Routine attendance (v2). `rt` is the OPEN day's tally, { "<routineId>": [done, missed, lateDone] } (opaque numeric ids,
+            // Routine attendance (v2). `rt` is the OPEN day's tally, { "<routineId>": [done, missed, lateDone] } (opaque ids, string or number,
             // no names); close() folds it into `att` and clears it. att.active = routines with activity that day, att.perfect = how
             // many of those had every item finished (late counts). A day is "perfect attendance" when active >= 1 and perfect === active.
             att: { active: 0, perfect: 0 },
@@ -218,8 +218,15 @@ const DailyRecord = (() => {
     }
 
     // idx 0 = done, 1 = missed, 2 = completed late. Undo (dir < 0) floors at 0.
+    // A routine id is opaque: real ids are strings like "routine_0_1730000000000" (Routines.createRoutineDefinition), tests and
+    // old data may use numbers. Anything missing, empty or not a string / finite number is a standalone item and tallies nothing.
+    // (Until 2026-11-02 this required a finite NUMBER, so the tally silently dropped every real routine.)
+    function isRoutineKey(id) {
+        return (typeof id === 'string' && id.length > 0) || (typeof id === 'number' && Number.isFinite(id));
+    }
+
     function tally(rec, routineId, idx, dir) {
-        if (routineId == null || !Number.isFinite(Number(routineId))) return;
+        if (!isRoutineKey(routineId)) return;
         if (!rec.rt || typeof rec.rt !== 'object') rec.rt = {};
         const key = String(routineId);
         const t = rec.rt[key] || (rec.rt[key] = [0, 0, 0]);

@@ -382,7 +382,7 @@ Save {
     routine attendance: `active` = routines with any activity that day, `perfect` = how many of those had every item
     finished (an item that went overdue and was finished late still counts). A day is "perfect attendance" when
     `active >= 1 && perfect === active` (`DailyRecord.isPerfectAttendance`). `rt { "<routineId>": [done, missed, lateDone] }`
-    is the OPEN day's working tally (opaque numeric ids, no names), fed by the optional `routineId` on the
+    is the OPEN day's working tally (opaque ids, no names; real routine ids are strings like `routine_0_1730...`), fed by the optional `routineId` on the
     `complete` / `uncomplete` / `overdue` / `lurk` (slipped) events that `Items` now sends (`dailyRoutineId`);
     `close()` folds it into `att` and clears it (so closed days carry `rt: {}`). A bad habit avoided inside a routine is a
     done item; a slip is a miss. Frozen routines' tasks do not spawn, KO ghosts never go overdue. Month roll-up sums `att`.

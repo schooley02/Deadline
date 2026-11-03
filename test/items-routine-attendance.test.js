@@ -37,11 +37,11 @@ function task(id, definitionId, due) {
 }
 const ROUTINE = { id: 42, name: 'Bedtime', taskDefinitionIds: [900], habitDefinitionIds: [] };
 
-function makeDeps(activeItems, rec, completed) {
+function makeDeps(activeItems, rec, completed, routines) {
     let xp = 0, points = 100;
     const done = completed || [];
     return {
-        isGameOver: () => false, activeItems, definedHabits: () => [], definedRoutines: () => [ROUTINE],
+        isGameOver: () => false, activeItems, definedHabits: () => [], definedRoutines: () => routines || [ROUTINE],
         completedItems: () => done, getCurrentRunStats: () => RunStats.freshRunStats(), recordLifetime: () => {},
         recordDaily: (event, payload) => DailyRecord.bump(rec, event, payload),
         xpPerTaskDefeat: CONFIG.XP_PER_TASK_DEFEAT, xpPerHabitComplete: CONFIG.XP_PER_HABIT_COMPLETE,
@@ -109,4 +109,62 @@ test('missing routine lookups never break a completion (deps without definedRout
     expect(() => Items.completeItem(1, deps)).not.toThrow();
     expect(rec.rt).toEqual({});
     expect(rec.done.task).toBe(1);
+});
+
+// --- Real routine ids are STRINGS ("routine_<n>_<timestamp>"); the tally used to drop them (fixed 2026-11-02) ---
+const STRING_ROUTINE = { id: 'routine_0_1730000000000', name: 'Evening', taskDefinitionIds: [900], habitDefinitionIds: [] };
+
+test('a real-shaped (string) routine id is tallied: completion, late finish, undo', () => {
+    const rec = fresh();
+    const completed = [];
+    const items = [task(1, 900, dueAt(3600e3)), task(2, 900, dueAt(-60e3))];
+    const deps = makeDeps(items, rec, completed, [STRING_ROUTINE]);
+    Items.completeItem(1, deps);
+    expect(rec.rt).toEqual({ 'routine_0_1730000000000': [1, 0, 0] });
+    Items.markAsOverdue(items[1], Date.now(), deps);
+    expect(rec.rt['routine_0_1730000000000']).toEqual([1, 1, 0]);
+    Items.completeItem(2, deps);
+    expect(rec.rt['routine_0_1730000000000']).toEqual([2, 1, 1]);
+    Items.uncompleteItem(1, deps);
+    expect(rec.rt['routine_0_1730000000000']).toEqual([1, 1, 1]);
+});
+
+test('a string-id routine that finished everything banks perfect attendance when the day closes', () => {
+    const rec = fresh();
+    const items = [task(1, 900, dueAt(3600e3)), task(2, 900, dueAt(7200e3))];
+    const deps = makeDeps(items, rec, [], [STRING_ROUTINE]);
+    Items.completeItem(1, deps);
+    Items.completeItem(2, deps);
+    const closed = DailyRecord.close(rec, {});
+    expect(closed.att).toEqual({ active: 1, perfect: 1 });
+    expect(DailyRecord.isPerfectAttendance(closed)).toBe(true);
+    expect(closed.rt).toEqual({});
+});
+
+test('a string-id routine with a miss it never finished is active but not perfect', () => {
+    const rec = fresh();
+    const a = task(1, 900, dueAt(-60e3));
+    const deps = makeDeps([a], rec, [], [STRING_ROUTINE]);
+    Items.markAsOverdue(a, Date.now(), deps);
+    const closed = DailyRecord.close(rec, {});
+    expect(closed.att).toEqual({ active: 1, perfect: 0 });
+});
+
+describe('DailyRecord routine ids are opaque', () => {
+    const bumpDone = (id) => {
+        const rec = fresh();
+        DailyRecord.bump(rec, 'complete', { kind: 'habit', category: 'other', at: Date.now(), routineId: id });
+        return rec.rt;
+    };
+    test.each([['routine_1_1730000000000'], [42], ['7'], ['routine_0_1']])('%p is tallied', (id) => {
+        expect(bumpDone(id)).toEqual({ [String(id)]: [1, 0, 0] });
+    });
+    test.each([[null], [undefined], [''], [NaN], [Infinity], [{}], [true]])('%p is a standalone item and tallies nothing', (id) => {
+        expect(bumpDone(id)).toEqual({});
+    });
+    test('a slipped Break habit tallies a miss under a string id', () => {
+        const rec = fresh();
+        DailyRecord.bump(rec, 'lurk', { outcome: 'slipped', routineId: 'routine_2_99' });
+        expect(rec.rt).toEqual({ 'routine_2_99': [0, 1, 0] });
+    });
 });
