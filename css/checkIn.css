@@ -123,3 +123,6 @@
 .popup-how-much {
     margin: var(--space-2) 0;
 }
+
+/* Anytime task cards in the evening check (Anytime Build 2, 2026-11-02): the cost of "Tomorrow" turns red when it can't be paid. */
+.evening-task-cost--blocked { color: #e0795f; font-weight: 600; }

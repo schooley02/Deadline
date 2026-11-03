@@ -208,8 +208,15 @@ const CheckIn = (() => {
     // One modal, one card per Break habit still unanswered today (and whose time has arrived): the goal line, a timer hint,
     // an optional How much?, and Resisted / Slipped / Later. "Later" leaves that habit unanswered (the arrival prompt and
     // the next-morning card still apply); closing the modal with cards left hides it until the next app open.
+    // Anytime tasks (Anytime Build 2, 2026-11-02): the same modal also lists open "Anytime today" tasks, one card each, with
+    // Done / Tomorrow / Leave it. "Leave it" ANSWERS the card for tonight (no re-ask); closing the modal with cards left hides
+    // it until the next app open, like the Break-habit cards. All task deps are optional, so older callers keep working.
     // deps: { getCandidates() -> active items, completeItem(id, opts), indulgeHabit(id, opts), setLoggedMinutes(id, min),
-    //         onDismiss() }. Returns the overlay, or null when there is nothing to ask / one is already open.
+    //         onDismiss(),
+    //         getTaskCandidates() -> anytime tasks, completeTask(id), leaveTask(id),
+    //         describeTomorrow(item) -> { text, blocked }  (what moving it to tomorrow costs),
+    //         moveTaskToTomorrow(id) -> { ok } }.
+    //         Returns the overlay, or null when there is nothing to ask / one is already open.
     function buildEveningCardHtml(item) {
         const goal = (typeof Habits !== 'undefined' && Habits.goalOf) ? Habits.goalOf(item) : null;
         return `
@@ -225,16 +232,38 @@ const CheckIn = (() => {
         `;
     }
 
+    // One card for an open anytime task. `tomorrow` = { text, blocked } from deps.describeTomorrow (blank when unknown).
+    function buildEveningTaskCardHtml(item, tomorrow) {
+        const t = tomorrow || { text: '', blocked: false };
+        const openSubs = Array.isArray(item.subTasks) && item.subTasks.length > 0;
+        const done = openSubs
+            ? `<button type="button" class="check-in-button avoid-btn" data-outcome="done" disabled title="Finish the sub-tasks first">Finish the sub-tasks first</button>`
+            : `<button type="button" class="check-in-button avoid-btn" data-outcome="done">Done</button>`;
+        return `
+            <div class="check-in-card evening-card evening-task-card" data-card-kind="task" data-item-id="${item.id}">
+                <p class="check-in-question">Did you finish <strong>${escapeHtml(item.name)}</strong> today?</p>
+                <p class="check-in-goal">Due by midnight.${t.text ? ` Moving it to tomorrow: <span class="evening-task-cost${t.blocked ? ' evening-task-cost--blocked' : ''}">${escapeHtml(t.text)}</span>` : ''}</p>
+                <div class="check-in-actions">
+                    ${done}
+                    <button type="button" class="check-in-button" data-outcome="tomorrow"${t.blocked ? ' disabled' : ''}>Tomorrow</button>
+                    <button type="button" class="check-in-button check-in-later" data-outcome="leave">Leave it</button>
+                </div>
+            </div>
+        `;
+    }
+
     function showEveningModal(deps) {
-        const items = deps.getCandidates();
-        if (!items || items.length === 0) return null;
+        const items = deps.getCandidates() || [];
+        const tasks = typeof deps.getTaskCandidates === 'function' ? (deps.getTaskCandidates() || []) : [];
+        if (items.length === 0 && tasks.length === 0) return null;
+        const describe = typeof deps.describeTomorrow === 'function' ? deps.describeTomorrow : () => null;
 
         const overlay = Modal.open(`
             <div class="modal-overlay evening-overlay">
                 <div class="modal-content check-in-modal">
                     <h3>Tonight's check-in</h3>
                     <p class="check-in-intro">Before the day ends: how did these go?</p>
-                    <div class="evening-cards">${items.map(buildEveningCardHtml).join('')}</div>
+                    <div class="evening-cards">${tasks.map(t => buildEveningTaskCardHtml(t, describe(t))).join('')}${items.map(buildEveningCardHtml).join('')}</div>
                     <p class="check-in-snooze"><a href="#" class="evening-later-link">I'll check this later</a></p>
                 </div>
             </div>
@@ -244,10 +273,22 @@ const CheckIn = (() => {
         let skipped = false;
         overlay.querySelectorAll('.evening-card').forEach((card) => {
             const itemId = Number(card.getAttribute('data-item-id'));
+            const isTaskCard = card.getAttribute('data-card-kind') === 'task';
             card.querySelectorAll('.check-in-button').forEach((button) => {
                 button.addEventListener('click', () => {
                     const outcome = button.getAttribute('data-outcome');
-                    if (outcome === 'later') {
+                    if (isTaskCard) {
+                        // Anytime task: Done completes it on time; Tomorrow pays through the pushback rules (a refused
+                        // move leaves the card open and disables the button); Leave it just records tonight's answer.
+                        if (outcome === 'done') {
+                            if (typeof deps.completeTask === 'function') deps.completeTask(itemId);
+                        } else if (outcome === 'tomorrow') {
+                            const res = typeof deps.moveTaskToTomorrow === 'function' ? deps.moveTaskToTomorrow(itemId) : null;
+                            if (!res || res.ok === false) { button.disabled = true; return; }
+                        } else if (typeof deps.leaveTask === 'function') {
+                            deps.leaveTask(itemId);
+                        }
+                    } else if (outcome === 'later') {
                         skipped = true;
                     } else {
                         const how = readHowMuch(card);

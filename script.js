@@ -1082,7 +1082,44 @@ document.addEventListener('DOMContentLoaded', () => {
             indulgeHabit: (id, opts) => Items.indulgeHabit(id, itemsDeps(), opts),
             setLoggedMinutes: (id, minutes) => Items.setLoggedTime(id, minutes * 60000, itemsDeps()),
             onDismiss: () => { eveningDismissedFor = DailyRecord.dateKey(Date.now()); },
+            // Anytime tasks (Anytime Build 2, 2026-11-02; DECISIONS 2026-11-02 night): the same modal lists open "Anytime today"
+            // tasks. Done = an ordinary on-time completion; Tomorrow = a move to tomorrow 11:59 PM through the pushback quote
+            // (free before ~8 PM, a Long charge inside the last 4 hours); Leave it = answered for tonight (stamp).
+            getTaskCandidates: () => AnytimeCheck.eveningCandidates(State.getActiveItems(), Date.now()),
+            completeTask: (id) => Items.completeItem(id, itemsDeps()),
+            leaveTask: (id) => {
+                const task = State.getActiveItems().find(i => i.id === id && i.type === 'task');
+                if (!task) return;
+                AnytimeCheck.stampEvening(task, Date.now());
+                saveGame();
+            },
+            describeTomorrow: (task) => Popups.pushbackNoteText(reschedulePricingFor(task, AnytimeCheck.tomorrowDue(Date.now())), State.getPlayerPoints()),
+            moveTaskToTomorrow: moveAnytimeTaskToTomorrow,
         };
+    }
+
+    // The evening card's "Tomorrow": prices and applies a move of an anytime task to tomorrow 11:59 PM. Same steps as the Edit
+    // Task save and the popup pushback (quote -> commitReschedule -> new due -> overdue re-check -> row refresh), so the daily
+    // record, the Clock tower `pushedLate` flag and the charge / token / points payment all behave exactly as there. Returns
+    // { ok: false } and changes nothing when the move can't be paid for.
+    function moveAnytimeTaskToTomorrow(itemId) {
+        const task = State.getActiveItems().find(i => i.id === itemId && i.type === 'task');
+        if (!task || State.isGameOver()) return { ok: false };
+        const newDue = AnytimeCheck.tomorrowDue(Date.now());
+        const quote = reschedulePricingFor(task, newDue);
+        if (!quote || !quote.ok) return { ok: false };
+        commitReschedule(task, quote);
+        task.dueDateTime = newDue;
+        Items.syncAnytimeFlag(task); // still 23:59, so it stays an anytime task
+        Items.recomputeOverdueStateAfterEdit(task, itemsDeps());
+        if (task.listItemElement) {
+            task.listItemElement.remove();
+            if (!task.parentId) createListItem(task);
+        }
+        sortAndRenderActiveList();
+        updateTaskCountDisplay(); // the week strip: the task changed days
+        saveGame();
+        return { ok: true };
     }
 
     // True while the evening check is the thing that will ask about a Break habit right now: the evening time has arrived and
