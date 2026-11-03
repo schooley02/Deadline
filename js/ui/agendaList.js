@@ -1000,7 +1000,11 @@ const AgendaList = (() => {
                     }
                 });
                 completeCheckboxLabel.appendChild(completeCheckbox);
-                completeCheckboxLabel.appendChild(document.createTextNode(' Completed'));
+                // 2026-11-03 (Jeremy): no "Completed" word under the check -- the heading already says Completed Today /
+                // Yesterday, and the word took ~70px of the row so a long name wrapped to four lines. The label still
+                // names the control for screen readers and a long-press tooltip.
+                completeCheckboxLabel.setAttribute('aria-label', 'Completed. Uncheck to undo');
+                completeCheckboxLabel.title = 'Completed. Uncheck to undo';
 
                 itemStatusDiv.appendChild(completeCheckboxLabel);
 

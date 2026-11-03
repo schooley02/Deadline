@@ -100,6 +100,21 @@ describe('renderCompletedItems: today only', () => {
         expect(text).toBe(at(2, 20, 15).toLocaleTimeString([], { timeStyle: 'short' }));
     });
 
+    test('the undo check has no "Completed" word beside it (it squeezed the name); it is still labelled and still undoes', () => {
+        const { list } = mountDom();
+        const d = deps([done('a', at(3, 9, 5))]);
+        AgendaList.renderCompletedItems(d);
+        const label = list.querySelector('.completion-checkbox');
+        expect(label.textContent.trim()).toBe('');
+        expect(label.getAttribute('aria-label')).toMatch(/^Completed/);
+        expect(label.title).toMatch(/^Completed/);
+        const box = label.querySelector('input.completion-checkbox-input');
+        expect(box.checked).toBe(true);
+        box.checked = false;
+        box.dispatchEvent(new Event('change'));
+        expect(d.uncompleteItem).toHaveBeenCalledWith('a');
+    });
+
     test('a sub-task finished today nests under its parent; one finished on another day still nests under a parent finished today', () => {
         const { list } = mountDom();
         const parent = done('p', at(3, 14));
