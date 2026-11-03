@@ -482,7 +482,11 @@ describe('AgendaList.renderCompletedItems — nested completed sub-tasks ([P1-DA
 
         expect(findByClass(parentRow, 'completion-checkbox-input')).toHaveLength(1); // parent keeps its checkbox
         expect(findByClass(subRow, 'completion-checkbox-input')).toHaveLength(0);     // sub does not
-        expect(findByText(subRow, '✓ Completed')).toHaveLength(1);                   // static badge instead
+        const badge = findByClass(subRow, 'completed-sub-badge');                     // static badge instead: just a check
+        expect(badge).toHaveLength(1);
+        expect(badge[0].textContent).toBe('✓');
+        expect(badge[0].dataset['aria-label']).toBe('Completed');                     // the fake element keeps setAttribute values in dataset
+        expect(badge[0].title).toBe('Completed');
 
         expect(deps.uncompleteItem).not.toHaveBeenCalled();
     });

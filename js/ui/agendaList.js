@@ -759,7 +759,10 @@ const AgendaList = (() => {
 
         const completedBadge = document.createElement('span');
         completedBadge.classList.add('completed-sub-badge');
-        completedBadge.textContent = '✓ Completed';
+        // 2026-11-03 (Jeremy): just the check, like the top-level rows' undo check (the word squeezed the name).
+        completedBadge.textContent = '✓';
+        completedBadge.setAttribute('aria-label', 'Completed');
+        completedBadge.title = 'Completed';
         itemStatusDiv.appendChild(completedBadge);
 
         li.appendChild(itemSpriteDiv);
