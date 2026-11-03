@@ -71,11 +71,47 @@
  *   - weekStripRowEl: DOM handle (sub-session 4) — the 7-cell overview row,
  *     rebuilt from DayPager.weekStripSummary on every render() (Today
  *     included, unlike the ghost-agenda path — see renderWeekStrip).
+ *   - listScrollEl: DOM handle (2026-11-03) — the scrolling list box
+ *     (.task-list-container); see CONTINUOUS LIST below.
+ *
+ * CONTINUOUS LIST (2026-11-03, Jeremy): in the pinned layout (everything except
+ * phone landscape — see CONTINUOUS_QUERY and css/dayPager.css) the agenda is ONE
+ * scrolling list under a fixed top (canvas, week strip, slider). Today's real
+ * rows stay in #activeItemsList (untouched, still owned by AgendaList); after
+ * them (and the Completed Today block) this module appends #dayListFuture: one
+ * section per later day (offsets +1..+6) with a divider and the read-only ghost
+ * rows. Scrolling a day's divider to the top of the list makes that day active:
+ * the week-strip button, header text and canvas switch to it AT ONCE (option 2;
+ * the calmer "after scrolling stops" variant is the fallback if it feels busy).
+ * Tapping a week-strip button / the pager arrows scrolls the list to that day's
+ * divider; scroll-driven switching is paused until that scroll settles
+ * (scrollLocked), or the two would fight. Yesterday (offset -1) is still the
+ * static snapshot that REPLACES the list, and phone landscape keeps the old
+ * one-day-at-a-time pager, exactly as before. The active-day rule is the pure
+ * DayPager.activeOffsetFromTops.
  */
 const DayPagerView = (() => {
     let deps = null;
     let viewedDayOffset = 0;
     let anchorDateString = null; // currentGameDate.toDateString() at the moment paging started; null while on Today
+
+    // Pinned (continuous) layout = every size EXCEPT phone landscape (the
+    // canvas fills that screen, so the list there keeps the old pager).
+    // KEEP IN SYNC with the @media block at the end of css/dayPager.css.
+    const CONTINUOUS_QUERY = 'not all and (orientation: landscape) and (max-height: 500px)';
+    const LOCK_QUIET_MS = 150;     // scroll events this far apart = the programmatic scroll has settled
+    const LOCK_START_MS = 300;     // grace before the first scroll event of a programmatic scroll
+    const LOCK_MAX_MS = 1500;      // hard cap, so a lock can never stick
+    let continuousMq = null;
+    let futureEl = null;           // #dayListFuture (continuous mode only)
+    let lastFutureHtml = null;     // skip rewriting the sections when nothing changed
+    let listShowsSwapped = false;  // #activeItemsList currently holds ghost/snapshot rows, not Today's real ones
+    let lastRenderedOffset = 0;
+    let scrollLocked = false;
+    let lockTimer = null;
+    let lockStartedAt = 0;
+    let syncRaf = 0;
+    let resizeObserver = null;
 
     function isViewingToday() {
         return viewedDayOffset === 0;
@@ -94,6 +130,26 @@ const DayPagerView = (() => {
         const weekday = bounds.start.toLocaleDateString('en-US', { weekday: 'short' });
         const month = bounds.start.toLocaleDateString('en-US', { month: 'short' });
         return `${weekday} · ${month} ${bounds.start.getDate()}`;
+    }
+
+    // Divider text for a later day's section in the continuous list. Tomorrow
+    // also spells out its date ("Tomorrow · Wed Nov 4"); later days already
+    // carry theirs ("Thu · Nov 5").
+    function formatDividerLabel(offset, bounds) {
+        if (offset === 1) {
+            const weekday = bounds.start.toLocaleDateString('en-US', { weekday: 'short' });
+            const month = bounds.start.toLocaleDateString('en-US', { month: 'short' });
+            return `Tomorrow · ${weekday} ${month} ${bounds.start.getDate()}`;
+        }
+        return formatDayLabel(offset, bounds);
+    }
+
+    // Task and habit names are the player's own text, so the ghost rows escape
+    // them (the old pager markup dropped them in raw).
+    function escapeText(value) {
+        return String(value == null ? '' : value).replace(/[&<>"']/g, ch => (
+            { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
+        ));
     }
 
     // Outcome -> { icon, label, cssClass } for the snapshot's read-only rows
@@ -178,30 +234,58 @@ const DayPagerView = (() => {
         });
     }
 
-    // `emptyMessage` differs between the future-day ghost agenda ("Nothing
-    // scheduled") and the yesterday snapshot ("Nothing was scheduled") —
-    // caller-supplied so this one renderer serves both (sub-session 3).
-    function renderGhostAgenda(ghosts, emptyMessage) {
-        if (!deps.activeItemsListEl) return;
-        if (ghosts.length === 0) {
-            deps.activeItemsListEl.innerHTML = `<li class="ghost-agenda-empty">${emptyMessage}</li>`;
-            return;
+    // The <li> rows for one day's ghosts (or the single empty-state <li>).
+    // Shared by the paged agenda swap, the yesterday snapshot and the
+    // continuous list's later-day sections. `emptyMessage` differs between
+    // them ("Nothing scheduled" / "Nothing was scheduled").
+    function ghostRowsHtml(ghosts, emptyMessage) {
+        if (!ghosts || ghosts.length === 0) {
+            return `<li class="ghost-agenda-empty">${escapeText(emptyMessage)}</li>`;
         }
-        deps.activeItemsListEl.innerHTML = ghosts.map(ghost => {
+        return ghosts.map(ghost => {
             const outcomeHtml = ghost.outcome ? (() => {
                 const badge = outcomeBadge(ghost.outcome);
                 return `<span class="day-pager-outcome-badge ${badge.cssClass}">${badge.icon} ${badge.label}</span>`;
-            })() : `<span class="ghost-agenda-time">${TimeSlider.formatLabel(ghost.dueTime)}</span>`;
+            })() : `<span class="ghost-agenda-time">${ghost.anytime ? 'Midnight' : TimeSlider.formatLabel(ghost.dueTime)}</span>`;
             return `
             <li class="ghost-agenda-row">
                 <div>
-                    <span class="ghost-agenda-name">${ghost.name}</span>
-                    <span class="ghost-agenda-meta">${ghost.category}${ghost.isHabit ? ' · habit' : ''}</span>
+                    <span class="ghost-agenda-name">${escapeText(ghost.name)}</span>
+                    <span class="ghost-agenda-meta">${escapeText(ghost.category)}${ghost.isHabit ? ' · habit' : ''}</span>
                 </div>
                 ${outcomeHtml}
             </li>
         `;
         }).join('');
+    }
+
+    // Markup for the continuous list's later days: one section per entry of
+    // [{ offset, label, ghosts }], a divider heading then the ghost rows. A day
+    // with nothing keeps its section (and says so) so the list matches the
+    // week-strip buttons one to one.
+    function futureSectionsHtml(sections) {
+        return (sections || []).map(section => `
+            <section class="day-list-section" data-offset="${section.offset}">
+                <h3 class="day-list-divider">${escapeText(section.label)}</h3>
+                <ul class="task-list day-list-ghosts">${ghostRowsHtml(section.ghosts, 'Nothing scheduled')}</ul>
+            </section>`).join('');
+    }
+
+    function renderGhostAgenda(ghosts, emptyMessage) {
+        if (!deps.activeItemsListEl) return;
+        listShowsSwapped = true;
+        deps.activeItemsListEl.innerHTML = ghostRowsHtml(ghosts, emptyMessage);
+    }
+
+    function conjureDeps() {
+        return {
+            definedHabits: deps.getDefinedHabits(),
+            definedRoutines: deps.getDefinedRoutines(),
+            definedTasks: deps.getDefinedTasks(),
+            activeItems: deps.getActiveItems(),
+            completedItems: deps.getCompletedItems(),
+            sickDayDate: deps.getSickDayDate ? deps.getSickDayDate() : null,
+        };
     }
 
     // Week strip (sub-session 4, phase 2) — 7 tappable cells, one per
@@ -255,14 +339,130 @@ const DayPagerView = (() => {
         };
     }
 
-    // Renders whatever `viewedDayOffset` currently is. Called after every
-    // state change (goToOffset) — never call render() directly from outside
-    // without going through goToOffset first, or the label/button-disabled
-    // state can drift from the offset it's describing.
-    function render() {
-        const currentGameDate = deps.getCurrentGameDate();
-        const bounds = DayPager.dayBoundsForOffset(currentGameDate, viewedDayOffset);
+    // ---------------------------------------------------------------------
+    // Continuous list (2026-11-03) — see CONTINUOUS LIST in the file header.
+    // ---------------------------------------------------------------------
 
+    function isContinuous() {
+        return !!(continuousMq && continuousMq.matches && futureEl && deps && deps.listScrollEl);
+    }
+
+    // Single place that moves the viewed day (the rollover guard needs the
+    // anchor date set whenever we are off Today).
+    function setOffsetState(offset) {
+        viewedDayOffset = DayPager.clampDayOffset(offset);
+        anchorDateString = (viewedDayOffset !== 0) ? deps.getCurrentGameDate().toDateString() : null;
+    }
+
+    // The last section has to be able to reach the TOP of the list, or a short
+    // final day could never become the active one by scrolling: its min-height
+    // is the list box's own height (css: .day-list-section:last-child).
+    function updateViewportPad() {
+        if (!futureEl || !deps.listScrollEl) return;
+        const h = deps.listScrollEl.clientHeight;
+        if (h > 0) futureEl.style.setProperty('--day-list-viewport-h', h + 'px');
+    }
+
+    // Rebuild the later-day sections from the definitions. Called on every
+    // render and from refreshWeekStrip (script.js's shared updateTaskCountDisplay
+    // runs after every task / habit / routine change), but the DOM is only
+    // touched when the markup actually changed.
+    function renderFutureSections() {
+        if (!futureEl) return;
+        const currentGameDate = deps.getCurrentGameDate();
+        const cd = conjureDeps();
+        const sections = [];
+        for (let offset = 1; offset <= DayPager.MAX_OFFSET; offset++) {
+            const bounds = DayPager.dayBoundsForOffset(currentGameDate, offset);
+            sections.push({
+                offset,
+                label: formatDividerLabel(offset, bounds),
+                ghosts: DayPager.conjureGhostsForDay(cd, currentGameDate, offset),
+            });
+        }
+        const html = futureSectionsHtml(sections);
+        updateViewportPad();
+        if (html === lastFutureHtml) return;
+        lastFutureHtml = html;
+        futureEl.innerHTML = html;
+        scheduleSync(); // the sections moved; re-check which day owns the top
+    }
+
+    // Where each day's section starts, measured from the top of the scrolled
+    // content (Today is the top). Reads layout, so only call it from the
+    // scroll / sync paths.
+    function dividerTops() {
+        const box = deps.listScrollEl;
+        if (!box || !futureEl) return [];
+        const origin = box.getBoundingClientRect().top - box.scrollTop;
+        const tops = [{ offset: 0, top: 0 }];
+        futureEl.querySelectorAll('.day-list-section').forEach(section => {
+            tops.push({ offset: Number(section.dataset.offset), top: section.getBoundingClientRect().top - origin });
+        });
+        return tops;
+    }
+
+    // Scroll-driven switching is paused while WE are scrolling the list (a
+    // button tap), or the active day would flicker through every day between.
+    // It releases once scroll events go quiet, with a hard cap.
+    function armLockRelease(ms) {
+        clearTimeout(lockTimer);
+        const remaining = LOCK_MAX_MS - (Date.now() - lockStartedAt);
+        lockTimer = setTimeout(releaseLock, Math.max(0, Math.min(ms, remaining)));
+    }
+
+    function lockScroll() {
+        scrollLocked = true;
+        lockStartedAt = Date.now();
+        armLockRelease(LOCK_START_MS);
+    }
+
+    function releaseLock() {
+        scrollLocked = false;
+        lockTimer = null;
+        syncFromScroll(); // settle on whatever day the list really ended on
+    }
+
+    function scheduleSync() {
+        if (syncRaf || !deps) return;
+        if (typeof requestAnimationFrame === 'function') syncRaf = requestAnimationFrame(syncFromScroll);
+    }
+
+    // Scroll position -> active day. Sets the viewed day WITHOUT scrolling
+    // (the list is already where the player put it).
+    function syncFromScroll() {
+        syncRaf = 0;
+        if (scrollLocked || !deps || !isContinuous() || viewedDayOffset === DayPager.MIN_OFFSET) return;
+        const offset = DayPager.activeOffsetFromTops(dividerTops(), deps.listScrollEl.scrollTop);
+        if (offset === viewedDayOffset) return;
+        setOffsetState(offset);
+        render();
+    }
+
+    function onListScroll() {
+        if (scrollLocked) { armLockRelease(LOCK_QUIET_MS); return; }
+        scheduleSync();
+    }
+
+    function scrollToOffset(offset, smooth) {
+        const box = deps.listScrollEl;
+        if (!box) return;
+        let top = 0;
+        if (offset > 0) {
+            const entry = dividerTops().find(e => e.offset === offset);
+            if (!entry) return;
+            top = entry.top;
+        }
+        top = Math.max(0, Math.min(top, box.scrollHeight - box.clientHeight));
+        lockScroll();
+        const reduce = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (typeof box.scrollTo === 'function') box.scrollTo({ top, behavior: (smooth && !reduce) ? 'smooth' : 'auto' });
+        else box.scrollTop = top;
+    }
+
+    // Header row + week strip + pager arrows + slider: identical in both modes.
+    function renderChrome(bounds) {
         renderWeekStrip();
 
         if (deps.labelEl) deps.labelEl.textContent = formatDayLabel(viewedDayOffset, bounds);
@@ -272,12 +472,73 @@ const DayPagerView = (() => {
         // header); the slider is otherwise enabled (Today's live-tracking
         // behavior, and future days' fixed-noon-anchor preview, both use it).
         if (deps.timeSliderEl) deps.timeSliderEl.disabled = (viewedDayOffset === DayPager.MIN_OFFSET);
+    }
+
+    // Renders whatever `viewedDayOffset` currently is. Called after every
+    // state change (goToOffset) — never call render() directly from outside
+    // without going through goToOffset first, or the label/button-disabled
+    // state can drift from the offset it's describing.
+    function render() {
+        const currentGameDate = deps.getCurrentGameDate();
+        const bounds = DayPager.dayBoundsForOffset(currentGameDate, viewedDayOffset);
+        const continuous = isContinuous() && viewedDayOffset !== DayPager.MIN_OFFSET;
+
+        if (futureEl) futureEl.classList.toggle('day-pager-hidden', !continuous);
+        renderChrome(bounds);
+
+        const previousOffset = lastRenderedOffset;
+        lastRenderedOffset = viewedDayOffset;
+        if (continuous) renderContinuous(bounds, currentGameDate, previousOffset);
+        else renderPaged(bounds, currentGameDate);
+    }
+
+    // Continuous mode: Today's real rows are never swapped out (AgendaList owns
+    // them); only the canvas, header text and time-preview flag follow the day.
+    function renderContinuous(bounds, currentGameDate, previousOffset) {
+        // Back from the yesterday snapshot (or a layout change): Today's rows
+        // were replaced by ghost rows, so put the real list back first.
+        const restoreToday = listShowsSwapped;
+        if (restoreToday && deps.renderTodayAgenda) {
+            listShowsSwapped = false;
+            deps.renderTodayAgenda();
+        }
+        // "Completed Today" is Today's own block and stays in the list.
+        if (deps.completedTasksSectionEl) deps.completedTasksSectionEl.classList.remove('day-pager-hidden');
+        renderFutureSections();
 
         if (isViewingToday()) {
             if (deps.gameCanvasEl) deps.gameCanvasEl.classList.remove('viewing-other-day');
             clearGhostSprites();
             if (deps.taskSectionTitleEl) deps.taskSectionTitleEl.textContent = "Today's Deadlines";
             deps.setTimePreviewActive(false);
+            // Live play was paused while another day was shown: refresh the
+            // real rows once on the way back.
+            if (!restoreToday && previousOffset !== 0 && deps.renderTodayAgenda) deps.renderTodayAgenda();
+            if (deps.updateTaskCountDisplay) deps.updateTaskCountDisplay();
+            return;
+        }
+
+        deps.setTimePreviewActive(true);
+        if (deps.gameCanvasEl) deps.gameCanvasEl.classList.add('viewing-other-day');
+        if (deps.taskSectionTitleEl) {
+            deps.taskSectionTitleEl.textContent = formatDayLabel(viewedDayOffset, bounds) + "'s Deadlines";
+        }
+        const ghosts = DayPager.conjureGhostsForDay(conjureDeps(), currentGameDate, viewedDayOffset);
+        const previewTime = new Date(bounds.start);
+        previewTime.setHours(12, 0, 0, 0);
+        renderGhostCanvas(ghosts, previewTime);
+        setDayScopedTaskCount(ghosts.length);
+    }
+
+    // Paged mode (phone landscape, and the yesterday snapshot everywhere):
+    // one day at a time, the agenda list swapped for that day's ghost rows.
+    function renderPaged(bounds, currentGameDate) {
+        if (isViewingToday()) {
+            if (deps.gameCanvasEl) deps.gameCanvasEl.classList.remove('viewing-other-day');
+            clearGhostSprites();
+            if (deps.taskSectionTitleEl) deps.taskSectionTitleEl.textContent = "Today's Deadlines";
+            deps.setTimePreviewActive(false);
+            listShowsSwapped = false;
             if (deps.renderTodayAgenda) deps.renderTodayAgenda();
             // Playtest finding #3 (2026-07-20): restore the REAL global
             // count — a prior visit to a ghost/snapshot page below
@@ -309,14 +570,7 @@ const DayPagerView = (() => {
         // real completion/uncompletion while still off Today).
         if (deps.completedTasksSectionEl) deps.completedTasksSectionEl.classList.add('day-pager-hidden');
 
-        const conjureDeps = {
-            definedHabits: deps.getDefinedHabits(),
-            definedRoutines: deps.getDefinedRoutines(),
-            definedTasks: deps.getDefinedTasks(),
-            activeItems: deps.getActiveItems(),
-            completedItems: deps.getCompletedItems(),
-            sickDayDate: deps.getSickDayDate ? deps.getSickDayDate() : null,
-        };
+        const cd = conjureDeps();
 
         if (viewedDayOffset === DayPager.MIN_OFFSET) {
             // Yesterday: a STATIC snapshot, not a live-preview-time ghost
@@ -325,14 +579,14 @@ const DayPagerView = (() => {
             // js/dayPager.js's yesterday-snapshot header). All entries
             // render at once, each labeled with its outcome badge instead
             // of a due time.
-            const snapshot = DayPager.conjureYesterdaySnapshot(conjureDeps, currentGameDate);
+            const snapshot = DayPager.conjureYesterdaySnapshot(cd, currentGameDate);
             renderGhostCanvas(snapshot, bounds.start);
             renderGhostAgenda(snapshot, 'Nothing was scheduled');
             setDayScopedTaskCount(snapshot.length);
             return;
         }
 
-        const ghosts = DayPager.conjureGhostsForDay(conjureDeps, currentGameDate, viewedDayOffset);
+        const ghosts = DayPager.conjureGhostsForDay(cd, currentGameDate, viewedDayOffset);
 
         // Preview anchor: noon of the viewed day (a stable, representative
         // hour — see file header's "not fully hour-scrubbable this
@@ -363,16 +617,23 @@ const DayPagerView = (() => {
     // the ".viewing-other-day" class — unwanted side effects on every
     // routine task-count update). Guarded the same way renderWeekStrip
     // already guards itself; also safe to call before init() (deps null).
+    // 2026-11-03: in the continuous list it also refreshes the later-day
+    // sections, which are built from the same definitions the strip counts.
     function refreshWeekStrip() {
         if (!deps) return;
         renderWeekStrip();
+        if (isContinuous() && viewedDayOffset !== DayPager.MIN_OFFSET) renderFutureSections();
     }
 
+    // A week-strip button, a pager arrow or the midnight rollover: move to a
+    // day. In the continuous list the list scrolls to that day's divider.
     function goToOffset(offset) {
-        const clamped = DayPager.clampDayOffset(offset);
-        viewedDayOffset = clamped;
-        anchorDateString = (clamped !== 0) ? deps.getCurrentGameDate().toDateString() : null;
+        const previous = viewedDayOffset;
+        setOffsetState(offset);
         render();
+        if (isContinuous() && viewedDayOffset >= 0) {
+            scrollToOffset(viewedDayOffset, previous !== DayPager.MIN_OFFSET);
+        }
     }
 
     function stepDay(delta) {
@@ -395,6 +656,31 @@ const DayPagerView = (() => {
         deps = injectedDeps;
         if (deps.prevBtn) deps.prevBtn.addEventListener('click', () => stepDay(-1));
         if (deps.nextBtn) deps.nextBtn.addEventListener('click', () => stepDay(1));
+
+        // Continuous list wiring (skipped where there is no list box / no
+        // matchMedia, e.g. a test harness: the pager then behaves as before).
+        if (deps.listScrollEl && typeof document !== 'undefined') {
+            futureEl = document.createElement('div');
+            futureEl.id = 'dayListFuture';
+            futureEl.className = 'day-list-future day-pager-hidden';
+            deps.listScrollEl.appendChild(futureEl);
+            deps.listScrollEl.addEventListener('scroll', onListScroll, { passive: true });
+            if (typeof ResizeObserver === 'function') {
+                resizeObserver = new ResizeObserver(() => { updateViewportPad(); scheduleSync(); });
+                resizeObserver.observe(deps.listScrollEl);
+                if (deps.activeItemsListEl) resizeObserver.observe(deps.activeItemsListEl);
+            }
+        }
+        if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+            continuousMq = window.matchMedia(CONTINUOUS_QUERY);
+            const onModeChange = () => {
+                render();
+                if (isContinuous() && viewedDayOffset > 0) scrollToOffset(viewedDayOffset, false);
+            };
+            if (typeof continuousMq.addEventListener === 'function') continuousMq.addEventListener('change', onModeChange);
+            else if (typeof continuousMq.addListener === 'function') continuousMq.addListener(onModeChange);
+        }
+
         render();
     }
 
@@ -406,6 +692,9 @@ const DayPagerView = (() => {
         isViewingToday,
         checkRolloverReset,
         formatDayLabel,
+        formatDividerLabel,
+        ghostRowsHtml,
+        futureSectionsHtml,
         refreshWeekStrip,
     };
 })();

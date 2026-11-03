@@ -144,6 +144,8 @@ const DayPager = (() => {
                 dueTime: item.dueDateTime,
             startTime: item.startDateTime || null,
                 parentId: item.parentId != null ? item.parentId : null,
+                // Anytime tasks (2026-11-02) read "Midnight" in the list, not 11:59 PM.
+                anytime: !!item.anytime,
             }));
     }
 
@@ -394,9 +396,42 @@ const DayPager = (() => {
         return entries;
     }
 
+    // ---------------------------------------------------------------------
+    // Continuous day list (2026-11-03). In the pinned layout the agenda is ONE
+    // scrolling list: Today's real rows, then a divider + read-only ghost rows
+    // for each later day. The active day (the week-strip button that is lit,
+    // the header text, the canvas) follows the scroll position.
+    //
+    // activeOffsetFromTops decides which day owns the top of the list. `tops`
+    // is one { offset, top } per day section (top = the section's distance from
+    // the top of the scrolled content, offset 0 = Today = 0). A day is active
+    // once its divider has reached the top edge of the visible list (within
+    // `threshold` px, so a divider that is a hair short still counts); the
+    // LAST such day wins. Pure so Jest can pin it: the DOM measuring lives in
+    // js/ui/dayPagerView.js.
+    // ---------------------------------------------------------------------
+    const SCROLL_ACTIVE_THRESHOLD_PX = 8;
+
+    function activeOffsetFromTops(tops, scrollTop, threshold) {
+        const slack = (typeof threshold === 'number') ? threshold : SCROLL_ACTIVE_THRESHOLD_PX;
+        const list = (tops || [])
+            .filter(e => e && Number.isFinite(e.offset) && Number.isFinite(e.top))
+            .slice()
+            .sort((a, b) => a.offset - b.offset);
+        if (list.length === 0) return 0;
+        const y = Number.isFinite(scrollTop) ? scrollTop : 0;
+        let active = list[0].offset;
+        for (const entry of list) {
+            if (entry.top <= y + slack) active = entry.offset;
+        }
+        return active;
+    }
+
     return {
         MIN_OFFSET,
         MAX_OFFSET,
+        SCROLL_ACTIVE_THRESHOLD_PX,
+        activeOffsetFromTops,
         clampDayOffset,
         dayBoundsForOffset,
         conjureHabitGhosts,

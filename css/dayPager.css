@@ -230,3 +230,76 @@
     color: var(--color-error);
     border-color: var(--color-error);
 }
+
+/* ---------------------------------------------------------------------
+   Continuous day list (2026-11-03). Mirrors js/ui/dayPagerView.js.
+   Today's real rows sit in #activeItemsList; #dayListFuture (built by
+   DayPagerView) holds one section per later day under a divider. The
+   active day follows the scroll (the week-strip button, the header text
+   and the canvas all switch with it).
+   --------------------------------------------------------------------- */
+.day-list-divider {
+    margin: var(--space-2) 0 var(--space-1);
+    padding: var(--space-2) var(--space-2) var(--space-1);
+    border-top: 2px solid var(--color-secondary-green-pale);
+    font-size: var(--text-caption);
+    font-weight: 600;
+    color: var(--color-neutral);
+    letter-spacing: 0.02em;
+}
+
+/* The last day must be able to reach the TOP of the list, or a short final
+   day could never become the active one by scrolling. --day-list-viewport-h
+   is the list box's own height (set by DayPagerView); 60vh before JS runs. */
+.day-list-section:last-child {
+    min-height: var(--day-list-viewport-h, 60vh);
+}
+
+/* The pinned layout: every size EXCEPT phone landscape (where the canvas
+   fills the screen and the list keeps the one-day-at-a-time pager). The canvas
+   strip, week strip and slider stay fixed at the top and only the list
+   scrolls, inside its own box. KEEP IN SYNC with CONTINUOUS_QUERY in
+   js/ui/dayPagerView.js. These rules sit before responsive.css's phone-
+   landscape block, which therefore still wins there. */
+@media not all and (orientation: landscape) and (max-height: 500px) {
+    .app-container {
+        height: 100vh;
+        height: 100dvh;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .game-canvas,
+    .week-strip-row,
+    .time-slider-seam {
+        flex: 0 0 auto;
+    }
+
+    .task-section {
+        flex: 1 1 0;
+        min-height: 0;
+    }
+
+    .task-list-container {
+        min-height: 0;
+        /* A flick at the top of the list must not chain to the page (pull to refresh). */
+        overscroll-behavior-y: contain;
+    }
+
+    /* An empty Today keeps a band of its own, so the first later-day divider
+       never sits at the very top of the list (which would make Tomorrow look
+       active the moment the list loads). */
+    #activeItemsList:empty {
+        min-height: 44px;
+    }
+
+    #activeItemsList:empty::before {
+        content: 'Nothing due today';
+        display: block;
+        padding: var(--space-4);
+        text-align: center;
+        color: var(--color-neutral);
+        font-style: italic;
+        font-size: 13px;
+    }
+}

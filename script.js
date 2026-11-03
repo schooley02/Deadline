@@ -1869,6 +1869,8 @@ document.addEventListener('DOMContentLoaded', () => {
             taskCountDisplayEl: taskCountDisplay,
             updateTaskCountDisplay,
             completedTasksSectionEl: document.getElementById('completedTasksSection'),
+            // 2026-11-03: the scrolling list box (continuous day list, see dayPagerView.js).
+            listScrollEl: document.querySelector('.task-list-container'),
             getCurrentGameDate: State.getCurrentGameDate,
             getDefinedHabits: State.getDefinedHabits,
             getDefinedRoutines: State.getDefinedRoutines,
