@@ -114,6 +114,9 @@
 }
 .dev-chip--on { background: #f5a623; border-color: #f5a623; color: #1a1408; }
 .dev-chip:disabled { opacity: 0.4; cursor: default; }
+/* The Hit button is an action (plays once), not a choice, so it is outlined, never "on". */
+.dev-chip--action { margin-left: 4px; border-style: dashed; }
+.dev-chip--action:active { background: #f5a623; color: #1a1408; }
 .dev-chip:focus-visible, .dev-reset:focus-visible, .dev-panel-close:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
 
 .dev-panel-foot {
@@ -160,6 +163,9 @@
     .dev-panel-close { width: 28px; height: 28px; }
     .dev-panel-body { display: grid; grid-template-columns: auto auto; justify-content: start; gap: 0 14px; align-items: start; }
     .dev-section { margin: 2px 0 4px; }
+    .dev-section:nth-child(1) { grid-column: 1; grid-row: 1; }   /* Weather left, Village stars right; Church runs full width under both */
+    .dev-section:nth-child(2) { grid-column: 2; grid-row: 1; }
+    .dev-section:nth-child(3) { grid-column: 1 / span 2; grid-row: 2; }
     .dev-section h4 { margin-bottom: 2px; }
     .dev-chips { gap: 4px; flex-wrap: nowrap; }
     .dev-chips--sub { margin-top: 4px; }
@@ -171,5 +177,6 @@
 /* Narrow landscape (568px and under): one column, so the chips never overflow. */
 @media (orientation: landscape) and (max-height: 500px) and (max-width: 700px) {
     .dev-panel-body { grid-template-columns: 1fr; }
+    .dev-section:nth-child(n) { grid-column: auto; grid-row: auto; }
     .dev-chips { flex-wrap: wrap; }
 }

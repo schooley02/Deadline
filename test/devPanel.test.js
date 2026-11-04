@@ -192,6 +192,80 @@ describe('the button + panel', () => {
     });
 });
 
+describe('church section', () => {
+    test('the model lists Real + the five pictures, with the chosen one selected', () => {
+        const none = DevPanel.panelModel({ enabled: true, church: null });
+        expect(none.church.map((c) => c.value)).toEqual(['real', '100', '75', '50', '25', '0']);
+        expect(none.church[0].selected).toBe(true);
+        const half = DevPanel.panelModel({ enabled: true, church: 50 });
+        expect(half.church.filter((c) => c.selected).map((c) => c.value)).toEqual(['50']);
+        const zero = DevPanel.panelModel({ enabled: true, church: 0 });
+        expect(zero.church.filter((c) => c.selected).map((c) => c.value)).toEqual(['0']);
+    });
+
+    test('tapping a church chip sets the demo; Real clears it; Reset clears it too', () => {
+        DevPanel.init({ demo: DevDemo });
+        DevPanel.setEnabled(true);
+        click(btn());
+        click(q('[data-dev-church="25"]'));
+        expect(DevDemo.churchHealth()).toBe(25);
+        expect(q('[data-dev-church="25"]').getAttribute('aria-pressed')).toBe('true');
+        expect(q('[data-dev-reset]').disabled).toBe(false);
+        click(q('[data-dev-church="real"]'));
+        expect(DevDemo.churchHealth()).toBeNull();
+        click(q('[data-dev-church="0"]'));
+        expect(DevDemo.churchHealth()).toBe(0);
+        click(q('[data-dev-reset]'));
+        expect(DevDemo.churchHealth()).toBeNull();
+    });
+
+    test('a church change tells the app (onDemoChange) so the picture redraws', () => {
+        const onDemoChange = jest.fn();
+        DevPanel.init({ demo: DevDemo, onDemoChange });
+        DevPanel.setEnabled(true);
+        click(btn());
+        onDemoChange.mockClear();
+        click(q('[data-dev-church="75"]'));
+        expect(onDemoChange).toHaveBeenCalledTimes(1);
+    });
+
+    test('Hit calls onHit and changes no demo value', () => {
+        const onHit = jest.fn();
+        DevPanel.init({ demo: DevDemo, onHit });
+        DevPanel.setEnabled(true);
+        click(btn());
+        click(q('[data-dev-hit]'));
+        expect(onHit).toHaveBeenCalledTimes(1);
+        expect(DevDemo.snapshot().active).toBe(false);
+        expect(q('[data-dev-reset]').disabled).toBe(true);
+    });
+
+    test('Hit with no onHit dep, or a throwing one, never throws', () => {
+        DevPanel.init({ demo: DevDemo });
+        DevPanel.setEnabled(true);
+        click(btn());
+        expect(() => click(q('[data-dev-hit]'))).not.toThrow();
+        const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        DevPanel.init({ demo: DevDemo, onHit: () => { throw new Error('boom'); } });
+        DevPanel.setEnabled(true);
+        click(btn());
+        expect(() => click(q('[data-dev-hit]'))).not.toThrow();
+        spy.mockRestore();
+    });
+
+    test('church clicks do not bubble out of the panel', () => {
+        DevPanel.init({ demo: DevDemo });
+        DevPanel.setEnabled(true);
+        click(btn());
+        const seen = jest.fn();
+        document.addEventListener('click', seen);
+        click(q('[data-dev-church="50"]'));
+        click(q('[data-dev-hit]'));
+        document.removeEventListener('click', seen);
+        expect(seen).not.toHaveBeenCalled();
+    });
+});
+
 describe('clicks never bubble out (Modal dismiss would close a window underneath)', () => {
     test('button, chips, reset and close all stop propagation', () => {
         const seen = jest.fn();

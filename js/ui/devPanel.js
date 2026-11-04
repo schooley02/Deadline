@@ -8,23 +8,25 @@
  * The panel: a compact card docked above the button, with NO backdrop and no focus trap, on purpose: the whole point is to
  * watch the sky / village change while you tap, so nothing may dim or cover the scene. It is not a Modal overlay. Sections:
  * Weather (Real / Clear / Hazy / Overcast / Fog / Storm + Steady / Up / Down trend), Village stars (Real / 1..5 for all eight
- * buildings) and Reset. Every choice goes through DevDemo (in-memory only; see its header); this file only draws and wires.
+ * buildings), Church (Real / 100 / 75 / 50 / 25 / 0 = the damage picture + its idle animation, plus a Hit button that plays the
+ * flash + shake once; ART ONLY, no health or stat changes) and Reset. Every choice goes through DevDemo (in-memory only; see its header); this file only draws and wires.
  *
  * Every click inside the button / panel stopPropagation()s: Modal's outside-click dismiss is a bubbling document handler and
  * would otherwise close whatever window is open underneath.
  *
- * Pure parts (panelModel, panelHtml) are exported for tests. Deps: { demo (DevDemo, defaults to the global), onDemoChange?: () => void }.
+ * Pure parts (panelModel, panelHtml) are exported for tests. Deps: { demo (DevDemo, defaults to the global), onDemoChange?: () => void, onHit?: () => void }.
  */
 const DevPanel = (() => {
     const BAND_LABELS = { clear: 'Clear', hazy: 'Hazy', overcast: 'Overcast', fog: 'Fog', storm: 'Storm' };
     const TREND_LABELS = { steady: 'Steady', up: 'Up', down: 'Down' };
 
     /** Pure. A DevDemo snapshot -> what the panel shows: option lists with a `selected` flag each. */
-    function panelModel(snap, bands, trends, tiers) {
+    function panelModel(snap, bands, trends, tiers, churchStates) {
         const s = snap || {};
         const bandList = bands || ['clear', 'hazy', 'overcast', 'fog', 'storm'];
         const trendList = trends || ['steady', 'up', 'down'];
         const tierList = tiers || [1, 2, 3, 4, 5];
+        const churchList = churchStates || [100, 75, 50, 25, 0];
         const weatherOn = !!s.band;
         return {
             bands: [{ value: 'real', label: 'Real', selected: !s.band }]
@@ -32,6 +34,8 @@ const DevPanel = (() => {
             trends: trendList.map((t) => ({ value: t, label: TREND_LABELS[t] || t, selected: weatherOn && (s.trend || 'steady') === t, disabled: !weatherOn })),
             tiers: [{ value: 'real', label: 'Real', selected: s.tier == null }]
                 .concat(tierList.map((n) => ({ value: String(n), label: n + '★', selected: s.tier === n }))),
+            church: [{ value: 'real', label: 'Real', selected: s.church == null }]
+                .concat(churchList.map((n) => ({ value: String(n), label: String(n), selected: s.church === n }))),
             active: !!s.active,
         };
     }
@@ -58,6 +62,10 @@ const DevPanel = (() => {
             + '<section class="dev-section"><h4>Village stars</h4>'
             + '<div class="dev-chips" role="group" aria-label="Star level for every building">' + chips(model.tiers, 'data-dev-tier') + '</div>'
             + '</section>'
+            + '<section class="dev-section"><h4>Church (picture only)</h4>'
+            + '<div class="dev-chips" role="group" aria-label="Church damage picture">' + chips(model.church, 'data-dev-church')
+            + '<button type="button" class="dev-chip dev-chip--action" data-dev-hit aria-label="Play a hit on the church">Hit</button></div>'
+            + '</section>'
             + '</div>'
             + '<div class="dev-panel-foot"><button type="button" class="dev-reset" data-dev-reset' + (model.active ? '' : ' disabled') + '>Reset demos</button>'
             + '<span class="dev-note">Preview only. Nothing here is saved.</span>'
@@ -74,7 +82,7 @@ const DevPanel = (() => {
     function render() {
         if (!demo || !buttonEl || !panelEl) return;
         const snap = demo.snapshot();
-        const model = panelModel(snap, demo.BANDS, demo.TRENDS, demo.TIERS);
+        const model = panelModel(snap, demo.BANDS, demo.TRENDS, demo.TIERS, demo.CHURCH_STATES);
         panelEl.innerHTML = panelHtml(model);
         buttonEl.classList.toggle('dev-button--active', model.active);
         buttonEl.setAttribute('aria-label', model.active ? 'Developer tools (a demo is active)' : 'Developer tools');
@@ -98,6 +106,12 @@ const DevPanel = (() => {
         if (t.hasAttribute('data-dev-band')) demo.setBand(t.getAttribute('data-dev-band'));
         else if (t.hasAttribute('data-dev-trend')) demo.setTrend(t.getAttribute('data-dev-trend'));
         else if (t.hasAttribute('data-dev-tier')) demo.setTier(t.getAttribute('data-dev-tier'));
+        else if (t.hasAttribute('data-dev-church')) demo.setChurch(t.getAttribute('data-dev-church'));
+        else if (t.hasAttribute('data-dev-hit')) {
+            if (deps && typeof deps.onHit === 'function') {
+                try { deps.onHit(); } catch (err) { if (typeof console !== 'undefined') console.error('Deadline: dev church hit failed', err); }
+            }
+        }
         else if (t.hasAttribute('data-dev-reset')) demo.reset();
     }
 

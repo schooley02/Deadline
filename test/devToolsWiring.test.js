@@ -30,9 +30,9 @@ describe('shell + load order', () => {
         expect(fs.existsSync(path.join(__dirname, '..', f))).toBe(true);
     });
 
-    test('CACHE_NAME was bumped for the shell change (v238 or later)', () => {
+    test('CACHE_NAME was bumped for the shell change (v239 or later)', () => {
         const m = /CACHE_NAME = 'deadline-shell-v(\d+)'/.exec(sw);
-        expect(Number(m[1])).toBeGreaterThanOrEqual(238);
+        expect(Number(m[1])).toBeGreaterThanOrEqual(239);
     });
 
     test('devDemo.js loads after runClimate.js and settings.js, devPanel.js after devDemo.js, both before script.js', () => {
@@ -157,11 +157,61 @@ describe('script.js hook-up', () => {
         expect(read('js/persistence.js')).not.toMatch(/DevDemo|DevPanel/);
     });
 
-    test('script.js mentions the demo in exactly the expected places (sky, village tier, boot, switch handler)', () => {
+    test('script.js mentions the demo in exactly the expected places (sky, village tier, church preview, boot, switch handler)', () => {
         const code = script.split('\n').filter((l) => !/^\s*\/\//.test(l)); // comments may name it freely
         const hits = code.filter((l) => /DevDemo\./.test(l));
-        expect(hits.length).toBe(2); // DevDemo.weather(), DevDemo.villageTier(); everything else goes through DevPanel
+        expect(hits.filter((l) => /DevDemo\.weather\(\)/.test(l)).length).toBe(1);
+        expect(hits.filter((l) => /DevDemo\.villageTier\(\)/.test(l)).length).toBe(1);
+        expect(hits.filter((l) => /DevDemo\.churchHealth\(\)/.test(l)).length).toBe(2); // applyChurchPreview + its observer
+        expect(hits.length).toBe(4); // nothing else reads it; everything else goes through DevPanel
         expect(code.filter((l) => /DevPanel\.(init|setEnabled)/.test(l)).length).toBe(3);
+    });
+});
+
+describe('church damage preview is ART ONLY', () => {
+    const body = () => fnBody('applyChurchPreview');
+
+    test('the stand-in number only ever goes to Damage.applyBaseArt / resolveBase*; never to state, HUD, saves or records', () => {
+        const src = body() + fnBody('previewChurchHit') + fnBody('churchPreviewMatches');
+        expect(src).toContain('Damage.applyBaseArt(baseElement, standIn)');
+        expect(src).not.toMatch(/setBaseHealth|damageBase|healBase|saveGame|Persistence|recordDaily|bumpToday|updateBaseVisuals|updateBaseHealth|baseHealthDisplay|State\.set|Items\.|Economy\.|Shop\./);
+    });
+
+    test('the only State call is the READ of the real health, to restore the real picture when the demo clears', () => {
+        const calls = body().match(/State\.\w+/g) || [];
+        expect(calls).toEqual(['State.getBaseHealth']);
+        expect(body()).toContain('Damage.applyBaseArt(baseElement, State.getBaseHealth())');
+    });
+
+    test('the observer only rewrites #base when it differs from the demo picture (so it cannot loop), and watches style + data-base-anim only', () => {
+        expect(body()).toContain('!churchPreviewMatches(now)');
+        expect(body()).toContain("attributeFilter: ['style', 'data-base-anim']");
+    });
+
+    test('a demo change and the Hit button are wired through DevPanel.init', () => {
+        const hook = script.slice(script.indexOf('DevPanel.init({'), script.indexOf('DevPanel.init({') + 320);
+        expect(hook).toContain('applyChurchPreview()');
+        expect(hook).toContain('onHit: previewChurchHit');
+    });
+
+    test('the hit plays the same classes a real hit does, cleaned up by a timer', () => {
+        const src = fnBody('previewChurchHit');
+        expect(src).toContain("'base-hit-flash', 'base-hit-shake'");
+        expect(src).toContain('setTimeout');
+        expect(css).toMatch(/dev-chip--action/);
+    });
+
+    test('the panel has a Church section with Real + the five pictures and a Hit button', () => {
+        const panel = read('js/ui/devPanel.js');
+        expect(panel).toContain('data-dev-church');
+        expect(panel).toContain('data-dev-hit');
+        expect(panel).toContain('Church (picture only)');
+    });
+
+    test('the game files that own health know nothing about the preview', () => {
+        ['js/damage.js', 'js/state.js', 'js/hud.js', 'js/persistence.js', 'js/ui/timeSliderView.js'].forEach((f) => {
+            if (fs.existsSync(path.join(__dirname, '..', f))) expect(read(f)).not.toMatch(/DevDemo|DevPanel|churchHealth/);
+        });
     });
 });
 

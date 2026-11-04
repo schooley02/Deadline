@@ -2,7 +2,8 @@
  * DevDemo -- the dev tools' demo state (Jeremy, 2026-11-03; ROADMAP "Dev '+' demo button").
  *
  * What it is: a few "pretend" values the dev panel (js/ui/devPanel.js) can set so the sky and the village can be previewed on
- * a phone without URL params: a forced weather band + trend, and one village star level for all eight buildings.
+ * a phone without URL params: a forced weather band + trend, one village star level for all eight buildings, and a church
+ * damage state (ART ONLY: it names which church picture to show, it is never a health value the game uses).
  *
  * Rules (each pinned by test/devDemo.test.js):
  *   - IN MEMORY ONLY. Nothing here touches localStorage, the save, the daily records or a backup export; a reload clears it.
@@ -19,11 +20,15 @@ const DevDemo = (() => {
     const BANDS = ['clear', 'hazy', 'overcast', 'fog', 'storm'];
     const TRENDS = ['steady', 'up', 'down'];
     const TIERS = [1, 2, 3, 4, 5];
+    // The church preview's states, as the health each damage picture starts at (100 > 75 > 50 > 25 > 0 pick the five pictures).
+    // Only script.js's art-only preview reads one; no game rule, HUD number, save or record ever does.
+    const CHURCH_STATES = [100, 75, 50, 25, 0];
 
     let enabled = false;
     let band = null;          // null = the real sky
     let trend = 'steady';
     let tier = null;          // null = the real village
+    let church = null;        // null = the real church picture
     const listeners = [];
 
     function emit() {
@@ -34,19 +39,19 @@ const DevDemo = (() => {
 
     /** A copy of the demo values (what the panel draws from). */
     function snapshot() {
-        return { enabled, band, trend, tier, active: isActive() };
+        return { enabled, band, trend, tier, church, active: isActive() };
     }
 
     /** True while a demo value is both set and allowed (the switch is on). */
     function isActive() {
-        return enabled && (band !== null || tier !== null);
+        return enabled && (band !== null || tier !== null || church !== null);
     }
 
     function setEnabled(on) {
         const next = on === true;
         if (next === enabled) return;
         enabled = next;
-        if (!enabled) { band = null; trend = 'steady'; tier = null; }
+        if (!enabled) { band = null; trend = 'steady'; tier = null; church = null; }
         emit();
     }
 
@@ -83,10 +88,25 @@ const DevDemo = (() => {
         return true;
     }
 
-    /** Back to the real sky and the real village (the switch stays on). */
+    /** church: 100 / 75 / 50 / 25 / 0 (the damage picture to show), or null/'real' for the real church. Anything else is ignored. */
+    function setChurch(value) {
+        if (!enabled) return false;
+        let next;
+        if (value === null || value === 'real') next = null;
+        else {
+            const n = Number(value);
+            next = (value !== '' && Number.isInteger(n) && CHURCH_STATES.indexOf(n) >= 0) ? n : undefined;
+        }
+        if (next === undefined) return false;
+        church = next;
+        emit();
+        return true;
+    }
+
+    /** Back to the real sky, village and church (the switch stays on). */
     function reset() {
-        if (band === null && trend === 'steady' && tier === null) return;
-        band = null; trend = 'steady'; tier = null;
+        if (band === null && trend === 'steady' && tier === null && church === null) return;
+        band = null; trend = 'steady'; tier = null; church = null;
         emit();
     }
 
@@ -106,6 +126,11 @@ const DevDemo = (() => {
         return enabled ? tier : null;
     }
 
+    /** The church picture to preview as a stand-in health (100 / 75 / 50 / 25 / 0), or null = show the real church. ART ONLY. */
+    function churchHealth() {
+        return enabled ? church : null;
+    }
+
     /** Call fn(snapshot) after every change; returns an unsubscribe function. */
     function onChange(fn) {
         if (typeof fn !== 'function') return () => {};
@@ -118,14 +143,14 @@ const DevDemo = (() => {
 
     /** Test helper: back to a cold start (switch off, nothing set, no listeners). */
     function resetForTests() {
-        enabled = false; band = null; trend = 'steady'; tier = null;
+        enabled = false; band = null; trend = 'steady'; tier = null; church = null;
         listeners.length = 0;
     }
 
     return {
-        BANDS, TRENDS, TIERS,
-        snapshot, isActive, setEnabled, setBand, setTrend, setTier, reset,
-        weather, villageTier, onChange, resetForTests,
+        BANDS, TRENDS, TIERS, CHURCH_STATES,
+        snapshot, isActive, setEnabled, setBand, setTrend, setTier, setChurch, reset,
+        weather, villageTier, churchHealth, onChange, resetForTests,
     };
 })();
 

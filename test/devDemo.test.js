@@ -10,7 +10,7 @@ beforeEach(() => { DevDemo.resetForTests(); });
 
 describe('gated by the Developer tools switch', () => {
     test('starts off: nothing can be set and every getter says "no demo"', () => {
-        expect(DevDemo.snapshot()).toEqual({ enabled: false, band: null, trend: 'steady', tier: null, active: false });
+        expect(DevDemo.snapshot()).toEqual({ enabled: false, band: null, trend: 'steady', tier: null, church: null, active: false });
         expect(DevDemo.setBand('fog')).toBe(false);
         expect(DevDemo.setTrend('up')).toBe(false);
         expect(DevDemo.setTier(5)).toBe(false);
@@ -24,7 +24,7 @@ describe('gated by the Developer tools switch', () => {
         DevDemo.setBand('storm'); DevDemo.setTrend('down'); DevDemo.setTier(4);
         expect(DevDemo.isActive()).toBe(true);
         DevDemo.setEnabled(false);
-        expect(DevDemo.snapshot()).toEqual({ enabled: false, band: null, trend: 'steady', tier: null, active: false });
+        expect(DevDemo.snapshot()).toEqual({ enabled: false, band: null, trend: 'steady', tier: null, church: null, active: false });
         DevDemo.setEnabled(true);          // and a later switch-on starts clean, not with the old demo
         expect(DevDemo.weather(RunClimate)).toBeNull();
         expect(DevDemo.villageTier()).toBeNull();
@@ -110,12 +110,71 @@ describe('village stars', () => {
     });
 });
 
+describe('church picture (art only)', () => {
+    beforeEach(() => DevDemo.setEnabled(true));
+
+    test('starts as the real church (null)', () => {
+        expect(DevDemo.churchHealth()).toBeNull();
+        expect(DevDemo.snapshot().church).toBeNull();
+    });
+
+    test('the five states are the health each picture starts at', () => {
+        expect(DevDemo.CHURCH_STATES).toEqual([100, 75, 50, 25, 0]);
+    });
+
+    test.each([100, 75, 50, 25, 0])('state %i is accepted as a number or a string (0 included)', (n) => {
+        expect(DevDemo.setChurch(n)).toBe(true);
+        expect(DevDemo.churchHealth()).toBe(n);
+        expect(DevDemo.setChurch(String(n))).toBe(true);
+        expect(DevDemo.churchHealth()).toBe(n);
+        expect(DevDemo.snapshot().church).toBe(n);
+        expect(DevDemo.isActive()).toBe(true);
+    });
+
+    test('Real hands the church back', () => {
+        DevDemo.setChurch(50);
+        DevDemo.setChurch('real');
+        expect(DevDemo.churchHealth()).toBeNull();
+        DevDemo.setChurch(25);
+        DevDemo.setChurch(null);
+        expect(DevDemo.churchHealth()).toBeNull();
+        expect(DevDemo.isActive()).toBe(false);
+    });
+
+    test.each([10, 60, 101, -1, 2.5, 'x', '', undefined, NaN])('a bad state (%p) is ignored and changes nothing', (bad) => {
+        DevDemo.setChurch(75);
+        expect(DevDemo.setChurch(bad)).toBe(false);
+        expect(DevDemo.churchHealth()).toBe(75);
+    });
+
+    test('with the switch off it answers null and refuses to be set; turning the switch off clears it', () => {
+        DevDemo.setChurch(25);
+        DevDemo.setEnabled(false);
+        expect(DevDemo.churchHealth()).toBeNull();
+        expect(DevDemo.setChurch(50)).toBe(false);
+        DevDemo.setEnabled(true);
+        expect(DevDemo.churchHealth()).toBeNull();
+    });
+
+    test('Reset clears it along with the sky and village, and every change notifies listeners', () => {
+        const fn = jest.fn();
+        DevDemo.onChange(fn);
+        DevDemo.setChurch(0);
+        expect(fn).toHaveBeenCalledTimes(1);
+        DevDemo.reset();
+        expect(DevDemo.churchHealth()).toBeNull();
+        expect(fn).toHaveBeenCalledTimes(2);
+        DevDemo.reset(); // already real
+        expect(fn).toHaveBeenCalledTimes(2);
+    });
+});
+
 describe('reset + listeners', () => {
     test('reset goes back to the real sky and village but leaves the switch on', () => {
         DevDemo.setEnabled(true);
         DevDemo.setBand('storm'); DevDemo.setTrend('down'); DevDemo.setTier(5);
         DevDemo.reset();
-        expect(DevDemo.snapshot()).toEqual({ enabled: true, band: null, trend: 'steady', tier: null, active: false });
+        expect(DevDemo.snapshot()).toEqual({ enabled: true, band: null, trend: 'steady', tier: null, church: null, active: false });
     });
 
     test('listeners hear every real change, not a no-op, and can unsubscribe', () => {

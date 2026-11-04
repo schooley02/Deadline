@@ -2931,8 +2931,44 @@ document.addEventListener('DOMContentLoaded', () => {
         Settings.applyEffectsIntensity(intensity);
     }
 
+    // Church damage preview (Jeremy, 2026-11-03; ART ONLY). While a church state is picked in the DEV panel, #base shows that damage picture
+    // and its idle animation, and NOTHING else changes: the stand-in number below goes only to Damage.applyBaseArt (it picks a png + an
+    // animation key), never to State, the HUD, a save, a record, damage or healing. Real damage / healing / the time-slider preview keep
+    // running and redraw #base from the real health; the observer puts the demo picture back (and only writes when it differs, so it can
+    // never loop). Clearing the demo restores the picture from the real health (a read).
+    let churchPreviewWatcher = null;
+    function churchPreviewMatches(standIn) {
+        return baseElement.style.backgroundImage === 'url("' + Damage.resolveBaseImage(standIn) + '")'
+            && (baseElement.dataset.baseAnim || '') === Damage.resolveBaseAnimKey(standIn);
+    }
+    function applyChurchPreview() {
+        const standIn = DevDemo.churchHealth();
+        if (standIn == null) {
+            if (churchPreviewWatcher) { churchPreviewWatcher.disconnect(); churchPreviewWatcher = null; }
+            Damage.applyBaseArt(baseElement, State.getBaseHealth()); // back to the real picture (read only)
+            return;
+        }
+        if (!churchPreviewWatcher && typeof MutationObserver !== 'undefined') {
+            churchPreviewWatcher = new MutationObserver(() => {
+                const now = DevDemo.churchHealth();
+                if (now != null && !churchPreviewMatches(now)) Damage.applyBaseArt(baseElement, now);
+            });
+            churchPreviewWatcher.observe(baseElement, { attributes: true, attributeFilter: ['style', 'data-base-anim'] });
+        }
+        if (!churchPreviewMatches(standIn)) Damage.applyBaseArt(baseElement, standIn);
+    }
+    // The Hit button: the same flash + shake a real hit plays (css/gameCanvas.css), once, regardless of the 3 s shake cooldown.
+    let churchHitTimer = null;
+    function previewChurchHit() {
+        baseElement.classList.remove('base-hit-flash', 'base-hit-shake');
+        void baseElement.offsetWidth; // restart the animations if a previous hit is still playing
+        baseElement.classList.add('base-hit-flash', 'base-hit-shake');
+        clearTimeout(churchHitTimer);
+        churchHitTimer = setTimeout(() => { baseElement.classList.remove('base-hit-flash', 'base-hit-shake'); }, Math.max(300, CONFIG.BASE_SHAKE_DURATION_MS) + 50);
+    }
+
     // Developer tools (2026-11-03): the Settings switch. Saved per device (js/settings.js), then the DEV button shows / hides right away;
-    // turning it off also clears any demo (DevPanel.setEnabled -> DevDemo.setEnabled(false)), which redraws the real sky and village.
+    // turning it off also clears any demo (DevPanel.setEnabled -> DevDemo.setEnabled(false)), which redraws the real sky, village and church picture.
     function handleDevToolsChange(on) {
         Settings.save({ devTools: on === true });
         DevPanel.setEnabled(on === true);
@@ -3340,7 +3376,10 @@ document.addEventListener('DOMContentLoaded', () => {
     ClimateView.refresh(); // the sky for the restored run (ClimateView.init above ran before the state was restored)
     // Dev tools (2026-11-03): the DEV button + demo panel (js/ui/devPanel.js), shown only while the Settings "Developer tools" switch is
     // on (per device). A demo change redraws the sky and the village at once (the church's live width = what BASE_WIDTH holds).
-    DevPanel.init({ onDemoChange: () => { VillageView.render(baseElement.offsetWidth); ClimateView.refresh(); } });
+    DevPanel.init({
+        onDemoChange: () => { VillageView.render(baseElement.offsetWidth); ClimateView.refresh(); applyChurchPreview(); },
+        onHit: previewChurchHit,
+    });
     DevPanel.setEnabled(Settings.load().devTools === true);
     // Time slider (Milestone 4, 2026-07-20) — after initGame() so
     // GAME_SCREEN_WIDTH/BASE_WIDTH/HABIT_ENEMY_WIDTH are resolved (deps.dims()
