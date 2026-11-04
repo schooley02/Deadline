@@ -49,3 +49,12 @@ describe('Sessions list wiring (Build B, 2026-11-04)', () => {
         expect(src).toMatch(/damageBase:/);
     });
 });
+
+describe('a timer span that crosses midnight is split in the daily record (2026-11-04)', () => {
+    test('script.js splits the live span with TimerSessions.splitByDay and puts the earlier days through adjustDayTimer', () => {
+        const src = read('script.js');
+        expect(src).toMatch(/Timer\.onSpan\(\(item, spanMs, fromMs, toMs\)/);
+        expect(src).toMatch(/TimerSessions\.splitByDay\(fromMs, toMs\)/);
+        expect(src).toMatch(/State\.adjustDayTimer\(k, kind, parts\[k\] \/ 60000\)/);
+    });
+});

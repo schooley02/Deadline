@@ -118,6 +118,15 @@ describe('recording on stop / pause / autoStop', () => {
         Timer.onSpan(null);
         expect(seen).toEqual([5 * MIN]);
     });
+    test('the span listener is also told when the span ran, so the record can split it at midnight', () => {
+        const seen = [];
+        Timer.onSpan((i, ms, from, to) => seen.push([ms, from, to]));
+        const it = task();
+        Timer.start(it, 1000);
+        Timer.stop(it, 1000 + 5 * MIN);
+        Timer.onSpan(null);
+        expect(seen).toEqual([[5 * MIN, 1000, 1000 + 5 * MIN]]);
+    });
     test('a limit (Break habit) timer records sessions as well', () => {
         const it = { type: 'habit', isNegative: true, timerMinutes: 60, timer: null, timerMsBanked: 0 };
         Timer.start(it, at(5, 20));
@@ -425,7 +434,7 @@ describe('Timer.setLogged (legacy total edit) keeps the invariant', () => {
     });
 });
 
-describe('day deltas (a session counts on the day it ends)', () => {
+describe('day deltas (a session crossing local midnight is split across the days)', () => {
     const key = TimerSessions.dayKey;
     test('dayKey is the local date', () => {
         expect(key(at(5, 23, 59))).toBe('2026-11-05');
@@ -436,10 +445,23 @@ describe('day deltas (a session counts on the day it ends)', () => {
         const r = TimerSessions.apply(it, { type: 'edit', index: 0, start: at(5, 14), end: at(5, 15, 30) }, { now: NOW });
         expect(r.dayDeltas).toEqual({ '2026-11-05': 30 * MIN });
     });
-    test('moving the stop across midnight moves the whole session to the new day', () => {
+    test('moving the stop across midnight splits the session between the two days', () => {
         const it = withSessions([{ start: at(4, 23), end: at(4, 23, 50), attack: [] }]);
         const r = TimerSessions.apply(it, { type: 'edit', index: 0, start: at(4, 23), end: at(5, 0, 30) }, { now: NOW });
-        expect(r.dayDeltas).toEqual({ '2026-11-04': -50 * MIN, '2026-11-05': 90 * MIN });
+        expect(r.dayDeltas).toEqual({ '2026-11-04': 10 * MIN, '2026-11-05': 30 * MIN });
+    });
+    test('splitByDay cuts at local midnight (two days, three days, none)', () => {
+        expect(TimerSessions.splitByDay(at(4, 23, 30), at(5, 0, 45))).toEqual({ '2026-11-04': 30 * MIN, '2026-11-05': 45 * MIN });
+        expect(TimerSessions.splitByDay(at(4, 22), at(6, 1))).toEqual({ '2026-11-04': 2 * HOUR, '2026-11-05': 24 * HOUR, '2026-11-06': HOUR });
+        expect(TimerSessions.splitByDay(at(4, 9), at(4, 10))).toEqual({ '2026-11-04': HOUR });
+        expect(TimerSessions.splitByDay(at(4, 10), at(4, 10))).toEqual({});
+    });
+    test('deleting or adding a session that crosses midnight takes / puts its minutes on both days', () => {
+        const it = withSessions([{ start: at(4, 23, 30), end: at(5, 0, 15), attack: [] }]);
+        const del = TimerSessions.apply(it, { type: 'delete', index: 0 }, { now: NOW });
+        expect(del.dayDeltas).toEqual({ '2026-11-04': -30 * MIN, '2026-11-05': -15 * MIN });
+        const add = TimerSessions.apply(task(), { type: 'add', start: at(3, 23, 30), end: at(4, 0, 15) }, { now: NOW });
+        expect(add.dayDeltas).toEqual({ '2026-11-03': 30 * MIN, '2026-11-04': 15 * MIN });
     });
     test('delete takes the minutes off the day it ended on', () => {
         const it = withSessions([{ start: at(3, 9), end: at(3, 10), attack: [] }]);

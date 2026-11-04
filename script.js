@@ -883,9 +883,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1, 2026-07-19) — same reassignment reason as definedHabits. FrozenSlots
     // is called as a bare stable global inside js/items.js, same as Habits/CONFIG.
     // Daily record (D2, 2026-10-27): every Timer.stop reports the span it banked.
-    Timer.onSpan((item, spanMs) => State.bumpToday('timer', {
-        kind: Timer.isLimit(item) ? 'limit' : 'work', minutes: spanMs / 60000
-    }));
+    // A span that crossed local midnight is split (Jeremy, 2026-11-04): the part inside today lands in today's record, the
+    // earlier part(s) go to those closed days (State.adjustDayTimer leaves a day that has no record alone).
+    Timer.onSpan((item, spanMs, fromMs, toMs) => {
+        const kind = Timer.isLimit(item) ? 'limit' : 'work';
+        const parts = (typeof TimerSessions !== 'undefined' && typeof fromMs === 'number' && typeof toMs === 'number')
+            ? TimerSessions.splitByDay(fromMs, toMs) : null;
+        const keys = parts ? Object.keys(parts) : [];
+        if (keys.length < 2) { State.bumpToday('timer', { kind, minutes: spanMs / 60000 }); return; }
+        const todayKey = TimerSessions.dayKey(toMs);
+        keys.forEach((k) => {
+            if (k === todayKey) State.bumpToday('timer', { kind, minutes: parts[k] / 60000 });
+            else State.adjustDayTimer(k, kind, parts[k] / 60000);
+        });
+    });
 
     // High school v2 step 0 (2026-10-31): routine TASKS count toward a
     // routine's hero star rate. Heroes.completionRate reads task definitions

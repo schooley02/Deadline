@@ -128,8 +128,8 @@ describe('Items.changeSession', () => {
         const deps = makeDeps([item]);
         Items.changeSession(1, { type: 'edit', index: 0, start: at(4, 23), end: at(5, 0, 30) }, deps, { now: NOW });
         expect(deps.calls.adjust).toEqual([
-            { key: '2026-11-04', kind: 'work', deltaMin: -50 },
-            { key: '2026-11-05', kind: 'work', deltaMin: 90 },
+            { key: '2026-11-04', kind: 'work', deltaMin: 10 },
+            { key: '2026-11-05', kind: 'work', deltaMin: 30 },
         ]);
     });
     test('a throwing damage / daily dep never loses the correction', () => {

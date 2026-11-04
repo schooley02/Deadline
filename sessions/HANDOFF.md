@@ -11,6 +11,14 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-04 (timer sessions Build B follow-up) -- Rows add up (seconds), midnight split, no "next day" box; from Jeremy's phone check (Claude app session; Sonnet; Jeremy)
+**Did:** js/ui/sessionsView.js: `fmtDuration` shows seconds under an hour; `readEditor(root, p, orig)` keeps an untouched time's seconds, a Stop earlier than the Start is the next day (note line `#<p>SesNote`, no checkbox), Save disabled until something changes. js/timerSessions.js: `splitByDay`; `apply` day deltas split at midnight. js/timer.js: span listener also gets `from` / `to`. script.js: `Timer.onSpan` splits the live span (today's part `State.bumpToday`, earlier `State.adjustDayTimer`). css/forms.css `.sessions-note`. sw v250. Tests: sessionsView (+3 and rewritten), timerSessions (+3), items-sessions, wiring (+1).
+**State:** full Jest 168 suites / 3,817 green in a cloud clone. Headless Chromium: a 45 s session + 1 min 35 s untimed shows "45 sec" / "1 min 35 sec" under a 2 min box and opens without an error. NOT phone-checked.
+**Next:** Build C (as below). Phone check also: a session across midnight, then the Stats day records.
+**Watch out:** (1) The Build B "Watch out" about day attribution is superseded: sessions are SPLIT at midnight now. (2) A day that has no record is left alone by `State.adjustDayTimer`, so a split part for a day older than the record store is dropped. (3) script.js is CRLF on the device: convert the clone copy with `sed 's/$/\r/'`.
+
+---
+
 ## 2026-11-04 (timer sessions Build B) -- Sessions list + row editor on the card / Edit Task / completed entry; strict total; HP charge with the floor (Claude app session; Sonnet; Jeremy)
 **Did:** NEW `js/ui/sessionsView.js` (list, row editor, charge preview, two-tap Delete, + Add session). `js/items.js`: `changeSession` (edit / delete / add; `capCharge` through `deps.damageBase`; run damage + `tcorr`; day-record fixes), strict `setLoggedTime` (`below-timed`; `{ collapse: true }` for internal callers). `js/ui/popups.js` (card + Edit Task), `js/ui/routineViews.js` (completed-entry editor + save pre-check), `js/ui/agendaList.js`, `js/timerSessions.js` (`view`), script.js (`changeSession`, `getBaseHealth` / `damageBase` deps), css/forms.css, index.html (CRLF kept) + sw.js (v249). Tests: NEW items-sessions (18), sessionsView (29), routine-views (+3), timerSessions (+view), wiring (+3); timerView regexes for `{ collapse: true }`.
 **State:** full Jest 168 suites / 3,810 green in a cloud clone. Live in headless Chromium (390x844): card shows the list; editing an attacked session's stop earlier shows "Saving takes back 1 HP", Save takes 1 HP and updates the hours / minutes boxes; Delete needs a second tap; Add session works; a typed total below the sessions is refused; no errors. NOT phone-checked.

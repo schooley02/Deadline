@@ -285,7 +285,7 @@ const Timer = (() => {
         item.timer = null;
         item.timerPaused = false;
         if (span > 0 && spanListener) {
-            try { spanListener(item, span); } catch (e) { /* never break a stop */ }
+            try { spanListener(item, span, startedAt, startedAt + span); } catch (e) { /* never break a stop */ }
         }
         return span;
     }

@@ -13,8 +13,8 @@
  * that overlapped an attack window (`chargeHp`, 1 HP per interval / (1 - factor) = 10 min). Lengthening or adding never
  * refunds. The caller applies the HP charge (capped by `capCharge`, the 1 HP floor) and the per-day record fixes.
  *
- * PURE: no DOM, no state; CONFIG is an optional global (defaults mirror it). Day attribution: a session's minutes count
- * on the local day it ENDED, matching how Timer.onSpan reports a span to the daily record.
+ * PURE: no DOM, no state; CONFIG is an optional global (defaults mirror it). Day attribution (Jeremy, 2026-11-04): a session
+ * that crosses local midnight is SPLIT across the days it covers (`splitByDay`), for the live record and for every edit.
  */
 const TimerSessions = (() => {
     const MIN = 60 * 1000;
@@ -78,6 +78,22 @@ const TimerSessions = (() => {
     function dayKey(ms) {
         const d = new Date(ms);
         return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+
+    /** Split [start, end) at local midnights: { "YYYY-MM-DD": ms }. A session inside one day is one entry. */
+    function splitByDay(start, end) {
+        const out = {};
+        if (!isNum(start) || !isNum(end) || !(end > start)) return out;
+        let from = start;
+        for (let guard = 0; from < end && guard < 400; guard++) {
+            const d = new Date(from);
+            const nextMidnight = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+            const to = Math.min(end, nextMidnight);
+            const k = dayKey(from);
+            out[k] = (out[k] || 0) + (to - from);
+            from = to;
+        }
+        return out;
     }
 
     // ---- the item's fields --------------------------------------------------------------------------------------
@@ -173,11 +189,13 @@ const TimerSessions = (() => {
     }
 
     // ---- edit / delete / add ------------------------------------------------------------------------------------
-    function addDay(map, ms, delta) {
-        if (!delta) return;
-        const k = dayKey(ms);
-        map[k] = (map[k] || 0) + delta;
-        if (map[k] === 0) delete map[k];
+    // Adds `sign` x the session's minutes to each day it covers (split at local midnight).
+    function addSpanDays(map, start, end, sign) {
+        const parts = splitByDay(start, end);
+        Object.keys(parts).forEach((k) => {
+            map[k] = (map[k] || 0) + sign * parts[k];
+            if (map[k] === 0) delete map[k];
+        });
     }
     /**
      * Apply a change to the item's sessions. change: { type: 'edit', index, start, end } | { type: 'delete', index } |
@@ -197,7 +215,7 @@ const TimerSessions = (() => {
             item.timerSessions.push({ start: change.start, end: change.end, attack: [] });
             item.timerSessions.sort((a, b) => a.start - b.start);
             recompute(item);
-            addDay(dayDeltas, change.end, change.end - change.start);
+            addSpanDays(dayDeltas, change.start, change.end, 1);
             return { ok: true, deltaMs: change.end - change.start, chargeHp: 0, dayDeltas };
         }
         const idx = change.index;
@@ -208,7 +226,7 @@ const TimerSessions = (() => {
             const chargeHp = chargeFor(old.attack, [[old.start, old.end]], o.config);
             item.timerSessions.splice(idx, 1);
             recompute(item);
-            addDay(dayDeltas, old.end, -oldLen);
+            addSpanDays(dayDeltas, old.start, old.end, -1);
             return { ok: true, deltaMs: -oldLen, chargeHp, dayDeltas };
         }
         if (type === 'edit') {
@@ -220,8 +238,8 @@ const TimerSessions = (() => {
             item.timerSessions[idx] = { start: change.start, end: change.end, attack: clipWindows(old.attack, change.start, change.end) };
             item.timerSessions.sort((a, b) => a.start - b.start);
             recompute(item);
-            addDay(dayDeltas, old.end, -oldLen);
-            addDay(dayDeltas, change.end, newLen);
+            addSpanDays(dayDeltas, old.start, old.end, -1);
+            addSpanDays(dayDeltas, change.start, change.end, 1);
             return { ok: true, deltaMs: newLen - oldLen, chargeHp, dayDeltas };
         }
         return { ok: false, reason: 'invalid' };
@@ -276,7 +294,7 @@ const TimerSessions = (() => {
     return {
         MAX_TOTAL_MS, MIN_SESSION_MS,
         ensure, view, timedMs, untimedMs, recordSession, validate, apply, preview, setTotal, forceTotal,
-        chargeIntervalMs, capCharge, dayKey, clipWindows, overlapMs,
+        chargeIntervalMs, capCharge, dayKey, splitByDay, clipWindows, overlapMs,
     };
 })();
 

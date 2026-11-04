@@ -94,7 +94,7 @@ describe('editing a session', () => {
         expect(document.getElementById('sSesDate').value).toBe('2026-11-05');
         expect(document.getElementById('sSesStart').value).toBe('14:00');
         expect(document.getElementById('sSesStop').value).toBe('15:00');
-        expect(document.getElementById('sSesNext').checked).toBe(false);
+        expect(document.getElementById('sSesNote').textContent).toBe('');
         expect(document.querySelector('.sessions-editor [data-act="delete"]')).not.toBeNull();
     });
     test('Save sends an edit change in local time and closes the editor with a message', () => {
@@ -134,7 +134,7 @@ describe('editing a session', () => {
     test('a bad span shows its reason and disables Save', () => {
         mount(two(), null);
         click('[data-act="edit"][data-index="1"]');
-        setVal('sSesStop', '13:00');
+        setVal('sSesStop', '14:00'); // equal to the start
         expect(document.getElementById('sSesError').textContent).toBe('Stop must be after start.');
         expect(document.querySelector('[data-act="save"]').disabled).toBe(true);
         setVal('sSesStop', '09:30'); // overlaps the 9:00 session when moved earlier
@@ -143,26 +143,35 @@ describe('editing a session', () => {
         setVal('sSesStart', '17:00'); setVal('sSesStop', '19:00');
         expect(document.getElementById('sSesError').textContent).toBe('A session can’t end in the future.');
     });
-    test('"Stop is the next day" carries a session across midnight', () => {
+    test('a Stop earlier than the Start is the next day (no checkbox), and the editor says so', () => {
         const { d } = mount(two(), null);
         click('[data-act="edit"][data-index="1"]');
         setVal('sSesDate', '2026-11-04');
         setVal('sSesStart', '23:00');
         setVal('sSesStop', '00:30');
-        expect(document.getElementById('sSesError').textContent).toBe('Stop must be after start.');
-        document.getElementById('sSesNext').checked = true;
-        document.getElementById('sSesNext').dispatchEvent(new Event('change', { bubbles: true }));
+        expect(document.getElementById('sSesError').textContent).toBe('');
+        expect(document.getElementById('sSesNote').textContent).toBe('Ends Thu Nov 5, after midnight.');
+        expect(document.getElementById('sSesNext')).toBeNull();
         click('[data-act="save"]');
         expect(d.changeSession).toHaveBeenCalledWith(3, { type: 'edit', index: 1, start: at(4, 23), end: at(5, 0, 30) });
     });
-    test('an existing across-midnight session opens with the box ticked', () => {
+    test('equal Start and Stop is still refused (not read as a 24 hour session)', () => {
+        mount(two(), null);
+        click('[data-act="edit"][data-index="1"]');
+        setVal('sSesStart', '14:00');
+        setVal('sSesStop', '14:00');
+        expect(document.getElementById('sSesError').textContent).toBe('Stop must be after start.');
+    });
+    test('an existing across-midnight session opens with its next-day note', () => {
         mount(item([{ start: at(4, 23, 30), end: at(5, 0, 40), attack: [] }]), null);
         click('[data-act="edit"][data-index="0"]');
-        expect(document.getElementById('sSesNext').checked).toBe(true);
+        expect(document.getElementById('sSesNote').textContent).toBe('Ends Thu Nov 5, after midnight.');
+        expect(document.getElementById('sSesStop').value).toBe('00:40');
     });
     test('a refusal from the game shows under the fields and keeps the editor open', () => {
         const { d } = mount(two(), { changeSession: jest.fn(() => ({ ok: false, reason: 'overlap' })) });
         click('[data-act="edit"][data-index="1"]');
+        setVal('sSesStop', '15:30');
         click('[data-act="save"]');
         expect(document.getElementById('sSesError').textContent).toBe('That overlaps another session.');
         expect(document.querySelector('.sessions-editor')).not.toBeNull();
@@ -332,5 +341,26 @@ describe('Edit Task integration', () => {
         document.getElementById('editLoggedMinutes').value = '5';
         document.getElementById('saveTaskChanges').click();
         expect(dd.setLoggedTime).toHaveBeenCalledWith(3, 5 * MIN);
+    });
+});
+
+describe('seconds and untouched times (Jeremy, 2026-11-04: the rows have to add up)', () => {
+    test('durations show seconds under an hour, whole minutes above it', () => {
+        expect(SessionsView.fmtDuration(20 * 1000)).toBe('20 sec');
+        expect(SessionsView.fmtDuration(95 * 1000)).toBe('1 min 35 sec');
+        expect(SessionsView.fmtDuration(20 * MIN)).toBe('20 min');
+        expect(SessionsView.fmtDuration(65 * MIN + 20 * 1000)).toBe('1 hr 5 min');
+        expect(SessionsView.fmtDuration(2 * 3600 * 1000)).toBe('2 hr');
+    });
+    test('a session inside one minute opens without an error, Save waits for a change, and the seconds survive an unrelated edit', () => {
+        const tiny = item([{ start: at(5, 13, 11) + 5000, end: at(5, 13, 11) + 50000, attack: [] }], 0);
+        const { calls } = mount(tiny, null);
+        click('[data-act="edit"][data-index="0"]');
+        expect(document.getElementById('sSesError').textContent).toBe('');
+        expect(document.querySelector('[data-act="save"]').disabled).toBe(true);
+        setVal('sSesStart', '13:10');
+        expect(document.querySelector('[data-act="save"]').disabled).toBe(false);
+        click('[data-act="save"]');
+        expect(calls[0]).toEqual({ type: 'edit', index: 0, start: at(5, 13, 10), end: at(5, 13, 11) + 50000 });
     });
 });

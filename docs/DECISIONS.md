@@ -4,6 +4,16 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-04 (timer sessions Build B follow-up) -- Midnight split, seconds on the rows, no "next day" box (Claude app session; Sonnet; Jeremy, from the phone check)
+
+- **Seconds on the rows (his screenshot: a 1 min row + a 2 min untimed row under a 2 min total).** Each row rounded to whole minutes with a 1 min floor, so rows could never sum to the total. `SessionsView.fmtDuration` now shows seconds under an hour ("45 sec", "1 min 35 sec"), whole minutes from an hour up. The hr / min boxes stay whole minutes (they are inputs).
+- **Untouched times keep their seconds.** The editor is minute-precision, so a session inside one minute opened with "Stop must be after start". Now a field left at the minute the session already shows keeps its exact time; Save stays off until something changes.
+- **Midnight split: YES (Jeremy).** A session that crosses local midnight is split across the days it covers, in the live daily record (`Timer.onSpan` now also passes `from` / `to`; script.js puts today's part through `State.bumpToday` and earlier parts through `State.adjustDayTimer`) and in every edit / delete / add (`TimerSessions.splitByDay` -> `dayDeltas`). Supersedes the Build A "day it ends" rule.
+- **"Stop is the next day" checkbox REMOVED (Jeremy).** A Stop earlier than the Start is read as the next day and the editor says so ("Ends Thu Nov 5, after midnight."); equal times stay invalid (not a 24 h session). Trade-off: a mistyped earlier Stop makes a long session; the future / 24 h checks and the note catch most of it.
+- sw v250.
+
+---
+
 ## 2026-11-04 (timer sessions Build B) -- Sessions list, row editor, strict total, one-way HP charge with the floor (Claude app session; Sonnet; Jeremy: "it all works as before. go")
 
 - **Built:** `js/ui/sessionsView.js` (list, row editor, charge preview, two-tap Delete, + Add session) shown under the Time Logged field on the task card, the Edit Task form and the completed-entry editor (Completed list's Edit Habit). `Items.changeSession` (edit / delete / add) and a strict `Items.setLoggedTime`. sw v249.
@@ -11,7 +21,7 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 - **Charge-back:** shortening or deleting a session over minutes its zombie was attacking takes back `floor(minutes / 10)` HP (halved damage the timer had skipped), through the normal damage path (`deps.damageBase`), never below 1 HP church (`TimerSessions.capCharge`), logged to the run stats and the daily record `tcorr`. One-way: lengthening a session or adding one never gives HP back. The preview line ("Saving takes back N HP of halved damage.") shows before Save; the result line after.
 - **Per-day fixes:** a change moves minutes between days using `dayDeltas` (a session's day = the day it ends); the daily record's timer edit counters are bumped, the entry's completion / points / on-time are never touched.
 - **Running timer:** the list is read-only ("Running since ..."); rows can't be edited until it is stopped.
-- **Open question (still Jeremy's):** split a session that crosses midnight across both days, or keep it on the day it ends (current)?
+- **Midnight split: ANSWERED yes (Jeremy, 2026-11-04, same afternoon) -- see the Build B follow-up entry above.**
 
 ---
 

@@ -81,7 +81,7 @@ Sessions
 
 - `js/timerSessions.js` (pure; loaded before `timer.js`): `ensure`, `recordSession`, `validate` (reasons invalid / order / future / too-long / overlap / total-cap), `apply` / `preview` (`{ type: 'edit'|'delete'|'add' }` -> `{ ok, deltaMs, chargeHp, dayDeltas }` or `{ ok:false, reason }`), `setTotal` (the strict rule, reason `below-timed`), `forceTotal` (interim), `capCharge` (1 HP floor), `chargeIntervalMs`, `dayKey`.
 - **Charge interval = `DAMAGE_INTERVAL_MS / (1 - WORK_TIMER_DAMAGE_FACTOR)`** (the damage a timer skips), 10 min today. The plan's "interval / factor" gives the same 10 min only because the factor is 0.5.
-- **Day attribution = the day a session ENDS** (not split at midnight): it matches how `Timer.onSpan` reports a span today, so a session's recorded day and its edit deltas agree. Only a session that crosses midnight differs from the plan; revisit if that matters.
+- **(Superseded 2026-11-04 by Jeremy: split at midnight, see Build B follow-up.) Day attribution = the day a session ENDS** (not split at midnight): it matches how `Timer.onSpan` reports a span today, so a session's recorded day and its edit deltas agree. Only a session that crosses midnight differs from the plan; revisit if that matters.
 - **Interim:** `Timer.setLogged` (the existing Time Logged field) calls `forceTotal`: raising / lowering to anything at or above the timed sessions changes only the untimed entry; lowering BELOW them collapses the sessions into the untimed entry (what the old single number did). **Build B replaces the collapse with the `below-timed` refusal** and adds the list.
 - `Timer.trackAttack(item, now, attacking)` is called by the live loop for a running timer; windows ride on `item.timer` (`attackFrom`, `attackSeen`, `attack`). A gap in ticks over `LIVE_GAP_THRESHOLD_MS` ends the window at the last tick seen (offline time was never halved).
 - A span under 1 s is banked into the untimed entry (no empty row). "Started by mistake" records nothing.
@@ -90,10 +90,16 @@ Sessions
 
 ## Build B as built (2026-11-04)
 
-- `js/ui/sessionsView.js` (`SessionsView.html / wire`; loaded after `timerSessions.js`, before the popups): newest session first, then the untimed row ("No start/stop recorded") and "+ Add session". Edit opens Date / Start / Stop inputs and a "Stop is the next day" box; Save session / Delete (second tap confirms) / Cancel. Live validation text: invalid, order, future, too-long, overlap, total-cap; the charge preview line appears while the edit would remove attacked minutes.
+- `js/ui/sessionsView.js` (`SessionsView.html / wire`; loaded after `timerSessions.js`, before the popups): newest session first, then the untimed row ("No start/stop recorded") and "+ Add session". Edit opens Date / Start / Stop inputs (a Stop earlier than the Start is the next day, with a note line; there is no checkbox); Save session / Delete (second tap confirms) / Cancel. Live validation text: invalid, order, future, too-long, overlap, total-cap; the charge preview line appears while the edit would remove attacked minutes.
 - `Items.changeSession(id, change, deps, opts)` (edit / delete / add via `TimerSessions.apply`) charges `capCharge(chargeHp, baseHealth)` through `deps.damageBase`, records run damage and `tcorr`, then settles the totals and day records (`finishLoggedChange`). `Items.setLoggedTime` is strict (`below-timed`); `{ collapse: true }` is for internal callers.
 - Hosts: task card (`popupSes`), Edit Task (`editSes`), completed-entry editor (`editHabitSes`; below-timed pre-check in `saveEditedHabit`). Each keeps its hours / minutes boxes in step after a session change. Running timer: list read-only.
 - Not done (Build C): the auto-stop notice's Edit opens that session's row (it still uses `{ collapse: true }`); the How Deadline works line.
+
+## Build B follow-up (2026-11-04, from Jeremy's phone check)
+
+- Rows show seconds under an hour so they add up to the Time Logged boxes; an untouched start / stop keeps its seconds and Save waits for a change.
+- **Midnight split: sessions crossing local midnight are split across the days** (`TimerSessions.splitByDay`; live via `Timer.onSpan(item, span, from, to)` in script.js; edits via `dayDeltas`). Replaces the "day it ends" rule.
+- "Stop is the next day" box removed: Stop < Start reads as the next day, with a note under the fields.
 
 ## Not doing / risks
 

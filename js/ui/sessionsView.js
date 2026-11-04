@@ -3,7 +3,7 @@
  *
  * One list of an item's recorded timer sessions, drawn under the Time Logged field on the task card, the Edit Task form and
  * the completed Build / Break Habit editor. Each session shows its day, start and stop; Edit opens the row in place (Date,
- * Start, Stop, "Stop is the next day"), with a live line saying what saving would cost; + Add session adds one by hand.
+ * Start, Stop; a Stop earlier than the Start is the next day), with a live line saying what saving would cost; + Add session adds one by hand.
  * Time with no start / stop (old time, a typed total) is ONE read-only row: it changes through the Time Logged total.
  *
  * `html` / `innerHtml` are pure markup builders; `wire` attaches the behaviour. All maths lives in js/timerSessions.js and the
@@ -34,10 +34,17 @@ const SessionsView = (() => {
         const x = new Date(a), y = new Date(b);
         return x.getFullYear() === y.getFullYear() && x.getMonth() === y.getMonth() && x.getDate() === y.getDate();
     }
+    // Under an hour the seconds show ("1 min 35 sec", "20 sec") so a row and the Time Logged boxes add up; from an hour
+    // up it is hours + whole minutes.
     function fmtDuration(ms) {
-        const m = Math.max(1, Math.round(ms / MIN));
-        if (m < 60) return `${m} min`;
-        const h = Math.floor(m / 60), r = m % 60;
+        const secs = Math.max(0, Math.round(ms / 1000));
+        if (secs < 3600) {
+            const m = Math.floor(secs / 60), s = secs % 60;
+            if (!m) return `${s} sec`;
+            return s ? `${m} min ${s} sec` : `${m} min`;
+        }
+        const total = Math.round(secs / 60);
+        const h = Math.floor(total / 60), r = total % 60;
         return r ? `${h} hr ${r} min` : `${h} hr`;
     }
     // "Tue Nov 3, 2:05 PM - 3:10 PM" (the stop gets its own day when the session crosses midnight).
@@ -85,14 +92,13 @@ const SessionsView = (() => {
     }
     function editorHtml(p, mode, s, nowMs) {
         const startMs = s ? s.start : nowMs;
-        const nextDay = s ? !sameDay(s.start, s.end) : false;
         return `<li class="sessions-editor" data-mode="${mode}"${s ? ` data-index="${s.index}"` : ''}>` +
             `<div class="sessions-fields">` +
             `<label class="sessions-field">Date<input type="date" id="${p}SesDate" value="${dateValue(startMs)}" max="${dateValue(nowMs)}"></label>` +
             `<label class="sessions-field">Start<input type="time" id="${p}SesStart" value="${s ? timeValue(s.start) : ''}"></label>` +
             `<label class="sessions-field">Stop<input type="time" id="${p}SesStop" value="${s ? timeValue(s.end) : ''}"></label>` +
             `</div>` +
-            `<label class="sessions-next"><input type="checkbox" id="${p}SesNext"${nextDay ? ' checked' : ''}> Stop is the next day</label>` +
+            `<p class="sessions-note" id="${p}SesNote"></p>` +
             `<p class="sessions-charge" id="${p}SesCharge" role="status" aria-live="polite"></p>` +
             `<p class="sessions-error" id="${p}SesError" role="alert"></p>` +
             `<div class="sessions-buttons">` +
@@ -137,9 +143,10 @@ const SessionsView = (() => {
 
     // ---- behaviour -----------------------------------------------------------------------------------------------
     // Reads the open editor: { start, end } in ms, or null when a field is blank / unreadable.
-    function readEditor(root, p) {
+    // `orig` (an edit): a field left at the minute the session already shows keeps its exact time, seconds and all.
+    function readEditor(root, p, orig) {
         const q = (suffix) => root.querySelector('#' + p + suffix);
-        const date = q('SesDate'), start = q('SesStart'), stop = q('SesStop'), next = q('SesNext');
+        const date = q('SesDate'), start = q('SesStart'), stop = q('SesStop');
         if (!date || !start || !stop) return null;
         const dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date.value || '');
         const sm = /^(\d{2}):(\d{2})$/.exec(start.value || '');
@@ -147,7 +154,13 @@ const SessionsView = (() => {
         if (!dm || !sm || !em) return null;
         const y = Number(dm[1]), mo = Number(dm[2]) - 1, d = Number(dm[3]);
         const s = new Date(y, mo, d, Number(sm[1]), Number(sm[2])).getTime();
-        const e = new Date(y, mo, d + (next && next.checked ? 1 : 0), Number(em[1]), Number(em[2])).getTime();
+        // A Stop earlier than the Start can only be the next day (no checkbox, Jeremy 2026-11-04); equal times stay invalid.
+        let e = new Date(y, mo, d, Number(em[1]), Number(em[2])).getTime();
+        if (e < s) e = new Date(y, mo, d + 1, Number(em[1]), Number(em[2])).getTime();
+        const minuteOf = (ms) => Math.floor(ms / MIN) * MIN;
+        if (orig && typeof orig.start === 'number' && typeof orig.end === 'number') {
+            return { start: s === minuteOf(orig.start) ? orig.start : s, end: e === minuteOf(orig.end) ? orig.end : e };
+        }
         return { start: s, end: e };
     }
 
@@ -169,6 +182,12 @@ const SessionsView = (() => {
             if (m && msg) m.textContent = msg;
             if (state.editing) refreshPreview();
         }
+        // The session being edited, as stored (so an untouched time keeps its seconds).
+        function origSession() {
+            const e = state.editing;
+            const list = item() && item().timerSessions;
+            return (e && e.mode === 'edit' && Array.isArray(list)) ? (list[e.index] || null) : null;
+        }
         function changeFor(span) {
             const e = state.editing;
             if (!e || !span) return null;
@@ -183,9 +202,14 @@ const SessionsView = (() => {
             state.confirmDelete = false;
             const del = root.querySelector('[data-act="delete"]');
             if (del) del.textContent = 'Delete';
-            const span = readEditor(root, p);
+            const orig = origSession();
+            const span = readEditor(root, p, orig);
             charge.textContent = ''; err.textContent = '';
+            const note = root.querySelector('#' + p + 'SesNote');
+            if (note) note.textContent = '';
+            if (note && span && !sameDay(span.start, span.end)) note.textContent = `Ends ${fmtDay(span.end)}, after midnight.`;
             if (!span) { if (save) save.disabled = true; return; }
+            if (orig && span.start === orig.start && span.end === orig.end) { if (save) save.disabled = true; return; } // nothing changed yet
             const r = TimerSessions.preview(item(), changeFor(span), { now: Date.now() });
             if (!r.ok) { err.textContent = reasonText(r.reason); if (save) save.disabled = true; return; }
             if (save) save.disabled = false;
@@ -199,7 +223,7 @@ const SessionsView = (() => {
             if (typeof o.onChange === 'function') o.onChange(res);
         }
         function save() {
-            const span = readEditor(root, p);
+            const span = readEditor(root, p, origSession());
             const err = root.querySelector('#' + p + 'SesError');
             if (!span) { if (err) err.textContent = reasonText('invalid'); return; }
             const adding = state.editing && state.editing.mode === 'add';
