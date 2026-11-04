@@ -364,3 +364,14 @@ describe('seconds and untouched times (Jeremy, 2026-11-04: the rows have to add 
         expect(calls[0]).toEqual({ type: 'edit', index: 0, start: at(5, 13, 10), end: at(5, 13, 11) + 50000 });
     });
 });
+
+describe('the controller can open a row from outside (Build C)', () => {
+    test('open(index) shows that session\'s editor; an unknown index does nothing', () => {
+        const { ctl } = (() => { const r = mount(two(), null); return r; })();
+        ctl.open(1);
+        expect(document.querySelector('.sessions-editor')).not.toBeNull();
+        expect(document.getElementById('sSesStart').value).toBe('14:00');
+        ctl.open(9);
+        expect(document.getElementById('sSesStart').value).toBe('14:00');
+    });
+});

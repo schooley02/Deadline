@@ -171,7 +171,7 @@ const TimerView = (() => {
 
     // Auto-stop notice (2026-11-04): the "Still working?" check went unanswered, so the timer stopped itself and banked
     // time only up to the check. `info` = { sessionMs (what THIS run banked), totalMs (the item's whole logged time now) }.
-    // Edit Total Time Logged -> handlers.onEdit(); Keep New Time Logged -> handlers.onKeep(); Delete New Time Logged ->
+    // Edit This Session (Build C; was Edit Total Time Logged) -> handlers.onEdit(); Keep New Time Logged -> handlers.onKeep(); Delete New Time Logged ->
     // handlers.onDelete(). Dismissing (outside tap / Esc) leaves the time as banked, the same as Keep. The handler
     // runs AFTER the modal closes; open anything new from it one tick later (this click is still bubbling).
     function showAutoStopped(item, info, handlers) {
@@ -185,9 +185,9 @@ const TimerView = (() => {
                     <h3>⏱ Timer stopped</h3>
                     <p>It looks like you may have left your timer running on "${esc(item.name)}". There was no answer to the "Still working?" check.</p>
                     <p>The timer stopped with <strong>${session}</strong> logged. The total time logged for this task is <strong>${total}</strong>.</p>
-                    <p>Please edit your total time logged so it matches what you really spent.</p>
+                    <p>Please fix when this run really started and stopped, or delete it.</p>
                     <div class="modal-buttons">
-                        <button type="button" id="autoStopEdit" class="primary-button">Edit Total Time Logged</button>
+                        <button type="button" id="autoStopEdit" class="primary-button">Edit This Session</button>
                         <button type="button" id="autoStopKeep" class="secondary-button">Keep New Time Logged</button>
                         <button type="button" id="autoStopDelete" class="danger-button">Delete New Time Logged</button>
                     </div>
@@ -204,7 +204,35 @@ const TimerView = (() => {
         return overlay;
     }
 
-    return { showStillWorking, closeStillWorking, showGoalReached, showLimitPassed, showLoggedTimeEditor, showGoalBlocked, formatMinutes, showAutoStopped };
+    // Timer sessions Build C (2026-11-04): the auto-stop notice's "Edit This Session" opens this: the item's Sessions list with
+    // the run that just ended already open in its editor (start / stop / Delete). `info` = { index (into item.timerSessions),
+    // sessionMs }; handlers = { changeSession(id, change), getBaseHealth?, onChange(res)? }. Done (or tapping outside) closes it;
+    // every change has already been saved by changeSession. Needs the SessionsView global.
+    function showSessionEditor(item, info, handlers) {
+        if (document.getElementById('sessionEditOverlay')) return null;
+        if (typeof SessionsView === 'undefined') return null;
+        const i = info || {};
+        const h = handlers || {};
+        const overlay = Modal.open(`
+            <div class="modal-overlay" id="sessionEditOverlay">
+                <div class="modal-content frozen-notice-modal auto-stop-modal">
+                    <h3>\u23F1 ${esc(item.name)}</h3>
+                    <p>The timer stopped with <strong>${formatMinutes((i.sessionMs || 0) / 60000)}</strong> logged. Change when this run started or stopped, or delete it.</p>
+                    ${SessionsView.html(item, { idPrefix: 'autoSes', running: false })}
+                    <div class="modal-buttons">
+                        <button type="button" id="sessionEditDone" class="primary-button">Done</button>
+                    </div>
+                </div>
+            </div>`);
+        if (!overlay) return null;
+        const ctl = SessionsView.wire({ idPrefix: 'autoSes', getItem: () => item, deps: { changeSession: h.changeSession, getBaseHealth: h.getBaseHealth }, onChange: h.onChange });
+        if (ctl && typeof i.index === 'number') ctl.open(i.index);
+        const done = document.getElementById('sessionEditDone');
+        if (done) done.addEventListener('click', () => Modal.closeModal());
+        return overlay;
+    }
+
+    return { showStillWorking, closeStillWorking, showGoalReached, showLimitPassed, showLoggedTimeEditor, showGoalBlocked, formatMinutes, showAutoStopped, showSessionEditor };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

@@ -37,3 +37,7 @@ Page: Sonnet, medium. Achievements: tier design Fable/Opus, build Sonnet medium.
 
 ## Added 2026-11-03: topic 7, "When a run ends" (id `runs`)
 Copy lives in `js/ui/howItWorks.js` `runsTopic` (slot-unlock levels are read from `CONFIG.ROUTINE_SLOTS_PER_LEVEL`). Says what the next run keeps (habits / routines / heroes, open tasks, routine slots never below the best, items that cannot be re-earned) and what starts over, with a "Why". Same facts as the game-over card's "Next run" lists; if one changes, change both (`docs/RUN_CARRYOVER_PLAN.md`).
+
+## Addendum (2026-11-04): 8th topic
+
+`timers` "Timers and Time Logged" was added (before "When a run ends") by Timer sessions Build C: damage cut while a timer runs, the Still working? check, sessions + the untimed entry, typed totals never below the timed sessions, the take-back rule (numbers from CONFIG). See docs/TIMER_SESSIONS_PLAN.md "Build C as built".

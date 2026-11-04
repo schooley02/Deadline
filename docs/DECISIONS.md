@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-04 (timer sessions Build C) -- The auto-stop notice fixes the run itself; a Timers topic in How Deadline works (Claude app session; Sonnet; Jeremy: "continue with Build C")
+
+- **"Timer stopped" notice:** Edit now opens the run's own session row (`TimerView.showSessionEditor`, button renamed **Edit This Session**; the line under the numbers says to fix when the run really started and stopped, or delete it). Delete New Time Logged removes that session through `changeSession`, so the halved damage for attacked minutes is taken back (floor 1 HP); before, it only lowered the total and collapsed the sessions. Supersedes the 2026-11-04 (auto-stop notice) "Edit Total Time Logged" wording and its total editor, which remain only as the fallback for a run under a second (no session row).
+- **How Deadline works:** new 8th topic "Timers and Time Logged" (copy built from `WORK_TIMER_*` and `DAMAGE_INTERVAL_MS`; take-back minutes = interval / (1 - factor)). Test pins every number and the wording rule.
+- **Deliberately unchanged:** the Break-limit "How much time did you actually spend?" editor and the check-in "How much?" answers keep `{ collapse: true }`: the player states the real total after the fact, nothing is taken back.
+- sw v251. No balance number changed.
+
+---
+
 ## 2026-11-04 (timer sessions Build B follow-up) -- Midnight split, seconds on the rows, no "next day" box (Claude app session; Sonnet; Jeremy, from the phone check)
 
 - **Seconds on the rows (his screenshot: a 1 min row + a 2 min untimed row under a 2 min total).** Each row rounded to whole minutes with a 1 min floor, so rows could never sum to the total. `SessionsView.fmtDuration` now shows seconds under an hour ("45 sec", "1 min 35 sec"), whole minutes from an hour up. The hr / min boxes stay whole minutes (they are inputs).

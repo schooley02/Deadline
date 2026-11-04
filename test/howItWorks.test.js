@@ -23,14 +23,14 @@ const topic = (id, cfg) => all(cfg).find(t => t.id === id);
 // Everything a player can read in a topic, as one lowercase-insensitive string.
 const textOf = (t) => [].concat(t.what || [], t.list || [], t.html || '', t.why || '').join(' ');
 
-describe('the seven topics', () => {
-    test('Points, Pushbacks, Streaks, Hero ranking, Achievements, The sky, When a run ends, in that order', () => {
-        expect(all().map(t => t.title)).toEqual(['Points', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'When a run ends']);
-        expect(all().map(t => t.id)).toEqual(['points', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'runs']);
+describe('the eight topics', () => {
+    test('Points, Pushbacks, Streaks, Hero ranking, Achievements, The sky, Timers and Time Logged, When a run ends, in that order', () => {
+        expect(all().map(t => t.title)).toEqual(['Points', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends']);
+        expect(all().map(t => t.id)).toEqual(['points', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs']);
     });
 
-    test('Streaks, Hero ranking, Achievements, The sky and When a run ends carry a "Why"; Points and Pushbacks do not invent one', () => {
-        ['streaks', 'heroes', 'achievements', 'weather', 'runs'].forEach(id => expect(topic(id).why).toBeTruthy());
+    test('Streaks, Hero ranking, Achievements, The sky, Timers and When a run ends carry a "Why"; Points and Pushbacks do not invent one', () => {
+        ['streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs'].forEach(id => expect(topic(id).why).toBeTruthy());
         ['points', 'pushbacks'].forEach(id => expect(topic(id).why).toBeUndefined());
     });
 });
@@ -214,8 +214,8 @@ describe('Achievements', () => {
 describe('windowHtml', () => {
     test('one <details> per topic, in order, with the corner x', () => {
         const html = HowItWorks.windowHtml(all());
-        expect((html.match(/<details /g) || []).length).toBe(7);
-        const order = ['Points', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'When a run ends'].map(n => html.indexOf(`<summary>${n}</summary>`));
+        expect((html.match(/<details /g) || []).length).toBe(8);
+        const order = ['Points', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends'].map(n => html.indexOf(`<summary>${n}</summary>`));
         expect(order.every(i => i > 0)).toBe(true);
         expect(order).toEqual(order.slice().sort((a, b) => a - b));
         expect(html).toContain('modal-close-x');
@@ -371,5 +371,37 @@ describe('When a run ends (run-end carryover, 2026-11-03)', () => {
         expect(textOf(topic('runs'))).toContain('Routine slots normally unlock at level 3, level 5 and level 7.');
         const retuned = Object.assign({}, CONFIG, { ROUTINE_SLOTS_PER_LEVEL: { 1: 1, 2: 2, 3: 2 } });
         expect(textOf(topic('runs', retuned))).toContain('unlock at level 2.');
+    });
+});
+
+describe('Timers and Time Logged (Timer sessions Build C, 2026-11-04)', () => {
+    const t = () => topic('timers');
+    test('says what the timer does to damage, from CONFIG', () => {
+        const text = textOf(t());
+        expect(text).toContain(`${Math.round(CONFIG.WORK_TIMER_DAMAGE_FACTOR * 100)}%`);
+        expect(text).toContain(`${CONFIG.WORK_TIMER_CHECK_MS / 60000} minutes`);
+        expect(text).toContain(`${CONFIG.WORK_TIMER_AUTO_STOP_MS / 60000} minutes`);
+    });
+    test('explains sessions, the untimed entry, and that a typed total never goes below the timed sessions', () => {
+        const text = textOf(t());
+        expect(text).toContain('Sessions');
+        expect(text).toContain('No start/stop recorded');
+        expect(text).toContain('never below');
+    });
+    test('the take-back rule uses the real numbers and the 1 HP floor, and never refunds', () => {
+        const text = textOf(t());
+        const minutes = Math.round(CONFIG.DAMAGE_INTERVAL_MS / (1 - CONFIG.WORK_TIMER_DAMAGE_FACTOR) / 60000);
+        expect(text).toContain(`1 HP for every ${minutes} minutes`);
+        expect(text).toContain('never below 1 HP');
+        expect(text).toContain('never gives HP back');
+    });
+    test('follows the wording rule: "Time Logged", never "logged time"', () => {
+        expect(textOf(t())).toContain('Time Logged');
+        expect(textOf(t()).toLowerCase()).not.toContain('logged time');
+    });
+    test('retuned numbers flow through', () => {
+        const retuned = Object.assign({}, CONFIG, { WORK_TIMER_DAMAGE_FACTOR: 0.25, WORK_TIMER_CHECK_MS: 30 * 60000 });
+        expect(textOf(topic('timers', retuned))).toContain('25%');
+        expect(textOf(topic('timers', retuned))).toContain('30 minutes');
     });
 });

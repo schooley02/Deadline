@@ -1,7 +1,7 @@
 /**
  * HowItWorks -- the "How Deadline works" window opened from Settings (2026-11-03; plan docs/HOW_IT_WORKS_PLAN.md).
  *
- * WHY: the game shows points, streaks, hero stars and badges but never said what they are for. Five short topics, each
+ * WHY: the game shows points, streaks, hero stars and badges but never said what they are for. Short topics, each
  * "what it is" and (where Jeremy approved one) "why it is there", in a plain voice.
  *
  * Same pattern as js/pointsInfo.js and js/ui/pushbackHelp.js: the words are built from CONFIG, so a retuned number
@@ -164,9 +164,30 @@ const HowItWorks = (() => {
         };
     }
 
+    // ---- Timers and Time Logged (Timer sessions Build C, 2026-11-04) -------------------------------------------
+    function timersTopic(config) {
+        const factor = config.WORK_TIMER_DAMAGE_FACTOR;
+        const pct = Math.round(factor * 100);
+        const checkMin = Math.round(config.WORK_TIMER_CHECK_MS / 60000);
+        const stopMin = Math.round(config.WORK_TIMER_AUTO_STOP_MS / 60000);
+        // 1 HP per the damage a running timer skips: the damage interval / (1 - factor) (js/timerSessions.js chargeIntervalMs).
+        const takeBackMin = Math.round(config.DAMAGE_INTERVAL_MS / (1 - factor) / 60000);
+        return {
+            id: 'timers',
+            title: 'Timers and Time Logged',
+            what: [
+                `Tap the stopwatch on a task or Build Habit to time it. While the timer runs, that zombie's damage to the church is cut to ${pct}% and its hero stands guard in front of the church. After ${checkMin} minutes the game asks "Still working?"; if nobody answers for ${stopMin} minutes the timer stops itself, counting time only up to the check.`,
+                'Every Stop, Pause or auto-stop saves a session: when it started, when it stopped and how long. Time Logged is the total of your sessions. Open a task and look under Sessions to fix a start or stop time, delete a session, or add one you forgot (a session that crosses midnight counts toward both days). Time with no start and stop, such as a total you typed or time logged before sessions existed, shows as "No start/stop recorded".',
+                'You can also type a Time Logged total, but never below your timed sessions. To remove timed time, edit its session.',
+                `Shortening or deleting a session takes back the halved damage for the minutes it was running while its zombie was attacking: 1 HP for every ${takeBackMin} minutes (rounded down), never below 1 HP of church health. Making a session longer or adding one never gives HP back. Editing sessions never changes points, XP, or whether something was on time.`,
+            ],
+            why: 'Time Logged should match your real day, so your goals and daily records stay honest. Halved damage is a reward for working: it is taken back for time you did not really work, but never handed out for time you add.',
+        };
+    }
+
     function topics(config) {
         const cfg = config || (typeof CONFIG !== 'undefined' ? CONFIG : {});
-        return [pointsTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg), runsTopic(cfg)];
+        return [pointsTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg), timersTopic(cfg), runsTopic(cfg)];
     }
 
     // ---- Markup ------------------------------------------------------------------------------------------------
@@ -219,7 +240,7 @@ const HowItWorks = (() => {
     // Capture + stopPropagation is deliberate: Modal's outside-click dismiss (a bubbling document handler) would
     // otherwise see the same tap and close the popup or window the button sits in, and a row's own tap handler
     // (agenda rows, hero rows) must not fire as well.
-    const TOPIC_IDS = ['points', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'runs'];
+    const TOPIC_IDS = ['points', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs'];
 
     function buttonHtml(topicId, label) {
         if (TOPIC_IDS.indexOf(topicId) === -1) return '';

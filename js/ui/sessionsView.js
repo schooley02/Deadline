@@ -265,7 +265,15 @@ const SessionsView = (() => {
         root.addEventListener('input', onInput);
         root.addEventListener('change', onInput);
 
-        return { render, state };
+        // Open one session's editor from outside (the auto-stop notice opens the run it just recorded).
+        function open(index) {
+            const list = item() && item().timerSessions;
+            if (!Array.isArray(list) || !Number.isInteger(index) || !list[index]) return false;
+            state.editing = { mode: 'edit', index }; state.confirmDelete = false;
+            render();
+            return true;
+        }
+        return { render, state, open };
     }
 
     const api = { html, innerHtml, wire, readEditor, reasonText, chargeText, fmtTime, fmtDay, fmtDuration, rangeText };

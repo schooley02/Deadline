@@ -93,13 +93,20 @@ Sessions
 - `js/ui/sessionsView.js` (`SessionsView.html / wire`; loaded after `timerSessions.js`, before the popups): newest session first, then the untimed row ("No start/stop recorded") and "+ Add session". Edit opens Date / Start / Stop inputs (a Stop earlier than the Start is the next day, with a note line; there is no checkbox); Save session / Delete (second tap confirms) / Cancel. Live validation text: invalid, order, future, too-long, overlap, total-cap; the charge preview line appears while the edit would remove attacked minutes.
 - `Items.changeSession(id, change, deps, opts)` (edit / delete / add via `TimerSessions.apply`) charges `capCharge(chargeHp, baseHealth)` through `deps.damageBase`, records run damage and `tcorr`, then settles the totals and day records (`finishLoggedChange`). `Items.setLoggedTime` is strict (`below-timed`); `{ collapse: true }` is for internal callers.
 - Hosts: task card (`popupSes`), Edit Task (`editSes`), completed-entry editor (`editHabitSes`; below-timed pre-check in `saveEditedHabit`). Each keeps its hours / minutes boxes in step after a session change. Running timer: list read-only.
-- Not done (Build C): the auto-stop notice's Edit opens that session's row (it still uses `{ collapse: true }`); the How Deadline works line.
+- (Done in Build C below.) The auto-stop notice's Edit opens that session's row (it used `{ collapse: true }`); the How Deadline works line.
 
 ## Build B follow-up (2026-11-04, from Jeremy's phone check)
 
 - Rows show seconds under an hour so they add up to the Time Logged boxes; an untouched start / stop keeps its seconds and Save waits for a change.
 - **Midnight split: sessions crossing local midnight are split across the days** (`TimerSessions.splitByDay`; live via `Timer.onSpan(item, span, from, to)` in script.js; edits via `dayDeltas`). Replaces the "day it ends" rule.
 - "Stop is the next day" box removed: Stop < Start reads as the next day, with a note under the fields.
+
+## Build C as built (2026-11-04)
+
+- **Auto-stop notice** ("Timer stopped"): the buttons are now **Edit This Session** / Keep New Time Logged / Delete New Time Logged, and the third line says "Please fix when this run really started and stopped, or delete it." Edit opens `TimerView.showSessionEditor`: the item's Sessions list in a small window with the run that just ended already open in its editor (start / stop / Delete; the usual take-back preview) and a Done button. Delete removes that session through `changeSession` (so the halved damage for attacked minutes is taken back, floor 1 HP). The run is found with `TimerSessions.latest(item)` and must match the banked span within 1.5 s; a run under a second leaves no row, and then the old typed-total editor / `{ collapse: true }` delete is the fallback.
+- `SessionsView.wire(...)` returns `open(index)` so a host can open a row from outside.
+- **How Deadline works:** 8th topic `timers` "Timers and Time Logged" (damage cut while timing, the Still working? check, sessions, the untimed entry, typed totals never below the timed sessions, the take-back rule with its numbers from CONFIG, never a refund; midnight split noted). `HowItWorks.TOPIC_IDS` has `timers` (before `runs`).
+- The other `{ collapse: true }` callers stay on purpose: the Break-limit "How much time did you actually spend?" editor and the check-in card "How much?" answers state the real total after the fact, so they replace the sessions' split with a typed total (nothing is taken back).
 
 ## Not doing / risks
 

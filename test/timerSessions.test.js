@@ -507,3 +507,12 @@ describe('view (read-only picture for the Sessions list)', () => {
         expect(TimerSessions.view(null).totalMs).toBe(0);
     });
 });
+
+describe('TimerSessions.latest (Build C: the session an auto-stop just recorded)', () => {
+    test('returns the session that ends last, with its index; null when there are none', () => {
+        const it = withSessions([{ start: at(5, 9), end: at(5, 10), attack: [] }, { start: at(5, 14), end: at(5, 15), attack: [] }]);
+        expect(TimerSessions.latest(it)).toMatchObject({ index: 1, start: at(5, 14), end: at(5, 15) });
+        expect(TimerSessions.latest(task())).toBeNull();
+        expect(TimerSessions.latest(null)).toBeNull();
+    });
+});

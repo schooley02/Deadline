@@ -149,6 +149,15 @@ const TimerSessions = (() => {
         return { sessions: list.map((x, i) => Object.assign({ index: i }, x)), timedMs: timed, untimedMs: untimed, totalMs: timed + untimed };
     }
 
+    /** The session that ends last: { index, start, end } (what an auto-stop just recorded), or null when there are none. */
+    function latest(item) {
+        const list = view(item).sessions;
+        if (!list.length) return null;
+        let best = list[0];
+        list.forEach((s) => { if (s.end >= best.end) best = s; });
+        return { index: best.index, start: best.start, end: best.end };
+    }
+
     /** Called by Timer.stop: bank one session. A span under a second goes into the untimed entry instead of a row. */
     function recordSession(item, start, end, attack) {
         ensure(item);
@@ -294,7 +303,7 @@ const TimerSessions = (() => {
     return {
         MAX_TOTAL_MS, MIN_SESSION_MS,
         ensure, view, timedMs, untimedMs, recordSession, validate, apply, preview, setTotal, forceTotal,
-        chargeIntervalMs, capCharge, dayKey, splitByDay, clipWindows, overlapMs,
+        chargeIntervalMs, capCharge, dayKey, splitByDay, latest, clipWindows, overlapMs,
     };
 })();
 

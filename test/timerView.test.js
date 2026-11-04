@@ -141,13 +141,13 @@ describe('TimerView.showAutoStopped (2026-11-04)', () => {
         expect(text).toContain('"Still working?" check');
         expect(o.querySelectorAll('strong')[0].textContent).toBe('1 hr');
         expect(o.querySelectorAll('strong')[1].textContent).toBe('2 hr 15 min');
-        expect(text).toContain('edit your total time logged');
+        expect(text).toContain('fix when this run really started and stopped');
         expect(o.querySelector('p b')).toBeNull();
     });
 
     test('has the three buttons with their labels', () => {
         TimerView.showAutoStopped(item, info, h());
-        expect(document.getElementById('autoStopEdit').textContent).toBe('Edit Total Time Logged');
+        expect(document.getElementById('autoStopEdit').textContent).toBe('Edit This Session');
         expect(document.getElementById('autoStopKeep').textContent).toBe('Keep New Time Logged');
         expect(document.getElementById('autoStopDelete').textContent).toBe('Delete New Time Logged');
     });
@@ -177,14 +177,57 @@ describe('TimerView.showAutoStopped (2026-11-04)', () => {
     });
 });
 
+describe('TimerView.showSessionEditor (Build C: the notice\'s Edit opens the run\'s own session row)', () => {
+    global.TimerSessions = require('../js/timerSessions.js');
+    global.SessionsView = require('../js/ui/sessionsView.js');
+    const MIN = 60000;
+    const at = (d, h, m) => new Date(2026, 10, d, h, m || 0).getTime();
+    const mk = () => ({ id: 7, name: 'Report <b>', type: 'task', timerMsBanked: 70 * MIN,
+        timerSessions: [{ start: at(4, 9), end: at(4, 10), attack: [] }, { start: at(4, 13), end: at(4, 13, 10), attack: [] }], timerUntimedMs: 0 });
+
+    test('opens with the newest session\'s editor already open, the name escaped, and a Done button', () => {
+        const it = mk();
+        TimerView.showSessionEditor(it, { index: 1, sessionMs: 10 * MIN }, { changeSession: jest.fn() });
+        const o = document.getElementById('sessionEditOverlay');
+        expect(o).not.toBeNull();
+        expect(o.querySelector('h3 b')).toBeNull();
+        expect(o.textContent).toContain('10 min');
+        expect(document.querySelector('#sessionEditOverlay .sessions-editor')).not.toBeNull();
+        expect(document.getElementById('autoSesSesStart').value).toBe('13:00');
+        expect(document.getElementById('sessionEditDone')).not.toBeNull();
+    });
+    test('a change goes through changeSession and onChange; Done closes it', () => {
+        const it = mk();
+        const changeSession = jest.fn(() => ({ ok: true, chargedHp: 0 }));
+        const onChange = jest.fn();
+        TimerView.showSessionEditor(it, { index: 1, sessionMs: 10 * MIN }, { changeSession, onChange });
+        const stop = document.getElementById('autoSesSesStop');
+        stop.value = '13:05'; stop.dispatchEvent(new Event('input', { bubbles: true }));
+        document.querySelector('#sessionEditOverlay [data-act="save"]').click();
+        expect(changeSession).toHaveBeenCalledWith(7, { type: 'edit', index: 1, start: at(4, 13), end: at(4, 13, 5) });
+        expect(onChange).toHaveBeenCalledTimes(1);
+        document.getElementById('sessionEditDone').click();
+        expect(document.getElementById('sessionEditOverlay')).toBeNull();
+    });
+    test('never opens two at once', () => {
+        TimerView.showSessionEditor(mk(), { index: 1, sessionMs: MIN }, { changeSession: jest.fn() });
+        expect(TimerView.showSessionEditor(mk(), { index: 1, sessionMs: MIN }, { changeSession: jest.fn() })).toBeNull();
+    });
+});
+
 describe('auto-stop wiring in script.js (source check; Jest never loads script.js)', () => {
     const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'script.js'), 'utf8');
-    test('the auto-stop branch passes the banked span to the notice, and Delete / Edit go through setLoggedTime (collapse: no message to show here until Build C)', () => {
+    test('the auto-stop branch passes the banked span to the notice', () => {
         expect(src).toMatch(/const sessionMs = Timer\.autoStop\(running, nowMs\)/);
         expect(src).toMatch(/showAutoStoppedNotice\(running, sessionMs\)/);
+    });
+    test('Build C: Edit opens that run\'s session row and Delete removes that session (with its charge-back); the old total paths stay only as the fallback', () => {
         const fn = src.slice(src.indexOf('function showAutoStoppedNotice'));
-        expect(fn).toMatch(/onDelete: \(\) => \{ setLoggedTime\(item\.id, Math\.max\(0, Timer\.elapsedMs\(item, Date\.now\(\)\) - sessionMs\), \{ collapse: true \}\)/);
+        expect(fn).toMatch(/TimerSessions\.latest\(item\)/);
+        expect(fn).toMatch(/TimerView\.showSessionEditor\(item, \{ index: run\.index/);
+        expect(fn).toMatch(/changeSession\(item\.id, \{ type: 'delete', index: run\.index \}\)/);
+        // fallback (a run under a second leaves no row): the typed total, collapsing, as before
         expect(fn).toMatch(/showLoggedTimeEditor/);
-        expect(fn).toMatch(/onSave: \(ms\) => \{ setLoggedTime\(item\.id, ms, \{ collapse: true \}\)/);
+        expect(fn).toMatch(/\{ collapse: true \}/);
     });
 });

@@ -1739,15 +1739,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Auto-stop notice (2026-11-04): says what this run banked and the task's total, then lets the player fix the total.
-    // Keep = leave as banked (also what dismissing does); Delete = take this run's time back out; Edit = the logged-time
-    // editor prefilled with the total. All three go through setLoggedTime, so the daily record stays corrected.
+    // Auto-stop notice (2026-11-04): says what this run banked and the task's total, then lets the player fix the run.
+    // Keep = leave as banked (also what dismissing does); Delete = take this run's time back out; Edit = fix that run.
+    // Build C (2026-11-04): the run the auto-stop just recorded is a session, so Edit opens ITS row (start / stop / Delete, with the
+    // halved-damage take-back and the 1 HP floor) and Delete removes that session. A run under a second leaves no row; then the
+    // typed-total editor (collapsing) is the fallback.
     function showAutoStoppedNotice(item, sessionMs) {
         const totalMs = Timer.elapsedMs(item, Date.now());
+        const last = (typeof TimerSessions !== 'undefined') ? TimerSessions.latest(item) : null;
+        const run = (last && Math.abs((last.end - last.start) - sessionMs) < 1500) ? last : null;
         TimerView.showAutoStopped(item, { sessionMs, totalMs }, {
             onEdit: () => {
                 // One tick later: this click is still bubbling, and the dismiss handler must not see the new overlay.
                 setTimeout(() => {
+                    if (run) {
+                        TimerView.showSessionEditor(item, { index: run.index, sessionMs }, { changeSession: (id, change) => changeSession(id, change), getBaseHealth: State.getBaseHealth, onChange: () => updateTimerButtons(Date.now()) });
+                        return;
+                    }
                     const now = Date.now();
                     const total = Timer.elapsedMs(item, now);
                     TimerView.showLoggedTimeEditor(item, {
@@ -1759,7 +1767,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 0);
             },
             onKeep: () => {},
-            onDelete: () => { setLoggedTime(item.id, Math.max(0, Timer.elapsedMs(item, Date.now()) - sessionMs), { collapse: true }); },
+            onDelete: () => {
+                if (run) { changeSession(item.id, { type: 'delete', index: run.index }); return; }
+                setLoggedTime(item.id, Math.max(0, Timer.elapsedMs(item, Date.now()) - sessionMs), { collapse: true });
+            },
         });
     }
 
