@@ -4,6 +4,18 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-04 (wording rule) -- "Build Habit" / "Break Habit", never "habit to build / break"; "time logged", never "logged time" (Claude app session; Opus; Jeremy)
+
+- **Rule (Jeremy):** don't use "habit to break" or "habit to build" phrasing anywhere; use "Build Habit" and "Break Habit". Same for "logged time": it should be "time logged". Recorded in CLAUDE.md "Habit wording".
+- **Audit 2026-11-04 (origin/main f4f9d38), player-facing text that does NOT follow it, for Jeremy to review (nothing changed yet):**
+  - js/ui/villageCard.js:59 Boxing gym "What we measure": "Days you had a habit to break due and did not slip..."
+  - js/ui/villageCard.js:80 Boxing gym empty line: "Add a habit to break to start rebuilding."
+  - js/ui/villageCard.js:54 Hospital "What we measure": "...every habit you are building... Habits you are breaking count at the Boxing gym." (same pattern)
+  - js/ui/forms.js:855 field label "Logged time:" (task / habit edit forms, zombie popup); :857-858 screen-reader labels "Logged hours" / "Logged minutes"; :873 / :876 errors "Logged time must be whole hours and minutes." / "Logged time can't be more than 24 hours."
+  - js/ui/popups.js:317 "Pause the timer to edit the logged time."
+  - Related, Jeremy to decide: js/timer.js:132-134 row and timer text "Logged: 45 min" / "Logged: 1 hr 5 min" (and js/ui/checkIn.js:76 turns it into "Timer logged 45 min"); casing: visible text currently says "Break habit" / "Build habit" with a small h in about 8 places (shop Cheat Day hint, How Deadline works x4, Manage Routine, Settings evening check, Hospital card).
+- **Not counted:** code comments, CSS class names, function names and test names that say "logged time" / "logged-time" (internal; renaming them risks breaking wiring for no player benefit).
+
 ## 2026-11-04 (shop counts) -- The Shop shows how many of each item you have: a ×N badge on owned cards + a "You have" row (Claude app session; Opus; Jeremy)
 
 - **Jeremy's ask:** the shop needs to show how many of an item the user has. It already did, as a small grey "Held: N" line on every card, which was easy to miss (and in phone landscape only three cards fit).
