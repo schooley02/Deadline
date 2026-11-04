@@ -555,13 +555,15 @@ const Forms = (() => {
                 </div>`;
     }
 
-    function createHabitFormHtml(now = new Date()) {
+    // opts.isNegative (2026-11-04): open with Break Habit already picked (the Boxing gym card's "Break Habit" link).
+    function createHabitFormHtml(now = new Date(), opts) {
         const win = computeDefaultWindow(now);
+        const startNegative = !!(opts && opts.isNegative);
         return `
             <h3>Add New Habit</h3>
             <div class="form-row">
                 <label>Habit Type:</label>
-                ${habitTypeToggleHtml({ name: 'modalHabitType', positiveId: 'modalPositiveHabit', negativeId: 'modalNegativeHabit', isNegative: false })}
+                ${habitTypeToggleHtml({ name: 'modalHabitType', positiveId: 'modalPositiveHabit', negativeId: 'modalNegativeHabit', isNegative: startNegative })}
             </div>
             <div class="form-row">
                 <label for="modalHabitName">Habit Name:</label>
@@ -625,7 +627,9 @@ const Forms = (() => {
 
     // deps: see attachModalEventListeners below — showFormModal just
     // threads the same deps object through to it.
-    function showFormModal(formType, deps) {
+    // opts (habit only): { isNegative } opens the Add Habit form with Break Habit picked; the wiring below reads the
+    // checked radio when it starts, so the time labels and the goal box match from the first frame.
+    function showFormModal(formType, deps, opts) {
         // Close any existing modals first
         Modal.closeModal();
 
@@ -636,7 +640,7 @@ const Forms = (() => {
                 formHtml = createTaskFormHtml();
                 break;
             case 'habit':
-                formHtml = createHabitFormHtml();
+                formHtml = createHabitFormHtml(new Date(), opts);
                 break;
             case 'routine':
                 formHtml = createRoutineFormHtml();
@@ -852,7 +856,7 @@ const Forms = (() => {
         const total = loggedTimeMinutes(o.ms);
         const dis = o.disabled ? ' disabled' : '';
         return `<div class="form-row logged-time-row" id="${p}Group" data-initial-min="${total}">` +
-            `<label for="${p}Hours">Logged time:</label>` +
+            `<label for="${p}Hours">Time Logged:</label>` +
             `<div class="logged-time-inputs">` +
             `<input type="number" id="${p}Hours" class="logged-time-input" min="0" max="24" step="1" inputmode="numeric" value="${Math.floor(total / 60)}" aria-label="Logged hours"${dis}> <span>hr</span> ` +
             `<input type="number" id="${p}Minutes" class="logged-time-input" min="0" max="59" step="1" inputmode="numeric" value="${total % 60}" aria-label="Logged minutes"${dis}> <span>min</span>` +
@@ -870,10 +874,10 @@ const Forms = (() => {
         if (!group || !hEl || !mEl) return { absent: true };
         const h = hEl.value.trim() === '' ? 0 : Number(hEl.value);
         const m = mEl.value.trim() === '' ? 0 : Number(mEl.value);
-        if (!Number.isInteger(h) || !Number.isInteger(m) || h < 0 || m < 0) return { error: 'Logged time must be whole hours and minutes.' };
+        if (!Number.isInteger(h) || !Number.isInteger(m) || h < 0 || m < 0) return { error: 'Time Logged must be whole hours and minutes.' };
         if (m > 59) return { error: 'Minutes must be 0 to 59.' };
         const total = h * 60 + m;
-        if (total > 24 * 60) return { error: 'Logged time can\u2019t be more than 24 hours.' };
+        if (total > 24 * 60) return { error: 'Time Logged can\u2019t be more than 24 hours.' };
         const initial = Number(group.getAttribute('data-initial-min'));
         return { ms: total * 60000, changed: total !== initial };
     }

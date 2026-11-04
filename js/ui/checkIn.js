@@ -73,7 +73,7 @@ const CheckIn = (() => {
 
     function timerHintHtml(item) {
         if (typeof Timer === 'undefined' || !Timer.hasLogged(item)) return '';
-        return `<p class="check-in-hint">${escapeHtml(Timer.loggedText(item).replace(/^Logged:\s*/, 'Timer logged '))}</p>`;
+        return `<p class="check-in-hint">${escapeHtml(Timer.loggedText(item))}</p>`;
     }
 
     function buildCardHtml(habitDef) {

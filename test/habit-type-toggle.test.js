@@ -99,3 +99,21 @@ describe('css/modal.css habit-type picker', () => {
         expect(css).toMatch(/input\[type="radio"\]:focus-visible \+ \.habit-type-label/);
     });
 });
+
+
+describe('Add Habit can open with Break Habit picked (2026-11-04, the Boxing gym card link)', () => {
+    test('createHabitFormHtml defaults to Build Habit; { isNegative: true } checks Break Habit instead', () => {
+        document.body.innerHTML = Forms.createHabitFormHtml(new Date(2026, 10, 4, 10, 0));
+        expect(document.getElementById('modalPositiveHabit').checked).toBe(true);
+        expect(document.getElementById('modalNegativeHabit').checked).toBe(false);
+        document.body.innerHTML = Forms.createHabitFormHtml(new Date(2026, 10, 4, 10, 0), { isNegative: true });
+        expect(document.getElementById('modalPositiveHabit').checked).toBe(false);
+        expect(document.getElementById('modalNegativeHabit').checked).toBe(true);
+    });
+
+    test('showFormModal passes the option through to the habit form', () => {
+        const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'ui', 'forms.js'), 'utf8');
+        expect(src).toContain('function showFormModal(formType, deps, opts)');
+        expect(src).toContain('formHtml = createHabitFormHtml(new Date(), opts);');
+    });
+});

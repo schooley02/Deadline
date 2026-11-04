@@ -132,3 +132,48 @@ describe('Edit Task modal: Logged time field', () => {
         expect(err.textContent).toMatch(/Minutes must be 0 to 59/);
     });
 });
+
+
+// 2026-11-04 (Jeremy): "Time Logged" wording, and in the Edit Task form the running-timer note's "Time Logged" words
+// are a text link that opens the task's card (the popup), where the timer can be paused and the time edited.
+describe('Time Logged wording + the Edit Task note link', () => {
+    const running = () => ({ startedAt: Date.now(), checkedAt: Date.now(), promptedAt: null });
+
+    test('the field label says "Time Logged:"', () => {
+        Popups.showEditTaskModal(task(), deps());
+        expect(document.querySelector('label[for="editLoggedHours"]').textContent).toBe('Time Logged:');
+    });
+
+    test('Edit Task with a running timer: the note links "Time Logged"; a tap closes the form and opens the card', () => {
+        jest.useFakeTimers();
+        const t = task({ timer: running() });
+        const d = deps({ activeItems: [t] });
+        Popups.showEditTaskModal(t, d);
+        const note = document.getElementById('editLoggedNote');
+        expect(note.textContent).toBe('Pause the timer to edit the Time Logged.');
+        const link = document.getElementById('editLoggedOpenCard');
+        expect(link.tagName).toBe('BUTTON');
+        const outside = jest.fn();
+        document.addEventListener('click', outside);
+        link.click();
+        document.removeEventListener('click', outside);
+        expect(outside).not.toHaveBeenCalled();
+        expect(document.getElementById('saveTaskChanges')).toBeNull(); // the form is gone
+        jest.runAllTimers();
+        expect(document.getElementById('popupLoggedHours')).not.toBeNull(); // the task's card is open
+        jest.useRealTimers();
+    });
+
+    test('the card itself keeps the plain note (it already holds the field)', () => {
+        Popups.showTaskDetailsPopup(task({ timer: running() }), deps());
+        const note = document.getElementById('popupLoggedNote');
+        expect(note.textContent).toBe('Pause the timer to edit the Time Logged.');
+        expect(note.querySelector('button')).toBeNull();
+    });
+
+    test('no running timer: no note and no link', () => {
+        Popups.showEditTaskModal(task(), deps());
+        expect(document.getElementById('editLoggedNote')).toBeNull();
+        expect(document.getElementById('editLoggedOpenCard')).toBeNull();
+    });
+});

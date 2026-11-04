@@ -84,7 +84,7 @@ describe('buildModel', () => {
 
     test('empty states: gym with no bad habit, school with no routine (only when explicitly false)', () => {
         expect(VillageCard.buildModel({ kind: 'lurkers', progress: progress(0, 'lurkers'), hasBadHabit: false }).empty)
-            .toBe('Add a habit to break to start rebuilding.');
+            .toBe('Add a Break Habit to start rebuilding.');
         expect(VillageCard.buildModel({ kind: 'heroes', progress: progress(0, 'heroes'), hasRoutine: false }).empty)
             .toBe('Start a routine to open the school.');
         expect(VillageCard.buildModel({ kind: 'lurkers', progress: progress(0, 'lurkers'), hasBadHabit: true }).empty).toBeNull();
@@ -181,6 +181,47 @@ describe('open', () => {
         expect(document.querySelectorAll('.village-card-overlay')).toHaveLength(1);
         document.querySelector('[data-action="close"]').click();
         expect(document.querySelectorAll('.village-card-overlay')).toHaveLength(0);
+    });
+
+    // 2026-11-04 (Jeremy): the Boxing gym's empty line reads "Add a Break Habit to start rebuilding." and its
+    // "Break Habit" words are a text-link button that closes the card and opens Add Habit with Break Habit picked.
+    test('Boxing gym empty line: "Break Habit" is a link that closes the card and calls onAddBreakHabit', () => {
+        const onAddBreakHabit = jest.fn();
+        VillageCard.open({ kind: 'lurkers', progress: progress(0, 'lurkers'), hasBadHabit: false, onAddBreakHabit });
+        const empty = document.querySelector('.vc-empty');
+        expect(empty.textContent).toBe('Add a Break Habit to start rebuilding.');
+        const link = empty.querySelector('button.vc-text-link[data-action="add-break-habit"]');
+        expect(link).not.toBeNull();
+        expect(link.textContent).toBe('Break Habit');
+        const outside = jest.fn();
+        document.addEventListener('click', outside);
+        link.click();
+        document.removeEventListener('click', outside);
+        expect(onAddBreakHabit).toHaveBeenCalledTimes(1);
+        expect(document.querySelectorAll('.village-card-overlay')).toHaveLength(0);
+        expect(outside).not.toHaveBeenCalled(); // stopped, so Modal's outside-click dismiss never sees it
+    });
+
+    test('without a handler the empty line stays plain text (no dead link)', () => {
+        VillageCard.open({ kind: 'lurkers', progress: progress(0, 'lurkers'), hasBadHabit: false });
+        const empty = document.querySelector('.vc-empty');
+        expect(empty.textContent).toBe('Add a Break Habit to start rebuilding.');
+        expect(empty.querySelector('button')).toBeNull();
+    });
+
+    test('a gym that already has a Break Habit shows no empty line and no link', () => {
+        VillageCard.open({ kind: 'lurkers', progress: progress(2, 'lurkers'), hasBadHabit: true, onAddBreakHabit: jest.fn() });
+        expect(document.querySelector('.vc-empty')).toBeNull();
+        expect(document.querySelector('.vc-text-link')).toBeNull();
+    });
+});
+
+describe('wording (2026-11-04): Build Habit / Break Habit, never "habit to build / break"', () => {
+    test('Boxing gym and Hospital "What we measure" lines', () => {
+        const gym = VillageCard.buildModel({ kind: 'lurkers', progress: progress(0, 'lurkers') }).measures;
+        expect(gym).toBe('Days you had a Break Habit due and did not slip. Days with nothing to resist do not count.');
+        const hosp = VillageCard.buildModel({ kind: 'habits', progress: progress(0, 'habits') }).measures;
+        expect(hosp.startsWith('Build Habits done:')).toBe(true);
     });
 });
 

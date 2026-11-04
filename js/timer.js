@@ -124,14 +124,14 @@ const Timer = (() => {
     function hasLogged(item) {
         return !!item && typeof item.timerMsBanked === 'number' && item.timerMsBanked > 0;
     }
-    // "Logged: 45 min" / "Logged: 1 hr 5 min" for a completed row; '' when nothing was logged. Under a minute rounds up
+    // "Time Logged: 45 min" / "Time Logged: 1 hr 5 min" (wording 2026-11-04, Jeremy; was "Logged: ...") for a completed row; '' when nothing was logged. Under a minute rounds up
     // to "1 min" so a short real session is not hidden.
     function loggedText(item) {
         if (!hasLogged(item)) return '';
         const m = Math.max(1, Math.round(item.timerMsBanked / 60000));
-        if (m < 60) return `Logged: ${m} min`;
+        if (m < 60) return `Time Logged: ${m} min`;
         const h = Math.floor(m / 60), r = m % 60;
-        return r ? `Logged: ${h} hr ${r} min` : `Logged: ${h} hr`;
+        return r ? `Time Logged: ${h} hr ${r} min` : `Time Logged: ${h} hr`;
     }
     function buttonHtml(item, nowMs) {
         if (isLimit(item)) return ICON_SVG + limitReadoutHtml(item, nowMs);

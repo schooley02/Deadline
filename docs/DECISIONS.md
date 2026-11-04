@@ -15,6 +15,17 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
   - js/ui/popups.js:317 "Pause the timer to edit the logged time."
   - Related, Jeremy to decide: js/timer.js:132-134 row and timer text "Logged: 45 min" / "Logged: 1 hr 5 min" (and js/ui/checkIn.js:76 turns it into "Timer logged 45 min"); casing: visible text currently says "Break habit" / "Build habit" with a small h in about 8 places (shop Cheat Day hint, How Deadline works x4, Manage Routine, Settings evening check, Hospital card).
 - **Not counted:** code comments, CSS class names, function names and test names that say "logged time" / "logged-time" (internal; renaming them risks breaking wiring for no player benefit).
+- **Jeremy's review (same day) and what was BUILT (sw v245):**
+  1. Boxing gym "What we measure" -> "Days you had a Break Habit due and did not slip. Days with nothing to resist do not count."
+  2. Boxing gym empty line -> "Add a Break Habit to start rebuilding." with **"Break Habit" a text-link button** (`.vc-text-link`, `data-action="add-break-habit"`) that closes the card and opens the Add Habit form with Break Habit already picked (script.js `openAddHabitForm({ isNegative: true })` -> `Forms.showFormModal('habit', deps, { isNegative: true })` -> `createHabitFormHtml(now, opts)`; the type wiring reads the checked radio on start, so "Daily limit" / Tempting Time / no Custom times show from the first frame). The link only renders when the card gets the `onAddBreakHabit` handler (`VillageCard.EMPTY_LINKS`), so no dead link.
+  3. Hospital "habit you are building / Habits you are breaking": LEFT AS IS (only "Build habits done" -> "Build Habits done" for the capital H). Allowlisted in the guard test.
+  4. Field label "Logged time:" -> "Time Logged:" (task / habit edit forms, the task card, the timer's "how much time" editor).
+  5. Errors -> "Time Logged must be whole hours and minutes." / "Time Logged can't be more than 24 hours."
+  6. "Pause the timer to edit the Time Logged." In the **Edit Task form** "Time Logged" is a text-link button (`#editLoggedOpenCard`, `.text-link-btn`) that closes the form and opens that task's card (the zombie popup, `Popups.handleEnemyClick`), where the timer can be paused and the field edited (stopPropagation + deferred open, the shop-buy trap). **My call:** the card itself keeps the plain note, because it already holds the field and a link would just reopen it.
+  7. Screen-reader labels "Logged hours" / "Logged minutes": LEFT AS IS.
+  - "Logged: 45 min" -> **"Time Logged: 45 min"** (Completed rows, `Timer.loggedText`); the check-in hint that turned it into "Timer logged 45 min" now shows the same "Time Logged: 45 min".
+  - Capital H everywhere visible: Shop Cheat Day hint, How Deadline works (4 lines), Manage Routine's type word, Settings evening check line, Hospital card.
+  - Guard: NEW `test/wording-rule.test.js` (fails on any banned phrase in js/ + script.js + index.html with comments stripped; 4 deliberate re-breaks each failed it).
 
 ## 2026-11-04 (shop counts) -- The Shop shows how many of each item you have: a ×N badge on owned cards + a "You have" row (Claude app session; Opus; Jeremy)
 

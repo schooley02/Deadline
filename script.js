@@ -89,6 +89,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return VillageLayout.resolveTier(window.location.search, param, real, VillageLayout.fromConfig(CONFIG).tiers);
         };
     }
+    // The Add Habit form, same as the Habits window's "+ Add New Habit" (2026-11-04: also opened from the Boxing gym
+    // card's "Break Habit" link with { isNegative: true }). Closes the Habits window first if it happens to be open.
+    function openAddHabitForm(opts) {
+        ManagementWindows.closeManagementWindow('habitsWindow', { managementWindows });
+        Forms.showFormModal('habit', formsDeps(), opts);
+    }
+
     function openVillageCard(hit) {
         const ctx = villageContext();
         const progress = VillageProgress.compute(ctx);
@@ -98,6 +105,8 @@ document.addEventListener('DOMContentLoaded', () => {
             extras: VillageProgress.extras(ctx),
             hasBadHabit: (State.getDefinedHabits() || []).some(h => h && !h.archivedAt && h.isNegative),
             hasRoutine: (State.getDefinedRoutines() || []).length > 0,
+            // Boxing gym empty line (2026-11-04): its "Break Habit" words open Add Habit with Break Habit picked.
+            onAddBreakHabit: () => openAddHabitForm({ isNegative: true }),
             // Clock tower "Your reward" (pushback charges, Build C): the free allowance at this star + what the next adds.
             reward: hit.kind === 'punctuality' && progress.punctuality
                 ? Object.assign(PushbackHelp.rewardModel({ star: progress.punctuality.tier, table: CONFIG.PUSHBACK_ALLOWANCE }),

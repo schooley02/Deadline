@@ -42,7 +42,7 @@ const HowItWorks = (() => {
             id: 'points',
             title: 'Points',
             list: PointsInfo.rulesLines(config),
-            what: ['Slipping on a Break habit costs points and is the only thing that can take you below zero. Debt never hurts your base and has no deadline. It just keeps slips costly.'],
+            what: ['Slipping on a Break Habit costs points and is the only thing that can take you below zero. Debt never hurts your base and has no deadline. It just keeps slips costly.'],
         };
     }
 
@@ -65,7 +65,7 @@ const HowItWorks = (() => {
             id: 'streaks',
             title: 'Streaks',
             what: [
-                `A streak is how many days in a row you've done a habit. At ${config.HABIT_STREAK_BONUS_THRESHOLD} days its zombie catches fire, and at ${config.HABIT_STREAK_STRONG_THRESHOLD} it blazes. A miss resets it. Break habits keep their streak while you're away.`,
+                `A streak is how many days in a row you've done a habit. At ${config.HABIT_STREAK_BONUS_THRESHOLD} days its zombie catches fire, and at ${config.HABIT_STREAK_STRONG_THRESHOLD} it blazes. A miss resets it. Break Habits keep their streak while you're away.`,
                 `Streaks don't pay points. The bonus comes from your record over the last ${w} times, so one slip doesn't erase what you've built.`,
             ],
             why: `The fire is a nudge to keep the chain going. ${w} repetitions is the commonly cited figure for forming a habit, so the points bonus follows that window and the streak is the day-to-day motivator.`,
@@ -101,11 +101,11 @@ const HowItWorks = (() => {
         switch (familyId) {
             case 'survivor': return 'Nights survived in your best run.';
             case 'task_slayer': return 'Tasks completed.';
-            case 'habit_hero': return 'Habits completed. Resisting a Break habit counts.';
+            case 'habit_hero': return 'Habits completed. Resisting a Break Habit counts.';
             case 'on_fire': return 'Your best habit streak, in days.';
             case 'honor_roll': return `Every day one of your heroes ends on the honor roll (${config.HERO_HONOR_ROLL_STARS} stars or better) counts.`;
             case 'clean_sweep': return 'Every day you finish with something due and nothing missed counts.';
-            case 'iron_will': return 'Every time you resist a Break habit counts.';
+            case 'iron_will': return 'Every time you resist a Break Habit counts.';
             case 'back_in_black': return 'Dig out of debt: slip into negative points, then earn your way back to zero or above.';
             default: return '';
         }

@@ -51,12 +51,12 @@ const VillageCard = (() => {
         },
         habits: {
             name: 'Hospital', unit: 'habits built',
-            measures: 'Build habits done: every habit you are building, checked off in its window. Habits you are breaking count at the Boxing gym.',
+            measures: 'Build Habits done: every habit you are building, checked off in its window. Habits you are breaking count at the Boxing gym.',
             why: 'Habits grow through repetition. Every check-in is one more rep, and a long unbroken run of reps is how a habit starts to feel automatic instead of like effort.',
         },
         lurkers: {
             name: 'Boxing gym', unit: 'clean days',
-            measures: 'Days you had a habit to break due and did not slip. Days with nothing to resist do not count.',
+            measures: 'Days you had a Break Habit due and did not slip. Days with nothing to resist do not count.',
             why: 'Resisting something you are trying to quit is a skill that gets stronger with practice. Counting clean days shows how often you win the fight, not how rarely you lose it.',
         },
         defense: {
@@ -76,8 +76,14 @@ const VillageCard = (() => {
         },
     };
 
+    // The words in an empty line that become a text-link button when the card is given a handler for it (2026-11-04,
+    // Jeremy): the Boxing gym's "Break Habit" opens the Add Habit form with Break Habit picked.
+    const EMPTY_LINKS = {
+        lurkers: { text: 'Break Habit', action: 'add-break-habit', handler: 'onAddBreakHabit' },
+    };
+
     const EMPTY_TEXT = {
-        lurkers: 'Add a habit to break to start rebuilding.',
+        lurkers: 'Add a Break Habit to start rebuilding.',
         heroes: 'Start a routine to open the school.',
     };
 
@@ -134,6 +140,8 @@ const VillageCard = (() => {
 
         let empty = null;
         if (c.kind === 'lurkers' && c.hasBadHabit === false) empty = EMPTY_TEXT.lurkers;
+        const link = empty && EMPTY_LINKS[c.kind];
+        const emptyLink = (link && typeof c[link.handler] === 'function') ? { text: link.text, action: link.action } : null;
         if (c.kind === 'heroes' && c.hasRoutine === false) empty = EMPTY_TEXT.heroes;
 
         return {
@@ -159,6 +167,7 @@ const VillageCard = (() => {
             lines,
             reportRows: (c.kind === 'heroes' && Array.isArray(c.reportRows)) ? c.reportRows : [],
             empty,
+            emptyLink,
             spriteUrl: c.spriteUrl || null,
             spriteW: count(c.spriteW),
             spriteH: count(c.spriteH),
@@ -197,7 +206,15 @@ const VillageCard = (() => {
         const nextItemHtml = m.nextItem
             ? `<p class="vc-next-item"><span class="vc-next-item-label">Next item</span> Star ${m.nextItem.star}: ${esc(m.nextItem.label)}</p>`
             : (m.maxed ? '<p class="vc-next-item vc-next-item--done">All item rewards earned.</p>' : '');
-        const emptyHtml = m.empty ? `<p class="vc-empty">${esc(m.empty)}</p>` : '';
+        // An empty line's link words become a button (data-action, handled in open()); the rest stays escaped text.
+        let emptyInner = m.empty ? esc(m.empty) : '';
+        if (m.empty && m.emptyLink && m.empty.indexOf(m.emptyLink.text) >= 0) {
+            const at = m.empty.indexOf(m.emptyLink.text);
+            emptyInner = esc(m.empty.slice(0, at)) +
+                `<button type="button" class="vc-text-link" data-action="${esc(m.emptyLink.action)}">${esc(m.emptyLink.text)}</button>` +
+                esc(m.empty.slice(at + m.emptyLink.text.length));
+        }
+        const emptyHtml = m.empty ? `<p class="vc-empty">${emptyInner}</p>` : '';
         const linesHtml = m.lines.map(l => `<p class="vc-line">${esc(l)}</p>`).join('');
         // High school report card (HeroesView loads before this module; tests without it simply skip the card).
         const reportHtml = (m.reportRows && m.reportRows.length && typeof HeroesView !== 'undefined' && HeroesView.reportCardHtml)
@@ -243,10 +260,17 @@ const VillageCard = (() => {
             if (!btn) return;
             e.stopPropagation();
             if (btn.dataset.action === 'close') overlay.remove();
+            // "Break Habit" link on the Boxing gym's empty line: close the card, then open the Add Habit form with
+            // Break Habit picked (script.js openAddHabitForm). The click is already stopped above, so Modal's
+            // outside-click dismiss can't close the new form.
+            if (btn.dataset.action === 'add-break-habit' && typeof ctx.onAddBreakHabit === 'function') {
+                overlay.remove();
+                ctx.onAddBreakHabit();
+            }
         });
     }
 
-    return { KINDS, MAX_TIER, EMPTY_TEXT, pipsFor, starsHtml, spriteScale, buildModel, cardHtml, open };
+    return { KINDS, MAX_TIER, EMPTY_TEXT, EMPTY_LINKS, pipsFor, starsHtml, spriteScale, buildModel, cardHtml, open };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

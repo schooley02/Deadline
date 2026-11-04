@@ -391,10 +391,10 @@ describe('logged time text (Build 2b)', () => {
     test('loggedText: empty when nothing logged, minutes, hours', () => {
         expect(Timer.loggedText({ timerMsBanked: 0 })).toBe('');
         expect(Timer.loggedText({})).toBe('');
-        expect(Timer.loggedText({ timerMsBanked: 20000 })).toBe('Logged: 1 min');
-        expect(Timer.loggedText({ timerMsBanked: 45 * MIN })).toBe('Logged: 45 min');
-        expect(Timer.loggedText({ timerMsBanked: 60 * MIN })).toBe('Logged: 1 hr');
-        expect(Timer.loggedText({ timerMsBanked: 65 * MIN })).toBe('Logged: 1 hr 5 min');
+        expect(Timer.loggedText({ timerMsBanked: 20000 })).toBe('Time Logged: 1 min');
+        expect(Timer.loggedText({ timerMsBanked: 45 * MIN })).toBe('Time Logged: 45 min');
+        expect(Timer.loggedText({ timerMsBanked: 60 * MIN })).toBe('Time Logged: 1 hr');
+        expect(Timer.loggedText({ timerMsBanked: 65 * MIN })).toBe('Time Logged: 1 hr 5 min');
     });
     test('a task with no time logged keeps the bare stopwatch', () => {
         expect(Timer.buttonHtml({ type: 'task', timer: null, timerMsBanked: 0 }, 0)).toBe(Timer.ICON_SVG);

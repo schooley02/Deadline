@@ -69,7 +69,7 @@ describe('showEveningModal: what it shows', () => {
     test('a Time card is prefilled with the logged minutes and shows the timer hint; with none logged it is blank', () => {
         CheckIn.showEveningModal(makeDeps([item(1, 'A', TIME, { timerMsBanked: 18 * 60000 }), item(2, 'B', TIME)]));
         expect(card(1).querySelector('.how-much-input').value).toBe('18');
-        expect(card(1).querySelector('.check-in-hint').textContent).toBe('Timer logged 18 min');
+        expect(card(1).querySelector('.check-in-hint').textContent).toBe('Time Logged: 18 min');
         expect(card(2).querySelector('.how-much-input').value).toBe('');
         expect(card(2).querySelector('.check-in-hint')).toBeNull();
     });
@@ -202,7 +202,7 @@ describe('next-morning check-in card gets the goal line + How much?', () => {
         const calls = open(pendingDef(TIME, 40 * 60000));
         const c = document.querySelector('.check-in-card');
         expect(c.querySelector('.how-much-input').value).toBe('40');
-        expect(c.querySelector('.check-in-hint').textContent).toBe('Timer logged 40 min');
+        expect(c.querySelector('.check-in-hint').textContent).toBe('Time Logged: 40 min');
         c.querySelector('.how-much-input').value = '55';
         c.querySelector('[data-outcome="avoided"]').click();
         expect(calls).toEqual([['d9', 'avoided', { loggedMinutes: 55 }]]);

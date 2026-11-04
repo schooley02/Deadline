@@ -108,7 +108,7 @@ describe('Streaks', () => {
     });
 
     test('Break habits keeping their streak is the documented rule (DECISIONS 2026-10-31, neutral settle)', () => {
-        expect(textOf(topic('streaks'))).toContain('Break habits keep their streak while you');
+        expect(textOf(topic('streaks'))).toContain('Break Habits keep their streak while you');
         expect(read('docs/DECISIONS.md')).toContain('streaks for Break habits survive an absence');
     });
 });
@@ -200,7 +200,7 @@ describe('Achievements', () => {
         const rows = topic('achievements').list.join(' | ');
         expect(rows).toContain(`Honor Roll: Every day one of your heroes ends on the honor roll (${CONFIG.HERO_HONOR_ROLL_STARS} stars or better) counts.`);
         expect(rows).toContain('Clean Sweep: Every day you finish with something due and nothing missed counts.');
-        expect(rows).toContain('Iron Will: Every time you resist a Break habit counts.');
+        expect(rows).toContain('Iron Will: Every time you resist a Break Habit counts.');
         expect(rows).toContain('Back in Black: Dig out of debt');
     });
 

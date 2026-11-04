@@ -63,7 +63,7 @@ const RoutineViews = (() => {
     // Small Build / Break marker for habit rows in the routine windows (2026-11-04, replaces the check / forbidden emoji):
     // the picker's hammer or broken-chain icon at 16px, coloured like the picker (.habit-list-icon, css/modal.css).
     function habitTypeBadgeHtml(isNegative) {
-        const word = isNegative ? 'Break habit' : 'Build habit';
+        const word = isNegative ? 'Break Habit' : 'Build Habit';
         return `<span class="habit-list-icon ${isNegative ? 'negative' : 'positive'}" role="img" aria-label="${word}" title="${word}">${Forms.habitTypeIconHtml(isNegative, 16)}</span>`;
     }
 

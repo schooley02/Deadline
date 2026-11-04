@@ -117,6 +117,9 @@
 /* Specific on purpose: the modal's generic input rules set width: 100% and would stretch these (found live 2026-11-01). */
 .modal-content .logged-time-inputs input.logged-time-input { width: 4.5em; min-width: 0; flex: 0 0 auto; margin: 0; text-align: center; }
 .logged-time-note { margin: 6px 0 0; font-size: 0.85em; opacity: 0.8; }
+/* "Time Logged" text link in the Edit Task form's running-timer note (2026-11-04): opens the task's card. */
+.text-link-btn { display: inline; padding: 0; margin: 0; border: none; background: none; font: inherit; font-weight: 700; color: var(--color-primary-dark-green); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.text-link-btn:hover, .text-link-btn:focus-visible { text-decoration-thickness: 2px; }
 .logged-time-section { margin-top: var(--space-2, 8px); }
 .logged-time-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
 .logged-time-msg { font-size: 0.85em; opacity: 0.85; }

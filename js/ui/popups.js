@@ -314,7 +314,12 @@ const Popups = (() => {
         return typeof deps.setLoggedTime === 'function' && typeof Timer !== 'undefined' && typeof Forms !== 'undefined'
             && (Timer.canTimer(item) || Timer.hasLogged(item));
     }
-    const LOGGED_RUNNING_NOTE = 'Pause the timer to edit the logged time.';
+    const LOGGED_RUNNING_NOTE = 'Pause the timer to edit the Time Logged.';
+    // The Edit Task form's version (2026-11-04, Jeremy): "Time Logged" is a text link that opens this task's card (the
+    // zombie popup), where the timer can be paused and the Time Logged field edited. The card itself keeps the plain
+    // note above, since it already holds the field. Wired in showEditTaskModal.
+    const LOGGED_RUNNING_NOTE_EDIT_HTML = 'Pause the timer to edit the ' +
+        '<button type="button" class="text-link-btn" id="editLoggedOpenCard">Time Logged</button>.';
     function buildLoggedTimeSectionHtml(item, deps) {
         if (!hasLoggedTimeField(item, deps)) return '';
         const running = Timer.isRunning(item);
@@ -706,7 +711,7 @@ const Popups = (() => {
                     ${Forms.startDueTimeGroupHtml({ startId: 'editStartTime', dueId: 'editDueTime', startValue: startTime, dueValue: dueTime })}
                     <p id="editRescheduleNote" class="reschedule-note" aria-live="polite"></p>
                     ${editPushbackHelpHtml(deps)}
-                    ${hasLoggedTimeField(item, deps) ? Forms.loggedTimeHtml({ idPrefix: 'editLogged', ms: item.timerMsBanked, disabled: Timer.isRunning(item), note: Timer.isRunning(item) ? LOGGED_RUNNING_NOTE : '' }) : ''}
+                    ${hasLoggedTimeField(item, deps) ? Forms.loggedTimeHtml({ idPrefix: 'editLogged', ms: item.timerMsBanked, disabled: Timer.isRunning(item), note: Timer.isRunning(item) ? LOGGED_RUNNING_NOTE_EDIT_HTML : '' }) : ''}
                     <div class="modal-buttons">
                         <button id="saveTaskChanges" class="primary-button">Save Changes</button>
                         <button class="secondary-button" onclick="closeModal()">Cancel</button>
@@ -717,6 +722,18 @@ const Popups = (() => {
 
         Modal.open(modalHtml);
         if (showAnytimeRow) Forms.applyAnytimeToggle('editTaskAnytime');
+
+        // "Time Logged" link in the running-timer note: close this form and open the task's card. stopPropagation +
+        // a deferred open, so Modal's outside-click dismiss never sees the click (its target is detached by the close).
+        const openCardLink = document.getElementById('editLoggedOpenCard');
+        if (openCardLink) {
+            openCardLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                Modal.closeModal();
+                setTimeout(() => handleEnemyClick(item.id, deps), 0);
+            });
+        }
         if (typeof PushbackHelp !== 'undefined') PushbackHelp.wireHint(document.getElementById('editRescheduleNote') ? document.getElementById('editRescheduleNote').parentElement : document);
 
         // Pushback charges (Build B): moving the due time LATER while the zombie is close uses a

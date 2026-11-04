@@ -718,7 +718,7 @@ describe('AgendaList.renderCompletedItems — Break habit answers (Habit Goals B
     test('logged time shows on a Slipped entry, and its edit opens the habit editor with the logged time', () => {
         const deps = render([entry({ outcome: 'indulged', timerMinutes: 60, timerMsBanked: 75 * 60000 })]);
         const li = completedItemsList.children[0];
-        expect(walk(li).some(e => e.textContent === 'Logged: 1 hr 15 min')).toBe(true);
+        expect(walk(li).some(e => e.textContent === 'Time Logged: 1 hr 15 min')).toBe(true);
         findByClass(li, 'edit-icon-btn')[0].fire('click');
         expect(deps.showEditHabitInstanceModal).toHaveBeenCalledWith(
             expect.objectContaining({ id: 'b1' }),

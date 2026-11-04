@@ -97,7 +97,7 @@ const SettingsView = (() => {
             </div>
             <div class="settings-section settings-evening-section">
                 <h4>Evening Check</h4>
-                <p class="settings-section-hint">Each evening the game asks about every Break habit you haven't answered yet today. It only shows while the game is open; tomorrow morning's check-in still catches anything you miss.</p>
+                <p class="settings-section-hint">Each evening the game asks about every Break Habit you haven't answered yet today. It only shows while the game is open; tomorrow morning's check-in still catches anything you miss.</p>
                 <label class="settings-time-row">
                     <span class="settings-radio-label">Ask me at</span>
                     <input type="time" id="eveningCheckTime" class="settings-time-input" value="${deps.currentEveningTime || '21:00'}" required>

@@ -72,3 +72,7 @@
     .vc-body { grid-template-columns: minmax(0, 1fr); }
     .vc-art { justify-self: center; }
 }
+
+/* Text-link button inside a card's empty line (2026-11-04): the Boxing gym's "Break Habit" opens Add Habit. */
+.vc-text-link { display: inline; padding: 0; margin: 0; border: none; background: none; font: inherit; font-weight: 700; color: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.vc-text-link:hover, .vc-text-link:focus-visible { text-decoration-thickness: 2px; }
