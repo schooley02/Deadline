@@ -8,7 +8,7 @@ const path = require('path');
 const CONFIG = require('../js/config.js');
 const RunClimate = require('../js/runClimate.js');
 
-const read = rel => fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
+const read = rel => fs.readFileSync(path.join(__dirname, '..', rel), 'utf8').replace(/\r\n/g, '\n'); // script.js is CRLF on Jeremy's Windows checkout; the multi-line checks below expect \n (2026-11-04)
 const html = read('index.html');
 const sw = read('sw.js');
 const css = read('css/climate.css');
