@@ -46,6 +46,7 @@
     <link rel="stylesheet" href="css/villageCard.css">
     <link rel="stylesheet" href="css/villagePanel.css">
     <link rel="stylesheet" href="css/howItWorks.css">
+    <link rel="stylesheet" href="css/climate.css">
     <link rel="stylesheet" href="css/glanceStrip.css">
     <link rel="stylesheet" href="css/responsive.css">
 </head>
@@ -112,11 +113,21 @@
                     <div class="scene-layer scene-clouds">
                         <div class="scene-clouds-drift"></div>
                     </div>
+                    <!-- Run climate (2026-11-03, css/climate.css): extra sky-cloud layers, hidden until a weather band
+                         (a climate-* class on #gameCanvas, set by js/ui/climateView.js) switches some on. Each one carries
+                         .scene-clouds-drift so the time slider scrubs it like the base layer. Decorative. -->
+                    <div class="scene-layer scene-clouds scene-clouds-extra scene-clouds-x1"><div class="scene-clouds-drift"></div></div>
+                    <div class="scene-layer scene-clouds scene-clouds-extra scene-clouds-x2"><div class="scene-clouds-drift"></div></div>
+                    <div class="scene-layer scene-clouds scene-clouds-extra scene-clouds-x3"><div class="scene-clouds-drift"></div></div>
+                    <div class="scene-layer scene-clouds scene-clouds-extra scene-clouds-x4"><div class="scene-clouds-drift"></div></div>
+                    <div class="scene-layer scene-clouds scene-clouds-extra scene-clouds-x5"><div class="scene-clouds-drift"></div></div>
                     <div class="scene-layer scene-silhouettes">
                         <svg class="scene-svg" viewBox="0 0 800 160" preserveAspectRatio="none" focusable="false">
                             <path class="scene-hill" d="M0,160 L0,112 Q90,86 190,108 Q300,78 410,104 Q540,66 650,100 Q730,84 800,102 L800,160 Z"/>
                         </svg>
                     </div>
+                    <!-- Run climate far haze: a veil over the sky, clouds and hills (z -2, later in the DOM than both), under the ground. -->
+                    <div class="scene-layer climate-haze-far"></div>
                     <div class="scene-layer scene-ground"></div>
                 </div>
                 <!-- Achievement village (V7 W2 first slice, 2026-10-29; docs/ART_STYLE.md "Achievement village art"):
@@ -128,8 +139,14 @@
                      Lives OUTSIDE the aria-hidden scene so screen readers get the count
                      (aria-label set by js/ui/nightsSurvivedView.js). -->
                 <div id="nightsSurvived" class="nights-survived" role="img" aria-label="0 nights survived">
-                    <div class="nights-moon" aria-hidden="true"><span id="nightsSurvivedCount" class="nights-count nights-count--d2">0</span></div>
-                    <div class="nights-label" aria-hidden="true">Nights Survived</div>
+                    <div class="nights-moon" aria-hidden="true"></div>
+                </div>
+                <!-- The count + label (2026-11-03, run climate): on their own layer ABOVE the weather (z 89) so no cloud, haze
+                     or rain ever hides the number; same box as the moon above, so it still sits on the disc. Ids unchanged:
+                     js/ui/nightsSurvivedView.js still finds #nightsSurvivedCount. -->
+                <div id="nightsSurvivedUi" class="nights-ui" aria-hidden="true">
+                    <div class="nights-ui-box"><span id="nightsSurvivedCount" class="nights-count nights-count--d2">0</span></div>
+                    <div class="nights-label">Nights Survived</div>
                 </div>
                 <!-- Run graves (V7 W0, 2026-10-28; docs/WORLD_FEEDBACK_PLAN.md): past-run markers on the
                      ZOMBIE lanes, newest next to the hill. This wrapper has NO z-index (no stacking
@@ -156,6 +173,9 @@
                 <div id="baseScrim"></div>
                 <div id="heroSpotlight" class="hero-spotlight"></div>
                 <div id="midnightLine" style="display: none;"></div>
+                <!-- Run climate near haze (2026-11-03, css/climate.css): a very light film over everything up to the zombies
+                     (z 88, under the Nights Survived number at 89). pointer-events none: every tap passes through. Decorative. -->
+                <div id="climateNear" class="climate-near" aria-hidden="true"></div>
             </div>
             
             <!-- Level Up and Game Over Messages -->
@@ -440,6 +460,8 @@
     <!-- js/villageDrops.js (2026-11-03): pure village tier DROPS (the fixed item each building pays at star 2-5, once per star per run,
          CONFIG.VILLAGE_TIER_DROPS); zero module dependencies. Paid from script.js payVillageDrops; shown on the building card. -->
     <script src="js/villageDrops.js"></script>
+    <!-- js/runClimate.js (2026-11-03): pure run climate (the sky's weather from the last ~7 closed days of this run); zero module dependencies. -->
+    <script src="js/runClimate.js"></script>
     <script src="js/achievements.js"></script>
     <script src="js/schedule.js"></script>
     <script src="js/dayRollover.js"></script>
@@ -500,6 +522,8 @@
     <script src="js/ui/nightsSurvivedView.js"></script>
     <script src="js/ui/graveyardView.js"></script>
     <script src="js/ui/villageView.js"></script>
+    <!-- js/ui/climateView.js (2026-11-03): puts the run climate band on #gameCanvas as a class (css/climate.css does the looks). -->
+    <script src="js/ui/climateView.js"></script>
     <script src="js/ui/villageCard.js"></script>
     <script src="js/ui/villagePanel.js"></script>
     <script src="js/ui/hudButtons.js"></script>

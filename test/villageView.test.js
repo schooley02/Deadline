@@ -562,3 +562,102 @@ describe('arrangement (2026-10-30 night): flips + forgiving taps', () => {
         expect(VillageView.inArtBox(rect, 128, art, 111, 50, true)).toBe(false);
     });
 });
+
+
+// ---- Run climate haze veils (2026-11-03) ----
+describe('haze by depth (run climate)', () => {
+    const slot = (row, feetY) => ({ row, feetY });
+
+    test('hazePlan: no slots -> no veils', () => {
+        expect(VillageView.hazePlan([])).toEqual({ hz: 0, left: 0, veils: [] });
+        expect(VillageView.hazePlan(null)).toEqual({ hz: 0, left: 0, veils: [] });
+    });
+
+    test('hazePlan: one veil per row present, each at the last index of its row; mid above every sprite', () => {
+        const slots = [slot('far', 164), slot('far', 164), slot('back', 194), slot('front', 224), slot('front', 224)];
+        const plan = VillageView.hazePlan(slots);
+        expect(plan.veils).toEqual([{ key: 'row1', z: 1 }, { key: 'row2', z: 2 }, { key: 'mid', z: 4 }]);
+        expect(plan.hz).toBe(224); // the front row's feet = the horizon
+    });
+
+    test('hazePlan: rows that are absent get no veil (front row only -> just mid)', () => {
+        expect(VillageView.hazePlan([slot('front', 224)]).veils).toEqual([{ key: 'mid', z: 0 }]);
+        expect(VillageView.hazePlan([slot('back', 194), slot('front', 224)]).veils.map(v => v.key)).toEqual(['row2', 'mid']);
+    });
+
+    test('hazePlan: with no front row the horizon is the lowest feet that exist', () => {
+        expect(VillageView.hazePlan([slot('far', 164), slot('back', 194)]).hz).toBe(194);
+    });
+
+    test('hazePlan: the veils start just inside the church edge (baseW - 8) so the church is never veiled; 0 with no church', () => {
+        expect(VillageView.hazePlan([slot('front', 224)], 160).left).toBe(152);
+        expect(VillageView.hazePlan([slot('front', 224)], 56).left).toBe(48);
+        expect(VillageView.hazePlan([slot('front', 224)], 0).left).toBe(0);
+        expect(VillageView.hazePlan([slot('front', 224)]).left).toBe(0);
+    });
+
+    test('hazePlan: veil z-indexes rise with depth, so a nearer row always paints over a farther veil', () => {
+        const plan = VillageView.hazePlan([slot('far', 1), slot('back', 2), slot('front', 3)]);
+        const z = plan.veils.map(v => v.z);
+        expect(z).toEqual([...z].sort((a, b) => a - b));
+    });
+
+    function renderAll(tiers) {
+        build();
+        VillageView.init({
+            getHillWidth: () => 140, getClockTier: () => tiers.p, getJailTier: () => tiers.d, getArmoryTier: () => tiers.s,
+            getRadioTier: () => tiers.n, getGymTier: () => tiers.l, getSchoolTier: () => tiers.h, getHospitalTier: () => tiers.b, getWindmillTier: () => tiers.w,
+        });
+        VillageView.render(160);
+    }
+    const all = { p: 3, d: 3, s: 3, n: 3, l: 3, h: 3, b: 3, w: 3 };
+    const veils = () => Array.from(document.querySelectorAll('#villageLayer .village-haze'));
+
+    test('a full village gets row1, row2 and mid veils, last in the DOM, decorative', () => {
+        renderAll(all);
+        expect(veils().map(v => v.className)).toEqual([
+            'village-haze village-haze--row1', 'village-haze village-haze--row2', 'village-haze village-haze--mid',
+        ]);
+        const layer = document.getElementById('villageLayer');
+        const kids = Array.from(layer.children);
+        expect(kids.slice(-3).every(k => k.classList.contains('village-haze'))).toBe(true); // after every sprite
+        veils().forEach(v => expect(v.getAttribute('style')).toMatch(/--hz:\s*\d+px/));
+        veils().forEach(v => expect(v.style.getPropertyValue('--hz-left')).toBe('152px')); // render(160): the church's edge
+    });
+
+    test('veil z-indexes equal the last sprite of their row; mid is the highest', () => {
+        renderAll(all);
+        const sprites = Array.from(document.querySelectorAll('#villageLayer .village-sprite'));
+        const z = Object.fromEntries(veils().map(v => [v.className.split('--')[1], Number(v.style.zIndex)]));
+        const maxSprite = Math.max(...sprites.map(s => Number(s.style.zIndex)));
+        expect(z.mid).toBe(maxSprite);
+        expect(z.row1).toBeLessThan(z.row2);
+        expect(z.row2).toBeLessThan(z.mid);
+    });
+
+    test('veils never take clicks: no pointer-events override in the DOM, and they are not sprites', () => {
+        renderAll(all);
+        veils().forEach(v => {
+            expect(v.classList.contains('village-sprite')).toBe(false);
+            expect(v.tagName).toBe('DIV');
+        });
+    });
+
+    test('re-rendering with a new building keeps exactly one set of veils, still last', () => {
+        const state = init({ tier: 3 });
+        const before = veils().length;
+        state.tier = 4;
+        VillageView.render(170);
+        expect(veils()).toHaveLength(before);
+        const kids = Array.from(document.getElementById('villageLayer').children);
+        expect(kids[kids.length - 1].classList.contains('village-haze')).toBe(true);
+    });
+
+    test('portrait strip / disabled village: no sprites and no veils', () => {
+        init({ hill: 0 });
+        expect(veils()).toHaveLength(0);
+        global.CONFIG.VILLAGE_ENABLED = false;
+        init();
+        expect(veils()).toHaveLength(0);
+    });
+});

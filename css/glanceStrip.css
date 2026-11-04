@@ -78,7 +78,16 @@ body.glance-strip .village-layer {
 }
 
 /* The moon / Nights Survived count is landscape-only for now (2026-10-26). */
-body.glance-strip .nights-survived {
+body.glance-strip .nights-survived,
+body.glance-strip .nights-ui {
+    display: none;
+}
+
+/* The run climate's weather layers (css/climate.css) are landscape/desktop only too: the strip has its own sky. */
+body.glance-strip .climate-haze-far,
+body.glance-strip .climate-near,
+body.glance-strip .village-haze,
+body.glance-strip .scene-clouds-extra {
     display: none;
 }
 

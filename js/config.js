@@ -313,6 +313,30 @@ const CONFIG = {
     // Stats best/worst day per run (D2 step 5, 2026-10-27): score = done*done - missed*missed - damage*damage
     // (done = tasks + sub-tasks + habits; damage = base HP lost that day). Display only -- not a balance number.
     DAILY_SCORE_WEIGHTS: { done: 1, missed: 1, damage: 1 },
+    // Run climate = the sky's weather (2026-11-03, Jeremy + Opus; js/runClimate.js, docs/WORLD_FEEDBACK_PLAN.md "W1 Run climate").
+    // How the CURRENT run has been going over its last `windowDays` closed days, as five bands: Clear / Hazy / Overcast / Fog / Storm.
+    // Display only (it never changes damage, points or anything you earn), but THEORY-PASS numbers: re-check with real play data.
+    //   weights        a day's score: on time 0.5 (a late finish earns `lateCredit` of an on-time one), habits kept 0.25 (good habits
+    //                  done + bad habits avoided, over every habit answered or missed), church held 0.25 (1 - damage / damageCap HP).
+    //   decay          each day further back counts this much less than the one after it (yesterday = 1).
+    //   startScore / startWeightDays   a new run starts at Hazy: a 0.75 prior worth 6 days that fades out over the first week, so
+    //                  ~5 days of strong play (90% on time and habits kept, little damage) clears the sky; perfect play takes 4.
+    //   thresholds     a score at or above the line is that band (below `fog` = Storm); `hysteresis` = how far past a line the score
+    //                  must go before the sky actually changes, so it does not flicker.
+    //   trendDays / trendDelta   improving / worsening = the climate vs trendDays closed days ago, by at least trendDelta.
+    CLIMATE: {
+        windowDays: 7,
+        decay: 0.85,
+        weights: { onTime: 0.5, habits: 0.25, church: 0.25 },
+        lateCredit: 0.5,
+        damageCap: 25,
+        startScore: 0.75,
+        startWeightDays: 6,
+        thresholds: { clear: 0.85, hazy: 0.70, overcast: 0.55, fog: 0.40 },
+        hysteresis: 0.03,
+        trendDays: 3,
+        trendDelta: 0.05,
+    },
     HERO_ONESHOT_FRAMES: 9,
     HERO_ONESHOT_FRAME_OVERRIDES: { hurt: { financial: 7, health: 7 } },
     // A routine level-up opens the spotlight on that hero (it plays `levelup`) when no hero is showing.

@@ -18,7 +18,8 @@
 }
 
 /* The moon moves left of the hill so a grown tree never covers it. */
-.nights-survived {
+.nights-survived,
+.nights-ui {
     right: calc(var(--gy-hill-w) + 12px);
 }
 

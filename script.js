@@ -124,6 +124,31 @@ document.addEventListener('DOMContentLoaded', () => {
         getWindmillTier: villageTierDep('bestdays', 'windmillTier'),
         onOpenBuilding: openVillageCard,
     });
+    // Run climate (2026-11-03, docs/WORLD_FEEDBACK_PLAN.md "W1 Run climate"): the sky's weather from how the last ~7 CLOSED days
+    // of THIS run went (js/runClimate.js, pure). It changes only at a day rollover / game over / load, so the closed-days
+    // store is read once per such change (same cache idea as villageContext above) and climateView.refresh() can run every tick.
+    // Dev override: ?climate=clear|hazy|overcast|fog|storm (+ &trend=up|down). On any failure: no result = the sky looks as before.
+    const climateCache = { key: null, result: null };
+    const climateOverride = ClimateView.parseOverride(window.location.search);
+    function climateNow() {
+        if (climateOverride) return RunClimate.forced(climateOverride.band, climateOverride.trend);
+        try {
+            const today = State.getToday() || null;
+            const over = State.isGameOver();
+            const finished = (State.getRunHistory() || []).length;
+            const runNumber = over ? finished : finished + 1; // while game over the run that just ended is the last in history
+            const key = (today && today.date ? today.date : '') + '|' + runNumber + '|' + (over ? 'over' : 'live');
+            if (climateCache.key !== key) {
+                climateCache.result = RunClimate.compute(Persistence.loadDays(), runNumber, CONFIG.CLIMATE);
+                climateCache.key = key;
+            }
+            return climateCache.result;
+        } catch (err) {
+            console.error('Deadline: run climate failed', err);
+            return climateCache.result; // last good value, or null = no climate class
+        }
+    }
+    ClimateView.init({ getResult: climateNow });
     const baseHealthDisplay = document.getElementById('baseHealthDisplay');
     const playerXpDisplay = document.getElementById('playerXpDisplay');
     const playerLevelDisplay = document.getElementById('playerLevelDisplay');
@@ -275,6 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
         BASE_WIDTH = baseElement.offsetWidth;
         GraveyardView.render(BASE_WIDTH);
         VillageView.render(BASE_WIDTH);
+        ClimateView.refresh();
         ENEMY_WIDTH = enemyWidthForMode(CONFIG.ENEMY_WIDTH);
         HABIT_ENEMY_WIDTH = enemyWidthForMode(CONFIG.HABIT_ENEMY_WIDTH);
         // Overdue items camp at the base edge and are only re-positioned when
@@ -1781,6 +1807,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 refreshBaseChip();
                 GraveyardView.render(BASE_WIDTH);
                 VillageView.render(BASE_WIDTH);
+                ClimateView.refresh();
                 refreshHeroAttack();
                 maybeShowTimerHint();
                 const canvasItems = State.getActiveItems().filter(i => !Clock.isDueAfterDay(i, new Date()));
@@ -3288,6 +3315,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize the game
     initGame();
     State.restoreGameState(stateDeps());
+    ClimateView.refresh(); // the sky for the restored run (ClimateView.init above ran before the state was restored)
     // Time slider (Milestone 4, 2026-07-20) — after initGame() so
     // GAME_SCREEN_WIDTH/BASE_WIDTH/HABIT_ENEMY_WIDTH are resolved (deps.dims()
     // is still a live function, so a later resize is fine too; this ordering

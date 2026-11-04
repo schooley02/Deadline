@@ -16,6 +16,10 @@ bad day, horde vs meteor, graveyard tiers, stronghold Target types).
   run in Stats. A back-paging Day Pager is unneeded unless a real use case shows up.
 - Mockups first for the deadline threat (horde vs meteor) — both drawn; pick pending.
 
+**DECIDED 2026-11-03 (Jeremy + Opus):** the sky becomes a **run climate** (last ~7 closed days of this run, five
+weather bands, haze by depth, fog only at Fog, the night count lifted above the weather, a weather badge as the tap
+target). Full design: "W1 Run climate" below; DECISIONS 2026-11-03 "Run climate".
+
 ## Goal
 
 Turn the empty parts of the landscape/desktop scene into game-like, at-a-glance feedback:
@@ -29,7 +33,7 @@ Each region of the scene owns ONE time scale, so the player always knows where t
 | Region | Time scale | Shows |
 |---|---|---|
 | Lane / field + church (exists) | Right now | Zombies, base damage, heroes |
-| Sky (moon exists, top-right) | Today | Pace / mood of the day |
+| Sky (moon exists, top-right) | Last ~7 days of this run (changed 2026-11-03, see "W1 Run climate") | How the run is trending |
 | Distant city (new, behind the hills) | Weeks–months | Goals and their Targets |
 | Right-side graveyard (new) | All time | Achievements, past runs, lifetime nights |
 
@@ -41,7 +45,7 @@ read on a phone. The skyline is the only free real estate big enough for somethi
 
 1. Background layers stay low-contrast / desaturated; zombies always read first.
 2. Anything carrying information is tappable and opens its exact numbers (same pattern as the
-   Base Health button and the moon).
+   Base Health button; for the sky, the weather badge -- the moon itself is display-only).
 3. All motion is fx-gated (`fx-reduced` / `fx-off` / reduced-motion), like V1's clouds.
 4. The landscape-only regions (city, graveyard) need a portrait entry point elsewhere
    (Stats window / a Goals window) — the portrait glance strip has no room for them.
@@ -49,6 +53,10 @@ read on a phone. The skyline is the only free real estate big enough for somethi
    mapping rules are unit-tested without a DOM.
 
 ## Region 1 — Sky: today's pace (no new features needed)
+
+**SUPERSEDED 2026-11-03** by "W1 Run climate" below: today's damage / overdue / missed habits already
+have visuals (Base Health, red rows, check-ins), so the sky now shows the run's recent TREND instead.
+The text below is kept for history.
 
 PROPOSED, all derivable from existing state:
 - **Weather = day mood.** Clear dusk when on pace; red haze builds with base damage taken
@@ -288,13 +296,143 @@ stars rating") -- step 0 BUILT 2026-10-31 (sw v162; see DECISIONS 2026-10-31 lat
   routines that hold tasks -- expected.
 - Tests: a routine with one habit + one task (both done, one missed), tenure counts days from both, task-only routine.
 
+## W1 Run climate (sky weather) -- DESIGNED 2026-11-03 (Claude app session, Opus; Jeremy). **BUILD 1 BUILT 2026-11-03 (Sonnet); Builds 2-3 NOT BUILT.**
+
+Replaces the Region 1 "today's pace" idea. Mockups (real art, approximate village placement):
+`docs/mockups/run-climate/` (`run-climate-bands.png` = all five bands still, `fog-motion.mp4`, `storm-motion.mp4`,
+`run-climate-mock.html` = the source; open it from that folder, it loads `../../../Assets/`).
+
+### What it shows (and why)
+The weather is a **run climate**: how this run has been going over the last ~7 closed days, all categories together, able
+to recover in a few good days. Nothing else shows this. Base HP = how hurt right now; village = cumulative per-category
+progress (only goes up); heroes = per routine; moon = how long. Today's damage / overdue / missed habits are NOT
+re-shown in the sky (they already have visuals).
+
+### The signal (pure `js/runClimate.js`; numbers in CONFIG, THEORY PASS -- re-check with play data)
+- **Data:** closed `deadline.days` records of the CURRENT run only (`rec.run === current run`). No new counters, no
+  DailyRecord bump, no schema change, nothing persisted: the band is DERIVED by replaying the run's closed days.
+- **Day score 0..1** (a day with nothing due is skipped; absent days are skipped):
+  - On time, weight 0.5: `(done.task + done.habit - 0.5 * done.late) / (due.task + due.habit)` (late finishes = half credit).
+  - Habits kept, weight 0.25: `(done.habit + lurk.avoided) / (done.habit + missed.habit + lurk.avoided + lurk.slipped)`
+    (no habits answered that day = drop this part and renormalise the other two).
+  - Church held, weight 0.25: `1 - min(1, (dmg.taken + dmg.offline) / 25)` (25 HP or more of damage in a day = 0).
+  - Clamp to 0..1.
+- **Climate = weighted average of the last 7 scored days**, yesterday weight 1, each day further back x0.85.
+- **Start at Hazy (Jeremy: "clear the sky by playing well"):** a prior score of 0.75 is blended in with weight
+  `6 * (1 - n/7)` (n = scored days, floor 0; `CONFIG.CLIMATE.startWeightDays` 6, raised from 2 in the build because 2 cleared the
+  sky in 3 days), so it fades out over the first week. Strong play (~90% on time and habits kept, little damage) clears the sky on
+  day 5; a perfect run on day 4 (test-checked).
+- **Bands:** Clear >= 0.85, Hazy >= 0.70, Overcast >= 0.55, Fog >= 0.40, Storm < 0.40. **Hysteresis 0.03**: moving UP a band
+  needs threshold + 0.03, moving DOWN needs threshold - 0.03. Because the band is derived by replaying day by day from the
+  run's start (start band Hazy), hysteresis needs no stored state.
+- **Trend:** climate now vs the climate replayed 3 closed days ago: >= +0.05 improving, <= -0.05 worsening, else steady.
+- **When it changes:** only when a day closes (rollover) and on load. No mid-day changes -- the morning sky is the report.
+- **Sanity checks (theory):** a strong week stays Clear; one bad day after a good streak drops one band; two bad days ->
+  Overcast; an "okay" run (~70% on time, 60% habits, 10 HP/day) sits at Overcast; a collapsing run reaches Storm.
+- **Dev override:** `?climate=clear|hazy|overcast|fog|storm` (+ `&trend=up|down`) for testing, like the village tier params.
+
+### What each band looks like (all decided against the mockups)
+| Band | Sky | Clouds (TOP of the sky only, except Fog) | Haze | Ground clouds | Extras |
+|---|---|---|---|---|---|
+| Clear | today's indigo dusk, all stars | today's two sprites | none | none | fireflies (few, dim, upper lane, behind the zombies) |
+| Hazy (new run) | slightly lighter / desaturated | + a third cloud | light, strongest far away | none | stars thin out |
+| Overcast | grey-violet | more and darker, still top only, never down behind the buildings | a step stronger | none | few stars, moon dimmer |
+| Fog | muted grey, low contrast | heavy | heavy, by depth (below) | YES: the pixel cloud sprites, lightened + see-through, at 4 depths | no stars, moon a smudge |
+| Storm | bruised green-grey | a THICK ceiling (~5 overlapping strips) moving very slowly (~6 px/s) | the heaviest, green-grey | none | heavy rain at 3 depths, rare soft lightning (no strobe) |
+| Any band, trend up | -- | a break opens near the moon | -- | -- | a moonbeam falls on the church |
+| Any band, trend down | -- | sky clouds drift a little faster | -- | -- | -- |
+
+### Depth: haze and fog get worse the further away (Jeremy 2026-11-03)
+Weather layers sit IN FRONT of things, like real haze: near things barely affected, far things a lot. Every weather layer
+is `pointer-events: none`, so zombies, buildings, the church and the HUD stay fully tappable (checked in the mockup with
+`elementFromPoint` on zombies, two buildings and the church door in the Fog and Storm panels).
+- Paint order (back to front): sky, stars, moon, sky clouds, hills -> **far haze** -> ground -> village **far row** ->
+  **row haze 1** -> **back row** -> **row haze 2** -> (Fog: **bank between the rows**) -> **front row** -> **mid haze** ->
+  (Fog: **bank in front of the village**) -> church + zombies -> (Fog: **front banks**; Storm: **near rain**) -> **near haze**
+  -> UI (night count + label, weather badge) -> HUD.
+- The village haze layers (row haze 1, row haze 2, mid haze) **stop at the horizon** (the front row's feet) with a ~16px
+  soft edge, so the lane's ground stays clear (Jeremy: "the ground has too much haze"). The lane only gets the near haze
+  (+ Fog banks / Storm rain).
+- The row hazes live INSIDE `.village-layer` (z-index 1, its own stacking context) as siblings between the rows; the
+  front-of-village bank and the near layers need z-indexes between the village (1) and the zombies / above the zombies
+  -- the builder maps them onto the real stack (`#midnightLine` is 5).
+- Fog, approximate total haze (mockup values): far row ~50%, back row ~40%, front row ~20%, zombies + church ~8%.
+  Storm the same shape, green-grey, plus rain. Clear / Hazy / Overcast add only a slight row-by-row difference.
+- Known risk: at Fog the near haze also dims zombie status icons slightly -- phone-check; if too much, lower the near haze
+  for that band only.
+
+### Motion (fx-gated like the clouds today)
+All weather drifts the SAME way (the wind, rightward like today's clouds); the nearer, the faster. Speeds in CONFIG:
+Fog: sky clouds 10-12 px/s, bank between the village rows 16, bank in front of the village 22, banks in front of the
+zombies + church 34. Storm ceiling ~6 px/s. Rain: nearer = faster and denser. Other bands keep today's 45 px/s sky drift.
+`fx-reduced` / `fx-off` / `prefers-reduced-motion`: everything static (no drift, no rain motion, no lightning, no fireflies);
+the tint, haze and cloud amount still show the band. The SKY cloud layers follow the time slider like today's clouds (each carries `.scene-clouds-drift`, the scrub target; the slower
+ones move less per slider minute, which reads as depth). Haze, fog banks and rain are NOT scrub targets (run-level, not time-of-day).
+
+### The moon and the Nights Survived number
+- The moon disc + glow are part of the sky: BEHIND all weather (Jeremy: "the moon is in space"). Glow shrinks band by band;
+  at Fog it is a smudge, at Storm nearly gone.
+- The **count + "Nights Survived" label move to a UI layer ABOVE the weather** so they always read. This partly supersedes
+  the 2026-10-27 call that clouds pass in front of the moon AND the label: the moon still goes behind the clouds, the
+  number and label no longer do.
+- Styles: Clear + Hazy = today's look (dark digits printed on the moon). Overcast and worse = "lit sign": cream digits with a
+  crisp 2px dark pixel outline (no blur) + a faint warm glow; the label gets a 1px dark outline. Fog + Storm also put a dim
+  plate (`rgba(11,11,36,.6)`) behind the label.
+
+### Weather badge (the tap target)
+- Not the moon (it disappears in bad weather) and not the open sky (misclicks on the village / lane). A small **pixel
+  weather icon** on the UI layer, top-left of the sky just right of the church (mockup: left 176px, top 8px), 34px chip in a
+  44px tap area. Icon per band (clear moon + stars / moon + cloud / clouds / fog lines / storm cloud + bolt); a small up or
+  down arrow when the trend is not steady. It doubles as the legend when effects are off.
+- Tap -> a small **Weather** panel: band, trend ("clearing" / "worsening" / "steady"), the last 7 days' on-time %, habits
+  kept and damage, and an (i) link to a new "How Deadline works" topic. The same readout goes in the **Stats** window (the
+  portrait entry point; the portrait glance strip has no sky).
+- A one-time soft pulse on the badge the first time the band changes, so the player learns it is tappable.
+- Position must be checked against the village + HUD at phone sizes (844x390, 915x412) before it is final.
+
+### Rule: weather may hide decoration, never recovery info (Jeremy 2026-11-03)
+Losing visual clutter on a bad run is part of the design ("so you can focus more"), but anything that helps the player
+dig out stays readable: zombies, the church, the night count, Base Health, points, items, the HUD. Stars, moon glow,
+hills, distant buildings (and later the distant city) may fade.
+
+### Build order
+1. **Build 1 (Sonnet, medium) -- BUILT 2026-11-03 (see "Build 1 as built" below):** `js/runClimate.js` (pure: `dayScore`, `climate`, `bandFor` with hysteresis replay,
+   `trend`) + `CONFIG.CLIMATE_*` + tests; script.js computes it on load and at rollover and puts `climate-<band>` (+
+   `climate-trend-up/down`) on `#gameCanvas`; CSS per band: sky tint, star fade, moon glow, top-of-sky cloud count, the
+   far / row / mid / near haze layers (row hazes inside `.village-layer`, stopping at the horizon), the number restyle
+   (lit sign + plate) on its own UI layer; dev override; `sw.js` bump.
+2. **Build 2 (Sonnet, medium):** Fog ground banks at 4 depths with the parallax speeds; Storm ceiling + rain at 3 depths +
+   soft lightning; fireflies at Clear; trend cloud-break + moonbeam; the weather badge + Weather panel + Stats readout +
+   How Deadline works topic + first-change pulse.
+3. **Build 3 (PixelLab, after the Nov 7 token reset):** cloud variants in the existing lavender palette at 2x: wispy (Hazy),
+   heavy with a dark underbelly (Overcast / Fog), storm ceiling (the code-tinted storm clouds read weakly under heavy haze
+   in the mockup -- real art fixes that). Fog stays code + reused sprites unless the sprites read wrong.
+
+### Build 1 as built (2026-11-03, Sonnet)
+- **Logic:** `js/runClimate.js` (pure; `dayScore`, `scoredDays`, `climateAfter`, `nextBandIndex` hysteresis, `compute`, `forced`), one `CONFIG.CLIMATE` object (THEORY pass; `RunClimate.DEFAULTS` mirrors it, a test checks), `test/runClimate.test.js` (40 tests incl. the clearing-speed scenarios). Derived by replaying the run's closed days; nothing persisted.
+- **View:** `js/ui/climateView.js` puts `climate-<band>` (+ `climate-trend-up/down`, steady = none) on `#gameCanvas`; script.js `climateNow()` caches on date|run|over and re-reads `deadline.days` only when that changes; on any failure no class = the old look. Dev override `?climate=clear|hazy|overcast|fog|storm&trend=up|down`.
+- **Looks:** `css/climate.css` (all band values from the approved mockup). Sky gradient / hill colour / moon dim + glow / stars via `--clm-*` vars with the OLD values as the fallbacks in gameCanvas.css (Clear = today's look). Stars: Hazy keeps 9 at 0.85, Overcast 4 at 0.6, Fog/Storm none. Sky clouds: five extra `.scene-clouds-x1..x5` layers (hidden by default, per-band tops/tints/speeds; the base layer is replaced from Overcast on; Fog sky ~11 px/s, Storm ~6 px/s).
+- **Haze by depth:** far veil = `.climate-haze-far` scene layer (z -2, over clouds + hill, under the ground); row1 / row2 / mid veils are built by `VillageView` inside `#villageLayer` (`hazePlan`: each z-indexed to the last sprite of the row it follows, appended last, `--hz` = the front row's feet, solid to 10px above the horizon, gone 6px below); near film = `#climateNear` (z 88). All `pointer-events: none` (checked live: taps reach every building and the church through Fog and Storm). **Veils start at the church's right edge (`--hz-left` = baseW - 8, feathered over 32px)** so the church is not veiled by the village haze (it sits under the village layer in the stacking order; the mockup had it clear).
+- **Number:** `#nightsSurvived` is now the moon disc only (z -3, keeps role=img + aria-label); the count + label live on `#nightsSurvivedUi.nights-ui` (z 89, aria-hidden, same box and position, graveyard.css moves both left of the hill). Ids unchanged, so `NightsSurvivedView` is untouched. Lit-sign ink from Overcast, plate behind the label at Fog/Storm.
+- **Portrait strip:** the number layer and every weather layer are hidden there (the strip keeps its own sky; the weather badge / Stats readout in Build 2 are how portrait sees the band).
+- **Not in Build 1:** fog ground banks, Storm rain + lightning, fireflies, trend visuals (the classes exist, nothing styles them yet), the badge / Weather panel / Stats readout / How-it-works topic.
+
+### Parked ideas (later enhancements, Jeremy 2026-11-03)
+- **Observatory** (a telescope aimed at the moon) or a **weather balloon** in the distance as the weather tap target
+  instead of the badge. An observatory would need its own stat to be a village building, or be the one building that only
+  reports the weather.
+- **Fence + gate** as another upgradeable structure tied to a game stat (stat not chosen; must not repeat a village stat).
+  Placement: NOT around the village (too small on phone landscape, covers buildings); options = a low picket line along
+  the front edge of the lane, or a gate in front of the church that zombies walk through (mock it first).
+
 ## Suggested build order (PROPOSED; one session each, commit each)
 
 - [x] **W0 — Layout pass (BUILT 2026-10-28, Opus plan / Sonnet build; sw v133):** graveyard hill on the
   right + past-run graves + spawn edge moved (see "W0 layout — DECIDED + BUILT" below). The distant-city
   band was NOT reserved: it waits for Goals (W5), no placeholder skyline was added.
-- [ ] **W1 — Sky weather (Sonnet):** pure `skyModel` (state → weather level) + CSS layers,
-  fx-gated; tap sky/moon → day summary.
+- [ ] **W1 — Run climate (sky weather) -- DESIGNED 2026-11-03 (Opus, Jeremy), see "W1 Run climate" below. Build 1 BUILT 2026-11-03.** Build 1 (logic +
+  sky/haze/number, Sonnet, DONE), Build 2 (fog banks, rain, fireflies, trend, badge + panel, Sonnet), Build 3 (PixelLab cloud
+  variants after the Nov 7 token reset).
 - [ ] **W2 — Achievement VILLAGE, Americana small town (Sonnet + PixelLab art; REPLACES the headstone-markers idea; direction DECIDED 2026-10-28):**
   8 category buildings (5 tiers x 3 conditions, state carried by the art + code filters) on the horizon hill behind the zombies + the
   Memorial on the right hill; tap -> close-up village view (same sprite at 4x). Art spec, 2x pixel-scale rule, vertical budget, Americana

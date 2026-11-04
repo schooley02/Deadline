@@ -14,6 +14,13 @@
  *                   transparent corners and a back-row building tucked behind a front one still go to the right building.
  *                   Zombies (z 30+) sit above the layer and keep their own taps.
  *
+ * HAZE BY DEPTH (run climate, 2026-11-03; css/climate.css): the layer also holds up to three decorative veils
+ *   (`.village-haze--row1|row2|mid`, pointer-events none, so every tap still reaches the sprites and zombies). Each
+ *   is z-indexed to the LAST sprite of the row it follows and appended after all the sprites, so it paints over that row
+ *   and every row behind it but under the next row forward: row1 over the far row, row2 over the back row (and row 1
+ *   again), mid over the whole village. They stop at the horizon (--hz = the front row's feet). Their strength comes from
+ *   the --clm-row1/row2/mid vars the weather band sets on #gameCanvas (0 = invisible). See hazePlan().
+ *
  * Landscape/desktop only: css/glanceStrip.css hides the layer in the portrait strip, and
  * getHillWidth() is 0 there so nothing is placed. script.js calls render(BASE_WIDTH) after every
  * layout change and every tick; render() is idempotent (a signature of everything it depends on
@@ -144,6 +151,51 @@ const VillageView = (() => {
         if (layerEl) layerEl.textContent = '';
     }
 
+    /**
+     * Pure. Where the haze veils go for these slots (sorted far -> back -> front, as villageSlots returns them; the sprite at
+     * index i gets z-index i). Returns { hz, veils: [{ key, z }] } with veils in paint order:
+     *   row1  only when a far-row building exists   z = the far row's last index
+     *   row2  only when a back-row building exists  z = the back row's last index
+     *   mid   always (when any building exists)     z = the last index (above every sprite)
+     * hz = the horizon in canvas px: the front row's feet (else the lowest feet of any slot).
+     * left = where the veils start: just inside the church's right edge (baseW - 8; 0 when there is no church width), so the
+     * CHURCH is never veiled by the village haze (it sits under #villageLayer in the stacking order; the approved mock has it
+     * clear of the row and mid haze). css/climate.css feathers that edge over 32px so there is no hard line.
+     */
+    function hazePlan(slots, baseW) {
+        const list = Array.isArray(slots) ? slots : [];
+        const left = (Number(baseW) > 8) ? Math.round(Number(baseW)) - 8 : 0;
+        if (!list.length) return { hz: 0, left, veils: [] };
+        let hz = 0, hzFront = 0, lastFar = -1, lastBack = -1;
+        list.forEach((sl, i) => {
+            const feet = Number(sl.feetY) || 0;
+            if (feet > hz) hz = feet;
+            if (sl.row === 'front' && feet > hzFront) hzFront = feet;
+            if (sl.row === 'far') lastFar = i;
+            if (sl.row === 'back') lastBack = i;
+        });
+        const veils = [];
+        if (lastFar >= 0) veils.push({ key: 'row1', z: lastFar });
+        if (lastBack >= 0) veils.push({ key: 'row2', z: lastBack });
+        veils.push({ key: 'mid', z: list.length - 1 });
+        return { hz: hzFront || hz, left, veils };
+    }
+
+    // Rebuilt on every full render (the sprites above may have been appended since): the veils must be LAST in the DOM so
+    // that, at an equal z-index, they paint over the row's sprites.
+    function syncHaze(slots, baseW) {
+        Array.from(layerEl.querySelectorAll('.village-haze')).forEach(el => el.remove());
+        const plan = hazePlan(slots, baseW);
+        plan.veils.forEach(v => {
+            const el = document.createElement('div');
+            el.className = 'village-haze village-haze--' + v.key;
+            el.style.zIndex = String(v.z);
+            el.style.setProperty('--hz', plan.hz + 'px');
+            el.style.setProperty('--hz-left', plan.left + 'px');
+            layerEl.appendChild(el);
+        });
+    }
+
     function render(baseWidth) {
         if (!deps || !canvasEl || !layerEl) return;
         const c = cfg();
@@ -194,6 +246,7 @@ const VillageView = (() => {
             img.style.transform = slot.flip ? 'scaleX(-1)' : '';
             img.style.filter = (slot.back && slot.brightness > 0 && slot.brightness < 1) ? 'brightness(' + slot.brightness + ')' : '';
         });
+        syncHaze(slots, baseW);
     }
 
     function init(d) {
@@ -209,7 +262,7 @@ const VillageView = (() => {
         render();
     }
 
-    return { init, render, pickHit, inArtBox, opaqueNear };
+    return { init, render, pickHit, inArtBox, opaqueNear, hazePlan };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

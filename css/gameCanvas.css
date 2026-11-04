@@ -203,7 +203,9 @@
    is 112% wide / left -6%, which also made % offsets clip the moon. */
 .scene-sky {
     z-index: -4;
-    background: linear-gradient(180deg, #0b0b24 0%, #171735 35%, #2b2a4a 68%, #3d3a5c 100%);
+    /* Run climate (2026-11-03, css/climate.css): the --clm-* vars come from the band class on #gameCanvas; with no band the
+       fallbacks below are the original colours. */
+    background: linear-gradient(180deg, var(--clm-s0, #0b0b24) 0%, var(--clm-s1, #171735) 35%, var(--clm-s2, #2b2a4a) 68%, var(--clm-s3, #3d3a5c) 100%);
 }
 
 /* Twinkling pixel stars (2026-11-01, Jeremy: "a few small ones and a few slightly larger ones",
@@ -219,6 +221,7 @@
     z-index: -4;
     width: 100%;
     left: 0;
+    opacity: var(--clm-stars, 1); /* run climate: dimmer stars in worse weather (css/climate.css also hides some) */
 }
 
 .scene-star {
@@ -309,7 +312,33 @@
     border-radius: 50%;
     background: url("../Assets/scene/moon.png") center / 58px 58px no-repeat;
     image-rendering: pixelated;
-    box-shadow: 0 0 36px 14px rgba(253, 251, 232, 0.5), 0 0 80px 28px rgba(253, 251, 232, 0.15);
+    /* run climate (css/climate.css): the moon dims and its glow shrinks as the sky worsens; the fallbacks are the original look */
+    box-shadow: 0 0 var(--clm-g1, 36px) var(--clm-g2, 14px) rgba(253, 251, 232, var(--clm-ga, 0.5)),
+        0 0 80px 28px rgba(253, 251, 232, var(--clm-gb, 0.15));
+    opacity: var(--clm-moon, 1);
+    display: grid;
+    place-items: center;
+}
+
+/* The count + label on their OWN layer above the weather (2026-11-03, run climate): the moon disc stays at z -3 so clouds
+   and haze pass in front of it, but the number must stay readable on every sky, so it lives here (z 89: over the near
+   haze at 88, under the stats overlay at 90). Same box and position as .nights-survived (graveyard.css moves both
+   left of the hill); the 58px box centres the count exactly where it sat on the moon. */
+.nights-ui {
+    position: absolute;
+    top: 8%;
+    right: 32px;
+    width: 58px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+    z-index: 89;
+}
+
+.nights-ui-box {
+    width: 58px;
+    height: 58px;
     display: grid;
     place-items: center;
 }
@@ -408,7 +437,7 @@
 }
 
 .scene-hill {
-    fill: #141426;
+    fill: var(--clm-hill, #141426);
 }
 
 /* Ground band. EXPERIMENTAL (2026-07-21, testing live per Jeremy's request)
