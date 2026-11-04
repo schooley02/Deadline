@@ -413,6 +413,16 @@ const Forms = (() => {
         return null;
     }
 
+    // Pure. The Start box is a time of day ON THE DUE DATE (2026-11-04, Jeremy): returns a Date built from the due date being
+    // saved plus the "HH:MM" in the Start box, or null when either is blank or unreadable. Edit Task used to keep an
+    // untouched Start box as its stored Date, which carries its own calendar date; a task pushed a day and moved back then
+    // failed "Start time must be earlier than the due time" with both boxes reading fine.
+    function startDateTimeFor(dueDate, startValue) {
+        if (!dueDate || !startValue) return null;
+        const d = new Date(`${dueDate}T${startValue}`);
+        return isNaN(d.getTime()) ? null : d;
+    }
+
     // Pure. Returns { dueDate, dueTime } to hand to createTaskItemData. A due time
     // at or before `now` is bumped to now + NOW_BUMP_MINUTES when the time field
     // was left at its prefilled value OR is less than NOW_BUMP_MINUTES in the past
@@ -896,6 +906,7 @@ const Forms = (() => {
         shiftDueForStart,
         onStartTimeChange,
         startBeforeDueError,
+        startDateTimeFor,
         customHabitTimesHtml,
         habitGoalHtml,
         goalFromFields,

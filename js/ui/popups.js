@@ -703,7 +703,7 @@ const Popups = (() => {
                         <input type="date" id="editDueDate" value="${dueDate}"${maxDateAttr} required>
                     </div>
                     ${showAnytimeRow ? Forms.anytimeRowHtml({ id: 'editTaskAnytime', checked: item.anytime === true }) : ''}
-                    ${Forms.startDueTimeGroupHtml({ startId: 'editStartTime', dueId: 'editDueTime', startValue: startTime, dueValue: dueTime, startAttrs: `data-initial="${startTime}"` })}
+                    ${Forms.startDueTimeGroupHtml({ startId: 'editStartTime', dueId: 'editDueTime', startValue: startTime, dueValue: dueTime })}
                     <p id="editRescheduleNote" class="reschedule-note" aria-live="polite"></p>
                     ${editPushbackHelpHtml(deps)}
                     ${hasLoggedTimeField(item, deps) ? Forms.loggedTimeHtml({ idPrefix: 'editLogged', ms: item.timerMsBanked, disabled: Timer.isRunning(item), note: Timer.isRunning(item) ? LOGGED_RUNNING_NOTE : '' }) : ''}
@@ -770,15 +770,12 @@ const Popups = (() => {
 
                 const newDueDateTime = new Date(`${newDueDate}T${newDueTime}`);
 
-                // Optional Start time: unchanged box keeps the stored Date as-is; a changed box is
-                // re-read on the due date; blank clears it. Must be strictly earlier than due.
+                // Optional Start time: a time of day ON THE DUE DATE being saved, so a filled box is always re-read
+                // on that date (an untouched box used to keep its stored Date and its old calendar day, which broke
+                // a task pushed to tomorrow and moved back -- 2026-11-04); blank clears it. Must be strictly earlier than due.
                 const startInput = document.getElementById('editStartTime');
                 const startValue = startInput ? startInput.value : '';
-                const startInitial = startInput ? (startInput.getAttribute('data-initial') || '') : '';
-                let newStartDateTime = item.startDateTime || null;
-                if (startValue !== startInitial) {
-                    newStartDateTime = startValue ? new Date(`${newDueDate}T${startValue}`) : null;
-                }
+                let newStartDateTime = Forms.startDateTimeFor(newDueDate, startValue);
                 if (isAnytime) newStartDateTime = null; // an anytime task has no work window
                 if (startValue && newStartDateTime instanceof Date && !isNaN(newStartDateTime.getTime())
                     && newStartDateTime.getTime() >= newDueDateTime.getTime()) {
