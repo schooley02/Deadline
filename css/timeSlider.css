@@ -70,6 +70,43 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* Now button (2026-11-04): the handle stays where it is released; this
+   returns it to the current time. Hidden (the `hidden` attribute) while the
+   slider is already live, so it costs no room in the row then. */
+.time-slider-now {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 32px;
+    padding: 0 12px 0 9px;
+    border-radius: 16px;
+    border: 1px solid var(--color-primary-dark-green);
+    background: var(--color-primary-dark-green);
+    color: var(--color-bg-white);
+    font-size: var(--text-caption);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.time-slider-now[hidden] {
+    display: none;
+}
+
+.time-slider-now-icon {
+    flex: 0 0 auto;
+}
+
+/* The range input keeps a ~130px intrinsic width; let it give up room to the
+   Now button on a narrow row (it grows back when Now hides). */
+.time-slider {
+    min-width: 0;
+}
+
+.time-slider-now:hover {
+    filter: brightness(1.1);
+}
+
 /* Ghosted preview state (scrubbing only) — reduced opacity so a previewed
    value reads as "projected, not real" rather than a live number/sprite. */
 .time-preview-ghost {

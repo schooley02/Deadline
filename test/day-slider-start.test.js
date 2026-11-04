@@ -81,13 +81,13 @@ describe('day pager: the slider starts at the beginning of the viewed day', () =
         expect(early).toBeLessThan(late);
     });
 
-    test('getViewedDayStart: null on Today and Yesterday, the day\'s first minute on a future day', () => {
+    test('getViewedDayStart: null on Today, the day\'s first minute on any other day (Yesterday too since 2026-11-04)', () => {
         setup();
         expect(view.getViewedDayStart()).toBeNull();
         view.goToOffset(3);
         expect(view.getViewedDayStart().getTime()).toBe(at(6, 0).getTime());
         view.goToOffset(-1);
-        expect(view.getViewedDayStart()).toBeNull();
+        expect(view.getViewedDayStart().getTime()).toBe(at(2, 0).getTime());
     });
 
     test('previewGhostsAt slides the ghosts: at 9 AM a 9 AM task is at the base, at midnight it is not', () => {
@@ -127,11 +127,11 @@ describe('day pager: the slider starts at the beginning of the viewed day', () =
         expect(t.getTime()).toBeLessThanOrEqual(Date.now());
     });
 
-    test('Yesterday stays a static snapshot with its slider disabled (no slider reset)', () => {
+    test('Yesterday follows the slider too (2026-11-04): enabled, reset to 12:00 AM of yesterday', () => {
         setup();
         view.goToOffset(-1);
-        expect(deps.timeSliderEl.disabled).toBe(true);
-        expect(deps.syncSlider).not.toHaveBeenCalled();
+        expect(deps.timeSliderEl.disabled).toBe(false);
+        expect(deps.syncSlider.mock.calls.pop()[0].getTime()).toBe(at(2, 0).getTime());
     });
 
     test('works without the optional syncSlider dep', () => {
@@ -196,20 +196,22 @@ describe('time slider view: a drag on a viewed future day', () => {
         expect(labelEl.textContent).toBe(TimeSlider.formatLabel(at(5, 10)));
     });
 
-    test('on Today (no viewed day) the drag is the old behaviour: real board moves, flag set, release snaps back', () => {
+    test('on Today (no viewed day) the drag moves the real board and sets the flag; release keeps it parked (2026-11-04)', () => {
         make(null);
         drag(600);
         expect(calls.preview).toEqual([true]);
         expect(real.element.style.left).toBe('555px');
         expect(calls.scrub).toEqual([]);
         sliderEl.dispatchEvent(new Event('change'));
+        expect(calls.preview).toEqual([true]);
+        TimeSliderView.returnToNow();
         expect(calls.preview).toEqual([true, false]);
     });
 
-    test('without the optional deps it behaves as before', () => {
+    test('without the optional deps it does not throw', () => {
         make(null);
         delete deps.getViewedDayStart; delete deps.onOtherDayScrub;
-        expect(() => { drag(600); sliderEl.dispatchEvent(new Event('change')); }).not.toThrow();
+        expect(() => { drag(600); sliderEl.dispatchEvent(new Event('change')); TimeSliderView.returnToNow(); }).not.toThrow();
         expect(calls.preview).toEqual([true, false]);
     });
 });

@@ -132,7 +132,11 @@
 }
 
 .day-pager-ghost {
-    pointer-events: none;
+    /* Tappable since 2026-11-04: a tap opens the
+       read-only ghost card (js/ui/ghostCard.js). Taps used to be switched
+       off here. */
+    cursor: pointer;
+    transition: left 0.2s ease, opacity 0.25s ease;
     /* NOT `position: relative` — .enemy already sets position: absolute
        (css/enemySprites.css), which is itself a valid positioning context
        for the outcome-icon child below; overriding it here would break the
@@ -308,4 +312,61 @@
 .completed-readonly .completion-checkbox,
 .completed-readonly .edit-icon-btn {
     display: none;
+}
+
+/* Ghost taps (2026-11-04, Jeremy) ------------------------------------------ */
+
+/* Yesterday: a beaten ghost leaves the field once the slider passes the
+   moment it was beaten (DayPagerView.positionGhostSprite, `doneAt`). */
+.day-pager-ghost.ghost-done {
+    opacity: 0 !important;
+    pointer-events: none;
+}
+
+/* The tapped ghost and its list row, while its card is open. */
+.day-pager-ghost.ghost-selected {
+    opacity: 0.9;
+    filter: drop-shadow(0 0 4px var(--color-holy-gold)) drop-shadow(0 0 2px var(--color-holy-gold));
+}
+
+.ghost-agenda-row--selected {
+    background: var(--color-secondary-green-pale);
+    box-shadow: inset 3px 0 0 var(--color-holy-gold);
+}
+
+/* Read-only ghost card */
+.ghost-card {
+    position: relative;
+    max-width: 340px;
+    padding-top: var(--space-4);
+}
+
+.ghost-card-title {
+    margin: 0 28px var(--space-2) 0;
+    overflow-wrap: anywhere;
+}
+
+.ghost-card-rows {
+    margin: 0 0 var(--space-4);
+}
+
+.ghost-card-row {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: 6px 0;
+    border-bottom: 1px solid var(--color-secondary-green-pale);
+    font-variant-numeric: tabular-nums;
+}
+
+.ghost-card-row dt {
+    color: var(--color-neutral);
+    font-weight: 600;
+}
+
+.ghost-card-row dd {
+    margin: 0;
+    text-align: right;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }

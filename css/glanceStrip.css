@@ -372,6 +372,17 @@ body.glance-strip .time-slider-label {
     font-size: 11px;
 }
 
+/* Now button (2026-11-04): an icon-only 32px circle on the phone strip, so
+   the slider keeps ~90px while it shows (the word stays as its aria-label). */
+body.glance-strip .time-slider-now {
+    width: 32px;
+    padding: 0;
+    justify-content: center;
+}
+body.glance-strip .time-slider-now-text {
+    display: none;
+}
+
 /* Day pager shares the slider row (2026-10-13): tighten so the slider keeps ~110px
    at 390px (44px buttons stay -- tap-target floor). */
 body.glance-strip .day-pager-group {

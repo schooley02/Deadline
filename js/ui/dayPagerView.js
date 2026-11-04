@@ -10,9 +10,13 @@
  *
  * SCOPE: offset -1 (yesterday, STATIC snapshot — sub-session 3, 2026-07-20
  * session 72) .. +6 (six days ahead, ghosted preview — sub-session 2).
- * Yesterday is NOT hour-scrubbable (see js/dayPager.js's yesterday-snapshot
- * header for why — completion TIMES aren't stored anywhere) — the hour
- * slider is disabled at that offset, re-enabled everywhere else.
+ * Since 2026-11-04 (Jeremy) every day is hour-scrubbable, Yesterday too:
+ * the slider starts at 12:00 AM of the viewed day and a drag walks that
+ * day's ghosts (previewGhostsAt). Yesterday's beaten ghosts leave the field
+ * at their completedAt (`doneAt`). Ghosts are tappable: a read-only card
+ * (js/ui/ghostCard.js) says which zombie it is (optional deps
+ * `openItemCard(itemId)` for a live one-off's "Open task" button, and
+ * `onTodayShown(fromOtherDay)` = TimeSliderView.onTodayShown).
  *
  * NON-MUTATING CONTRACT (fork/scope guard, session 70 — "the whole feature
  * stays non-mutating under the session-63 contract"): entering a non-today
@@ -66,8 +70,8 @@
  *   - setTimePreviewActive(bool): the SAME flag timeSliderDeps() flips.
  *   - renderTodayAgenda(): () => void — script.js's sortAndRenderActiveList
  *     wrapper, called on return to Today to restore the real list.
- *   - timeSliderEl: DOM handle (sub-session 3) — disabled while viewing
- *     Yesterday (offset -1), re-enabled everywhere else.
+ *   - timeSliderEl: DOM handle (sub-session 3) — kept enabled on every
+ *     day (it was disabled on Yesterday until 2026-11-04).
  *   - weekStripRowEl: DOM handle (sub-session 4) — the 7-cell overview row,
  *     rebuilt from DayPager.weekStripSummary on every render() (Today
  *     included, unlike the ghost-agenda path — see renderWeekStrip).
@@ -174,10 +178,14 @@ const DayPagerView = (() => {
 
     // Horizontal spot for a ghost when the viewed day's clock reads `previewTime` (the same timeline math live
     // zombies use). Split out so the slider can slide a day's ghosts without rebuilding them (2026-11-03).
+    // Yesterday (2026-11-04, Jeremy): a ghost that was beaten (Completed / Resisted, `doneAt`) leaves the field once the
+    // slider passes the moment it was beaten; a missed one stays at the church with its ✕.
     function positionGhostSprite(el, ghost, previewTime) {
         const dims = deps.dims();
         const x = Clock.calculateTimelinePosition({ type: ghost.isHabit ? 'habit' : 'task', dueDateTime: ghost.dueTime, startDateTime: ghost.startTime || null }, previewTime, dims);
         el.style.left = Math.max(dims.baseWidth, x) + 'px';
+        const gone = ghost.doneAt != null && previewTime.getTime() >= ghost.doneAt;
+        el.classList.toggle('ghost-done', gone);
     }
 
     function buildGhostSprite(ghost, previewTime, ghostList, index) {
@@ -231,7 +239,58 @@ const DayPagerView = (() => {
             el.title = `${ghost.name} — ${TimeSlider.formatLabel(ghost.dueTime)}`;
         }
 
+        // Tap a ghost to see which zombie it is (2026-11-04, Jeremy). stopPropagation: Modal's document click handler
+        // would otherwise close the card in the same click.
+        el.setAttribute('role', 'button');
+        el.setAttribute('aria-label', ghost.name);
+        el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showGhostCard(ghost, el);
+        });
+
         return el;
+    }
+
+    // The agenda row that belongs to `ghost` on the day on screen (paged list, or that day's section in the
+    // continuous list), or null.
+    function ghostRowFor(ghost) {
+        let scope = null;
+        if (isContinuous() && viewedDayOffset > 0 && futureEl) {
+            scope = futureEl.querySelector(`.day-list-section[data-offset="${viewedDayOffset}"]`);
+        } else {
+            scope = deps.activeItemsListEl;
+        }
+        if (!scope) return null;
+        return Array.from(scope.querySelectorAll('.ghost-agenda-row')).find(row => row.dataset.ghostKey === ghost.key) || null;
+    }
+
+    function clearGhostSelection() {
+        if (typeof document === 'undefined') return;
+        document.querySelectorAll('.ghost-agenda-row--selected').forEach(r => r.classList.remove('ghost-agenda-row--selected'));
+        document.querySelectorAll('.day-pager-ghost.ghost-selected').forEach(g => g.classList.remove('ghost-selected'));
+    }
+
+    // Opens the read-only ghost card (js/ui/ghostCard.js) and marks the sprite + its list row until it closes.
+    function showGhostCard(ghost, spriteEl) {
+        clearGhostSelection();
+        if (spriteEl) spriteEl.classList.add('ghost-selected');
+        const row = ghostRowFor(ghost);
+        if (row) {
+            row.classList.add('ghost-agenda-row--selected');
+            if (typeof row.scrollIntoView === 'function') row.scrollIntoView({ block: 'nearest' });
+        }
+        if (typeof GhostCard === 'undefined') return;
+        const bounds = DayPager.dayBoundsForOffset(deps.getCurrentGameDate(), viewedDayOffset);
+        const routines = deps.getDefinedRoutines ? (deps.getDefinedRoutines() || []) : [];
+        const routine = ghost.routineId != null ? routines.find(r => r.id === ghost.routineId) : null;
+        const live = ghost.itemId != null && (deps.getActiveItems() || []).some(i => i.id === ghost.itemId);
+        GhostCard.open(ghost, {
+            dayLabel: formatDayLabel(viewedDayOffset, bounds),
+            routineName: routine ? routine.name : '',
+            canOpen: live && typeof deps.openItemCard === 'function',
+            onOpen: (itemId) => deps.openItemCard(itemId),
+            onClose: clearGhostSelection,
+        });
     }
 
     // The ghosts currently on the canvas, in sprite order (so a scrub can reposition them by index).
@@ -260,7 +319,7 @@ const DayPagerView = (() => {
                 return `<span class="day-pager-outcome-badge ${badge.cssClass}">${badge.icon} ${badge.label}</span>`;
             })() : `<span class="ghost-agenda-time">${ghost.anytime ? 'Midnight' : TimeSlider.formatLabel(ghost.dueTime)}</span>`;
             return `
-            <li class="ghost-agenda-row">
+            <li class="ghost-agenda-row" data-ghost-key="${escapeText(ghost.key || '')}">
                 <div>
                     <span class="ghost-agenda-name">${escapeText(ghost.name)}</span>
                     <span class="ghost-agenda-meta">${escapeText(ghost.category)}${ghost.isHabit ? ' · habit' : ''}</span>
@@ -480,10 +539,9 @@ const DayPagerView = (() => {
         if (deps.labelEl) deps.labelEl.textContent = formatDayLabel(viewedDayOffset, bounds);
         if (deps.prevBtn) deps.prevBtn.disabled = (viewedDayOffset <= DayPager.MIN_OFFSET);
         if (deps.nextBtn) deps.nextBtn.disabled = (viewedDayOffset >= DayPager.MAX_OFFSET);
-        // Yesterday is NOT hour-scrubbable (sub-session 3 — see file
-        // header); the slider is otherwise enabled (Today's live-tracking
-        // behavior, and future days' fixed-noon-anchor preview, both use it).
-        if (deps.timeSliderEl) deps.timeSliderEl.disabled = (viewedDayOffset === DayPager.MIN_OFFSET);
+        // Every day can be scrubbed (2026-11-04, Jeremy: Yesterday's ghosts follow the slider too; it used to be
+        // disabled there). Kept as an explicit enable so a stale disabled attribute never sticks.
+        if (deps.timeSliderEl) deps.timeSliderEl.disabled = false;
     }
 
     // Renders whatever `viewedDayOffset` currently is. Called after every
@@ -501,7 +559,7 @@ const DayPagerView = (() => {
         const previousOffset = lastRenderedOffset;
         lastRenderedOffset = viewedDayOffset;
         if (continuous) renderContinuous(bounds, currentGameDate, previousOffset);
-        else renderPaged(bounds, currentGameDate);
+        else renderPaged(bounds, currentGameDate, previousOffset);
     }
 
     // Continuous mode: Today's real rows are never swapped out (AgendaList owns
@@ -524,8 +582,7 @@ const DayPagerView = (() => {
             if (deps.gameCanvasEl) deps.gameCanvasEl.classList.remove('viewing-other-day');
             clearGhostSprites();
             if (deps.taskSectionTitleEl) deps.taskSectionTitleEl.textContent = "Today's Deadlines";
-            deps.setTimePreviewActive(false);
-            syncSliderTo(new Date());
+            todayShown(previousOffset !== 0);
             // Live play was paused while another day was shown: refresh the
             // real rows once on the way back.
             if (!restoreToday && previousOffset !== 0 && deps.renderTodayAgenda) deps.renderTodayAgenda();
@@ -547,13 +604,12 @@ const DayPagerView = (() => {
 
     // Paged mode (phone landscape, and the yesterday snapshot everywhere):
     // one day at a time, the agenda list swapped for that day's ghost rows.
-    function renderPaged(bounds, currentGameDate) {
+    function renderPaged(bounds, currentGameDate, previousOffset) {
         if (isViewingToday()) {
             if (deps.gameCanvasEl) deps.gameCanvasEl.classList.remove('viewing-other-day');
             clearGhostSprites();
             if (deps.taskSectionTitleEl) deps.taskSectionTitleEl.textContent = "Today's Deadlines";
-            deps.setTimePreviewActive(false);
-            syncSliderTo(new Date());
+            todayShown(previousOffset !== 0);
             listShowsSwapped = false;
             if (deps.renderTodayAgenda) deps.renderTodayAgenda();
             // Playtest finding #3 (2026-07-20): restore the REAL global
@@ -604,8 +660,12 @@ const DayPagerView = (() => {
             // js/dayPager.js's yesterday-snapshot header). All entries
             // render at once, each labeled with its outcome badge instead
             // of a due time.
+            // 2026-11-04 (Jeremy): Yesterday follows the slider like the later days. It starts at 12:00 AM and a
+            // drag walks the snapshot through the day (previewGhostsAt); beaten ghosts leave at their `doneAt`.
             const snapshot = DayPager.conjureYesterdaySnapshot(cd, currentGameDate);
-            renderGhostCanvas(snapshot, bounds.start);
+            const yStart = startOfViewedDay(bounds);
+            syncSliderTo(yStart);
+            renderGhostCanvas(snapshot, yStart);
             renderGhostAgenda(snapshot, 'Nothing was scheduled');
             setDayScopedTaskCount(snapshot.length);
             return;
@@ -625,6 +685,15 @@ const DayPagerView = (() => {
         setDayScopedTaskCount(ghosts.length);
     }
 
+    // Today is on screen. The slider no longer snaps back on release (2026-11-04, Jeremy), so a handle parked on Today
+    // stays put through a re-render of Today itself; coming back from ANOTHER day returns it to now. Without the
+    // TimeSliderView hook (tests, stale wiring) it falls back to the old flag-off + slider-to-now.
+    function todayShown(fromOtherDay) {
+        if (typeof deps.onTodayShown === 'function') { deps.onTodayShown(fromOtherDay); return; }
+        deps.setTimePreviewActive(false);
+        syncSliderTo(new Date());
+    }
+
     // The clock a viewed day starts at (its first minute) and the matching slider reset.
     function startOfViewedDay(bounds) {
         return new Date(bounds.start);
@@ -635,16 +704,16 @@ const DayPagerView = (() => {
         if (deps && typeof deps.syncSlider === 'function') deps.syncSlider(time);
     }
 
-    // Start of the day on screen when that day is a ghosted preview (offsets 1..6), else null (Today, Yesterday).
+    // Start of the day on screen when that day is a ghosted preview (Yesterday and offsets 1..6), else null (Today).
     // TimeSliderView asks this to decide whether a drag moves the REAL board (Today) or the viewed day's ghosts.
     function getViewedDayStart() {
-        if (!deps || viewedDayOffset <= 0) return null;
+        if (!deps || viewedDayOffset === 0) return null;
         return DayPager.dayBoundsForOffset(deps.getCurrentGameDate(), viewedDayOffset).start;
     }
 
     // Slider drag on a viewed day: slide that day's ghosts to `time` (no rebuild, no damage preview).
     function previewGhostsAt(time) {
-        if (!deps || !deps.gameCanvasEl || viewedDayOffset <= 0) return;
+        if (!deps || !deps.gameCanvasEl || viewedDayOffset === 0) return;
         const sprites = deps.gameCanvasEl.querySelectorAll('.day-pager-ghost');
         sprites.forEach((el, i) => { if (shownGhosts[i]) positionGhostSprite(el, shownGhosts[i], time); });
     }

@@ -134,6 +134,8 @@ const DayPager = (() => {
             )
             .map(item => ({
                 key: 'existing:' + item.id,
+                // The real item behind this ghost (2026-11-04): the ghost card's "Open task" button opens its card.
+                itemId: item.id,
                 definitionId: null,
                 name: item.name,
                 category: item.category || 'other',
@@ -305,6 +307,7 @@ const DayPager = (() => {
 
         const toEntry = (item, outcome) => ({
             key: 'existing:' + item.id,
+            itemId: item.id,
             definitionId: null,
             name: item.name,
             category: item.category || 'other',
@@ -328,9 +331,30 @@ const DayPager = (() => {
         return stillActive.concat(completed);
     }
 
+    // When a snapshot entry was beaten (2026-11-04, Jeremy): the completedAt (ms) of its Completed / Resisted entry, or
+    // null. Only a ✓ outcome has one (completed / avoided); a missed or Slipped zombie never leaves the field. One-offs
+    // are found by their own id, routine tasks and habits by definitionId + the day they were due. The Yesterday slider
+    // hides a ghost once its time passes this moment (DayPagerView.positionGhostSprite).
+    function doneTimeForEntry(entry, completedItems, targetDate) {
+        if (entry.outcome !== 'completed' && entry.outcome !== 'avoided') return null;
+        const dayString = targetDate.toDateString();
+        const match = (completedItems || []).find(item => {
+            if (!item || item.outcome === 'indulged' || !item.completedAt) return false;
+            if (entry.itemId != null) return item.id === entry.itemId;
+            if (entry.definitionId == null || item.definitionId !== entry.definitionId) return false;
+            if ((item.type === 'habit') !== !!entry.isHabit) return false;
+            const due = item.originalDueDate || item.dueDateTime;
+            return !!due && new Date(due).toDateString() === dayString;
+        });
+        if (!match) return null;
+        const ms = new Date(match.completedAt).getTime();
+        return Number.isFinite(ms) ? ms : null;
+    }
+
     // Full yesterday snapshot, sorted by due time — the -1 counterpart to
     // conjureGhostsForDay. deps = { definedHabits, definedRoutines,
     // definedTasks, activeItems, completedItems }.
+    // Each entry also carries `doneAt` (ms or null, see doneTimeForEntry).
     function conjureYesterdaySnapshot(deps, referenceTime) {
         const d = deps || {};
         const bounds = dayBoundsForOffset(referenceTime, MIN_OFFSET);
@@ -341,6 +365,7 @@ const DayPager = (() => {
         const existing = existingItemOutcomesForDay(d.activeItems, d.completedItems, targetDate);
 
         return habits.concat(tasks, existing)
+            .map(entry => Object.assign(entry, { doneAt: doneTimeForEntry(entry, d.completedItems, targetDate) }))
             .sort((a, b) => a.dueTime.getTime() - b.dueTime.getTime());
     }
 
@@ -443,6 +468,7 @@ const DayPager = (() => {
         scheduledHabitsForYesterday,
         scheduledTasksForYesterday,
         existingItemOutcomesForDay,
+        doneTimeForEntry,
         conjureYesterdaySnapshot,
         weekStripSummary,
     };

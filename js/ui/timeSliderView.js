@@ -69,6 +69,15 @@ const TimeSliderView = (() => {
     let deps = null;
     let canvasEl = null; // #gameCanvas, carries .time-previewing while scrubbing
 
+    // Parked handle (2026-11-04, Jeremy: "make the slider not snap back to current time when not being used ... click
+    // something that will make it snap back"). Releasing the handle on Today now LEAVES the preview on screen
+    // (`parkedDayStartMs` = the start of the day it was parked on, null while live). The Now button (`nowBtnEl`, optional
+    // dep `nowButtonEl`) returns to the current time; it shows whenever the slider is away from now: parked on Today
+    // or another day on screen. While parked the live board waits (same preview flag the day pager uses), and the
+    // loop's overdue hits catch up after Now.
+    let parkedDayStartMs = null;
+    let nowBtnEl = null;
+
     // ---- Scrub-coupled animation (2026-10-27, Jeremy) -------------------------------------------
     // While the slider is dragged, every LOOPING animation on the zombie sprites, the visible hero and
     // the cloud drift is frozen (playbackRate 0) and its currentTime is moved by the slider delta x
@@ -229,6 +238,7 @@ const TimeSliderView = (() => {
         lastScrubMinutes = minutes; // rest position: the next drag's delta starts here
         if (deps.labelEl) deps.labelEl.textContent = TimeSlider.formatLabel(time);
         updateParallax(minutes);
+        refreshNowButton();
     }
 
     // The day on screen when it is a ghosted future day (offsets 1..6 of the day pager), else null. While one is
@@ -236,6 +246,61 @@ const TimeSliderView = (() => {
     // damage preview or the preview flag (the pager holds it on), and releasing leaves the handle where it is.
     function viewedOtherDayStart() {
         return (deps && typeof deps.getViewedDayStart === 'function') ? deps.getViewedDayStart() : null;
+    }
+
+    function isParked() {
+        return parkedDayStartMs !== null;
+    }
+
+    function viewedOffset() {
+        return (deps && typeof deps.getViewedDayOffset === 'function') ? deps.getViewedDayOffset() : 0;
+    }
+
+    // Now button: shown while the slider is away from the current time (parked on Today, or another day on screen).
+    function refreshNowButton() {
+        if (!nowBtnEl) return;
+        const away = isParked() || viewedOffset() !== 0;
+        if (nowBtnEl.hidden === away) nowBtnEl.hidden = !away;
+    }
+
+    // Back to the live board at the current time: preview off, real positions + HP restored, handle on now.
+    function returnToNow() {
+        if (!deps) return;
+        parkedDayStartMs = null;
+        deps.setTimePreviewActive(false);
+        const now = new Date();
+        if (deps.sliderEl) applyPreview(now, false);
+        releaseAnimations();
+        if (sceneEl) sceneEl.classList.remove('parallax-scrubbing');
+        syncHandle(now);
+    }
+
+    // The Now button. On another day it goes back to Today first (the day pager's Today render calls onTodayShown,
+    // which returns here); on Today it just un-parks.
+    function handleNowClick(e) {
+        if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+        if (viewedOffset() !== 0 && typeof deps.goToToday === 'function') {
+            deps.goToToday();
+            if (isParked() || viewedOffset() !== 0) returnToNow(); // the pager's hook was missing: do it here
+            return;
+        }
+        returnToNow();
+    }
+
+    // DayPagerView tells us Today is on screen. Coming back from another day always returns to now; a re-render of
+    // Today itself (resize, list refresh) leaves a parked handle where the player put it.
+    function onTodayShown(fromOtherDay) {
+        if (!deps) return;
+        if (isParked() && !fromOtherDay) { refreshNowButton(); return; }
+        returnToNow();
+    }
+
+    // Called every tick (script.js's checkDayPagerRollover): a handle parked on Today returns to now once real time
+    // crosses midnight, so the board never keeps previewing a day that is over.
+    function checkParkedRollover(now) {
+        if (!isParked()) return;
+        const t = now || new Date();
+        if (TimeSlider.getDayBounds(t).start.getTime() !== parkedDayStartMs) returnToNow();
     }
 
     function handleScrubInput() {
@@ -254,6 +319,8 @@ const TimeSliderView = (() => {
         const minutes = Number(deps.sliderEl.value);
         const previewTime = TimeSlider.minutesOfDayToTime(minutes, dayStart);
         deps.setTimePreviewActive(true);
+        parkedDayStartMs = dayStart.getTime();
+        refreshNowButton();
         if (deps.labelEl) deps.labelEl.textContent = TimeSlider.formatLabel(previewTime);
         applyPreview(previewTime, true);
         scrubAnimations(lastScrubMinutes == null ? 0 : minutes - lastScrubMinutes);
@@ -266,18 +333,15 @@ const TimeSliderView = (() => {
 
     // Idempotent by design — 'change'/'pointerup'/'touchend'/'blur' can fire
     // more than once per release (e.g. a browser sending both 'change' and
-    // 'pointerup' for the same drag-end), and re-snapping to "now" a second
-    // time is harmless (same values, maybe a few ms later). Simpler and more
-    // robust than tracking which listener "owns" the release.
+    // 'pointerup' for the same drag-end). Since 2026-11-04 a release no longer
+    // snaps back to now on ANY day: the preview stays where the player left it
+    // and the Now button brings it back. Release only hands the looping
+    // animations back to CSS (the parked ghosts' pause rule holds their frame).
     function handleRelease() {
-        // A viewed future day keeps its preview on and the handle where the player left it.
         if (viewedOtherDayStart()) return;
-        deps.setTimePreviewActive(false);
-        const now = new Date();
-        applyPreview(now, false);
         releaseAnimations();
         if (sceneEl) sceneEl.classList.remove('parallax-scrubbing');
-        syncHandle(now);
+        refreshNowButton();
     }
 
     function init(injectedDeps) {
@@ -285,6 +349,12 @@ const TimeSliderView = (() => {
         sceneEl = (typeof document !== 'undefined') ? document.getElementById('graveyardScene') : null;
         canvasEl = (typeof document !== 'undefined') ? document.getElementById('gameCanvas') : null;
         if (!deps.sliderEl) return; // markup missing (e.g. a stale index.html) — degrade silently
+        parkedDayStartMs = null;
+        nowBtnEl = deps.nowButtonEl || null;
+        if (nowBtnEl) {
+            nowBtnEl.hidden = true;
+            nowBtnEl.addEventListener('click', handleNowClick);
+        }
 
         deps.sliderEl.min = 0;
         deps.sliderEl.max = TimeSlider.MINUTES_PER_DAY;
@@ -306,6 +376,10 @@ const TimeSliderView = (() => {
     return {
         init,
         syncHandle,
+        returnToNow,
+        onTodayShown,
+        checkParkedRollover,
+        isParked,
     };
 })();
 

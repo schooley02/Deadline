@@ -183,6 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Time slider (Milestone 4, 2026-07-20) — canvas/list seam, Today scope.
     const timeSliderEl = document.getElementById('timeSlider');
     const timeSliderLabelEl = document.getElementById('timeSliderLabel');
+    const timeSliderNowBtn = document.getElementById('timeSliderNow');
     // Day pager (Week scope sub-session 2, 2026-07-20).
     const dayPagerPrevBtn = document.getElementById('dayPagerPrev');
     const dayPagerNextBtn = document.getElementById('dayPagerNext');
@@ -1951,7 +1952,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // even while previewing (see js/loop.js's updateGame comment for
             // why); OPTIONAL so loop.test.js's existing deps objects don't
             // need updating for this alone.
-            checkDayPagerRollover: () => DayPagerView.checkRolloverReset(),
+            checkDayPagerRollover: () => { DayPagerView.checkRolloverReset(); TimeSliderView.checkParkedRollover(); },
             // LIVE mid-session day rollover (2026-07-20) — stateDeps()
             // already carries every field State.checkLiveDayRollover needs
             // (it's the same deps shape restoreGameState's rollover branch
@@ -1997,6 +1998,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // (2026-11-03). Both are null/no-ops on Today.
             getViewedDayStart: () => (typeof DayPagerView !== 'undefined' ? DayPagerView.getViewedDayStart() : null),
             onOtherDayScrub: (time) => { if (typeof DayPagerView !== 'undefined') DayPagerView.previewGhostsAt(time); },
+            // The handle stays where it is released (2026-11-04); the Now button returns it (and goes back to Today
+            // when another day is on screen).
+            nowButtonEl: timeSliderNowBtn,
+            getViewedDayOffset: () => (typeof DayPagerView !== 'undefined' ? DayPagerView.getViewedDayOffset() : 0),
+            goToToday: () => { if (typeof DayPagerView !== 'undefined') DayPagerView.goToOffset(0); },
 
             // Damage/routine-HP projection (2026-07-20, same session —
             // Jeremy's follow-up: "the preview also needs to show base
@@ -2050,6 +2056,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Point the hour slider at a time (a viewed day's first minute, or now on Today).
             syncSlider: (time) => TimeSliderView.syncHandle(time),
             renderCompletedItems: () => AgendaList.renderCompletedItems(agendaListDeps()),
+            // Today on screen: back from another day returns the slider to now; a parked handle on Today stays put.
+            onTodayShown: (fromOtherDay) => TimeSliderView.onTodayShown(fromOtherDay),
+            // Ghost card "Open task" (2026-11-04): the real one-off task's card, same path as tapping its zombie.
+            openItemCard: (itemId) => handleEnemyClick(itemId),
             // 2026-11-03: the scrolling list box (continuous day list, see dayPagerView.js).
             listScrollEl: document.querySelector('.task-list-container'),
             getCurrentGameDate: State.getCurrentGameDate,

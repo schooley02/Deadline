@@ -276,7 +276,8 @@ describe('continuous list: Yesterday keeps the static snapshot', () => {
         expect(document.getElementById('dayListFuture').classList.contains('day-pager-hidden')).toBe(true);
         // Yesterday shows yesterday's completions now (2026-11-03), so the block stays; completed-by-day.test.js covers what it holds.
         expect(deps.completedTasksSectionEl.classList.contains('day-pager-hidden')).toBe(false);
-        expect(deps.timeSliderEl.disabled).toBe(true);
+        // The slider works on Yesterday too since 2026-11-04 (ghost-slider-now.test.js).
+        expect(deps.timeSliderEl.disabled).toBe(false);
     });
 
     test('scrolling does not change the day while Yesterday is showing', () => {

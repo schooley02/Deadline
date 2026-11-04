@@ -103,7 +103,8 @@ describe('scrubbing (input event)', () => {
 });
 
 describe('release (change/pointerup/touchend/blur)', () => {
-    test('deactivates preview and strips the ghost class', () => {
+    // 2026-11-04 (Jeremy): a release no longer snaps back; the handle stays parked until returnToNow (the Now button).
+    test('keeps the preview parked; returnToNow deactivates it and strips the ghost class', () => {
         const el = makeItemEl();
         const item = { element: el, __x: 777 };
         const { deps, sliderEl, calls } = makeDeps({ activeItems: [item] });
@@ -114,8 +115,15 @@ describe('release (change/pointerup/touchend/blur)', () => {
         expect(el.classList.contains('time-preview-ghost')).toBe(true);
 
         sliderEl.dispatchEvent(new Event('change'));
+        expect(calls.previewActive).toEqual([true]);
+        expect(el.classList.contains('time-preview-ghost')).toBe(true);
+        expect(sliderEl.value).toBe('600');
+        expect(TimeSliderView.isParked()).toBe(true);
+
+        TimeSliderView.returnToNow();
         expect(calls.previewActive).toEqual([true, false]);
         expect(el.classList.contains('time-preview-ghost')).toBe(false);
+        expect(TimeSliderView.isParked()).toBe(false);
     });
 
     test('is idempotent across multiple release-style events', () => {
@@ -193,7 +201,7 @@ describe('damage/routine HP preview (optional collaborator group)', () => {
         expect(heroBaseZoneEl.classList.contains('time-preview-ghost')).toBe(true);
     });
 
-    test('release restores the exact live base health and strips ghost classes', () => {
+    test('returning to now restores the exact live base health and strips ghost classes', () => {
         const due = new Date(new Date().setHours(0, 1, 0, 0));
         const item = { element: makeItemEl(), dueDateTime: due, __x: 300 };
         const { deps: baseDeps, sliderEl } = makeDeps({ activeItems: [item] });
@@ -204,6 +212,7 @@ describe('damage/routine HP preview (optional collaborator group)', () => {
         sliderEl.value = String(23 * 60);
         sliderEl.dispatchEvent(new Event('input'));
         sliderEl.dispatchEvent(new Event('change'));
+        TimeSliderView.returnToNow(); // the Now button (release keeps the preview since 2026-11-04)
 
         expect(Number(baseHealthDisplayEl.textContent)).toBe(80);
         expect(baseElement.classList.contains('time-preview-ghost')).toBe(false);
@@ -273,7 +282,7 @@ describe('TimeSliderView.syncHandle (live-tick hook)', () => {
 describe('hero spotlight ghosting (2026-10-27)', () => {
     afterEach(() => { document.body.innerHTML = ''; });
 
-    test('scrubbing marks #gameCanvas .time-previewing; release clears it', () => {
+    test('scrubbing marks #gameCanvas .time-previewing; returning to now clears it', () => {
         const canvas = document.createElement('div');
         canvas.id = 'gameCanvas';
         const hero = document.createElement('div');
@@ -294,6 +303,8 @@ describe('hero spotlight ghosting (2026-10-27)', () => {
         expect(canvas.classList.contains('time-previewing')).toBe(true);
 
         sliderEl.dispatchEvent(new Event('change'));
+        expect(canvas.classList.contains('time-previewing')).toBe(true); // parked
+        TimeSliderView.returnToNow();
         expect(canvas.classList.contains('time-previewing')).toBe(false);
     });
 });
@@ -368,7 +379,7 @@ describe('preview attackers get the red row (2026-10-27)', () => {
         return { element: makeItemEl(), listItemElement: row, dueDateTime: new Date(new Date().setHours(dueHour, 0, 0, 0)), ...extra };
     }
 
-    test('rows whose zombie has reached the base at the previewed time turn red; release clears', () => {
+    test('rows whose zombie has reached the base at the previewed time turn red; returning to now clears', () => {
         const at11 = rowItem(11);
         const at15 = rowItem(15);
         const lurker = rowItem(11, { isNegative: true }); // non-threatening
@@ -397,6 +408,7 @@ describe('preview attackers get the red row (2026-10-27)', () => {
         sliderEl.value = String(20 * 60);
         sliderEl.dispatchEvent(new Event('input'));
         sliderEl.dispatchEvent(new Event('change'));
+        TimeSliderView.returnToNow();
         expect(document.querySelectorAll('.preview-attack-list-item').length).toBe(0);
     });
 });
