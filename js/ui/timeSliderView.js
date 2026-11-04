@@ -78,6 +78,13 @@ const TimeSliderView = (() => {
     let parkedDayStartMs = null;
     let nowBtnEl = null;
 
+    // Idle auto-return (2026-11-04, Jeremy): any tap, click, key or scroll on the page counts as activity; once the
+    // slider has been away from now for CONFIG.TIME_PREVIEW_IDLE_RETURN_MS with none, checkIdleReturn (every tick)
+    // does what the Now button does. Coming back to the app after a while therefore lands on the live board.
+    let lastActivityMs = Date.now();
+    const ACTIVITY_EVENTS = ['pointerdown', 'keydown', 'wheel', 'touchstart'];
+    function noteActivity() { lastActivityMs = Date.now(); }
+
     // ---- Scrub-coupled animation (2026-10-27, Jeremy) -------------------------------------------
     // While the slider is dragged, every LOOPING animation on the zombie sprites, the visible hero and
     // the cloud drift is frozen (playbackRate 0) and its currentTime is moved by the slider delta x
@@ -295,6 +302,24 @@ const TimeSliderView = (() => {
         returnToNow();
     }
 
+    function idleReturnMs() {
+        const v = (typeof CONFIG !== 'undefined' && CONFIG) ? Number(CONFIG.TIME_PREVIEW_IDLE_RETURN_MS) : NaN;
+        return Number.isFinite(v) ? v : 3 * 60 * 1000;
+    }
+
+    // Called every tick (script.js's checkDayPagerRollover). Returns true when it brought the slider back.
+    function checkIdleReturn(nowMs) {
+        if (!deps || !deps.sliderEl) return false;
+        const limit = idleReturnMs();
+        if (!(limit > 0)) return false;
+        if (!isParked() && viewedOffset() === 0) return false;
+        const t = Number.isFinite(nowMs) ? nowMs : Date.now();
+        if (t - lastActivityMs < limit) return false;
+        lastActivityMs = t;
+        handleNowClick();
+        return true;
+    }
+
     // Called every tick (script.js's checkDayPagerRollover): a handle parked on Today returns to now once real time
     // crosses midnight, so the board never keeps previewing a day that is over.
     function checkParkedRollover(now) {
@@ -304,6 +329,7 @@ const TimeSliderView = (() => {
     }
 
     function handleScrubInput() {
+        noteActivity();
         const otherDayStart = viewedOtherDayStart();
         if (otherDayStart) {
             const otherMinutes = Number(deps.sliderEl.value);
@@ -338,6 +364,7 @@ const TimeSliderView = (() => {
     // and the Now button brings it back. Release only hands the looping
     // animations back to CSS (the parked ghosts' pause rule holds their frame).
     function handleRelease() {
+        noteActivity();
         if (viewedOtherDayStart()) return;
         releaseAnimations();
         if (sceneEl) sceneEl.classList.remove('parallax-scrubbing');
@@ -350,6 +377,10 @@ const TimeSliderView = (() => {
         canvasEl = (typeof document !== 'undefined') ? document.getElementById('gameCanvas') : null;
         if (!deps.sliderEl) return; // markup missing (e.g. a stale index.html) — degrade silently
         parkedDayStartMs = null;
+        noteActivity();
+        if (typeof document !== 'undefined') {
+            ACTIVITY_EVENTS.forEach((evt) => document.addEventListener(evt, noteActivity, { capture: true, passive: true }));
+        }
         nowBtnEl = deps.nowButtonEl || null;
         if (nowBtnEl) {
             nowBtnEl.hidden = true;
@@ -379,6 +410,7 @@ const TimeSliderView = (() => {
         returnToNow,
         onTodayShown,
         checkParkedRollover,
+        checkIdleReturn,
         isParked,
     };
 })();

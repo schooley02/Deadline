@@ -1952,7 +1952,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // even while previewing (see js/loop.js's updateGame comment for
             // why); OPTIONAL so loop.test.js's existing deps objects don't
             // need updating for this alone.
-            checkDayPagerRollover: () => { DayPagerView.checkRolloverReset(); TimeSliderView.checkParkedRollover(); },
+            checkDayPagerRollover: () => { DayPagerView.checkRolloverReset(); TimeSliderView.checkParkedRollover(); TimeSliderView.checkIdleReturn(); },
             // LIVE mid-session day rollover (2026-07-20) — stateDeps()
             // already carries every field State.checkLiveDayRollover needs
             // (it's the same deps shape restoreGameState's rollover branch

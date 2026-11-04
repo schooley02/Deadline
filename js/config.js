@@ -310,6 +310,11 @@ const CONFIG = {
     // minute moved (drag right = forward, left = reverse, finger still = frozen). 20 => a full 24h drag plays
     // ~29 s of animation. Higher = faster. Display only. js/ui/timeSliderView.js.
     SCRUB_ANIM_MS_PER_MINUTE: 20,
+    // Time slider auto-return (2026-11-04, Jeremy: "auto return after a few idle minutes"). While the slider is away
+    // from now (parked on Today, or another day on screen) the live board waits; after this long with no tap, click,
+    // key or scroll anywhere on the page it returns to now (same as the Now button). 0 = never. UI timing, not a
+    // balance number. js/ui/timeSliderView.js checkIdleReturn.
+    TIME_PREVIEW_IDLE_RETURN_MS: 3 * 60 * 1000,
     // Stats best/worst day per run (D2 step 5, 2026-10-27): score = done*done - missed*missed - damage*damage
     // (done = tasks + sub-tasks + habits; damage = base HP lost that day). Display only -- not a balance number.
     DAILY_SCORE_WEIGHTS: { done: 1, missed: 1, damage: 1 },

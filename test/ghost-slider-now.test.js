@@ -269,6 +269,76 @@ describe('TimeSliderView: the handle stays put; the Now button returns it', () =
     });
 });
 
+describe('TimeSliderView: idle auto-return (2026-11-04, Jeremy: "auto return after a few idle minutes")', () => {
+    let TSV, deps, sliderEl, calls, offset;
+    const LIMIT = CONFIG.TIME_PREVIEW_IDLE_RETURN_MS;
+
+    function make() {
+        jest.resetModules();
+        document.body.innerHTML = '';
+        TSV = require('../js/ui/timeSliderView.js');
+        sliderEl = document.createElement('input'); sliderEl.type = 'range'; document.body.appendChild(sliderEl);
+        offset = 0;
+        calls = { preview: [], today: 0 };
+        deps = {
+            sliderEl, labelEl: document.createElement('div'), nowButtonEl: document.createElement('button'),
+            getActiveItems: () => [], isNonThreatening: () => false,
+            calculateTimelineXWithClustering: () => 555, updateMidnightLine: () => {}, dims: () => DIMS,
+            setTimePreviewActive: (v) => calls.preview.push(v),
+            getViewedDayStart: () => (offset === 0 ? null : at(5, 0)),
+            onOtherDayScrub: () => {},
+            getViewedDayOffset: () => offset,
+            goToToday: () => { calls.today++; offset = 0; TSV.onTodayShown(true); },
+        };
+        TSV.init(deps);
+    }
+    const drag = (minutes) => { sliderEl.value = String(minutes); sliderEl.dispatchEvent(new Event('input')); sliderEl.dispatchEvent(new Event('change')); };
+
+    test('the limit is a few minutes and lives in CONFIG', () => {
+        expect(LIMIT).toBe(3 * 60 * 1000);
+    });
+
+    test('a parked handle returns to now after the idle limit, not before', () => {
+        make();
+        drag(60);
+        const t0 = Date.now();
+        expect(TSV.checkIdleReturn(t0 + LIMIT - 1000)).toBe(false);
+        expect(TSV.isParked()).toBe(true);
+        expect(TSV.checkIdleReturn(t0 + LIMIT + 1000)).toBe(true);
+        expect(TSV.isParked()).toBe(false);
+        expect(calls.preview[calls.preview.length - 1]).toBe(false);
+    });
+
+    test('any tap, key or scroll on the page restarts the wait', () => {
+        make();
+        drag(60);
+        const realNow = Date.now;
+        const later = realNow() + LIMIT - 1000;
+        Date.now = () => later;
+        try { document.body.dispatchEvent(new Event('pointerdown', { bubbles: true })); } finally { Date.now = realNow; }
+        expect(TSV.checkIdleReturn(later + LIMIT - 1000)).toBe(false);
+        expect(TSV.checkIdleReturn(later + LIMIT + 1000)).toBe(true);
+    });
+
+    test('another day on screen goes back to Today after the idle limit', () => {
+        make();
+        offset = 3;
+        expect(TSV.checkIdleReturn(Date.now() + LIMIT + 1000)).toBe(true);
+        expect(calls.today).toBe(1);
+        expect(offset).toBe(0);
+    });
+
+    test('nothing happens while the slider is live, or with the limit set to 0', () => {
+        make();
+        expect(TSV.checkIdleReturn(Date.now() + LIMIT * 10)).toBe(false);
+        drag(60);
+        const saved = CONFIG.TIME_PREVIEW_IDLE_RETURN_MS;
+        CONFIG.TIME_PREVIEW_IDLE_RETURN_MS = 0;
+        try { expect(TSV.checkIdleReturn(Date.now() + LIMIT * 10)).toBe(false); } finally { CONFIG.TIME_PREVIEW_IDLE_RETURN_MS = saved; }
+        expect(TSV.isParked()).toBe(true);
+    });
+});
+
 describe('wiring', () => {
     const read = (f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
     test('script.js passes the Now button, Today hooks, the ghost Open task path and the midnight check', () => {
@@ -279,6 +349,7 @@ describe('wiring', () => {
         expect(src).toMatch(/onTodayShown:\s*\(fromOtherDay\)\s*=>\s*TimeSliderView\.onTodayShown\(fromOtherDay\)/);
         expect(src).toMatch(/openItemCard:\s*\(itemId\)\s*=>\s*handleEnemyClick\(itemId\)/);
         expect(src).toMatch(/checkDayPagerRollover:[^\n]*TimeSliderView\.checkParkedRollover\(\)/);
+        expect(src).toMatch(/checkDayPagerRollover:[^\n]*TimeSliderView\.checkIdleReturn\(\)/);
     });
     test('index.html has the Now button and loads ghostCard.js; sw.js precaches it', () => {
         const html = read('index.html');

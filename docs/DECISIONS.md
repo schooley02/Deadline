@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-04 (slider idle auto-return) -- The slider goes back to now after 3 idle minutes (Claude app session; Opus; Jeremy: "lets have it auto return after a few idle minutes")
+
+- Answers the open question from the ghosts + Now entry below (a parked slider pauses the live board). `CONFIG.TIME_PREVIEW_IDLE_RETURN_MS` = 3 min (UI timing, not a balance number; 0 = never). While the slider is away from now (parked on Today OR another day on screen, since both pause the board) and the page has had no pointerdown / keydown / wheel / touchstart for that long, `TimeSliderView.checkIdleReturn` (every tick, from script.js `checkDayPagerRollover`) does what the Now button does: back to Today, back to now. Dragging the slider counts as activity too. Because the check runs on the loop tick, coming back to the app after a while lands on the live board.
+- Choices made without asking (easy to change): 3 minutes; any tap / key / scroll anywhere counts (so reading another day's list keeps it open); another day on screen is included, not just a parked Today.
+- sw v253. Tests: ghost-slider-now (+5: limit, before / after, activity restarts the wait, another day goes to Today, live or 0 = no-op). Live in headless Chromium with the limit set to 3 s: a click at 2 s held it, it returned 3 s after the last click; Tomorrow returned to Today; no errors.
+
+---
+
 ## 2026-11-04 (ghosts follow the slider + tappable; the slider stays put, Now button) -- (Claude app session; Opus; Jeremy)
 
 Jeremy: "when i use the time scroller on other days, the ghost zombies need to move accordingly to the time of day for that day based on their due times ... They should also be clickable so the user can look at which zombie that is." Answered yes to (1) a beaten ghost on Yesterday leaves once the slider passes the moment it was beaten, and (2) an "Open task" button for a ghost that is a real one-off task. Then: "make the slider not snap back to current time when not being used ... instead click something that will make it snap back".
