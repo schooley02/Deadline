@@ -144,9 +144,29 @@ const HowItWorks = (() => {
         };
     }
 
+    // ---- When a run ends (run-end carryover, 2026-11-03; docs/RUN_CARRYOVER_PLAN.md) ------------------------------
+    function runsTopic(config) {
+        const table = config.ROUTINE_SLOTS_PER_LEVEL || {};
+        const levels = Object.keys(table).map(Number).filter(l => l > 1 && table[l] > (table[l - 1] || 0)).sort((a, b) => a - b);
+        const unlockLine = levels.length
+            ? ` Routine slots normally unlock at ${andList(levels.map(l => 'level ' + l))}.`
+            : '';
+        return {
+            id: 'runs',
+            title: 'When a run ends',
+            what: [
+                'When the church falls, the run is over. The game-over card shows what the run came to, what hit hardest, and what the next run keeps.',
+                'You keep your habits, routines and heroes (with their levels), your open tasks and sub-tasks with their due dates, your run history, achievements and daily records, and your routine slots: a new run never starts with fewer slots than the most you have ever earned.' + unlockLine,
+                'The run itself starts over: church health, level, XP and points, level perks, pushback charges, the village and the sky. Held items earned in the run (bought with its points, or gifted by a level perk or a village star) go with it; an item that cannot be earned again by playing is kept until you use it.',
+                'An overdue task carried into a new run starts it at the church with a fresh clock, so the new run is not hit for the old run\'s unpaid time.',
+            ],
+            why: 'A fallen church should cost you the run, not your real to-do list or the routines you spent weeks building. Level, perks and items reset so each run is a fresh climb; slots stay because a routine you can no longer switch on is a routine you stop using.',
+        };
+    }
+
     function topics(config) {
         const cfg = config || (typeof CONFIG !== 'undefined' ? CONFIG : {});
-        return [pointsTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg)];
+        return [pointsTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg), runsTopic(cfg)];
     }
 
     // ---- Markup ------------------------------------------------------------------------------------------------
@@ -199,7 +219,7 @@ const HowItWorks = (() => {
     // Capture + stopPropagation is deliberate: Modal's outside-click dismiss (a bubbling document handler) would
     // otherwise see the same tap and close the popup or window the button sits in, and a row's own tap handler
     // (agenda rows, hero rows) must not fire as well.
-    const TOPIC_IDS = ['points', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather'];
+    const TOPIC_IDS = ['points', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'runs'];
 
     function buttonHtml(topicId, label) {
         if (TOPIC_IDS.indexOf(topicId) === -1) return '';

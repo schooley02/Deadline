@@ -490,7 +490,17 @@ document.addEventListener('DOMContentLoaded', () => {
             // so it's reached through this pre-bound function — same
             // forward-reference reasoning as heroesCompletionRate/
             // heroesStarRating above.
-            renderGameOverReview: (deps) => GameOverView.renderReviewCard(deps),
+            // Run-end carryover (2026-11-03): the card also says what the next run keeps and what it
+            // loses, from the live state (js/runCarryover.js summary; the items are still on the canvas
+            // when the church falls, Restart is what carries them).
+            renderGameOverReview: (deps) => GameOverView.renderReviewCard(Object.assign({}, deps, {
+                carry: RunCarryover.summary({
+                    activeItems: State.getActiveItems(),
+                    routineSlots: State.getRoutineSlots(),
+                    inventory: State.getPlayerInventory(),
+                    catalog: CONFIG.SHOP_ITEMS,
+                }),
+            })),
             // Village Build 3: the run's real tiers, read by Damage.gameOver just before the record joins history.
             getVillageTiers: () => realVillageTiers(),
             // Achievements sub-session 2 (session 65): run-end lifetime bump,
@@ -2915,6 +2925,7 @@ document.addEventListener('DOMContentLoaded', () => {
         State.setRunHistory([]);
         State.setLifetimeStats(Achievements.freshLifetimeStats());
         State.setAchievements(Achievements.freshUnlocked());
+        State.setBestRoutineSlots(0); // run-end carryover: a dev Reset forgets the best slot count too
         if (typeof Persistence !== 'undefined') Persistence.clear();
         initGame();
         saveGame();
@@ -3354,13 +3365,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (restartButton) {
-        restartButton.addEventListener('click', () => {
-            // A restart abandons the dead run — clear its save so a reload
-            // before the first new mutation doesn't resurrect it.
-            if (typeof Persistence !== 'undefined') Persistence.clear();
-            initGame();
-            saveGame();
+        restartButton.addEventListener('click', startNextRun);
+    }
+
+    // Run-end carryover (2026-11-03, js/runCarryover.js, docs/RUN_CARRYOVER_PLAN.md). Restart
+    // abandons the dead run (its save is cleared so a reload before the first new mutation
+    // doesn't resurrect it), but three things ride into the next run: the player's open one-off
+    // tasks (with their sub-tasks and due dates), their best-ever routine slot count (State keeps
+    // it; initGame reads it), and any held item flagged `keptAcrossRuns` in CONFIG.SHOP_ITEMS
+    // (none today). Habit / routine instances are regenerated from their definitions by initGame.
+    function startNextRun() {
+        const carried = RunCarryover.openTasksToCarry(State.getActiveItems()).map(RunCarryover.detachForNewRun);
+        const keptInventory = RunCarryover.inventoryToKeep(State.getPlayerInventory(), CONFIG.SHOP_ITEMS);
+        // Carried tasks keep their ids, so the counter must not restart below them (sub-tasks point
+        // at their parent by id, and a reused id would collide with a new item).
+        const idCounter = State.getItemIdCounter();
+        if (typeof Persistence !== 'undefined') Persistence.clear();
+        initGame();
+        if (carried.length) State.setItemIdCounter(idCounter);
+        State.setPlayerInventory(keptInventory);
+        const deps = stateDeps();
+        carried.forEach(item => {
+            deps.addItemToGame(item);
+            // Same as restoreGameState: an already-overdue task re-enters at the base with a FRESH
+            // damage clock -- the old run's unpaid ticks are gone with it, no catch-up here.
+            if (item.isOverdue) {
+                if (item.element) item.element.classList.add('enemy-at-base');
+                if (item.listItemElement) item.listItemElement.classList.add('overdue-list-item');
+                item.lastDamageTickTime = Date.now();
+            }
         });
+        // Parents' list items were built before their sub-tasks were back -- rebuild them (restore does the same).
+        State.getActiveItems().forEach(item => {
+            if (!item.parentId && item.subTasks && item.subTasks.length > 0 && item.listItemElement) {
+                item.listItemElement.remove();
+                deps.createListItem(item);
+            }
+        });
+        updateTaskCountDisplay();
+        deps.sortAndRenderActiveList(); // restore ends the same way: the rebuilt parent rows need re-placing in the list
+        saveGame();
     }
 
     // Initialize definedTasks array

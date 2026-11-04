@@ -97,3 +97,48 @@
     font-size: 1rem;
     font-weight: 600;
 }
+
+/* Run-end carryover (2026-11-03, docs/RUN_CARRYOVER_PLAN.md): "Next run" -- what the player keeps and
+   what starts over, under the blame list. Two stacked columns on a phone; side by side when the card
+   has the room (it is capped at 420px, so this only ever splits at the card's full width). */
+.game-over-carry {
+    margin-top: var(--space-4);
+    padding-top: var(--space-3);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+}
+
+.game-over-carry-heading {
+    flex: 1 0 100%;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.game-over-carry-col {
+    flex: 1 1 160px;
+    min-width: 0;
+}
+
+.game-over-carry-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.game-over-carry-label--kept { color: #8fd98f; }
+.game-over-carry-label--lost { color: rgba(255, 255, 255, 0.6); }
+
+.game-over-carry-list {
+    list-style: disc;
+    margin: 0;
+    padding-left: 18px;
+    font-size: 12px;
+    line-height: 1.35;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.game-over-carry-list li { margin-bottom: 2px; overflow-wrap: anywhere; }

@@ -384,6 +384,11 @@ const CONFIG = {
     //                         automatically when the free charges of the size run out (Build B, 2026-11-02)
     //             cheatDay -> {} (no numeric effect — applying it just sets
     //                         the target habit's cheatDayDate; see items.js)
+    //   keptAcrossRuns (optional, default false; run-end carryover 2026-11-03, js/runCarryover.js):
+    //             true = a held item of this row SURVIVES a new run (kept until used). Reserved for
+    //             items that cannot be re-earned by playing (a paid or one-time item). NO row sets
+    //             it today: everything below is bought with run points or gifted by a level perk /
+    //             village star the next run pays again, so the whole inventory resets with the run.
     SHOP_ITEMS: [
         { id: 'repair_small',  name: 'Repair Kit (Small)',  category: 'repair',   baseCost: 25,  consumable: true,  effect: { healAmount: 15 } },
         { id: 'repair_medium', name: 'Repair Kit (Medium)', category: 'repair',   baseCost: 50,  consumable: true,  effect: { healAmount: 35 } },

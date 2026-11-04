@@ -23,14 +23,14 @@ const topic = (id, cfg) => all(cfg).find(t => t.id === id);
 // Everything a player can read in a topic, as one lowercase-insensitive string.
 const textOf = (t) => [].concat(t.what || [], t.list || [], t.html || '', t.why || '').join(' ');
 
-describe('the six topics', () => {
-    test('Points, Pushbacks, Streaks, Hero ranking, Achievements, The sky, in that order', () => {
-        expect(all().map(t => t.title)).toEqual(['Points', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky']);
-        expect(all().map(t => t.id)).toEqual(['points', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather']);
+describe('the seven topics', () => {
+    test('Points, Pushbacks, Streaks, Hero ranking, Achievements, The sky, When a run ends, in that order', () => {
+        expect(all().map(t => t.title)).toEqual(['Points', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'When a run ends']);
+        expect(all().map(t => t.id)).toEqual(['points', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'runs']);
     });
 
-    test('Streaks, Hero ranking and Achievements carry the approved "Why"; Points and Pushbacks do not invent one', () => {
-        ['streaks', 'heroes', 'achievements', 'weather'].forEach(id => expect(topic(id).why).toBeTruthy());
+    test('Streaks, Hero ranking, Achievements, The sky and When a run ends carry a "Why"; Points and Pushbacks do not invent one', () => {
+        ['streaks', 'heroes', 'achievements', 'weather', 'runs'].forEach(id => expect(topic(id).why).toBeTruthy());
         ['points', 'pushbacks'].forEach(id => expect(topic(id).why).toBeUndefined());
     });
 });
@@ -214,8 +214,8 @@ describe('Achievements', () => {
 describe('windowHtml', () => {
     test('one <details> per topic, in order, with the corner x', () => {
         const html = HowItWorks.windowHtml(all());
-        expect((html.match(/<details /g) || []).length).toBe(6);
-        const order = ['Points', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky'].map(n => html.indexOf(`<summary>${n}</summary>`));
+        expect((html.match(/<details /g) || []).length).toBe(7);
+        const order = ['Points', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'When a run ends'].map(n => html.indexOf(`<summary>${n}</summary>`));
         expect(order.every(i => i > 0)).toBe(true);
         expect(order).toEqual(order.slice().sort((a, b) => a - b));
         expect(html).toContain('modal-close-x');
@@ -353,5 +353,23 @@ describe('The sky (run climate)', () => {
         ['Clear', 'Hazy', 'Overcast', 'Fog', 'Storm'].forEach(b => expect(text).toContain(b));
         expect(text).toContain('A new run starts Hazy');
         expect(text).toContain('once a day');
+    });
+});
+
+describe('When a run ends (run-end carryover, 2026-11-03)', () => {
+    const textOf = (t) => [].concat(t.what || [], t.list || [], t.why || '').join(' ');
+    test('says what is kept and what starts over, in plain words', () => {
+        const text = textOf(topic('runs'));
+        expect(text).toContain('habits, routines and heroes');
+        expect(text).toContain('open tasks and sub-tasks with their due dates');
+        expect(text).toContain('never starts with fewer slots than the most you have ever earned');
+        expect(text).toContain('church health, level, XP and points');
+        expect(text).toContain('cannot be earned again by playing is kept until you use it');
+        expect(text).toContain('fresh clock');
+    });
+    test('quotes the slot-unlock levels from CONFIG, not a hardcoded list', () => {
+        expect(textOf(topic('runs'))).toContain('Routine slots normally unlock at level 3, level 5 and level 7.');
+        const retuned = Object.assign({}, CONFIG, { ROUTINE_SLOTS_PER_LEVEL: { 1: 1, 2: 2, 3: 2 } });
+        expect(textOf(topic('runs', retuned))).toContain('unlock at level 2.');
     });
 });

@@ -34,3 +34,6 @@ Retire `steady_hands`; add three families. New lifetime counters: `heroHonorDays
 
 ## Model
 Page: Sonnet, medium. Achievements: tier design Fable/Opus, build Sonnet medium.
+
+## Added 2026-11-03: topic 7, "When a run ends" (id `runs`)
+Copy lives in `js/ui/howItWorks.js` `runsTopic` (slot-unlock levels are read from `CONFIG.ROUTINE_SLOTS_PER_LEVEL`). Says what the next run keeps (habits / routines / heroes, open tasks, routine slots never below the best, items that cannot be re-earned) and what starts over, with a "Why". Same facts as the game-over card's "Next run" lists; if one changes, change both (`docs/RUN_CARRYOVER_PLAN.md`).

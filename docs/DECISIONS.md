@@ -4,6 +4,18 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-03 (run-end carryover) -- A new run keeps open tasks, the best routine-slot count, and (by flag) un-earnable items; the game-over card and How Deadline works say what carries and what resets (Claude app session; Fable 5.1 decision -> Sonnet build; Jeremy)
+
+- **Jeremy's asks:** do not lose items when a run ends; do not lose routine slots; explain at run end what carries over and what is lost. His rule for items: "anything that can't be re-earned from playing, like bought items or one-time unlocks, should be kept until used, regardless of the run." Answers: yes to that rule (a flagged "kept" group, empty today); yes to carrying open one-off tasks; slots = option A.
+- **Decision:** narrows the 2026-07-19 session 52 "carry-over on new run = FULL RESET" (PROJECT_SPEC's "XP and slots carry over" stays overridden). New: (1) open one-off tasks + sub-tasks carry with due dates (overdue ones get a fresh damage clock); (2) `bestRoutineSlots` high-water mark, new run slots = max(table[level], best); (3) `CONFIG.SHOP_ITEMS` rows may set `keptAcrossRuns: true` (none do yet: everything is re-earnable) and those survive. Everything else still resets.
+- **Why A for slots:** keeps the routines the player built usable from day one; level/XP/perks/discounts still reset so each run is a climb, and the level-oscillation exploit that banked slot points closed stays closed (nothing reads level for slots but the table). **Rejected B (keep player level):** permanent Lv4/8 discounts and a paid-once perk ledger, shop rebalance, bigger blast radius, loses the fresh-start framing.
+- **Why tasks:** Restart wiped the typed-in to-do list, which MECHANICS.md already said should carry ("New run starts with the same active tasks"); a productivity app should not delete real to-dos when a game ends. Habit / routine instances are regenerated from definitions, KO ghosts are the old run's leftovers: not carried.
+- **Built:** `js/runCarryover.js` (pure), `State.bestRoutineSlots` + `slotsForLevel`, script.js `startNextRun`, `GameOverView.buildCarryoverHtml` ("Next run": You keep / Starts over), How Deadline works topic `runs`, `docs/RUN_CARRYOVER_PLAN.md`. Root save field `bestRoutineSlots` (additive, NO schema bump). sw v240.
+- **Found live while building:** after Restart the rebuilt parent list row was missing until `sortAndRenderActiveList()` ran (restore ends with that call); fixed + pinned by a test.
+- **Deferred (no kept item exists yet):** spend the "this run" copy before the kept copy; exclude kept items from the 1.5^held shop price.
+
+---
+
 ## 2026-11-03 (dev tools) -- A DEV button + demo panel behind a Settings "Developer tools" switch, to preview the sky and the village on the phone without URL params (Claude app session; Opus plan -> Sonnet build; Jeremy). Weather + village stars BUILT (sw v238); church damage preview (art only) BUILT later the same day (sw v239).
 
 - **Jeremy's calls:** the button is shown only while a Settings "Developer tools" switch is on (off by default, per device), at the bottom-left, and it replaces the `?climate=` / `?xTier=` URL params for phone testing. Start with the weather preview. Church damage was offered as a second step and deliberately left out (below).

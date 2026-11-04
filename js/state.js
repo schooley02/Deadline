@@ -62,6 +62,7 @@ const State = (() => {
     // every <script> tag — including runStats.js/achievements.js — had
     // already executed).
     let baseHealth, playerXP, playerLevel, playerPoints, routineSlots;
+    let bestRoutineSlots = 0; // run-end carryover (2026-11-03): the most routine slots ever held; survives a new run
     let playerInventory = {};
     let sickDayDate = null;
     // Pushback charges (Build B, 2026-11-02): use timestamps (ms) of the FREE charges spent,
@@ -99,7 +100,18 @@ const State = (() => {
     const getPlayerPoints = () => playerPoints;
     const setPlayerPoints = (n) => { playerPoints = n; };
     const getRoutineSlots = () => routineSlots;
-    const setRoutineSlots = (n) => { routineSlots = n; };
+    // Run-end carryover (2026-11-03, js/runCarryover.js): the most slots ever held rides along in
+    // `bestRoutineSlots` (root save field) and a new run never starts below it. The setter keeps the
+    // high-water mark, so every path that raises slots (level-up, restore) records it for free.
+    const setRoutineSlots = (n) => {
+        routineSlots = n;
+        if (typeof n === 'number' && isFinite(n) && n > bestRoutineSlots) bestRoutineSlots = Math.floor(n);
+    };
+    const getBestRoutineSlots = () => bestRoutineSlots;
+    const setBestRoutineSlots = (n) => {
+        bestRoutineSlots = (typeof RunCarryover !== 'undefined') ? RunCarryover.sanitizeBestSlots(n)
+            : ((typeof n === 'number' && isFinite(n) && n > 0) ? Math.floor(n) : 0);
+    };
     const getPlayerInventory = () => playerInventory;
     const setPlayerInventory = (obj) => { playerInventory = obj; };
     const getSickDayDate = () => sickDayDate;
@@ -238,6 +250,13 @@ const State = (() => {
     const getLastRegenTickMs = () => lastRegenTickMs;
     const setLastRegenTickMs = (n) => { lastRegenTickMs = n; };
 
+    // Slots for a player level: CONFIG.ROUTINE_SLOTS_PER_LEVEL, never below bestRoutineSlots.
+    function slotsForLevel(level) {
+        const table = CONFIG.ROUTINE_SLOTS_PER_LEVEL;
+        if (typeof RunCarryover !== 'undefined') return RunCarryover.slotsFor(level, bestRoutineSlots, table);
+        return Math.max((table && table[level]) || 1, bestRoutineSlots);
+    }
+
     function initGame(deps) {
         // Calculate dimensions
         deps.setGameScreenWidth(deps.gameCanvas.offsetWidth);
@@ -259,7 +278,9 @@ const State = (() => {
         // lifetimeStats/achievements are likewise deliberately NOT touched
         // here — lifetime data, must survive restart (session 64,
         // ACHIEVEMENTS_PLAN.md; same reasoning as runHistory above).
-        setRoutineSlots(CONFIG.ROUTINE_SLOTS_PER_LEVEL[1] || 1);
+        // Run-end carryover (2026-11-03): a new run starts with the table's level-1 slots OR the most
+        // the player ever earned, whichever is more (bestRoutineSlots is NOT reset here, like runHistory).
+        setRoutineSlots(slotsForLevel(1));
 
         deps.updatePlayerDisplays();
 
@@ -340,6 +361,7 @@ const State = (() => {
             today: getToday(),
             achievements: getAchievements(),
             routineSlots: getRoutineSlots(),
+            bestRoutineSlots: getBestRoutineSlots(),
             itemIdCounter: getItemIdCounter(),
             gameIsOver: isGameOver(),
             daysSurvived: getDaysSurvived(),
@@ -546,7 +568,10 @@ const State = (() => {
         setAchievements(
             Achievements.recordUnlocks(restoredAchievements, newlyCrossed, new Date().toISOString())
         );
-        setRoutineSlots(CONFIG.ROUTINE_SLOTS_PER_LEVEL[restoredLevel] || 1);
+        // Run-end carryover (2026-11-03): the best-ever slot count is restored BEFORE the live count
+        // so a saved run never comes back with fewer slots than its routines were built on.
+        setBestRoutineSlots(save.bestRoutineSlots);
+        setRoutineSlots(slotsForLevel(restoredLevel));
         setBaseHealth((typeof save.baseHealth === 'number') ? save.baseHealth : CONFIG.MAX_BASE_HEALTH);
         setItemIdCounter(save.itemIdCounter || 1);
         setDaysSurvived(save.daysSurvived || 0);
@@ -887,6 +912,7 @@ const State = (() => {
         getPlayerLevel, setPlayerLevel,
         getPlayerPoints, setPlayerPoints,
         getRoutineSlots, setRoutineSlots,
+        getBestRoutineSlots, setBestRoutineSlots, slotsForLevel,
         getPlayerInventory, setPlayerInventory,
         getSickDayDate, setSickDayDate,
         getPushbackUses, setPushbackUses,
