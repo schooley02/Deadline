@@ -24,7 +24,9 @@ const Settings = (() => {
     // eveningCheckTime (Habit Goals Build 3, 2026-11-01): "HH:MM" 24 h, when the evening check asks about Break habits still
     // unanswered today. Same default as CONFIG.EVENING_CHECK_DEFAULT (test/settings.test.js keeps the two in step).
     // timerHintSeen (2026-11-02): the one-time "a zombie is attacking, use the timer" notice has been shown.
-    const DEFAULTS = { effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false };
+    // devTools (2026-11-03): shows the DEV button + demo panel (js/devDemo.js, js/ui/devPanel.js). Off by default, per device: it is
+    // left OUT of Backup & Transfer (script.js strips it on export and import) so a backup never turns it on somewhere else.
+    const DEFAULTS = { effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false };
     const TIME_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
 
     function cleanEveningTime(value) {
@@ -41,7 +43,12 @@ const Settings = (() => {
             const intensity = VALID_INTENSITIES.indexOf(parsed && parsed.effectsIntensity) !== -1
                 ? parsed.effectsIntensity
                 : DEFAULTS.effectsIntensity;
-            return { effectsIntensity: intensity, eveningCheckTime: cleanEveningTime(parsed && parsed.eveningCheckTime), timerHintSeen: !!(parsed && parsed.timerHintSeen === true) };
+            return {
+                effectsIntensity: intensity,
+                eveningCheckTime: cleanEveningTime(parsed && parsed.eveningCheckTime),
+                timerHintSeen: !!(parsed && parsed.timerHintSeen === true),
+                devTools: !!(parsed && parsed.devTools === true),
+            };
         } catch (e) {
             console.error('Deadline: settings load failed', e);
             return Object.assign({}, DEFAULTS);
@@ -55,6 +62,7 @@ const Settings = (() => {
             const merged = Object.assign({}, load(), settings || {});
             merged.eveningCheckTime = cleanEveningTime(merged.eveningCheckTime);
             merged.timerHintSeen = merged.timerHintSeen === true;
+            merged.devTools = merged.devTools === true;
             if (VALID_INTENSITIES.indexOf(merged.effectsIntensity) === -1) merged.effectsIntensity = DEFAULTS.effectsIntensity;
             localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
             return true;

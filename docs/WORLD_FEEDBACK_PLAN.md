@@ -329,7 +329,7 @@ re-shown in the sky (they already have visuals).
 - **When it changes:** only when a day closes (rollover) and on load. No mid-day changes -- the morning sky is the report.
 - **Sanity checks (theory):** a strong week stays Clear; one bad day after a good streak drops one band; two bad days ->
   Overcast; an "okay" run (~70% on time, 60% habits, 10 HP/day) sits at Overcast; a collapsing run reaches Storm.
-- **Dev override:** `?climate=clear|hazy|overcast|fog|storm` (+ `&trend=up|down`) for testing, like the village tier params.
+- **Dev override:** `?climate=clear|hazy|overcast|fog|storm` (+ `&trend=up|down`) for testing, like the village tier params. Since 2026-11-03 the same forced sky (and a pretend village star) can be picked on the phone from the DEV panel behind Settings > Developer tools (`js/devDemo.js`, in memory only; the panel wins over the URL param).
 
 ### What each band looks like (all decided against the mockups)
 | Band | Sky | Clouds (TOP of the sky only, except Fog) | Haze | Ground clouds | Extras |

@@ -131,6 +131,9 @@ const ManagementWindows = (() => {
                     // Evening check time (Habit Goals Build 3, 2026-11-01).
                     currentEveningTime: deps.currentEveningTime,
                     onChangeEveningTime: deps.onChangeEveningTime,
+                    // Developer tools switch (2026-11-03).
+                    currentDevTools: deps.currentDevTools,
+                    onChangeDevTools: deps.onChangeDevTools,
                     // Export/Import (Milestone 5, 2026-07-20) — same
                     // pass-through-deps-only shape as everything else here.
                     buildExportEnvelope: deps.buildExportEnvelope,

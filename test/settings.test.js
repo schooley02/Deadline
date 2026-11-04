@@ -46,22 +46,22 @@ afterEach(() => {
 
 describe('Settings.load', () => {
     test('returns the default (full) when nothing is stored', () => {
-        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false });
     });
 
     test('round-trips a saved value', () => {
         Settings.save({ effectsIntensity: 'reduced' });
-        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '21:00', timerHintSeen: false });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false });
     });
 
     test('falls back to full for an invalid stored value (defensive)', () => {
         global.localStorage.setItem('deadline.settings', JSON.stringify({ effectsIntensity: 'nonsense' }));
-        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false });
     });
 
     test('falls back to full for corrupt JSON (never breaks gameplay)', () => {
         global.localStorage.setItem('deadline.settings', '{not valid json');
-        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false });
     });
 });
 
@@ -125,5 +125,51 @@ describe('Settings timerHintSeen (2026-11-02)', () => {
     test('anything but a real true is false', () => {
         localStorage.setItem(Settings.SETTINGS_KEY, JSON.stringify({ timerHintSeen: 'yes' }));
         expect(Settings.load().timerHintSeen).toBe(false);
+    });
+});
+
+describe('Settings devTools (2026-11-03)', () => {
+    beforeEach(() => { localStorage.clear(); });
+
+    test('is off by default', () => {
+        expect(Settings.DEFAULTS.devTools).toBe(false);
+        expect(Settings.load().devTools).toBe(false);
+    });
+
+    test('saves true, survives a save of another field, and can be turned off again', () => {
+        Settings.save({ devTools: true });
+        expect(Settings.load().devTools).toBe(true);
+        Settings.save({ effectsIntensity: 'reduced' });
+        expect(Settings.load().devTools).toBe(true);
+        Settings.save({ devTools: false });
+        expect(Settings.load().devTools).toBe(false);
+    });
+
+    test('anything but a real true is false (a string, a number, a missing key)', () => {
+        ['yes', 1, 'true', null].forEach((v) => {
+            localStorage.setItem(Settings.SETTINGS_KEY, JSON.stringify({ devTools: v }));
+            expect(Settings.load().devTools).toBe(false);
+        });
+        localStorage.setItem(Settings.SETTINGS_KEY, JSON.stringify({ effectsIntensity: 'off' }));
+        expect(Settings.load().devTools).toBe(false);
+    });
+
+    test('an older stored settings object (no devTools key) loads with it off and keeps its other fields', () => {
+        localStorage.setItem(Settings.SETTINGS_KEY, JSON.stringify({ effectsIntensity: 'reduced', eveningCheckTime: '20:30', timerHintSeen: true }));
+        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '20:30', timerHintSeen: true, devTools: false });
+    });
+
+    test('what is WRITTEN is a real boolean even if a caller passes something else', () => {
+        ['yes', 1, 'true', {}].forEach((v) => {
+            Settings.save({ devTools: v });
+            expect(JSON.parse(localStorage.getItem(Settings.SETTINGS_KEY)).devTools).toBe(false);
+        });
+        Settings.save({ devTools: true });
+        expect(JSON.parse(localStorage.getItem(Settings.SETTINGS_KEY)).devTools).toBe(true);
+    });
+
+    test('a failed save never throws and reports false', () => {
+        global.localStorage.setItem = () => { throw new Error('quota'); };
+        expect(Settings.save({ devTools: true })).toBe(false);
     });
 });

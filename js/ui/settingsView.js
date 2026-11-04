@@ -15,6 +15,7 @@
  * deps: {
  *   currentIntensity, onChangeIntensity(intensity),
  *   currentEveningTime ("HH:MM"), onChangeEveningTime(value),   (Habit Goals Build 3)
+ *   currentDevTools (bool), onChangeDevTools(bool),             (Developer tools switch, 2026-11-03: shows the DEV button, js/ui/devPanel.js)
  *   buildExportEnvelope(): envelope,       — script.js: ExportImport.buildEnvelope(...)
  *   currentSummary: ExportImport summary shape (this device's live state, for the confirm compare),
  *   onConfirmImport(envelope)              — script.js: backup + localStorage write + reload
@@ -130,6 +131,14 @@ const SettingsView = (() => {
                     <p id="importStatus" class="settings-data-status" aria-live="polite"></p>
                 </div>
             </div>
+            <div class="settings-section settings-devtools-section">
+                <h4>Developer tools</h4>
+                <p class="settings-section-hint">Shows a small DEV button at the bottom-left of the game for previewing the sky's weather and the village's stars. Whatever you preview is never saved or exported. Off by default, and only for this device.</p>
+                <label class="settings-radio-row settings-devtools-row">
+                    <input type="checkbox" id="devToolsToggle" ${deps.currentDevTools === true ? 'checked' : ''}>
+                    <span class="settings-radio-label">Show the DEV button</span>
+                </label>
+            </div>
             ${devMode ? `
             <div class="settings-section settings-danger-section">
                 <h4>Reset Game</h4>
@@ -151,6 +160,14 @@ const SettingsView = (() => {
         if (eveningInput) {
             eveningInput.addEventListener('change', (e) => {
                 if (typeof deps.onChangeEveningTime === 'function') deps.onChangeEveningTime(e.target.value);
+            });
+        }
+
+        // Developer tools switch (2026-11-03): script.js saves it per device and shows / hides the DEV button right away.
+        const devToolsToggle = container.querySelector('#devToolsToggle');
+        if (devToolsToggle) {
+            devToolsToggle.addEventListener('change', (e) => {
+                if (typeof deps.onChangeDevTools === 'function') deps.onChangeDevTools(!!e.target.checked);
             });
         }
 

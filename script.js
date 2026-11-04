@@ -82,6 +82,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const p = villageProgressNow();
             const peak = peakTierWhileOver(kind);
             const real = peak != null ? peak : ((p && p[kind]) ? p[kind].tier : 1);
+            // Dev tools (2026-11-03): a star picked in the DEV panel wins over the ?xTier= params and the real tier. In memory only,
+            // and ONLY this scene read sees it: drops, the run record's peak tiers and the cards all use the real tiers.
+            const demoTier = DevDemo.villageTier();
+            if (demoTier != null) return VillageLayout.resolveTier('', param, demoTier, VillageLayout.fromConfig(CONFIG).tiers);
             return VillageLayout.resolveTier(window.location.search, param, real, VillageLayout.fromConfig(CONFIG).tiers);
         };
     }
@@ -131,6 +135,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const climateCache = { key: null, result: null };
     const climateOverride = ClimateView.parseOverride(window.location.search);
     function climateNow() {
+        const demoSky = DevDemo.weather(); // Dev tools (2026-11-03): a band picked in the DEV panel (null = none); wins over ?climate=
+        if (demoSky) return demoSky;
         if (climateOverride) return RunClimate.forced(climateOverride.band, climateOverride.trend);
         try {
             const today = State.getToday() || null;
@@ -2810,11 +2816,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // Evening check time (Habit Goals Build 3): read fresh each time the Settings window opens.
             currentEveningTime: Settings.load().eveningCheckTime,
             onChangeEveningTime: handleEveningCheckTimeChange,
+            // Developer tools switch (2026-11-03): read fresh each time the Settings window opens.
+            currentDevTools: Settings.load().devTools === true,
+            onChangeDevTools: handleDevToolsChange,
             // Export/Import (Milestone 5 first item, 2026-07-20) — see
             // js/exportImport.js header + handleConfirmImport below.
             buildExportEnvelope: () => ExportImport.buildEnvelope({
                 getPersistableState: () => State.getPersistableState(),
-                getSettings: () => Settings.load(),
+                getSettings: () => { const st = Settings.load(); delete st.devTools; return st; }, // Developer tools is per device: never exported
                 // D2 (2026-10-27): closed daily records ride along in the export.
                 getDays: () => Persistence.loadDays(),
             }),
@@ -2868,7 +2877,11 @@ document.addEventListener('DOMContentLoaded', () => {
         Persistence.flush = function () {};
 
         localStorage.setItem(Persistence.SAVE_KEY, JSON.stringify(envelope.save));
-        Settings.save(envelope.settings || Settings.DEFAULTS);
+        { // devTools is per device: an import neither turns it on nor off (Settings.save keeps the stored value when the key is missing)
+            const importedSettings = Object.assign({}, envelope.settings || Settings.DEFAULTS);
+            delete importedSettings.devTools;
+            Settings.save(importedSettings);
+        }
         // D2 (2026-10-27): daily records are LIFETIME data, so they MERGE by
         // date (a day that already has data on this device is never
         // overwritten) instead of following the full-replace rule above.
@@ -2916,6 +2929,13 @@ document.addEventListener('DOMContentLoaded', () => {
         effectsIntensity = intensity;
         Settings.save({ effectsIntensity: intensity });   // Settings.save keeps the other stored fields (eveningCheckTime)
         Settings.applyEffectsIntensity(intensity);
+    }
+
+    // Developer tools (2026-11-03): the Settings switch. Saved per device (js/settings.js), then the DEV button shows / hides right away;
+    // turning it off also clears any demo (DevPanel.setEnabled -> DevDemo.setEnabled(false)), which redraws the real sky and village.
+    function handleDevToolsChange(on) {
+        Settings.save({ devTools: on === true });
+        DevPanel.setEnabled(on === true);
     }
 
     // Habit Goals Build 3: the Settings "Evening check" time. A new time re-arms tonight's check (the player may have just moved it
@@ -3318,6 +3338,10 @@ document.addEventListener('DOMContentLoaded', () => {
     initGame();
     State.restoreGameState(stateDeps());
     ClimateView.refresh(); // the sky for the restored run (ClimateView.init above ran before the state was restored)
+    // Dev tools (2026-11-03): the DEV button + demo panel (js/ui/devPanel.js), shown only while the Settings "Developer tools" switch is
+    // on (per device). A demo change redraws the sky and the village at once (the church's live width = what BASE_WIDTH holds).
+    DevPanel.init({ onDemoChange: () => { VillageView.render(baseElement.offsetWidth); ClimateView.refresh(); } });
+    DevPanel.setEnabled(Settings.load().devTools === true);
     // Time slider (Milestone 4, 2026-07-20) — after initGame() so
     // GAME_SCREEN_WIDTH/BASE_WIDTH/HABIT_ENEMY_WIDTH are resolved (deps.dims()
     // is still a live function, so a later resize is fine too; this ordering

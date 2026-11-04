@@ -91,7 +91,7 @@ const WeatherPanel = (() => {
         const trend = TREND_INFO[result.trend] || TREND_INFO.steady;
         const recent = Array.isArray(result.recent) ? result.recent : [];
         let note;
-        if (result.forced) note = 'Dev preview: this sky was forced with ?climate=. It is not your run.';
+        if (result.forced) note = 'Dev preview: this sky was forced (dev tools or ?climate=). It is not your run.';
         else if (!recent.length) note = 'Your first finished day starts moving the sky. Until then a new run stays Hazy.';
         else if (result.usedPrior) note = 'Early in a run the sky leans toward Hazy until a full week of days has been scored.';
         else note = '';

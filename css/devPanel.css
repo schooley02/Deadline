@@ -1,0 +1,175 @@
+/*
+ * devPanel.css -- the DEV button and demo panel (Jeremy, 2026-11-03). js/ui/devPanel.js.
+ *
+ * Bottom-LEFT, amber and dashed, so it can't be mistaken for the round green add-task "+" at the bottom-right. The panel is a
+ * compact card with no backdrop (the sky must stay visible while you tap). Both sit at z-index 1000/1001: with the FAB, above the
+ * scene and the lists, below the Modal overlays.
+ */
+
+.dev-button {
+    position: fixed;
+    left: 12px;
+    bottom: 12px;
+    z-index: 1000;
+    min-width: 52px;
+    height: 36px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border: 2px dashed #f5a623;
+    border-radius: 8px;
+    background: rgba(20, 16, 8, 0.82);
+    color: #f5a623;
+    font: 700 12px/1 var(--font-primary, sans-serif);
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+.dev-button[hidden] { display: none; }
+.dev-button-plus { font-size: 16px; line-height: 1; }
+.dev-button--open { background: #f5a623; color: #1a1408; }
+.dev-button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* A demo is active: a dot in the corner, so a forced sky / village is never mistaken for the real one. */
+.dev-button-dot {
+    display: none;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ff4d3d;
+    box-shadow: 0 0 0 2px #1a1408;
+}
+.dev-button--active .dev-button-dot { display: block; }
+
+.dev-panel {
+    position: fixed;
+    left: 12px;
+    bottom: 72px;                                   /* clears the add-task + at the bottom-right in portrait (its top is ~67px up) */
+    z-index: 1001;
+    width: min(340px, calc(100vw - 24px));
+    max-height: calc(100vh - 88px);
+    max-height: calc(100dvh - 88px);
+    overflow-y: auto;
+    border: 2px dashed #f5a623;
+    border-radius: 10px;
+    background: rgba(20, 16, 8, 0.94);
+    color: #f3ead2;
+    font: 13px/1.3 var(--font-primary, sans-serif);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+.dev-panel[hidden] { display: none; }
+
+.dev-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px 4px;
+    color: #f5a623;
+    letter-spacing: 0.04em;
+}
+.dev-panel-close {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.dev-panel-body { padding: 0 10px; }
+.dev-section { margin: 6px 0 10px; }
+.dev-section h4 {
+    margin: 0 0 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #c9b98a;
+}
+
+.dev-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dev-chips--sub { margin-top: 6px; }
+.dev-chips-label { font-size: 12px; color: #c9b98a; margin-right: 2px; }
+
+.dev-chip {
+    min-width: 44px;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid rgba(245, 166, 35, 0.55);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #f3ead2;
+    font: 600 13px/1 var(--font-primary, sans-serif);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.dev-chip--on { background: #f5a623; border-color: #f5a623; color: #1a1408; }
+.dev-chip:disabled { opacity: 0.4; cursor: default; }
+.dev-chip:focus-visible, .dev-reset:focus-visible, .dev-panel-close:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+
+.dev-panel-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px 10px;
+    border-top: 1px solid rgba(245, 166, 35, 0.25);
+}
+.dev-reset {
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 6px;
+    background: transparent;
+    color: #f3ead2;
+    font: 600 13px/1 var(--font-primary, sans-serif);
+    cursor: pointer;
+}
+.dev-reset:disabled { opacity: 0.4; cursor: default; }
+.dev-note { font-size: 11px; color: #c9b98a; }
+
+/* Portrait: the scene strip draws no weather or village (they are landscape / desktop layers), so say so instead of looking broken. */
+.dev-portrait-hint { display: none; flex-basis: 100%; font-size: 11px; color: #f5a623; }
+@media (orientation: portrait) {
+    .dev-portrait-hint { display: block; }
+}
+
+/* Short landscape phones (844x390 and smaller). The bottom-left there is the day pager (its prev button + label), so the DEV button
+   sits just ABOVE that row, and the panel is a short, wide card along the bottom (right of the pager, over the ground and the slider,
+   not over the village): the sky and the village stay visible while you tap. */
+@media (orientation: landscape) and (max-height: 500px) {
+    .dev-button { bottom: 52px; }
+    .dev-panel {
+        left: 204px;                                  /* right of the pager's prev / label / next buttons (16..196) */
+        bottom: 8px;
+        width: min(600px, calc(100vw - 288px));       /* and left of the add-task + (stops ~84px short of the right edge) */
+        max-height: calc(100vh - 16px);
+        max-height: calc(100dvh - 16px);
+        background: rgba(20, 16, 8, 0.9);
+    }
+    .dev-panel-head { padding: 4px 10px 0; }
+    .dev-panel-close { width: 28px; height: 28px; }
+    .dev-panel-body { display: grid; grid-template-columns: auto auto; justify-content: start; gap: 0 14px; align-items: start; }
+    .dev-section { margin: 2px 0 4px; }
+    .dev-section h4 { margin-bottom: 2px; }
+    .dev-chips { gap: 4px; flex-wrap: nowrap; }
+    .dev-chips--sub { margin-top: 4px; }
+    .dev-chip { min-width: 34px; height: 30px; padding: 0 6px; font-size: 12px; }
+    .dev-panel-foot { padding: 4px 10px 6px; border-top: 0; }
+    .dev-reset { height: 30px; }
+    .dev-portrait-hint { display: none; }
+}
+/* Narrow landscape (568px and under): one column, so the chips never overflow. */
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 700px) {
+    .dev-panel-body { grid-template-columns: 1fr; }
+    .dev-chips { flex-wrap: wrap; }
+}
