@@ -1694,13 +1694,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         } else if (action === 'autostop') {
-            Timer.autoStop(running, nowMs);
+            const sessionMs = Timer.autoStop(running, nowMs);
             TimerView.closeStillWorking();
             syncWorkHero(null);
             updateTimerButtons(nowMs);
             saveGame();
-            TimerView.showAutoStopped(running);
+            showAutoStoppedNotice(running, sessionMs);
         }
+    }
+
+    // Auto-stop notice (2026-11-04): says what this run banked and the task's total, then lets the player fix the total.
+    // Keep = leave as banked (also what dismissing does); Delete = take this run's time back out; Edit = the logged-time
+    // editor prefilled with the total. All three go through setLoggedTime, so the daily record stays corrected.
+    function showAutoStoppedNotice(item, sessionMs) {
+        const totalMs = Timer.elapsedMs(item, Date.now());
+        TimerView.showAutoStopped(item, { sessionMs, totalMs }, {
+            onEdit: () => {
+                // One tick later: this click is still bubbling, and the dismiss handler must not see the new overlay.
+                setTimeout(() => {
+                    const now = Date.now();
+                    const total = Timer.elapsedMs(item, now);
+                    TimerView.showLoggedTimeEditor(item, {
+                        loggedMinutes: Timer.loggedMinutes(item, now),
+                        prefillMs: total,
+                        message: `The timer stopped with ${TimerView.formatMinutes(sessionMs / 60000)} logged, so the total for this task is `
+                            + `${TimerView.formatMinutes(total / 60000)}. How much time did you actually spend in total?`,
+                    }, { onSave: (ms) => { setLoggedTime(item.id, ms); } });
+                }, 0);
+            },
+            onKeep: () => {},
+            onDelete: () => { setLoggedTime(item.id, Math.max(0, Timer.elapsedMs(item, Date.now()) - sessionMs)); },
+        });
     }
 
     function handleEnemyClick(itemId) {

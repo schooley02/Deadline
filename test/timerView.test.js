@@ -126,3 +126,65 @@ describe('TimerView.showLoggedTimeEditor (Habit Goals Build 2c)', () => {
         expect(document.querySelector('#loggedTimeOverlay h3 b')).toBeNull();
     });
 });
+
+describe('TimerView.showAutoStopped (2026-11-04)', () => {
+    const mins = (m) => m * 60000;
+    const info = { sessionMs: mins(60), totalMs: mins(135) };
+    function h() { return { onEdit: jest.fn(), onKeep: jest.fn(), onDelete: jest.fn() }; }
+
+    test('says it may have been left running, then names this run and the task total; name is escaped', () => {
+        TimerView.showAutoStopped(item, info, h());
+        const o = document.getElementById('autoStopOverlay');
+        const text = o.textContent;
+        expect(text).toContain('Timer stopped');
+        expect(text).toContain('you may have left your timer running');
+        expect(text).toContain('"Still working?" check');
+        expect(o.querySelectorAll('strong')[0].textContent).toBe('1 hr');
+        expect(o.querySelectorAll('strong')[1].textContent).toBe('2 hr 15 min');
+        expect(text).toContain('edit your total time logged');
+        expect(o.querySelector('p b')).toBeNull();
+    });
+
+    test('has the three buttons with their labels', () => {
+        TimerView.showAutoStopped(item, info, h());
+        expect(document.getElementById('autoStopEdit').textContent).toBe('Edit Total Time Logged');
+        expect(document.getElementById('autoStopKeep').textContent).toBe('Keep New Time Logged');
+        expect(document.getElementById('autoStopDelete').textContent).toBe('Delete New Time Logged');
+    });
+
+    test.each([
+        ['autoStopEdit', 'onEdit'],
+        ['autoStopKeep', 'onKeep'],
+        ['autoStopDelete', 'onDelete'],
+    ])('%s closes the notice and calls only %s', (id, fn) => {
+        const handlers = h();
+        TimerView.showAutoStopped(item, info, handlers);
+        document.getElementById(id).click();
+        expect(document.getElementById('autoStopOverlay')).toBeNull();
+        Object.keys(handlers).forEach(k => expect(handlers[k]).toHaveBeenCalledTimes(k === fn ? 1 : 0));
+    });
+
+    test('never opens a second notice on top of one already showing', () => {
+        TimerView.showAutoStopped(item, info, h());
+        expect(TimerView.showAutoStopped(item, info, h())).toBeNull();
+        expect(document.querySelectorAll('#autoStopOverlay')).toHaveLength(1);
+    });
+
+    test('still renders (zeros) if no info or handlers are passed', () => {
+        TimerView.showAutoStopped(item);
+        expect(document.querySelectorAll('#autoStopOverlay strong')[0].textContent).toBe('0 min');
+        expect(() => document.getElementById('autoStopKeep').click()).not.toThrow();
+    });
+});
+
+describe('auto-stop wiring in script.js (source check; Jest never loads script.js)', () => {
+    const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'script.js'), 'utf8');
+    test('the auto-stop branch passes the banked span to the notice, and Delete / Edit go through setLoggedTime', () => {
+        expect(src).toMatch(/const sessionMs = Timer\.autoStop\(running, nowMs\)/);
+        expect(src).toMatch(/showAutoStoppedNotice\(running, sessionMs\)/);
+        const fn = src.slice(src.indexOf('function showAutoStoppedNotice'));
+        expect(fn).toMatch(/onDelete: \(\) => \{ setLoggedTime\(item\.id, Math\.max\(0, Timer\.elapsedMs\(item, Date\.now\(\)\) - sessionMs\)\)/);
+        expect(fn).toMatch(/showLoggedTimeEditor/);
+        expect(fn).toMatch(/onSave: \(ms\) => \{ setLoggedTime\(item\.id, ms\)/);
+    });
+});

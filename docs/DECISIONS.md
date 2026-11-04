@@ -4,6 +4,17 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-04 (auto-stop notice) -- The "Timer stopped" notice now asks the player to fix the logged time: Edit Total / Keep New / Delete New (Claude app session)
+
+- **Jeremy's ask:** an old note said to add a check for a timer left running by accident; that check already exists ("Still working?" at 60 min, auto-stop after 10 more), but its notice only said time up to the check was kept. He wanted the notice to say the timer may have been left running, show the time this run logged and the task's total, and ask him to correct the total, with three buttons.
+- **Decision:** `TimerView.showAutoStopped(item, { sessionMs, totalMs }, { onEdit, onKeep, onDelete })`. sessionMs = what `Timer.autoStop` banked (this run, up to the prompt); totalMs = the item's whole logged time after the stop. Edit Total Time Logged opens the existing logged-time editor (`showLoggedTimeEditor`) prefilled with the total; Save goes through `setLoggedTime`. Keep New Time Logged changes nothing. Delete New Time Logged calls `setLoggedTime(id, total - sessionMs)` (this run's time comes back out; earlier banked sessions stay). Tapping outside / Esc = Keep. All edits go through `Items.setLoggedTime`, so the daily record's `timer.workMin` / `edits` / `editMin` stay corrected (checked live: 80 -> 65 min on Edit, 80 -> 20 on Delete, unchanged on Keep / dismiss). The same notice appears when the app was closed through the whole window (the next tick auto-stops).
+- **Why reuse the editor and `setLoggedTime`:** one place owns logged-time edits (clamping, record correction, completed-list refresh); the notice only chooses which number to send.
+- **Unchanged:** the 60 min check and 10 min answer window (`WORK_TIMER_CHECK_MS`, `WORK_TIMER_AUTO_STOP_MS`) and what the auto-stop banks. Whether 60 min is the right check for long work sessions is left for the parked timer-UI design session.
+- **Known edge:** if midnight passes between the auto-stop and the answer, the edit's record correction lands on the new day; the task's own total is still right.
+- **Files:** js/ui/timerView.js, script.js (`showAutoStoppedNotice`), css/frozenNotice.css (`.auto-stop-modal`), sw.js v241, test/timerView.test.js (notice + buttons + a source check of the script.js wiring). Live-checked in headless Chromium with a fake clock: Edit / Keep / Delete / dismiss all behave; not yet phone-checked.
+
+---
+
 ## 2026-11-03 (run-end carryover) -- A new run keeps open tasks, the best routine-slot count, and (by flag) un-earnable items; the game-over card and How Deadline works say what carries and what resets (Claude app session; Fable 5.1 decision -> Sonnet build; Jeremy)
 
 - **Jeremy's asks:** do not lose items when a run ends; do not lose routine slots; explain at run end what carries over and what is lost. His rule for items: "anything that can't be re-earned from playing, like bought items or one-time unlocks, should be kept until used, regardless of the run." Answers: yes to that rule (a flagged "kept" group, empty today); yes to carrying open one-off tasks; slots = option A.

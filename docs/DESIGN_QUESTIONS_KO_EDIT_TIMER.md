@@ -61,7 +61,7 @@ Raised by Jeremy 2026-10-25 while integrating the Other Hero art. **DECIDED 2026
 **Work timer** (one-off tasks, routine tasks, positive habits):
 - Start/Stop from the item popup and the list row. While running: the owning routine's hero (or the Other hero for standalone items) is spotlit in front of the church playing the **Attack** row (atlas row 2, already shipped) instead of idle; the scrim stays off so the board remains readable.
 - **Overdue damage is HALVED while the timer runs** (`CONFIG.WORK_TIMER_DAMAGE_FACTOR = 0.5`) — never zero (a running timer must not be a free pass). Routine damage likewise halved. Offline/live-gap catch-up ignores the timer (you weren't working).
-- **Anti-forget:** at `WORK_TIMER_CHECK_MS` (60 min) of continuous running the game asks "Still working on <item>?" (Modal, never native); no answer within `WORK_TIMER_AUTO_STOP_MS` (10 min) auto-stops the timer and banks the time up to the prompt.
+- **Anti-forget:** at `WORK_TIMER_CHECK_MS` (60 min) of continuous running the game asks "Still working on <item>?" (Modal, never native); no answer within `WORK_TIMER_AUTO_STOP_MS` (10 min) auto-stops the timer and banks the time up to the prompt. (2026-11-04: the "Timer stopped" notice now shows this run's time + the task total and lets the player Edit / Keep / Delete the new time; see DECISIONS 2026-11-04.)
 - **Optional target:** `habitDef.timerMinutes` / `taskDef.timerMinutes` (and `item.timerMinutes` for one-offs). Reaching the target completes the item through the normal `completeItem` path (toast "30 min done"). Without a target the timer only logs time; completion stays manual.
 - **Stats:** `item.timerMsBanked` is summed into `currentRunStats.workMsTotal` on completion (sub-session 3, not v1 UI).
 

@@ -10,6 +10,11 @@
     max-width: 440px;
 }
 
+/* Timer auto-stop notice (2026-11-04): three short paragraphs, so give them room. */
+.auto-stop-modal p {
+    margin: 0 0 var(--space-2) 0;
+}
+
 .frozen-notice-recovery-list {
     margin: 0 0 var(--space-2) 0;
     padding-left: var(--space-4);

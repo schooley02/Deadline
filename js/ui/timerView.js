@@ -169,9 +169,39 @@ const TimerView = (() => {
             `You reached your goal on "${esc(item.name)}", but it still has open sub-tasks, so it isn't complete yet.`);
     }
 
-    function showAutoStopped(item) {
-        notice('⏱ Timer stopped',
-            `No answer to "Still working?", so the timer on "${esc(item.name)}" stopped. Time up to the check was kept.`);
+    // Auto-stop notice (2026-11-04): the "Still working?" check went unanswered, so the timer stopped itself and banked
+    // time only up to the check. `info` = { sessionMs (what THIS run banked), totalMs (the item's whole logged time now) }.
+    // Edit Total Time Logged -> handlers.onEdit(); Keep New Time Logged -> handlers.onKeep(); Delete New Time Logged ->
+    // handlers.onDelete(). Dismissing (outside tap / Esc) leaves the time as banked, the same as Keep. The handler
+    // runs AFTER the modal closes; open anything new from it one tick later (this click is still bubbling).
+    function showAutoStopped(item, info, handlers) {
+        if (document.getElementById('autoStopOverlay')) return null;
+        const i = info || {};
+        const session = formatMinutes((i.sessionMs || 0) / 60000);
+        const total = formatMinutes((i.totalMs || 0) / 60000);
+        const overlay = Modal.open(`
+            <div class="modal-overlay frozen-notice-overlay" id="autoStopOverlay">
+                <div class="modal-content frozen-notice-modal auto-stop-modal">
+                    <h3>⏱ Timer stopped</h3>
+                    <p>It looks like you may have left your timer running on "${esc(item.name)}". There was no answer to the "Still working?" check.</p>
+                    <p>The timer stopped with <strong>${session}</strong> logged. The total time logged for this task is <strong>${total}</strong>.</p>
+                    <p>Please edit your total time logged so it matches what you really spent.</p>
+                    <div class="modal-buttons">
+                        <button type="button" id="autoStopEdit" class="primary-button">Edit Total Time Logged</button>
+                        <button type="button" id="autoStopKeep" class="secondary-button">Keep New Time Logged</button>
+                        <button type="button" id="autoStopDelete" class="danger-button">Delete New Time Logged</button>
+                    </div>
+                </div>
+            </div>`);
+        if (!overlay) return null;
+        const wire = (id, fn) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('click', () => { Modal.closeModal(); if (handlers && handlers[fn]) handlers[fn](); });
+        };
+        wire('autoStopEdit', 'onEdit');
+        wire('autoStopKeep', 'onKeep');
+        wire('autoStopDelete', 'onDelete');
+        return overlay;
     }
 
     return { showStillWorking, closeStillWorking, showGoalReached, showLimitPassed, showLoggedTimeEditor, showGoalBlocked, formatMinutes, showAutoStopped };
