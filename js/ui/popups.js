@@ -314,16 +314,21 @@ const Popups = (() => {
         return typeof deps.setLoggedTime === 'function' && typeof Timer !== 'undefined' && typeof Forms !== 'undefined'
             && (Timer.canTimer(item) || Timer.hasLogged(item));
     }
-    const LOGGED_RUNNING_NOTE = 'Pause the timer to edit the Time Logged.';
-    // The Edit Task form's version (2026-11-04, Jeremy): "Time Logged" is a text link that opens this task's card (the
-    // zombie popup), where the timer can be paused and the Time Logged field edited. The card itself keeps the plain
-    // note above, since it already holds the field. Wired in showEditTaskModal.
-    const LOGGED_RUNNING_NOTE_EDIT_HTML = 'Pause the timer to edit the ' +
+    // "Stop", not "Pause" (2026-11-04, Jeremy): stopping ends the session, so the total is settled before it is edited.
+    // (Both bank the time; Pause also keeps the timer resumable.)
+    const LOGGED_RUNNING_NOTE = 'Stop the timer to edit the Time Logged.';
+    // The card's version (2026-11-04, Jeremy, option 2): "Stop the timer" is a text link that stops it right there (the
+    // same handler as the Stop icon), which unlocks the Time Logged field. Wired in showTaskDetailsPopup.
+    const LOGGED_RUNNING_NOTE_CARD_HTML = '<button type="button" class="text-link-btn" id="popupLoggedStopLink">Stop the timer</button>' +
+        ' to edit the Time Logged.';
+    // The Edit Task form's version: "Time Logged" is a text link that opens this task's card (the zombie popup), where
+    // the timer can be stopped and the Time Logged field edited. Wired in showEditTaskModal.
+    const LOGGED_RUNNING_NOTE_EDIT_HTML = 'Stop the timer to edit the ' +
         '<button type="button" class="text-link-btn" id="editLoggedOpenCard">Time Logged</button>.';
     function buildLoggedTimeSectionHtml(item, deps) {
         if (!hasLoggedTimeField(item, deps)) return '';
         const running = Timer.isRunning(item);
-        return `<div class="logged-time-section">${Forms.loggedTimeHtml({ idPrefix: 'popupLogged', ms: item.timerMsBanked, disabled: running, note: running ? LOGGED_RUNNING_NOTE : '' })}` +
+        return `<div class="logged-time-section">${Forms.loggedTimeHtml({ idPrefix: 'popupLogged', ms: item.timerMsBanked, disabled: running, note: LOGGED_RUNNING_NOTE_CARD_HTML, noteHidden: !running })}` +
             `<div class="logged-time-actions"><button type="button" id="popupLoggedSave" class="secondary-button"${running ? ' disabled' : ''}>Save time</button>` +
             `<span id="popupLoggedMsg" class="logged-time-msg" role="status" aria-live="polite"></span></div></div>`;
     }
@@ -495,12 +500,19 @@ const Popups = (() => {
                             const g = document.getElementById('popupLoggedGroup');
                             if (g) g.setAttribute('data-initial-min', String(total));
                         }
-                        if (loggedMsg) loggedMsg.textContent = running ? LOGGED_RUNNING_NOTE : '';
+                        if (loggedMsg) loggedMsg.textContent = '';
+                        // The running-timer note only while it runs (it used to linger after a stop).
+                        const note = document.getElementById('popupLoggedNote');
+                        if (note) note.hidden = !running;
                     }
                 }
             };
             workTimerButton.addEventListener('click', () => timerClick());
             if (workTimerStopButton) workTimerStopButton.addEventListener('click', () => timerClick('stop'));
+            // "Stop the timer" link in the Time Logged note: same as the Stop icon. Stopped here so Modal's
+            // outside-click dismiss never sees the click.
+            const stopLink = document.getElementById('popupLoggedStopLink');
+            if (stopLink) stopLink.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); timerClick('stop'); });
         }
 
         // Logged-time field: Save time sets it through deps.setLoggedTime (daily record corrected by the difference).

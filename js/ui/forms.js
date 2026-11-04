@@ -849,7 +849,8 @@ const Forms = (() => {
     function loggedTimeMinutes(ms) {
         return (typeof ms === 'number' && ms > 0) ? Math.round(ms / 60000) : 0;
     }
-    // opts: { idPrefix, ms, disabled?, note? } -> inputs `${idPrefix}Hours` / `${idPrefix}Minutes` inside `#${idPrefix}Group`.
+    // opts: { idPrefix, ms, disabled?, note?, noteHidden? } -> inputs `${idPrefix}Hours` / `${idPrefix}Minutes` inside
+    // `#${idPrefix}Group`. noteHidden renders the note hidden so a caller can show it later (the card's running-timer note).
     function loggedTimeHtml(opts) {
         const o = opts || {};
         const p = o.idPrefix || 'loggedTime';
@@ -861,7 +862,7 @@ const Forms = (() => {
             `<input type="number" id="${p}Hours" class="logged-time-input" min="0" max="24" step="1" inputmode="numeric" value="${Math.floor(total / 60)}" aria-label="Logged hours"${dis}> <span>hr</span> ` +
             `<input type="number" id="${p}Minutes" class="logged-time-input" min="0" max="59" step="1" inputmode="numeric" value="${total % 60}" aria-label="Logged minutes"${dis}> <span>min</span>` +
             `</div>` +
-            (o.note ? `<p class="logged-time-note" id="${p}Note">${o.note}</p>` : '') +
+            (o.note ? `<p class="logged-time-note" id="${p}Note"${o.noteHidden ? ' hidden' : ''}>${o.note}</p>` : '') +
             `</div>`;
     }
     // Reads the field. Returns { ms, changed } or { error }. Blank counts as 0; hours 0..24, minutes 0..59, total <= 24 h.

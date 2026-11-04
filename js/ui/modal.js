@@ -350,6 +350,9 @@ const Modal = (() => {
                     const customLabel = customBox.closest('label');
                     if (customLabel) customLabel.hidden = isNegative; // Break habits keep their tempting-time buckets
                 }
+                // A Break Habit has only the window, so the row would be one ticked box that does nothing: hide it
+                // (2026-11-04, Jeremy: "lone checkbox above Completion window"). The Tempting Time select stays.
+                modeRow.hidden = isNegative;
                 const selRow = sel.closest('.form-row');
                 if (selRow) selRow.style.display = isCustom ? 'none' : '';
             }

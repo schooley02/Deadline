@@ -226,4 +226,24 @@ describe('Form helpers and wiring', () => {
         expect(document.getElementById('sel').value).toBe('anytime');
         expect(document.getElementById('sel').closest('.form-row').style.display).toBe('');
     });
+
+    // 2026-11-04 (Jeremy): with Custom times hidden, a Break Habit's row was one ticked box that did nothing.
+    test('a Break Habit hides the whole window-mode row; back to Build shows it again', () => {
+        document.body.innerHTML = '';
+        mountWithMode('positive', 'anytime');
+        const row = document.querySelector('[data-window-mode="window"]').closest('.form-row');
+        expect(row.hidden).toBe(false);
+        const neg = document.getElementById('tn');
+        neg.checked = true; fire(neg, 'change');
+        expect(row.hidden).toBe(true);
+        const pos = document.getElementById('tp');
+        pos.checked = true; fire(pos, 'change');
+        expect(row.hidden).toBe(false);
+    });
+
+    test('css: the window-mode checkboxes keep their own size (not the generic 100% input width) and the row can hide', () => {
+        const css = require('fs').readFileSync(require('path').join(__dirname, '..', 'css', 'forms.css'), 'utf8').replace(/\r\n/g, '\n');
+        expect(css).toContain('.habit-window-mode-opt input[type="checkbox"] { width: auto;');
+        expect(css).toContain('.habit-window-mode[hidden] { display: none; }');
+    });
 });

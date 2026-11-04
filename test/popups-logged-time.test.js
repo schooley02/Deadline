@@ -59,7 +59,7 @@ describe('item popup: Logged time field', () => {
         expect(document.getElementById('popupLoggedHours').disabled).toBe(true);
         expect(document.getElementById('popupLoggedMinutes').disabled).toBe(true);
         expect(document.getElementById('popupLoggedSave').disabled).toBe(true);
-        expect(document.getElementById('popupLoggedNote').textContent).toMatch(/Pause the timer/);
+        expect(document.getElementById('popupLoggedNote').textContent).toMatch(/Stop the timer/);
     });
 
     test('Save time sends the new milliseconds for that item and says Saved', () => {
@@ -90,7 +90,7 @@ describe('item popup: Logged time field', () => {
         Popups.showTaskDetailsPopup(breakHabit(), d);
         document.getElementById('popupLoggedMinutes').value = '30';
         document.getElementById('popupLoggedSave').click();
-        expect(document.getElementById('popupLoggedMsg').textContent).toMatch(/Pause the timer/);
+        expect(document.getElementById('popupLoggedMsg').textContent).toMatch(/Stop the timer/);
     });
 });
 
@@ -150,7 +150,7 @@ describe('Time Logged wording + the Edit Task note link', () => {
         const d = deps({ activeItems: [t] });
         Popups.showEditTaskModal(t, d);
         const note = document.getElementById('editLoggedNote');
-        expect(note.textContent).toBe('Pause the timer to edit the Time Logged.');
+        expect(note.textContent).toBe('Stop the timer to edit the Time Logged.');
         const link = document.getElementById('editLoggedOpenCard');
         expect(link.tagName).toBe('BUTTON');
         const outside = jest.fn();
@@ -164,11 +164,48 @@ describe('Time Logged wording + the Edit Task note link', () => {
         jest.useRealTimers();
     });
 
-    test('the card itself keeps the plain note (it already holds the field)', () => {
-        Popups.showTaskDetailsPopup(task({ timer: running() }), deps());
+    // Option 2 with Stop (2026-11-04, Jeremy): on the card, "Stop the timer" stops it right there and unlocks the field.
+    test('the card: "Stop the timer" is a link that stops the timer, unlocks the field and hides the note', () => {
+        const t = task({ timer: running() });
+        const d = deps({
+            toggleWorkTimer: jest.fn((id, action) => { if (action === 'stop') { t.timer = null; t.timerMsBanked = 65 * MIN; } return { ok: true, running: false }; }),
+        });
+        Popups.showTaskDetailsPopup(t, d);
         const note = document.getElementById('popupLoggedNote');
-        expect(note.textContent).toBe('Pause the timer to edit the Time Logged.');
-        expect(note.querySelector('button')).toBeNull();
+        expect(note.textContent).toBe('Stop the timer to edit the Time Logged.');
+        expect(document.getElementById('popupLoggedHours').disabled).toBe(true);
+        const link = note.querySelector('button#popupLoggedStopLink');
+        expect(link.textContent).toBe('Stop the timer');
+        const outside = jest.fn();
+        document.addEventListener('click', outside);
+        link.click();
+        document.removeEventListener('click', outside);
+        expect(outside).not.toHaveBeenCalled();
+        expect(d.toggleWorkTimer).toHaveBeenCalledWith(3, 'stop');
+        expect(document.getElementById('popupLoggedHours').disabled).toBe(false);
+        expect(document.getElementById('popupLoggedHours').value).toBe('1');
+        expect(document.getElementById('popupLoggedMinutes').value).toBe('5');
+        expect(note.hidden).toBe(true);
+    });
+
+    test('the card: starting the timer from the card shows the note; stopping hides it again', () => {
+        const t = task();
+        const d = deps({
+            toggleWorkTimer: jest.fn((id, action) => {
+                if (action === 'stop') { t.timer = null; return { ok: true, running: false }; }
+                t.timer = running(); return { ok: true, running: true };
+            }),
+        });
+        Popups.showTaskDetailsPopup(t, d);
+        const note = document.getElementById('popupLoggedNote');
+        expect(note.hidden).toBe(true);
+        document.getElementById('workTimerBtn').click();
+        expect(note.hidden).toBe(false);
+        expect(document.getElementById('popupLoggedHours').disabled).toBe(true);
+        document.getElementById('popupLoggedStopLink').click();
+        expect(d.toggleWorkTimer).toHaveBeenLastCalledWith(3, 'stop');
+        expect(note.hidden).toBe(true);
+        expect(document.getElementById('popupLoggedHours').disabled).toBe(false);
     });
 
     test('no running timer: no note and no link', () => {

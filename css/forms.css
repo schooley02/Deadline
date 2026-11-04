@@ -102,6 +102,11 @@
 .habit-window-mode { display: flex; gap: var(--space-4, 16px); align-items: center; flex-wrap: wrap; }
 .habit-window-mode-opt { display: inline-flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; }
 .habit-window-mode-opt[hidden] { display: none; }
+/* The row is a flex .form-row, so the hidden attribute needs restating (hidden for Break Habits, 2026-11-04). */
+.habit-window-mode[hidden] { display: none; }
+/* 2026-11-04: the generic `.form-row input { width: 100% }` (managementWindows.css) stretched these checkboxes across
+   their label, so the words wrapped under a lone box. Keep the box its own size, beside its words, like .priority-row. */
+.habit-window-mode-opt input[type="checkbox"] { width: auto; flex: 0 0 auto; margin: 0; padding: 0; transform: scale(1.2); }
 
 
 /* Habit Goal section (2026-11-01): fields hidden until their type is chosen; tap-to-show examples popover. */
