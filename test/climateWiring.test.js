@@ -18,7 +18,8 @@ const strip = read('css/glanceStrip.css');
 const script = read('script.js');
 const villageView = read('js/ui/villageView.js');
 
-const FILES = ['css/climate.css', 'js/runClimate.js', 'js/ui/climateView.js'];
+const FILES = ['css/climate.css', 'css/weatherPanel.css', 'js/runClimate.js', 'js/ui/climateView.js', 'js/ui/weatherPanel.js', 'Assets/scene/fog-tile.png'];
+const wpCss = read('css/weatherPanel.css');
 
 // The text of the first rule whose selector line is exactly `selector {`.
 function block(source, selector) {
@@ -38,10 +39,10 @@ describe('shell + load order', () => {
         expect(fs.existsSync(path.join(__dirname, '..', f))).toBe(true);
     });
 
-    test('CACHE_NAME was bumped for the shell change (v236 or later)', () => {
+    test('CACHE_NAME was bumped for the shell change (v237 or later)', () => {
         const m = /CACHE_NAME = 'deadline-shell-v(\d+)'/.exec(sw);
         expect(m).not.toBeNull();
-        expect(Number(m[1])).toBeGreaterThanOrEqual(236);
+        expect(Number(m[1])).toBeGreaterThanOrEqual(237);
     });
 
     test('the pure logic loads before the view; the view after VillageView; both before script.js', () => {
@@ -56,6 +57,14 @@ describe('shell + load order', () => {
         const at = s => html.indexOf(`"${s}"`);
         expect(at('css/climate.css')).toBeGreaterThan(at('css/village.css'));
         expect(at('css/climate.css')).toBeLessThan(at('css/glanceStrip.css'));
+    });
+
+    test('weatherPanel.js loads after climateView.js and before script.js; weatherPanel.css sits with the other climate css before glanceStrip.css', () => {
+        const at = s => html.indexOf(`"${s}"`);
+        expect(at('js/ui/weatherPanel.js')).toBeGreaterThan(at('js/ui/climateView.js'));
+        expect(at('js/ui/weatherPanel.js')).toBeLessThan(at('script.js'));
+        expect(at('css/weatherPanel.css')).toBeGreaterThan(at('css/climate.css'));
+        expect(at('css/weatherPanel.css')).toBeLessThan(at('css/glanceStrip.css'));
     });
 
     test('CONFIG.CLIMATE mirrors RunClimate.DEFAULTS', () => {
@@ -129,6 +138,144 @@ describe('z-order', () => {
     });
 });
 
+// z-index of ANY rule for `selector` (the sheet has a default-off rule and a styling rule per piece)
+const zAny = (source, selector) => {
+    const esc = selector.replace(/[.]/g, '\\.');
+    const m = new RegExp('(?:^|[\\s,}])' + esc + '\\s*\\{[^}]*z-index:\\s*(-?\\d+)', 'm').exec(source);
+    expect(m).not.toBeNull();
+    return Number(m[1]);
+};
+
+describe('Build 2 layers: markup + z-order + input', () => {
+    const canvas = html.slice(html.indexOf('id="gameCanvas"'));
+
+    test('scene weather (far rain, lightning) sits in the sky, after the far haze and before the ground', () => {
+        const scene = html.slice(html.indexOf('id="graveyardScene"'), html.indexOf('id="villageLayer"'));
+        expect(scene.indexOf('rain rain--far')).toBeGreaterThan(scene.indexOf('climate-haze-far'));
+        expect(scene.indexOf('climate-lightning')).toBeGreaterThan(scene.indexOf('climate-haze-far'));
+        expect(scene.indexOf('climate-lightning')).toBeLessThan(scene.indexOf('scene-ground'));
+    });
+
+    test('the near wrapper holds three banks and two rain sheets, is decorative, and comes after #climateNear', () => {
+        const wx = canvas.slice(canvas.indexOf('id="climateWxNear"'));
+        expect(wx).toMatch(/^id="climateWxNear" class="climate-wx-near" aria-hidden="true"/);
+        ['n1', 'n2', 'n3'].forEach(n => expect(wx.slice(0, 600)).toContain(`fog-bank fog-bank--${n}`));
+        ['near1', 'near2'].forEach(n => expect(wx.slice(0, 600)).toContain(`rain rain--${n}`));
+        expect(canvas.indexOf('id="climateWxNear"')).toBeGreaterThan(canvas.indexOf('id="climateNear"'));
+    });
+
+    test('six fireflies, the moonbeam and the break glow exist and are decorative', () => {
+        expect((canvas.match(/class="firefly"/g) || []).length).toBe(6);
+        expect(canvas).toMatch(/class="climate-fireflies"[^>]*aria-hidden="true"/);
+        expect(canvas).toMatch(/class="climate-beam"[^>]*aria-hidden="true"/);
+        expect(html).toMatch(/class="climate-break"[^>]*aria-hidden="true"/);
+    });
+
+    test('near weather sits over the zombie band (pile 80, hover 85) and under the near haze (88)', () => {
+        expect(zAny(css, '.climate-wx-near')).toBeGreaterThan(85);
+        expect(zAny(css, '.climate-wx-near')).toBeLessThan(z(css, '.climate-near'));
+    });
+
+    test('fireflies are under the zombies (30+); the beam is not above the village; the lightning and break glow stay in the sky', () => {
+        expect(zAny(css, '.climate-fireflies')).toBeLessThan(30);
+        expect(zAny(css, '.climate-beam')).toBeLessThanOrEqual(1);
+        expect(zAny(css, '.climate-lightning')).toBeLessThan(0);
+        expect(zAny(css, '.climate-break')).toBeLessThan(0);
+    });
+
+    test.each(['.village-wx', '.fog-bank', '.rain', '.climate-fireflies', '.climate-beam', '.climate-break'])('%s never takes a tap', sel => {
+        const re = new RegExp(`(^|[\\s,])${sel.replace('.', '\\.')}[,\\s]*(\\{|[^{]*\\{)[^}]*pointer-events:\\s*none`, 'm');
+        expect(css).toMatch(re);
+    });
+    test('no weather rule ever turns pointer-events on', () => {
+        expect(css).not.toMatch(/pointer-events:\s*auto/);
+    });
+
+    test('the near wrapper + village wrappers clip themselves (the canvas and village layer are overflow: visible)', () => {
+        expect(css).toMatch(/\.village-wx,\s*\.climate-wx-near \{[^}]*overflow:\s*hidden/);
+    });
+
+    test('every weather piece is off by default and each is switched on by one band / trend class', () => {
+        expect(css).toMatch(/\.fog-bank \{ display: none; \}|\.fog-bank,[^{]*\{\s*display:\s*none/);
+        expect(css).toMatch(/climate-fog[^{]*\.fog-bank/);
+        expect(css).toMatch(/climate-storm[^{]*\.rain/);
+        expect(css).toMatch(/climate-clear[^{]*\.climate-fireflies/);
+        expect(css).toMatch(/climate-trend-up[^{]*\.climate-beam/);
+        expect(css).toMatch(/climate-trend-up[^{]*\.climate-break/);
+    });
+
+    test('motion settings: fog + rain stop, lightning + fireflies vanish (fx-reduced / fx-off / prefers-reduced-motion)', () => {
+        expect(css).toMatch(/\.fx-reduced \.fog-bank, \.fx-off \.fog-bank,\s*\.fx-reduced \.rain, \.fx-off \.rain \{ animation: none; \}/);
+        expect(css).toMatch(/\.fx-reduced \.climate-lightning, \.fx-off \.climate-lightning,\s*\.fx-reduced \.climate-fireflies, \.fx-off \.climate-fireflies \{ display: none !important; \}/);
+        const mq = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)', css.indexOf('motion settings: static')));
+        expect(mq).toContain('.fog-bank');
+        expect(mq).toContain('.rain');
+        expect(mq).toContain('.climate-lightning');
+        expect(mq).toContain('.climate-fireflies');
+    });
+
+    test('the fog tile is pre-baked (no per-frame filter on the banks)', () => {
+        const bank = css.slice(css.indexOf('.fog-bank {\n    position: absolute'));
+        const body = bank.slice(0, bank.indexOf('}'));
+        expect(body).toContain('Assets/scene/fog-tile.png');
+        expect(body).not.toMatch(/filter:/);
+    });
+
+    test('banks and rain are placed from the horizon variable VillageView publishes', () => {
+        expect(css).toContain('var(--clm-hz');
+        expect(villageView).toContain("'--clm-hz'");
+    });
+});
+
+describe('weather badge (Build 2)', () => {
+    test('#weatherBadge is a hidden-by-default <button> inside #gameCanvas with the icon + trend children', () => {
+        const m = /<button[^>]*id="weatherBadge"[^>]*>[\s\S]*?<\/button>/.exec(html);
+        expect(m).not.toBeNull();
+        expect(m[0]).toMatch(/\bhidden\b/);
+        expect(m[0]).toContain('type="button"');
+        expect(m[0]).toContain('weather-badge-icon');
+        expect(m[0]).toContain('weather-badge-trend');
+        expect(html.indexOf('id="weatherBadge"')).toBeGreaterThan(html.indexOf('id="gameCanvas"'));
+    });
+
+    test('the badge is above the weather (89, with the number) and below the stats overlay (90), takes taps, has a 44px target', () => {
+        const b = block(wpCss, '.weather-badge');
+        expect(b).toMatch(/z-index:\s*89/);
+        expect(b).toMatch(/pointer-events:\s*auto/);
+        expect(b).toMatch(/width:\s*44px/);
+        expect(b).toMatch(/height:\s*44px/);
+        expect(z(wpCss, '.weather-badge')).toBeGreaterThan(z(css, '.climate-near'));
+    });
+
+    test('the badge sits beside the moon: it follows the moon\'s hill offset variable', () => {
+        expect(block(wpCss, '.weather-badge')).toContain('var(--gy-hill-w');
+    });
+
+    test('the pulse stops under fx-reduced / fx-off / prefers-reduced-motion', () => {
+        expect(wpCss).toMatch(/\.fx-reduced \.weather-badge--pulse \.weather-badge-chip,\s*\.fx-off \.weather-badge--pulse \.weather-badge-chip \{\s*animation: none/);
+        expect(wpCss).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\.weather-badge--pulse \.weather-badge-chip \{ animation: none/);
+    });
+
+    test('the portrait strip has no sky, so the badge is hidden there (Stats shows the weather instead)', () => {
+        expect(strip).toMatch(/body\.glance-strip \.weather-badge,/);
+    });
+});
+
+describe('script.js: badge + Stats readout', () => {
+    test('WeatherPanel is initialised before ClimateView (so the first refresh reaches the badge) and ClimateView reports changes to it', () => {
+        expect(script.indexOf('WeatherPanel.init({ getResult: climateNow });')).toBeGreaterThan(0);
+        expect(script.indexOf('WeatherPanel.init({ getResult: climateNow });')).toBeLessThan(script.indexOf('ClimateView.init({ getResult: climateNow, onChange'));
+    });
+
+    test('the Stats window gets the sky readout, built from the same lazy result', () => {
+        expect(script).toContain('weatherHtml: WeatherPanel.statsHtml(WeatherPanel.buildViewModel(climateNow()))');
+        expect(read('js/ui/managementWindows.js')).toContain('weatherHtml: deps.weatherHtml');
+        const stats = read('js/ui/statsView.js');
+        expect(stats).toContain('${deps.weatherHtml || \'\'}');
+        expect(stats).toContain('weatherHtml: deps.weatherHtml');
+    });
+});
+
 describe('looks key off one class per band', () => {
     test.each(RunClimate.BANDS)('css/climate.css defines #gameCanvas.climate-%s', band => {
         expect(css).toContain(`#gameCanvas.climate-${band} {`);
@@ -199,7 +346,7 @@ describe('portrait glance strip hides the weather layers', () => {
 
 describe('script.js hook-up', () => {
     test('ClimateView is initialised with the lazy result and refreshed from the layout hook, the tick and after the restore', () => {
-        expect(script).toContain('ClimateView.init({ getResult: climateNow })');
+        expect(script).toContain('ClimateView.init({ getResult: climateNow, onChange: (r) => WeatherPanel.updateBadge(r) });');
         expect((script.match(/ClimateView\.refresh\(\)/g) || []).length).toBeGreaterThanOrEqual(3);
         expect(script.indexOf('VillageView.render(BASE_WIDTH);\n        ClimateView.refresh();')).toBeGreaterThan(0);
     });
@@ -217,7 +364,7 @@ describe('script.js hook-up', () => {
     });
 
     test('nothing about the climate is persisted: no new storage key or State field', () => {
-        const mine = script.slice(script.indexOf('const climateCache'), script.indexOf('ClimateView.init({ getResult: climateNow })'));
+        const mine = script.slice(script.indexOf('const climateCache'), script.indexOf('ClimateView.init({ getResult: climateNow, onChange'));
         expect(mine).not.toMatch(/localStorage|saveGame|Persistence\.save/);
     });
 });

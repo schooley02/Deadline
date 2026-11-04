@@ -127,9 +127,26 @@ const HowItWorks = (() => {
         };
     }
 
+    // ---- The sky (run climate, 2026-11-03) ---------------------------------------------------------------------
+    function weatherTopic(config) {
+        const c = config.CLIMATE || {};
+        const w = c.weights || {};
+        const days = c.windowDays || 7;
+        return {
+            id: 'weather',
+            title: 'The sky',
+            what: [
+                `The sky shows how your run has been going lately, all of it together. It scores each of the last ${days} finished days of this run: finishing on time counts ${pct(w.onTime || 0)} (a late finish counts half), keeping your habits ${pct(w.habits || 0)}, and keeping the church healthy ${pct(w.church || 0)} (${c.damageCap || 25} HP of damage in one day scores zero). Recent days count more than older ones.`,
+                'There are five skies, best to worst: Clear, Hazy, Overcast, Fog and Storm. A new run starts Hazy, and several strong days in a row clear it. It changes once a day, when a day closes, so the morning sky is the report on how things have gone.',
+                'The small icon beside the moon shows the sky, with an arrow when the run is clearing or worsening. Tap it to see the last days. The same readout is in Stats.',
+            ],
+            why: 'Base health, overdue zombies and missed habits already show what is happening right now. The sky shows the direction of the whole run: it is slow to change, so one bad day does not ruin it and one good day does not fix it. As it worsens, decoration fades (stars, the moon, far buildings), but the things that help you recover (zombies, the church, your numbers) always stay readable.',
+        };
+    }
+
     function topics(config) {
         const cfg = config || (typeof CONFIG !== 'undefined' ? CONFIG : {});
-        return [pointsTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg)];
+        return [pointsTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg)];
     }
 
     // ---- Markup ------------------------------------------------------------------------------------------------
@@ -182,7 +199,7 @@ const HowItWorks = (() => {
     // Capture + stopPropagation is deliberate: Modal's outside-click dismiss (a bubbling document handler) would
     // otherwise see the same tap and close the popup or window the button sits in, and a row's own tap handler
     // (agenda rows, hero rows) must not fire as well.
-    const TOPIC_IDS = ['points', 'pushbacks', 'streaks', 'heroes', 'achievements'];
+    const TOPIC_IDS = ['points', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather'];
 
     function buttonHtml(topicId, label) {
         if (TOPIC_IDS.indexOf(topicId) === -1) return '';

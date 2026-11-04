@@ -21,6 +21,12 @@
  *   again), mid over the whole village. They stop at the horizon (--hz = the front row's feet). Their strength comes from
  *   the --clm-row1/row2/mid vars the weather band sets on #gameCanvas (0 = invisible). See hazePlan().
  *
+ * WEATHER WRAPPERS (run climate Build 2): two more decorative wrappers follow the veils, clipped to the canvas, built the same
+ *   way (z-index of the row they follow, appended last): `.village-wx--row` (Fog's cloud bank BETWEEN the back and front rows)
+ *   and `.village-wx--mid` (Fog's two banks and Storm's rain IN FRONT of the village, over the mid haze). css/climate.css decides
+ *   which child shows per band. The horizon is also published as --clm-hz on #gameCanvas so every weather layer can be placed
+ *   relative to it (the near layers in index.html use it too).
+ *
  * Landscape/desktop only: css/glanceStrip.css hides the layer in the portrait strip, and
  * getHillWidth() is 0 there so nothing is placed. script.js calls render(BASE_WIDTH) after every
  * layout change and every tick; render() is idempotent (a signature of everything it depends on
@@ -149,6 +155,7 @@ const VillageView = (() => {
 
     function clear() {
         if (layerEl) layerEl.textContent = '';
+        if (canvasEl && canvasEl.style) canvasEl.style.removeProperty('--clm-hz');
     }
 
     /**
@@ -158,6 +165,8 @@ const VillageView = (() => {
      *   row2  only when a back-row building exists  z = the back row's last index
      *   mid   always (when any building exists)     z = the last index (above every sprite)
      * hz = the horizon in canvas px: the front row's feet (else the lowest feet of any slot).
+     * wx = the weather wrappers: { key: 'row', z: last back-row index (else last far-row index) } when a rear row exists, then
+     * { key: 'mid', z: last index }; same rules as the veils (appended after them, so they win equal z-indexes).
      * left = where the veils start: just inside the church's right edge (baseW - 8; 0 when there is no church width), so the
      * CHURCH is never veiled by the village haze (it sits under #villageLayer in the stacking order; the approved mock has it
      * clear of the row and mid haze). css/climate.css feathers that edge over 32px so there is no hard line.
@@ -165,7 +174,7 @@ const VillageView = (() => {
     function hazePlan(slots, baseW) {
         const list = Array.isArray(slots) ? slots : [];
         const left = (Number(baseW) > 8) ? Math.round(Number(baseW)) - 8 : 0;
-        if (!list.length) return { hz: 0, left, veils: [] };
+        if (!list.length) return { hz: 0, left, veils: [], wx: [] };
         let hz = 0, hzFront = 0, lastFar = -1, lastBack = -1;
         list.forEach((sl, i) => {
             const feet = Number(sl.feetY) || 0;
@@ -178,20 +187,42 @@ const VillageView = (() => {
         if (lastFar >= 0) veils.push({ key: 'row1', z: lastFar });
         if (lastBack >= 0) veils.push({ key: 'row2', z: lastBack });
         veils.push({ key: 'mid', z: list.length - 1 });
-        return { hz: hzFront || hz, left, veils };
+        const wx = [];
+        const rear = lastBack >= 0 ? lastBack : lastFar;
+        if (rear >= 0) wx.push({ key: 'row', z: rear });
+        wx.push({ key: 'mid', z: list.length - 1 });
+        return { hz: hzFront || hz, left, veils, wx };
     }
 
     // Rebuilt on every full render (the sprites above may have been appended since): the veils must be LAST in the DOM so
     // that, at an equal z-index, they paint over the row's sprites.
+    const WX_CHILDREN = {
+        row: ['fog-bank fog-bank--row1'],
+        mid: ['fog-bank fog-bank--mid1', 'fog-bank fog-bank--mid2', 'rain rain--mid'],
+    };
+
     function syncHaze(slots, baseW) {
-        Array.from(layerEl.querySelectorAll('.village-haze')).forEach(el => el.remove());
+        Array.from(layerEl.querySelectorAll('.village-haze, .village-wx')).forEach(el => el.remove());
         const plan = hazePlan(slots, baseW);
+        if (canvasEl && canvasEl.style) canvasEl.style.setProperty('--clm-hz', plan.hz + 'px');
         plan.veils.forEach(v => {
             const el = document.createElement('div');
             el.className = 'village-haze village-haze--' + v.key;
             el.style.zIndex = String(v.z);
             el.style.setProperty('--hz', plan.hz + 'px');
             el.style.setProperty('--hz-left', plan.left + 'px');
+            layerEl.appendChild(el);
+        });
+        plan.wx.forEach(w => {
+            const el = document.createElement('div');
+            el.className = 'village-wx village-wx--' + w.key;
+            el.style.zIndex = String(w.z);
+            el.style.setProperty('--hz-left', plan.left + 'px');
+            (WX_CHILDREN[w.key] || []).forEach(cls => {
+                const child = document.createElement('div');
+                child.className = cls;
+                el.appendChild(child);
+            });
             layerEl.appendChild(el);
         });
     }

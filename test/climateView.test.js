@@ -117,6 +117,34 @@ describe('apply / refresh', () => {
         spy.mockRestore();
     });
 
+    test('onChange: called once at start and again only when the classes change, with the result', () => {
+        build();
+        const seen = [];
+        let result = { band: 'hazy', trend: 'steady' };
+        ClimateView.init({ getResult: () => result, onChange: (r) => seen.push(r && r.band) });
+        ClimateView.refresh();
+        ClimateView.refresh();
+        expect(seen).toEqual(['hazy']);
+        result = { band: 'fog', trend: 'steady' };
+        ClimateView.refresh();
+        expect(seen).toEqual(['hazy', 'fog']);
+        result = { band: 'fog', trend: 'steady', score: 0.41 }; // same classes -> not a change
+        ClimateView.refresh();
+        expect(seen).toEqual(['hazy', 'fog']);
+    });
+
+    test('onChange gets null when there is no usable result, and a throwing onChange never breaks the sky', () => {
+        const el = build();
+        const err = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const seen = [];
+        ClimateView.init({ getResult: () => null, onChange: (r) => seen.push(r) });
+        expect(seen).toEqual([null]);
+        ClimateView.init({ getResult: () => ({ band: 'storm', trend: 'steady' }), onChange: () => { throw new Error('badge broke'); } });
+        expect(el.classList.contains('climate-storm')).toBe(true);
+        expect(err).toHaveBeenCalled();
+        err.mockRestore();
+    });
+
     test('a throwing getResult leaves the sky with NO climate class (the old look) and logs once per refresh', () => {
         const el = build();
         const err = jest.spyOn(console, 'error').mockImplementation(() => {});

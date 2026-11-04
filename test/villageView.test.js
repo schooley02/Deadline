@@ -569,8 +569,8 @@ describe('haze by depth (run climate)', () => {
     const slot = (row, feetY) => ({ row, feetY });
 
     test('hazePlan: no slots -> no veils', () => {
-        expect(VillageView.hazePlan([])).toEqual({ hz: 0, left: 0, veils: [] });
-        expect(VillageView.hazePlan(null)).toEqual({ hz: 0, left: 0, veils: [] });
+        expect(VillageView.hazePlan([])).toEqual({ hz: 0, left: 0, veils: [], wx: [] });
+        expect(VillageView.hazePlan(null)).toEqual({ hz: 0, left: 0, veils: [], wx: [] });
     });
 
     test('hazePlan: one veil per row present, each at the last index of its row; mid above every sprite', () => {
@@ -596,6 +596,13 @@ describe('haze by depth (run climate)', () => {
         expect(VillageView.hazePlan([slot('front', 224)]).left).toBe(0);
     });
 
+    test('hazePlan: weather wrappers -- mid at the last index; row at the last back-row index (else the last far-row index); none without a rear row', () => {
+        const slots = [slot('far', 164), slot('far', 164), slot('back', 194), slot('front', 224), slot('front', 224)];
+        expect(VillageView.hazePlan(slots).wx).toEqual([{ key: 'row', z: 2 }, { key: 'mid', z: 4 }]);
+        expect(VillageView.hazePlan([slot('far', 164), slot('front', 224)]).wx).toEqual([{ key: 'row', z: 0 }, { key: 'mid', z: 1 }]);
+        expect(VillageView.hazePlan([slot('front', 224), slot('front', 224)]).wx).toEqual([{ key: 'mid', z: 1 }]);
+    });
+
     test('hazePlan: veil z-indexes rise with depth, so a nearer row always paints over a farther veil', () => {
         const plan = VillageView.hazePlan([slot('far', 1), slot('back', 2), slot('front', 3)]);
         const z = plan.veils.map(v => v.z);
@@ -612,6 +619,7 @@ describe('haze by depth (run climate)', () => {
     }
     const all = { p: 3, d: 3, s: 3, n: 3, l: 3, h: 3, b: 3, w: 3 };
     const veils = () => Array.from(document.querySelectorAll('#villageLayer .village-haze'));
+    const wxs = () => Array.from(document.querySelectorAll('#villageLayer .village-wx'));
 
     test('a full village gets row1, row2 and mid veils, last in the DOM, decorative', () => {
         renderAll(all);
@@ -620,7 +628,9 @@ describe('haze by depth (run climate)', () => {
         ]);
         const layer = document.getElementById('villageLayer');
         const kids = Array.from(layer.children);
-        expect(kids.slice(-3).every(k => k.classList.contains('village-haze'))).toBe(true); // after every sprite
+        // after every sprite: the veils, then the weather wrappers (row + mid)
+        expect(kids.slice(-5).map(k => k.classList.contains('village-haze') ? 'haze' : (k.classList.contains('village-wx') ? 'wx' : 'sprite')))
+            .toEqual(['haze', 'haze', 'haze', 'wx', 'wx']);
         veils().forEach(v => expect(v.getAttribute('style')).toMatch(/--hz:\s*\d+px/));
         veils().forEach(v => expect(v.style.getPropertyValue('--hz-left')).toBe('152px')); // render(160): the church's edge
     });
@@ -650,7 +660,30 @@ describe('haze by depth (run climate)', () => {
         VillageView.render(170);
         expect(veils()).toHaveLength(before);
         const kids = Array.from(document.getElementById('villageLayer').children);
-        expect(kids[kids.length - 1].classList.contains('village-haze')).toBe(true);
+        const n = wxs().length;
+        expect(n).toBeGreaterThan(0); // the weather wrappers are replaced too, never stacked
+        expect(kids.slice(-n).every(k => k.classList.contains('village-wx'))).toBe(true);
+        expect(kids.slice(-n - veils().length, -n).every(k => k.classList.contains('village-haze'))).toBe(true);
+    });
+
+    test('weather wrappers: row (one bank) + mid (two banks and rain), decorative, same left edge, z at the row end, and --clm-hz published', () => {
+        renderAll(all);
+        expect(wxs().map(w => w.className)).toEqual(['village-wx village-wx--row', 'village-wx village-wx--mid']);
+        const [row, mid] = wxs();
+        expect(Array.from(row.children).map(c => c.className)).toEqual(['fog-bank fog-bank--row1']);
+        expect(Array.from(mid.children).map(c => c.className)).toEqual(['fog-bank fog-bank--mid1', 'fog-bank fog-bank--mid2', 'rain rain--mid']);
+        wxs().forEach(w => expect(w.style.getPropertyValue('--hz-left')).toBe('152px'));
+        const sprites = Array.from(document.querySelectorAll('#villageLayer .village-sprite'));
+        const maxSprite = Math.max(...sprites.map(s => Number(s.style.zIndex)));
+        expect(Number(mid.style.zIndex)).toBe(maxSprite);
+        expect(Number(row.style.zIndex)).toBeLessThan(Number(mid.style.zIndex));
+        expect(document.getElementById('gameCanvas').style.getPropertyValue('--clm-hz')).toMatch(/^\d+px$/);
+    });
+
+    test('portrait strip / disabled village: no weather wrappers and no --clm-hz', () => {
+        init({ hill: 0 });
+        expect(wxs()).toHaveLength(0);
+        expect(document.getElementById('gameCanvas').style.getPropertyValue('--clm-hz')).toBe('');
     });
 
     test('portrait strip / disabled village: no sprites and no veils', () => {

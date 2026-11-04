@@ -126,6 +126,7 @@ const StatsView = (() => {
             <div class="stats-current-panel">
                 <h4>Run #${deps.currentRunNumber} — in progress</h4>
                 <div class="stats-days-survived">${deps.daysSurvivedSoFar} night${deps.daysSurvivedSoFar === 1 ? '' : 's'} survived so far${daysDeltaHtml}</div>
+                ${deps.weatherHtml || ''}
                 <div class="stats-counter-row">
                     <div class="stats-counter">
                         <span class="stats-counter-value">${stats.tasksCompleted}${d('tasksCompleted', true)}</span>
@@ -384,6 +385,7 @@ const StatsView = (() => {
             currentRunStats: deps.currentRunStats,
             daysSurvivedSoFar: deps.daysSurvivedSoFar,
             currentRunNumber,
+            weatherHtml: deps.weatherHtml,
             lastRunRecord: runHistory[0] || null,
             achievementsCatalog: deps.achievementsCatalog,
             lifetimeStats: deps.lifetimeStats,

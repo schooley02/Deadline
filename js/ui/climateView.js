@@ -16,7 +16,7 @@
  * Dev override: ?climate=clear|hazy|overcast|fog|storm (+ &trend=up|down) forces a band for art checks, like the
  * ?villageTier= params (parseOverride below; script.js turns it into a RunClimate.forced result).
  *
- * Deps: { getResult: () => RunClimate result | null }
+ * Deps: { getResult: () => RunClimate result | null, onChange?: (result | null) => void  (called when the classes change, and once at start) }
  */
 const ClimateView = (() => {
     const BANDS = ['clear', 'hazy', 'overcast', 'fog', 'storm'];
@@ -77,6 +77,10 @@ const ClimateView = (() => {
         if (key === lastKey) return;
         lastKey = key;
         apply(canvasEl, result);
+        // The badge / panel follow the same change (js/ui/weatherPanel.js). A failure there never breaks the sky.
+        if (deps.onChange) {
+            try { deps.onChange(result); } catch (err) { if (typeof console !== 'undefined') console.error('Deadline: weather badge failed', err); }
+        }
     }
 
     function init(d) {

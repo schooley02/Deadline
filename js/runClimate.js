@@ -23,7 +23,7 @@
  * Only closed days of the CURRENT run count (rec.run === runNumber); the open day never does (a day counts once it can no longer
  * change). No new DailyRecord counters: every field read here already exists (due, done, missed, lurk, dmg).
  *
- *   result = { band, bandIndex, score, trend, scoredDays, usedPrior, recent: [ { date, score, onTime, habits, church } ] }
+ *   result = { band, bandIndex, score, trend, scoredDays, usedPrior, recent: [ { date, score, onTime, habits, church, damage } ] }
  *   (`recent` = the last window days, NEWEST FIRST, for the future Weather panel.)
  */
 const RunClimate = (() => {
@@ -82,7 +82,8 @@ const RunClimate = (() => {
         if (onTime !== null) { sum += w.onTime * onTime; wsum += w.onTime; }
         if (habits !== null) { sum += w.habits * habits; wsum += w.habits; }
         sum += w.church * church; wsum += w.church;
-        return { score: wsum > 0 ? clamp01(sum / wsum) : null, onTime, habits, church };
+        // `damage` = the HP the church lost that day (shown in the Weather panel; the score uses `church`)
+        return { score: wsum > 0 ? clamp01(sum / wsum) : null, onTime, habits, church, damage: num(dmg.taken) + num(dmg.offline) };
     }
 
     function dayParts(rec, options) { return partsWith(rec, opts(options)); }

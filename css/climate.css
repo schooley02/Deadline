@@ -18,7 +18,9 @@
  *     behind the label.
  * Rule: weather may hide DECORATION (stars, moon, far scenery), never recovery information.
  * Clear with no override = today's look exactly: every var below has the old value as its fallback in gameCanvas.css.
- * Ground fog banks, storm rain/lightning, fireflies, the weather badge and the trend visuals are Build 2.
+ * Build 2 (below the number styles): Fog ground banks at four depths, Storm rain at four depths + soft lightning, fireflies at
+ * Clear, the trend visuals (up = a break of light near the moon + a moonbeam on the church + a brighter moon; down = sky clouds
+ * drift faster). The weather badge / panel are in css/weatherPanel.css.
  */
 
 /* ---------- band tokens ---------- */
@@ -192,4 +194,208 @@
     background: rgba(11, 11, 36, 0.6);
     padding: 3px 5px;
     margin-top: 8px;
+}
+
+/* =====================================================================================================================
+   Build 2 (2026-11-03): ground fog, rain, lightning, fireflies, trend visuals.
+   Everything is pointer-events: none. Motion rules at the end. All vertical positions are offsets from the HORIZON
+   (--clm-hz, the front row's feet, published on #gameCanvas by js/ui/villageView.js; 224px until a village exists) because the
+   canvas height changes between phones and desktop but the village does not.
+   ===================================================================================================================== */
+
+/* ---------- which wrappers / children show in which band ---------- */
+
+.village-wx,
+.climate-wx-near,
+.climate-fireflies,
+.climate-beam,
+.climate-break,
+.climate-lightning { display: none; }
+
+.fog-bank,
+.rain { display: none; }
+
+#gameCanvas:is(.climate-fog, .climate-storm) .village-wx,
+#gameCanvas:is(.climate-fog, .climate-storm) .climate-wx-near { display: block; }
+#gameCanvas.climate-fog .fog-bank { display: block; }
+#gameCanvas.climate-storm .rain { display: block; }
+#gameCanvas.climate-storm .climate-lightning { display: block; }
+#gameCanvas.climate-clear .climate-fireflies { display: block; }
+#gameCanvas.climate-trend-up .climate-beam,
+#gameCanvas.climate-trend-up .climate-break { display: block; }
+
+/* ---------- Fog: the pixel cloud sprites, lightened + see-through (Assets/scene/fog-tile.png = clouds-tile.png at
+   brightness 1.35 / saturation 0.35, pre-baked so no per-frame filter), laid along the ground. The nearer, the faster
+   (all drift the same way): between the village rows 16 px/s, in front of the village 22, in front of the zombies + church 34. ---------- */
+
+.village-wx,
+.climate-wx-near {
+    position: absolute;
+    inset: 0;
+    overflow: hidden; /* #gameCanvas and #villageLayer are overflow: visible; the banks must not spill under the time slider */
+    pointer-events: none;
+}
+
+/* The village wrappers start at the church's right edge (--hz-left, see .village-haze) and fade in over 32px, so the church is
+   never fogged by the village banks; the near wrapper covers everything. */
+.village-wx {
+    left: var(--hz-left, 0px);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 32px);
+    mask-image: linear-gradient(90deg, transparent 0, #000 32px);
+}
+
+.climate-wx-near { z-index: 87; } /* over the zombie band (80 pile, 85 hover), under the near haze (88) */
+
+.fog-bank {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(var(--clm-hz, 224px) + var(--fb-top, 0px));
+    height: calc(144px * var(--fb-scale, 1));
+    pointer-events: none;
+    background-image: url("../Assets/scene/fog-tile.png");
+    background-repeat: repeat-x;
+    background-size: calc(1250px * var(--fb-scale, 1)) calc(144px * var(--fb-scale, 1));
+    background-position: var(--fb-x, 0px) 0;
+    image-rendering: pixelated;
+    opacity: var(--fb-op, 0.4);
+    animation: climate-fog-drift var(--fb-dur, 60s) linear infinite;
+}
+
+@keyframes climate-fog-drift {
+    from { background-position-x: var(--fb-x, 0px); }
+    to { background-position-x: calc(var(--fb-x, 0px) + 1250px * var(--fb-scale, 1)); }
+}
+
+/* offsets are the approved mockup's tops minus its horizon (224); duration = tile width x scale / speed */
+.fog-bank--row1 { --fb-top: -120px; --fb-x: -300px; --fb-op: 0.46; --fb-scale: 0.95; --fb-dur: 74s; }  /* 16 px/s */
+.fog-bank--mid1 { --fb-top: -112px; --fb-x: -420px; --fb-op: 0.5;  --fb-scale: 1.15; --fb-dur: 65s; }  /* 22 px/s */
+.fog-bank--mid2 { --fb-top: -78px;  --fb-x: -1010px; --fb-op: 0.42; --fb-scale: 1;    --fb-dur: 57s; }  /* 22 px/s */
+.fog-bank--n1   { --fb-top: -24px;  --fb-x: -860px; --fb-op: 0.36; --fb-scale: 1.1;  --fb-dur: 40s; }  /* 34 px/s */
+.fog-bank--n2   { --fb-top: 12px;   --fb-x: -230px; --fb-op: 0.34; --fb-scale: 1;    --fb-dur: 37s; }  /* 34 px/s */
+.fog-bank--n3   { --fb-top: 26px;   --fb-x: -640px; --fb-op: 0.28; --fb-scale: 0.9;  --fb-dur: 33s; }  /* 34 px/s */
+
+/* ---------- Storm: rain at four depths (far = over sky + hills, mid = in front of the village, near x2 = over the zombies);
+   the nearer, the faster and denser ---------- */
+
+.rain {
+    pointer-events: none;
+    background-image: repeating-linear-gradient(105deg, transparent 0 9px, rgba(190, 205, 215, var(--ra, 0.22)) 9px 10px, transparent 10px 23px);
+    -webkit-mask-image: repeating-linear-gradient(0deg, #000 0 18px, transparent 18px 30px);
+    mask-image: repeating-linear-gradient(0deg, #000 0 18px, transparent 18px 30px);
+    -webkit-mask-size: 100% 30px;
+    mask-size: 100% 30px;
+    animation: climate-rainfall var(--rd, 1s) linear infinite;
+}
+
+.village-wx .rain,
+.climate-wx-near .rain {
+    position: absolute;
+    inset: 0;
+}
+
+@keyframes climate-rainfall {
+    from { background-position: 0 0; }
+    to { background-position: calc(var(--rx, 16px) * -1) var(--ry, 60px); }
+}
+
+.rain--far   { --ra: 0.2;  --rd: 1.1s;  --rx: 16px; --ry: 60px; }
+.rain--mid   { --ra: 0.16; --rd: 0.9s;  --rx: 20px; --ry: 75px; }
+.rain--near1 { --ra: 0.22; --rd: 0.8s;  --rx: 24px; --ry: 90px; }
+.rain--near2 {
+    --ra: 0.3; --rd: 0.55s; --rx: 32px; --ry: 120px;
+    background-size: 37px 100%;
+    -webkit-mask-image: repeating-linear-gradient(0deg, #000 0 26px, transparent 26px 60px);
+    mask-image: repeating-linear-gradient(0deg, #000 0 26px, transparent 26px 60px);
+}
+
+/* Soft lightning: the cloud ceiling glows once every ~14s, a single slow swell (0.7s up, 0.6s down, peak ~20% alpha) --
+   never a strobe, never more than one flash per cycle. Hidden under reduced motion. */
+.climate-lightning {
+    z-index: -2;
+    background: radial-gradient(ellipse 70% 60% at 40% 0%, rgba(215, 235, 228, 0.55), rgba(215, 235, 228, 0) 70%);
+    opacity: 0;
+    animation: climate-lightning 14s ease-in-out infinite;
+}
+
+@keyframes climate-lightning {
+    0%, 86% { opacity: 0; }
+    91% { opacity: 0.4; }
+    100% { opacity: 0; }
+}
+
+/* ---------- Clear: fireflies, a few dim ones floating in and out of the upper zombie lane, BEHIND the zombies (z 28 < 30) ---------- */
+
+.climate-fireflies {
+    position: absolute;
+    inset: 0;
+    z-index: 28;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.firefly {
+    position: absolute;
+    top: calc(var(--clm-hz, 224px) + var(--ff-top, 0px));
+    width: 2px;
+    height: 2px;
+    background: #e8f59a;
+    box-shadow: 0 0 0 1px rgba(232, 245, 154, 0.35), 0 0 6px 2px rgba(232, 245, 154, 0.35);
+    opacity: 0;
+    pointer-events: none;
+    animation: firefly-glow var(--ff-d, 9s) ease-in-out infinite, firefly-drift var(--ff-d, 9s) ease-in-out infinite;
+    animation-delay: var(--ff-t, 0s), var(--ff-t, 0s);
+}
+
+@keyframes firefly-glow {
+    0%, 100% { opacity: 0; }
+    30%, 62% { opacity: 0.8; }
+}
+
+@keyframes firefly-drift {
+    0% { transform: translate(0, 0); }
+    50% { transform: translate(var(--ff-x, 14px), var(--ff-y, -8px)); }
+    100% { transform: translate(calc(var(--ff-x, 14px) * 0.3), calc(var(--ff-y, -8px) * -0.8)); }
+}
+
+/* ---------- Trend UP (any band): a break of light around the moon, a moonbeam that falls on the church, a brighter moon ---------- */
+
+.climate-break {
+    position: absolute;
+    inset: 0;
+    z-index: -2; /* later in the DOM than the scene => over the sky clouds + far haze, under the ground (-1) */
+    pointer-events: none;
+    background: radial-gradient(ellipse 130px 90px at calc(100% - var(--gy-hill-w, 140px) - 41px) calc(8% + 29px),
+        rgba(253, 251, 232, 0.16), rgba(253, 251, 232, 0.05) 55%, rgba(253, 251, 232, 0) 100%);
+}
+
+.climate-beam {
+    position: absolute;
+    inset: 0;
+    z-index: 0; /* after #base in the DOM => over the church and ground; the village layer (1) and zombies stay over it */
+    pointer-events: none;
+    /* from just under the moon down to the church's door */
+    clip-path: polygon(calc(100% - var(--gy-hill-w, 140px) - 64px) calc(8% + 36px),
+        calc(100% - var(--gy-hill-w, 140px) - 20px) calc(8% + 50px), 230px 100%, 70px 100%);
+    background: linear-gradient(240deg, rgba(253, 251, 232, 0.2), rgba(253, 251, 232, 0.07) 70%, rgba(253, 251, 232, 0.03));
+}
+
+#gameCanvas.climate-trend-up .nights-moon { opacity: min(1, calc(var(--clm-moon, 1) + 0.25)); }
+
+/* ---------- Trend DOWN (any band): the sky clouds drift a little faster (x1.33) ---------- */
+
+#gameCanvas.climate-trend-down .scene-clouds:not(.scene-clouds-extra) .scene-clouds-drift { animation-duration: 21s; }
+#gameCanvas.climate-trend-down .scene-clouds-extra .scene-clouds-drift { animation-duration: calc(var(--cl-dur, 28s) * 0.75); }
+
+/* ---------- motion settings: static under fx-reduced / fx-off / prefers-reduced-motion (the banks and rain stay as still
+   pictures so the band still reads; lightning and fireflies are hidden) ---------- */
+
+.fx-reduced .fog-bank, .fx-off .fog-bank,
+.fx-reduced .rain, .fx-off .rain { animation: none; }
+.fx-reduced .climate-lightning, .fx-off .climate-lightning,
+.fx-reduced .climate-fireflies, .fx-off .climate-fireflies { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+    .fog-bank, .rain { animation: none; }
+    .climate-lightning, .climate-fireflies { display: none !important; }
 }

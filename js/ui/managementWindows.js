@@ -119,6 +119,8 @@ const ManagementWindows = (() => {
                     days: deps.days,
                     todayRecord: deps.todayRecord,
                     scoreWeights: deps.scoreWeights,
+                    // Run climate Build 2 (2026-11-03): the sky readout (an HTML string built by WeatherPanel), shown in the current-run panel.
+                    weatherHtml: deps.weatherHtml,
                 });
             } else if (type === 'settings') {
                 // [P2-UI-009] session 59 — same pass-through-deps-only shape

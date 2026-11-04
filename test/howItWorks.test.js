@@ -23,14 +23,14 @@ const topic = (id, cfg) => all(cfg).find(t => t.id === id);
 // Everything a player can read in a topic, as one lowercase-insensitive string.
 const textOf = (t) => [].concat(t.what || [], t.list || [], t.html || '', t.why || '').join(' ');
 
-describe('the five topics', () => {
-    test('Points, Pushbacks, Streaks, Hero ranking, Achievements, in that order', () => {
-        expect(all().map(t => t.title)).toEqual(['Points', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements']);
-        expect(all().map(t => t.id)).toEqual(['points', 'pushbacks', 'streaks', 'heroes', 'achievements']);
+describe('the six topics', () => {
+    test('Points, Pushbacks, Streaks, Hero ranking, Achievements, The sky, in that order', () => {
+        expect(all().map(t => t.title)).toEqual(['Points', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky']);
+        expect(all().map(t => t.id)).toEqual(['points', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather']);
     });
 
     test('Streaks, Hero ranking and Achievements carry the approved "Why"; Points and Pushbacks do not invent one', () => {
-        ['streaks', 'heroes', 'achievements'].forEach(id => expect(topic(id).why).toBeTruthy());
+        ['streaks', 'heroes', 'achievements', 'weather'].forEach(id => expect(topic(id).why).toBeTruthy());
         ['points', 'pushbacks'].forEach(id => expect(topic(id).why).toBeUndefined());
     });
 });
@@ -214,8 +214,8 @@ describe('Achievements', () => {
 describe('windowHtml', () => {
     test('one <details> per topic, in order, with the corner x', () => {
         const html = HowItWorks.windowHtml(all());
-        expect((html.match(/<details /g) || []).length).toBe(5);
-        const order = ['Points', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements'].map(n => html.indexOf(`<summary>${n}</summary>`));
+        expect((html.match(/<details /g) || []).length).toBe(6);
+        const order = ['Points', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky'].map(n => html.indexOf(`<summary>${n}</summary>`));
         expect(order.every(i => i > 0)).toBe(true);
         expect(order).toEqual(order.slice().sort((a, b) => a - b));
         expect(html).toContain('modal-close-x');
@@ -326,5 +326,32 @@ describe('shell wiring', () => {
 
     test('howItWorks.js never uses a native dialog', () => {
         expect(read('js/ui/howItWorks.js')).not.toMatch(/\b(alert|confirm|prompt)\s*\(/);
+    });
+});
+
+
+describe('The sky (run climate)', () => {
+    test('quotes the scoring weights, the window and the damage cap from CONFIG.CLIMATE', () => {
+        const text = textOf(topic('weather'));
+        expect(text).toContain(`last ${CONFIG.CLIMATE.windowDays} finished days`);
+        expect(text).toContain('finishing on time counts 50%');
+        expect(text).toContain('keeping your habits 25%');
+        expect(text).toContain('keeping the church healthy 25%');
+        expect(text).toContain(`${CONFIG.CLIMATE.damageCap} HP of damage in one day scores zero`);
+    });
+
+    test('follows CONFIG (negative control: a retuned weight changes the words)', () => {
+        const retuned = Object.assign({}, CONFIG, { CLIMATE: Object.assign({}, CONFIG.CLIMATE, { weights: { onTime: 0.6, habits: 0.2, church: 0.2 }, windowDays: 5 }) });
+        const text = textOf(topic('weather', retuned));
+        expect(text).toContain('finishing on time counts 60%');
+        expect(text).toContain('last 5 finished days');
+        expect(textOf(topic('weather'))).not.toContain('counts 60%');
+    });
+
+    test('names all five skies, says a new run starts Hazy and that the sky changes once a day', () => {
+        const text = textOf(topic('weather'));
+        ['Clear', 'Hazy', 'Overcast', 'Fog', 'Storm'].forEach(b => expect(text).toContain(b));
+        expect(text).toContain('A new run starts Hazy');
+        expect(text).toContain('once a day');
     });
 });

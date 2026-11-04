@@ -54,6 +54,13 @@ describe('run card / current panel', () => {
         expect(StatsView.buildCurrentRunPanel({ ...base, bestWorst: bw })).toContain('Best &amp; worst day');
         expect(StatsView.buildCurrentRunPanel(base)).not.toContain('Best &amp; worst day');
     });
+    test('current panel shows the sky readout (run climate Build 2) right under the nights-survived line, only when given', () => {
+        const base = { currentRunStats: RunStats.freshRunStats(), daysSurvivedSoFar: 1, currentRunNumber: 2, lastRunRecord: null };
+        const html = StatsView.buildCurrentRunPanel({ ...base, weatherHtml: '<div class="stats-weather">Sky: Fog</div>' });
+        expect(html).toContain('<div class="stats-weather">Sky: Fog</div>');
+        expect(html.indexOf('stats-days-survived')).toBeLessThan(html.indexOf('stats-weather'));
+        expect(StatsView.buildCurrentRunPanel(base)).not.toContain('stats-weather');
+    });
 });
 
 describe('renderStatsWindow wiring', () => {

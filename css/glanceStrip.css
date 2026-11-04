@@ -84,11 +84,19 @@ body.glance-strip .nights-ui {
 }
 
 /* The run climate's weather layers (css/climate.css) are landscape/desktop only too: the strip has its own sky. */
+body.glance-strip .weather-badge,
 body.glance-strip .climate-haze-far,
 body.glance-strip .climate-near,
 body.glance-strip .village-haze,
-body.glance-strip .scene-clouds-extra {
-    display: none;
+body.glance-strip .scene-clouds-extra,
+body.glance-strip .village-wx,
+body.glance-strip .climate-wx-near,
+body.glance-strip .climate-fireflies,
+body.glance-strip .climate-beam,
+body.glance-strip .climate-break,
+body.glance-strip .climate-lightning,
+body.glance-strip .rain {
+    display: none !important;
 }
 
 /* FLOOR band (PixelLab tileable art, 2026-10-13): Assets/scene/strip-floor.png is

@@ -148,7 +148,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return climateCache.result; // last good value, or null = no climate class
         }
     }
-    ClimateView.init({ getResult: climateNow });
+    WeatherPanel.init({ getResult: climateNow });
+    ClimateView.init({ getResult: climateNow, onChange: (r) => WeatherPanel.updateBadge(r) });
     const baseHealthDisplay = document.getElementById('baseHealthDisplay');
     const playerXpDisplay = document.getElementById('playerXpDisplay');
     const playerLevelDisplay = document.getElementById('playerLevelDisplay');
@@ -2799,6 +2800,7 @@ document.addEventListener('DOMContentLoaded', () => {
             runStartedAtMs: State.getRunStartedAtMs(),
             shopCatalog: CONFIG.SHOP_ITEMS, playerInventory: State.getPlayerInventory(), playerPoints: State.getPlayerPoints(), baseHealth: State.getBaseHealth(),
             onShopBuy: handleShopPurchase, onShopUse: handleShopUse, shopDiscount: currentShopDiscount(), pushbackHelpCtx,
+            weatherHtml: WeatherPanel.statsHtml(WeatherPanel.buildViewModel(climateNow())), // Stats > the sky readout (run climate Build 2)
             currentRunStats: State.getCurrentRunStats(), runHistory: State.getRunHistory(), daysSurvivedSoFar: Damage.computeDaysSurvived(State.getRunStartedAtMs(), Date.now(), CONFIG.MS_PER_REAL_DAY),
             achievementsCatalog: CONFIG.ACHIEVEMENTS, lifetimeStats: State.getLifetimeStats(), achievements: State.getAchievements(),
             // D2 step 5: closed days + today's open record for Stats best/worst day.

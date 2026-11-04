@@ -47,6 +47,7 @@
     <link rel="stylesheet" href="css/villagePanel.css">
     <link rel="stylesheet" href="css/howItWorks.css">
     <link rel="stylesheet" href="css/climate.css">
+    <link rel="stylesheet" href="css/weatherPanel.css">
     <link rel="stylesheet" href="css/glanceStrip.css">
     <link rel="stylesheet" href="css/responsive.css">
 </head>
@@ -128,8 +129,15 @@
                     </div>
                     <!-- Run climate far haze: a veil over the sky, clouds and hills (z -2, later in the DOM than both), under the ground. -->
                     <div class="scene-layer climate-haze-far"></div>
+                    <!-- Storm only (css/climate.css): far rain over the sky + hills, and a soft sheet-lightning glow in the cloud
+                         ceiling (one slow fade every ~14s, never a strobe; hidden under fx-reduced / fx-off / reduced motion). -->
+                    <div class="scene-layer rain rain--far"></div>
+                    <div class="scene-layer climate-lightning"></div>
                     <div class="scene-layer scene-ground"></div>
                 </div>
+                <!-- Run climate trend UP (css/climate.css): a soft break of light around the moon (above the sky clouds, z -2 and later
+                     in the DOM than the scene) -- the moonbeam that falls on the church is .climate-beam below. Decorative. -->
+                <div class="climate-break" aria-hidden="true"></div>
                 <!-- Achievement village (V7 W2 first slice, 2026-10-29; docs/ART_STYLE.md "Achievement village art"):
                      the Clock tower on the horizon hill, behind the zombie lanes and UNDER #midnightLine
                      (css/village.css z-index 1). Decorative, filled by js/ui/villageView.js. Landscape/desktop
@@ -176,6 +184,32 @@
                 <!-- Run climate near haze (2026-11-03, css/climate.css): a very light film over everything up to the zombies
                      (z 88, under the Nights Survived number at 89). pointer-events none: every tap passes through. Decorative. -->
                 <div id="climateNear" class="climate-near" aria-hidden="true"></div>
+                <!-- Run climate extras (Build 2, 2026-11-03; css/climate.css), all decorative with pointer-events none:
+                     the moonbeam (trend up) lands on the church (z 0, after #base in the DOM => over it, under the village + zombies);
+                     fireflies (Clear only) float in the upper zombie lane BEHIND the zombies (z 28); and the NEAR weather wrapper
+                     (z 87, clipped to the canvas) holds Fog's front banks and Storm's two near rain layers. The village's own row /
+                     mid fog + rain are built inside #villageLayer by js/ui/villageView.js. -->
+                <!-- Weather badge (run climate Build 2, js/ui/weatherPanel.js): the pixel icon of the sky, beside the moon; tap = the
+                     Weather panel. Hidden until a result exists and in the portrait strip (Stats shows the same readout there). -->
+                <button type="button" id="weatherBadge" class="weather-badge" aria-label="Weather" hidden>
+                    <span class="weather-badge-chip"><span class="weather-badge-icon"></span><span class="weather-badge-trend"></span></span>
+                </button>
+                <div class="climate-beam" aria-hidden="true"></div>
+                <div class="climate-fireflies" aria-hidden="true">
+                    <span class="firefly" style="left:30%;--ff-top:-26px;--ff-d:9s;--ff-t:-1s;--ff-x:16px;--ff-y:-9px"></span>
+                    <span class="firefly" style="left:44%;--ff-top:-44px;--ff-d:11s;--ff-t:-5s;--ff-x:-14px;--ff-y:-6px"></span>
+                    <span class="firefly" style="left:57%;--ff-top:-12px;--ff-d:8s;--ff-t:-3s;--ff-x:12px;--ff-y:-11px"></span>
+                    <span class="firefly" style="left:69%;--ff-top:-36px;--ff-d:10s;--ff-t:-7s;--ff-x:-18px;--ff-y:-7px"></span>
+                    <span class="firefly" style="left:38%;--ff-top:4px;--ff-d:12s;--ff-t:-9s;--ff-x:15px;--ff-y:-8px"></span>
+                    <span class="firefly" style="left:76%;--ff-top:-18px;--ff-d:7s;--ff-t:-2s;--ff-x:-12px;--ff-y:-10px"></span>
+                </div>
+                <div id="climateWxNear" class="climate-wx-near" aria-hidden="true">
+                    <div class="fog-bank fog-bank--n1"></div>
+                    <div class="fog-bank fog-bank--n2"></div>
+                    <div class="fog-bank fog-bank--n3"></div>
+                    <div class="rain rain--near1"></div>
+                    <div class="rain rain--near2"></div>
+                </div>
             </div>
             
             <!-- Level Up and Game Over Messages -->
@@ -524,6 +558,8 @@
     <script src="js/ui/villageView.js"></script>
     <!-- js/ui/climateView.js (2026-11-03): puts the run climate band on #gameCanvas as a class (css/climate.css does the looks). -->
     <script src="js/ui/climateView.js"></script>
+    <!-- js/ui/weatherPanel.js (2026-11-03): the weather badge, the Weather panel and the Stats readout (needs Modal + HowItWorks at call time). -->
+    <script src="js/ui/weatherPanel.js"></script>
     <script src="js/ui/villageCard.js"></script>
     <script src="js/ui/villagePanel.js"></script>
     <script src="js/ui/hudButtons.js"></script>
