@@ -222,16 +222,53 @@ const Forms = (() => {
         newTaskStartTime: 'newTaskDueTime', editTaskStartTime: 'editTaskDueTime',
         modalHabitStartTime: 'modalHabitEndTime', newHabitStartTime: 'newHabitEndTime', editHabitStartTime: 'editHabitEndTime',
     };
+    // Adding a Start to a SUB-TASK sets its Due to one hour later (2026-11-04, Jeremy). Only for the Start boxes listed
+    // here; the other forms keep "no shift when a Start is first added". The result is held to 23:59 and, when the
+    // sub-task's Due Date is its parent's date, to the parent's due time (a sub-task can't be due after its parent; the
+    // Start input carries `data-cap-date` / `data-cap-time` and `dateId` names the Due Date box). If the cap leaves
+    // Due at or before Start, Due is left alone. Due stays an ordinary box, so the player overrides it by typing.
+    const AUTO_DUE_ON_ADD_MINUTES = 60;
+    const AUTO_DUE_ON_ADD = { subTaskStartTime: { dateId: 'subTaskDueDate' } };
+    function autoDueForNewStart(prevStart, newStart, capTime) {
+        const toMin = (t) => {
+            const m = /^(\d{1,2}):(\d{2})$/.exec(t || '');
+            return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+        };
+        if (toMin(prevStart) !== null) return null;          // only the first time a Start is added
+        const s = toMin(newStart);
+        if (s === null) return null;                          // cleared
+        let due = Math.min(23 * 60 + 59, s + AUTO_DUE_ON_ADD_MINUTES);
+        const cap = toMin(capTime);
+        if (cap !== null) due = Math.min(due, cap);
+        if (due <= s) return null;
+        const pad = (x) => String(x).padStart(2, '0');
+        return `${pad(Math.floor(due / 60))}:${pad(due % 60)}`;
+    }
+
     // One document-level listener covers every form, however and whenever its modal is built. `defaultValue` is the
     // value the form opened with; after each change `data-prev-start` holds the last value.
     function onStartTimeChange(e) {
         const el = e.target;
+        // A Due box the player edited himself (sub-task form) is never auto-set when a Start is added afterwards.
+        if (el && el.id && Object.keys(AUTO_DUE_ON_ADD).some((startId) => START_DUE_PAIRS[startId] === el.id)) {
+            el.dataset.userSet = '1';
+            return;
+        }
         const dueId = el && START_DUE_PAIRS[el.id];
         if (!dueId) return;
         const due = document.getElementById(dueId);
         const prev = el.dataset.prevStart !== undefined ? el.dataset.prevStart : el.defaultValue;
         el.dataset.prevStart = el.value;
         if (!due) return;
+        const auto = AUTO_DUE_ON_ADD[el.id];
+        if (auto && !/^\d{1,2}:\d{2}$/.test(prev || '')) {
+            if (due.dataset.userSet === '1') return;
+            const dateEl = document.getElementById(auto.dateId);
+            const capped = el.dataset.capTime && (!dateEl || dateEl.value === el.dataset.capDate);
+            const nextAuto = autoDueForNewStart(prev, el.value, capped ? el.dataset.capTime : null);
+            if (nextAuto !== null) due.value = nextAuto;
+            return;
+        }
         const next = shiftDueForStart(prev, el.value, due.value);
         if (next !== null) due.value = next;
     }
@@ -924,6 +961,7 @@ const Forms = (() => {
         applyAnytimeToggle,
         ANYTIME_DUE_TIME,
         shiftDueForStart,
+        autoDueForNewStart,
         onStartTimeChange,
         startBeforeDueError,
         startDateTimeFor,

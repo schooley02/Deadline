@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-04 (sub-task start -> due) -- Adding a Start to a new sub-task sets its Due one hour later, still overridable (Claude app session; Sonnet; Jeremy)
+
+- **Jeremy's ask:** when creating a sub-task, if the player adds a start time, change the due time to an hour later automatically and let the player override it.
+- **Decision:** the first Start typed into the Add Sub-task form (blank -> a time) sets Due = Start + 60 min. This is a NEW rule beside the 2026-11-01 one ("changing an existing Start shifts Due by the same minutes; no shift when a Start is first added"), which stays for every other form. Scope is the sub-task form only (Jeremy named sub-tasks); Add Task and the routine task forms are unchanged.
+- **Guards (my calls, not asked for):** (1) held to 23:59 and to the parent's due time while the Due Date is the parent's date, because a sub-task can't be due after its parent and the form would otherwise reject the save (`Popups.showCreateSubTaskModal`); if the cap leaves Due at or before Start, Due is left alone. (2) A Due the player typed himself before adding a Start is not overwritten: "let the user override it" also covers an override made first.
+- **Unchanged:** the sub-task's saved fields, the "Start must be earlier than Due" check, the parent-deadline check. The 60-minute number is `AUTO_DUE_ON_ADD_MINUTES` in js/ui/forms.js (one place).
+- **Files:** js/ui/forms.js (`autoDueForNewStart`, `AUTO_DUE_ON_ADD`, `onStartTimeChange`), js/ui/popups.js (cap data attributes on the Start input), sw.js v243, test/subtask-start-auto-due.test.js (14 tests), docs/UI_UX.md.
+
 ## 2026-11-04 (habit-type picker) -- Build / Break picker: greyed non-selected button, one row on every device, hammer / broken-chain icons (Claude app session; Opus plan -> Sonnet build; Jeremy)
 
 - **Jeremy's ask:** when editing a habit, show clearly which type is selected (grey out the other), shrink the picker so Build and Break are on the same row on every device, try other icons for Build and Break, and put the icon and the title above the description, centred on the button.

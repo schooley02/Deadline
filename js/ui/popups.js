@@ -935,7 +935,7 @@ const Popups = (() => {
                         <label for="subTaskDueDate">Due Date:</label>
                         <input type="date" id="subTaskDueDate" value="${parentDueDate}" max="${parentDueDate}" required>
                     </div>
-                    ${Forms.startDueTimeGroupHtml({ startId: 'subTaskStartTime', dueId: 'subTaskDueTime', startValue: '', dueValue: parentDueTime })}
+                    ${Forms.startDueTimeGroupHtml({ startId: 'subTaskStartTime', dueId: 'subTaskDueTime', startValue: '', dueValue: parentDueTime, startAttrs: `data-cap-date="${parentDueDate}" data-cap-time="${parentDueTime}"` })}
                     <div class="modal-buttons">
                         <button id="createSubTaskBtn" class="primary-button">Create Sub-task</button>
                         <button class="secondary-button" onclick="closeModal()">Cancel</button>
