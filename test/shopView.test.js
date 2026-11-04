@@ -111,3 +111,79 @@ describe('pushback tokens section (Build C)', () => {
         expect(list.querySelector('#shopPushbackHint').textContent).toContain('Rescheduling is free when');
     });
 });
+
+describe('owned counts (2026-11-04: the shop shows how many of each item you have)', () => {
+    const render = (inventory) => {
+        document.body.innerHTML = '<span id="shopWindowPoints"></span><div id="shopWindowList"></div>';
+        ShopView.renderShopWindow({
+            catalog: CATALOG, inventory, playerPoints: 1000, baseHealth: 50, onBuy: noop, onUse: noop, discount: 0,
+        });
+        return document.getElementById('shopWindowList');
+    };
+    const cardIn = (list, id) => list.querySelector(`.shop-item-card[data-item-id="${id}"]`);
+
+    test('a held item gets a ×N pill in its header and the owned class', () => {
+        const c = card('repair_small', { repair_small: 3 });
+        const pill = c.querySelector('.shop-item-header .shop-item-owned');
+        expect(pill).not.toBeNull();
+        expect(pill.textContent).toBe('×3');
+        expect(pill.getAttribute('aria-label')).toBe('You have 3');
+        expect(c.classList.contains('shop-item-card--owned')).toBe(true);
+    });
+
+    test.each(CATALOG.map(i => i.id))('%s shows no count when none are held', (id) => {
+        const c = card(id, {});
+        expect(c.querySelector('.shop-item-owned')).toBeNull();
+        expect(c.classList.contains('shop-item-card--owned')).toBe(false);
+        expect(c.textContent).not.toMatch(/Held:/);
+    });
+
+    test('every held item gets its own pill (pushback tokens and day tokens too)', () => {
+        const list = render({ pushback_medium: 1, sick_day: 2, cheat_day: 1 });
+        expect(cardIn(list, 'pushback_medium').querySelector('.shop-item-owned').textContent).toBe('×1');
+        expect(cardIn(list, 'sick_day').querySelector('.shop-item-owned').textContent).toBe('×2');
+        expect(cardIn(list, 'cheat_day').querySelector('.shop-item-owned').textContent).toBe('×1');
+        expect(cardIn(list, 'skip_day').querySelector('.shop-item-owned')).toBeNull();
+    });
+
+    test('ownedSummary lists held items in catalog order and skips unknown or empty keys', () => {
+        const rows = ShopView.ownedSummary(CATALOG, { sick_day: 1, repair_small: 2, repair_large: 0, old_item: 5 });
+        expect(rows.map(r => [r.id, r.count])).toEqual([['repair_small', 2], ['sick_day', 1]]);
+        expect(rows[0].name).toBe('Repair Kit (Small)');
+        expect(ShopView.ownedSummary(CATALOG, null)).toEqual([]);
+    });
+
+    test('the "You have" row is the first thing in the grid, one chip per held item', () => {
+        const list = render({ repair_small: 2, pushback_medium: 1 });
+        const row = list.firstElementChild;
+        expect(row.classList.contains('shop-owned-row')).toBe(true);
+        expect(row.querySelector('.shop-owned-title').textContent).toBe('You have');
+        const chips = [...row.querySelectorAll('.shop-owned-chip')];
+        expect(chips.map(c => c.dataset.itemId)).toEqual(['repair_small', 'pushback_medium']);
+        expect(chips[0].querySelector('.shop-owned-chip-count').textContent).toBe('×2');
+        expect(chips[0].textContent).toContain('Repair Kit (Small)');
+        expect(row.querySelector('.shop-owned-none')).toBeNull();
+    });
+
+    test('with nothing held the row says "Nothing yet"', () => {
+        const row = render({}).querySelector('.shop-owned-row');
+        expect(row.querySelectorAll('.shop-owned-chip').length).toBe(0);
+        expect(row.querySelector('.shop-owned-none').textContent).toBe('Nothing yet');
+    });
+
+    test('tapping a chip scrolls its card into view', () => {
+        const list = render({ sick_day: 1 });
+        const target = cardIn(list, 'sick_day');
+        target.scrollIntoView = jest.fn();
+        list.querySelector('.shop-owned-chip').click();
+        expect(target.scrollIntoView).toHaveBeenCalledTimes(1);
+    });
+
+    test('the row refreshes on every render (after a buy or use)', () => {
+        render({ repair_small: 1 });
+        const list = render({ repair_small: 2 });
+        expect(list.querySelectorAll('.shop-owned-row').length).toBe(1);
+        expect(list.querySelector('.shop-owned-chip-count').textContent).toBe('×2');
+        expect(cardIn(list, 'repair_small').querySelector('.shop-item-owned').textContent).toBe('×2');
+    });
+});

@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-04 (shop counts) -- The Shop shows how many of each item you have: a ×N badge on owned cards + a "You have" row (Claude app session; Opus; Jeremy)
+
+- **Jeremy's ask:** the shop needs to show how many of an item the user has. It already did, as a small grey "Held: N" line on every card, which was easy to miss (and in phone landscape only three cards fit).
+- **Decision (Jeremy picked from options):** (1) a green "×N" badge on each card you hold one or more of, plus a stronger green card border; (2) nothing at zero (no "×0", and the "Held: N" line is removed); (3) a "You have" row at the top of the Shop listing every held item with its count, or "Nothing yet". Rejected: a muted ×0 on every card; badge only; row only.
+- **My calls:** the badge sits on the card's top border (absolute) rather than inline in the header, so the item name keeps its full width (inline, "Repair Kit (Small)" wrapped to three lines); it pokes up, never right, because `.window-content` scrolls and a badge past the right edge adds a sideways scroll. A chip tap scrolls its card to the top (block start + `scroll-margin-top: 14px`), since centring a tall card in landscape hid its badge. The "Price rises ×1.5 per one you hold" note is unchanged.
+- **Unchanged:** prices, inventory, save data. Display only.
+
 ## 2026-11-04 (sub-task start -> due) -- Adding a Start to a new sub-task sets its Due one hour later, still overridable (Claude app session; Sonnet; Jeremy)
 
 - **Jeremy's ask:** when creating a sub-task, if the player adds a start time, change the due time to an hour later automatically and let the player override it.

@@ -37,11 +37,14 @@ const ShopView = (() => {
         const affordable = Shop.canAfford(item, inventory, playerPoints, discount);
 
         const card = document.createElement('div');
-        card.className = 'shop-item-card';
+        card.className = 'shop-item-card' + (held > 0 ? ' shop-item-card--owned' : '');
         card.dataset.itemId = item.id;
 
-        const heldRow = item.consumable
-            ? `<div class="shop-item-held">Held: ${held}</div>`
+        // Owned count (2026-11-04, Jeremy: the shop must show how many you have). A green "×N" pill in the card
+        // header, only when you hold at least one; nothing at zero. Replaces the old grey "Held: N" line, which
+        // was easy to miss. The "You have" row at the top of the Shop lists the same counts (ownedSummary).
+        const heldPill = held > 0
+            ? `<span class="shop-item-owned" aria-label="You have ${held}">×${held}</span>`
             : '';
 
         // "Why did the price go up" feedback (ECONOMY.md UI requirement) —
@@ -108,10 +111,10 @@ const ShopView = (() => {
             <div class="shop-item-header">
                 <span class="shop-item-icon">${CATEGORY_ICON[item.category] || '🛒'}</span>
                 <span class="shop-item-name">${item.name}</span>
+                ${heldPill}
             </div>
             <div class="shop-item-body">
                 ${effectRow}
-                ${heldRow}
                 <div class="shop-item-price">${cost} pts</div>
                 ${priceNote}
                 ${discountNote}
@@ -152,6 +155,61 @@ const ShopView = (() => {
         return head;
     }
 
+    // Everything you hold, in catalog order: [{ id, name, icon, count }]. Pure. Only catalog items with a held count
+    // above zero; inventory keys that aren't in the catalog are ignored.
+    function ownedSummary(catalog, inventory) {
+        return (catalog || [])
+            .filter(item => item.consumable)
+            .map(item => ({
+                id: item.id,
+                name: item.name,
+                icon: CATEGORY_ICON[item.category] || '🛒',
+                count: Shop.heldCount(inventory, item.id),
+            }))
+            .filter(row => row.count > 0);
+    }
+
+    // "You have" row at the top of the grid (2026-11-04). One chip per held item ("🔧 Repair Kit (Small) ×2");
+    // tapping a chip scrolls its card into view (handy in phone landscape, where only three cards fit). With
+    // nothing held it says so. Spans the whole grid row like the pushback section header.
+    function buildOwnedRow(catalog, inventory) {
+        const rows = ownedSummary(catalog, inventory);
+        const wrap = document.createElement('div');
+        wrap.className = 'shop-owned-row';
+        const title = document.createElement('span');
+        title.className = 'shop-owned-title';
+        title.textContent = 'You have';
+        wrap.appendChild(title);
+
+        if (rows.length === 0) {
+            const none = document.createElement('span');
+            none.className = 'shop-owned-none';
+            none.textContent = 'Nothing yet';
+            wrap.appendChild(none);
+            return wrap;
+        }
+
+        rows.forEach(row => {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'shop-owned-chip';
+            chip.dataset.itemId = row.id;
+            chip.setAttribute('aria-label', `${row.name}: you have ${row.count}`);
+            chip.innerHTML = `<span class="shop-owned-chip-icon" aria-hidden="true">${row.icon}</span>` +
+                `<span class="shop-owned-chip-name">${row.name}</span>` +
+                `<span class="shop-owned-chip-count">×${row.count}</span>`;
+            chip.addEventListener('click', () => {
+                const list = wrap.parentElement;
+                const target = list && list.querySelector(`.shop-item-card[data-item-id="${row.id}"]`);
+                if (target && typeof target.scrollIntoView === 'function') {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' }); // scroll-margin-top in css keeps the badge in view
+                }
+            });
+            wrap.appendChild(chip);
+        });
+        return wrap;
+    }
+
     // deps: { catalog, inventory, playerPoints, baseHealth, onBuy, onUse, discount?, pushbackHelpCtx? }
     function renderShopWindow(deps) {
         const list = document.getElementById('shopWindowList');
@@ -176,6 +234,7 @@ const ShopView = (() => {
         }
 
         list.innerHTML = '';
+        list.appendChild(buildOwnedRow(deps.catalog, deps.inventory));
         let pushbackHeaderDone = false;
         deps.catalog.forEach(item => {
             // Section header + (i) once, above the first pushback token card.
@@ -203,6 +262,8 @@ const ShopView = (() => {
     return {
         renderShopWindow,
         buildItemCard,
+        buildOwnedRow,
+        ownedSummary,
         showShopMessage,
     };
 })();
