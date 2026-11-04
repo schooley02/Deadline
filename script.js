@@ -956,6 +956,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // script.js, reached via accessor" pattern as everything else
             // here — the object itself is mutated in place, no setter needed).
             getCurrentRunStats: State.getCurrentRunStats,
+            // Timer sessions Build B (2026-11-04): a session edit that takes halved damage back hits the church through the normal path.
+            getBaseHealth: State.getBaseHealth,
+            damageBase: (amount) => Damage.damageBase(amount, damageDeps()),
             // Frozen-slots sub-session 5 (2026-07-19): Items.useSickDayGlobally
             // writes the global Sick Day marker through this setter.
             setSickDayDate: State.setSickDayDate,
@@ -1015,6 +1018,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function agendaListDeps() {
         return {
             activeItems: State.getActiveItems(), categoryStyles,
+            // Timer sessions Build B (2026-11-04): a completed entry's editor shows its Sessions list.
+            changeSession, getBaseHealth: State.getBaseHealth,
             // V3c-2: the owning routine's chip beside the category label.
             routineChipFor: (item) => {
                 const routine = Items.findRoutineForItem(item, { definedHabits: () => State.getDefinedHabits(), definedRoutines: () => State.getDefinedRoutines() });
@@ -1105,6 +1110,8 @@ document.addEventListener('DOMContentLoaded', () => {
             commitReschedule,
             toggleWorkTimer,
             setLoggedTime,
+            changeSession,
+            getBaseHealth: State.getBaseHealth,
             // Cheat Day targeting ([P1-DATA-005] sub-session 5, 2026-07-19):
             // held count for the popup's "Use Cheat Day (N held)" button,
             // whether THIS lurker's day already has one active (shows the
@@ -1172,7 +1179,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const deps = itemsDeps();
                 const result = Items.resolvePendingCheckIn(habitDefId, outcome, deps, opts);
                 if (result && result.entryId != null && opts && typeof opts.loggedMinutes === 'number') {
-                    Items.setLoggedTime(result.entryId, opts.loggedMinutes * 60000, deps);
+                    Items.setLoggedTime(result.entryId, opts.loggedMinutes * 60000, deps, { collapse: true });
                 }
             },
         };
@@ -1190,7 +1197,7 @@ document.addEventListener('DOMContentLoaded', () => {
             getCandidates: () => GoalCheck.eveningCandidates(State.getActiveItems(), State.getDefinedHabits(), Date.now()),
             completeItem: (id, opts) => Items.completeItem(id, itemsDeps(), opts),
             indulgeHabit: (id, opts) => Items.indulgeHabit(id, itemsDeps(), opts),
-            setLoggedMinutes: (id, minutes) => Items.setLoggedTime(id, minutes * 60000, itemsDeps()),
+            setLoggedMinutes: (id, minutes) => Items.setLoggedTime(id, minutes * 60000, itemsDeps(), { collapse: true }),
             onDismiss: () => { eveningDismissedFor = DailyRecord.dateKey(Date.now()); },
             // Anytime tasks (Anytime Build 2, 2026-11-02; DECISIONS 2026-11-02 night): the same modal lists open "Anytime today"
             // tasks. Done = an ordinary on-time completion; Tomorrow = a move to tomorrow 11:59 PM through the pushback quote
@@ -1610,8 +1617,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Logged-time edit (Habit Goals Build 2c): active or completed item; refuses while the timer runs.
     // Returns Items.setLoggedTime's { ok, deltaMin, completed } | { ok:false, reason }.
-    function setLoggedTime(itemId, ms) {
-        const r = Items.setLoggedTime(itemId, ms, itemsDeps());
+    // Timer sessions Build B (2026-11-04): a typed total changes only the untimed entry and is refused below the recorded sessions
+    // ({ ok:false, reason:'below-timed' }); the auto-stop notice and the answer cards pass { collapse: true } (no message to show).
+    function setLoggedTime(itemId, ms, opts) {
+        const r = Items.setLoggedTime(itemId, ms, itemsDeps(), opts);
+        if (r.ok) updateTimerButtons(Date.now());
+        return r;
+    }
+    // Edit / delete / add one timer session (Items.changeSession): charges back halved damage when a session is shortened
+    // over minutes its zombie was attacking, with the 1 HP floor. Returns { ok, deltaMin, chargedHp, ... } | { ok:false, reason }.
+    function changeSession(itemId, change) {
+        const r = Items.changeSession(itemId, change, itemsDeps());
         if (r.ok) updateTimerButtons(Date.now());
         return r;
     }
@@ -1668,7 +1684,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => TimerView.showLoggedTimeEditor(item, {
                     loggedMinutes,
                     prefillMs: limitMs,
-                }, { onSave: (ms) => { setLoggedTime(item.id, ms); } }), 0);
+                }, { onSave: (ms) => { setLoggedTime(item.id, ms, { collapse: true }); } }), 0);
             },
             onMistake: () => { Timer.discardSession(item, Date.now()); refresh(); },
             onKeepGoing: () => { Timer.acknowledgeGoal(item); saveGame(); },
@@ -1728,11 +1744,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         prefillMs: total,
                         message: `The timer stopped with ${TimerView.formatMinutes(sessionMs / 60000)} logged, so the total for this task is `
                             + `${TimerView.formatMinutes(total / 60000)}. How much time did you actually spend in total?`,
-                    }, { onSave: (ms) => { setLoggedTime(item.id, ms); } });
+                    }, { onSave: (ms) => { setLoggedTime(item.id, ms, { collapse: true }); } });
                 }, 0);
             },
             onKeep: () => {},
-            onDelete: () => { setLoggedTime(item.id, Math.max(0, Timer.elapsedMs(item, Date.now()) - sessionMs)); },
+            onDelete: () => { setLoggedTime(item.id, Math.max(0, Timer.elapsedMs(item, Date.now()) - sessionMs), { collapse: true }); },
         });
     }
 
@@ -2415,6 +2431,8 @@ document.addEventListener('DOMContentLoaded', () => {
             renderCompletedItems: () => AgendaList.renderCompletedItems(agendaListDeps()),
             // Habit Goals Build 2c: the completed entry's logged time is part of its entry edit.
             setLoggedTime,
+            changeSession, // Timer sessions Build B: the Sessions list in the completed-entry editor
+            getBaseHealth: State.getBaseHealth,
             // 2026-10-21: saveEditedHabit retimes today's instance, then re-evaluates overdue state.
             recomputeOverdueStateAfterEdit: (item) => Items.recomputeOverdueStateAfterEdit(item, itemsDeps()),
             // [P1-UI-006] sub-session 4, 2026-07-19 — star-rating window start

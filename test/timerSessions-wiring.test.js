@@ -30,3 +30,22 @@ describe('a Slipped check-in entry keeps the session list', () => {
         expect(src).toMatch(/timerSessions: snap && Array\.isArray\(snap\.timerSessions\)/);
     });
 });
+
+describe('Sessions list wiring (Build B, 2026-11-04)', () => {
+    test('index.html loads js/ui/sessionsView.js before the popups and routine views that use it', () => {
+        const html = read('index.html');
+        const a = html.indexOf('<script src="js/ui/sessionsView.js"></script>');
+        expect(a).toBeGreaterThan(-1);
+        expect(a).toBeGreaterThan(html.indexOf('<script src="js/timerSessions.js"></script>'));
+        expect(a).toBeLessThan(html.indexOf('<script src="script.js'));
+    });
+    test('the service worker precaches it', () => {
+        expect(read('sw.js')).toMatch(/'js\/ui\/sessionsView\.js'/);
+    });
+    test('script.js exposes changeSession to the card, Edit Task and the Completed list', () => {
+        const src = read('script.js');
+        expect(src).toMatch(/function changeSession\(itemId, change\)/);
+        expect((src.match(/\bchangeSession,/g) || []).length).toBeGreaterThanOrEqual(3);
+        expect(src).toMatch(/damageBase:/);
+    });
+});

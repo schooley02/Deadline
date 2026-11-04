@@ -330,8 +330,37 @@ const Popups = (() => {
         const running = Timer.isRunning(item);
         return `<div class="logged-time-section">${Forms.loggedTimeHtml({ idPrefix: 'popupLogged', ms: item.timerMsBanked, disabled: running, note: LOGGED_RUNNING_NOTE_CARD_HTML, noteHidden: !running })}` +
             `<div class="logged-time-actions"><button type="button" id="popupLoggedSave" class="secondary-button"${running ? ' disabled' : ''}>Save time</button>` +
-            `<span id="popupLoggedMsg" class="logged-time-msg" role="status" aria-live="polite"></span></div></div>`;
+            `<span id="popupLoggedMsg" class="logged-time-msg" role="status" aria-live="polite"></span></div>` +
+            sessionsHtml(item, deps, 'popupSes') + `</div>`;
     }
+    // Timer sessions Build B (2026-11-04): the Sessions list under the Time Logged field. Needs deps.changeSession and the
+    // SessionsView module; without either the field works as before.
+    function sessionsHtml(item, deps, idPrefix) {
+        if (typeof SessionsView === 'undefined' || typeof TimerSessions === 'undefined' || typeof deps.changeSession !== 'function') return '';
+        return SessionsView.html(item, { idPrefix, running: Timer.isRunning(item) });
+    }
+    // Wires that list and keeps the hours / minutes boxes in step with every session change. Returns the controller or null.
+    function wireSessions(item, deps, idPrefix, fieldPrefix, afterChange) {
+        if (typeof SessionsView === 'undefined' || typeof deps.changeSession !== 'function') return null;
+        return SessionsView.wire({
+            idPrefix, getItem: () => item, deps,
+            onChange: () => {
+                syncLoggedFields(item, fieldPrefix);
+                if (typeof afterChange === 'function') afterChange();
+            },
+        });
+    }
+    // Puts the item's banked total into the Time Logged boxes (and their "unchanged" baseline).
+    function syncLoggedFields(item, fieldPrefix) {
+        const lh = document.getElementById(fieldPrefix + 'Hours');
+        const lm = document.getElementById(fieldPrefix + 'Minutes');
+        if (!lh || !lm) return;
+        const total = Forms.loggedTimeMinutes(item.timerMsBanked);
+        lh.value = String(Math.floor(total / 60)); lm.value = String(total % 60);
+        const g = document.getElementById(fieldPrefix + 'Group');
+        if (g) g.setAttribute('data-initial-min', String(total));
+    }
+    const BELOW_TIMED_TEXT = 'To remove timed time, edit its session below.';
 
     // How much? (Habit Goals Build 3): an Amount-goal habit's popup offers an optional number when it is answered here. A Time goal
     // has no second box: the Logged time field above IS its How much? (plan Decision 14). The row checkbox never asks.
@@ -467,6 +496,10 @@ const Popups = (() => {
 
         const workTimerButton = document.getElementById('workTimerBtn');
         const workTimerStopButton = document.getElementById('workTimerStopBtn');
+        const sessionsCtl = wireSessions(item, deps, 'popupSes', 'popupLogged', () => {
+            const btn = document.getElementById('workTimerBtn');
+            if (btn) btn.innerHTML = Timer.popupHtml(item);
+        });
         const loggedSave = document.getElementById('popupLoggedSave');
         const loggedMsg = document.getElementById('popupLoggedMsg');
         if (workTimerButton) {
@@ -505,6 +538,8 @@ const Popups = (() => {
                         const note = document.getElementById('popupLoggedNote');
                         if (note) note.hidden = !running;
                     }
+                    // The Sessions list: read-only with a "Running since" row while the timer runs, editable again after a stop.
+                    if (sessionsCtl) sessionsCtl.render();
                 }
             };
             workTimerButton.addEventListener('click', () => timerClick());
@@ -523,10 +558,15 @@ const Popups = (() => {
                 if (r.error) { say(r.error); return; }
                 if (r.absent || !r.changed) { say('No change.'); return; }
                 const res = deps.setLoggedTime(item.id, r.ms);
-                if (!res || !res.ok) { say(res && res.reason === 'running' ? LOGGED_RUNNING_NOTE : 'Couldn\u2019t save the time.'); return; }
+                if (!res || !res.ok) {
+                    say(res && res.reason === 'running' ? LOGGED_RUNNING_NOTE
+                        : res && res.reason === 'below-timed' ? BELOW_TIMED_TEXT : 'Couldn\u2019t save the time.');
+                    return;
+                }
                 const group = document.getElementById('popupLoggedGroup');
                 if (group) group.setAttribute('data-initial-min', String(Forms.loggedTimeMinutes(r.ms)));
                 if (workTimerButton) workTimerButton.innerHTML = Timer.popupHtml(item);
+                if (sessionsCtl) sessionsCtl.render(); // the "No start/stop recorded" row follows the typed total
                 say('Saved.');
             });
         }
@@ -723,7 +763,7 @@ const Popups = (() => {
                     ${Forms.startDueTimeGroupHtml({ startId: 'editStartTime', dueId: 'editDueTime', startValue: startTime, dueValue: dueTime })}
                     <p id="editRescheduleNote" class="reschedule-note" aria-live="polite"></p>
                     ${editPushbackHelpHtml(deps)}
-                    ${hasLoggedTimeField(item, deps) ? Forms.loggedTimeHtml({ idPrefix: 'editLogged', ms: item.timerMsBanked, disabled: Timer.isRunning(item), note: Timer.isRunning(item) ? LOGGED_RUNNING_NOTE_EDIT_HTML : '' }) : ''}
+                    ${hasLoggedTimeField(item, deps) ? Forms.loggedTimeHtml({ idPrefix: 'editLogged', ms: item.timerMsBanked, disabled: Timer.isRunning(item), note: Timer.isRunning(item) ? LOGGED_RUNNING_NOTE_EDIT_HTML : '' }) + sessionsHtml(item, deps, 'editSes') : ''}
                     <div class="modal-buttons">
                         <button id="saveTaskChanges" class="primary-button">Save Changes</button>
                         <button class="secondary-button" onclick="closeModal()">Cancel</button>
@@ -734,6 +774,7 @@ const Popups = (() => {
 
         Modal.open(modalHtml);
         if (showAnytimeRow) Forms.applyAnytimeToggle('editTaskAnytime');
+        if (hasLoggedTimeField(item, deps)) wireSessions(item, deps, 'editSes', 'editLogged');
 
         // "Time Logged" link in the running-timer note: close this form and open the task's card. stopPropagation +
         // a deferred open, so Modal's outside-click dismiss never sees the click (its target is detached by the close).
@@ -826,6 +867,11 @@ const Popups = (() => {
                 const loggedEdit = Forms.readLoggedTime('editLogged');
                 if (loggedEdit.error) {
                     Forms.showFormError(loggedEdit.error);
+                    return;
+                }
+                // Timer sessions Build B: a typed total can't go below the recorded sessions (edit a session instead).
+                if (loggedEdit.changed && typeof TimerSessions !== 'undefined' && TimerSessions.view(item).timedMs > loggedEdit.ms) {
+                    Forms.showFormError(BELOW_TIMED_TEXT, 'editLoggedHours');
                     return;
                 }
 

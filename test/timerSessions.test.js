@@ -465,3 +465,23 @@ describe('numbers come from CONFIG with sane defaults', () => {
         expect(TimerSessions.chargeIntervalMs({ DAMAGE_INTERVAL_MS: 5 * MIN, WORK_TIMER_DAMAGE_FACTOR: 1 })).toBe(Infinity); // no halving, so nothing to take back
     });
 });
+
+describe('view (read-only picture for the Sessions list)', () => {
+    test('lists sessions oldest first with their apply index, and the untimed entry', () => {
+        const it = withSessions([{ start: at(5, 14), end: at(5, 15), attack: [] }, { start: at(5, 9), end: at(5, 10), attack: [] }], 5 * MIN);
+        const v = TimerSessions.view(it);
+        expect(v.sessions.map(s => [s.index, s.start])).toEqual([[0, at(5, 9)], [1, at(5, 14)]]);
+        expect(v.timedMs).toBe(2 * HOUR);
+        expect(v.untimedMs).toBe(5 * MIN);
+        expect(v.totalMs).toBe(2 * HOUR + 5 * MIN);
+    });
+    test('an old item shows all its banked time as untimed and is NOT rewritten', () => {
+        const it = task({ timerMsBanked: 45 * MIN });
+        const v = TimerSessions.view(it);
+        expect(v).toEqual({ sessions: [], timedMs: 0, untimedMs: 45 * MIN, totalMs: 45 * MIN });
+        expect(it.timerSessions).toBeUndefined();
+    });
+    test('null is tolerated', () => {
+        expect(TimerSessions.view(null).totalMs).toBe(0);
+    });
+});

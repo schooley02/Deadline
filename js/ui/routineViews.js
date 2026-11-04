@@ -1264,7 +1264,7 @@ const RoutineViews = (() => {
                     ${Forms.customHabitTimesHtml({ selectId: 'editHabitTimeOfDay', startId: 'editHabitStartTime', endId: 'editHabitEndTime', startValue: habitDef.startTime || '', endValue: habitDef.endTime || '', visible: habitDef.timeOfDay === 'custom' })}
                     ${Forms.habitGoalHtml('editHabit', Habits.goalOf(habitDef), !!habitDef.isNegative)}
                     ${(opts && opts.fromCompleted === true && typeof opts.loggedMs === 'number')
-                        ? Forms.loggedTimeHtml({ idPrefix: 'editHabitLogged', ms: opts.loggedMs, note: 'Only changes this completed entry. It never changes whether you ' + (habitDef.isNegative ? 'resisted or slipped' : 'finished it') + '.' })
+                        ? Forms.loggedTimeHtml({ idPrefix: 'editHabitLogged', ms: opts.loggedMs, note: 'Only changes this completed entry. It never changes whether you ' + (habitDef.isNegative ? 'resisted or slipped' : 'finished it') + '.' }) + editHabitSessionsHtml(opts)
                         : ''}
                     <div class="modal-buttons">
                         <button class="primary-button" onclick="saveEditedHabit('${habitDef.id}'${completedArg})">Save Changes</button>
@@ -1280,6 +1280,34 @@ const RoutineViews = (() => {
         wireScheduleFieldsToggle('editHabit');
         Modal.wireHabitTimeLabels('editHabitType', 'editHabitTimeOfDay');
         Modal.wireHabitGoal('editHabitType', 'editHabit');
+        wireEditHabitSessions(opts);
+    }
+
+    // Timer sessions Build B (2026-11-04): a completed entry's Sessions list sits under its Time Logged field.
+    // opts.sessions = { item (the completed entry), changeSession(id, change), getBaseHealth? } from the Completed list.
+    function sessionsReady(opts) {
+        return !!(opts && opts.sessions && opts.sessions.item && typeof opts.sessions.changeSession === 'function'
+            && typeof SessionsView !== 'undefined' && typeof TimerSessions !== 'undefined');
+    }
+    function editHabitSessionsHtml(opts) {
+        return sessionsReady(opts) ? SessionsView.html(opts.sessions.item, { idPrefix: 'editHabitSes' }) : '';
+    }
+    function wireEditHabitSessions(opts) {
+        if (!sessionsReady(opts)) return;
+        const entry = opts.sessions.item;
+        SessionsView.wire({
+            idPrefix: 'editHabitSes', getItem: () => entry, deps: opts.sessions,
+            onChange: () => {
+                // Keep the hours / minutes boxes (and their "unchanged" baseline) in step with the session change.
+                const lh = document.getElementById('editHabitLoggedHours');
+                const lm = document.getElementById('editHabitLoggedMinutes');
+                if (!lh || !lm) return;
+                const total = Forms.loggedTimeMinutes(entry.timerMsBanked);
+                lh.value = String(Math.floor(total / 60)); lm.value = String(total % 60);
+                const g = document.getElementById('editHabitLoggedGroup');
+                if (g) g.setAttribute('data-initial-min', String(total));
+            },
+        });
     }
 
     // No deps — pure HTML-string builder (see showCreateHabitForm note).
@@ -1446,6 +1474,15 @@ const RoutineViews = (() => {
         if (loggedEdit.error) {
             Forms.showFormError(loggedEdit.error);
             return;
+        }
+        // Timer sessions Build B: a typed total can't go below the entry's recorded sessions (edit a session instead).
+        if (loggedEdit.changed && completedItemId !== undefined && completedItemId !== null && completedItemId !== ''
+            && typeof TimerSessions !== 'undefined' && typeof deps.completedItems === 'function') {
+            const entry = deps.completedItems().find(i => String(i.id) === String(completedItemId));
+            if (entry && TimerSessions.view(entry).timedMs > loggedEdit.ms) {
+                Forms.showFormError('To remove timed time, edit its session below.', 'editHabitLoggedHours');
+                return;
+            }
         }
         if (loggedEdit.changed) data.loggedMs = loggedEdit.ms;
         // Edit opened from the Completed list (2026-11-01): ask where the change applies before saving anything.

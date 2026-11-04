@@ -179,12 +179,12 @@ describe('TimerView.showAutoStopped (2026-11-04)', () => {
 
 describe('auto-stop wiring in script.js (source check; Jest never loads script.js)', () => {
     const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'script.js'), 'utf8');
-    test('the auto-stop branch passes the banked span to the notice, and Delete / Edit go through setLoggedTime', () => {
+    test('the auto-stop branch passes the banked span to the notice, and Delete / Edit go through setLoggedTime (collapse: no message to show here until Build C)', () => {
         expect(src).toMatch(/const sessionMs = Timer\.autoStop\(running, nowMs\)/);
         expect(src).toMatch(/showAutoStoppedNotice\(running, sessionMs\)/);
         const fn = src.slice(src.indexOf('function showAutoStoppedNotice'));
-        expect(fn).toMatch(/onDelete: \(\) => \{ setLoggedTime\(item\.id, Math\.max\(0, Timer\.elapsedMs\(item, Date\.now\(\)\) - sessionMs\)\)/);
+        expect(fn).toMatch(/onDelete: \(\) => \{ setLoggedTime\(item\.id, Math\.max\(0, Timer\.elapsedMs\(item, Date\.now\(\)\) - sessionMs\), \{ collapse: true \}\)/);
         expect(fn).toMatch(/showLoggedTimeEditor/);
-        expect(fn).toMatch(/onSave: \(ms\) => \{ setLoggedTime\(item\.id, ms\)/);
+        expect(fn).toMatch(/onSave: \(ms\) => \{ setLoggedTime\(item\.id, ms, \{ collapse: true \}\)/);
     });
 });

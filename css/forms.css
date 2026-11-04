@@ -130,5 +130,29 @@
 .logged-time-msg { font-size: 0.85em; opacity: 0.85; }
 .logged-time-error { min-height: 1.2em; margin: 4px 0 0; color: #ff6b5b; font-size: 0.85em; }
 
+/* Sessions list (Timer sessions Build B, 2026-11-04; js/ui/sessionsView.js): under the Time Logged field. Inputs are scoped so the
+   modal's generic input rules (width: 100%) don't stretch them, and checkboxes keep their own size (the window-mode lesson). */
+.sessions { margin-top: var(--space-2, 8px); }
+.sessions-title { margin: 0 0 4px; font-size: 0.9em; }
+.sessions-list { list-style: none; margin: 0; padding: 0; }
+.sessions-row, .sessions-empty { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; padding: 6px 0; border-top: 1px solid rgba(0, 0, 0, 0.1); font-size: 0.9em; }
+.sessions-list > li:first-child { border-top: none; }
+.sessions-when { flex: 1 1 12em; min-width: 0; }
+.sessions-dur { opacity: 0.8; white-space: nowrap; }
+.sessions-untimed .sessions-when, .sessions-running .sessions-when, .sessions-empty { opacity: 0.8; }
+.sessions-add { margin-top: 4px; }
+.sessions-msg { display: block; min-height: 1.2em; margin-top: 4px; font-size: 0.85em; opacity: 0.85; }
+.sessions-editor { padding: 8px 0; border-top: 1px solid rgba(0, 0, 0, 0.1); }
+.sessions-fields { display: flex; flex-wrap: wrap; gap: 8px; }
+.sessions-field { display: flex; flex-direction: column; gap: 2px; font-size: 0.85em; }
+.modal-content .sessions-field input { width: auto; min-width: 0; margin: 0; }
+.sessions-next { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.85em; }
+.modal-content .sessions-next input[type="checkbox"] { width: auto; flex: 0 0 auto; margin: 0; padding: 0; transform: scale(1.2); }
+.sessions-charge { margin: 6px 0 0; font-size: 0.85em; font-weight: 600; }
+.sessions-charge:empty, .sessions-error:empty { display: none; }
+.sessions-error { margin: 6px 0 0; color: #b3261e; font-size: 0.85em; font-weight: 600; }
+.sessions-buttons { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.sessions-buttons .secondary-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* "Anytime" task checkbox (2026-11-02): a greyed Due Time box shows the fixed 11:59 PM. */
 .time-pair input[type="time"]:disabled { opacity: 0.55; cursor: not-allowed; }

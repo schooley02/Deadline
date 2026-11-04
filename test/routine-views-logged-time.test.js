@@ -103,3 +103,46 @@ describe('Edit Habit save from a completed entry', () => {
         expect(deps.setLoggedTime).not.toHaveBeenCalled();
     });
 });
+
+// Timer sessions Build B (2026-11-04): the completed entry's Sessions list sits under its Time Logged field.
+describe('Edit Habit form: Sessions list (completed entries)', () => {
+    global.TimerSessions = require('../js/timerSessions.js');
+    global.SessionsView = require('../js/ui/sessionsView.js');
+    const at = (d, h, m) => new Date(2026, 10, d, h, m || 0).getTime();
+    const entry = () => ({
+        id: 'e1', type: 'habit', definitionId: 'd1', name: 'Social media', outcome: 'avoided', timer: null,
+        timerSessions: [{ start: at(3, 20), end: at(3, 20, 40), attack: [] }], timerUntimedMs: 10 * MIN, timerMsBanked: 50 * MIN,
+    });
+
+    test('shown when the Completed list passes the session deps; absent without them', () => {
+        const e = entry();
+        open({ fromCompleted: true, completedItemId: 'e1', loggedMs: e.timerMsBanked, sessions: { item: e, changeSession: jest.fn() } });
+        expect(document.getElementById('editHabitSesSessions')).not.toBeNull();
+        expect(document.querySelectorAll('#editHabitSesSessions .sessions-row')).toHaveLength(2);
+        open({ fromCompleted: true, completedItemId: 'e1', loggedMs: e.timerMsBanked });
+        expect(document.getElementById('editHabitSesSessions')).toBeNull();
+    });
+
+    test('a session change keeps the hours / minutes boxes in step', () => {
+        const e = entry();
+        const changeSession = jest.fn(() => { e.timerSessions[0].end = at(3, 20, 20); e.timerMsBanked = 30 * MIN; return { ok: true, chargedHp: 0 }; });
+        open({ fromCompleted: true, completedItemId: 'e1', loggedMs: e.timerMsBanked, sessions: { item: e, changeSession } });
+        document.querySelector('#editHabitSesSessions [data-act="edit"]').click();
+        const stop = document.getElementById('editHabitSesSesStop');
+        stop.value = '20:20'; stop.dispatchEvent(new Event('input', { bubbles: true }));
+        document.querySelector('#editHabitSesSessions [data-act="save"]').click();
+        expect(document.getElementById('editHabitLoggedMinutes').value).toBe('30');
+        expect(document.getElementById('editHabitLoggedGroup').getAttribute('data-initial-min')).toBe('30');
+    });
+
+    test('saving a total below the entry\'s sessions is blocked with the way out', () => {
+        const e = entry();
+        open({ fromCompleted: true, completedItemId: 'e1', loggedMs: e.timerMsBanked, sessions: { item: e, changeSession: jest.fn() } });
+        const deps = { completedItems: () => [e], activeItems: [], renderCompletedItems: jest.fn(), saveGame: jest.fn(), editHabitInRoutine: jest.fn(), setLoggedTime: jest.fn() };
+        document.getElementById('editHabitLoggedMinutes').value = '20';
+        RoutineViews.saveEditedHabit('d1', deps, 'e1');
+        expect(document.querySelector('.form-error').textContent).toBe('To remove timed time, edit its session below.');
+        expect(document.getElementById('editScopeModal')).toBeNull();
+        expect(deps.setLoggedTime).not.toHaveBeenCalled();
+    });
+});

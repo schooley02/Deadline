@@ -976,6 +976,8 @@ const AgendaList = (() => {
                     const canLog = typeof Timer !== 'undefined' && (Timer.hasLogged(item) || (typeof item.timerMinutes === 'number' && item.timerMinutes > 0));
                     const editOpts = { fromCompleted: true, completedItemId: item.id };
                     if (canLog) editOpts.loggedMs = (typeof item.timerMsBanked === 'number' && item.timerMsBanked > 0) ? item.timerMsBanked : 0;
+                    // Timer sessions Build B: the editor shows this entry's Sessions list (edits go through deps.changeSession).
+                    if (canLog && typeof deps.changeSession === 'function') editOpts.sessions = { item, changeSession: deps.changeSession, getBaseHealth: deps.getBaseHealth };
                     if (habitDefOk) deps.showEditHabitInstanceModal(item, editOpts);
                     else deps.showEditTaskModal(item);
                 });

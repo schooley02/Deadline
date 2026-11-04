@@ -1358,35 +1358,29 @@ const Items = (() => {
         }, 500);
     }
 
-    /**
-     * setLoggedTime -- Habit Goals Build 2c (2026-11-01, plan Decisions 12-14). Sets an item's logged time (`timerMsBanked`)
-     * to `ms`, whether the item is still active or already in the Completed list (done / Resisted / Slipped), and corrects the
-     * daily record by the difference on the item's OWN day: an active item -> today's working record; a completed item -> the
-     * day of `completedAt` (the open record, or that day's closed record in deadline.days). An edit NEVER changes the answer
-     * (done / Resisted / Slipped), points, XP or streaks, and it is refused while the timer is running (pause first).
-     * deps: { activeItems, completedItems (getter), adjustDayTimer(when: Date, kind, deltaMin), saveGame,
-     *         renderCompletedItems? }. Returns { ok, deltaMin, completed } or { ok:false, reason }.
-     */
-    function setLoggedTime(itemId, ms, deps) {
-        if (typeof Timer === 'undefined') return { ok: false, reason: 'unavailable' };
-        // Completed list first: a just-answered item can still sit in activeItems for its 0.5 s exit animation.
-        const done = (typeof deps.completedItems === 'function') ? (deps.completedItems().find(i => i.id === itemId) || null) : null;
-        const active = done ? null : (deps.activeItems || []).find(i => i.id === itemId);
-        const item = done || active;
-        if (!item) return { ok: false, reason: 'missing' };
-        if (Timer.isRunning(item)) return { ok: false, reason: 'running' };
-        const delta = Timer.setLogged(item, ms);
-        if (delta === null) return { ok: false, reason: 'invalid' };
-        const deltaMin = delta / 60000;
-        if (deltaMin !== 0 && typeof deps.adjustDayTimer === 'function') {
-            try {
-                const when = done && item.completedAt ? new Date(item.completedAt) : new Date();
-                deps.adjustDayTimer(when, Timer.recordKind(item), deltaMin);
-            } catch (e) { /* a stats bug must never lose the edit */ }
+    // Timer sessions (2026-11-04): js/timerSessions.js is a browser global; node tests require it.
+    function sessionsCore() {
+        if (typeof TimerSessions !== 'undefined') return TimerSessions;
+        return typeof require === 'function' ? require('./timerSessions.js') : null;
+    }
+    // The shared tail of every Time Logged change: correct the daily record, refresh a Time-goal habit's recorded
+    // `actual`, save, redraw the Completed list. `dayMs` = { "YYYY-MM-DD": signed ms }: the minutes to add to each local day.
+    function dayFromKey(key) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
+        return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0) : null; // noon: the same local day in any zone shift
+    }
+    function finishLoggedChange(item, done, dayMs, deps, exactWhen) {
+        if (typeof deps.adjustDayTimer === 'function') {
+            Object.keys(dayMs).forEach((key) => {
+                const when = exactWhen || dayFromKey(key);
+                if (!when || !dayMs[key]) return;
+                try { deps.adjustDayTimer(when, Timer.recordKind(item), dayMs[key] / 60000); } catch (e) { /* a stats bug must never lose the edit */ }
+            });
         }
         // Habit Goals Build 3 (daily record v5): a Time-goal habit's goal entry carries the logged minutes as its `actual`; keep it in
         // step with the edit (only an ALREADY-recorded entry changes, so an unanswered habit gets nothing).
-        if (deltaMin !== 0 && item.type === 'habit' && typeof deps.updateDayGoalActual === 'function' && typeof GoalCheck !== 'undefined') {
+        const changed = Object.keys(dayMs).some(k => dayMs[k] !== 0);
+        if (changed && item.type === 'habit' && typeof deps.updateDayGoalActual === 'function' && typeof GoalCheck !== 'undefined') {
             try {
                 const goal = Habits.goalOf(item.goal ? item : (typeof deps.definedHabits === 'function' ? deps.definedHabits().find(d => d.id === item.definitionId) : null));
                 if (goal.type === 'time') {
@@ -1397,7 +1391,87 @@ const Items = (() => {
         }
         if (typeof deps.saveGame === 'function') deps.saveGame();
         if (done && typeof deps.renderCompletedItems === 'function') deps.renderCompletedItems();
-        return { ok: true, deltaMin, completed: !!done };
+    }
+    function findLoggedItem(itemId, deps) {
+        // Completed list first: a just-answered item can still sit in activeItems for its 0.5 s exit animation.
+        const done = (typeof deps.completedItems === 'function') ? (deps.completedItems().find(i => i.id === itemId) || null) : null;
+        const active = done ? null : (deps.activeItems || []).find(i => i.id === itemId);
+        return { item: done || active, done: !!done };
+    }
+
+    /**
+     * setLoggedTime -- Habit Goals Build 2c (2026-11-01, plan Decisions 12-14). Sets an item's logged time (`timerMsBanked`)
+     * to `ms`, whether the item is still active or already in the Completed list (done / Resisted / Slipped), and corrects the
+     * daily record by the difference on the item's OWN day: an active item -> today's working record; a completed item -> the
+     * day of `completedAt` (the open record, or that day's closed record in deadline.days). An edit NEVER changes the answer
+     * (done / Resisted / Slipped), points, XP or streaks, and it is refused while the timer is running (stop it first).
+     * TIMER SESSIONS (Build B, 2026-11-04): a typed total changes only the item's untimed entry, so it can never go below the
+     * recorded timer sessions: { ok:false, reason:'below-timed' } (the player edits a session instead). `opts.collapse` keeps the
+     * old behaviour for internal callers with no message to show (a lower total folds the sessions into the untimed entry).
+     * deps: { activeItems, completedItems (getter), adjustDayTimer(when: Date, kind, deltaMin), saveGame,
+     *         renderCompletedItems? }. Returns { ok, deltaMin, completed } or { ok:false, reason }.
+     */
+    function setLoggedTime(itemId, ms, deps, opts) {
+        if (typeof Timer === 'undefined') return { ok: false, reason: 'unavailable' };
+        const { item, done } = findLoggedItem(itemId, deps);
+        if (!item) return { ok: false, reason: 'missing' };
+        if (Timer.isRunning(item)) return { ok: false, reason: 'running' };
+        const TS = sessionsCore();
+        let delta;
+        if (TS && !(opts && opts.collapse)) {
+            const n = Number(ms);
+            if (!Number.isFinite(n)) return { ok: false, reason: 'invalid' };
+            const r = TS.setTotal(item, Math.min(TS.MAX_TOTAL_MS, Math.max(0, n)));
+            if (!r.ok) return { ok: false, reason: r.reason };
+            if (item.timerMsBanked === 0) item.timerPaused = false; // nothing left to resume
+            delta = r.deltaMs;
+        } else {
+            delta = Timer.setLogged(item, ms);
+            if (delta === null) return { ok: false, reason: 'invalid' };
+        }
+        const deltaMin = delta / 60000;
+        // A typed total lands on the item's OWN day (completedAt for a completed item, else today), as it always did.
+        const when = done && item.completedAt ? new Date(item.completedAt) : new Date();
+        const day = {};
+        if (deltaMin !== 0) day[TS ? TS.dayKey(when.getTime()) : 'now'] = delta;
+        finishLoggedChange(item, done, day, deps, when);
+        return { ok: true, deltaMin, completed: done };
+    }
+
+    /**
+     * changeSession -- Timer sessions Build B (2026-11-04; docs/TIMER_SESSIONS_PLAN.md). Edits, deletes or adds ONE timer session of
+     * an active or completed item. change: { type:'edit', index, start, end } | { type:'delete', index } | { type:'add', start, end }.
+     * Refused while the timer runs ('running') or when TimerSessions.validate says no (reason passes through). Shortening or deleting
+     * a session over minutes when its zombie was attacking takes back the halved damage (one way only): the church is hit through
+     * the normal damage path (deps.damageBase) and the run's blame record, never below 1 HP (TimerSessions.capCharge), and the day's
+     * `tcorr` counter records it. Each affected day's timer minutes are corrected (a session counts on the day it ENDS). Never
+     * touches the answer, points, XP, streaks or the routine hero.
+     * deps: setLoggedTime's + { getBaseHealth, damageBase(amount), isGameOver?, recordDaily?, getCurrentRunStats? }.
+     * Returns { ok, deltaMin, chargedHp, chargeHp, completed } | { ok:false, reason }.
+     */
+    function changeSession(itemId, change, deps, opts) {
+        const TS = sessionsCore();
+        if (typeof Timer === 'undefined' || !TS) return { ok: false, reason: 'unavailable' };
+        const { item, done } = findLoggedItem(itemId, deps);
+        if (!item) return { ok: false, reason: 'missing' };
+        if (Timer.isRunning(item)) return { ok: false, reason: 'running' };
+        const nowMs = (opts && typeof opts.now === 'number') ? opts.now : Date.now();
+        const r = TS.apply(item, change, { now: nowMs });
+        if (!r.ok) return { ok: false, reason: r.reason };
+        if (item.timerMsBanked === 0) item.timerPaused = false;
+        let chargedHp = 0;
+        if (r.chargeHp > 0 && typeof deps.getBaseHealth === 'function' && typeof deps.damageBase === 'function'
+            && !(typeof deps.isGameOver === 'function' && deps.isGameOver())) {
+            chargedHp = TS.capCharge(r.chargeHp, deps.getBaseHealth());
+            if (chargedHp > 0) {
+                // Each step on its own: a stats bug must never lose the correction or skip the next record.
+                try { deps.damageBase(chargedHp); } catch (e) { /* ignore */ }
+                try { recordRunDamageForItem(item, chargedHp, nowMs, deps); } catch (e) { /* run history blame, same as a live tick */ }
+                try { if (typeof deps.recordDaily === 'function') deps.recordDaily('tcorr', { hp: chargedHp }); } catch (e) { /* ignore */ }
+            }
+        }
+        finishLoggedChange(item, done, r.dayDeltas, deps);
+        return { ok: true, deltaMin: r.deltaMs / 60000, chargedHp, chargeHp: r.chargeHp, completed: done };
     }
 
     /**
@@ -1903,6 +1977,7 @@ const Items = (() => {
         completeItem,
         indulgeHabit,
         setLoggedTime,
+        changeSession,
         removeItem,
         settleStaleRecurringInstance,
         markPendingCheckIn,

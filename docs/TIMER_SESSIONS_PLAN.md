@@ -88,6 +88,13 @@ Sessions
 - The Slipped check-in entry (`habitDef.pendingCheckIn.entry` and the rebuilt Completed entry) now carries `timerSessions` / `timerUntimedMs`.
 - Not yet done: the HP charge itself, the list and editors, the `tcorr` bump call site (Build B); the auto-stop notice link (Build C).
 
+## Build B as built (2026-11-04)
+
+- `js/ui/sessionsView.js` (`SessionsView.html / wire`; loaded after `timerSessions.js`, before the popups): newest session first, then the untimed row ("No start/stop recorded") and "+ Add session". Edit opens Date / Start / Stop inputs and a "Stop is the next day" box; Save session / Delete (second tap confirms) / Cancel. Live validation text: invalid, order, future, too-long, overlap, total-cap; the charge preview line appears while the edit would remove attacked minutes.
+- `Items.changeSession(id, change, deps, opts)` (edit / delete / add via `TimerSessions.apply`) charges `capCharge(chargeHp, baseHealth)` through `deps.damageBase`, records run damage and `tcorr`, then settles the totals and day records (`finishLoggedChange`). `Items.setLoggedTime` is strict (`below-timed`); `{ collapse: true }` is for internal callers.
+- Hosts: task card (`popupSes`), Edit Task (`editSes`), completed-entry editor (`editHabitSes`; below-timed pre-check in `saveEditedHabit`). Each keeps its hours / minutes boxes in step after a session change. Running timer: list read-only.
+- Not done (Build C): the auto-stop notice's Edit opens that session's row (it still uses `{ collapse: true }`); the How Deadline works line.
+
 ## Not doing / risks
 
 - No cross-item overlap check (decision 4).

@@ -118,6 +118,21 @@ const TimerSessions = (() => {
         return item && isNum(item.timerUntimedMs) ? item.timerUntimedMs : 0;
     }
 
+    /**
+     * A read-only picture of an item's time for the Sessions list (nothing is rewritten): { sessions: [{ start, end, attack, index }]
+     * oldest first (`index` = the position `apply` expects), timedMs, untimedMs, totalMs }. An item that never had sessions shows
+     * all its banked time as the untimed entry.
+     */
+    function view(item) {
+        if (!item || typeof item !== 'object') return { sessions: [], timedMs: 0, untimedMs: 0, totalMs: 0 };
+        const list = Array.isArray(item.timerSessions) ? cleanSessions(item.timerSessions) : [];
+        const untimed = Array.isArray(item.timerSessions)
+            ? (isNum(item.timerUntimedMs) && item.timerUntimedMs >= 0 ? item.timerUntimedMs : 0)
+            : (isNum(item.timerMsBanked) && item.timerMsBanked > 0 ? item.timerMsBanked : 0);
+        const timed = sumMs(list);
+        return { sessions: list.map((x, i) => Object.assign({ index: i }, x)), timedMs: timed, untimedMs: untimed, totalMs: timed + untimed };
+    }
+
     /** Called by Timer.stop: bank one session. A span under a second goes into the untimed entry instead of a row. */
     function recordSession(item, start, end, attack) {
         ensure(item);
@@ -260,7 +275,7 @@ const TimerSessions = (() => {
 
     return {
         MAX_TOTAL_MS, MIN_SESSION_MS,
-        ensure, timedMs, untimedMs, recordSession, validate, apply, preview, setTotal, forceTotal,
+        ensure, view, timedMs, untimedMs, recordSession, validate, apply, preview, setTotal, forceTotal,
         chargeIntervalMs, capCharge, dayKey, clipWindows, overlapMs,
     };
 })();

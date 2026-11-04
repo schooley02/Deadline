@@ -4,6 +4,17 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-04 (timer sessions Build B) -- Sessions list, row editor, strict total, one-way HP charge with the floor (Claude app session; Sonnet; Jeremy: "it all works as before. go")
+
+- **Built:** `js/ui/sessionsView.js` (list, row editor, charge preview, two-tap Delete, + Add session) shown under the Time Logged field on the task card, the Edit Task form and the completed-entry editor (Completed list's Edit Habit). `Items.changeSession` (edit / delete / add) and a strict `Items.setLoggedTime`. sw v249.
+- **Total typing is strict:** typing a Time Logged below the timed sessions is refused ("To remove timed time, edit its session below."); the typed difference goes into / out of the untimed entry only. Internal callers (auto-stop "Delete New Time Logged", the interim notice editor) pass `{ collapse: true }` and keep the old behaviour; Build C replaces that with the session row.
+- **Charge-back:** shortening or deleting a session over minutes its zombie was attacking takes back `floor(minutes / 10)` HP (halved damage the timer had skipped), through the normal damage path (`deps.damageBase`), never below 1 HP church (`TimerSessions.capCharge`), logged to the run stats and the daily record `tcorr`. One-way: lengthening a session or adding one never gives HP back. The preview line ("Saving takes back N HP of halved damage.") shows before Save; the result line after.
+- **Per-day fixes:** a change moves minutes between days using `dayDeltas` (a session's day = the day it ends); the daily record's timer edit counters are bumped, the entry's completion / points / on-time are never touched.
+- **Running timer:** the list is read-only ("Running since ..."); rows can't be edited until it is stopped.
+- **Open question (still Jeremy's):** split a session that crosses midnight across both days, or keep it on the day it ends (current)?
+
+---
+
 ## 2026-11-04 (timer sessions Build A) -- Sessions recorded on every stop; charge interval and day attribution settled (Claude app session; Sonnet; Jeremy: "go")
 
 - **Built:** the pure core and the recording only; nothing new is visible to the player (see HANDOFF). `js/timerSessions.js`, `Timer.trackAttack` (live loop), DailyRecord v8 `tcorr`, sw v248.
