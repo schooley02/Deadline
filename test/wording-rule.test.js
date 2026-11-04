@@ -31,7 +31,9 @@ function stripComments(src) {
 }
 const stripHtmlComments = (src) => src.replace(/<!--[\s\S]*?-->/g, '');
 
-const SOURCES = [...jsFiles('js'), 'script.js'].map((rel) => ({ rel, text: stripComments(read(rel)) }))
+// Forward slashes on every OS, so ALLOWED entries match on Windows too (path.join gives "js\\ui\\x.js" there).
+const SOURCES = [...jsFiles('js'), 'script.js'].map((rel) => rel.split(path.sep).join('/'))
+    .map((rel) => ({ rel, text: stripComments(read(rel)) }))
     .concat([{ rel: 'index.html', text: stripHtmlComments(read('index.html')) }]);
 
 const BANNED = [
