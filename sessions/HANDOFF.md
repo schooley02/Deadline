@@ -11,6 +11,14 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-04 (timer sessions design) -- Plan for editable timer sessions under Time Logged; nothing built (Claude app session; Opus; Jeremy)
+**Did:** design only. Jeremy wants to fix Time Logged from real times (phone / Zoom) and keep guesstimates. Agreed all seven points plus the 1 HP floor (he asked why; answered). NEW `docs/TIMER_SESSIONS_PLAN.md` (decisions, data, recording, editing rules, daily record v8 `tcorr`, screens, Builds A / B / C); CLAUDE.md Doc Map row (+ its wording example now says "Stop the timer"); ROADMAP item marked DESIGNED with three build sub-items; DECISIONS 2026-11-04 (timer sessions design).
+**State:** no code changed; tests unchanged (163 / 3,675 in the cloud clone).
+**Next:** Build A when Jeremy says go (Sonnet, medium): pure core + recording on stop / pause / autoStop + attack windows from the loop + DailyRecord v8. Tests first.
+**Watch out:** `timerMsBanked` stays the single total everything reads; keep the invariant (sum of sessions + untimed). Offline catch-up never halves damage, so it must never record an attack window.
+
+---
+
 ## 2026-11-04 (stop link) -- Card: "Stop the timer to edit the Time Logged." with a link that stops it; a timer-sessions list requested (Claude app session; Opus; Jeremy)
 **Did:** js/ui/popups.js: notes say "Stop the timer..." (was Pause); the card's note links "Stop the timer" (`#popupLoggedStopLink` -> `timerClick('stop')`, stopPropagation); the note is always rendered on the card and shown only while the timer runs (it was missing when the timer started from the card, and lingered after a stop). js/ui/forms.js: `loggedTimeHtml` `noteHidden` option. sw v247. Tests: popups-logged-time (+2, wording updated). DECISIONS 2026-11-04 (stop link + sessions request); ROADMAP: new unchecked "Timer sessions list" item (not designed).
 **State:** full Jest 163 suites / 3,675 green in a cloud clone. Live in headless Chromium (390x844): new task -> card -> Start: note + link appear, field locked; tap "Stop the timer": stopped, note hidden, field unlocked, card open, no errors. NOT phone-checked.
