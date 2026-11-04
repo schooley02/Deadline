@@ -15,10 +15,16 @@ const Timer = (() => {
         WORK_TIMER_DAMAGE_FACTOR: 0.5,
         WORK_TIMER_CHECK_MS: 60 * 60 * 1000,
         WORK_TIMER_AUTO_STOP_MS: 10 * 60 * 1000,
+        LIVE_GAP_THRESHOLD_MS: 30 * 1000,
     };
     function cfg(key, c) {
         const src = c || (typeof CONFIG !== 'undefined' ? CONFIG : DEFAULTS);
         return typeof src[key] === 'number' ? src[key] : DEFAULTS[key];
+    }
+    // Timer sessions (2026-11-04): js/timerSessions.js loads BEFORE this file in the browser (a global); node tests require it.
+    function sessions() {
+        if (typeof TimerSessions !== 'undefined') return TimerSessions;
+        return typeof require === 'function' ? require('./timerSessions.js') : null;
     }
 
     // Definition-level target (habit editors): minutes 1..600 or null. A NEGATIVE habit's
@@ -223,13 +229,59 @@ const Timer = (() => {
         return true;
     }
 
+    // Attack windows (timer sessions, 2026-11-04): the live loop calls this every tick for a RUNNING timer with whether the
+    // zombie is attacking right now (overdue and a threat). The windows [from, to] are where the timer was halving real
+    // damage; they ride on `item.timer` and move into the session when it stops, so a later shortening can take back exactly
+    // that halved damage. A gap in the ticks (app closed, phone asleep, > LIVE_GAP_THRESHOLD_MS) ends the window where it
+    // was last seen: offline catch-up ignores the timer, so those minutes were never halved.
+    function closeWindow(t, to) {
+        if (typeof t.attackFrom === 'number' && to > t.attackFrom) {
+            if (!Array.isArray(t.attack)) t.attack = [];
+            t.attack.push([t.attackFrom, to]);
+        }
+        t.attackFrom = null;
+    }
+    function trackAttack(item, nowMs, attacking, c) {
+        if (!isRunning(item) || typeof nowMs !== 'number') return;
+        const t = item.timer;
+        const gap = cfg('LIVE_GAP_THRESHOLD_MS', c);
+        if (typeof t.attackFrom === 'number') {
+            const seen = typeof t.attackSeen === 'number' ? t.attackSeen : t.attackFrom;
+            if (nowMs - seen > gap) closeWindow(t, seen);
+        }
+        if (attacking) {
+            if (typeof t.attackFrom !== 'number') t.attackFrom = Math.max(nowMs, t.startedAt);
+            t.attackSeen = nowMs;
+        } else if (typeof t.attackFrom === 'number') {
+            closeWindow(t, nowMs);
+        }
+    }
+    // At stop: close a window still open (at the banked end, unless the ticks stopped earlier) and return all windows.
+    function closeAttackWindows(t, end) {
+        if (typeof t.attackFrom === 'number') {
+            const seen = typeof t.attackSeen === 'number' ? t.attackSeen : t.attackFrom;
+            closeWindow(t, Math.min(end, end - seen > cfg('LIVE_GAP_THRESHOLD_MS') ? seen : end));
+        }
+        return Array.isArray(t.attack) ? t.attack : [];
+    }
+
     // Stops and banks the running time. `bankUntilMs` (optional) caps the banked
     // span -- an auto-stop banks only up to the "Still working?" prompt.
     function stop(item, nowMs, bankUntilMs) {
         if (!isRunning(item)) return 0;
         const end = (typeof bankUntilMs === 'number') ? Math.min(nowMs, bankUntilMs) : nowMs;
-        const span = Math.max(0, end - item.timer.startedAt);
-        item.timerMsBanked = (typeof item.timerMsBanked === 'number' ? item.timerMsBanked : 0) + span;
+        const startedAt = item.timer.startedAt;
+        const span = Math.max(0, end - startedAt);
+        const windows = closeAttackWindows(item.timer, end);
+        const TS = sessions();
+        if (TS) {
+            // One session per stop (timer sessions, 2026-11-04). recordSession keeps timerMsBanked = timed + untimed.
+            if (typeof item.timerMsBanked !== 'number') item.timerMsBanked = 0;
+            TS.ensure(item);
+            TS.recordSession(item, startedAt, startedAt + span, windows);
+        } else {
+            item.timerMsBanked = (typeof item.timerMsBanked === 'number' ? item.timerMsBanked : 0) + span;
+        }
         item.timer = null;
         item.timerPaused = false;
         if (span > 0 && spanListener) {
@@ -286,6 +338,8 @@ const Timer = (() => {
         if (!Number.isFinite(n)) return null;
         const next = Math.min(MAX_LOGGED_MS, Math.max(0, Math.round(n)));
         const prev = (typeof item.timerMsBanked === 'number' && item.timerMsBanked > 0) ? item.timerMsBanked : 0;
+        const TS = sessions();
+        if (TS) TS.forceTotal(item, next); // keeps timerMsBanked = timed sessions + untimed (Build A; B adds the refusal)
         item.timerMsBanked = next;
         if (next === 0) item.timerPaused = false; // nothing left to resume
         return next - prev;
@@ -362,7 +416,7 @@ const Timer = (() => {
         normalizeTarget, modeFor, isRunning, canWorkTimer, isLimit, canLimitTimer, canTimer,
         isPaused, buttonTitle, pause, endPaused, controlState, stopButtonHtml, PAUSE_ICON_SVG, PLAY_ICON_SVG, STOP_ICON_SVG, loggedMinutes, hasLogged, loggedText, isOverLimit, limitReadout, limitText, limitCaptionHtml, acknowledgeGoal, discardSession, setLogged, recordKind, MAX_LOGGED_MS, buttonLabel, popupLabel, ICON_SVG, buttonHtml, popupHtml, shouldNudge, NUDGE_TITLE, nudgeNote, shouldPrompt, PROMPT_TITLE, elapsedMs, onSpan, start, stop, findRunning,
         pendingAction, promptDueAt, markPrompted, confirmStillWorking, autoStop,
-        damageIntervalMs, formatElapsed,
+        damageIntervalMs, formatElapsed, trackAttack,
     };
 })();
 

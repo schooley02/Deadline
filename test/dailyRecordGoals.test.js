@@ -9,10 +9,10 @@ const rec = () => DailyRecord.fresh({ date: '2026-11-01' });
 const amountEntry = (o) => Object.assign({ habitId: 'h1', type: 'amount', amount: 2, unit: 'drinks', met: false, actual: 4 }, o);
 
 describe('v5 shape', () => {
-    test('version is 7 (v6 adds pb, v7 adds drops) and a fresh record starts with an empty goals map', () => {
-        expect(DailyRecord.V).toBe(7);
+    test('version is 8 (v6 adds pb, v7 adds drops, v8 adds tcorr) and a fresh record starts with an empty goals map', () => {
+        expect(DailyRecord.V).toBe(8);
         const r = rec();
-        expect(r.v).toBe(7);
+        expect(r.v).toBe(8);
         expect(r.goals).toEqual({});
     });
 

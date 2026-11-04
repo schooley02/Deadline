@@ -196,6 +196,12 @@ const Loop = (() => {
                 }
             }
 
+            // Timer sessions (2026-11-04): tell a RUNNING timer whether its zombie is attacking right now, so the stopped
+            // session knows which minutes were halved (js/timer.js trackAttack). Optional global, no-op without a timer.
+            if (typeof Timer !== 'undefined' && Timer.trackAttack && Timer.isRunning(item)) {
+                Timer.trackAttack(item, currentTimeMs, !!(item.isOverdue && !isLurker));
+            }
+
             // Handle damage from overdue items
             if (item.isOverdue && !isLurker) {
                 // Work timer (Build 3, 2026-10-25): while a timer runs on this item the

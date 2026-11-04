@@ -60,7 +60,9 @@ const DailyRecord = (() => {
     // v7 (2026-11-03, Village tier drops): `drops` = { n, pts }, the items a village building paid when it reached a new star that
     // day (n = items added to the held inventory, pts = their shop value, baseCost x count). Free items, so insights can tell them
     // apart from bought ones (`pts.spent`) and from the level-perk gifts (not recorded).
-    const V = 7;
+    // v8 (2026-11-04, Timer sessions): `tcorr` = { n, hp }, the corrections that took halved damage back: a timer session was
+    // shortened or deleted over minutes when its zombie was attacking (n = corrections charged, hp = HP taken, after the 1 HP floor).
+    const V = 8;
     // Mirrors Habits.GOAL_UNIT_SUGGESTIONS (test/dailyRecord.test.js checks they match). Kept local: no global dependencies.
     const GOAL_UNITS = ['pages', 'glasses', 'oz', 'steps', 'miles', 'km', 'reps', 'words', 'servings', 'drinks', 'cigarettes', 'cups', '$', 'times'];
     const GOAL_TYPES = ['time', 'amount', 'note'];
@@ -151,6 +153,8 @@ const DailyRecord = (() => {
             pb: freshPb(),
             // v7: village tier drops paid today (see V above).
             drops: { n: 0, pts: 0 },
+            // v8: timer-session corrections that took halved damage back (see V above).
+            tcorr: { n: 0, hp: 0 },
             ko: 0,
             revived: 0,
             timer: { workMin: 0, limitMin: 0, edits: 0, editMin: 0 },
@@ -452,6 +456,13 @@ const DailyRecord = (() => {
                 if (pts > 0) rec.drops.pts += pts;
                 break;
             }
+            case 'tcorr': {
+                // A timer-session correction charged back halved damage: p = { hp } (the HP actually taken, floor applied).
+                if (!rec.tcorr) rec.tcorr = { n: 0, hp: 0 };
+                const hp = Math.floor(Number(p.hp));
+                if (hp > 0) { rec.tcorr.n += 1; rec.tcorr.hp += hp; }
+                break;
+            }
             case 'ko':
                 rec.ko += 1;
                 break;
@@ -652,6 +663,9 @@ const DailyRecord = (() => {
         if (!dst.drops) dst.drops = { n: 0, pts: 0 };
         dst.drops.n += (src.drops && src.drops.n) || 0;
         dst.drops.pts += (src.drops && src.drops.pts) || 0;
+        if (!dst.tcorr) dst.tcorr = { n: 0, hp: 0 };
+        dst.tcorr.n += (src.tcorr && src.tcorr.n) || 0;
+        dst.tcorr.hp += (src.tcorr && src.tcorr.hp) || 0;
         dst.ko += src.ko || 0;
         dst.revived += src.revived || 0;
         dst.active.touches += (src.active && src.active.touches) || 0;

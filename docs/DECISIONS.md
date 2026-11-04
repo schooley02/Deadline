@@ -4,6 +4,17 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-04 (timer sessions Build A) -- Sessions recorded on every stop; charge interval and day attribution settled (Claude app session; Sonnet; Jeremy: "go")
+
+- **Built:** the pure core and the recording only; nothing new is visible to the player (see HANDOFF). `js/timerSessions.js`, `Timer.trackAttack` (live loop), DailyRecord v8 `tcorr`, sw v248.
+- **Charge interval = `DAMAGE_INTERVAL_MS / (1 - WORK_TIMER_DAMAGE_FACTOR)`**, not interval / factor as the plan wrote: it is the damage a running timer SKIPS (1 - factor of the normal rate). Both give 10 min per HP at factor 0.5; the formula stays right if the factor is ever tuned.
+- **Day attribution = the day a session ends** (not split at midnight): matches how `Timer.onSpan` reports spans today, so recording and edits agree. Changed from the plan's "split at local midnight"; only sessions that cross midnight differ. A split would also need the recording seam to bump closed days, which would pollute `timer.edits` / `editMin`.
+- **Interim total edit:** until Build B, the existing Time Logged field (`Timer.setLogged`) goes through `forceTotal`: lowering below the timed sessions collapses them into the untimed entry, so the app behaves exactly as before. Build B replaces this with the `below-timed` refusal (Jeremy's rule).
+- A span under 1 s goes into the untimed entry (no empty "0 min" row); "Started by mistake" records nothing; the Slipped check-in entry carries the session fields.
+- **Rejected:** counting attack windows from `item.isOverdue` alone at stop time (would credit minutes the app was closed, when offline catch-up never halved anything); a gap in loop ticks over `LIVE_GAP_THRESHOLD_MS` therefore ends the window at the last tick seen.
+
+---
+
 ## 2026-11-04 (timer sessions design) -- Editable timer sessions under Time Logged, an untimed entry for guesstimates, a one-way damage charge-back with a 1 HP floor (Claude app session; Opus; Jeremy)
 
 - **Why (Jeremy):** fix Time Logged from real times (phone / Zoom: "the meeting ran 2:00-3:05"; stopped too soon; forgot to stop) AND keep quick guesstimate edits.

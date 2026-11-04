@@ -11,6 +11,14 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-04 (timer sessions Build A) -- Every stop now records a session; pure core + attack windows + DailyRecord v8; nothing visible yet (Claude app session; Sonnet; Jeremy)
+**Did:** NEW `js/timerSessions.js` (ensure / recordSession / validate / apply / preview / setTotal / forceTotal / capCharge / chargeIntervalMs / dayKey). `js/timer.js`: `stop` (so pause / autoStop) records one session via TimerSessions; `trackAttack` + window closing; `setLogged` keeps the invariant through `forceTotal`. `js/loop.js`: tells a running timer whether its zombie is attacking. `js/dailyRecord.js` v8: `tcorr` {n, hp} + `tcorr` bump event + month roll-up. `js/items.js`: Slipped check-in entry carries the session fields. index.html (CRLF kept) + sw.js load / precache the module; sw v248. Tests first: NEW timerSessions (63), dailyRecordTcorr, timerSessions-wiring; loop (+5 attack-window tests); five dailyRecord version assertions 7 -> 8.
+**State:** full Jest 166 suites / 3,754 green in a cloud clone. Not phone-checked. Nothing a player can see changed, except that every stop now stores a session in the save.
+**Next:** Build B (Sonnet, medium): Sessions list + row editor on the card / Edit Task / completed-entry editors; the total-typing refusal (`below-timed`, replacing the interim collapse in `forceTotal`); charge preview; the HP charge through the normal damage path with `capCharge` (1 HP floor) and the `tcorr` bump; per-day record fixes from `dayDeltas`.
+**Watch out:** (1) Day attribution is the day a session ENDS, not split at midnight (DECISIONS). (2) Charge interval is interval / (1 - factor). (3) `Timer.setLogged` still collapses sessions when lowered below them: that is deliberate until Build B. (4) Never write `timerMsBanked` directly on an item that has sessions; go through TimerSessions. (5) index.html is CRLF: edit it byte-safe.
+
+---
+
 ## 2026-11-04 (timer sessions design) -- Plan for editable timer sessions under Time Logged; nothing built (Claude app session; Opus; Jeremy)
 **Did:** design only. Jeremy wants to fix Time Logged from real times (phone / Zoom) and keep guesstimates. Agreed all seven points plus the 1 HP floor (he asked why; answered). NEW `docs/TIMER_SESSIONS_PLAN.md` (decisions, data, recording, editing rules, daily record v8 `tcorr`, screens, Builds A / B / C); CLAUDE.md Doc Map row (+ its wording example now says "Stop the timer"); ROADMAP item marked DESIGNED with three build sub-items; DECISIONS 2026-11-04 (timer sessions design).
 **State:** no code changed; tests unchanged (163 / 3,675 in the cloud clone).

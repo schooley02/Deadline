@@ -1091,6 +1091,8 @@ const Items = (() => {
                 goal: item.goal || null,
                 timerMinutes: typeof item.timerMinutes === 'number' ? item.timerMinutes : null,
                 timerMsBanked: typeof item.timerMsBanked === 'number' ? item.timerMsBanked : 0,
+                timerSessions: Array.isArray(item.timerSessions) ? item.timerSessions : null,
+                timerUntimedMs: typeof item.timerUntimedMs === 'number' ? item.timerUntimedMs : null,
             };
         }
         removeItem(item.id, deps);
@@ -1147,6 +1149,9 @@ const Items = (() => {
             goal: (snap && snap.goal) || null,
             timerMinutes: snap && typeof snap.timerMinutes === 'number' ? snap.timerMinutes : null,
             timerMsBanked: snap && typeof snap.timerMsBanked === 'number' ? snap.timerMsBanked : 0,
+            // Timer sessions (2026-11-04): the slipped entry keeps the session list so its Time Logged stays editable per session.
+            timerSessions: snap && Array.isArray(snap.timerSessions) ? snap.timerSessions : undefined,
+            timerUntimedMs: snap && typeof snap.timerUntimedMs === 'number' ? snap.timerUntimedMs : undefined,
             timer: null, originalDueDate, dueDateTime: originalDueDate, element: null, listItemElement: null,
         });
 

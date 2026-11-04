@@ -1,6 +1,6 @@
 # Timer sessions -- plan
 
-_Designed 2026-11-04 (Claude app session, Opus; Jeremy). NOT BUILT. DECISIONS 2026-11-04 (timer sessions design). ROADMAP M5 "Timer sessions list"._
+_Designed 2026-11-04 (Claude app session, Opus; Jeremy). **Build A BUILT 2026-11-04 (Sonnet; sw v248): pure core + recording + DailyRecord v8. Builds B and C NOT BUILT.** DECISIONS 2026-11-04 (timer sessions design). ROADMAP M5 "Timer sessions list"._
 
 ## Goal
 
@@ -76,6 +76,17 @@ Sessions
 - **Build A, pure core + recording:** session record on stop / pause / autoStop, attack windows from the loop, lazy normaliser, validators, removed-span + charge maths, per-day minute deltas, DailyRecord v8 `tcorr`. Tests first (overlap, midnight split, 24 h caps, charge rounding, one-way rule, floor).
 - **Build B, list + editors:** the Sessions list and row editor on the card, Edit Task and the completed-entry editors; total-typing rule; the charge preview; the damage charge with the 1 HP floor through the normal damage path; DailyRecord wiring.
 - **Build C, glue + words:** the auto-stop notice opens the session row; a "Time Logged" line in How Deadline works (timers topic); docs (MECHANICS, DATA_SCHEMA, UI_UX); phone check.
+
+## Build A as built (2026-11-04) -- differences from the design above
+
+- `js/timerSessions.js` (pure; loaded before `timer.js`): `ensure`, `recordSession`, `validate` (reasons invalid / order / future / too-long / overlap / total-cap), `apply` / `preview` (`{ type: 'edit'|'delete'|'add' }` -> `{ ok, deltaMs, chargeHp, dayDeltas }` or `{ ok:false, reason }`), `setTotal` (the strict rule, reason `below-timed`), `forceTotal` (interim), `capCharge` (1 HP floor), `chargeIntervalMs`, `dayKey`.
+- **Charge interval = `DAMAGE_INTERVAL_MS / (1 - WORK_TIMER_DAMAGE_FACTOR)`** (the damage a timer skips), 10 min today. The plan's "interval / factor" gives the same 10 min only because the factor is 0.5.
+- **Day attribution = the day a session ENDS** (not split at midnight): it matches how `Timer.onSpan` reports a span today, so a session's recorded day and its edit deltas agree. Only a session that crosses midnight differs from the plan; revisit if that matters.
+- **Interim:** `Timer.setLogged` (the existing Time Logged field) calls `forceTotal`: raising / lowering to anything at or above the timed sessions changes only the untimed entry; lowering BELOW them collapses the sessions into the untimed entry (what the old single number did). **Build B replaces the collapse with the `below-timed` refusal** and adds the list.
+- `Timer.trackAttack(item, now, attacking)` is called by the live loop for a running timer; windows ride on `item.timer` (`attackFrom`, `attackSeen`, `attack`). A gap in ticks over `LIVE_GAP_THRESHOLD_MS` ends the window at the last tick seen (offline time was never halved).
+- A span under 1 s is banked into the untimed entry (no empty row). "Started by mistake" records nothing.
+- The Slipped check-in entry (`habitDef.pendingCheckIn.entry` and the rebuilt Completed entry) now carries `timerSessions` / `timerUntimedMs`.
+- Not yet done: the HP charge itself, the list and editors, the `tcorr` bump call site (Build B); the auto-stop notice link (Build C).
 
 ## Not doing / risks
 

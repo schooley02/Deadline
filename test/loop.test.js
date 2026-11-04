@@ -281,6 +281,53 @@ describe('Loop.updateActiveItems', () => {
         }
     });
 
+    // Timer sessions (2026-11-04): the loop tells a RUNNING timer whether its zombie is attacking, so a stopped session
+    // knows which minutes were halved. Overdue and a threat -> attacking; a parked lurker, a waiting item or an idle
+    // (no timer) item -> nothing recorded.
+    describe('timer attack windows', () => {
+        beforeEach(() => { global.Timer = require('../js/timer.js'); });
+        afterEach(() => { delete global.Timer; });
+        const running = (startedAt) => ({ startedAt, checkedAt: startedAt, promptedAt: null });
+
+        test('an overdue item with a running timer opens an attack window', () => {
+            const now = Date.now();
+            const item = makeItem({ isOverdue: true, lastDamageTickTime: now, timer: running(now - 1000) });
+            Loop.updateActiveItems(makeDeps({ state: { activeItems: [item] } }));
+            expect(typeof item.timer.attackFrom).toBe('number');
+        });
+        test('an item that is not overdue records no window', () => {
+            const now = Date.now();
+            const item = makeItem({ isOverdue: false, timer: running(now - 1000) });
+            Loop.updateActiveItems(makeDeps({ state: { activeItems: [item] } }));
+            expect(item.timer.attackFrom == null).toBe(true);
+        });
+        test('a non-threatening item (lurker) records no window', () => {
+            const now = Date.now();
+            const item = makeItem({ isOverdue: true, lastDamageTickTime: now, timer: running(now - 1000) });
+            const deps = makeDeps({ state: { activeItems: [item] }, deps: { isNonThreatening: () => true } });
+            Loop.updateActiveItems(deps);
+            expect(item.timer.attackFrom == null).toBe(true);
+        });
+        test('an item with no timer is left alone', () => {
+            const now = Date.now();
+            const item = makeItem({ isOverdue: true, lastDamageTickTime: now });
+            Loop.updateActiveItems(makeDeps({ state: { activeItems: [item] } }));
+            expect(item.timer).toBeUndefined();
+        });
+        test('the window closes when the item stops attacking (a pushback), keeping the window in the session', () => {
+            const now = Date.now();
+            const item = makeItem({ isOverdue: true, lastDamageTickTime: now, timer: running(now - 1000) });
+            const deps = makeDeps({ state: { activeItems: [item] } });
+            Loop.updateActiveItems(deps);
+            item.timer.attackFrom -= 5000; item.timer.attackSeen -= 5000; // the window has been open for 5 s
+            item.isOverdue = false;
+            item.dueDateTime = new Date(Date.now() + 3600000);
+            Loop.updateActiveItems(deps);
+            expect(item.timer.attackFrom).toBeNull();
+            expect(item.timer.attack).toHaveLength(1);
+        });
+    });
+
     // [P1-UI-006] sub-session 2, 2026-07-19 — routine health damage/KO
     test('a damage tick also calls the optional damageRoutineForItem collaborator with the item + amount', () => {
         const now = Date.now();
