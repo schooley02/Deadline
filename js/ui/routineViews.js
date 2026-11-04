@@ -60,6 +60,13 @@ const RoutineViews = (() => {
     // ---------------------------------------------------------------------
     const SCHEDULE_DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
+    // Small Build / Break marker for habit rows in the routine windows (2026-11-04, replaces the check / forbidden emoji):
+    // the picker's hammer or broken-chain icon at 16px, coloured like the picker (.habit-list-icon, css/modal.css).
+    function habitTypeBadgeHtml(isNegative) {
+        const word = isNegative ? 'Break habit' : 'Build habit';
+        return `<span class="habit-list-icon ${isNegative ? 'negative' : 'positive'}" role="img" aria-label="${word}" title="${word}">${Forms.habitTypeIconHtml(isNegative, 16)}</span>`;
+    }
+
     function scheduleFieldsHtml(prefix, schedule) {
         const s = schedule || Schedule.defaultSchedule();
         const daysHtml = SCHEDULE_DAY_LABELS.map((label, i) => `
@@ -167,9 +174,9 @@ const RoutineViews = (() => {
                 const habitDiv = document.createElement('div');
                 habitDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--color-bg-light); border-radius: 6px; margin-bottom: 6px;';
 
-                const habitTypeIcon = habit.isNegative ? ' 🚫' : ' ✅';
+                const habitTypeIcon = habitTypeBadgeHtml(!!habit.isNegative);
                 habitDiv.innerHTML = `
-                    <span>${habit.name} (${habit.category})${habitTypeIcon}</span>
+                    <span>${habit.name} (${habit.category}) ${habitTypeIcon}</span>
                     <div style="display: flex; gap: 6px;">
                         <button class="edit-habit-btn" data-habit-id="${habit.id}" style="padding: 4px 8px; font-size: 11px; background: var(--color-accent-teal); color: white; border: none; border-radius: 3px; cursor: pointer;">Edit</button>
                         <button class="move-habit-btn" data-habit-id="${habit.id}" title="Move to another routine" style="padding: 4px 8px; font-size: 11px; background: var(--color-neutral); color: white; border: none; border-radius: 3px; cursor: pointer;">Move</button>
@@ -301,8 +308,9 @@ const RoutineViews = (() => {
                         habitLi.classList.add('routine-item');
 
                         const habitInfo = document.createElement('span');
-                        const habitTypeIcon = habitDef.isNegative ? ' 🚫' : ' ✅';
-                        habitInfo.textContent = `${habitDef.name} (${habitDef.category})${habitTypeIcon}`;
+                        // textContent for the name (user text), then the icon as its own element.
+                        habitInfo.textContent = `${habitDef.name} (${habitDef.category}) `;
+                        habitInfo.insertAdjacentHTML('beforeend', habitTypeBadgeHtml(!!habitDef.isNegative));
 
                         const itemButtonGroup = document.createElement('div');
                         itemButtonGroup.classList.add('item-button-group');
@@ -877,8 +885,9 @@ const RoutineViews = (() => {
             optionsHtml = deps.definedHabits()
                 .filter(habit => !habit.archivedAt && !existingIds.includes(habit.id))
                 .map(habit => {
-                    const icon = habit.isNegative ? '🚫' : '✅';
-                    return `<option value="${habit.id}">${habit.name} (${habit.category}) ${icon}</option>`;
+                    // A native <option> cannot hold an SVG, so the type is plain words here.
+                    const typeWord = habit.isNegative ? 'Break' : 'Build';
+                    return `<option value="${habit.id}">${habit.name} (${habit.category}) · ${typeWord}</option>`;
                 })
                 .join('');
         } else if (itemType === 'task') {
@@ -1093,20 +1102,7 @@ const RoutineViews = (() => {
                     <h3>Create New Habit</h3>
                     <div class="form-row">
                         <label>Habit Type:</label>
-                        <div class="habit-type-toggle">
-                            <input type="radio" id="positiveHabit" name="habitType" value="positive" checked>
-                            <label for="positiveHabit" class="habit-type-label positive">
-                                <span class="habit-icon">✅</span>
-                                <span class="habit-label">Build</span>
-                                <span class="habit-description">Do it to earn points</span>
-                            </label>
-                            <input type="radio" id="negativeHabit" name="habitType" value="negative">
-                            <label for="negativeHabit" class="habit-type-label negative">
-                                <span class="habit-icon">🚫</span>
-                                <span class="habit-label">Break</span>
-                                <span class="habit-description">Resist it to earn points</span>
-                            </label>
-                        </div>
+                        ${Forms.habitTypeToggleHtml({ name: 'habitType', positiveId: 'positiveHabit', negativeId: 'negativeHabit', isNegative: false })}
                     </div>
                     <div class="form-row">
                         <label>Habit Name:</label>
@@ -1234,20 +1230,7 @@ const RoutineViews = (() => {
                     ${editHabitNoteHtml(opts)}
                     <div class="form-row">
                         <label>Habit Type:</label>
-                        <div class="habit-type-toggle">
-                            <input type="radio" id="editPositiveHabit" name="editHabitType" value="positive" ${!habitDef.isNegative ? 'checked' : ''}>
-                            <label for="editPositiveHabit" class="habit-type-label positive">
-                                <span class="habit-icon">✅</span>
-                                <span class="habit-label">Build</span>
-                                <span class="habit-description">Do it to earn points</span>
-                            </label>
-                            <input type="radio" id="editNegativeHabit" name="editHabitType" value="negative" ${habitDef.isNegative ? 'checked' : ''}>
-                            <label for="editNegativeHabit" class="habit-type-label negative">
-                                <span class="habit-icon">🚫</span>
-                                <span class="habit-label">Break</span>
-                                <span class="habit-description">Resist it to earn points</span>
-                            </label>
-                        </div>
+                        ${Forms.habitTypeToggleHtml({ name: 'editHabitType', positiveId: 'editPositiveHabit', negativeId: 'editNegativeHabit', isNegative: !!habitDef.isNegative })}
                     </div>
                     <div class="form-row">
                         <label>Habit Name:</label>

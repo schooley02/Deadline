@@ -4,6 +4,16 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-04 (habit-type picker) -- Build / Break picker: greyed non-selected button, one row on every device, hammer / broken-chain icons (Claude app session; Opus plan -> Sonnet build; Jeremy)
+
+- **Jeremy's ask:** when editing a habit, show clearly which type is selected (grey out the other), shrink the picker so Build and Break are on the same row on every device, try other icons for Build and Break, and put the icon and the title above the description, centred on the button.
+- **Decision (Jeremy):** icon option **A**, Build = hammer, Break = broken chain (rejected: sprout / stop hand, stairs / barrier, flame / flame-out, plus / ban). The same icons replace the check / forbidden emoji on habit rows in the routine windows; the native "add a habit" dropdown can't hold an SVG, so it says "Build" / "Break" in words.
+- **Why one shared helper:** the picker markup was copy-pasted three times (forms.js Add Habit, routineViews.js Create and Edit); `Forms.habitTypeToggleHtml` now owns it, so the icons, wording and states can't drift apart.
+- **Selected state:** 2px coloured border + tint + coloured icon and title + a small check; the other button is grey. A colour alone is not enough, hence the check. Title colours are darker than `--color-success` / `--color-warning` (#2E7D32 / #A85200) so they pass AA on the tint (4.5 / 4.8:1); greyed text is #666 (5.3:1).
+- **Keyboard:** the radios were `display:none` (unreachable by keyboard); they are now visually hidden but focusable, with a focus ring on the label. Readers still use `input[name=...]:checked`, so no save code changed.
+- **Unchanged:** wording ("Do it to earn points" / "Resist it to earn points"), ids, radio group names, `Modal.wireHabitTimeLabels` / `wireHabitGoal` wiring, saved data.
+- **Files:** js/ui/forms.js, js/ui/routineViews.js, css/modal.css, sw.js v242, test/habit-type-toggle.test.js, docs/UI_UX.md.
+
 ## 2026-11-04 (auto-stop notice) -- The "Timer stopped" notice now asks the player to fix the logged time: Edit Total / Keep New / Delete New (Claude app session)
 
 - **Jeremy's ask:** an old note said to add a check for a timer left running by accident; that check already exists ("Still working?" at 60 min, auto-stop after 10 more), but its notice only said time up to the check was kept. He wanted the notice to say the timer may have been left running, show the time this run logged and the task's total, and ask him to correct the total, with three buttons.

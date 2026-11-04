@@ -485,26 +485,46 @@ const Forms = (() => {
         `;
     }
 
+    // Habit-type icons (2026-11-04, Jeremy: option A): Build = hammer, Break = broken chain. Drawn like the pencil and
+    // stopwatch (24 viewBox, 2.3 round stroke, currentColor) so they take the button's text colour. No emoji.
+    const HABIT_ICON_PATHS = {
+        build: '<path d="M11.414 10l-7.383 7.418a2.091 2.091 0 0 0 0 2.967a2.11 2.11 0 0 0 2.976 0l7.407 -7.385"/>' +
+            '<path d="M18.121 15.293l2.586 -2.586a1 1 0 0 0 0 -1.414l-7.586 -7.586a1 1 0 0 0 -1.414 0l-2.586 2.586a1 1 0 0 0 0 1.414l7.586 7.586a1 1 0 0 0 1.414 0z"/>',
+        break: '<path d="M9 15l3 -3m2 -2l1 -1"/><path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464"/>' +
+            '<path d="M3 3l18 18"/><path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463"/>',
+    };
+    // size defaults to 22 for the picker; pass 16 for inline list rows.
+    function habitTypeIconHtml(isNegative, size) {
+        const px = size || 22;
+        return `<svg class="habit-type-icon" viewBox="0 0 24 24" width="${px}" height="${px}" fill="none" stroke="currentColor" ` +
+            `stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">` +
+            `${isNegative ? HABIT_ICON_PATHS.break : HABIT_ICON_PATHS.build}</svg>`;
+    }
+    // The Build / Break picker shared by Add Habit and the routine Create / Edit Habit forms.
+    // o = { name (radio group name), positiveId, negativeId, isNegative }. Two buttons on ONE row at every width; the
+    // chosen one is coloured and ticked, the other is greyed (css/modal.css). Radios stay in the page (visually hidden)
+    // so the keyboard still works; every reader keeps using `input[name=<name>]:checked`.
+    function habitTypeToggleHtml(o) {
+        const neg = !!o.isNegative;
+        const row = (id, value, checked, cls, isNeg, title, desc) =>
+            `<input type="radio" id="${id}" name="${o.name}" value="${value}"${checked ? ' checked' : ''}>
+                    <label for="${id}" class="habit-type-label ${cls}">
+                        <span class="habit-title-row">${habitTypeIconHtml(isNeg)}<span class="habit-label">${title}</span></span>
+                        <span class="habit-description">${desc}</span>
+                    </label>`;
+        return `<div class="habit-type-toggle">
+                    ${row(o.positiveId, 'positive', !neg, 'positive', false, 'Build', 'Do it to earn points')}
+                    ${row(o.negativeId, 'negative', neg, 'negative', true, 'Break', 'Resist it to earn points')}
+                </div>`;
+    }
+
     function createHabitFormHtml(now = new Date()) {
         const win = computeDefaultWindow(now);
         return `
             <h3>Add New Habit</h3>
             <div class="form-row">
                 <label>Habit Type:</label>
-                <div class="habit-type-toggle">
-                    <input type="radio" id="modalPositiveHabit" name="modalHabitType" value="positive" checked>
-                    <label for="modalPositiveHabit" class="habit-type-label positive">
-                        <span class="habit-icon">✅</span>
-                        <span class="habit-label">Build</span>
-                        <span class="habit-description">Do it to earn points</span>
-                    </label>
-                    <input type="radio" id="modalNegativeHabit" name="modalHabitType" value="negative">
-                    <label for="modalNegativeHabit" class="habit-type-label negative">
-                        <span class="habit-icon">🚫</span>
-                        <span class="habit-label">Break</span>
-                        <span class="habit-description">Resist it to earn points</span>
-                    </label>
-                </div>
+                ${habitTypeToggleHtml({ name: 'modalHabitType', positiveId: 'modalPositiveHabit', negativeId: 'modalNegativeHabit', isNegative: false })}
             </div>
             <div class="form-row">
                 <label for="modalHabitName">Habit Name:</label>
@@ -913,6 +933,8 @@ const Forms = (() => {
         habitGoalError,
         readHabitGoalFields,
         habitWindowModeHtml,
+        habitTypeIconHtml,
+        habitTypeToggleHtml,
         customHabitTimesError,
         loggedTimeMinutes,
         loggedTimeHtml,
