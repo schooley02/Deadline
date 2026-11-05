@@ -34,7 +34,7 @@ Each region of the scene owns ONE time scale, so the player always knows where t
 |---|---|---|
 | Lane / field + church (exists) | Right now | Zombies, base damage, heroes |
 | Sky (moon exists, top-right) | Last ~7 days of this run (changed 2026-11-03, see "W1 Run climate") | How the run is trending |
-| Distant city (new, behind the hills) | Weeks–months | Goals and their Targets |
+| Distant city (new, behind the hills) | Weeks–months | ~~Goals and their Targets~~ (2026-11-04: goals moved to their own pane, `docs/GOALS_PLAN.md`; the band is free) |
 | Right-side graveyard (new) | All time | Achievements, past runs, lifetime nights |
 
 Why not map city windows to today's zombies (Jeremy's first idea): the field already shows
@@ -95,6 +95,8 @@ today-only (a) regardless.
 
 ## Region 3 — Distant city: goals (depends on the Goals feature)
 
+**SUPERSEDED 2026-11-04 (Fable, Jeremy; `docs/GOALS_PLAN.md`, DECISIONS 2026-11-04 (goals)):** goals live in their own PANE, not on the skyline, and the skyline gets nothing for now. Why: the skyline is hard to read on a phone (said below), the village now holds the ridge, N goal buildings would be identical (breaking the AT-A-GLANCE DISTINCTNESS RULE) or N designs per theme, and a canvas region cannot hold the form or a variable slot count. The "building stays in the skyline as a record" idea may return later as one lit window per finished goal. Text kept for history.
+
 Prerequisite: Goals + Targets (Jeremy's sketch: Number range, True/False, Currency, Task/list
 Targets; tasks and habits can be tied to a goal). That is a separate design session (Fable —
 schema, mechanics, UI). This region only renders it.
@@ -114,6 +116,8 @@ Open: how many buildings fit (cap + "+N"?); window lights vs category colors; do
 building height mean importance, size of goal, or nothing?
 
 ## Region 4 — Deadline threat on the horizon
+
+**SUPERSEDED 2026-11-04 (with Region 3):** the deadline threat is the Goals pane's pace dot (green ahead / amber behind / red overdue) and deadline line; no horde or meteor on the horizon. Text kept for history.
 
 For goals with a deadline. Two candidates (PROPOSED: horde; meteor still on the table):
 - **Horde on the horizon:** a dark dust-mass marching toward that goal's building. Distance =
@@ -452,9 +456,9 @@ hills, distant buildings (and later the distant city) may fade.
   Open: Memorial rows tappable for per-category history? Confirm the Americana mapping for the 8 kinds.
 - [ ] **W3 — Graveyard history (Sonnet):** run graves + growing tree.
 - [ ] **W4 — Today-only battlefield aftermath (Sonnet):** option (a) above.
-- [ ] **D1 — Goals + Targets design (Fable):** schema, linking tasks/habits, UI, portrait entry.
-- [ ] **W5 — City strongholds (after Goals ships).**
-- [ ] **W6 — Horizon threat (after W5).**
+- [x] **D1 — Goals + Targets design (DONE 2026-11-04, Fable; Jeremy):** `docs/GOALS_PLAN.md` -- a Goals pane, not the city; builds A-C in ROADMAP M5.
+- [ ] ~~**W5 — City strongholds (after Goals ships).**~~ RETIRED 2026-11-04 (goals are a pane; nothing on the skyline for now).
+- [ ] ~~**W6 — Horizon threat (after W5).**~~ RETIRED 2026-11-04 (the pane's pace dot carries it).
 - [ ] **D2 — Daily summary record for future AI insights + best/worst days (Fable/Opus; data
   design, schema bump). Not for back-paging the canvas.**
 

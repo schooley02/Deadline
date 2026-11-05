@@ -26,6 +26,7 @@ A player never loses what they built or paid for because the church fell. Narrow
 - Edge: a carried task's `dueDateTime` may be in the past (it was overdue) - it comes back overdue, damage resumes on the next tick. Edge: Restart with the game never over (dev) is the same path.
 
 ## Not done / later
+- **Goals (DESIGNED 2026-11-04, `docs/GOALS_PLAN.md`):** the root `goals` object (active goals, streaks, roster, `bestSlots`) is the next carried thing -- `initGame` / `startNextRun` must leave it alone and the game-over card's "You keep" list should name it (Build A adds the `RunCarryover` row).
 - Kept-item spend order + price-curve exclusion (see decision 1).
 - If the odd levels feel empty above the best slot count, give them another reward (Jeremy's call).
 - Phone check of the Restart flow and the card on a real device.

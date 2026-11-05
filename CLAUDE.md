@@ -36,6 +36,7 @@ At the end of every session, run `/end-session` (append HANDOFF entry, log decis
 | `docs/RUN_CARRYOVER_PLAN.md` | What a new run keeps vs resets (BUILT 2026-11-03, sw v240): open one-off tasks, `bestRoutineSlots`, `keptAcrossRuns` items (none yet), the game-over "Next run" lists, the "When a run ends" topic. Read before touching Restart, `initGame`, slots or the inventory reset. |
 | `docs/TIMER_SESSIONS_PLAN.md` | Editable timer sessions under Time Logged (DESIGNED 2026-11-04; Build A BUILT 2026-11-04: `js/timerSessions.js` pure core + recording; Build B BUILT 2026-11-04: `js/ui/sessionsView.js` list + editors, `Items.changeSession`, strict total, HP charge; Build C BUILT 2026-11-04: auto-stop notice opens the run's row, `timers` topic in How Deadline works, sw v251 -- all three builds done, phone check pending): `timerSessions` + `timerUntimedMs`, the untimed entry, the one-way damage charge-back with a 1 HP floor, DailyRecord v8 `tcorr`, Builds A / B / C. Read before touching `Timer.stop/pause/autoStop`, `setLoggedTime` or the Time Logged field. |
 | `docs/PRIORITY_SLOTS_PLAN.md` | Priority slots: 3 a day, spent when marked, 3 more after 3 done (DESIGNED 2026-11-04, Fable; Build A + Build B BUILT 2026-11-04 (sw v256, schema 17, DailyRecord v9; Build B phone-checked by Jeremy 2026-11-04, "it works")). Read before touching `isHighPriority`, the task forms' priority box, `#prioritySlots`, routine task defs or `Economy.taskPoints`. |
+| `docs/GOALS_PLAN.md` | Goals (DESIGNED 2026-11-04, Fable; NOT BUILT): the Goals pane of slots + six-stage subject sprites, Milestone vs Recurring (relapse), targets, `GOAL_SLOTS_PER_LEVEL` kept across runs, HUD button + pace dots, schema 18, DailyRecord v10 `pg`, the `js/theme.js` Baseline seam, art contract, Builds A-C. Read before touching `initGame` / `startNextRun`, `performDayRollover`, `checkPlayerLevelUp`, `Items.completeItem`, the HUD buttons or `test/wording-rule.test.js`. |
 | `docs/HOW_IT_WORKS_PLAN.md` | "How Deadline works" Settings page (BUILT 2026-11-03, sw v224): approved copy, build order, and the one place the built copy differs (no hero healing line until healing is built). The achievements swap in the same plan is BUILT (2026-11-03): Honor Roll / Clean Sweep / Iron Will replace Steady Hands. |
 
 ## Codebase State (refreshed 2026-10-14 — last code change 2026-10-14, V4: pixel church art at 160px/2x, front-lane line, paths unified on Assets/Base/)
@@ -77,6 +78,15 @@ At the end of every session, run `/end-session` (append HANDOFF entry, log decis
 - **Art:** animated PixelLab atlases in `Assets/Zombies/anim/` drive walk/idle/attack (P2-GAME-010 Stage 2a, `js/spriteAnim.js` + `css/enemyAnim.css`, built 2026-10-12, pending live check); death animation on completion + scrub pause built in Stage 2b (2026-10-12, live-verified). Static 64×64 PNGs in `Assets/Zombies/` remain as the fallback.
 - **Git:** `main` is current; remote github.com/schooley02/Deadline. `Deadline-MPE/` is the old May 2025 prototype — reference only, never touch. One-off 2025 analysis/debug files live in `archive/` — don't read them.
 - Project home: `C:\Users\jscho\Projects\Deadline`.
+
+## Baseline (engine) vs Deadline (theme) -- Jeremy, 2026-11-04 (DECISIONS 2026-11-04 (goals))
+
+The task/habit game engine is **Baseline**; **Deadline** (zombies, church, village, lab) is the first game/theme built on it. Polishing Baseline into a real engine (asset packs, a `theme.json` loader, renaming the old identifiers behind an alias map) is its OWN Fable session after the pre-alpha finish line -- do not start it piecemeal. Until then two rules keep the later split cheap:
+
+- **New identifiers speak Baseline.** New module names, CONFIG keys, DailyRecord keys, save fields, CSS classes and test names use engine words (goal, slot, stage, subject, container, period, target, pace, base, enemy, item). Theme words (zombie, church, village, lab, vat, patient, cure, survivor) go ONLY in `js/theme.js` strings and asset file names. Existing identifiers are NOT renamed now.
+- **Save data is theme-free.** A field name lives forever (it needs a migration to change) and an export must stay valid under any theme, so never put a theme noun in a persisted key.
+
+Goals (`docs/GOALS_PLAN.md`) is the proving ground: `js/theme.js` is created there, the goals modules read every player-facing word and sprite path through it, and `test/wording-rule.test.js` gets a scan that fails those modules on theme words.
 
 ## Refactor Rules (Milestone 2+; strategy decided 2026-07-16)
 
