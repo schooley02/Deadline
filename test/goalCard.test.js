@@ -206,6 +206,21 @@ describe('DOM', () => {
         expect(document.querySelector('.goal-card-overlay')).toBeNull();
     });
 
+    test('Edit goal closes the card and hands the goal id to the owner (Build B2)', () => {
+        deps.onEdit = jest.fn();
+        open();
+        document.querySelector('[data-action="edit"]').click();
+        expect(document.querySelector('.goal-card-overlay')).toBeNull();
+        expect(deps.onEdit).toHaveBeenCalledWith(7);
+        expect(calls.update).toEqual([]);
+    });
+
+    test('Edit goal still just closes when the owner gave no handler', () => {
+        open();
+        document.querySelector('[data-action="edit"]').click();
+        expect(document.querySelector('.goal-card-overlay')).toBeNull();
+    });
+
     test('Close closes without touching the goal', () => {
         open();
         document.querySelector('[data-action="close"]').click();

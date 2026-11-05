@@ -1076,12 +1076,104 @@ const State = (() => {
         return { changed: true, completed };
     }
 
+    // ---- Add / Edit (Goals Build B2, 2026-11-05): the form's entry points and the one-off task links ----
+    // A one-off task that counts toward a linked target wears `item.goalId` + `item.goalTargetId` (additive item fields, no schema bump).
+    // The target keeps an event counter (itemTotal / itemDone, see Goals.applyCompletion); `syncItemLinks` is the ONE place the two are
+    // brought back in line: it moves the fields on the open tasks and then sets each touched target's itemTotal from a live count.
+    const sameKey = (a, b) => a != null && b != null && String(a) === String(b);
+    const clearItemLink = (item) => { item.goalId = null; item.goalTargetId = null; };
+    const liveLinkCount = (goalId, targetId) => activeItems.filter(i => sameKey(i.goalId, goalId) && sameKey(i.goalTargetId, targetId)).length;
+
+    // links: [{ targetIndex, itemIds }] -- the open tasks picked for the goal's linked target at that index (a milestone only).
+    function syncItemLinks(goalId, links) {
+        const goal = goals.active.find(g => sameKey(g.id, goalId));
+        if (!goal) return;
+        const touched = [];
+        const linkedIds = new Set(goal.targets.filter(t => t.type === 'linked').map(t => String(t.id)));
+        // A target that was dropped (or changed type) frees the tasks that wore it.
+        activeItems.forEach((item) => {
+            if (sameKey(item.goalId, goalId) && !linkedIds.has(String(item.goalTargetId))) clearItemLink(item);
+        });
+        (Array.isArray(links) ? links : []).forEach((link) => {
+            const target = link && goal.targets[link.targetIndex];
+            if (!target || target.type !== 'linked') return;
+            const want = new Set((Array.isArray(link.itemIds) ? link.itemIds : []).map(String));
+            activeItems.forEach((item) => {
+                if (sameKey(item.goalId, goalId) && sameKey(item.goalTargetId, target.id) && !want.has(String(item.id))) clearItemLink(item);
+            });
+            want.forEach((idText) => {
+                const item = activeItems.find(i => String(i.id) === idText);
+                if (!item || !Goals.isLinkableTask(item)) return;
+                const same = sameKey(item.goalId, goalId) && sameKey(item.goalTargetId, target.id);
+                if (!same && item.goalId != null) touched.push({ goalId: item.goalId, targetId: item.goalTargetId }); // moved off another goal
+                item.goalId = goal.id;
+                item.goalTargetId = target.id;
+            });
+        });
+        goal.targets.forEach((t) => { if (t.type === 'linked') touched.push({ goalId: goal.id, targetId: t.id }); });
+        touched.forEach(p => { goals = Goals.setLinkedTotal(goals, p.goalId, p.targetId, liveLinkCount(p.goalId, p.targetId)); });
+    }
+
+    /** Frees every open task that counted toward this goal (it was deleted or retired). */
+    function releaseItemLinks(goalId) {
+        activeItems.forEach((item) => { if (sameKey(item.goalId, goalId)) clearItemLink(item); });
+    }
+
+    /** Adds a goal from the form into the next free slot. Returns { ok, goal } or { ok: false, reason: 'invalid' | 'full' }. */
+    function addGoal(fields, links, now) {
+        if (!goalsReady()) return { ok: false, reason: 'invalid' };
+        const r = Goals.addGoal(goals, fields, goalSlotCount(), toMs(now), CONFIG.GOAL_WEEK_STARTS_ON);
+        if (!r.ok) return { ok: false, reason: r.reason };
+        goals = r.goals;
+        syncItemLinks(r.goal.id, links);
+        settleGoals(now, { noSave: true });
+        saveGame();
+        const goal = goals.active.find(g => g.id === r.goal.id) || r.goal;
+        return { ok: true, goal };
+    }
+
+    /** Applies the Edit form (name, deadline, targets; kind and period stay). Returns { ok, goal } or { ok: false, reason }. */
+    function editGoal(goalId, fields, links, now) {
+        if (!goalsReady()) return { ok: false, reason: 'invalid' };
+        const r = Goals.editGoal(goals, goalId, fields, toMs(now), CONFIG.GOAL_WEEK_STARTS_ON);
+        if (!r.ok) return { ok: false, reason: r.reason };
+        goals = r.goals;
+        syncItemLinks(r.goal.id, links);
+        settleGoals(now, { noSave: true });
+        saveGame();
+        return { ok: true, goal: goals.active.find(g => g.id === r.goal.id) || r.goal };
+    }
+
+    /** What the linked-target picker offers: open one-off tasks, Build Habits (not archived) and routines. */
+    function getGoalLinkOptions() {
+        const tasks = activeItems.filter(Goals.isLinkableTask).map(i => ({
+            id: i.id,
+            name: i.name,
+            dueDateTime: i.dueDateTime || null,
+            goalId: i.goalId != null ? i.goalId : null,
+            goalTargetId: i.goalTargetId != null ? i.goalTargetId : null,
+        }));
+        const habits = (definedHabits || []).filter(h => h && !h.archivedAt && h.isNegative !== true).map(h => ({ id: h.id, name: h.name }));
+        const routines = (definedRoutines || []).filter(Boolean).map(r => ({ id: r.id, name: r.name }));
+        return { tasks, habits, routines };
+    }
+
+    /** { [targetId]: [item ids] } -- the open tasks that currently count toward each of this goal's targets (for the Edit form). */
+    function getGoalLinkedItemIds(goalId) {
+        const out = {};
+        activeItems.forEach((i) => {
+            if (sameKey(i.goalId, goalId) && i.goalTargetId != null) (out[i.goalTargetId] = out[i.goalTargetId] || []).push(i.id);
+        });
+        return out;
+    }
+
     /** The player retires a goal: it moves to the roster of finished goals. Returns the roster record, or null. */
     function retireGoal(goalId, now) {
         if (!goalsReady()) return null;
         const r = Goals.retireGoal(goals, goalId, toMs(now), daysSurvived, CONFIG.GOAL_ROSTER_KEEP);
         if (!r.record) return null;
         goals = r.goals;
+        releaseItemLinks(goalId);
         saveGame();
         return r.record;
     }
@@ -1092,6 +1184,7 @@ const State = (() => {
         const next = Goals.removeGoal(goals, goalId);
         if (next === goals) return false;
         goals = next;
+        releaseItemLinks(goalId);
         saveGame();
         return true;
     }
@@ -1168,6 +1261,7 @@ const State = (() => {
         getPriorityMarks, setPriorityMarks,
         getGoals, setGoals, goalSlotCount, syncGoalSlots, ensureGoalsSeeded, settleGoals, applyGoalCompletion, closeGoalPeriods,
         getGoalViews, getGoalSlotInfo, updateGoalTarget, retireGoal, deleteGoal, takeGoalEvents,
+        addGoal, editGoal, getGoalLinkOptions, getGoalLinkedItemIds,
         getCurrentRunStats, setCurrentRunStats,
         getRunHistory, setRunHistory,
         getLifetimeStats, setLifetimeStats,

@@ -453,3 +453,14 @@
     font-size: 0.85em;
     white-space: nowrap;
 }
+
+/* Goals row + roster (Goals Build B2, 2026-11-05). */
+.stats-goals-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: var(--space-2); margin-bottom: var(--space-2); }
+.stats-goal-stat { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 10px; background: var(--color-bg-light, #f5f7f9); min-width: 0; }
+.stats-goal-stat-label { font-size: 12px; color: var(--color-neutral); overflow-wrap: anywhere; }
+.stats-goal-stat-value { font-size: 20px; font-weight: 700; color: var(--color-text-primary); }
+.stats-goals-roster-title { margin: var(--space-2) 0 4px; font-size: 13px; font-weight: 700; color: var(--color-text-primary); }
+.stats-goals-roster { list-style: none; margin: 0 0 var(--space-2); padding: 0; }
+.stats-goal-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--color-secondary-green-pale, #e6f4f1); font-size: 13px; }
+.stats-goal-row-name { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.stats-goal-row-note { color: var(--color-neutral); text-align: right; flex: none; max-width: 55%; overflow-wrap: anywhere; }

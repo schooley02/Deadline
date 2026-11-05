@@ -52,6 +52,8 @@ const PointsInfo = (() => {
         if (config.KO_GHOST_POINTS_FACTOR === 0) {
             lines.push('Items in a knocked-out routine pay no points.');
         }
+        // Goals Build B2 (2026-11-05): the approved wording, no numbers (the reward numbers are a balance pass before Goals Build C).
+        lines.push('Goals pay points and XP when a period is met or a goal is finished.');
         return lines;
     }
 

@@ -361,6 +361,46 @@ const StatsView = (() => {
         ).join('')}</ul>`;
     }
 
+    // ---- Goals (Goals Build B2, 2026-11-05; docs/GOALS_PLAN.md) --------------------------------------------------------------
+    // A Goals row (periods met, one-time goals finished, best streak) and the roster of finished goals, read from State.getGoals().
+    // Goals carry across runs, so these numbers are lifetime, like the achievements. Theme words come from Theme.strings.goals.
+    const GOALS_ROSTER_SHOWN = 10;
+    function escHtml(v) {
+        return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function goalsSummary(goals) {
+        const active = (goals && Array.isArray(goals.active)) ? goals.active : [];
+        const done = (goals && Array.isArray(goals.done)) ? goals.done : [];
+        const n = (v) => (typeof v === 'number' && isFinite(v) && v > 0 ? v : 0);
+        return {
+            periodsMet: active.concat(done).reduce((sum, g) => sum + n(g.periodsMet), 0),
+            milestonesDone: done.filter(g => g.kind === 'milestone').length,
+            bestStreak: active.concat(done).reduce((m, g) => Math.max(m, n(g.bestStreak)), 0),
+            active: active.length,
+            finished: done.length,
+        };
+    }
+
+    // deps: { goals: State.getGoals() }
+    function buildGoalsSection(deps) {
+        const goals = deps && deps.goals;
+        const sum = goalsSummary(goals);
+        const stat = (label, value) => `<div class="stats-goal-stat"><span class="stats-goal-stat-label">${label}</span><span class="stats-goal-stat-value">${value}</span></div>`;
+        const theme = (typeof Theme !== 'undefined' && Theme.strings && Theme.strings.goals) ? Theme.strings.goals : {};
+        const done = (goals && Array.isArray(goals.done)) ? goals.done : [];
+        const rows = done.slice(0, GOALS_ROSTER_SHOWN).map((g) => {
+            const when = formatDate(g.finishedAt);
+            const how = g.kind === 'milestone' ? `Finished ${when}` : `Retired ${when}${g.bestStreak > 0 ? ` \u00B7 best streak ${g.bestStreak}` : ''}`;
+            return `<li class="stats-goal-row"><span class="stats-goal-row-name">${escHtml(g.name)}</span><span class="stats-goal-row-note">${escHtml(how)}</span></li>`;
+        }).join('');
+        const more = done.length > GOALS_ROSTER_SHOWN ? `<p class="stats-empty">and ${done.length - GOALS_ROSTER_SHOWN} more</p>` : '';
+        const roster = done.length === 0
+            ? '<div class="stats-empty">No goals finished yet.</div>'
+            : `<p class="stats-goals-roster-title">${escHtml(theme.finishedPlural || 'Finished goals')}</p><ul class="stats-goals-roster">${rows}</ul>${more}`;
+        return `<div class="stats-goals-summary">${stat('Periods met', sum.periodsMet)}${stat('One-time goals finished', sum.milestonesDone)}${stat('Best streak', sum.bestStreak)}</div>${roster}`;
+    }
+
     // deps: { currentRunStats, runHistory, daysSurvivedSoFar,
     //         achievementsCatalog, lifetimeStats, achievements,
     //         days (deadline.days store), todayRecord (open save.today), scoreWeights }
@@ -420,6 +460,9 @@ const StatsView = (() => {
             routineRollup.innerHTML = buildRoutineRollupSection({ runHistory });
         }
 
+        const goalsEl = document.getElementById('statsGoals');
+        if (goalsEl) goalsEl.innerHTML = buildGoalsSection({ goals: deps.goals });
+
         const achievementsEl = document.getElementById('statsAchievements');
         if (achievementsEl) {
             achievementsEl.innerHTML = buildAchievementsSection({
@@ -448,6 +491,8 @@ const StatsView = (() => {
         buildAchievementCard,
         buildAchievementFamily,
         buildAchievementsSection,
+        goalsSummary,
+        buildGoalsSection,
         buildNearMissSection,
         renderStatsWindow,
     };

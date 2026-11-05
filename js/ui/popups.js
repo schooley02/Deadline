@@ -408,6 +408,8 @@ const Popups = (() => {
     }
 
     function showTaskDetailsPopup(item, deps) {
+        // Goals Build B2 (2026-11-05): a task that counts toward a goal shows the goal's name as a tappable badge (deps are optional).
+        const goalBadge = (item.type === 'task' && typeof deps.goalBadgeHtml === 'function') ? deps.goalBadgeHtml(item) : '';
         const modalHtml = `
             <div class="modal-overlay">
                 <div class="modal-content task-details-modal">
@@ -420,6 +422,7 @@ const Popups = (() => {
                             ? `<p><strong>Tempting around:</strong> <span class="task-due-display">${item.dueDateTime.toLocaleTimeString([], { timeStyle: 'short' })}</span></p>`
                             : `<p><strong>Due:</strong> <span class="task-due-display">${taskDueDisplayText(item)}</span></p>`}
                         ${item.type === 'task' ? `<p><strong>Priority:</strong> ${item.isHighPriority ? 'Yes' : 'No'}</p>` : ''}
+                        ${goalBadge ? `<p class="goal-line"><strong>Goal:</strong> ${goalBadge}</p>` : ''}
                         ${item.type === 'habit' ? `<p><strong>Streak:</strong> ${item.streak}${howItWorksButton('streaks', 'How streaks work')}</p>` : ''}
                         ${buildHabitPointsLineHtml(item, deps)}
                         ${(item.type === 'habit' && typeof Habits !== 'undefined' && Habits.formatGoal && Habits.formatGoal(item.goal, item.isNegative))
@@ -433,6 +436,13 @@ const Popups = (() => {
         `;
 
         const overlay = Modal.open(modalHtml);
+
+        // The goal badge opens the goal card on top of this popup (stopPropagation: Modal's outside-click must not close the popup under it).
+        if (overlay && typeof deps.onOpenGoal === 'function') {
+            overlay.querySelectorAll('.goal-badge').forEach((badge) => {
+                badge.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); deps.onOpenGoal(badge.dataset.goalId); });
+            });
+        }
 
         // Add event listeners
         const completeCheckbox = document.getElementById('completeTaskCheck');

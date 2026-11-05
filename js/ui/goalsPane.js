@@ -224,6 +224,57 @@ const GoalsPane = (() => {
         return `<span class="goal-pips" aria-hidden="true">${pips.map(met => `<i class="goal-pip${met ? ' goal-pip--met' : ''}"></i>`).join('')}</span>`;
     }
 
+    // ---- goal badges (Build B2) -------------------------------------------------------------------------------------------------
+    // A one-off task that counts toward a goal (item.goalId) wears the goal's name on its agenda row and in its details popup; a tap opens
+    // the goal card. badgeFor / badgeSignature / badgeHtml are pure; applyBadges is the only DOM (script.js calls it when the signature moves).
+
+    function badgeFor(item, activeGoals) {
+        if (!item || item.goalId == null) return null;
+        const goal = (activeGoals || []).find(g => String(g.id) === String(item.goalId));
+        return goal ? { goalId: goal.id, name: goal.name } : null;
+    }
+
+    function badgeSignature(items, activeGoals) {
+        return (items || []).map((item) => {
+            const b = badgeFor(item, activeGoals);
+            return `${item.id}${item.listItemElement ? '+' : '-'}${b ? ':' + b.goalId + ':' + b.name : ''}`;
+        }).join('|');
+    }
+
+    function badgeHtml(badge) {
+        return `<button type="button" class="goal-badge" data-goal-id="${esc(badge.goalId)}" aria-label="${esc('Goal: ' + badge.name + '. Open goal')}">`
+            + `<span class="goal-badge-text">${esc(badge.name)}</span></button>`;
+    }
+
+    function applyBadges(items, activeGoals, onOpenGoal) {
+        (items || []).forEach((item) => {
+            const li = item && item.listItemElement;
+            if (!li || typeof li.querySelector !== 'function') return;
+            const details = li.querySelector('.item-details'); // the row's own (a parent task lists its sub-task rows after it)
+            const parent = details && details.parentNode;
+            if (!parent) return;
+            const existing = Array.from(parent.children).find(c => c.classList && c.classList.contains('goal-badge')) || null;
+            const badge = badgeFor(item, activeGoals);
+            if (!badge) { if (existing) existing.remove(); return; }
+            if (existing) {
+                existing.dataset.goalId = String(badge.goalId);
+                const text = existing.querySelector('.goal-badge-text');
+                if (text && text.textContent !== badge.name) text.textContent = badge.name;
+                return;
+            }
+            const holder = document.createElement('div');
+            holder.innerHTML = badgeHtml(badge);
+            const btn = holder.firstChild;
+            // stopPropagation: the row's own tap opens the task card, and Modal's outside-click handler would close a popup this tap opens from.
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                if (typeof onOpenGoal === 'function') onOpenGoal(btn.dataset.goalId);
+            });
+            parent.insertBefore(btn, details.nextSibling);
+        });
+    }
+
     function chipHtml(chip) {
         return chip ? `<span class="goal-chip goal-chip--${chip.kind}">${esc(chip.text)}</span>` : '';
     }
@@ -235,7 +286,8 @@ const GoalsPane = (() => {
 
     function cellHtml(cell) {
         if (cell.kind === 'open') {
-            return `<div class="goal-slot goal-slot--open" role="group" aria-label="Open goal slot">${artHtml('open')}<span class="goal-slot-name">Open slot</span></div>`;
+            // Build B2: the open slot is the way to add a goal (a button; the pane's body handler opens the form).
+            return `<button type="button" class="goal-slot goal-slot--open" data-new-goal aria-label="Add a goal in this open slot">${artHtml('open')}<span class="goal-slot-name">+ New goal</span></button>`;
         }
         if (cell.kind === 'locked') {
             return `<div class="goal-slot goal-slot--locked" role="group" aria-label="Locked goal slot, unlocks at level ${cell.level}">${artHtml('locked')}<span class="goal-slot-name">${esc(fillText(themeStrings().lockedLine || 'Unlocks at Lv {level}', { level: cell.level }))}</span></div>`;
@@ -337,7 +389,7 @@ const GoalsPane = (() => {
 
     /**
      * d: { tabEl, paneEl, backdropEl, bodyEl, titleEl?, subEl?, closeEl?, rosterBtnEl?,
-     *      getViews() -> views, getSlotInfo() -> { slots, used, next }, getRoster() -> GoalRecord[], onOpenGoal(goalId) }
+     *      getViews() -> views, getSlotInfo() -> { slots, used, next }, getRoster() -> GoalRecord[], onOpenGoal(goalId), onNewGoal() }
      */
     function init(d) {
         deps = d;
@@ -361,6 +413,12 @@ const GoalsPane = (() => {
         document.addEventListener('keydown', () => { escHadModal = !!document.querySelector('.modal-overlay'); }, true);
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen && !escHadModal) close(); });
         d.bodyEl.addEventListener('click', (e) => {
+            const fresh = e.target.closest ? e.target.closest('.goal-slot--open') : null;
+            if (fresh) {
+                e.stopPropagation(); // same reason as below: the tap that opens a window must not count as an outside click
+                if (typeof d.onNewGoal === 'function') d.onNewGoal();
+                return;
+            }
             const cell = e.target.closest ? e.target.closest('.goal-slot--goal') : null;
             if (!cell) return;
             // stopPropagation: Modal's outside-click handler would treat the tap that opens a card as a dismiss.
@@ -372,6 +430,7 @@ const GoalsPane = (() => {
     return {
         shortDate, fmtNum, percent, periodWord, buttonModel, buttonSignature, buttonLabel, streakPips, progressText, cellLine, cellChip,
         cellModels, cellSignature, headerText, kindLine, periodEndsText, paceText, rosterRows, artHtml, cellHtml, rosterHtml, pipsHtml,
+        badgeFor, badgeSignature, badgeHtml, applyBadges,
         FLAG_ICON, PACE_WORD,
         init, refresh, open, close, toggle,
         isOpen: () => isOpen,

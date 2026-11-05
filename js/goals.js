@@ -455,8 +455,8 @@ const Goals = (() => {
     }
 
     function removeGoal(goals, id) {
-        if (!goals || !goals.active.some(g => g.id === id)) return goals;
-        return Object.assign({}, goals, { active: goals.active.filter(g => g.id !== id) });
+        if (!goals || !goals.active.some(g => sameId(g.id, id))) return goals;
+        return Object.assign({}, goals, { active: goals.active.filter(g => !sameId(g.id, id)) });
     }
 
     /**
@@ -629,11 +629,11 @@ const Goals = (() => {
 
     /** The player retires a goal (a recurring one, usually): it moves to the roster. Returns { goals, record }. */
     function retireGoal(goals, id, nowMs, runNights, rosterKeep) {
-        const goal = goals && goals.active.find(g => g.id === id);
+        const goal = goals && goals.active.find(g => sameId(g.id, id));
         if (!goal) return { goals, record: null };
         const record = recordFor(goal, nowMs, runNights);
         return {
-            goals: Object.assign({}, goals, { active: goals.active.filter(g => g.id !== id), done: pushRoster(goals.done, record, rosterKeep) }),
+            goals: Object.assign({}, goals, { active: goals.active.filter(g => !sameId(g.id, id)), done: pushRoster(goals.done, record, rosterKeep) }),
             record,
         };
     }
@@ -737,6 +737,88 @@ const Goals = (() => {
         return { goals: Object.assign({}, goals, { active }), changed: true };
     }
 
+    // ---------------------------------------------------------------- editing (Build B2: the Add / Edit form)
+
+    /**
+     * Applies the Edit form to a goal: name, deadline (milestone) and the target list. Kind, period, id, createdAt, stage, streak,
+     * history and the open period never change here (to change a kind, make a new goal). Targets are matched by id AND type: a match
+     * keeps its counters (a number's current value is clamped into the new range, a yes/no keeps its flag, a linked target keeps
+     * itemTotal / itemDone / occ); anything else starts fresh with an id that was never used in this goal, so an item that still wears
+     * a dropped target's id can never count toward a new one. Returns { ok, goals, goal } or { ok: false, goals, reason }:
+     * 'missing' (no such goal) or 'invalid' (no name, no valid target). Never mutates its input.
+     */
+    function editGoal(goals, goalId, fields, nowMs, weekStartsOn) {
+        const list = goals || freshGoals();
+        const old = list.active.find(g => sameId(g.id, goalId));
+        if (!old) return { ok: false, goals: list, reason: 'missing' };
+        const name = fields && typeof fields === 'object' ? str(fields.name, NAME_MAX) : '';
+        if (!name) return { ok: false, goals: list, reason: 'invalid' };
+        const rawTargets = Array.isArray(fields.targets) ? fields.targets : [];
+
+        let nextId = old.targets.reduce((m, t) => Math.max(m, t.id), 0) + 1;
+        const taken = new Set();
+        const merged = [];
+        rawTargets.forEach((raw) => {
+            if (!raw || typeof raw !== 'object' || TARGET_TYPES.indexOf(raw.type) === -1) return;
+            const prev = isInt(raw.id) && !taken.has(raw.id) ? old.targets.find(t => t.id === raw.id && t.type === raw.type) : null;
+            const id = prev ? prev.id : nextId++;
+            taken.add(id);
+            let rawOut = Object.assign({}, raw, { id });
+            if (prev && prev.type === 'number') {
+                const start = isNum(raw.start) ? raw.start : prev.start;
+                const end = isNum(raw.end) ? raw.end : prev.end;
+                rawOut = Object.assign(rawOut, { start, end, current: clamp(prev.current, Math.min(start, end), Math.max(start, end)) });
+            } else if (prev && prev.type === 'bool') {
+                rawOut.done = prev.done === true;
+            } else if (prev && prev.type === 'linked') {
+                rawOut = Object.assign(rawOut, { itemTotal: prev.itemTotal, itemDone: prev.itemDone, occ: prev.occ });
+            }
+            const t = normalizeTarget(rawOut, id);
+            if (t) merged.push(t);
+        });
+        if (merged.length === 0) return { ok: false, goals: list, reason: 'invalid' };
+
+        const goal = Object.assign({}, old, {
+            name,
+            deadline: old.kind === 'milestone' && parseDayKey(fields.deadline) ? fields.deadline : null,
+            targets: merged,
+        });
+        delete goal.suggested;
+        return {
+            ok: true,
+            goal,
+            goals: Object.assign({}, list, { active: list.active.map(g => (g === old ? goal : g)) }),
+        };
+    }
+
+    /**
+     * Brings a linked target's one-off counter back in line with reality: itemTotal = itemDone + the number of open tasks that wear
+     * this target's link right now. The caller counts (State reads its open items); this keeps the rule in one place, so a linked task
+     * that vanished without being finished stops counting the next time the form saves. Returns the same object when nothing changes.
+     */
+    function setLinkedTotal(goals, goalId, targetId, liveCount) {
+        if (!goals) return goals;
+        const live = isInt(liveCount) && liveCount > 0 ? liveCount : 0;
+        let changed = false;
+        const active = goals.active.map((goal) => {
+            if (!sameId(goal.id, goalId)) return goal;
+            const targets = goal.targets.map((t) => {
+                if (!sameId(t.id, targetId) || t.type !== 'linked') return t;
+                const total = (t.itemDone || 0) + live;
+                if (total === t.itemTotal) return t;
+                changed = true;
+                return Object.assign({}, t, { itemTotal: total });
+            });
+            return targets.some((t, i) => t !== goal.targets[i]) ? Object.assign({}, goal, { targets }) : goal;
+        });
+        return changed ? Object.assign({}, goals, { active }) : goals;
+    }
+
+    /** An open one-off, top-level task a linked target may adopt (not a sub-task, a routine's task or a KO ghost). */
+    function isLinkableTask(item) {
+        return !!item && item.type === 'task' && !item.parentId && item.definitionId == null && !item.koGhost;
+    }
+
     /** The next level that adds a goal slot beyond `slots`: { level, slots }, or null when the table has no more. */
     function nextUnlockLevel(level, slots, table) {
         if (!table) return null;
@@ -755,6 +837,7 @@ const Goals = (() => {
         freshGoals, newGoal, sanitizeGoals, addGoal, removeGoal, seed, nextGoalId,
         applyCompletion, closePeriods, settleMilestones, retireGoal, recordFor,
         targetDetail, viewFor, updateTarget, nextUnlockLevel,
+        editGoal, setLinkedTotal, isLinkableTask,
     };
 })();
 

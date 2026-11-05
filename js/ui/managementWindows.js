@@ -115,6 +115,8 @@ const ManagementWindows = (() => {
                     achievementsCatalog: deps.achievementsCatalog,
                     lifetimeStats: deps.lifetimeStats,
                     achievements: deps.achievements,
+                    // Goals Build B2 (2026-11-05): the Goals row + the roster of finished goals.
+                    goals: deps.goals,
                     // D2 step 5 (2026-10-27): best/worst day per run.
                     days: deps.days,
                     todayRecord: deps.todayRecord,

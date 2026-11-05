@@ -12,10 +12,11 @@ describe('index.html', () => {
         expect(html).toContain('id="goalsPaneBody"');
         expect(html).toContain('href="css/goalsPane.css"');
         expect(html.indexOf('href="css/goalsPane.css"')).toBeLessThan(html.indexOf('href="css/responsive.css"'));
-        const scripts = ['js/theme.js', 'js/goals.js', 'js/ui/modal.js', 'js/ui/goalsPane.js', 'js/ui/goalCard.js'].map(s => html.indexOf(`src="${s}"`));
+        const scripts = ['js/theme.js', 'js/goals.js', 'js/ui/modal.js', 'js/ui/goalsPane.js', 'js/ui/goalCard.js', 'js/ui/goalForm.js'].map(s => html.indexOf(`src="${s}"`));
         scripts.forEach(i => expect(i).toBeGreaterThan(-1));
         expect(scripts[3]).toBeGreaterThan(scripts[1]);
         expect(scripts[4]).toBeGreaterThan(scripts[3]);
+        expect(scripts[5]).toBeGreaterThan(scripts[4]);
     });
     test('the goals button is the LAST HUD button, so the first five keep their one-row fit on a phone', () => {
         expect(html.indexOf('id="goalsButton"')).toBeGreaterThan(html.indexOf('id="playerPointsStat"'));
@@ -25,7 +26,7 @@ describe('index.html', () => {
 describe('sw.js', () => {
     const sw = read('sw.js');
     test('caches the new shell files', () => {
-        ['css/goalsPane.css', 'js/ui/goalsPane.js', 'js/ui/goalCard.js'].forEach(f => expect(sw).toContain(`'${f}'`));
+        ['css/goalsPane.css', 'js/ui/goalsPane.js', 'js/ui/goalCard.js', 'js/ui/goalForm.js'].forEach(f => expect(sw).toContain(`'${f}'`));
     });
 });
 
@@ -45,5 +46,11 @@ describe('script.js', () => {
     });
     test('the card edits go through State, never the saved goals directly', () => {
         ['State.updateGoalTarget(', 'State.retireGoal(', 'State.deleteGoal('].forEach(call => expect(src).toContain(call));
+    });
+    test('Build B2: the open slot and the card\'s Edit button open the goal form, and saves go through State', () => {
+        expect(src).toContain('GoalForm.open(');
+        expect(src).toMatch(/onNewGoal: \(\) => openGoalForm\(null\)/);
+        expect(src).toMatch(/onEdit: \(goalId\) => openGoalForm\(goalId\)/);
+        ['State.addGoal(', 'State.editGoal(', 'State.getGoalLinkOptions(', 'State.getGoalLinkedItemIds('].forEach(call => expect(src).toContain(call));
     });
 });

@@ -4,7 +4,7 @@
  * Shows the goal's name, kind line, art, progress, the pace in words, each target with its controls (a number: - / + and a type-in;
  * a yes/no: a check; tasks-and-habits and your-days targets: read-only lines, they count by themselves), the streak strip of a
  * recurring goal, and Retire (recurring only: it moves to the finished list) / Delete, each behind an inline confirm (no native
- * dialogs). Adding and editing goals is Build B2.
+ * dialogs). Edit goal closes the card and hands over to js/ui/goalForm.js (Build B2).
  *
  * Baseline rule (CLAUDE.md): engine words only; theme words come from Theme.strings.goals at call time. Helpers from GoalsPane
  * (pure) and Modal are read as stable globals.
@@ -57,7 +57,7 @@ const GoalCard = (() => {
     /** A short note under a target that counts by itself, so the player knows there is nothing to tap. */
     function targetNote(entry) {
         const t = entry.target;
-        if (t.type === 'linked') return 'Counted as you finish the linked tasks and habits.';
+        if (t.type === 'linked') return 'Counted as you finish the linked tasks and habits. Use Edit goal to change what is linked.';
         if (t.type === 'aggregate') return 'Counted from your days. Nothing to enter.';
         return '';
     }
@@ -115,7 +115,8 @@ const GoalCard = (() => {
         }
         const retire = g.kind === 'recurring'
             ? `<button type="button" class="secondary-button" data-action="retire" data-key="retire">Retire goal</button>` : '';
-        return `<div class="modal-buttons goal-card-buttons">${retire}`
+        return `<div class="modal-buttons goal-card-buttons">`
+            + `<button type="button" class="secondary-button" data-action="edit" data-key="edit">Edit goal</button>${retire}`
             + `<button type="button" class="secondary-button goal-delete-btn" data-action="delete" data-key="delete">Delete goal</button>`
             + `<button type="button" class="primary-button" data-action="close" data-key="close">Close</button></div>`;
     }
@@ -144,7 +145,8 @@ const GoalCard = (() => {
     /**
      * Opens the card for a goal id.
      * d: { getView(goalId) -> view | null, nowMs(), weekStartsOn,
-     *      updateTarget(goalId, targetId, patch) -> { changed, completed }, retire(goalId), remove(goalId), afterChange() }
+     *      updateTarget(goalId, targetId, patch) -> { changed, completed }, retire(goalId), remove(goalId), afterChange(),
+     *      onEdit(goalId) (Build B2: the card closes, the owner opens the form) }
      * Returns the overlay element (null when the goal is not there or a card is already open).
      */
     function open(goalId, d) {
@@ -190,6 +192,7 @@ const GoalCard = (() => {
             const action = el.dataset.action;
             focusKey = el.dataset.key || null;
             if (action === 'close') { close(); return; }
+            if (action === 'edit') { close(); if (typeof d.onEdit === 'function') d.onEdit(goalId); return; }
             if (action === 'num-step') {
                 const t = currentTarget(el.dataset.target);
                 if (t) applyPatch(t.id, { current: t.current + Number(el.dataset.dir) * directionOf(t) * stepFor(t) });

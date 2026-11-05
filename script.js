@@ -257,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let heroSpotlightReady = false;
     let heroTrayReady = false;
     let goalsPaneReady = false; // Goals Build B1: same reason as the hero flags above (renderGoals can run during boot)
+    let goalBadgeSig = null; // Goals Build B2: the last badge signature applied to the agenda rows (renderGoals)
 
 
     // --- Game Settings ---
@@ -1121,6 +1122,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
             gameIsOver: State.isGameOver(), activeItems: State.getActiveItems(),
             definedHabits: () => State.getDefinedHabits(), // habit popup 'Points:' line (PointsInfo)
+            // Goals Build B2: the details popup's goal badge (a task linked to a goal) and its tap.
+            goalBadgeHtml: (item) => { const b = GoalsPane.badgeFor(item, (State.getGoals() || {}).active); return b ? GoalsPane.badgeHtml(b) : ''; },
+            onOpenGoal: (goalId) => GoalCard.open(goalId, goalCardDeps()),
             completeItem: (itemId, opts) => Items.completeItem(itemId, itemsDeps(), opts),
             indulgeHabit: (itemId, opts) => Items.indulgeHabit(itemId, itemsDeps(), opts),
             createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()),
@@ -2922,7 +2926,33 @@ document.addEventListener('DOMContentLoaded', () => {
             retire: (goalId) => State.retireGoal(goalId, Date.now()),
             remove: (goalId) => State.deleteGoal(goalId),
             afterChange: () => renderGoals(),
+            onEdit: (goalId) => openGoalForm(goalId),
         };
+    }
+
+    // Add / Edit goal form (Build B2, 2026-11-05; js/ui/goalForm.js). `goal` = the goal being edited, null for a new one. Saves go through
+    // State.addGoal / State.editGoal (they also move the one-off task links); a cancelled or saved Edit hands the player back to the card.
+    function goalFormDeps(goal) {
+        return {
+            goal: goal || null,
+            linkedIds: goal ? State.getGoalLinkedItemIds(goal.id) : {},
+            getContext: () => ({
+                metrics: CONFIG.GOAL_METRICS,
+                options: State.getGoalLinkOptions(),
+                todayKey: Goals.dateKey(Date.now()),
+            }),
+            save: (fields, links) => (goal ? State.editGoal(goal.id, fields, links, Date.now()) : State.addGoal(fields, links, Date.now())),
+            onDone: (saved) => {
+                renderGoals();
+                if (goal && saved) GoalCard.open(saved.id, goalCardDeps());
+            },
+            onCancel: () => { if (goal) GoalCard.open(goal.id, goalCardDeps()); },
+        };
+    }
+
+    function openGoalForm(goalId) {
+        const goal = goalId != null ? ((State.getGoals() || {}).active || []).find(g => String(g.id) === String(goalId)) || null : null;
+        GoalForm.open(goalFormDeps(goal));
     }
 
     function ensureGoalsPane() {
@@ -2943,6 +2973,7 @@ document.addEventListener('DOMContentLoaded', () => {
             getSlotInfo: () => State.getGoalSlotInfo(),
             getRoster: () => (State.getGoals() || {}).done || [],
             onOpenGoal: (goalId) => { GoalCard.open(goalId, goalCardDeps()); },
+            onNewGoal: () => openGoalForm(null),
         });
         goalsPaneReady = true;
         return true;
@@ -2955,6 +2986,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const done = State.takeGoalEvents().filter(ev => ev && ev.type === 'complete');
             if (done.length) FrozenNotice.showGoalCompleteNotice(done.map(ev => ({ name: ev.record && ev.record.name })));
             GoalsPane.refresh();
+            // Badges on the agenda rows: only touched when a link, a goal name or the set of rows changed.
+            const active = (State.getGoals() || {}).active || [];
+            const items = State.getActiveItems();
+            const sig = GoalsPane.badgeSignature(items, active);
+            const openGoalFromBadge = (goalId) => GoalCard.open(goalId, goalCardDeps());
+            if (sig !== goalBadgeSig) {
+                goalBadgeSig = sig;
+                GoalsPane.applyBadges(items, active, openGoalFromBadge);
+            } else {
+                // Same links, but an Edit Task can rebuild a row: re-apply to the linked rows only (idempotent, a handful of items).
+                const linked = items.filter(i => i.goalId != null);
+                if (linked.length) GoalsPane.applyBadges(linked, active, openGoalFromBadge);
+            }
         } catch (err) {
             console.error('Goals pane refresh failed', err);
         }
@@ -3088,6 +3132,7 @@ document.addEventListener('DOMContentLoaded', () => {
             weatherHtml: WeatherPanel.statsHtml(WeatherPanel.buildViewModel(climateNow())), // Stats > the sky readout (run climate Build 2)
             currentRunStats: State.getCurrentRunStats(), runHistory: State.getRunHistory(), daysSurvivedSoFar: Damage.computeDaysSurvived(State.getRunStartedAtMs(), Date.now(), CONFIG.MS_PER_REAL_DAY),
             achievementsCatalog: CONFIG.ACHIEVEMENTS, lifetimeStats: State.getLifetimeStats(), achievements: State.getAchievements(),
+            goals: State.getGoals(), // Stats > Goals row + roster (Goals Build B2)
             // D2 step 5: closed days + today's open record for Stats best/worst day.
             days: Persistence.loadDays(), todayRecord: State.getToday(), scoreWeights: CONFIG.DAILY_SCORE_WEIGHTS,
             currentEffectsIntensity: effectsIntensity,

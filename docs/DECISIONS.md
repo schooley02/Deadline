@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-05 (goals Build B2) -- Add / Edit form, linked picker + badges, `goals` topic, PointsInfo line, Stats row (Claude app session; Sonnet, medium-high; Jeremy: "reward line is a yes, linked task i agree with your suggestions, B2 scope i agree"). Plan: docs/GOALS_PLAN.md "Build B2 as built". BUILT.
+
+- **Reward line approved ahead of Build C:** the topic and PointsInfo say goals pay points and XP, with no numbers; no balance number changed. (Optional later: gate the PointsInfo line on `GOAL_REWARDS`.)
+- **Linked tasks: existing open one-off tasks only, no inline creation; one-time goals only.** A recurring target counts habit / routine occurrences, so a one-off task would never count there. Only Build Habits and routines are linkable.
+- **Edit keeps kind and period fixed** (changing them would rewrite history); matched targets keep counters; a dropped target's id is never reused. Link counts self-heal on every form save.
+- **Ids compare by `sameId`:** DOM ids arrive as strings; `removeGoal` / `retireGoal` were strict and broke Delete / Retire live. Fixed.
+- No schema bump (`item.goalId` / `goalTargetId` are additive), no DailyRecord change. The open slot is now the way to re-add a deleted starter.
+
 ## 2026-11-05 (goals Build B1) -- Goals pane + card built as a popup in every layout; the flag button is the last HUD button; open slot inert until B2 (Claude app session; Sonnet, medium-high; Jeremy: "agree continue"). Plan: docs/GOALS_PLAN.md "Build B1 as built". BUILT.
 
 - **Build B was split in two** (Jeremy agreed): B1 = see and use goals (button, pane, cells, card, controls, notice, chips); B2 = Add / Edit form, linked picker + badges, How Deadline works topic, PointsInfo line, Stats row.

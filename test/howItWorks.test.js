@@ -23,14 +23,14 @@ const topic = (id, cfg) => all(cfg).find(t => t.id === id);
 // Everything a player can read in a topic, as one lowercase-insensitive string.
 const textOf = (t) => [].concat(t.what || [], t.list || [], t.html || '', t.why || '').join(' ');
 
-describe('the nine topics', () => {
-    test('Points, Priorities, Pushbacks, Streaks, Hero ranking, Achievements, The sky, Timers and Time Logged, When a run ends, in that order', () => {
-        expect(all().map(t => t.title)).toEqual(['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends']);
-        expect(all().map(t => t.id)).toEqual(['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs']);
+describe('the ten topics', () => {
+    test('Points, Priorities, Pushbacks, Streaks, Hero ranking, Achievements, The sky, Timers and Time Logged, When a run ends, Goals, in that order', () => {
+        expect(all().map(t => t.title)).toEqual(['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Goals']);
+        expect(all().map(t => t.id)).toEqual(['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'goals']);
     });
 
     test('Streaks, Hero ranking, Achievements, The sky, Timers and When a run ends carry a "Why"; Points and Pushbacks do not invent one', () => {
-        ['priorities', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs'].forEach(id => expect(topic(id).why).toBeTruthy());
+        ['priorities', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'goals'].forEach(id => expect(topic(id).why).toBeTruthy());
         ['points', 'pushbacks'].forEach(id => expect(topic(id).why).toBeUndefined());
     });
 });
@@ -47,6 +47,35 @@ describe('Points', () => {
         const retuned = Object.assign({}, CONFIG, { POINTS_PER_TASK: 7, POINTS_PER_HABIT: 7 });
         expect(textOf(topic('points', retuned))).toContain('pays 7 points');
         expect(textOf(topic('points'))).not.toContain('pays 7 points');
+    });
+});
+
+describe('Goals', () => {
+    const text = () => textOf(topic('goals'));
+    test('explains targets, repeating vs one-time goals, the one-stage slip, and that a deadline is a pace marker', () => {
+        expect(text()).toMatch(/A goal has one or more targets/);
+        expect(text()).toMatch(/Repeating goals/);
+        expect(text()).toMatch(/slips one stage/);
+        expect(text()).toMatch(/One-time goals/);
+        expect(text()).toMatch(/pace marker/);
+    });
+    test('quotes the slot ladder from CONFIG (negative control: a retuned ladder changes the words)', () => {
+        expect(text()).toContain('Start with 2 slots');
+        expect(text()).toContain('Lv 2, 4, 6 and 8');
+        expect(text()).toContain('up to 6');
+        const retuned = Object.assign({}, CONFIG, { GOAL_SLOTS_PER_LEVEL: { 1: 1, 2: 1, 3: 2, 4: 2, 5: 3 } });
+        const t = textOf(topic('goals', retuned));
+        expect(t).toContain('Start with 1 slot');
+        expect(t).toContain('Lv 3 and 5');
+        expect(t).toContain('up to 3');
+    });
+    test('says goals belong to the player, not the run, and carries the approved reward line (no numbers until the balance pass)', () => {
+        expect(text()).toMatch(/a lost run never touches them/i);
+        expect(text()).toContain('Goals pay points and XP when a period is met or a goal is finished.');
+        expect(text()).not.toMatch(/\d+ (points|XP)/);
+    });
+    test('uses the theme words for the pane title only, and no theme noun leaks otherwise', () => {
+        expect(text()).toMatch(/flag button/i);
     });
 });
 
@@ -233,8 +262,8 @@ describe('Achievements', () => {
 describe('windowHtml', () => {
     test('one <details> per topic, in order, with the corner x', () => {
         const html = HowItWorks.windowHtml(all());
-        expect((html.match(/<details /g) || []).length).toBe(9);
-        const order = ['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends'].map(n => html.indexOf(`<summary>${n}</summary>`));
+        expect((html.match(/<details /g) || []).length).toBe(10);
+        const order = ['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Goals'].map(n => html.indexOf(`<summary>${n}</summary>`));
         expect(order.every(i => i > 0)).toBe(true);
         expect(order).toEqual(order.slice().sort((a, b) => a - b));
         expect(html).toContain('modal-close-x');

@@ -146,9 +146,11 @@ describe('html', () => {
         expect(html).not.toContain('<b>Run');
         expect(html).toContain('goal-pace--ahead');
     });
-    test('open and locked cells are not buttons; the locked one uses the theme line', () => {
+    test('the open cell is the "+ New goal" button (Build B2); the locked one is not a button and uses the theme line', () => {
         const open = GoalsPane.cellHtml({ kind: 'open' });
-        expect(open).not.toContain('<button');
+        expect(open).toContain('<button');
+        expect(open).toContain('data-new-goal');
+        expect(open).toContain('+ New goal');
         const locked = GoalsPane.cellHtml({ kind: 'locked', level: 6 });
         expect(locked).not.toContain('<button');
         expect(locked).toContain('Unlocks at Lv 6');
@@ -179,6 +181,7 @@ describe('DOM', () => {
     let info;
     let roster;
     let opened;
+    let newGoalAsks;
 
     function build() {
         document.body.innerHTML = `
@@ -190,7 +193,7 @@ describe('DOM', () => {
             tabEl: document.getElementById('tab'), paneEl: document.getElementById('pane'), backdropEl: document.getElementById('backdrop'),
             bodyEl: document.getElementById('body'), titleEl: document.getElementById('title'), subEl: document.getElementById('sub'),
             closeEl: document.getElementById('closeBtn'), rosterBtnEl: document.getElementById('rosterBtn'),
-            getViews: () => views, getSlotInfo: () => info, getRoster: () => roster, onOpenGoal: (id) => opened.push(id),
+            getViews: () => views, getSlotInfo: () => info, getRoster: () => roster, onOpenGoal: (id) => opened.push(id), onNewGoal: () => { newGoalAsks += 1; },
         });
     }
 
@@ -199,6 +202,7 @@ describe('DOM', () => {
         info = { slots: 3, used: 2, next: { level: 6, slots: 4 } };
         roster = [];
         opened = [];
+        newGoalAsks = 0;
         GoalsPane.close(); // the module is a singleton: leave the previous test's pane closed before re-initialising
         build();
     });
@@ -270,11 +274,19 @@ describe('DOM', () => {
         document.removeEventListener('click', seen);
     });
 
-    test('open and locked cells do nothing when tapped', () => {
+    test('the open cell asks the owner for a new goal (Build B2); the locked cell does nothing', () => {
         document.getElementById('tab').click();
-        document.querySelector('#body .goal-slot--open').click();
+        const open = document.querySelector('#body .goal-slot--open');
+        expect(open.tagName).toBe('BUTTON');
+        expect(open.textContent).toContain('+ New goal');
+        const seen = jest.fn();
+        document.addEventListener('click', seen);
+        open.click();
         document.querySelector('#body .goal-slot--locked').click();
+        document.removeEventListener('click', seen);
+        expect(newGoalAsks).toBe(1);
         expect(opened).toEqual([]);
+        expect(seen).toHaveBeenCalledTimes(1); // only the locked cell's tap bubbled; the open cell's did not
     });
 
     test('refresh while open repaints the grid only when something changed', () => {

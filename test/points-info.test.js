@@ -39,6 +39,7 @@ describe('PointsInfo.rulesLines', () => {
     test('mentions priority slots, the sub-task rule, the habit tiers and knocked-out routines', () => {
         const text = lines.join(' ');
         expect(text).toMatch(/Priority tasks pay double \(3 priority slots a day\)/);
+        expect(text).toMatch(/Goals pay points and XP when a period is met or a goal is finished\./);
         expect(text).not.toMatch(/high.priority/i);
         expect(text).toMatch(/sub-task/);
         expect(text).toMatch(/×2 for 80% or more of their last 22/);

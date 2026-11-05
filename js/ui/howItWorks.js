@@ -203,9 +203,53 @@ const HowItWorks = (() => {
         };
     }
 
+    // ---- Goals -------------------------------------------------------------------------------------------------
+    // Goals (Build A-B2, 2026-11-05; docs/GOALS_PLAN.md). The slot ladder comes from CONFIG.GOAL_SLOTS_PER_LEVEL. The reward line is the
+    // approved wording with NO numbers: the reward numbers are a balance pass before Goals Build C (DECISIONS), so none are quoted here.
+    function slotLadder(table) {
+        const levels = Object.keys(table || {}).map(Number).filter(n => Number.isFinite(n)).sort((a, b) => a - b);
+        if (!levels.length) return { start: 0, unlockLevels: [], cap: 0 };
+        const start = Math.floor(table[levels[0]]);
+        const unlockLevels = [];
+        let top = start;
+        levels.forEach((lv) => {
+            const n = Math.floor(table[lv]);
+            if (n > top) { unlockLevels.push(lv); top = n; }
+        });
+        return { start, unlockLevels, cap: top };
+    }
+
+    function levelWords(levels) {
+        if (levels.length === 0) return '';
+        if (levels.length === 1) return `Lv ${levels[0]}`;
+        return `Lv ${levels.slice(0, -1).join(', ')} and ${levels[levels.length - 1]}`;
+    }
+
+    function goalsTopic(config) {
+        const ladder = slotLadder(config.GOAL_SLOTS_PER_LEVEL);
+        const themeTitle = (typeof Theme !== 'undefined' && Theme.strings && Theme.strings.goals && Theme.strings.goals.paneTitle) || '';
+        const slotWord = ladder.start === 1 ? 'slot' : 'slots';
+        const slotLine = ladder.unlockLevels.length
+            ? `Start with ${ladder.start} ${slotWord}. More open up at ${levelWords(ladder.unlockLevels)}, up to ${ladder.cap}. A slot you unlock is yours for good, even after a run ends.`
+            : `You have ${ladder.start} ${slotWord}.`;
+        return {
+            id: 'goals',
+            title: 'Goals',
+            what: [
+                `Open the flag button${themeTitle ? ` to see your goals in ${themeTitle}` : ' to see your goals'}. Each goal sits in a slot. A goal has one or more targets: a number you move, a yes or no, tasks and Build Habits you finish, or a total from your days.`,
+                `Repeating goals run every day, week or month. Meet the target in a period and the goal climbs a stage and your streak grows. Miss it and the goal slips one stage, never more than one at a time.`,
+                `One-time goals climb as you make progress and finish when every target is full. A deadline is a pace marker, not a penalty: the dot shows whether you are ahead or behind, and nothing is lost if you run late.`,
+                slotLine,
+                `Goals, their streaks and your list of finished goals belong to you, not to the base. A lost run never touches them.`,
+                `Goals pay points and XP when a period is met or a goal is finished.`,
+            ],
+            why: `A goal gives the daily work a direction, and the stages make progress something you can see.`,
+        };
+    }
+
     function topics(config) {
         const cfg = config || (typeof CONFIG !== 'undefined' ? CONFIG : {});
-        return [pointsTopic(cfg), prioritiesTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg), timersTopic(cfg), runsTopic(cfg)];
+        return [pointsTopic(cfg), prioritiesTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg), timersTopic(cfg), runsTopic(cfg), goalsTopic(cfg)];
     }
 
     // ---- Markup ------------------------------------------------------------------------------------------------
@@ -258,7 +302,7 @@ const HowItWorks = (() => {
     // Capture + stopPropagation is deliberate: Modal's outside-click dismiss (a bubbling document handler) would
     // otherwise see the same tap and close the popup or window the button sits in, and a row's own tap handler
     // (agenda rows, hero rows) must not fire as well.
-    const TOPIC_IDS = ['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs'];
+    const TOPIC_IDS = ['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'goals'];
 
     function buttonHtml(topicId, label) {
         if (TOPIC_IDS.indexOf(topicId) === -1) return '';

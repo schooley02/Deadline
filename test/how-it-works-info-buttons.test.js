@@ -110,15 +110,16 @@ describe('tapping an (i)', () => {
 });
 
 describe('where the buttons are', () => {
-    test('index.html: the Heroes popup and Routines window carry heroes, Stats > Achievements carries achievements', () => {
+    test('index.html: the Heroes popup and Routines window carry heroes, Stats > Achievements carries achievements, Stats > Goals carries goals', () => {
         const html = read('index.html');
         const found = [...html.matchAll(/data-hiw-topic="([a-z]+)"/g)].map(m => m[1]);
-        expect(found.slice().sort()).toEqual(['achievements', 'heroes', 'heroes']);
+        expect(found.slice().sort()).toEqual(['achievements', 'goals', 'heroes', 'heroes']);
         found.forEach(id => expect(HowItWorks.TOPIC_IDS).toContain(id));
         // each one sits in its own header
         expect(html).toMatch(/<h3>Heroes <button[^>]*data-hiw-topic="heroes"/);
         expect(html).toMatch(/<h3 id="routinesWindowTitle">Routines<\/h3>\s*<button[^>]*hiw-info-btn--title[^>]*data-hiw-topic="heroes"/);
         expect(html).toMatch(/<h4 class="stats-history-heading">Achievements <button[^>]*data-hiw-topic="achievements"/);
+        expect(html).toMatch(/<h4 class="stats-history-heading">Goals <button[^>]*data-hiw-topic="goals"/);
     });
 
     test('index.html keeps its CRLF line endings (the file on the device is CRLF)', () => {
