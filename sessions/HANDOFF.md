@@ -11,6 +11,14 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-04 (started marker) -- A task whose Start time has arrived gets a stopwatch badge, an amber glow and a "Started (N)" group at the top of the list (Claude app session; Opus; Jeremy)
+**Did:** new pure `js/startedMarker.js` + `css/startedMarker.css`; `CONFIG.STARTED_GROUP_LEAVE_MIN` (60) / `STARTED_BREATHE_MIN` (10) / `STARTED_ARRIVAL_MS`; css/enemyStatus.css gets a 4th glow fragment (`--g-started` / `--an-st`); `AgendaList.sortAndRenderActiveList` renders "Started (N)" + "By due time" headings (display only) and rows get a `.started-note` chip; script.js `refreshStartedMarkers` (from `updateTimerButtons`) sets badge / glow states, re-renders the list when group membership changes, plays the arrival burst + row flash on a live Start crossing. sw v254. Tests: `test/startedMarker.test.js` (17). Docs: DECISIONS, UI_UX, MECHANICS, ROADMAP, CLAUDE.md.
+**State:** full Jest 170 suites / 3,872 green in a cloud clone. Headless Chromium at 390x844 / 360x780 / 844x390: group, chip, badge, breath, a live crossing burst + flash, Working chip + ticking badge, the landscape pager's Tomorrow page untouched, no overflow, no errors. Device shell was down; files written back through the bridge's file tools. NOT phone-checked.
+**Next:** Jeremy pushes, reloads twice (sw v254), adds a task with Start a minute from now and a late Due, watches it arrive. Then the STATUS "Next up" list.
+**Watch out:** badge size (20px, 16px in the portrait strip) and the 2 s breath are first picks; tune in css/startedMarker.css. The portrait-strip badge sits beside the head because the strip clips anything above it.
+
+---
+
 ## 2026-11-04 (slider idle auto-return) -- The slider goes back to now after 3 idle minutes (Claude app session; Opus; Jeremy)
 **Did:** js/config.js `TIME_PREVIEW_IDLE_RETURN_MS` (3 min, 0 = never). js/ui/timeSliderView.js: page activity listener (pointerdown / keydown / wheel / touchstart, capture + passive), `checkIdleReturn(nowMs)` = the Now button once the slider has been away from now (parked Today or another day) that long. script.js: `checkDayPagerRollover` also calls `TimeSliderView.checkIdleReturn()`. sw v253. Tests: ghost-slider-now +5. Docs: DECISIONS, UI_UX, ROADMAP, CLAUDE.md.
 **State:** full Jest 169 suites / 3,855 green in a cloud clone. Headless Chromium with a 3 s limit: a click restarts the wait, Today and Tomorrow both return; no errors. NOT phone-checked.

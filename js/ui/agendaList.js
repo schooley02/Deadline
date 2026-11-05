@@ -287,7 +287,7 @@ const AgendaList = (() => {
 
         // Container for due date and category on left side
         const itemDetailsContainer = document.createElement('div');
-        itemDetailsContainer.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+        itemDetailsContainer.style.cssText = 'display: flex; align-items: center; gap: 4px 8px; flex-wrap: wrap; min-width: 0;'; // wraps: the Started chip (2026-11-04) can sit before the due line
 
         const itemDetailsSpan = document.createElement('span');
         itemDetailsSpan.classList.add('item-details');
@@ -306,6 +306,14 @@ const AgendaList = (() => {
             if (goalText) itemDetailsSpan.textContent += ' \u00B7 ' + goalText;
         }
 
+        // Started marker (2026-11-04): "Started 1:00 PM" / "Working 0:42" chip before the due line; script.js
+        // refreshStartedMarkers fills it and un-hides it while the row is in the Started group.
+        if (!itemData.parentId) {
+            const startedNote = document.createElement('span');
+            startedNote.className = 'started-note';
+            startedNote.hidden = true;
+            itemDetailsContainer.appendChild(startedNote);
+        }
         itemDetailsContainer.appendChild(itemDetailsSpan);
         detailsAndSubTaskRow.appendChild(itemDetailsContainer);
 
@@ -627,13 +635,38 @@ const AgendaList = (() => {
                 deps.activeItemsListUL.innerHTML = '';
 
                 // Only top-level items (not sub-tasks) appear in the main list.
-                const rows = layout ? layout.rows : deps.activeItems.filter(i => !i.parentId);
-                rows.forEach(item => {
+                const allRows = layout ? layout.rows : deps.activeItems.filter(i => !i.parentId);
+                // Started marker (2026-11-04): rows inside their Start -> Due window move into a "Started (N)" group
+                // above the due-time rows. Display only -- `layout` (and so the canvas layering and any hand order)
+                // is untouched; the group rows just render first. No group = the old single list, no headings.
+                const split = (typeof StartedMarker !== 'undefined')
+                    ? StartedMarker.split(allRows, deps.activeItems, Date.now())
+                    : { started: [], rest: allRows };
+                const startedIds = new Set(split.started.map(i => i.id));
+                const rows = split.started.concat(split.rest);
+                const heading = (cls, html) => {
+                    const h = document.createElement('li');
+                    h.className = `list-group-heading ${cls}`;
+                    h.setAttribute('role', 'presentation');
+                    h.innerHTML = html;
+                    deps.activeItemsListUL.appendChild(h);
+                };
+                const stopwatch = (typeof Timer !== 'undefined' && Timer.ICON_SVG) ? Timer.ICON_SVG : '';
+                rows.forEach((item, idx) => {
+                    if (split.started.length && idx === 0) {
+                        heading('started-group-heading', `${stopwatch}<span>Started (${split.started.length})</span>`);
+                    }
+                    if (split.started.length && split.rest.length && idx === split.started.length) {
+                        heading('due-group-heading', '<span>By due time</span>');
+                    }
                     if (item.listItemElement) {
                         deps.activeItemsListUL.appendChild(item.listItemElement);
+                        if (item.listItemElement.classList) item.listItemElement.classList.toggle('started-group-row', startedIds.has(item.id));
                         const wrap = typeof item.listItemElement.querySelector === 'function'
                             ? item.listItemElement.querySelector('.reorder-controls') : null;
-                        if (wrap) {
+                        if (wrap && startedIds.has(item.id)) {
+                            wrap.style.display = 'none'; // its tie-group neighbours sit in the other group
+                        } else if (wrap) {
                             const up = layout && ListOrder.canMove(layout, item.id, -1);
                             const down = layout && ListOrder.canMove(layout, item.id, 1);
                             wrap.style.display = (up || down) ? 'flex' : 'none';

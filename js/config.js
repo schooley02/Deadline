@@ -315,6 +315,15 @@ const CONFIG = {
     // key or scroll anywhere on the page it returns to now (same as the Now button). 0 = never. UI timing, not a
     // balance number. js/ui/timeSliderView.js checkIdleReturn.
     TIME_PREVIEW_IDLE_RETURN_MS: 3 * 60 * 1000,
+    // Started marker (2026-11-04, Jeremy; js/startedMarker.js): inside an item's Start -> Due window its row sits in a
+    // "Started (N)" group above the due-time rows until it is due within STARTED_GROUP_LEAVE_MIN minutes (then it drops
+    // back into due order, near the top anyway); its zombie's amber glow breathes for STARTED_BREATHE_MIN minutes after
+    // the Start time unless a timer is started, then holds still; STARTED_ARRIVAL_MS = how long the one-time ring burst
+    // and row flash play when a Start time passes live (must cover the 3 x 0.9 s CSS burst in css/startedMarker.css).
+    // UI timing, not balance numbers.
+    STARTED_GROUP_LEAVE_MIN: 60,
+    STARTED_BREATHE_MIN: 10,
+    STARTED_ARRIVAL_MS: 2800,
     // Stats best/worst day per run (D2 step 5, 2026-10-27): score = done*done - missed*missed - damage*damage
     // (done = tasks + sub-tasks + habits; damage = base HP lost that day). Display only -- not a balance number.
     DAILY_SCORE_WEIGHTS: { done: 1, missed: 1, damage: 1 },

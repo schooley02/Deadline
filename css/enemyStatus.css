@@ -35,20 +35,22 @@
 @property --pr-blur { syntax: '<length>'; inherits: true; initial-value: 10px; }
 @property --od-blur { syntax: '<length>'; inherits: true; initial-value: 12px; }
 @property --fl-blur { syntax: '<length>'; inherits: true; initial-value: 10px; }
+@property --st-blur { syntax: '<length>'; inherits: true; initial-value: 6px; }
 
 .enemy-sprite,
 .enemy:not(.has-anim-sprite) {
     filter: var(--g-ghost,) var(--g-hover,) var(--g-habit,) var(--g-lurker,)
-            var(--g-streak,) var(--g-priority,) var(--g-overdue,);
+            var(--g-streak,) var(--g-priority,) var(--g-overdue,) var(--g-started,);
 }
 
 /* Pulse wiring: each state sets --an-* to its keyframes name; unset = none. */
 .enemy-sprite {
-    animation-name: var(--an-pr, none), var(--an-od, none), var(--an-fl, none);
-    animation-duration: 1.4s, 0.8s, 1.2s;
+    /* 4th = the Started marker's slow breath (2026-11-04, css/startedMarker.css sets --g-started / --an-st). */
+    animation-name: var(--an-pr, none), var(--an-od, none), var(--an-fl, none), var(--an-st, none);
+    animation-duration: 1.4s, 0.8s, 1.2s, 1s;
     animation-iteration-count: infinite;
-    animation-direction: alternate, alternate, normal;
-    animation-timing-function: steps(4), steps(4), steps(1, end);
+    animation-direction: alternate, alternate, normal, alternate;
+    animation-timing-function: steps(4), steps(4), steps(1, end), steps(6);
 }
 
 @keyframes glow-priority { from { --pr-blur: 6px; }  to { --pr-blur: 15px; } }
@@ -150,7 +152,7 @@
                 drop-shadow(0 0 6px #ff7a00);
     --an-fl: glow-flame-strong;
 }
-.enemy.habit-enemy.super-streak > .enemy-sprite { animation-duration: 1.4s, 0.8s, 0.9s; }
+.enemy.habit-enemy.super-streak > .enemy-sprite { animation-duration: 1.4s, 0.8s, 0.9s, 1s; }
 
 /* Hover (desktop) — white glow around the zombie (was a white box-shadow). */
 .enemy:hover > .enemy-sprite,

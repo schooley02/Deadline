@@ -1,0 +1,213 @@
+/**
+ * startedMarker.css -- the "Started" marker (2026-11-04, Jeremy; js/startedMarker.js, script.js
+ * refreshStartedMarkers, DECISIONS 2026-11-04 (started marker), docs/UI_UX.md "Started marker").
+ *
+ * Inside an item's Start -> Due window:
+ *   canvas  .enemy.started-marker   stopwatch badge (.started-badge, Timer.ICON_SVG) over the head
+ *           .started-breathe        + slow amber breath (2 s) for CONFIG.STARTED_BREATHE_MIN after Start
+ *           .started-quiet          + a held faint amber glow (untouched past that)
+ *           .started-working        + a steady amber glow and a ticking badge (its timer runs)
+ *           .started-arrive         one-time ring burst (.started-ring, 3 x 0.9 s) when Start passes live
+ *   list    li.started-list-item    amber inset bar + tint, "Started 1:00 PM" chip (.started-note)
+ *           li.started-arrive-row   one-time flash (3 x 0.45 s)
+ *           li.list-group-heading   "Started (N)" / "By due time" headings (js/ui/agendaList.js)
+ *
+ * Amber = the timer's planned-work colour (.work-timer-btn.planned, #e0a84f), so it reads as "time to work"
+ * and stays apart from high priority's gold, overdue red, Build Habit cyan and Break Habit purple.
+ * The glow is a fragment in css/enemyStatus.css's shared filter chain (--g-started / --an-st), so it
+ * composes with every other state glow. Reduced motion / Effects reduced or off: badge + a held glow,
+ * no breath, no tick, no burst, no flash.
+ */
+
+/* ---- Canvas: glow fragment ---- */
+.enemy.started-marker > .enemy-sprite,
+.enemy.started-marker:not(.has-anim-sprite) {
+    --g-started: drop-shadow(0 0 2px #ffe2a8) drop-shadow(0 0 var(--st-blur) #e0a84f);
+}
+.enemy.started-quiet > .enemy-sprite,
+.enemy.started-quiet:not(.has-anim-sprite) {
+    --g-started: drop-shadow(0 0 1px #ffe2a8) drop-shadow(0 0 4px rgba(224, 168, 79, 0.8));
+}
+.enemy.started-working > .enemy-sprite,
+.enemy.started-working:not(.has-anim-sprite) {
+    --g-started: drop-shadow(0 0 2px #ffe2a8) drop-shadow(0 0 8px #e0a84f);
+}
+.enemy.started-breathe > .enemy-sprite {
+    --an-st: glow-started-breathe;
+}
+@keyframes glow-started-breathe { from { --st-blur: 3px; } to { --st-blur: 13px; } }
+
+/* ---- Canvas: stopwatch badge (centred over the head; the priority star owns top-left, the Break Habit
+   badge top-right) ---- */
+.enemy .started-badge {
+    display: none;
+}
+.enemy.started-marker .started-badge {
+    display: flex;
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #e0a84f;
+    color: #3a2604;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 1.5px #3a2604, 0 1px 3px rgba(0, 0, 0, 0.5);
+    z-index: 5;
+    pointer-events: none;
+}
+.enemy.started-marker .started-badge svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2.6;
+}
+.enemy.started-working .started-badge {
+    background: #ffcf7a;
+}
+@keyframes started-tick {
+    0%, 100% { transform: rotate(-10deg); }
+    50% { transform: rotate(10deg); }
+}
+.enemy.zombie-subtask.started-marker .started-badge {
+    top: -13px;
+    width: 16px;
+    height: 16px;
+}
+.enemy.zombie-subtask.started-marker .started-badge svg {
+    width: 11px;
+    height: 11px;
+}
+
+/* Portrait glance strip: the zombie's box starts at the strip's top edge, so a badge above the head is cut
+   off. Sit it beside the head instead (right shoulder; the zombie faces the church on the left). */
+body.glance-strip .enemy.started-marker .started-badge {
+    top: 2px;
+    left: auto;
+    right: -6px;
+    transform: none;
+    width: 16px;
+    height: 16px;
+}
+body.glance-strip .enemy.started-marker .started-badge svg {
+    width: 11px;
+    height: 11px;
+}
+
+/* ---- Canvas: one-time ring burst ---- */
+.enemy .started-ring {
+    display: none;
+}
+.enemy.started-arrive .started-ring {
+    display: block;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 44px;
+    height: 44px;
+    margin: -22px 0 0 -22px;
+    border: 3px solid #e0a84f;
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 4;
+}
+@keyframes started-burst {
+    0% { transform: scale(0.5); opacity: 1; }
+    100% { transform: scale(2.6); opacity: 0; }
+}
+
+/* A dying zombie (completion) and anything the slider / day pager is previewing drop the marker. */
+.enemy.enemy-dying .started-badge,
+.enemy.enemy-dying .started-ring,
+.enemy.time-preview-ghost .started-badge,
+.enemy.time-preview-ghost .started-ring {
+    display: none;
+}
+.enemy.time-preview-ghost.started-marker > .enemy-sprite,
+.enemy.time-preview-ghost.started-marker:not(.has-anim-sprite) {
+    --g-started: initial;
+    --an-st: none;
+}
+
+/* ---- List ---- */
+.task-list li.list-group-heading {
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: var(--space-1, 4px) var(--space-1, 4px) 0;
+    margin: var(--space-2) 0 var(--space-1, 4px);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--color-neutral);
+    cursor: default;
+    gap: 6px;
+}
+.task-list li.list-group-heading:first-child {
+    margin-top: 0;
+}
+.task-list li.list-group-heading:hover {
+    transform: none;
+    box-shadow: none;
+}
+.task-list li.started-group-heading {
+    color: #9a6a12;
+}
+.task-list li.list-group-heading .timer-icon {
+    width: 15px;
+    height: 15px;
+    flex: none;
+}
+
+.task-list li.started-list-item {
+    box-shadow: inset 4px 0 0 #e0a84f;
+    background: #fff8ec;
+}
+.task-list li.started-list-item:hover {
+    box-shadow: inset 4px 0 0 #e0a84f, 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.started-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 7px 1px 5px;
+    border-radius: 999px;
+    background: #fbe6c2;
+    color: #6b4708;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.started-note[hidden] {
+    display: none;
+}
+.started-note .timer-icon {
+    width: 12px;
+    height: 12px;
+    stroke-width: 2.6;
+    flex: none;
+}
+@keyframes started-row-flash {
+    0%, 100% { background: #fff8ec; }
+    50% { background: #f8d796; }
+}
+
+/* ---- Motion (only when allowed) ---- */
+@media (prefers-reduced-motion: no-preference) {
+    body:not(.fx-reduced):not(.fx-off) .enemy.started-working .started-badge svg {
+        animation: started-tick 1s steps(2, jump-none) infinite;
+    }
+    body:not(.fx-reduced):not(.fx-off) .enemy.started-arrive .started-ring {
+        animation: started-burst 0.9s ease-out 3;
+    }
+    body:not(.fx-reduced):not(.fx-off) .task-list li.started-arrive-row {
+        animation: started-row-flash 0.45s ease-in-out 3;
+    }
+}
+/* enemyStatus.css already stops every glow pulse (incl. this breath) under reduced motion / fx-reduced / fx-off,
+   leaving the held --st-blur initial value. */

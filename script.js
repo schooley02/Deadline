@@ -398,6 +398,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // js/ui/timeSliderView.js owns element.style.left directly while this
     // flag is set.
     let timePreviewActive = false;
+    // Started marker state (2026-11-04; refreshStartedMarkers): declared up here so a boot-time timer refresh can't hit the TDZ.
+    let startedPrevIds = null;  // ids in a work window on the last live pass; null = next pass is a baseline
+    let startedGroupKey = null; // StartedMarker.groupKey on the last pass: the list re-renders when it changes
 
     // --- Damage / base health (js/damage.js) ---
     // Milestone 2 extraction #3 (2026-07-18). js/damage.js is the only module so
@@ -1592,6 +1595,91 @@ document.addEventListener('DOMContentLoaded', () => {
                 c.classList.toggle('over-limit', overLimit);
             });
         });
+        refreshStartedMarkers(nowMs);
+    }
+
+    // Started marker (2026-11-04, Jeremy; js/startedMarker.js, css/startedMarker.css, DECISIONS 2026-11-04 (started
+    // marker)). Runs with the timer labels (once a second, and right after any timer change). Inside an item's
+    // Start -> Due window its zombie gets a stopwatch badge + amber glow (breathing / quiet / working), its row the
+    // "Started ..." / "Working ..." chip, and the row moves into the list's "Started (N)" group. A live Start crossing
+    // plays a one-time ring burst + row flash. Skipped (and re-baselined, so nothing bursts for what a preview or the
+    // catch-up skipped past) while the time slider / another day or offline catch-up owns the board.
+    // (startedPrevIds / startedGroupKey are declared near timePreviewActive, before any boot call can reach here.)
+    function refreshStartedMarkers(nowMs) {
+        if (typeof StartedMarker === 'undefined') return;
+        if (timePreviewActive || offlineCatchUpActive) { startedPrevIds = null; return; }
+        const items = State.getActiveItems();
+        const gameOver = State.isGameOver();
+        const nowIds = [];
+        items.forEach(item => {
+            const state = gameOver ? 'none' : StartedMarker.stateFor(item, nowMs, { isRunning: Timer.isRunning });
+            if (state !== 'none') nowIds.push(item.id);
+            applyStartedState(item, state);
+            if (!item.parentId && item.listItemElement) applyStartedRow(item, items, nowMs, gameOver);
+        });
+        StartedMarker.arrivals(startedPrevIds, nowIds).forEach(id => {
+            const item = items.find(i => i.id === id);
+            if (item) playStartedArrival(item, items);
+        });
+        startedPrevIds = nowIds;
+        const key = gameOver ? '' : StartedMarker.groupKey(items, nowMs);
+        if (startedGroupKey !== null && key !== startedGroupKey) sortAndRenderActiveList();
+        startedGroupKey = key;
+    }
+    function applyStartedState(item, state) {
+        const el = item.element;
+        if (!el || !el.classList || (el.dataset.started || 'none') === state) return;
+        el.dataset.started = state;
+        el.classList.toggle('started-marker', state !== 'none');
+        el.classList.toggle('started-breathe', state === 'started');
+        el.classList.toggle('started-quiet', state === 'quiet');
+        el.classList.toggle('started-working', state === 'working');
+        if (state !== 'none' && !el.querySelector('.started-badge')) {
+            const badge = document.createElement('span');
+            badge.className = 'started-badge';
+            badge.setAttribute('aria-hidden', 'true');
+            badge.innerHTML = Timer.ICON_SVG;
+            el.appendChild(badge);
+        }
+    }
+    function applyStartedRow(row, items, nowMs, gameOver) {
+        const li = row.listItemElement;
+        const note = li.querySelector('.started-note');
+        const text = gameOver ? '' : StartedMarker.rowNote(row, items, nowMs, {
+            isRunning: Timer.isRunning,
+            elapsed: (w) => Timer.formatElapsed(Timer.elapsedMs(w, nowMs)),
+        });
+        if (note && note.textContent !== text) {
+            note.innerHTML = text ? `${Timer.ICON_SVG}<span></span>` : '';
+            if (text) note.lastChild.textContent = text;
+            note.hidden = !text;
+        }
+        li.classList.toggle('started-list-item', !!text);
+        li.classList.toggle('started-working-list-item', !!text && text.indexOf('Working') === 0);
+    }
+    function playStartedArrival(item, items) {
+        const ms = (typeof CONFIG.STARTED_ARRIVAL_MS === 'number') ? CONFIG.STARTED_ARRIVAL_MS : 2800;
+        const el = item.element;
+        if (el && el.classList) {
+            if (!el.querySelector('.started-ring')) {
+                const ring = document.createElement('span');
+                ring.className = 'started-ring';
+                ring.setAttribute('aria-hidden', 'true');
+                el.appendChild(ring);
+            }
+            el.classList.remove('started-arrive');
+            void el.offsetWidth; // restart the CSS animation if it was mid-play
+            el.classList.add('started-arrive');
+            setTimeout(() => el.classList.remove('started-arrive'), ms);
+        }
+        const rowItem = item.parentId ? items.find(i => i.id === item.parentId) : item;
+        const li = rowItem && rowItem.listItemElement;
+        if (li && li.classList) {
+            li.classList.remove('started-arrive-row');
+            void li.offsetWidth;
+            li.classList.add('started-arrive-row');
+            setTimeout(() => li.classList.remove('started-arrive-row'), ms);
+        }
     }
 
     // action: undefined = the main timer button (start / resume when idle, pause when running);
