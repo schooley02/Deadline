@@ -4,6 +4,20 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-04 (priority slots) -- Three priority slots a day, spent when marked, three more after three done (Claude app session; Fable; Jeremy). Plan: docs/PRIORITY_SLOTS_PLAN.md. NOT BUILT.
+
+- Jeremy's notes: "you only get 3 priorities for each day, it will reset if you complete all 3. We need to display them somewhere at a glance so the user knows they should use them when they are planning out the day." Today High Priority is an unlimited checkbox (x2 points, gold glow, strip star, week-strip count); habits have no priority.
+- **Decided: 3 slots a day, fixed (`CONFIG.PRIORITY_SLOTS_PER_DAY`), not a level perk, not for sale.** Jeremy floated unlocking slots by level; rejected together because perks reset with the run (a game over would drop the player to one slot right when the reset should re-motivate) and it shrinks early x2 income. Buying extras rejected: scarcity is the value; a shop row invites overload. Parked for play data: a rare held token as a village star drop, never purchasable.
+- **A slot is spent when marked; unchecking never refunds it.** Jeremy asked whether freeing a slot by unchecking an open task would invite cheating -- yes: the three would become "whatever I'm about to finish" and the x2 always lands on the easiest wins. Replanning midday stays allowed at the cost of the slot; the form says so up front and unchecking gets a `Dialog.confirm`. Needs one stored thing: `priorityMarks` { day: n } on the save (schema 17), pruned at rollover, cleared by Reset / a new run. `available = 3 + 3 * floor(done / 3) - marks`.
+- **Finish all three -> three more** (the only way to get more). Slots belong to the task's DUE day (tomorrow's three can be picked tonight). Tasks only; habits unchanged.
+- **Routine task definitions lose the checkbox** (option b). Option a (the def takes a slot at spawn if one is free) was rejected under the spent rule: a routine would spend the player's slots at midnight before they looked at the day. Every priority is a deliberate tap on the day's instance; existing def flags are dropped by the migration.
+- **Sub-tasks:** a priority parent covers its subs for one slot (they inherit look + x2, their box is hidden); a sub can be marked alone for its own slot without the parent (Jeremy: "it should be possible to prioritize only a subtask and have it not apply to the parent").
+- **A move to another day strips priority** (pushback across midnight, due-date edit, evening-check Tomorrow); the old day's slot stays spent. Keeps the per-day count honest (marking today + pushing to tomorrow could otherwise stack more than three there).
+- Display: three gold pips + "N of 3 left" above the agenda list for the viewed day; week strip `★N/3`; form label "Priority -- 2 of 3 left today", disabled at 0; set-complete notice; How Deadline works topic; player-facing "Priority", never "High Priority". DailyRecord v9 `pri` { m, d, s }.
+- Build: A = pure `js/prioritySlots.js` + state / persistence / DailyRecord / move stripping / routine defs (Sonnet); B = forms, pips, strip, notices, How it works (Sonnet). Nothing built this session.
+
+---
+
 ## 2026-11-04 (started marker) -- A task whose Start time has arrived gets a stopwatch badge, an amber glow and a "Started (N)" group at the top of the list (Claude app session; Opus; Jeremy)
 
 - Problem (Jeremy): a long task with an early Start and a late Due sorts far down the agenda (due-time order) and stands idle in the parked pile at the church, so it is hard to find right when the player means to begin it. Since Start time Build A (v173) the zombie already WALKS to arrive at its Start and waits idle at the church, so on the canvas the job is to set it apart from the pile, not to find it far back.
