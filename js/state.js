@@ -87,6 +87,7 @@ const State = (() => {
     // open local day (schema 15 `save.today`). null until ensureToday() runs.
     // LIFETIME data like lifetimeStats: initGame never touches it.
     let today = null;
+    let closedDaysCache = null; // goals: the closed days of `deadline.days`, read once per open day (see cachedClosedDays)
     let lifetimeStats = (typeof Achievements !== 'undefined') ? Achievements.freshLifetimeStats() : {};
     let achievements = (typeof Achievements !== 'undefined') ? Achievements.freshUnlocked() : {};
     let activeItems = [];
@@ -154,7 +155,7 @@ const State = (() => {
     const getLifetimeStats = () => lifetimeStats;
     const setLifetimeStats = (obj) => { lifetimeStats = obj; };
     const getToday = () => today;
-    const setToday = (obj) => { today = obj; };
+    const setToday = (obj) => { today = obj; closedDaysCache = null; };
 
     /**
      * ensureToday -- the open day's DailyRecord, created on first use. A null
@@ -879,6 +880,7 @@ const State = (() => {
             if (deps && typeof deps.recordLifetimeDayClose === 'function') deps.recordLifetimeDayClose(closed);
         } catch (e) { console.error('Deadline: lifetime day close failed', e); }
         today = null;
+        closedDaysCache = null; // the store just changed
         ensureToday(now);
         return true;
     }
@@ -923,6 +925,20 @@ const State = (() => {
             return DailyRecord.normalizeStore(Persistence.loadDays()).days;
         } catch (e) { return {}; }
     }
+    // The pane asks for the views every tick, so the closed days are read from storage once per open day (they only change when a
+    // day closes, which also changes the open day's date). `forceReload` is for tests and a failed close.
+    function cachedClosedDays(forceReload) {
+        const key = today ? today.date : null;
+        if (!forceReload && closedDaysCache && closedDaysCache.key === key) return closedDaysCache.days;
+        const days = loadClosedDays();
+        closedDaysCache = { key, days };
+        return days;
+    }
+
+    // Goal events (session only): State pushes what happened ('complete' with the roster record, 'period' with a close outcome) and
+    // script.js drains them each tick to show the notices, so a completion that lands at rollover or from the pane is told once.
+    let goalEvents = [];
+    const takeGoalEvents = () => { const out = goalEvents; goalEvents = []; return out; };
 
     // pg counts (DailyRecord v10): stages climbed / lost, recurring periods met, milestones completed.
     function bumpGoalCounts(counts) {
@@ -958,6 +974,7 @@ const State = (() => {
         });
         r.completed.forEach((rec) => { counts.climb += Math.max(0, Goals.MAX_STAGE - (before[rec.id] || 0)); });
         bumpGoalCounts(counts);
+        r.completed.forEach((rec) => goalEvents.push({ type: 'complete', record: rec }));
         if (!(opts && opts.noSave)) saveGame();
         return r.completed;
     }
@@ -1001,6 +1018,7 @@ const State = (() => {
             });
             r.outcomes.forEach((o) => {
                 all.push(Object.assign({ goalId: goal.id, name: goal.name }, o));
+                goalEvents.push({ type: 'period', goalId: goal.id, name: goal.name, key: o.key, met: o.met, stageBefore: o.stageBefore, stageAfter: o.stageAfter });
                 if (o.met) counts.met += 1;
                 if (o.stageAfter > o.stageBefore) counts.climb += o.stageAfter - o.stageBefore;
                 if (o.stageAfter < o.stageBefore) counts.drop += o.stageBefore - o.stageAfter;
@@ -1013,6 +1031,69 @@ const State = (() => {
         bumpGoalCounts(counts);
         saveGame();
         return all;
+    }
+
+    /**
+     * What the pane and the card draw: one view per active goal (see Goals.viewFor), plus the slot facts. Cheap enough to call every tick
+     * (the closed days are cached per open day).
+     */
+    function getGoalViews(now) {
+        if (!goalsReady()) return [];
+        const nowMs = toMs(now);
+        const needsDays = goals.active.some(g => g.targets.some(t => t.type === 'aggregate'));
+        const days = needsDays ? cachedClosedDays() : {};
+        const todayKey = Goals.dateKey(nowMs);
+        return goals.active.map(goal => Goals.viewFor(goal, {
+            nowMs,
+            weekStartsOn: CONFIG.GOAL_WEEK_STARTS_ON,
+            slack: CONFIG.GOAL_PACE_SLACK,
+            metricValue,
+            metricInfo: (id) => GoalMetrics.byId(CONFIG.GOAL_METRICS, id),
+            recordsFor: (g) => {
+                if (g.kind === 'milestone') return recordsForRange(days, Goals.dateKey(g.createdAt), todayKey);
+                const key = Goals.validKey(g.period, g.periodKey) ? g.periodKey : Goals.periodKeyFor(g.period, nowMs, CONFIG.GOAL_WEEK_STARTS_ON);
+                const dayKeys = Goals.periodDayKeys(g.period, key);
+                return dayKeys.length ? recordsForRange(days, dayKeys[0], dayKeys[dayKeys.length - 1]) : { records: [], openKey: null };
+            },
+        }));
+    }
+
+    /** The slot facts the pane shows: { slots, used, next: { level, slots } | null }. */
+    function getGoalSlotInfo() {
+        if (!goalsReady()) return { slots: 0, used: 0, next: null };
+        const slots = goalSlotCount();
+        return { slots, used: goals.active.length, next: Goals.nextUnlockLevel(playerLevel, slots, CONFIG.GOAL_SLOTS_PER_LEVEL) };
+    }
+
+    /** Sets a number target's value or flips a yes/no target from the card. Returns { changed, completed } and saves. */
+    function updateGoalTarget(goalId, targetId, patch, now) {
+        if (!goalsReady()) return { changed: false, completed: [] };
+        const r = Goals.updateTarget(goals, goalId, targetId, patch);
+        if (!r.changed) return { changed: false, completed: [] };
+        goals = r.goals;
+        const completed = settleGoals(now, { noSave: true });
+        saveGame();
+        return { changed: true, completed };
+    }
+
+    /** The player retires a goal: it moves to the roster of finished goals. Returns the roster record, or null. */
+    function retireGoal(goalId, now) {
+        if (!goalsReady()) return null;
+        const r = Goals.retireGoal(goals, goalId, toMs(now), daysSurvived, CONFIG.GOAL_ROSTER_KEEP);
+        if (!r.record) return null;
+        goals = r.goals;
+        saveGame();
+        return r.record;
+    }
+
+    /** The player deletes a goal outright (no roster entry). Returns true when one was removed. */
+    function deleteGoal(goalId) {
+        if (!goalsReady()) return false;
+        const next = Goals.removeGoal(goals, goalId);
+        if (next === goals) return false;
+        goals = next;
+        saveGame();
+        return true;
     }
 
     /**
@@ -1086,6 +1167,7 @@ const State = (() => {
         getAnytimeCreditUses, setAnytimeCreditUses,
         getPriorityMarks, setPriorityMarks,
         getGoals, setGoals, goalSlotCount, syncGoalSlots, ensureGoalsSeeded, settleGoals, applyGoalCompletion, closeGoalPeriods,
+        getGoalViews, getGoalSlotInfo, updateGoalTarget, retireGoal, deleteGoal, takeGoalEvents,
         getCurrentRunStats, setCurrentRunStats,
         getRunHistory, setRunHistory,
         getLifetimeStats, setLifetimeStats,

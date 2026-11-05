@@ -638,6 +638,115 @@ const Goals = (() => {
         };
     }
 
+    // ---------------------------------------------------------------- views (Build B: what the pane and card show)
+
+    /**
+     * The numbers behind one target's line: { kind, have, need, noun, mode }. mode 'limit' = a "keep it to" target (compare 'lte' on a sum).
+     * ctx: the same as targetProgress, plus metricInfo(id) -> { label, unit } for aggregate targets.
+     */
+    function targetDetail(target, ctx) {
+        const c = ctx || {};
+        if (!target) return { kind: 'none', have: 0, need: 0, noun: '', mode: 'goal' };
+        if (target.type === 'number') {
+            return { kind: 'number', have: target.current, need: target.end, start: target.start, noun: target.unit || '', mode: 'goal' };
+        }
+        if (target.type === 'bool') {
+            return { kind: 'bool', have: target.done === true ? 1 : 0, need: 1, noun: '', mode: 'goal' };
+        }
+        if (target.type === 'linked') {
+            const count = isInt(target.count) && target.count >= 1 ? target.count : 1;
+            const occ = isNum(target.occ) && target.occ > 0 ? target.occ : 0;
+            if (c.kind === 'recurring') return { kind: 'linked', have: Math.min(occ, count), need: count, noun: '', mode: 'goal' };
+            const sources = hasHabitSources(target);
+            return {
+                kind: 'linked',
+                have: (target.itemDone || 0) + (sources ? Math.min(occ, count) : 0),
+                need: (target.itemTotal || 0) + (sources ? count : 0),
+                noun: '', mode: 'goal',
+            };
+        }
+        // aggregate
+        const info = typeof c.metricInfo === 'function' ? (c.metricInfo(target.metric) || {}) : {};
+        const records = Array.isArray(c.records) ? c.records : [];
+        const val = (rec) => (typeof c.metricValue === 'function' ? Number(c.metricValue(rec, target.metric)) || 0 : 0);
+        const threshold = isNum(target.threshold) ? target.threshold : 0;
+        if (target.op === 'days') {
+            let n = 0;
+            records.forEach((rec) => {
+                if (target.compare === 'lte' && c.openKey && rec && rec.date === c.openKey) return;
+                if (compareOk(val(rec), threshold, target.compare)) n++;
+            });
+            return { kind: 'aggregate', have: n, need: isInt(target.count) && target.count >= 1 ? target.count : 1, noun: 'days', mode: 'goal', label: info.label || '' };
+        }
+        const total = Math.round(records.reduce((sum, rec) => sum + val(rec), 0) * 100) / 100;
+        return { kind: 'aggregate', have: total, need: threshold, noun: info.unit || '', mode: target.compare === 'lte' ? 'limit' : 'goal', label: info.label || '' };
+    }
+
+    /**
+     * Everything the pane needs to draw one goal: { id, goal, progress, stage, pace, targets: [{ target, progress, detail }], recent }.
+     * `recent` = 'met' | 'slipped' on the FIRST day of a period that follows a closed one (a recurring goal), else null.
+     * ctx: { nowMs, weekStartsOn, slack, recordsFor(goal) -> { records, openKey }, metricValue, metricInfo }.
+     */
+    function viewFor(goal, ctx) {
+        const c = ctx || {};
+        const rc = (typeof c.recordsFor === 'function' ? c.recordsFor(goal) : null) || { records: [], openKey: null };
+        const pctx = { kind: goal.kind, records: rc.records, openKey: rc.openKey, metricValue: c.metricValue, metricInfo: c.metricInfo };
+        const progress = goalProgress(goal, pctx);
+        const stage = stageFor(goal, progress);
+        const nowMs = isNum(c.nowMs) ? c.nowMs : 0;
+        const pace = paceFor(goal, progress, nowMs, c.slack, c.weekStartsOn);
+        const targets = goal.targets.map(t => ({ target: t, progress: targetProgress(t, pctx), detail: targetDetail(t, pctx) }));
+        let recent = null;
+        if (goal.kind === 'recurring' && goal.history.length > 0) {
+            const last = goal.history[goal.history.length - 1];
+            const cur = periodKeyFor(goal.period, nowMs, c.weekStartsOn);
+            const start = periodStart(goal.period, cur);
+            if (cur && start && nextPeriodKey(goal.period, last.key) === cur && dateKey(nowMs) === dateKey(start)) {
+                recent = last.met ? 'met' : 'slipped';
+            }
+        }
+        return { id: goal.id, goal, progress, stage, pace, targets, recent };
+    }
+
+    /** Sets a number target's current value or a yes/no target's flag. Returns { goals, changed }; never mutates its input. */
+    function updateTarget(goals, goalId, targetId, patch) {
+        if (!goals || !patch) return { goals, changed: false };
+        let changed = false;
+        const active = goals.active.map((goal) => {
+            if (!sameId(goal.id, goalId)) return goal;
+            const targets = goal.targets.map((t) => {
+                if (!sameId(t.id, targetId)) return t;
+                if (t.type === 'number' && isNum(patch.current)) {
+                    const lo = Math.min(t.start, t.end);
+                    const hi = Math.max(t.start, t.end);
+                    const next = clamp(Math.round(patch.current * 100) / 100, lo, hi);
+                    if (next === t.current) return t;
+                    changed = true;
+                    return Object.assign({}, t, { current: next });
+                }
+                if (t.type === 'bool' && typeof patch.done === 'boolean') {
+                    if (patch.done === t.done) return t;
+                    changed = true;
+                    return Object.assign({}, t, { done: patch.done });
+                }
+                return t;
+            });
+            return targets.some((t, i) => t !== goal.targets[i]) ? Object.assign({}, goal, { targets }) : goal;
+        });
+        if (!changed) return { goals, changed: false };
+        return { goals: Object.assign({}, goals, { active }), changed: true };
+    }
+
+    /** The next level that adds a goal slot beyond `slots`: { level, slots }, or null when the table has no more. */
+    function nextUnlockLevel(level, slots, table) {
+        if (!table) return null;
+        const levels = Object.keys(table).map(Number).filter(isInt).sort((a, b) => a - b);
+        for (let i = 0; i < levels.length; i++) {
+            if (levels[i] > level && table[levels[i]] > slots) return { level: levels[i], slots: Math.floor(table[levels[i]]) };
+        }
+        return null;
+    }
+
     return {
         KINDS, PERIODS, TARGET_TYPES, MAX_STAGE,
         sanitizeBestSlots, slotsAtLevel,
@@ -645,6 +754,7 @@ const Goals = (() => {
         targetProgress, goalProgress, stageFor, elapsedFraction, paceFor,
         freshGoals, newGoal, sanitizeGoals, addGoal, removeGoal, seed, nextGoalId,
         applyCompletion, closePeriods, settleMilestones, retireGoal, recordFor,
+        targetDetail, viewFor, updateTarget, nextUnlockLevel,
     };
 })();
 

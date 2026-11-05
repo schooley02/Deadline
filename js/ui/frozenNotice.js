@@ -371,6 +371,42 @@ const FrozenNotice = (() => {
         villageRewardWaiterId = setTimeout(tryShow, 0);
     }
 
+    // Goals (Build B1, 2026-11-05): ONE notice for every goal that just finished. `entries` = [{ name }]; the words come from
+    // Theme.strings.goals (completeLine / completeJoin) so this module stays free of theme nouns. Waits like the other notices.
+    let pendingGoalNames = [];
+    let goalCompleteWaiterId = null;
+    function showGoalCompleteNotice(entries) {
+        const rows = (Array.isArray(entries) ? entries : []).filter(e => e && e.name);
+        if (rows.length === 0) return;
+        pendingGoalNames.push(...rows.map(r => String(r.name)));
+        if (goalCompleteWaiterId !== null) return;
+        const tryShow = () => {
+            if (document.querySelector('.modal-overlay')) {
+                goalCompleteWaiterId = setTimeout(tryShow, 400);
+                return;
+            }
+            const names = pendingGoalNames;
+            pendingGoalNames = [];
+            goalCompleteWaiterId = null;
+            if (!names.length) return;
+            const ts = (typeof Theme !== 'undefined' && Theme.strings && Theme.strings.goals) || {};
+            const fill = (typeof Theme !== 'undefined' && Theme.fill) ? Theme.fill : (t, v) => String(t).replace(/\{(\w+)\}/g, (m, k) => (k in v ? v[k] : m));
+            const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+            const lines = names.map(n => `<li>${esc(fill(ts.completeJoin || '{name} is done.', { name: n }))}</li>`).join('');
+            Modal.open(`
+                <div class="modal-overlay frozen-notice-overlay">
+                    <div class="modal-content frozen-notice-modal">
+                        <h3>${esc(ts.completeLine || 'Goal complete.')}</h3>
+                        <ul class="frozen-notice-recovery-list">${lines}</ul>
+                        <div class="modal-buttons">
+                            <button class="primary-button" onclick="closeModal()">Nice</button>
+                        </div>
+                    </div>
+                </div>`);
+        };
+        goalCompleteWaiterId = setTimeout(tryShow, 0);
+    }
+
     return {
         showVillageRewardNotice,
         showClockTowerStarUpNotice,
@@ -381,6 +417,7 @@ const FrozenNotice = (() => {
         showStreakMilestoneNotice,
         showAchievementUnlockNotice,
         showPrioritySetNotice,
+        showGoalCompleteNotice,
     };
 })();
 

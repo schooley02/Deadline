@@ -15,6 +15,7 @@ const HudButtons = (() => {
         levelButton: '.level-panel-overlay',
         villageButton: '.village-panel-overlay, .village-card-overlay',
         heroesButton: '#heroTray.open',
+        goalsButton: '#goalsPane.open',
         playerPointsStat: '#shopWindow:not(.hidden)',
     };
 
@@ -46,7 +47,7 @@ const HudButtons = (() => {
         // Modal overlays are added to / removed from <body>.
         new MutationObserver(schedule).observe(d.body, { childList: true });
         // The shop window and hero popup stay in the DOM and just flip a class.
-        ['shopWindow', 'heroTray'].forEach(id => {
+        ['shopWindow', 'heroTray', 'goalsPane'].forEach(id => {
             const el = d.getElementById(id);
             if (el) new MutationObserver(schedule).observe(el, { attributes: true, attributeFilter: ['class'] });
         });

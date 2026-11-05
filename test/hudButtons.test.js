@@ -11,6 +11,7 @@ describe('HudButtons.openButtons', () => {
         expect(HudButtons.openButtons(showing('.base-panel-overlay'))).toEqual(['baseHealthButton']);
         expect(HudButtons.openButtons(showing('.level-panel-overlay'))).toEqual(['levelButton']);
         expect(HudButtons.openButtons(showing('#heroTray.open'))).toEqual(['heroesButton']);
+        expect(HudButtons.openButtons(showing('#goalsPane.open'))).toEqual(['goalsButton']);
         expect(HudButtons.openButtons(showing('#shopWindow:not(.hidden)'))).toEqual(['playerPointsStat']);
     });
 
@@ -21,6 +22,6 @@ describe('HudButtons.openButtons', () => {
     test('every selector in the map is used for exactly one button', () => {
         const sels = Object.values(HudButtons.WINDOWS);
         expect(new Set(sels).size).toBe(sels.length);
-        expect(Object.keys(HudButtons.WINDOWS).sort()).toEqual(['baseHealthButton', 'heroesButton', 'levelButton', 'playerPointsStat', 'villageButton']);
+        expect(Object.keys(HudButtons.WINDOWS).sort()).toEqual(['baseHealthButton', 'goalsButton', 'heroesButton', 'levelButton', 'playerPointsStat', 'villageButton']);
     });
 });

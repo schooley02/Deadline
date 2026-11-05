@@ -20,6 +20,9 @@ const Theme = (() => {
             finishedPlural: 'Survivors',
             verb: 'Cure',
             completeLine: 'Cured.',
+            // "{name}" is replaced by fill().
+            completeJoin: '{name} is now one of your survivors.',
+            retireNote: 'moves to your survivors list with its streak',
             // "{level}" is replaced by fill().
             lockedLine: 'Unlocks at Lv {level}',
         },

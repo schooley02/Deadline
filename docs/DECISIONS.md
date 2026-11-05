@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-05 (goals Build B1) -- Goals pane + card built as a popup in every layout; the flag button is the last HUD button; open slot inert until B2 (Claude app session; Sonnet, medium-high; Jeremy: "agree continue"). Plan: docs/GOALS_PLAN.md "Build B1 as built". BUILT.
+
+- **Build B was split in two** (Jeremy agreed): B1 = see and use goals (button, pane, cells, card, controls, notice, chips); B2 = Add / Edit form, linked picker + badges, How Deadline works topic, PointsInfo line, Stats row.
+- **Popup everywhere; docked desktop column deferred.** A docked column changes the canvas width and the zombie layout math, which is a risk for a UI-only build. Revisit with the village layout on screen (plan "Open").
+- **The flag button goes after Points, not next to Heroes.** Six buttons cannot fit one row at 390 px; putting it last keeps the first five exactly as before and lets only the new one wrap. Rejected: shrinking the others.
+- **Retire is offered for recurring goals only**; a milestone ends by finishing or Delete. Delete is behind an inline confirm (no native dialogs).
+- **Open "+ New goal" slot is inert in B1** (the form is B2), so a deleted starter returns only through dev Reset until then. Disclosed to Jeremy.
+- **Chips are derived, not saved** (from `history` and `suggested`); notices ride a session-only event queue, so nothing new is persisted and no schema / DailyRecord change. No balance number changed.
+
 ## 2026-11-05 (goals Build A) -- Goals engine and data built, invisible; linked targets count events, not items; starters are seeded from State (Claude app session; Sonnet, medium; Jeremy: "i pushed it, continue"). Plan: docs/GOALS_PLAN.md "Build A as built". BUILT.
 
 - **Built exactly the 2026-11-04 design** (theme seam, pure `js/goals.js` + `js/goalMetrics.js`, `State.goals`, schema 18, carryover, period close, DailyRecord v10 `pg`, the wording-rule second scan). Nothing is visible yet; Build B adds the pane.

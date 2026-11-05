@@ -666,3 +666,122 @@ describe('starters', () => {
         expect(none.seeded).toBe(true);
     });
 });
+
+// ---------------------------------------------------------------------------------------------------------------------------
+// Build B1 (2026-11-05): what the pane and the card show.
+// ---------------------------------------------------------------------------------------------------------------------------
+describe('targetDetail', () => {
+    test('number, yes/no and linked targets', () => {
+        expect(Goals.targetDetail(numberTarget({ current: 4 }), {})).toMatchObject({ kind: 'number', have: 4, need: 10, noun: 'steps', start: 0 });
+        expect(Goals.targetDetail({ id: 1, type: 'bool', label: 'x', done: true }, {})).toMatchObject({ kind: 'bool', have: 1, need: 1 });
+        // A milestone's linked one-offs plus the habit / routine occurrences.
+        expect(Goals.targetDetail(linkedTarget({ itemTotal: 3, itemDone: 1, habitDefIds: ['h'], count: 5, occ: 2 }), { kind: 'milestone' }))
+            .toMatchObject({ kind: 'linked', have: 3, need: 8 });
+        // A recurring goal counts occurrences against `count`, capped.
+        expect(Goals.targetDetail(linkedTarget({ habitDefIds: ['h'], count: 3, occ: 9 }), { kind: 'recurring' })).toMatchObject({ have: 3, need: 3 });
+    });
+    test('aggregate "days" counts the days that pass; an open day does not pass a "keep it under" target', () => {
+        const t = aggTarget({ op: 'days', threshold: 2, compare: 'lte', count: 3 });
+        const records = [day('2026-11-03', { tasksDone: 1 }), day('2026-11-04', { tasksDone: 5 }), day('2026-11-05', { tasksDone: 0 })];
+        const d = Goals.targetDetail(t, { records, openKey: '2026-11-05', metricValue, metricInfo: () => ({ label: 'Tasks done', unit: 'tasks' }) });
+        expect(d).toMatchObject({ kind: 'aggregate', have: 1, need: 3, noun: 'days' });
+    });
+    test('aggregate sum reports the total, and flags a "keep it under" target as a limit', () => {
+        const records = [day('2026-11-03', { tasksDone: 2 }), day('2026-11-04', { tasksDone: 3 })];
+        const info = () => ({ label: 'Tasks done', unit: 'tasks' });
+        expect(Goals.targetDetail(aggTarget({ threshold: 20 }), { records, metricValue, metricInfo: info })).toMatchObject({ have: 5, need: 20, noun: 'tasks', mode: 'goal' });
+        expect(Goals.targetDetail(aggTarget({ threshold: 20, compare: 'lte' }), { records, metricValue, metricInfo: info })).toMatchObject({ have: 5, need: 20, mode: 'limit' });
+    });
+});
+
+describe('viewFor', () => {
+    const ctx = (over) => Object.assign({
+        nowMs: MS(NOW), weekStartsOn: 1, slack: 0.1, metricValue, metricInfo: () => ({ label: 'Tasks', unit: 'tasks' }),
+        recordsFor: () => ({ records: [], openKey: null }),
+    }, over);
+
+    test('a milestone view carries progress, the stage it shows, its pace and each target', () => {
+        const g = Goals.newGoal({ name: 'Big', kind: 'milestone', deadline: '2026-11-30', targets: [numberTarget({ current: 6 })] }, MS(at(2026, 11, 1)), 1, 1);
+        const v = Goals.viewFor(g, ctx());
+        expect(v).toMatchObject({ id: 1, progress: 0.6, stage: 3, recent: null });
+        expect(['ahead', 'behind']).toContain(v.pace);
+        expect(v.targets).toHaveLength(1);
+        expect(v.targets[0]).toMatchObject({ progress: 0.6, detail: { kind: 'number', have: 6, need: 10 } });
+    });
+    test('a milestone with no deadline has no pace', () => {
+        const g = Goals.newGoal({ name: 'Open', kind: 'milestone', targets: [numberTarget({ current: 1 })] }, MS(at(2026, 11, 1)), 1, 1);
+        expect(Goals.viewFor(g, ctx()).pace).toBe('none');
+    });
+    test('a recurring view shows its stored stage and reads the records recordsFor hands it', () => {
+        const g = Goals.newGoal({ name: 'Week', kind: 'recurring', period: 'week', stage: 2, targets: [aggTarget({ threshold: 4 })] }, MS(at(2026, 11, 2)), 1, 1);
+        const records = [day('2026-11-03', { tasksDone: 2 })];
+        const v = Goals.viewFor(g, ctx({ recordsFor: () => ({ records, openKey: null }) }));
+        expect(v.stage).toBe(2);
+        expect(v.progress).toBe(0.5);
+        expect(v.targets[0].detail).toMatchObject({ have: 2, need: 4 });
+    });
+    test("'recent' marks the first day after a closed period: met or slipped, and only that day", () => {
+        const base = { name: 'Week', kind: 'recurring', period: 'week', targets: [aggTarget()] };
+        const slipped = Goals.newGoal(Object.assign({}, base, { history: [{ key: '2026-11-02', met: false, progress: 0.2 }] }), MS(at(2026, 11, 2)), 1, 1);
+        const met = Goals.newGoal(Object.assign({}, base, { history: [{ key: '2026-11-02', met: true, progress: 1 }] }), MS(at(2026, 11, 2)), 1, 1);
+        const monday = MS(at(2026, 11, 9, 9));
+        const tuesday = MS(at(2026, 11, 10, 9));
+        expect(Goals.viewFor(slipped, ctx({ nowMs: monday })).recent).toBe('slipped');
+        expect(Goals.viewFor(met, ctx({ nowMs: monday })).recent).toBe('met');
+        expect(Goals.viewFor(slipped, ctx({ nowMs: tuesday })).recent).toBeNull();
+        // A history entry that is not the period just before this one does not count.
+        const old = Goals.newGoal(Object.assign({}, base, { history: [{ key: '2026-10-19', met: false, progress: 0 }] }), MS(at(2026, 11, 2)), 1, 1);
+        expect(Goals.viewFor(old, ctx({ nowMs: monday })).recent).toBeNull();
+    });
+});
+
+describe('updateTarget', () => {
+    const list = (g) => Object.assign(Goals.freshGoals(), { active: [g], nextId: 50 });
+    test('a number target moves, clamped between its start and end, and never mutates the input', () => {
+        const g = milestone([numberTarget({ current: 2 })], { id: 1 });
+        const input = list(g);
+        let r = Goals.updateTarget(input, 1, 1, { current: 7 });
+        expect(r.changed).toBe(true);
+        expect(r.goals.active[0].targets[0].current).toBe(7);
+        expect(input.active[0].targets[0].current).toBe(2);
+        expect(Goals.updateTarget(r.goals, 1, 1, { current: 99 }).goals.active[0].targets[0].current).toBe(10);
+        expect(Goals.updateTarget(r.goals, 1, 1, { current: -5 }).goals.active[0].targets[0].current).toBe(0);
+    });
+    test('a target that counts down (end below start) clamps the same way', () => {
+        const g = milestone([numberTarget({ start: 200, end: 180, current: 200, unit: 'lb' })], { id: 1 });
+        const r = Goals.updateTarget(list(g), 1, 1, { current: 150 });
+        expect(r.goals.active[0].targets[0].current).toBe(180);
+    });
+    test('a yes/no target flips; the same value is not a change', () => {
+        const g = milestone([{ id: 1, type: 'bool', label: 'Done?', done: false }], { id: 1 });
+        const r = Goals.updateTarget(list(g), 1, 1, { done: true });
+        expect(r.goals.active[0].targets[0].done).toBe(true);
+        expect(Goals.updateTarget(r.goals, 1, 1, { done: true }).changed).toBe(false);
+    });
+    test('an unknown goal or target, junk, or the wrong patch for the type changes nothing', () => {
+        const g = milestone([numberTarget({ current: 2 })], { id: 1 });
+        const input = list(g);
+        expect(Goals.updateTarget(input, 9, 1, { current: 5 }).changed).toBe(false);
+        expect(Goals.updateTarget(input, 1, 9, { current: 5 }).changed).toBe(false);
+        expect(Goals.updateTarget(input, 1, 1, { current: NaN }).changed).toBe(false);
+        expect(Goals.updateTarget(input, 1, 1, { done: true }).changed).toBe(false);
+        expect(Goals.updateTarget(input, 1, 1, null).changed).toBe(false);
+        expect(Goals.updateTarget(input, 1, 1, { current: 2 }).goals).toBe(input);
+    });
+});
+
+describe('nextUnlockLevel', () => {
+    test('finds the next level that adds a slot', () => {
+        expect(Goals.nextUnlockLevel(1, 2, SLOT_TABLE)).toEqual({ level: 2, slots: 3 });
+        expect(Goals.nextUnlockLevel(2, 3, SLOT_TABLE)).toEqual({ level: 4, slots: 4 });
+        expect(Goals.nextUnlockLevel(5, 4, SLOT_TABLE)).toEqual({ level: 6, slots: 5 });
+    });
+    test('a slot already held beyond the level (a lost run) skips the levels that add nothing new', () => {
+        expect(Goals.nextUnlockLevel(1, 6, SLOT_TABLE)).toBeNull(); // best mark is the table maximum
+        expect(Goals.nextUnlockLevel(1, 4, SLOT_TABLE)).toEqual({ level: 6, slots: 5 });
+    });
+    test('nothing left at the top, or with no table', () => {
+        expect(Goals.nextUnlockLevel(9, 6, SLOT_TABLE)).toBeNull();
+        expect(Goals.nextUnlockLevel(1, 2, null)).toBeNull();
+    });
+});

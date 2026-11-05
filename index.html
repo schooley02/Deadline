@@ -37,6 +37,7 @@
     <link rel="stylesheet" href="css/heroes.css">
     <link rel="stylesheet" href="css/heroSpotlight.css">
     <link rel="stylesheet" href="css/heroTray.css">
+    <link rel="stylesheet" href="css/goalsPane.css">
     <link rel="stylesheet" href="css/levelPanel.css">
     <link rel="stylesheet" href="css/basePanel.css">
     <link rel="stylesheet" href="css/timeSlider.css">
@@ -80,6 +81,7 @@
                         <span id="playerPointsDisplay">0</span>
                         <span id="playerPointsNudge" class="points-nudge hidden"></span>
                     </button>
+                    <button type="button" id="goalsButton" class="stat-item village-button goals-button" aria-label="Goals. Open goals window" aria-expanded="false" aria-controls="goalsPane"></button>
                 </div>
                 
             </div>
@@ -477,6 +479,22 @@
         <div id="heroTrayList" class="hero-tray-list"></div>
     </section>
 
+    <!-- Goals pane (Goals Build B1): centred popup opened by #goalsButton (HUD); rows by js/ui/goalsPane.js, cards by js/ui/goalCard.js. -->
+    <div id="goalsPaneBackdrop" class="goals-pane-backdrop"></div>
+    <section id="goalsPane" class="goals-pane" role="dialog" aria-label="Goals" aria-hidden="true" tabindex="-1">
+        <header class="goals-pane-header">
+            <div class="goals-pane-heading">
+                <h3 id="goalsPaneTitle">Goals</h3>
+                <p id="goalsPaneSub" class="goals-pane-sub"></p>
+            </div>
+            <div class="goals-pane-actions">
+                <button id="goalsPaneRosterBtn" class="goals-pane-roster-btn" type="button" aria-pressed="false"></button>
+                <button id="goalsPaneClose" class="goals-pane-close" type="button" aria-label="Close goals">&times;</button>
+            </div>
+        </header>
+        <div id="goalsPaneBody" class="goals-pane-body"></div>
+    </section>
+
     <script src="js/config.js"></script>
     <script src="js/listOrder.js"></script>
     <script src="js/layout.js"></script>
@@ -573,6 +591,8 @@
     <script src="js/ui/heroes.js"></script>
     <script src="js/ui/heroSpotlight.js"></script>
     <script src="js/ui/heroTray.js"></script>
+    <script src="js/ui/goalsPane.js"></script>
+    <script src="js/ui/goalCard.js"></script>
     <script src="js/ui/levelPanel.js"></script>
     <script src="js/ui/basePanel.js"></script>
     <script src="js/ui/timeSliderView.js"></script>

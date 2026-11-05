@@ -220,7 +220,7 @@ describe('linked targets: the Items -> State hook', () => {
     });
     test('script.js hands Items the State hook, and a level-up raises the goal-slot mark', () => {
         const script = require('fs').readFileSync(require('path').join(__dirname, '..', 'script.js'), 'utf8').replace(/\r\n/g, '\n');
-        expect(script).toContain('onGoalProgress: (info, dir) => State.applyGoalCompletion(info, dir),');
+        expect(script).toContain('onGoalProgress: (info, dir) => { State.applyGoalCompletion(info, dir); renderGoals(); },');
         expect(script).toContain('State.setPlayerLevel(result.level);\n        // Goals (Build A): the goal-slot high-water mark catches up with the new level');
         expect(script).toContain('State.syncGoalSlots();');
         expect(script).toContain('State.setGoals(null);');
@@ -318,5 +318,95 @@ describe('the period close inside performDayRollover', () => {
         expect(done).toHaveLength(1);
         expect(State.getGoals().done[0].name).toBe('Do 3 tasks');
         expect(State.getGoals().active).toEqual([]);
+    });
+});
+
+describe('Build B1: views, target edits, retire / delete, events', () => {
+    function oneNumberGoal(over) {
+        const r = Goals.addGoal(Goals.freshGoals(), Object.assign({
+            name: 'Ten steps', kind: 'milestone', deadline: '2026-11-30',
+            targets: [{ type: 'number', label: 'Steps', start: 0, end: 10, current: 0, unit: 'steps' }],
+        }, over), 6, NOON(2026, 11, 1).getTime(), 1);
+        State.setGoals(Object.assign(r.goals, { seeded: true }));
+        return r.goal;
+    }
+
+    test('getGoalViews returns one view per active goal with its stage, pace and target details', () => {
+        oneNumberGoal();
+        State.updateGoalTarget(1, 1, { current: 6 }, NOON(2026, 11, 5));
+        const views = State.getGoalViews(NOON(2026, 11, 5));
+        expect(views).toHaveLength(1);
+        expect(views[0]).toMatchObject({ id: 1, progress: 0.6, stage: 3 });
+        expect(views[0].targets[0].detail).toMatchObject({ kind: 'number', have: 6, need: 10, noun: 'steps' });
+    });
+    test('an aggregate goal reads the open day and the closed days (and the closed days are read once per open day)', () => {
+        const r = Goals.addGoal(Goals.freshGoals(), {
+            name: 'A productive week', kind: 'recurring', period: 'week',
+            targets: [{ type: 'aggregate', label: 'Tasks', metric: 'tasksDone', op: 'sum', threshold: 4, compare: 'gte' }],
+        }, 6, NOON(2026, 11, 2).getTime(), 1);
+        State.setGoals(Object.assign(r.goals, { seeded: true }));
+        fakePersistence({ '2026-11-03': dayRec('2026-11-03', { done: Object.assign(DailyRecord.fresh().done, { task: 1 }) }) });
+        const open = dayRec('2026-11-05', { done: Object.assign(DailyRecord.fresh().done, { task: 1 }) });
+        State.setToday(open);
+        const spy = jest.spyOn(global.Persistence, 'loadDays');
+        const first = State.getGoalViews(NOON(2026, 11, 5));
+        State.getGoalViews(NOON(2026, 11, 5));
+        State.getGoalViews(NOON(2026, 11, 5));
+        expect(first[0].progress).toBe(0.5); // 1 closed + 1 open = 2 of 4
+        expect(first[0].targets[0].detail).toMatchObject({ have: 2, need: 4 });
+        expect(spy).toHaveBeenCalledTimes(1);
+        spy.mockRestore();
+    });
+    test('getGoalViews is empty with no goals, and getGoalSlotInfo reports slots, used and the next unlock', () => {
+        expect(State.getGoalViews(NOON(2026, 11, 5))).toEqual([]);
+        oneNumberGoal();
+        expect(State.getGoalSlotInfo()).toEqual({ slots: 2, used: 1, next: { level: 2, slots: 3 } });
+        State.setPlayerLevel(9);
+        State.syncGoalSlots();
+        expect(State.getGoalSlotInfo()).toEqual({ slots: 6, used: 1, next: null });
+    });
+    test('updateGoalTarget completes a milestone at the end of its range, tells the event queue once, and saves', () => {
+        oneNumberGoal();
+        State.takeGoalEvents();
+        global.Persistence.requestSave.mockClear();
+        let r = State.updateGoalTarget(1, 1, { current: 4 }, NOON(2026, 11, 5));
+        expect(r).toMatchObject({ changed: true, completed: [] });
+        expect(State.takeGoalEvents()).toEqual([]);
+        r = State.updateGoalTarget(1, 1, { current: 10 }, NOON(2026, 11, 5));
+        expect(r.completed).toHaveLength(1);
+        expect(State.getGoals().active).toEqual([]);
+        const events = State.takeGoalEvents();
+        expect(events).toHaveLength(1);
+        expect(events[0]).toMatchObject({ type: 'complete', record: { id: 1, name: 'Ten steps' } });
+        expect(State.takeGoalEvents()).toEqual([]); // drained
+        expect(global.Persistence.requestSave).toHaveBeenCalled();
+        expect(State.updateGoalTarget(1, 1, { current: 3 }, NOON(2026, 11, 5))).toEqual({ changed: false, completed: [] }); // gone
+    });
+    test('a period close queues a period event with the stage change', () => {
+        const r = Goals.addGoal(Goals.freshGoals(), {
+            name: 'Week', kind: 'recurring', period: 'week', stage: 2,
+            targets: [{ type: 'aggregate', label: 'Tasks', metric: 'tasksDone', op: 'sum', threshold: 3, compare: 'gte' }],
+        }, 6, NOON(2026, 11, 2).getTime(), 1);
+        State.setGoals(Object.assign(r.goals, { seeded: true }));
+        State.takeGoalEvents();
+        fakePersistence({});
+        State.setToday(dayRec('2026-11-09'));
+        State.closeGoalPeriods(NOON(2026, 11, 9));
+        expect(State.takeGoalEvents()).toEqual([
+            { type: 'period', goalId: 1, name: 'Week', key: '2026-11-02', met: false, stageBefore: 2, stageAfter: 1 },
+        ]);
+    });
+    test('retireGoal moves a goal to the roster; deleteGoal drops it with no roster entry', () => {
+        oneNumberGoal();
+        const rec = State.retireGoal(1, NOON(2026, 11, 5));
+        expect(rec).toMatchObject({ id: 1, name: 'Ten steps' });
+        expect(State.getGoals().active).toEqual([]);
+        expect(State.getGoals().done).toHaveLength(1);
+        expect(State.retireGoal(1, NOON(2026, 11, 5))).toBeNull();
+        oneNumberGoal();
+        expect(State.deleteGoal(1)).toBe(true);
+        expect(State.getGoals().active).toEqual([]);
+        expect(State.getGoals().done).toEqual([]);
+        expect(State.deleteGoal(1)).toBe(false);
     });
 });

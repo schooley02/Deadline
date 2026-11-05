@@ -256,6 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // renderHeroesAtBase can run during boot, before those function bodies' lines are reached.
     let heroSpotlightReady = false;
     let heroTrayReady = false;
+    let goalsPaneReady = false; // Goals Build B1: same reason as the hero flags above (renderGoals can run during boot)
 
 
     // --- Game Settings ---
@@ -950,7 +951,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Daily record (D2, 2026-10-27): every gameplay seam bumps through here.
             recordDaily: State.bumpToday,
             // Goals (Build A, 2026-11-05): a finished / un-finished task or habit counts toward any linked goal target.
-            onGoalProgress: (info, dir) => State.applyGoalCompletion(info, dir),
+            onGoalProgress: (info, dir) => { State.applyGoalCompletion(info, dir); renderGoals(); },
             // Priority slots (2026-11-04): the spent-marks map per due day, read and written by Items.setPriority.
             getPriorityMarks: () => State.getPriorityMarks(),
             setPriorityMarks: (m) => State.setPriorityMarks(m),
@@ -2235,6 +2236,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // that can change a routine's health/XP/level/star rate/frozen/KO/
         // active state, without new render hooks inside the pure modules.
         renderHeroesAtBase();
+        renderGoals();
     }
 
     // Habit system functions
@@ -2907,6 +2909,55 @@ document.addEventListener('DOMContentLoaded', () => {
             isModalOpen: () => !!document.querySelector('.modal-overlay'),
         });
         heroTrayReady = true;
+    }
+
+    // Goals pane (Build B1, 2026-11-05): HUD flagpole button + popup (js/ui/goalsPane.js) and the goal card (js/ui/goalCard.js).
+    // Same shape as ensureHeroTray: a lazy init, then a per-tick refresh (signature-based, so the DOM only moves when something changed).
+    function goalCardDeps() {
+        return {
+            getView: (goalId) => State.getGoalViews(Date.now()).find(v => String(v.id) === String(goalId)) || null,
+            nowMs: () => Date.now(),
+            weekStartsOn: CONFIG.GOAL_WEEK_STARTS_ON,
+            updateTarget: (goalId, targetId, patch) => State.updateGoalTarget(goalId, targetId, patch, Date.now()),
+            retire: (goalId) => State.retireGoal(goalId, Date.now()),
+            remove: (goalId) => State.deleteGoal(goalId),
+            afterChange: () => renderGoals(),
+        };
+    }
+
+    function ensureGoalsPane() {
+        if (goalsPaneReady) return true;
+        const tabEl = document.getElementById('goalsButton');
+        const paneEl = document.getElementById('goalsPane');
+        if (!tabEl || !paneEl) return false;
+        GoalsPane.init({
+            tabEl,
+            paneEl,
+            backdropEl: document.getElementById('goalsPaneBackdrop'),
+            bodyEl: document.getElementById('goalsPaneBody'),
+            titleEl: document.getElementById('goalsPaneTitle'),
+            subEl: document.getElementById('goalsPaneSub'),
+            closeEl: document.getElementById('goalsPaneClose'),
+            rosterBtnEl: document.getElementById('goalsPaneRosterBtn'),
+            getViews: () => State.getGoalViews(Date.now()),
+            getSlotInfo: () => State.getGoalSlotInfo(),
+            getRoster: () => (State.getGoals() || {}).done || [],
+            onOpenGoal: (goalId) => { GoalCard.open(goalId, goalCardDeps()); },
+        });
+        goalsPaneReady = true;
+        return true;
+    }
+
+    function renderGoals() {
+        if (!ensureGoalsPane()) return;
+        try {
+            // Notices first: a goal finished by a linked completion (or a period close) is announced once, then the pane redraws.
+            const done = State.takeGoalEvents().filter(ev => ev && ev.type === 'complete');
+            if (done.length) FrozenNotice.showGoalCompleteNotice(done.map(ev => ({ name: ev.record && ev.record.name })));
+            GoalsPane.refresh();
+        } catch (err) {
+            console.error('Goals pane refresh failed', err);
+        }
     }
 
     function renderHeroesAtBase(routinesOverride) {
