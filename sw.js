@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v256';
+const CACHE_NAME = 'deadline-shell-v257';
 
 const APP_SHELL = [
     './',
@@ -145,7 +145,6 @@ const APP_SHELL = [
     'js/ui/ghostCard.js',
     'js/ui/dayPagerView.js',
     'js/IdCounter.js',
-    'js/TaskManager.js',
 
     // Runtime art actually used by the game (Zombies + Base sprite states +
     // the PWA icons). Deliberately NOT a blanket Assets/* cache — the

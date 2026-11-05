@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 /**
- * Dialog Build 3 (2026-11-01, docs/DIALOG_PLAN.md): the four "should not happen" errors (category D) are in-game notices,
+ * Dialog Build 3 (2026-11-01, docs/DIALOG_PLAN.md): the "should not happen" errors (category D; the TaskManager one went with the deleted js/TaskManager.js, 2026-11-04) are in-game notices,
  * never the browser's alert(). Each test stubs Dialog.notice and fails if a native alert() is used.
  */
 global.CONFIG = require('../js/config.js');
@@ -17,7 +17,6 @@ global.Clock = require('../js/clock.js');
 global.SpriteAnim = { setEnemyCategory: () => {} };
 const Popups = require('../js/ui/popups.js');
 const RoutineViews = require('../js/ui/routineViews.js');
-const TaskManager = require('../js/TaskManager.js');
 
 let noticeSpy;
 beforeEach(() => {
@@ -37,20 +36,6 @@ describe('category D errors are in-game notices', () => {
         expect(noticeSpy.mock.calls[0][0]).toBe('Parent task not found.');
         expect(global.alert).not.toHaveBeenCalled();
         expect(document.querySelector('.modal-overlay')).toBeNull();
-    });
-
-    test('TaskManager: error creating a sub-task shows the message', () => {
-        const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-        const tm = new TaskManager(document.createElement('div'), [], 1);
-        tm.createTask = () => { throw new Error('boom'); };
-        const modal = document.createElement('div');
-        modal.innerHTML = '<input id="subtask-name" value="x"><select id="subtask-category"><option value="other">o</option></select>' +
-            '<input id="subtask-priority" type="checkbox"><input id="subtask-due-date" value="2026-11-02"><input id="subtask-due-time" value="10:00">';
-        tm.handleSubtaskSubmit(modal, 1);
-        expect(noticeSpy).toHaveBeenCalledTimes(1);
-        expect(noticeSpy.mock.calls[0][0]).toBe('Error creating subtask: boom');
-        expect(global.alert).not.toHaveBeenCalled();
-        errSpy.mockRestore();
     });
 
     test('move to another routine: a failed move shows its reason', async () => {
