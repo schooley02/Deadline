@@ -78,6 +78,9 @@ const State = (() => {
     // { 'YYYY-MM-DD': n } (schema 17). A mark is spent when a task is marked and never given back (PrioritySlots owns the
     // maths). Pruned to yesterday-and-later at rollover; a fresh run (initGame) starts with none spent.
     let priorityMarks = {};
+    // Goals (2026-11-05, Goals Build A, docs/GOALS_PLAN.md): the player's goals { bestSlots, active, done, nextId, seeded } (schema 18).
+    // CARRIES ACROSS RUNS like lifetimeStats: initGame never resets it, so a lost run keeps every goal, streak and slot.
+    let goals = (typeof Goals !== 'undefined') ? Goals.freshGoals() : { bestSlots: 0, active: [], done: [], nextId: 1, seeded: false };
     let currentRunStats = (typeof RunStats !== 'undefined') ? RunStats.freshRunStats() : {};
     let runHistory = [];
     // D2 (2026-10-27, docs/DAILY_RECORD_PLAN.md): the live DailyRecord for the
@@ -138,6 +141,11 @@ const State = (() => {
     // Keeps only { 'YYYY-MM-DD': n > 0 }; junk and old saves become empty. No-op shape when PrioritySlots isn't loaded (tests).
     const setPriorityMarks = (obj) => {
         priorityMarks = (typeof PrioritySlots !== 'undefined') ? PrioritySlots.sanitizeMarks(obj) : ((obj && typeof obj === 'object') ? obj : {});
+    };
+    const getGoals = () => goals;
+    // Repairs whatever it is given (junk, a pre-18 save -> fresh). Without the Goals module (some tests) it just stores the object.
+    const setGoals = (obj) => {
+        goals = (typeof Goals !== 'undefined') ? Goals.sanitizeGoals(obj) : ((obj && typeof obj === 'object') ? obj : goals);
     };
     const getCurrentRunStats = () => currentRunStats;
     const setCurrentRunStats = (obj) => { currentRunStats = obj; };
@@ -291,6 +299,10 @@ const State = (() => {
         // Run-end carryover (2026-11-03): a new run starts with the table's level-1 slots OR the most
         // the player ever earned, whichever is more (bestRoutineSlots is NOT reset here, like runHistory).
         setRoutineSlots(slotsForLevel(1));
+        // Goals (2026-11-05): NOT reset (they carry across runs). Only the slot mark catches up with the level and the suggested
+        // starters are added once, on the very first boot (both idempotent).
+        syncGoalSlots(1);
+        ensureGoalsSeeded();
 
         deps.updatePlayerDisplays();
 
@@ -366,6 +378,7 @@ const State = (() => {
             pushbackUses: getPushbackUses(),
             anytimeCreditUses: getAnytimeCreditUses(),
             priorityMarks: getPriorityMarks(),
+            goals: getGoals(),
             runHistory: getRunHistory(),
             currentRunStats: getCurrentRunStats(),
             lifetimeStats: getLifetimeStats(),
@@ -584,6 +597,11 @@ const State = (() => {
         // so a saved run never comes back with fewer slots than its routines were built on.
         setBestRoutineSlots(save.bestRoutineSlots);
         setRoutineSlots(slotsForLevel(restoredLevel));
+        // Goals (2026-11-05): repaired on the way in; the slot mark catches up with the restored level, and a save that has never seen
+        // the suggested starters (a migrated one) gets them now.
+        setGoals(save.goals);
+        syncGoalSlots(restoredLevel);
+        ensureGoalsSeeded();
         setBaseHealth((typeof save.baseHealth === 'number') ? save.baseHealth : CONFIG.MAX_BASE_HEALTH);
         setItemIdCounter(save.itemIdCounter || 1);
         setDaysSurvived(save.daysSurvived || 0);
@@ -802,6 +820,9 @@ const State = (() => {
         // above on purpose -- auto-avoided lurkers and misses it records belong
         // to the closing day. Never allowed to break a rollover.
         try { closeDailyRecord(now, deps); } catch (e) { console.error('Deadline: daily record close failed', e); }
+        // Goals (Build A): close every recurring-goal period that just ended, AFTER the day's record is in the store (its numbers are
+        // what an aggregate target reads), then bring the open milestones up to date. Never allowed to break a rollover.
+        try { closeGoalPeriods(now); settleGoals(now); } catch (e) { console.error('Deadline: goal period close failed', e); }
         return true;
     }
 
@@ -860,6 +881,138 @@ const State = (() => {
         today = null;
         ensureToday(now);
         return true;
+    }
+
+    // ------------------------------------------------------------------ Goals (Build A, docs/GOALS_PLAN.md)
+    // State owns the saved copy (`goals`); js/goals.js holds the rules and js/goalMetrics.js the daily-record numbers. Every function
+    // here is a no-op when those modules are not loaded (some Jest suites), and none of them throws.
+
+    const goalsReady = () => typeof Goals !== 'undefined' && typeof GoalMetrics !== 'undefined' && typeof CONFIG !== 'undefined';
+    const toMs = (now) => (now instanceof Date) ? now.getTime() : (typeof now === 'number' ? now : Date.now());
+
+    /** How many goal slots the player has at `level` (default: the current level): the table, never below the best ever held. */
+    function goalSlotCount(level) {
+        if (!goalsReady()) return 0;
+        return Goals.slotsAtLevel(typeof level === 'number' ? level : playerLevel, CONFIG.GOAL_SLOTS_PER_LEVEL, goals.bestSlots);
+    }
+
+    /** Raises the saved slot high-water mark to the count for `level`; returns the count. Never lowers it. */
+    function syncGoalSlots(level) {
+        if (!goalsReady()) return 0;
+        const n = goalSlotCount(level);
+        if (n > goals.bestSlots) goals = Object.assign({}, goals, { bestSlots: n });
+        return n;
+    }
+
+    /** Adds the suggested starter goals once (into free slots). Returns true when it changed anything. */
+    function ensureGoalsSeeded(now) {
+        if (!goalsReady() || goals.seeded) return false;
+        goals = Goals.seed(goals, CONFIG.GOAL_STARTERS, toMs(now), CONFIG.GOAL_WEEK_STARTS_ON, goalSlotCount());
+        return true;
+    }
+
+    const metricValue = (rec, id) => GoalMetrics.valueById(CONFIG.GOAL_METRICS, rec, id);
+
+    // The daily records a goal's targets read: the closed days of `deadline.days` plus the open day, between two day keys.
+    function recordsForRange(days, startKey, endKey) {
+        return GoalMetrics.recordsBetween(days, today, startKey, endKey);
+    }
+    function loadClosedDays() {
+        try {
+            if (typeof Persistence === 'undefined' || typeof DailyRecord === 'undefined') return {};
+            return DailyRecord.normalizeStore(Persistence.loadDays()).days;
+        } catch (e) { return {}; }
+    }
+
+    // pg counts (DailyRecord v10): stages climbed / lost, recurring periods met, milestones completed.
+    function bumpGoalCounts(counts) {
+        if (counts.climb > 0 || counts.drop > 0 || counts.met > 0 || counts.done > 0) bumpToday('pgoal', counts);
+    }
+
+    /**
+     * Brings every open milestone up to date (its stage follows its progress; a goal whose targets are all at 1 completes into the
+     * roster). Returns the roster records of the goals that completed just now ([] when none). Safe to call often; reads
+     * `deadline.days` only when an open milestone watches a daily-record number.
+     */
+    function settleGoals(now, opts) {
+        if (!goalsReady() || !goals.active.some(g => g.kind === 'milestone')) return [];
+        const nowMs = toMs(now);
+        const needsDays = goals.active.some(g => g.kind === 'milestone' && g.targets.some(t => t.type === 'aggregate'));
+        const days = needsDays ? loadClosedDays() : {};
+        const before = {};
+        goals.active.forEach((g) => { before[g.id] = g.stage; });
+        const r = Goals.settleMilestones(goals, {
+            nowMs,
+            runNights: daysSurvived,
+            rosterKeep: CONFIG.GOAL_ROSTER_KEEP,
+            metricValue,
+            recordsFor: (goal) => recordsForRange(days, Goals.dateKey(goal.createdAt), Goals.dateKey(nowMs)),
+        });
+        if (!r.changed) return [];
+        goals = r.goals;
+        const counts = { climb: 0, drop: 0, met: 0, done: r.completed.length };
+        goals.active.forEach((g) => {
+            if (before[g.id] === undefined) return;
+            if (g.stage > before[g.id]) counts.climb += g.stage - before[g.id];
+            else if (g.stage < before[g.id]) counts.drop += before[g.id] - g.stage;
+        });
+        r.completed.forEach((rec) => { counts.climb += Math.max(0, Goals.MAX_STAGE - (before[rec.id] || 0)); });
+        bumpGoalCounts(counts);
+        if (!(opts && opts.noSave)) saveGame();
+        return r.completed;
+    }
+
+    /**
+     * A task / habit was finished (dir +1) or un-finished (dir -1): `info` = { goalId, goalTargetId, type, definitionId, routineId }.
+     * Updates any linked target it counts toward, then settles the milestones. Returns { changed, completed }.
+     */
+    function applyGoalCompletion(info, dir, now) {
+        if (!goalsReady()) return { changed: false, completed: [] };
+        const r = Goals.applyCompletion(goals, info, dir);
+        if (!r.changed) return { changed: false, completed: [] };
+        goals = r.goals;
+        const completed = settleGoals(now, { noSave: true });
+        saveGame();
+        return { changed: true, completed };
+    }
+
+    /**
+     * Closes every recurring-goal period that ended before `now` (an app closed for weeks closes each one in order). Returns the
+     * outcomes [{ goalId, name, key, met, progress, stageBefore, stageAfter, streakAfter }] for the notices Build B shows.
+     */
+    function closeGoalPeriods(now) {
+        if (!goalsReady() || !goals.active.some(g => g.kind === 'recurring')) return [];
+        const nowMs = toMs(now);
+        const days = loadClosedDays();
+        const all = [];
+        const counts = { climb: 0, drop: 0, met: 0, done: 0 };
+        const active = goals.active.map((goal) => {
+            if (goal.kind !== 'recurring') return goal;
+            const r = Goals.closePeriods(goal, {
+                nowMs,
+                weekStartsOn: CONFIG.GOAL_WEEK_STARTS_ON,
+                historyKeep: CONFIG.GOAL_HISTORY_KEEP,
+                metricValue,
+                recordsFor: (key) => {
+                    const dayKeys = Goals.periodDayKeys(goal.period, key);
+                    if (dayKeys.length === 0) return { records: [], openKey: null };
+                    return recordsForRange(days, dayKeys[0], dayKeys[dayKeys.length - 1]);
+                },
+            });
+            r.outcomes.forEach((o) => {
+                all.push(Object.assign({ goalId: goal.id, name: goal.name }, o));
+                if (o.met) counts.met += 1;
+                if (o.stageAfter > o.stageBefore) counts.climb += o.stageAfter - o.stageBefore;
+                if (o.stageAfter < o.stageBefore) counts.drop += o.stageBefore - o.stageAfter;
+            });
+            return r.goal;
+        });
+        const changed = active.some((g, i) => g !== goals.active[i]);
+        if (!changed) return all;
+        goals = Object.assign({}, goals, { active });
+        bumpGoalCounts(counts);
+        saveGame();
+        return all;
     }
 
     /**
@@ -932,6 +1085,7 @@ const State = (() => {
         getPushbackUses, setPushbackUses,
         getAnytimeCreditUses, setAnytimeCreditUses,
         getPriorityMarks, setPriorityMarks,
+        getGoals, setGoals, goalSlotCount, syncGoalSlots, ensureGoalsSeeded, settleGoals, applyGoalCompletion, closeGoalPeriods,
         getCurrentRunStats, setCurrentRunStats,
         getRunHistory, setRunHistory,
         getLifetimeStats, setLifetimeStats,

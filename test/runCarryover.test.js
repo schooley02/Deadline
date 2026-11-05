@@ -112,10 +112,11 @@ describe('RunCarryover.summary', () => {
             openTasks: 2, openSubTasks: 1, routineSlots: 3,
             keptItems: [{ id: 'relic', name: 'Relic', count: 1 }],
             resetItems: 3,
+            goals: 0,
         });
     });
     test('empty state is all zeros with at least one slot', () => {
-        expect(RunCarryover.summary({})).toEqual({ openTasks: 0, openSubTasks: 0, routineSlots: 1, keptItems: [], resetItems: 0 });
+        expect(RunCarryover.summary({})).toEqual({ openTasks: 0, openSubTasks: 0, routineSlots: 1, keptItems: [], resetItems: 0, goals: 0 });
     });
 });
 

@@ -68,7 +68,11 @@ const Persistence = (() => {
     // per local due day (seeded {}; js/prioritySlots.js owns the maths) -- and a routine TASK definition no longer carries
     // High Priority (every priority is a deliberate mark on the day's instance), so the migration sets `isHighPriority`
     // false on every saved `definedTasks` entry. Instances already on the board keep their flag.
-    const SCHEMA_VERSION = 17;
+    // v18 (2026-11-05, Goals Build A; docs/GOALS_PLAN.md): the save gains `goals` -- { bestSlots, active, done, nextId, seeded } -- the
+    // player's goals, slot high-water mark and finished-goals roster (js/goals.js owns the shape). Seeded empty and NOT yet seeded with
+    // the suggested starters: State.ensureGoalsSeeded does that on the first boot of a save that has never seen them. Goals carry across
+    // runs (State.initGame never touches them).
+    const SCHEMA_VERSION = 18;
     const DEBOUNCE_MS = 500;
 
     // DOM references on item objects — never serialized, rebuilt on load.
@@ -535,6 +539,15 @@ const Persistence = (() => {
                 });
             }
             save.schemaVersion = 17;
+        }
+
+        // v17 -> v18 (2026-11-05, Goals Build A): `goals` seeded empty and unseeded (the suggested starters are added by
+        // State.ensureGoalsSeeded on boot, so a brand-new save gets them the same way). Inline, no module deps.
+        if (save.schemaVersion === 17) {
+            if (!save.goals || typeof save.goals !== 'object' || Array.isArray(save.goals)) {
+                save.goals = { bestSlots: 0, active: [], done: [], nextId: 1, seeded: false };
+            }
+            save.schemaVersion = 18;
         }
 
         if (save.schemaVersion !== SCHEMA_VERSION) {

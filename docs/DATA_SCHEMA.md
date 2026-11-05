@@ -58,6 +58,16 @@ Rules:
   state is thrown away by the reload regardless — same class of hazard as the session-52
   stub-before-edit trick, see CLAUDE.md's Cowork section).
 
+### schemaVersion 18 (BUILT 2026-11-05, Goals Build A; docs/GOALS_PLAN.md)
+- Root `goals`: `{ bestSlots, active: Goal[], done: GoalRecord[], nextId, seeded }`. Repaired on load by `Goals.sanitizeGoals`. **Carries across runs** (`initGame` never touches it); the dev Reset wipes it.
+  - `bestSlots`: the most goal slots ever held (high-water mark; slots for a level = `max(CONFIG.GOAL_SLOTS_PER_LEVEL[level], bestSlots)`).
+  - `Goal`: `{ id, name, createdAt (ms), kind: 'milestone' | 'recurring', period: 'day' | 'week' | 'month' | null, deadline: 'YYYY-MM-DD' | null, targets: Target[], stage 0..5, streak, bestStreak, periodsMet, periodKey, history: [{ key, met, progress }] (last `GOAL_HISTORY_KEEP`), completedAt, suggested? }`. A milestone's displayed stage is derived from progress; a recurring goal's `stage` is the stored ladder (+1 per period met, -1 per period missed).
+  - `Target` (`id` unique inside the goal, `type`, `label`): `number { start, end, current, unit }`, `bool { done }`, `linked { itemTotal, itemDone, habitDefIds[], routineIds[], count, occ }`, `aggregate { metric (CONFIG.GOAL_METRICS id), op: 'sum' | 'days', threshold, compare: 'gte' | 'lte', count }`. Progress of a goal = the mean of its targets (each 0..1).
+  - `GoalRecord` (the roster of finished goals, newest first, capped at `GOAL_ROSTER_KEEP`): `{ id, name, kind, period, targets: [label], startedAt, finishedAt, periodsMet, bestStreak, runNights }`. Opaque numbers and the player's own text only.
+- Items: `item.goalId` + `item.goalTargetId` (additive, no bump) mark a one-off task made by a goal's linked target.
+- The v17 -> v18 migration seeds `goals: { bestSlots: 0, active: [], done: [], nextId: 1, seeded: false }`; `State.ensureGoalsSeeded` then adds the two suggested goals once.
+- DailyRecord v10: `pg` = { climb, drop, met, done } (stages gained / lost, recurring periods met, milestones completed today). Older records read as zeros; the month roll-up sums it.
+
 ### schemaVersion 17 (BUILT 2026-11-04, priority slots Build A; docs/PRIORITY_SLOTS_PLAN.md)
 - Root `priorityMarks`: `{ 'YYYY-MM-DD': n }`, the priority slots SPENT per local DUE day (n > 0, whole numbers; junk keys dropped by `PrioritySlots.sanitizeMarks`). A mark is spent when a task is marked and is never given back; `available = CONFIG.PRIORITY_SLOTS_PER_DAY * (1 + floor(done / perDay)) - marks`, where `done` is derived from the completed list (priority tasks that took a slot, by due day), so nothing else is stored. Pruned to yesterday-and-later at `performDayRollover`; `State.initGame` (new run / Reset Game) clears it. Carried by Backup & Transfer with the rest of the save.
 - Items: `item.priorityInherited = true` marks a sub-task whose `isHighPriority` came from its priority parent (so unmarking or moving the parent takes back exactly those); absent = false, additive.

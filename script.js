@@ -831,6 +831,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!result.leveledUp) return false;
 
         State.setPlayerLevel(result.level);
+        // Goals (Build A): the goal-slot high-water mark catches up with the new level (a lost run never takes a slot back).
+        State.syncGoalSlots();
+        saveGame();
 
         // Level perks (docs/LEVEL_PERKS_PLAN.md): every level crossed pays out —
         // a big XP award can jump several. Item perks go into HELD inventory
@@ -946,6 +949,8 @@ document.addEventListener('DOMContentLoaded', () => {
             onItemDefeated: (item) => heroAttackOnDefeat(item),
             // Daily record (D2, 2026-10-27): every gameplay seam bumps through here.
             recordDaily: State.bumpToday,
+            // Goals (Build A, 2026-11-05): a finished / un-finished task or habit counts toward any linked goal target.
+            onGoalProgress: (info, dir) => State.applyGoalCompletion(info, dir),
             // Priority slots (2026-11-04): the spent-marks map per due day, read and written by Items.setPriority.
             getPriorityMarks: () => State.getPriorityMarks(),
             setPriorityMarks: (m) => State.setPriorityMarks(m),
@@ -3139,6 +3144,7 @@ document.addEventListener('DOMContentLoaded', () => {
         State.setLifetimeStats(Achievements.freshLifetimeStats());
         State.setAchievements(Achievements.freshUnlocked());
         State.setBestRoutineSlots(0); // run-end carryover: a dev Reset forgets the best slot count too
+        State.setGoals(null); // ...and every goal, streak and goal slot (initGame then seeds the suggested starters again)
         if (typeof Persistence !== 'undefined') Persistence.clear();
         initGame();
         saveGame();

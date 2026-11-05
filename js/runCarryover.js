@@ -121,6 +121,8 @@ const RunCarryover = (() => {
             routineSlots: Math.max(1, sanitizeBestSlots(c.routineSlots) || 1),
             keptItems,
             resetItems: Math.max(0, heldTotal - keptTotal),
+            // Goals Build A (2026-11-05): goals carry across runs untouched; the count is for the game-over card's "You keep" line (Build B).
+            goals: Array.isArray(c.goals) ? c.goals.length : 0,
         };
     }
 

@@ -7,10 +7,10 @@ const DailyRecord = require('../js/dailyRecord.js');
 const rec = () => DailyRecord.fresh({ date: '2026-11-03', tz: 0 });
 
 describe('v7 drops tally', () => {
-    test('the version is 9 (v8 adds tcorr, v9 adds pri) and a fresh record starts with no drops', () => {
-        expect(DailyRecord.V).toBe(9);
+    test('the version is 10 (v8 adds tcorr, v9 adds pri, v10 adds pg) and a fresh record starts with no drops', () => {
+        expect(DailyRecord.V).toBe(10);
         const r = rec();
-        expect(r.v).toBe(9);
+        expect(r.v).toBe(10);
         expect(r.drops).toEqual({ n: 0, pts: 0 });
     });
 

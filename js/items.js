@@ -425,6 +425,21 @@ const Items = (() => {
     }
     // Routine id for the daily record's attendance tally (village High school, 2026-10-30). null = a standalone item,
     // or the lookup deps are unavailable. Never throws: a stats lookup must not break a completion or a tick.
+    // Goals Build A (2026-11-05, docs/GOALS_PLAN.md): a finished (+1) or un-finished (-1) task / habit tells the player's goals, which
+    // count it toward any linked target. `deps.onGoalProgress` is OPTIONAL (script.js wires State.applyGoalCompletion); item fields
+    // `goalId` / `goalTargetId` mark a one-off task made by a goal's linked target, the routine / habit ids reach recurring links.
+    function goalProgress(item, deps, dir) {
+        if (!deps || typeof deps.onGoalProgress !== 'function') return;
+        try {
+            deps.onGoalProgress({
+                goalId: item.goalId != null ? item.goalId : null,
+                goalTargetId: item.goalTargetId != null ? item.goalTargetId : null,
+                type: item.type,
+                definitionId: item.definitionId != null ? item.definitionId : null,
+                routineId: dailyRoutineId(item, deps),
+            }, dir);
+        } catch (e) { console.error('Deadline: goal progress failed', e); }
+    }
     function dailyRoutineId(item, deps) {
         try {
             const routine = findRoutineForItem(item, deps);
@@ -887,6 +902,7 @@ const Items = (() => {
             routineId: dailyRoutineId(item, deps),
             pri: dailyTakesPrioritySlot(item, deps) // daily record v9: a priority that spent a slot (see js/prioritySlots.js)
         });
+        goalProgress(item, deps, +1);
         deps.saveGame();
         // Priority slots (Build B): a full set of priorities done on this task's day opens a fresh set -- tell the player.
         if (typeof deps.onPrioritySetComplete === 'function' && dailyTakesPrioritySlot(item, deps)) {
@@ -1877,6 +1893,7 @@ const Items = (() => {
             routineId: dailyRoutineId(item, deps),
             pri: dailyTakesPrioritySlot(item, deps)
         });
+        goalProgress(item, deps, -1);
         // Habit Goals Build 3 (daily record v5): the undone answer's goal entry goes with it (same closed-day guard via `at`).
         if (item.type === 'habit') {
             recordDaily(deps, 'goalClear', { habitId: item.definitionId, at: dailyCompletedAtMs });

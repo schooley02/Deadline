@@ -873,6 +873,44 @@ const CONFIG = {
     // gives it back); finishing a full set of this many priorities on a day opens this many fresh slots for that day. The same
     // number is the set size and the reset size. A balance number: change it only via the balance-tuning process (DECISIONS).
     PRIORITY_SLOTS_PER_DAY: 3,
+
+    // --- Goals (DESIGNED 2026-11-04, Jeremy; docs/GOALS_PLAN.md; DECISIONS 2026-11-04 (goals)). Build A data + rules; nothing on screen yet.
+    // Goal SLOTS by player level. Slots unlock by in-run level and are kept forever as a high-water mark (`goals.bestSlots`, the
+    // `bestRoutineSlots` precedent), so a lost run never takes a slot back. Even levels only: a goal slot never lands on the same
+    // level-up as a routine slot (odd levels). Every level has an entry and the table never decreases (a test checks).
+    // A balance number: change it only via the balance-tuning process (DECISIONS).
+    GOAL_SLOTS_PER_LEVEL: { 1: 2, 2: 3, 3: 3, 4: 4, 5: 4, 6: 5, 7: 5, 8: 6, 9: 6 },
+    // First day of a "Every week" goal's week: 0 = Sunday, 1 = Monday. (A Settings row later, if asked.)
+    GOAL_WEEK_STARTS_ON: 1,
+    // A goal stays "ahead" while its progress is within this share of the elapsed line, so the pace dot does not flicker.
+    GOAL_PACE_SLACK: 0.1,
+    // How many closed periods a recurring goal remembers (the history strip), and how many finished goals the roster keeps.
+    GOAL_HISTORY_KEEP: 26,
+    GOAL_ROSTER_KEEP: 500,
+    // The daily-record numbers a "Your days" (aggregate) target may watch. `path` = a dotted path into a DailyRecord (js/goalMetrics.js);
+    // `special` = a derived number (prioritySets, perfectDay). Add a row to offer a new metric; the id is saved in the player's goals, so
+    // never rename or reuse one.
+    GOAL_METRICS: [
+        { id: 'tasksDone', label: 'Tasks done', unit: 'tasks', path: 'done.task' },
+        { id: 'buildHabitsDone', label: 'Build Habits done', unit: 'habits', path: 'done.habit' },
+        { id: 'breakHabitsResisted', label: 'Break Habits resisted', unit: 'times', path: 'lurk.avoided' },
+        { id: 'timeLoggedMin', label: 'Time Logged', unit: 'min', path: 'timer.workMin' },
+        { id: 'baseDamageTaken', label: 'Base damage taken', unit: 'HP', path: 'dmg.taken' },
+        { id: 'prioritySets', label: 'Full sets of 3 priorities done', unit: 'sets', special: 'prioritySets' },
+        { id: 'perfectDay', label: 'Perfect routine attendance', unit: 'days', special: 'perfectDay' },
+        { id: 'pointsEarned', label: 'Points earned', unit: 'pts', path: 'pts.earned' },
+    ],
+    // The two suggested goals every fresh save starts with (the player keeps, changes or removes them). Theme-neutral copy.
+    GOAL_STARTERS: [
+        {
+            name: 'A productive week', kind: 'recurring', period: 'week',
+            targets: [{ type: 'aggregate', label: 'Finish 3 tasks on 5 days', metric: 'tasksDone', op: 'days', threshold: 3, compare: 'gte', count: 5 }],
+        },
+        {
+            name: 'One big thing', kind: 'milestone', deadline: null,
+            targets: [{ type: 'number', label: 'Steps', start: 0, end: 10, current: 0, unit: 'steps' }],
+        },
+    ],
     // Work timer: overdue base + routine damage is multiplied by this while a
     // timer runs on the item (never 0 — a running timer is not a free pass).
     WORK_TIMER_DAMAGE_FACTOR: 0.5,

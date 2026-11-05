@@ -397,8 +397,8 @@ describe('dayScore / bestWorstByRun (D2 step 5)', () => {
 });
 
 describe('adjustTimer (v4, Habit Goals Build 2c)', () => {
-    test('version is 9 (v5 adds goals, v6 adds pb, v7 adds drops, v8 adds tcorr, v9 adds pri) and a fresh record carries the edit counters', () => {
-        expect(DailyRecord.V).toBe(9);
+    test('version is 10 (v5 adds goals, v6 adds pb, v7 adds drops, v8 adds tcorr, v9 adds pri, v10 adds pg) and a fresh record carries the edit counters', () => {
+        expect(DailyRecord.V).toBe(10);
         expect(rec().timer).toEqual({ workMin: 0, limitMin: 0, edits: 0, editMin: 0 });
     });
 

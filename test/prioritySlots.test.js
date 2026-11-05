@@ -403,8 +403,8 @@ describe('Items.completeItem / uncompleteItem: the daily record `pri` flag', () 
 });
 
 describe('DailyRecord v9: pri', () => {
-    test('the version is 9 and a fresh record carries pri { m, d, s }', () => {
-        expect(DailyRecord.V).toBe(9);
+    test('the version is 10 (v10 adds pg) and a fresh record carries pri { m, d, s }', () => {
+        expect(DailyRecord.V).toBe(10);
         expect(DailyRecord.fresh().pri).toEqual({ m: 0, d: 0, s: 0 });
     });
     test('a mark bumps m; a priority completion bumps d and an undo takes it back (floor 0)', () => {
@@ -459,7 +459,7 @@ describe('Persistence v16 -> v17', () => {
             definedTasks: [{ id: 't1', isHighPriority: true }, { id: 't2', isHighPriority: false }, null],
             activeItems: [{ id: 1, type: 'task', isHighPriority: true }],
         });
-        expect(save.schemaVersion).toBe(17);
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION); // 16 -> 17 -> ... -> current
         expect(save.priorityMarks).toEqual({});
         expect(save.definedTasks[0].isHighPriority).toBe(false);
         expect(save.definedTasks[1].isHighPriority).toBe(false);
@@ -470,8 +470,8 @@ describe('Persistence v16 -> v17', () => {
         const kept = { [KEY5]: 2 };
         expect(Persistence.migrate({ schemaVersion: 16, priorityMarks: kept }).priorityMarks).toBe(kept);
     });
-    test('SCHEMA_VERSION is 17', () => {
-        expect(Persistence.SCHEMA_VERSION).toBe(17);
+    test('SCHEMA_VERSION is 18', () => {
+        expect(Persistence.SCHEMA_VERSION).toBe(18);
     });
 });
 

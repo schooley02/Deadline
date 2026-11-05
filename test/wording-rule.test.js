@@ -80,3 +80,47 @@ describe('wording rule: Build Habit / Break Habit, Time Logged', () => {
         expect(probe('x = `<button class="logged-time-input">`;')).toHaveLength(0);
     });
 });
+
+// ---------------------------------------------------------------------------------------------------------------------------
+// Baseline vs Deadline (Jeremy, 2026-11-04; docs/GOALS_PLAN.md "Baseline seam", CLAUDE.md "Baseline vs Deadline").
+// The Goals engine files speak engine words only. Every theme word (and every sprite path) lives in js/theme.js, so a second theme
+// (fantasy, say) is another Theme table plus assets, with no edit to these files. Comments are stripped like the scan above.
+// ---------------------------------------------------------------------------------------------------------------------------
+const THEME_WORDS = /\b(zombies?|undead|church(?:es)?|village|vats?|lab|laboratory|patients?|cure[ds]?|cures|curing|survivors?|graveyard|horde)\b/i;
+const ENGINE_GOAL_FILE = /^(js|js\/ui|css)\/goal[^/]*\.(js|css)$/;
+
+function engineGoalSources() {
+    const rels = [...jsFiles('js'), ...(fs.existsSync(path.join(root, 'css')) ? fs.readdirSync(path.join(root, 'css')).map(f => path.join('css', f)) : [])]
+        .map((rel) => rel.split(path.sep).join('/'))
+        .filter((rel) => ENGINE_GOAL_FILE.test(rel));
+    return rels.map((rel) => ({ rel, text: stripComments(read(rel)) }));
+}
+
+describe('Baseline vs Deadline: no theme word in the Goals engine files', () => {
+    test('js/goals*.js, js/ui/goal*.js and css/goal*.css carry no theme word', () => {
+        const hits = [];
+        engineGoalSources().forEach(({ rel, text }) => {
+            text.split('\n').forEach((line, i) => {
+                if (THEME_WORDS.test(line)) hits.push(`${rel}:${i + 1} ${line.trim().slice(0, 140)}`);
+            });
+        });
+        expect(hits).toEqual([]);
+    });
+
+    test('the scan really covers the Goals files (goals.js and goalMetrics.js)', () => {
+        const rels = engineGoalSources().map(s => s.rel);
+        expect(rels).toEqual(expect.arrayContaining(['js/goals.js', 'js/goalMetrics.js']));
+    });
+
+    test('js/theme.js is where the theme words live', () => {
+        expect(THEME_WORDS.test(stripComments(read('js/theme.js')))).toBe(true);
+    });
+
+    test('the guard catches a theme word and ignores comments and look-alikes', () => {
+        const probe = (s) => THEME_WORDS.test(stripComments(s));
+        expect(probe("label = 'Cure the zombie';")).toBe(true);
+        expect(probe("title = 'The Lab';")).toBe(true);
+        expect(probe("const n = 1; // a zombie, in a comment")).toBe(false);
+        expect(probe("const label = 'Slipped a stage'; const collab = 1;")).toBe(false); // 'label' / 'collab' are not 'lab'
+    });
+});

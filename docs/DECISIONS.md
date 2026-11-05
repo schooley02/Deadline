@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-05 (goals Build A) -- Goals engine and data built, invisible; linked targets count events, not items; starters are seeded from State (Claude app session; Sonnet, medium; Jeremy: "i pushed it, continue"). Plan: docs/GOALS_PLAN.md "Build A as built". BUILT.
+
+- **Built exactly the 2026-11-04 design** (theme seam, pure `js/goals.js` + `js/goalMetrics.js`, `State.goals`, schema 18, carryover, period close, DailyRecord v10 `pg`, the wording-rule second scan). Nothing is visible yet; Build B adds the pane.
+- **Linked targets are event-driven counters** (`itemDone` / `occ`, moved by `Items` -> `deps.onGoalProgress`), not a live read of the item list. Why: items are removed when settled and a new run resets ids, so a live read would lose progress and could match the wrong item. Rejected: re-deriving progress from `completedItems` each time.
+- **Starters are added by `State.ensureGoalsSeeded` (initGame + restore), not by the v17 -> v18 migration**, so a brand-new player and a migrated one get the same two suggested goals once, and a player who removes them never sees them again (`seeded`). Rejected: seeding in the migration (a fresh save skips migrations).
+- **Week key = the date of the week's first day**, so a key sorts and reads on its own; first day is `CONFIG.GOAL_WEEK_STARTS_ON` (Monday).
+- **A catch-up closes every missed period in order**; only the first reads the counters the player built, later ones can only be met by their daily records. A `lte` aggregate day that is still open never counts as passed.
+- **Deferred, on purpose:** perk toast on level-up, the game-over "You keep" goals line, `CONFIG.GOAL_REWARDS` (balance pass first), and every notice (the close functions return outcomes for Build B). No balance number changed: `GOAL_SLOTS_PER_LEVEL` is the table Jeremy approved on 2026-11-04 (slots 2/3/3/4/4/5/5/6/6 at Lv 1-9).
+
 ## 2026-11-04 (goals) -- Goals live in their own pane built from the stage-ladder grammar; two kinds (milestone / recurring with relapse); slots unlock by level and never regress; goals carry across runs; the first Baseline theme seam (Claude app session; Fable 5.1, high effort; Jeremy). Plan: docs/GOALS_PLAN.md. NOT BUILT.
 
 - Jeremy's notes: goal slots unlock with level; daily / weekly / monthly / yearly / lifetime goals; goal rewards, especially for the hard ones; ClickUp's Goals + Targets as a reference; goals matter for motivation; keep the at-a-glance rule. His lab idea: a goal is a zombie in a vat that turns back into a healthy human as progress is made (cured = goal reached), with cured zombies recorded somehow; or use the graveyard. His constraint: the game must stay re-themeable by swapping assets (fantasy castles and knights, say), and a vat-to-human morph has no obvious equivalent in another theme.
