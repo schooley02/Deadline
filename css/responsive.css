@@ -197,3 +197,18 @@
     }
     .form-row-group.time-pair .form-row { margin-bottom: 0; }
 }
+
+/* HUD six-button row on phones (Goals Build B1 follow-up, 2026-11-05): health, level, village, heroes, points and goals share ONE row
+   down to 340px wide. Tighter padding and gaps, 20px icons, a short XP bar, and two text bits dropped (the health state word, which the
+   ring colour + number + aria-label still carry and the Base Health panel spells out, and the goals "1/2" count, which the pace dots
+   + aria-label carry). Wider screens keep the full buttons. test/hudPhoneFit.test.js pins the rule. */
+@media (max-width: 430px) {
+    .resource-panel { gap: 4px; }
+    .resource-panel > button.stat-item { padding-left: 6px; padding-right: 6px; gap: 3px; }
+    .resource-panel > button.stat-item > svg:not(.bh-ring) { width: 20px; height: 20px; }
+    .level-xp-bar { width: 22px; }
+    .bh-chip { display: none; }
+    .goals-button-count { display: none; }
+    .goals-button-dots { gap: 2px; }
+    .goals-dot { width: 5px; height: 5px; }
+}
