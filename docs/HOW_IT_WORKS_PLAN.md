@@ -43,4 +43,4 @@ Copy lives in `js/ui/howItWorks.js` `runsTopic` (slot-unlock levels are read fro
 `timers` "Timers and Time Logged" was added (before "When a run ends") by Timer sessions Build C: damage cut while a timer runs, the Still working? check, sessions + the untimed entry, typed totals never below the timed sessions, the take-back rule (numbers from CONFIG). See docs/TIMER_SESSIONS_PLAN.md "Build C as built".
 
 ## Addendum (2026-11-05): 10th topic, "Goals" (id `goals`)
-Copy in `js/ui/howItWorks.js` `goalsTopic` (slot ladder read from `CONFIG.GOAL_SLOTS_PER_LEVEL`). Includes the reward line ("Goals pay points and XP when a period is met or a goal is finished."), which is ahead of behavior until Goals Build C. (i) button on the Stats Goals heading.
+Copy in `js/ui/howItWorks.js` `goalsTopic` (slot ladder read from `CONFIG.GOAL_SLOTS_PER_LEVEL`). Includes the reward line ("Goals pay points and XP when a period is met or a goal is finished."), which is gated on `CONFIG.GOAL_REWARDS` and appears when Goals Build C adds it. (i) button on the Stats Goals heading.

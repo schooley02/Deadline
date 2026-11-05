@@ -241,7 +241,7 @@ const HowItWorks = (() => {
                 `One-time goals climb as you make progress and finish when every target is full. A deadline is a pace marker, not a penalty: the dot shows whether you are ahead or behind, and nothing is lost if you run late.`,
                 slotLine,
                 `Goals, their streaks and your list of finished goals belong to you, not to the base. A lost run never touches them.`,
-                `Goals pay points and XP when a period is met or a goal is finished.`,
+                ...(config && config.GOAL_REWARDS ? [`Goals pay points and XP when a period is met or a goal is finished.`] : []), // gated until Build C adds GOAL_REWARDS
             ],
             why: `A goal gives the daily work a direction, and the stages make progress something you can see.`,
         };

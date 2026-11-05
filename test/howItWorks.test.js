@@ -69,9 +69,11 @@ describe('Goals', () => {
         expect(t).toContain('Lv 3 and 5');
         expect(t).toContain('up to 3');
     });
-    test('says goals belong to the player, not the run, and carries the approved reward line (no numbers until the balance pass)', () => {
+    test('says goals belong to the player, not the run; the reward line waits for CONFIG.GOAL_REWARDS (Build C) and has no numbers', () => {
         expect(text()).toMatch(/a lost run never touches them/i);
-        expect(text()).toContain('Goals pay points and XP when a period is met or a goal is finished.');
+        expect(text()).not.toContain('Goals pay points and XP');
+        const withRewards = HowItWorks.topics(Object.assign({}, CONFIG, { GOAL_REWARDS: {} })).find(t => t.id === 'goals');
+        expect(withRewards.what.join(' ')).toContain('Goals pay points and XP when a period is met or a goal is finished.');
         expect(text()).not.toMatch(/\d+ (points|XP)/);
     });
     test('uses the theme words for the pane title only, and no theme noun leaks otherwise', () => {

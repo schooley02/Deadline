@@ -6,7 +6,7 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ## 2026-11-05 (goals Build B2) -- Add / Edit form, linked picker + badges, `goals` topic, PointsInfo line, Stats row (Claude app session; Sonnet, medium-high; Jeremy: "reward line is a yes, linked task i agree with your suggestions, B2 scope i agree"). Plan: docs/GOALS_PLAN.md "Build B2 as built". BUILT.
 
-- **Reward line approved ahead of Build C:** the topic and PointsInfo say goals pay points and XP, with no numbers; no balance number changed. (Optional later: gate the PointsInfo line on `GOAL_REWARDS`.)
+- **Reward line approved, then GATED (Jeremy, 2026-11-05, same day: "gated until build C"):** the no-numbers line ("Goals pay points and XP when a period is met or a goal is finished.") shows in the Goals topic and PointsInfo only when `CONFIG.GOAL_REWARDS` exists, which Build C adds. No balance number changed.
 - **Linked tasks: existing open one-off tasks only, no inline creation; one-time goals only.** A recurring target counts habit / routine occurrences, so a one-off task would never count there. Only Build Habits and routines are linkable.
 - **Edit keeps kind and period fixed** (changing them would rewrite history); matched targets keep counters; a dropped target's id is never reused. Link counts self-heal on every form save.
 - **Ids compare by `sameId`:** DOM ids arrive as strings; `removeGoal` / `retireGoal` were strict and broke Delete / Retire live. Fixed.
