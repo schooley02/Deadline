@@ -946,6 +946,9 @@ document.addEventListener('DOMContentLoaded', () => {
             onItemDefeated: (item) => heroAttackOnDefeat(item),
             // Daily record (D2, 2026-10-27): every gameplay seam bumps through here.
             recordDaily: State.bumpToday,
+            // Priority slots (2026-11-04): the spent-marks map per due day, read and written by Items.setPriority.
+            getPriorityMarks: () => State.getPriorityMarks(),
+            setPriorityMarks: (m) => State.setPriorityMarks(m),
             // Habit Goals Build 2c: an edited logged time corrects the daily record of the item's own day.
             adjustDayTimer: (when, kind, deltaMin) => State.adjustDayTimer(DailyRecord.dateKey(when), kind, deltaMin),
             // Habit Goals Build 3 (daily record v5): an edited logged time refreshes the habit's recorded goal `actual` on that day.
@@ -1249,8 +1252,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const quote = reschedulePricingFor(task, newDue);
         if (!quote || !quote.ok) return { ok: false };
         commitReschedule(task, quote);
+        const oldDue = task.dueDateTime;
         task.dueDateTime = newDue;
         Items.syncAnytimeFlag(task); // still 23:59, so it stays an anytime task
+        Items.syncPriorityOnMove(task, oldDue, itemsDeps()); // "Tomorrow" is another day: priority does not carry over
         Items.recomputeOverdueStateAfterEdit(task, itemsDeps());
         if (task.listItemElement) {
             task.listItemElement.remove();
@@ -2629,8 +2634,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!item) { refreshGhostLook([]); saveGame(); return; }
             Popups.promptNewDueTime(item, popupsDeps(), (res) => {
                 if (res && res.dueDateTime instanceof Date && res.dueDateTime.getTime() > Date.now()) {
+                    const oldDue = item.dueDateTime;
                     item.dueDateTime = res.dueDateTime;
                     Items.syncAnytimeFlag(item); // not 23:59 any more -> an ordinary timed task
+                    Items.syncPriorityOnMove(item, oldDue, itemsDeps()); // another day: priority does not carry over
                     // A new future time un-overdues it (and re-positions it).
                     Items.recomputeOverdueStateAfterEdit(item, itemsDeps());
                 }
@@ -3299,6 +3306,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!q || !q.ok) return { ok: false };
 
         commitReschedule(targetItem, q);
+        const dueBeforePush = targetItem.dueDateTime;
         // Counts from the later of now and the current due (2026-10-26, Jeremy): an
         // overdue zombie is pushed to now + size, so even a Short clears it.
         targetItem.dueDateTime = Shop.pushedBackDueDate(targetItem.dueDateTime, size.ms, now.getTime());
@@ -3316,6 +3324,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Anytime (2026-11-02): the flag survives a pushback only while the due time is still exactly 23:59 (e.g. a Long
         // from a not-yet-overdue task); a Short / Medium, or any push from an overdue task, makes it an ordinary timed task.
         Items.syncAnytimeFlag(targetItem);
+        // Priority slots: a push onto another local day strips priority (the old day's slot stays spent).
+        Items.syncPriorityOnMove(targetItem, dueBeforePush, itemsDeps());
 
         // Re-derive overdue state from the NEW due date — same reasoning as the
         // Edit Task save path (js/ui/popups.js showEditTaskModal): without this

@@ -58,6 +58,12 @@ Rules:
   state is thrown away by the reload regardless — same class of hazard as the session-52
   stub-before-edit trick, see CLAUDE.md's Cowork section).
 
+### schemaVersion 17 (BUILT 2026-11-04, priority slots Build A; docs/PRIORITY_SLOTS_PLAN.md)
+- Root `priorityMarks`: `{ 'YYYY-MM-DD': n }`, the priority slots SPENT per local DUE day (n > 0, whole numbers; junk keys dropped by `PrioritySlots.sanitizeMarks`). A mark is spent when a task is marked and is never given back; `available = CONFIG.PRIORITY_SLOTS_PER_DAY * (1 + floor(done / perDay)) - marks`, where `done` is derived from the completed list (priority tasks that took a slot, by due day), so nothing else is stored. Pruned to yesterday-and-later at `performDayRollover`; `State.initGame` (new run / Reset Game) clears it. Carried by Backup & Transfer with the rest of the save.
+- Items: `item.priorityInherited = true` marks a sub-task whose `isHighPriority` came from its priority parent (so unmarking or moving the parent takes back exactly those); absent = false, additive.
+- The v16 -> v17 migration seeds `priorityMarks: {}` and sets `isHighPriority = false` on every saved `definedTasks` entry (a routine task DEFINITION is never priority; instances already on the board keep their flag).
+- DailyRecord v9: `pri` = { m, d, s } (marks spent today / priority tasks finished today that took a slot / full sets of three, written at close). Older records read as zeros.
+
 ### schemaVersion 16 (2026-11-03, achievements swap): `lifetimeStats` counters for Honor Roll / Clean Sweep / Iron Will
 - `lifetimeStats.steadyRoutineRuns` is REMOVED (Steady Hands retired). New numbers: `heroHonorDays`, `cleanDays`, `breaksResisted` (all >= 0, lifetime, survive a restart, wiped only by dev-Reset). `achievements` is untouched (old `steady_hands_*` keys stay, harmlessly).
 - The v15 -> v16 migration seeds them once from `deadline.days` (closed days: routines with `stars` >= 3, days with `due` > 0 and `missed` = 0, `lurk.avoided`), plus the open `save.today`'s `lurk.avoided` unless its date is already closed. Counters that already exist are never overwritten. `Persistence.migrate(save, daysStore?)` takes an optional days store for tests. (Schema 15, the `today` slot, is described under DailyRecord.)

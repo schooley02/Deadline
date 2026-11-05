@@ -62,7 +62,9 @@ const DailyRecord = (() => {
     // apart from bought ones (`pts.spent`) and from the level-perk gifts (not recorded).
     // v8 (2026-11-04, Timer sessions): `tcorr` = { n, hp }, the corrections that took halved damage back: a timer session was
     // shortened or deleted over minutes when its zombie was attacking (n = corrections charged, hp = HP taken, after the 1 HP floor).
-    const V = 8;
+    // v9 (2026-11-04, Priority slots): `pri` = { m, d, s }, the day's priority slots: m = marks spent today (any due day), d = priority
+    // tasks finished today that spent a slot (an undo takes one back), s = full sets of three finished (floor(d / 3), written at close).
+    const V = 9;
     // Mirrors Habits.GOAL_UNIT_SUGGESTIONS (test/dailyRecord.test.js checks they match). Kept local: no global dependencies.
     const GOAL_UNITS = ['pages', 'glasses', 'oz', 'steps', 'miles', 'km', 'reps', 'words', 'servings', 'drinks', 'cigarettes', 'cups', '$', 'times'];
     const GOAL_TYPES = ['time', 'amount', 'note'];
@@ -155,6 +157,8 @@ const DailyRecord = (() => {
             drops: { n: 0, pts: 0 },
             // v8: timer-session corrections that took halved damage back (see V above).
             tcorr: { n: 0, hp: 0 },
+            // v9: priority slots marked / finished today (see V above).
+            pri: { m: 0, d: 0, s: 0 },
             ko: 0,
             revived: 0,
             timer: { workMin: 0, limitMin: 0, edits: 0, editMin: 0 },
@@ -360,6 +364,10 @@ const DailyRecord = (() => {
             }
             return;
         }
+        if (p.pri === true) {
+            if (!rec.pri) rec.pri = { m: 0, d: 0, s: 0 };
+            rec.pri.d = dir > 0 ? rec.pri.d + 1 : dec(rec.pri.d);
+        }
         if (dir > 0) {
             rec.done[kind] += 1;
             if (p.late) rec.done.late += 1;
@@ -456,6 +464,12 @@ const DailyRecord = (() => {
                 if (pts > 0) rec.drops.pts += pts;
                 break;
             }
+            case 'pri': {
+                // A priority slot was spent (a task marked): p = { mark: 1 }. Finishes ride on 'complete' / 'uncomplete' (p.pri).
+                if (!rec.pri) rec.pri = { m: 0, d: 0, s: 0 };
+                if (Math.floor(Number(p.mark)) > 0) rec.pri.m += 1;
+                break;
+            }
             case 'tcorr': {
                 // A timer-session correction charged back halved damage: p = { hp } (the HP actually taken, floor applied).
                 if (!rec.tcorr) rec.tcorr = { n: 0, hp: 0 };
@@ -540,6 +554,8 @@ const DailyRecord = (() => {
             r.att.perfect = a.perfect;
         }
         r.rt = {};
+        // v9: full priority sets finished that day (three finished = three more slots).
+        r.pri.s = Math.floor(r.pri.d / 3);
         return r;
     }
 
@@ -666,6 +682,10 @@ const DailyRecord = (() => {
         if (!dst.tcorr) dst.tcorr = { n: 0, hp: 0 };
         dst.tcorr.n += (src.tcorr && src.tcorr.n) || 0;
         dst.tcorr.hp += (src.tcorr && src.tcorr.hp) || 0;
+        if (!dst.pri) dst.pri = { m: 0, d: 0, s: 0 };
+        dst.pri.m += (src.pri && src.pri.m) || 0;
+        dst.pri.d += (src.pri && src.pri.d) || 0;
+        dst.pri.s += (src.pri && src.pri.s) || 0;
         dst.ko += src.ko || 0;
         dst.revived += src.revived || 0;
         dst.active.touches += (src.active && src.active.touches) || 0;

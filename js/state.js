@@ -74,6 +74,10 @@ const State = (() => {
     // Anytime morning-card credits (2026-11-02): use stamps (ms) of the on-time credits spent, a rolling window read by
     // AnytimeCheck.creditInfo. Additive root save field, no schema bump; a fresh run starts with none spent.
     let anytimeCreditUses = [];
+    // Priority slots (2026-11-04, docs/PRIORITY_SLOTS_PLAN.md): how many priority slots were SPENT per local due day,
+    // { 'YYYY-MM-DD': n } (schema 17). A mark is spent when a task is marked and never given back (PrioritySlots owns the
+    // maths). Pruned to yesterday-and-later at rollover; a fresh run (initGame) starts with none spent.
+    let priorityMarks = {};
     let currentRunStats = (typeof RunStats !== 'undefined') ? RunStats.freshRunStats() : {};
     let runHistory = [];
     // D2 (2026-10-27, docs/DAILY_RECORD_PLAN.md): the live DailyRecord for the
@@ -129,6 +133,11 @@ const State = (() => {
     // Keeps only finite ms stamps; anything else (junk, old saves) becomes empty.
     const setAnytimeCreditUses = (arr) => {
         anytimeCreditUses = Array.isArray(arr) ? arr.filter(n => typeof n === 'number' && isFinite(n)) : [];
+    };
+    const getPriorityMarks = () => priorityMarks;
+    // Keeps only { 'YYYY-MM-DD': n > 0 }; junk and old saves become empty. No-op shape when PrioritySlots isn't loaded (tests).
+    const setPriorityMarks = (obj) => {
+        priorityMarks = (typeof PrioritySlots !== 'undefined') ? PrioritySlots.sanitizeMarks(obj) : ((obj && typeof obj === 'object') ? obj : {});
     };
     const getCurrentRunStats = () => currentRunStats;
     const setCurrentRunStats = (obj) => { currentRunStats = obj; };
@@ -271,6 +280,7 @@ const State = (() => {
         setPlayerInventory({}); // shop inventory — fresh run starts empty
         setPushbackUses(null); // a fresh run: no charges used (Clock tower stars reset too)
         setAnytimeCreditUses(null); // ...and no anytime morning credits spent
+        setPriorityMarks(null); // ...and no priority slots spent (a plan for a day that ended the run is moot)
         setSickDayDate(null); // frozen-slots sub-session 5 — fresh run has no active Sick Day
         // Run stats reset with the run; runHistory is deliberately NOT
         // touched here — it must survive restart (session 52, RUN_HISTORY_PLAN).
@@ -355,6 +365,7 @@ const State = (() => {
             sickDayDate: getSickDayDate(),
             pushbackUses: getPushbackUses(),
             anytimeCreditUses: getAnytimeCreditUses(),
+            priorityMarks: getPriorityMarks(),
             runHistory: getRunHistory(),
             currentRunStats: getCurrentRunStats(),
             lifetimeStats: getLifetimeStats(),
@@ -518,6 +529,7 @@ const State = (() => {
         setSickDayDate((typeof save.sickDayDate === 'string') ? save.sickDayDate : null);
         setPushbackUses(save.pushbackUses);
         setAnytimeCreditUses(save.anytimeCreditUses);
+        setPriorityMarks(save.priorityMarks);
         // Run history (session 52, docs/RUN_HISTORY_PLAN.md). The v9→v10
         // migration seeds both, but guard here too so a malformed save can
         // never crash boot. currentRunStats keeps accruing across a mid-run
@@ -784,6 +796,8 @@ const State = (() => {
                 }
             });
         deps.setCurrentGameDate(DayRollover.startOfDay(now));
+        // Priority slots: marks older than yesterday can never be read again (a task's slots belong to its due day).
+        if (typeof PrioritySlots !== 'undefined') setPriorityMarks(PrioritySlots.prune(getPriorityMarks(), now));
         // Daily record (D2): close the day that just ended. AFTER the settle loop
         // above on purpose -- auto-avoided lurkers and misses it records belong
         // to the closing day. Never allowed to break a rollover.
@@ -917,6 +931,7 @@ const State = (() => {
         getSickDayDate, setSickDayDate,
         getPushbackUses, setPushbackUses,
         getAnytimeCreditUses, setAnytimeCreditUses,
+        getPriorityMarks, setPriorityMarks,
         getCurrentRunStats, setCurrentRunStats,
         getRunHistory, setRunHistory,
         getLifetimeStats, setLifetimeStats,

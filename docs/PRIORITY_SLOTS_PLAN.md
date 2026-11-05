@@ -1,6 +1,8 @@
 # Priority slots (3 a day) -- plan
 
-_Designed 2026-11-04 (Claude app session, Fable; Jeremy). **NOT BUILT.** DECISIONS 2026-11-04 (priority slots). ROADMAP M5 "Priority slots"._
+_Designed 2026-11-04 (Claude app session, Fable; Jeremy). **Build A BUILT 2026-11-04 (Sonnet; sw v255, schema 17, DailyRecord v9, Jest 171 suites / 3,924). Build B NOT BUILT.** DECISIONS 2026-11-04 (priority slots). ROADMAP M5 "Priority slots"._
+
+_Build A notes (differences from the text below): the marks map is `State.priorityMarks` (`getPriorityMarks / setPriorityMarks`); sub-tasks that inherit a parent's priority carry `item.priorityInherited`; `Items.prioritySlotsFor(dueDateTime, deps)` returns `{ key, marks, done, left }` for the forms; Edit Task's own due-date change and the routine task forms' checkbox are Build B (until then the forms still write the flag directly). The move-stripping hook `Items.syncPriorityOnMove` is wired into five paths (see CLAUDE.md)._
 
 ## Goal
 

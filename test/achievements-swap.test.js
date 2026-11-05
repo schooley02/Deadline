@@ -120,10 +120,10 @@ describe('Persistence v15 -> v16 (retro sweep of deadline.days)', () => {
         rec('2026-10-30', { lurk: { avoided: 1, slipped: 1 } })                                                      // nothing due; 1 resisted
     );
 
-    test('stamps v16, drops steadyRoutineRuns, keeps the other counters and the unlocked map', () => {
+    test('migrates on to the current version, drops steadyRoutineRuns, keeps the other counters and the unlocked map', () => {
         const unlocked = { steady_hands_1: '2026-10-01T00:00:00.000Z' };
         const save = Persistence.migrate(v15({ achievements: unlocked }), days);
-        expect(save.schemaVersion).toBe(16);
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
         expect(save.lifetimeStats).not.toHaveProperty('steadyRoutineRuns');
         expect(save.lifetimeStats.tasksCompleted).toBe(4);
         expect(save.achievements).toBe(unlocked);

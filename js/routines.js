@@ -142,7 +142,8 @@ const Routines = (() => {
             definitionId: taskDef.id,
             name: taskDef.name,
             category: taskDef.category || 'other',
-            isHighPriority: taskDef.isHighPriority || false,
+            // Priority slots (2026-11-04): a routine task's instance never spawns as priority -- the player marks it on the day.
+            isHighPriority: false,
             dueDateTime: dueDateTime,
             startDateTime: getRoutineTaskInstanceStartTime(taskDef.defaultStartTime, forDate, dueDateTime),
             creationTime: instanceCreationTime,
@@ -436,7 +437,7 @@ const Routines = (() => {
             id: `taskDef_${Date.now()}`,
             name: taskData.name,
             category: taskData.category,
-            isHighPriority: taskData.isHighPriority,
+            isHighPriority: false, // priority slots (2026-11-04): a routine task definition is never priority; mark the day's instance
             defaultDueTime: taskData.defaultDueTime || '17:00',
             // Optional planned start ("HH:MM", additive, 2026-11-01); null = none.
             defaultStartTime: taskData.defaultStartTime || null,
@@ -529,7 +530,7 @@ const Routines = (() => {
 
         task.name = updatedData.name;
         task.category = updatedData.category;
-        task.isHighPriority = updatedData.isHighPriority;
+        task.isHighPriority = false; // priority slots (2026-11-04): ignored on a definition (instances are marked on the day)
         task.defaultDueTime = updatedData.defaultDueTime;
         task.defaultStartTime = updatedData.defaultStartTime || null;
         // schemaVersion 3 (2026-07-18, session 15): routine tasks gained a

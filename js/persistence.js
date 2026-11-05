@@ -64,7 +64,11 @@ const Persistence = (() => {
     // per-change save path.
     // v16 (2026-11-03, achievements swap): `lifetimeStats` loses `steadyRoutineRuns` and gains `heroHonorDays`,
     // `cleanDays`, `breaksResisted`, seeded by a one-time sweep of `deadline.days` (see the v15 -> v16 step).
-    const SCHEMA_VERSION = 16;
+    // v17 (2026-11-04, priority slots; docs/PRIORITY_SLOTS_PLAN.md): the save gains `priorityMarks` -- { 'YYYY-MM-DD': slots spent }
+    // per local due day (seeded {}; js/prioritySlots.js owns the maths) -- and a routine TASK definition no longer carries
+    // High Priority (every priority is a deliberate mark on the day's instance), so the migration sets `isHighPriority`
+    // false on every saved `definedTasks` entry. Instances already on the board keep their flag.
+    const SCHEMA_VERSION = 17;
     const DEBOUNCE_MS = 500;
 
     // DOM references on item objects — never serialized, rebuilt on load.
@@ -517,6 +521,20 @@ const Persistence = (() => {
                 if (typeof stats.breaksResisted !== 'number') stats.breaksResisted = resisted;
             }
             save.schemaVersion = 16;
+        }
+
+        // v16 -> v17 (2026-11-04, priority slots): `priorityMarks` seeded empty (nothing was ever capped before, so there is
+        // nothing to count), and routine task definitions stop being priority (see the v17 note above). Inline, no module deps.
+        if (save.schemaVersion === 16) {
+            if (!save.priorityMarks || typeof save.priorityMarks !== 'object' || Array.isArray(save.priorityMarks)) {
+                save.priorityMarks = {};
+            }
+            if (Array.isArray(save.definedTasks)) {
+                save.definedTasks.forEach((def) => {
+                    if (def && typeof def === 'object') def.isHighPriority = false;
+                });
+            }
+            save.schemaVersion = 17;
         }
 
         if (save.schemaVersion !== SCHEMA_VERSION) {

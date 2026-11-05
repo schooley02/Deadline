@@ -867,6 +867,12 @@ const CONFIG = {
     // Starting number: 2. Balance numbers change only through the balance-tuning process.
     ANYTIME_MORNING_CREDITS: 2,
     ANYTIME_MORNING_CREDIT_WINDOW_MS: 7 * 24 * 60 * 60 * 1000,
+
+    // --- Priority slots (DESIGNED 2026-11-04, Jeremy; docs/PRIORITY_SLOTS_PLAN.md; DECISIONS 2026-11-04 (priority slots)).
+    // A task's "Priority" box is a SLOT: this many per local due day. A slot is spent when a task is marked (unmarking never
+    // gives it back); finishing a full set of this many priorities on a day opens this many fresh slots for that day. The same
+    // number is the set size and the reset size. A balance number: change it only via the balance-tuning process (DECISIONS).
+    PRIORITY_SLOTS_PER_DAY: 3,
     // Work timer: overdue base + routine damage is multiplied by this while a
     // timer runs on the item (never 0 — a running timer is not a free pass).
     WORK_TIMER_DAMAGE_FACTOR: 0.5,

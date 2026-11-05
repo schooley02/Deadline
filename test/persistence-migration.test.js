@@ -646,8 +646,8 @@ describe('migrate: v11 -> v12 (list-order layering, 2026-10-13)', () => {
         expect(save.activeItems[0].listRank).toBeUndefined();
         expect(save.activeItems[1].listRank).toBe(5);
     });
-    test('SCHEMA_VERSION is 16', () => {
-        expect(Persistence.SCHEMA_VERSION).toBe(16);
+    test('SCHEMA_VERSION is 17', () => {
+        expect(Persistence.SCHEMA_VERSION).toBe(17);
     });
 });
 

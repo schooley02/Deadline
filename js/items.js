@@ -401,6 +401,12 @@ const Items = (() => {
     function recordDaily(deps, event, payload) {
         if (deps && typeof deps.recordDaily === 'function') deps.recordDaily(event, payload);
     }
+    // Daily record v9 (priority slots): does this completed / un-completed task count toward a priority set of three?
+    function dailyTakesPrioritySlot(item, deps) {
+        try {
+            return typeof PrioritySlots !== 'undefined' && PrioritySlots.takesSlot(item, priorityParentOf(item, deps));
+        } catch (err) { return false; }
+    }
     // Habit Goals Build 3 (2026-11-01): the optional "How much?" of an Amount goal rides on the answered entry as
     // `goalActual`. A Time goal's How much? is the logged time (plan Decision 14), so it never lands here. Only a valid,
     // non-negative number is kept; anything else leaves the entry untouched.
@@ -464,6 +470,99 @@ const Items = (() => {
     function syncAnytimeFlag(item) {
         if (item && item.anytime === true && !isAnytimeDueTime(item.dueDateTime)) delete item.anytime;
         return item;
+    }
+
+    // --- Priority slots (2026-11-04, docs/PRIORITY_SLOTS_PLAN.md; maths in js/prioritySlots.js) ---------------------
+    // `item.isHighPriority` is now a SLOT: three per local due day. setPriority is the ONLY way the flag changes once the
+    // forms use it (Build B); a mark is spent when set and never refunded. A priority PARENT covers its sub-tasks for one
+    // slot: they get the flag too, tagged `priorityInherited` so unmarking the parent can take back exactly those.
+    function priorityPerDay() {
+        return (typeof PrioritySlots !== 'undefined')
+            ? PrioritySlots.perDayOf(typeof CONFIG !== 'undefined' ? CONFIG : null) : 3;
+    }
+    /** Keep the zombie and the row looking like the flag (the x2 tag on the row redraws on the next list render). */
+    function syncPriorityLook(item) {
+        const on = !!(item && item.type === 'task' && item.isHighPriority);
+        if (item && item.element && item.element.classList) item.element.classList.toggle('high-priority', on);
+        if (item && item.listItemElement && item.listItemElement.classList) item.listItemElement.classList.toggle('high-priority-list-item', on);
+    }
+    function priorityParentOf(item, deps) {
+        return (typeof PrioritySlots !== 'undefined')
+            ? PrioritySlots.findParent(item, [deps.activeItems || [], (typeof deps.completedItems === 'function' ? deps.completedItems() : null) || []])
+            : null;
+    }
+    /** Slots left on the day this task is due: { key, marks, done, left }. For the forms (Build B) and setPriority. */
+    function prioritySlotsFor(dueDateTime, deps) {
+        const key = PrioritySlots.dayKey(dueDateTime);
+        const marks = PrioritySlots.marksFor(typeof deps.getPriorityMarks === 'function' ? deps.getPriorityMarks() : null, key);
+        const completed = (typeof deps.completedItems === 'function' ? deps.completedItems() : null) || [];
+        const done = PrioritySlots.countDone(completed, deps.activeItems || [], key);
+        return { key, marks, done, left: PrioritySlots.remaining(marks, done, priorityPerDay()) };
+    }
+    /** Take the inherited flag back from a parent's sub-tasks (the parent was unmarked or moved to another day). */
+    function dropInheritedPriority(parent, deps) {
+        (deps.activeItems || []).forEach((c) => {
+            if (c.parentId === parent.id && c.type === 'task' && c.priorityInherited) {
+                c.isHighPriority = false;
+                delete c.priorityInherited;
+                syncPriorityLook(c);
+            }
+        });
+    }
+    /**
+     * Mark (on = true) or unmark an open task. deps: { activeItems, completedItems (getter), getPriorityMarks,
+     * setPriorityMarks, recordDaily?, saveGame?, onPriorityChanged? }. Returns { ok, changed, action, left, reason? }:
+     * reason 'full' = no slot left that day (nothing changed); 'covered' = a sub-task under a priority parent (the parent
+     * owns it); 'missing' = no such open task. Marking spends a slot of the task's DUE day; unmarking refunds nothing.
+     */
+    function setPriority(itemId, on, deps) {
+        const items = deps.activeItems || [];
+        const item = items.find(i => i.id === itemId && i.type === 'task');
+        if (!item) return { ok: false, changed: false, action: 'noop', left: 0, reason: 'missing' };
+        const slots = prioritySlotsFor(item.dueDateTime, deps);
+        const parent = priorityParentOf(item, deps);
+        const plan = PrioritySlots.planChange({
+            item, parent, on: !!on, marks: slots.marks, done: slots.done, perDay: priorityPerDay(),
+        });
+        if (!plan.ok || plan.action === 'noop') {
+            return { ok: plan.ok, changed: false, action: 'noop', left: plan.left, reason: plan.reason };
+        }
+        if (plan.action === 'mark') {
+            item.isHighPriority = true;
+            delete item.priorityInherited;
+            deps.setPriorityMarks(PrioritySlots.addMark(deps.getPriorityMarks(), slots.key));
+            recordDaily(deps, 'pri', { mark: 1 });
+            if (!item.parentId) {
+                items.forEach((c) => {
+                    if (c.parentId === item.id && c.type === 'task' && !c.isHighPriority) {
+                        c.isHighPriority = true;
+                        c.priorityInherited = true;
+                        syncPriorityLook(c);
+                    }
+                });
+            }
+        } else {
+            item.isHighPriority = false;
+            if (!item.parentId) dropInheritedPriority(item, deps);
+        }
+        syncPriorityLook(item);
+        if (typeof deps.onPriorityChanged === 'function') deps.onPriorityChanged(item, plan.action);
+        if (typeof deps.saveGame === 'function') deps.saveGame();
+        return { ok: true, changed: true, action: plan.action, left: plan.left };
+    }
+    /**
+     * Call after ANY due-time change (pushback, moves, edits): a move to another local day strips priority (the old day's
+     * slot stays spent) and takes back what the task's sub-tasks inherited. `oldDue` = the due time BEFORE the move.
+     * Returns true when priority was stripped.
+     */
+    function syncPriorityOnMove(item, oldDue, deps) {
+        if (!item || item.type !== 'task' || !item.isHighPriority || item.priorityInherited) return false; // inherited = the parent owns it
+        if (typeof PrioritySlots === 'undefined' || !PrioritySlots.stripsOnMove(oldDue, item.dueDateTime)) return false;
+        item.isHighPriority = false;
+        delete item.priorityInherited;
+        if (!item.parentId) dropInheritedPriority(item, deps || { activeItems: [] });
+        syncPriorityLook(item);
+        return true;
     }
 
     /**
@@ -553,6 +652,15 @@ const Items = (() => {
 
         // Only present when true (absent = false), so existing task shapes are unchanged.
         if (makeAnytime) taskData.anytime = true;
+
+        // Priority slots: a sub-task made under a priority parent is covered by it (look + x2, no slot of its own).
+        if (parentId) {
+            const priorityParent = deps.activeItems.find(item => item.id === parentId && item.type === 'task');
+            if (priorityParent && priorityParent.isHighPriority) {
+                taskData.isHighPriority = true;
+                taskData.priorityInherited = true;
+            }
+        }
 
         // Calculate initial position based on new timeline system
         taskData.x = deps.calculateTimelineXWithClustering(taskData, creationTime);
@@ -776,7 +884,8 @@ const Items = (() => {
         recordDaily(deps, 'complete', {
             kind: dailyKindFor(item), category: item.category,
             at: item.completedAt.getTime(), late: dailyIsLate(item), points: pointsGained,
-            routineId: dailyRoutineId(item, deps)
+            routineId: dailyRoutineId(item, deps),
+            pri: dailyTakesPrioritySlot(item, deps) // daily record v9: a priority that spent a slot (see js/prioritySlots.js)
         });
         deps.saveGame();
 
@@ -903,8 +1012,10 @@ const Items = (() => {
         deps.promptNewDueTime(item, (result) => {
             if (!result || result.cancel) return;
             if (result.dueDateTime instanceof Date && result.dueDateTime.getTime() > Date.now()) {
+                const oldDue = item.dueDateTime;
                 item.dueDateTime = result.dueDateTime;
                 syncAnytimeFlag(item); // a new picked time that is not 23:59 makes it an ordinary timed task
+                syncPriorityOnMove(item, oldDue, deps); // another day: priority does not carry over
             }
             uncompleteItem(itemId, deps);
         });
@@ -1758,7 +1869,8 @@ const Items = (() => {
         recordDaily(deps, 'uncomplete', {
             kind: dailyKindFor(item), category: item.category,
             at: dailyCompletedAtMs, late: dailyWasLate, points: dailyPointsLost,
-            routineId: dailyRoutineId(item, deps)
+            routineId: dailyRoutineId(item, deps),
+            pri: dailyTakesPrioritySlot(item, deps)
         });
         // Habit Goals Build 3 (daily record v5): the undone answer's goal entry goes with it (same closed-day guard via `at`).
         if (item.type === 'habit') {
@@ -1954,7 +2066,9 @@ const Items = (() => {
         deps.activeItems.forEach(child => {
             if (child.parentId !== parentTask.id || child.type !== 'task') return;
             if (child.dueDateTime > parentTask.dueDateTime) {
+                const oldChildDue = child.dueDateTime;
                 child.dueDateTime = new Date(parentTask.dueDateTime);
+                syncPriorityOnMove(child, oldChildDue, deps); // pulled onto the parent's day: its own priority does not carry over
                 recomputeOverdueStateAfterEdit(child, deps);
                 clamped.push(child);
             }
@@ -1971,6 +2085,7 @@ const Items = (() => {
         isAnytimeTask,
         isAnytimeDueTime,
         syncAnytimeFlag,
+        setPriority, syncPriorityOnMove, prioritySlotsFor, syncPriorityLook,
         ANYTIME_DUE_TIME,
         clampedSubTaskDueDate,
         clampSubTasksToParentDeadline,
