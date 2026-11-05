@@ -401,7 +401,12 @@ const DayPager = (() => {
                 // like Hud.updateTaskCountDisplay does.
                 countable = (deps && deps.activeItems || [])
                     .filter(item => !item.parentId)
-                    .map(item => ({ isHighPriority: !!item.isHighPriority }));
+                    // Priority slots belong to the task's DUE day (2026-11-04): a priority task due tomorrow is
+                    // tomorrow's, not Today's, even though it already sits on the board. Overdue ones stay Today's.
+                    .map(item => ({
+                        isHighPriority: !!item.isHighPriority
+                            && !(item.dueDateTime && new Date(item.dueDateTime).getTime() >= bounds.end.getTime()),
+                    }));
             } else {
                 countable = conjureGhostsForDay(deps, referenceTime, offset)
                     .filter(g => !g.parentId);

@@ -214,7 +214,7 @@ const ManagementWindows = (() => {
         topLevelTasks.forEach(task => {
             const li = document.createElement('li');
             li.innerHTML = `
-                <span>${task.name} (${task.category})${task.isHighPriority ? ' ⭐' : ''}</span>
+                <span>${task.name} (${task.category})</span>
                 <span style="font-size: 12px; color: var(--color-neutral);">Due: ${task.dueDateTime.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
             `;
             tasksList.appendChild(li);

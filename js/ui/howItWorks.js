@@ -46,6 +46,24 @@ const HowItWorks = (() => {
         };
     }
 
+    // ---- Priorities --------------------------------------------------------------------------------------------
+    // Priority slots (2026-11-04; docs/PRIORITY_SLOTS_PLAN.md). Every number comes from CONFIG.PRIORITY_SLOTS_PER_DAY.
+    function prioritiesTopic(config) {
+        const n = config.PRIORITY_SLOTS_PER_DAY != null ? config.PRIORITY_SLOTS_PER_DAY : 3;
+        return {
+            id: 'priorities',
+            title: `${n === 3 ? 'Three' : n} priorities a day`,
+            what: [
+                `Each day has ${n} priority ${n === 1 ? 'slot' : 'slots'}. A priority task pays double points and glows gold. You can put a priority on a task due today, or on a task due tomorrow or later (that day has its own ${n}).`,
+                `Marking a task uses a slot for good. Unmarking it takes away the glow and the double points but does not give the slot back, so pick the tasks that matter.`,
+                `Finish all ${n} priorities for a day and ${n} more open up for that day.`,
+                `A priority task covers its sub-tasks for one slot. You can also mark a single sub-task on its own.`,
+                `Moving a task to another day, by a pushback or an edit, drops its priority. Mark it again on the new day if it is still a big one.`,
+            ],
+            why: `Naming a few big things for the day keeps you from calling everything important.`,
+        };
+    }
+
     // ---- Pushbacks ---------------------------------------------------------------------------------------------
     function pushbacksTopic(config) {
         // The base allowance (Clock tower star 1) quoted as-is; the live numbers live in the Shop and popups.
@@ -187,7 +205,7 @@ const HowItWorks = (() => {
 
     function topics(config) {
         const cfg = config || (typeof CONFIG !== 'undefined' ? CONFIG : {});
-        return [pointsTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg), timersTopic(cfg), runsTopic(cfg)];
+        return [pointsTopic(cfg), prioritiesTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg), timersTopic(cfg), runsTopic(cfg)];
     }
 
     // ---- Markup ------------------------------------------------------------------------------------------------
@@ -240,7 +258,7 @@ const HowItWorks = (() => {
     // Capture + stopPropagation is deliberate: Modal's outside-click dismiss (a bubbling document handler) would
     // otherwise see the same tap and close the popup or window the button sits in, and a row's own tap handler
     // (agenda rows, hero rows) must not fire as well.
-    const TOPIC_IDS = ['points', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs'];
+    const TOPIC_IDS = ['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs'];
 
     function buttonHtml(topicId, label) {
         if (TOPIC_IDS.indexOf(topicId) === -1) return '';

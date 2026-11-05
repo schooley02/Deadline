@@ -86,7 +86,7 @@ describe('RoutineViews.saveEditedTask syncs the live instance', () => {
         };
     }
 
-    test('updates name/category/priority, re-skins the zombie, rebuilds the row', () => {
+    test('updates name/category, re-skins the zombie, rebuilds the row -- and never touches priority (priority slots, 2026-11-04)', () => {
         const el = fakeEl(['enemy', 'zombie-sprite', 'category-other', 'zombie-other']);
         const row = { remove: jest.fn() };
         const live = { type: 'task', definitionId: 't1', name: 'Old', category: 'other', isHighPriority: false, element: el, listItemElement: row };
@@ -98,16 +98,25 @@ describe('RoutineViews.saveEditedTask syncs the live instance', () => {
 
         expect(live.name).toBe('Pay rent');
         expect(live.category).toBe('financial');
-        expect(live.isHighPriority).toBe(true);
+        expect(live.isHighPriority).toBe(false);
         expect(el.has('zombie-financial')).toBe(true);
         expect(el.has('zombie-other')).toBe(false);
-        expect(el.has('high-priority')).toBe(true);
+        expect(el.has('high-priority')).toBe(false);
         expect(row.remove).toHaveBeenCalled();
         expect(deps.createListItem).toHaveBeenCalledWith(live);
         expect(deps.saveGame).toHaveBeenCalled();
         expect(otherTask.name).toBe('Keep');
         expect(sub.category).toBe('other');
         expect(closed).toBe(true);
+    });
+
+    test('a live instance that is already priority stays priority, and the saved definition carries no priority flag', () => {
+        const live = { type: 'task', definitionId: 't1', name: 'Old', category: 'other', isHighPriority: true, element: fakeEl(['enemy', 'high-priority']), listItemElement: { remove: jest.fn() } };
+        deps = makeDeps([live]);
+        RoutineViews.saveEditedTask('t1', deps);
+        expect(live.isHighPriority).toBe(true);
+        expect(live.element.has('high-priority')).toBe(true);
+        expect(deps.editTaskInRoutine.mock.calls[0][1]).not.toHaveProperty('isHighPriority');
     });
 
     test('with no live instance today it only saves the definition', () => {

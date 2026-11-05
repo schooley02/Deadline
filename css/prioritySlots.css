@@ -1,0 +1,100 @@
+/* Priority slots (Build B, 2026-11-04; docs/PRIORITY_SLOTS_PLAN.md).
+ * Two pieces: the pips in the list header (#prioritySlots) and the hint line under the Priority checkbox in the
+ * task forms. Gold = the same --color-holy-gold the priority zombies glow with. */
+
+/* ---- the pips (list header) ---- */
+#prioritySlots {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+#prioritySlots.hidden { display: none; }
+
+.priority-slots-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    position: relative;
+    min-height: 28px;
+    padding: 0 var(--space-2) 0 0;
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    font-size: var(--text-caption);
+    cursor: pointer;
+}
+
+.priority-slots-btn::after { /* 44px tap target around the small pips */
+    content: '';
+    position: absolute;
+    inset: -8px -4px;
+}
+
+.priority-slots-readonly { cursor: default; }
+
+.priority-slots-title {
+    color: var(--color-holy-gold);
+    font-weight: 700;
+}
+
+.priority-pips {
+    display: inline-flex;
+    gap: 5px;
+}
+
+.priority-pip {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--color-holy-gold);
+    box-sizing: border-box;
+    position: relative;
+}
+
+/* used: marked, still open */
+.priority-pip-used { background: var(--color-holy-gold); }
+
+/* done: filled with a check */
+.priority-pip-done {
+    background: var(--color-holy-gold);
+    box-shadow: 0 0 4px var(--color-holy-gold);
+}
+.priority-pip-done::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 0;
+    width: 3px;
+    height: 7px;
+    border: solid #3a2e00;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* Phone: the pips take their own row under the title (one line, never squeezing "Today's Deadlines"); a tap opens the
+ * one-line explainer. */
+@media (max-width: 600px) {
+    .task-header { flex-wrap: wrap; }
+    #prioritySlots { order: 3; flex: 1 0 100%; }
+}
+
+/* ---- the form row ---- */
+.priority-row .hiw-info-btn { margin-left: var(--space-2); }
+
+.priority-hint {
+    margin: 0 0 var(--space-3);
+    font-size: var(--text-caption);
+    opacity: 0.85;
+}
+.priority-hint:empty { display: none; }
+
+.priority-row.priority-covered label { opacity: 0.7; cursor: default; }
+
+/* the line under the pushback buttons for a priority task */
+.pushback-priority-note {
+    margin: var(--space-2) 0 0;
+    font-size: var(--text-caption);
+    opacity: 0.85;
+}

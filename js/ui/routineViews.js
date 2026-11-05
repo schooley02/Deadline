@@ -211,7 +211,7 @@ const RoutineViews = (() => {
                 taskDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--color-bg-light); border-radius: 6px; margin-bottom: 6px;';
 
                 taskDiv.innerHTML = `
-                    <span>${task.name} (${task.category})${task.isHighPriority ? ' ⭐' : ''}</span>
+                    <span>${task.name} (${task.category})</span>
                     <div style="display: flex; gap: 6px;">
                         <button class="edit-task-btn" data-task-id="${task.id}" style="padding: 4px 8px; font-size: 11px; background: var(--color-accent-teal); color: white; border: none; border-radius: 3px; cursor: pointer;">Edit</button>
                         <button class="move-task-btn" data-task-id="${task.id}" title="Move to another routine" style="padding: 4px 8px; font-size: 11px; background: var(--color-neutral); color: white; border: none; border-radius: 3px; cursor: pointer;">Move</button>
@@ -400,7 +400,7 @@ const RoutineViews = (() => {
                         taskLi.classList.add('routine-item');
 
                         const taskInfo = document.createElement('span');
-                        taskInfo.textContent = `${taskDef.name} (${taskDef.category})${taskDef.isHighPriority ? ' ⭐' : ''}`;
+                        taskInfo.textContent = `${taskDef.name} (${taskDef.category})`;
 
                         const itemButtonGroup = document.createElement('div');
                         itemButtonGroup.classList.add('item-button-group');
@@ -896,8 +896,7 @@ const RoutineViews = (() => {
             optionsHtml = window.definedTasks
                 .filter(task => !existingIds.includes(task.id))
                 .map(task => {
-                    const priority = task.isHighPriority ? '⭐' : '';
-                    return `<option value="${task.id}">${task.name} (${task.category}) ${priority}</option>`;
+                    return `<option value="${task.id}">${task.name} (${task.category})</option>`;
                 })
                 .join('');
         }
@@ -1172,10 +1171,6 @@ const RoutineViews = (() => {
                         </select>
                     </div>
                     ${Forms.startDueTimeGroupHtml({ startId: 'newTaskStartTime', dueId: 'newTaskDueTime', startValue: '', dueValue: '17:00', startLabel: 'Default Start Time (optional):', dueLabel: 'Default Due Time:' })}
-                    <div class="form-row priority-row">
-                        <input type="checkbox" id="newTaskHighPriority">
-                        <label for="newTaskHighPriority">High Priority</label>
-                    </div>
                     ${scheduleFieldsHtml('newTask', Schedule.defaultSchedule())}
                     <div class="modal-buttons">
                         <button class="primary-button" onclick="saveNewTask('${routineId}')">Create Task</button>
@@ -1334,10 +1329,6 @@ const RoutineViews = (() => {
                         </select>
                     </div>
                     ${Forms.startDueTimeGroupHtml({ startId: 'editTaskStartTime', dueId: 'editTaskDueTime', startValue: taskDef.defaultStartTime || '', dueValue: taskDef.defaultDueTime || '17:00', startLabel: 'Default Start Time (optional):', dueLabel: 'Default Due Time:' })}
-                    <div class="form-row priority-row">
-                        <input type="checkbox" id="editTaskHighPriority" ${taskDef.isHighPriority ? 'checked' : ''}>
-                        <label for="editTaskHighPriority">High Priority</label>
-                    </div>
                     ${scheduleFieldsHtml('editTask', taskDef.schedule ? Schedule.normalize(taskDef.schedule) : Schedule.defaultSchedule())}
                     <div class="modal-buttons">
                         <button class="primary-button" onclick="saveEditedTask('${taskDef.id}')">Save Changes</button>
@@ -1409,7 +1400,6 @@ const RoutineViews = (() => {
         const category = document.getElementById('newTaskCategory').value;
         const defaultDueTime = document.getElementById('newTaskDueTime').value;
         const defaultStartTime = document.getElementById('newTaskStartTime').value;
-        const isHighPriority = document.getElementById('newTaskHighPriority').checked;
         const schedule = readScheduleFromFields('newTask');
 
         if (!name) {
@@ -1430,7 +1420,7 @@ const RoutineViews = (() => {
         const routine = deps.definedRoutines().find(r => r.id === routineId);
         if (routine && !(await ensureRoutineSlotAvailable(routine, 'task', deps))) return;
 
-        deps.createNewTaskInRoutine(routineId, { name, category, defaultDueTime, defaultStartTime, isHighPriority, schedule });
+        deps.createNewTaskInRoutine(routineId, { name, category, defaultDueTime, defaultStartTime, schedule });
         Modal.closeModal();
     }
 
@@ -1574,7 +1564,6 @@ const RoutineViews = (() => {
         const category = document.getElementById('editTaskCategory').value;
         const defaultDueTime = document.getElementById('editTaskDueTime').value;
         const defaultStartTime = document.getElementById('editTaskStartTime').value;
-        const isHighPriority = document.getElementById('editTaskHighPriority').checked;
         const schedule = readScheduleFromFields('editTask');
 
         if (!name) {
@@ -1592,7 +1581,7 @@ const RoutineViews = (() => {
             return;
         }
 
-        deps.editTaskInRoutine(taskId, { name, category, defaultDueTime, defaultStartTime, isHighPriority, schedule });
+        deps.editTaskInRoutine(taskId, { name, category, defaultDueTime, defaultStartTime, schedule });
 
         // Keep today's already-spawned instance in sync (2026-10-21), same as
         // saveEditedHabit: name/category/priority + zombie sprite + list row.
@@ -1604,12 +1593,10 @@ const RoutineViews = (() => {
             if (item.type === 'task' && !item.parentId && item.definitionId === taskId) {
                 item.name = name;
                 item.category = category;
-                item.isHighPriority = isHighPriority;
-                touched = true;
+                touched = true; // priority is a deliberate mark on the day's instance (Items.setPriority), never copied from the template
 
                 if (item.element) {
                     SpriteAnim.setEnemyCategory(item.element, category);
-                    item.element.classList.toggle('high-priority', isHighPriority);
                 }
 
                 if (item.listItemElement) {

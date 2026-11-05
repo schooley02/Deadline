@@ -55,6 +55,21 @@ describe('zombie popup pushback buttons', () => {
         expect(document.querySelector('.pushback-balance-note').textContent).toBe('(you have 40 pts)');
     });
 
+    test('a priority task gets the "a push to another day drops priority" note; a normal task, a sub-task of a priority parent and the Priority line do not', () => {
+        const d = () => deps({ pushbackOptionsFor: three, onPushback: jest.fn() });
+        Popups.showTaskDetailsPopup(task({ isHighPriority: true }), d());
+        expect(document.querySelector('.pushback-priority-note').textContent)
+            .toBe("A push to another day drops this task's priority. Mark it again on the new day.");
+        expect(document.body.textContent).toMatch(/Priority:\s*Yes/);
+        document.body.innerHTML = '';
+        Popups.showTaskDetailsPopup(task(), d());
+        expect(document.querySelector('.pushback-priority-note')).toBeNull();
+        expect(document.body.textContent).toMatch(/Priority:\s*No/);
+        document.body.innerHTML = '';
+        Popups.showTaskDetailsPopup(task({ isHighPriority: true, priorityInherited: true, parentId: 9 }), d());
+        expect(document.querySelector('.pushback-priority-note')).toBeNull();
+    });
+
     test('no section when pushback is not wired or has no options', () => {
         Popups.showTaskDetailsPopup(task(), deps({ pushbackOptionsFor: () => [], onPushback: jest.fn() }));
         expect(document.querySelector('.pushback-section')).toBeNull();

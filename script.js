@@ -949,6 +949,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Priority slots (2026-11-04): the spent-marks map per due day, read and written by Items.setPriority.
             getPriorityMarks: () => State.getPriorityMarks(),
             setPriorityMarks: (m) => State.setPriorityMarks(m),
+            onPriorityChanged: () => refreshPrioritySlots(),
+            onPrioritySetComplete: () => {
+                refreshPrioritySlots();
+                FrozenNotice.showPrioritySetNotice(PrioritySlotsView.setCompleteText(CONFIG.PRIORITY_SLOTS_PER_DAY));
+            },
             // Habit Goals Build 2c: an edited logged time corrects the daily record of the item's own day.
             adjustDayTimer: (when, kind, deltaMin) => State.adjustDayTimer(DailyRecord.dateKey(when), kind, deltaMin),
             // Habit Goals Build 3 (daily record v5): an edited logged time refreshes the habit's recorded goal `actual` on that day.
@@ -1115,6 +1120,10 @@ document.addEventListener('DOMContentLoaded', () => {
             createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()),
             sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()),
             updateTaskCountDisplay, // week strip (2026-11-02): Edit Task can move a due date to another day
+            // Priority slots (Build B): the forms mark / unmark through these, never by writing the flag.
+            setPriority: (id, on) => Items.setPriority(id, on, itemsDeps()),
+            syncPriorityOnMove: (item, oldDue) => Items.syncPriorityOnMove(item, oldDue, itemsDeps()),
+            priorityRowDeps,
             saveGame, recomputeOverdueStateAfterEdit: (item) => Items.recomputeOverdueStateAfterEdit(item, itemsDeps()),
             createTaskItemData: (name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, startTimeStr, anytime) => Items.createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, itemsDeps(), startTimeStr, anytime),
             addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => handleEnemyClick(itemId), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay, sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
@@ -1897,6 +1906,31 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateTaskCountDisplay() {
         Hud.updateTaskCountDisplay({ activeItems: State.getActiveItems(), taskCountDisplay });
         DayPagerView.refreshWeekStrip();
+        refreshPrioritySlots();
+    }
+
+    // Priority slots (Build B, 2026-11-04): the pips in the list header show the slots of the VIEWED day (Today, a later
+    // day on the pager, or Yesterday read-only). Cheap: one lookup + a few spans, so every count refresh may call it.
+    function priorityRowDeps() {
+        return {
+            prioritySlotsFor: (due) => Items.prioritySlotsFor(due, itemsDeps()),
+            perDay: CONFIG.PRIORITY_SLOTS_PER_DAY,
+            todayKey: PrioritySlots.dayKey(State.getCurrentGameDate()),
+        };
+    }
+    function refreshPrioritySlots() {
+        const el = document.getElementById('prioritySlots');
+        if (!el || typeof PrioritySlotsView === 'undefined') return;
+        const rowDeps = priorityRowDeps();
+        const offset = DayPagerView.getViewedDayOffset();
+        const viewStart = DayPagerView.getViewedDayStart();
+        const due = viewStart || State.getCurrentGameDate();
+        const slots = Items.prioritySlotsFor(due, itemsDeps());
+        const word = PrioritySlotsView.dayWord(slots.key, rowDeps.todayKey);
+        PrioritySlotsView.render(el, slots, {
+            perDay: rowDeps.perDay, word, readOnly: offset < 0,
+            onTap: (s) => Dialog.notice(PrioritySlotsView.explainerText(s, rowDeps.perDay, word), { title: 'Priority slots' }),
+        });
     }
 
     // (markAsOverdue wrapper inlined at its one call site (loopDeps) sub-session
@@ -2145,6 +2179,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // uses for Today, see js/dayPager.js).
             taskCountDisplayEl: taskCountDisplay,
             updateTaskCountDisplay,
+            onViewedDayRendered: () => refreshPrioritySlots(),
             completedTasksSectionEl: document.getElementById('completedTasksSection'),
             // Point the hour slider at a time (a viewed day's first minute, or now on Today).
             syncSlider: (time) => TimeSliderView.syncHandle(time),
@@ -3445,6 +3480,10 @@ document.addEventListener('DOMContentLoaded', () => {
             createTaskItemData: (name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, startTimeStr, anytime) => Items.createTaskItemData(name, category, isHighPriority, dueDateStr, dueTimeStr, parentId, itemsDeps(), startTimeStr, anytime),
             addItemToGame: (itemData) => Spawning.addItemToGame(itemData, { gameCanvas, activeItems: State.getActiveItems(), baseWidth: BASE_WIDTH, dims: { enemyWidth: ENEMY_WIDTH, habitEnemyWidth: HABIT_ENEMY_WIDTH, subtaskEnemyWidth: CONFIG.SUBTASK_ENEMY_WIDTH, habitStreakBonusThreshold: HABIT_STREAK_BONUS_THRESHOLD, habitStreakStrongThreshold: HABIT_STREAK_STRONG_THRESHOLD }, getItemTopPosition, getSubTaskClusterOffset, handleEnemyClick: (itemId) => handleEnemyClick(itemId), createListItem: (itemData) => AgendaList.createListItem(itemData, agendaListDeps()), markAsOverdue: (item, currentTime) => Items.markAsOverdue(item, currentTime, itemsDeps()), updateTaskCountDisplay, sortAndRenderActiveList: () => AgendaList.sortAndRenderActiveList(agendaListDeps()), saveGame, isGameOver: State.isGameOver }),
             sortAndRenderActiveList,
+            // Priority slots (Build B): Add Task marks after the task exists, so the slot rules apply.
+            setPriority: (id, on) => Items.setPriority(id, on, itemsDeps()),
+            priorityRowDeps,
+            updateTaskCountDisplay,
             managementWindows, populateTasksWindow,
             createHabitDefinition, populateHabitsWindow,
             definedRoutines: State.getDefinedRoutines(), saveGame, populateRoutinesWindow, openManagementWindow

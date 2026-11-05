@@ -23,14 +23,14 @@ const topic = (id, cfg) => all(cfg).find(t => t.id === id);
 // Everything a player can read in a topic, as one lowercase-insensitive string.
 const textOf = (t) => [].concat(t.what || [], t.list || [], t.html || '', t.why || '').join(' ');
 
-describe('the eight topics', () => {
-    test('Points, Pushbacks, Streaks, Hero ranking, Achievements, The sky, Timers and Time Logged, When a run ends, in that order', () => {
-        expect(all().map(t => t.title)).toEqual(['Points', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends']);
-        expect(all().map(t => t.id)).toEqual(['points', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs']);
+describe('the nine topics', () => {
+    test('Points, Priorities, Pushbacks, Streaks, Hero ranking, Achievements, The sky, Timers and Time Logged, When a run ends, in that order', () => {
+        expect(all().map(t => t.title)).toEqual(['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends']);
+        expect(all().map(t => t.id)).toEqual(['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs']);
     });
 
     test('Streaks, Hero ranking, Achievements, The sky, Timers and When a run ends carry a "Why"; Points and Pushbacks do not invent one', () => {
-        ['streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs'].forEach(id => expect(topic(id).why).toBeTruthy());
+        ['priorities', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs'].forEach(id => expect(topic(id).why).toBeTruthy());
         ['points', 'pushbacks'].forEach(id => expect(topic(id).why).toBeUndefined());
     });
 });
@@ -47,6 +47,25 @@ describe('Points', () => {
         const retuned = Object.assign({}, CONFIG, { POINTS_PER_TASK: 7, POINTS_PER_HABIT: 7 });
         expect(textOf(topic('points', retuned))).toContain('pays 7 points');
         expect(textOf(topic('points'))).not.toContain('pays 7 points');
+    });
+});
+
+describe('Priorities', () => {
+    test('quotes the slot count from CONFIG and states the spend / reset / sub-task / move rules', () => {
+        const text = textOf(topic('priorities'));
+        expect(text).toContain(`${CONFIG.PRIORITY_SLOTS_PER_DAY} priority slots`);
+        expect(text).toMatch(/uses a slot for good/);
+        expect(text).toMatch(/does not give the slot back/);
+        expect(text).toMatch(new RegExp(`Finish all ${CONFIG.PRIORITY_SLOTS_PER_DAY} priorities`));
+        expect(text).toMatch(/covers its sub-tasks for one slot/);
+        expect(text).toMatch(/drops its priority/);
+    });
+
+    test('follows CONFIG (negative control) and never says "High Priority"', () => {
+        const retuned = Object.assign({}, CONFIG, { PRIORITY_SLOTS_PER_DAY: 5 });
+        expect(topic('priorities', retuned).title).toBe('5 priorities a day');
+        expect(textOf(topic('priorities', retuned))).toContain('5 priority slots');
+        expect(textOf(topic('priorities'))).not.toMatch(/high.priority/i);
     });
 });
 
@@ -214,8 +233,8 @@ describe('Achievements', () => {
 describe('windowHtml', () => {
     test('one <details> per topic, in order, with the corner x', () => {
         const html = HowItWorks.windowHtml(all());
-        expect((html.match(/<details /g) || []).length).toBe(8);
-        const order = ['Points', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends'].map(n => html.indexOf(`<summary>${n}</summary>`));
+        expect((html.match(/<details /g) || []).length).toBe(9);
+        const order = ['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends'].map(n => html.indexOf(`<summary>${n}</summary>`));
         expect(order.every(i => i > 0)).toBe(true);
         expect(order).toEqual(order.slice().sort((a, b) => a - b));
         expect(html).toContain('modal-close-x');

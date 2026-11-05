@@ -172,10 +172,16 @@ const Popups = (() => {
         const ctx = pushbackHelpCtx(deps);
         const hint = (ctx && typeof PushbackHelp !== 'undefined') ? PushbackHelp.hintBlockHtml('popupPushbackHint', ctx) : '';
 
+        // Priority slots (Build B): a push onto another day drops the priority (the old day's slot stays spent).
+        const priorityNote = (item.type === 'task' && item.isHighPriority && !item.priorityInherited)
+            ? '<p class="pushback-priority-note">A push to another day drops this task\'s priority. Mark it again on the new day.</p>'
+            : '';
+
         return `
             <div class="pushback-section">
                 <p class="pushback-label"><strong>Push back this deadline:</strong>${balanceNote}${hint}</p>
                 <div class="pushback-options">${buttons}</div>
+                ${priorityNote}
             </div>
         `;
     }
@@ -413,7 +419,7 @@ const Popups = (() => {
                         ${isNegativeHabitInstance(item)
                             ? `<p><strong>Tempting around:</strong> <span class="task-due-display">${item.dueDateTime.toLocaleTimeString([], { timeStyle: 'short' })}</span></p>`
                             : `<p><strong>Due:</strong> <span class="task-due-display">${taskDueDisplayText(item)}</span></p>`}
-                        <p><strong>Priority:</strong> ${item.isHighPriority ? 'High' : 'Normal'}</p>
+                        ${item.type === 'task' ? `<p><strong>Priority:</strong> ${item.isHighPriority ? 'Yes' : 'No'}</p>` : ''}
                         ${item.type === 'habit' ? `<p><strong>Streak:</strong> ${item.streak}${howItWorksButton('streaks', 'How streaks work')}</p>` : ''}
                         ${buildHabitPointsLineHtml(item, deps)}
                         ${(item.type === 'habit' && typeof Habits !== 'undefined' && Habits.formatGoal && Habits.formatGoal(item.goal, item.isNegative))
@@ -751,10 +757,7 @@ const Popups = (() => {
                             <option value="spirituality" ${item.category === 'spirituality' ? 'selected' : ''}>Spirituality</option>
                         </select>
                     </div>
-                    <div class="form-row priority-row">
-                        <input type="checkbox" id="editTaskHighPriority" ${item.isHighPriority ? 'checked' : ''}>
-                        <label for="editTaskHighPriority">High Priority</label>
-                    </div>
+                    ${Forms.priorityRowHtml('editTaskHighPriority', { checked: !!item.isHighPriority })}
                     <div class="form-row">
                         <label for="editDueDate">Due Date:</label>
                         <input type="date" id="editDueDate" value="${dueDate}"${maxDateAttr} required>
@@ -822,12 +825,23 @@ const Popups = (() => {
         });
         refreshPrice();
 
+        // Priority slots (Build B, 2026-11-04): "Priority: N of 3 left <day>" for the day in the Due Date box. A move to
+        // another day drops the priority (the old day's slot stays spent), so the box starts unticked there and costs a
+        // slot of that day; a sub-task under a priority parent is covered by the parent's slot.
+        const priorityCovered = !!(editParentTask && editParentTask.isHighPriority);
+        Forms.bindPriorityRow(document, 'editTaskHighPriority', 'editDueDate', deps, {
+            originalKey: typeof PrioritySlots !== 'undefined' ? PrioritySlots.dayKey(item.dueDateTime) : null,
+            originalChecked: !!item.isHighPriority && !priorityCovered,
+            covered: priorityCovered,
+        });
+
         // Add save functionality
         if (saveButton) {
             saveButton.addEventListener('click', () => {
                 const name = document.getElementById('editTaskName').value.trim();
                 const category = document.getElementById('editTaskCategory').value;
-                const isHighPriority = document.getElementById('editTaskHighPriority').checked;
+                const priorityBox = document.getElementById('editTaskHighPriority');
+                const wantsPriority = !!(priorityBox && priorityBox.checked);
                 const newDueDate = document.getElementById('editDueDate').value;
                 const anytimeBox = document.getElementById('editTaskAnytime');
                 const isAnytime = !!(anytimeBox && anytimeBox.checked);
@@ -885,13 +899,23 @@ const Popups = (() => {
                 }
 
                 // Update the item data
+                const dueBeforeEdit = item.dueDateTime;
                 item.name = name;
                 item.category = category;
-                item.isHighPriority = isHighPriority;
                 item.dueDateTime = newDueDateTime;
                 item.startDateTime = (newStartDateTime instanceof Date && !isNaN(newStartDateTime.getTime())) ? newStartDateTime : null;
                 if (isAnytime) item.anytime = true; else delete item.anytime;
                 if (reschedule && typeof deps.commitReschedule === 'function') deps.commitReschedule(item, reschedule);
+
+                // Priority slots (Build B): a move to another local day strips the priority first, THEN the box decides
+                // (ticked = mark it on the new day, which spends one of that day's slots). The flag only ever changes
+                // through Items.setPriority, so the marks map stays honest.
+                if (typeof deps.syncPriorityOnMove === 'function') deps.syncPriorityOnMove(item, dueBeforeEdit);
+                if (!priorityCovered && typeof deps.setPriority === 'function') {
+                    if (wantsPriority !== !!item.isHighPriority) deps.setPriority(item.id, wantsPriority);
+                } else if (!priorityCovered) {
+                    item.isHighPriority = wantsPriority; // no slot rules wired (unit tests)
+                }
 
                 // Re-derive overdue state from the NEW due date. Without this,
                 // pushing an overdue task's deadline into the future left
@@ -917,7 +941,7 @@ const Popups = (() => {
 
                 // Update visual elements
                 if (item.element) {
-                    item.element.classList.toggle('high-priority', isHighPriority);
+                    item.element.classList.toggle('high-priority', !!item.isHighPriority);
                     SpriteAnim.setEnemyCategory(item.element, category);
                 }
 
@@ -1002,10 +1026,7 @@ const Popups = (() => {
                             <option value="spirituality" ${parentTask.category === 'spirituality' ? 'selected' : ''}>Spirituality</option>
                         </select>
                     </div>
-                    <div class="form-row priority-row">
-                        <input type="checkbox" id="subTaskHighPriority" ${parentTask.isHighPriority ? 'checked' : ''}>
-                        <label for="subTaskHighPriority">High Priority</label>
-                    </div>
+                    ${Forms.priorityRowHtml('subTaskHighPriority', { checked: !!parentTask.isHighPriority })}
                     <div class="form-row">
                         <label for="subTaskDueDate">Due Date:</label>
                         <input type="date" id="subTaskDueDate" value="${parentDueDate}" max="${parentDueDate}" required>
@@ -1020,6 +1041,10 @@ const Popups = (() => {
         `;
 
         Modal.open(modalHtml);
+
+        // Priority slots (Build B): a priority parent covers its sub-tasks (one slot, no box to tick); otherwise the
+        // sub-task can take a slot of its own for ITS due day.
+        Forms.bindPriorityRow(document, 'subTaskHighPriority', 'subTaskDueDate', deps, { covered: !!parentTask.isHighPriority });
 
         // Add create functionality
         const createButton = document.getElementById('createSubTaskBtn');
@@ -1036,7 +1061,9 @@ const Popups = (() => {
 
                 const name = document.getElementById('subTaskName').value.trim();
                 const category = document.getElementById('subTaskCategory').value;
-                const isHighPriority = document.getElementById('subTaskHighPriority').checked;
+                const priorityBox = document.getElementById('subTaskHighPriority');
+                // Covered by a priority parent: the sub-task inherits at creation (Items.createTaskItemData); no slot of its own.
+                const isHighPriority = !!(priorityBox && priorityBox.checked && !priorityBox.disabled);
                 const dueDate = document.getElementById('subTaskDueDate').value;
                 const dueTime = document.getElementById('subTaskDueTime').value;
 
@@ -1082,7 +1109,7 @@ const Popups = (() => {
                 const subTaskData = deps.createTaskItemData(
                     name,
                     category,
-                    isHighPriority,
+                    false,
                     dueDate,
                     dueTime,
                     parentId,
@@ -1095,6 +1122,9 @@ const Popups = (() => {
 
                 // Use centralized addItemToGame function which handles subtask logic
                 deps.addItemToGame(subTaskData);
+                // Priority slots (Build B): marking goes through the slot rules (spends the sub-task's due day).
+                if (isHighPriority && typeof deps.setPriority === 'function') deps.setPriority(subTaskData.id, true);
+                else if (isHighPriority) subTaskData.isHighPriority = true; // no slot rules wired (unit tests)
 
                 // Refresh the parent task's list item to show the new sub-task
                 if (parentTask.listItemElement) {

@@ -888,6 +888,11 @@ const Items = (() => {
             pri: dailyTakesPrioritySlot(item, deps) // daily record v9: a priority that spent a slot (see js/prioritySlots.js)
         });
         deps.saveGame();
+        // Priority slots (Build B): a full set of priorities done on this task's day opens a fresh set -- tell the player.
+        if (typeof deps.onPrioritySetComplete === 'function' && dailyTakesPrioritySlot(item, deps)) {
+            const slots = prioritySlotsFor(item.dueDateTime, deps);
+            if (slots.done > 0 && slots.done % priorityPerDay() === 0) deps.onPrioritySetComplete(slots);
+        }
 
         // Show completed tasks section and render completed items
         deps.renderCompletedItems();

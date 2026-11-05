@@ -36,9 +36,10 @@ describe('PointsInfo.rulesLines', () => {
         expect(CONFIG.POINTS_PER_TASK).toBe(CONFIG.POINTS_PER_HABIT); // the one-sentence form assumes this
     });
 
-    test('mentions high priority, the sub-task rule, the habit tiers and knocked-out routines', () => {
+    test('mentions priority slots, the sub-task rule, the habit tiers and knocked-out routines', () => {
         const text = lines.join(' ');
-        expect(text).toMatch(/High-priority tasks pay double/);
+        expect(text).toMatch(/Priority tasks pay double \(3 priority slots a day\)/);
+        expect(text).not.toMatch(/high.priority/i);
         expect(text).toMatch(/sub-task/);
         expect(text).toMatch(/×2 for 80% or more of their last 22/);
         expect(text).toMatch(/×3 for all 22/);
@@ -141,8 +142,9 @@ describe('PointsInfo.routineBonusSummary', () => {
     test('lists only the bonuses being applied, highest first, with counts', () => {
         const out = PointsInfo.routineBonusSummary(r, defs, tasks, CONFIG);
         expect(out.habits).toEqual({ 3: 2, 2: 1 });
-        expect(out.priorityTasks).toBe(1);
-        expect(out.line).toBe('Bonus: 2 habits \u00D73 \u00B7 1 habit \u00D72 \u00B7 1 task \u00D72');
+        // Priority slots (2026-11-04): a routine's task templates no longer carry priority, so a stale flag earns nothing.
+        expect(out.priorityTasks).toBe(0);
+        expect(out.line).toBe('Bonus: 2 habits \u00D73 \u00B7 1 habit \u00D72');
     });
 
     test('a routine with no bonus returns an empty line (nothing is shown)', () => {

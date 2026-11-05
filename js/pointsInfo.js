@@ -39,7 +39,8 @@ const PointsInfo = (() => {
         lines.push(perTask === perHabit
             ? `Each task or habit you finish pays ${perTask} ${plural(perTask, 'point')}.`
             : `A task pays ${perTask} ${plural(perTask, 'point')}; a habit pays ${perHabit}.`);
-        lines.push('High-priority tasks pay double.');
+        const slots = config.PRIORITY_SLOTS_PER_DAY != null ? config.PRIORITY_SLOTS_PER_DAY : 3;
+        lines.push(`Priority tasks pay double (${slots} priority ${plural(slots, 'slot')} a day).`);
         if (config.SUBTASK_POINTS != null) {
             lines.push(`A task with sub-tasks pays through them instead: ${config.SUBTASK_POINTS} ${plural(config.SUBTASK_POINTS, 'point')} per sub-task, and the task itself pays nothing.`);
         }
@@ -102,14 +103,14 @@ const PointsInfo = (() => {
     // nothing in the routine earns a bonus, so the caller renders nothing.
     function routineBonusSummary(routine, definedHabits, definedTasks, config) {
         const habitIds = new Set((routine && routine.habitDefinitionIds) || []);
-        const taskIds = new Set((routine && routine.taskDefinitionIds) || []);
         const byMult = {};
         (definedHabits || []).forEach((h) => {
             if (!h || !habitIds.has(h.id) || h.archivedAt) return;
             const m = habitBonusInfo(h, config).multiplier;
             if (m > 1) byMult[m] = (byMult[m] || 0) + 1;
         });
-        const priorityTasks = (definedTasks || []).filter(t => t && taskIds.has(t.id) && !t.archivedAt && t.isHighPriority).length;
+        // Priority slots (2026-11-04): routine task templates no longer carry priority, so only habits earn a Bonus here.
+        const priorityTasks = 0;
         const parts = Object.keys(byMult).map(Number).sort((x, y) => y - x)
             .map(m => `${byMult[m]} ${plural(byMult[m], 'habit')} \u00D7${m}`);
         if (priorityTasks > 0) parts.push(`${priorityTasks} ${plural(priorityTasks, 'task')} \u00D72`);

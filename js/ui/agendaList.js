@@ -482,7 +482,7 @@ const AgendaList = (() => {
             if (itemData.isHighPriority && totalSubTasksEver === 0 && !itemData.koGhost) {
                 const bonusSpan = document.createElement('span');
                 bonusSpan.classList.add('item-bonus');
-                bonusSpan.title = 'High-priority tasks pay double';
+                bonusSpan.title = 'Priority tasks pay double';
                 bonusSpan.textContent = '\u00D72';
                 itemDetailsContainer.appendChild(bonusSpan);
             }

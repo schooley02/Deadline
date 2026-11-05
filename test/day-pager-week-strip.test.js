@@ -98,6 +98,19 @@ describe('DayPager.weekStripSummary', () => {
         expect(today.highPriorityCount).toBe(1);
     });
 
+    test('Today\'s priority tally skips a priority task due on a LATER day (slots belong to the due day, 2026-11-04); an overdue one still counts', () => {
+        const deps = {
+            activeItems: [
+                { id: 1, type: 'task', definitionId: null, dueDateTime: new Date(2026, 6, 20, 12, 0), isHighPriority: true },
+                { id: 2, type: 'task', definitionId: null, dueDateTime: new Date(2026, 6, 21, 12, 0), isHighPriority: true },
+                { id: 3, type: 'task', definitionId: null, dueDateTime: new Date(2026, 6, 19, 12, 0), isHighPriority: true },
+            ],
+        };
+        const today = DayPager.weekStripSummary(deps, TODAY).find(e => e.offset === 0);
+        expect(today.highPriorityCount).toBe(2);
+        expect(today.totalCount).toBe(3); // the plain count keeps its Hud convention
+    });
+
     test('habits never count toward highPriorityCount (no priority concept)', () => {
         const deps = { definedHabits: [habitDef('h1')] };
         const entries = DayPager.weekStripSummary(deps, TODAY);

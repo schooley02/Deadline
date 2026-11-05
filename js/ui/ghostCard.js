@@ -66,7 +66,7 @@ const GhostCard = (() => {
         if (ghost.anytime) rows.push({ label: 'Due', value: 'Midnight' });
         else if (due) rows.push({ label: 'Due', value: fmt(due) });
         if (ghost.outcome) rows.push({ label: 'Result', value: outcomeText(ghost, fmt) });
-        if (ghost.isHighPriority) rows.push({ label: 'Priority', value: 'High' });
+        if (ghost.isHighPriority) rows.push({ label: 'Priority', value: 'Yes' });
         return {
             title: ghost.name || 'Zombie',
             rows,

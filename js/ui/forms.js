@@ -478,6 +478,30 @@ const Forms = (() => {
         return { dueDate, dueTime };
     }
 
+    // Priority slots (Build B, 2026-11-04): the Priority checkbox row + its live "N of 3 left" label come from
+    // PrioritySlotsView (js/ui/prioritySlotsView.js); these two wrap it so Add Task, Edit Task and the sub-task form
+    // share one shape. `priorityRowHtml` falls back to a bare checkbox when the view is not loaded (unit tests).
+    function priorityRowHtml(id, opts) {
+        if (typeof PrioritySlotsView !== 'undefined') return PrioritySlotsView.rowHtml(id, opts);
+        return `<div class="form-row priority-row"><input type="checkbox" id="${id}"${opts && opts.checked ? ' checked' : ''}>` +
+            `<label for="${id}">Priority</label></div>`;
+    }
+    // root = document or the modal element; deps.priorityRowDeps() = { prioritySlotsFor, perDay, todayKey }.
+    // extra = { originalKey, originalChecked, covered } (Edit Task / sub-task). Returns the row controller or null.
+    function bindPriorityRow(root, id, dateId, deps, extra) {
+        if (typeof PrioritySlotsView === 'undefined' || !root) return null;
+        const checkbox = root.querySelector('#' + id);
+        if (!checkbox) return null;
+        return PrioritySlotsView.bindRow(Object.assign({
+            checkbox,
+            label: root.querySelector('#' + id + 'Label'),
+            hint: root.querySelector('#' + id + 'Hint'),
+            dateInput: root.querySelector('#' + dateId),
+            deps: (deps && typeof deps.priorityRowDeps === 'function') ? deps.priorityRowDeps() : {},
+            confirm: (message, options) => Dialog.confirm(message, options),
+        }, extra || {}));
+    }
+
     function createTaskFormHtml() {
         // Local getters, not toISOString(): UTC formatting shows YESTERDAY's
         // date in positive-offset timezones (latent for CDT; same bug family
@@ -505,10 +529,7 @@ const Forms = (() => {
                     <option value="spirituality">Spirituality</option>
                 </select>
             </div>
-            <div class="form-row priority-row">
-                <input type="checkbox" id="modalTaskHighPriority">
-                <label for="modalTaskHighPriority">High Priority</label>
-            </div>
+            ${priorityRowHtml('modalTaskHighPriority')}
             <div class="form-row">
                 <label for="modalDueDate">Due Date:</label>
                 <input type="date" id="modalDueDate" value="${todayString}" required>
@@ -693,6 +714,8 @@ const Forms = (() => {
         switch (formType) {
             case 'task': {
                 const addTaskBtn = modal.querySelector('#modalAddTaskButton');
+                // Priority slots (Build B): live "N of 3 left" for the chosen due day; disabled at 0.
+                bindPriorityRow(modal, 'modalTaskHighPriority', 'modalDueDate', deps);
 
                 if (addTaskBtn) {
                     addTaskBtn.addEventListener('click', () => {
@@ -704,7 +727,7 @@ const Forms = (() => {
 
                         const name = nameInput ? nameInput.value.trim() : '';
                         const category = categoryInput ? categoryInput.value : 'other';
-                        const isHighPriority = priorityInput ? priorityInput.checked : false;
+                        const wantsPriority = priorityInput ? priorityInput.checked && !priorityInput.disabled : false;
                         const dueDate = dateInput ? dateInput.value : '';
                         const dueTime = timeInput ? timeInput.value : '17:00';
                         const anytimeInput = modal.querySelector('#modalTaskAnytime');
@@ -727,9 +750,13 @@ const Forms = (() => {
                             showFormError(startError, startInput);
                             return;
                         }
-                        const taskData = deps.createTaskItemData(name, category, isHighPriority, resolved.dueDate, resolved.dueTime, undefined, startTime || undefined, isAnytime ? true : undefined);
+                        const taskData = deps.createTaskItemData(name, category, false, resolved.dueDate, resolved.dueTime, undefined, startTime || undefined, isAnytime ? true : undefined);
                         deps.addItemToGame(taskData);
+                        // The flag is never set at creation: it goes through the slot rules (spends the due day's slot).
+                        if (wantsPriority && typeof deps.setPriority === 'function') deps.setPriority(taskData.id, true);
+                        else if (wantsPriority && priorityInput) taskData.isHighPriority = true; // no slot rules wired (unit tests)
                         deps.sortAndRenderActiveList();
+                        if (typeof deps.updateTaskCountDisplay === 'function') deps.updateTaskCountDisplay();
                         Modal.closeModal();
 
                         // Update tasks window if open
@@ -963,6 +990,8 @@ const Forms = (() => {
         resolveSubmittedDueTime,
         startDueTimeGroupHtml,
         anytimeRowHtml,
+        priorityRowHtml,
+        bindPriorityRow,
         applyAnytimeToggle,
         ANYTIME_DUE_TIME,
         shiftDueForStart,

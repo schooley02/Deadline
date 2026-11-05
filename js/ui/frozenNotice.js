@@ -300,6 +300,41 @@ const FrozenNotice = (() => {
         clockWaiterId = setTimeout(tryShow, 0);
     }
 
+    // Priority slots (Build B, 2026-11-04): finishing a full set of priorities opens a fresh set. ONE notice however many
+    // sets land while another window is open (it waits like the achievement toast). `text` = PrioritySlotsView.setCompleteText.
+    let pendingPrioritySets = 0;
+    let prioritySetText = '';
+    let prioritySetWaiterId = null;
+    function showPrioritySetNotice(text) {
+        if (!text) return;
+        pendingPrioritySets += 1;
+        prioritySetText = String(text);
+        if (prioritySetWaiterId !== null) return;
+        const tryShow = () => {
+            if (document.querySelector('.modal-overlay')) {
+                prioritySetWaiterId = setTimeout(tryShow, 400);
+                return;
+            }
+            const msg = prioritySetText;
+            pendingPrioritySets = 0;
+            prioritySetWaiterId = null;
+            const safe = msg.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+            const info = (typeof HowItWorks !== 'undefined' && HowItWorks.buttonHtml)
+                ? HowItWorks.buttonHtml('priorities') : '';
+            Modal.open(`
+                <div class="modal-overlay frozen-notice-overlay">
+                    <div class="modal-content frozen-notice-modal">
+                        <h3>Priorities cleared</h3>
+                        <p>${safe}${info}</p>
+                        <div class="modal-buttons">
+                            <button class="primary-button" onclick="closeModal()">Nice</button>
+                        </div>
+                    </div>
+                </div>`);
+        };
+        prioritySetWaiterId = setTimeout(tryShow, 0);
+    }
+
     // Village tier drops (2026-11-03): ONE notice listing every item a village building just paid. `entries` = [{ building, star, label }]
     // (building = the card's name, e.g. "Radio tower"; label = "Repair Kit (Small) \u00d71"). Rows that arrive while a notice is waiting
     // (or while another modal is open) join the same modal, so a first-load payout of several stars is one window, not eight.
@@ -345,6 +380,7 @@ const FrozenNotice = (() => {
         showHeroStarUpNotice,
         showStreakMilestoneNotice,
         showAchievementUnlockNotice,
+        showPrioritySetNotice,
     };
 })();
 
