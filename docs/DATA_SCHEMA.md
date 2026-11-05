@@ -66,6 +66,7 @@ Rules:
   - `GoalRecord` (the roster of finished goals, newest first, capped at `GOAL_ROSTER_KEEP`): `{ id, name, kind, period, targets: [label], startedAt, finishedAt, periodsMet, bestStreak, runNights }`. Opaque numbers and the player's own text only.
 - Items: `item.goalId` + `item.goalTargetId` (additive, no bump) mark a one-off task made by a goal's linked target (Build B2: set by the goal form's task picker on ONE-TIME goals; cleared when the target is dropped or the goal is retired / deleted).
 - The v17 -> v18 migration seeds `goals: { bestSlots: 0, active: [], done: [], nextId: 1, seeded: false }`; `State.ensureGoalsSeeded` then adds the two suggested goals once.
+- **Build C additions (2026-11-05, additive, no schema bump):** `goals.owed` (0..50 items waiting out the cooldown), `goals.itemPaidAt` (last 10 item payout times, ms); `Goal.reward` (string, max 80), `Goal.next = { targets }` (recurring only: target edit applied when the period closes); `GoalRecord.reward`, `claimed`, `onTime`. Catalog row `earned_sick_day` (`keptAcrossRuns`, `notForSale`). **DailyRecord v11:** `pg` is `{ climb, drop, met, done, pts, items }` (pts = goal bonus points paid that day, items = goal items paid).
 - DailyRecord v10: `pg` = { climb, drop, met, done } (stages gained / lost, recurring periods met, milestones completed today). Older records read as zeros; the month roll-up sums it.
 
 ### schemaVersion 17 (BUILT 2026-11-04, priority slots Build A; docs/PRIORITY_SLOTS_PLAN.md)

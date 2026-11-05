@@ -87,7 +87,22 @@ const GoalCard = (() => {
             const note = targetNote(entry);
             controls = note ? `<p class="goal-target-note">${esc(note)}</p>` : '';
         }
-        return `<li class="goal-target goal-target--${esc(t.type)}">${head}${bar}${controls}</li>`;
+        const source = (t.type === 'number' || t.type === 'bool') ? `<p class="goal-target-source">Your word</p>` : `<p class="goal-target-source">Counted by the game</p>`;
+        return `<li class="goal-target goal-target--${esc(t.type)}">${head}${bar}${source}${controls}</li>`;
+    }
+
+    /** The player's own reward line, and the note that a target edit is waiting for the next period. */
+    function rewardHtml(goal) {
+        const word = { day: 'day', week: 'week', month: 'month' }[goal.period] || 'period';
+        let out = '';
+        if (goal.reward) {
+            const lead = goal.kind === 'milestone' ? "When this is done, I'll" : "Each time I hit it, I'll";
+            out += `<p class="goal-card-reward">${esc(lead)} ${esc(goal.reward)}</p>`;
+        }
+        if (goal.kind === 'recurring' && goal.next && goal.next.targets) {
+            out += `<p class="goal-card-pending">Your target changes start next ${esc(word)}.</p>`;
+        }
+        return out;
     }
 
     function historyHtml(goal) {
@@ -113,6 +128,14 @@ const GoalCard = (() => {
                 + `<div class="modal-buttons"><button type="button" class="secondary-button" data-action="cancel-confirm" data-key="cancel">Keep it</button>`
                 + `<button type="button" class="danger-button goal-danger" data-action="delete-yes" data-key="delete-yes">Delete</button></div></div>`;
         }
+        if (g.suggested) {
+            // An Example goal: keep it as it is, change it, or remove it.
+            return `<div class="modal-buttons goal-card-buttons">`
+                + `<button type="button" class="primary-button" data-action="keep" data-key="keep">Keep</button>`
+                + `<button type="button" class="secondary-button" data-action="edit" data-key="edit">Change</button>`
+                + `<button type="button" class="secondary-button goal-delete-btn" data-action="delete" data-key="delete">Remove</button>`
+                + `<button type="button" class="secondary-button" data-action="close" data-key="close">Close</button></div>`;
+        }
         const retire = g.kind === 'recurring'
             ? `<button type="button" class="secondary-button" data-action="retire" data-key="retire">Retire goal</button>` : '';
         return `<div class="modal-buttons goal-card-buttons">`
@@ -131,6 +154,7 @@ const GoalCard = (() => {
             + `<div class="goal-card-art">${GoalsPane.artHtml('stage', view.stage)}</div>`
             + `<div class="goal-card-head"><h3 class="goal-card-title">${esc(g.name)}${chip && chip.kind === 'example' ? ` <span class="goal-chip goal-chip--example">${esc(chip.text)}</span>` : ''}</h3>`
             + `<p class="goal-card-kind">${esc(GoalsPane.kindLine(g))}</p>`
+            + rewardHtml(g)
             + `<p class="goal-card-progress">${GoalsPane.percent(view.progress)}% · stage ${view.stage} of 5</p>`
             + (pace ? `<p class="goal-card-pace goal-pace--${esc(view.pace)}"><i class="goal-pace-dot" aria-hidden="true"></i>${esc(pace)}</p>` : '')
             + (chip && chip.kind !== 'example' ? `<p class="goal-card-recent"><span class="goal-chip goal-chip--${esc(chip.kind)}">${esc(chip.text)}</span></p>` : '')
@@ -146,7 +170,8 @@ const GoalCard = (() => {
      * Opens the card for a goal id.
      * d: { getView(goalId) -> view | null, nowMs(), weekStartsOn,
      *      updateTarget(goalId, targetId, patch) -> { changed, completed }, retire(goalId), remove(goalId), afterChange(),
-     *      onEdit(goalId) (Build B2: the card closes, the owner opens the form) }
+     *      onEdit(goalId) (Build B2: the card closes, the owner opens the form),
+ *      onKeep(goalId) (Build C: keeps an Example goal as it is) }
      * Returns the overlay element (null when the goal is not there or a card is already open).
      */
     function open(goalId, d) {
@@ -192,6 +217,7 @@ const GoalCard = (() => {
             const action = el.dataset.action;
             focusKey = el.dataset.key || null;
             if (action === 'close') { close(); return; }
+            if (action === 'keep') { if (typeof d.onKeep === 'function') d.onKeep(goalId); d.afterChange(); render(); return; }
             if (action === 'edit') { close(); if (typeof d.onEdit === 'function') d.onEdit(goalId); return; }
             if (action === 'num-step') {
                 const t = currentTarget(el.dataset.target);
@@ -221,7 +247,7 @@ const GoalCard = (() => {
         return overlay;
     }
 
-    return { stepFor, directionOf, targetText, targetNote, streakLine, targetHtml, historyHtml, footerHtml, html, open };
+    return { stepFor, directionOf, targetText, targetNote, streakLine, rewardHtml, targetHtml, historyHtml, footerHtml, html, open };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

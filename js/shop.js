@@ -75,7 +75,7 @@ const Shop = (() => {
      */
     function purchase(itemId, catalog, inventory, playerPoints, discount) {
         const item = getItem(itemId, catalog);
-        if (!item) return { ok: false, reason: 'unknown_item', cost: 0 };
+        if (!item || item.notForSale) return { ok: false, reason: 'unknown_item', cost: 0 };
 
         const cost = price(item, inventory, discount);
         if (playerPoints < cost) {

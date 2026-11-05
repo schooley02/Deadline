@@ -942,7 +942,49 @@ const State = (() => {
 
     // pg counts (DailyRecord v10): stages climbed / lost, recurring periods met, milestones completed.
     function bumpGoalCounts(counts) {
-        if (counts.climb > 0 || counts.drop > 0 || counts.met > 0 || counts.done > 0) bumpToday('pgoal', counts);
+        if (counts.climb > 0 || counts.drop > 0 || counts.met > 0 || counts.done > 0 || counts.pts > 0 || counts.items > 0) bumpToday('pgoal', counts);
+    }
+
+    // ---- Goal rewards (Build C; CONFIG.GOAL_REWARDS, docs/GOALS_PLAN.md "Build C as built") ----
+    const rewardsReady = () => goalsReady() && !!CONFIG.GOAL_REWARDS && typeof Shop !== 'undefined';
+
+    /** Puts one goal item into the held inventory and stamps the cooldown. Returns the catalog row, or null when it could not be granted. */
+    function grantGoalItem(nowMs) {
+        const spec = CONFIG.GOAL_REWARDS.item || {};
+        const g = Shop.grant(spec.itemId, spec.count || 1, CONFIG.SHOP_ITEMS, getPlayerInventory());
+        if (!g.ok) return null;
+        setPlayerInventory(g.newInventory);
+        goals = Object.assign({}, goals, { itemPaidAt: (goals.itemPaidAt || []).concat([nowMs]).slice(-10) });
+        return g.item;
+    }
+
+    /**
+     * A goal earned its item: paid now ('paid'), owed until the cooldown ends ('owed'), or withheld because the goal is too young
+     * ('young'). Returns { status, item } and counts a paid item in `counts.items`.
+     */
+    function payGoalItem(createdAt, nowMs, counts) {
+        const status = Goals.itemStatus(createdAt, goals.itemPaidAt, nowMs, CONFIG.GOAL_REWARDS);
+        if (status === 'ok') {
+            const item = grantGoalItem(nowMs);
+            if (item) { counts.items += 1; return { status: 'paid', item: { id: item.id, name: item.name } }; }
+            return { status: 'young', item: null };
+        }
+        if (status === 'cooldown') {
+            goals = Object.assign({}, goals, { owed: Math.min(50, (goals.owed || 0) + 1) });
+            return { status: 'owed', item: null };
+        }
+        return { status: 'young', item: null };
+    }
+
+    /** Pays items that were owed once the cooldown has passed (one per cooldown). Called when periods close (daily). */
+    function payOwedGoalItems(nowMs) {
+        if (!rewardsReady() || !(goals.owed > 0) || !Goals.cooldownOver(goals.itemPaidAt, nowMs, CONFIG.GOAL_REWARDS)) return;
+        const item = grantGoalItem(nowMs);
+        if (!item) return;
+        goals = Object.assign({}, goals, { owed: goals.owed - 1 });
+        bumpGoalCounts({ climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 1 });
+        goalEvents.push({ type: 'owed', item: { id: item.id, name: item.name } });
+        saveGame();
     }
 
     /**
@@ -966,15 +1008,17 @@ const State = (() => {
         });
         if (!r.changed) return [];
         goals = r.goals;
-        const counts = { climb: 0, drop: 0, met: 0, done: r.completed.length };
+        const counts = { climb: 0, drop: 0, met: 0, done: r.completed.length, pts: 0, items: 0 };
         goals.active.forEach((g) => {
             if (before[g.id] === undefined) return;
             if (g.stage > before[g.id]) counts.climb += g.stage - before[g.id];
             else if (g.stage < before[g.id]) counts.drop += before[g.id] - g.stage;
         });
         r.completed.forEach((rec) => { counts.climb += Math.max(0, Goals.MAX_STAGE - (before[rec.id] || 0)); });
+        // A finished one-time goal earns an Earned Sick Day (gated: the goal must be a week old, one goal item a week).
+        const paid = r.completed.map(rec => (rewardsReady() ? payGoalItem(rec.startedAt, nowMs, counts) : { status: null, item: null }));
         bumpGoalCounts(counts);
-        r.completed.forEach((rec) => goalEvents.push({ type: 'complete', record: rec }));
+        r.completed.forEach((rec, i) => goalEvents.push({ type: 'complete', record: rec, item: paid[i].item, itemStatus: paid[i].status }));
         if (!(opts && opts.noSave)) saveGame();
         return r.completed;
     }
@@ -998,11 +1042,14 @@ const State = (() => {
      * outcomes [{ goalId, name, key, met, progress, stageBefore, stageAfter, streakAfter }] for the notices Build B shows.
      */
     function closeGoalPeriods(now) {
-        if (!goalsReady() || !goals.active.some(g => g.kind === 'recurring')) return [];
+        if (!goalsReady()) return [];
         const nowMs = toMs(now);
+        payOwedGoalItems(nowMs);
+        if (!goals.active.some(g => g.kind === 'recurring')) return [];
         const days = loadClosedDays();
         const all = [];
-        const counts = { climb: 0, drop: 0, met: 0, done: 0 };
+        const counts = { climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 };
+        const closed = []; // [{ goal (before), o (outcome) }] in order, for the payouts below
         const active = goals.active.map((goal) => {
             if (goal.kind !== 'recurring') return goal;
             const r = Goals.closePeriods(goal, {
@@ -1018,7 +1065,7 @@ const State = (() => {
             });
             r.outcomes.forEach((o) => {
                 all.push(Object.assign({ goalId: goal.id, name: goal.name }, o));
-                goalEvents.push({ type: 'period', goalId: goal.id, name: goal.name, key: o.key, met: o.met, stageBefore: o.stageBefore, stageAfter: o.stageAfter });
+                closed.push({ goal, o });
                 if (o.met) counts.met += 1;
                 if (o.stageAfter > o.stageBefore) counts.climb += o.stageAfter - o.stageBefore;
                 if (o.stageAfter < o.stageBefore) counts.drop += o.stageBefore - o.stageAfter;
@@ -1028,9 +1075,44 @@ const State = (() => {
         const changed = active.some((g, i) => g !== goals.active[i]);
         if (!changed) return all;
         goals = Object.assign({}, goals, { active });
+        // Payouts: a met period pays a share of the points earned in it (+ streak bonus); a monthly one also earns the item.
+        closed.forEach(({ goal, o }) => {
+            let pts = 0;
+            let paid = { status: null, item: null };
+            if (o.met && rewardsReady()) {
+                pts = Goals.periodBonus(goal.period, o.earned, o.streakAfter, CONFIG.GOAL_REWARDS);
+                if (pts > 0) { setPlayerPoints(getPlayerPoints() + pts); counts.pts += pts; }
+                if (goal.period === 'month') paid = payGoalItem(goal.createdAt, nowMs, counts);
+            }
+            goalEvents.push({
+                type: 'period', goalId: goal.id, name: goal.name, period: goal.period, key: o.key, met: o.met,
+                stageBefore: o.stageBefore, stageAfter: o.stageAfter, streak: o.streakAfter,
+                pts, item: paid.item, itemStatus: paid.status, reward: goal.reward || '',
+            });
+        });
         bumpGoalCounts(counts);
         saveGame();
         return all;
+    }
+
+    /** The player ticks (or un-ticks) the reward they promised themselves on a finished goal's roster card. Returns true when it changed. */
+    function claimGoalReward(recordId, claimed) {
+        if (!goalsReady()) return false;
+        const next = Goals.claimReward(goals, recordId, claimed);
+        if (next === goals) return false;
+        goals = next;
+        saveGame();
+        return true;
+    }
+
+    /** The player keeps a suggested goal as it is (it stops being an Example). Returns true when it changed. */
+    function keepGoal(goalId) {
+        if (!goalsReady()) return false;
+        const next = Goals.keepGoal(goals, goalId);
+        if (next === goals) return false;
+        goals = next;
+        saveGame();
+        return true;
     }
 
     /**
@@ -1261,7 +1343,7 @@ const State = (() => {
         getPriorityMarks, setPriorityMarks,
         getGoals, setGoals, goalSlotCount, syncGoalSlots, ensureGoalsSeeded, settleGoals, applyGoalCompletion, closeGoalPeriods,
         getGoalViews, getGoalSlotInfo, updateGoalTarget, retireGoal, deleteGoal, takeGoalEvents,
-        addGoal, editGoal, getGoalLinkOptions, getGoalLinkedItemIds,
+        addGoal, editGoal, getGoalLinkOptions, getGoalLinkedItemIds, claimGoalReward, keepGoal,
         getCurrentRunStats, setCurrentRunStats,
         getRunHistory, setRunHistory,
         getLifetimeStats, setLifetimeStats,

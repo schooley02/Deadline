@@ -52,9 +52,21 @@ const PointsInfo = (() => {
         if (config.KO_GHOST_POINTS_FACTOR === 0) {
             lines.push('Items in a knocked-out routine pay no points.');
         }
-        // Goals (Jeremy, 2026-11-05): the approved no-numbers line shows only once rewards exist (Build C adds CONFIG.GOAL_REWARDS).
-        if (config.GOAL_REWARDS) lines.push('Goals pay points and XP when a period is met or a goal is finished.');
+        // Goals (Jeremy, 2026-11-05): shown once CONFIG.GOAL_REWARDS exists. No XP: a bonus on the points a period earned, plus an Earned Sick Day.
+        const goalLine = goalRewardLine(config);
+        if (goalLine) lines.push(goalLine);
         return lines;
+    }
+
+    function goalRewardLine(config) {
+        const r = config && config.GOAL_REWARDS;
+        if (!r || !r.periodBonusPct) return '';
+        const pct = (n) => Math.round(n * 100) + '%';
+        const b = r.periodBonusPct;
+        const item = r.item && r.item.itemId && (config.SHOP_ITEMS || []).find(i => i.id === r.item.itemId);
+        let line = `A repeating goal you meet pays a bonus on the points you earned in that period: ${pct(b.day)} for a day, ${pct(b.week)} for a week, ${pct(b.month)} for a month, up to ${pct(r.streakBonusCap)} more for a streak.`;
+        if (item) line += ` A finished one-time goal or a monthly goal met earns an ${item.name}, which you keep between runs.`;
+        return line;
     }
 
     function rateConfig(config) {
@@ -119,7 +131,7 @@ const PointsInfo = (() => {
         return { habits: byMult, priorityTasks, line: parts.length ? `Bonus: ${parts.join(' \u00B7 ')}` : '' };
     }
 
-    return { rulesLines, habitBonusInfo, habitPointsNow, routineBonusSummary };
+    return { rulesLines, goalRewardLine, habitBonusInfo, habitPointsNow, routineBonusSummary };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

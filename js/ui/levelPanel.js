@@ -96,9 +96,24 @@ const LevelPanel = (() => {
      * discount in force (0..1) with the level that granted it; next = perks of
      * the next `lookahead` levels that have any; title = earned title (or null).
      */
-    function perksModel(perksTable, level, lookahead) {
+    /**
+     * Goal slots read as perk rows (Goals Build C): a level where the goal-slot table grows gives a row "A new goal slot (n in all)".
+     * Returns [{ level, label }] for levels in (from, to]. Pure.
+     */
+    function goalSlotPerks(goalTable, from, to) {
+        const out = [];
+        if (!goalTable) return out;
+        for (let lv = Math.max(1, from + 1); lv <= to; lv++) {
+            const now = goalTable[lv];
+            const before = lv === 1 ? 0 : goalTable[lv - 1];
+            if (typeof now === 'number' && typeof before === 'number' && now > before) out.push({ type: 'goalSlot', level: lv, label: `A new goal slot (${now} in all)` });
+        }
+        return out;
+    }
+
+    function perksModel(perksTable, level, lookahead, goalTable) {
         const take = typeof lookahead === 'number' ? lookahead : 2;
-        const current = Progression.perksForLevels(perksTable, level - 1, level);
+        const current = Progression.perksForLevels(perksTable, level - 1, level).concat(goalSlotPerks(goalTable, level - 1, level));
         const discount = Progression.shopDiscount(perksTable, level);
         let discountLevel = null;
         if (discount > 0) {
@@ -110,6 +125,9 @@ const LevelPanel = (() => {
         const levels = Object.keys(perksTable || {}).map(Number).filter(lv => lv > level && Array.isArray(perksTable[lv])).sort((a, b) => a - b);
         const next = [];
         levels.slice(0, take).forEach(lv => perksTable[lv].forEach(p => next.push(Object.assign({}, p, { level: lv }))));
+        // The goal-slot rows of the next `take` levels join the list, in level order.
+        goalSlotPerks(goalTable, level, level + take).forEach(p => next.push(p));
+        next.sort((a, b) => a.level - b.level);
         return { current, discount, discountLevel, next, title: Progression.titleForLevel(perksTable, level) };
     }
 
@@ -117,7 +135,7 @@ const LevelPanel = (() => {
     function buildModel(ctx) {
         const xp = xpModel(ctx.xp, ctx.thresholds, ctx.level);
         const slots = slotsModel(ctx);
-        const perks = perksModel(ctx.perksTable, ctx.level, 2);
+        const perks = perksModel(ctx.perksTable, ctx.level, 2, ctx.goalSlotsTable);
         return { level: ctx.level, maxed: xp.maxed, xp, slots, summary: slotsSummary(slots), perks };
     }
 
@@ -209,6 +227,7 @@ const LevelPanel = (() => {
         slotsModel,
         slotsSummary,
         perksModel,
+        goalSlotPerks,
         buildModel,
         panelHtml,
         open,

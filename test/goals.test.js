@@ -281,7 +281,7 @@ describe('pace', () => {
 
 describe('goal lists', () => {
     test('freshGoals shape', () => {
-        expect(Goals.freshGoals()).toEqual({ bestSlots: 0, active: [], done: [], nextId: 1, seeded: false });
+        expect(Goals.freshGoals()).toEqual({ bestSlots: 0, active: [], done: [], nextId: 1, seeded: false, owed: 0, itemPaidAt: [] });
     });
     test('newGoal fills the defaults and assigns target ids', () => {
         const g = Goals.newGoal({

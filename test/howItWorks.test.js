@@ -69,12 +69,14 @@ describe('Goals', () => {
         expect(t).toContain('Lv 3 and 5');
         expect(t).toContain('up to 3');
     });
-    test('says goals belong to the player, not the run; the reward line waits for CONFIG.GOAL_REWARDS (Build C) and has no numbers', () => {
+    test('says goals belong to the player, not the run; the reward lines come from CONFIG.GOAL_REWARDS and mention no XP', () => {
         expect(text()).toMatch(/a lost run never touches them/i);
-        expect(text()).not.toContain('Goals pay points and XP');
-        const withRewards = HowItWorks.topics(Object.assign({}, CONFIG, { GOAL_REWARDS: {} })).find(t => t.id === 'goals');
-        expect(withRewards.what.join(' ')).toContain('Goals pay points and XP when a period is met or a goal is finished.');
-        expect(text()).not.toMatch(/\d+ (points|XP)/);
+        expect(text()).toContain('A repeating goal you meet pays a bonus on the points you earned in that period: 10% for a day');
+        expect(text()).toMatch(/reward you write yourself/);
+        expect(text()).toMatch(/starts with the next period/);
+        expect(text()).not.toMatch(/Goals pay points and XP/);
+        const without = HowItWorks.topics(Object.assign({}, CONFIG, { GOAL_REWARDS: undefined })).find(t => t.id === 'goals');
+        expect(without.what.join(' ')).not.toMatch(/repeating goal you meet/);
     });
     test('uses the theme words for the pane title only, and no theme noun leaks otherwise', () => {
         expect(text()).toMatch(/flag button/i);

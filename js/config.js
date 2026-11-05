@@ -429,6 +429,10 @@ const CONFIG = {
         // targeting but available for ANY habit (not just negative ones).
         // Both are Fable fork 4, session 35 (docs/FROZEN_SLOTS_PLAN.md).
         { id: 'sick_day', name: 'Sick Day', category: 'sickDay', baseCost: 200, consumable: true, effect: {} },
+        // Goals Build C (2026-11-05): paid by a finished one-time goal or a monthly goal met (GOAL_REWARDS). Same effect as a Sick Day; never
+        // listed for sale (`notForSale`), and it SURVIVES a new run (`keptAcrossRuns`): the first row that uses that flag, because a goal
+        // that took months cannot be re-earned by playing a run. baseCost is only its shop value for the daily record.
+        { id: 'earned_sick_day', name: 'Earned Sick Day', category: 'sickDay', baseCost: 200, consumable: true, notForSale: true, keptAcrossRuns: true, effect: {} },
         { id: 'skip_day', name: 'Skip Day', category: 'skipDay', baseCost: 200, consumable: true, effect: {} },
     ],
 
@@ -900,6 +904,23 @@ const CONFIG = {
         { id: 'perfectDay', label: 'Perfect routine attendance', unit: 'days', special: 'perfectDay' },
         { id: 'pointsEarned', label: 'Points earned', unit: 'pts', path: 'pts.earned' },
     ],
+    // Goal rewards (Goals Build C; design: Jeremy + Claude 2026-11-05, DECISIONS "goals Build C"). THEORY numbers: tune with play data.
+    //   periodBonusPct  a recurring goal met pays this share of the points the player EARNED in that period (the closed daily records'
+    //                   pts.earned), never a flat sum: a trivially easy goal on a quiet day pays about nothing, so it cannot be farmed.
+    //   streakBonusPer / streakBonusCap  +10% of that bonus per consecutive period met, capped at +50% (the 5th in a row).
+    //   item            what a finished one-time goal and a monthly period met pay: one Earned Sick Day (SHOP_ITEMS, keptAcrossRuns).
+    //   itemMinAgeDays  a goal must be this old before it pays an item (a yes/no made and ticked in one sitting pays nothing).
+    //   itemCooldownDays  at most one goal item per this many days; extra ones are OWED and paid when the cooldown ends.
+    //   No XP: levels cap and reset with the run; no flat points for typed numbers (the player's own word). Nothing here softens damage.
+    GOAL_REWARDS: {
+        periodBonusPct: { day: 0.10, week: 0.15, month: 0.20 },
+        streakBonusPer: 0.10,
+        streakBonusCap: 0.50,
+        item: { itemId: 'earned_sick_day', count: 1 },
+        itemMinAgeDays: 7,
+        itemCooldownDays: 7,
+    },
+    GOAL_REWARD_MAX: 80, // longest "my own reward" text (characters)
     // The two suggested goals every fresh save starts with (the player keeps, changes or removes them). Theme-neutral copy.
     GOAL_STARTERS: [
         {

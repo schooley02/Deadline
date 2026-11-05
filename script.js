@@ -855,6 +855,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (perk.label) perkLabels.push(perk.label);
         });
+        LevelPanel.goalSlotPerks(CONFIG.GOAL_SLOTS_PER_LEVEL, levelBefore, result.level).forEach(perk => perkLabels.push(perk.label));
         if (inventoryChanged) saveGame();
 
         Hud.updatePlayerDisplays({ playerXP: State.getPlayerXP(), playerLevel: State.getPlayerLevel(), playerPoints: State.getPlayerPoints(), pointsPerTask: POINTS_PER_TASK, playerXpDisplay, playerLevelDisplay, playerPointsDisplay, playerXpBar, levelButton, xpThresholds: CONFIG.LEVEL_XP_THRESHOLDS, playerPointsStat, playerPointsNudge });
@@ -2752,7 +2753,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function levelPanelContext() {
         return {
             level: State.getPlayerLevel(), xp: State.getPlayerXP(), thresholds: CONFIG.LEVEL_XP_THRESHOLDS,
-            slotsTable: CONFIG.ROUTINE_SLOTS_PER_LEVEL, perksTable: CONFIG.LEVEL_PERKS,
+            slotsTable: CONFIG.ROUTINE_SLOTS_PER_LEVEL, perksTable: CONFIG.LEVEL_PERKS, goalSlotsTable: CONFIG.GOAL_SLOTS_PER_LEVEL,
             routines: State.getDefinedRoutines(), definedHabits: State.getDefinedHabits(),
             config: CONFIG, runStartedAtMs: State.getRunStartedAtMs(),
         };
@@ -2927,6 +2928,7 @@ document.addEventListener('DOMContentLoaded', () => {
             remove: (goalId) => State.deleteGoal(goalId),
             afterChange: () => renderGoals(),
             onEdit: (goalId) => openGoalForm(goalId),
+            onKeep: (goalId) => State.keepGoal(goalId),
         };
     }
 
@@ -2974,6 +2976,7 @@ document.addEventListener('DOMContentLoaded', () => {
             getRoster: () => (State.getGoals() || {}).done || [],
             onOpenGoal: (goalId) => { GoalCard.open(goalId, goalCardDeps()); },
             onNewGoal: () => openGoalForm(null),
+            onClaim: (recordId, claimed) => State.claimGoalReward(recordId, claimed),
         });
         goalsPaneReady = true;
         return true;
@@ -2983,8 +2986,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!ensureGoalsPane()) return;
         try {
             // Notices first: a goal finished by a linked completion (or a period close) is announced once, then the pane redraws.
-            const done = State.takeGoalEvents().filter(ev => ev && ev.type === 'complete');
-            if (done.length) FrozenNotice.showGoalCompleteNotice(done.map(ev => ({ name: ev.record && ev.record.name })));
+            const events = State.takeGoalEvents();
+            const done = events.filter(ev => ev && ev.type === 'complete');
+            if (done.length) {
+                FrozenNotice.showGoalCompleteNotice(done.map(ev => ({
+                    name: ev.record && ev.record.name, item: ev.item, itemStatus: ev.itemStatus,
+                    reward: ev.record && ev.record.reward, onTime: ev.record ? ev.record.onTime : null,
+                })));
+            }
+            // A met repeating period (pays a bonus, maybe a monthly item) and an owed item that finally arrived.
+            const met = events.filter(ev => ev && ev.type === 'period' && ev.met);
+            if (met.length) {
+                FrozenNotice.showGoalPeriodNotice(met.map(ev => ({
+                    name: ev.name, period: ev.period, pts: ev.pts, streak: ev.streak, item: ev.item, itemStatus: ev.itemStatus, reward: ev.reward,
+                })));
+            }
+            const owed = events.filter(ev => ev && ev.type === 'owed' && ev.item);
+            if (owed.length) FrozenNotice.showGoalOwedNotice(owed.map(ev => ({ name: 'Earned item', item: ev.item, itemStatus: 'paid' })));
             GoalsPane.refresh();
             // Badges on the agenda rows: only touched when a link, a goal name or the set of rows changed.
             const active = (State.getGoals() || {}).active || [];

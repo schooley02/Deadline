@@ -38,10 +38,10 @@ beforeEach(() => {
 });
 afterAll(() => { delete global.Persistence; });
 
-describe('DailyRecord v10: pg', () => {
-    test('version 10 and a fresh record starts with an all-zero pg', () => {
-        expect(DailyRecord.V).toBe(10);
-        expect(DailyRecord.fresh().pg).toEqual({ climb: 0, drop: 0, met: 0, done: 0 });
+describe('DailyRecord v10 / v11: pg', () => {
+    test('version 11 and a fresh record starts with an all-zero pg', () => {
+        expect(DailyRecord.V).toBe(11);
+        expect(DailyRecord.fresh().pg).toEqual({ climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 });
     });
     test("the 'pgoal' event adds whole counts and ignores junk", () => {
         const rec = DailyRecord.fresh();
@@ -49,15 +49,15 @@ describe('DailyRecord v10: pg', () => {
         DailyRecord.bump(rec, 'pgoal', { climb: 1, drop: 1, done: 1 });
         DailyRecord.bump(rec, 'pgoal', { climb: -3, drop: 'x', met: NaN, done: 0.4 });
         DailyRecord.bump(rec, 'pgoal');
-        expect(rec.pg).toEqual({ climb: 3, drop: 1, met: 1, done: 1 });
+        expect(rec.pg).toEqual({ climb: 3, drop: 1, met: 1, done: 1, pts: 0, items: 0 });
     });
     test('an old record (no pg) is repaired by normalize, and a stored pg survives it', () => {
         const old = DailyRecord.fresh({ date: '2026-11-01' });
         delete old.pg;
-        expect(DailyRecord.normalize(old).pg).toEqual({ climb: 0, drop: 0, met: 0, done: 0 });
+        expect(DailyRecord.normalize(old).pg).toEqual({ climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 });
         const kept = DailyRecord.fresh({ date: '2026-11-01' });
         kept.pg = { climb: 4, drop: 2, met: 1, done: 3 };
-        expect(DailyRecord.normalize(kept).pg).toEqual({ climb: 4, drop: 2, met: 1, done: 3 });
+        expect(DailyRecord.normalize(kept).pg).toMatchObject({ climb: 4, drop: 2, met: 1, done: 3 });
     });
     test('the month roll-up sums pg', () => {
         const a = dayRec('2024-01-03'); a.pg = { climb: 2, drop: 0, met: 1, done: 0 };
@@ -65,7 +65,7 @@ describe('DailyRecord v10: pg', () => {
         let store = DailyRecord.addDay(DailyRecord.addDay(null, a), b);
         store = DailyRecord.rollUp(store, new Date(2026, 10, 5));
         expect(store.days['2024-01-03']).toBeUndefined();
-        expect(store.months['2024-01'].pg).toEqual({ climb: 3, drop: 1, met: 1, done: 1 });
+        expect(store.months['2024-01'].pg).toEqual({ climb: 3, drop: 1, met: 1, done: 1, pts: 0, items: 0 });
     });
 });
 
@@ -91,9 +91,9 @@ describe('Persistence schema 18', () => {
 
 describe('State: the saved goals', () => {
     test('a fresh State has empty goals, and setGoals repairs junk', () => {
-        expect(State.getGoals()).toEqual({ bestSlots: 0, active: [], done: [], nextId: 1, seeded: false });
+        expect(State.getGoals()).toEqual({ bestSlots: 0, active: [], done: [], nextId: 1, seeded: false, owed: 0, itemPaidAt: [] });
         State.setGoals({ active: 'nope', bestSlots: -4, nextId: 'x' });
-        expect(State.getGoals()).toEqual({ bestSlots: 0, active: [], done: [], nextId: 1, seeded: false });
+        expect(State.getGoals()).toEqual({ bestSlots: 0, active: [], done: [], nextId: 1, seeded: false, owed: 0, itemPaidAt: [] });
     });
     test('goals are part of the persistable state', () => {
         State.ensureGoalsSeeded(NOON(2026, 11, 5));
@@ -204,7 +204,7 @@ describe('linked targets: the Items -> State hook', () => {
         const info = { goalId: goal.id, goalTargetId: goal.targets[0].id, type: 'task', definitionId: null, routineId: null };
         State.applyGoalCompletion(info, +1, NOON(2026, 11, 5)); // 0 -> 2
         State.applyGoalCompletion(info, +1, NOON(2026, 11, 5)); // 2 -> done (5): +3
-        expect(State.getToday().pg).toEqual({ climb: 5, drop: 0, met: 0, done: 1 });
+        expect(State.getToday().pg).toEqual({ climb: 5, drop: 0, met: 0, done: 1, pts: 0, items: 0 });
     });
 
     // Items.completeItem / uncompleteItem need a full DOM to run, so the hook is pinned at source level here (the behaviour behind it is
@@ -278,7 +278,7 @@ describe('the period close inside performDayRollover', () => {
         fakePersistence({ '2026-11-03': dayRec('2026-11-03', { done: Object.assign(DailyRecord.fresh().done, { task: 5 }) }) });
         State.setToday(dayRec('2026-11-09'));
         State.closeGoalPeriods(NOON(2026, 11, 9));
-        expect(State.getToday().pg).toEqual({ climb: 1, drop: 0, met: 1, done: 0 });
+        expect(State.getToday().pg).toEqual({ climb: 1, drop: 0, met: 1, done: 0, pts: 0, items: 0 });
     });
     test('an app closed for weeks closes each missed period in order', () => {
         weeklyGoal();
@@ -393,7 +393,7 @@ describe('Build B1: views, target edits, retire / delete, events', () => {
         State.setToday(dayRec('2026-11-09'));
         State.closeGoalPeriods(NOON(2026, 11, 9));
         expect(State.takeGoalEvents()).toEqual([
-            { type: 'period', goalId: 1, name: 'Week', key: '2026-11-02', met: false, stageBefore: 2, stageAfter: 1 },
+            { type: 'period', goalId: 1, name: 'Week', period: 'week', key: '2026-11-02', met: false, stageBefore: 2, stageAfter: 1, streak: 0, pts: 0, item: null, itemStatus: null, reward: '' },
         ]);
     });
     test('retireGoal moves a goal to the roster; deleteGoal drops it with no roster entry', () => {

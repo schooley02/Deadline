@@ -38,7 +38,7 @@
  *   timer       {kind:'work'|'limit', minutes}
  *   goal        {habitId, type:'time'|'amount'|'note', amount, unit, met, actual}   (v5: an answered habit's goal)
  *   goalClear   {habitId}                                                           (v5: that answer was undone)
- *   pgoal       {climb, drop, met, done}             (v10: the player's Goals today -- counts to add; see State.bumpToday)
+ *   pgoal       {climb, drop, met, done, pts, items} (v10 / v11: the player's Goals today -- counts to add; see State.bumpToday)
  * setGoalActual(rec, habitId, actual) corrects an already-recorded entry's `actual` (v5, an edited logged time).
  * adjustTimer(rec, kind, deltaMin) is the one NON-bump writer: it corrects timer.workMin / limitMin by a signed delta
  * when a logged time is edited (v4), on the item's own day -- today's working record or a closed one.
@@ -68,7 +68,9 @@ const DailyRecord = (() => {
     // v10 (2026-11-05, Goals Build A; docs/GOALS_PLAN.md): `pg` = { climb, drop, met, done }, the player's Goals today: climb = stages
     // climbed (a milestone following its progress up, a recurring goal's period met), drop = stages lost (progress taken back, a period
     // missed), met = recurring periods met, done = milestones completed. (`goals` is taken by the Habit Goals tally since v5.)
-    const V = 10;
+    // v11 (2026-11-05, Goals Build C): `pg` also carries `pts` (the bonus points goals paid today: a recurring period met) and `items`
+    // (Earned Sick Days paid: a one-time goal finished or a monthly period met). Older days read them as 0.
+    const V = 11;
     // Mirrors Habits.GOAL_UNIT_SUGGESTIONS (test/dailyRecord.test.js checks they match). Kept local: no global dependencies.
     const GOAL_UNITS = ['pages', 'glasses', 'oz', 'steps', 'miles', 'km', 'reps', 'words', 'servings', 'drinks', 'cigarettes', 'cups', '$', 'times'];
     const GOAL_TYPES = ['time', 'amount', 'note'];
@@ -164,7 +166,7 @@ const DailyRecord = (() => {
             // v9: priority slots marked / finished today (see V above).
             pri: { m: 0, d: 0, s: 0 },
             // v10: the player's Goals today (see V above).
-            pg: { climb: 0, drop: 0, met: 0, done: 0 },
+            pg: { climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 },
             ko: 0,
             revived: 0,
             timer: { workMin: 0, limitMin: 0, edits: 0, editMin: 0 },
@@ -478,10 +480,10 @@ const DailyRecord = (() => {
             }
             case 'pgoal': {
                 // A player Goals change: p = { climb, drop, met, done } (counts to add; each a whole number, ignored when not > 0).
-                if (!rec.pg) rec.pg = { climb: 0, drop: 0, met: 0, done: 0 };
-                ['climb', 'drop', 'met', 'done'].forEach((k) => {
+                if (!rec.pg) rec.pg = { climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 };
+                ['climb', 'drop', 'met', 'done', 'pts', 'items'].forEach((k) => {
                     const n = Math.floor(Number(p[k]));
-                    if (n > 0) rec.pg[k] += n;
+                    if (n > 0) rec.pg[k] = (rec.pg[k] || 0) + n;
                 });
                 break;
             }
@@ -701,8 +703,8 @@ const DailyRecord = (() => {
         dst.pri.m += (src.pri && src.pri.m) || 0;
         dst.pri.d += (src.pri && src.pri.d) || 0;
         dst.pri.s += (src.pri && src.pri.s) || 0;
-        if (!dst.pg) dst.pg = { climb: 0, drop: 0, met: 0, done: 0 };
-        ['climb', 'drop', 'met', 'done'].forEach((k) => { dst.pg[k] += (src.pg && src.pg[k]) || 0; });
+        if (!dst.pg) dst.pg = { climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 };
+        ['climb', 'drop', 'met', 'done', 'pts', 'items'].forEach((k) => { dst.pg[k] = (dst.pg[k] || 0) + ((src.pg && src.pg[k]) || 0); });
         dst.ko += src.ko || 0;
         dst.revived += src.revived || 0;
         dst.active.touches += (src.active && src.active.touches) || 0;

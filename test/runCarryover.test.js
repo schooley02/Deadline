@@ -68,10 +68,10 @@ describe('RunCarryover.inventoryToKeep', () => {
         expect(RunCarryover.inventoryToKeep({ repair_small: 2, relic: 3, ghost: 1, bad: NaN }, catalog)).toEqual({ relic: 3 });
         expect(RunCarryover.inventoryToKeep({ relic: 0 }, catalog)).toEqual({});
     });
-    test('with the real catalog nothing is kept today (no row has the flag)', () => {
-        expect(CONFIG.SHOP_ITEMS.some(r => r.keptAcrossRuns)).toBe(false);
+    test('with the real catalog only the Earned Sick Day is kept (the one row with the flag)', () => {
+        expect(CONFIG.SHOP_ITEMS.filter(r => r.keptAcrossRuns).map(r => r.id)).toEqual(['earned_sick_day']);
         const all = {}; CONFIG.SHOP_ITEMS.forEach(r => { all[r.id] = 2; });
-        expect(RunCarryover.inventoryToKeep(all, CONFIG.SHOP_ITEMS)).toEqual({});
+        expect(RunCarryover.inventoryToKeep(all, CONFIG.SHOP_ITEMS)).toEqual({ earned_sick_day: 2 });
     });
     test('junk input is an empty inventory', () => {
         expect(RunCarryover.inventoryToKeep(null, catalog)).toEqual({});

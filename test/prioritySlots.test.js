@@ -403,8 +403,8 @@ describe('Items.completeItem / uncompleteItem: the daily record `pri` flag', () 
 });
 
 describe('DailyRecord v9: pri', () => {
-    test('the version is 10 (v10 adds pg) and a fresh record carries pri { m, d, s }', () => {
-        expect(DailyRecord.V).toBe(10);
+    test('the version is 11 (v10 adds pg, v11 adds pg.pts / items) and a fresh record carries pri { m, d, s }', () => {
+        expect(DailyRecord.V).toBe(11);
         expect(DailyRecord.fresh().pri).toEqual({ m: 0, d: 0, s: 0 });
     });
     test('a mark bumps m; a priority completion bumps d and an undo takes it back (floor 0)', () => {

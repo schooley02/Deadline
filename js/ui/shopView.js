@@ -237,6 +237,7 @@ const ShopView = (() => {
         list.appendChild(buildOwnedRow(deps.catalog, deps.inventory));
         let pushbackHeaderDone = false;
         deps.catalog.forEach(item => {
+            if (item.notForSale) return; // goal rewards (Earned Sick Day) show only in the "You have" row
             // Section header + (i) once, above the first pushback token card.
             if (item.category === 'pushback' && !pushbackHeaderDone) {
                 pushbackHeaderDone = true;

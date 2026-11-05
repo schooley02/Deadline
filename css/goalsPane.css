@@ -309,3 +309,12 @@ button.goal-slot:focus-visible { outline: 2px solid var(--color-primary-dark-gre
 @media (prefers-reduced-motion: reduce) {
     .goals-pane, .goals-pane-backdrop { transition: none; }
 }
+
+/* Goals Build C (2026-11-05): reward line, source label, pending note, roster claim, notice detail. */
+.goal-card-reward { margin: 2px 0; font-size: 13px; font-style: italic; }
+.goal-card-pending { margin: 2px 0; font-size: 12px; color: var(--color-neutral, #757575); }
+.goal-target-source { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-neutral, #757575); }
+.goal-roster-reward { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; font-size: 13px; font-style: italic; }
+.goal-roster-reward--claimed { opacity: 0.7; }
+.goal-claim-btn { min-height: 44px; min-width: 44px; padding: 4px 12px; font-size: 13px; font-style: normal; }
+.goal-notice-detail { font-size: 13px; }

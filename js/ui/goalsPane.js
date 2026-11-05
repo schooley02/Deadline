@@ -191,6 +191,8 @@ const GoalsPane = (() => {
             periodsMet: r.periodsMet || 0,
             bestStreak: r.bestStreak || 0,
             kind: r.kind,
+            reward: r.reward || '',
+            claimed: !!r.claimed,
         }));
     }
 
@@ -308,7 +310,10 @@ const GoalsPane = (() => {
         }
         return `<ul class="goal-roster">${rows.map(r => `<li class="goal-roster-row"><span class="goal-roster-name">${esc(r.name)}</span>`
             + `<span class="goal-roster-meta">${esc(r.kindLine)}${r.finished ? ' · finished ' + esc(r.finished) : ''}`
-            + `${r.kind === 'recurring' ? ` · ${r.periodsMet} met, best streak ${r.bestStreak}` : ''}</span></li>`).join('')}</ul>`;
+            + `${r.kind === 'recurring' ? ` · ${r.periodsMet} met, best streak ${r.bestStreak}` : ''}</span>`
+            + (r.reward ? `<span class="goal-roster-reward${r.claimed ? ' goal-roster-reward--claimed' : ''}">${esc(r.reward)}`
+                + `<button type="button" class="secondary-button goal-claim-btn" data-action="claim" data-record="${esc(r.id)}" data-claimed="${r.claimed ? '1' : '0'}" aria-pressed="${r.claimed ? 'true' : 'false'}">${r.claimed ? 'Claimed \u2713' : 'Claim'}</button></span>` : '')
+            + `</li>`).join('')}</ul>`;
     }
 
     // ---- DOM ------------------------------------------------------------------------------------------------------------------
@@ -341,7 +346,8 @@ const GoalsPane = (() => {
     function updateBody() {
         const finishedCount = deps.getRoster().length;
         const ts = themeStrings();
-        const sig = [showRoster ? 'r' : 'g', finishedCount, lastInfo.slots, lastInfo.used, lastInfo.next ? lastInfo.next.level : '-',
+        const claimSig = showRoster ? deps.getRoster().map(r => (r.claimed ? 1 : 0) + (r.reward ? 'r' : '')).join('') : '';
+        const sig = [showRoster ? 'r' : 'g', finishedCount, claimSig, lastInfo.slots, lastInfo.used, lastInfo.next ? lastInfo.next.level : '-',
             lastViews.length, cellModels(lastViews, lastInfo).map(cellSignature).join('~')].join('#');
         if (sig === bodySig) return;
         bodySig = sig;
@@ -413,6 +419,13 @@ const GoalsPane = (() => {
         document.addEventListener('keydown', () => { escHadModal = !!document.querySelector('.modal-overlay'); }, true);
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen && !escHadModal) close(); });
         d.bodyEl.addEventListener('click', (e) => {
+            const claim = e.target.closest ? e.target.closest('[data-action="claim"]') : null;
+            if (claim) {
+                e.stopPropagation();
+                if (typeof d.onClaim === 'function') d.onClaim(claim.dataset.record, claim.dataset.claimed !== '1');
+                refresh();
+                return;
+            }
             const fresh = e.target.closest ? e.target.closest('.goal-slot--open') : null;
             if (fresh) {
                 e.stopPropagation(); // same reason as below: the tap that opens a window must not count as an outside click

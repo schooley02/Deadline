@@ -373,30 +373,53 @@ const FrozenNotice = (() => {
 
     // Goals (Build B1, 2026-11-05): ONE notice for every goal that just finished. `entries` = [{ name }]; the words come from
     // Theme.strings.goals (completeLine / completeJoin) so this module stays free of theme nouns. Waits like the other notices.
-    let pendingGoalNames = [];
+    let pendingGoalRows = [];
     let goalCompleteWaiterId = null;
-    function showGoalCompleteNotice(entries) {
+    const escGoal = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    /**
+     * The extra lines under one finished or met goal (pure, unit-tested): the item earned (or why it waits), the points, and the
+     * reward the player promised themselves. row: { item: {name} | null, itemStatus: 'paid'|'owed'|'young'|null, pts, reward, streak, onTime }.
+     */
+    function goalDetailLines(row) {
+        const out = [];
+        if (row.pts > 0) out.push(`Bonus: +${row.pts} points${row.streak > 1 ? ` (streak ${row.streak})` : ''}.`);
+        if (row.item && row.item.name && row.itemStatus === 'paid') out.push(`You earned an ${row.item.name}.`);
+        else if (row.itemStatus === 'owed') out.push('Your Earned Sick Day is on its way. One arrives at most every 7 days.');
+        else if (row.itemStatus === 'young') out.push('No Earned Sick Day this time: the goal was too new. Goals older than a week earn one.');
+        if (row.onTime === true) out.push('Finished by the deadline.');
+        if (row.reward) out.push(`Your reward: ${row.reward}`);
+        return out;
+    }
+
+    function queueGoalNotice(entries, kind) {
         const rows = (Array.isArray(entries) ? entries : []).filter(e => e && e.name);
         if (rows.length === 0) return;
-        pendingGoalNames.push(...rows.map(r => String(r.name)));
+        pendingGoalRows.push(...rows.map(r => Object.assign({}, r, { noticeKind: kind || 'complete' })));
         if (goalCompleteWaiterId !== null) return;
         const tryShow = () => {
             if (document.querySelector('.modal-overlay')) {
                 goalCompleteWaiterId = setTimeout(tryShow, 400);
                 return;
             }
-            const names = pendingGoalNames;
-            pendingGoalNames = [];
+            const batch = pendingGoalRows;
+            pendingGoalRows = [];
             goalCompleteWaiterId = null;
-            if (!names.length) return;
+            if (!batch.length) return;
             const ts = (typeof Theme !== 'undefined' && Theme.strings && Theme.strings.goals) || {};
             const fill = (typeof Theme !== 'undefined' && Theme.fill) ? Theme.fill : (t, v) => String(t).replace(/\{(\w+)\}/g, (m, k) => (k in v ? v[k] : m));
-            const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-            const lines = names.map(n => `<li>${esc(fill(ts.completeJoin || '{name} is done.', { name: n }))}</li>`).join('');
+            const lines = batch.map(r => {
+                const head = r.noticeKind === 'owed' ? 'An item you were owed has arrived.'
+                    : r.noticeKind === 'period' ? `${r.name}: ${r.period ? r.period + ' met' : 'period met'}.`
+                    : fill(ts.completeJoin || '{name} is done.', { name: r.name });
+                const detail = goalDetailLines(r).map(l => `<span class="goal-notice-detail">${escGoal(l)}</span>`).join('');
+                return `<li>${escGoal(head)}${detail ? '<br>' + detail.replace(/<\/span><span/g, '</span><br><span') : ''}</li>`;
+            }).join('');
+            const anyDone = batch.some(r => r.noticeKind === 'complete');
             Modal.open(`
                 <div class="modal-overlay frozen-notice-overlay">
                     <div class="modal-content frozen-notice-modal">
-                        <h3>${esc(ts.completeLine || 'Goal complete.')}</h3>
+                        <h3>${escGoal(anyDone ? (ts.completeLine || 'Goal complete.') : 'Goal met.')}</h3>
                         <ul class="frozen-notice-recovery-list">${lines}</ul>
                         <div class="modal-buttons">
                             <button class="primary-button" onclick="closeModal()">Nice</button>
@@ -406,6 +429,13 @@ const FrozenNotice = (() => {
         };
         goalCompleteWaiterId = setTimeout(tryShow, 0);
     }
+
+    /** Finished one-time goals. entries: [{ name, item, itemStatus, reward, onTime }]. Waits like the other notices. */
+    function showGoalCompleteNotice(entries) { queueGoalNotice(entries, 'complete'); }
+    /** Repeating goals whose period was met. entries: [{ name, period, pts, streak, item, itemStatus, reward }]. */
+    function showGoalPeriodNotice(entries) { queueGoalNotice(entries, 'period'); }
+    /** An owed item paid after its cooldown. entries: [{ name, item, itemStatus }]. */
+    function showGoalOwedNotice(entries) { queueGoalNotice(entries, 'owed'); }
 
     return {
         showVillageRewardNotice,
@@ -418,6 +448,9 @@ const FrozenNotice = (() => {
         showAchievementUnlockNotice,
         showPrioritySetNotice,
         showGoalCompleteNotice,
+        showGoalPeriodNotice,
+        showGoalOwedNotice,
+        goalDetailLines,
     };
 })();
 

@@ -392,7 +392,8 @@ const StatsView = (() => {
         const rows = done.slice(0, GOALS_ROSTER_SHOWN).map((g) => {
             const when = formatDate(g.finishedAt);
             const how = g.kind === 'milestone' ? `Finished ${when}` : `Retired ${when}${g.bestStreak > 0 ? ` \u00B7 best streak ${g.bestStreak}` : ''}`;
-            return `<li class="stats-goal-row"><span class="stats-goal-row-name">${escHtml(g.name)}</span><span class="stats-goal-row-note">${escHtml(how)}</span></li>`;
+            const prize = g.reward ? ` \u00B7 reward: ${g.reward}${g.claimed ? ' (claimed)' : ''}` : '';
+            return `<li class="stats-goal-row"><span class="stats-goal-row-name">${escHtml(g.name)}</span><span class="stats-goal-row-note">${escHtml(how + prize)}</span></li>`;
         }).join('');
         const more = done.length > GOALS_ROSTER_SHOWN ? `<p class="stats-empty">and ${done.length - GOALS_ROSTER_SHOWN} more</p>` : '';
         const roster = done.length === 0

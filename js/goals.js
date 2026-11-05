@@ -26,6 +26,7 @@ const Goals = (() => {
     const MAX_CLOSE_STEPS = 400;
     const NAME_MAX = 80;
     const LABEL_MAX = 80;
+    const REWARD_MAX = 80; // the player's own reward text (mirrors CONFIG.GOAL_REWARD_MAX)
     const HISTORY_SANE_MAX = 100;
 
     // ---------------------------------------------------------------- small helpers
@@ -382,6 +383,13 @@ const Goals = (() => {
             completedAt: isNum(raw.completedAt) ? raw.completedAt : null,
         };
         if (raw.suggested === true) goal.suggested = true;
+        const reward = str(raw.reward, REWARD_MAX);
+        if (reward) goal.reward = reward;
+        // Recurring goals: target edits wait for the next period (Build C); the pending set is kept here until the period closes.
+        if (kind === 'recurring' && raw.next && typeof raw.next === 'object') {
+            const nextTargets = normalizeTargets(raw.next.targets);
+            if (nextTargets.length > 0) goal.next = { targets: nextTargets };
+        }
         return goal;
     }
 
@@ -391,7 +399,7 @@ const Goals = (() => {
     }
 
     function freshGoals() {
-        return { bestSlots: 0, active: [], done: [], nextId: 1, seeded: false };
+        return { bestSlots: 0, active: [], done: [], nextId: 1, seeded: false, owed: 0, itemPaidAt: [] };
     }
 
     function normalizeRecord(raw) {
@@ -408,6 +416,9 @@ const Goals = (() => {
             periodsMet: isInt(raw.periodsMet) && raw.periodsMet > 0 ? raw.periodsMet : 0,
             bestStreak: isInt(raw.bestStreak) && raw.bestStreak > 0 ? raw.bestStreak : 0,
             runNights: isInt(raw.runNights) && raw.runNights > 0 ? raw.runNights : 0,
+            reward: str(raw.reward, REWARD_MAX),
+            claimed: raw.claimed === true,
+            onTime: raw.onTime === true ? true : (raw.onTime === false ? false : null),
         };
     }
 
@@ -434,6 +445,8 @@ const Goals = (() => {
             done,
             nextId: Math.max(isInt(obj.nextId) && obj.nextId >= 1 ? obj.nextId : 1, maxId + 1),
             seeded: !!obj.seeded,
+            owed: isInt(obj.owed) && obj.owed > 0 ? Math.min(obj.owed, 50) : 0,
+            itemPaidAt: Array.isArray(obj.itemPaidAt) ? obj.itemPaidAt.filter(isNum).slice(-10) : [],
         };
     }
 
@@ -553,15 +566,18 @@ const Goals = (() => {
             const stageBefore = g.stage;
             const stageAfter = met ? Math.min(MAX_STAGE, stageBefore + 1) : Math.max(0, stageBefore - 1);
             const streak = met ? g.streak + 1 : 0;
+            // The points the player earned in this period (closed daily records): what a met period's bonus is a share of.
+            const earned = (rc.records || []).reduce((n, r) => n + Math.max(0, Number(r && r.pts && r.pts.earned) || 0), 0);
             g = Object.assign({}, g, {
                 stage: stageAfter,
                 streak,
                 bestStreak: Math.max(g.bestStreak, streak),
                 periodsMet: g.periodsMet + (met ? 1 : 0),
                 history: g.history.concat([{ key, met, progress }]).slice(-keep),
-                targets: resetTargets(g.targets),
+                targets: resetTargets(g.next ? g.next.targets : g.targets),
             });
-            outcomes.push({ key, met, progress, stageBefore, stageAfter, streakAfter: streak });
+            delete g.next; // a pending target edit takes effect now (the first period after the edit)
+            outcomes.push({ key, met, progress, stageBefore, stageAfter, streakAfter: streak, earned });
             key = nextPeriodKey(g.period, key);
             steps++;
         }
@@ -583,6 +599,10 @@ const Goals = (() => {
             periodsMet: goal.periodsMet,
             bestStreak: goal.bestStreak,
             runNights: isInt(runNights) && runNights > 0 ? runNights : 0,
+            reward: goal.reward || '',
+            claimed: false,
+            // A one-time goal's deadline: true = finished on or before it, false = late, null = it had none (or it is a recurring goal).
+            onTime: goal.kind === 'milestone' && goal.deadline ? dateKey(nowMs) <= goal.deadline : null,
         };
     }
 
@@ -636,6 +656,78 @@ const Goals = (() => {
             goals: Object.assign({}, goals, { active: goals.active.filter(g => !sameId(g.id, id)), done: pushRoster(goals.done, record, rosterKeep) }),
             record,
         };
+    }
+
+    // ---------------------------------------------------------------- rewards (Build C)
+
+    const COUNTER_KEYS = ['current', 'done', 'itemTotal', 'itemDone', 'occ'];
+    /** True when two target lists say the same thing (counters ignored): the test for "this edit changed nothing that waits a period". */
+    function sameDefinitions(a, b) {
+        const strip = (list) => JSON.stringify((list || []).map((t) => {
+            const o = Object.assign({}, t);
+            COUNTER_KEYS.forEach((k) => { delete o[k]; });
+            return o;
+        }));
+        return strip(a) === strip(b);
+    }
+
+    /**
+     * The bonus points for a recurring period met: a share of the points EARNED in it (`rewards.periodBonusPct[period]`), plus +streakBonusPer
+     * of that per consecutive period (this one included), capped at streakBonusCap. Whole points, never negative; 0 for a miss.
+     */
+    function periodBonus(period, earned, streakAfter, rewards) {
+        const r = rewards || {};
+        const pct = r.periodBonusPct && Number(r.periodBonusPct[period]);
+        const base = Math.max(0, Number(earned) || 0);
+        if (!(pct > 0) || base <= 0) return 0;
+        const per = Number(r.streakBonusPer) || 0;
+        const cap = Number(r.streakBonusCap) || 0;
+        const streak = Math.max(0, Math.floor(Number(streakAfter) || 0));
+        const mult = 1 + Math.min(cap, per * streak);
+        return Math.round(base * pct * mult);
+    }
+
+    const DAY_MS = 86400000;
+    /**
+     * Would a goal item be paid now? 'ok'; 'young' (the goal is younger than itemMinAgeDays: nothing is owed, so a goal made and
+     * ticked in one sitting pays nothing); or 'cooldown' (an item was paid less than itemCooldownDays ago: it is OWED and paid later).
+     */
+    function itemStatus(createdAt, paidAt, nowMs, rewards) {
+        const r = rewards || {};
+        const minAge = (Number(r.itemMinAgeDays) || 0) * DAY_MS;
+        if (isNum(createdAt) && nowMs - createdAt < minAge) return 'young';
+        return cooldownOver(paidAt, nowMs, rewards) ? 'ok' : 'cooldown';
+    }
+    /** True when the last goal item was paid at least itemCooldownDays ago (or none ever). */
+    function cooldownOver(paidAt, nowMs, rewards) {
+        const cooldown = (Number((rewards || {}).itemCooldownDays) || 0) * DAY_MS;
+        const last = (Array.isArray(paidAt) ? paidAt : []).reduce((m, t) => (isNum(t) && t > m ? t : m), 0);
+        return !(last > 0 && nowMs - last < cooldown);
+    }
+    function itemPayable(createdAt, paidAt, nowMs, rewards) {
+        return itemStatus(createdAt, paidAt, nowMs, rewards) === 'ok';
+    }
+
+    /** Marks a roster record's own reward as claimed (or not). Returns the same goals object when nothing changes. */
+    function claimReward(goals, recordId, claimed) {
+        if (!goals || !Array.isArray(goals.done)) return goals;
+        let changed = false;
+        const done = goals.done.map((r) => {
+            if (!sameId(r.id, recordId) || (r.claimed === true) === (claimed === true)) return r;
+            changed = true;
+            return Object.assign({}, r, { claimed: claimed === true });
+        });
+        return changed ? Object.assign({}, goals, { done }) : goals;
+    }
+
+    /** The player keeps a suggested goal as it is: it stops being an "Example". Same object when it was not suggested. */
+    function keepGoal(goals, id) {
+        if (!goals || !Array.isArray(goals.active)) return goals;
+        const g = goals.active.find(x => sameId(x.id, id));
+        if (!g || !g.suggested) return goals;
+        const next = Object.assign({}, g);
+        delete next.suggested;
+        return Object.assign({}, goals, { active: goals.active.map(x => (x === g ? next : x)) });
     }
 
     // ---------------------------------------------------------------- views (Build B: what the pane and card show)
@@ -778,11 +870,21 @@ const Goals = (() => {
         });
         if (merged.length === 0) return { ok: false, goals: list, reason: 'invalid' };
 
-        const goal = Object.assign({}, old, {
-            name,
-            deadline: old.kind === 'milestone' && parseDayKey(fields.deadline) ? fields.deadline : null,
-            targets: merged,
-        });
+        const reward = str(fields.reward, REWARD_MAX);
+        let goal;
+        if (old.kind === 'recurring') {
+            // Targets of a recurring goal change at the NEXT period (no lowering the bar at 11 PM to keep a streak). Name and reward apply now.
+            goal = Object.assign({}, old, { name });
+            const same = sameDefinitions(merged, old.targets);
+            if (same) delete goal.next; else goal.next = { targets: merged };
+        } else {
+            goal = Object.assign({}, old, {
+                name,
+                deadline: parseDayKey(fields.deadline) ? fields.deadline : null,
+                targets: merged,
+            });
+        }
+        if (reward) goal.reward = reward; else delete goal.reward;
         delete goal.suggested;
         return {
             ok: true,
@@ -838,6 +940,7 @@ const Goals = (() => {
         applyCompletion, closePeriods, settleMilestones, retireGoal, recordFor,
         targetDetail, viewFor, updateTarget, nextUnlockLevel,
         editGoal, setLinkedTotal, isLinkableTask,
+        periodBonus, itemStatus, itemPayable, cooldownOver, claimReward, keepGoal, sameDefinitions,
     };
 })();
 

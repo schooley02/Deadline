@@ -4,6 +4,18 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-05 (goals Build C) -- rewards, self-reward text, edits next period, starters, slot perk rows (Claude app session; design on Fable, build Sonnet medium; Jeremy: "go")
+
+- **No XP for goals.** Levels cap and reset with the run, so XP is meaningless for lifetime / yearly goals (Jeremy). Rejected: XP, flat points (a flat amount is farmable by tiny goals).
+- **BALANCE NUMBERS (first values; Jeremy: "we can start there and adjust later if needed"):** `GOAL_REWARDS.periodBonusPct` day 0.10, week 0.15, month 0.20 of points EARNED in the period; `streakBonusPer` 0.10 per consecutive met period (the period just met counts), `streakBonusCap` 0.50 (so up to x1.5 of the bonus); `item` Earned Sick Day x1; `itemMinAgeDays` 7; `itemCooldownDays` 7; `GOAL_REWARD_MAX` 80 chars. Bonus points never count as earned (no compounding).
+- **Items, not points, for big goals.** A finished one-time goal and a monthly period met earn an **Earned Sick Day**: a new catalog row, Sick Day effect, `notForSale`, the first row with `keptAcrossRuns` (a vacation token you keep). Recommended over a Cheat Day (Break habits only) and a Skip Day (one habit). Optional later: a Day Off token that also shifts tasks is a new mechanic.
+- **Anti-cheat (Jeremy asked to think about cheating):** bonus scales with points actually earned (a goal nobody works for pays nothing); a goal must be 7 days old for an item (make-and-finish-today pays none and is not owed); at most one item per 7 days across all goals, extras queue in `goals.owed` (cap 50) and pay at the next daily close after the cooldown; target edits on a repeating goal start next period (no lowering the bar mid-period); missing a period costs nothing.
+- **Self-reward text on both kinds** ("When this is done, I'll..." / "Each time I hit it, I'll..."): the game never grants it, the player claims it (roster Claim). Stored on the record with `onTime`, so future AI evaluation can read it (Jeremy).
+- **Starters Keep / Change / Remove**; level panel + level-up toast name goal slots; PointsInfo / Goals topic reward lines now read numbers from CONFIG (the gate is `CONFIG.GOAL_REWARDS` existing).
+- **DailyRecord v11** (`pg.pts`, `pg.items`); no schema bump (additive: `goals.owed`, `goals.itemPaidAt`, `goal.reward`, `goal.next`, record `reward / claimed / onTime`). sw v262.
+
+---
+
 ## 2026-11-05 (goals Build B2) -- Add / Edit form, linked picker + badges, `goals` topic, PointsInfo line, Stats row (Claude app session; Sonnet, medium-high; Jeremy: "reward line is a yes, linked task i agree with your suggestions, B2 scope i agree"). Plan: docs/GOALS_PLAN.md "Build B2 as built". BUILT.
 
 - **Reward line approved, then GATED (Jeremy, 2026-11-05, same day: "gated until build C"):** the no-numbers line ("Goals pay points and XP when a period is met or a goal is finished.") shows in the Goals topic and PointsInfo only when `CONFIG.GOAL_REWARDS` exists, which Build C adds. No balance number changed.

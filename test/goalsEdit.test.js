@@ -91,7 +91,9 @@ describe('editGoal', () => {
         const g = added.goal;
         const counted = Object.assign({}, added.goals, { active: [Object.assign({}, g, { targets: [Object.assign({}, g.targets[0], { occ: 1, itemTotal: 3, itemDone: 2 })] })] });
         const r = Goals.editGoal(counted, g.id, { name: 'L', targets: [linkedFields({ id: g.targets[0].id, count: 4, habitDefIds: [7], routineIds: ['r1'] })] }, NOW, 1);
-        const t = r.goal.targets[0];
+        // A recurring goal's target edit waits for the next period (Build C): the pending set carries the merged counters.
+        expect(r.goal.targets[0].count).toBe(2);
+        const t = r.goal.next.targets[0];
         expect(t.occ).toBe(1);
         expect(t.itemTotal).toBe(3);
         expect(t.itemDone).toBe(2);

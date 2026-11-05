@@ -48,7 +48,7 @@ const GoalForm = (() => {
     function blankDraft(ctx) {
         return {
             mode: 'add', goalId: null, name: '', kind: 'recurring', period: 'week',
-            noDeadline: true, deadline: '', originalDeadline: null,
+            noDeadline: true, deadline: '', originalDeadline: null, reward: '',
             targets: [newTargetDraft('number', ctx)],
         };
     }
@@ -56,10 +56,13 @@ const GoalForm = (() => {
     /** The Edit form's starting point: the goal's fields as text, its target ids kept, its linked open tasks (linkedIds: { targetId: [ids] }). */
     function draftFromGoal(goal, linkedIds) {
         const li = linkedIds || {};
+        // A repeating goal with an edit waiting for the next period shows the waiting targets (what the player last typed).
+        const pending = goal.kind === 'recurring' && goal.next && Array.isArray(goal.next.targets);
         return {
             mode: 'edit', goalId: goal.id, name: goal.name, kind: goal.kind, period: goal.period || null,
             noDeadline: !goal.deadline, deadline: goal.deadline || '', originalDeadline: goal.deadline || null,
-            targets: goal.targets.map((t) => {
+            reward: goal.reward || '', pending: !!pending,
+            targets: (pending ? goal.next.targets : goal.targets).map((t) => {
                 const base = { id: t.id, type: t.type, label: t.label || '' };
                 if (t.type === 'number') return Object.assign(base, { start: String(t.start), end: String(t.end), unit: t.unit || '' });
                 if (t.type === 'linked') {
@@ -188,6 +191,7 @@ const GoalForm = (() => {
                 kind: draft.kind,
                 period: draft.kind === 'recurring' ? draft.period : null,
                 deadline: draft.kind === 'milestone' && !draft.noDeadline ? draft.deadline : null,
+                reward: String(draft.reward || '').trim(),
                 targets,
             },
             links,
@@ -270,6 +274,9 @@ const GoalForm = (() => {
         return `<h3>${edit ? 'Edit goal' : 'New goal'}</h3>`
             + row('Name', 'gfName', `<input type="text" id="gfName" maxlength="80" value="${esc(draft.name)}" placeholder="What do you want to reach?">`)
             + kindRows + when
+            + row(draft.kind === 'milestone' ? "When this is done, I'll\u2026" : "Each time I hit it, I'll\u2026", 'gfReward',
+                `<input type="text" id="gfReward" maxlength="80" value="${esc(draft.reward || '')}" placeholder="Optional: a reward you give yourself">`)
+            + (edit && draft.kind === 'recurring' ? `<p class="goal-form-hint">A change to the targets starts with your next ${esc(({ day: 'day', week: 'week', month: 'month' })[draft.period] || 'period')}. The name and reward change now.</p>` : '')
             + `<div class="goal-form-targets"><p class="goal-form-section">Targets</p>`
             + draft.targets.map((t, i) => targetHtml(t, i, draft, ctx, canRemove)).join('')
             + adds + `</div>`
@@ -325,6 +332,8 @@ const GoalForm = (() => {
         function readDom() {
             const name = val('gfName');
             if (name !== null) draft.name = name;
+            const reward = val('gfReward');
+            if (reward !== null) draft.reward = reward;
             if (draft.mode === 'add') {
                 const kind = val('gfKind');
                 if (kind && kind !== draft.kind) {
