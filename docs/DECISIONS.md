@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-06 (enemy highlight Build A) -- 2px priority outline + ground ring + family on tap built (Claude app session; Sonnet 5.5; Jeremy: "we can try 2 pixel first ... continue")
+
+- **Outline thickness 2px** (Jeremy's pick; 1px is the fallback if it looks heavy on the phone). Offset is divided by `--sprite-scale` so the line stays 2 art pixels on a grown parent.
+- **Animation lists keep four entries** although `--an-pr` / `--an-st` are no longer set: shortening them means editing the started-marker wiring pins and the super-streak override for no visible gain; do it with Build B's cleanup.
+- **Portrait strip keeps its own cues** (gold box-shadow for priority, the head stopwatch badge for started): 20px dot markers cannot show a ring. Only the big canvas moves to ring + outline.
+- **Sub-task scale NOT changed:** measured 0.75x (96px box over 128px art). Left as shipped; open choice recorded in the plan (keep, or smaller-canvas sub-task art with the PixelLab reset).
+- **Hero-chip family tap deferred** (the chip opens a management window, not a modal, so the clear rule differs).
+- **Pre-existing failing test noted, not touched:** `test/prioritySlots.test.js` "pulling a priority sub-task onto its parent's earlier day strips its own priority" (`deps.getSubTaskClusterOffset is not a function`); fails the same without Build A.
+
 ## 2026-11-06 (enemy highlight) -- at-a-glance zombie states: channels instead of halos, no icons over heads (Claude app session; Fable 5.1; Jeremy; plan `docs/ENEMY_HIGHLIGHT_PLAN.md`; NOTHING BUILT)
 
 - **Stop using the glow as a general-purpose channel.** The V2 halo (2026-10-12) is one knob turned eight ways and the floated emoji badges (star, no-sign, category, stopwatch) do not fit the aesthetic (Jeremy). Each fact gets its own channel the eye reads in parallel: body, palette, size, ground, motion. Rejected: more glow colours; shape / badge language over the sprite (the icons are what Jeremy wants gone).

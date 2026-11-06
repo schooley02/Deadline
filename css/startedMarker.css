@@ -14,35 +14,20 @@
  *
  * Amber = the timer's planned-work colour (.work-timer-btn.planned, #e0a84f), so it reads as "time to work"
  * and stays apart from high priority's gold, overdue red, Build Habit cyan and Break Habit purple.
- * The glow is a fragment in css/enemyStatus.css's shared filter chain (--g-started / --an-st), so it
+ * (2026-11-06, Build A: the canvas glow + head badge were replaced by the ground ring in css/enemyStatus.css; the badge
+ * survives only in the portrait strip. The old glow note follows.) The glow was a fragment in the shared filter chain (--g-started / --an-st), so it
  * composes with every other state glow. Reduced motion / Effects reduced or off: badge + a held glow,
  * no breath, no tick, no burst, no flash.
  */
 
-/* ---- Canvas: glow fragment ---- */
-.enemy.started-marker > .enemy-sprite,
-.enemy.started-marker:not(.has-anim-sprite) {
-    --g-started: drop-shadow(0 0 2px #ffe2a8) drop-shadow(0 0 var(--st-blur) #e0a84f);
-}
-.enemy.started-quiet > .enemy-sprite,
-.enemy.started-quiet:not(.has-anim-sprite) {
-    --g-started: drop-shadow(0 0 1px #ffe2a8) drop-shadow(0 0 4px rgba(224, 168, 79, 0.8));
-}
-.enemy.started-working > .enemy-sprite,
-.enemy.started-working:not(.has-anim-sprite) {
-    --g-started: drop-shadow(0 0 2px #ffe2a8) drop-shadow(0 0 8px #e0a84f);
-}
-.enemy.started-breathe > .enemy-sprite {
-    --an-st: glow-started-breathe;
-}
-@keyframes glow-started-breathe { from { --st-blur: 3px; } to { --st-blur: 13px; } }
-
-/* ---- Canvas: stopwatch badge (centred over the head; the priority star owns top-left, the Break Habit
-   badge top-right) ---- */
+/* ---- Canvas: the amber glow is gone (Build A, 2026-11-06): started is now the pale breathing GROUND RING in
+   css/enemyStatus.css (.enemy-ring). The classes below still drive it (.started-breathe / -quiet / -working). ---- */
+/* ---- Stopwatch badge: PORTRAIT STRIP ONLY now (Build A, 2026-11-06). The 20px dot markers have no room for a
+   ground ring, so they keep the badge; the big canvas shows the ring instead and nothing hovers over a head. ---- */
 .enemy .started-badge {
     display: none;
 }
-.enemy.started-marker .started-badge {
+body.glance-strip .enemy.started-marker .started-badge {
     display: flex;
     position: absolute;
     top: -16px;
@@ -64,23 +49,13 @@
     height: 14px;
     stroke-width: 2.6;
 }
-.enemy.started-working .started-badge {
+body.glance-strip .enemy.started-working .started-badge {
     background: #ffcf7a;
 }
 @keyframes started-tick {
     0%, 100% { transform: rotate(-10deg); }
     50% { transform: rotate(10deg); }
 }
-.enemy.zombie-subtask.started-marker .started-badge {
-    top: -13px;
-    width: 16px;
-    height: 16px;
-}
-.enemy.zombie-subtask.started-marker .started-badge svg {
-    width: 11px;
-    height: 11px;
-}
-
 /* Portrait glance strip: the zombie's box starts at the strip's top edge, so a badge above the head is cut
    off. Sit it beside the head instead (right shoulder; the zombie faces the church on the left). */
 body.glance-strip .enemy.started-marker .started-badge {
@@ -125,11 +100,6 @@ body.glance-strip .enemy.started-marker .started-badge svg {
 .enemy.time-preview-ghost .started-badge,
 .enemy.time-preview-ghost .started-ring {
     display: none;
-}
-.enemy.time-preview-ghost.started-marker > .enemy-sprite,
-.enemy.time-preview-ghost.started-marker:not(.has-anim-sprite) {
-    --g-started: initial;
-    --an-st: none;
 }
 
 /* ---- List ---- */
@@ -199,7 +169,7 @@ body.glance-strip .enemy.started-marker .started-badge svg {
 
 /* ---- Motion (only when allowed) ---- */
 @media (prefers-reduced-motion: no-preference) {
-    body:not(.fx-reduced):not(.fx-off) .enemy.started-working .started-badge svg {
+    body.glance-strip:not(.fx-reduced):not(.fx-off) .enemy.started-working .started-badge svg {
         animation: started-tick 1s steps(2, jump-none) infinite;
     }
     body:not(.fx-reduced):not(.fx-off) .enemy.started-arrive .started-ring {
@@ -209,5 +179,4 @@ body.glance-strip .enemy.started-marker .started-badge svg {
         animation: started-row-flash 0.45s ease-in-out 3;
     }
 }
-/* enemyStatus.css already stops every glow pulse (incl. this breath) under reduced motion / fx-reduced / fx-off,
-   leaving the held --st-blur initial value. */
+/* The ring's breath (css/enemyStatus.css) is gated the same way. */

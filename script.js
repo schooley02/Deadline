@@ -1891,6 +1891,21 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleEnemyClick(itemId) {
         if (!State.isGameOver()) spotlightHeroForItem(itemId, { hold: true });
         Popups.handleEnemyClick(itemId, popupsDeps());
+        showEnemyRing(itemId);
+    }
+
+    // Ground ring on tap (2026-11-06, docs/ENEMY_HIGHLIGHT_PLAN.md): the tapped zombie wears the bright ring and its
+    // relatives (parent / siblings / sub-tasks / routine mates) the dim one while its card is open; EnemyRing.watch
+    // clears both when the last modal closes. If the tap opened no card at all (game over, a stale click) the
+    // marking is dropped on the next tick so a ring can never stick.
+    function showEnemyRing(itemId) {
+        if (State.isGameOver() || typeof EnemyRing === 'undefined') return;
+        const getItems = () => State.getActiveItems();
+        EnemyRing.watch(getItems);
+        EnemyRing.show(getItems(), itemId, (item) => {
+            try { const r = Items.findRoutineForItem(item, itemsDeps()); return r ? r.id : null; } catch (e) { return null; }
+        });
+        setTimeout(() => { if (!document.querySelector('.modal-overlay')) EnemyRing.clear(getItems()); }, 100);
     }
 
     function removeItem(itemId) {

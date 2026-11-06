@@ -16,6 +16,7 @@
  *   <div class="enemy-sprite" style="--sprite-scale:1">      (fixed-size window)
  *     <div class="enemy-sprite-sheet"></div>                 (atlas, slid by steps())
  *   </div>
+ *   <span class="enemy-ring"></span>                         (ground ring: selected / started / family)
  * and the `has-anim-sprite` class on the enemy (hides the static fallback
  * background and the Stage 1 bob).
  *
@@ -48,6 +49,14 @@ const SpriteAnim = (() => {
             sprite.appendChild(sheet);
             enemyEl.insertBefore(sprite, enemyEl.firstChild);
             enemyEl.classList.add('has-anim-sprite');
+        }
+        // Ground ring under the feet (2026-11-06, docs/ENEMY_HIGHLIGHT_PLAN.md): one child, drawn only when a state
+        // class asks for it (css/enemyStatus.css). Appended AFTER the sprite so `firstChild` stays the sprite.
+        if (!enemyEl.querySelector(':scope > .enemy-ring')) {
+            const ring = document.createElement('span');
+            ring.className = 'enemy-ring';
+            ring.setAttribute('aria-hidden', 'true');
+            enemyEl.appendChild(ring);
         }
         syncScale(enemyEl, boxWidthPx);
         return sprite;

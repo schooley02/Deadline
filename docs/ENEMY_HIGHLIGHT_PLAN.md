@@ -1,6 +1,6 @@
 # Enemy highlight redesign -- at-a-glance states without icons or glows
 
-**DESIGNED 2026-11-06 (Claude app session, Fable 5.1; Jeremy). NOTHING BUILT.** Resolves the ROADMAP "V2 follow-up -- stronger at-a-glance differentiators" design task. DECISIONS 2026-11-06 (enemy highlight).
+**DESIGNED 2026-11-06 (Claude app session, Fable 5.1; Jeremy). BUILD A BUILT 2026-11-06 (Sonnet 5.5; sw v263; "Build A as built" at the end); Build B waits for the Nov 7 art.** Resolves the ROADMAP "V2 follow-up -- stronger at-a-glance differentiators" design task. DECISIONS 2026-11-06 (enemy highlight).
 
 The V2 glow system (`css/enemyStatus.css`, 2026-10-12) uses one channel -- a coloured `drop-shadow` halo -- for every state, plus emoji badges floated over the sprite (category `::before`, priority star, Break Habit no-sign, the Started stopwatch). Jeremy: the icons over the zombies do not fit the aesthetic, and the halos do not let you tell the kinds of zombie apart at a glance. This plan spreads the states across channels the eye reads in parallel -- body, palette, size, ground, motion -- and spends the one hard outline on the one thing that earns it.
 
@@ -77,3 +77,12 @@ Chosen: the chained-`drop-shadow` fragment. Try 2px first on the phone (1px may 
 - **Overdue:** keep the red glow (position already says it) or move it to a red ring? Decide after seeing the ring on the phone.
 - **Selected on touch:** there is no hover on a phone; "selected" = the zombie whose card is open. Confirm the ring is visible under the popup.
 - **Shade fallback for sub-tasks** only if the smaller body does not read on a crowded road.
+
+## Build A as built (2026-11-06, Claude app session, Sonnet 5.5; Jeremy: "we can try 2 pixel first")
+
+- **Priority outline:** `.enemy.high-priority` sets `--g-priority` to four zero-blur drop-shadows, offset `calc(2px / var(--sprite-scale, 1))` (the filter runs before the transform, so a grown parent would otherwise get a fatter line). The star `::after`, `--an-pr` wiring, `glow-priority` keyframes and `@property --pr-blur` are removed. The glow chain and the four-entry animation lists are UNCHANGED in shape (`--an-pr` / `--an-st` are simply never set) so `test/startedMarker.test.js` and the super-streak duration override stay valid; a later cleanup can shorten the lists and those pins together.
+- **Ground ring:** `.enemy-ring` child from `SpriteAnim.attach`; CSS at the bottom of `css/enemyStatus.css`; intensities selected / started / kin; motion gated like the other glows; hidden in the portrait strip, on previews and on dying zombies. The amber started glow and the canvas head badge are gone on the big canvas; the strip keeps the badge (20px dot markers have no room for a ring).
+- **Family on tap:** new `js/enemyRing.js` (pure `kinOf`, DOM `show` / `clear`, `watch`), wired in script.js `showEnemyRing` from `handleEnemyClick`. Hero-chip tap is NOT wired (follow-up).
+- **Sub-task tier, measured:** `CONFIG.SUBTASK_ENEMY_WIDTH` is already CONFIG and is 96 (changed from 64 on 2026-10-13: "too small on phone landscape"); the sprite scale is box / 128 = **0.75x**, which breaks the whole-number pixel rule. NOT changed in Build A: 0.5x was Jeremy's rejected "too small", and 1x erases the size cue. Decision for Jeremy: keep 0.75x (uneven pixels, as shipped) or give sub-tasks smaller-canvas art in the PixelLab reset.
+- **Checked:** headless Chromium 844x390 (computed filter = the four shadows, no `::after`, ring display block, tap -> `ring-selected` + opacity 1, closes -> cleared) and 390x844 (strip mode, ring `display: none`, no overflow, no console errors); screenshots showed a thin gold line and a white ring under the feet. NOT phone-checked.
+- **Tests:** new `test/enemyRing.test.js` (15). Full Jest 189 suites: 4,284 pass, 1 fails: `prioritySlots.test.js` "pulling a priority sub-task onto its parent's earlier day..." (`deps.getSubTaskClusterOffset is not a function`), which fails identically with Build A stashed, so it predates this build (see HANDOFF).

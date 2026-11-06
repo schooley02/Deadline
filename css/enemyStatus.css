@@ -32,7 +32,6 @@
  * language) is a planned follow-up, not this file's job.
  */
 
-@property --pr-blur { syntax: '<length>'; inherits: true; initial-value: 10px; }
 @property --od-blur { syntax: '<length>'; inherits: true; initial-value: 12px; }
 @property --fl-blur { syntax: '<length>'; inherits: true; initial-value: 10px; }
 @property --st-blur { syntax: '<length>'; inherits: true; initial-value: 6px; }
@@ -53,7 +52,6 @@
     animation-timing-function: steps(4), steps(4), steps(1, end), steps(6);
 }
 
-@keyframes glow-priority { from { --pr-blur: 6px; }  to { --pr-blur: 15px; } }
 @keyframes glow-overdue  { from { --od-blur: 7px; }  to { --od-blur: 20px; } }
 @keyframes glow-flame {
     0%   { --fl-blur: 7px; }
@@ -69,25 +67,19 @@
     100% { --fl-blur: 12px; }
 }
 
-/* High priority — gold glow (+ the star badge below). */
+/* High priority -- a hard gold OUTLINE, the only outline on the board (Build A, 2026-11-06). Four zero-blur
+   drop-shadows trace the sprite's alpha silhouette one step each way, so the line is 2 art pixels thick at any
+   sprite scale (the offset is divided by --sprite-scale because the filter runs before the transform). No pulse,
+   no star badge. Max three a day (priority slots), so it stays quiet. */
 .enemy.high-priority {
     /* No stacking boost since list-order layering (2026-10-13): --list-z rules. */
     z-index: var(--list-z, 15);
 }
 .enemy.high-priority > .enemy-sprite,
 .enemy.high-priority:not(.has-anim-sprite) {
-    --g-priority: drop-shadow(0 0 2px #fff6b0) drop-shadow(0 0 var(--pr-blur) #ffc400);
-    --an-pr: glow-priority;
-}
-
-.enemy.high-priority::after {
-    content: "⭐";
-    position: absolute;
-    top: -8px;
-    left: -8px;
-    font-size: 16px;
-    z-index: 4;
-    text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    --outline-step: calc(2px / var(--sprite-scale, 1));
+    --g-priority: drop-shadow(var(--outline-step) 0 0 #f2c14e) drop-shadow(calc(var(--outline-step) * -1) 0 0 #f2c14e)
+                  drop-shadow(0 var(--outline-step) 0 #f2c14e) drop-shadow(0 calc(var(--outline-step) * -1) 0 #f2c14e);
 }
 
 /* Overdue (camped at the base) — red glow. */
@@ -196,12 +188,6 @@
         font-size: 18px;
     }
 
-    .enemy.high-priority::after {
-        font-size: 14px;
-        top: -6px;
-        left: -6px;
-    }
-
     .enemy.habit-enemy.negative-habit::after {
         font-size: 10px;
         width: 14px;
@@ -296,4 +282,59 @@ li.ko-ghost-list-item .item-sprite {
     margin: 4px 0 8px;
     font-size: 13px;
     color: var(--color-neutral);
+}
+
+
+/* ---- Ground ring: selected / started / family (Build A, 2026-11-06) ----
+   ONE ring under the feet at three intensities (docs/ENEMY_HIGHLIGHT_PLAN.md):
+     selected  bright white, pulsing   -- the zombie whose card is open (.ring-selected) or the hovered one
+     started   pale amber, breathing   -- inside its Start -> Due window (.started-marker + .started-breathe /
+                                          .started-quiet / .started-working, js/startedMarker.js)
+     family    dim white, still        -- relatives of the tapped zombie (.ring-kin, js/enemyRing.js)
+   The element is the .enemy-ring child SpriteAnim.attach adds; it sits behind the sprite (z-index -1 inside the
+   enemy's stacking context) and moves with the enemy box, whose bottom edge is the feet line. Portrait strip mode
+   draws 20px dot markers, where a ring is unreadable: it keeps its own cues (css/glanceStrip.css). */
+.enemy-ring {
+    display: none;
+    position: absolute;
+    left: 50%;
+    bottom: -4px;
+    width: 68%;
+    height: 14px;
+    margin-left: -34%;
+    box-sizing: border-box;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+    z-index: -1;
+}
+body:not(.glance-strip) .enemy .enemy-ring { display: block; }
+.enemy.zombie-subtask .enemy-ring { height: 11px; bottom: -3px; }
+
+.enemy.started-marker .enemy-ring { border-color: #ffe2a8; opacity: 0.8; }
+.enemy.started-quiet .enemy-ring { opacity: 0.45; }
+.enemy.started-working .enemy-ring { opacity: 1; border-color: #fff0cc; }
+.enemy.ring-kin .enemy-ring { border-color: #fff; opacity: 0.5; animation: none; }
+.enemy.ring-selected .enemy-ring,
+.enemy:hover .enemy-ring {
+    border-color: #fff;
+    opacity: 1;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+}
+/* A previewed (slider / pager) or dying zombie shows no ring. */
+.enemy.time-preview-ghost .enemy-ring,
+.enemy.enemy-dying .enemy-ring { display: none !important; }
+
+@keyframes ring-breathe { from { transform: scale(0.88); } to { transform: scale(1.04); } }
+@keyframes ring-pulse   { from { transform: scale(0.94); } to { transform: scale(1.08); } }
+@media (prefers-reduced-motion: no-preference) {
+    body:not(.fx-reduced):not(.fx-off) .enemy.started-breathe .enemy-ring {
+        animation: ring-breathe 2s steps(6) infinite alternate;
+    }
+    body:not(.fx-reduced):not(.fx-off) .enemy.ring-selected .enemy-ring,
+    body:not(.fx-reduced):not(.fx-off) .enemy:hover .enemy-ring {
+        animation: ring-pulse 1s steps(4) infinite alternate;
+    }
+    body:not(.fx-reduced):not(.fx-off) .enemy.ring-kin .enemy-ring { animation: none; }
 }
