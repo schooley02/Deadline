@@ -48,6 +48,7 @@ Healthy, non-zombie twins of the category zombies above (same outfit, alive pale
 - Closer to due: more menacing, faster animation.
 - High priority: gold silhouette glow + ⭐ badge. Overdue: red glow (pulses). Negative-habit lurker: purple glow + 🚫 badge. Habit: cyan glow. High/super streak: orange flickering fire glow. All are `drop-shadow` glows that hug the sprite (V2, 2026-10-12) — no rectangles; see UI_UX.md "Enemy state glows".
 - Parent task w/ sub-tasks: larger; shrinks as sub-tasks complete.
+- **Highlight redesign DESIGNED 2026-11-06, not built (`docs/ENEMY_HIGHLIGHT_PLAN.md`):** habit = the same category zombie PATCHED / stitched (PixelLab edit pass), Build / Break = palette swap, priority = one gold outline, selected / started / family = a ground ring, goal token + streak fire as feet-anchored overlays, no badges over heads. The line below describes what is on screen today.
 - Habit: same regular size as a task (cyan glow is the only visual distinction beyond category art; the dashed border was removed in V2); high streak = on fire. Sub-tasks are the only tier that renders visually smaller (64×64) — changed 2026-07-21, see DECISIONS.md.
 
 ## Category Colors (from prototype, for UI accents)
