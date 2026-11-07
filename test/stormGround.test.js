@@ -17,26 +17,26 @@ const css = read('css/climate.css');
 const sw = read('sw.js');
 
 describe('storm ground assets', () => {
-    test('the tile is 121x72 (same height as floor-tile.png) and the strip is 61x36 (half of it)', () => {
-        expect(pngSize('Assets/scene/storm-floor-tile.png')).toEqual({ w: 121, h: 72 });
-        expect(pngSize('Assets/scene/storm-strip-floor.png')).toEqual({ w: 61, h: 36 });
-        expect(pngSize('Assets/scene/floor-tile.png').h).toBe(72);
+    test('the tile is floor-tile.png x4 (508x72, same height) and the strip is strip-floor.png x4 (256x36)', () => {
+        expect(pngSize('Assets/scene/storm-floor-tile.png')).toEqual({ w: 508, h: 72 });
+        expect(pngSize('Assets/scene/storm-strip-floor.png')).toEqual({ w: 256, h: 36 });
+        expect(pngSize('Assets/scene/floor-tile.png')).toEqual({ w: 127, h: 72 });
     });
 
-    test('both are in the service worker APP_SHELL and the cache was bumped past v265', () => {
+    test('both are in the service worker APP_SHELL and the cache was bumped past v266', () => {
         expect(sw).toContain("'Assets/scene/storm-floor-tile.png'");
         expect(sw).toContain("'Assets/scene/storm-strip-floor.png'");
-        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(266);
+        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(267);
     });
 });
 
 describe('storm ground css', () => {
     test('the canvas ground swaps its picture only under climate-storm, at the tile\'s real size', () => {
-        expect(css).toMatch(/#gameCanvas\.climate-storm \.scene-ground \{\s*background-image: url\("\.\.\/Assets\/scene\/storm-floor-tile\.png"\);\s*background-size: 121px 72px;/);
+        expect(css).toMatch(/#gameCanvas\.climate-storm \.scene-ground \{\s*background-image: url\("\.\.\/Assets\/scene\/storm-floor-tile\.png"\);\s*background-size: 508px 72px;/);
     });
 
     test('the phone strip floor swaps only under climate-storm, at the strip tile\'s real size', () => {
-        expect(css).toMatch(/body\.glance-strip #gameCanvas\.climate-storm::before \{\s*background-image: url\("\.\.\/Assets\/scene\/storm-strip-floor\.png"\);\s*background-size: 61px 36px;/);
+        expect(css).toMatch(/body\.glance-strip #gameCanvas\.climate-storm::before \{\s*background-image: url\("\.\.\/Assets\/scene\/storm-strip-floor\.png"\);\s*background-size: 256px 36px;/);
     });
 
     test('no other band mentions the storm tiles', () => {
