@@ -62,7 +62,7 @@ Three repeating strips in `.scene-silhouettes` (css/gameCanvas.css "Backdrop"), 
 | Tree line | `Assets/scene/treeline.png` | 404x168 | `--clm-hz` - 230px, clamped at -8px |
 | Field | `Assets/scene/village-field.png` | 505x156 | `--clm-hz` - 90px (top 10 rows transparent: forest-edge bushes) |
 `--clm-hz` = the village front row's feet (js/ui/villageView.js); fallback `100% - 76px` (floor top + 4px). The backdrop STAYS LOW on
-tall screens (Jeremy: open sky above). PixelLab originals + reference/inpaint canvases are in `Assets/scene/_source/`.
+tall screens (Jeremy: open sky above). **Lined up with the moon:** the mountains' widest valley (tile column 270) and the tree line's widest gap (column 130) are pinned under the moon from the right edge (`background-position: right calc(var(--moon-right) + 29px - 370px / 274px)`; `.scene-silhouettes` is canvas-wide for this). Moon, count and weather badge live in the top-right corner (`--moon-right: 30px`, css/graveyard.css). PixelLab originals + reference/inpaint canvases are in `Assets/scene/_source/`.
 **Depth rules (keep these if the art is redone):** farther = lighter, bluer, flatter. Mountains are the lightest (hazy, near the sky
 colour); trees darker with only a soft rim (bright rims read as stray streaks); the field is MOONLIT (lighter than the trees) with
 detail that grows toward the front: hazy bands + 1px specks at the far edge, tufts up to ~6px at the bottom, all smaller than a
