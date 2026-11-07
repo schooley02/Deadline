@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-07 (Clear fireflies) -- many more, brighter, and some over the ground art (Claude app session; Sonnet 5.5, low; Jeremy: "it is really hard to see / notice the fireflies ... add many more ... brighter ... overlap on the ground art")
+
+- **6 -> 36 fireflies:** 24 in the air over the zombie lanes + 12 low over the ground art (`.firefly--g`, placed from the canvas BOTTOM with `--ff-bot` 5-60px because the ground is the bottom 72px at any canvas height). 28 stay BEHIND the zombies (z 28 < 30) and 8 (3 air + 5 ground) are IN FRONT of them (`.climate-fireflies--front`, z 83: over the pile 80, under the near weather 87). Jeremy, asked front or behind: "yes in front and behind would work".
+- **Brighter:** pale-green core that reaches opacity 1 (was 0.8), 1px ring + two halos, a real blink (fade up, double flash, fade out, staggered starts), some 3px cores (`.firefly--b`). Opacity + transform animation only, so 36 stays cheap on a phone. Look change, not a balance change; the numbers are in the markup (`index.html`) and `css/climate.css`.
+- **Unchanged:** Clear only; hidden under fx-reduced / fx-off / prefers-reduced-motion and in the portrait strip.
+
+---
+
 ## 2026-11-07 (Storm rain rework) -- canvas rain replaces the CSS gradient sheets (Claude app session; Sonnet 5.5, medium; Jeremy: "I definitely want to do C")
 
 - **Canvas, not CSS, for the falling rain.** CSS `repeating-linear-gradient` sheets cannot vary drops, add splashes or change the wind, so they read as slanted lines (Jeremy, phone). Rain is a particle effect: code draws it (pure `js/rainSim.js` + `js/ui/rainFx.js`); PixelLab is for the objects the rain hits (splash, bolt, puddle, roof drip, storm clouds), swapped in later. Rejected: a PixelLab-generated looping rain sheet (visible seam / pulse on the loop, one fixed look, no climate response).

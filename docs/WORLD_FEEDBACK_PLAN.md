@@ -338,7 +338,7 @@ re-shown in the sky (they already have visuals).
 ### What each band looks like (all decided against the mockups)
 | Band | Sky | Clouds (TOP of the sky only, except Fog) | Haze | Ground clouds | Extras |
 |---|---|---|---|---|---|
-| Clear | today's indigo dusk, all stars | today's two sprites | none | none | fireflies (few, dim, upper lane, behind the zombies) |
+| Clear | today's indigo dusk, all stars | today's two sprites | none | none | fireflies (36, bright, blinking: 24 in the upper lanes + 12 low over the ground art, 28 behind the zombies + 8 in front; 2026-11-07) |
 | Hazy (new run) | slightly lighter / desaturated | + a third cloud | light, strongest far away | none | stars thin out |
 | Overcast | grey-violet | more and darker, still top only, never down behind the buildings | a step stronger | none | few stars, moon dimmer |
 | Fog | muted grey, low contrast | heavy | heavy, by depth (below) | YES: the pixel cloud sprites, lightened + see-through, at 4 depths | no stars, moon a smudge |

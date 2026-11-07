@@ -163,11 +163,31 @@ describe('Build 2 layers: markup + z-order + input', () => {
         expect(canvas.indexOf('id="climateWxNear"')).toBeGreaterThan(canvas.indexOf('id="climateNear"'));
     });
 
-    test('six fireflies, the moonbeam and the break glow exist and are decorative', () => {
-        expect((canvas.match(/class="firefly"/g) || []).length).toBe(6);
+    test('36 fireflies (24 in the air, 12 low over the ground), the moonbeam and the break glow exist and are decorative', () => {
+        const flies = canvas.match(/class="firefly[^"]*"/g) || [];
+        expect(flies.length).toBe(36);
+        expect(flies.filter(f => f.includes('firefly--g')).length).toBe(12);
+        (canvas.match(/class="firefly firefly--g[^"]*" style="[^"]*"/g) || []).forEach(f => expect(f).toMatch(/--ff-bot:\d+px/));
         expect(canvas).toMatch(/class="climate-fireflies"[^>]*aria-hidden="true"/);
         expect(canvas).toMatch(/class="climate-beam"[^>]*aria-hidden="true"/);
         expect(html).toMatch(/class="climate-break"[^>]*aria-hidden="true"/);
+    });
+
+    test('ground fireflies are placed from the bottom (on the ground art) and the core is bright enough to see', () => {
+        expect(css).toMatch(/\.firefly--g \{[^}]*top:\s*auto;[^}]*bottom:\s*var\(--ff-bot/);
+        expect(css).toMatch(/@keyframes firefly-glow[\s\S]*?34%\s*\{\s*opacity:\s*1;/);
+        expect(css).toMatch(/\.firefly--b \{\s*width:\s*3px/);
+    });
+
+    test('8 fireflies glow IN FRONT of the zombies (over the pile 80, under the near weather 87); the other 28 stay behind', () => {
+        const m = /<div class="climate-fireflies climate-fireflies--front" aria-hidden="true">([\s\S]*?)<\/div>/.exec(canvas);
+        expect(m).not.toBeNull();
+        const front = m[1].match(/class="firefly[^"]*"/g) || [];
+        expect(front.length).toBe(8);
+        expect(front.some(f => f.includes('firefly--g'))).toBe(true);
+        expect(front.some(f => !f.includes('firefly--g'))).toBe(true);
+        expect(zAny(css, '.climate-fireflies--front')).toBeGreaterThan(80);
+        expect(zAny(css, '.climate-fireflies--front')).toBeLessThan(87);
     });
 
     test('near weather sits over the zombie band (pile 80, hover 85) and under the stats overlay (90)', () => {

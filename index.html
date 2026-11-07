@@ -191,7 +191,7 @@
                 <div id="climateNear" class="climate-near" aria-hidden="true"></div>
                 <!-- Run climate extras (Build 2, 2026-11-03; css/climate.css), all decorative with pointer-events none:
                      the moonbeam (trend up) lands on the church (z 0, after #base in the DOM => over it, under the village + zombies);
-                     fireflies (Clear only) float in the upper zombie lane BEHIND the zombies (z 28); and the NEAR weather wrapper
+                     fireflies (Clear only; 36 on 2026-11-07: 28 BEHIND the zombies (z 28) and 8 IN FRONT of them (z 83), 12 of the 36 low over the ground art); and the NEAR weather wrapper
                      (z 87, clipped to the canvas) holds Fog's front banks and Storm's two near rain layers. The village's own row /
                      mid fog + rain are built inside #villageLayer by js/ui/villageView.js. -->
                 <!-- Weather badge (run climate Build 2, js/ui/weatherPanel.js): the pixel icon of the sky, beside the moon; tap = the
@@ -201,12 +201,46 @@
                 </button>
                 <div class="climate-beam" aria-hidden="true"></div>
                 <div class="climate-fireflies" aria-hidden="true">
-                    <span class="firefly" style="left:30%;--ff-top:-26px;--ff-d:9s;--ff-t:-1s;--ff-x:16px;--ff-y:-9px"></span>
-                    <span class="firefly" style="left:44%;--ff-top:-44px;--ff-d:11s;--ff-t:-5s;--ff-x:-14px;--ff-y:-6px"></span>
-                    <span class="firefly" style="left:57%;--ff-top:-12px;--ff-d:8s;--ff-t:-3s;--ff-x:12px;--ff-y:-11px"></span>
-                    <span class="firefly" style="left:69%;--ff-top:-36px;--ff-d:10s;--ff-t:-7s;--ff-x:-18px;--ff-y:-7px"></span>
-                    <span class="firefly" style="left:38%;--ff-top:4px;--ff-d:12s;--ff-t:-9s;--ff-x:15px;--ff-y:-8px"></span>
-                    <span class="firefly" style="left:76%;--ff-top:-18px;--ff-d:7s;--ff-t:-2s;--ff-x:-12px;--ff-y:-10px"></span>
+                    <span class="firefly firefly--b" style="left:65%;--ff-top:5px;--ff-d:8s;--ff-t:-6s;--ff-x:21px;--ff-y:-11px"></span>
+                    <span class="firefly" style="left:82%;--ff-top:-45px;--ff-d:11s;--ff-t:-4s;--ff-x:20px;--ff-y:7px"></span>
+                    <span class="firefly" style="left:49%;--ff-top:-51px;--ff-d:12s;--ff-t:-2s;--ff-x:-15px;--ff-y:5px"></span>
+                    <span class="firefly" style="left:85%;--ff-top:-35px;--ff-d:13s;--ff-t:-10s;--ff-x:11px;--ff-y:-9px"></span>
+                    <span class="firefly firefly--b" style="left:53%;--ff-top:-55px;--ff-d:8s;--ff-t:-10s;--ff-x:12px;--ff-y:9px"></span>
+                    <span class="firefly" style="left:9%;--ff-top:-9px;--ff-d:10s;--ff-t:-4s;--ff-x:13px;--ff-y:-11px"></span>
+                    <span class="firefly" style="left:58%;--ff-top:8px;--ff-d:10s;--ff-t:-2s;--ff-x:-20px;--ff-y:10px"></span>
+                    <span class="firefly" style="left:60%;--ff-top:-18px;--ff-d:12s;--ff-t:-12s;--ff-x:16px;--ff-y:9px"></span>
+                    <span class="firefly" style="left:58%;--ff-top:-9px;--ff-d:7s;--ff-t:-2s;--ff-x:-10px;--ff-y:-10px"></span>
+                    <span class="firefly" style="left:90%;--ff-top:-1px;--ff-d:10s;--ff-t:-1s;--ff-x:-19px;--ff-y:8px"></span>
+                    <span class="firefly" style="left:63%;--ff-top:-31px;--ff-d:6s;--ff-t:-6s;--ff-x:10px;--ff-y:-5px"></span>
+                    <span class="firefly" style="left:88%;--ff-top:-9px;--ff-d:10s;--ff-t:-9s;--ff-x:14px;--ff-y:7px"></span>
+                    <span class="firefly" style="left:13%;--ff-top:-24px;--ff-d:7s;--ff-t:-1s;--ff-x:-14px;--ff-y:5px"></span>
+                    <span class="firefly" style="left:35%;--ff-top:-39px;--ff-d:10s;--ff-t:-3s;--ff-x:-18px;--ff-y:-11px"></span>
+                    <span class="firefly firefly--b" style="left:11%;--ff-top:-15px;--ff-d:12s;--ff-t:-12s;--ff-x:-16px;--ff-y:7px"></span>
+                    <span class="firefly firefly--b" style="left:66%;--ff-top:-50px;--ff-d:12s;--ff-t:-10s;--ff-x:-20px;--ff-y:-9px"></span>
+                    <span class="firefly firefly--b" style="left:95%;--ff-top:-31px;--ff-d:8s;--ff-t:-8s;--ff-x:-12px;--ff-y:-5px"></span>
+                    <span class="firefly" style="left:78%;--ff-top:-3px;--ff-d:10s;--ff-t:-9s;--ff-x:-12px;--ff-y:-7px"></span>
+                    <span class="firefly firefly--b" style="left:17%;--ff-top:-21px;--ff-d:13s;--ff-t:-3s;--ff-x:11px;--ff-y:-6px"></span>
+                    <span class="firefly" style="left:82%;--ff-top:-5px;--ff-d:13s;--ff-t:-7s;--ff-x:-13px;--ff-y:-7px"></span>
+                    <span class="firefly" style="left:51%;--ff-top:-20px;--ff-d:10s;--ff-t:-9s;--ff-x:-20px;--ff-y:-8px"></span>
+                    <span class="firefly firefly--g firefly--b" style="left:47%;--ff-bot:57px;--ff-d:7s;--ff-t:-2s;--ff-x:21px;--ff-y:-5px"></span>
+                    <span class="firefly firefly--g firefly--b" style="left:80%;--ff-bot:43px;--ff-d:7s;--ff-t:-7s;--ff-x:16px;--ff-y:-5px"></span>
+                    <span class="firefly firefly--g" style="left:66%;--ff-bot:16px;--ff-d:6s;--ff-t:-7s;--ff-x:-14px;--ff-y:-3px"></span>
+                    <span class="firefly firefly--g" style="left:51%;--ff-bot:46px;--ff-d:6s;--ff-t:-11s;--ff-x:16px;--ff-y:-8px"></span>
+                    <span class="firefly firefly--g firefly--b" style="left:11%;--ff-bot:20px;--ff-d:7s;--ff-t:-6s;--ff-x:11px;--ff-y:-6px"></span>
+                    <span class="firefly firefly--g firefly--b" style="left:64%;--ff-bot:15px;--ff-d:6s;--ff-t:-9s;--ff-x:-11px;--ff-y:-8px"></span>
+                    <span class="firefly firefly--g" style="left:15%;--ff-bot:42px;--ff-d:10s;--ff-t:-5s;--ff-x:21px;--ff-y:-8px"></span>
+                </div>
+                <!-- Front fireflies (2026-11-07, Jeremy: "in front and behind would work"): 3 in the air + 5 over the ground glow IN FRONT of the zombies
+                     (z 83: over the pile 80, under the near weather 87); the other 28 stay behind them (z 28). Same rules, same Clear-only switch. -->
+                <div class="climate-fireflies climate-fireflies--front" aria-hidden="true">
+                    <span class="firefly firefly--b" style="left:69%;--ff-top:7px;--ff-d:9s;--ff-t:-12s;--ff-x:22px;--ff-y:-12px"></span>
+                    <span class="firefly firefly--b" style="left:29%;--ff-top:-58px;--ff-d:9s;--ff-t:-3s;--ff-x:20px;--ff-y:-7px"></span>
+                    <span class="firefly" style="left:69%;--ff-top:-9px;--ff-d:7s;--ff-t:-2s;--ff-x:-14px;--ff-y:8px"></span>
+                    <span class="firefly firefly--g" style="left:6%;--ff-bot:23px;--ff-d:6s;--ff-t:-11s;--ff-x:11px;--ff-y:-8px"></span>
+                    <span class="firefly firefly--g" style="left:50%;--ff-bot:50px;--ff-d:6s;--ff-t:-8s;--ff-x:20px;--ff-y:-4px"></span>
+                    <span class="firefly firefly--g" style="left:44%;--ff-bot:18px;--ff-d:9s;--ff-t:-5s;--ff-x:18px;--ff-y:-8px"></span>
+                    <span class="firefly firefly--g firefly--b" style="left:29%;--ff-bot:31px;--ff-d:7s;--ff-t:-9s;--ff-x:12px;--ff-y:-4px"></span>
+                    <span class="firefly firefly--g" style="left:9%;--ff-bot:12px;--ff-d:7s;--ff-t:0s;--ff-x:-13px;--ff-y:-4px"></span>
                 </div>
                 <div id="climateWxNear" class="climate-wx-near" aria-hidden="true">
                     <div class="fog-bank fog-bank--n1"></div>
@@ -640,4 +674,4 @@
         }
     </script>
 </body>
-</html>
+</html>

@@ -339,7 +339,11 @@ body.glance-strip #gameCanvas.climate-storm::before {
     background-size: 256px 36px;
 }
 
-/* ---------- Clear: fireflies, a few dim ones floating in and out of the upper zombie lane, BEHIND the zombies (z 28 < 30) ---------- */
+/* ---------- Clear: fireflies. 36 of them (2026-11-07, Jeremy: too hard to see): 24 float in the air over the zombie lanes and 12 sit LOW over
+   the ground art (.firefly--g, placed from the canvas bottom: the ground is the bottom 72px, so --ff-bot 5-60px is on the ground picture).
+   28 sit BEHIND the zombies (z 28 < 30) and 8 IN FRONT of them (.climate-fireflies--front, z 83: over the pile 80, under the near weather 87; Jeremy: "in front and behind would work"). A warm pale-green core that reaches full opacity, a tight ring + two soft halos, and a real blink
+   (fade up, a bright double flash, fade out) with staggered start times so some are always lit. Opacity + transform only (cheap on a phone).
+   .firefly--b = a 3px core. ---------- */
 
 .climate-fireflies {
     position: absolute;
@@ -349,22 +353,38 @@ body.glance-strip #gameCanvas.climate-storm::before {
     pointer-events: none;
 }
 
+.climate-fireflies--front { z-index: 83; }
+
 .firefly {
     position: absolute;
     top: calc(var(--clm-hz, 224px) + var(--ff-top, 0px));
     width: 2px;
     height: 2px;
-    background: #e8f59a;
-    box-shadow: 0 0 0 1px rgba(232, 245, 154, 0.35), 0 0 6px 2px rgba(232, 245, 154, 0.35);
+    background: #f7ffb8;
+    box-shadow: 0 0 0 1px rgba(247, 255, 184, 0.6), 0 0 5px 2px rgba(214, 245, 110, 0.8), 0 0 13px 5px rgba(180, 230, 80, 0.4);
     opacity: 0;
     pointer-events: none;
+    will-change: opacity, transform;
     animation: firefly-glow var(--ff-d, 9s) ease-in-out infinite, firefly-drift var(--ff-d, 9s) ease-in-out infinite;
     animation-delay: var(--ff-t, 0s), var(--ff-t, 0s);
 }
 
+.firefly--b { width: 3px; height: 3px; }
+
+/* the ground group: placed from the bottom of the canvas so they sit on the ground art at any canvas height */
+.firefly--g {
+    top: auto;
+    bottom: var(--ff-bot, 20px);
+}
+
 @keyframes firefly-glow {
     0%, 100% { opacity: 0; }
-    30%, 62% { opacity: 0.8; }
+    22% { opacity: 0.55; }
+    34% { opacity: 1; }
+    44% { opacity: 0.3; }
+    54% { opacity: 1; }
+    74% { opacity: 0.6; }
+    88% { opacity: 0.1; }
 }
 
 @keyframes firefly-drift {
