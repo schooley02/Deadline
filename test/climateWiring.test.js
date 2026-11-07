@@ -304,7 +304,6 @@ describe('looks key off one class per band', () => {
         expect(canvasCss).toContain('var(--clm-s0, #0b0b24)');
         expect(canvasCss).toContain('var(--clm-s3, #3d3a5c)');
         expect(canvasCss).toContain('var(--clm-g1, 36px)');
-        expect(canvasCss).toContain('var(--clm-hill, #141426)');
         expect(block(css, '#gameCanvas.climate-clear')).not.toMatch(/--clm-s0/);
     });
 

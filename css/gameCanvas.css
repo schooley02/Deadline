@@ -428,7 +428,7 @@
     to { background-position-x: 1250px; }
 }
 
-/* Far silhouettes (hill + bare trees): slower parallax than clouds.
+/* Far silhouettes (2026-11-07: the backdrop strips below; was the SVG hill): slower parallax than clouds.
    2026-07-21 tuning pass: -3% -> -7%, keeping it clearly behind the
    clouds' rate while still reading as motion on its own. */
 .scene-silhouettes {
@@ -436,8 +436,38 @@
     /* 2026-10-27 (Jeremy): locked in place; no longer moves with the time slider. */
 }
 
-.scene-hill {
-    fill: var(--clm-hill, #141426);
+/* Backdrop (2026-11-07, Jeremy + Claude; PixelLab art, docs/ART_STYLE.md "Backdrop"): three repeating strips, back to front:
+   mountains (hazy, lightest) -> tree line (darker) -> moonlit field (the ground the village stands on). Replaces the SVG hill.
+   Each strip is pinned to the HORIZON (--clm-hz = the village front row's feet, published by js/ui/villageView.js; fallback
+   = the floor's top edge + 4px) and stays LOW on tall screens (Jeremy: "stay low"): open sky above. Shown 1:1, never scaled.
+   The max() clamps keep the mountain peaks and the tree tips on screen on short canvases. Static (no slider parallax). */
+.scene-backdrop {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-repeat: repeat-x;
+    background-position: 0 0;
+    image-rendering: pixelated;
+}
+
+.scene-mountains {
+    top: max(-44px, calc(var(--clm-hz, calc(100% - 76px)) - 280px));
+    background-image: url("../Assets/scene/mountains.png");
+    background-size: 640px 240px;
+}
+
+.scene-treeline {
+    top: max(-8px, calc(var(--clm-hz, calc(100% - 76px)) - 230px));
+    background-image: url("../Assets/scene/treeline.png");
+    background-size: 404px 168px;
+}
+
+/* The field's top 10 rows are transparent (low bushes along the forest edge poke up into them). */
+.scene-field {
+    top: calc(var(--clm-hz, calc(100% - 76px)) - 90px);
+    background-image: url("../Assets/scene/village-field.png");
+    background-size: 505px 156px;
 }
 
 /* Ground band. EXPERIMENTAL (2026-07-21, testing live per Jeremy's request)

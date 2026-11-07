@@ -127,10 +127,12 @@
                     <div class="scene-layer scene-clouds scene-clouds-extra scene-clouds-x3"><div class="scene-clouds-drift"></div></div>
                     <div class="scene-layer scene-clouds scene-clouds-extra scene-clouds-x4"><div class="scene-clouds-drift"></div></div>
                     <div class="scene-layer scene-clouds scene-clouds-extra scene-clouds-x5"><div class="scene-clouds-drift"></div></div>
+                    <!-- Backdrop (2026-11-07, PixelLab art; replaces the SVG hill): mountains -> tree line -> moonlit field, back to
+                         front, each a repeating strip pinned to the horizon (css/gameCanvas.css "Backdrop"). Decorative. -->
                     <div class="scene-layer scene-silhouettes">
-                        <svg class="scene-svg" viewBox="0 0 800 160" preserveAspectRatio="none" focusable="false">
-                            <path class="scene-hill" d="M0,160 L0,112 Q90,86 190,108 Q300,78 410,104 Q540,66 650,100 Q730,84 800,102 L800,160 Z"/>
-                        </svg>
+                        <div class="scene-backdrop scene-mountains"></div>
+                        <div class="scene-backdrop scene-treeline"></div>
+                        <div class="scene-backdrop scene-field"></div>
                     </div>
                     <!-- Run climate far haze: a veil over the sky, clouds and hills (z -2, later in the DOM than both), under the ground. -->
                     <div class="scene-layer climate-haze-far"></div>

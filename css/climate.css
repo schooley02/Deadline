@@ -5,7 +5,7 @@
  * Landscape/desktop only for now: css/glanceStrip.css hides every layer here in the portrait strip (it loads after this file).
  *
  * What a band changes (nothing here has pointer events; the village and zombies stay fully tappable under the haze):
- *   - sky gradient (--clm-s0..s3), stars (fade + fewer), moon (dimmer, smaller glow), the hill silhouette colour
+ *   - sky gradient (--clm-s0..s3), stars (fade + fewer), moon (dimmer, smaller glow); the backdrop art keeps its colours (the far haze tints it)
  *   - SKY clouds only: extra .scene-clouds-x1..x5 layers (the same pixel cloud tile, tinted, drifting at the cloud rate or slower)
  *   - HAZE BY DEPTH: a veil (--clm-rgb at the --clm-* alpha) in front of each depth, stronger the further back:
  *       far  = sky + hills        (.climate-haze-far, a scene layer: behind the ground)
@@ -36,7 +36,6 @@
     --clm-s0: #11112a; --clm-s1: #1c1c3a; --clm-s2: #302f4c; --clm-s3: #423f5c;
     --clm-stars: 0.85;
     --clm-moon: 0.9; --clm-g1: 26px; --clm-g2: 8px; --clm-ga: 0.38; --clm-gb: 0.1;
-    --clm-hill: #15152a;
     --clm-rgb: 170, 168, 190;
     --clm-far: 0.13; --clm-row1: 0.15; --clm-row2: 0.13; --clm-mid: 0.12; --clm-near: 0.04;
 }
@@ -45,7 +44,6 @@
     --clm-s0: #17172a; --clm-s1: #23223a; --clm-s2: #34324a; --clm-s3: #46435a;
     --clm-stars: 0.6;
     --clm-moon: 0.6; --clm-g1: 16px; --clm-g2: 4px; --clm-ga: 0.25; --clm-gb: 0.05;
-    --clm-hill: #17172b;
     --clm-rgb: 170, 168, 190;
     --clm-far: 0.19; --clm-row1: 0.25; --clm-row2: 0.19; --clm-mid: 0.17; --clm-near: 0.06;
 }
@@ -54,7 +52,6 @@
     --clm-s0: #1f1f2e; --clm-s1: #2c2b3c; --clm-s2: #3b3a4a; --clm-s3: #4b4957;
     --clm-stars: 0;
     --clm-moon: 0.28; --clm-g1: 10px; --clm-g2: 2px; --clm-ga: 0.15; --clm-gb: 0;
-    --clm-hill: #1d1d2c;
     --clm-rgb: 175, 175, 190;
     --clm-far: 0.3; --clm-row1: 0.36; --clm-row2: 0.28; --clm-mid: 0.24; --clm-near: 0.08;
 }
@@ -63,7 +60,6 @@
     --clm-s0: #0f1418; --clm-s1: #182024; --clm-s2: #232d2e; --clm-s3: #323b39;
     --clm-stars: 0;
     --clm-moon: 0.08; --clm-g1: 6px; --clm-g2: 1px; --clm-ga: 0.08; --clm-gb: 0;
-    --clm-hill: #141a1c;
     --clm-rgb: 70, 88, 86;
     --clm-far: 0.42; --clm-row1: 0.44; --clm-row2: 0.31; --clm-mid: 0.28; --clm-near: 0.12;
 }
