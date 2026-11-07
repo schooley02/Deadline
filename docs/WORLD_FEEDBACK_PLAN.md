@@ -362,7 +362,9 @@ is `pointer-events: none`, so zombies, buildings, the church and the HUD stay fu
   front-of-village bank and the near layers need z-indexes between the village (1) and the zombies / above the zombies
   -- the builder maps them onto the real stack (`#midnightLine` is 5).
 - Fog, approximate total haze (mockup values): far row ~50%, back row ~40%, front row ~20%, zombies + church ~8%.
-  Storm the same shape, green-grey, plus rain. Clear / Hazy / Overcast add only a slight row-by-row difference.
+  Storm the same shape, green-grey, plus rain. **Hazy and Overcast (2026-11-07, Jeremy: "the further back you go, the hazier")** use the
+  same shape at a lower strength (veils stack, so the far row carries all three): Hazy row1/row2/mid 0.15 / 0.13 / 0.08 = far row
+  ~32%, back ~20%, front ~8%; Overcast 0.21 / 0.19 / 0.11 = ~43% / 28% / 11%; Fog ~55% / 36% / 16%. No fog banks below Fog. Clear: none.
 - Known risk: at Fog the near haze also dims zombie status icons slightly -- phone-check; if too much, lower the near haze
   for that band only.
 

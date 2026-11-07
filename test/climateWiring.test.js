@@ -316,13 +316,24 @@ describe('looks key off one class per band', () => {
         expect(far('fog')).toBeLessThan(far('storm'));
     });
 
-    test('rows get hazier the further back in Fog and Storm (mid < row2 < row1) -- Jeremy 2026-11-03', () => {
-        ['fog', 'storm'].forEach(b => {
+    test('rows get hazier the further back in every hazy band (mid < row2 < row1) -- Jeremy 2026-11-03, Hazy + Overcast 2026-11-07', () => {
+        ['hazy', 'overcast', 'fog', 'storm'].forEach(b => {
             const bl = block(css, `#gameCanvas.climate-${b}`);
             const v = k => Number(new RegExp(`--clm-${k}:\\s*([\\d.]+)`).exec(bl)[1]);
             expect(v('mid')).toBeLessThan(v('row2'));
             expect(v('row2')).toBeLessThan(v('row1'));
         });
+    });
+
+    test('the stacked haze on the far row grows with the band and stays under Fog (Hazy < Overcast < Fog)', () => {
+        const stack = b => {
+            const bl = block(css, `#gameCanvas.climate-${b}`);
+            const v = k => Number(new RegExp(`--clm-${k}:\\s*([\\d.]+)`).exec(bl)[1]);
+            return 1 - (1 - v('row1')) * (1 - v('row2')) * (1 - v('mid'));
+        };
+        expect(stack('hazy')).toBeGreaterThan(0.25); // the back-to-front step has to be visible, not 8 points
+        expect(stack('hazy')).toBeLessThan(stack('overcast'));
+        expect(stack('overcast')).toBeLessThan(stack('fog'));
     });
 
     test('sky clouds in Overcast / Fog / Storm replace the base layer; only the sky is covered (tops stay near the top)', () => {
