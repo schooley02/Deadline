@@ -12,7 +12,8 @@
  *       row1 = far village row    (.village-haze--row1, inside #villageLayer, js/ui/villageView.js)
  *       row2 = back village row   (.village-haze--row2: ALSO covers row 1, so each row back has one more film on it)
  *       mid  = the whole village  (.village-haze--mid, stops at the horizon so the near ground stays clear)
- *       near = a very light film over everything up to the zombies (#climateNear, z-index 88)
+ *     All veils run the full canvas width; the church (#base, z 1) sits above the village layer, so they pass behind it.
+ *       near = a very light film over the whole canvas, BEHIND the church and village (#climateNear, z-index -1)
  *   - the Nights Survived number sits on its own layer (#nightsSurvivedUi, z-index 89) so weather never hides it, and from
  *     Overcast on it is restyled as a "lit sign" (cream digits, dark pixel outline, glow); Fog and Storm add a dark plate
  *     behind the label.
@@ -136,16 +137,16 @@
 }
 
 /* Village haze (inside #villageLayer; js/ui/villageView.js sets --hz = the horizon line, i.e. the front row's feet, and
-   gives each veil the z-index of the row it follows). Solid down to 10px above the horizon, gone 6px below it. */
+   gives each veil the z-index of the row it follows). Solid down to 10px above the horizon, gone 6px below it. Full width
+   (2026-11-07): the church is lifted ABOVE the village layer (#base, z 1, below), so every veil runs behind it and nothing starts
+   or stops at the church: no seam. */
 .village-haze {
     position: absolute;
-    left: var(--hz-left, 0px); /* starts at the church's right edge so the church is never veiled (villageView.hazePlan) */
+    left: 0;
     top: 0;
     right: 0;
     height: calc(var(--hz, 0px) + 6px);
     pointer-events: none;
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 32px);
-    mask-image: linear-gradient(90deg, transparent 0, #000 32px); /* feathered left edge: no hard line beside the church */
     background: linear-gradient(180deg,
         rgba(var(--clm-rgb, 170, 168, 190), var(--a, 0)) 0,
         rgba(var(--clm-rgb, 170, 168, 190), var(--a, 0)) calc(var(--hz, 0px) - 10px),
@@ -155,18 +156,20 @@
 .village-haze--row2 { --a: var(--clm-row2, 0); }
 .village-haze--mid { --a: var(--clm-mid, 0); }
 
-/* Near film: over the zombies and village (everything up to the stats overlay at 90), but NOT over the church: the haze goes
-   behind the base (2026-11-07). --hz-left (set on #gameCanvas by villageView.syncHaze) is the church's right edge; the film
-   fades in over 32px past it, like the village haze. */
+/* Near film: the light overall film, full width, BEHIND the church (z -1: later in the DOM than the ground => over the ground and
+   far haze; under the village layer and #base). It no longer lies over the zombies; the village veils above cover the village
+   rows. (2026-11-07: it was z 88 over everything, with a feathered start beside the church, which showed as a line.) */
 .climate-near {
     position: absolute;
     inset: 0;
-    z-index: 88;
+    z-index: -1;
     pointer-events: none;
-    -webkit-mask-image: linear-gradient(90deg, transparent var(--hz-left, 0px), #000 calc(var(--hz-left, 0px) + 32px));
-    mask-image: linear-gradient(90deg, transparent var(--hz-left, 0px), #000 calc(var(--hz-left, 0px) + 32px));
     background: rgba(var(--clm-rgb, 170, 168, 190), var(--clm-near, 0));
 }
+
+/* The church sits ABOVE the village layer (z 1, same as the layer but later in the DOM), so the village haze and fog, which now
+   run the full width, pass BEHIND it. Zombies (30+), the scrim (20) and the spotlight (25) are unchanged. */
+#base { z-index: 1; }
 
 /* ---------- the Nights Survived number: "lit sign" ink from Overcast on ---------- */
 
@@ -211,7 +214,6 @@
 
 .village-wx,
 .climate-wx-near,
-.climate-wx-back,
 .climate-fireflies,
 .climate-beam,
 .climate-break,
@@ -223,7 +225,6 @@
 #gameCanvas:is(.climate-fog, .climate-storm) .village-wx,
 #gameCanvas:is(.climate-fog, .climate-storm) .climate-wx-near { display: block; }
 #gameCanvas.climate-fog .fog-bank { display: block; }
-#gameCanvas.climate-fog .climate-wx-back { display: block; }
 #gameCanvas.climate-storm .rain { display: block; }
 #gameCanvas.climate-storm .climate-lightning { display: block; }
 #gameCanvas.climate-clear .climate-fireflies { display: block; }
@@ -242,69 +243,10 @@
     pointer-events: none;
 }
 
-/* The village wrappers start at the church's right edge (--hz-left, see .village-haze) and fade in over 32px, so the church is
-   never fogged by the village banks; the near wrapper covers everything. */
+/* The village wrappers run the full width too (the church is above the village layer, so the fog passes behind it); the near
+   wrapper is in front of everything. */
 .village-wx {
-    left: var(--hz-left, 0px);
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 32px);
-    mask-image: linear-gradient(90deg, transparent 0, #000 32px);
-}
-
-/* Haze behind the church: the village veils (row1, row2, mid) and the near film all start at the church's right edge (--hz-left)
-   and fade IN over 32px (alpha t, 0 -> 1), so the church column would be bare haze-wise. This layer sits UNDER the church (z -1,
-   after the ground in the DOM), covers 0 .. --hz-left and fades OUT over the same 32px. A plain linear fade-out leaves a DIP where
-   the two cross (two films of a, one at 1-t and one at t, make less than one whole film: seen as a pale/dark line down the canvas).
-   So each film is its own child, faded with the exact complement: the child's own alpha must be b(t) = 1 - (1-a)/(1-a*t), which
-   is a * (1-t)/(1-a*t) -- the mask below, sampled every 4px -- and then (1-b)(1-a*t) = 1-a: the seam is gone. The veils are shaped
-   like .village-haze (solid down to 10px above the horizon, gone 6px below it); the near film is flat. */
-.climate-haze-back {
-    --hzv: var(--clm-hz, 224px);
-    position: absolute;
     left: 0;
-    top: 0;
-    bottom: 0;
-    width: calc(var(--hz-left, 0px) + 32px);
-    z-index: -1;
-    pointer-events: none;
-}
-.climate-haze-back > i {
-    position: absolute;
-    inset: 0;
-    display: block;
-    -webkit-mask-image: linear-gradient(90deg, #000 var(--hz-left, 0px),
-        rgba(0, 0, 0, calc(0.875 / (1 - 0.125 * var(--a)))) calc(var(--hz-left, 0px) + 4px),
-        rgba(0, 0, 0, calc(0.75 / (1 - 0.25 * var(--a)))) calc(var(--hz-left, 0px) + 8px),
-        rgba(0, 0, 0, calc(0.625 / (1 - 0.375 * var(--a)))) calc(var(--hz-left, 0px) + 12px),
-        rgba(0, 0, 0, calc(0.5 / (1 - 0.5 * var(--a)))) calc(var(--hz-left, 0px) + 16px),
-        rgba(0, 0, 0, calc(0.375 / (1 - 0.625 * var(--a)))) calc(var(--hz-left, 0px) + 20px),
-        rgba(0, 0, 0, calc(0.25 / (1 - 0.75 * var(--a)))) calc(var(--hz-left, 0px) + 24px),
-        rgba(0, 0, 0, calc(0.125 / (1 - 0.875 * var(--a)))) calc(var(--hz-left, 0px) + 28px),
-        transparent calc(var(--hz-left, 0px) + 32px));
-    mask-image: linear-gradient(90deg, #000 var(--hz-left, 0px),
-        rgba(0, 0, 0, calc(0.875 / (1 - 0.125 * var(--a)))) calc(var(--hz-left, 0px) + 4px),
-        rgba(0, 0, 0, calc(0.75 / (1 - 0.25 * var(--a)))) calc(var(--hz-left, 0px) + 8px),
-        rgba(0, 0, 0, calc(0.625 / (1 - 0.375 * var(--a)))) calc(var(--hz-left, 0px) + 12px),
-        rgba(0, 0, 0, calc(0.5 / (1 - 0.5 * var(--a)))) calc(var(--hz-left, 0px) + 16px),
-        rgba(0, 0, 0, calc(0.375 / (1 - 0.625 * var(--a)))) calc(var(--hz-left, 0px) + 20px),
-        rgba(0, 0, 0, calc(0.25 / (1 - 0.75 * var(--a)))) calc(var(--hz-left, 0px) + 24px),
-        rgba(0, 0, 0, calc(0.125 / (1 - 0.875 * var(--a)))) calc(var(--hz-left, 0px) + 28px),
-        transparent calc(var(--hz-left, 0px) + 32px));
-    background: linear-gradient(180deg,
-        rgba(var(--clm-rgb, 170, 168, 190), var(--a)) 0,
-        rgba(var(--clm-rgb, 170, 168, 190), var(--a)) calc(var(--hzv) - 10px),
-        rgba(var(--clm-rgb, 170, 168, 190), 0) calc(var(--hzv) + 6px));
-}
-.climate-haze-back > .hb--near { --a: var(--clm-near, 0); background: rgba(var(--clm-rgb, 170, 168, 190), var(--a)); }
-.climate-haze-back > .hb--mid { --a: var(--clm-mid, 0); }
-.climate-haze-back > .hb--row2 { --a: var(--clm-row2, 0); }
-.climate-haze-back > .hb--row1 { --a: var(--clm-row1, 0); }
-
-.climate-wx-back {
-    position: absolute;
-    inset: 0;
-    z-index: -1; /* after the ground in the DOM => over the ground + far haze; under #base (auto) => behind the church */
-    overflow: hidden;
-    pointer-events: none;
 }
 
 .climate-wx-near { z-index: 87; } /* over the zombie band (80 pile, 85 hover), under the near haze (88) */
@@ -334,7 +276,6 @@
 .fog-bank--row1 { --fb-top: -120px; --fb-x: -300px; --fb-op: 0.46; --fb-scale: 0.95; --fb-dur: 74s; }  /* 16 px/s */
 .fog-bank--mid1 { --fb-top: -112px; --fb-x: -420px; --fb-op: 0.5;  --fb-scale: 1.15; --fb-dur: 65s; }  /* 22 px/s */
 .fog-bank--mid2 { --fb-top: -78px;  --fb-x: -1010px; --fb-op: 0.42; --fb-scale: 1;    --fb-dur: 57s; }  /* 22 px/s */
-.fog-bank--back1 { --fb-top: -100px; --fb-x: -480px; --fb-op: 0.4; --fb-scale: 1; --fb-dur: 78s; }  /* 16 px/s, behind the church */
 .fog-bank--n1   { --fb-top: -24px;  --fb-x: -860px; --fb-op: 0.36; --fb-scale: 1.1;  --fb-dur: 40s; }  /* 34 px/s */
 .fog-bank--n2   { --fb-top: 12px;   --fb-x: -230px; --fb-op: 0.34; --fb-scale: 1;    --fb-dur: 37s; }  /* 34 px/s */
 .fog-bank--n3   { --fb-top: 26px;   --fb-x: -640px; --fb-op: 0.28; --fb-scale: 0.9;  --fb-dur: 33s; }  /* 34 px/s */
@@ -446,7 +387,7 @@ body.glance-strip #gameCanvas.climate-storm::before {
 .climate-beam {
     position: absolute;
     inset: 0;
-    z-index: 0; /* after #base in the DOM => over the church and ground; the village layer (1) and zombies stay over it */
+    z-index: 1; /* same level as #base but later in the DOM => over the church (and the village layer under it); zombies (30+) stay over it */
     pointer-events: none;
     /* from just under the moon down to the church's door */
     clip-path: polygon(calc(100% - var(--gy-hill-w, 140px) - 64px) calc(8% + 36px),

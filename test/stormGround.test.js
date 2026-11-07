@@ -23,10 +23,10 @@ describe('storm ground assets', () => {
         expect(pngSize('Assets/scene/floor-tile.png')).toEqual({ w: 127, h: 72 });
     });
 
-    test('both are in the service worker APP_SHELL and the cache was bumped past v271', () => {
+    test('both are in the service worker APP_SHELL and the cache was bumped past v272', () => {
         expect(sw).toContain("'Assets/scene/storm-floor-tile.png'");
         expect(sw).toContain("'Assets/scene/storm-strip-floor.png'");
-        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(272);
+        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(273);
     });
 });
 
@@ -45,59 +45,41 @@ describe('storm ground css', () => {
     });
 });
 
-describe('haze behind the church, fog both sides (2026-11-07)', () => {
+describe('haze and fog run the full width, behind the church (2026-11-07)', () => {
     const html = read('index.html');
     const view = read('js/ui/villageView.js');
+    const strip = read('css/glanceStrip.css');
+    const block = (sel) => new RegExp('\\n' + sel.replace(/[.#>]/g, '\\$&') + ' \\{([^}]*)\\}').exec(css)[1];
 
-    test('the near haze film is masked off the church (it starts at --hz-left, the church\'s right edge)', () => {
-        const block = /\.climate-near \{([^}]*)\}/.exec(css)[1];
-        expect(block).toMatch(/mask-image: linear-gradient\(90deg, transparent var\(--hz-left, 0px\), #000 calc\(var\(--hz-left, 0px\) \+ 32px\)\)/);
+    test('the village veils and wrappers start at the canvas left edge, with no mask (a mask start beside the church is what drew the line)', () => {
+        expect(block('.village-haze')).toMatch(/left: 0;/);
+        expect(block('.village-haze')).not.toMatch(/mask/);
+        expect(block('.village-wx')).toMatch(/left: 0;/);
+        expect(css).not.toMatch(/\.village-wx \{[^}]*mask/);
     });
 
-    test('villageView publishes --hz-left on the canvas so the near film can use it', () => {
-        expect(view).toContain("canvasEl.style.setProperty('--hz-left', plan.left + 'px')");
+    test('the church is lifted above the village layer (z 1, later in the DOM) so the veils and fog pass behind it; zombies stay above', () => {
+        expect(css).toMatch(/\n#base \{ z-index: 1; \}/);
+        expect(html.indexOf('id="villageLayer"')).toBeLessThan(html.indexOf('id="base"'));
+        const beam = block('.climate-beam');
+        expect(beam).toMatch(/z-index: 1;/);
+        expect(html.indexOf('id="base"')).toBeLessThan(html.indexOf('class="climate-beam"'));
     });
 
-    test('a haze layer sits behind the church (z -1, before #base) and carries the near, mid, row2 and row1 films over 0..--hz-left', () => {
-        expect(html).toMatch(/id="climateHazeBack" class="climate-haze-back" aria-hidden="true"/);
-        expect(html.indexOf('id="climateHazeBack"')).toBeLessThan(html.indexOf('id="base"'));
-        expect(html.indexOf('id="climateHazeBack"')).toBeGreaterThan(html.indexOf('scene-ground'));
-        const block = /\n\.climate-haze-back \{([^}]*)\}/.exec(css)[1];
-        expect(block).toMatch(/z-index: -1/);
-        expect(block).toMatch(/pointer-events: none/);
-        expect(block).toMatch(/left: 0/);
-        expect(block).toMatch(/width: calc\(var\(--hz-left, 0px\) \+ 32px\)/);
-        ['near', 'mid', 'row2', 'row1'].forEach((k) => expect(html).toContain('<i class="hb--' + k + '"></i>'));
-        ['near', 'mid', 'row2', 'row1'].forEach((k) => expect(css).toMatch(new RegExp('\\.hb--' + k + ' \\{ --a: var\\(--clm-' + k + ', 0\\);')));
-        expect(css).not.toMatch(/pointer-events:\s*auto/);
+    test('the near film is full width and behind the church (z -1, after the ground in the DOM), no mask', () => {
+        const near = block('.climate-near');
+        expect(near).toMatch(/z-index: -1;/);
+        expect(near).toMatch(/inset: 0;/);
+        expect(near).not.toMatch(/mask/);
+        expect(html.indexOf('id="climateNear"')).toBeGreaterThan(html.indexOf('scene-ground'));
     });
 
-    test('no seam: each back film fades out with the exact complement of the veil fading in, a * (1-t)/(1-a*t)', () => {
-        const child = /\n\.climate-haze-back > i \{([^}]*)\}/.exec(css)[1];
-        expect(child).toContain('calc(0.875 / (1 - 0.125 * var(--a)))');
-        expect(child).toContain('calc(0.5 / (1 - 0.5 * var(--a)))');
-        expect(child).toContain('calc(0.125 / (1 - 0.875 * var(--a)))');
-        // the maths itself: (1 - b)(1 - a t) = 1 - a with b = a (1-t)/(1-a t), for every film and every t
-        [0.04, 0.08, 0.16, 0.24, 0.3].forEach((a) => [0, 0.25, 0.5, 0.75, 1].forEach((tt) => {
-            const b = a * (1 - tt) / (1 - a * tt);
-            expect((1 - b) * (1 - a * tt)).toBeCloseTo(1 - a, 10);
-        }));
-    });
-
-    test('one fog bank sits behind the church: z -1, after the ground and before #base in the DOM, shown in Fog only, never takes a tap', () => {
-        expect(html).toMatch(/id="climateWxBack" class="climate-wx-back" aria-hidden="true"[\s\S]*?fog-bank--back1/);
-        expect(html.indexOf('id="climateWxBack"')).toBeLessThan(html.indexOf('id="base"'));
-        expect(html.indexOf('id="climateWxBack"')).toBeGreaterThan(html.indexOf('scene-ground'));
-        const block = /\n\.climate-wx-back \{([^}]*)\}/.exec(css)[1];
-        expect(block).toMatch(/z-index: -1/);
-        expect(block).toMatch(/pointer-events: none/);
-        expect(css).toContain('#gameCanvas.climate-fog .climate-wx-back { display: block; }');
-    });
-
-    test('the phone strip hides both back layers (no weather there: the haze-back feather would show as a line beside the 56px church)', () => {
-        const strip = read('css/glanceStrip.css');
-        const list = /body\.glance-strip \.weather-badge,[\s\S]*?\{\s*display: none !important;/.exec(strip)[0];
-        expect(list).toContain('body.glance-strip .climate-haze-back,');
-        expect(list).toContain('body.glance-strip .climate-wx-back,');
+    test('no leftover back layers (they are not needed any more) and the strip list does not name them', () => {
+        expect(html).not.toContain('climateHazeBack');
+        expect(html).not.toContain('climateWxBack');
+        expect(css).not.toContain('climate-haze-back');
+        expect(css).not.toContain('climate-wx-back');
+        expect(strip).not.toContain('climate-haze-back');
+        expect(view).not.toContain("setProperty('--hz-left', plan.left + 'px'); //");
     });
 });

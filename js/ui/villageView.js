@@ -204,10 +204,7 @@ const VillageView = (() => {
     function syncHaze(slots, baseW) {
         Array.from(layerEl.querySelectorAll('.village-haze, .village-wx')).forEach(el => el.remove());
         const plan = hazePlan(slots, baseW);
-        if (canvasEl && canvasEl.style) {
-            canvasEl.style.setProperty('--clm-hz', plan.hz + 'px');
-            canvasEl.style.setProperty('--hz-left', plan.left + 'px'); // the church's right edge: the near haze film stays off the church
-        }
+        if (canvasEl && canvasEl.style) canvasEl.style.setProperty('--clm-hz', plan.hz + 'px');
         plan.veils.forEach(v => {
             const el = document.createElement('div');
             el.className = 'village-haze village-haze--' + v.key;

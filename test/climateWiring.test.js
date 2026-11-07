@@ -109,10 +109,9 @@ describe('markup hooks', () => {
 });
 
 describe('z-order', () => {
-    test('near haze is over the whole zombie band (80 pile, 85 hover) and under the stats overlay', () => {
-        const near = z(css, '.climate-near');
-        expect(near).toBeGreaterThan(85);
-        expect(near).toBeLessThan(90);
+    test('the near haze film is behind the church and the village (2026-11-07: full width, z -1, so there is no seam beside the church)', () => {
+        expect(z(css, '.climate-near')).toBeLessThan(0);
+        expect(z(css, '.climate-near')).toBeGreaterThan(z(canvasCss, '.scene-ground') - 1);
     });
 
     test('the Nights Survived number sits above the near haze, still inside the canvas (below 90)', () => {
@@ -171,9 +170,9 @@ describe('Build 2 layers: markup + z-order + input', () => {
         expect(html).toMatch(/class="climate-break"[^>]*aria-hidden="true"/);
     });
 
-    test('near weather sits over the zombie band (pile 80, hover 85) and under the near haze (88)', () => {
+    test('near weather sits over the zombie band (pile 80, hover 85) and under the stats overlay (90)', () => {
         expect(zAny(css, '.climate-wx-near')).toBeGreaterThan(85);
-        expect(zAny(css, '.climate-wx-near')).toBeLessThan(z(css, '.climate-near'));
+        expect(zAny(css, '.climate-wx-near')).toBeLessThan(90);
     });
 
     test('fireflies are under the zombies (30+); the beam is not above the village; the lightning and break glow stay in the sky', () => {
