@@ -308,12 +308,13 @@
 }
 
 .climate-lightning.is-flash {
-    animation: climate-lightning-flash 0.85s ease-out 1;
+    animation: climate-lightning-flash 1.6s ease-out 1;
 }
 
 @keyframes climate-lightning-flash {
     0% { opacity: 0; }
-    14% { opacity: 0.35; }
+    8% { opacity: 0.35; }
+    35% { opacity: 0.2; }
     100% { opacity: 0; }
 }
 

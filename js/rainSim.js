@@ -259,7 +259,7 @@ const RainSim = (() => {
      * (the pixel list) stays set for `boltLife` seconds, then null. One flash per cycle, never two in a row (no strobe).
      */
     function createLightning(rng, options) {
-        const o = Object.assign({ first: [5, 10], every: [10, 22], boltLife: 0.14, reach: 0.7 }, options || {});
+        const o = Object.assign({ first: [5, 10], every: [10, 22], boltLife: 0.6, reach: 0.7 }, options || {});
         let untilFlash = between(rng, o.first[0], o.first[1]);
         let age = -1;
         const state = { fired: false, bolt: null };

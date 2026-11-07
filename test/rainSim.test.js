@@ -264,8 +264,9 @@ describe('lightning', () => {
         expect(firedAt.length).toBeGreaterThanOrEqual(3);
         expect(firedAt[0]).toBeLessThan(10.5);
         for (let i = 1; i < firedAt.length; i++) expect(firedAt[i] - firedAt[i - 1]).toBeGreaterThanOrEqual(10);
-        // 0.14 s of bolt per flash = ~7 frames at 0.02 s; allow a frame of slack
-        expect(boltFrames).toBeLessThanOrEqual(firedAt.length * 9);
+        // 0.6 s of bolt per flash = ~30 frames at 0.02 s; allow a frame or two of slack
+        expect(boltFrames).toBeLessThanOrEqual(firedAt.length * 32);
+        expect(boltFrames).toBeGreaterThanOrEqual(firedAt.length * 28);
     });
 
     test('no flash on a canvas too small to draw one', () => {

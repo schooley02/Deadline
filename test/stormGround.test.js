@@ -23,10 +23,10 @@ describe('storm ground assets', () => {
         expect(pngSize('Assets/scene/floor-tile.png')).toEqual({ w: 127, h: 72 });
     });
 
-    test('both are in the service worker APP_SHELL and the cache was bumped past v266', () => {
+    test('both are in the service worker APP_SHELL and the cache was bumped past v267', () => {
         expect(sw).toContain("'Assets/scene/storm-floor-tile.png'");
         expect(sw).toContain("'Assets/scene/storm-strip-floor.png'");
-        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(267);
+        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(268);
     });
 });
 
