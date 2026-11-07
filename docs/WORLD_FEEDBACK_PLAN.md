@@ -518,7 +518,7 @@ corrective). Low engagement (it changes once a day) is fine; it is the morning r
 event, roll-up histogram, normalize) + tests; glyph (UI layer, hidden in the strip) + Weather panel Mood row + picker; the
 morning card (once per local day, in-memory flag + `save.today` check) + the rollover / game-over prompt; the Weather
 table column + Stats readout; the Bad / Awful help card (copy in one place; CONFIG for the threshold); How-it-works line;
-`sw.js` bump; DATA_SCHEMA + DAILY_RECORD_PLAN "as built". Art: a 5-step glyph set (PixelLab or code; theme-neutral).
+`sw.js` bump; DATA_SCHEMA + DAILY_RECORD_PLAN "as built". Art: the 5-step glyph set is **fine as planned for now** (Jeremy 2026-11-07): code-drawn pixel glyphs, theme-neutral, as a placeholder; PixelLab art can replace them later without touching logic.
 
 ## W1c Sky picker (Lv 4 perk) -- DESIGNED 2026-11-07 (Claude app session, Fable 5.1; Jeremy). NOT BUILT.
 
@@ -557,8 +557,9 @@ priority), so the gloom bands should be free to lift too.
   ignored, not deleted.
 - **Phone cost:** a permanent Storm runs the rain loop every session; watch it on the phone (the loop already stops while the
   page is hidden and under reduced motion).
-- **Baseline naming:** `skyPick` / perk key `skyPicker`; the Deadline-facing perk name is Jeremy's to pick (working title
-  "Weather Glass"). A future Baseline theme supplies its own band looks; the rule and the picker are theme-neutral.
+- **Baseline naming:** `skyPick` / perk key `skyPicker`; the Deadline-facing perk name is **"Geo Storm"**, tagline **"You control the weather (visuals only)"** (Jeremy 2026-11-07, "for now"). The tagline is
+  the honesty line: the pick changes the picture, never the run's real climate. The name lives in `js/theme.js` (theme words only
+  there, per the Baseline rule), never in a key, CSS class or CONFIG name. A future Baseline theme supplies its own band looks; the rule and the picker are theme-neutral.
 - **Later, if wanted:** premium skies (snow, aurora, a theme's own weather) could become a shop category; not planned.
 
 ### Build (Sonnet, medium; one session; balance-tuning protocol applies to the perk table change, no economy number moves)

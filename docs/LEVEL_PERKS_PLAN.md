@@ -19,7 +19,7 @@ Jeremy asked (2026-10-23): where can I see how many routine slots I have, which 
 | 1 | 0 | 1 routine slot | start |
 | 2 | 2 | Repair Kit (Small) ×1 | 25 pts; welcome gift, teaches the shop |
 | 3 | 4 | 2nd routine slot | existing |
-| 4 | 7 | 10% off the shop **+ Sky picker** (PLANNED 2026-11-07, not built) | first week; the picker lets the player dress the sky Hazy..Storm, Clear only while the run has earned it -- `docs/WORLD_FEEDBACK_PLAN.md` "W1c Sky picker" |
+| 4 | 7 | 10% off the shop **+ Geo Storm (sky picker)** (PLANNED 2026-11-07, not built) | first week; the picker lets the player dress the sky Hazy..Storm, Clear only while the run has earned it -- `docs/WORLD_FEEDBACK_PLAN.md` "W1c Sky picker" |
 | 5 | 12 | 3rd routine slot | existing |
 | 6 | 17 | Repair Kit (Medium) ×1 | 50 pts (swapped from a pushback — see Facts) |
 | 7 | 24 | 4th routine slot | existing |
@@ -28,7 +28,7 @@ Jeremy asked (2026-10-23): where can I see how many routine slots I have, which 
 
 Principles: slots on odd levels, convenience on even levels, no 200-pt token before max level, nothing that softens damage/freezes/earn rate. Discount escalates 10→20% deliberately (Jeremy: deeper runs should feel rewarded and make buying — and therefore using — items more attractive).
 
-**Sky picker at Lv 4 (DECIDED 2026-11-07, Fable; Jeremy: "i like this idea"):** a cosmetic perk, like the Lv 9 title + church skin. Perk, not shop item, because perks are earned by play with no transaction (the shop sells survival tools), the ~day-7 timing lets the player live with the honest run-climate sky for a week first, and Lv 4 was the thin level. Per run like every perk (re-earnable, so the run-end rule is not touched). Adds `{ unlock: 'skyPicker' }` to the Lv 4 entry; no economy number changes. Design: `docs/WORLD_FEEDBACK_PLAN.md` "W1c Sky picker".
+**Sky picker at Lv 4 (DECIDED 2026-11-07, Fable; Jeremy: "i like this idea"):** a cosmetic perk, like the Lv 9 title + church skin. Perk, not shop item, because perks are earned by play with no transaction (the shop sells survival tools), the ~day-7 timing lets the player live with the honest run-climate sky for a week first, and Lv 4 was the thin level. Per run like every perk (re-earnable, so the run-end rule is not touched). Adds `{ unlock: 'skyPicker' }` to the Lv 4 entry; no economy number changes. Design: `docs/WORLD_FEEDBACK_PLAN.md` "W1c Sky picker". Player-facing name (Jeremy 2026-11-07, "for now"): **Geo Storm: You control the weather (visuals only)**; in `js/theme.js` only.
 
 ## Rejected
 Inventory cap / "item slots" (no cap exists; inventing one to lift it is a non-perk). Base-regen boost, frozen-slot or overdue mercy (make failure less reflective). Points earn-rate bonus (undoes the 07-21 re-tune). Feature gating of existing UI (annoying, not rewarding).
