@@ -4,6 +4,18 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-07 (Storm rain rework) -- canvas rain replaces the CSS gradient sheets (Claude app session; Sonnet 5.5, medium; Jeremy: "I definitely want to do C")
+
+- **Canvas, not CSS, for the falling rain.** CSS `repeating-linear-gradient` sheets cannot vary drops, add splashes or change the wind, so they read as slanted lines (Jeremy, phone). Rain is a particle effect: code draws it (pure `js/rainSim.js` + `js/ui/rainFx.js`); PixelLab is for the objects the rain hits (splash, bolt, puddle, roof drip, storm clouds), swapped in later. Rejected: a PixelLab-generated looping rain sheet (visible seam / pulse on the loop, one fixed look, no climate response).
+- **Whole-pixel rule kept:** canvases are drawn at 1/2 CSS size and stretched `pixelated` (`RainFx.PX = 2`, so each rain pixel is a 2x2 block).
+- **Sparser on purpose:** about 55-60 drops on a phone canvas across four depths, with per-drop length / speed / shade. Numbers live in the `LAYERS` table; changing them is a look change, not a balance change.
+- **Intensity from the run climate score** (0.8 at the Storm line to 1.5 at 0.10); a forced dev sky has no score and uses 1.
+- **Lightning stays soft:** one bolt (0.14 s) and one glow swell (peak 0.35, under the old 0.4) at least 10 s apart; never two in a row, hidden under reduced motion. The mockup flashed harder; the Build 2 safety rule ("never a strobe") wins.
+- **No roof splashes yet:** the near layers draw in front of the church, so drops there cannot hit its roof. A roof drip is a feet-anchored PixelLab overlay, later.
+- **Existing pins kept:** the `.fx-reduced .rain { animation: none }` and reduced-motion rules stay in climate.css (now harmless, so the existing wiring tests keep passing). Nothing in balance, saves or schema changed.
+
+---
+
 ## 2026-11-06 (enemy highlight Build A) -- 1px priority outline + ground ring + family on tap built (Claude app session; Sonnet 5.5; Jeremy: "we can try 2 pixel first ... continue")
 
 - **Outline thickness 1px** (started at 2px, 2026-11-06; Jeremy asked for 1px after seeing it live, sw v264). Offset is divided by `--sprite-scale` so the line stays 2 art pixels on a grown parent.

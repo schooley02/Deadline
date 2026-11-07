@@ -165,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     WeatherPanel.init({ getResult: climateNow });
     ClimateView.init({ getResult: climateNow, onChange: (r) => WeatherPanel.updateBadge(r) });
+    RainFx.init({ getResult: climateNow }); // Storm rain (canvas in each .rain host); starts / stops itself from the climate-storm class (2026-11-07)
     const baseHealthDisplay = document.getElementById('baseHealthDisplay');
     const playerXpDisplay = document.getElementById('playerXpDisplay');
     const playerLevelDisplay = document.getElementById('playerLevelDisplay');

@@ -275,17 +275,21 @@
 .fog-bank--n2   { --fb-top: 12px;   --fb-x: -230px; --fb-op: 0.34; --fb-scale: 1;    --fb-dur: 37s; }  /* 34 px/s */
 .fog-bank--n3   { --fb-top: 26px;   --fb-x: -640px; --fb-op: 0.28; --fb-scale: 0.9;  --fb-dur: 33s; }  /* 34 px/s */
 
-/* ---------- Storm: rain at four depths (far = over sky + hills, mid = in front of the village, near x2 = over the zombies);
-   the nearer, the faster and denser ---------- */
+/* ---------- Storm: rain at four depths (far = over sky + hills, mid = in front of the village, near x2 = over the zombies).
+   Reworked 2026-11-07: the four `.rain` elements are now just HOSTS. js/ui/rainFx.js puts one <canvas> in each and draws the drops
+   from js/rainSim.js (sparse, varied streaks, one shared wind, splashes, the lightning bolt); the old tiled-gradient sheets read as
+   slanted lines. The canvas is drawn at 1/2 size and stretched, so each rain pixel is a whole 2x2 block like the sprites. ---------- */
 
 .rain {
     pointer-events: none;
-    background-image: repeating-linear-gradient(105deg, transparent 0 9px, rgba(190, 205, 215, var(--ra, 0.22)) 9px 10px, transparent 10px 23px);
-    -webkit-mask-image: repeating-linear-gradient(0deg, #000 0 18px, transparent 18px 30px);
-    mask-image: repeating-linear-gradient(0deg, #000 0 18px, transparent 18px 30px);
-    -webkit-mask-size: 100% 30px;
-    mask-size: 100% 30px;
-    animation: climate-rainfall var(--rd, 1s) linear infinite;
+}
+
+.rain-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    image-rendering: pixelated;
 }
 
 .village-wx .rain,
@@ -294,33 +298,22 @@
     inset: 0;
 }
 
-@keyframes climate-rainfall {
-    from { background-position: 0 0; }
-    to { background-position: calc(var(--rx, 16px) * -1) var(--ry, 60px); }
-}
-
-.rain--far   { --ra: 0.2;  --rd: 1.1s;  --rx: 16px; --ry: 60px; }
-.rain--mid   { --ra: 0.16; --rd: 0.9s;  --rx: 20px; --ry: 75px; }
-.rain--near1 { --ra: 0.22; --rd: 0.8s;  --rx: 24px; --ry: 90px; }
-.rain--near2 {
-    --ra: 0.3; --rd: 0.55s; --rx: 32px; --ry: 120px;
-    background-size: 37px 100%;
-    -webkit-mask-image: repeating-linear-gradient(0deg, #000 0 26px, transparent 26px 60px);
-    mask-image: repeating-linear-gradient(0deg, #000 0 26px, transparent 26px 60px);
-}
-
-/* Soft lightning: the cloud ceiling glows once every ~14s, a single slow swell (0.7s up, 0.6s down, peak ~20% alpha) --
-   never a strobe, never more than one flash per cycle. Hidden under reduced motion. */
+/* Soft lightning: the cloud ceiling glows once per bolt, a single swell (0.12s up, 0.7s down, peak ~35% alpha) -- never a strobe,
+   and rainSim spaces bolts at least 10 seconds apart. js/ui/rainFx.js adds `.is-flash` when a bolt is drawn (the bolt itself is on
+   the far rain canvas). Hidden under reduced motion (rules at the end). */
 .climate-lightning {
     z-index: -2;
     background: radial-gradient(ellipse 70% 60% at 40% 0%, rgba(215, 235, 228, 0.55), rgba(215, 235, 228, 0) 70%);
     opacity: 0;
-    animation: climate-lightning 14s ease-in-out infinite;
 }
 
-@keyframes climate-lightning {
-    0%, 86% { opacity: 0; }
-    91% { opacity: 0.4; }
+.climate-lightning.is-flash {
+    animation: climate-lightning-flash 0.85s ease-out 1;
+}
+
+@keyframes climate-lightning-flash {
+    0% { opacity: 0; }
+    14% { opacity: 0.35; }
     100% { opacity: 0; }
 }
 

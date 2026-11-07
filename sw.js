@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v264';
+const CACHE_NAME = 'deadline-shell-v265';
 
 const APP_SHELL = [
     './',
@@ -79,6 +79,7 @@ const APP_SHELL = [
     'js/villageProgress.js',
     'js/villageDrops.js',
     'js/runClimate.js',
+    'js/rainSim.js',
     'js/devDemo.js',
     'js/achievements.js',
     'js/schedule.js',
@@ -145,6 +146,7 @@ const APP_SHELL = [
     'js/ui/graveyardView.js',
     'js/ui/villageView.js',
     'js/ui/climateView.js',
+    'js/ui/rainFx.js',
     'js/ui/weatherPanel.js',
     'js/ui/devPanel.js',
     'js/ui/villageCard.js',

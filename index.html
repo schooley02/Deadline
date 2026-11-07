@@ -529,6 +529,8 @@
     <script src="js/villageDrops.js"></script>
     <!-- js/runClimate.js (2026-11-03): pure run climate (the sky's weather from the last ~7 closed days of this run); zero module dependencies. -->
     <script src="js/runClimate.js"></script>
+    <!-- js/rainSim.js (2026-11-07): pure Storm rain rules (drops, wind, splashes, lightning timing); zero module dependencies. -->
+    <script src="js/rainSim.js"></script>
     <!-- js/devDemo.js (2026-11-03): the dev tools' in-memory demo state (forced weather, pretend village stars); never saved. Read by script.js; the DEV button is js/ui/devPanel.js. -->
     <script src="js/devDemo.js"></script>
     <script src="js/achievements.js"></script>
@@ -609,6 +611,8 @@
     <script src="js/ui/villageView.js"></script>
     <!-- js/ui/climateView.js (2026-11-03): puts the run climate band on #gameCanvas as a class (css/climate.css does the looks). -->
     <script src="js/ui/climateView.js"></script>
+    <!-- js/ui/rainFx.js (2026-11-07): draws Storm's rain on a canvas in each .rain host (needs js/rainSim.js); script.js inits it after ClimateView. -->
+    <script src="js/ui/rainFx.js"></script>
     <!-- js/ui/weatherPanel.js (2026-11-03): the weather badge, the Weather panel and the Stats readout (needs Modal + HowItWorks at call time). -->
     <script src="js/ui/weatherPanel.js"></script>
     <script src="js/ui/devPanel.js"></script>
