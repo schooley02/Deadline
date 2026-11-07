@@ -338,8 +338,8 @@ re-shown in the sky (they already have visuals).
 ### What each band looks like (all decided against the mockups)
 | Band | Sky | Clouds (TOP of the sky only, except Fog) | Haze | Ground clouds | Extras |
 |---|---|---|---|---|---|
-| Clear | today's indigo dusk, all stars | today's two sprites | none | none | fireflies (36, bright, blinking: 24 in the upper lanes + 12 low over the ground art, 28 behind the zombies + 8 in front; 2026-11-07) |
-| Hazy (new run) | slightly lighter / desaturated | + a third cloud | light, strongest far away | none | stars thin out |
+| Clear | today's indigo dusk, all stars | NONE (removed 2026-11-07, Jeremy) | none | none | fireflies (36, bright, blinking: 24 in the upper lanes + 12 low over the ground art, 28 behind the zombies + 8 in front; 2026-11-07) |
+| Hazy (new run) | slightly lighter / desaturated | exactly today's original cloud layer (2026-11-07: Clear's clouds moved here; no extra cloud) | light, strongest far away | none | stars thin out |
 | Overcast | grey-violet | more and darker, still top only, never down behind the buildings | a step stronger | none | few stars, moon dimmer |
 | Fog | muted grey, low contrast | heavy | heavy, by depth (below) | YES: the pixel cloud sprites, lightened + see-through, at 4 depths | no stars, moon a smudge |
 | Storm | bruised green-grey | a THICK ceiling (~5 overlapping strips) moving very slowly (~6 px/s) | the heaviest, green-grey | none | heavy rain at 3 depths, rare soft lightning (no strobe) |
@@ -363,8 +363,8 @@ is `pointer-events: none`, so zombies, buildings, the church and the HUD stay fu
   -- the builder maps them onto the real stack (`#midnightLine` is 5).
 - Fog, approximate total haze (mockup values): far row ~50%, back row ~40%, front row ~20%, zombies + church ~8%.
   Storm the same shape, green-grey, plus rain. **Hazy and Overcast (2026-11-07, Jeremy: "the further back you go, the hazier")** use the
-  same shape at a lower strength (veils stack, so the far row carries all three): Hazy row1/row2/mid 0.15 / 0.13 / 0.08 = far row
-  ~32%, back ~20%, front ~8%; Overcast 0.21 / 0.19 / 0.11 = ~43% / 28% / 11%; Fog ~55% / 36% / 16%. No fog banks below Fog. Clear: none.
+  same shape at a lower strength (veils stack, so the far row carries all three): Hazy row1/row2/mid 0.15 / 0.13 / 0.12 = far row
+  ~35%, back ~23%, front ~12% (mid raised from 0.08 the same day: "the haze should start in front of the first buildings a little"); Overcast 0.21 / 0.19 / 0.14 = ~45% / 30% / 14%; Fog ~55% / 36% / 16%. No fog banks below Fog. Clear: none.
 - Known risk: at Fog the near haze also dims zombie status icons slightly -- phone-check; if too much, lower the near haze
   for that band only.
 
@@ -418,7 +418,7 @@ hills, distant buildings (and later the distant city) may fade.
 ### Build 1 as built (2026-11-03, Sonnet)
 - **Logic:** `js/runClimate.js` (pure; `dayScore`, `scoredDays`, `climateAfter`, `nextBandIndex` hysteresis, `compute`, `forced`), one `CONFIG.CLIMATE` object (THEORY pass; `RunClimate.DEFAULTS` mirrors it, a test checks), `test/runClimate.test.js` (40 tests incl. the clearing-speed scenarios). Derived by replaying the run's closed days; nothing persisted.
 - **View:** `js/ui/climateView.js` puts `climate-<band>` (+ `climate-trend-up/down`, steady = none) on `#gameCanvas`; script.js `climateNow()` caches on date|run|over and re-reads `deadline.days` only when that changes; on any failure no class = the old look. Dev override `?climate=clear|hazy|overcast|fog|storm&trend=up|down`.
-- **Looks:** `css/climate.css` (all band values from the approved mockup). Sky gradient / hill colour / moon dim + glow / stars via `--clm-*` vars with the OLD values as the fallbacks in gameCanvas.css (Clear = today's look). Stars: Hazy keeps 9 at 0.85, Overcast 4 at 0.6, Fog/Storm none. Sky clouds: five extra `.scene-clouds-x1..x5` layers (hidden by default, per-band tops/tints/speeds; the base layer is replaced from Overcast on; Fog sky ~11 px/s, Storm ~6 px/s).
+- **Looks:** `css/climate.css` (all band values from the approved mockup). Sky gradient / hill colour / moon dim + glow / stars via `--clm-*` vars with the OLD values as the fallbacks in gameCanvas.css (Clear = today's look). Stars: Hazy keeps 9 at 0.85, Overcast 4 at 0.6, Fog/Storm none. Sky clouds: five extra `.scene-clouds-x1..x5` layers (hidden by default, per-band tops/tints/speeds; the base layer is hidden at Clear (2026-11-07), is Hazy's only cloud, and is replaced from Overcast on; Fog sky ~11 px/s, Storm ~6 px/s).
 - **Haze by depth:** far veil = `.climate-haze-far` scene layer (z -2, over clouds + hill, under the ground); row1 / row2 / mid veils are built by `VillageView` inside `#villageLayer` (`hazePlan`: each z-indexed to the last sprite of the row it follows, appended last, `--hz` = the front row's feet, solid to 10px above the horizon, gone 6px below); near film = `#climateNear` (z 88). All `pointer-events: none` (checked live: taps reach every building and the church through Fog and Storm). **Veils run the full canvas width (2026-11-07):** the church is lifted above the village layer (`#base { z-index: 1 }`, later in the DOM than `#villageLayer`), so it is never veiled and nothing masks or feathers at its edge; `--hz-left` is no longer used by the CSS (still set inline by `syncHaze`). The near film is `#climateNear` at z -1 (it was z 88).
 - **Number:** `#nightsSurvived` is now the moon disc only (z -3, keeps role=img + aria-label); the count + label live on `#nightsSurvivedUi.nights-ui` (z 89, aria-hidden, same box and position, graveyard.css moves both left of the hill). Ids unchanged, so `NightsSurvivedView` is untouched. Lit-sign ink from Overcast, plate behind the label at Fog/Storm.
 - **Portrait strip:** the number layer and every weather layer are hidden there (the strip keeps its own sky; the weather badge / Stats readout in Build 2 are how portrait sees the band).

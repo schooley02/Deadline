@@ -38,7 +38,7 @@
     --clm-moon: 0.9; --clm-g1: 26px; --clm-g2: 8px; --clm-ga: 0.38; --clm-gb: 0.1;
     --clm-hill: #15152a;
     --clm-rgb: 170, 168, 190;
-    --clm-far: 0.13; --clm-row1: 0.15; --clm-row2: 0.13; --clm-mid: 0.08; --clm-near: 0.04;
+    --clm-far: 0.13; --clm-row1: 0.15; --clm-row2: 0.13; --clm-mid: 0.12; --clm-near: 0.04;
 }
 
 #gameCanvas.climate-overcast {
@@ -47,7 +47,7 @@
     --clm-moon: 0.6; --clm-g1: 16px; --clm-g2: 4px; --clm-ga: 0.25; --clm-gb: 0.05;
     --clm-hill: #17172b;
     --clm-rgb: 170, 168, 190;
-    --clm-far: 0.19; --clm-row1: 0.21; --clm-row2: 0.19; --clm-mid: 0.11; --clm-near: 0.06;
+    --clm-far: 0.19; --clm-row1: 0.21; --clm-row2: 0.19; --clm-mid: 0.14; --clm-near: 0.06;
 }
 
 #gameCanvas.climate-fog {
@@ -93,8 +93,9 @@
     to { background-position-x: calc(var(--cl-x, 0px) + 1250px * var(--cl-scale, 1)); }
 }
 
-/* Hazy: today's cloud layer plus one dimmer, lower one. */
-#gameCanvas.climate-hazy .scene-clouds-x1 { display: block; --cl-top: 70px; --cl-x: -760px; --cl-filter: brightness(0.85); --cl-op: 0.85; }
+/* Clear: no sky clouds at all (Jeremy 2026-11-07). Hazy: exactly the original cloud layer the game always had (no extra cloud).
+   With no climate class at all (the fallback "old look") the base layer still shows. */
+#gameCanvas.climate-clear .scene-clouds:not(.scene-clouds-extra) { display: none; }
 
 /* Overcast / Fog / Storm: the base cloud layer is replaced by the layers below (top of the sky only; Overcast never
    reaches the buildings). Durations keep the base cloud speed (~45 px/s) in Overcast, ~11 px/s in Fog, ~6 px/s in Storm. */

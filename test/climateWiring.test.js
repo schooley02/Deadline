@@ -341,7 +341,13 @@ describe('looks key off one class per band', () => {
             expect(css).toContain(`#gameCanvas.climate-${b} .scene-clouds:not(.scene-clouds-extra)`);
         });
         const tops = [...css.matchAll(/--cl-top:\s*(-?\d+)px/g)].map(m => Number(m[1]));
-        expect(Math.max(...tops)).toBeLessThanOrEqual(70); // Hazy's low cloud is the lowest; nothing reaches the buildings
+        expect(Math.max(...tops)).toBeLessThanOrEqual(70); // Fog's low cloud is the lowest; nothing reaches the buildings
+    });
+
+    test('Clear has no sky clouds; Hazy keeps exactly the original cloud layer (no extra cloud) -- Jeremy 2026-11-07', () => {
+        expect(css).toContain('#gameCanvas.climate-clear .scene-clouds:not(.scene-clouds-extra) { display: none; }');
+        expect(css).not.toMatch(/^#gameCanvas\.climate-hazy[^{\n]*\.scene-clouds/m); // Hazy neither hides the base layer nor adds an extra one
+        expect(css).not.toMatch(/^#gameCanvas\.climate-(clear|hazy)[^{\n]*\.scene-clouds-x\d/m);
     });
 
     test('the extra cloud drift obeys the motion settings (fx-reduced / fx-off / prefers-reduced-motion)', () => {
