@@ -137,9 +137,12 @@
 }
 
 @media (min-width: 1024px) {
+    /* 2026-11-07 (Jeremy): taller on laptops so more sky, moon, stars and clouds show above the backdrop (was 33vh, min
+       300px: the mountains reached the top on a 720px-tall laptop). 52vh = ~400px on a 768px screen, ~470 on 900, capped
+       at 600 on big monitors; the agenda list below gets the rest. */
     .game-canvas {
-        height: 33vh;
-        min-height: 300px;
+        height: clamp(400px, 52vh, 600px);
+        min-height: 400px;
     }
 
     /* 2026-11-01 (Jeremy): the old `.task-section { max-height: 50vh }` stopped the list
