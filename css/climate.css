@@ -250,10 +250,13 @@
     mask-image: linear-gradient(90deg, transparent 0, #000 32px);
 }
 
-/* Haze behind the church: the village veils (row1, row2, mid) and the near film all start at the church's right edge (--hz-left),
-   so the church column would be bare haze-wise (a seam where they begin). This layer sits UNDER the church (z -1, after the
-   ground in the DOM), covers 0 .. --hz-left, and fades out over the same 32px the veils fade in, with the same four films
-   stacked (the three veils shaped like .village-haze: solid down to 10px above the horizon, gone 6px below it; the near film flat). */
+/* Haze behind the church: the village veils (row1, row2, mid) and the near film all start at the church's right edge (--hz-left)
+   and fade IN over 32px (alpha t, 0 -> 1), so the church column would be bare haze-wise. This layer sits UNDER the church (z -1,
+   after the ground in the DOM), covers 0 .. --hz-left and fades OUT over the same 32px. A plain linear fade-out leaves a DIP where
+   the two cross (two films of a, one at 1-t and one at t, make less than one whole film: seen as a pale/dark line down the canvas).
+   So each film is its own child, faded with the exact complement: the child's own alpha must be b(t) = 1 - (1-a)/(1-a*t), which
+   is a * (1-t)/(1-a*t) -- the mask below, sampled every 4px -- and then (1-b)(1-a*t) = 1-a: the seam is gone. The veils are shaped
+   like .village-haze (solid down to 10px above the horizon, gone 6px below it); the near film is flat. */
 .climate-haze-back {
     --hzv: var(--clm-hz, 224px);
     position: absolute;
@@ -263,14 +266,38 @@
     width: calc(var(--hz-left, 0px) + 32px);
     z-index: -1;
     pointer-events: none;
-    -webkit-mask-image: linear-gradient(90deg, #000 var(--hz-left, 0px), transparent calc(var(--hz-left, 0px) + 32px));
-    mask-image: linear-gradient(90deg, #000 var(--hz-left, 0px), transparent calc(var(--hz-left, 0px) + 32px));
-    background:
-        linear-gradient(rgba(var(--clm-rgb, 170, 168, 190), var(--clm-near, 0)), rgba(var(--clm-rgb, 170, 168, 190), var(--clm-near, 0))),
-        linear-gradient(180deg, rgba(var(--clm-rgb, 170, 168, 190), var(--clm-mid, 0)) 0, rgba(var(--clm-rgb, 170, 168, 190), var(--clm-mid, 0)) calc(var(--hzv) - 10px), rgba(var(--clm-rgb, 170, 168, 190), 0) calc(var(--hzv) + 6px)),
-        linear-gradient(180deg, rgba(var(--clm-rgb, 170, 168, 190), var(--clm-row2, 0)) 0, rgba(var(--clm-rgb, 170, 168, 190), var(--clm-row2, 0)) calc(var(--hzv) - 10px), rgba(var(--clm-rgb, 170, 168, 190), 0) calc(var(--hzv) + 6px)),
-        linear-gradient(180deg, rgba(var(--clm-rgb, 170, 168, 190), var(--clm-row1, 0)) 0, rgba(var(--clm-rgb, 170, 168, 190), var(--clm-row1, 0)) calc(var(--hzv) - 10px), rgba(var(--clm-rgb, 170, 168, 190), 0) calc(var(--hzv) + 6px));
 }
+.climate-haze-back > i {
+    position: absolute;
+    inset: 0;
+    display: block;
+    -webkit-mask-image: linear-gradient(90deg, #000 var(--hz-left, 0px),
+        rgba(0, 0, 0, calc(0.875 / (1 - 0.125 * var(--a)))) calc(var(--hz-left, 0px) + 4px),
+        rgba(0, 0, 0, calc(0.75 / (1 - 0.25 * var(--a)))) calc(var(--hz-left, 0px) + 8px),
+        rgba(0, 0, 0, calc(0.625 / (1 - 0.375 * var(--a)))) calc(var(--hz-left, 0px) + 12px),
+        rgba(0, 0, 0, calc(0.5 / (1 - 0.5 * var(--a)))) calc(var(--hz-left, 0px) + 16px),
+        rgba(0, 0, 0, calc(0.375 / (1 - 0.625 * var(--a)))) calc(var(--hz-left, 0px) + 20px),
+        rgba(0, 0, 0, calc(0.25 / (1 - 0.75 * var(--a)))) calc(var(--hz-left, 0px) + 24px),
+        rgba(0, 0, 0, calc(0.125 / (1 - 0.875 * var(--a)))) calc(var(--hz-left, 0px) + 28px),
+        transparent calc(var(--hz-left, 0px) + 32px));
+    mask-image: linear-gradient(90deg, #000 var(--hz-left, 0px),
+        rgba(0, 0, 0, calc(0.875 / (1 - 0.125 * var(--a)))) calc(var(--hz-left, 0px) + 4px),
+        rgba(0, 0, 0, calc(0.75 / (1 - 0.25 * var(--a)))) calc(var(--hz-left, 0px) + 8px),
+        rgba(0, 0, 0, calc(0.625 / (1 - 0.375 * var(--a)))) calc(var(--hz-left, 0px) + 12px),
+        rgba(0, 0, 0, calc(0.5 / (1 - 0.5 * var(--a)))) calc(var(--hz-left, 0px) + 16px),
+        rgba(0, 0, 0, calc(0.375 / (1 - 0.625 * var(--a)))) calc(var(--hz-left, 0px) + 20px),
+        rgba(0, 0, 0, calc(0.25 / (1 - 0.75 * var(--a)))) calc(var(--hz-left, 0px) + 24px),
+        rgba(0, 0, 0, calc(0.125 / (1 - 0.875 * var(--a)))) calc(var(--hz-left, 0px) + 28px),
+        transparent calc(var(--hz-left, 0px) + 32px));
+    background: linear-gradient(180deg,
+        rgba(var(--clm-rgb, 170, 168, 190), var(--a)) 0,
+        rgba(var(--clm-rgb, 170, 168, 190), var(--a)) calc(var(--hzv) - 10px),
+        rgba(var(--clm-rgb, 170, 168, 190), 0) calc(var(--hzv) + 6px));
+}
+.climate-haze-back > .hb--near { --a: var(--clm-near, 0); background: rgba(var(--clm-rgb, 170, 168, 190), var(--a)); }
+.climate-haze-back > .hb--mid { --a: var(--clm-mid, 0); }
+.climate-haze-back > .hb--row2 { --a: var(--clm-row2, 0); }
+.climate-haze-back > .hb--row1 { --a: var(--clm-row1, 0); }
 
 .climate-wx-back {
     position: absolute;

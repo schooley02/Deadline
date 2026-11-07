@@ -23,10 +23,10 @@ describe('storm ground assets', () => {
         expect(pngSize('Assets/scene/floor-tile.png')).toEqual({ w: 127, h: 72 });
     });
 
-    test('both are in the service worker APP_SHELL and the cache was bumped past v269', () => {
+    test('both are in the service worker APP_SHELL and the cache was bumped past v270', () => {
         expect(sw).toContain("'Assets/scene/storm-floor-tile.png'");
         expect(sw).toContain("'Assets/scene/storm-strip-floor.png'");
-        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(270);
+        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(271);
     });
 });
 
@@ -67,8 +67,21 @@ describe('haze behind the church, fog both sides (2026-11-07)', () => {
         expect(block).toMatch(/pointer-events: none/);
         expect(block).toMatch(/left: 0/);
         expect(block).toMatch(/width: calc\(var\(--hz-left, 0px\) \+ 32px\)/);
-        ['--clm-near', '--clm-mid', '--clm-row2', '--clm-row1'].forEach((v) => expect(block).toContain('var(' + v + ', 0)'));
+        ['near', 'mid', 'row2', 'row1'].forEach((k) => expect(html).toContain('<i class="hb--' + k + '"></i>'));
+        ['near', 'mid', 'row2', 'row1'].forEach((k) => expect(css).toMatch(new RegExp('\\.hb--' + k + ' \\{ --a: var\\(--clm-' + k + ', 0\\);')));
         expect(css).not.toMatch(/pointer-events:\s*auto/);
+    });
+
+    test('no seam: each back film fades out with the exact complement of the veil fading in, a * (1-t)/(1-a*t)', () => {
+        const child = /\n\.climate-haze-back > i \{([^}]*)\}/.exec(css)[1];
+        expect(child).toContain('calc(0.875 / (1 - 0.125 * var(--a)))');
+        expect(child).toContain('calc(0.5 / (1 - 0.5 * var(--a)))');
+        expect(child).toContain('calc(0.125 / (1 - 0.875 * var(--a)))');
+        // the maths itself: (1 - b)(1 - a t) = 1 - a with b = a (1-t)/(1-a t), for every film and every t
+        [0.04, 0.08, 0.16, 0.24, 0.3].forEach((a) => [0, 0.25, 0.5, 0.75, 1].forEach((tt) => {
+            const b = a * (1 - tt) / (1 - a * tt);
+            expect((1 - b) * (1 - a * tt)).toBeCloseTo(1 - a, 10);
+        }));
     });
 
     test('one fog bank sits behind the church: z -1, after the ground and before #base in the DOM, shown in Fog only, never takes a tap', () => {
