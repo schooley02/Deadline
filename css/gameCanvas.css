@@ -433,6 +433,9 @@
    clouds' rate while still reading as motion on its own. */
 .scene-silhouettes {
     z-index: -2;
+    /* 2026-11-07: canvas-wide (not the shared 112% / -6% parallax box) so the mountains can be lined up with the moon. */
+    left: 0;
+    width: 100%;
     /* 2026-10-27 (Jeremy): locked in place; no longer moves with the time slider. */
 }
 
@@ -455,12 +458,17 @@
     top: max(-44px, calc(var(--clm-hz, calc(100% - 76px)) - 280px));
     background-image: url("../Assets/scene/mountains.png");
     background-size: 640px 240px;
+    /* The widest low valley (centre = column 270 of the 640px tile) always sits under the moon's centre (Jeremy 2026-11-07),
+       so more of the moon shows: tile right edge = moon centre + (640 - 270). --moon-right is in css/graveyard.css. */
+    background-position: right calc(var(--moon-right, 30px) + 29px - 370px) top 0;
 }
 
 .scene-treeline {
     top: max(-8px, calc(var(--clm-hz, calc(100% - 76px)) - 230px));
     background-image: url("../Assets/scene/treeline.png");
     background-size: 404px 168px;
+    /* Same trick for the trees: the widest low gap (centre = column 130 of the 404px tile) sits under the moon. */
+    background-position: right calc(var(--moon-right, 30px) + 29px - 274px) top 0;
 }
 
 /* The field's top 10 rows are transparent (low bushes along the forest edge poke up into them). */

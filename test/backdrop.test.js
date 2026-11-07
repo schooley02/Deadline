@@ -52,6 +52,12 @@ describe('backdrop strips', () => {
         expect(block('.scene-backdrop')).toMatch(/bottom: 0/);
     });
 
+    test('the mountains\' widest valley (tile column 270) is lined up under the moon from the right edge', () => {
+        expect(block('.scene-mountains')).toContain('background-position: right calc(var(--moon-right, 30px) + 29px - 370px) top 0');
+        expect(block('.scene-treeline')).toContain('background-position: right calc(var(--moon-right, 30px) + 29px - 274px) top 0');
+        expect(block('.scene-silhouettes')).toMatch(/left: 0;\s*width: 100%;/);
+    });
+
     test('all three are in the service worker APP_SHELL and the cache was bumped past v279', () => {
         LAYERS.forEach(([, file]) => expect(sw).toContain(`'${file}'`));
         expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(280);
