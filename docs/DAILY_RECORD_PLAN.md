@@ -125,13 +125,22 @@ long-gap reload. The month roll-up does not carry per-routine stars (the counter
 5. Stats: best/worst day per run.
 6. Docs: DATA_SCHEMA.md, MECHANICS.md note, CLAUDE.md codebase state; sw.js bump.
 
+## v12 addition: mood check-in (DESIGNED 2026-11-07, Fable; NOT BUILT -- design in `docs/WORLD_FEEDBACK_PLAN.md` "W1b Mood check-in")
+The player's own one-tap mood, kept with the numbers so Stats and the AI read it without a join: `mood: [[hour, level, tagBits], ...]`
+on the open day and on CLOSED days (`level` 1..5 = Awful .. Rad; `tagBits` = bits over the fixed, append-only `CONFIG.MOOD.tags` list;
+`hour` = local hour of the entry). Several entries a day; a new entry in the same hour REPLACES that hour's entry. Derived at read
+(`DailyRecord.moodSummary(rec)` -> `{ first, last, min, max }`), never stored. The month roll-up keeps `moodHist [5 ints]` (entries per
+level) and drops the entries. Event `mood { hour, level, tags }` from the check-in UI. Older days have no field = no mood. The planned
+Daily Journal (below) stays free text in its own key; the `feel 1-5` it reserved IS this field, now on the record.
+Bump `V` (11 -> 12 at the time of writing; check `js/dailyRecord.js`) and note it in DATA_SCHEMA.md in the build session.
+
 ## Future — Daily Journal (Jeremy, 2026-10-27; not in the D2 build)
 
 A few free-text notes per day ("what went well / what was hard"). Design intent, reserved now:
 - **Separate key `deadline.journal`** keyed by the same `YYYY-MM-DD`; the `DailyRecord` stays
   numbers-only. AI joins the two on date (numbers = what happened, note = why, in the player's words).
-- Alongside the text, a few structured fields: `feel` 1-5 and fixed tags (tired, sick, travel,
-  busy, …) so insight can correlate without parsing prose.
+- Alongside the text, a few structured fields: ~~`feel` 1-5 and fixed tags~~ -> **moved onto the DailyRecord as the v12
+  `mood` field (2026-11-07, above)**; the journal keeps only the free text.
 - Entry point: a soft "Anything to note about today?" at rollover / game-over, skip by default.
 - **Privacy:** the journal is the one store with personal free text. Any off-device AI call sends
   journal text only with explicit opt-in, separate from the numeric record; export includes it but

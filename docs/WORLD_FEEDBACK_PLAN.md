@@ -447,6 +447,127 @@ hills, distant buildings (and later the distant city) may fade.
 - **Storm ground (PixelLab puddles on the normal ground, same day):** shown only under `climate-storm`. Jeremy generated puddle art in PixelLab (option 4 of four) but the whole tile looked like different ground (no grass, different dark band), so the three puddles (small, big, medium) were cut out of it and pasted onto 4 copies of the normal `floor-tile.png`: `Assets/scene/storm-floor-tile.png` 508x72, puddles ~130 px apart, so they repeat only every 508 px. `storm-strip-floor.png` = `strip-floor.png` x4 (256x36) with the puddles halved. `css/climate.css`: `#gameCanvas.climate-storm .scene-ground` swaps image + `background-size: 508px 72px`; `body.glance-strip #gameCanvas.climate-storm::before` does the strip at 256x36. Same surface height and grass as the normal ground. sw v267. `test/stormGround.test.js` (5). Raw PixelLab output kept in `Assets/scene/_source/storm-floor-pixellab-128.png`.
 - **Checked:** Jest `rainSim` 27 + `rainFx` 21 + the existing climate suites (`climateWiring` 66, `climateView`, `devToolsWiring`) green in a cloud copy. A stand-in page (the real `climate.css` + the two scripts) in headless Chromium at 390x700 and 844x390: four canvases, no console errors, ~16.5 ms per frame, splashes at the horizon. NOT checked: the real game in a browser, a real phone (Jeremy). Look at: density feel, the lean, splash height against the village's feet, bolt position, frame rate on the phone. Preview through Settings > Developer tools > DEV > Storm.
 
+## W1b Mood check-in -- DESIGNED 2026-11-07 (Claude app session, Fable 5.1; Jeremy). NOT BUILT.
+
+Decision logged in `docs/DECISIONS.md` 2026-11-07 "Weather stays the run climate; mood is its own check-in". Record
+shape in `docs/DAILY_RECORD_PLAN.md` "v12 addition: mood" and `docs/DATA_SCHEMA.md`.
+
+### Why (Jeremy 2026-11-07) and the verdict
+Jeremy's starting point: the sky's "how has it been going lately" is something the player already feels in the moment, so
+it is most useful when reviewing past runs and for the AI; tying the weather to the player's MOOD instead might help more,
+because mood drives performance and the AI could use it to stop a run derailing, spot patterns and suggest ways into a
+productive state. His old notes mapped the five run-climate bands onto five moods and asked about setting the weather
+"for the vibe", setting it several times a day, and what the history shows.
+
+**Verdict: the sky STAYS the run climate (objective, earned). Mood becomes its own one-tap check-in. The two meet in the
+Weather panel's day table and in the AI, never in the scene.** Reasons (all Jeremy agreed):
+1. Everything in the scene is a consequence of play (HP, village, heroes, moon, sky). A mood sky would be the one thing you
+   type into rather than earn, and a happy player on a collapsing run would see fireflies: the world would be lying.
+   "Clear the sky by playing well" is the W1 design.
+2. A visual payoff for a mood report poisons the data: people report the pretty mood (Jeremy had already felt this with the
+   "set it for the vibe" idea). Rule: the thing you want honest data from must never control a reward. Mood is purely
+   informational, so the vibe problem disappears (the vibe case is handled separately by the Sky picker below).
+3. Mood-congruent environments amplify mood. Someone who taps Awful and watches the world go to fog and storm is being
+   mirrored, not helped; a steady world is better than a mirror.
+Pushback kept on record: the climate DOES earn its place in the present. People cannot feel a 7-day weighted average; one bad
+morning feels like a bad week. A Clear sky after a rough morning says "your week is still fine" (a catastrophizing
+corrective). Low engagement (it changes once a day) is fine; it is the morning report.
+
+### The check-in
+- **Scale (one required tap):** five levels stored 1..5: Rad 5 / Good 4 / Meh 3 / Bad 2 / Awful 1. Baseline-neutral words
+  (a theme may rename them; the numbers are the contract).
+- **Tags (optional, up to 2):** one fixed list in `CONFIG.MOOD.tags`; the list ORDER is the bit index and is additive-only
+  (append, never reorder): excited, proud, content, peaceful, bored, flat, sad, lonely, disappointed, angry, exhausted,
+  overwhelmed, sick, travel, busy. The picker shows the chosen level's own words plus the three context tags (sick / travel /
+  busy); any tag may be stored. Tags are what make the insights actionable: "Awful" hides three different problems
+  (exhausted -> a light day; overwhelmed -> priorities / pushback; angry -> nothing the game can do).
+- **Entry points:** (a) **first open of a local day**: a small card "How are you starting?" with the five glyphs + Skip; one
+  tap, never blocks, never nags (one card per day). (b) **rollover / game-over**: the same five glyphs folded into the planned
+  journal prompt ("How did today go?", skip by default; see DAILY_RECORD_PLAN "Future - Daily Journal"). (c) **any time**:
+  the Weather panel gets a Mood row with the glyph picker; the mood glyph beside the weather badge opens that panel.
+- **Glyph:** a 5-step pixel glyph on the UI layer next to the weather badge (same 44px tap area rules); hidden in the
+  portrait strip (the Stats readout is the portrait entry, like weather). Theme-neutral. **It never changes the scene** --
+  no sky, tint, fireflies or anything else reacts to mood.
+- **Record (numbers only):** DailyRecord `mood: [[hour, level, tagBits], ...]`, bump `DailyRecord.V` (11 -> 12 at the time of
+  writing; check `js/dailyRecord.js`). Several entries a day are allowed; a new entry in the SAME local hour replaces that
+  hour's entry (fiddling does not log six rows). Derived at read, never stored: `first` (morning), `last` (closing), `min`,
+  `max`. The month roll-up keeps a histogram `moodHist [5 ints]` (count of entries per level) and drops the entries. Older
+  days have no field = no mood. `deadline.journal` (free text) stays reserved and separate.
+- **Review:** the Weather panel's last-7-days table gets a **Mood** column: one glyph, or "first -> last" when the day's
+  first and last entries differ. Stats best / worst day rows show the same glyph(s). Past-run cards: nothing in v1.
+- **In-the-moment help (the derail-prevention hook):** a morning Bad / Awful check-in shows ONE soft, dismissible card:
+  "Rough start. N things due today -- want to look?" -> opens the agenda (priorities first). Tag-aware second line:
+  exhausted -> "a light day is allowed" (points at Sick Day / reschedule); overwhelmed -> "pick your three" (priorities).
+  **Nothing free, no numbers change**: it only points at the levers that already exist (priorities, pushback charges,
+  reschedule, Sick Day), so reporting low earns nothing and there is no reason to lie. Later the AI writes this card from
+  the player's own patterns.
+- **Rewards: none in v1.** No points, no streak, no toast for checking in. Rewarding the act (not the answer) is a later
+  experiment once there is data on whether people check in unprompted.
+- **Privacy:** level + tags are numbers in the record like every other counter; the journal plan's text opt-in rules do not
+  apply to them. Free text stays in the journal.
+- **What the AI should look for (intent, for the future insights work):** mood vs afternoon on-time % ("Low days cost you
+  afternoons, not weeks"); mood vs damage; mood the day AFTER a Storm day (lag); tags vs lateness; morning -> closing delta vs
+  completions; load (`load.*`) vs mood.
+- **How Deadline works:** "The sky" topic gets one line: the sky is your run; the mood glyph is you.
+- **Old-notes answers:** several times a day = yes (two prompted anchors + any time). Which one shows in review = the pair
+  "started -> ended" when they differ, one glyph when not; the AI sees every entry with its hour. Marks on the within-day
+  time slider = possible later (entries carry an hour), not v1. "Set the weather for the vibe" = the Sky picker, below.
+
+### Build (Sonnet, medium; one session)
+`js/mood.js` (pure: levels, tags, log merge-by-hour, derived first/last/min/max, histogram) + tests; DailyRecord v12 (`mood`
+event, roll-up histogram, normalize) + tests; glyph (UI layer, hidden in the strip) + Weather panel Mood row + picker; the
+morning card (once per local day, in-memory flag + `save.today` check) + the rollover / game-over prompt; the Weather
+table column + Stats readout; the Bad / Awful help card (copy in one place; CONFIG for the threshold); How-it-works line;
+`sw.js` bump; DATA_SCHEMA + DAILY_RECORD_PLAN "as built". Art: a 5-step glyph set (PixelLab or code; theme-neutral).
+
+## W1c Sky picker (Lv 4 perk) -- DESIGNED 2026-11-07 (Claude app session, Fable 5.1; Jeremy). NOT BUILT.
+
+Decision logged in `docs/DECISIONS.md` 2026-11-07 (same entry). Perk table: `docs/LEVEL_PERKS_PLAN.md` Lv 4.
+
+### Why
+The honest "vibe" case is someone who wants rain or fog for ambience (cozy); nobody sets Clear for ambience, they set it to
+hide a bad run. The record, the panel table, Stats and the AI always carry the REAL climate (Jeremy), so the only thing an
+override can harm is the earned reward in the scene, and the only band with trophy value is Clear (fireflies, all stars,
+the look a run starts without). A struggling player who opens to a bleak world every morning may stop opening (engagement
+priority), so the gloom bands should be free to lift too.
+
+**Rule, one sentence: Clear is the only band you earn; every other band is yours to pick.**
+
+### How it works
+- **Unlock = Level 4 perk** (about day 7), beside the existing 10% shop discount. Perks are per run, so game over loses the
+  picker until Lv 4 is reached again; that is consistent with the run-end rule (only unlocks that cannot be re-earned by play
+  are kept) and gives the church stakes. Timing is deliberate: the climate's start-weight fades over the first week and Clear
+  is reachable around day 4-5, so the player lives with the honest sky for a week before touching it. Not a shop item
+  (the shop sells survival tools; cosmetics are perk territory, see the Lv 9 title + church skin). Rejected: a free Settings
+  toggle (half of players set Clear on day one and the climate dies for them).
+- **Picker** in the Weather panel (needs the perk; otherwise a locked row "Lv 4"): **Follow my run** (default), Hazy,
+  Overcast, Fog, Storm always; **Clear only while the real band is Clear**. If set to Clear and the run slips, the sky
+  falls to the real band and Clear greys out in the picker (the fireflies leaving is a sharper cue than a slide through Hazy).
+  Picking a band WORSE than the real one is always allowed (rain lovers).
+- **Truth stays visible:** the weather badge always shows the REAL band plus a small "set" mark; the panel header reads
+  "Sky set to Storm . your run is Hazy". **Trend visuals (moonbeam + sky break, faster clouds) follow the REAL run**, so a
+  cozy storm with a moonbeam on the church means the week is improving.
+- **View-only override.** `RunClimate` is untouched; the record, the 7-day table, Stats and the AI never see the pick.
+  Precedence in `ClimateView` / `climateNow()`: DEV panel forced sky > player pick > real. Rain intensity for a picked Storm =
+  1 (no score, like the dev sky). The "weather may hide decoration, never recovery info" rule applies to whatever band is
+  shown. The picked band also drives the Storm ground swap and the Clear fireflies (they are part of the band's look).
+- **Persistence:** the pick is game state, per run: `save.skyPick` (`null` = follow; a band name) in `deadline.save`, reset by
+  `initGame` like the perks, exported with the save, never in `deadline.days`. One schema bump (one persistence change per
+  session guardrail). A pick the player no longer qualifies for (Clear without Clear, or no perk after game over) is simply
+  ignored, not deleted.
+- **Phone cost:** a permanent Storm runs the rain loop every session; watch it on the phone (the loop already stops while the
+  page is hidden and under reduced motion).
+- **Baseline naming:** `skyPick` / perk key `skyPicker`; the Deadline-facing perk name is Jeremy's to pick (working title
+  "Weather Glass"). A future Baseline theme supplies its own band looks; the rule and the picker are theme-neutral.
+- **Later, if wanted:** premium skies (snow, aurora, a theme's own weather) could become a shop category; not planned.
+
+### Build (Sonnet, medium; one session; balance-tuning protocol applies to the perk table change, no economy number moves)
+`CONFIG.LEVEL_PERKS` Lv 4 gains `{ unlock: 'skyPicker' }` beside the discount (+ `Progression.hasUnlock(table, level, key)`,
+tests, toast copy); `save.skyPick` + schema bump + migration + `initGame` reset + export; `ClimateView` precedence + badge
+"set" mark + panel header copy; Weather panel picker row (locked state, Clear gating, Follow); trend classes from the real
+result; tests (`climateView`, `weatherPanel`, `levelPerks`, persistence migration); `sw.js` bump; LEVEL_PERKS_PLAN + UI_UX
+"as built"; phone check of Storm-forever frame rate.
+
 ### Parked ideas (later enhancements, Jeremy 2026-11-03)
 - **Observatory** (a telescope aimed at the moon) or a **weather balloon** in the distance as the weather tap target
   instead of the badge. An observatory would need its own stat to be a village building, or be the one building that only
@@ -463,6 +584,11 @@ hills, distant buildings (and later the distant city) may fade.
 - [ ] **W1 — Run climate (sky weather) -- DESIGNED 2026-11-03 (Opus, Jeremy), see "W1 Run climate" below. Build 1 BUILT 2026-11-03.** Build 1 (logic +
   sky/haze/number, Sonnet, DONE), Build 2 (fog banks, rain, fireflies, trend, badge + panel, Sonnet, BUILT 2026-11-03), Build 3 (PixelLab cloud
   variants after the Nov 7 token reset).
+- [ ] **W1b — Mood check-in (DESIGNED 2026-11-07, Fable; Sonnet build):** five-level one-tap mood + optional tags, on the
+  DailyRecord (v12), glyph beside the weather badge, Mood column in the Weather table, Bad / Awful help card. The sky stays
+  the run climate. See "W1b Mood check-in" below.
+- [ ] **W1c — Sky picker, Lv 4 perk (DESIGNED 2026-11-07, Fable; Sonnet build):** Clear is the only band you earn; every
+  other band is yours to pick; badge, trend, record and AI keep the real climate. See "W1c Sky picker" below.
 - [ ] **W2 — Achievement VILLAGE, Americana small town (Sonnet + PixelLab art; REPLACES the headstone-markers idea; direction DECIDED 2026-10-28):**
   8 category buildings (5 tiers x 3 conditions, state carried by the art + code filters) on the horizon hill behind the zombies + the
   Memorial on the right hill; tap -> close-up village view (same sprite at 4x). Art spec, 2x pixel-scale rule, vertical budget, Americana
