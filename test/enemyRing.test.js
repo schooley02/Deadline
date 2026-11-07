@@ -94,10 +94,10 @@ describe('SpriteAnim.attach adds the ground ring', () => {
 
 describe('CSS + wiring pins', () => {
     const css = read('css/enemyStatus.css');
-    test('priority is a zero-blur 2px outline (four drop-shadows), no star badge, no pulse', () => {
+    test('priority is a zero-blur 1px outline (four drop-shadows), no star badge, no pulse', () => {
         const block = css.slice(css.indexOf('.enemy.high-priority > .enemy-sprite'), css.indexOf('/* Overdue'));
         expect((block.match(/drop-shadow\(/g) || []).length).toBe(4);
-        expect(block).toMatch(/2px \/ var\(--sprite-scale, 1\)/);
+        expect(block).toMatch(/1px \/ var\(--sprite-scale, 1\)/);
         expect(block).not.toMatch(/--an-pr/);
         expect(css).not.toMatch(/\.high-priority::after/);
         expect(css).not.toMatch(/glow-priority|--pr-blur/);

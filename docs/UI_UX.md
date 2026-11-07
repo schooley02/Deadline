@@ -206,7 +206,7 @@ Full decisions + limitations: `docs/WORLD_FEEDBACK_PLAN.md` "W0 layout".
 
 | State (class) | Look |
 |---|---|
-| `high-priority` | **hard 2px gold OUTLINE** (four zero-blur drop-shadows; offset = 2px / `--sprite-scale`, so it stays 2 art pixels at any parent size). No pulse, no star badge. The only outline on the board |
+| `high-priority` | **hard 1px gold OUTLINE** (four zero-blur drop-shadows; offset = 1px / `--sprite-scale`, so it stays 1 art pixel at any parent size). No pulse, no star badge. The only outline on the board |
 | selected (`.ring-selected`, or `:hover`) | **ground ring**, bright white, pulsing (the zombie whose card is open) |
 | started (`.started-marker` + `.started-breathe` / `-quiet` / `-working`) | **ground ring**, pale amber, breathing 10 min then held faint; steady while its timer runs. The old amber body glow + head stopwatch badge are gone on the canvas |
 | family (`.ring-kin`) | **ground ring**, dim white, still: the relatives of the tapped zombie |
