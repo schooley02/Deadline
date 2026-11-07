@@ -23,10 +23,10 @@ describe('storm ground assets', () => {
         expect(pngSize('Assets/scene/floor-tile.png')).toEqual({ w: 127, h: 72 });
     });
 
-    test('both are in the service worker APP_SHELL and the cache was bumped past v270', () => {
+    test('both are in the service worker APP_SHELL and the cache was bumped past v271', () => {
         expect(sw).toContain("'Assets/scene/storm-floor-tile.png'");
         expect(sw).toContain("'Assets/scene/storm-strip-floor.png'");
-        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(271);
+        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(272);
     });
 });
 
@@ -92,5 +92,12 @@ describe('haze behind the church, fog both sides (2026-11-07)', () => {
         expect(block).toMatch(/z-index: -1/);
         expect(block).toMatch(/pointer-events: none/);
         expect(css).toContain('#gameCanvas.climate-fog .climate-wx-back { display: block; }');
+    });
+
+    test('the phone strip hides both back layers (no weather there: the haze-back feather would show as a line beside the 56px church)', () => {
+        const strip = read('css/glanceStrip.css');
+        const list = /body\.glance-strip \.weather-badge,[\s\S]*?\{\s*display: none !important;/.exec(strip)[0];
+        expect(list).toContain('body.glance-strip .climate-haze-back,');
+        expect(list).toContain('body.glance-strip .climate-wx-back,');
     });
 });
