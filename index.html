@@ -180,6 +180,11 @@
                     </div>
                     <div id="graveyardStones" class="graveyard-stones"></div>
                 </div>
+                <!-- Fog behind the church (2026-11-07, css/climate.css): one bank at z -1, later in the DOM than the ground => over the
+                     ground and far haze, under the church. Fog only; the haze films never cover the church. -->
+                <div id="climateWxBack" class="climate-wx-back" aria-hidden="true">
+                    <div class="fog-bank fog-bank--back1"></div>
+                </div>
                 <div id="base"></div>
                 <!-- Hero spotlight (docs/HERO_SPOTLIGHT_PLAN.md, 2026-10-21): scrim + hero on
                      the layer in front of the church, below the enemies (css/heroSpotlight.css). -->

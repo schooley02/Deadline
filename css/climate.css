@@ -155,12 +155,16 @@
 .village-haze--row2 { --a: var(--clm-row2, 0); }
 .village-haze--mid { --a: var(--clm-mid, 0); }
 
-/* Near film: over the church, zombies and village (everything up to the stats overlay at 90). */
+/* Near film: over the zombies and village (everything up to the stats overlay at 90), but NOT over the church: the haze goes
+   behind the base (2026-11-07). --hz-left (set on #gameCanvas by villageView.syncHaze) is the church's right edge; the film
+   fades in over 32px past it, like the village haze. */
 .climate-near {
     position: absolute;
     inset: 0;
     z-index: 88;
     pointer-events: none;
+    -webkit-mask-image: linear-gradient(90deg, transparent var(--hz-left, 0px), #000 calc(var(--hz-left, 0px) + 32px));
+    mask-image: linear-gradient(90deg, transparent var(--hz-left, 0px), #000 calc(var(--hz-left, 0px) + 32px));
     background: rgba(var(--clm-rgb, 170, 168, 190), var(--clm-near, 0));
 }
 
@@ -207,6 +211,7 @@
 
 .village-wx,
 .climate-wx-near,
+.climate-wx-back,
 .climate-fireflies,
 .climate-beam,
 .climate-break,
@@ -218,6 +223,7 @@
 #gameCanvas:is(.climate-fog, .climate-storm) .village-wx,
 #gameCanvas:is(.climate-fog, .climate-storm) .climate-wx-near { display: block; }
 #gameCanvas.climate-fog .fog-bank { display: block; }
+#gameCanvas.climate-fog .climate-wx-back { display: block; }
 #gameCanvas.climate-storm .rain { display: block; }
 #gameCanvas.climate-storm .climate-lightning { display: block; }
 #gameCanvas.climate-clear .climate-fireflies { display: block; }
@@ -242,6 +248,14 @@
     left: var(--hz-left, 0px);
     -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 32px);
     mask-image: linear-gradient(90deg, transparent 0, #000 32px);
+}
+
+.climate-wx-back {
+    position: absolute;
+    inset: 0;
+    z-index: -1; /* after the ground in the DOM => over the ground + far haze; under #base (auto) => behind the church */
+    overflow: hidden;
+    pointer-events: none;
 }
 
 .climate-wx-near { z-index: 87; } /* over the zombie band (80 pile, 85 hover), under the near haze (88) */
@@ -271,6 +285,7 @@
 .fog-bank--row1 { --fb-top: -120px; --fb-x: -300px; --fb-op: 0.46; --fb-scale: 0.95; --fb-dur: 74s; }  /* 16 px/s */
 .fog-bank--mid1 { --fb-top: -112px; --fb-x: -420px; --fb-op: 0.5;  --fb-scale: 1.15; --fb-dur: 65s; }  /* 22 px/s */
 .fog-bank--mid2 { --fb-top: -78px;  --fb-x: -1010px; --fb-op: 0.42; --fb-scale: 1;    --fb-dur: 57s; }  /* 22 px/s */
+.fog-bank--back1 { --fb-top: -100px; --fb-x: -480px; --fb-op: 0.4; --fb-scale: 1; --fb-dur: 78s; }  /* 16 px/s, behind the church */
 .fog-bank--n1   { --fb-top: -24px;  --fb-x: -860px; --fb-op: 0.36; --fb-scale: 1.1;  --fb-dur: 40s; }  /* 34 px/s */
 .fog-bank--n2   { --fb-top: 12px;   --fb-x: -230px; --fb-op: 0.34; --fb-scale: 1;    --fb-dur: 37s; }  /* 34 px/s */
 .fog-bank--n3   { --fb-top: 26px;   --fb-x: -640px; --fb-op: 0.28; --fb-scale: 0.9;  --fb-dur: 33s; }  /* 34 px/s */

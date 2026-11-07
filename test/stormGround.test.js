@@ -23,10 +23,10 @@ describe('storm ground assets', () => {
         expect(pngSize('Assets/scene/floor-tile.png')).toEqual({ w: 127, h: 72 });
     });
 
-    test('both are in the service worker APP_SHELL and the cache was bumped past v267', () => {
+    test('both are in the service worker APP_SHELL and the cache was bumped past v268', () => {
         expect(sw).toContain("'Assets/scene/storm-floor-tile.png'");
         expect(sw).toContain("'Assets/scene/storm-strip-floor.png'");
-        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(268);
+        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(269);
     });
 });
 
@@ -42,5 +42,29 @@ describe('storm ground css', () => {
     test('no other band mentions the storm tiles', () => {
         const uses = css.split('url("../Assets/scene/storm-').length - 1;
         expect(uses).toBe(2);
+    });
+});
+
+describe('haze behind the church, fog both sides (2026-11-07)', () => {
+    const html = read('index.html');
+    const view = read('js/ui/villageView.js');
+
+    test('the near haze film is masked off the church (it starts at --hz-left, the church\'s right edge)', () => {
+        const block = /\.climate-near \{([^}]*)\}/.exec(css)[1];
+        expect(block).toMatch(/mask-image: linear-gradient\(90deg, transparent var\(--hz-left, 0px\), #000 calc\(var\(--hz-left, 0px\) \+ 32px\)\)/);
+    });
+
+    test('villageView publishes --hz-left on the canvas so the near film can use it', () => {
+        expect(view).toContain("canvasEl.style.setProperty('--hz-left', plan.left + 'px')");
+    });
+
+    test('one fog bank sits behind the church: z -1, after the ground and before #base in the DOM, shown in Fog only, never takes a tap', () => {
+        expect(html).toMatch(/id="climateWxBack" class="climate-wx-back" aria-hidden="true"[\s\S]*?fog-bank--back1/);
+        expect(html.indexOf('id="climateWxBack"')).toBeLessThan(html.indexOf('id="base"'));
+        expect(html.indexOf('id="climateWxBack"')).toBeGreaterThan(html.indexOf('scene-ground'));
+        const block = /\n\.climate-wx-back \{([^}]*)\}/.exec(css)[1];
+        expect(block).toMatch(/z-index: -1/);
+        expect(block).toMatch(/pointer-events: none/);
+        expect(css).toContain('#gameCanvas.climate-fog .climate-wx-back { display: block; }');
     });
 });
