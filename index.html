@@ -182,6 +182,9 @@
                 </div>
                 <!-- Fog behind the church (2026-11-07, css/climate.css): one bank at z -1, later in the DOM than the ground => over the
                      ground and far haze, under the church. Fog only; the haze films never cover the church. -->
+                <!-- Haze behind the church (2026-11-07): the row / mid / near veils all start at the church's right edge, so this layer
+                     (z -1, under #base) carries the same film across the church's own column and fades out where they fade in. -->
+                <div id="climateHazeBack" class="climate-haze-back" aria-hidden="true"></div>
                 <div id="climateWxBack" class="climate-wx-back" aria-hidden="true">
                     <div class="fog-bank fog-bank--back1"></div>
                 </div>

@@ -23,10 +23,10 @@ describe('storm ground assets', () => {
         expect(pngSize('Assets/scene/floor-tile.png')).toEqual({ w: 127, h: 72 });
     });
 
-    test('both are in the service worker APP_SHELL and the cache was bumped past v268', () => {
+    test('both are in the service worker APP_SHELL and the cache was bumped past v269', () => {
         expect(sw).toContain("'Assets/scene/storm-floor-tile.png'");
         expect(sw).toContain("'Assets/scene/storm-strip-floor.png'");
-        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(269);
+        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(270);
     });
 });
 
@@ -56,6 +56,19 @@ describe('haze behind the church, fog both sides (2026-11-07)', () => {
 
     test('villageView publishes --hz-left on the canvas so the near film can use it', () => {
         expect(view).toContain("canvasEl.style.setProperty('--hz-left', plan.left + 'px')");
+    });
+
+    test('a haze layer sits behind the church (z -1, before #base) and carries the near, mid, row2 and row1 films over 0..--hz-left', () => {
+        expect(html).toMatch(/id="climateHazeBack" class="climate-haze-back" aria-hidden="true"/);
+        expect(html.indexOf('id="climateHazeBack"')).toBeLessThan(html.indexOf('id="base"'));
+        expect(html.indexOf('id="climateHazeBack"')).toBeGreaterThan(html.indexOf('scene-ground'));
+        const block = /\n\.climate-haze-back \{([^}]*)\}/.exec(css)[1];
+        expect(block).toMatch(/z-index: -1/);
+        expect(block).toMatch(/pointer-events: none/);
+        expect(block).toMatch(/left: 0/);
+        expect(block).toMatch(/width: calc\(var\(--hz-left, 0px\) \+ 32px\)/);
+        ['--clm-near', '--clm-mid', '--clm-row2', '--clm-row1'].forEach((v) => expect(block).toContain('var(' + v + ', 0)'));
+        expect(css).not.toMatch(/pointer-events:\s*auto/);
     });
 
     test('one fog bank sits behind the church: z -1, after the ground and before #base in the DOM, shown in Fog only, never takes a tap', () => {
