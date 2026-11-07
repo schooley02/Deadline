@@ -596,7 +596,7 @@ result; tests (`climateView`, `weatherPanel`, `levelPerks`, persistence migratio
   8 category buildings (5 tiers x 3 conditions, state carried by the art + code filters) on the horizon hill behind the zombies + the
   Memorial on the right hill; tap -> close-up village view (same sprite at 4x). Art spec, 2x pixel-scale rule, vertical budget, Americana
   kit and the Clock-tower test: `docs/ART_STYLE.md` "Achievement village art". Order: (a) Clock tower T3 at 64x80 vs 56x64 on the real-scene
-  mock -> pick the size, (b) Clock tower T1-T5, (c) the other 7 kinds + Memorial, (d) ridge/hill background art, (e) build the scene
+  mock -> pick the size, (b) Clock tower T1-T5, (c) the other 7 kinds + Memorial, (d) ridge/hill background art (DONE 2026-11-07: mountains + tree line + moonlit field, ART_STYLE "Backdrop"; village roads dropped, props instead), (e) build the scene
   layer (draw under the MIDNIGHT line) + close-up view + overlays. The W0 headstones on the hill become the Memorial only.
   Open: Memorial rows tappable for per-category history? Confirm the Americana mapping for the 8 kinds.
 - [ ] **W3 — Graveyard history (Sonnet):** run graves + growing tree.

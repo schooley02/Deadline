@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-07 (backdrop) -- PixelLab mountains + tree line + moonlit field replace the SVG hill; no painted village roads (Claude app session; Opus 5.5; Jeremy: "yes" to wiring, "stay low")
+
+- **Layered backdrop, not one painting:** three repeating strips (mountains -> tree line -> field) pinned to the village horizon. One painting can't stretch from a phone to a wide desktop, and a house painted into it would read as an achievement building. Depth by value/haze: far lighter + flatter, the field moonlit. Reference Jeremy picked: a night village with forest + mountains behind.
+- **Backdrop stays LOW on tall screens** (Jeremy): open sky above; clamps keep peaks/tree tips on screen on short canvases.
+- **Field = PixelLab tufts on code-painted depth bands.** PixelLab's background removal kept erasing flat ground; its tufts (small far, bigger near) were kept and laid on six hand-stepped bands; forest edge broken up with an uneven crest + dark undergrowth bushes.
+- **No village roads/footprint art (for now).** A fixed footprint fights building moves, and thin roads at that distance read as cracks or vanish under the buildings (tried: guide, reference, inpaint). Instead: small prop sprites (fences, lamp posts, cart/well) placed by code, later.
+- **Weather:** the per-band `--clm-hill` colours are removed (the art keeps its colours; the far haze still tints it).
+- Rejected: a single 2x-scaled panorama (pixel scale would not match the 1x buildings); a 640-wide ridge with tufts (too dark, details too big, wrong for wide screens).
+
 ## 2026-11-07 (weather + mood) -- the sky stays the run climate; mood becomes its own check-in; a Lv 4 "sky picker" perk for the vibe (Claude app session; Fable 5.1; Jeremy: "I agree", "i like this idea")
 
 - **Weather is NOT mood.** Jeremy considered mapping his five mood levels onto the five climate bands (the sky as a self-report, with a "vibe" override and the history showing the mood). Rejected, three reasons: (1) everything in the scene is earned by play, a mood sky would be typed in, and a happy player on a collapsing run would see fireflies; (2) a visual payoff for a mood report poisons the data (people pick the pretty mood) -- the thing you want honest answers from must never control a reward; (3) a mood-congruent environment amplifies mood; a steady world beats a mirror. Kept on record: the climate earns its place in the present as a catastrophizing corrective (nobody can feel a 7-day average; Clear after a bad morning says the week is fine).

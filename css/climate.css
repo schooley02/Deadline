@@ -397,7 +397,7 @@ body.glance-strip #gameCanvas.climate-storm::before {
     inset: 0;
     z-index: -2; /* later in the DOM than the scene => over the sky clouds + far haze, under the ground (-1) */
     pointer-events: none;
-    background: radial-gradient(ellipse 130px 90px at calc(100% - var(--gy-hill-w, 140px) - 41px) calc(8% + 29px),
+    background: radial-gradient(ellipse 130px 90px at calc(100% - var(--moon-right, 30px) - 29px) calc(8% + 29px),
         rgba(253, 251, 232, 0.16), rgba(253, 251, 232, 0.05) 55%, rgba(253, 251, 232, 0) 100%);
 }
 
@@ -407,8 +407,8 @@ body.glance-strip #gameCanvas.climate-storm::before {
     z-index: 1; /* same level as #base but later in the DOM => over the church (and the village layer under it); zombies (30+) stay over it */
     pointer-events: none;
     /* from just under the moon down to the church's door */
-    clip-path: polygon(calc(100% - var(--gy-hill-w, 140px) - 64px) calc(8% + 36px),
-        calc(100% - var(--gy-hill-w, 140px) - 20px) calc(8% + 50px), 230px 100%, 70px 100%);
+    clip-path: polygon(calc(100% - var(--moon-right, 30px) - 52px) calc(8% + 36px),
+        calc(100% - var(--moon-right, 30px) - 8px) calc(8% + 50px), 230px 100%, 70px 100%);
     background: linear-gradient(240deg, rgba(253, 251, 232, 0.2), rgba(253, 251, 232, 0.07) 70%, rgba(253, 251, 232, 0.03));
 }
 

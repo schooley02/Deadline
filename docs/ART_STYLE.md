@@ -54,6 +54,29 @@ Healthy, non-zombie twins of the category zombies above (same outfit, alive pale
 ## Category Colors (from prototype, for UI accents)
 other #90ee90 · career #4a90e2 · creativity #f5a623 · financial #50e3c2 · health #e91e63 · lifestyle #bd10e0 · relationships #f8e71c · spirituality #7ed321
 
+## Backdrop: mountains, tree line, moonlit field (BUILT 2026-11-07; replaces the SVG hill)
+Three repeating strips in `.scene-silhouettes` (css/gameCanvas.css "Backdrop"), back to front, all 1:1 + pixelated:
+| Layer | File | Size | Pinned (top edge) |
+|---|---|---|---|
+| Mountains | `Assets/scene/mountains.png` | 640x240 | `--clm-hz` - 280px, clamped at -44px |
+| Tree line | `Assets/scene/treeline.png` | 404x168 | `--clm-hz` - 230px, clamped at -8px |
+| Field | `Assets/scene/village-field.png` | 505x156 | `--clm-hz` - 90px (top 10 rows transparent: forest-edge bushes) |
+`--clm-hz` = the village front row's feet (js/ui/villageView.js); fallback `100% - 76px` (floor top + 4px). The backdrop STAYS LOW on
+tall screens (Jeremy: open sky above). PixelLab originals + reference/inpaint canvases are in `Assets/scene/_source/`.
+**Depth rules (keep these if the art is redone):** farther = lighter, bluer, flatter. Mountains are the lightest (hazy, near the sky
+colour); trees darker with only a soft rim (bright rims read as stray streaks); the field is MOONLIT (lighter than the trees) with
+detail that grows toward the front: hazy bands + 1px specks at the far edge, tufts up to ~6px at the bottom, all smaller than a
+building window. Every colour step between layers must differ (the first tree line shared the mountains' two colours and vanished).
+**Tiling:** strips are cut where both ends match (a wavy seam through gaps, not a straight cut); a crop through a lit slope leaves a
+1px needle at the join (happened on the mountains).
+**PixelLab lessons (2026-11-07):** (1) Remove background erases flat, uniform ground (three fields lost this way); ask for the
+grass/dirt objects on transparency and lay them on a code-painted base, or turn it off. (2) Pro only offers fixed presets; Pixen and
+Inpaint can come back at 512x224 regardless; never squeeze to fit, put the needed band inside the allowed canvas and crop.
+(3) Words like "strip", "side-scroller", "tiles" give a floating platform/cross-section; describe a landscape running past the
+frame instead. (4) A reference image steers layout hard (a flat guide gets traced). (5) Thin roads at village distance read as
+cracks; the village ground stays plain field, and "small town" props (fences, lamp posts, a cart/well) are planned as separate
+sprites placed by code.
+
 ## Graveyard zone art (V7, placeholders built 2026-10-28)
 Hill, tree and each headstone are SEPARATE graphics (so they can be swapped one by one): hill (CSS now), tree
 (inline SVG, trunk at the right edge, canopy overhanging), one headstone per achievement family (placeholder; the 2026-10-28 village decision turns the hill into the

@@ -267,7 +267,7 @@ describe('weather badge (Build 2)', () => {
     });
 
     test('the badge sits beside the moon: it follows the moon\'s hill offset variable', () => {
-        expect(block(wpCss, '.weather-badge')).toContain('var(--gy-hill-w');
+        expect(block(wpCss, '.weather-badge')).toContain('var(--moon-right');
     });
 
     test('the pulse stops under fx-reduced / fx-off / prefers-reduced-motion', () => {
@@ -384,7 +384,7 @@ describe('portrait glance strip hides the weather layers', () => {
     });
 
     test('graveyard.css moves the number layer left of the hill together with the moon', () => {
-        expect(gyCss).toMatch(/\.nights-survived,\s*\.nights-ui \{\s*right: calc\(var\(--gy-hill-w\) \+ 12px\)/);
+        expect(gyCss).toMatch(/\.nights-survived,\s*\.nights-ui \{\s*right: var\(--moon-right\)/);
     });
 });
 

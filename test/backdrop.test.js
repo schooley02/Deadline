@@ -52,8 +52,8 @@ describe('backdrop strips', () => {
         expect(block('.scene-backdrop')).toMatch(/bottom: 0/);
     });
 
-    test('all three are in the service worker APP_SHELL and the cache was bumped past v278', () => {
+    test('all three are in the service worker APP_SHELL and the cache was bumped past v279', () => {
         LAYERS.forEach(([, file]) => expect(sw).toContain(`'${file}'`));
-        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(279);
+        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(280);
     });
 });

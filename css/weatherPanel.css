@@ -8,7 +8,7 @@
 .weather-badge {
     position: absolute;
     top: calc(8% + 7px);                              /* vertically centred on the moon (top 8%, 58px) */
-    right: calc(var(--gy-hill-w, 140px) + 76px);      /* just left of the moon: hill + 12 (moon's right) + 58 (moon) + 6 */
+    right: calc(var(--moon-right, 30px) + 64px);     /* just left of the moon: moon's right + 58 (moon) + 6 */
     width: 44px;
     height: 44px;
     z-index: 89;
