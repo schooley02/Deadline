@@ -12,6 +12,7 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 - **Intensity from the run climate score** (0.8 at the Storm line to 1.5 at 0.10); a forced dev sky has no score and uses 1.
 - **Lightning stays soft:** one bolt (0.14 s) and one glow swell (peak 0.35, under the old 0.4) at least 10 s apart; never two in a row, hidden under reduced motion. The mockup flashed harder; the Build 2 safety rule ("never a strobe") wins.
 - **No roof splashes yet:** the near layers draw in front of the church, so drops there cannot hit its roof. A roof drip is a feet-anchored PixelLab overlay, later.
+- **Storm ground = a second tile, swapped by CSS under `climate-storm` only** (Jeremy generated it in PixelLab; option 4 of four). 121x72 (+ 61x36 strip), not the old 127x72, so `background-size` is set per tile; the PixelLab 128x128 output is kept in `Assets/scene/_source/`. Rejected: puddles drawn only in code on the old tile (they read as stones / blobs at 2-5 px; real puddles need art), and changing the shared ground for every band.
 - **Existing pins kept:** the `.fx-reduced .rain { animation: none }` and reduced-motion rules stay in climate.css (now harmless, so the existing wiring tests keep passing). Nothing in balance, saves or schema changed.
 
 ---

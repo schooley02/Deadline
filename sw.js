@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v265';
+const CACHE_NAME = 'deadline-shell-v266';
 
 const APP_SHELL = [
     './',
@@ -257,6 +257,8 @@ const APP_SHELL = [
     'Assets/scene/clouds-tile.png',
     'Assets/scene/fog-tile.png',
     'Assets/scene/floor-tile.png',
+    'Assets/scene/storm-floor-tile.png',
+    'Assets/scene/storm-strip-floor.png',
     'Assets/scene/moon.png',
     'Assets/fonts/press-start-2p-latin-400-normal.woff2',
     'Assets/icons/icon-192.png',
