@@ -47,7 +47,7 @@
     --clm-moon: 0.6; --clm-g1: 16px; --clm-g2: 4px; --clm-ga: 0.25; --clm-gb: 0.05;
     --clm-hill: #17172b;
     --clm-rgb: 170, 168, 190;
-    --clm-far: 0.19; --clm-row1: 0.21; --clm-row2: 0.19; --clm-mid: 0.14; --clm-near: 0.06;
+    --clm-far: 0.19; --clm-row1: 0.25; --clm-row2: 0.19; --clm-mid: 0.17; --clm-near: 0.06;
 }
 
 #gameCanvas.climate-fog {
@@ -56,7 +56,7 @@
     --clm-moon: 0.28; --clm-g1: 10px; --clm-g2: 2px; --clm-ga: 0.15; --clm-gb: 0;
     --clm-hill: #1d1d2c;
     --clm-rgb: 175, 175, 190;
-    --clm-far: 0.3; --clm-row1: 0.3; --clm-row2: 0.24; --clm-mid: 0.16; --clm-near: 0.08;
+    --clm-far: 0.3; --clm-row1: 0.36; --clm-row2: 0.28; --clm-mid: 0.24; --clm-near: 0.08;
 }
 
 #gameCanvas.climate-storm {
@@ -65,7 +65,7 @@
     --clm-moon: 0.08; --clm-g1: 6px; --clm-g2: 1px; --clm-ga: 0.08; --clm-gb: 0;
     --clm-hill: #141a1c;
     --clm-rgb: 70, 88, 86;
-    --clm-far: 0.42; --clm-row1: 0.3; --clm-row2: 0.24; --clm-mid: 0.18; --clm-near: 0.12;
+    --clm-far: 0.42; --clm-row1: 0.44; --clm-row2: 0.31; --clm-mid: 0.28; --clm-near: 0.12;
 }
 
 /* ---------- stars: fewer and dimmer (the first N of the 14 stay; the rest are hidden) ---------- */

@@ -364,7 +364,7 @@ is `pointer-events: none`, so zombies, buildings, the church and the HUD stay fu
 - Fog, approximate total haze (mockup values): far row ~50%, back row ~40%, front row ~20%, zombies + church ~8%.
   Storm the same shape, green-grey, plus rain. **Hazy and Overcast (2026-11-07, Jeremy: "the further back you go, the hazier")** use the
   same shape at a lower strength (veils stack, so the far row carries all three): Hazy row1/row2/mid 0.15 / 0.13 / 0.12 = far row
-  ~35%, back ~23%, front ~12% (mid raised from 0.08 the same day: "the haze should start in front of the first buildings a little"); Overcast 0.21 / 0.19 / 0.14 = ~45% / 30% / 14%; Fog ~55% / 36% / 16%. No fog banks below Fog. Clear: none.
+  ~35%, back ~23%, front ~12% (mid raised from 0.08 the same day: "the haze should start in front of the first buildings a little"); Overcast 0.25 / 0.19 / 0.17 = ~50% / 33% / 17%; Fog 0.36 / 0.28 / 0.24 = ~65% / 45% / 24% (raised from 0.30 / 0.24 / 0.16 = 55 / 36 / 16 the same day: Jeremy saw no building difference between bands); Storm 0.44 / 0.31 / 0.28 = ~72% / 50% / 28% (was 0.30 / 0.24 / 0.18). No fog banks below Fog. Clear: none.
 - Known risk: at Fog the near haze also dims zombie status icons slightly -- phone-check; if too much, lower the near haze
   for that band only.
 

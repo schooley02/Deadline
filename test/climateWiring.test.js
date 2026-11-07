@@ -325,7 +325,7 @@ describe('looks key off one class per band', () => {
         });
     });
 
-    test('the stacked haze on the far row grows with the band and stays under Fog (Hazy < Overcast < Fog)', () => {
+    test('the stacked haze on the far row grows with every band (Hazy < Overcast < Fog < Storm)', () => {
         const stack = b => {
             const bl = block(css, `#gameCanvas.climate-${b}`);
             const v = k => Number(new RegExp(`--clm-${k}:\\s*([\\d.]+)`).exec(bl)[1]);
@@ -334,6 +334,15 @@ describe('looks key off one class per band', () => {
         expect(stack('hazy')).toBeGreaterThan(0.25); // the back-to-front step has to be visible, not 8 points
         expect(stack('hazy')).toBeLessThan(stack('overcast'));
         expect(stack('overcast')).toBeLessThan(stack('fog'));
+        expect(stack('fog')).toBeLessThan(stack('storm'));
+    });
+
+    test('the front-row film (mid) also steps up with every band, so the buildings look different band to band -- Jeremy 2026-11-07', () => {
+        const mid = b => Number(/--clm-mid:\s*([\d.]+)/.exec(block(css, `#gameCanvas.climate-${b}`))[1]);
+        expect(mid('hazy')).toBeGreaterThanOrEqual(0.1);
+        expect(mid('hazy')).toBeLessThan(mid('overcast'));
+        expect(mid('overcast')).toBeLessThan(mid('fog'));
+        expect(mid('fog')).toBeLessThan(mid('storm'));
     });
 
     test('sky clouds in Overcast / Fog / Storm replace the base layer; only the sky is covered (tops stay near the top)', () => {
