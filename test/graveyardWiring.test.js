@@ -104,3 +104,22 @@ describe('Clock: shrinking gameScreenWidth keeps every zombie off the hill', () 
         expect(x + DIMS.habitEnemyWidth).toBeLessThanOrEqual(FIELD + 0.001);
     });
 });
+
+describe('Memorial art must not widen the page (2026-11-08 phone bug)', () => {
+    const fs2 = require('fs');
+    const path2 = require('path');
+    const css = fs2.readFileSync(path2.join(__dirname, '..', 'css', 'graveyard.css'), 'utf8').replace(/\r\n/g, '\n');
+    const block = (css.match(/\n\.graveyard-stones \{[^}]*\}/) || [''])[0];
+
+    test('the layer holding the 128px obelisk is clipped at the zone edge (it overhangs the 140px zone by 16px)', () => {
+        expect(block).toMatch(/overflow:\s*hidden/);
+        expect(block).toMatch(/right:\s*0/);
+        expect(block).toMatch(/left:\s*0/);
+        expect(block).toMatch(/bottom:\s*0/);
+    });
+
+    test('and stretched far upward so the tall obelisk is not cut off at the top', () => {
+        const top = Number((block.match(/top:\s*-(\d+)px/) || [])[1]);
+        expect(top).toBeGreaterThanOrEqual(250); // a stage 5 obelisk is 192px of art standing above the plinth
+    });
+});

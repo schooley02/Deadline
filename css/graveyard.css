@@ -77,8 +77,16 @@
 }
 
 .graveyard-stones {
+    /* The Memorial's 128px art is 16px wider than the 140px zone on its right (its corners are transparent). #gameCanvas is
+       overflow:visible, so that overhang WIDENED THE PAGE (scrollWidth 860 at 844: the right edge, label and + button were cut off
+       on a phone, 2026-11-08). Clip the layer at the zone's right edge instead, and stretch it far upward (children are placed from
+       the bottom, so their positions do not change) so the tall obelisk and its hover glow are not cut off. */
     position: absolute;
-    inset: 0;
+    top: -400px;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    overflow: hidden;
 }
 
 /* Memorial obelisk (2026-11-08; js/memorial.js picks the stage, js/ui/graveyardView.js places it from CONFIG.GRAVEYARD_MEMORIAL_*).
