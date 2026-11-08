@@ -101,7 +101,8 @@
 
 /* Memorial obelisk (2026-11-08; js/memorial.js picks the stage, js/ui/graveyardView.js places it from CONFIG.GRAVEYARD_MEMORIAL_*).
    ONE button (a >=44px tap box standing on the plinth) holding the 128x192 art, which is wider and lower than the box, so it overhangs it. */
-.graveyard-memorial {
+.graveyard-memorial,
+.graveyard-tree-hit {
     position: absolute;
     padding: 0;
     margin: 0;
@@ -112,7 +113,8 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-.graveyard-memorial:focus-visible {
+.graveyard-memorial:focus-visible,
+.graveyard-tree-hit:focus-visible {
     outline: 2px solid #f1d27a;
     outline-offset: 1px;
 }

@@ -22,6 +22,7 @@
  *         getMemorialStage: () => 1..5, or null to hide the obelisk (DEV: ?memorialTier=off),
  *         getTreeStage: () => 1..3 (sapling / young / giant by lifetime nights, js/treeGrowth.js), or null to hide the tree (DEV: ?treeStage=off),
  *         onOpenMemorial: () => void   (the obelisk's tap),
+ *         onOpenTree: () => void       (the tree's tap box, beside the obelisk; opens the Tree window),
  *         onOpenStats: () => void }   (a run grave's tap)
  */
 const GraveyardView = (() => {
@@ -70,6 +71,11 @@ const GraveyardView = (() => {
     function openMemorial(e) {
         if (e && e.stopPropagation) e.stopPropagation(); // Modal's document click would dismiss the window at once
         if (deps && deps.onOpenMemorial) deps.onOpenMemorial();
+    }
+
+    function openTree(e) {
+        if (e && e.stopPropagation) e.stopPropagation(); // Modal's document click would dismiss the window at once
+        if (deps && deps.onOpenTree) deps.onOpenTree();
     }
 
     // The Memorial's geometry from CONFIG (docs/ART_STYLE "Memorial obelisk T1-T5"). The PNG is artW x artH, drawn 1:1, bottom-aligned. Its
@@ -138,6 +144,24 @@ const GraveyardView = (() => {
         treeEl.style.left = (clipLeft + baseX - trunkCol) + 'px';
     }
 
+    // The tree's tap box (2026-11-08): ONE >=44px button in the stones layer, in the strip of the zone to the right of the Memorial's box, standing
+    // on the trunk's base. Transparent (the tree is drawn by the clipper); below the obelisk (z 10 < 20). Appended AFTER renderMemorial, which clears the layer.
+    function renderTreeHit(c, stage, hillH) {
+        if (!(stage >= 1 && stage <= 3)) return;
+        const sink = typeof c.GRAVEYARD_TREE_SINK_PX === 'number' ? c.GRAVEYARD_TREE_SINK_PX : 15;
+        const hitW = Math.max(44, c.GRAVEYARD_TREE_HIT_W_PX || 44);
+        const hitH = Math.max(44, c.GRAVEYARD_TREE_HIT_H_PX || 110);
+        const hitLeft = typeof c.GRAVEYARD_TREE_HIT_LEFT_PX === 'number' ? c.GRAVEYARD_TREE_HIT_LEFT_PX : 96;
+        const b = makeButton('graveyard-tree-hit', `Tree, stage ${stage} of 3. Open`, openTree);
+        b.dataset.stage = String(stage);
+        b.style.left = hitLeft + 'px';
+        b.style.bottom = (hillH - sink) + 'px';
+        b.style.width = hitW + 'px';
+        b.style.height = hitH + 'px';
+        b.style.zIndex = '10';
+        memorialLayerEl.appendChild(b);
+    }
+
     function renderRuns(c, canvasW, canvasH, hillW, baseW) {
         const history = (deps && deps.getRunHistory && deps.getRunHistory()) || [];
         const ids = history.map((r, i) => (r && typeof r.run === 'number') ? r.run : history.length - i);
@@ -191,6 +215,7 @@ const GraveyardView = (() => {
         }
         renderTree(c, treeStage, hillHeight(c));
         renderMemorial(c, stage);
+        renderTreeHit(c, treeStage, hillHeight(c));
         renderRuns(c, canvasW, canvasH, hillW, baseW);
     }
 

@@ -1,0 +1,49 @@
+/* Tree window (2026-11-08; js/ui/treePanel.js): the graveyard tree's stage, the rule, the lifetime night total and a bar to the next stage.
+   Opened by the tree's trunk on the graveyard hill and by the Tree link in the Village panel (.vp-tree, styled with .vp-memorial in
+   css/memorialPanel.css). The corner x is the shared .modal-close-x. */
+.tree-panel { position: relative; max-width: 460px; width: calc(100vw - 32px); max-height: calc(100vh - 32px); overflow-y: auto; text-align: left; }
+.tp-title { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding-right: 28px; margin-bottom: 10px; }
+.tp-title h3 { margin: 0; }
+.tp-stage { font-size: 15px; font-weight: 700; color: var(--color-primary-dark-green); text-align: right; }
+
+.tp-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 10px; }
+/* The tree art is 192x128, drawn 1:1 (pixel art, whole-number scale) on the graveyard's night sky. */
+.tp-sprite {
+    position: relative;
+    flex: 0 0 auto;
+    width: 192px;
+    height: 128px;
+    overflow: hidden;
+    border-radius: 6px;
+    background: linear-gradient(#232250, #2c2a5c 70%, #25466a);
+}
+.tp-art {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 192px;
+    height: 128px;
+    background-repeat: no-repeat;
+    background-size: 192px 128px;
+    image-rendering: pixelated;
+    transform-origin: 0 100%;
+}
+.tp-sprite[data-stage="1"] .tp-art { background-image: url("../Assets/scene/graveyard-tree-1.png"); }
+.tp-sprite[data-stage="2"] .tp-art { background-image: url("../Assets/scene/graveyard-tree-2.png"); }
+.tp-sprite[data-stage="3"] .tp-art { background-image: url("../Assets/scene/graveyard-tree-3.png"); }
+.tp-rule { flex: 1 1 140px; margin: 0; font-size: 13px; line-height: 1.4; color: var(--color-neutral); }
+
+.tp-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px 8px; margin: 0 0 10px; }
+.tp-stat { padding: 5px 8px; border: 1px solid var(--color-secondary-green-pale); border-radius: 6px; background: var(--color-primary-white); }
+.tp-stat dt { font-size: 11.5px; color: var(--color-neutral); }
+.tp-stat dd { margin: 0; font-size: 18px; font-weight: 700; color: var(--color-text-primary); }
+
+.tp-bar { height: 10px; margin-bottom: 6px; border-radius: 5px; background: #dfe6e4; overflow: hidden; }
+.tp-bar-fill { display: block; height: 100%; border-radius: 5px; background: var(--color-secondary-green-light); }
+.tp-next { margin: 0; font-size: 13px; font-weight: 600; color: var(--color-text-primary); }
+
+/* Short screens (landscape phones): the tree at half size so the numbers are not pushed off the screen. */
+@media (max-height: 520px) {
+    .tp-sprite { width: 96px; height: 64px; }
+    .tp-art { transform: scale(0.5); }
+}

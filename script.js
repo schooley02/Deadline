@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
         getMemorialStage: () => memorialStageNow(),
         getTreeStage: () => treeStageNow(),
         onOpenMemorial: () => openMemorialPanel(),
+        onOpenTree: () => openTreePanel(),
         onOpenStats: () => openManagementWindow('stats'),
     });
     // Achievement village (V7 W2): eight buildings on the horizon hill. Build 2 (2026-10-30): each building's tier is
@@ -113,6 +114,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const current = NightsSurvivedView.countMidnights(State.getRunStartedAtMs(), Date.now());
         const nights = TreeGrowth.total(stats.nightsSurvived, current, State.isGameOver());
         return TreeGrowth.resolve(window.location.search, TreeGrowth.stage(nights, CONFIG.TREE_STAGE_NIGHTS));
+    }
+    // The Tree's own window (js/ui/treePanel.js, 2026-11-08): the REAL banked + live nights, never the DEV tree chip or ?treeStage=, so it always
+    // tells the truth about the save. Read-only.
+    function realTreeNights() {
+        const stats = State.getLifetimeStats() || {};
+        const current = NightsSurvivedView.countMidnights(State.getRunStartedAtMs(), Date.now());
+        return { banked: stats.nightsSurvived, current, gameOver: State.isGameOver() };
+    }
+    function realTreeStage() {
+        const n = realTreeNights();
+        return TreeGrowth.stage(TreeGrowth.total(n.banked, n.current, n.gameOver), CONFIG.TREE_STAGE_NIGHTS);
+    }
+    function openTreePanel() {
+        TreePanel.open(Object.assign(realTreeNights(), { thresholds: CONFIG.TREE_STAGE_NIGHTS }));
     }
     // The Memorial's own window (js/ui/memorialPanel.js): the REAL stage and tiers, never the dev overrides, so it always tells the truth about the save.
     function openMemorialPanel() {
@@ -2848,6 +2863,8 @@ document.addEventListener('DOMContentLoaded', () => {
             spriteFor: villageSpriteFor,
             memorial: { stage: Memorial.stage(State.getBestVillageTiers()) },
             onOpenMemorial: () => openMemorialPanel(),
+            tree: { stage: realTreeStage() },
+            onOpenTree: () => openTreePanel(),
             onOpenBuilding: (kind) => {
                 const sprite = villageSpriteFor(kind, progress[kind] ? progress[kind].tier : 1);
                 const placement = (CONFIG.VILLAGE_PLACEMENT || {})[kind] || {};

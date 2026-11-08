@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-08 (Tree window) -- the graveyard tree gets its own window, like the Memorial (Claude app session; Sonnet 5.5; Jeremy: "start the Tree window next", then "I agree with your recommendation")
+
+- **Decision:** tapping the tree's trunk on the hill opens a **Tree window** (`js/ui/treePanel.js`, `css/treePanel.css`): the stage's picture + "Stage N of 3: Sapling / Young tree / Giant tree", the rule in one line, three numbers (nights survived all runs = from finished runs + this run), a bar across the CURRENT stage and "N nights more to reach <next>" (or "The tree is fully grown."). Portrait phones reach it from a "Tree" link under the Memorial link in the Village panel (the graveyard is hidden in the portrait strip). Chosen over a combined Graveyard window (Claude proposed, Jeremy agreed).
+- **Real, read-only:** `script.js` `openTreePanel` passes the REAL banked + live nights (`realTreeNights`), never the DEV tree chip or `?treeStage=`, so it always tells the truth about the save; nothing in it saves, pays or reads State (`test/treePanel.test.js` pins it). Thresholds still `CONFIG.TREE_STAGE_NIGHTS`; no balance numbers, no save change.
+- **Tap box:** ONE 44x110 button in the stones layer at `CONFIG.GRAVEYARD_TREE_HIT_LEFT_PX` 96 / `_HIT_W_PX` 44 / `_HIT_H_PX` 110 = the strip of the zone right of the Memorial's box (x 24-96), standing on the trunk base, z 10 under the obelisk (z 20). So the canopy itself is NOT tappable (it would cover the Memorial and the label); the trunk is.
+- **Shell:** sw v289 (+ `js/ui/treePanel.js`, `css/treePanel.css`). `.vp-tree` shares `.vp-memorial`'s CSS rules (grouped selectors in `css/memorialPanel.css`).
+
+---
+
 ## 2026-11-08 (Growing tree) -- three PixelLab stages, a lifetime-nights rule, and the moves that made room for it (Claude app session; Opus 5.5 art direction, Sonnet 5.5 wiring; Jeremy: "I agree with your recommendation and yes to starting from existing history", "more of the bottom of the trunk visible behind and next to the monument", "I like the middle row the best")
 
 - **Stage rule: sapling 0-29, young 30-99, giant 100+ LIFETIME nights** (`CONFIG.TREE_STAGE_NIGHTS = [30, 100]`, FIRST VALUES, a balance flag for the Planning list; Jeremy agreed to Claude's numbers; not run through the retired balance-tuning skill, per 2026-11-03). Lifetime nights = the BANK (`lifetimeStats.nightsSurvived`, raised by each finished run's nights in `recordLifetimeRunEnd`) + the live run (counted like the moon's number, `NightsSurvivedView.countMidnights`; it counts for 0 once the game is over because that run is already banked). That keeps the total from jumping at game over and from ever dropping at Restart; only Reset Game (lifetimeStats back to fresh) returns the tree to a sapling.

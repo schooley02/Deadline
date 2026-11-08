@@ -13,6 +13,8 @@
  * buildModel(ctx): ctx = {
  *   progress,    VillageProgress.compute(...) -> { [kind]: { tier, value, nextAt, toNext, maxed, fraction } }
  *   spriteFor?   (kind, tier) -> { url, width, height } for the row thumbnail (omit = no thumbnail)
+ *   tree?        { stage: 1..3 } -> adds a "Tree" link under the Memorial one that opens the Tree window (2026-11-08; same portrait reason).
+ *                `open` also takes `onOpenTree()`.
  *   memorial?    { stage: 1..5 } -> adds a "Memorial" link at the bottom that opens the Memorial window (2026-11-08; a portrait
  *                phone cannot see the graveyard, so this is its way in). `open` also takes `onOpenMemorial()`.
  * }
@@ -48,7 +50,8 @@ const VillagePanel = (() => {
         });
         const tiersTotal = rows.reduce((n, r) => n + r.tier, 0);
         const st = c.memorial && Number.isInteger(c.memorial.stage) ? Math.min(5, Math.max(1, c.memorial.stage)) : null;
-        return { rows, tiersTotal, tiersMax: rows.length * VillageCard.MAX_TIER, memorialStage: st };
+        const ts = c.tree && Number.isInteger(c.tree.stage) ? Math.min(3, Math.max(1, c.tree.stage)) : null;
+        return { rows, tiersTotal, tiersMax: rows.length * VillageCard.MAX_TIER, memorialStage: st, treeStage: ts };
     }
 
     function rowHtml(r) {
@@ -75,6 +78,7 @@ const VillagePanel = (() => {
                     <div class="vp-title"><h3>Village</h3><span class="vp-total">${m.tiersTotal} / ${m.tiersMax} tiers</span></div>
                     <div class="vp-list">${m.rows.map(rowHtml).join('')}</div>
                     ${m.memorialStage ? `<button type="button" class="vp-memorial" data-action="memorial" aria-label="Memorial, stage ${m.memorialStage} of 5. Open"><span>Memorial</span><span class="vp-memorial-stage">Stage ${m.memorialStage} of 5 \u203A</span></button>` : ''}
+                    ${m.treeStage ? `<button type="button" class="vp-tree" data-action="tree" aria-label="Tree, stage ${m.treeStage} of 3. Open"><span>Tree</span><span class="vp-memorial-stage">Stage ${m.treeStage} of 3 \u203A</span></button>` : ''}
                     <button type="button" class="modal-close-x" data-action="close" aria-label="Close">
                         <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M2 2 L10 10 M10 2 L2 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                     </button>
@@ -97,6 +101,7 @@ const VillagePanel = (() => {
             if (btn.dataset.action === 'close') { overlay.remove(); return; }
             if (btn.dataset.action === 'open' && ctx && typeof ctx.onOpenBuilding === 'function') ctx.onOpenBuilding(btn.dataset.kind);
             if (btn.dataset.action === 'memorial' && ctx && typeof ctx.onOpenMemorial === 'function') ctx.onOpenMemorial();
+            if (btn.dataset.action === 'tree' && ctx && typeof ctx.onOpenTree === 'function') ctx.onOpenTree();
         });
     }
 
