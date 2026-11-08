@@ -165,7 +165,10 @@ describe('script.js hook-up', () => {
         // The Memorial's SAVED mark (trackBestVillageTiers) never reads it -- see the "NOTHING that pays, records or saves" test above.
         expect(hits.filter((l) => /DevDemo\.villageTier\(\)/.test(l)).length).toBe(2);
         expect(hits.filter((l) => /DevDemo\.churchHealth\(\)/.test(l)).length).toBe(2); // applyChurchPreview + its observer
-        expect(hits.length).toBe(5); // nothing else reads it; everything else goes through DevPanel
+        // The graveyard's own chips (2026-11-08): the Memorial obelisk stage and the tree stage, each read once, scene-only.
+        expect(hits.filter((l) => /DevDemo\.memorialStage\(\)/.test(l)).length).toBe(1);
+        expect(hits.filter((l) => /DevDemo\.treeStage\(\)/.test(l)).length).toBe(1);
+        expect(hits.length).toBe(7); // nothing else reads it; everything else goes through DevPanel
         expect(code.filter((l) => /DevPanel\.(init|setEnabled)/.test(l)).length).toBe(3);
     });
 });

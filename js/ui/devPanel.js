@@ -8,7 +8,7 @@
  * The panel: a compact card docked above the button, with NO backdrop and no focus trap, on purpose: the whole point is to
  * watch the sky / village change while you tap, so nothing may dim or cover the scene. It is not a Modal overlay. Sections:
  * Weather (Real / Clear / Hazy / Overcast / Fog / Storm + Steady / Up / Down trend), Village stars (Real / 1..5 for all eight
- * buildings), Church (Real / 100 / 75 / 50 / 25 / 0 = the damage picture + its idle animation, plus a Hit button that plays the
+ * buildings), Graveyard monument (Real / 1..5, the Memorial obelisk on its own) and Graveyard tree (Real / 1 Sapling / 2 Young / 3 Giant), Church (Real / 100 / 75 / 50 / 25 / 0 = the damage picture + its idle animation, plus a Hit button that plays the
  * flash + shake once; ART ONLY, no health or stat changes) and Reset. Every choice goes through DevDemo (in-memory only; see its header); this file only draws and wires.
  *
  * Every click inside the button / panel stopPropagation()s: Modal's outside-click dismiss is a bubbling document handler and
@@ -19,14 +19,17 @@
 const DevPanel = (() => {
     const BAND_LABELS = { clear: 'Clear', hazy: 'Hazy', overcast: 'Overcast', fog: 'Fog', storm: 'Storm' };
     const TREND_LABELS = { steady: 'Steady', up: 'Up', down: 'Down' };
+    const TREE_LABELS = { 1: '1 Sapling', 2: '2 Young', 3: '3 Giant' };
 
     /** Pure. A DevDemo snapshot -> what the panel shows: option lists with a `selected` flag each. */
-    function panelModel(snap, bands, trends, tiers, churchStates) {
+    function panelModel(snap, bands, trends, tiers, churchStates, memorialStages, treeStages) {
         const s = snap || {};
         const bandList = bands || ['clear', 'hazy', 'overcast', 'fog', 'storm'];
         const trendList = trends || ['steady', 'up', 'down'];
         const tierList = tiers || [1, 2, 3, 4, 5];
         const churchList = churchStates || [100, 75, 50, 25, 0];
+        const memorialList = memorialStages || [1, 2, 3, 4, 5];
+        const treeList = treeStages || [1, 2, 3];
         const weatherOn = !!s.band;
         return {
             bands: [{ value: 'real', label: 'Real', selected: !s.band }]
@@ -36,6 +39,10 @@ const DevPanel = (() => {
                 .concat(tierList.map((n) => ({ value: String(n), label: n + '★', selected: s.tier === n }))),
             church: [{ value: 'real', label: 'Real', selected: s.church == null }]
                 .concat(churchList.map((n) => ({ value: String(n), label: String(n), selected: s.church === n }))),
+            memorial: [{ value: 'real', label: 'Real', selected: s.memorial == null }]
+                .concat(memorialList.map((n) => ({ value: String(n), label: String(n), selected: s.memorial === n }))),
+            tree: [{ value: 'real', label: 'Real', selected: s.tree == null }]
+                .concat(treeList.map((n) => ({ value: String(n), label: TREE_LABELS[n] || String(n), selected: s.tree === n }))),
             active: !!s.active,
         };
     }
@@ -62,6 +69,12 @@ const DevPanel = (() => {
             + '<section class="dev-section"><h4>Village stars</h4>'
             + '<div class="dev-chips" role="group" aria-label="Star level for every building">' + chips(model.tiers, 'data-dev-tier') + '</div>'
             + '</section>'
+            + '<section class="dev-section"><h4>Graveyard monument</h4>'
+            + '<div class="dev-chips" role="group" aria-label="Memorial obelisk stage">' + chips(model.memorial, 'data-dev-memorial') + '</div>'
+            + '</section>'
+            + '<section class="dev-section"><h4>Graveyard tree</h4>'
+            + '<div class="dev-chips" role="group" aria-label="Graveyard tree stage">' + chips(model.tree, 'data-dev-tree') + '</div>'
+            + '</section>'
             + '<section class="dev-section"><h4>Church (picture only)</h4>'
             + '<div class="dev-chips" role="group" aria-label="Church damage picture">' + chips(model.church, 'data-dev-church')
             + '<button type="button" class="dev-chip dev-chip--action" data-dev-hit aria-label="Play a hit on the church">Hit</button></div>'
@@ -82,7 +95,7 @@ const DevPanel = (() => {
     function render() {
         if (!demo || !buttonEl || !panelEl) return;
         const snap = demo.snapshot();
-        const model = panelModel(snap, demo.BANDS, demo.TRENDS, demo.TIERS, demo.CHURCH_STATES);
+        const model = panelModel(snap, demo.BANDS, demo.TRENDS, demo.TIERS, demo.CHURCH_STATES, demo.MEMORIAL_STAGES, demo.TREE_STAGES);
         panelEl.innerHTML = panelHtml(model);
         buttonEl.classList.toggle('dev-button--active', model.active);
         buttonEl.setAttribute('aria-label', model.active ? 'Developer tools (a demo is active)' : 'Developer tools');
@@ -107,6 +120,8 @@ const DevPanel = (() => {
         else if (t.hasAttribute('data-dev-trend')) demo.setTrend(t.getAttribute('data-dev-trend'));
         else if (t.hasAttribute('data-dev-tier')) demo.setTier(t.getAttribute('data-dev-tier'));
         else if (t.hasAttribute('data-dev-church')) demo.setChurch(t.getAttribute('data-dev-church'));
+        else if (t.hasAttribute('data-dev-memorial')) demo.setMemorial(t.getAttribute('data-dev-memorial'));
+        else if (t.hasAttribute('data-dev-tree')) demo.setTree(t.getAttribute('data-dev-tree'));
         else if (t.hasAttribute('data-dev-hit')) {
             if (deps && typeof deps.onHit === 'function') {
                 try { deps.onHit(); } catch (err) { if (typeof console !== 'undefined') console.error('Deadline: dev church hit failed', err); }

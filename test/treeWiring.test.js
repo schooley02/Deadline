@@ -146,9 +146,11 @@ describe('script.js hooks', () => {
         expect(body).toContain('TreeGrowth.stage(nights, CONFIG.TREE_STAGE_NIGHTS)');
         expect(body).toContain('TreeGrowth.resolve(window.location.search');
     });
-    test('the tree stage is read-only: nothing in it saves, pays or touches DevDemo', () => {
+    test('the tree stage is read-only: nothing in it saves or pays, and it only READS the DEV tree chip', () => {
         const i = script.indexOf('function treeStageNow()');
         const body = script.slice(i, script.indexOf('\n    }\n', i));
-        expect(body).not.toMatch(/saveGame|DevDemo|setLifetimeStats|applyLifetimeProgress/);
+        expect(body).not.toMatch(/saveGame|setLifetimeStats|applyLifetimeProgress/);
+        // The DEV panel's tree chips may be READ (scene only, 2026-11-08), and nothing else of DevDemo.
+        expect(body.match(/DevDemo\.\w+/g)).toEqual(['DevDemo.treeStage']);
     });
 });

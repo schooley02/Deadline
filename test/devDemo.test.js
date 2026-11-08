@@ -10,7 +10,7 @@ beforeEach(() => { DevDemo.resetForTests(); });
 
 describe('gated by the Developer tools switch', () => {
     test('starts off: nothing can be set and every getter says "no demo"', () => {
-        expect(DevDemo.snapshot()).toEqual({ enabled: false, band: null, trend: 'steady', tier: null, church: null, active: false });
+        expect(DevDemo.snapshot()).toEqual({ enabled: false, band: null, trend: 'steady', tier: null, church: null, memorial: null, tree: null, active: false });
         expect(DevDemo.setBand('fog')).toBe(false);
         expect(DevDemo.setTrend('up')).toBe(false);
         expect(DevDemo.setTier(5)).toBe(false);
@@ -24,7 +24,7 @@ describe('gated by the Developer tools switch', () => {
         DevDemo.setBand('storm'); DevDemo.setTrend('down'); DevDemo.setTier(4);
         expect(DevDemo.isActive()).toBe(true);
         DevDemo.setEnabled(false);
-        expect(DevDemo.snapshot()).toEqual({ enabled: false, band: null, trend: 'steady', tier: null, church: null, active: false });
+        expect(DevDemo.snapshot()).toEqual({ enabled: false, band: null, trend: 'steady', tier: null, church: null, memorial: null, tree: null, active: false });
         DevDemo.setEnabled(true);          // and a later switch-on starts clean, not with the old demo
         expect(DevDemo.weather(RunClimate)).toBeNull();
         expect(DevDemo.villageTier()).toBeNull();
@@ -174,7 +174,7 @@ describe('reset + listeners', () => {
         DevDemo.setEnabled(true);
         DevDemo.setBand('storm'); DevDemo.setTrend('down'); DevDemo.setTier(5);
         DevDemo.reset();
-        expect(DevDemo.snapshot()).toEqual({ enabled: true, band: null, trend: 'steady', tier: null, church: null, active: false });
+        expect(DevDemo.snapshot()).toEqual({ enabled: true, band: null, trend: 'steady', tier: null, church: null, memorial: null, tree: null, active: false });
     });
 
     test('listeners hear every real change, not a no-op, and can unsubscribe', () => {
@@ -218,5 +218,61 @@ describe('in memory only', () => {
         DevDemo.setEnabled(true); DevDemo.setBand('storm'); DevDemo.setTier(5); DevDemo.reset(); DevDemo.setEnabled(false);
         delete global.localStorage;
         expect(calls).toEqual([]);
+    });
+});
+
+describe('graveyard monument + tree stages (2026-11-08)', () => {
+    test('both answer "no demo" until set, and while the switch is off', () => {
+        expect(DevDemo.memorialStage()).toBeNull();
+        expect(DevDemo.treeStage()).toBeNull();
+        expect(DevDemo.setMemorial(3)).toBe(false);
+        expect(DevDemo.setTree(2)).toBe(false);
+        expect(DevDemo.memorialStage()).toBeNull();
+        expect(DevDemo.treeStage()).toBeNull();
+    });
+
+    test('the lists are 1..5 and 1..3', () => {
+        expect(DevDemo.MEMORIAL_STAGES).toEqual([1, 2, 3, 4, 5]);
+        expect(DevDemo.TREE_STAGES).toEqual([1, 2, 3]);
+    });
+
+    test('set / real / bad values: only whole numbers in the list stick, "real" and null clear', () => {
+        DevDemo.setEnabled(true);
+        expect(DevDemo.setMemorial('5')).toBe(true);
+        expect(DevDemo.memorialStage()).toBe(5);
+        expect(DevDemo.setMemorial(6)).toBe(false);
+        expect(DevDemo.setMemorial(0)).toBe(false);
+        expect(DevDemo.setMemorial('')).toBe(false);
+        expect(DevDemo.setMemorial(2.5)).toBe(false);
+        expect(DevDemo.memorialStage()).toBe(5);
+        expect(DevDemo.setMemorial('real')).toBe(true);
+        expect(DevDemo.memorialStage()).toBeNull();
+        expect(DevDemo.setTree(3)).toBe(true);
+        expect(DevDemo.treeStage()).toBe(3);
+        expect(DevDemo.setTree(4)).toBe(false);
+        expect(DevDemo.setTree(null)).toBe(true);
+        expect(DevDemo.treeStage()).toBeNull();
+    });
+
+    test('they make the demo active, show in the snapshot, and Reset / switching off clears them', () => {
+        DevDemo.setEnabled(true);
+        DevDemo.setMemorial(2);
+        expect(DevDemo.isActive()).toBe(true);
+        expect(DevDemo.snapshot()).toMatchObject({ memorial: 2, tree: null, active: true });
+        DevDemo.reset();
+        expect(DevDemo.isActive()).toBe(false);
+        DevDemo.setTree(1);
+        expect(DevDemo.snapshot()).toMatchObject({ memorial: null, tree: 1, active: true });
+        DevDemo.setEnabled(false);
+        DevDemo.setEnabled(true);
+        expect(DevDemo.snapshot()).toMatchObject({ memorial: null, tree: null, active: false });
+    });
+
+    test('they change nothing else: the village star and church stay as they were', () => {
+        DevDemo.setEnabled(true);
+        DevDemo.setTier(4); DevDemo.setChurch(50);
+        DevDemo.setMemorial(1); DevDemo.setTree(2);
+        expect(DevDemo.villageTier()).toBe(4);
+        expect(DevDemo.churchHealth()).toBe(50);
     });
 });

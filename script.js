@@ -97,6 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function memorialStageNow() {
         const tiers = VillageLayout.fromConfig(CONFIG).tiers;
         const real = Memorial.stage(State.getBestVillageTiers());
+        const demoMemorial = DevDemo.memorialStage(); // its own DEV chips (2026-11-08); beats the star below
+        if (demoMemorial != null) return VillageLayout.resolveTier('', 'memorialTier', demoMemorial, tiers);
         const demoTier = DevDemo.villageTier();
         if (demoTier != null) return VillageLayout.resolveTier('', 'memorialTier', demoTier, tiers);
         return VillageLayout.resolveTier(window.location.search, 'memorialTier', real, tiers);
@@ -105,6 +107,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // (lifetimeStats.nightsSurvived) + the run in progress, counted like the moon's number (0 once the game is over: that run is already
     // banked). `?treeStage=1..3|off` overrides it for art checks. Read-only: nothing here saves or pays.
     function treeStageNow() {
+        const demoTree = DevDemo.treeStage(); // the DEV panel's Graveyard tree chips (2026-11-08) win over ?treeStage= and the real stage
+        if (demoTree != null) return demoTree;
         const stats = State.getLifetimeStats() || {};
         const current = NightsSurvivedView.countMidnights(State.getRunStartedAtMs(), Date.now());
         const nights = TreeGrowth.total(stats.nightsSurvived, current, State.isGameOver());

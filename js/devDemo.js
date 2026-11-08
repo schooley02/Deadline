@@ -23,12 +23,17 @@ const DevDemo = (() => {
     // The church preview's states, as the health each damage picture starts at (100 > 75 > 50 > 25 > 0 pick the five pictures).
     // Only script.js's art-only preview reads one; no game rule, HUD number, save or record ever does.
     const CHURCH_STATES = [100, 75, 50, 25, 0];
+    // The graveyard's Memorial obelisk (5 stages) and growing tree (3 stages), previewed on their own (2026-11-08).
+    const MEMORIAL_STAGES = [1, 2, 3, 4, 5];
+    const TREE_STAGES = [1, 2, 3];
 
     let enabled = false;
     let band = null;          // null = the real sky
     let trend = 'steady';
     let tier = null;          // null = the real village
     let church = null;        // null = the real church picture
+    let memorial = null;      // null = the real Memorial stage (1..5 pins the obelisk)
+    let tree = null;          // null = the real tree stage (1..3 pins the tree)
     const listeners = [];
 
     function emit() {
@@ -39,19 +44,19 @@ const DevDemo = (() => {
 
     /** A copy of the demo values (what the panel draws from). */
     function snapshot() {
-        return { enabled, band, trend, tier, church, active: isActive() };
+        return { enabled, band, trend, tier, church, memorial, tree, active: isActive() };
     }
 
     /** True while a demo value is both set and allowed (the switch is on). */
     function isActive() {
-        return enabled && (band !== null || tier !== null || church !== null);
+        return enabled && (band !== null || tier !== null || church !== null || memorial !== null || tree !== null);
     }
 
     function setEnabled(on) {
         const next = on === true;
         if (next === enabled) return;
         enabled = next;
-        if (!enabled) { band = null; trend = 'steady'; tier = null; church = null; }
+        if (!enabled) { band = null; trend = 'steady'; tier = null; church = null; memorial = null; tree = null; }
         emit();
     }
 
@@ -103,10 +108,37 @@ const DevDemo = (() => {
         return true;
     }
 
-    /** Back to the real sky, village and church (the switch stays on). */
+    /** Shared by the Memorial and tree setters: a whole number in `list`, or null/'real' for the real one; anything else is ignored. */
+    function pick(value, list) {
+        if (value === null || value === 'real') return null;
+        const n = Number(value);
+        return (value !== '' && Number.isInteger(n) && list.indexOf(n) >= 0) ? n : undefined;
+    }
+
+    /** Memorial obelisk stage: 1..5, or null/'real' for the real stage. Anything else is ignored. Beats the village star for the obelisk. */
+    function setMemorial(value) {
+        if (!enabled) return false;
+        const next = pick(value, MEMORIAL_STAGES);
+        if (next === undefined) return false;
+        memorial = next;
+        emit();
+        return true;
+    }
+
+    /** Graveyard tree stage: 1..3 (sapling / young / giant), or null/'real' for the real stage. Anything else is ignored. */
+    function setTree(value) {
+        if (!enabled) return false;
+        const next = pick(value, TREE_STAGES);
+        if (next === undefined) return false;
+        tree = next;
+        emit();
+        return true;
+    }
+
+    /** Back to the real sky, village, church, Memorial and tree (the switch stays on). */
     function reset() {
-        if (band === null && trend === 'steady' && tier === null && church === null) return;
-        band = null; trend = 'steady'; tier = null; church = null;
+        if (band === null && trend === 'steady' && tier === null && church === null && memorial === null && tree === null) return;
+        band = null; trend = 'steady'; tier = null; church = null; memorial = null; tree = null;
         emit();
     }
 
@@ -131,6 +163,16 @@ const DevDemo = (() => {
         return enabled ? church : null;
     }
 
+    /** The pretend Memorial stage (1..5), or null = fall through to the village star / ?memorialTier= / the real stage. */
+    function memorialStage() {
+        return enabled ? memorial : null;
+    }
+
+    /** The pretend tree stage (1..3), or null = use the real stage / ?treeStage=. */
+    function treeStage() {
+        return enabled ? tree : null;
+    }
+
     /** Call fn(snapshot) after every change; returns an unsubscribe function. */
     function onChange(fn) {
         if (typeof fn !== 'function') return () => {};
@@ -143,14 +185,14 @@ const DevDemo = (() => {
 
     /** Test helper: back to a cold start (switch off, nothing set, no listeners). */
     function resetForTests() {
-        enabled = false; band = null; trend = 'steady'; tier = null; church = null;
+        enabled = false; band = null; trend = 'steady'; tier = null; church = null; memorial = null; tree = null;
         listeners.length = 0;
     }
 
     return {
-        BANDS, TRENDS, TIERS, CHURCH_STATES,
-        snapshot, isActive, setEnabled, setBand, setTrend, setTier, setChurch, reset,
-        weather, villageTier, churchHealth, onChange, resetForTests,
+        BANDS, TRENDS, TIERS, CHURCH_STATES, MEMORIAL_STAGES, TREE_STAGES,
+        snapshot, isActive, setEnabled, setBand, setTrend, setTier, setChurch, setMemorial, setTree, reset,
+        weather, villageTier, churchHealth, memorialStage, treeStage, onChange, resetForTests,
     };
 })();
 
