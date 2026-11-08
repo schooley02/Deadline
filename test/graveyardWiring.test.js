@@ -62,9 +62,11 @@ describe('CSS agrees with CONFIG', () => {
         expect(strip).toMatch(/body\.glance-strip \.graveyard-zone,\s*body\.glance-strip \.run-graves\s*\{\s*display:\s*none/);
     });
 
-    test('headstone and run-grave tap boxes meet the 44px minimum', () => {
+    test('run-grave and Memorial tap boxes meet the 44px minimum', () => {
         expect(CONFIG.GRAVEYARD_STONE_HIT_PX).toBeGreaterThanOrEqual(44);
-        expect(css).toMatch(/\.graveyard-stone,\s*\.run-grave\s*\{[^}]*width:\s*44px;[^}]*height:\s*44px/s);
+        expect(css).toMatch(/\.run-grave\s*\{[^}]*width:\s*44px;[^}]*height:\s*44px/s);
+        expect(CONFIG.GRAVEYARD_MEMORIAL_HIT_W_PX).toBeGreaterThanOrEqual(44);
+        expect(CONFIG.GRAVEYARD_MEMORIAL_HIT_H_PX).toBeGreaterThanOrEqual(44);
     });
 });
 

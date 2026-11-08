@@ -8,7 +8,7 @@
  * script.js refreshLayoutDims() measures #graveyardZone's width and the zombie field ends at
  * its left edge, so changing the width here (or in CONFIG) needs no other code change.
  *
- * Art: the hill is a PixelLab PNG (2026-11-08); tree and headstones are still plain CSS/SVG placeholders until their sprites
+ * Art: the hill and the Memorial obelisk are PixelLab PNGs (2026-11-08); the tree is still a plain SVG placeholder until its sprites
  * land (W2). Each is its own element so they can be swapped one by one.
  */
 
@@ -56,7 +56,7 @@
 /* The tree runs off the right edge on purpose, and #gameCanvas is overflow:visible (clip-path would not
    stop it widening the page), so the tree sits in a clipper that is cut at the zone's right edge but
    stays open upward/leftward for the canopy. Only the trunk strip (CONFIG.GRAVEYARD_TRUNK_PX) is on
-   the canvas; the canopy overhangs the back stones. */
+   the canvas; the canopy overhangs the hill behind the Memorial. */
 .graveyard-tree-clip {
     position: absolute;
     left: -80px;
@@ -81,8 +81,46 @@
     inset: 0;
 }
 
-/* Headstone: a >=44px tap box with a smaller visual. */
-.graveyard-stone,
+/* Memorial obelisk (2026-11-08; js/memorial.js picks the stage, js/ui/graveyardView.js places it from CONFIG.GRAVEYARD_MEMORIAL_*).
+   ONE button (a >=44px tap box standing on the plinth) holding the 128x192 art, which is wider and lower than the box, so it overhangs it. */
+.graveyard-memorial {
+    position: absolute;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.graveyard-memorial:focus-visible {
+    outline: 2px solid #f1d27a;
+    outline-offset: 1px;
+}
+
+.graveyard-memorial-art {
+    position: absolute;
+    display: block;
+    background-repeat: no-repeat;
+    background-size: 128px 192px;
+    image-rendering: pixelated;
+    pointer-events: none; /* only the tap box takes taps; the transparent corners of the art must not block the tree, zombies or moon */
+}
+
+.graveyard-memorial-art[data-stage="1"] { background-image: url("../Assets/Village/memorial_t1.png"); }
+.graveyard-memorial-art[data-stage="2"] { background-image: url("../Assets/Village/memorial_t2.png"); }
+.graveyard-memorial-art[data-stage="3"] { background-image: url("../Assets/Village/memorial_t3.png"); }
+.graveyard-memorial-art[data-stage="4"] { background-image: url("../Assets/Village/memorial_t4.png"); }
+.graveyard-memorial-art[data-stage="5"] { background-image: url("../Assets/Village/memorial_t5.png"); }
+
+.graveyard-memorial:hover .graveyard-memorial-art,
+.graveyard-memorial:focus-visible .graveyard-memorial-art,
+.graveyard-memorial:active .graveyard-memorial-art {
+    filter: brightness(1.2) drop-shadow(0 0 3px #f1d27a);
+}
+
+/* Run graves: a >=44px tap box with a smaller visual. */
 .run-grave {
     position: absolute;
     width: 44px;
@@ -99,26 +137,9 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-.graveyard-stone:focus-visible,
 .run-grave:focus-visible {
     outline: 2px solid #f1d27a;
     outline-offset: 1px;
-}
-
-.graveyard-stone-art {
-    display: block;
-    width: 28px;
-    height: 38px;
-    border-radius: 12px 12px 2px 2px;
-    background: #6d6a92;
-    box-shadow: inset 4px 0 0 #7d7aa3, inset 0 -4px 0 rgba(0, 0, 0, 0.18);
-    image-rendering: pixelated;
-}
-
-.graveyard-stone:hover .graveyard-stone-art,
-.graveyard-stone:focus-visible .graveyard-stone-art,
-.graveyard-stone:active .graveyard-stone-art {
-    filter: brightness(1.3) drop-shadow(0 0 3px #f1d27a);
 }
 
 /* Run graves live in the field, low contrast and shorter than a zombie. The wrapper has NO

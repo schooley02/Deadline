@@ -557,6 +557,18 @@ const CONFIG = {
     GRAVEYARD_STONE_HIT_PX: 44, // minimum tap box (visual art can be smaller)
     GRAVEYARD_PAD_PX: 6,
     GRAVEYARD_TRUNK_PX: 24, // visible strip of tree trunk at the right edge
+    // Memorial obelisk (2026-11-08; Assets/Village/memorial_t1..t5.png, js/memorial.js, docs/ART_STYLE "Memorial obelisk T1-T5"). It replaced the six
+    // placeholder headstones: ONE sprite on the hill's flat top, drawn in front of the tree. Placement decided with Jeremy on mocks of the real
+    // layers: the plinth's bottom row stands FEET_PX above the canvas bottom (the hill rim is 101, so ~14px of plinth sits down in the lighter top
+    // band) and the sprite's centre column is CENTER_X_PX in from the zone's left edge. Do not make a stage taller or raise the feet (the tip
+    // touches the moon's bottom at 1280x720). The PNGs are 128x192, drawn 1:1, bottom-aligned; PLINTH_ROW is the last plinth row (0-based).
+    GRAVEYARD_MEMORIAL_ART_W_PX: 128,
+    GRAVEYARD_MEMORIAL_ART_H_PX: 192,
+    GRAVEYARD_MEMORIAL_PLINTH_ROW: 181,
+    GRAVEYARD_MEMORIAL_FEET_PX: 86,
+    GRAVEYARD_MEMORIAL_CENTER_X_PX: 92,
+    GRAVEYARD_MEMORIAL_HIT_W_PX: 72, // the one tap box (>= 44), centred on the obelisk
+    GRAVEYARD_MEMORIAL_HIT_H_PX: 132, // from the plinth up = the obelisk's height
     // Past-run graves creep out of the hill across the field: newest next to the hill, oldest
     // furthest left, on the same 3 lanes as the zombies, drawn just behind each lane's zombies.
     // Spacing starts wide and tightens as runs pile up; the oldest fade out near the church.

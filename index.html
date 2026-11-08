@@ -190,7 +190,7 @@
                             <path d="M56,48 L30,30 L48,36 L10,22 L46,30 L40,8 L54,34 L66,12 L62,40 L84,30 L60,54 Z" fill="#0f0e28"/>
                         </svg>
                     </div>
-                    <div id="graveyardStones" class="graveyard-stones"></div>
+                    <div id="graveyardStones" class="graveyard-stones"></div><!-- the Memorial obelisk lives here (graveyardView.js) -->
                 </div>
                 <div id="base"></div>
                 <!-- Hero spotlight (docs/HERO_SPOTLIGHT_PLAN.md, 2026-10-21): scrim + hero on
@@ -570,6 +570,9 @@
     <!-- js/villageProgress.js (2026-10-30): pure village tier/progress model (counters from the run stats + daily
          records vs CONFIG.VILLAGE_TIER_THRESHOLDS); zero module dependencies. Drives the village tiers + building cards since Build 2 (2026-10-30). -->
     <script src="js/villageProgress.js"></script>
+    <!-- js/memorial.js (2026-11-08): pure Memorial obelisk stage (floor of the average of the 8 buildings' all-time best tiers); zero module
+         dependencies. State keeps the high-water mark (bestVillageTiers); the graveyard view draws the stage. -->
+    <script src="js/memorial.js"></script>
     <!-- js/villageDrops.js (2026-11-03): pure village tier DROPS (the fixed item each building pays at star 2-5, once per star per run,
          CONFIG.VILLAGE_TIER_DROPS); zero module dependencies. Paid from script.js payVillageDrops; shown on the building card. -->
     <script src="js/villageDrops.js"></script>

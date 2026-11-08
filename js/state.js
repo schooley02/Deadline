@@ -63,6 +63,7 @@ const State = (() => {
     // already executed).
     let baseHealth, playerXP, playerLevel, playerPoints, routineSlots;
     let bestRoutineSlots = 0; // run-end carryover (2026-11-03): the most routine slots ever held; survives a new run
+    let bestVillageTiers = {}; // Memorial (2026-11-08, js/memorial.js): each building's all-time best tier { kind: 1..5 }; survives a new run
     let playerInventory = {};
     let sickDayDate = null;
     // Pushback charges (Build B, 2026-11-02): use timestamps (ms) of the FREE charges spent,
@@ -119,6 +120,16 @@ const State = (() => {
     const setBestRoutineSlots = (n) => {
         bestRoutineSlots = (typeof RunCarryover !== 'undefined') ? RunCarryover.sanitizeBestSlots(n)
             : ((typeof n === 'number' && isFinite(n) && n > 0) ? Math.floor(n) : 0);
+    };
+    // Memorial (2026-11-08): the all-time best tier per village building. Village tiers are per-run, so this high-water mark is what the
+    // Memorial obelisk's stage is derived from (Memorial.stage). The setter only ever RAISES a kind (a stale or lower map cannot lower it);
+    // it returns true when something went up, so the once-a-second tracker in script.js knows to save.
+    const getBestVillageTiers = () => bestVillageTiers;
+    const setBestVillageTiers = (map) => {
+        const next = (typeof Memorial !== 'undefined') ? Memorial.merge(bestVillageTiers, map) : bestVillageTiers;
+        const changed = JSON.stringify(next) !== JSON.stringify(bestVillageTiers);
+        bestVillageTiers = next;
+        return changed;
     };
     const getPlayerInventory = () => playerInventory;
     const setPlayerInventory = (obj) => { playerInventory = obj; };
@@ -387,6 +398,7 @@ const State = (() => {
             achievements: getAchievements(),
             routineSlots: getRoutineSlots(),
             bestRoutineSlots: getBestRoutineSlots(),
+            bestVillageTiers: getBestVillageTiers(),
             itemIdCounter: getItemIdCounter(),
             gameIsOver: isGameOver(),
             daysSurvived: getDaysSurvived(),
@@ -598,6 +610,11 @@ const State = (() => {
         // so a saved run never comes back with fewer slots than its routines were built on.
         setBestRoutineSlots(save.bestRoutineSlots);
         setRoutineSlots(slotsForLevel(restoredLevel));
+        // Memorial (2026-11-08): the saved mark, plus the peaks of every run still in history (that seeds a save from before this field
+        // existed). Reset first so loading a different save cannot inherit the previous one's mark.
+        bestVillageTiers = {};
+        setBestVillageTiers(save.bestVillageTiers);
+        setBestVillageTiers((typeof Memorial !== 'undefined') ? Memorial.fromHistory(getRunHistory()) : null);
         // Goals (2026-11-05): repaired on the way in; the slot mark catches up with the restored level, and a save that has never seen
         // the suggested starters (a migrated one) gets them now.
         setGoals(save.goals);
@@ -1336,6 +1353,7 @@ const State = (() => {
         getPlayerPoints, setPlayerPoints,
         getRoutineSlots, setRoutineSlots,
         getBestRoutineSlots, setBestRoutineSlots, slotsForLevel,
+        getBestVillageTiers, setBestVillageTiers,
         getPlayerInventory, setPlayerInventory,
         getSickDayDate, setSickDayDate,
         getPushbackUses, setPushbackUses,

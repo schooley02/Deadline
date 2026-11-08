@@ -148,7 +148,7 @@ describe('script.js hook-up', () => {
     });
 
     test('NOTHING that pays, records or saves reads the demo: drops, run-record peaks, real tiers, card progress', () => {
-        ['payVillageDrops', 'realVillageTiers', 'peakTierWhileOver', 'villageProgressNow', 'villageContext', 'openVillageCard'].forEach((fn) => {
+        ['payVillageDrops', 'realVillageTiers', 'peakTierWhileOver', 'villageProgressNow', 'villageContext', 'openVillageCard', 'trackBestVillageTiers'].forEach((fn) => {
             expect(fnBody(fn)).not.toMatch(/DevDemo|DevPanel/);
         });
         expect(read('js/state.js')).not.toMatch(/DevDemo|DevPanel/);
@@ -161,9 +161,11 @@ describe('script.js hook-up', () => {
         const code = script.split('\n').filter((l) => !/^\s*\/\//.test(l)); // comments may name it freely
         const hits = code.filter((l) => /DevDemo\./.test(l));
         expect(hits.filter((l) => /DevDemo\.weather\(\)/.test(l)).length).toBe(1);
-        expect(hits.filter((l) => /DevDemo\.villageTier\(\)/.test(l)).length).toBe(1);
+        // 2 = the eight buildings' tier read (villageTierDep) + the Memorial obelisk's stage (memorialStageNow, 2026-11-08: the DEV star previews it too).
+        // The Memorial's SAVED mark (trackBestVillageTiers) never reads it -- see the "NOTHING that pays, records or saves" test above.
+        expect(hits.filter((l) => /DevDemo\.villageTier\(\)/.test(l)).length).toBe(2);
         expect(hits.filter((l) => /DevDemo\.churchHealth\(\)/.test(l)).length).toBe(2); // applyChurchPreview + its observer
-        expect(hits.length).toBe(4); // nothing else reads it; everything else goes through DevPanel
+        expect(hits.length).toBe(5); // nothing else reads it; everything else goes through DevPanel
         expect(code.filter((l) => /DevPanel\.(init|setEnabled)/.test(l)).length).toBe(3);
     });
 });

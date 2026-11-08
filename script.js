@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ends where the hill starts (zoneWidth() is 0 in the portrait strip). Deps are lazy closures.
     GraveyardView.init({
         getRunHistory: () => State.getRunHistory(),
-        getAchievementFamilies: () => CONFIG.ACHIEVEMENTS.map(a => ({ id: a.id, name: a.name })),
+        getMemorialStage: () => memorialStageNow(),
         onOpenStats: () => openManagementWindow('stats'),
     });
     // Achievement village (V7 W2): eight buildings on the horizon hill. Build 2 (2026-10-30): each building's tier is
@@ -88,6 +88,33 @@ document.addEventListener('DOMContentLoaded', () => {
             if (demoTier != null) return VillageLayout.resolveTier('', param, demoTier, VillageLayout.fromConfig(CONFIG).tiers);
             return VillageLayout.resolveTier(window.location.search, param, real, VillageLayout.fromConfig(CONFIG).tiers);
         };
+    }
+    // Memorial obelisk (2026-11-08, js/memorial.js): the stage the graveyard draws = floor of the average of the 8 buildings' ALL-TIME best
+    // tiers (State.getBestVillageTiers, a saved high-water mark: the village tiers themselves are per-run and fall back to T1 on a new run).
+    // The dev tools win over the real stage the way they do for the buildings: the DEV panel's star, then `?memorialTier=1..5|off`.
+    function memorialStageNow() {
+        const tiers = VillageLayout.fromConfig(CONFIG).tiers;
+        const real = Memorial.stage(State.getBestVillageTiers());
+        const demoTier = DevDemo.villageTier();
+        if (demoTier != null) return VillageLayout.resolveTier('', 'memorialTier', demoTier, tiers);
+        return VillageLayout.resolveTier(window.location.search, 'memorialTier', real, tiers);
+    }
+    // Raise the saved all-time best tiers once a second from the REAL tiers (never the dev overrides). Skipped while the game is over (the
+    // run's peak is on its history record and is merged back in on load) and during offline catch-up (the first tick afterwards covers it).
+    let bestTiersCheckedMs = 0;
+    function trackBestVillageTiers(nowMs) {
+        if (nowMs - bestTiersCheckedMs < 1000) return;
+        bestTiersCheckedMs = nowMs;
+        if (State.isGameOver() || offlineCatchUpActive) return;
+        try {
+            const p = villageProgressNow();
+            if (!p) return; // progress not computable yet: unknown is not "tier 1 reached"
+            const tiers = {};
+            VillageProgress.KINDS.forEach((k) => { if (p[k]) tiers[k] = p[k].tier; });
+            if (State.setBestVillageTiers(tiers)) saveGame();
+        } catch (err) {
+            console.error('Deadline: best village tiers failed', err);
+        }
     }
     // The Add Habit form, same as the Habits window's "+ Add New Habit" (2026-11-04: also opened from the Boxing gym
     // card's "Break Habit" link with { isNegative: true }). Closes the Habits window first if it happens to be open.
@@ -2047,6 +2074,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 pollEveningCheck(Date.now());
                 observeClockStar(Date.now());
                 payVillageDrops(Date.now());
+                trackBestVillageTiers(Date.now());
                 refreshBaseChip();
                 GraveyardView.render(BASE_WIDTH);
                 VillageView.render(BASE_WIDTH);

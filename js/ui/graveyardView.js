@@ -3,9 +3,10 @@
  * docs/WORLD_FEEDBACK_PLAN.md). The maths is in js/graveyardLayout.js (pure, unit-tested);
  * this file only measures the canvas, writes element positions and wires the taps.
  *
- *   #graveyardZone   fixed-width hill on the right (CONFIG.GRAVEYARD_HILL_WIDTH_PX), one
- *                    headstone button per achievement family in staggered lanes. W0 art is a
- *                    placeholder stone; W2 swaps in tier art. A tap opens Stats.
+ *   #graveyardZone   fixed-width hill on the right (CONFIG.GRAVEYARD_HILL_WIDTH_PX) with ONE Memorial obelisk on its flat top
+ *                    (2026-11-08; it replaced the six placeholder headstones, one per achievement family). The sprite is the
+ *                    Memorial's stage (js/memorial.js: floor of the average of the 8 buildings' all-time best tiers), drawn in front
+ *                    of the tree; one tap box opens Stats.
  *   #runGraves       past-run graves on the ZOMBIE lanes (newest next to the hill). Each is a
  *                    direct child with its own z-index just under its lane's zombies (lane L
  *                    zombies own z CONFIG.LIST_Z_MIN + L*CONFIG.LIST_Z_LANE_STRIDE and up), so
@@ -18,13 +19,14 @@
  * depends on gates the DOM writes) so it is also safe to call every game tick.
  *
  * Deps: { getRunHistory: () => newest-first array of run records ({ run: n, ... }),
- *         getAchievementFamilies: () => [{ id, name }], onOpenStats: () => void }
+ *         getMemorialStage: () => 1..5, or null to hide the obelisk (DEV: ?memorialTier=off),
+ *         onOpenStats: () => void }
  */
 const GraveyardView = (() => {
     let deps = null;
     let canvasEl = null;
     let zoneEl = null;
-    let stonesEl = null;
+    let memorialLayerEl = null;
     let runsEl = null;
     let lastSig = null;
 
@@ -61,25 +63,48 @@ const GraveyardView = (() => {
         return b;
     }
 
-    function renderStones(c, hillW) {
-        const families = (deps && deps.getAchievementFamilies && deps.getAchievementFamilies()) || [];
-        const opts = GraveyardLayout.fromConfig(c);
-        const pad = c.GROUND_FLOOR_FEET_BOTTOM_PAD || 8;
-        const slots = GraveyardLayout.stoneSlots(families.length, hillW, pad, opts);
-        stonesEl.textContent = '';
-        slots.forEach(slot => {
-            const fam = families[slot.index];
-            const b = makeButton('graveyard-stone', `${fam.name} achievements`);
-            b.dataset.family = fam.id;
-            b.dataset.lane = String(slot.lane);
-            b.style.left = slot.x + 'px';
-            b.style.bottom = (slot.feetFromBottom - 2) + 'px';
-            b.style.zIndex = String(20 - slot.lane);
-            const art = document.createElement('span');
-            art.className = 'graveyard-stone-art';
-            b.appendChild(art);
-            stonesEl.appendChild(b);
-        });
+    // The Memorial's geometry from CONFIG (docs/ART_STYLE "Memorial obelisk T1-T5"). The PNG is artW x artH, drawn 1:1, bottom-aligned. Its
+    // plinth ends at row `plinthRow`, with `below` = artH - 1 - plinthRow transparent rows under it, so the plinth's lower edge stands `feet` px
+    // above the canvas bottom when the sprite's own bottom edge is `below` px lower still. The sprite's centre column sits `centerX` px in
+    // from the zone's left edge. The tap box is hitW x hitH, centred on the obelisk with its bottom on the plinth's lower edge; the art is
+    // placed inside it with negative left/bottom offsets (the art is wider and lower than the box).
+    function memorialGeometry(c) {
+        const artW = c.GRAVEYARD_MEMORIAL_ART_W_PX || 128;
+        const artH = c.GRAVEYARD_MEMORIAL_ART_H_PX || 192;
+        const plinthRow = typeof c.GRAVEYARD_MEMORIAL_PLINTH_ROW === 'number' ? c.GRAVEYARD_MEMORIAL_PLINTH_ROW : 181;
+        const feet = typeof c.GRAVEYARD_MEMORIAL_FEET_PX === 'number' ? c.GRAVEYARD_MEMORIAL_FEET_PX : 86;
+        const centerX = typeof c.GRAVEYARD_MEMORIAL_CENTER_X_PX === 'number' ? c.GRAVEYARD_MEMORIAL_CENTER_X_PX : 92;
+        const hitW = Math.max(44, c.GRAVEYARD_MEMORIAL_HIT_W_PX || 72);
+        const hitH = Math.max(44, c.GRAVEYARD_MEMORIAL_HIT_H_PX || 132);
+        const below = artH - 1 - plinthRow; // transparent rows under the plinth's last row
+        return {
+            artW, artH,
+            hitLeft: centerX - hitW / 2, hitBottom: feet, hitW, hitH,
+            artLeft: -(artW - hitW) / 2, artBottom: -below,
+        };
+    }
+
+    function renderMemorial(c, stage) {
+        memorialLayerEl.textContent = '';
+        if (!(stage >= 1 && stage <= 5)) return; // hidden (DEV off) or unknown: no obelisk
+        const g = memorialGeometry(c);
+        const b = makeButton('graveyard-memorial', `Memorial, stage ${stage} of 5. Open Stats`);
+        b.dataset.stage = String(stage);
+        b.style.left = g.hitLeft + 'px';
+        b.style.bottom = g.hitBottom + 'px';
+        b.style.width = g.hitW + 'px';
+        b.style.height = g.hitH + 'px';
+        b.style.zIndex = '20'; // in front of the tree (its clipper is z 1 inside the zone's stacking context)
+        const art = document.createElement('span');
+        art.className = 'graveyard-memorial-art';
+        art.setAttribute('aria-hidden', 'true');
+        art.dataset.stage = String(stage);
+        art.style.width = g.artW + 'px';
+        art.style.height = g.artH + 'px';
+        art.style.left = g.artLeft + 'px';
+        art.style.bottom = g.artBottom + 'px';
+        b.appendChild(art);
+        memorialLayerEl.appendChild(b);
     }
 
     function renderRuns(c, canvasW, canvasH, hillW, baseW) {
@@ -123,16 +148,16 @@ const GraveyardView = (() => {
         const canvasH = canvasEl.offsetHeight || 0;
         const baseW = (typeof baseWidth === 'number' ? baseWidth : 0);
         const history = (deps.getRunHistory && deps.getRunHistory()) || [];
-        const families = (deps.getAchievementFamilies && deps.getAchievementFamilies()) || [];
-        const sig = [hillW, canvasW, canvasH, baseW, families.length, history.map(r => r && r.run).join(',')].join('|');
+        const stage = (deps.getMemorialStage && deps.getMemorialStage());
+        const sig = [hillW, canvasW, canvasH, baseW, stage == null ? '-' : stage, history.map(r => r && r.run).join(',')].join('|');
         if (sig === lastSig) return;
         lastSig = sig;
         if (hillW === 0) { // portrait strip / hidden: nothing to place
-            stonesEl.textContent = '';
+            memorialLayerEl.textContent = '';
             runsEl.textContent = '';
             return;
         }
-        renderStones(c, hillW);
+        renderMemorial(c, stage);
         renderRuns(c, canvasW, canvasH, hillW, baseW);
     }
 
@@ -140,10 +165,10 @@ const GraveyardView = (() => {
         deps = d;
         canvasEl = document.getElementById('gameCanvas');
         zoneEl = document.getElementById('graveyardZone');
-        stonesEl = document.getElementById('graveyardStones');
+        memorialLayerEl = document.getElementById('graveyardStones');
         runsEl = document.getElementById('runGraves');
         lastSig = null;
-        if (!canvasEl || !zoneEl || !stonesEl || !runsEl) { deps = null; return; }
+        if (!canvasEl || !zoneEl || !memorialLayerEl || !runsEl) { deps = null; return; }
         render();
     }
 
