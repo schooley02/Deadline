@@ -4,6 +4,16 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-08 (Memorial obelisk art) -- five pale-granite stages, ~132px tall, standing IN the hill's top band in front of the tree (Claude app session; Opus 5.5; Jeremy: "the position is fine for now", "lets work on the other 4 stages")
+
+- **Bigger than first planned** (Jeremy: next to the candles and wreath a 90px obelisk read as a gravestone; "monuments are usually very big"). Ceiling = the moon cluster, which sits right above the flat top: ~132px tall keeps it under the moon on the phone and just touching its bottom edge at 1280x720 (accepted). Taller (150-175) covered the moon on desktop; moving it to the hill's left shoulder left the plinth hanging over the slope.
+- **Position (Jeremy):** feet 86px up, ~14px down into the hill's lighter top band (not balanced on the rim), ~92px into the 140px zone. It stands IN FRONT of the growing tree (Jeremy); the tree stays its own sprite at the right edge.
+- **Five stages like the buildings, silhouette and light change each step** (T1 snapped + overgrown ... T5 gold cap + firelight). The Memorial is the one stage set; no flags on any stage.
+- **Height fixed by deleting shaft rows, not by resizing** (whole-number pixel rule): every PixelLab output came back 160-177px; constant-width rows above the plaque were removed.
+- **T5 by inpainting on T4:** two plain generations came out too wide (a brazier ran off-screen) and turned the stone dark; inpainting only the cap / wreath / urn corners / bottom step kept T4's width and pale stone.
+- **Open:** stage driver (a) lowest vs (b) average of the 8 buildings' all-time best tiers (Claude leans b); Claude's proposal of no conditions + never going down is not yet confirmed.
+- Rejected: a 90px obelisk; a 150-175px obelisk; the left-shoulder spot; a dark-slate T5; regenerating instead of trimming height.
+
 ## 2026-11-08 (graveyard hill art) -- PixelLab mound replaces the CSS placeholder hill; teal grass kept; mound only, no path (Claude app session; Opus 5.5 art, Sonnet 5.5 wiring; Jeremy: "yes")
 
 - **Mound is a 192x128 PNG, zone stays 140 wide.** The art's low left slope (52px) overlaps the ground band behind the zombies; the tap area and the zombie field edge do not move (no layout/ worker changes). Hill height 70 -> `CONFIG.GRAVEYARD_HILL_HEIGHT_PX` 101 (the art's flat top), so it reads as a hill and the tree stands on the crest.
