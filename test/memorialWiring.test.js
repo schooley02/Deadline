@@ -149,6 +149,16 @@ describe('State: bestVillageTiers high-water mark', () => {
         expect(State.getBestVillageTiers()).toEqual({ slain: 2 });
     });
 
+    test('Reset Game forgets the marks (the only way down), and script.js calls it from handleConfirmReset', () => {
+        State.setBestVillageTiers({ slain: 5, nights: 4 });
+        State.resetBestVillageTiers();
+        expect(State.getBestVillageTiers()).toEqual({});
+        expect(Memorial.stage(State.getBestVillageTiers())).toBe(1);
+        const i = script.indexOf('function handleConfirmReset()');
+        expect(i).toBeGreaterThan(0);
+        expect(script.slice(i, script.indexOf('\n    }\n', i))).toContain('State.resetBestVillageTiers()');
+    });
+
     test('it rides in getPersistableState as bestVillageTiers (additive root field, no schema bump)', () => {
         State.setBestVillageTiers({ heroes: 5, habits: 2 });
         const saved = State.getPersistableState({});

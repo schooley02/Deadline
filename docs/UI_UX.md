@@ -194,7 +194,8 @@ console errors beyond the standard Chrome-extension message-channel noise.
 ## Graveyard zone + past-run graves (V7 W0, 2026-10-28)
 Landscape/desktop only (hidden in the portrait strip). A fixed 140px hill (`#graveyardZone`, `css/graveyard.css`,
 `js/ui/graveyardView.js`, geometry in `CONFIG.GRAVEYARD_*`) sits on the right of `#gameCanvas`; the zombie field
-ends at its left edge. Headstones (one per achievement family, 3 staggered lanes, 44px tap boxes) and the
+ends at its left edge. ONE Memorial obelisk on the hill's flat top (2026-11-08; stage 1-5 = floor of the average of the 8 buildings'
+all-time best tiers, 72x132 tap box, in front of the tree; it replaced the six placeholder headstones) and the
 past-run graves (`#runGraves`, newest by the hill, tightening spacing, oldest fade near the church, each just
 under its lane's zombies) are buttons that open Stats; run graves are tappable only where no zombie covers
 them. The tree (own graphic) runs off the right edge inside `.graveyard-tree-clip`. The moon sits left of the hill.

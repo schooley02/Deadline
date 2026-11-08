@@ -131,6 +131,8 @@ const State = (() => {
         bestVillageTiers = next;
         return changed;
     };
+    // The one way DOWN: a dev Reset Game forgets the Memorial's marks too (script.js handleConfirmReset), like bestRoutineSlots.
+    const resetBestVillageTiers = () => { bestVillageTiers = {}; };
     const getPlayerInventory = () => playerInventory;
     const setPlayerInventory = (obj) => { playerInventory = obj; };
     const getSickDayDate = () => sickDayDate;
@@ -612,7 +614,7 @@ const State = (() => {
         setRoutineSlots(slotsForLevel(restoredLevel));
         // Memorial (2026-11-08): the saved mark, plus the peaks of every run still in history (that seeds a save from before this field
         // existed). Reset first so loading a different save cannot inherit the previous one's mark.
-        bestVillageTiers = {};
+        resetBestVillageTiers();
         setBestVillageTiers(save.bestVillageTiers);
         setBestVillageTiers((typeof Memorial !== 'undefined') ? Memorial.fromHistory(getRunHistory()) : null);
         // Goals (2026-11-05): repaired on the way in; the slot mark catches up with the restored level, and a save that has never seen
@@ -1353,7 +1355,7 @@ const State = (() => {
         getPlayerPoints, setPlayerPoints,
         getRoutineSlots, setRoutineSlots,
         getBestRoutineSlots, setBestRoutineSlots, slotsForLevel,
-        getBestVillageTiers, setBestVillageTiers,
+        getBestVillageTiers, setBestVillageTiers, resetBestVillageTiers,
         getPlayerInventory, setPlayerInventory,
         getSickDayDate, setSickDayDate,
         getPushbackUses, setPushbackUses,

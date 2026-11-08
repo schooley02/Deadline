@@ -3302,6 +3302,7 @@ document.addEventListener('DOMContentLoaded', () => {
         State.setLifetimeStats(Achievements.freshLifetimeStats());
         State.setAchievements(Achievements.freshUnlocked());
         State.setBestRoutineSlots(0); // run-end carryover: a dev Reset forgets the best slot count too
+        State.resetBestVillageTiers(); // ...and the Memorial's all-time best tiers (its stage is derived from them)
         State.setGoals(null); // ...and every goal, streak and goal slot (initGame then seeds the suggested starters again)
         if (typeof Persistence !== 'undefined') Persistence.clear();
         initGame();
