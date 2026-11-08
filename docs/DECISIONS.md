@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-08 (graveyard hill art) -- PixelLab mound replaces the CSS placeholder hill; teal grass kept; mound only, no path (Claude app session; Opus 5.5 art, Sonnet 5.5 wiring; Jeremy: "yes")
+
+- **Mound is a 192x128 PNG, zone stays 140 wide.** The art's low left slope (52px) overlaps the ground band behind the zombies; the tap area and the zombie field edge do not move (no layout/ worker changes). Hill height 70 -> `CONFIG.GRAVEYARD_HILL_HEIGHT_PX` 101 (the art's flat top), so it reads as a hill and the tree stands on the crest.
+- **Teal-blue grass kept** (Jeremy asked; Claude agreed): it is the floor tile's grass colour, so it belongs, and it draws the eye to the interactive hill. The hill body stays a calm dark teal so the stones/Memorial on it are the brightest things there.
+- **Mound only, no path in the art** (Jeremy): the ground layer stays continuous underneath; the mound sits on top of it, behind the zombies.
+- **PixelLab:** palette NONE (the auto-selected cloud palette made everything flat grey); keep the 192x128 canvas. Recipe in ART_STYLE "Graveyard hill art".
+- Rejected: cropping the mound to 140 (hard edge at the foot); a path/ground strip painted into the mound; the first 256x256 / light-lavender versions (buried the lane, read as a pasted slab).
+
 ## 2026-11-07 (backdrop) -- PixelLab mountains + tree line + moonlit field replace the SVG hill; no painted village roads (Claude app session; Opus 5.5; Jeremy: "yes" to wiring, "stay low")
 
 - **Layered backdrop, not one painting:** three repeating strips (mountains -> tree line -> field) pinned to the village horizon. One painting can't stretch from a phone to a wide desktop, and a house painted into it would read as an achievement building. Depth by value/haze: far lighter + flatter, the field moonlit. Reference Jeremy picked: a night village with forest + mountains behind.

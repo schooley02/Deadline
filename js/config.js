@@ -548,6 +548,9 @@ const CONFIG = {
     // measured width, so parked/spawning zombies stand just left of it). The tree is its own
     // graphic pushed partly off the right edge. Layout constants, not balance.
     GRAVEYARD_HILL_WIDTH_PX: 140,
+    // Height of the hill's flat top above the canvas bottom = the visible rows of Assets/scene/graveyard-hill.png (192x128, 2026-11-08;
+    // the art is 192 wide so its low left slope runs 52px past the 140px zone, drawn BEHIND the zombies; the zone/tap width stays 140).
+    GRAVEYARD_HILL_HEIGHT_PX: 101,
     GRAVEYARD_LANES: 3,
     GRAVEYARD_LANE_RISE_PX: 28, // each back lane sits this much higher up the hill
     GRAVEYARD_STONE_PITCH_PX: 44, // = tap-target width; odd lanes shift by half a pitch into the gaps

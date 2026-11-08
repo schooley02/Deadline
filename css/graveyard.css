@@ -8,13 +8,13 @@
  * script.js refreshLayoutDims() measures #graveyardZone's width and the zombie field ends at
  * its left edge, so changing the width here (or in CONFIG) needs no other code change.
  *
- * Placeholder art: hill, tree and headstones are plain CSS/SVG until the PixelLab sprites land
- * (W2). Each is its own element so they can be swapped one by one.
+ * Art: the hill is a PixelLab PNG (2026-11-08); tree and headstones are still plain CSS/SVG placeholders until their sprites
+ * land (W2). Each is its own element so they can be swapped one by one.
  */
 
 #gameCanvas {
     --gy-hill-w: 140px;
-    --gy-hill-h: 70px;
+    --gy-hill-h: 101px;
 }
 
 /* The moon, its count and the weather badge sit in the canvas's TOP-RIGHT corner (2026-11-07, Jeremy; they were left of
@@ -40,12 +40,17 @@
 }
 
 .graveyard-hill {
+    /* PixelLab mound (2026-11-08), 192x128 drawn 1:1, pinned to the canvas's bottom-right corner. It is 52px wider than the 140px
+       zone on purpose: the low left slope runs out over the ground band BEHIND the zombies (zone z 6 < zombies 30+), while the zone
+       (tap area, zombie field edge) stays 140. Top 23 rows are transparent: the visible top is CONFIG.GRAVEYARD_HILL_HEIGHT_PX. */
     position: absolute;
-    inset: 0;
-    background: #221f3d;
-    border-top: 2px solid #3a3660;
-    border-top-left-radius: 60px 22px;
-    box-sizing: border-box;
+    right: 0;
+    bottom: 0;
+    width: 192px;
+    height: 128px;
+    background: url("../Assets/scene/graveyard-hill.png") no-repeat right bottom;
+    background-size: 192px 128px;
+    image-rendering: pixelated;
 }
 
 /* The tree runs off the right edge on purpose, and #gameCanvas is overflow:visible (clip-path would not

@@ -39,8 +39,10 @@ const GraveyardView = (() => {
         return zoneEl.offsetWidth || 0;
     }
 
-    // Hill height: front-lane feet pad + the rise of the back lanes + a little crest above them.
+    // Hill height: the PixelLab mound's flat top (CONFIG.GRAVEYARD_HILL_HEIGHT_PX, 2026-11-08); without it (old configs / tests)
+    // fall back to front-lane feet pad + the rise of the back lanes + a little crest above them.
     function hillHeight(c) {
+        if (typeof c.GRAVEYARD_HILL_HEIGHT_PX === 'number') return c.GRAVEYARD_HILL_HEIGHT_PX;
         const lanes = Math.max(1, c.GRAVEYARD_LANES || 3);
         return (c.GROUND_FLOOR_FEET_BOTTOM_PAD || 8) + (lanes - 1) * (c.GRAVEYARD_LANE_RISE_PX || 28) + 6;
     }
