@@ -11,8 +11,8 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 - **Five stages like the buildings, silhouette and light change each step** (T1 snapped + overgrown ... T5 gold cap + firelight). The Memorial is the one stage set; no flags on any stage.
 - **Height fixed by deleting shaft rows, not by resizing** (whole-number pixel rule): every PixelLab output came back 160-177px; constant-width rows above the plaque were removed.
 - **T5 by inpainting on T4:** two plain generations came out too wide (a brazier ran off-screen) and turned the stone dark; inpainting only the cap / wreath / urn corners / bottom step kept T4's width and pale stone.
-- **Open:** stage driver (a) lowest vs (b) average of the 8 buildings' all-time best tiers (Claude leans b); Claude's proposal of no conditions + never going down is not yet confirmed.
-- Rejected: a 90px obelisk; a 150-175px obelisk; the left-shoulder spot; a dark-slate T5; regenerating instead of trimming height.
+- **Stage rule (Jeremy agreed to Claude's recommendation, same session):** Memorial stage = the AVERAGE of the 8 buildings' all-time best tiers, ROUNDED DOWN; no tended/slipping/neglected conditions; it never goes down. Why: it moves often enough to feel alive yet stays a monument; an all-time piece should not dim over a bad week. Rejected: the LOWEST of the 8 (too slow; one neglected area would pin it at T1 for months).
+- Rejected (art): a 90px obelisk; a 150-175px obelisk; the left-shoulder spot; a dark-slate T5; regenerating instead of trimming height.
 
 ## 2026-11-08 (graveyard hill art) -- PixelLab mound replaces the CSS placeholder hill; teal grass kept; mound only, no path (Claude app session; Opus 5.5 art, Sonnet 5.5 wiring; Jeremy: "yes")
 
