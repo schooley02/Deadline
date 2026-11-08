@@ -10,7 +10,7 @@ beforeEach(() => { DevDemo.resetForTests(); });
 
 describe('gated by the Developer tools switch', () => {
     test('starts off: nothing can be set and every getter says "no demo"', () => {
-        expect(DevDemo.snapshot()).toEqual({ enabled: false, band: null, trend: 'steady', tier: null, church: null, memorial: null, tree: null, active: false });
+        expect(DevDemo.snapshot()).toEqual({ enabled: false, band: null, trend: 'steady', tier: null, church: null, memorial: null, tree: null, markers: null, active: false });
         expect(DevDemo.setBand('fog')).toBe(false);
         expect(DevDemo.setTrend('up')).toBe(false);
         expect(DevDemo.setTier(5)).toBe(false);
@@ -24,7 +24,7 @@ describe('gated by the Developer tools switch', () => {
         DevDemo.setBand('storm'); DevDemo.setTrend('down'); DevDemo.setTier(4);
         expect(DevDemo.isActive()).toBe(true);
         DevDemo.setEnabled(false);
-        expect(DevDemo.snapshot()).toEqual({ enabled: false, band: null, trend: 'steady', tier: null, church: null, memorial: null, tree: null, active: false });
+        expect(DevDemo.snapshot()).toEqual({ enabled: false, band: null, trend: 'steady', tier: null, church: null, memorial: null, tree: null, markers: null, active: false });
         DevDemo.setEnabled(true);          // and a later switch-on starts clean, not with the old demo
         expect(DevDemo.weather(RunClimate)).toBeNull();
         expect(DevDemo.villageTier()).toBeNull();
@@ -174,7 +174,7 @@ describe('reset + listeners', () => {
         DevDemo.setEnabled(true);
         DevDemo.setBand('storm'); DevDemo.setTrend('down'); DevDemo.setTier(5);
         DevDemo.reset();
-        expect(DevDemo.snapshot()).toEqual({ enabled: true, band: null, trend: 'steady', tier: null, church: null, memorial: null, tree: null, active: false });
+        expect(DevDemo.snapshot()).toEqual({ enabled: true, band: null, trend: 'steady', tier: null, church: null, memorial: null, tree: null, markers: null, active: false });
     });
 
     test('listeners hear every real change, not a no-op, and can unsubscribe', () => {
@@ -265,7 +265,30 @@ describe('graveyard monument + tree stages (2026-11-08)', () => {
         expect(DevDemo.snapshot()).toMatchObject({ memorial: null, tree: 1, active: true });
         DevDemo.setEnabled(false);
         DevDemo.setEnabled(true);
-        expect(DevDemo.snapshot()).toMatchObject({ memorial: null, tree: null, active: false });
+        expect(DevDemo.snapshot()).toMatchObject({ memorial: null, tree: null, markers: null, active: false });
+    });
+
+    test('Headstones chips: 0..4 or real; they make the demo active and reset clears them', () => {
+        expect(DevDemo.MARKER_STAGES).toEqual([0, 1, 2, 3, 4]);
+        expect(DevDemo.markerStage()).toBeNull();
+        expect(DevDemo.setMarkers(2)).toBe(false); // switch still off
+        DevDemo.setEnabled(true);
+        expect(DevDemo.setMarkers(0)).toBe(true);
+        expect(DevDemo.markerStage()).toBe(0);
+        expect(DevDemo.isActive()).toBe(true);
+        expect(DevDemo.setMarkers('4')).toBe(true);
+        expect(DevDemo.markerStage()).toBe(4);
+        expect(DevDemo.setMarkers(5)).toBe(false);
+        expect(DevDemo.setMarkers(1.5)).toBe(false);
+        expect(DevDemo.markerStage()).toBe(4);
+        expect(DevDemo.setMarkers('real')).toBe(true);
+        expect(DevDemo.markerStage()).toBeNull();
+        DevDemo.setMarkers(3);
+        DevDemo.reset();
+        expect(DevDemo.markerStage()).toBeNull();
+        DevDemo.setMarkers(3);
+        DevDemo.setEnabled(false);
+        expect(DevDemo.markerStage()).toBeNull();
     });
 
     test('they change nothing else: the village star and church stay as they were', () => {

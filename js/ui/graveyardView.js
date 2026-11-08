@@ -23,7 +23,13 @@
  *         getTreeStage: () => 1..3 (sapling / young / giant by lifetime nights, js/treeGrowth.js), or null to hide the tree (DEV: ?treeStage=off),
  *         onOpenMemorial: () => void   (the obelisk's tap),
  *         onOpenTree: () => void       (the tree's tap box, beside the obelisk; opens the Tree window),
+ *         getMarkers: () => [{ id, name, stage, tierLabel }] in slot order (js/milestoneMarkers.js: one small stone per all-time achievement,
+ *                      stage 0..4), or null to hide them (DEV: ?markers=off),
+ *         onOpenMarkers: (id) => void  (a marker's tap; every marker opens the same window, which highlights `id`),
  *         onOpenStats: () => void }   (a run grave's tap)
+ *
+ * Milestone markers (2026-11-08): up to CONFIG.MARKER_SLOTS.length small stones on the hill's face, between the Memorial and the tree's trunk
+ * and below the obelisk. They share the stones layer (so they are clipped at the zone's edges) and draw in front of the Memorial (z >= CONFIG.MARKER_Z_BASE).
  */
 const GraveyardView = (() => {
     let deps = null;
@@ -76,6 +82,11 @@ const GraveyardView = (() => {
     function openTree(e) {
         if (e && e.stopPropagation) e.stopPropagation(); // Modal's document click would dismiss the window at once
         if (deps && deps.onOpenTree) deps.onOpenTree();
+    }
+
+    function openMarkers(id, e) {
+        if (e && e.stopPropagation) e.stopPropagation(); // Modal's document click would dismiss the window at once
+        if (deps && deps.onOpenMarkers) deps.onOpenMarkers(id);
     }
 
     // The Memorial's geometry from CONFIG (docs/ART_STYLE "Memorial obelisk T1-T5"). The PNG is artW x artH, drawn 1:1, bottom-aligned. Its
@@ -162,6 +173,42 @@ const GraveyardView = (() => {
         memorialLayerEl.appendChild(b);
     }
 
+    // Milestone markers (docs/ART_STYLE "Milestone markers"): one >=44px button per marker in the stones layer, holding its 32x32 picture (chosen by
+    // data-stage in css/graveyard.css). Positions come from CONFIG.MARKER_SLOTS via MilestoneMarkers.placements; the marker nearest the viewer is drawn in
+    // front. Appended AFTER renderMemorial and renderTreeHit, which clear / fill the layer.
+    function markerLabel(m) {
+        const t = (typeof Theme !== 'undefined' && Theme.strings && Theme.strings.markers) ? Theme.strings.markers : null;
+        const tier = m.tierLabel || (t ? t.noBadge : 'No badge yet');
+        return t ? Theme.fill(t.openLabel, { name: m.name, tier }) : `${m.name}, ${tier}. Open`;
+    }
+
+    function renderMarkers(c, markers) {
+        if (!Array.isArray(markers) || !markers.length || typeof MilestoneMarkers === 'undefined') return;
+        const slots = Array.isArray(c.MARKER_SLOTS) ? c.MARKER_SLOTS : [];
+        const places = MilestoneMarkers.placements(slots, { artPx: c.MARKER_ART_PX, hitPx: c.MARKER_HIT_PX, zBase: c.MARKER_Z_BASE });
+        markers.slice(0, places.length).forEach((m, i) => {
+            const p = places[i];
+            const b = makeButton('milestone-marker', markerLabel(m), (e) => openMarkers(m.id, e));
+            b.dataset.marker = String(m.id);
+            b.dataset.stage = String(m.stage);
+            b.style.left = p.hitLeft + 'px';
+            b.style.bottom = p.hitBottom + 'px';
+            b.style.width = p.hit + 'px';
+            b.style.height = p.hit + 'px';
+            b.style.zIndex = String(p.z);
+            const art = document.createElement('span');
+            art.className = 'milestone-marker-art';
+            art.setAttribute('aria-hidden', 'true');
+            art.dataset.stage = String(m.stage);
+            art.style.width = p.art + 'px';
+            art.style.height = p.art + 'px';
+            art.style.left = p.artLeft + 'px';
+            art.style.bottom = p.artBottom + 'px';
+            b.appendChild(art);
+            memorialLayerEl.appendChild(b);
+        });
+    }
+
     function renderRuns(c, canvasW, canvasH, hillW, baseW) {
         const history = (deps && deps.getRunHistory && deps.getRunHistory()) || [];
         const ids = history.map((r, i) => (r && typeof r.run === 'number') ? r.run : history.length - i);
@@ -205,7 +252,9 @@ const GraveyardView = (() => {
         const history = (deps.getRunHistory && deps.getRunHistory()) || [];
         const stage = (deps.getMemorialStage && deps.getMemorialStage());
         const treeStage = (deps.getTreeStage && deps.getTreeStage());
-        const sig = [hillW, canvasW, canvasH, baseW, stage == null ? '-' : stage, treeStage == null ? '-' : treeStage, history.map(r => r && r.run).join(',')].join('|');
+        const markers = (deps.getMarkers && deps.getMarkers()) || null;
+        const markerSig = markers ? markers.map(m => m.id + ':' + m.stage).join(',') : '-';
+        const sig = [hillW, canvasW, canvasH, baseW, stage == null ? '-' : stage, treeStage == null ? '-' : treeStage, markerSig, history.map(r => r && r.run).join(',')].join('|');
         if (sig === lastSig) return;
         lastSig = sig;
         if (hillW === 0) { // portrait strip / hidden: nothing to place
@@ -216,6 +265,7 @@ const GraveyardView = (() => {
         renderTree(c, treeStage, hillHeight(c));
         renderMemorial(c, stage);
         renderTreeHit(c, treeStage, hillHeight(c));
+        renderMarkers(c, markers);
         renderRuns(c, canvasW, canvasH, hillW, baseW);
     }
 

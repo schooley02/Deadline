@@ -319,3 +319,30 @@ describe('graveyard monument + tree sections (2026-11-08)', () => {
         expect(DevDemo.snapshot()).toMatchObject({ memorial: null, tree: null, active: false });
     });
 });
+
+describe('graveyard headstones section (2026-11-08)', () => {
+    test('the model lists Real + 0..4 with the chosen one selected', () => {
+        const none = DevPanel.panelModel({ enabled: true });
+        expect(none.markers.map((c) => c.value)).toEqual(['real', '0', '1', '2', '3', '4']);
+        expect(none.markers[0].selected).toBe(true);
+        const m = DevPanel.panelModel({ enabled: true, markers: 3, active: true });
+        expect(m.markers.filter((c) => c.selected).map((c) => c.value)).toEqual(['3']);
+    });
+    test('the panel has a Graveyard headstones section and chips set / clear the demo', () => {
+        const html = DevPanel.panelHtml(DevPanel.panelModel({ enabled: true }));
+        expect(html).toContain('Graveyard headstones');
+        expect(html).toContain('data-dev-markers="4"');
+        DevPanel.init({ demo: DevDemo });
+        DevPanel.setEnabled(true);
+        click(btn());
+        click(q('[data-dev-markers="2"]'));
+        expect(DevDemo.snapshot()).toMatchObject({ markers: 2, active: true });
+        expect(q('[data-dev-markers="2"]').getAttribute('aria-pressed')).toBe('true');
+        click(q('[data-dev-markers="real"]'));
+        expect(DevDemo.snapshot().markers).toBeNull();
+        click(q('[data-dev-markers="1"]'));
+        click(q('[data-dev-reset]'));
+        expect(DevDemo.snapshot()).toMatchObject({ markers: null, active: false });
+    });
+});
+

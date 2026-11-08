@@ -15,6 +15,8 @@
  *   spriteFor?   (kind, tier) -> { url, width, height } for the row thumbnail (omit = no thumbnail)
  *   tree?        { stage: 1..3 } -> adds a "Tree" link under the Memorial one that opens the Tree window (2026-11-08; same portrait reason).
  *                `open` also takes `onOpenTree()`.
+ *   markers?     { earned, total } -> adds a "Headstones" link under the Tree one that opens the milestone-marker window (2026-11-08, js/ui/markerPanel.js;
+ *                same portrait reason). `open` also takes `onOpenMarkers()`.
  *   memorial?    { stage: 1..5 } -> adds a "Memorial" link at the bottom that opens the Memorial window (2026-11-08; a portrait
  *                phone cannot see the graveyard, so this is its way in). `open` also takes `onOpenMemorial()`.
  * }
@@ -51,7 +53,10 @@ const VillagePanel = (() => {
         const tiersTotal = rows.reduce((n, r) => n + r.tier, 0);
         const st = c.memorial && Number.isInteger(c.memorial.stage) ? Math.min(5, Math.max(1, c.memorial.stage)) : null;
         const ts = c.tree && Number.isInteger(c.tree.stage) ? Math.min(3, Math.max(1, c.tree.stage)) : null;
-        return { rows, tiersTotal, tiersMax: rows.length * VillageCard.MAX_TIER, memorialStage: st, treeStage: ts };
+        const mk = c.markers && Number.isInteger(c.markers.total) && c.markers.total > 0
+            ? { earned: Math.max(0, Math.min(c.markers.total, Number.isInteger(c.markers.earned) ? c.markers.earned : 0)), total: c.markers.total }
+            : null;
+        return { rows, tiersTotal, tiersMax: rows.length * VillageCard.MAX_TIER, memorialStage: st, treeStage: ts, markers: mk };
     }
 
     function rowHtml(r) {
@@ -70,6 +75,16 @@ const VillagePanel = (() => {
             </button>`;
     }
 
+    // The Headstones link (2026-11-08): wording from Theme.strings.markers (a theme word), engine words in the class and action names.
+    function markersLinkHtml(mk) {
+        const t = (typeof Theme !== 'undefined' && Theme.strings && Theme.strings.markers) ? Theme.strings.markers : null;
+        const vars = { earned: mk.earned, total: mk.total };
+        const title = t ? t.paneTitle : 'Markers';
+        const summary = t ? Theme.fill(t.linkSummary, vars) : `${mk.earned} of ${mk.total} earned`;
+        const label = t ? Theme.fill(t.linkLabel, vars) : `${title}, ${summary}. Open`;
+        return `<button type="button" class="vp-markers" data-action="markers" aria-label="${esc(label)}"><span>${esc(title)}</span><span class="vp-memorial-stage">${esc(summary)} \u203A</span></button>`;
+    }
+
     function panelHtml(model) {
         const m = model || { rows: [], tiersTotal: 0, tiersMax: 0 };
         return `
@@ -79,6 +94,7 @@ const VillagePanel = (() => {
                     <div class="vp-list">${m.rows.map(rowHtml).join('')}</div>
                     ${m.memorialStage ? `<button type="button" class="vp-memorial" data-action="memorial" aria-label="Memorial, stage ${m.memorialStage} of 5. Open"><span>Memorial</span><span class="vp-memorial-stage">Stage ${m.memorialStage} of 5 \u203A</span></button>` : ''}
                     ${m.treeStage ? `<button type="button" class="vp-tree" data-action="tree" aria-label="Tree, stage ${m.treeStage} of 3. Open"><span>Tree</span><span class="vp-memorial-stage">Stage ${m.treeStage} of 3 \u203A</span></button>` : ''}
+                    ${m.markers ? markersLinkHtml(m.markers) : ''}
                     <button type="button" class="modal-close-x" data-action="close" aria-label="Close">
                         <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M2 2 L10 10 M10 2 L2 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                     </button>
@@ -102,6 +118,7 @@ const VillagePanel = (() => {
             if (btn.dataset.action === 'open' && ctx && typeof ctx.onOpenBuilding === 'function') ctx.onOpenBuilding(btn.dataset.kind);
             if (btn.dataset.action === 'memorial' && ctx && typeof ctx.onOpenMemorial === 'function') ctx.onOpenMemorial();
             if (btn.dataset.action === 'tree' && ctx && typeof ctx.onOpenTree === 'function') ctx.onOpenTree();
+            if (btn.dataset.action === 'markers' && ctx && typeof ctx.onOpenMarkers === 'function') ctx.onOpenMarkers();
         });
     }
 

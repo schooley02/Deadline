@@ -168,7 +168,8 @@ describe('script.js hook-up', () => {
         // The graveyard's own chips (2026-11-08): the Memorial obelisk stage and the tree stage, each read once, scene-only.
         expect(hits.filter((l) => /DevDemo\.memorialStage\(\)/.test(l)).length).toBe(1);
         expect(hits.filter((l) => /DevDemo\.treeStage\(\)/.test(l)).length).toBe(1);
-        expect(hits.length).toBe(7); // nothing else reads it; everything else goes through DevPanel
+        expect(hits.filter((l) => /DevDemo\.markerStage\(\)/.test(l)).length).toBe(1); // the Headstones chips (2026-11-08), read once in markersNow
+        expect(hits.length).toBe(8); // nothing else reads it; everything else goes through DevPanel
         expect(code.filter((l) => /DevPanel\.(init|setEnabled)/.test(l)).length).toBe(3);
     });
 });

@@ -26,6 +26,8 @@ const DevDemo = (() => {
     // The graveyard's Memorial obelisk (5 stages) and growing tree (3 stages), previewed on their own (2026-11-08).
     const MEMORIAL_STAGES = [1, 2, 3, 4, 5];
     const TREE_STAGES = [1, 2, 3];
+    // The milestone markers' picture (0 = wooden cross ... 4 = the nicest stone), previewed on all seven at once (2026-11-08).
+    const MARKER_STAGES = [0, 1, 2, 3, 4];
 
     let enabled = false;
     let band = null;          // null = the real sky
@@ -34,6 +36,7 @@ const DevDemo = (() => {
     let church = null;        // null = the real church picture
     let memorial = null;      // null = the real Memorial stage (1..5 pins the obelisk)
     let tree = null;          // null = the real tree stage (1..3 pins the tree)
+    let markers = null;       // null = the real marker stages (0..4 draws every marker at that stage)
     const listeners = [];
 
     function emit() {
@@ -44,19 +47,19 @@ const DevDemo = (() => {
 
     /** A copy of the demo values (what the panel draws from). */
     function snapshot() {
-        return { enabled, band, trend, tier, church, memorial, tree, active: isActive() };
+        return { enabled, band, trend, tier, church, memorial, tree, markers, active: isActive() };
     }
 
     /** True while a demo value is both set and allowed (the switch is on). */
     function isActive() {
-        return enabled && (band !== null || tier !== null || church !== null || memorial !== null || tree !== null);
+        return enabled && (band !== null || tier !== null || church !== null || memorial !== null || tree !== null || markers !== null);
     }
 
     function setEnabled(on) {
         const next = on === true;
         if (next === enabled) return;
         enabled = next;
-        if (!enabled) { band = null; trend = 'steady'; tier = null; church = null; memorial = null; tree = null; }
+        if (!enabled) { band = null; trend = 'steady'; tier = null; church = null; memorial = null; tree = null; markers = null; }
         emit();
     }
 
@@ -135,10 +138,20 @@ const DevDemo = (() => {
         return true;
     }
 
-    /** Back to the real sky, village, church, Memorial and tree (the switch stays on). */
+    /** Milestone marker stage: 0..4 (every marker drawn at that stage), or null/'real' for the real stages. Anything else is ignored. */
+    function setMarkers(value) {
+        if (!enabled) return false;
+        const next = pick(value, MARKER_STAGES);
+        if (next === undefined) return false;
+        markers = next;
+        emit();
+        return true;
+    }
+
+    /** Back to the real sky, village, church, Memorial, tree and markers (the switch stays on). */
     function reset() {
-        if (band === null && trend === 'steady' && tier === null && church === null && memorial === null && tree === null) return;
-        band = null; trend = 'steady'; tier = null; church = null; memorial = null; tree = null;
+        if (band === null && trend === 'steady' && tier === null && church === null && memorial === null && tree === null && markers === null) return;
+        band = null; trend = 'steady'; tier = null; church = null; memorial = null; tree = null; markers = null;
         emit();
     }
 
@@ -173,6 +186,11 @@ const DevDemo = (() => {
         return enabled ? tree : null;
     }
 
+    /** The pretend marker stage (0..4) for every milestone marker, or null = use the real stages / ?markers=. */
+    function markerStage() {
+        return enabled ? markers : null;
+    }
+
     /** Call fn(snapshot) after every change; returns an unsubscribe function. */
     function onChange(fn) {
         if (typeof fn !== 'function') return () => {};
@@ -185,14 +203,14 @@ const DevDemo = (() => {
 
     /** Test helper: back to a cold start (switch off, nothing set, no listeners). */
     function resetForTests() {
-        enabled = false; band = null; trend = 'steady'; tier = null; church = null; memorial = null; tree = null;
+        enabled = false; band = null; trend = 'steady'; tier = null; church = null; memorial = null; tree = null; markers = null;
         listeners.length = 0;
     }
 
     return {
-        BANDS, TRENDS, TIERS, CHURCH_STATES, MEMORIAL_STAGES, TREE_STAGES,
-        snapshot, isActive, setEnabled, setBand, setTrend, setTier, setChurch, setMemorial, setTree, reset,
-        weather, villageTier, churchHealth, memorialStage, treeStage, onChange, resetForTests,
+        BANDS, TRENDS, TIERS, CHURCH_STATES, MEMORIAL_STAGES, TREE_STAGES, MARKER_STAGES,
+        snapshot, isActive, setEnabled, setBand, setTrend, setTier, setChurch, setMemorial, setTree, setMarkers, reset,
+        weather, villageTier, churchHealth, memorialStage, treeStage, markerStage, onChange, resetForTests,
     };
 })();
 

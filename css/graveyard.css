@@ -140,6 +140,46 @@
     filter: brightness(1.2) drop-shadow(0 0 3px #f1d27a);
 }
 
+/* Milestone markers (2026-11-08; js/milestoneMarkers.js picks the stage, js/ui/graveyardView.js places each one from CONFIG.MARKER_*): small stones on the
+   hill's face, one per all-time achievement. Each is a >=44px tap box holding a 32x32 picture, drawn 1:1; the five PNGs share one canvas, every stone
+   centred on column 16 with the same dirt lip on its bottom three rows (stage 0 = a wooden cross ... stage 4 = the nicest stone). */
+.milestone-marker {
+    position: absolute;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.milestone-marker:focus-visible {
+    outline: 2px solid #f1d27a;
+    outline-offset: 1px;
+}
+
+.milestone-marker-art {
+    position: absolute;
+    display: block;
+    background-repeat: no-repeat;
+    background-size: 32px 32px;
+    image-rendering: pixelated;
+    pointer-events: none; /* only the tap box takes taps */
+}
+
+.milestone-marker-art[data-stage="0"] { background-image: url("../Assets/scene/headstone-0.png"); }
+.milestone-marker-art[data-stage="1"] { background-image: url("../Assets/scene/headstone-1.png"); }
+.milestone-marker-art[data-stage="2"] { background-image: url("../Assets/scene/headstone-2.png"); }
+.milestone-marker-art[data-stage="3"] { background-image: url("../Assets/scene/headstone-3.png"); }
+.milestone-marker-art[data-stage="4"] { background-image: url("../Assets/scene/headstone-4.png"); }
+
+.milestone-marker:hover .milestone-marker-art,
+.milestone-marker:focus-visible .milestone-marker-art,
+.milestone-marker:active .milestone-marker-art {
+    filter: brightness(1.25) drop-shadow(0 0 2px #f1d27a);
+}
+
 /* Run graves: a >=44px tap box with a smaller visual. */
 .run-grave {
     position: absolute;

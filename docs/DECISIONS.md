@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-08 (Milestone markers) -- small headstones on the hill track all-time achievements (Claude app session; Sonnet 5.5; Jeremy)
+
+- **Decision:** the "real headstones" become 7 small markers on the graveyard hill, one per ALL-TIME achievement family (Task Slayer, Habit Hero, Survivor, Clean Sweep, On Fire, Iron Will, Honor Roll; `CONFIG.MARKER_FAMILIES`). NOT the 8 village buildings (those can go up and down). No mausoleum: only small stones. One shared 5-picture set: wooden cross (no badge yet), Bronze, Silver, Gold, Platinum. Honor Roll was squeezed in because Jeremy said routines are important.
+- **Rule:** stage = highest unlocked tier of the family in `State.getAchievements()`; unlocks are never revoked, so a stone only gets nicer; only Reset Game starts them over. NO new save field, no schema bump, no balance numbers. On Fire has 3 tiers, so it stops at Gold.
+- **UI:** tapping any stone opens ONE window listing all 7 (the tapped one highlighted); portrait phones reach it from a "Headstones" link in the Village panel. Both are read-only and use the REAL data (never `?markers=` or the DEV chips).
+- **Art:** `Assets/scene/headstone-0..4.png`, 32x32, PixelLab, picked by Jeremy from candidate sheets; survivor-camp rule kept (no flags / red-white-blue).
+- **Rejected:** a mausoleum (too big); tracking the 8 buildings (they can drop); a separate stone art set per category (Jeremy: reuse one set).
+
 ## 2026-11-08 (Tree window) -- the graveyard tree gets its own window, like the Memorial (Claude app session; Sonnet 5.5; Jeremy: "start the Tree window next", then "I agree with your recommendation")
 
 - **Decision:** tapping the tree's trunk on the hill opens a **Tree window** (`js/ui/treePanel.js`, `css/treePanel.css`): the stage's picture + "Stage N of 3: Sapling / Young tree / Giant tree", the rule in one line, three numbers (nights survived all runs = from finished runs + this run), a bar across the CURRENT stage and "N nights more to reach <next>" (or "The tree is fully grown."). Portrait phones reach it from a "Tree" link under the Memorial link in the Village panel (the graveyard is hidden in the portrait strip). Chosen over a combined Graveyard window (Claude proposed, Jeremy agreed).

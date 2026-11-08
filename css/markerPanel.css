@@ -1,0 +1,54 @@
+/* Milestone marker window (2026-11-08; js/ui/markerPanel.js): one row per all-time achievement with its marker picture, tier, a bar to the next tier
+   and the progress in words. Opened by any marker on the graveyard hill and by the link in the Village panel (.vp-markers, styled with .vp-memorial
+   in css/memorialPanel.css). The corner x is the shared .modal-close-x. */
+.marker-panel { position: relative; max-width: 460px; width: calc(100vw - 32px); max-height: calc(100vh - 32px); overflow-y: auto; text-align: left; }
+.mkp-title { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding-right: 28px; margin-bottom: 6px; }
+.mkp-title h3 { margin: 0; }
+.mkp-total { font-size: 15px; font-weight: 700; color: var(--color-primary-dark-green); text-align: right; }
+.mkp-rule { margin: 0 0 10px; font-size: 13px; line-height: 1.4; color: var(--color-neutral); }
+
+.mkp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.mkp-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border: 1px solid var(--color-secondary-green-pale); border-radius: 8px; background: var(--color-primary-white); }
+.mkp-row--selected { border-color: var(--color-secondary-green-light); box-shadow: 0 0 0 2px var(--color-secondary-green-light); }
+
+/* The marker pictures are 32x32, drawn at 2x (whole-number scale) on the graveyard's night sky. */
+.mkp-sprite {
+    position: relative;
+    flex: 0 0 auto;
+    width: 64px;
+    height: 64px;
+    overflow: hidden;
+    border-radius: 6px;
+    background: linear-gradient(#232250, #2c2a5c 60%, #25466a);
+}
+.mkp-art {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 64px;
+    height: 64px;
+    background-repeat: no-repeat;
+    background-size: 64px 64px;
+    image-rendering: pixelated;
+}
+.mkp-art[data-stage="0"] { background-image: url("../Assets/scene/headstone-0.png"); }
+.mkp-art[data-stage="1"] { background-image: url("../Assets/scene/headstone-1.png"); }
+.mkp-art[data-stage="2"] { background-image: url("../Assets/scene/headstone-2.png"); }
+.mkp-art[data-stage="3"] { background-image: url("../Assets/scene/headstone-3.png"); }
+.mkp-art[data-stage="4"] { background-image: url("../Assets/scene/headstone-4.png"); }
+
+.mkp-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.mkp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.mkp-name { font-weight: 700; color: var(--color-text-primary); }
+.mkp-tier { font-size: 12.5px; font-weight: 700; color: var(--color-primary-dark-green); white-space: nowrap; }
+.mkp-bar { display: block; height: 8px; border-radius: 4px; background: #dfe6e4; overflow: hidden; }
+.mkp-bar-fill { display: block; height: 100%; border-radius: 4px; background: var(--color-secondary-green-light); }
+.mkp-text { font-size: 12.5px; color: var(--color-neutral); }
+
+/* Short screens (landscape phones): the pictures at 1x and tighter rows so the list is not pushed far off the screen. */
+@media (max-height: 520px) {
+    .mkp-rule { display: none; }
+    .mkp-row { padding: 4px 8px; gap: 8px; }
+    .mkp-sprite { width: 32px; height: 32px; }
+    .mkp-art { width: 32px; height: 32px; background-size: 32px 32px; }
+}

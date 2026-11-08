@@ -262,6 +262,10 @@ Nov 7 graveyard art.
 **Card scale exception (Jeremy 2026-10-30):** the building card fits the 128x256 Clock tower to the 3x buildings' height at **1.5x**, a deliberate exception to the
 whole-number rule above (in the scene it is still 1:1). Every other card sprite uses 3x or 2x.
 
+## Milestone markers (headstones) art (BUILT 2026-11-08)
+
+Seven small markers on the graveyard hill, ONE shared 5-picture set: `Assets/scene/headstone-0.png` wooden cross (tinted brown, no badge yet), `-1` Bronze, `-2` Silver, `-3` Gold, `-4` Platinum. 32x32 RGBA, stone centred on column 16, the same 3-row dirt lip at the foot so every stage stands on the hill the same way. Made in PixelLab (Creator, Palette = NONE; sheets come back as 64 variations of 32x32 tiles; trim by deleting rows, never resize), then trimmed / brightened so they read against the hill. Sources, guides and scripts: `Assets/scene/_source/headstones/`. Survivor-camp rule: no flags or red-white-blue. Positions: `CONFIG.MARKER_SLOTS` (first guess, rendered and checked headless; tune by eye).
+
 ## Asset Sources
 - **FINISHED sprites: `Assets/Zombies/<category>-zombie.png` + `-64.png` (64×64) for all 8 categories** — use these.
 - Base damage states: `Assets/Base/base_000..100.png`.

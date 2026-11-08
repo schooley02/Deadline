@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v289';
+const CACHE_NAME = 'deadline-shell-v290';
 
 const APP_SHELL = [
     './',
@@ -51,6 +51,7 @@ const APP_SHELL = [
     'css/villagePanel.css',
     'css/memorialPanel.css',
     'css/treePanel.css',
+    'css/markerPanel.css',
     'css/howItWorks.css',
     'css/prioritySlots.css',
     'css/basePanel.css',
@@ -81,6 +82,7 @@ const APP_SHELL = [
     'js/villageProgress.js',
     'js/memorial.js',
     'js/treeGrowth.js', // growing tree rule (2026-11-08)
+    'js/milestoneMarkers.js', // milestone marker rule (2026-11-08)
     'js/villageDrops.js',
     'js/runClimate.js',
     'js/rainSim.js',
@@ -157,6 +159,7 @@ const APP_SHELL = [
     'js/ui/villagePanel.js',
     'js/ui/memorialPanel.js',
     'js/ui/treePanel.js',
+    'js/ui/markerPanel.js',
     'js/ui/hudButtons.js',
     'js/ui/ghostCard.js',
     'js/ui/dayPagerView.js',
@@ -278,6 +281,11 @@ const APP_SHELL = [
     'Assets/scene/graveyard-tree-1.png', // growing tree: sapling / young / giant (2026-11-08)
     'Assets/scene/graveyard-tree-2.png',
     'Assets/scene/graveyard-tree-3.png',
+    'Assets/scene/headstone-0.png', // milestone markers: cross, Bronze, Silver, Gold, Platinum (2026-11-08)
+    'Assets/scene/headstone-1.png',
+    'Assets/scene/headstone-2.png',
+    'Assets/scene/headstone-3.png',
+    'Assets/scene/headstone-4.png',
     'Assets/fonts/press-start-2p-latin-400-normal.woff2',
     'Assets/icons/icon-192.png',
     'Assets/icons/icon-512.png',

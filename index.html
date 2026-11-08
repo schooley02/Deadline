@@ -49,6 +49,7 @@
     <link rel="stylesheet" href="css/villagePanel.css">
     <link rel="stylesheet" href="css/memorialPanel.css">
     <link rel="stylesheet" href="css/treePanel.css">
+    <link rel="stylesheet" href="css/markerPanel.css">
     <link rel="stylesheet" href="css/howItWorks.css">
     <link rel="stylesheet" href="css/prioritySlots.css">
     <link rel="stylesheet" href="css/climate.css">
@@ -577,6 +578,8 @@
     <!-- js/treeGrowth.js (2026-11-08): pure growing-tree rule (lifetime nights -> sapling / young / giant); zero module dependencies. State seeds the
          night bank from run history; script.js treeStageNow() feeds the graveyard view. -->
     <script src="js/treeGrowth.js"></script>
+    <!-- js/milestoneMarkers.js (2026-11-08): pure marker rule (unlocked tiers -> stage 0..4, hill placements, ?markers= override); zero module dependencies. -->
+    <script src="js/milestoneMarkers.js"></script>
     <!-- js/villageDrops.js (2026-11-03): pure village tier DROPS (the fixed item each building pays at star 2-5, once per star per run,
          CONFIG.VILLAGE_TIER_DROPS); zero module dependencies. Paid from script.js payVillageDrops; shown on the building card. -->
     <script src="js/villageDrops.js"></script>
@@ -675,6 +678,8 @@
     <script src="js/ui/memorialPanel.js"></script>
     <!-- js/ui/treePanel.js (2026-11-08): the graveyard tree's own window (stage, rule, lifetime nights, bar to the next stage); needs TreeGrowth + Modal at call time. -->
     <script src="js/ui/treePanel.js"></script>
+    <!-- js/ui/markerPanel.js (2026-11-08): the milestone markers' window (all seven all-time records, the tapped one highlighted); needs MilestoneMarkers + Theme + Modal at call time. -->
+    <script src="js/ui/markerPanel.js"></script>
     <script src="js/ui/hudButtons.js"></script>
     <!-- js/ui/dayPagerView.js needs DayPager (pure ghost conjuring) + Movement
          (top-position math) already loaded — see its header. -->

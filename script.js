@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
         getTreeStage: () => treeStageNow(),
         onOpenMemorial: () => openMemorialPanel(),
         onOpenTree: () => openTreePanel(),
+        getMarkers: () => markersNow(),
+        onOpenMarkers: (id) => openMarkerPanel(id),
         onOpenStats: () => openManagementWindow('stats'),
     });
     // Achievement village (V7 W2): eight buildings on the horizon hill. Build 2 (2026-10-30): each building's tier is
@@ -128,6 +130,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function openTreePanel() {
         TreePanel.open(Object.assign(realTreeNights(), { thresholds: CONFIG.TREE_STAGE_NIGHTS }));
+    }
+    // Milestone markers (2026-11-08, js/milestoneMarkers.js): one small stone per all-time achievement family (CONFIG.MARKER_FAMILIES), its picture
+    // chosen by the highest unlocked tier. The DEV panel's Headstones chips win, then `?markers=0..4|off`, then the real unlocked tiers. Read-only.
+    function markersNow() {
+        const demo = DevDemo.markerStage();
+        const url = demo != null ? demo : MilestoneMarkers.override(window.location.search);
+        if (url === 'off') return null;
+        return MilestoneMarkers.build({
+            catalog: CONFIG.ACHIEVEMENTS, ids: CONFIG.MARKER_FAMILIES,
+            unlocked: State.getAchievements(), stats: State.getLifetimeStats() || {},
+            forced: typeof url === 'number' ? url : undefined,
+        });
+    }
+    // The markers' own window (js/ui/markerPanel.js): the REAL tiers and stats, never the dev overrides. `selected` = the tapped marker (or null).
+    function markerPanelContext(selected) {
+        return {
+            catalog: CONFIG.ACHIEVEMENTS, ids: CONFIG.MARKER_FAMILIES,
+            unlocked: State.getAchievements(), stats: State.getLifetimeStats() || {}, selected: selected || null,
+        };
+    }
+    function openMarkerPanel(selected) {
+        MarkerPanel.open(markerPanelContext(selected));
+    }
+    function realMarkerCounts() {
+        const built = MilestoneMarkers.build(markerPanelContext(null));
+        return { earned: built.filter(m => m.stage >= 1).length, total: built.length };
     }
     // The Memorial's own window (js/ui/memorialPanel.js): the REAL stage and tiers, never the dev overrides, so it always tells the truth about the save.
     function openMemorialPanel() {
@@ -2865,6 +2893,8 @@ document.addEventListener('DOMContentLoaded', () => {
             onOpenMemorial: () => openMemorialPanel(),
             tree: { stage: realTreeStage() },
             onOpenTree: () => openTreePanel(),
+            markers: realMarkerCounts(),
+            onOpenMarkers: () => openMarkerPanel(null),
             onOpenBuilding: (kind) => {
                 const sprite = villageSpriteFor(kind, progress[kind] ? progress[kind].tier : 1);
                 const placement = (CONFIG.VILLAGE_PLACEMENT || {})[kind] || {};

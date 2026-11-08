@@ -26,6 +26,19 @@ const Theme = (() => {
             // "{level}" is replaced by fill().
             lockedLine: 'Unlocks at Lv {level}',
         },
+        // Milestone markers (2026-11-08; js/milestoneMarkers.js, js/ui/markerPanel.js): the small stones on the graveyard hill that show the
+        // all-time achievements. Placeholders: {name}, {tier}, {value}, {threshold}, {unit}.
+        markers: {
+            paneTitle: 'Headstones',
+            rule: 'Each stone marks one of your all-time records. It gets nicer as you earn Bronze, Silver, Gold and Platinum, and it never goes back. Only Reset Game starts them over.',
+            noBadge: 'No badge yet',
+            openLabel: '{name}, {tier}. Open',
+            progress: '{value} of {threshold} {unit} to reach {tier}.',
+            maxed: '{tier} reached. This is the top tier.',
+            // The picture for a family's stage 0 is a plain wooden cross.
+            linkSummary: '{earned} of {total} earned',
+            linkLabel: 'Headstones, {earned} of {total} earned. Open',
+        },
     };
 
     // Sprite paths for the Goals pane. One footprint, six subject stages (T0 = the start, T5 = finished) and an exit strip
