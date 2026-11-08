@@ -727,17 +727,17 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
         });
     });
 
-    // 2026-11-08: the Armory moved 44px left (right 66 -> 22) so the grown tree's canopy leaves its tower clear. Narrow fields squeeze every building's
+    // 2026-11-08: the Armory moved 26px left (right 66 -> 40, after a first 44px and a phone check) so the grown tree's canopy leaves its tower clear. Narrow fields squeeze every building's
     // left edge toward the church (the `k` scale), so at 640 -- the narrowest width this suite covers -- the Armory's art now overlaps the High school's by
-    // 27px. Nothing else overlaps, and the overlap is pinned so it cannot get worse. (66 -> 60 already started to overlap at 640.)
-    test('at 640 the only overlap is the Armory over the High school, by at most 27px; the front row is clean', () => {
+    // 16px. Nothing else overlaps, and the overlap is pinned so it cannot get worse. (66 -> 60 already started to overlap at 640; at right 22 it was 27px.)
+    test('at 640 the only overlap is the Armory over the High school, by at most 16px; the front row is clean', () => {
         const s = at(640);
         const front = s.filter(x => x.row === 'front').sort((a, b) => a.artLeft - b.artLeft);
         for (let i = 1; i < front.length; i++) expect(front[i].artLeft).toBeGreaterThanOrEqual(front[i - 1].artRight);
         const back = s.filter(x => x.row === 'back').sort((a, b) => a.artLeft - b.artLeft);
         for (let i = 1; i < back.length; i++) {
             const overlap = back[i - 1].artRight - back[i].artLeft;
-            if (back[i - 1].kind === 'heroes' && back[i].kind === 'slain') expect(overlap).toBeLessThanOrEqual(27);
+            if (back[i - 1].kind === 'heroes' && back[i].kind === 'slain') expect(overlap).toBeLessThanOrEqual(16);
             else expect(overlap).toBeLessThanOrEqual(0);
         }
     });
@@ -747,11 +747,11 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
         expect(s.slain.artRight).toBe(817 - 140 + P.slain.right);
     });
 
-    test('nothing stands BEHIND the Armory, and on the phone its left side tucks 74px behind the Jail', () => {
+    test('nothing stands BEHIND the Armory, and on the phone its left side tucks 56px behind the Jail', () => {
         const s = byKind(at(817));
         const behind = Object.values(s).filter(x => x.row === 'far' && x.artRight > s.slain.artLeft && x.artLeft < s.slain.artRight);
         expect(behind).toEqual([]);
-        expect(s.defense.artRight - s.slain.artLeft).toBe(74); // was 30; the Armory moved 44px left on 2026-11-08 so the grown tree's canopy leaves its tower clear
+        expect(s.defense.artRight - s.slain.artLeft).toBe(56); // was 30; the Armory moved 26px left on 2026-11-08 so the grown tree's canopy leaves its tower clear
     });
 
     test('only short buildings stand under the moon (the ~90px left of the hill) at the design width and wider', () => {

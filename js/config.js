@@ -661,7 +661,7 @@ const CONFIG = {
         defense: { row: 'front', right: -24 },           // Jailhouse, under the moon (short)
         habits: { row: 'back', right: -305 },            // Hospital, behind the gym / tower gap
         heroes: { row: 'back', right: -118 },            // High school, between the tower and the jail
-        slain: { row: 'back', right: 22 },               // Armory: nudged 44px left on 2026-11-08 (was 66) so the grown tree's canopy leaves its tower clear; 44 not 46: 46 overlapped the High school's art by 2px
+        slain: { row: 'back', right: 40 },               // Armory: nudged 26px left on 2026-11-08 (was 66; first 44 left, then 18 back right after Jeremy's phone check) so the grown tree's canopy leaves most of its tower clear; 16px over the High school at 640 wide only
         bestdays: { row: 'far', right: -406, flip: true }, // Windmill, wheel over the gym + hospital (mirrored)
         nights: { row: 'far', right: -119, flip: true },   // Radio mast, right of the HUD Points button (mirrored)
     },
