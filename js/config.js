@@ -556,7 +556,19 @@ const CONFIG = {
     GRAVEYARD_STONE_PITCH_PX: 44, // = tap-target width; odd lanes shift by half a pitch into the gaps
     GRAVEYARD_STONE_HIT_PX: 44, // minimum tap box (visual art can be smaller)
     GRAVEYARD_PAD_PX: 6,
-    GRAVEYARD_TRUNK_PX: 24, // visible strip of tree trunk at the right edge
+    GRAVEYARD_TRUNK_PX: 24, // old placeholder tree's visible trunk strip (unused since the PixelLab tree, 2026-11-08)
+    // Growing tree (2026-11-08; Assets/scene/graveyard-tree-1..3.png, js/treeGrowth.js, docs/ART_STYLE "Growing tree"): sapling / young / giant by
+    // LIFETIME nights survived. The three PNGs are 192x128, drawn 1:1, and share ONE trunk base: art column TRUNK_COL stands BASE_X_PX in from the
+    // zone's left edge, and the art's bottom edge sinks SINK_PX below the hill's flat top (roots on the slope). The tree sits in a clipper that is cut
+    // at the zone's right edge (#gameCanvas is overflow:visible). The giant's canopy reaches up to the Nights Survived label (the label has its own
+    // dark backing for that) and spreads left over the Armory's tower. TREE_STAGE_NIGHTS = [young at, giant at]: first values (Jeremy, 2026-11-08).
+    GRAVEYARD_TREE_ART_W_PX: 192,
+    GRAVEYARD_TREE_ART_H_PX: 128,
+    GRAVEYARD_TREE_TRUNK_COL: 146,
+    GRAVEYARD_TREE_BASE_X_PX: 110,
+    GRAVEYARD_TREE_SINK_PX: 15,
+    GRAVEYARD_TREE_CLIP_LEFT_PX: 80, // how far the clipper reaches left of the zone (the canopy overhangs the field)
+    TREE_STAGE_NIGHTS: [30, 100],
     // Memorial obelisk (2026-11-08; Assets/Village/memorial_t1..t5.png, js/memorial.js, docs/ART_STYLE "Memorial obelisk T1-T5"). It replaced the six
     // placeholder headstones: ONE sprite on the hill's flat top, drawn in front of the tree. Placement decided with Jeremy on mocks of the real
     // layers: the plinth's bottom row stands FEET_PX above the canvas bottom (the hill rim is 101, so ~14px of plinth sits down in the lighter top
@@ -565,8 +577,8 @@ const CONFIG = {
     GRAVEYARD_MEMORIAL_ART_W_PX: 128,
     GRAVEYARD_MEMORIAL_ART_H_PX: 192,
     GRAVEYARD_MEMORIAL_PLINTH_ROW: 181,
-    GRAVEYARD_MEMORIAL_FEET_PX: 86,
-    GRAVEYARD_MEMORIAL_CENTER_X_PX: 92,
+    GRAVEYARD_MEMORIAL_FEET_PX: 74, // was 86 / 92: moved down-left on 2026-11-08 so the growing tree's trunk shows beside it (Jeremy)
+    GRAVEYARD_MEMORIAL_CENTER_X_PX: 60,
     GRAVEYARD_MEMORIAL_HIT_W_PX: 72, // the one tap box (>= 44), centred on the obelisk
     GRAVEYARD_MEMORIAL_HIT_H_PX: 132, // from the plinth up = the obelisk's height
     // Past-run graves creep out of the hill across the field: newest next to the hill, oldest
@@ -649,7 +661,7 @@ const CONFIG = {
         defense: { row: 'front', right: -24 },           // Jailhouse, under the moon (short)
         habits: { row: 'back', right: -305 },            // Hospital, behind the gym / tower gap
         heroes: { row: 'back', right: -118 },            // High school, between the tower and the jail
-        slain: { row: 'back', right: 66 },               // Armory: right end, left side 30px behind the jail (Jeremy's pick B), right side behind the hill
+        slain: { row: 'back', right: 22 },               // Armory: nudged 44px left on 2026-11-08 (was 66) so the grown tree's canopy leaves its tower clear; 44 not 46: 46 overlapped the High school's art by 2px
         bestdays: { row: 'far', right: -406, flip: true }, // Windmill, wheel over the gym + hospital (mirrored)
         nights: { row: 'far', right: -119, flip: true },   // Radio mast, right of the HUD Points button (mirrored)
     },

@@ -145,7 +145,7 @@ list. PROPOSED extensions:
 - **A small grave per finished run** with an epitaph ("Fell after 12 nights"), from
   `pastRuns`. Cap the visible count; older runs fade or move to Stats.
 - **The tree grows with lifetime nights survived** (sapling → twisted giant; lanterns / crows
-  for long streaks).
+  for long streaks). BUILT 2026-11-08 (sapling / young / giant at 0-29 / 30-99 / 100+ nights); lanterns / crows not decided.
 - Optional: a fresh grave for a KO'd hero until revived (may be one thing too many).
 
 **Superseded by "W0 layout" below for placement (tree on the right edge, run graves in the field).**
@@ -599,7 +599,7 @@ result; tests (`climateView`, `weatherPanel`, `levelPerks`, persistence migratio
   mock -> pick the size, (b) Clock tower T1-T5, (c) the other 7 kinds + Memorial, (d) ridge/hill background art (DONE 2026-11-07: mountains + tree line + moonlit field, ART_STYLE "Backdrop"; village roads dropped, props instead), (e) build the scene
   layer (draw under the MIDNIGHT line) + close-up view + overlays. The W0 headstones on the hill become the Memorial only (DONE 2026-11-08: the six stones are gone, one Memorial obelisk stands there; stage = floor of the average of the 8 all-time best tiers, `js/memorial.js`).
   Open: Memorial rows tappable for per-category history? Confirm the Americana mapping for the 8 kinds.
-- [ ] **W3 — Graveyard history (Sonnet):** run graves + growing tree.
+- [ ] **W3 — Graveyard history (Sonnet):** run graves + growing tree. **Growing tree BUILT 2026-11-08** (3 PixelLab stages, lifetime nights = banked `lifetimeStats.nightsSurvived` + live run, 0-29 / 30-99 / 100+; DECISIONS "Growing tree", ART_STYLE "Growing tree"); run graves were built in W0.
 - [ ] **W4 — Today-only battlefield aftermath (Sonnet):** option (a) above.
 - [x] **D1 — Goals + Targets design (DONE 2026-11-04, Fable; Jeremy):** `docs/GOALS_PLAN.md` -- a Goals pane, not the city; builds A-C in ROADMAP M5.
 - [ ] ~~**W5 — City strongholds (after Goals ships).**~~ RETIRED 2026-11-04 (goals are a pane; nothing on the skyline for now).

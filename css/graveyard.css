@@ -8,8 +8,8 @@
  * script.js refreshLayoutDims() measures #graveyardZone's width and the zombie field ends at
  * its left edge, so changing the width here (or in CONFIG) needs no other code change.
  *
- * Art: the hill and the Memorial obelisk are PixelLab PNGs (2026-11-08); the tree is still a plain SVG placeholder until its sprites
- * land (W2). Each is its own element so they can be swapped one by one.
+ * Art: the hill, the Memorial obelisk and the growing tree (3 stages) are PixelLab PNGs (2026-11-08). Each is its own element so they can be
+ * swapped one by one.
  */
 
 #gameCanvas {
@@ -18,7 +18,7 @@
 }
 
 /* The moon, its count and the weather badge sit in the canvas's TOP-RIGHT corner (2026-11-07, Jeremy; they were left of
-   the hill, "so a grown tree never covers it" -- if the W3 tree grows tall, revisit). --moon-right is shared with the badge
+   the hill, "so a grown tree never covers it"). The giant tree's canopy now reaches up to the Nights Survived label on purpose (2026-11-08); the label has its own dark backing. --moon-right is shared with the badge
    (css/weatherPanel.css) and the trend-up light break + moonbeam (css/climate.css). */
 #gameCanvas {
     --moon-right: 30px;
@@ -59,22 +59,32 @@
    the canvas; the canopy overhangs the hill behind the Memorial. */
 .graveyard-tree-clip {
     position: absolute;
-    left: -80px;
+    left: -80px; /* graveyardView.js rewrites left / bottom from CONFIG.GRAVEYARD_TREE_*; these are the matching fallbacks */
     right: 0;
-    bottom: calc(var(--gy-hill-h) - 4px);
+    bottom: calc(var(--gy-hill-h) - 15px);
     height: 600px;
     overflow: hidden;
     z-index: 1;
     pointer-events: none;
 }
 
+/* Growing tree (2026-11-08): three PixelLab PNGs, 192x128, drawn 1:1, trunk base in the same column in all three (docs/ART_STYLE "Growing tree").
+   graveyardView.js sets the size and left from CONFIG.GRAVEYARD_TREE_*; the clipper above cuts the art at the zone's right edge. */
 .graveyard-tree {
     position: absolute;
-    /* 90px art with the trunk at x=52..61: trunk left edge sits (trunk strip - 4) in from the right edge. */
-    left: calc(80px + var(--gy-hill-w) - 72px);
+    display: block;
+    left: 44px; /* = clip reach 80 + base 110 - trunk column 146 */
     bottom: 0;
+    width: 192px;
+    height: 128px;
+    background-repeat: no-repeat;
+    background-size: 192px 128px;
     image-rendering: pixelated;
 }
+.graveyard-tree[hidden] { display: none; }
+.graveyard-tree[data-stage="1"] { background-image: url("../Assets/scene/graveyard-tree-1.png"); }
+.graveyard-tree[data-stage="2"] { background-image: url("../Assets/scene/graveyard-tree-2.png"); }
+.graveyard-tree[data-stage="3"] { background-image: url("../Assets/scene/graveyard-tree-3.png"); }
 
 .graveyard-stones {
     /* The Memorial's 128px art is 16px wider than the 140px zone on its right (its corners are transparent). #gameCanvas is

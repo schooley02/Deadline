@@ -44,15 +44,15 @@ describe('the art', () => {
 });
 
 describe('placement is the one Jeremy settled on (2026-11-08)', () => {
-    test('feet 86px up, centre 92px into the 140px zone, plinth row 181', () => {
-        expect(CONFIG.GRAVEYARD_MEMORIAL_FEET_PX).toBe(86);
-        expect(CONFIG.GRAVEYARD_MEMORIAL_CENTER_X_PX).toBe(92);
+    test('feet 74px up, centre 60px into the 140px zone, plinth row 181 (moved down-left from 86 / 92 on 2026-11-08 for the growing tree)', () => {
+        expect(CONFIG.GRAVEYARD_MEMORIAL_FEET_PX).toBe(74);
+        expect(CONFIG.GRAVEYARD_MEMORIAL_CENTER_X_PX).toBe(60);
         expect(CONFIG.GRAVEYARD_MEMORIAL_PLINTH_ROW).toBe(181);
         expect(CONFIG.GRAVEYARD_MEMORIAL_CENTER_X_PX).toBeLessThan(CONFIG.GRAVEYARD_HILL_WIDTH_PX);
     });
     test('the feet stand inside the hill\'s top band: below the rim, above the ground', () => {
         expect(CONFIG.GRAVEYARD_MEMORIAL_FEET_PX).toBeLessThan(CONFIG.GRAVEYARD_HILL_HEIGHT_PX);
-        expect(CONFIG.GRAVEYARD_HILL_HEIGHT_PX - CONFIG.GRAVEYARD_MEMORIAL_FEET_PX).toBe(15); // ~14px of plinth sits down in the band
+        expect(CONFIG.GRAVEYARD_HILL_HEIGHT_PX - CONFIG.GRAVEYARD_MEMORIAL_FEET_PX).toBe(27); // the plinth sits ~26px down the hill's top band, beside the tree's trunk
     });
     test('the one tap box is at least 44x44', () => {
         expect(CONFIG.GRAVEYARD_MEMORIAL_HIT_W_PX).toBeGreaterThanOrEqual(44);

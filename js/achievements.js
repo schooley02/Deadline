@@ -32,6 +32,7 @@ const Achievements = (() => {
             subtasksCompleted: 0, // 2026-10-27: sub-tasks no longer feed tasksCompleted / Task Slayer
             habitsCompleted: 0,
             bestRunDaysSurvived: 0,
+            nightsSurvived: 0, // LIFETIME nights banked from finished runs (2026-11-08, js/treeGrowth.js: the graveyard tree's growth); seeded from run history on older saves
             bestHabitStreak: 0,
             pointsRecoveries: 0,
             // Achievements swap (2026-11-03, schema 16; docs/HOW_IT_WORKS_PLAN.md): the lifetime counters behind

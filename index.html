@@ -186,10 +186,9 @@
                 <div id="graveyardZone" class="graveyard-zone">
                     <div class="graveyard-hill" aria-hidden="true"></div>
                     <div class="graveyard-tree-clip" aria-hidden="true">
-                        <svg class="graveyard-tree" viewBox="0 0 90 110" width="90" height="110" focusable="false">
-                            <rect x="52" y="44" width="9" height="66" fill="#0f0e28"/>
-                            <path d="M56,48 L30,30 L48,36 L10,22 L46,30 L40,8 L54,34 L66,12 L62,40 L84,30 L60,54 Z" fill="#0f0e28"/>
-                        </svg>
+                        <!-- Growing tree (2026-11-08): sapling / young / giant by lifetime nights; the picture is chosen by data-stage (css/graveyard.css),
+                             placed by graveyardView.js from CONFIG.GRAVEYARD_TREE_*. Hidden until the view renders. -->
+                        <span id="graveyardTree" class="graveyard-tree" hidden></span>
                     </div>
                     <div id="graveyardStones" class="graveyard-stones"></div><!-- the Memorial obelisk lives here (graveyardView.js) -->
                 </div>
@@ -574,6 +573,9 @@
     <!-- js/memorial.js (2026-11-08): pure Memorial obelisk stage (floor of the average of the 8 buildings' all-time best tiers); zero module
          dependencies. State keeps the high-water mark (bestVillageTiers); the graveyard view draws the stage. -->
     <script src="js/memorial.js"></script>
+    <!-- js/treeGrowth.js (2026-11-08): pure growing-tree rule (lifetime nights -> sapling / young / giant); zero module dependencies. State seeds the
+         night bank from run history; script.js treeStageNow() feeds the graveyard view. -->
+    <script src="js/treeGrowth.js"></script>
     <!-- js/villageDrops.js (2026-11-03): pure village tier DROPS (the fixed item each building pays at star 2-5, once per star per run,
          CONFIG.VILLAGE_TIER_DROPS); zero module dependencies. Paid from script.js payVillageDrops; shown on the building card. -->
     <script src="js/villageDrops.js"></script>

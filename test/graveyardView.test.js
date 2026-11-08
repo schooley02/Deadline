@@ -19,7 +19,7 @@ function build({ zoneW = 140, canvasW = 844, canvasH = 250 } = {}) {
     document.body.innerHTML = `
         <div id="gameCanvas">
             <div id="runGraves"></div>
-            <div id="graveyardZone"><div id="graveyardStones"></div></div>
+            <div id="graveyardZone"><div class="graveyard-tree-clip"><span id="graveyardTree" class="graveyard-tree" hidden></span></div><div id="graveyardStones"></div></div>
         </div>`;
     setSize(document.getElementById('gameCanvas'), canvasW, canvasH);
     setSize(document.getElementById('graveyardZone'), zoneW, 70);
@@ -27,11 +27,11 @@ function build({ zoneW = 140, canvasW = 844, canvasH = 250 } = {}) {
 
 const history = n => Array.from({ length: n }, (_, i) => ({ run: n - i }));
 
-function init(opts = {}, hist = history(5), stage = 3) {
+function init(opts = {}, hist = history(5), stage = 3, treeStage = 2) {
     build(opts);
     const onOpenStats = jest.fn();
     const onOpenMemorial = jest.fn();
-    GraveyardView.init({ getRunHistory: () => hist, getMemorialStage: () => stage, onOpenStats, onOpenMemorial });
+    GraveyardView.init({ getRunHistory: () => hist, getMemorialStage: () => stage, getTreeStage: () => treeStage, onOpenStats, onOpenMemorial });
     GraveyardView.render(160);
     onOpenStats.memorial = onOpenMemorial; // the Memorial's own window (2026-11-08); run graves still open Stats
     return onOpenStats;
@@ -50,7 +50,7 @@ describe('the Memorial obelisk', () => {
         expect(document.querySelectorAll('.graveyard-stone')).toHaveLength(0); // the six placeholder stones are gone
     });
 
-    test('placement comes from CONFIG: feet 86 up, centre column 92 in, art 128x192 overhanging the tap box', () => {
+    test('placement comes from CONFIG: feet 74 up, centre column 60 in, art 128x192 overhanging the tap box', () => {
         init();
         const b = memorial()[0];
         const art = b.querySelector('.graveyard-memorial-art');
@@ -66,14 +66,14 @@ describe('the Memorial obelisk', () => {
         expect(art.style.bottom).toBe('-10px'); // 192 - 1 - plinth row 181
     });
 
-    test('the sprite\'s plinth ends up 86px above the canvas bottom and its centre 92px into the zone', () => {
+    test('the sprite\'s plinth ends up 74px above the canvas bottom and its centre 60px into the zone', () => {
         init();
         const b = memorial()[0];
         const art = b.querySelector('.graveyard-memorial-art');
         const artBottomFromCanvas = parseFloat(b.style.bottom) + parseFloat(art.style.bottom);
         const plinthLowerEdge = artBottomFromCanvas + (192 - 1 - CONFIG.GRAVEYARD_MEMORIAL_PLINTH_ROW);
-        expect(plinthLowerEdge).toBe(86);
-        expect(parseFloat(b.style.left) + parseFloat(art.style.left) + 128 / 2).toBe(92);
+        expect(plinthLowerEdge).toBe(74);
+        expect(parseFloat(b.style.left) + parseFloat(art.style.left) + 128 / 2).toBe(60);
     });
 
     test('the tap box is at least 44x44 and sits in front of the tree', () => {
@@ -185,4 +185,56 @@ test('init without the DOM is a safe no-op', () => {
     document.body.innerHTML = '';
     expect(() => { GraveyardView.init({}); GraveyardView.render(0); }).not.toThrow();
     expect(GraveyardView.zoneWidth()).toBe(0);
+});
+
+describe('the growing tree (2026-11-08)', () => {
+    const tree = () => document.getElementById('graveyardTree');
+    const clip = () => document.querySelector('.graveyard-tree-clip');
+
+    test.each([1, 2, 3])('stage %i shows its picture, 192x128', (st) => {
+        init({}, history(5), 3, st);
+        expect(tree().hidden).toBe(false);
+        expect(tree().dataset.stage).toBe(String(st));
+        expect(tree().style.width).toBe('192px');
+        expect(tree().style.height).toBe('128px');
+    });
+
+    test('placement comes from CONFIG: trunk column 146 lands 110px into the zone, roots 15px below the hill top, clipper 80px left of the zone', () => {
+        init();
+        const clipLeft = CONFIG.GRAVEYARD_TREE_CLIP_LEFT_PX;
+        expect(clip().style.left).toBe(-clipLeft + 'px');
+        expect(clip().style.bottom).toBe((CONFIG.GRAVEYARD_HILL_HEIGHT_PX - CONFIG.GRAVEYARD_TREE_SINK_PX) + 'px');
+        // art left edge (in the clipper) + trunk column, minus the clipper's reach = the trunk's x in the zone
+        expect(parseFloat(tree().style.left) + CONFIG.GRAVEYARD_TREE_TRUNK_COL - clipLeft).toBe(CONFIG.GRAVEYARD_TREE_BASE_X_PX);
+    });
+
+    test('a null stage hides the tree (?treeStage=off)', () => {
+        init({}, history(5), 3, null);
+        expect(tree().hidden).toBe(true);
+        expect(tree().dataset.stage).toBeUndefined();
+    });
+
+    test('the view redraws when the stage changes (a night passes mid-session)', () => {
+        let treeStage = 1;
+        build();
+        GraveyardView.init({ getRunHistory: () => history(2), getMemorialStage: () => 1, getTreeStage: () => treeStage, onOpenStats: jest.fn(), onOpenMemorial: jest.fn() });
+        GraveyardView.render(160);
+        expect(tree().dataset.stage).toBe('1');
+        treeStage = 2;
+        GraveyardView.render(160);
+        expect(tree().dataset.stage).toBe('2');
+    });
+
+    test('hidden in the portrait strip (zone width 0): nothing is placed', () => {
+        init({ zoneW: 0 }, history(5), 3, 3);
+        expect(tree().hidden).toBe(true);
+    });
+
+    test('a view without a tree dep or element still renders the Memorial', () => {
+        build();
+        document.getElementById('graveyardTree').remove();
+        GraveyardView.init({ getRunHistory: () => history(1), getMemorialStage: () => 2, onOpenStats: jest.fn(), onOpenMemorial: jest.fn() });
+        GraveyardView.render(160);
+        expect(document.querySelectorAll('#graveyardStones .graveyard-memorial')).toHaveLength(1);
+    });
 });

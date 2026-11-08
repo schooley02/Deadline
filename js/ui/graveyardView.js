@@ -20,6 +20,7 @@
  *
  * Deps: { getRunHistory: () => newest-first array of run records ({ run: n, ... }),
  *         getMemorialStage: () => 1..5, or null to hide the obelisk (DEV: ?memorialTier=off),
+ *         getTreeStage: () => 1..3 (sapling / young / giant by lifetime nights, js/treeGrowth.js), or null to hide the tree (DEV: ?treeStage=off),
  *         onOpenMemorial: () => void   (the obelisk's tap),
  *         onOpenStats: () => void }   (a run grave's tap)
  */
@@ -28,6 +29,8 @@ const GraveyardView = (() => {
     let canvasEl = null;
     let zoneEl = null;
     let memorialLayerEl = null;
+    let treeEl = null;
+    let treeClipEl = null;
     let runsEl = null;
     let lastSig = null;
 
@@ -113,6 +116,28 @@ const GraveyardView = (() => {
         memorialLayerEl.appendChild(b);
     }
 
+    // The growing tree (docs/ART_STYLE "Growing tree"): ONE span inside the clipper, its PNG chosen by data-stage in css/graveyard.css. All three
+    // stages are artW x artH drawn 1:1 with the trunk base in the same column, so only the picture changes as the tree grows. The art's
+    // trunk column stands baseX px in from the zone's left edge, its bottom edge `sink` px below the hill's flat top; the clipper reaches
+    // `clipLeft` px left of the zone and is cut at the zone's right edge.
+    function renderTree(c, stage, hillH) {
+        if (!treeEl || !treeClipEl) return;
+        if (!(stage >= 1 && stage <= 3)) { treeEl.hidden = true; treeEl.removeAttribute('data-stage'); return; }
+        const artW = c.GRAVEYARD_TREE_ART_W_PX || 192;
+        const artH = c.GRAVEYARD_TREE_ART_H_PX || 128;
+        const trunkCol = typeof c.GRAVEYARD_TREE_TRUNK_COL === 'number' ? c.GRAVEYARD_TREE_TRUNK_COL : 146;
+        const baseX = typeof c.GRAVEYARD_TREE_BASE_X_PX === 'number' ? c.GRAVEYARD_TREE_BASE_X_PX : 110;
+        const sink = typeof c.GRAVEYARD_TREE_SINK_PX === 'number' ? c.GRAVEYARD_TREE_SINK_PX : 15;
+        const clipLeft = typeof c.GRAVEYARD_TREE_CLIP_LEFT_PX === 'number' ? c.GRAVEYARD_TREE_CLIP_LEFT_PX : 80;
+        treeClipEl.style.left = (-clipLeft) + 'px';
+        treeClipEl.style.bottom = (hillH - sink) + 'px';
+        treeEl.hidden = false;
+        treeEl.dataset.stage = String(stage);
+        treeEl.style.width = artW + 'px';
+        treeEl.style.height = artH + 'px';
+        treeEl.style.left = (clipLeft + baseX - trunkCol) + 'px';
+    }
+
     function renderRuns(c, canvasW, canvasH, hillW, baseW) {
         const history = (deps && deps.getRunHistory && deps.getRunHistory()) || [];
         const ids = history.map((r, i) => (r && typeof r.run === 'number') ? r.run : history.length - i);
@@ -155,7 +180,8 @@ const GraveyardView = (() => {
         const baseW = (typeof baseWidth === 'number' ? baseWidth : 0);
         const history = (deps.getRunHistory && deps.getRunHistory()) || [];
         const stage = (deps.getMemorialStage && deps.getMemorialStage());
-        const sig = [hillW, canvasW, canvasH, baseW, stage == null ? '-' : stage, history.map(r => r && r.run).join(',')].join('|');
+        const treeStage = (deps.getTreeStage && deps.getTreeStage());
+        const sig = [hillW, canvasW, canvasH, baseW, stage == null ? '-' : stage, treeStage == null ? '-' : treeStage, history.map(r => r && r.run).join(',')].join('|');
         if (sig === lastSig) return;
         lastSig = sig;
         if (hillW === 0) { // portrait strip / hidden: nothing to place
@@ -163,6 +189,7 @@ const GraveyardView = (() => {
             runsEl.textContent = '';
             return;
         }
+        renderTree(c, treeStage, hillHeight(c));
         renderMemorial(c, stage);
         renderRuns(c, canvasW, canvasH, hillW, baseW);
     }
@@ -172,6 +199,8 @@ const GraveyardView = (() => {
         canvasEl = document.getElementById('gameCanvas');
         zoneEl = document.getElementById('graveyardZone');
         memorialLayerEl = document.getElementById('graveyardStones');
+        treeEl = document.getElementById('graveyardTree');
+        treeClipEl = treeEl ? treeEl.parentElement : null;
         runsEl = document.getElementById('runGraves');
         lastSig = null;
         if (!canvasEl || !zoneEl || !memorialLayerEl || !runsEl) { deps = null; return; }

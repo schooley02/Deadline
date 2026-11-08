@@ -28,6 +28,7 @@ describe('freshLifetimeStats', () => {
             subtasksCompleted: 0,
             habitsCompleted: 0,
             bestRunDaysSurvived: 0,
+            nightsSurvived: 0, // 2026-11-08: lifetime nights banked for the growing tree
             bestHabitStreak: 0,
             pointsRecoveries: 0,
             heroHonorDays: 0,

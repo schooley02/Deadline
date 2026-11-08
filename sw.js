@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v285';
+const CACHE_NAME = 'deadline-shell-v286';
 
 const APP_SHELL = [
     './',
@@ -79,6 +79,7 @@ const APP_SHELL = [
     'js/anytimeCheck.js',
     'js/villageProgress.js',
     'js/memorial.js',
+    'js/treeGrowth.js', // growing tree rule (2026-11-08)
     'js/villageDrops.js',
     'js/runClimate.js',
     'js/rainSim.js',
@@ -272,6 +273,9 @@ const APP_SHELL = [
     'Assets/scene/treeline.png',
     'Assets/scene/village-field.png',
     'Assets/scene/graveyard-hill.png', // graveyard mound (2026-11-08)
+    'Assets/scene/graveyard-tree-1.png', // growing tree: sapling / young / giant (2026-11-08)
+    'Assets/scene/graveyard-tree-2.png',
+    'Assets/scene/graveyard-tree-3.png',
     'Assets/fonts/press-start-2p-latin-400-normal.woff2',
     'Assets/icons/icon-192.png',
     'Assets/icons/icon-512.png',

@@ -358,7 +358,11 @@
 .nights-count--d4 { font-size: 12px; }
 
 .nights-label {
-    margin-top: 10px;
+    margin-top: 7px;
+    /* Dark backing, always on (2026-11-08, Jeremy): the grown tree's canopy reaches this label, so it must stay readable over branches. Fog / Storm
+       (css/climate.css) already used the same plate. */
+    background: rgba(11, 11, 36, 0.6);
+    padding: 3px 5px;
     white-space: nowrap;
     font-family: var(--font-primary);
     font-weight: 700;

@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     GraveyardView.init({
         getRunHistory: () => State.getRunHistory(),
         getMemorialStage: () => memorialStageNow(),
+        getTreeStage: () => treeStageNow(),
         onOpenMemorial: () => openMemorialPanel(),
         onOpenStats: () => openManagementWindow('stats'),
     });
@@ -99,6 +100,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const demoTier = DevDemo.villageTier();
         if (demoTier != null) return VillageLayout.resolveTier('', 'memorialTier', demoTier, tiers);
         return VillageLayout.resolveTier(window.location.search, 'memorialTier', real, tiers);
+    }
+    // Growing tree (2026-11-08, js/treeGrowth.js): sapling / young / giant by LIFETIME nights = the banked nights of finished runs
+    // (lifetimeStats.nightsSurvived) + the run in progress, counted like the moon's number (0 once the game is over: that run is already
+    // banked). `?treeStage=1..3|off` overrides it for art checks. Read-only: nothing here saves or pays.
+    function treeStageNow() {
+        const stats = State.getLifetimeStats() || {};
+        const current = NightsSurvivedView.countMidnights(State.getRunStartedAtMs(), Date.now());
+        const nights = TreeGrowth.total(stats.nightsSurvived, current, State.isGameOver());
+        return TreeGrowth.resolve(window.location.search, TreeGrowth.stage(nights, CONFIG.TREE_STAGE_NIGHTS));
     }
     // The Memorial's own window (js/ui/memorialPanel.js): the REAL stage and tiers, never the dev overrides, so it always tells the truth about the save.
     function openMemorialPanel() {
@@ -558,6 +568,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // run end only raises the best-run high-water mark now.
             recordLifetimeRunEnd: (record, days) => applyLifetimeProgress((stats) => {
                 stats.bestRunDaysSurvived = Math.max(stats.bestRunDaysSurvived || 0, days || 0);
+                // Growing tree (2026-11-08): bank the run's nights so the lifetime total never goes down when a new run starts.
+                stats.nightsSurvived = (stats.nightsSurvived || 0) + Math.max(0, days || 0);
             }),
             // Achievements swap (2026-11-03): State.closeDailyRecord hands over each CLOSED day (after the days store
             // saved) so Honor Roll (hero-days at >= CONFIG.HERO_HONOR_ROLL_STARS) and Clean Sweep (a clean day) grow
