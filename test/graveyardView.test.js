@@ -30,8 +30,10 @@ const history = n => Array.from({ length: n }, (_, i) => ({ run: n - i }));
 function init(opts = {}, hist = history(5), stage = 3) {
     build(opts);
     const onOpenStats = jest.fn();
-    GraveyardView.init({ getRunHistory: () => hist, getMemorialStage: () => stage, onOpenStats });
+    const onOpenMemorial = jest.fn();
+    GraveyardView.init({ getRunHistory: () => hist, getMemorialStage: () => stage, onOpenStats, onOpenMemorial });
     GraveyardView.render(160);
+    onOpenStats.memorial = onOpenMemorial; // the Memorial's own window (2026-11-08); run graves still open Stats
     return onOpenStats;
 }
 
@@ -42,7 +44,7 @@ describe('the Memorial obelisk', () => {
         init({}, history(5), 3);
         expect(memorial()).toHaveLength(1);
         const b = memorial()[0];
-        expect(b.getAttribute('aria-label')).toBe('Memorial, stage 3 of 5. Open Stats');
+        expect(b.getAttribute('aria-label')).toBe('Memorial, stage 3 of 5. Open');
         expect(b.dataset.stage).toBe('3');
         expect(b.querySelector('.graveyard-memorial-art').dataset.stage).toBe('3');
         expect(document.querySelectorAll('.graveyard-stone')).toHaveLength(0); // the six placeholder stones are gone
@@ -110,13 +112,14 @@ describe('the Memorial obelisk', () => {
         expect(memorial()[0].dataset.stage).toBe('2');
     });
 
-    test('tapping it opens Stats once and does not bubble to the document', () => {
+    test('tapping it opens the Memorial window (not Stats), once, and does not bubble to the document', () => {
         const onOpenStats = init();
         const docClick = jest.fn();
         document.addEventListener('click', docClick);
         memorial()[0].click();
         document.removeEventListener('click', docClick);
-        expect(onOpenStats).toHaveBeenCalledTimes(1);
+        expect(onOpenStats.memorial).toHaveBeenCalledTimes(1);
+        expect(onOpenStats).not.toHaveBeenCalled();
         expect(docClick).not.toHaveBeenCalled();
     });
 });

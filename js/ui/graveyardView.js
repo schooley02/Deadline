@@ -6,7 +6,7 @@
  *   #graveyardZone   fixed-width hill on the right (CONFIG.GRAVEYARD_HILL_WIDTH_PX) with ONE Memorial obelisk on its flat top
  *                    (2026-11-08; it replaced the six placeholder headstones, one per achievement family). The sprite is the
  *                    Memorial's stage (js/memorial.js: floor of the average of the 8 buildings' all-time best tiers), drawn in front
- *                    of the tree; one tap box opens Stats.
+ *                    of the tree; one tap box opens the Memorial window (js/ui/memorialPanel.js; run graves still open Stats).
  *   #runGraves       past-run graves on the ZOMBIE lanes (newest next to the hill). Each is a
  *                    direct child with its own z-index just under its lane's zombies (lane L
  *                    zombies own z CONFIG.LIST_Z_MIN + L*CONFIG.LIST_Z_LANE_STRIDE and up), so
@@ -20,7 +20,8 @@
  *
  * Deps: { getRunHistory: () => newest-first array of run records ({ run: n, ... }),
  *         getMemorialStage: () => 1..5, or null to hide the obelisk (DEV: ?memorialTier=off),
- *         onOpenStats: () => void }
+ *         onOpenMemorial: () => void   (the obelisk's tap),
+ *         onOpenStats: () => void }   (a run grave's tap)
  */
 const GraveyardView = (() => {
     let deps = null;
@@ -54,13 +55,18 @@ const GraveyardView = (() => {
         if (deps && deps.onOpenStats) deps.onOpenStats();
     }
 
-    function makeButton(cls, label) {
+    function makeButton(cls, label, handler) {
         const b = document.createElement('button');
         b.type = 'button';
         b.className = cls;
         b.setAttribute('aria-label', label);
-        b.addEventListener('click', open);
+        b.addEventListener('click', handler || open);
         return b;
+    }
+
+    function openMemorial(e) {
+        if (e && e.stopPropagation) e.stopPropagation(); // Modal's document click would dismiss the window at once
+        if (deps && deps.onOpenMemorial) deps.onOpenMemorial();
     }
 
     // The Memorial's geometry from CONFIG (docs/ART_STYLE "Memorial obelisk T1-T5"). The PNG is artW x artH, drawn 1:1, bottom-aligned. Its
@@ -88,7 +94,7 @@ const GraveyardView = (() => {
         memorialLayerEl.textContent = '';
         if (!(stage >= 1 && stage <= 5)) return; // hidden (DEV off) or unknown: no obelisk
         const g = memorialGeometry(c);
-        const b = makeButton('graveyard-memorial', `Memorial, stage ${stage} of 5. Open Stats`);
+        const b = makeButton('graveyard-memorial', `Memorial, stage ${stage} of 5. Open`, openMemorial);
         b.dataset.stage = String(stage);
         b.style.left = g.hitLeft + 'px';
         b.style.bottom = g.hitBottom + 'px';

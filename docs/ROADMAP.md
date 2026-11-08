@@ -363,7 +363,7 @@ Scoped from a structured live playtest.
 Loose on purpose; tighten it after the Goals + Targets design session (V7 D1). Pre-alpha is done when:
 - [ ] **Goals** designed (DESIGNED 2026-11-04, Claude app session, Fable; plan `docs/GOALS_PLAN.md`; DECISIONS 2026-11-04 (goals): a Goals PANE, not the distant city) and built (Builds A-C below, under Milestone 5).
 - [ ] **Graveyard** designed and built (V7 graveyard region, incl. the Memorial). Hill art + Memorial obelisk BUILT 2026-11-08; the growing tree (3 stages) and real headstones are still open.
-  - [ ] **Memorial card** at the top of the Stats window (Jeremy, 2026-11-08): stage sprite, the one-line rule, the 8 buildings' best-ever vs this-run tiers as pips, tier-ups to the next stage (`Memorial.progress`). Build after the phone check of the wired obelisk.
+  - [x] **Memorial window** (Jeremy, 2026-11-08, built the same day as its own window, NOT a Stats card): obelisk tap + a Village-panel link open `MemorialPanel` (stage sprite, rule, 8 best-vs-this-run pip rows, tier-ups to the next stage). Not phone-checked.
 - [ ] **Polish passes** after this one (M5 continues).
 - [ ] **Updated UI + graphics** (village tiers/buildings after the Nov 7 PixelLab reset, timer UI design session, etc.).
 - [ ] **Sound** (see the Sound track below).

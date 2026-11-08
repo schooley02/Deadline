@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     GraveyardView.init({
         getRunHistory: () => State.getRunHistory(),
         getMemorialStage: () => memorialStageNow(),
+        onOpenMemorial: () => openMemorialPanel(),
         onOpenStats: () => openManagementWindow('stats'),
     });
     // Achievement village (V7 W2): eight buildings on the horizon hill. Build 2 (2026-10-30): each building's tier is
@@ -98,6 +99,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const demoTier = DevDemo.villageTier();
         if (demoTier != null) return VillageLayout.resolveTier('', 'memorialTier', demoTier, tiers);
         return VillageLayout.resolveTier(window.location.search, 'memorialTier', real, tiers);
+    }
+    // The Memorial's own window (js/ui/memorialPanel.js): the REAL stage and tiers, never the dev overrides, so it always tells the truth about the save.
+    function openMemorialPanel() {
+        MemorialPanel.open({ best: State.getBestVillageTiers(), current: realVillageTiers() || {} });
     }
     // Raise the saved all-time best tiers once a second from the REAL tiers (never the dev overrides). Skipped while the game is over (the
     // run's peak is on its history record and is merged back in on load) and during offline catch-up (the first tick afterwards covers it).
@@ -2825,6 +2830,8 @@ document.addEventListener('DOMContentLoaded', () => {
         VillagePanel.open({
             progress,
             spriteFor: villageSpriteFor,
+            memorial: { stage: Memorial.stage(State.getBestVillageTiers()) },
+            onOpenMemorial: () => openMemorialPanel(),
             onOpenBuilding: (kind) => {
                 const sprite = villageSpriteFor(kind, progress[kind] ? progress[kind].tier : 1);
                 const placement = (CONFIG.VILLAGE_PLACEMENT || {})[kind] || {};
