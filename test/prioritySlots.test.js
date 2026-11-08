@@ -333,6 +333,9 @@ describe('Items.syncPriorityOnMove', () => {
         deps.recomputeOverdueStateAfterEdit = () => {};
         Items.clampSubTasksToParentDeadline(parent, Object.assign(deps, {
             gameScreenWidth: 800, enemyWidth: 64, calculateTimelineXWithClustering: () => 0,
+            // The fixed Nov 2026 dates are in the past once the real clock passes them, which sends the clamp through the
+            // overdue branch (needs these). Same result at any date.
+            baseWidth: 0, getSubTaskClusterOffset: () => 0,
         }));
         expect(sub.dueDateTime.getTime()).toBe(parent.dueDateTime.getTime());
         expect(sub.isHighPriority).toBe(false);
