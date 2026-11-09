@@ -144,7 +144,7 @@ const GraveyardView = (() => {
         const artH = c.GRAVEYARD_TREE_ART_H_PX || 128;
         const trunkCol = typeof c.GRAVEYARD_TREE_TRUNK_COL === 'number' ? c.GRAVEYARD_TREE_TRUNK_COL : 146;
         const baseX = typeof c.GRAVEYARD_TREE_BASE_X_PX === 'number' ? c.GRAVEYARD_TREE_BASE_X_PX : 110;
-        const sink = typeof c.GRAVEYARD_TREE_SINK_PX === 'number' ? c.GRAVEYARD_TREE_SINK_PX : 15;
+        const sink = typeof c.GRAVEYARD_TREE_SINK_PX === 'number' ? c.GRAVEYARD_TREE_SINK_PX : 5;
         const clipLeft = typeof c.GRAVEYARD_TREE_CLIP_LEFT_PX === 'number' ? c.GRAVEYARD_TREE_CLIP_LEFT_PX : 80;
         treeClipEl.style.left = (-clipLeft) + 'px';
         treeClipEl.style.bottom = (hillH - sink) + 'px';
@@ -159,7 +159,7 @@ const GraveyardView = (() => {
     // on the trunk's base. Transparent (the tree is drawn by the clipper); below the obelisk (z 10 < 20). Appended AFTER renderMemorial, which clears the layer.
     function renderTreeHit(c, stage, hillH) {
         if (!(stage >= 1 && stage <= 3)) return;
-        const sink = typeof c.GRAVEYARD_TREE_SINK_PX === 'number' ? c.GRAVEYARD_TREE_SINK_PX : 15;
+        const sink = typeof c.GRAVEYARD_TREE_SINK_PX === 'number' ? c.GRAVEYARD_TREE_SINK_PX : 5;
         const hitW = Math.max(44, c.GRAVEYARD_TREE_HIT_W_PX || 44);
         const hitH = Math.max(44, c.GRAVEYARD_TREE_HIT_H_PX || 110);
         const hitLeft = typeof c.GRAVEYARD_TREE_HIT_LEFT_PX === 'number' ? c.GRAVEYARD_TREE_HIT_LEFT_PX : 96;

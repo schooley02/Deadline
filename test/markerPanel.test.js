@@ -235,6 +235,11 @@ describe('art + shell + wiring', () => {
         expect(hill).toMatch(/:has\(\.graveyard-tree-hit:hover\) \.graveyard-tree \{\s*transform: scale\(1\.05\);/);
         expect(hill).toMatch(/:has\(\.graveyard-tree-hit:hover\) \.graveyard-tree-clip \{ z-index: 3; \}/);
     });
+    test('a mouse only hits the visible stone: with a fine pointer a ::before layer clipped per stage takes the pointer; touch keeps the full box', () => {
+        expect(hill).toMatch(/@media \(pointer: fine\) \{\s*\.milestone-marker \{ pointer-events: none; \}/);
+        expect(hill).toMatch(/\.milestone-marker::before \{[^}]*pointer-events: auto;/);
+        [0, 1, 2, 3, 4].forEach((n) => expect(hill).toContain(`.milestone-marker[data-stage="${n}"]::before { clip-path: inset(`));
+    });
     test('the stones layer stays above the tree clipper (clip-path made it a stacking context)', () => {
         expect(hill).toMatch(/\.graveyard-stones \{[^}]*z-index: 2;/);
         expect(hill).toMatch(/\.graveyard-tree-clip \{[^}]*z-index: 1;/);

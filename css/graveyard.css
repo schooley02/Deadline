@@ -61,7 +61,7 @@
     position: absolute;
     left: -80px; /* graveyardView.js rewrites left / bottom from CONFIG.GRAVEYARD_TREE_*; these are the matching fallbacks */
     right: 0;
-    bottom: calc(var(--gy-hill-h) - 15px);
+    bottom: calc(var(--gy-hill-h) - 5px);
     height: 600px;
     overflow: hidden;
     z-index: 1;
@@ -206,6 +206,29 @@
 .milestone-marker-art[data-stage="2"] { background-image: url("../Assets/scene/headstone-2.png"); }
 .milestone-marker-art[data-stage="3"] { background-image: url("../Assets/scene/headstone-3.png"); }
 .milestone-marker-art[data-stage="4"] { background-image: url("../Assets/scene/headstone-4.png"); }
+
+/* Mouse hit area (2026-11-08, Jeremy: the glow flickered as the pointer crossed the stones). Each tap box is 48px square but the stone drawn in it is
+   smaller, and the boxes overlap, so a mouse lit up stones it was nowhere near. With a precise pointer the box itself ignores the pointer and a
+   ::before layer takes it, cut (clip-path hit-tests) to the stone's visible shape plus ~5px: inset(top right bottom left), one per stage from each
+   PNG's non-transparent bounds x1.5. Touch keeps the full 48px box (a finger needs it). The art is a separate child, so its glow is not clipped. */
+@media (pointer: fine) {
+    .milestone-marker { pointer-events: none; }
+    .milestone-marker::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: auto;
+        cursor: pointer;
+    }
+    .milestone-marker[data-stage="0"]::before { clip-path: inset(10px 4px 0 5px); }
+    .milestone-marker[data-stage="1"]::before { clip-path: inset(17px 4px 0 4px); }
+    .milestone-marker[data-stage="2"]::before { clip-path: inset(13px 3px 0 4px); }
+    .milestone-marker[data-stage="3"]::before { clip-path: inset(10px 0 0 0); }
+    .milestone-marker[data-stage="4"]::before { clip-path: inset(2px 0 0 0); }
+}
 
 .milestone-marker:focus-visible .milestone-marker-art,
 .milestone-marker:active .milestone-marker-art {

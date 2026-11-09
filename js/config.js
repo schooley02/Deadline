@@ -566,7 +566,7 @@ const CONFIG = {
     GRAVEYARD_TREE_ART_H_PX: 128,
     GRAVEYARD_TREE_TRUNK_COL: 146,
     GRAVEYARD_TREE_BASE_X_PX: 110,
-    GRAVEYARD_TREE_SINK_PX: 15,
+    GRAVEYARD_TREE_SINK_PX: 5, // was 15; raised 10px 2026-11-08 (Jeremy: more ground above it)
     GRAVEYARD_TREE_CLIP_LEFT_PX: 80, // how far the clipper reaches left of the zone (the canopy overhangs the field)
     // The tree's one tap box (opens the Tree window, js/ui/treePanel.js): the 44px strip of zone to the right of the Memorial's tap box (which spans
     // x 24-96), so the two never overlap. It stands on the trunk's base (bottom = hill height - sink) and rises hitH (2026-11-08).

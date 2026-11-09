@@ -56,10 +56,10 @@ describe('the art', () => {
 });
 
 describe('placement is the one Jeremy settled on (2026-11-08)', () => {
-    test('trunk column 146 stands 110px into the zone, the roots sink 15px into the hill', () => {
+    test('trunk column 146 stands 110px into the zone, the roots sink 5px into the hill (was 15 until 2026-11-08, when Jeremy had the tree moved up 10px)', () => {
         expect(CONFIG.GRAVEYARD_TREE_TRUNK_COL).toBe(146);
         expect(CONFIG.GRAVEYARD_TREE_BASE_X_PX).toBe(110);
-        expect(CONFIG.GRAVEYARD_TREE_SINK_PX).toBe(15);
+        expect(CONFIG.GRAVEYARD_TREE_SINK_PX).toBe(5);
         expect(CONFIG.GRAVEYARD_TREE_BASE_X_PX).toBeLessThan(CONFIG.GRAVEYARD_HILL_WIDTH_PX);
     });
     test('the trunk is to the right of the Memorial\'s widest base so it shows beside the obelisk', () => {
