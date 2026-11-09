@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-08 (Marker polish, hover, flicker) -- same evening as "Milestone markers" (Claude app session; Sonnet 5.5, Fable 5.1 for the flicker; Jeremy)
+
+- **Size + place:** stones are the 32px files drawn at 48px (1.5x pixelated), tap box 48px; staggered over the hill face and the dirt band, one on the hill's low LEFT slope (stones layer `clip-path: inset(0 0 0 -52px)`, z 2). Tree raised 10px (`GRAVEYARD_TREE_SINK_PX` 15 -> 5), more ground above it. sw v291-v295.
+- **Hover = the zombie recipe** (Jeremy: "a little bigger, to the forefront, highlighted in white") on headstones (1.1x), Memorial and tree (1.05x) and the village buildings (1.05x, `.village-hover`, picked by the same alpha hit-test as a tap and measured at the UNSCALED size so growing cannot toggle the hover at an edge). Desktop only (`@media (hover: hover)`).
+- **Mouse hit shape:** with `pointer: fine` each stone's `::before` takes the pointer, clipped to the picture's visible bounds per stage; touch keeps the full 48px box.
+- **Flicker root cause (reproduced headless at 1.25x, fixed):** a transform transition on anything painted BEFORE the hill (village sprites) made Chrome promote then demote the hill's layers, re-rastering the pixel art with a different sub-pixel snap. Fix: `will-change: transform` on `.graveyard-zone`, the marker / Memorial arts and the tree. Rejected: removing the hover (Jeremy wants it); `will-change` on the village sprites (not reported; test was contaminated by the glow overlap).
+
 ## 2026-11-08 (Milestone markers) -- small headstones on the hill track all-time achievements (Claude app session; Sonnet 5.5; Jeremy)
 
 - **Decision:** the "real headstones" become 7 small markers on the graveyard hill, one per ALL-TIME achievement family (Task Slayer, Habit Hero, Survivor, Clean Sweep, On Fire, Iron Will, Honor Roll; `CONFIG.MARKER_FAMILIES`). NOT the 8 village buildings (those can go up and down). No mausoleum: only small stones. One shared 5-picture set: wooden cross (no badge yet), Bronze, Silver, Gold, Platinum. Honor Roll was squeezed in because Jeremy said routines are important.
