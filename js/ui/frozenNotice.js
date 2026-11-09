@@ -40,6 +40,35 @@
  * through `Modal.open()` rather than a raw `insertAdjacentHTML` call.
  */
 const FrozenNotice = (() => {
+    // Notice art (2026-11-09, Jeremy: a level-up window must show the thing it is about -- a routine's category animation, a
+    // building, a headstone, a zombie). Every picture is a plain <img>. Callers pass a ready path (the village sprites come from
+    // VillageLayout in script.js); the two helpers below build the only paths made here. An empty path draws nothing, so a window
+    // never breaks because a picture is unknown. The player level-up banner (js/ui/hud.js) stays text until the player avatar exists.
+    const HEADSTONE_MAX_STAGE = 4;
+    const ZOMBIE_CATEGORIES = ['other', 'career', 'creativity', 'financial', 'health', 'lifestyle', 'relationships', 'spirituality'];
+    const ZOMBIE_FILE_KEY = { spirituality: 'spiritual' }; // the zombie PNGs predate the 'spirituality' key (same map as heroSpotlight.js)
+    const escAttr = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    /** One notice picture, or '' when there is no path. cls = extra classes (size / effect). */
+    function artHtml(url, cls) {
+        if (!url) return '';
+        return `<img class="notice-art${cls ? ' ' + cls : ''}" src="${escAttr(url)}" alt="" draggable="false">`;
+    }
+
+    /** Graveyard headstone picture for a stage 0..4 (the same files the hill markers use). Anything else = no picture. */
+    function headstoneUrl(stage) {
+        if (stage == null || stage === '') return '';
+        const n = Math.floor(Number(stage));
+        if (!isFinite(n) || n < 0 || n > HEADSTONE_MAX_STAGE) return '';
+        return `Assets/scene/headstone-${n}.png`;
+    }
+
+    /** The category zombie's picture. A category the game does not know falls back to 'other', like every hero lookup. */
+    function zombieUrl(category) {
+        const cat = ZOMBIE_CATEGORIES.indexOf(category) !== -1 ? category : 'other';
+        return `Assets/Zombies/${ZOMBIE_FILE_KEY[cat] || cat}-zombie-64.png`;
+    }
+
     function showFrozenRoutineNotice(routineName, habitName) {
         // dedupeSelector: don't stack a second notice (e.g. two habits in
         // the same routine both crossing their freeze threshold in the same
@@ -151,7 +180,8 @@ const FrozenNotice = (() => {
     // auto-resolve path (see items.js's notifyStreakMilestone comment). Same
     // defer:true + `.frozen-notice-overlay` dedupeSelector pattern as every
     // other notice in this module.
-    function showStreakMilestoneNotice(habitName, streak, tier) {
+    // category (2026-11-09): the habit's category; its zombie stands above the text with a fire glow (`--fire` / `--blazing`).
+    function showStreakMilestoneNotice(habitName, streak, tier, category) {
         const isBlazing = tier === 'blazing';
         const emoji = isBlazing ? '🔥🔥' : '🔥';
         const headline = isBlazing
@@ -163,10 +193,12 @@ const FrozenNotice = (() => {
         // The inline (i) opens "How Deadline works" on Streaks (2026-11-03).
         const infoButton = (typeof HowItWorks !== 'undefined' && HowItWorks.buttonHtml)
             ? HowItWorks.buttonHtml('streaks', 'How streaks work') : '';
+        const art = artHtml(zombieUrl(category), `notice-art--zombie ${isBlazing ? 'notice-art--blazing' : 'notice-art--fire'}`);
 
         const modalHtml = `
             <div class="modal-overlay frozen-notice-overlay">
                 <div class="modal-content frozen-notice-modal">
+                    ${art}
                     <h3>${emoji} ${headline}</h3>
                     <p>${body}${infoButton}</p>
                     <div class="modal-buttons">
@@ -230,9 +262,12 @@ const FrozenNotice = (() => {
             // catalog convention for a family with one unnamed tier), so it
             // only renders when present. Found live in session 65's playtest:
             // the first Back in Black unlock toasted as "Back in Black (null)".
-            const rows = unlocks.map(u =>
-                `<li><strong>${u.familyName}</strong>${u.label ? ` — ${u.label}` : ''}</li>`
-            ).join('');
+            // headstoneStage (2026-11-09, set in script.js for the families that have a headstone): the stone reached, drawn beside the row.
+            const rows = unlocks.map(u => {
+                const stone = artHtml(u.headstoneStage >= 1 ? headstoneUrl(u.headstoneStage) : '', 'notice-art--thumb'); // 0 = no headstone for this family
+                const text = `<strong>${u.familyName}</strong>${u.label ? ` — ${u.label}` : ''}`;
+                return stone ? `<li class="notice-art-row">${stone}<span>${text}</span></li>` : `<li>${text}</li>`;
+            }).join('');
             const headline = unlocks.length === 1
                 ? `Achievement unlocked: ${unlocks[0].familyName}${unlocks[0].label ? ` (${unlocks[0].label})` : ''}`
                 : `${unlocks.length} achievements unlocked`;
@@ -264,13 +299,16 @@ const FrozenNotice = (() => {
     // a free pushback. ONE-TIME like an achievement unlock (the star is already earned), so it QUEUES behind any open
     // modal instead of being dropped, and several stars earned together batch into one notice.
     // `gains`: the lines for each new star, e.g. ['+1 Short pushback a day']; `star`: the highest star reached.
+    // `spriteUrl` (2026-11-09): the Clock tower picture at that star (script.js passes the village sprite); the batch keeps the highest star's.
     let pendingClockGains = [];
     let pendingClockStar = 0;
+    let pendingClockSprite = '';
     let clockWaiterId = null;
-    function showClockTowerStarUpNotice(star, gains) {
+    function showClockTowerStarUpNotice(star, gains, spriteUrl) {
         const lines = (Array.isArray(gains) ? gains : []).filter(Boolean);
         if (lines.length === 0) return;
         pendingClockGains.push(...lines);
+        if ((Number(star) || 0) >= pendingClockStar && spriteUrl) pendingClockSprite = spriteUrl;
         pendingClockStar = Math.max(pendingClockStar, Number(star) || 0);
         if (clockWaiterId !== null) return;
         const tryShow = () => {
@@ -280,14 +318,17 @@ const FrozenNotice = (() => {
             }
             const rows = pendingClockGains;
             const top = pendingClockStar;
+            const sprite = pendingClockSprite;
             pendingClockGains = [];
             pendingClockStar = 0;
+            pendingClockSprite = '';
             clockWaiterId = null;
             if (!rows.length) return;
             const li = rows.map(r => `<li>${r.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</li>`).join('');
             Modal.open(`
                 <div class="modal-overlay frozen-notice-overlay">
                     <div class="modal-content frozen-notice-modal">
+                        ${artHtml(sprite, 'notice-art--building')}
                         <h3>Clock tower ${'\u2605'.repeat(Math.max(1, Math.min(5, top)))}</h3>
                         <p>Your Clock tower earned a new star. Your free pushbacks grow:</p>
                         <ul class="frozen-notice-recovery-list">${li}</ul>
@@ -336,7 +377,8 @@ const FrozenNotice = (() => {
     }
 
     // Village tier drops (2026-11-03): ONE notice listing every item a village building just paid. `entries` = [{ building, star, label }]
-    // (building = the card's name, e.g. "Radio tower"; label = "Repair Kit (Small) \u00d71"). Rows that arrive while a notice is waiting
+    // (building = the card's name, e.g. "Radio tower"; label = "Repair Kit (Small) \u00d71"; spriteUrl (2026-11-09) = that building at the star it
+    // just reached, drawn beside the row). Rows that arrive while a notice is waiting
     // (or while another modal is open) join the same modal, so a first-load payout of several stars is one window, not eight.
     let pendingVillageRewards = [];
     let villageRewardWaiterId = null;
@@ -355,7 +397,11 @@ const FrozenNotice = (() => {
             villageRewardWaiterId = null;
             if (!list.length) return;
             const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-            const li = list.map(r => `<li>${esc(r.building)} ${'\u2605'.repeat(Math.max(1, Math.min(5, Math.round(Number(r.star) || 1))))}: ${esc(r.label)}</li>`).join('');
+            const li = list.map(r => {
+                const text = `${esc(r.building)} ${'\u2605'.repeat(Math.max(1, Math.min(5, Math.round(Number(r.star) || 1))))}: ${esc(r.label)}`;
+                const pic = artHtml(r.spriteUrl, 'notice-art--thumb');
+                return pic ? `<li class="notice-art-row">${pic}<span>${text}</span></li>` : `<li>${text}</li>`;
+            }).join('');
             Modal.open(`
                 <div class="modal-overlay frozen-notice-overlay">
                     <div class="modal-content frozen-notice-modal">
@@ -451,6 +497,9 @@ const FrozenNotice = (() => {
         showGoalPeriodNotice,
         showGoalOwedNotice,
         goalDetailLines,
+        artHtml,
+        headstoneUrl,
+        zombieUrl,
     };
 })();
 

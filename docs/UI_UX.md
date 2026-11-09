@@ -265,6 +265,15 @@ A negative habit's time of day is a TRIGGER time, not a deadline (lurkers never 
 - **Shop owned counts (BUILT 2026-11-04, sw v244; DECISIONS 2026-11-04 (shop counts)):** a card for an item you hold gets a green "×N" badge sitting on its top border (right side) and a stronger green border; at zero there is no badge (the old grey "Held: N" line is gone). The first thing in the grid is a **"You have"** row: one chip per held item in catalog order ("🔧 Repair Kit (Small) ×2"), or "Nothing yet"; tapping a chip scrolls its card to the top (`scroll-margin-top` keeps the badge in view). `ShopView.ownedSummary` (pure) + `buildOwnedRow`, rebuilt on every render, so both render paths stay current after a buy / use. The badge pokes UP only, never past the card's right edge (`.window-content` scrolls, so it would add a sideways scroll). Checked headless at 390x844, 360x740, 844x390, 568x320: no overflow, no clipping, window stays open after a chip tap.
 - **Steward title:** past-run cards get a "🏅 Steward of the Church" badge (`.stats-run-card-title-badge`, wraps as a unit) and the game-over card a title line (`.game-over-title`) for runs whose `peakPlayerLevel` reached the title's level. Level panel (sub-session B) not built yet.
 
+## Level-up windows show their picture (built 2026-11-09; DECISIONS 2026-11-09, level-up windows)
+
+Every window that celebrates a level-up shows the thing it is about (`FrozenNotice.artHtml`, `.notice-art*` in `css/frozenNotice.css`):
+- Routine star-up: the routine's category hero, `levelup` animation looped (`.hero-notice-art`, since 2026-10-26).
+- Village rewards: each row has that building at the star it reached (48px thumb). Clock tower star-up: the Clock tower at the new star above the heading.
+- Achievement unlock: the headstone at the stage reached, one per row (Back in Black has no stone, so it stays text).
+- Streak milestone: the habit's category zombie with a fire glow (hotter at blazing).
+- Player level-up: still the "LEVEL N!" banner, text only. Parked: a chosen player avatar will show there (ROADMAP, post-pre-alpha).
+
 ## Windows & Modals — unified behavior ([P2-UI-011] Stage 1, session 61, 2026-07-19)
 Two window systems share one behavior layer (`js/ui/modal.js`, wired via `Modal.initDismissHandlers`/`initFocusManagement` in script.js):
 - **Management windows** (FAB-opened Tasks/Habits/Routines/Shop/Stats/Settings panels) and **modal overlays** (form/popup `.modal-overlay`s) both close on ESC and outside/backdrop click.

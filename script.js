@@ -535,7 +535,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const newlyCrossed = Achievements.evaluateAll(CONFIG.ACHIEVEMENTS, lifetimeStats, State.getAchievements());
         if (newlyCrossed.length) {
             State.setAchievements(Achievements.recordUnlocks(State.getAchievements(), newlyCrossed, new Date().toISOString()));
-            FrozenNotice.showAchievementUnlockNotice(newlyCrossed);
+            // Each unlock also carries the headstone stage it reached (2026-11-09) so the window can show the stone; a family with no
+            // headstone (Back in Black) gets 0 = no picture. The stage is read from the tier's position, not saved.
+            const stoneFamilies = MilestoneMarkers.families(CONFIG.ACHIEVEMENTS, CONFIG.MARKER_FAMILIES);
+            FrozenNotice.showAchievementUnlockNotice(newlyCrossed.map(u => {
+                const family = stoneFamilies.find(f => f.id === u.familyId);
+                return Object.assign({}, u, { headstoneStage: family ? MilestoneMarkers.stageOf(family, { [u.tierId]: true }) : 0 });
+            }));
         }
     }
 
@@ -843,7 +849,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const g = PushbackHelp.starGain(s, CONFIG.PUSHBACK_ALLOWANCE);
             if (g) gains.push(g.text);
         }
-        FrozenNotice.showClockTowerStarUpNotice(star, gains);
+        FrozenNotice.showClockTowerStarUpNotice(star, gains, villageSpriteFor('punctuality', star).url);
     }
 
     // Village tier drops (2026-11-03; js/villageDrops.js, CONFIG.VILLAGE_TIER_DROPS, docs/ECONOMY.md "Village tier drops"): once a second,
@@ -884,6 +890,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 building: (VillageCard.KINDS[g.kind] || {}).name || g.kind,
                 star: g.star,
                 label: g.label,
+                spriteUrl: villageSpriteFor(g.kind, g.star).url,
             })));
         } catch (err) {
             console.error('Deadline: village drops failed', err);
@@ -1095,8 +1102,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // habit's streak crosses a visual tier (3 = on-fire, 7 =
             // blazing). Optional dep — tests that don't pass it simply skip
             // the notification (items.js guards with typeof === 'function').
-            onStreakMilestone: (habitName, streak, tier) => {
-                FrozenNotice.showStreakMilestoneNotice(habitName, streak, tier);
+            onStreakMilestone: (habitName, streak, tier, category) => {
+                FrozenNotice.showStreakMilestoneNotice(habitName, streak, tier, category);
             },
             // Achievements sub-session 2 (session 65): the lifetime-stats
             // dispatcher (see recordLifetime above / completeItem's deps doc).

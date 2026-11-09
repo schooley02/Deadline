@@ -178,7 +178,7 @@ const Items = (() => {
         );
         if (crossed == null) return;
         const tier = crossed >= CONFIG.HABIT_STREAK_STRONG_THRESHOLD ? 'blazing' : 'fire';
-        deps.onStreakMilestone(habitDef.name, habitDef.streak, tier);
+        deps.onStreakMilestone(habitDef.name, habitDef.streak, tier, habitDef.category); // category: its zombie shows in the notice (2026-11-09)
     }
 
     // Call after recording a SUCCESS (avoided) occurrence for a negative

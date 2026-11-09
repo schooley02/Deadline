@@ -92,3 +92,44 @@
     transform: none;
     text-shadow: none;
 }
+
+/* Notice art (2026-11-09, Jeremy: a level-up window shows what it is about). Built by FrozenNotice.artHtml: a plain <img>, pixel art, so
+   it is drawn crisp. --building / --zombie stand centred above the heading; --thumb sits at the start of a list row. The routine
+   star-up window keeps its own animated .hero-notice-art (css/heroSpotlight.css). */
+.notice-art {
+    display: block;
+    image-rendering: pixelated;
+    user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: none;
+}
+.notice-art--building,
+.notice-art--zombie {
+    height: 112px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    margin: 0 auto var(--space-2, 8px);
+}
+.notice-art--zombie { height: 96px; }
+.notice-art--thumb {
+    flex: 0 0 auto;
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    object-position: center bottom;
+}
+.frozen-notice-recovery-list li.notice-art-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2, 8px);
+    list-style: none;
+    margin-left: calc(-1 * var(--space-4, 16px));
+}
+
+/* Streak window: the zombie glows like the fire it earned (orange on fire, hotter at blazing). Same fx gating as the other effects:
+   'reduced' keeps the static glow, 'off' draws none. */
+.notice-art--fire { filter: drop-shadow(0 0 6px #ff9800); }
+.notice-art--blazing { filter: drop-shadow(0 0 8px #ff5722) drop-shadow(0 0 14px #ff9800); }
+.fx-off .notice-art--fire,
+.fx-off .notice-art--blazing { filter: none; }
