@@ -2949,18 +2949,24 @@ document.addEventListener('DOMContentLoaded', () => {
         // draws on the same charges as the popup. Quoted for a just-overdue item, so the price/note is the same
         // for every row; handlePushback re-quotes the real item when tapped.
         const medium = CONFIG.PUSHBACK_SIZES.find(z => z.id === 'medium');
-        const mq = medium ? Pushback.quoteFixed('medium', Object.assign(pushbackInputs(new Date(nowMs)), {
+        const pbIn = pushbackInputs(new Date(nowMs));
+        const mq = medium ? Pushback.quoteFixed('medium', Object.assign({}, pbIn, {
             currentDue: new Date(nowMs - 1), createdAt: null,
         })) : null;
+        // Two different counts, named plainly (2026-11-09, Jeremy: the church and the Shop "don't match"): FREE pushbacks left
+        // today (Clock tower allowance, refills daily) vs TOKENS held (bought in the Shop, used only once the free ones run out).
+        const pbTokens = pbIn.held.medium || 0;
+        const pbTotal = (pbIn.allowance && pbIn.allowance.medium) || 0;
         let pushbackNote = null;
-        if (mq && mq.kind === 'charge') pushbackNote = `free \u00B7 ${mq.left.medium} left`;
-        else if (mq && mq.kind === 'token') pushbackNote = 'uses a token';
+        if (mq && mq.kind === 'charge') pushbackNote = `free \u00B7 ${mq.left.medium} of ${pbTotal} today`;
+        else if (mq && mq.kind === 'token') pushbackNote = `uses a token \u00B7 ${pbTokens} held`;
         return {
             health: State.getBaseHealth(), nowMs, lastRegenTickMs: State.getLastRegenTickMs(),
             attackers, inventory: State.getPlayerInventory(), shopItems: CONFIG.SHOP_ITEMS, config: CONFIG,
             points: State.getPlayerPoints(),
             pushbackPrice: mq ? mq.cost : null,
             pushbackLabel: medium ? Pushback.plusLabel(medium.ms).replace('+', '') : '2 hr', pushbackNote, nextDue,
+            pushbackTokens: pbTokens, pushbackSizeName: 'Medium',
         };
     }
 

@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-09 -- Church window and Shop pushback counts read the same (Claude app session; Opus 5.5 diagnosis -> Sonnet 5.5 build; Jeremy: "the pushback item amounts shown when I click the base don't match the shop's pushback item amounts" -> "I meant counts")
+
+- **Diagnosis:** sizes, prices and the free allowance already agree (Medium = 2 hr, 10 pts base, same `pushbackInputs`). The mismatch was two different counts under one word: the church button's "free · N left" is FREE Medium pushbacks left today (Clock tower allowance, daily), while the Shop's ×N pill is TOKENS held (bought, used only after the free ones run out). The church never showed tokens, and neither label said what it counted.
+- **Decision (Jeremy approved the plan):** labels only, no rule or balance change. Church button: "free · 2 of 3 today" or "uses a token · N held"; new line under the attacker list: "Medium tokens: N held · used when the free pushbacks run out" ("none held" at zero), hidden when the button has no price.
+- **How:** `baseHealthContext` (script.js) builds `pushbackInputs` once and passes `pushbackTokens` + `pushbackSizeName`; `js/ui/basePanel.js` renders `.bp-token-line` (css/basePanel.css). sw.js v303 -> v304. No schema change, no new save field, no balance number.
+- **Rejected:** making the church button spend tokens differently or showing all three sizes there (it only ever sells the Medium push); renaming the Shop pill.
+
 ## 2026-11-09 -- Timers on sub-tasks, and "+ Sub-task" in the zombie window (Claude app session; Opus 5.5 plan -> Sonnet 5.5 build; Jeremy: "need to add the timer to subtasks and allow me to add subtask from the zombie window that pops up when i click/tap them")
 
 - **Audit:** the timer core (`Timer.canWorkTimer`) already allowed sub-tasks, and a sub-task's zombie popup already had Start / Pause / Stop. What was missing: the sub-task's nested row in the list had no timer, and the zombie popup had no way to add a sub-task (only the list row's "+ Sub-task").

@@ -111,6 +111,7 @@
     color: var(--color-primary-white); background: var(--color-primary-dark-green);
 }
 .bp-push { flex: none; min-width: 120px; }
+.bp-token-line { margin: 6px 0 0; font-size: 12px; color: var(--color-neutral); }
 .bp-push-main, .bp-kit-main { font-size: 13px; font-weight: 600; }
 .bp-push-sub, .bp-kit-sub { font-size: 11px; opacity: 0.9; }
 .bp-push:disabled, .bp-kit:disabled {

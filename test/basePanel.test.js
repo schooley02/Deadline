@@ -86,6 +86,18 @@ describe('buildViewModel', () => {
         expect(html).toContain('free \u00B7 2 left');
         expect(html).not.toContain('Need ');
     });
+    test('held tokens show under the attacker list (matches the Shop pill); none held says so; no price -> no line', () => {
+        const base = { points: 0, pushbackPrice: 0, pushbackLabel: '2 hr', pushbackNote: 'uses a token \u00B7 1 held', pushbackSizeName: 'Medium' };
+        const one = BasePanel.innerHtml(BasePanel.buildViewModel(ctxFor(80, [att('a', 10)], Object.assign({ pushbackTokens: 1 }, base))));
+        expect(one).toContain('Medium tokens: 1 held');
+        expect(one).toContain('uses a token \u00B7 1 held');
+        const none = BasePanel.innerHtml(BasePanel.buildViewModel(ctxFor(80, [att('a', 10)], Object.assign({ pushbackTokens: 0 }, base))));
+        expect(none).toContain('Medium tokens: none held');
+        const absent = BasePanel.innerHtml(BasePanel.buildViewModel(ctxFor(80, [att('a', 10)], base)));
+        expect(absent).not.toContain('tokens:');
+        const noPrice = BasePanel.innerHtml(BasePanel.buildViewModel(ctxFor(80, [att('a', 10)], { pushbackPrice: null, pushbackTokens: 2 })));
+        expect(noPrice).not.toContain('tokens:');
+    });
     test('no pushback price -> no buy buttons', () => {
         const vm = BasePanel.buildViewModel(ctxFor(80, [att('a', 10)], { pushbackPrice: null }));
         expect(vm.attackers.rows[0].price).toBeNull();

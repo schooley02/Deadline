@@ -16,6 +16,9 @@
  *                            the button's second line when the push is NOT paid in points
  *                            ("free · 2 left", "uses a token"): the button is then always
  *                            enabled; without it the price is paid in points as before.
+ *                            pushbackTokens (number, optional) + pushbackSizeName ('Medium'): the held tokens of the
+ *                            button's size, shown as a line under the attacker list ("Medium tokens: 1 held") so the
+ *                            count matches the Shop's x N pill. The button's note is the FREE count ("free \u00B7 2 of 3 today").
  *   onPushback(attackerId) -> { ok }   pushes that attacker back by the label's size
  *   onUseKit(kitId)        -> any      uses a held repair kit
  * Live refresh: text that ticks lives in <span data-bind="key"> and is patched in place;
@@ -123,7 +126,9 @@ const BasePanel = (() => {
                 return row;
             });
             const shown = ui.showAll ? rows : rows.slice(0, MAX_ATTACKERS_SHOWN);
-            vm.attackers = { rows: shown, total: rows.length, more: rows.length - shown.length, expanded: !!ui.showAll && rows.length > MAX_ATTACKERS_SHOWN };
+            const tokens = (typeof ctx.pushbackTokens === 'number' && price !== null) ? Math.max(0, Math.floor(ctx.pushbackTokens)) : null;
+            vm.attackers = { rows: shown, total: rows.length, more: rows.length - shown.length, expanded: !!ui.showAll && rows.length > MAX_ATTACKERS_SHOWN,
+                tokens, sizeName: ctx.pushbackSizeName || 'Medium' };
         }
 
         vm.kits = m.kits.map(k => {
@@ -197,11 +202,14 @@ const BasePanel = (() => {
         const more = a.more > 0
             ? `<button type="button" class="bp-link" data-action="showall" data-key="showall">${plural(a.more, 'more attacker')} · Show all</button>`
             : (a.expanded ? `<button type="button" class="bp-link" data-action="showfew" data-key="showall">Show fewer</button>` : '');
+        // Held tokens of the button's size: the same count as the Shop card's x N pill (2026-11-09).
+        const tokenLine = a.tokens === null ? ''
+            : `<p class="bp-token-line">${esc(a.sizeName)} tokens: ${a.tokens > 0 ? `${a.tokens} held \u00B7 used when the free pushbacks run out` : 'none held'}</p>`;
         const pop = vm.ui.info === 'attackers'
             ? `<div class="bp-popover" role="note">Each zombie past its due time hits the church for 1 HP every 5 minutes (slower while you run a work timer on it). Pushing one back moves its due time to 1 hour from now, which stops its hits. Healing resumes once no zombie is attacking.</div>` : '';
         return `<section class="bp-card bp-attackers" aria-label="Attackers">` +
             `<div class="bp-card-head"><h4>Attackers <span class="bp-count">${a.total}</span></h4>${infoButton('attackers', 'How attackers work', vm)}</div>${pop}` +
-            `<ul class="bp-attacker-list">${rows}</ul>${more}</section>`;
+            `<ul class="bp-attacker-list">${rows}</ul>${more}${tokenLine}</section>`;
     }
 
     function kitsHtml(vm) {
