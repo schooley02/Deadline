@@ -163,7 +163,7 @@
     position: absolute;
     display: block;
     background-repeat: no-repeat;
-    background-size: 32px 32px;
+    background-size: 100% 100%; /* the 32x32 PNG scaled to MARKER_ART_PX (inline width/height) */
     image-rendering: pixelated;
     pointer-events: none; /* only the tap box takes taps */
 }

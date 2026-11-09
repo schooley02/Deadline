@@ -194,6 +194,7 @@ describe('art + shell + wiring', () => {
         expect(b.slice(1, 4).toString()).toBe('PNG');
         expect({ w: b.readUInt32BE(16), h: b.readUInt32BE(20), colorType: b[25] }).toEqual({ w: 32, h: 32, colorType: 6 });
         expect(hill).toContain(`headstone-${n}.png`);
+        expect(hill).toMatch(/\.milestone-marker-art \{[^}]*background-size: 100% 100%/);
         expect(panelCss).toContain(`headstone-${n}.png`);
         expect(sw).toContain(`'${f}'`);
     });

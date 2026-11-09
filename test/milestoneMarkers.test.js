@@ -14,13 +14,16 @@ describe('the config', () => {
         expect(ids).toHaveLength(7);
         expect(MM.families(catalog, ids)).toHaveLength(7);
         expect(CONFIG.MARKER_SLOTS).toHaveLength(7);
+        const half = 22; // the widest stone is ~44px wide once the 32px picture is drawn at MARKER_ART_PX (48)
         CONFIG.MARKER_SLOTS.forEach((s) => {
-            expect(s.x - CONFIG.MARKER_ART_PX / 2).toBeGreaterThanOrEqual(0);
-            expect(s.x + CONFIG.MARKER_ART_PX / 2).toBeLessThanOrEqual(140);
+            expect(s.x - half).toBeGreaterThanOrEqual(0);
+            expect(s.x + half).toBeLessThanOrEqual(140);
+            expect(s.feet).toBeGreaterThanOrEqual(0);
         });
     });
-    test('the tap box is at least 44px', () => {
+    test('the tap box is at least 44px and the picture is drawn bigger than its 32px file (Jeremy: easier to tap)', () => {
         expect(CONFIG.MARKER_HIT_PX).toBeGreaterThanOrEqual(44);
+        expect(CONFIG.MARKER_ART_PX).toBeGreaterThan(32);
     });
 });
 

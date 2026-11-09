@@ -578,22 +578,22 @@ const CONFIG = {
     // one small marker per all-time achievement family standing on the hill's face, showing how far that family has come (no badge yet = a
     // wooden cross, then Bronze / Silver / Gold / Platinum, one picture each). Jeremy's picks: the seven families that have tiers to climb, in slot
     // order (Back in Black is a single badge, so it has none). MARKER_SLOTS: x = the picture's centre column in px from the zone's left edge,
-    // feet = its bottom row in px above the canvas bottom. The five PNGs are MARKER_ART_PX square, drawn 1:1, every stone centred on column 16
-    // with the same dirt lip on its bottom three rows. The layer is clipped at the zone's edges, so keep x between 14 and 124 (a 32px picture
-    // centred there still fits). Every marker opens ONE window listing all of them; the tap box is MARKER_HIT_PX square (>= 44), so neighbours
+    // feet = its bottom row in px above the canvas bottom. The five PNGs are 32x32, drawn scaled to MARKER_ART_PX square (48 = 1.5x, pixelated; 2026-11-08 Jeremy: bigger, easier to tap), every stone centred on column 16
+    // with the same dirt lip on its bottom three rows. The layer is clipped at the zone's edges, so keep x between 24 and 118 (the stone itself is ~44px wide at
+    // 48px, so a stone centred there still fits). Every marker opens ONE window listing all of them; the tap box is MARKER_HIT_PX square (>= 44), so neighbours
     // overlap and the one drawn in front takes the tap (they all go to the same window).
     MARKER_FAMILIES: ['task_slayer', 'habit_hero', 'survivor', 'clean_sweep', 'on_fire', 'iron_will', 'honor_roll'],
     MARKER_SLOTS: [
-        { x: 16, feet: 46 },
-        { x: 30, feet: 58 },
-        { x: 52, feet: 44 },
-        { x: 74, feet: 52 },
-        { x: 100, feet: 42 },
-        { x: 110, feet: 66 },
-        { x: 124, feet: 54 },
+        { x: 24, feet: 62 },
+        { x: 94, feet: 44 },
+        { x: 118, feet: 62 },
+        { x: 46, feet: 38 },
+        { x: 70, feet: 24 },
+        { x: 118, feet: 22 },
+        { x: 26, feet: 4 },
     ],
-    MARKER_ART_PX: 32,
-    MARKER_HIT_PX: 44,
+    MARKER_ART_PX: 48,
+    MARKER_HIT_PX: 48,
     MARKER_Z_BASE: 21, // above the Memorial's 20 and the tree's tap box (10): a marker standing over the obelisk's base takes its own tap
     // Memorial obelisk (2026-11-08; Assets/Village/memorial_t1..t5.png, js/memorial.js, docs/ART_STYLE "Memorial obelisk T1-T5"). It replaced the six
     // placeholder headstones: ONE sprite on the hill's flat top, drawn in front of the tree. Placement decided with Jeremy on mocks of the real
