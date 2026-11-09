@@ -240,6 +240,11 @@ describe('art + shell + wiring', () => {
         expect(hill).toMatch(/\.milestone-marker::before \{[^}]*pointer-events: auto;/);
         [0, 1, 2, 3, 4].forEach((n) => expect(hill).toContain(`.milestone-marker[data-stage="${n}"]::before { clip-path: inset(`));
     });
+    test('the hill and its hover-animated parts are pinned compositor layers (will-change) so a transition elsewhere never re-rasters the pixel art', () => {
+        expect(hill).toMatch(/\.graveyard-zone \{[^}]*will-change: transform;/);
+        expect(hill).toMatch(/\.graveyard-memorial-art,\s*\.milestone-marker-art \{[^}]*will-change: transform;/);
+        expect(hill).toMatch(/\.graveyard-tree \{[^}]*will-change: transform;/);
+    });
     test('the stones layer stays above the tree clipper (clip-path made it a stacking context)', () => {
         expect(hill).toMatch(/\.graveyard-stones \{[^}]*z-index: 2;/);
         expect(hill).toMatch(/\.graveyard-tree-clip \{[^}]*z-index: 1;/);
