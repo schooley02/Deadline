@@ -10,6 +10,10 @@
  * (they have attacked), the "Today" target, and the `morning` stamp.
  * The morning card's "Done counts as on time" is a LIMITED credit (2026-11-02, Jeremy): `creditInfo` / `spendCredit` keep a
  * rolling window of use stamps (same shape as the Long pushback), and `creditText` words it for the card and the Clock tower.
+ * 2026-11-09 (Jeremy: "if it never gets completed on any day, the user should still be presented with the pop up"): the
+ * morning card now asks about EVERY open top-level one-off task due on an earlier day (anytime or timed), once per morning
+ * for as long as it stays open. The `morning` stamp is the local date it was answered (an old `true` stamp no longer
+ * silences it), and only an anytime task due 11:59 PM YESTERDAY can use the on-time credit (`onTimeEligible`).
  */
 const AnytimeCheck = (() => {
     const DUE_HOUR = 23;
@@ -67,21 +71,45 @@ const AnytimeCheck = (() => {
         return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, DUE_HOUR, DUE_MINUTE, 0, 0);
     }
 
-    /** True when this task was already answered by the next-morning card. */
-    function askedMorning(item) {
-        return !!(item && item.anytimeAsked && item.anytimeAsked.morning === true);
+    /**
+     * True when the next-morning card already got an answer for this task THIS morning (stamp = today's local date). The card
+     * asks again every later morning while the task is open. An old `true` stamp (before 2026-11-09) counts as not asked.
+     */
+    function askedMorning(item, nowMs) {
+        return !!(item && item.anytimeAsked && item.anytimeAsked.morning === dateKey(typeof nowMs === 'number' ? nowMs : Date.now()));
+    }
+
+    /** An open top-level ONE-OFF task (recurring instances have their own rollover handling and are left out). */
+    function isOpenOneOffTask(item) {
+        if (!item || item.type !== 'task' || item.parentId || item.definitionId != null) return false;
+        return !isNaN(new Date(toMs(item.dueDateTime)).getTime());
+    }
+
+    /** "YYYY-MM-DD" of the calendar day before `nowMs` (calendar math, never "- 24 h"). */
+    function yesterdayKey(nowMs) {
+        const d = new Date(typeof nowMs === 'number' ? nowMs : Date.now());
+        return dateKey(new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1, 12, 0, 0, 0));
     }
 
     /**
-     * The anytime tasks the next-morning card should ask about right now: open, flagged anytime, due 11:59 PM on an EARLIER
-     * local date (so they have attacked), not KO-ghosted and not already answered by this card. No age limit: it asks
-     * whenever the player next opens the app, however many days later. Newest due first, at most MORNING_MAX.
+     * True when the morning card's Done may count as ON TIME for this task (a credit permitting): an anytime task due 11:59 PM
+     * YESTERDAY, the "fell asleep before marking it" slip the credit is for. Every other task counts as an ordinary late
+     * completion (2026-11-09, Jeremy agreed).
+     */
+    function onTimeEligible(item, nowMs) {
+        return isOpenAnytimeTask(item) && dateKey(item.dueDateTime) === yesterdayKey(nowMs);
+    }
+
+    /**
+     * The tasks the next-morning card should ask about right now: open top-level one-off tasks (anytime OR timed) due on an
+     * EARLIER local date (so they have attacked), not KO-ghosted and not already answered this morning. No age limit: it asks
+     * every morning the task is still open, however many days late. Newest due first, at most MORNING_MAX.
      */
     function morningCandidates(activeItems, nowMs) {
         const now = typeof nowMs === 'number' ? nowMs : Date.now();
         const today = dateKey(now);
         return (Array.isArray(activeItems) ? activeItems : []).filter((item) => {
-            if (!isOpenAnytimeTask(item) || item.koGhost || askedMorning(item)) return false;
+            if (!isOpenOneOffTask(item) || item.koGhost || askedMorning(item, now)) return false;
             return toMs(item.dueDateTime) <= now && dateKey(item.dueDateTime) < today;
         }).sort((a, b) => toMs(b.dueDateTime) - toMs(a.dueDateTime)).slice(0, MORNING_MAX);
     }
@@ -109,10 +137,10 @@ const AnytimeCheck = (() => {
         return item;
     }
 
-    /** Records that the next-morning card answered this task. Returns the item. */
-    function stampMorning(item) {
+    /** Records that the next-morning card answered this task this morning (stamp = today's local date). Returns the item. */
+    function stampMorning(item, nowMs) {
         if (!item) return item;
-        item.anytimeAsked = Object.assign({}, item.anytimeAsked, { morning: true });
+        item.anytimeAsked = Object.assign({}, item.anytimeAsked, { morning: dateKey(typeof nowMs === 'number' ? nowMs : Date.now()) });
         return item;
     }
 
@@ -160,6 +188,9 @@ const AnytimeCheck = (() => {
         askedTonight,
         eveningCandidates,
         askedMorning,
+        isOpenOneOffTask,
+        yesterdayKey,
+        onTimeEligible,
         morningCandidates,
         morningDue,
         tomorrowDue,

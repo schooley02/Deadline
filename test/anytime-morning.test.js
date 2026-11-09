@@ -1,7 +1,8 @@
 /**
  * Anytime Build 3 (2026-11-02): the next-morning card for anytime tasks that already attacked overnight.
  * Covers the helpers, the "Done counts as on time" completion (real Items + DailyRecord), the morning modal, and the
- * persistence of the new `anytimeAsked.morning` stamp. Harness for completeItem mirrors test/items-routine-attendance.test.js.
+ * persistence of the new `anytimeAsked.morning` stamp. 2026-11-09: widened to every open one-off task, asked once per morning
+ * (the stamp is the date answered); only an anytime task due yesterday may count as on time. Harness for completeItem mirrors test/items-routine-attendance.test.js.
  * @jest-environment jsdom
  */
 global.Schedule = require('../js/schedule.js');
@@ -42,16 +43,37 @@ describe('AnytimeCheck.morningCandidates', () => {
         expect(AnytimeCheck.morningCandidates([todays], NOW)).toEqual([]);
     });
 
-    test('skips plain tasks, other due times, sub-tasks, KO ghosts and tasks already answered by the morning card', () => {
+    test('skips sub-tasks, recurring instances, KO ghosts, habits and tasks already answered THIS morning', () => {
         const items = [
-            task({ id: 1, anytime: undefined }),
-            task({ id: 2, dueDateTime: at(2, 18, 0) }),
             task({ id: 3, parentId: 9 }),
             task({ id: 4, koGhost: true }),
-            task({ id: 5, anytimeAsked: { morning: true } }),
+            task({ id: 5, anytimeAsked: { morning: '2026-11-03' } }),
             task({ id: 6, type: 'habit' }),
+            task({ id: 8, definitionId: 2 }),
         ];
         expect(AnytimeCheck.morningCandidates(items, NOW)).toEqual([]);
+    });
+
+    // 2026-11-09 (Jeremy): "if it never gets completed on any day, the user should still be presented with the pop up".
+    test('timed tasks are asked about too: a plain task and a task with another due time', () => {
+        const items = [task({ id: 1, anytime: undefined }), task({ id: 2, anytime: undefined, dueDateTime: at(2, 18, 0) })];
+        expect(AnytimeCheck.morningCandidates(items, NOW).map(t => t.id)).toEqual([1, 2]);
+    });
+
+    test('Jeremy\'s zombie: anytime, given a time, pushed back, Leave it answered an earlier morning: asked again', () => {
+        const t = task({ anytime: undefined, dueDateTime: at(1, 9, 15), anytimeAsked: { morning: '2026-11-01' } });
+        expect(AnytimeCheck.morningCandidates([t], NOW)).toHaveLength(1);
+    });
+
+    test('an old permanent `true` stamp (before 2026-11-09) no longer silences the card', () => {
+        expect(AnytimeCheck.morningCandidates([task({ anytimeAsked: { morning: true } })], NOW)).toHaveLength(1);
+    });
+
+    test('an answer this morning silences it until tomorrow morning, then it asks again', () => {
+        const t = AnytimeCheck.stampMorning(task(), NOW);
+        expect(AnytimeCheck.morningCandidates([t], NOW)).toEqual([]);
+        expect(AnytimeCheck.morningCandidates([t], at(3, 22, 0).getTime())).toEqual([]);
+        expect(AnytimeCheck.morningCandidates([t], at(4, 7, 0).getTime())).toHaveLength(1);
     });
 
     test('an evening stamp does not silence the morning card', () => {
@@ -68,10 +90,25 @@ describe('AnytimeCheck.morningCandidates', () => {
     });
 
     test('stampMorning sets the stamp and keeps the evening one', () => {
-        const t = AnytimeCheck.stampMorning(task({ anytimeAsked: { evening: '2026-11-02' } }));
-        expect(t.anytimeAsked).toEqual({ evening: '2026-11-02', morning: true });
-        expect(AnytimeCheck.askedMorning(t)).toBe(true);
+        const t = AnytimeCheck.stampMorning(task({ anytimeAsked: { evening: '2026-11-02' } }), NOW);
+        expect(t.anytimeAsked).toEqual({ evening: '2026-11-02', morning: '2026-11-03' });
+        expect(AnytimeCheck.askedMorning(t, NOW)).toBe(true);
         expect(AnytimeCheck.morningCandidates([t], NOW)).toEqual([]);
+    });
+});
+
+describe('AnytimeCheck.onTimeEligible (who may use the on-time credit)', () => {
+    test('an anytime task due 11:59 PM yesterday is eligible', () => {
+        expect(AnytimeCheck.onTimeEligible(task(), NOW)).toBe(true);
+    });
+    test('an anytime task due two days ago is not', () => {
+        expect(AnytimeCheck.onTimeEligible(task({ dueDateTime: at(1, 23, 59) }), NOW)).toBe(false);
+    });
+    test('a timed task due yesterday is not', () => {
+        expect(AnytimeCheck.onTimeEligible(task({ anytime: undefined, dueDateTime: at(2, 18, 0) }), NOW)).toBe(false);
+    });
+    test('yesterdayKey is calendar based across a month edge', () => {
+        expect(AnytimeCheck.yesterdayKey(new Date(2026, 11, 1, 7, 0).getTime())).toBe('2026-11-30');
     });
 });
 
@@ -212,8 +249,28 @@ describe('Morning modal: anytime task cards', () => {
     test('the heading explains that Done counts as on time and the damage stays', () => {
         CheckIn.showMorningTaskModal(makeDeps([task()]));
         const overlay = document.querySelector('.morning-task-overlay');
-        expect(overlay.textContent).toContain("Yesterday's anytime tasks");
+        expect(overlay.textContent).toContain('Still unfinished');
         expect(overlay.textContent).toMatch(/counts as on time/);
+        expect(overlay.textContent).toMatch(/damage stays/);
+    });
+
+    test('with no eligible task the heading drops the on-time sentence and Done says it counts late', () => {
+        CheckIn.showMorningTaskModal(makeDeps([task()], {
+            isOnTimeEligible: () => false, getCredit: () => ({ left: 2, text: 'On-time credit: 2 of 2 left.' }),
+        }));
+        const overlay = document.querySelector('.morning-task-overlay');
+        expect(overlay.textContent).not.toMatch(/counts as on time/);
+        expect(overlay.querySelector('.morning-credit')).toBeNull();
+        expect(card(7).querySelector('[data-outcome="done"]').textContent).toBe('Done (counts late)');
+    });
+
+    test('the card says when it was due: a timed task days ago shows its day and time', () => {
+        const due = new Date(2020, 0, 4, 15, 0);
+        CheckIn.showMorningTaskModal(makeDeps([task({ anytime: undefined, dueDateTime: due })]));
+        const text = card(7).textContent;
+        expect(text).toContain(due.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }));
+        expect(text).toContain(due.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+        expect(text).toContain('already attacked');
     });
 
     test('Done completes the task and the last answered card closes the modal', () => {
@@ -283,9 +340,9 @@ describe('Morning modal: anytime task cards', () => {
 
 describe('the morning stamp survives a save and reload', () => {
     test('anytimeAsked.morning round-trips through JSON like every other item field', () => {
-        const t = AnytimeCheck.stampMorning(task());
+        const t = AnytimeCheck.stampMorning(task(), NOW);
         const back = JSON.parse(JSON.stringify(t));
-        expect(AnytimeCheck.askedMorning(back)).toBe(true);
+        expect(AnytimeCheck.askedMorning(back, NOW)).toBe(true);
         expect(AnytimeCheck.morningCandidates([back], NOW)).toEqual([]);
     });
 });

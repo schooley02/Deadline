@@ -158,6 +158,17 @@ describe('Morning modal: credit line and Done labels', () => {
         expect(doneBtn(1).textContent).toBe('Finish the sub-tasks first');
     });
 
+    test('2026-11-09: only eligible cards say "on time"; a refresh after a Done leaves the others at "counts late"', () => {
+        const deps = makeDeps([task(1), task(2), task(3)]);
+        deps.isOnTimeEligible = (t) => t.id !== 3;
+        CheckIn.showMorningTaskModal(deps);
+        expect(doneBtn(2).textContent).toBe('Done (on time)');
+        expect(doneBtn(3).textContent).toBe('Done (counts late)');
+        doneBtn(1).click();
+        expect(doneBtn(2).textContent).toBe('Done (on time)');
+        expect(doneBtn(3).textContent).toBe('Done (counts late)');
+    });
+
     test('a caller without getCredit (older deps) still works: plain "Done", no credit line', () => {
         const deps = makeDeps([task(1)]);
         delete deps.getCredit;

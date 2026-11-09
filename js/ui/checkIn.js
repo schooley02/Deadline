@@ -241,17 +241,32 @@ const CheckIn = (() => {
         return credit.left > 0 ? 'Done (on time)' : 'Done (counts late)';
     }
 
-    function buildEveningTaskCardHtml(item, tomorrow, mode, credit) {
+    // The morning card's "It was due ..." words (2026-11-09: the card now also asks about timed tasks and tasks several days late).
+    // "yesterday at midnight" / "Sat, Nov 7 at 3:00 PM". Midnight = the anytime 11:59 PM.
+    function morningDueText(item, nowMs) {
+        const due = item.dueDateTime instanceof Date ? item.dueDateTime : new Date(item.dueDateTime);
+        if (isNaN(due.getTime())) return 'earlier';
+        const now = new Date(typeof nowMs === 'number' ? nowMs : Date.now());
+        const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+        const day = sameDay(due, yesterday) ? 'yesterday' : due.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+        const time = (due.getHours() === 23 && due.getMinutes() === 59) ? 'midnight' : due.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        return `${day} at ${time}`;
+    }
+
+    // `onTime` (morning only): this task may use the on-time credit (an anytime task due yesterday). Others say "counts late".
+    function buildEveningTaskCardHtml(item, tomorrow, mode, credit, onTime) {
         const morning = mode === 'morning';
         const t = tomorrow || { text: '', blocked: false };
         const openSubs = Array.isArray(item.subTasks) && item.subTasks.length > 0;
+        const label = !morning ? 'Done' : (onTime === false ? (credit ? 'Done (counts late)' : 'Done') : doneLabel(credit));
         const done = openSubs
             ? `<button type="button" class="check-in-button avoid-btn" data-outcome="done" disabled title="Finish the sub-tasks first">Finish the sub-tasks first</button>`
-            : `<button type="button" class="check-in-button avoid-btn" data-outcome="done">${doneLabel(morning ? credit : null)}</button>`;
+            : `<button type="button" class="check-in-button avoid-btn" data-outcome="done"${morning && onTime !== false ? ' data-on-time="1"' : ''}>${label}</button>`;
         return `
             <div class="check-in-card evening-card evening-task-card${morning ? ' morning-task-card' : ''}" data-card-kind="task" data-item-id="${item.id}">
                 <p class="check-in-question">Did you finish <strong>${escapeHtml(item.name)}</strong>${morning ? '' : ' today'}?</p>
-                <p class="check-in-goal">${morning ? 'It was due at midnight and has already attacked.' : 'Due by midnight.'}${t.text ? ` Moving it to ${morning ? 'today' : 'tomorrow'}: <span class="evening-task-cost${t.blocked ? ' evening-task-cost--blocked' : ''}">${escapeHtml(t.text)}</span>` : ''}</p>
+                <p class="check-in-goal">${morning ? `It was due ${escapeHtml(morningDueText(item))} and has already attacked.` : 'Due by midnight.'}${t.text ? ` Moving it to ${morning ? 'today' : 'tomorrow'}: <span class="evening-task-cost${t.blocked ? ' evening-task-cost--blocked' : ''}">${escapeHtml(t.text)}</span>` : ''}</p>
                 <div class="check-in-actions">
                     ${done}
                     <button type="button" class="check-in-button" data-outcome="${morning ? 'today' : 'tomorrow'}"${t.blocked ? ' disabled' : ''}>${morning ? 'Today' : 'Tomorrow'}</button>
@@ -352,14 +367,18 @@ const CheckIn = (() => {
         const describe = typeof deps.describeMove === 'function' ? deps.describeMove : () => null;
         const getCredit = () => (typeof deps.getCredit === 'function' ? deps.getCredit() : null);
         const credit = getCredit();
+        // 2026-11-09: only an anytime task due yesterday can count as on time; a caller without the dep keeps the old behaviour.
+        const eligible = (t) => (typeof deps.isOnTimeEligible === 'function' ? !!deps.isOnTimeEligible(t) : true);
+        const anyEligible = tasks.some(eligible);
+        const creditNote = anyEligible ? ' Done on an anytime task from yesterday counts as on time while you have credit.' : '';
 
         const overlay = Modal.open(`
             <div class="modal-overlay morning-task-overlay">
                 <div class="modal-content check-in-modal">
-                    <h3>Yesterday's anytime tasks</h3>
-                    <p class="check-in-intro">These were due at midnight and have already attacked. Did you finish them? Done counts as on time while you have credit; the damage stays.</p>
-                    ${credit ? `<p class="morning-credit">${escapeHtml(credit.text)}</p>` : ''}
-                    <div class="evening-cards morning-task-cards">${tasks.map(t => buildEveningTaskCardHtml(t, describe(t), 'morning', credit)).join('')}</div>
+                    <h3>Still unfinished</h3>
+                    <p class="check-in-intro">These were due on an earlier day and have already attacked. Did you finish them? The damage stays.${creditNote}</p>
+                    ${credit && anyEligible ? `<p class="morning-credit">${escapeHtml(credit.text)}</p>` : ''}
+                    <div class="evening-cards morning-task-cards">${tasks.map(t => buildEveningTaskCardHtml(t, describe(t), 'morning', credit, eligible(t))).join('')}</div>
                     <p class="check-in-snooze"><a href="#" class="morning-later-link">I'll check this later</a></p>
                 </div>
             </div>
@@ -378,7 +397,7 @@ const CheckIn = (() => {
                     if (!now) return;
                     const line = overlay.querySelector('.morning-credit');
                     if (line) line.textContent = now.text;
-                    overlay.querySelectorAll('.morning-task-card [data-outcome="done"]:not([disabled])').forEach((b) => { b.textContent = doneLabel(now); });
+                    overlay.querySelectorAll('.morning-task-card [data-outcome="done"][data-on-time]:not([disabled])').forEach((b) => { b.textContent = doneLabel(now); });
                 });
             });
         });

@@ -1379,11 +1379,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return { ok: true };
     }
 
-    // ---- Next-morning card for anytime tasks (Anytime Build 3, 2026-11-02; DECISIONS 2026-11-02 night) -------------------------
-    // On the first open after midnight (and on the poll, if the app stayed open) the game asks about every anytime task that
-    // already attacked, in case the player fell asleep before marking it. Done counts as ON TIME for the Clock tower (the overnight
-    // damage stays); Today moves it to 11:59 PM today through the pushback quote; Leave it records the answer. Closing it with
-    // cards left hides it until the next app open.
+    // ---- Next-morning card (Anytime Build 3, 2026-11-02; widened 2026-11-09, DECISIONS) ------------------------------------------
+    // On the first open after midnight (and on the poll, if the app stayed open) the game asks about every open one-off task due
+    // on an earlier day, anytime or timed, once per morning for as long as it stays open. Done counts as ON TIME for the Clock
+    // tower only for an anytime task due 11:59 PM yesterday, while a credit is left (the overnight damage stays); every other
+    // Done is an ordinary late completion. Today moves it to 11:59 PM today through the pushback quote; Leave it answers it for
+    // this morning only. Closing it with cards left hides it until the next app open.
     let morningTaskDismissed = false;
 
     // The player's on-time credits for the morning card's Done: { left, max, nextBackAt } (rolling window, CONFIG).
@@ -1395,24 +1396,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const findTask = (id) => State.getActiveItems().find(i => i.id === id && i.type === 'task');
         return {
             getTaskCandidates: () => AnytimeCheck.morningCandidates(State.getActiveItems(), Date.now()),
-            // Done counts as on time only while an on-time credit is left (CONFIG.ANYTIME_MORNING_CREDITS per rolling 7 days);
-            // out of credits it is an ordinary late completion. The credit is spent first so completeItem's own save keeps it,
-            // and handed back if the completion is refused (open sub-tasks).
+            // Done counts as on time only for an anytime task due yesterday (AnytimeCheck.onTimeEligible) and only while an
+            // on-time credit is left (CONFIG.ANYTIME_MORNING_CREDITS per rolling 7 days); otherwise it is an ordinary late
+            // completion. The credit is spent first so completeItem's own save keeps it, and handed back if the completion is
+            // refused (open sub-tasks).
             completeTask: (id) => {
                 const task = findTask(id);
                 if (!task) return;
-                AnytimeCheck.stampMorning(task);
+                const eligible = AnytimeCheck.onTimeEligible(task, Date.now());
+                AnytimeCheck.stampMorning(task, Date.now());
                 const before = State.getAnytimeCreditUses();
-                const useCredit = anytimeCreditInfo().left > 0;
+                const useCredit = eligible && anytimeCreditInfo().left > 0;
                 if (useCredit) State.setAnytimeCreditUses(AnytimeCheck.spendCredit(before, Date.now(), CONFIG.ANYTIME_MORNING_CREDIT_WINDOW_MS));
                 const res = Items.completeItem(id, itemsDeps(), useCredit ? { onTime: true } : undefined);
                 if (res && res.ok === false) State.setAnytimeCreditUses(before);
             },
             getCredit: () => { const info = anytimeCreditInfo(); return { left: info.left, text: AnytimeCheck.creditText(info) }; },
+            isOnTimeEligible: (task) => AnytimeCheck.onTimeEligible(task, Date.now()),
             leaveTask: (id) => {
                 const task = findTask(id);
                 if (!task) return;
-                AnytimeCheck.stampMorning(task);
+                AnytimeCheck.stampMorning(task, Date.now());
                 saveGame();
             },
             describeMove: (task) => Popups.pushbackNoteText(reschedulePricingFor(task, AnytimeCheck.morningDue(Date.now())), State.getPlayerPoints()),

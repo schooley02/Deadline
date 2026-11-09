@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-09 -- The next-morning card asks about EVERY unfinished task, every morning (Claude app session, Opus 5.5; Jeremy)
+
+- **Bug report (Jeremy):** an anytime zombie, created the day before its due date, was answered "Leave it" on the morning card, given a due time, and pushed back with pushbacks; it stayed unfinished and the next mornings showed no card. Two causes: (1) giving it a time or a Short / Medium / overdue pushback removes the anytime flag (`Items.syncAnytimeFlag`) and the card only looked at anytime tasks; (2) "Leave it" stamped `anytimeAsked.morning = true` for good, and no move ever cleared it.
+- **Decision (Jeremy: "if it never gets completed on any day, the user should still be presented with the pop up"):** the morning card asks about every open top-level ONE-OFF task due on an earlier local day, anytime or timed, ONCE PER MORNING for as long as it stays open. The `morning` stamp is now the local date answered (`AnytimeCheck.stampMorning(item, now)`); an old `true` stamp counts as not answered, so stuck tasks come back on the next open. Left out: sub-tasks (as before), recurring instances (`definitionId`, settled by their own rollover), KO ghosts. Still newest first, at most 5 per sitting. Title "Yesterday's anytime tasks" -> **"Still unfinished"**; each card says when it was due.
+- **On-time credit narrowed (Jeremy agreed, "i agree"):** Done counts as on time (spending a credit) only for an anytime task due 11:59 PM YESTERDAY (`AnytimeCheck.onTimeEligible`), the "fell asleep before marking it" slip the credit was made for. Every other Done is an ordinary late completion. **Why:** otherwise a task days late, or a timed task that was simply missed, could be cleared as punctual, which would hollow out the Clock tower. Credit count unchanged (2 per rolling 7 days); no balance number changed.
+- **Replaces** point (3) of "2026-11-02 (night) -- Anytime Build 3" ("Leave it stamps `anytimeAsked.morning = true` permanently, so one answer ends the question").
+- **Rejected:** keeping on-time credit for any task (too generous); asking only once per task ever (the bug); clearing the old stamp on every move (fixes cause 2 but not cause 1).
+
 ## 2026-11-08 (Marker polish, hover, flicker) -- same evening as "Milestone markers" (Claude app session; Sonnet 5.5, Fable 5.1 for the flicker; Jeremy)
 
 - **Size + place:** stones are the 32px files drawn at 48px (1.5x pixelated), tap box 48px; staggered over the hill face and the dirt band, one on the hill's low LEFT slope (stones layer `clip-path: inset(0 0 0 -52px)`, z 2). Tree raised 10px (`GRAVEYARD_TREE_SINK_PX` 15 -> 5), more ground above it. sw v291-v295.
