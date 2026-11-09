@@ -227,9 +227,17 @@ describe('art + shell + wiring', () => {
         expect(hill).toMatch(/\.graveyard-stones \{[^}]*clip-path: inset\(0 0 0 -52px\)/);
         expect(hill).not.toMatch(/\.graveyard-stones \{[^}]*overflow: hidden/);
     });
-    test('no hover highlight on the stones (it flashed on stones the pointer was not on); keyboard focus still glows', () => {
-        expect(hill).not.toMatch(/\.milestone-marker:hover/);
-        expect(hill).toMatch(/\.milestone-marker:focus-visible \.milestone-marker-art/);
+    test('hover = the zombie recipe: a little bigger, to the front, white glow; the Memorial and the tree do the same (desktop only)', () => {
+        expect(hill).toMatch(/@media \(hover: hover\)/);
+        expect(hill).toMatch(/\.milestone-marker:hover \.milestone-marker-art \{\s*transform: scale\(1\.1\);\s*filter: drop-shadow\(0 0 3px #fff\)/);
+        expect(hill).toMatch(/\.milestone-marker:hover \{ z-index: 60 !important; \}|\.milestone-marker:hover \{ z-index: 60 !important;/);
+        expect(hill).toMatch(/\.graveyard-memorial:hover \.graveyard-memorial-art \{\s*transform: scale\(1\.05\);\s*filter: drop-shadow\(0 0 3px #fff\)/);
+        expect(hill).toMatch(/:has\(\.graveyard-tree-hit:hover\) \.graveyard-tree \{\s*transform: scale\(1\.05\);/);
+        expect(hill).toMatch(/:has\(\.graveyard-tree-hit:hover\) \.graveyard-tree-clip \{ z-index: 3; \}/);
+    });
+    test('the stones layer stays above the tree clipper (clip-path made it a stacking context)', () => {
+        expect(hill).toMatch(/\.graveyard-stones \{[^}]*z-index: 2;/);
+        expect(hill).toMatch(/\.graveyard-tree-clip \{[^}]*z-index: 1;/);
     });
     test('nothing is saved: no new state field for the markers', () => {
         expect(read('js/state.js')).not.toMatch(/marker/i);

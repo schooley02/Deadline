@@ -99,6 +99,7 @@
     /* Clip at the zone's right edge and the bottom, but let a marker stand out over the hill's low left slope (the hill art runs 52px past the
        zone's left edge, 2026-11-08, Jeremy). clip-path (not overflow) so the left reach is open while the right stays cut. */
     clip-path: inset(0 0 0 -52px);
+    z-index: 2; /* clip-path makes this layer its own stacking context: keep it above the tree's clipper (z 1) so the Memorial, markers and tree tap box still draw in front of the tree art */
 }
 
 /* Memorial obelisk (2026-11-08; js/memorial.js picks the stage, js/ui/graveyardView.js places it from CONFIG.GRAVEYARD_MEMORIAL_*).
@@ -136,10 +137,40 @@
 .graveyard-memorial-art[data-stage="4"] { background-image: url("../Assets/Village/memorial_t4.png"); }
 .graveyard-memorial-art[data-stage="5"] { background-image: url("../Assets/Village/memorial_t5.png"); }
 
-.graveyard-memorial:hover .graveyard-memorial-art,
+/* Hover / keyboard focus (2026-11-08, Jeremy: "like the zombies"): the hovered Memorial, headstone or tree grows a little, comes to the front and gets a
+   white glow (css/enemySprites.css .enemy:hover + css/enemyStatus.css --g-hover use the same recipe). Desktop only: touch has no real :hover. The
+   tap boxes are bigger than the art, so the raise-to-front keeps the pointer on the one stone it is over (no flicker between overlapping boxes). */
+.graveyard-memorial-art,
+.milestone-marker-art {
+    transform-origin: 50% 100%;
+    transition: transform 120ms ease-out, filter 120ms ease-out;
+}
+
+.graveyard-tree { transition: transform 120ms ease-out, filter 120ms ease-out; }
+
+@media (hover: hover) {
+    .graveyard-memorial:hover,
+    .milestone-marker:hover { z-index: 60 !important; } /* above every marker (21+), the Memorial (20) and the tree's tap box (10); inline z-index needs !important */
+    .graveyard-memorial:hover .graveyard-memorial-art {
+        transform: scale(1.05);
+        filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px rgba(255, 255, 255, 0.9));
+    }
+    .milestone-marker:hover .milestone-marker-art {
+        transform: scale(1.1);
+        filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px rgba(255, 255, 255, 0.9));
+    }
+    /* The tree's art is its own element (inside the clipper), so the tap box's hover reaches it through :has. Grows from the trunk's base column. */
+    .graveyard-zone:has(.graveyard-tree-hit:hover) .graveyard-tree-clip { z-index: 3; }
+    .graveyard-zone:has(.graveyard-tree-hit:hover) .graveyard-tree {
+        transform: scale(1.05);
+        transform-origin: 146px 100%;
+        filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px rgba(255, 255, 255, 0.9));
+    }
+}
+
 .graveyard-memorial:focus-visible .graveyard-memorial-art,
 .graveyard-memorial:active .graveyard-memorial-art {
-    filter: brightness(1.2) drop-shadow(0 0 3px #f1d27a);
+    filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px rgba(255, 255, 255, 0.9));
 }
 
 /* Milestone markers (2026-11-08; js/milestoneMarkers.js picks the stage, js/ui/graveyardView.js places each one from CONFIG.MARKER_*): small stones on the
@@ -176,11 +207,9 @@
 .milestone-marker-art[data-stage="3"] { background-image: url("../Assets/scene/headstone-3.png"); }
 .milestone-marker-art[data-stage="4"] { background-image: url("../Assets/scene/headstone-4.png"); }
 
-/* No hover / press highlight (2026-11-08, Jeremy: the outline flashed as the mouse crossed the stones). The 48px tap boxes are bigger than the
-   stones and overlap, so a hover effect lit stones the pointer was not on. The pointer cursor still shows they are tappable; only the keyboard
-   focus ring gets a glow. */
-.milestone-marker:focus-visible .milestone-marker-art {
-    filter: brightness(1.25) drop-shadow(0 0 2px #f1d27a);
+.milestone-marker:focus-visible .milestone-marker-art,
+.milestone-marker:active .milestone-marker-art {
+    filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px rgba(255, 255, 255, 0.9));
 }
 
 /* Run graves: a >=44px tap box with a smaller visual. */
