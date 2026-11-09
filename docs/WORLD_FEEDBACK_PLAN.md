@@ -199,7 +199,7 @@ building opens a card that shows how far it is to the next tier.
 | Kind | Building | Counter (per run) | Source | T2 / T3 / T4 / T5 |
 |---|---|---|---|---|
 | `nights` | Radio tower | nights survived | `Damage.computeDaysSurvived` | 4 / 18 / 50 / 100 |
-| `slain` | Armory | tasks + sub-tasks + habits completed | `currentRunStats` | 30 / 150 / 450 / 1000 |
+| `slain` | Command Post (the Armory until 2026-11-09) | priority tasks finished, max 3 a day (completion day) | daily records `pri.d` (closed days + today) | 8 / 36 / 100 / 200 |
 | `punctuality` | Clock tower | completed on time | daily records: done - late | 25 / 120 / 350 / 750 |
 | `habits` | Hospital | GOOD habit check-ins (2026-10-31: positive habits only; resisting bad habits is the Boxing gym's) | `currentRunStats.goodHabitsCompleted` (falls back to `habitsCompleted` on older runs) | 20 / 80 / 250 / 500 |
 | `lurkers` | Boxing gym | days with no slips (>= 1 bad habit due, 0 slipped) | daily records `lurk` | 3 / 14 / 40 / 80 |

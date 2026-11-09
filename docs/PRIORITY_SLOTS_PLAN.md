@@ -6,6 +6,8 @@ _Build A notes (differences from the text below): the marks map is `State.priori
 
 _Build B notes (differences from the text below): the wording uses a colon, not "--" ("Priority: 2 of 3 left today"); on phones the pips take their own row under the title (beside it they squeezed "Today's Deadlines" onto two lines); Edit Task on another day starts unticked and costs that day a slot, moving back restores the tick; the zombie card is read-only ("Priority: Yes / No") and marking happens in the forms; the week strip's Today tally ignores priority tasks due later. See UI_UX "Priority slots" and DECISIONS 2026-11-04 (priority slots)._
 
+_Follow-up 2026-11-09: priorities finished now also build the village's Command Post (the Armory re-aimed; max 3 a day counts, from `pri.d`). See `docs/COMMAND_POST_PLAN.md`. The parked RARE "Extra Priority" token belongs on its star 5 if ever built._
+
 ## Goal
 
 Turn the unlimited "High Priority" checkbox into **three priority slots per day**, so the player picks the few big things that matter for a day instead of flagging everything. The constraint is the mechanic: it trains "pick three, finish three" (the rule of three), and finishing all three is rewarded with three more.
