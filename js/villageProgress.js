@@ -7,7 +7,9 @@
  * building reads ONE per-run counter against [T2, T3, T4, T5] thresholds (CONFIG.VILLAGE_TIER_THRESHOLDS):
  *
  *   nights       Radio tower   nights survived this run
- *   slain        Armory        tasks + sub-tasks + habits completed this run
+ *   slain        Command Post  priority tasks finished this run, at most PRIORITY_SLOTS_PER_DAY (3) a day, by completion day
+ *                              (closed days + the open day). Was the Armory's kill count until 2026-11-09; the kind id stays `slain`
+ *                              (saved keys). docs/COMMAND_POST_PLAN.md
  *   punctuality  Clock tower   items completed on time (done minus late; closed days + the open day)
  *   habits       Hospital      habit check-ins this run
  *   lurkers      Boxing gym    days with no slips (at least one bad habit resolved, none slipped)
@@ -28,7 +30,7 @@
  *     runNumber,       the current run (runHistory.length + 1); only days with rec.run === runNumber count
  *     maxHp,           CONFIG.MAX_BASE_HEALTH
  *     thresholds?,     defaults to DEFAULT_THRESHOLDS (a test checks it matches CONFIG)
- *     defenseFrac?, heavyWindow?, heavyMinDays?, heavyFactor?, heavyExtra? }   defaults mirror CONFIG
+ *     defenseFrac?, prioritySlots?, heavyWindow?, heavyMinDays?, heavyFactor?, heavyExtra? }   defaults mirror CONFIG
  */
 const VillageProgress = (() => {
     const KINDS = ['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes', 'habits', 'bestdays'];
@@ -36,7 +38,7 @@ const VillageProgress = (() => {
     // Mirrors CONFIG.VILLAGE_TIER_THRESHOLDS (test/villageProgress.test.js checks they match).
     const DEFAULT_THRESHOLDS = {
         nights: [4, 18, 50, 100],
-        slain: [30, 150, 450, 1000],
+        slain: [8, 36, 100, 200],
         punctuality: [25, 120, 350, 750],
         habits: [20, 80, 250, 500],
         lurkers: [3, 14, 40, 80],
@@ -45,6 +47,7 @@ const VillageProgress = (() => {
         bestdays: [2, 5, 15, 30],
     };
     const DEFAULT_DEFENSE_FRAC = 0.75;
+    const DEFAULT_PRIORITY_SLOTS = 3; // mirrors CONFIG.PRIORITY_SLOTS_PER_DAY (the Command Post's daily cap)
     const DEFAULT_HEAVY_WINDOW = 14;
     const DEFAULT_HEAVY_MIN_DAYS = 3;
     const DEFAULT_HEAVY_FACTOR = 1.25;
@@ -92,6 +95,8 @@ const VillageProgress = (() => {
         const d = (r && r.done) || {};
         return num(d.task) + num(d.subtask) + num(d.habit);
     }
+    /** Command Post: priority tasks finished that day (DailyRecord v9 `pri.d`), capped at the daily slot count. Days before v9 count 0. */
+    function priorityDone(r, cap) { return Math.min(num(r && r.pri && r.pri.d), cap); }
     function onTimeTotal(r) { return Math.max(0, doneTotal(r) - num(r && r.done && r.done.late)); }
 
     function dayIndex(dateStr) {
@@ -179,6 +184,7 @@ const VillageProgress = (() => {
         return {
             thresholds: c.thresholds || DEFAULT_THRESHOLDS,
             defenseFrac: c.defenseFrac != null ? c.defenseFrac : DEFAULT_DEFENSE_FRAC,
+            prioritySlots: c.prioritySlots > 0 ? Math.floor(c.prioritySlots) : DEFAULT_PRIORITY_SLOTS,
             heavyWindow: c.heavyWindow != null ? c.heavyWindow : DEFAULT_HEAVY_WINDOW,
             heavyMinDays: c.heavyMinDays != null ? c.heavyMinDays : DEFAULT_HEAVY_MIN_DAYS,
             heavyFactor: c.heavyFactor != null ? c.heavyFactor : DEFAULT_HEAVY_FACTOR,
@@ -195,7 +201,8 @@ const VillageProgress = (() => {
         const today = c.today && c.today.run === c.runNumber ? c.today : null;
         return {
             nights: num(c.nightsSurvived),
-            slain: num(rs.tasksCompleted) + num(rs.subtasksCompleted) + num(rs.habitsCompleted),
+            // Command Post (2026-11-09): priority tasks finished, capped per day so marking easy tasks all day cannot farm it.
+            slain: days.reduce((sum, r) => sum + priorityDone(r, o.prioritySlots), 0) + (today ? priorityDone(today, o.prioritySlots) : 0),
             punctuality: days.reduce((s, r) => s + onTimeTotal(r), 0) + (today ? onTimeTotal(today) : 0),
             // Hospital = good habits only (2026-10-31); a run from before the field existed falls back to the old count.
             habits: Number.isFinite(rs.goodHabitsCompleted) ? num(rs.goodHabitsCompleted) : num(rs.habitsCompleted),
@@ -241,6 +248,7 @@ const VillageProgress = (() => {
         comebackDays,
         attendanceStreak,
         isPerfectAttendance,
+        priorityDone,
         starsTotal,
         isNoSlipDay,
         churchHeld,

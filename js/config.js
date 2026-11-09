@@ -639,7 +639,7 @@ const CONFIG = {
     VILLAGE_JAIL_W_PX: 128,
     VILLAGE_JAIL_H_PX: 128,
     VILLAGE_DEV_JAIL_TIER: 3, // DEV: no defense tier data yet. `?jailTier=1..5` overrides, `off` hides; null = hidden
-    // Armory (kind `slain`, added 2026-10-29): survivor army camp (tent + guard tower), 128x128, RIGHT of the tower.
+    // Command Post (kind `slain`, built as the Armory 2026-10-29, re-aimed at priorities 2026-11-09): survivor army camp (tent + guard tower), 128x128, RIGHT of the tower.
     VILLAGE_ARMORY_W_PX: 128,
     VILLAGE_ARMORY_H_PX: 128,
     VILLAGE_DEV_ARMORY_TIER: 3, // DEV: no slain tier data yet. `?armoryTier=1..5` overrides, `off` hides; null = hidden
@@ -700,7 +700,7 @@ const CONFIG = {
     // well: T2 ~4 days, T3 ~2.5 weeks, T4 ~7 weeks, T5 3+ months.
     VILLAGE_TIER_THRESHOLDS: {
         nights: [4, 18, 50, 100],         // Radio tower: nights survived (~1/day)
-        slain: [30, 150, 450, 1000],      // Armory: tasks + sub-tasks + habits completed (~10/day)
+        slain: [8, 36, 100, 200],         // Command Post (was the Armory): priority tasks finished, max PRIORITY_SLOTS_PER_DAY a day (~2/day; Radio tower ladder x2). THEORY, 2026-11-09, docs/COMMAND_POST_PLAN.md
         punctuality: [25, 120, 350, 750], // Clock tower: completed on time (~8/day)
         habits: [20, 80, 250, 500],       // Hospital: habit check-ins (~5/day)
         lurkers: [3, 14, 40, 80],         // Boxing gym: days with no slips (>= 1 bad habit resolved, none slipped)

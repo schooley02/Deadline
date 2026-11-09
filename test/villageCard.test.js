@@ -21,9 +21,9 @@ describe('buildModel', () => {
     });
 
     test('a mid tier marks earlier pips done and later pips locked', () => {
-        const m = VillageCard.buildModel({ kind: 'slain', progress: progress(160, 'slain') });
+        const m = VillageCard.buildModel({ kind: 'slain', progress: progress(60, 'slain') });
         expect(m.tier).toBe(3);
-        expect(m.barText).toBe('160 / 450 zombies to earn star 4');
+        expect(m.barText).toBe('60 / 100 priorities to earn star 4');
         expect(m.pips.map(p => p.state)).toEqual(['done', 'done', 'current', 'locked', 'locked']);
         expect(m.fraction).toBeGreaterThan(0);
         expect(m.fraction).toBeLessThan(1);
@@ -297,9 +297,9 @@ describe('"Next item" -- the item the next star pays (village tier drops, 2026-1
     });
 
     test('it moves up the ladder with the tier', () => {
-        expect(VillageCard.buildModel(ctxFor('slain', 30)).nextItem).toEqual({ star: 3, label: 'Repair Kit (Small) ×1' });
-        expect(VillageCard.buildModel(ctxFor('slain', 150)).nextItem).toEqual({ star: 4, label: 'Repair Kit (Medium) ×1' });
-        expect(VillageCard.buildModel(ctxFor('slain', 450)).nextItem).toEqual({ star: 5, label: 'Repair Kit (Large) ×1' });
+        expect(VillageCard.buildModel(ctxFor('slain', 8)).nextItem).toEqual({ star: 3, label: 'Repair Kit (Small) ×1' });
+        expect(VillageCard.buildModel(ctxFor('slain', 36)).nextItem).toEqual({ star: 4, label: 'Repair Kit (Medium) ×1' });
+        expect(VillageCard.buildModel(ctxFor('slain', 100)).nextItem).toEqual({ star: 5, label: 'Repair Kit (Large) ×1' });
     });
 
     test('the themed star-5 prize shows on the building that earns it', () => {
@@ -309,7 +309,7 @@ describe('"Next item" -- the item the next star pays (village tier drops, 2026-1
     });
 
     test('at the top star the card says every item reward is earned', () => {
-        const m = VillageCard.buildModel(ctxFor('slain', 1000));
+        const m = VillageCard.buildModel(ctxFor('slain', 200));
         expect(m.nextItem).toBeNull();
         expect(m.maxed).toBe(true);
         const html = VillageCard.cardHtml(m);
@@ -318,7 +318,7 @@ describe('"Next item" -- the item the next star pays (village tier drops, 2026-1
     });
 
     test('a top-star building ignores a stale nextDrop', () => {
-        const m = VillageCard.buildModel({ kind: 'slain', progress: progress(1000, 'slain'), nextDrop: { star: 2, label: 'Stale ×1' } });
+        const m = VillageCard.buildModel({ kind: 'slain', progress: progress(200, 'slain'), nextDrop: { star: 2, label: 'Stale ×1' } });
         expect(m.nextItem).toBeNull();
     });
 
@@ -365,5 +365,21 @@ describe('"Next item" -- the item the next star pays (village tier drops, 2026-1
         const html = VillageCard.cardHtml(VillageCard.buildModel(Object.assign(ctxFor('punctuality', 1), { reward })));
         expect(html).toContain('Your reward');
         expect(html).toContain('Next item');
+    });
+});
+
+describe('Command Post (the Armory re-aimed at priorities, 2026-11-09)', () => {
+    test('the slain kind is named Command Post and speaks about priorities, not kills', () => {
+        const m = VillageCard.buildModel({ kind: 'slain', progress: progress(1, 'slain') });
+        expect(m.name).toBe('Command Post');
+        expect(m.barText).toBe('1 / 8 priorities to earn star 2');
+        expect(m.measures).toContain('up to three a day');
+        expect(JSON.stringify(m)).not.toMatch(/Armory|zombie/i);
+    });
+    test('nothing counted yet shows the empty line, with no link (the Priority box lives in the task forms)', () => {
+        const m = VillageCard.buildModel({ kind: 'slain', progress: progress(0, 'slain'), onAddBreakHabit() {} });
+        expect(m.empty).toBe('Tick Priority on a task to start building.');
+        expect(m.emptyLink).toBeNull();
+        expect(VillageCard.buildModel({ kind: 'slain', progress: progress(1, 'slain') }).empty).toBeNull();
     });
 });

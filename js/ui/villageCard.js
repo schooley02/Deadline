@@ -39,10 +39,10 @@ const VillageCard = (() => {
             measures: 'Nights survived. Each midnight you make it through, the tower broadcasts: "We are still here."',
             why: 'Staying in the game is what counts. A long run of ordinary nights beats one heroic day, and every night is proof that you can keep showing up.',
         },
-        slain: {
-            name: 'Armory', unit: 'zombies',
-            measures: 'Zombies Killed: Tasks, sub-tasks and habits you have completed in this run.',
-            why: 'Every task you finish is one more zombie down, and every kill makes the camp stronger. Breaking a big job into sub-tasks gives you more targets to take down, and a steady kill count keeps your momentum going.',
+        slain: { // Command Post (the Armory until 2026-11-09; the kind id stays `slain`, it is a saved key). docs/COMMAND_POST_PLAN.md
+            name: 'Command Post', unit: 'priorities',
+            measures: 'Priority tasks you finished, up to three a day. Pick the three that matter most, then take them down. Finishing more than three still pays the points; the extras just don\u2019t count here. A sub-task covered by a Priority parent counts with the parent, not on its own.',
+            why: 'Busy is not the same as winning. Three real targets a day, taken out, moves the line further than a dozen small kills. Decide in the morning, finish by night, and the day was yours whatever else happened.',
         },
         punctuality: {
             name: 'Clock tower', unit: 'on time',
@@ -85,6 +85,7 @@ const VillageCard = (() => {
     const EMPTY_TEXT = {
         lurkers: 'Add a Break Habit to start rebuilding.',
         heroes: 'Start a routine to open the school.',
+        slain: 'Tick Priority on a task to start building.',
     };
 
     function count(n) { return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0; }
@@ -143,6 +144,7 @@ const VillageCard = (() => {
         const link = empty && EMPTY_LINKS[c.kind];
         const emptyLink = (link && typeof c[link.handler] === 'function') ? { text: link.text, action: link.action } : null;
         if (c.kind === 'heroes' && c.hasRoutine === false) empty = EMPTY_TEXT.heroes;
+        if (c.kind === 'slain' && value === 0) empty = EMPTY_TEXT.slain; // Command Post: nothing counted yet (no link: the Priority box lives in the task forms)
 
         return {
             kind: c.kind,

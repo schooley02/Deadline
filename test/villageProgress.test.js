@@ -127,11 +127,61 @@ describe('counters', () => {
         expect(VillageProgress.compute(ctx({ nightsSurvived: 18 })).nights.tier).toBe(3);
     });
 
-    test('slain = tasks + sub-tasks + habits; habits = habit check-ins only', () => {
+    // Command Post (2026-11-09, docs/COMMAND_POST_PLAN.md): the `slain` kind counts priority tasks finished (DailyRecord `pri.d`),
+    // at most PRIORITY_SLOTS_PER_DAY a day, by completion day: this run's closed days plus the open day.
+    describe('slain (Command Post)', () => {
+        const pday = (date, d, over) => Object.assign({ date, run: RUN, pri: { m: d, d, s: Math.floor(d / 3) } }, over || {});
+
+        test('sums priority tasks finished, capped at 3 a day, over closed days + the open day', () => {
+            const c = VillageProgress.counters(ctx({
+                days: [pday('2026-11-01', 3), pday('2026-11-02', 5), pday('2026-11-03', 0), pday('2026-11-04', 2)],
+                today: pday('2026-11-05', 1),
+            }));
+            expect(c.slain).toBe(3 + 3 + 0 + 2 + 1);
+        });
+
+        test('the daily cap is the slot count: more than 3 finished in a day (a fresh set opened) still counts 3', () => {
+            expect(VillageProgress.counters(ctx({ days: [pday('2026-11-01', 6)] })).slain).toBe(3);
+            expect(VillageProgress.counters(ctx({ days: [pday('2026-11-01', 6)], prioritySlots: 4 })).slain).toBe(4);
+            expect(VillageProgress.counters(ctx({ days: [pday('2026-11-01', 6)], prioritySlots: 0 })).slain).toBe(3); // junk -> default
+        });
+
+        test('an undo is a lower pri.d, so the counter (and tier) can come back down', () => {
+            const days = [pday('2026-11-01', 3), pday('2026-11-02', 3), pday('2026-11-03', 2)]; // 8 = star 2
+            expect(VillageProgress.compute(ctx({ days })).slain.tier).toBe(2);
+            days[2] = pday('2026-11-03', 1); // one undone -> 7
+            expect(VillageProgress.counters(ctx({ days })).slain).toBe(7);
+            expect(VillageProgress.compute(ctx({ days })).slain.tier).toBe(1);
+        });
+
+        test('days from before DailyRecord v9 (no pri), other runs, and the old run counters count nothing', () => {
+            const c = VillageProgress.counters(ctx({
+                runStats: { tasksCompleted: 10, subtasksCompleted: 5, habitsCompleted: 15 },
+                days: [{ date: '2026-11-01', run: RUN }, pday('2026-11-02', 3, { run: RUN - 1 })],
+                today: pday('2026-11-03', 3, { run: RUN + 1 }),
+            }));
+            expect(c.slain).toBe(0);
+        });
+
+        test('priorityDone caps and tolerates junk', () => {
+            expect(VillageProgress.priorityDone({ pri: { d: 9 } }, 3)).toBe(3);
+            expect(VillageProgress.priorityDone({ pri: { d: 2 } }, 3)).toBe(2);
+            expect(VillageProgress.priorityDone({ pri: { d: -1 } }, 3)).toBe(0);
+            expect(VillageProgress.priorityDone({}, 3)).toBe(0);
+            expect(VillageProgress.priorityDone(null, 3)).toBe(0);
+        });
+
+        test('thresholds 8 / 36 / 100 / 200: two priorities a night lands on the village pace', () => {
+            const at = n => VillageProgress.compute(ctx({ today: pday('2026-11-01', 0), days: Array.from({ length: n }, (_, i) => pday('2026-10-' + String(i + 1).padStart(2, '0'), 3)) })).slain;
+            expect(VillageProgress.DEFAULT_THRESHOLDS.slain).toEqual([8, 36, 100, 200]);
+            expect(at(2).tier).toBe(1); // 6
+            expect(at(3).tier).toBe(2); // 9
+        });
+    });
+
+    test('habits = habit check-ins only (the Hospital)', () => {
         const c = VillageProgress.counters(ctx({ runStats: { tasksCompleted: 10, subtasksCompleted: 5, habitsCompleted: 15 } }));
-        expect(c.slain).toBe(30);
         expect(c.habits).toBe(15);
-        expect(VillageProgress.compute(ctx({ runStats: { tasksCompleted: 10, subtasksCompleted: 5, habitsCompleted: 15 } })).slain.tier).toBe(2);
     });
 
     test('punctuality = done minus late, over closed days plus the open day', () => {
@@ -392,7 +442,6 @@ describe('Hospital reads good habits only (2026-10-31)', () => {
     test('uses goodHabitsCompleted when present, ignoring avoided bad habits in habitsCompleted', () => {
         const c = VillageProgress.counters({ ...base, runStats: { habitsCompleted: 30, goodHabitsCompleted: 12 } });
         expect(c.habits).toBe(12);
-        expect(c.slain).toBe(30); // the Armory still counts every habit win
     });
     test('a run from before the field existed falls back to the old count', () => {
         expect(VillageProgress.counters({ ...base, runStats: { habitsCompleted: 30 } }).habits).toBe(30);

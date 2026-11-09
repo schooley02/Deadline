@@ -194,7 +194,7 @@ test('a view that only supplies getClockTier (the first-slice deps) still works,
     expect(byKind('defense')).toBeNull();
 });
 
-// ---- Armory (kind `slain`), added 2026-10-29 ----
+// ---- Command Post (kind `slain`; the Armory until 2026-11-09), added 2026-10-29 ----
 test('draws the Armory right of the tower at its layout slot, and swaps tiers in place', () => {
     build({});
     const state = { armory: 3 };

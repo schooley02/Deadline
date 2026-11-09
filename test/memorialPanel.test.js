@@ -101,12 +101,12 @@ describe('panelHtml', () => {
         const d = doc({ best: { slain: 4 }, current: { slain: 2 } });
         const rows = d.querySelectorAll('.mp-row');
         expect(rows).toHaveLength(8);
-        const slain = [...rows].find((r) => r.querySelector('.mp-name').textContent === 'Armory');
+        const slain = [...rows].find((r) => r.querySelector('.mp-name').textContent === 'Command Post');
         const pips = [...slain.querySelectorAll('.mp-pip')];
         expect(pips).toHaveLength(5);
         expect(pips.map((p) => p.classList.contains('mp-best'))).toEqual([true, true, true, true, false]);
         expect(pips.map((p) => p.classList.contains('mp-now'))).toEqual([false, true, false, false, false]);
-        expect(slain.getAttribute('aria-label')).toBe('Armory: best tier 4, this run tier 2');
+        expect(slain.getAttribute('aria-label')).toBe('Command Post: best tier 4, this run tier 2');
     });
 
     test('the legend explains both marks and the closing line states what is left', () => {

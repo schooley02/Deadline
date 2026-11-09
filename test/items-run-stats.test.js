@@ -282,7 +282,7 @@ describe('Hospital good-habit counter (2026-10-31)', () => {
         expect(stats.habitsCompleted).toBe(1);
     });
 
-    test('a bad habit "avoided" from the live pop-up is a habit win (Armory) but NOT a good habit (Hospital)', () => {
+    test('a bad habit "avoided" from the live pop-up is a habit win (Habit Hero) but NOT a good habit (Hospital)', () => {
         const stats = RunStats.freshRunStats();
         const deps = makeDeps({
             activeItems: [habitItem({ isNegative: true })],

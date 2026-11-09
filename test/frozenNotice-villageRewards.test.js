@@ -20,12 +20,12 @@ test('shows the building, its star count and the item', () => {
 });
 
 test('a single reward and several rewards read differently but are ONE window either way', () => {
-    FrozenNotice.showVillageRewardNotice([row('Armory', 2, 'Medium Pushback (2 hr) ×1')]);
+    FrozenNotice.showVillageRewardNotice([row('Command Post', 2, 'Medium Pushback (2 hr) ×1')]);
     jest.advanceTimersByTime(10);
     expect(document.body.innerHTML).toContain('A village building earned a new star.');
     document.body.innerHTML = '';
     Modal.open.mockClear();
-    FrozenNotice.showVillageRewardNotice([row('Armory', 2, 'A ×1'), row('Clock tower', 4, 'B ×1'), row('Hospital', 2, 'C ×1')]);
+    FrozenNotice.showVillageRewardNotice([row('Command Post', 2, 'A ×1'), row('Clock tower', 4, 'B ×1'), row('Hospital', 2, 'C ×1')]);
     jest.advanceTimersByTime(10);
     expect(Modal.open).toHaveBeenCalledTimes(1);
     expect(document.body.innerHTML).toContain('Your village earned new stars.');
@@ -35,14 +35,14 @@ test('a single reward and several rewards read differently but are ONE window ei
 test('nothing to say = no notice', () => {
     FrozenNotice.showVillageRewardNotice([]);
     FrozenNotice.showVillageRewardNotice(null);
-    FrozenNotice.showVillageRewardNotice([{ building: 'Armory', star: 2 }, null, { building: 'x', label: '' }]);
+    FrozenNotice.showVillageRewardNotice([{ building: 'Command Post', star: 2 }, null, { building: 'x', label: '' }]);
     jest.advanceTimersByTime(1000);
     expect(Modal.open).not.toHaveBeenCalled();
 });
 
 test('waits behind an open modal instead of being dropped, then batches rewards that arrived meanwhile', () => {
     document.body.innerHTML = '<div class="modal-overlay" id="other"></div>';
-    FrozenNotice.showVillageRewardNotice([row('Armory', 2, 'First ×1')]);
+    FrozenNotice.showVillageRewardNotice([row('Command Post', 2, 'First ×1')]);
     FrozenNotice.showVillageRewardNotice([row('Hospital', 3, 'Second ×1')]);
     jest.advanceTimersByTime(900);
     expect(Modal.open).not.toHaveBeenCalled();
@@ -55,10 +55,10 @@ test('waits behind an open modal instead of being dropped, then batches rewards 
 });
 
 test('a second payout after the notice closed gets its own notice (nothing is stuck)', () => {
-    FrozenNotice.showVillageRewardNotice([row('Armory', 2, 'One ×1')]);
+    FrozenNotice.showVillageRewardNotice([row('Command Post', 2, 'One ×1')]);
     jest.advanceTimersByTime(10);
     document.body.innerHTML = '';
-    FrozenNotice.showVillageRewardNotice([row('Armory', 3, 'Two ×1')]);
+    FrozenNotice.showVillageRewardNotice([row('Command Post', 3, 'Two ×1')]);
     jest.advanceTimersByTime(10);
     expect(Modal.open).toHaveBeenCalledTimes(2);
     expect(document.body.innerHTML).toContain('Two');
