@@ -128,7 +128,21 @@ const VillageView = (() => {
     const HOVER_SCALE = 1.05;
     let hoverEl = null;
 
+    // 2026-11-09: measured from LAYOUT (offsetLeft / offsetWidth, which ignore transforms), not from the hovered sprite's
+    // getBoundingClientRect. The glow's scale is a 120 ms CSS transition, so mid-transition the box is neither 1x nor
+    // HOVER_SCALE and dividing by HOVER_SCALE cut the hovered building's top rows off: the glow flickered to the building
+    // behind it. Any scale on the whole layer (phones) is taken from the offsetParent's own box. jsdom has no layout
+    // (offsetParent null), so it falls back to the old maths.
     function unscaledRect(img) {
+        const parent = img.offsetParent;
+        if (parent && img.offsetWidth > 0 && parent.offsetWidth > 0 && parent.offsetHeight > 0) {
+            const pr = parent.getBoundingClientRect();
+            const kx = pr.width / parent.offsetWidth, ky = pr.height / parent.offsetHeight;
+            const left = pr.left + (parent.clientLeft + img.offsetLeft) * kx;
+            const top = pr.top + (parent.clientTop + img.offsetTop) * ky;
+            const w = img.offsetWidth * kx, h = img.offsetHeight * ky;
+            return { left, top, right: left + w, bottom: top + h, width: w, height: h };
+        }
         const r = img.getBoundingClientRect();
         if (!img.classList || !img.classList.contains('village-hover')) return r;
         const w = r.width / HOVER_SCALE, h = r.height / HOVER_SCALE; // the sprite grows from its bottom-centre
@@ -137,7 +151,7 @@ const VillageView = (() => {
         return { left, top, right: left + w, bottom: top + h, width: w, height: h };
     }
 
-    function spriteHit(img, clientX, clientY) {
+    function spriteHit(img, clientX, clientY, slop) {
         const rect = unscaledRect(img);
         const c = cfg();
         const art = c.VILLAGE_ART_X && c.VILLAGE_ART_X[img.dataset.kind];
@@ -149,14 +163,38 @@ const VillageView = (() => {
         let px = Math.min(a.w - 1, Math.max(0, Math.floor((clientX - rect.left) * a.w / rect.width)));
         const py = Math.min(a.h - 1, Math.max(0, Math.floor((clientY - rect.top) * a.h / rect.height)));
         if (flip) px = a.w - 1 - px; // the sprite is drawn mirrored; its pixels are not
-        return opaqueNear(a.data, a.w, a.h, px, py, HIT_SLOP_PX, HIT_ALPHA);
+        return opaqueNear(a.data, a.w, a.h, px, py, typeof slop === 'number' ? slop : HIT_SLOP_PX, HIT_ALPHA);
+    }
+
+    /**
+     * Pure. The sprites to hit-test, TOPMOST FIRST by their PAINT order (the z-index render() gives each slot), never by the
+     * browser's stacking at the moment. 2026-11-09 (Jeremy): the hovered building is lifted to z 40 by .village-hover, so
+     * `elementsFromPoint` listed it first and it kept the glow while the pointer slid onto a building drawn IN FRONT of it
+     * (windmill tower behind the boxing gym's roof). Sorting by the slot z keeps "the building you see on top wins".
+     */
+    function byPaintOrder(sprites) {
+        const z = (el) => { const n = Number(el && el.style ? el.style.zIndex : NaN); return isFinite(n) ? n : -1; };
+        return (Array.isArray(sprites) ? sprites : []).slice().sort((a, b) => z(b) - z(a));
+    }
+
+    // Every building sprite in the layer, topmost (paint order) first. spriteHit checks each one's own rect, so the
+    // pointer does not have to be inside the browser's (possibly scaled) box of a sprite for it to be considered.
+    function spritesAt() {
+        return byPaintOrder(layerEl ? Array.from(layerEl.querySelectorAll('.village-sprite')) : []);
+    }
+
+    // The building under the pointer: first the one whose VISIBLE pixel is exactly there (topmost wins), and only when the
+    // pointer is over no building at all, the forgiving HIT_SLOP_PX pass (thin spokes / masts). 2026-11-09: a single slop
+    // pass let a front building claim the 3 art px of the building behind it all around its edge.
+    function buildingAt(clientX, clientY) {
+        const under = spritesAt();
+        return pickHit(under, (img) => spriteHit(img, clientX, clientY, 0))
+            || pickHit(under, (img) => spriteHit(img, clientX, clientY, HIT_SLOP_PX));
     }
 
     function onLayerClick(e) {
         if (!deps || !deps.onOpenBuilding || !layerEl) return;
-        const under = (document.elementsFromPoint ? document.elementsFromPoint(e.clientX, e.clientY) : [])
-            .filter(el => el.classList && el.classList.contains('village-sprite') && layerEl.contains(el));
-        const hit = pickHit(under, (img) => spriteHit(img, e.clientX, e.clientY));
+        const hit = buildingAt(e.clientX, e.clientY);
         if (!hit) return;
         e.stopPropagation(); // Modal's document click handler would close the card the same click opens
         deps.onOpenBuilding({
@@ -179,9 +217,7 @@ const VillageView = (() => {
 
     function onLayerMove(e) {
         if (!layerEl) return;
-        const under = (document.elementsFromPoint ? document.elementsFromPoint(e.clientX, e.clientY) : [])
-            .filter(el => el.classList && el.classList.contains('village-sprite') && layerEl.contains(el));
-        setHover(pickHit(under, (img) => spriteHit(img, e.clientX, e.clientY)));
+        setHover(buildingAt(e.clientX, e.clientY));
     }
 
     function clear() {
@@ -332,7 +368,7 @@ const VillageView = (() => {
         render();
     }
 
-    return { init, render, pickHit, inArtBox, opaqueNear, hazePlan, HOVER_SCALE };
+    return { init, render, pickHit, byPaintOrder, inArtBox, opaqueNear, hazePlan, HOVER_SCALE };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

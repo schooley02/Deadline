@@ -477,6 +477,22 @@ describe('tappable buildings (Build 2, 2026-10-30)', () => {
         expect(VillageView.pickHit(null, () => true)).toBeNull();
     });
 
+    // 2026-11-09 (Jeremy): the hovered sprite is lifted to z 40, so the browser's stacking put it first and it kept the glow over
+    // the boxing gym drawn in front of it. Hit-testing now follows the slot z (paint order) only.
+    test('byPaintOrder puts the sprite PAINTED last first, ignoring the hover lift', () => {
+        const el = (id, z) => ({ id, style: { zIndex: String(z) } });
+        const windmill = el('bestdays', 0), hospital = el('habits', 2), gym = el('lurkers', 5);
+        expect(VillageView.byPaintOrder([windmill, gym, hospital]).map(e => e.id)).toEqual(['lurkers', 'habits', 'bestdays']);
+        expect(VillageView.byPaintOrder([el('x', ''), gym]).map(e => e.id)).toEqual(['lurkers', 'x']);
+        expect(VillageView.byPaintOrder(null)).toEqual([]);
+    });
+
+    test('hover: no sprite is chosen from the browser stack any more (elementsFromPoint is not used)', () => {
+        const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'js', 'ui', 'villageView.js'), 'utf8');
+        expect(src).not.toMatch(/elementsFromPoint\(/);
+        expect(src).toMatch(/spriteHit\(img, clientX, clientY, 0\)/); // the exact pass runs before the forgiving one
+    });
+
     test('inArtBox uses the visible-art columns, scaled with the sprite', () => {
         const rect = { left: 100, top: 50, right: 228, bottom: 178, width: 128, height: 128 };
         const art = [20, 113];

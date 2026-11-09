@@ -4,6 +4,12 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-09 -- Village hover: the building you SEE on top gets the glow (Claude app session, Opus 5.5; Jeremy)
+
+- **Bug (Jeremy):** hovering the top of the boxing gym lit up the windmill behind it. Reproduced headless by sweeping the pointer: ~1,270 gym pixels per tier went to the windmill. Three causes in `js/ui/villageView.js`: (1) the hovered sprite is lifted to z 40 (`.village-hover`), and candidates came from `elementsFromPoint`, so once the windmill had the glow it was tested FIRST and kept it over the gym; (2) the hovered sprite's box was read from `getBoundingClientRect` and divided by 1.05, but the scale is a 120 ms transition, so mid-transition the gym's own top rows fell outside its box; (3) the forgiving 3 art px tap slop let a front building claim a 3 px rim of the building behind it.
+- **Fix:** candidates = every sprite in the layer sorted by its slot z (`byPaintOrder`, paint order, never the hover lift); the hit box comes from layout (`offsetLeft` / `offsetWidth` x the layer's own scale), which ignores transforms; an EXACT pixel pass runs first and the 3 px slop only when the pointer is over no building (`buildingAt`, used by hover AND tap). Headless sweep over every visible building pixel, rows and columns, tiers 1 / 3 / 5, 1280x720 and 844x390: 0 mismatches (was ~540 per sweep). sw v298.
+- **Rejected:** dropping the hover lift (the glow must sit on top); dropping the slop (thin windmill spokes / radio mast get hard to tap on a phone).
+
 ## 2026-11-09 -- The next-morning card asks about EVERY unfinished task, every morning (Claude app session, Opus 5.5; Jeremy)
 
 - **Bug report (Jeremy):** an anytime zombie, created the day before its due date, was answered "Leave it" on the morning card, given a due time, and pushed back with pushbacks; it stayed unfinished and the next mornings showed no card. Two causes: (1) giving it a time or a Short / Medium / overdue pushback removes the anytime flag (`Items.syncAnytimeFlag`) and the card only looked at anytime tasks; (2) "Leave it" stamped `anytimeAsked.morning = true` for good, and no move ever cleared it.
