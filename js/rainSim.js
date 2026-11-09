@@ -30,7 +30,9 @@ const RainSim = (() => {
     };
     const ROLES = Object.keys(LAYERS);
 
-    const MAX_SLOPE = 0.6;            // the most a gust can lean the rain (sideways pixels per falling pixel)
+    // 2026-11-09 (Jeremy: the storm "doesn't seem windy at all"): a steeper lean, harder and more frequent gusts. Same direction
+    // (the rain blows the way the clouds drift, left to right). Was MAX 0.6, base 0.22, gust +0.3 / x1.35 every 22-45 s.
+    const MAX_SLOPE = 0.85;           // the most a gust can lean the rain (sideways pixels per falling pixel)
     const SHADE_ALPHA = 0.7;          // a "dim" drop is drawn at this share of its layer's alpha
     const SPLASH_FRAMES = [0.07, 0.07, 0.09]; // seconds each of the 3 splash frames lasts
     const SPLASH_LIFE = SPLASH_FRAMES.reduce((a, b) => a + b, 0);
@@ -72,9 +74,9 @@ const RainSim = (() => {
      */
     function createWind(rng, options) {
         const o = Object.assign({
-            base: 0.22, drift: 0.1, driftPeriod: 38,
-            gustSlope: 0.3, gustSpeed: 0.35,
-            firstGust: [8, 16], gustEvery: [22, 45], gustLen: [2.5, 4.5],
+            base: 0.34, drift: 0.1, driftPeriod: 38,
+            gustSlope: 0.42, gustSpeed: 0.45,
+            firstGust: [6, 14], gustEvery: [14, 30], gustLen: [3, 5],
         }, options || {});
         let t = 0;
         let untilGust = between(rng, o.firstGust[0], o.firstGust[1]);

@@ -22,6 +22,11 @@ const RainFx = (() => {
     const MAX_DT = 0.1;           // seconds; a long pause (tab hidden, slow frame) never teleports the drops
     const RGB = '184, 202, 218';  // cool grey-blue; each layer sets its own alpha
     const BOLT_RGB = '244, 247, 255';
+    // 2026-11-09 (Jeremy): during a gust the storm clouds speed up too, so the sky and the rain push the same way at once. Peak
+    // playback rate of the clouds' CSS drift at the top of a gust (1 = their normal slow pace, which stays as it is: they are far
+    // off behind the mountains). Clouds being scrubbed by the time slider (playbackRate 0) are never touched.
+    const CLOUD_GUST_RATE = 3;
+    const CLOUD_SELECTOR = '#graveyardScene .scene-clouds-drift';
 
     let deps = null;
     let canvasEl = null;
@@ -34,6 +39,8 @@ const RainFx = (() => {
     let rng = null;
     let flashEl = null;
     let entries = [];             // { host, canvas, ctx, layer, role, w, h }
+    let cloudAnims = [];          // the clouds' infinite CSS drift animations (re-found on every scan)
+    const gustedAnims = new Set(); // the ones this module has sped up, so it can hand them back at rate 1
 
     function sim() { return (typeof RainSim !== 'undefined') ? RainSim : null; }
 
@@ -103,6 +110,41 @@ const RainFx = (() => {
         }
         const k = intensity();
         entries.forEach((e) => { if (e.layer && Math.abs(e.layer.intensity - k) > 0.05) e.layer.setIntensity(k); });
+        cloudAnims = findCloudAnims();
+    }
+
+    function findCloudAnims() {
+        if (typeof document === 'undefined') return [];
+        const out = [];
+        document.querySelectorAll(CLOUD_SELECTOR).forEach((el) => {
+            if (typeof el.getAnimations !== 'function') return;
+            el.getAnimations().forEach((a) => {
+                const t = (a.effect && typeof a.effect.getComputedTiming === 'function') ? a.effect.getComputedTiming() : null;
+                if (t && t.iterations === Infinity) out.push(a);
+            });
+        });
+        return out;
+    }
+
+    /** Pure. The clouds' playback rate for a gust envelope 0..1 (0 = calm = their own pace). */
+    function cloudRateFor(gust) {
+        const g = Number.isFinite(gust) ? Math.min(1, Math.max(0, gust)) : 0;
+        return 1 + (CLOUD_GUST_RATE - 1) * g;
+    }
+
+    function gustClouds(gust) {
+        const rate = cloudRateFor(gust);
+        cloudAnims.forEach((a) => {
+            if (a.playbackRate === 0) return; // the time slider is scrubbing it
+            if (Math.abs(a.playbackRate - rate) < 0.02) return;
+            a.playbackRate = rate; // keeps the current position: no jump
+            gustedAnims.add(a);
+        });
+    }
+
+    function calmClouds() {
+        gustedAnims.forEach((a) => { if (a.playbackRate !== 0) a.playbackRate = 1; });
+        gustedAnims.clear();
     }
 
     // --------------------------------------------------------------------------------------------------- drawing
@@ -158,6 +200,7 @@ const RainFx = (() => {
         const dt = Math.min(MAX_DT, lastFrame ? (ts - lastFrame) / 1000 : FRAME_MS / 1000);
         lastFrame = ts;
         const w = wind.step(dt);
+        gustClouds(w.gust);
         const far = entries.find((e) => e.role === 'far' && e.layer);
         const lt = far ? lightning.step(dt, far.w, far.h) : null;
         if (lt && lt.fired) flash();
@@ -171,7 +214,7 @@ const RainFx = (() => {
     // ------------------------------------------------------------------------------------------------ lifecycle
 
     function startLoop() { if (!raf && typeof requestAnimationFrame === 'function') { lastFrame = 0; raf = requestAnimationFrame(frame); } }
-    function stopLoop() { if (raf && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(raf); raf = 0; }
+    function stopLoop() { if (raf && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(raf); raf = 0; calmClouds(); }
 
     function tick() {
         if (!isStorm()) return;
@@ -223,7 +266,7 @@ const RainFx = (() => {
         flashEl = null;
     }
 
-    return { PX, init, sync, destroy, motionMode, _entries: () => entries };
+    return { PX, CLOUD_GUST_RATE, cloudRateFor, init, sync, destroy, motionMode, _entries: () => entries };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

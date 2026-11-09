@@ -4,6 +4,12 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-09 -- A windier storm: steeper rain lean, harder gusts, clouds surge with each gust (Claude app session, Opus 5.5; Jeremy)
+
+- **Ask:** Jeremy first asked to flip the rain. Checked: the clouds drift left to right and the rain already falls down and to the right, which is what that wind would do; Jeremy agreed, and named the real problem: "it doesn't seem windy at all". Cause: the storm clouds are the slowest in the game (167-250 s per tile) while the rain leaned only gently.
+- **Decision (Jeremy picked options 2 + 3; "lets not change cloud speed yet since those clouds are far off in the distance behind the mountains"):** (2) during a rain gust the clouds' CSS drift speeds up with it, up to `RainFx.CLOUD_GUST_RATE` = 3x at the top of the gust, eased by the gust envelope, then back to their own pace (Web Animations `playbackRate`, which keeps the position: no jump). A cloud the time slider is scrubbing (rate 0) is never touched, and leaving Storm / reduced effects hands every cloud back at rate 1. (3) `js/rainSim.js` wind: base lean 0.22 -> 0.34, gust lean +0.3 -> +0.42, gust speed x1.35 -> x1.45, gusts every 22-45 s -> 14-30 s (first within 6-14 s), 3-5 s long, `MAX_SLOPE` 0.6 -> 0.85. Same direction as before. The clouds' base speed is unchanged.
+- Visual only; no game number changed. sw v299. Checked headless (storm, 1280x720): cloud rate 1 -> 2.98 -> 1 over one gust, background position moving steadily with no jump, no page errors.
+
 ## 2026-11-09 -- Village hover: the building you SEE on top gets the glow (Claude app session, Opus 5.5; Jeremy)
 
 - **Bug (Jeremy):** hovering the top of the boxing gym lit up the windmill behind it. Reproduced headless by sweeping the pointer: ~1,270 gym pixels per tier went to the windmill. Three causes in `js/ui/villageView.js`: (1) the hovered sprite is lifted to z 40 (`.village-hover`), and candidates came from `elementsFromPoint`, so once the windmill had the glow it was tested FIRST and kept it over the gym; (2) the hovered sprite's box was read from `getBoundingClientRect` and divided by 1.05, but the scale is a 120 ms transition, so mid-transition the gym's own top rows fell outside its box; (3) the forgiving 3 art px tap slop let a front building claim a 3 px rim of the building behind it.

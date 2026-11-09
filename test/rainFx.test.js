@@ -172,6 +172,54 @@ describe('motion settings', () => {
     });
 });
 
+// 2026-11-09 (Jeremy: the storm "doesn't seem windy at all"): during a gust the far clouds speed up with the rain.
+describe('clouds ride the gusts', () => {
+    function fakeAnim(rate) {
+        return { playbackRate: rate, effect: { getComputedTiming: () => ({ iterations: Infinity, duration: 1000, delay: 0 }) } };
+    }
+    function addClouds(anims) {
+        const scene = document.createElement('div');
+        scene.id = 'graveyardScene';
+        anims.forEach((a) => {
+            const el = document.createElement('div');
+            el.className = 'scene-clouds-drift';
+            el.getAnimations = () => [a];
+            scene.appendChild(el);
+        });
+        document.getElementById('gameCanvas').appendChild(scene);
+    }
+    function run(seconds) {
+        let ts = 1000;
+        let peak = 0;
+        for (let i = 0; i < seconds * 25; i++) { ts += 40; if (rafCb) rafCb(ts); peak = Math.max(peak, anims[0].playbackRate); }
+        return peak;
+    }
+    let anims;
+
+    test('cloudRateFor: calm = their own pace, the top of a gust = CLOUD_GUST_RATE', () => {
+        expect(RainFx.cloudRateFor(0)).toBe(1);
+        expect(RainFx.cloudRateFor(1)).toBe(RainFx.CLOUD_GUST_RATE);
+        expect(RainFx.cloudRateFor(0.5)).toBeCloseTo(1 + (RainFx.CLOUD_GUST_RATE - 1) / 2, 5);
+        expect(RainFx.cloudRateFor(NaN)).toBe(1);
+        expect(RainFx.cloudRateFor(5)).toBe(RainFx.CLOUD_GUST_RATE);
+        expect(RainFx.CLOUD_GUST_RATE).toBeGreaterThan(1);
+    });
+
+    test('a gust speeds the clouds up, a scrubbed cloud is left alone, and leaving the storm hands them back at rate 1', () => {
+        buildDom(true);
+        anims = [fakeAnim(1), fakeAnim(0)];
+        addClouds(anims);
+        RainFx.init({});
+        const peak = run(20); // the first gust comes within 14 s
+        expect(peak).toBeGreaterThan(1.5);
+        expect(anims[1].playbackRate).toBe(0);
+        document.getElementById('gameCanvas').className = 'climate-fog';
+        RainFx.sync();
+        expect(anims[0].playbackRate).toBe(1);
+        expect(anims[1].playbackRate).toBe(0);
+    });
+});
+
 describe('drawing', () => {
     test('still mode paints each host once: clears, then draws drop pixels', () => {
         document.body.className = 'fx-off';

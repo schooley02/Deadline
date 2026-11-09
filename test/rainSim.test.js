@@ -57,7 +57,7 @@ describe('createWind', () => {
             peak = Math.max(peak, s.gust);
         }
         expect(peak).toBeGreaterThan(0.9);
-        expect(calm).toBeCloseTo(0.22, 5);
+        expect(calm).toBeCloseTo(0.34, 5); // 2026-11-09: windier storm (was 0.22)
     });
     test('gusts come and go: the envelope returns to 0 and speedMul to 1', () => {
         const w = RainSim.createWind(rng(9), { drift: 0 });
