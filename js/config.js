@@ -590,7 +590,7 @@ const CONFIG = {
         { x: 46, feet: 38 },
         { x: 70, feet: 24 },
         { x: 118, feet: 22 },
-        { x: 26, feet: 4 },
+        { x: 24, feet: 14 },
     ],
     MARKER_ART_PX: 48,
     MARKER_HIT_PX: 48,

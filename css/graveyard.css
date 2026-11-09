@@ -174,9 +174,14 @@
 .milestone-marker-art[data-stage="3"] { background-image: url("../Assets/scene/headstone-3.png"); }
 .milestone-marker-art[data-stage="4"] { background-image: url("../Assets/scene/headstone-4.png"); }
 
+/* Mouse / touch feedback is a plain brighten (no gold outline: the outline looked like it flashed on stones the pointer had already left, 2026-11-08).
+   Only the keyboard focus ring gets the gold glow. */
 .milestone-marker:hover .milestone-marker-art,
-.milestone-marker:focus-visible .milestone-marker-art,
 .milestone-marker:active .milestone-marker-art {
+    filter: brightness(1.25);
+}
+
+.milestone-marker:focus-visible .milestone-marker-art {
     filter: brightness(1.25) drop-shadow(0 0 2px #f1d27a);
 }
 
