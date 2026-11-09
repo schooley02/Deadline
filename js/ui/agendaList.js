@@ -51,6 +51,63 @@
 const AgendaList = (() => {
 
     /**
+     * Work-timer controls for one item (Build 3): the timer button + Pause / Play / Stop icons (+ a Break habit's limit caption).
+     * Used by a top-level row AND by a sub-task's nested row (2026-11-09, Jeremy: timers on sub-tasks). Returns the host element,
+     * or null when the item can't be timed. Every control carries data-item-id so script.js updateTimerButtons never mixes up
+     * a parent's controls with its sub-tasks' (both live inside the parent's row).
+     */
+    function buildTimerHost(itemData, deps) {
+        if (!(typeof deps.toggleWorkTimer === 'function' && typeof Timer !== 'undefined' && Timer.canTimer(itemData))) return null;
+        const timerBtn = document.createElement('button');
+        timerBtn.type = 'button';
+        timerBtn.classList.add('work-timer-btn');
+        timerBtn.dataset.itemId = itemData.id;
+        const running = Timer.isRunning(itemData);
+        timerBtn.innerHTML = Timer.buttonHtml(itemData, Date.now());
+        timerBtn.classList.toggle('running', running);
+        const overLimit = Timer.isOverLimit(itemData, Date.now()); // Break limit passed: icon, border and controls go red
+        timerBtn.classList.toggle('over-limit', overLimit);
+        const nudge = Timer.shouldNudge(itemData);
+        timerBtn.classList.toggle('attacking', nudge);
+        const planned = !nudge && Timer.shouldPrompt(itemData);
+        timerBtn.classList.toggle('planned', planned);
+        timerBtn.title = nudge ? Timer.NUDGE_TITLE : planned ? Timer.PROMPT_TITLE : Timer.buttonTitle(itemData);
+        timerBtn.setAttribute('aria-label', timerBtn.title);
+        // Tapping the timer: start / resume when idle, pause when running (Pause and Stop icons sit beside it).
+        timerBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            deps.toggleWorkTimer(itemData.id);
+        });
+        // A Break habit's limit sits UNDER the timer as a caption (2026-11-01): wrap button + controls in a stack.
+        const isLimitTimer = Timer.canLimitTimer(itemData);
+        const timerHost = document.createElement('div');
+        timerHost.className = isLimitTimer ? 'timer-stack' : 'timer-plain';
+        const timerRow = isLimitTimer ? document.createElement('div') : timerHost;
+        if (isLimitTimer) { timerRow.className = 'timer-row'; timerHost.appendChild(timerRow); }
+        timerRow.appendChild(timerBtn);
+        // Pause / Play (resume) / Stop controls beside the timer: Pause while running, Play while paused, Stop while
+        // running or paused (script.js updateTimerButtons toggles `hidden` from Timer.controlState).
+        const controls = Timer.controlState(itemData);
+        [['pause', 'Pause timer', Timer.PAUSE_ICON_SVG], ['play', 'Resume timer', Timer.PLAY_ICON_SVG], ['stop', 'Stop timer', Timer.STOP_ICON_SVG]].forEach(([action, label, svg]) => {
+            const ctl = document.createElement('button');
+            ctl.type = 'button';
+            ctl.className = `timer-ctl-btn timer-ctl-${action}${overLimit ? ' over-limit' : ''}`;
+            ctl.title = label;
+            ctl.setAttribute('aria-label', label);
+            ctl.dataset.itemId = itemData.id; // script.js finds each item's own controls by id (a sub-task's sit inside its parent's row)
+            ctl.innerHTML = svg;
+            ctl.hidden = !controls[action];
+            ctl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deps.toggleWorkTimer(itemData.id, action);
+            });
+            timerRow.appendChild(ctl);
+        });
+        if (isLimitTimer) timerHost.insertAdjacentHTML('beforeend', Timer.limitCaptionHtml(itemData, Date.now()));
+        return timerHost;
+    }
+
+    /**
      * Build the <li> row for an active item and store it on
      * itemData.listItemElement. Does NOT insert it into the DOM — callers
      * (sortAndRenderActiveList, restoreGameState, addItemToGame) handle
@@ -198,54 +255,8 @@ const AgendaList = (() => {
         }
 
         // Work timer (Build 3): start/stop on the row; script.js refreshes the label each second.
-        if (typeof deps.toggleWorkTimer === 'function' && typeof Timer !== 'undefined' && Timer.canTimer(itemData)) {
-            const timerBtn = document.createElement('button');
-            timerBtn.type = 'button';
-            timerBtn.classList.add('work-timer-btn');
-            timerBtn.dataset.itemId = itemData.id;
-            const running = Timer.isRunning(itemData);
-            timerBtn.innerHTML = Timer.buttonHtml(itemData, Date.now());
-            timerBtn.classList.toggle('running', running);
-            const overLimit = Timer.isOverLimit(itemData, Date.now()); // Break limit passed: icon, border and controls go red
-            timerBtn.classList.toggle('over-limit', overLimit);
-            const nudge = Timer.shouldNudge(itemData);
-            timerBtn.classList.toggle('attacking', nudge);
-            const planned = !nudge && Timer.shouldPrompt(itemData);
-            timerBtn.classList.toggle('planned', planned);
-            timerBtn.title = nudge ? Timer.NUDGE_TITLE : planned ? Timer.PROMPT_TITLE : Timer.buttonTitle(itemData);
-            timerBtn.setAttribute('aria-label', timerBtn.title);
-            // Tapping the timer: start / resume when idle, pause when running (Pause and Stop icons sit beside it).
-            timerBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                deps.toggleWorkTimer(itemData.id);
-            });
-            // A Break habit's limit sits UNDER the timer as a caption (2026-11-01): wrap button + controls in a stack.
-            const isLimitTimer = Timer.canLimitTimer(itemData);
-            const timerHost = document.createElement('div');
-            timerHost.className = isLimitTimer ? 'timer-stack' : 'timer-plain';
-            const timerRow = isLimitTimer ? document.createElement('div') : timerHost;
-            if (isLimitTimer) { timerRow.className = 'timer-row'; timerHost.appendChild(timerRow); }
-            timerRow.appendChild(timerBtn);
-            itemActionsContainer.appendChild(timerHost);
-            // Pause / Play (resume) / Stop controls beside the timer: Pause while running, Play while paused, Stop while
-            // running or paused (script.js updateTimerButtons toggles `hidden` from Timer.controlState).
-            const controls = Timer.controlState(itemData);
-            [['pause', 'Pause timer', Timer.PAUSE_ICON_SVG], ['play', 'Resume timer', Timer.PLAY_ICON_SVG], ['stop', 'Stop timer', Timer.STOP_ICON_SVG]].forEach(([action, label, svg]) => {
-                const ctl = document.createElement('button');
-                ctl.type = 'button';
-                ctl.className = `timer-ctl-btn timer-ctl-${action}${overLimit ? ' over-limit' : ''}`;
-                ctl.title = label;
-                ctl.setAttribute('aria-label', label);
-                ctl.innerHTML = svg;
-                ctl.hidden = !controls[action];
-                ctl.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    deps.toggleWorkTimer(itemData.id, action);
-                });
-                timerRow.appendChild(ctl);
-            });
-            if (isLimitTimer) timerHost.insertAdjacentHTML('beforeend', Timer.limitCaptionHtml(itemData, Date.now()));
-        }
+        const rowTimerHost = buildTimerHost(itemData, deps);
+        if (rowTimerHost) itemActionsContainer.appendChild(rowTimerHost);
         itemActionsContainer.appendChild(editIconButton);
         if (itemData.type === 'habit' && itemData.isNegative === true) {
             // Negative-habit lurker (2026-10-12, Jeremy's call): a "Mark as
@@ -369,7 +380,7 @@ const AgendaList = (() => {
 
                     const subTaskInfo = document.createElement('div');
                     subTaskInfo.classList.add('sub-task-info');
-                    subTaskInfo.style.cssText = 'flex-grow: 1; margin-left: 8px;';
+                    subTaskInfo.style.cssText = 'flex-grow: 1; margin-left: 8px; min-width: 0;';
 
                     const subTaskName = document.createElement('div');
                     subTaskName.style.cssText = 'font-weight: 500; margin-bottom: 4px;';
@@ -385,7 +396,7 @@ const AgendaList = (() => {
                     // Right side: Controls (edit icon and checkbox)
                     const subTaskControls = document.createElement('div');
                     subTaskControls.classList.add('sub-task-controls');
-                    subTaskControls.style.cssText = 'display: flex; align-items: center; gap: 12px;';
+                    subTaskControls.style.cssText = 'display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px;';
 
                     // Edit icon button
                     const subTaskEditIconButton = document.createElement('button');
@@ -421,6 +432,8 @@ const AgendaList = (() => {
                     subTaskCheckboxLabel.appendChild(subTaskCheckbox);
 
                     // Add controls to container
+                    const subTimerHost = buildTimerHost(subTaskData, deps); // timer on sub-tasks (2026-11-09)
+                    if (subTimerHost) subTaskControls.appendChild(subTimerHost);
                     subTaskControls.appendChild(subTaskEditIconButton);
                     subTaskControls.appendChild(subTaskCheckboxLabel);
 

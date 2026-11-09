@@ -226,6 +226,12 @@ const Popups = (() => {
         return `<button type="button" id="useSkipDayBtn" class="negative-habit-button skipday-btn">Use Skip Day (${heldSkipDays} held)</button>`;
     }
 
+    // "+ Sub-task" in the zombie window (2026-11-09, Jeremy). Same rule as the list row's button: tasks only (never habits),
+    // top-level only (sub-tasks stay one level deep), not a KO ghost, not after game over.
+    function canAddSubTaskFromPopup(item, deps) {
+        return !!item && item.type === 'task' && !item.parentId && !item.koGhost && !(deps && deps.gameIsOver);
+    }
+
     function buildActionsHtml(item, deps) {
         // KO ghost (2026-10-25): completable, but no edit / pushback / cheat day /
         // skip day while the routine is down.
@@ -291,6 +297,7 @@ const Popups = (() => {
                 </label>
             </div>
             ${timerOk ? nudgeNoteHtml(item, deps) : ''}
+            ${canAddSubTaskFromPopup(item, deps) ? '<div class="task-subtask-row" style="display: flex; justify-content: flex-end; margin-top: 8px;"><button type="button" id="addSubTaskBtn" class="add-subtask-button" title="Add Sub-task" style="font-size: 12px; padding: 4px 8px;">+ Sub-task</button></div>' : ''}
             ${buildPushbackSectionHtml(item, deps)}
             ${buildSkipDaySectionHtml(item, deps)}
         `;
@@ -507,6 +514,16 @@ const Popups = (() => {
                 if (result && result.ok) {
                     Modal.closeModal();
                 }
+            });
+        }
+
+        // "+ Sub-task": close this window, then open the usual Create Sub-task form for this task. The form is opened on the
+        // next tick so Modal.closeModal() can't race the new Modal.open() (same care as the Cheat Day rebuild above).
+        const addSubTaskButton = document.getElementById('addSubTaskBtn');
+        if (addSubTaskButton) {
+            addSubTaskButton.addEventListener('click', () => {
+                Modal.closeModal();
+                setTimeout(() => createSubTaskPrompt(item.id, deps), 0);
             });
         }
 

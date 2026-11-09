@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-09 -- Timers on sub-tasks, and "+ Sub-task" in the zombie window (Claude app session; Opus 5.5 plan -> Sonnet 5.5 build; Jeremy: "need to add the timer to subtasks and allow me to add subtask from the zombie window that pops up when i click/tap them")
+
+- **Audit:** the timer core (`Timer.canWorkTimer`) already allowed sub-tasks, and a sub-task's zombie popup already had Start / Pause / Stop. What was missing: the sub-task's nested row in the list had no timer, and the zombie popup had no way to add a sub-task (only the list row's "+ Sub-task").
+- **Decision (Jeremy approved the plan):** (1) each nested sub-task row gets the same timer button + Pause / Play / Stop icons as a top-level row, placed before its Edit pencil. (2) A top-level task's zombie popup gets a "+ Sub-task" button that closes the popup and opens the existing Create Sub-task form. Same visibility rule as the list row's button: tasks only, never sub-tasks (one level deep), habits or KO ghosts, hidden after game over.
+- **How:** `buildTimerHost(itemData, deps)` extracted from `createListItem` (`js/ui/agendaList.js`) and used by both the row and the sub-task rows; every timer control now carries `data-item-id`. `updateTimerButtons` (script.js) used to find a row's controls with an unscoped `querySelector` inside the item's row, which would have let a parent grab (or flip) a sub-task's icons once sub-tasks had their own; it now scopes by id, and finds a sub-task's controls inside its parent's row (a sub-task has no row of its own, so its `listItemElement` is null). Popup: `canAddSubTaskFromPopup` + `#addSubTaskBtn` (popups.js), opened on the next tick after `Modal.closeModal()`. sw.js v302 -> v303. No schema change, no new save field, no balance number.
+- **Why one timer rule stays:** one timer at a time across ALL items, so starting a sub-task's timer stops a running parent's (its time is kept), and the reverse. Not changed.
+- **Rejected:** a timer only in the sub-task's popup (already existed; the point was the list); letting sub-tasks have sub-tasks to make the popup button universal (SUBTASKS_PLAN keeps one level).
+
 ## 2026-11-09 -- Level-up windows show what they are about (Claude app session; Opus 5.5 plan -> Sonnet 5.5 build; Jeremy: "when a popup window shows for some sort of level up ... we need to show the graphic of what it is in reference to")
 
 - **Ask:** every window that celebrates something levelling up must show the picture of that thing: a routine's category level-up animation, a building, and so on.

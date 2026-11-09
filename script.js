@@ -1697,15 +1697,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateTimerButtons(nowMs) {
-        State.getActiveItems().forEach(item => {
-            if (!item.listItemElement) return;
-            const btn = item.listItemElement.querySelector('.work-timer-btn');
+        const activeList = State.getActiveItems();
+        activeList.forEach(item => {
+            // A sub-task has no row of its own (it renders inside its parent's), so its controls are found in the parent's row
+            // (2026-11-09, timers on sub-tasks). Every timer control carries data-item-id, so a parent never picks up a
+            // sub-task's button or icons (or the reverse).
+            const rowEl = item.listItemElement
+                || (item.parentId != null ? ((activeList.find(p => p.id === item.parentId) || {}).listItemElement || null) : null);
+            if (!rowEl) return;
+            const idSel = '[data-item-id="' + item.id + '"]';
+            const btn = rowEl.querySelector('.work-timer-btn' + idSel);
             if (!btn) return;
             const running = Timer.isRunning(item);
             btn.classList.toggle('running', running);
             const overLimit = Timer.isOverLimit(item, nowMs); // Break limit passed: timer + Pause/Play/Stop turn red
             btn.classList.toggle('over-limit', overLimit);
-            const limitCaption = item.listItemElement.querySelector('.timer-limit-caption');
+            const limitCaption = item.listItemElement ? item.listItemElement.querySelector('.timer-limit-caption') : null;
             if (limitCaption) limitCaption.classList.toggle('over', overLimit);
             const html = Timer.buttonHtml(item, nowMs);
             if (btn.dataset.html !== html) { btn.innerHTML = html; btn.dataset.html = html; } // skip the per-second rebuild while idle
@@ -1717,7 +1724,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.setAttribute('aria-label', btn.title);
             // Pause / Play (resume) / Stop icons beside the timer.
             const controls = Timer.controlState(item);
-            item.listItemElement.querySelectorAll('.timer-ctl-btn').forEach(c => {
+            rowEl.querySelectorAll('.timer-ctl-btn' + idSel).forEach(c => {
                 const action = c.classList.contains('timer-ctl-play') ? 'play' : c.classList.contains('timer-ctl-stop') ? 'stop' : 'pause';
                 c.hidden = !controls[action];
                 c.classList.toggle('over-limit', overLimit);
