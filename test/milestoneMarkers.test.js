@@ -10,13 +10,13 @@ const fam = (id) => catalog.find((f) => f.id === id);
 const unlockTo = (id, n) => Object.fromEntries(fam(id).tiers.slice(0, n).map((t) => [t.id, '2026-11-08T00:00:00.000Z']));
 
 describe('the config', () => {
-    test('seven families, all in the catalog, one slot each, inside the 140px zone', () => {
+    test('seven families, all in the catalog, one slot each, on the hill (zone + its 52px left slope)', () => {
         expect(ids).toHaveLength(7);
         expect(MM.families(catalog, ids)).toHaveLength(7);
         expect(CONFIG.MARKER_SLOTS).toHaveLength(7);
         const half = 22; // the widest stone is ~44px wide once the 32px picture is drawn at MARKER_ART_PX (48)
         CONFIG.MARKER_SLOTS.forEach((s) => {
-            expect(s.x - half).toBeGreaterThanOrEqual(0);
+            expect(s.x - half).toBeGreaterThanOrEqual(-52); // the hill's low left slope runs 52px past the zone; css/graveyard.css clips the layer there
             expect(s.x + half).toBeLessThanOrEqual(140);
             expect(s.feet).toBeGreaterThanOrEqual(0);
         });

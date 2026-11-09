@@ -579,8 +579,8 @@ const CONFIG = {
     // wooden cross, then Bronze / Silver / Gold / Platinum, one picture each). Jeremy's picks: the seven families that have tiers to climb, in slot
     // order (Back in Black is a single badge, so it has none). MARKER_SLOTS: x = the picture's centre column in px from the zone's left edge,
     // feet = its bottom row in px above the canvas bottom. The five PNGs are 32x32, drawn scaled to MARKER_ART_PX square (48 = 1.5x, pixelated; 2026-11-08 Jeremy: bigger, easier to tap), every stone centred on column 16
-    // with the same dirt lip on its bottom three rows. The layer is clipped at the zone's edges, so keep x between 24 and 118 (the stone itself is ~44px wide at
-    // 48px, so a stone centred there still fits). Every marker opens ONE window listing all of them; the tap box is MARKER_HIT_PX square (>= 44), so neighbours
+    // with the same dirt lip on its bottom three rows. The layer is clipped at the zone's right edge and 52px past its left, so keep x between -30 and 118 (the stone itself is ~44px wide at
+    // 48px; the left reach is the hill's low slope, which runs 52px past the zone, and css/graveyard.css clips the layer at -52). Every marker opens ONE window listing all of them; the tap box is MARKER_HIT_PX square (>= 44), so neighbours
     // overlap and the one drawn in front takes the tap (they all go to the same window).
     MARKER_FAMILIES: ['task_slayer', 'habit_hero', 'survivor', 'clean_sweep', 'on_fire', 'iron_will', 'honor_roll'],
     MARKER_SLOTS: [
@@ -590,7 +590,7 @@ const CONFIG = {
         { x: 46, feet: 38 },
         { x: 70, feet: 24 },
         { x: 118, feet: 22 },
-        { x: 24, feet: 14 },
+        { x: -12, feet: 18 },
     ],
     MARKER_ART_PX: 48,
     MARKER_HIT_PX: 48,

@@ -223,6 +223,14 @@ describe('art + shell + wiring', () => {
         const ctxFn = /function markerPanelContext[\s\S]*?\n    }/.exec(script)[0];
         expect(ctxFn).not.toMatch(/DevDemo|override/);
     });
+    test('the stones layer is clipped at the zone\'s right edge but open 52px to the left (a marker stands on the hill\'s left slope)', () => {
+        expect(hill).toMatch(/\.graveyard-stones \{[^}]*clip-path: inset\(0 0 0 -52px\)/);
+        expect(hill).not.toMatch(/\.graveyard-stones \{[^}]*overflow: hidden/);
+    });
+    test('no hover highlight on the stones (it flashed on stones the pointer was not on); keyboard focus still glows', () => {
+        expect(hill).not.toMatch(/\.milestone-marker:hover/);
+        expect(hill).toMatch(/\.milestone-marker:focus-visible \.milestone-marker-art/);
+    });
     test('nothing is saved: no new state field for the markers', () => {
         expect(read('js/state.js')).not.toMatch(/marker/i);
     });

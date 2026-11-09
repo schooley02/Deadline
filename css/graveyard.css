@@ -96,7 +96,9 @@
     right: 0;
     bottom: 0;
     left: 0;
-    overflow: hidden;
+    /* Clip at the zone's right edge and the bottom, but let a marker stand out over the hill's low left slope (the hill art runs 52px past the
+       zone's left edge, 2026-11-08, Jeremy). clip-path (not overflow) so the left reach is open while the right stays cut. */
+    clip-path: inset(0 0 0 -52px);
 }
 
 /* Memorial obelisk (2026-11-08; js/memorial.js picks the stage, js/ui/graveyardView.js places it from CONFIG.GRAVEYARD_MEMORIAL_*).
@@ -174,13 +176,9 @@
 .milestone-marker-art[data-stage="3"] { background-image: url("../Assets/scene/headstone-3.png"); }
 .milestone-marker-art[data-stage="4"] { background-image: url("../Assets/scene/headstone-4.png"); }
 
-/* Mouse / touch feedback is a plain brighten (no gold outline: the outline looked like it flashed on stones the pointer had already left, 2026-11-08).
-   Only the keyboard focus ring gets the gold glow. */
-.milestone-marker:hover .milestone-marker-art,
-.milestone-marker:active .milestone-marker-art {
-    filter: brightness(1.25);
-}
-
+/* No hover / press highlight (2026-11-08, Jeremy: the outline flashed as the mouse crossed the stones). The 48px tap boxes are bigger than the
+   stones and overlap, so a hover effect lit stones the pointer was not on. The pointer cursor still shows they are tappable; only the keyboard
+   focus ring gets a glow. */
 .milestone-marker:focus-visible .milestone-marker-art {
     filter: brightness(1.25) drop-shadow(0 0 2px #f1d27a);
 }
