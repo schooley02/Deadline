@@ -584,7 +584,7 @@ const CONFIG = {
     // overlap and the one drawn in front takes the tap (they all go to the same window).
     MARKER_FAMILIES: ['task_slayer', 'habit_hero', 'survivor', 'clean_sweep', 'on_fire', 'iron_will', 'honor_roll'],
     MARKER_SLOTS: [
-        { x: 24, feet: 62 },
+        { x: 10, feet: 48 },
         { x: 94, feet: 44 },
         { x: 118, feet: 62 },
         { x: 46, feet: 38 },
