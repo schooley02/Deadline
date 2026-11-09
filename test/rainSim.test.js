@@ -70,6 +70,22 @@ describe('createWind', () => {
         }
         expect(endedAfter).toBe(true);
     });
+    test('2026-11-09: a gust STARTS every 8-15 s (start to start), the first within 8 s', () => {
+        const w = RainSim.createWind(rng(21), { drift: 0 });
+        const starts = [];
+        let was = 0;
+        for (let t = 0; t < 180; t += 0.02) {
+            const s = w.step(0.02);
+            if (s.gust > 0 && was === 0) starts.push(t);
+            was = s.gust;
+        }
+        expect(starts[0]).toBeLessThan(8.1);
+        expect(starts.length).toBeGreaterThanOrEqual(11);
+        for (let i = 1; i < starts.length; i++) {
+            expect(starts[i] - starts[i - 1]).toBeGreaterThanOrEqual(7.9);
+            expect(starts[i] - starts[i - 1]).toBeLessThanOrEqual(15.2);
+        }
+    });
     test('deterministic for a seed', () => {
         const a = RainSim.createWind(rng(11));
         const b = RainSim.createWind(rng(11));
@@ -252,7 +268,7 @@ describe('lightning', () => {
         expect(bolt.some((p) => p[1] === 0)).toBe(true);
     });
 
-    test('the first flash comes within 10 seconds; flashes are at least 10 seconds apart; the bolt shows only briefly', () => {
+    test('the first flash comes within 6 seconds; flashes are at least 5 seconds apart; the bolt shows only briefly', () => {
         const lt = RainSim.createLightning(rng(12));
         const firedAt = [];
         let boltFrames = 0;
@@ -261,9 +277,12 @@ describe('lightning', () => {
             if (s.fired) firedAt.push(t);
             if (s.bolt) boltFrames++;
         }
-        expect(firedAt.length).toBeGreaterThanOrEqual(3);
-        expect(firedAt[0]).toBeLessThan(10.5);
-        for (let i = 1; i < firedAt.length; i++) expect(firedAt[i] - firedAt[i - 1]).toBeGreaterThanOrEqual(10);
+        expect(firedAt.length).toBeGreaterThanOrEqual(10); // 2026-11-09: every 5-11 s (was 10-22)
+        expect(firedAt[0]).toBeLessThan(6.5);
+        for (let i = 1; i < firedAt.length; i++) {
+            expect(firedAt[i] - firedAt[i - 1]).toBeGreaterThanOrEqual(5);
+            expect(firedAt[i] - firedAt[i - 1]).toBeLessThanOrEqual(11.7); // + the 0.6 s bolt
+        }
         // 0.6 s of bolt per flash = ~30 frames at 0.02 s; allow a frame or two of slack
         expect(boltFrames).toBeLessThanOrEqual(firedAt.length * 32);
         expect(boltFrames).toBeGreaterThanOrEqual(firedAt.length * 28);

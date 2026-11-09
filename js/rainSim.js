@@ -32,6 +32,7 @@ const RainSim = (() => {
 
     // 2026-11-09 (Jeremy: the storm "doesn't seem windy at all"): a steeper lean, harder and more frequent gusts. Same direction
     // (the rain blows the way the clouds drift, left to right). Was MAX 0.6, base 0.22, gust +0.3 / x1.35 every 22-45 s.
+    // Same day, round 2: gusts start every 8-15 s, lightning every 5-11 s.
     const MAX_SLOPE = 0.85;           // the most a gust can lean the rain (sideways pixels per falling pixel)
     const SHADE_ALPHA = 0.7;          // a "dim" drop is drawn at this share of its layer's alpha
     const SPLASH_FRAMES = [0.07, 0.07, 0.09]; // seconds each of the 3 splash frames lasts
@@ -76,7 +77,8 @@ const RainSim = (() => {
         const o = Object.assign({
             base: 0.34, drift: 0.1, driftPeriod: 38,
             gustSlope: 0.42, gustSpeed: 0.45,
-            firstGust: [6, 14], gustEvery: [14, 30], gustLen: [3, 5],
+            // 2026-11-09 (Jeremy): a gust STARTS every 8-15 s (start to start, so the calm between two is that minus the gust).
+            firstGust: [4, 8], gustEvery: [8, 15], gustLen: [3, 5],
         }, options || {});
         let t = 0;
         let untilGust = between(rng, o.firstGust[0], o.firstGust[1]);
@@ -90,7 +92,7 @@ const RainSim = (() => {
                 gustAge += dt;
                 if (gustAge >= gustLen) {
                     gustAge = -1;
-                    untilGust = between(rng, o.gustEvery[0], o.gustEvery[1]);
+                    untilGust = Math.max(1, between(rng, o.gustEvery[0], o.gustEvery[1]) - gustLen);
                 }
             } else {
                 untilGust -= dt;
@@ -261,7 +263,8 @@ const RainSim = (() => {
      * (the pixel list) stays set for `boltLife` seconds, then null. One flash per cycle, never two in a row (no strobe).
      */
     function createLightning(rng, options) {
-        const o = Object.assign({ first: [5, 10], every: [10, 22], boltLife: 0.6, reach: 0.7 }, options || {});
+        // 2026-11-09 (Jeremy): lightning more often (was first 5-10, every 10-22 s).
+        const o = Object.assign({ first: [3, 6], every: [5, 11], boltLife: 0.6, reach: 0.7 }, options || {});
         let untilFlash = between(rng, o.first[0], o.first[1]);
         let age = -1;
         const state = { fired: false, bolt: null };
