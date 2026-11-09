@@ -121,8 +121,24 @@ const VillageView = (() => {
         return false;
     }
 
+    // Hover (2026-11-08, Jeremy: "like the zombies"): the building under the pointer grows HOVER_SCALE, comes to the front and glows white
+    // (css/village.css .village-hover). It is picked with the SAME alpha hit-test as a tap, so a transparent corner or a far-row building tucked behind
+    // a front one never lights up. The hit-test measures the sprite at its UNSCALED size (the hovered one is drawn bigger), otherwise growing would
+    // pull the pointer into / out of the shape and the glow would flicker at the edge.
+    const HOVER_SCALE = 1.05;
+    let hoverEl = null;
+
+    function unscaledRect(img) {
+        const r = img.getBoundingClientRect();
+        if (!img.classList || !img.classList.contains('village-hover')) return r;
+        const w = r.width / HOVER_SCALE, h = r.height / HOVER_SCALE; // the sprite grows from its bottom-centre
+        const left = r.left + (r.width - w) / 2;
+        const top = r.top + (r.height - h);
+        return { left, top, right: left + w, bottom: top + h, width: w, height: h };
+    }
+
     function spriteHit(img, clientX, clientY) {
-        const rect = img.getBoundingClientRect();
+        const rect = unscaledRect(img);
         const c = cfg();
         const art = c.VILLAGE_ART_X && c.VILLAGE_ART_X[img.dataset.kind];
         const flip = img.dataset.flip === '1';
@@ -153,7 +169,23 @@ const VillageView = (() => {
         });
     }
 
+    function setHover(img) {
+        if (img === hoverEl) return;
+        if (hoverEl && hoverEl.classList) hoverEl.classList.remove('village-hover');
+        hoverEl = img || null;
+        if (hoverEl) hoverEl.classList.add('village-hover');
+        if (layerEl) layerEl.classList.toggle('village-layer--hover', !!hoverEl);
+    }
+
+    function onLayerMove(e) {
+        if (!layerEl) return;
+        const under = (document.elementsFromPoint ? document.elementsFromPoint(e.clientX, e.clientY) : [])
+            .filter(el => el.classList && el.classList.contains('village-sprite') && layerEl.contains(el));
+        setHover(pickHit(under, (img) => spriteHit(img, e.clientX, e.clientY)));
+    }
+
     function clear() {
+        setHover(null);
         if (layerEl) layerEl.textContent = '';
         if (canvasEl && canvasEl.style) canvasEl.style.removeProperty('--clm-hz');
     }
@@ -290,10 +322,17 @@ const VillageView = (() => {
             layerEl.dataset.tapWired = '1';
             layerEl.addEventListener('click', onLayerClick);
         }
+        // Hover highlight: a real mouse only (touch has no hover). jsdom has no matchMedia, so it is on there.
+        const canHover = !(typeof window !== 'undefined' && window.matchMedia) || window.matchMedia('(hover: hover)').matches;
+        if (canHover && !layerEl.dataset.hoverWired) {
+            layerEl.dataset.hoverWired = '1';
+            layerEl.addEventListener('mousemove', onLayerMove);
+            layerEl.addEventListener('mouseleave', () => setHover(null));
+        }
         render();
     }
 
-    return { init, render, pickHit, inArtBox, opaqueNear, hazePlan };
+    return { init, render, pickHit, inArtBox, opaqueNear, hazePlan, HOVER_SCALE };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

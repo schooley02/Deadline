@@ -693,4 +693,60 @@ describe('haze by depth (run climate)', () => {
         init();
         expect(veils()).toHaveLength(0);
     });
+
+    test('hover (2026-11-08): the building under the mouse gets .village-hover by the same hit-test as a tap; a transparent margin or leaving clears it', () => {
+        build();
+        VillageView.init({ getHillWidth: () => 140, getClockTier: () => 3, onOpenBuilding: () => {} });
+        VillageView.render(160);
+        const img = sprite();
+        img.getBoundingClientRect = () => ({ left: 0, top: 0, right: 128, bottom: 128, width: 128, height: 128 });
+        Object.defineProperty(img, 'naturalWidth', { configurable: true, get: () => 128 });
+        Object.defineProperty(img, 'naturalHeight', { configurable: true, get: () => 128 });
+        document.elementsFromPoint = () => [img];
+        window.HTMLCanvasElement.prototype.getContext = () => null;
+        const layer = document.getElementById('villageLayer');
+        img.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 60, clientY: 60 }));
+        expect(img.classList.contains('village-hover')).toBe(true);
+        expect(layer.classList.contains('village-layer--hover')).toBe(true);
+        img.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 4, clientY: 60 })); // transparent margin
+        expect(img.classList.contains('village-hover')).toBe(false);
+        img.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 60, clientY: 60 }));
+        expect(img.classList.contains('village-hover')).toBe(true);
+        layer.dispatchEvent(new MouseEvent('mouseleave'));
+        expect(img.classList.contains('village-hover')).toBe(false);
+        delete document.elementsFromPoint;
+    });
+
+    test('hover measures the sprite at its UNSCALED size (the hovered one is drawn bigger, so growing must not move the edge of the hit area)', () => {
+        build();
+        VillageView.init({ getHillWidth: () => 140, getClockTier: () => 3, onOpenBuilding: () => {} });
+        VillageView.render(160);
+        const img = sprite();
+        const k = VillageView.HOVER_SCALE;
+        const w = 128 * k, h = 128 * k; // drawn grown from the bottom-centre of a 128 box at (0,0)
+        const plain = { left: 0, top: 0, right: 128, bottom: 128, width: 128, height: 128 };
+        const grown = { left: -(w - 128) / 2, top: 128 - h, right: 128 + (w - 128) / 2, bottom: 128, width: w, height: h };
+        img.getBoundingClientRect = () => plain;
+        Object.defineProperty(img, 'naturalWidth', { configurable: true, get: () => 128 });
+        Object.defineProperty(img, 'naturalHeight', { configurable: true, get: () => 128 });
+        document.elementsFromPoint = () => [img];
+        window.HTMLCanvasElement.prototype.getContext = () => null;
+        img.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 60, clientY: 60 }));
+        expect(img.classList.contains('village-hover')).toBe(true);
+        img.getBoundingClientRect = () => grown; // now it is drawn bigger, as a browser reports it
+        // the clock tower's art columns are [20, 113]: x 19 is outside them at the true size, though inside them if the grown box were used
+        img.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 19, clientY: 60 }));
+        expect(img.classList.contains('village-hover')).toBe(false);
+        img.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 21, clientY: 60 }));
+        expect(img.classList.contains('village-hover')).toBe(true);
+        delete document.elementsFromPoint;
+    });
+
+    test('the hover css: grows 1.05 from the feet, in front of everything, white glow, mirrored buildings stay mirrored', () => {
+        const css = require('fs').readFileSync(require('path').join(__dirname, '..', 'css', 'village.css'), 'utf8').replace(/\r\n/g, '\n');
+        expect(css).toMatch(/\.village-sprite\.village-hover \{[^}]*z-index: 40 !important;[^}]*transform: scale\(1\.05\) !important;[^}]*drop-shadow\(0 0 3px #fff\)/);
+        expect(css).toMatch(/\.village-hover\[data-flip="1"\] \{[^}]*scaleX\(-1\) scale\(1\.05\) !important/);
+        expect(VillageView.HOVER_SCALE).toBe(1.05);
+    });
 });
+

@@ -27,3 +27,21 @@
     user-select: none;
     -webkit-user-drag: none;
 }
+
+/* Hover (2026-11-08, js/ui/villageView.js picks the building by the same alpha hit-test as a tap): the building under the mouse grows a little, comes to the
+   front and glows white, the recipe the zombies use (css/enemySprites.css .enemy:hover + css/enemyStatus.css --g-hover). The sprites carry inline
+   z-index / transform / filter (paint order, the flip, the back-row brightness), so these need !important. HOVER_SCALE in villageView.js must match 1.05. */
+.village-sprite {
+    transform-origin: 50% 100%;
+    transition: transform 120ms ease-out, filter 120ms ease-out;
+}
+
+.village-sprite.village-hover {
+    z-index: 40 !important; /* above every sprite (0-8) and the haze veils that sit at the last sprite's z */
+    transform: scale(1.05) !important;
+    filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px rgba(255, 255, 255, 0.9)) !important;
+}
+
+.village-sprite.village-hover[data-flip="1"] {
+    transform: scaleX(-1) scale(1.05) !important; /* a mirrored building stays mirrored */
+}
