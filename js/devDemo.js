@@ -2,7 +2,7 @@
  * DevDemo -- the dev tools' demo state (Jeremy, 2026-11-03; ROADMAP "Dev '+' demo button").
  *
  * What it is: a few "pretend" values the dev panel (js/ui/devPanel.js) can set so the sky and the village can be previewed on
- * a phone without URL params: a forced weather band + trend, one village star level for all eight buildings, and a church
+ * a phone without URL params: a forced weather band, one village star level for all eight buildings, and a church
  * damage state (ART ONLY: it names which church picture to show, it is never a health value the game uses).
  *
  * Rules (each pinned by test/devDemo.test.js):
@@ -18,7 +18,6 @@
  */
 const DevDemo = (() => {
     const BANDS = ['clear', 'hazy', 'overcast', 'fog', 'storm'];
-    const TRENDS = ['steady', 'up', 'down'];
     const TIERS = [1, 2, 3, 4, 5];
     // The church preview's states, as the health each damage picture starts at (100 > 75 > 50 > 25 > 0 pick the five pictures).
     // Only script.js's art-only preview reads one; no game rule, HUD number, save or record ever does.
@@ -31,7 +30,6 @@ const DevDemo = (() => {
 
     let enabled = false;
     let band = null;          // null = the real sky
-    let trend = 'steady';
     let tier = null;          // null = the real village
     let church = null;        // null = the real church picture
     let memorial = null;      // null = the real Memorial stage (1..5 pins the obelisk)
@@ -47,7 +45,7 @@ const DevDemo = (() => {
 
     /** A copy of the demo values (what the panel draws from). */
     function snapshot() {
-        return { enabled, band, trend, tier, church, memorial, tree, markers, active: isActive() };
+        return { enabled, band, tier, church, memorial, tree, markers, active: isActive() };
     }
 
     /** True while a demo value is both set and allowed (the switch is on). */
@@ -59,24 +57,16 @@ const DevDemo = (() => {
         const next = on === true;
         if (next === enabled) return;
         enabled = next;
-        if (!enabled) { band = null; trend = 'steady'; tier = null; church = null; memorial = null; tree = null; markers = null; }
+        if (!enabled) { band = null; tier = null; church = null; memorial = null; tree = null; markers = null; }
         emit();
     }
 
-    /** band: one of BANDS, or null/'real' for the real sky. Anything else is ignored. A new band keeps the chosen trend. */
+    /** band: one of BANDS, or null/'real' for the real sky. Anything else is ignored. */
     function setBand(value) {
         if (!enabled) return false;
         const next = (value === null || value === 'real') ? null : (BANDS.indexOf(value) >= 0 ? value : undefined);
         if (next === undefined) return false;
         band = next;
-        emit();
-        return true;
-    }
-
-    /** trend: 'steady' | 'up' | 'down'. Only shows while a band is forced (the real sky has its own trend). */
-    function setTrend(value) {
-        if (!enabled || TRENDS.indexOf(value) < 0) return false;
-        trend = value;
         emit();
         return true;
     }
@@ -150,20 +140,20 @@ const DevDemo = (() => {
 
     /** Back to the real sky, village, church, Memorial, tree and markers (the switch stays on). */
     function reset() {
-        if (band === null && trend === 'steady' && tier === null && church === null && memorial === null && tree === null && markers === null) return;
-        band = null; trend = 'steady'; tier = null; church = null; memorial = null; tree = null; markers = null;
+        if (band === null && tier === null && church === null && memorial === null && tree === null && markers === null) return;
+        band = null; tier = null; church = null; memorial = null; tree = null; markers = null;
         emit();
     }
 
     /**
-     * The forced weather as a RunClimate-shaped result ({ band, trend, forced: true, ... }), or null = no weather demo.
+     * The forced weather as a RunClimate-shaped result ({ band, trend: 'steady', forced: true, ... }), or null = no weather demo.
      * `runClimate` is injectable for tests; in the browser it is the RunClimate global.
      */
     function weather(runClimate) {
         if (!enabled || band === null) return null;
         const rc = runClimate || (typeof RunClimate !== 'undefined' ? RunClimate : null);
         if (!rc || typeof rc.forced !== 'function') return null;
-        return rc.forced(band, trend);
+        return rc.forced(band);
     }
 
     /** The pretend star for every building (1..5), or null = use the real tier. */
@@ -203,13 +193,13 @@ const DevDemo = (() => {
 
     /** Test helper: back to a cold start (switch off, nothing set, no listeners). */
     function resetForTests() {
-        enabled = false; band = null; trend = 'steady'; tier = null; church = null; memorial = null; tree = null; markers = null;
+        enabled = false; band = null; tier = null; church = null; memorial = null; tree = null; markers = null;
         listeners.length = 0;
     }
 
     return {
-        BANDS, TRENDS, TIERS, CHURCH_STATES, MEMORIAL_STAGES, TREE_STAGES, MARKER_STAGES,
-        snapshot, isActive, setEnabled, setBand, setTrend, setTier, setChurch, setMemorial, setTree, setMarkers, reset,
+        BANDS, TIERS, CHURCH_STATES, MEMORIAL_STAGES, TREE_STAGES, MARKER_STAGES,
+        snapshot, isActive, setEnabled, setBand, setTier, setChurch, setMemorial, setTree, setMarkers, reset,
         weather, villageTier, churchHealth, memorialStage, treeStage, markerStage, onChange, resetForTests,
     };
 })();

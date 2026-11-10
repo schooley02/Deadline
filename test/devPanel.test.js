@@ -20,21 +20,19 @@ beforeEach(() => {
 });
 
 describe('panelModel (pure)', () => {
-    test('with nothing forced: Real is selected everywhere and the trend chips are disabled', () => {
-        const m = DevPanel.panelModel({ enabled: true, band: null, trend: 'steady', tier: null, active: false });
+    test('with nothing forced: Real is selected everywhere', () => {
+        const m = DevPanel.panelModel({ enabled: true, band: null, tier: null, active: false });
         expect(m.bands.map((b) => b.value)).toEqual(['real', 'clear', 'hazy', 'overcast', 'fog', 'storm']);
         expect(m.bands.filter((b) => b.selected).map((b) => b.value)).toEqual(['real']);
-        expect(m.trends.every((t) => t.disabled && !t.selected)).toBe(true);
+        expect(m.trends).toBeUndefined(); // the Trend row was removed 2026-11-10
         expect(m.tiers.map((t) => t.value)).toEqual(['real', '1', '2', '3', '4', '5']);
         expect(m.tiers.filter((t) => t.selected).map((t) => t.value)).toEqual(['real']);
         expect(m.active).toBe(false);
     });
 
-    test('a forced band + trend + star are the selected ones and enable the trend chips', () => {
-        const m = DevPanel.panelModel({ enabled: true, band: 'fog', trend: 'up', tier: 4, active: true });
+    test('a forced band + star are the selected ones', () => {
+        const m = DevPanel.panelModel({ enabled: true, band: 'fog', tier: 4, active: true });
         expect(m.bands.filter((b) => b.selected).map((b) => b.value)).toEqual(['fog']);
-        expect(m.trends.filter((t) => t.selected).map((t) => t.value)).toEqual(['up']);
-        expect(m.trends.some((t) => t.disabled)).toBe(false);
         expect(m.tiers.filter((t) => t.selected).map((t) => t.value)).toEqual(['4']);
         expect(m.active).toBe(true);
     });
@@ -46,11 +44,12 @@ describe('panelModel (pure)', () => {
 
 describe('panelHtml (pure)', () => {
     test('every chip says whether it is pressed, and carries its data attribute', () => {
-        const html = DevPanel.panelHtml(DevPanel.panelModel({ enabled: true, band: 'storm', trend: 'down', tier: 2, active: true }));
+        const html = DevPanel.panelHtml(DevPanel.panelModel({ enabled: true, band: 'storm', tier: 2, active: true }));
         expect(html).toContain('data-dev-band="storm"');
         expect(html).toMatch(/data-dev-band="storm" aria-pressed="true"/);
         expect(html).toMatch(/data-dev-band="fog" aria-pressed="false"/);
-        expect(html).toContain('data-dev-trend="down"');
+        expect(html).not.toContain('data-dev-trend');
+        expect(html).not.toContain('Trend');
         expect(html).toContain('data-dev-tier="2"');
         expect(html).toContain('data-dev-reset');
         expect(html).toContain('data-dev-close');
@@ -99,29 +98,19 @@ describe('the button + panel', () => {
         expect(panel().parentNode).toBe(document.body);
     });
 
-    test('picking a band, trend and star goes through DevDemo and the panel redraws', () => {
+    test('picking a band and a star goes through DevDemo and the panel redraws', () => {
         DevPanel.init({ demo: DevDemo });
         DevPanel.setEnabled(true);
         click(btn());
         click(q('[data-dev-band="fog"]'));
         expect(DevDemo.weather(RunClimate)).toMatchObject({ band: 'fog', trend: 'steady' });
         expect(q('[data-dev-band="fog"]').getAttribute('aria-pressed')).toBe('true');
-        click(q('[data-dev-trend="up"]'));
-        expect(DevDemo.weather(RunClimate)).toMatchObject({ band: 'fog', trend: 'up' });
         click(q('[data-dev-tier="5"]'));
         expect(DevDemo.villageTier()).toBe(5);
         expect(q('[data-dev-tier="5"]').getAttribute('aria-pressed')).toBe('true');
         click(q('[data-dev-band="real"]'));
         expect(DevDemo.weather(RunClimate)).toBeNull();
         expect(DevDemo.villageTier()).toBe(5);
-    });
-
-    test('a disabled trend chip does nothing while the real sky is showing', () => {
-        DevPanel.init({ demo: DevDemo });
-        DevPanel.setEnabled(true);
-        click(btn());
-        click(q('[data-dev-trend="down"]'));
-        expect(DevDemo.snapshot().trend).toBe('steady');
     });
 
     test('a demo puts the dot on the button; Reset removes it and the demo', () => {
@@ -134,7 +123,7 @@ describe('the button + panel', () => {
         click(q('[data-dev-tier="3"]'));
         click(q('[data-dev-reset]'));
         expect(btn().classList.contains('dev-button--active')).toBe(false);
-        expect(DevDemo.snapshot()).toMatchObject({ band: null, trend: 'steady', tier: null });
+        expect(DevDemo.snapshot()).toMatchObject({ band: null, tier: null });
         expect(DevDemo.snapshot().enabled).toBe(true);
     });
 
@@ -274,7 +263,6 @@ describe('clicks never bubble out (Modal dismiss would close a window underneath
         DevPanel.setEnabled(true);
         click(btn());
         click(q('[data-dev-band="fog"]'));
-        click(q('[data-dev-trend="up"]'));
         click(q('[data-dev-tier="2"]'));
         click(q('[data-dev-reset]'));
         click(q('.dev-panel-head'));

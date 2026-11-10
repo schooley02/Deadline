@@ -10,9 +10,8 @@ beforeEach(() => { DevDemo.resetForTests(); });
 
 describe('gated by the Developer tools switch', () => {
     test('starts off: nothing can be set and every getter says "no demo"', () => {
-        expect(DevDemo.snapshot()).toEqual({ enabled: false, band: null, trend: 'steady', tier: null, church: null, memorial: null, tree: null, markers: null, active: false });
+        expect(DevDemo.snapshot()).toEqual({ enabled: false, band: null, tier: null, church: null, memorial: null, tree: null, markers: null, active: false });
         expect(DevDemo.setBand('fog')).toBe(false);
-        expect(DevDemo.setTrend('up')).toBe(false);
         expect(DevDemo.setTier(5)).toBe(false);
         expect(DevDemo.weather(RunClimate)).toBeNull();
         expect(DevDemo.villageTier()).toBeNull();
@@ -21,10 +20,10 @@ describe('gated by the Developer tools switch', () => {
 
     test('turning the switch off clears everything that was set', () => {
         DevDemo.setEnabled(true);
-        DevDemo.setBand('storm'); DevDemo.setTrend('down'); DevDemo.setTier(4);
+        DevDemo.setBand('storm'); DevDemo.setTier(4);
         expect(DevDemo.isActive()).toBe(true);
         DevDemo.setEnabled(false);
-        expect(DevDemo.snapshot()).toEqual({ enabled: false, band: null, trend: 'steady', tier: null, church: null, memorial: null, tree: null, markers: null, active: false });
+        expect(DevDemo.snapshot()).toEqual({ enabled: false, band: null, tier: null, church: null, memorial: null, tree: null, markers: null, active: false });
         DevDemo.setEnabled(true);          // and a later switch-on starts clean, not with the old demo
         expect(DevDemo.weather(RunClimate)).toBeNull();
         expect(DevDemo.villageTier()).toBeNull();
@@ -46,17 +45,15 @@ describe('weather', () => {
         expect(DevDemo.weather(RunClimate).forced).toBe(true);   // the Weather panel says "Dev preview", the badge never pulses
     });
 
-    test('the trend rides on the forced band and survives a band change', () => {
-        DevDemo.setBand('fog'); DevDemo.setTrend('up');
-        expect(DevDemo.weather(RunClimate)).toMatchObject({ band: 'fog', trend: 'up' });
-        DevDemo.setBand('storm');
-        expect(DevDemo.weather(RunClimate)).toMatchObject({ band: 'storm', trend: 'up' });
-        DevDemo.setTrend('down');
-        expect(DevDemo.weather(RunClimate)).toMatchObject({ band: 'storm', trend: 'down' });
+    test('the forced sky is always a steady one (the Dev tools Trend row was removed 2026-11-10); the demo has no trend setter', () => {
+        DevDemo.setBand('fog');
+        expect(DevDemo.weather(RunClimate)).toMatchObject({ band: 'fog', trend: 'steady', forced: true });
+        expect(DevDemo.setTrend).toBeUndefined();
+        expect(DevDemo.TRENDS).toBeUndefined();
+        expect(DevDemo.snapshot()).not.toHaveProperty('trend');
     });
 
-    test('Real (null or "real") hands the sky back; a trend alone forces nothing', () => {
-        DevDemo.setTrend('up');
+    test('Real (null or "real") hands the sky back; nothing forced = no weather demo', () => {
         expect(DevDemo.weather(RunClimate)).toBeNull();
         DevDemo.setBand('overcast');
         DevDemo.setBand('real');
@@ -70,12 +67,6 @@ describe('weather', () => {
         DevDemo.setBand('fog');
         expect(DevDemo.setBand(bad)).toBe(false);
         expect(DevDemo.snapshot().band).toBe('fog');
-    });
-
-    test.each(['sideways', '', 1, null])('a bad trend (%p) is ignored', (bad) => {
-        DevDemo.setTrend('up');
-        expect(DevDemo.setTrend(bad)).toBe(false);
-        expect(DevDemo.snapshot().trend).toBe('up');
     });
 
     test('with no RunClimate to ask there is simply no weather demo (never a throw)', () => {
@@ -172,9 +163,9 @@ describe('church picture (art only)', () => {
 describe('reset + listeners', () => {
     test('reset goes back to the real sky and village but leaves the switch on', () => {
         DevDemo.setEnabled(true);
-        DevDemo.setBand('storm'); DevDemo.setTrend('down'); DevDemo.setTier(5);
+        DevDemo.setBand('storm'); DevDemo.setTier(5);
         DevDemo.reset();
-        expect(DevDemo.snapshot()).toEqual({ enabled: true, band: null, trend: 'steady', tier: null, church: null, memorial: null, tree: null, markers: null, active: false });
+        expect(DevDemo.snapshot()).toEqual({ enabled: true, band: null, tier: null, church: null, memorial: null, tree: null, markers: null, active: false });
     });
 
     test('listeners hear every real change, not a no-op, and can unsubscribe', () => {

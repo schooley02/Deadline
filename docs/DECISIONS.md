@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-10 (morning) -- Dev tools: the Trend row is removed (Claude app session; Sonnet 5.5; Jeremy: "we can remove the Trend section on Dev tools window ... none of the buttons for trend actually change the way the canvas looks")
+
+- **Decision:** the Steady / Up / Down chips are gone from the Dev tools Weather section, with their click handler, the panel model's `trends`, the trend-only CSS (`.dev-chips--sub`, `.dev-chips-label`), and `DevDemo`'s trend state (`TRENDS`, `setTrend`, `snapshot().trend`). A forced sky is always a steady one (`RunClimate.forced(band)`). Tests updated; sw v311.
+- **Why:** the moonbeam and the break of light were the loud trend visuals; with them gone (2026-11-09) the chips changed almost nothing on screen.
+- **Left alone on purpose:** the trend itself. In real play, a run trending UP still brightens the moon a little (`climate-trend-up`, +0.25) and one trending DOWN still makes the sky clouds drift about a third faster (`climate-trend-down`); the Weather panel's arrow and the Stats readout still show it; the `?climate=fog&trend=up` URL override still works for art checks. Only the way to PREVIEW those from Dev tools went. If the two leftover looks should go too, that is a separate small change in css/climate.css + js/ui/climateView.js.
+- **Files:** `js/ui/devPanel.js`, `js/devDemo.js`, `css/devPanel.css`, `test/devPanel.test.js`, `test/devDemo.test.js`, UI_UX, CLAUDE.md (Dev tools line).
+
 ## 2026-11-10 (morning) -- Church shake room: the base sits 4px further left (Claude app session; Sonnet 5.5; Jeremy: "when my base shakes from being attacked, on my phone in landscape ... we need to nudge the base further to the left so it has more room to move side to side without showing the left base edge")
 
 - **Decision:** `--base-bleed: 4px` on `#gameCanvas` (0 in the portrait strip): `#base` is `left: -4px`, and the hero spotlight's `left` is `80px - 4px` so it stays on the door. Reproduced in headless Chromium at 844x390: the art started at x = 0, so at the +2px extreme of `base-shake` a 2px strip of the scene showed at the screen's left edge.
