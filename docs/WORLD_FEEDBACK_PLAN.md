@@ -629,7 +629,7 @@ copy), hold-to-peek last.
 - **Theme words:** requirement lines come from `Theme.skyRequirement(rule)` and `Theme.strings.skyUnlocks` ("Player Lv {level}", "{building} star {tier}", building names Radio tower / Jailhouse / Windmill). Neither `SkyPick` nor the panel holds a building name (a test checks).
 - **script.js:** `skyBest()`, `skyUnlockedBands()`; `skyNow()` caches on real result / pick / earned list; `setSkyPick` refuses a locked band; `getPickerInfo` builds `bands`; `handleConfirmReset` calls `State.resetBestPlayerLevel()`. The once-a-second best-tier tracker already raises `bestVillageTiers`, so a sky unlocks the moment the star is reached.
 - **Tests:** `test/skyUnlocks.test.js` (rules, config, history seed, theme lines, locked-row markup, State field + wiring), `test/climateWiring.test.js` (wiring checks updated). Full suite in a fresh clone: 207 suites, 4,747 of 4,748 pass (the one failure is the CRLF check on the clone's LF `index.html`, which does not apply to the device).
-- **Checked:** headless Chromium at 844x390 with a save at Lv 4 + Radio tower star 3: Hazy and Overcast are buttons, Clear / Fog / Storm are locked rows showing their requirement, no console errors, page width unchanged (846 vs 844 is the same without this change). NOT checked on a phone (tap size and wrapping of the two-line locked rows).
+- **Checked:** headless Chromium at 844x390 with a save at Lv 4 + Radio tower star 3: Hazy and Overcast are buttons, Clear / Fog / Storm are locked rows showing their requirement, no console errors, page width unchanged (846 vs 844 is the same without this change). Phone: Jeremy confirmed it works (2026-11-09, after the stale sw v305 cache cleared); tap size and wrapping of the two-line locked rows were not reported separately.
 - **Watch out:** (1) no unlock toast yet, a sky just becomes available (an idea if it feels silent); (2) the Windmill's pace (heavy days handled) has never been measured, so Storm's timing is a guess; (3) Clear at 50 nights vs the 100-night star 5 is a dial to confirm after play; (4) the dev level tools raise `bestPlayerLevel` too (they go through `setPlayerLevel`), so a dev jump to Lv 4 unlocks Hazy for good until a Reset Game; (5) the pick itself is still per run (reset by `initGame`), only the unlocks are lifetime.
 
 ### Parked ideas (later enhancements, Jeremy 2026-11-03)
@@ -653,7 +653,7 @@ copy), hold-to-peek last.
   the run climate. See "W1b Mood check-in" below.
 - [x] **W1c — Sky picker, Lv 4 perk (DESIGNED 2026-11-07, Fable; BUILT 2026-11-09, Sonnet, sw v305; phone check owed):** Clear is the only band you earn; every
   other band is yours to pick; badge, trend, record and AI keep the real climate. See "W1c Sky picker" below.
-- [x] **W1d — Sky unlocks (DESIGNED + BUILT 2026-11-09, Sonnet, sw v306; phone check owed):** each sky is its own lifetime unlock (Hazy Lv 4, Overcast Radio tower star 3,
+- [x] **W1d — Sky unlocks (DESIGNED + BUILT 2026-11-09, Sonnet, sw v306; seen working on Jeremy's phone):** each sky is its own lifetime unlock (Hazy Lv 4, Overcast Radio tower star 3,
   Fog Jailhouse star 3, Storm Windmill star 3, Clear Radio tower star 4); locked skies show their requirement. See "W1d Sky unlocks" below.
 - [ ] **W2 — Achievement VILLAGE, Americana small town (Sonnet + PixelLab art; REPLACES the headstone-markers idea; direction DECIDED 2026-10-28):**
   8 category buildings (5 tiers x 3 conditions, state carried by the art + code filters) on the horizon hill behind the zombies + the
