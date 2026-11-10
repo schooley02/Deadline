@@ -48,6 +48,55 @@
  */
 const Loop = (() => {
 
+    // Iced zombies (docs/ICE_PLAN.md): a thaw countdown on the zombie (badge over its head) and on its list row (chip beside the
+    // timer button), both "m:ss" (h:mm:ss past an hour), "Thawing" styling for the last stretch. Re-checked every tick while
+    // iced so a rebuilt row or sprite gets it back; removed the tick the ice ends. DOM-tolerant: bare test shims do nothing.
+    function fmtIce(ms) {
+        const total = Math.max(0, Math.ceil(ms / 1000));
+        const h = Math.floor(total / 3600);
+        const m = Math.floor((total % 3600) / 60);
+        const sec = String(total % 60).padStart(2, '0');
+        return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`;
+    }
+    function iceCountdown(item, ice, activeItems) {
+        if (!ice.iced && !ice.phaseChanged) return;
+        const word = ice.phase === 'thawing' ? 'Thawing' : 'Iced';
+        const text = ice.iced ? fmtIce(ice.leftMs) : '';
+        const el = item.element;
+        if (el && typeof el.querySelector === 'function' && typeof el.appendChild === 'function') {
+            let badge = el.querySelector('.ice-countdown');
+            if (!text) { if (badge && badge.remove) badge.remove(); } else {
+                if (!badge && typeof document !== 'undefined') {
+                    badge = document.createElement('span');
+                    badge.className = 'ice-countdown';
+                    badge.setAttribute('aria-hidden', 'true');
+                    el.appendChild(badge);
+                }
+                if (badge && badge.textContent !== text) badge.textContent = text;
+            }
+        }
+        // The row: a top-level item's own row, or a sub-task's timer inside its parent's row.
+        const parent = (item.parentId != null && Array.isArray(activeItems)) ? activeItems.find(p => p.id === item.parentId) : null;
+        const row = item.listItemElement || (parent && parent.listItemElement) || null;
+        if (!row || typeof row.querySelector !== 'function') return;
+        const btn = row.querySelector('.work-timer-btn[data-item-id="' + item.id + '"]');
+        const host = btn && btn.parentNode;
+        if (!host) return;
+        let chip = row.querySelector('.ice-note[data-item-id="' + item.id + '"]');
+        if (!text) { if (chip && chip.remove) chip.remove(); return; }
+        if (!chip && typeof document !== 'undefined') {
+            chip = document.createElement('span');
+            chip.className = 'ice-note';
+            chip.dataset.itemId = String(item.id);
+            host.appendChild(chip);
+        }
+        if (chip) {
+            const label = word + ' ' + text;
+            if (chip.textContent !== label) chip.textContent = label;
+            chip.classList.toggle('thawing', ice.phase === 'thawing');
+        }
+    }
+
     function updateActiveItems(deps) {
         if (deps.isGameOver()) return;
         // catch-up animation owns positions/damage until it completes
@@ -219,6 +268,7 @@ const Loop = (() => {
                 if (ice.thawed && item.isOverdue) item.lastDamageTickTime = currentTimeMs;
                 // One daily-record entry per stretch of ice, at its end (the episode length).
                 if (ice.thawed && ice.episodeMs > 0 && deps.recordIce) deps.recordIce({ ms: ice.episodeMs });
+                iceCountdown(item, ice, deps.activeItems);
             }
 
             // Handle damage from overdue items

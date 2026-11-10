@@ -1,4 +1,7 @@
 /**
+ * @jest-environment jsdom
+ */
+/**
  * Ice x the live loop (docs/ICE_PLAN.md): an iced attacker deals no base or routine damage, its damage clock keeps moving so catch-up
  * never charges the iced time, regen stays paused, and it attacks at the timer's half rate once the ice is spent.
  */
@@ -176,5 +179,46 @@ describe('ice look + record hooks', () => {
         delete deps.recordIce;
         Timer.stop(worked, T0 + 5);
         expect(() => run(deps, T0, T0 + 5000)).not.toThrow();
+    });
+});
+
+describe('thaw countdown (badge on the zombie, chip on its row)', () => {
+    function withDom() {
+        const row = document.createElement('li');
+        const host = document.createElement('div');
+        const btn = document.createElement('button');
+        btn.className = 'work-timer-btn'; btn.dataset.itemId = '1';
+        host.appendChild(btn); row.appendChild(host);
+        const el = document.createElement('div');
+        return { row, el };
+    }
+    test('shows m:ss while iced, counts down, turns "Thawing" in the last stretch, and is gone after the thaw', () => {
+        const { row, el } = withDom();
+        const it = atBase({ element: el, listItemElement: row, timer: running(T0) });
+        const deps = makeDeps([it]);
+        run(deps, T0, T0 + 10 * 1000);
+        expect(el.querySelector('.ice-countdown').textContent).toBe('59:50');
+        const chip = row.querySelector('.ice-note');
+        expect(chip.textContent).toBe('Iced 59:50');
+        expect(chip.classList.contains('thawing')).toBe(false);
+        it.iceUsedMs = 57 * MIN;
+        run(deps, T0 + 11 * 1000, T0 + 12 * 1000);
+        expect(row.querySelector('.ice-note').textContent).toMatch(/^Thawing 2:5\d$/);
+        expect(row.querySelector('.ice-note').classList.contains('thawing')).toBe(true);
+        it.timer = null; // Stop
+        run(deps, T0 + 13 * 1000, T0 + 14 * 1000);
+        expect(el.querySelector('.ice-countdown')).toBeNull();
+        expect(row.querySelector('.ice-note')).toBeNull();
+    });
+    test('a rebuilt row gets the chip back on the next tick; a sub-task\'s chip rides in its parent\'s row', () => {
+        const { row, el } = withDom();
+        const parent = { id: 9, type: 'task', isOverdue: false, dueDateTime: new Date(T0 + 600 * MIN), lastDamageTickTime: T0, x: 0, listItemElement: row, element: document.createElement('div') };
+        const sub = atBase({ id: 1, parentId: 9, element: el, timer: running(T0) });
+        const deps = makeDeps([parent, sub]);
+        run(deps, T0, T0 + 2000);
+        expect(row.querySelector('.ice-note')).not.toBeNull();
+        row.querySelector('.ice-note').remove();
+        run(deps, T0 + 3000, T0 + 3000);
+        expect(row.querySelector('.ice-note')).not.toBeNull();
     });
 });
