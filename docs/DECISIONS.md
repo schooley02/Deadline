@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-10 (ice) -- A zombie at the church can't attack while you're working on it (Claude app session; Opus 5.5; Jeremy: "i agree with your suggestions", after "what if a the task in real life can't be pushed back ... the zombie would still be infront of the base if its due time is up, but it won't be able to attack while you are working on it, if it takes too long, you didn't plan well enough and thawing out would resume the half damage")
+
+- **Decision (design only, NOT BUILT; parked in ROADMAP post-pre-alpha):** "Iced" zombies. An attacker whose own task has the work timer running deals 0 damage, capped by a per-item ice budget (`item.iceUsedMs`, counted across sessions so stop/start can't refill it). When the budget runs out with the timer still on it attacks at the existing work-timer half rate (`WORK_TIMER_DAMAGE_FACTOR`); timer stopped = full rate. Free and automatic: NOT a shop item or held token. Position and due time never move (not pushback). Only zombies at the church are iced; a walking one may show a faint frost. Only the timed item: sub-task and parent never share ice. Catch-up damage ignores ice, as it already ignores timers. Full plan: `docs/ICE_PLAN.md`.
+- **Proposed numbers (balance-tuning process before the build, not yet in CONFIG):** `ICE_MAX_MS` 60 min (= `WORK_TIMER_CHECK_MS`, so the ice cracks when "Still working?" appears), `ICE_GRACE_MS` 5 min after a pause.
+- **Why:** rewards starting a late task at the moment players usually give up, and can only be used by doing the task. Works for real deadlines that can't be pushed.
+- **Rejected:** a buyable per-zombie freeze item (a second snooze button next to pushback; frozen zombies look "handled" so the task rots); freezing walking zombies (the walk is the clock: a thaw either jumps the zombie or moves the due time, which is pushback); a whole-field "Frost Day" for days off (Sick Day / Skip Day / Habit Cheat Day already cover it).
+- **Naming:** player-facing Iced / Thawing, code `ice*`; never "frozen"/"freeze" (frozen routine slots, `FrozenNotice`).
+- **Open at build:** does an iced attacker still pause base regen; does Ice get a DailyRecord field.
+
 ## 2026-11-10 (morning) -- The buzz gets its own switch (Claude app session; Sonnet 5.5; Jeremy: "yes to your question", answering "should the phone buzz get its own on/off switch? It currently follows the Effects setting")
 
 - **Decision:** `Settings.screenBuzz` (boolean, default true, per device): Settings > "Screen Thump" > "Buzz the phone when I complete something". Off = the thump still plays and the phone stays quiet. Turning it ON plays one sample buzz (`CanvasThump.sampleBuzz`, the tap is the user gesture the browser needs). Still no buzz under Effects Off / reduce-motion (the thump itself is off there).
