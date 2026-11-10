@@ -1,7 +1,7 @@
 /*
  * climate.css -- the run climate: the sky's weather (Build 1, 2026-11-03). Plan: docs/WORLD_FEEDBACK_PLAN.md "W1 Run climate";
  * approved look: docs/mockups/run-climate/. js/ui/climateView.js puts ONE class on #gameCanvas
- * (climate-clear | -hazy | -overcast | -fog | -storm, plus climate-trend-up | -down) and everything below keys off it.
+ * (climate-clear | -hazy | -overcast | -fog | -storm) and everything below keys off it.
  * Landscape/desktop only for now: css/glanceStrip.css hides every layer here in the portrait strip (it loads after this file).
  *
  * What a band changes (nothing here has pointer events; the village and zombies stay fully tappable under the haze):
@@ -20,8 +20,8 @@
  * Rule: weather may hide DECORATION (stars, moon, far scenery), never recovery information.
  * Clear with no override = today's look exactly: every var below has the old value as its fallback in gameCanvas.css.
  * Build 2 (below the number styles): Fog ground banks at four depths, Storm rain at four depths + soft lightning, fireflies at
- * Clear, the trend visuals (up = a brighter moon; down = sky clouds
- * drift faster). The weather badge / panel are in css/weatherPanel.css.
+ * Clear. (The trend visuals -- a brighter moon, faster clouds -- were removed 2026-11-10, Jeremy; the trend itself still shows on the
+ * weather badge / panel, css/weatherPanel.css.)
  */
 
 /* ---------- band tokens ---------- */
@@ -201,7 +201,7 @@
 }
 
 /* =====================================================================================================================
-   Build 2 (2026-11-03): ground fog, rain, lightning, fireflies, trend visuals.
+   Build 2 (2026-11-03): ground fog, rain, lightning, fireflies (trend visuals removed 2026-11-10).
    Everything is pointer-events: none. Motion rules at the end. All vertical positions are offsets from the HORIZON
    (--clm-hz, the front row's feet, published on #gameCanvas by js/ui/villageView.js; 224px until a village exists) because the
    canvas height changes between phones and desktop but the village does not.
@@ -385,15 +385,6 @@ body.glance-strip #gameCanvas.climate-storm::before {
     50% { transform: translate(var(--ff-x, 14px), var(--ff-y, -8px)); }
     100% { transform: translate(calc(var(--ff-x, 14px) * 0.3), calc(var(--ff-y, -8px) * -0.8)); }
 }
-
-/* ---------- Trend UP (any band): a brighter moon (the moonbeam + break of light were removed 2026-11-09, Jeremy) ---------- */
-
-#gameCanvas.climate-trend-up .nights-moon { opacity: min(1, calc(var(--clm-moon, 1) + 0.25)); }
-
-/* ---------- Trend DOWN (any band): the sky clouds drift a little faster (x1.33) ---------- */
-
-#gameCanvas.climate-trend-down .scene-clouds:not(.scene-clouds-extra) .scene-clouds-drift { animation-duration: 21s; }
-#gameCanvas.climate-trend-down .scene-clouds-extra .scene-clouds-drift { animation-duration: calc(var(--cl-dur, 28s) * 0.75); }
 
 /* ---------- motion settings: static under fx-reduced / fx-off / prefers-reduced-motion (the banks and rain stay as still
    pictures so the band still reads; lightning and fireflies are hidden) ---------- */

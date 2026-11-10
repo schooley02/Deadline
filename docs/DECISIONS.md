@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-10 (morning) -- Trend visuals removed: no brighter moon, no faster clouds (Claude app session; Sonnet 5.5; Jeremy: "we don't need the moon to be brighter or the clouds to move faster, lets remove that as well")
+
+- **Decision:** `#gameCanvas` no longer gets `climate-trend-up` / `climate-trend-down`. Removed the two CSS rules (`.nights-moon` +0.25 opacity on up; sky clouds x1.33 faster on down) from css/climate.css and `TREND_CLASS` from `ClimateView.classesFor`. Tests updated (climateView, skyPickUi); sw v312. Follows the same morning's Dev tools Trend row removal.
+- **Kept on purpose:** the trend as DATA: `RunClimate` still computes it, the weather badge arrow, the Weather panel and the Stats readout still show it, a sky pick still keeps the REAL trend, and the `?climate=fog&trend=up` override still sets it (it now changes only those readouts). With the moonbeam / break of light (2026-11-09) and these two gone, the trend has no canvas look at all.
+- **Also fixed:** `test/stormGround.test.js` still asserted the removed moonbeam (`.climate-beam` z-index and DOM order); it now asserts the markup is gone. That was the one failing test in the suite since 2026-11-09.
+- **Files:** `css/climate.css`, `js/ui/climateView.js`, `test/climateView.test.js`, `test/skyPickUi.test.js`, `test/stormGround.test.js`, UI_UX, WORLD_FEEDBACK_PLAN.
+
 ## 2026-11-10 (morning) -- Dev tools: the Trend row is removed (Claude app session; Sonnet 5.5; Jeremy: "we can remove the Trend section on Dev tools window ... none of the buttons for trend actually change the way the canvas looks")
 
 - **Decision:** the Steady / Up / Down chips are gone from the Dev tools Weather section, with their click handler, the panel model's `trends`, the trend-only CSS (`.dev-chips--sub`, `.dev-chips-label`), and `DevDemo`'s trend state (`TRENDS`, `setTrend`, `snapshot().trend`). A forced sky is always a steady one (`RunClimate.forced(band)`). Tests updated; sw v311.

@@ -214,12 +214,13 @@ describe('ClimateView with a sky pick', () => {
         return document.getElementById('gameCanvas');
     }
 
-    test('the sky wears the picked band with the REAL trend', () => {
+    test('the sky wears the picked band; the real trend stays in the result but adds no canvas class', () => {
         const el = build();
         const trendUp = SkyPick.resolve(real('hazy', { trend: 'up' }), 'storm', true).result;
         ClimateView.init({ getResult: () => trendUp });
         expect(el.classList.contains('climate-storm')).toBe(true);
-        expect(el.classList.contains('climate-trend-up')).toBe(true);
+        expect(trendUp.trend).toBe('up');
+        expect(el.className).not.toMatch(/trend/);
         expect(el.classList.contains('climate-hazy')).toBe(false);
     });
 

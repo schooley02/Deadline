@@ -22,9 +22,9 @@ describe('classesFor (pure)', () => {
         expect(ClimateView.BANDS).toEqual(RunClimate.BANDS);
     });
 
-    test('a clear trend adds its class; steady / unknown adds none', () => {
-        expect(ClimateView.classesFor({ band: 'fog', trend: 'up' })).toEqual(['climate-fog', 'climate-trend-up']);
-        expect(ClimateView.classesFor({ band: 'fog', trend: 'down' })).toEqual(['climate-fog', 'climate-trend-down']);
+    test('the trend adds no class any more (the trend visuals were removed 2026-11-10); only the band does', () => {
+        expect(ClimateView.classesFor({ band: 'fog', trend: 'up' })).toEqual(['climate-fog']);
+        expect(ClimateView.classesFor({ band: 'fog', trend: 'down' })).toEqual(['climate-fog']);
         expect(ClimateView.classesFor({ band: 'fog', trend: 'steady' })).toEqual(['climate-fog']);
         expect(ClimateView.classesFor({ band: 'fog', trend: 'sideways' })).toEqual(['climate-fog']);
     });
@@ -35,7 +35,7 @@ describe('classesFor (pure)', () => {
 
     test('works on a real RunClimate result and on a forced one', () => {
         expect(ClimateView.classesFor(RunClimate.compute([], 1))).toEqual(['climate-hazy']);
-        expect(ClimateView.classesFor(RunClimate.forced('storm', 'down'))).toEqual(['climate-storm', 'climate-trend-down']);
+        expect(ClimateView.classesFor(RunClimate.forced('storm', 'down'))).toEqual(['climate-storm']);
     });
 });
 
@@ -66,7 +66,7 @@ describe('apply / refresh', () => {
         const el = build();
         ClimateView.apply(el, { band: 'fog', trend: 'up' });
         expect(el.classList.contains('climate-fog')).toBe(true);
-        expect(el.classList.contains('climate-trend-up')).toBe(true);
+        expect(el.className).not.toMatch(/trend/);
         expect(el.classList.contains('keep-me')).toBe(true);
         expect(el.dataset.climate).toBe('fog');
     });
@@ -100,7 +100,7 @@ describe('apply / refresh', () => {
         ClimateView.refresh();
         expect(el.classList.contains('climate-hazy')).toBe(false);
         expect(el.classList.contains('climate-fog')).toBe(true);
-        expect(el.classList.contains('climate-trend-down')).toBe(true);
+        expect(el.className).not.toMatch(/trend/);
     });
 
     test('refresh writes the DOM only when the classes change', () => {

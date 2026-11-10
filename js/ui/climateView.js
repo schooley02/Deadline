@@ -6,8 +6,8 @@
  *   #gameCanvas.climate-<clear|hazy|overcast|fog|storm>   the band (css/climate.css does ALL the looks from this one class:
  *                                                         sky tint, star fade, moon glow, sky clouds, haze by depth,
  *                                                         the Nights Survived number's ink)
- *   #gameCanvas.climate-trend-<up|down>                   present only when the run is clearly improving / sliding
- *                                                         (steady = no class); Build 2 uses it for the cloud-break / darkening
+ *   (No trend class: the trend visuals -- brighter moon, faster clouds -- were removed 2026-11-10; the trend itself stays in the
+ *   result, for the weather badge and panel.)
  *
  * The band changes only at a day rollover and on load (RunClimate reads CLOSED days only), so refresh() is cheap enough to
  * call every tick: it asks the caller for the result and writes the DOM only when the class string changes. If the caller
@@ -24,7 +24,6 @@
  */
 const ClimateView = (() => {
     const BANDS = ['clear', 'hazy', 'overcast', 'fog', 'storm'];
-    const TREND_CLASS = { up: 'climate-trend-up', down: 'climate-trend-down' };
 
     let deps = null;
     let canvasEl = null;
@@ -43,7 +42,6 @@ const ClimateView = (() => {
         if (!result || typeof result !== 'object') return [];
         if (BANDS.indexOf(result.band) < 0) return [];
         const out = ['climate-' + result.band];
-        if (TREND_CLASS[result.trend]) out.push(TREND_CLASS[result.trend]);
         return out;
     }
 
