@@ -58,14 +58,6 @@
     background: var(--color-secondary-green-pale);
 }
 
-/* Heavy = more loaded than this week's own average (relative, not a fixed
-   threshold — Jeremy's call, session 73). */
-.week-strip-cell.week-strip-heavy {
-    background: var(--color-bg-light);
-    border-color: var(--color-warning);
-    border-width: 2px;
-}
-
 .week-strip-weekday {
     font-weight: 600;
     color: var(--color-neutral);
@@ -74,12 +66,6 @@
 .week-strip-count {
     font-size: 14px;
     font-weight: 700;
-}
-
-.week-strip-priority {
-    font-size: 10px;
-    color: var(--color-error);
-    font-weight: 600;
 }
 
 .day-pager-group {

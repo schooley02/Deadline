@@ -4,6 +4,8 @@ _Designed 2026-11-04 (Claude app session, Fable; Jeremy). **Build A BUILT 2026-1
 
 _Build A notes (differences from the text below): the marks map is `State.priorityMarks` (`getPriorityMarks / setPriorityMarks`); sub-tasks that inherit a parent's priority carry `item.priorityInherited`; `Items.prioritySlotsFor(dueDateTime, deps)` returns `{ key, marks, done, left }` for the forms; Edit Task's own due-date change and the routine task forms' checkbox are Build B (until then the forms still write the flag directly). The move-stripping hook `Items.syncPriorityOnMove` is wired into five paths (see CLAUDE.md)._
 
+_2026-11-10: the week-strip star (`★N/3`) described below was REMOVED from the day tabs (Jeremy: not useful to the player); `weekStripSummary` no longer has `highPriorityCount`. Priority use is still recorded in DailyRecord `pri`. See DECISIONS 2026-11-10 (week strip)._
+
 _Build B notes (differences from the text below): the wording uses a colon, not "--" ("Priority: 2 of 3 left today"); on phones the pips take their own row under the title (beside it they squeezed "Today's Deadlines" onto two lines); Edit Task on another day starts unticked and costs that day a slot, moving back restores the tick; the zombie card is read-only ("Priority: Yes / No") and marking happens in the forms; the week strip's Today tally ignores priority tasks due later. See UI_UX "Priority slots" and DECISIONS 2026-11-04 (priority slots)._
 
 _Follow-up 2026-11-09: priorities finished now also build the village's Command Post (the Armory re-aimed; max 3 a day counts, from `pri.d`). See `docs/COMMAND_POST_PLAN.md`. The parked RARE "Extra Priority" token belongs on its star 5 if ever built._

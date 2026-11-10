@@ -1,8 +1,7 @@
 /**
  * DayPager.weekStripSummary tests (`docs/TIME_SLIDER_WEEK_PLAN.md`
  * sub-session 4, phase 2, 2026-07-20 session 73) — per-day counts,
- * high-priority tallies, and the relative "heavier than this week's own
- * average" flag.
+ * (the priority tally and the "heavy day" flag were removed 2026-11-10).
  *
  * Requires the REAL modules (day-pager.test.js precedent).
  */
@@ -34,12 +33,17 @@ describe('DayPager.weekStripSummary', () => {
         expect(entries.map(e => e.offset)).toEqual([0, 1, 2, 3, 4, 5, 6]);
     });
 
-    test('empty deps produce all-zero counts and no heavy days, never throw', () => {
+    test('empty deps produce all-zero counts, never throw', () => {
         const entries = DayPager.weekStripSummary({}, TODAY);
         entries.forEach(e => {
             expect(e.totalCount).toBe(0);
-            expect(e.highPriorityCount).toBe(0);
-            expect(e.isHeavy).toBe(false);
+        });
+    });
+
+    test('entries carry no priority tally or heavy flag (removed 2026-11-10)', () => {
+        DayPager.weekStripSummary({}, TODAY).forEach(e => {
+            expect(e).not.toHaveProperty('highPriorityCount');
+            expect(e).not.toHaveProperty('isHeavy');
         });
     });
 
@@ -77,46 +81,6 @@ describe('DayPager.weekStripSummary', () => {
         expect(today.totalCount).toBe(1);
     });
 
-    test('highPriorityCount tallies only high-priority routine tasks for future days', () => {
-        const deps = {
-            definedRoutines: [routine('r1', { taskDefinitionIds: ['t1', 't2'] })],
-            definedTasks: [
-                taskDef('t1', { isHighPriority: true }),
-                taskDef('t2', { isHighPriority: false }),
-            ],
-        };
-        const tomorrow = DayPager.weekStripSummary(deps, TODAY).find(e => e.offset === 1);
-        expect(tomorrow.totalCount).toBe(2);
-        expect(tomorrow.highPriorityCount).toBe(1);
-    });
-
-    test('highPriorityCount tallies a high-priority standalone task on Today via activeItems', () => {
-        const deps = {
-            activeItems: [{ id: 1, type: 'task', definitionId: null, dueDateTime: new Date(2026, 6, 20, 12, 0), isHighPriority: true }],
-        };
-        const today = DayPager.weekStripSummary(deps, TODAY).find(e => e.offset === 0);
-        expect(today.highPriorityCount).toBe(1);
-    });
-
-    test('Today\'s priority tally skips a priority task due on a LATER day (slots belong to the due day, 2026-11-04); an overdue one still counts', () => {
-        const deps = {
-            activeItems: [
-                { id: 1, type: 'task', definitionId: null, dueDateTime: new Date(2026, 6, 20, 12, 0), isHighPriority: true },
-                { id: 2, type: 'task', definitionId: null, dueDateTime: new Date(2026, 6, 21, 12, 0), isHighPriority: true },
-                { id: 3, type: 'task', definitionId: null, dueDateTime: new Date(2026, 6, 19, 12, 0), isHighPriority: true },
-            ],
-        };
-        const today = DayPager.weekStripSummary(deps, TODAY).find(e => e.offset === 0);
-        expect(today.highPriorityCount).toBe(2);
-        expect(today.totalCount).toBe(3); // the plain count keeps its Hud convention
-    });
-
-    test('habits never count toward highPriorityCount (no priority concept)', () => {
-        const deps = { definedHabits: [habitDef('h1')] };
-        const entries = DayPager.weekStripSummary(deps, TODAY);
-        entries.forEach(e => expect(e.highPriorityCount).toBe(0));
-    });
-
     // IMPORTANT SEMANTIC NOTE, confirmed while writing these tests: Today's
     // count is "everything currently in activeItems" (Hud.updateTaskCountDisplay's
     // own convention — NO due-date filtering), which is NOT the same rule
@@ -125,10 +89,7 @@ describe('DayPager.weekStripSummary', () => {
     // off-screen today, so it counts toward BOTH Today's total AND its own
     // future day's total — Today isn't "items due today," it's "the whole
     // live board," matching what the real HUD counter has always shown.
-    test('isHeavy flags only days STRICTLY above this week\'s own average, not a fixed threshold', () => {
-        // Every one-off task below is REAL and sits in activeItems regardless
-        // of its own due date (see note above) — so Today's count includes
-        // all 4, not just same-day ones.
+    test('Today counts the whole live board; later days count what is due that day', () => {
         const deps = {
             activeItems: [
                 { id: 1, type: 'task', definitionId: null, dueDateTime: new Date(2026, 6, 22, 9, 0) }, // offset 2
@@ -137,35 +98,19 @@ describe('DayPager.weekStripSummary', () => {
                 { id: 4, type: 'task', definitionId: null, dueDateTime: new Date(2026, 6, 23, 9, 0) }, // offset 3
             ],
         };
-        const entries = DayPager.weekStripSummary(deps, TODAY);
-        const byOffset = Object.fromEntries(entries.map(e => [e.offset, e]));
-        // counts: [4,0,3,1,0,0,0] (offset 0 = "everything active") ->
-        // average 8/7 ≈ 1.143
+        const byOffset = Object.fromEntries(DayPager.weekStripSummary(deps, TODAY).map(e => [e.offset, e]));
         expect(byOffset[0].totalCount).toBe(4);
-        expect(byOffset[0].isHeavy).toBe(true);
+        expect(byOffset[1].totalCount).toBe(0);
         expect(byOffset[2].totalCount).toBe(3);
-        expect(byOffset[2].isHeavy).toBe(true);
         expect(byOffset[3].totalCount).toBe(1);
-        expect(byOffset[3].isHeavy).toBe(false); // 1 < 1.143 average
-        expect(byOffset[1].isHeavy).toBe(false);
     });
 
-    test('a perfectly even week (one recurring habit spawning daily) flags nothing', () => {
-        // A daily recurring habit produces exactly ONE item per day
-        // EVERYWHERE — Today via its real spawned activeItems entry, every
-        // future day via an identical conjured ghost — so this is the
-        // fixture that's actually apples-to-apples across all 7 offsets
-        // (unlike one-off tasks, which behave asymmetrically — see note
-        // above).
+    test('a recurring habit spawning daily counts one item on every day', () => {
         const deps = {
             definedHabits: [habitDef('h1')],
             activeItems: [{ id: 1, type: 'habit', definitionId: 'h1', dueDateTime: new Date(2026, 6, 20, 12, 0) }],
         };
-        const entries = DayPager.weekStripSummary(deps, TODAY);
-        entries.forEach(e => {
-            expect(e.totalCount).toBe(1);
-            expect(e.isHeavy).toBe(false);
-        });
+        DayPager.weekStripSummary(deps, TODAY).forEach(e => expect(e.totalCount).toBe(1));
     });
 
     test('dayStart advances one calendar day per entry', () => {

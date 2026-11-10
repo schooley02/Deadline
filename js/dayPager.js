@@ -38,7 +38,7 @@
  *               isHighPriority, routineId, dueTime, parentId }
  *   DayPager.weekStripSummary(deps, referenceTime) -> entry[] (sub-session 4,
  *     one per offset 0..MAX_OFFSET)
- *     entry = { offset, dayStart, totalCount, highPriorityCount, isHeavy }
+ *     entry = { offset, dayStart, totalCount }
  */
 const DayPager = (() => {
     const MIN_OFFSET = -1;
@@ -372,16 +372,13 @@ const DayPager = (() => {
     // ---------------------------------------------------------------------
     // Week strip (sub-session 4, phase 2, 2026-07-20 session 73) — a 7-day
     // "shape of my week" overview above the day pager. Jeremy's brief:
-    // highlight high-priority items with a count, and only flag a day as
-    // "heavy" when it's MORE loaded than the player's own average across the
-    // window being shown — not a fixed number, since what counts as "a lot"
-    // depends entirely on how busy this particular week already is.
+    // per-day item counts. (2026-11-10: the "★N/3" priority tally and the
+    // relative "heavy day" flag were REMOVED from the strip, Jeremy's call: the
+    // number alone shows which days are busier, and the heavy flag was nearly
+    // always on. Priority use is still recorded in DailyRecord `pri`.)
     // ---------------------------------------------------------------------
 
-    // One entry per offset 0..MAX_OFFSET. `isHeavy` compares against the
-    // MEAN totalCount across all 7 entries in THIS result (computed after
-    // every entry's count is known, not per-entry) — strictly greater than
-    // average, so a perfectly even week flags nothing. Counts exclude
+    // One entry per offset 0..MAX_OFFSET. Counts exclude
     // sub-tasks (parentId set) — a parent+subs reads as ONE item on the
     // week strip, matching Hud.updateTaskCountDisplay's own convention for
     // the real Today counter.
@@ -400,13 +397,7 @@ const DayPager = (() => {
                 // Today specifically. Count the real board instead, exactly
                 // like Hud.updateTaskCountDisplay does.
                 countable = (deps && deps.activeItems || [])
-                    .filter(item => !item.parentId)
-                    // Priority slots belong to the task's DUE day (2026-11-04): a priority task due tomorrow is
-                    // tomorrow's, not Today's, even though it already sits on the board. Overdue ones stay Today's.
-                    .map(item => ({
-                        isHighPriority: !!item.isHighPriority
-                            && !(item.dueDateTime && new Date(item.dueDateTime).getTime() >= bounds.end.getTime()),
-                    }));
+                    .filter(item => !item.parentId);
             } else {
                 countable = conjureGhostsForDay(deps, referenceTime, offset)
                     .filter(g => !g.parentId);
@@ -415,13 +406,8 @@ const DayPager = (() => {
                 offset,
                 dayStart: bounds.start,
                 totalCount: countable.length,
-                highPriorityCount: countable.filter(g => g.isHighPriority).length,
-                isHeavy: false, // filled in below, once the average is known
             };
         });
-
-        const average = entries.reduce((sum, e) => sum + e.totalCount, 0) / entries.length;
-        entries.forEach(e => { e.isHeavy = e.totalCount > average; });
 
         return entries;
     }

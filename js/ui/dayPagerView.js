@@ -385,22 +385,15 @@ const DayPagerView = (() => {
             if (entry.offset === 0) classes.push('week-strip-today');
             const isActive = entry.offset === viewedDayOffset;
             if (isActive) classes.push('week-strip-active');
-            if (entry.isHeavy) classes.push('week-strip-heavy');
-            // Priority slots (2026-11-04): "★2/3" = two of the day's three priority slots are in use (a bare count past 3).
-            const perDay = (typeof CONFIG !== 'undefined' && CONFIG.PRIORITY_SLOTS_PER_DAY) || 3;
-            const priorityHtml = entry.highPriorityCount > 0
-                ? `<span class="week-strip-priority">★${entry.highPriorityCount}${entry.highPriorityCount <= perDay ? '/' + perDay : ''}</span>`
-                : '';
             // aria-current on the actively-viewed cell (MOBILE_PWA_PLAN.md
             // sub-session 2) — the selected day was CSS-only (.week-strip-active),
             // invisible to assistive tech otherwise.
             return `
                 <button type="button" class="${classes.join(' ')}" data-offset="${entry.offset}"
                         ${isActive ? 'aria-current="true"' : ''}
-                        aria-label="${weekday}, ${entry.totalCount} item${entry.totalCount === 1 ? '' : 's'}${entry.highPriorityCount ? `, ${entry.highPriorityCount} priority` : ''}${entry.isHeavy ? ', heavier than usual' : ''}">
+                        aria-label="${weekday}, ${entry.totalCount} item${entry.totalCount === 1 ? '' : 's'}">
                     <span class="week-strip-weekday">${weekday}</span>
                     <span class="week-strip-count">${entry.totalCount}</span>
-                    ${priorityHtml}
                 </button>
             `;
         }).join('');

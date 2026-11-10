@@ -4,10 +4,17 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-10 (week strip) -- The week strip drops the priority star and the heavy-day border (Claude app session; Sonnet 5.5; Jeremy: "Lets not show the stars/priorities on the day tabs ... maybe we don't need the border change at all since we show the numbers", then "I agree, continue")
+- **Decision:** the day tabs show only the weekday and the item count. The `★N/3` priority tally and the orange `week-strip-heavy` border are gone. Why: Jeremy didn't find the star useful to the player, and the heavy flag (strictly above this week's mean) was nearly always on. Today's count is the live board and shrinks as items are finished, which pulls the mean down and flags most later days. The number alone already shows which days are busier.
+- **Data kept:** priority use is still recorded per day in DailyRecord v9 `pri` { m, d, s } for run reviews. Only the display changed. The Windmill's "heavy days handled" (`villageProgress.js`) is separate and untouched.
+- **Code:** `DayPager.weekStripSummary` entries are now `{ offset, dayStart, totalCount }` (no `highPriorityCount`, no `isHeavy`); `dayPagerView.js` no longer builds the star span or the heavy class, and the cell's aria-label is "Wed, 5 items"; `css/dayPager.css` lost `.week-strip-heavy` and `.week-strip-priority`. `sw.js` -> v317. Tests: `day-pager-week-strip` rewritten (counts only; asserts the removed fields stay gone).
+- **Idea parked (not built):** a per-day breakdown (tasks / habits / routines) was judged too much for a ~47px tab and ambiguous (routines are made of tasks and habits). If wanted, put it on the day's divider in the list ("Wed - 3 tasks - 2 habits"). ROADMAP candidate.
+
 ## 2026-11-10 (ice built) -- Iced zombies built; the two numbers approved (Claude app session; Sonnet 5.5; Jeremy: "lets start now and yes to the 2 numbers")
 - **Numbers approved through the balance process:** `ICE_MAX_MS` = 60 min (matches `WORK_TIMER_CHECK_MS`), `ICE_GRACE_MS` = 5 min. Both data-only in `js/config.js`.
 - **Built as designed**, with these calls: ice state is `item.iceUsedMs` + `item.icePausedAt`; unsaved tracking in a WeakMap inside `Ice` (no schema bump). One-timer rule extracted into `Timer.startExclusive` (closes the grace-overlap gap). While iced the loop holds `lastDamageTickTime = now`, so catch-up never charges iced time; it is also reset on thaw. Regen stays paused (no code change). DailyRecord v12 `ice` { n, min }, `n` = stretches (one per thaw); W1b mood is now v13.
-- **Deferred:** the "frosted while walking" cue, shard burst / shatter, PixelLab art (CSS tint is a placeholder). **Accepted limits:** first ~50 ms tick of a stretch is not counted; session charge-back for iced minutes uses the half-rate rule.
+- **Dropped (Jeremy, 2026-11-10, after the phone check):** the "frosted while walking" cue: the ice clock only starts once the zombie attacks, so a walking zombie needs no cue.
+- **Deferred:** shard burst / shatter, PixelLab art (CSS tint is a placeholder). **Accepted limits:** first ~50 ms tick of a stretch is not counted; session charge-back for iced minutes uses the half-rate rule.
 - **Naming:** player-facing "Iced" / "Thawing"; code `ice*`; never "frozen".
 
 ## 2026-11-10 (ice) -- A zombie at the church can't attack while you're working on it (Claude app session; Opus 5.5; Jeremy: "i agree with your suggestions", after "what if a the task in real life can't be pushed back ... the zombie would still be infront of the base if its due time is up, but it won't be able to attack while you are working on it, if it takes too long, you didn't plan well enough and thawing out would resume the half damage")
