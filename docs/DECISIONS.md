@@ -4,6 +4,16 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-09 -- W1c amendment: how the player knows the sky is their pick (Claude app session; Opus 5.5; design only; Jeremy: "how do we let the user know when the cosmetic weather is turned on?" -> "yes, i like your ideas")
+
+- **Problem:** the sky does two jobs, decoration and a readout of the run. A pick takes away the readout, so the indicator must keep the REAL weather visible, not just say "custom sky on".
+- **Decision:** (1) the badge keeps showing the real band (as designed) with a small **paintbrush** as the "set" mark; (2) the Weather panel header ("Sky set to Storm · your run is Hazy") gains a one-line meaning of the real band and a **"Show my real sky"** button (= Follow my run); (3) a **toast when the real band changes under a pick** ("Your run's weather is now Storm. Your sky stays Fog."; Clear drop: "Clear slipped away. Your run is Hazy now."), once per change, never without a pick; (4) optional **hold the badge to peek** at the real sky, built last.
+- **Why:** without the toast a player could keep a sunny sky for a week and never notice the run sliding; the toast restores the moment of change the sky would have shown. The badge, not the sky, takes the hold gesture because sky taps belong to buildings and zombies.
+- **Rejected:** a tint / frame / vignette on a picked sky (fights the art, stops being seen); a label only in Settings (forgotten after setup); auto-cancelling the pick when the run worsens (breaks the perk's promise).
+- No balance number, no schema change beyond the W1c build's planned `save.skyPick`. Docs: WORLD_FEEDBACK_PLAN "Amendment 2026-11-09" + build line; ROADMAP V7 W1c item. Nothing built.
+
+---
+
 ## 2026-11-09 -- Church window and Shop pushback counts read the same (Claude app session; Opus 5.5 diagnosis -> Sonnet 5.5 build; Jeremy: "the pushback item amounts shown when I click the base don't match the shop's pushback item amounts" -> "I meant counts")
 
 - **Diagnosis:** sizes, prices and the free allowance already agree (Medium = 2 hr, 10 pts base, same `pushbackInputs`). The mismatch was two different counts under one word: the church button's "free · N left" is FREE Medium pushbacks left today (Clock tower allowance, daily), while the Shop's ×N pill is TOKENS held (bought, used only after the free ones run out). The church never showed tokens, and neither label said what it counted.

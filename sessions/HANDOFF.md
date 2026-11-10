@@ -11,6 +11,12 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-09 (W1c sky picker amendment: showing the pick) -- Claude app session; Opus 5.5; design only; Jeremy: "how do we let the user know when the cosmetic weather is turned on?" -> "yes, i like your ideas"
+**Did:** amended the W1c design: paintbrush "set" mark on the weather badge, "Show my real sky" button + one-line meaning in the Weather panel header, a toast when the real band changes under a pick (and when a Clear pick drops), optional hold-the-badge-to-peek. Docs: WORLD_FEEDBACK_PLAN ("Amendment 2026-11-09" + build line), ROADMAP (V7 W1c item), DECISIONS.
+**State:** docs only; no code, no tests needed. W1c still NOT BUILT.
+**Next:** build W1c (Sonnet, medium, one session) including the amendment; hold-to-peek last and droppable.
+**Watch out:** the toast must key off the REAL band change (RunClimate result at rollover), not the shown sky, and must stay silent when no pick is set.
+
 ## 2026-11-09 (Church window pushback counts) -- Claude app session; Opus 5.5 diagnosis -> Sonnet 5.5 build; Jeremy: "the pushback item amounts shown when I click the base don't match the shop's pushback item amounts" (he meant counts)
 **Did:** the mismatch was two counts, not a bug: the church button's "free · N left" (free Medium pushbacks left today) vs the Shop's ×N pill (tokens held). Church button now reads "free · 2 of 3 today" or "uses a token · N held", and a line under the attacker list shows "Medium tokens: N held" / "none held". Files: `js/ui/basePanel.js`, `css/basePanel.css`, `script.js` (`baseHealthContext`), `test/basePanel.test.js` (+1 case), sw.js v304. Docs: UI_UX, DECISIONS.
 **State:** written to Jeremy's folder via stage / commit. Full Jest in a scratch copy of the repo + these changes: 204 suites, 4,670 of 4,671 pass; the one failure (`how-it-works-info-buttons`: index.html CRLF check) is only because the git clone has LF endings. Not seen running in a browser. No schema bump, no balance number. script.js keeps its CRLF endings.

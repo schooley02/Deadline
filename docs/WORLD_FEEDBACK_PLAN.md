@@ -564,12 +564,36 @@ priority), so the gloom bands should be free to lift too.
   there, per the Baseline rule), never in a key, CSS class or CONFIG name. A future Baseline theme supplies its own band looks; the rule and the picker are theme-neutral.
 - **Later, if wanted:** premium skies (snow, aurora, a theme's own weather) could become a shop category; not planned.
 
+### Amendment 2026-11-09: telling the player the sky is theirs (Claude app session, Opus 5.5; Jeremy: "yes, i like your ideas")
+Once a pick is on, the sky stops reporting the run, so something else has to. The badge already shows the REAL band; this
+amendment pins down how the pick reads and adds the moment of change the sky would have shown.
+- **"Set" mark = a small paintbrush** in the badge chip's top-left corner (the trend arrow keeps its corner). Code-drawn
+  pixel placeholder like the band icons; PixelLab later if wanted. The badge icon itself never changes to the picked band.
+- **Panel header** (as designed): "Sky set to Storm · your run is Hazy", plus one line on what the real band means for the
+  run (from the existing trend words), and a **"Show my real sky"** button right in the header = sets the pick back to
+  Follow my run (same as choosing Follow in the picker; one tap, no confirm). Explicit background class on the button,
+  per the UI rules.
+- **Sky-change toast while a pick is on:** when the REAL band changes and the shown sky is the player's pick, one short
+  toast: "Your run's weather is now Storm. Your sky stays Fog." When a Clear pick drops because the run slipped:
+  "Clear slipped away. Your run is Hazy now." At most one per band change, never while no pick is set (the sky itself
+  says it then), never for the dev forced sky. Reuses the existing toast surface; copy lives in `js/theme.js` only if it
+  carries theme words.
+- **Hold the badge to peek** (optional polish; build it last, drop it if it fights the tap): press and hold the badge
+  ~0.5 s and the scene shows the REAL band while held, fading back on release; a plain tap still opens the panel.
+  Reduced motion / fx-off = instant swap. On the badge, not the sky, because sky taps belong to buildings and zombies.
+  Phones: block the long-press menu on the badge (`contextmenu` + `-webkit-touch-callout: none`).
+- **Rejected:** a tint, frame or vignette on the scene to mark a picked sky (fights the art, players stop seeing it); a
+  "custom sky" label only in Settings (set once, forgotten); turning the pick off when the run gets worse (breaks the
+  perk's promise; the toast is the gentle version).
+
 ### Build (Sonnet, medium; one session; balance-tuning protocol applies to the perk table change, no economy number moves)
 `CONFIG.LEVEL_PERKS` Lv 4 gains `{ unlock: 'skyPicker' }` beside the discount (+ `Progression.hasUnlock(table, level, key)`,
 tests, toast copy); `save.skyPick` + schema bump + migration + `initGame` reset + export; `ClimateView` precedence + badge
 "set" mark + panel header copy; Weather panel picker row (locked state, Clear gating, Follow); trend classes from the real
 result; tests (`climateView`, `weatherPanel`, `levelPerks`, persistence migration); `sw.js` bump; LEVEL_PERKS_PLAN + UI_UX
-"as built"; phone check of Storm-forever frame rate.
+"as built"; phone check of Storm-forever frame rate; 2026-11-09 amendment: paintbrush "set" mark, "Show my real sky"
+header button, sky-change toast (tests: fires once per real band change with a pick on, never without a pick, Clear-drop
+copy), hold-to-peek last.
 
 ### Parked ideas (later enhancements, Jeremy 2026-11-03)
 - **Observatory** (a telescope aimed at the moon) or a **weather balloon** in the distance as the weather tap target
