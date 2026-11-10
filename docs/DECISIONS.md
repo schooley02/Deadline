@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-10 (morning) -- The buzz gets its own switch (Claude app session; Sonnet 5.5; Jeremy: "yes to your question", answering "should the phone buzz get its own on/off switch? It currently follows the Effects setting")
+
+- **Decision:** `Settings.screenBuzz` (boolean, default true, per device): Settings > "Screen Thump" > "Buzz the phone when I complete something". Off = the thump still plays and the phone stays quiet. Turning it ON plays one sample buzz (`CanvasThump.sampleBuzz`, the tap is the user gesture the browser needs). Still no buzz under Effects Off / reduce-motion (the thump itself is off there).
+- **Per device, not in Backup & Transfer:** same rule as `devTools` (script.js strips it from the export and ignores it on import): vibration is a property of the phone, and a desktop backup must not silence a phone. No schema bump (`deadline.settings`, not the save).
+- **Wiring gotcha:** `js/ui/managementWindows.js` hands the Settings window ONLY the deps it lists, so a new Settings control needs `currentX` / `onChangeX` added there too (a test now checks it).
+- **Files:** `js/settings.js`, `js/ui/settingsView.js`, `js/ui/managementWindows.js`, `js/ui/canvasThump.js`, `script.js`, `sw.js` v313; tests `canvasThump` (+9), `settings` (+2), and the pinned settings objects in `settings`, `dailyRecordGoals` and `devToolsWiring`; DATA_SCHEMA, UI_UX.
+
 ## 2026-11-10 (morning) -- Trend visuals removed: no brighter moon, no faster clouds (Claude app session; Sonnet 5.5; Jeremy: "we don't need the moon to be brighter or the clouds to move faster, lets remove that as well")
 
 - **Decision:** `#gameCanvas` no longer gets `climate-trend-up` / `climate-trend-down`. Removed the two CSS rules (`.nights-moon` +0.25 opacity on up; sky clouds x1.33 faster on down) from css/climate.css and `TREND_CLASS` from `ClimateView.classesFor`. Tests updated (climateView, skyPickUi); sw v312. Follows the same morning's Dev tools Trend row removal.

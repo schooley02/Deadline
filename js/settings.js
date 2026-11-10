@@ -26,7 +26,9 @@ const Settings = (() => {
     // timerHintSeen (2026-11-02): the one-time "a zombie is attacking, use the timer" notice has been shown.
     // devTools (2026-11-03): shows the DEV button + demo panel (js/devDemo.js, js/ui/devPanel.js). Off by default, per device: it is
     // left OUT of Backup & Transfer (script.js strips it on export and import) so a backup never turns it on somewhere else.
-    const DEFAULTS = { effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false };
+    // screenBuzz (2026-11-10, Jeremy): the phone's short vibration with the screen thump on a completion (js/ui/canvasThump.js). ON by
+    // default; per device like devTools (script.js leaves it OUT of Backup & Transfer, so a backup never changes it somewhere else).
+    const DEFAULTS = { effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true };
     const TIME_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
 
     function cleanEveningTime(value) {
@@ -48,6 +50,7 @@ const Settings = (() => {
                 eveningCheckTime: cleanEveningTime(parsed && parsed.eveningCheckTime),
                 timerHintSeen: !!(parsed && parsed.timerHintSeen === true),
                 devTools: !!(parsed && parsed.devTools === true),
+                screenBuzz: !(parsed && parsed.screenBuzz === false),
             };
         } catch (e) {
             console.error('Deadline: settings load failed', e);
@@ -63,6 +66,7 @@ const Settings = (() => {
             merged.eveningCheckTime = cleanEveningTime(merged.eveningCheckTime);
             merged.timerHintSeen = merged.timerHintSeen === true;
             merged.devTools = merged.devTools === true;
+            merged.screenBuzz = merged.screenBuzz !== false;
             if (VALID_INTENSITIES.indexOf(merged.effectsIntensity) === -1) merged.effectsIntensity = DEFAULTS.effectsIntensity;
             localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
             return true;

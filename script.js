@@ -3360,11 +3360,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // Developer tools switch (2026-11-03): read fresh each time the Settings window opens.
             currentDevTools: Settings.load().devTools === true,
             onChangeDevTools: handleDevToolsChange,
+            // Buzz switch (2026-11-10): per device, read fresh each time the Settings window opens.
+            currentScreenBuzz: Settings.load().screenBuzz !== false,
+            onChangeScreenBuzz: handleScreenBuzzChange,
             // Export/Import (Milestone 5 first item, 2026-07-20) — see
             // js/exportImport.js header + handleConfirmImport below.
             buildExportEnvelope: () => ExportImport.buildEnvelope({
                 getPersistableState: () => State.getPersistableState(),
-                getSettings: () => { const st = Settings.load(); delete st.devTools; return st; }, // Developer tools is per device: never exported
+                getSettings: () => { const st = Settings.load(); delete st.devTools; delete st.screenBuzz; return st; }, // Developer tools and the buzz are per device: never exported
                 // D2 (2026-10-27): closed daily records ride along in the export.
                 getDays: () => Persistence.loadDays(),
             }),
@@ -3421,6 +3424,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { // devTools is per device: an import neither turns it on nor off (Settings.save keeps the stored value when the key is missing)
             const importedSettings = Object.assign({}, envelope.settings || Settings.DEFAULTS);
             delete importedSettings.devTools;
+            delete importedSettings.screenBuzz; // the buzz is per device too
             Settings.save(importedSettings);
         }
         // D2 (2026-10-27): daily records are LIFETIME data, so they MERGE by
@@ -3517,6 +3521,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleDevToolsChange(on) {
         Settings.save({ devTools: on === true });
         DevPanel.setEnabled(on === true);
+    }
+
+    // Buzz switch (2026-11-10): the Settings "Screen Thump" checkbox. Saved per device; turning it on gives one sample buzz (the tap that
+    // flipped it is the user gesture the browser needs).
+    function handleScreenBuzzChange(on) {
+        Settings.save({ screenBuzz: on === true });
+        if (on === true) CanvasThump.sampleBuzz();
     }
 
     // Habit Goals Build 3: the Settings "Evening check" time. A new time re-arms tonight's check (the player may have just moved it

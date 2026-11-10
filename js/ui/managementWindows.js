@@ -136,6 +136,9 @@ const ManagementWindows = (() => {
                     // Developer tools switch (2026-11-03).
                     currentDevTools: deps.currentDevTools,
                     onChangeDevTools: deps.onChangeDevTools,
+                    // Buzz switch (2026-11-10).
+                    currentScreenBuzz: deps.currentScreenBuzz,
+                    onChangeScreenBuzz: deps.onChangeScreenBuzz,
                     // Export/Import (Milestone 5, 2026-07-20) — same
                     // pass-through-deps-only shape as everything else here.
                     buildExportEnvelope: deps.buildExportEnvelope,

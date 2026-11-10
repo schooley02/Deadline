@@ -138,6 +138,60 @@ describe('phone buzz', () => {
     });
 });
 
+describe('Settings switch for the buzz', () => {
+    afterEach(() => { delete navigator.vibrate; delete global.Settings; });
+    test('switch off: the thump still plays but the phone does not buzz', () => {
+        const el = mount();
+        navigator.vibrate = jest.fn(() => true);
+        global.Settings = { load: () => ({ screenBuzz: false }) };
+        expect(CanvasThump.play(el, 1)).toBe(true);
+        expect(el.classList.contains('canvas-thump')).toBe(true);
+        expect(navigator.vibrate).not.toHaveBeenCalled();
+    });
+    test('switch on (or never set): it buzzes', () => {
+        const el = mount();
+        navigator.vibrate = jest.fn(() => true);
+        global.Settings = { load: () => ({ screenBuzz: true }) };
+        CanvasThump.play(el, 1);
+        expect(navigator.vibrate).toHaveBeenCalledTimes(1);
+    });
+    test('a throwing Settings never stops the thump or the buzz', () => {
+        const el = mount();
+        navigator.vibrate = jest.fn(() => true);
+        global.Settings = { load: () => { throw new Error('storage blocked'); } };
+        expect(CanvasThump.play(el, 1)).toBe(true);
+        expect(navigator.vibrate).toHaveBeenCalledTimes(1);
+    });
+    test('sampleBuzz vibrates once, ignoring the cooldown and the motion settings', () => {
+        navigator.vibrate = jest.fn(() => true);
+        document.body.className = 'fx-off';
+        expect(CanvasThump.sampleBuzz()).toBe(true);
+        expect(CanvasThump.sampleBuzz()).toBe(true);
+        expect(navigator.vibrate).toHaveBeenCalledWith(CONFIG.CANVAS_THUMP_VIBRATE_MS);
+        expect(navigator.vibrate).toHaveBeenCalledTimes(2);
+    });
+});
+
+describe('Settings window + save wiring for the buzz switch', () => {
+    const js = read('script.js');
+    test('the Settings window has the checkbox, and script.js saves it per device and samples on turn-on', () => {
+        const sv = read('js/ui/settingsView.js');
+        expect(sv).toContain('id="screenBuzzToggle"');
+        expect(sv).toContain('onChangeScreenBuzz');
+        expect(js).toMatch(/currentScreenBuzz: Settings\.load\(\)\.screenBuzz !== false/);
+        expect(js).toMatch(/function handleScreenBuzzChange\(on\) \{\s*Settings\.save\(\{ screenBuzz: on === true \}\);\s*if \(on === true\) CanvasThump\.sampleBuzz\(\);/);
+    });
+    test('managementWindows hands both buzz deps through to the Settings window', () => {
+        const mw = read('js/ui/managementWindows.js');
+        expect(mw).toContain('currentScreenBuzz: deps.currentScreenBuzz,');
+        expect(mw).toContain('onChangeScreenBuzz: deps.onChangeScreenBuzz,');
+    });
+    test('the buzz is per device: left out of an export and not applied by an import', () => {
+        expect(js).toMatch(/delete st\.devTools; delete st\.screenBuzz;/);
+        expect(js).toMatch(/delete importedSettings\.screenBuzz;/);
+    });
+});
+
 describe('shell, CSS and wiring agree', () => {
     const css = read('css/gameCanvas.css');
     test('the CSS has both animations, vertical only, whole pixels, and the off gates', () => {

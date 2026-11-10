@@ -7,7 +7,8 @@
  *   - a short delay after the completion, so the thump lands with the hero's strike (CONFIG.CANVAS_THUMP_DELAY_MS);
  *   - at most one thump per CONFIG.CANVAS_THUMP_COOLDOWN_MS, so ticking off a pile of tasks never turns into a rattle;
  *   - fx-off or prefers-reduced-motion: none; fx-reduced: the soft 1px version;
- *   - the phone gives one short vibration with it (CONFIG.CANVAS_THUMP_VIBRATE_MS, 2026-11-09; Android Chrome only).
+ *   - the phone gives one short vibration with it (CONFIG.CANVAS_THUMP_VIBRATE_MS, 2026-11-09; Android Chrome only), unless the
+ *     Settings "Screen Thump" switch (Settings.screenBuzz, 2026-11-10) is off.
  * The HUD (stats overlay) is a sibling of #gameCanvas, not inside it, so it stays still. While it plays, the parent .game-canvas
  * carries `canvas-thumping` so the 3px strip the jolt uncovers is the scene's own dark colour, never the light fallback gradient.
  *
@@ -58,6 +59,14 @@ const CanvasThump = (() => {
         return motionMode(state);
     }
 
+    // The Settings "Screen Thump" switch (Settings.screenBuzz, per device, ON by default). A missing Settings (jsdom tests) = allowed.
+    function buzzAllowed() {
+        try {
+            if (typeof Settings !== 'undefined' && Settings && typeof Settings.load === 'function') return Settings.load().screenBuzz !== false;
+        } catch (e) { /* ignore */ }
+        return true;
+    }
+
     // One short buzz with the thump (CONFIG.CANVAS_THUMP_VIBRATE_MS; 0 = off). Android Chrome only; a phone in silent / battery-saver
     // mode, or any browser without navigator.vibrate (iOS), just does nothing.
     function buzz(ms) {
@@ -87,7 +96,7 @@ const CanvasThump = (() => {
         void el.offsetWidth; // restart the CSS animation if a previous one is still on the element
         el.classList.add(mode === 'soft' ? SOFT : FULL);
         if (el.parentElement && el.parentElement.classList) el.parentElement.classList.add(HOST);
-        buzz(c.vibrateMs);
+        if (buzzAllowed()) buzz(c.vibrateMs);
         if (endTimer) clearTimeout(endTimer);
         endTimer = setTimeout(() => { endTimer = 0; clear(el); }, c.durationMs);
         return true;
@@ -102,6 +111,11 @@ const CanvasThump = (() => {
         delayTimer = setTimeout(() => { delayTimer = 0; play(el); }, c.delayMs);
     }
 
+    /** One buzz right now, whatever the motion settings say: the sample when the player turns the Settings switch on. */
+    function sampleBuzz() {
+        return buzz(cfg().vibrateMs);
+    }
+
     function resetForTests() {
         lastMs = -Infinity;
         if (delayTimer) clearTimeout(delayTimer);
@@ -110,7 +124,7 @@ const CanvasThump = (() => {
         endTimer = 0;
     }
 
-    return { FULL, SOFT, HOST, motionMode, shouldThump, play, onDefeat, resetForTests };
+    return { FULL, SOFT, HOST, motionMode, shouldThump, play, onDefeat, sampleBuzz, resetForTests };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

@@ -150,14 +150,14 @@ describe('settings round trip for the evening time', () => {
     test('saving only the effects intensity keeps the stored evening time (and vice versa)', () => {
         Settings.save({ eveningCheckTime: '19:30' });
         Settings.save({ effectsIntensity: 'off' });
-        expect(Settings.load()).toEqual({ effectsIntensity: 'off', eveningCheckTime: '19:30', timerHintSeen: false, devTools: false });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'off', eveningCheckTime: '19:30', timerHintSeen: false, devTools: false, screenBuzz: true });
         Settings.save({ eveningCheckTime: '22:00' });
-        expect(Settings.load()).toEqual({ effectsIntensity: 'off', eveningCheckTime: '22:00', timerHintSeen: false, devTools: false });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'off', eveningCheckTime: '22:00', timerHintSeen: false, devTools: false, screenBuzz: true });
     });
 
     test('an old save with no evening time loads the default', () => {
         global.localStorage.setItem('deadline.settings', JSON.stringify({ effectsIntensity: 'reduced' }));
-        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true });
     });
 
     test('a single-digit hour is stored padded', () => {

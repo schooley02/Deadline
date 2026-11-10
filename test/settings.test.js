@@ -46,22 +46,22 @@ afterEach(() => {
 
 describe('Settings.load', () => {
     test('returns the default (full) when nothing is stored', () => {
-        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true });
     });
 
     test('round-trips a saved value', () => {
         Settings.save({ effectsIntensity: 'reduced' });
-        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true });
     });
 
     test('falls back to full for an invalid stored value (defensive)', () => {
         global.localStorage.setItem('deadline.settings', JSON.stringify({ effectsIntensity: 'nonsense' }));
-        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true });
     });
 
     test('falls back to full for corrupt JSON (never breaks gameplay)', () => {
         global.localStorage.setItem('deadline.settings', '{not valid json');
-        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true });
     });
 });
 
@@ -141,7 +141,7 @@ describe('Settings devTools (2026-11-03)', () => {
         expect(Settings.load().devTools).toBe(true);
         Settings.save({ effectsIntensity: 'reduced' });
         expect(Settings.load().devTools).toBe(true);
-        Settings.save({ devTools: false });
+        Settings.save({ devTools: false, screenBuzz: true });
         expect(Settings.load().devTools).toBe(false);
     });
 
@@ -156,7 +156,7 @@ describe('Settings devTools (2026-11-03)', () => {
 
     test('an older stored settings object (no devTools key) loads with it off and keeps its other fields', () => {
         localStorage.setItem(Settings.SETTINGS_KEY, JSON.stringify({ effectsIntensity: 'reduced', eveningCheckTime: '20:30', timerHintSeen: true }));
-        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '20:30', timerHintSeen: true, devTools: false });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '20:30', timerHintSeen: true, devTools: false, screenBuzz: true });
     });
 
     test('what is WRITTEN is a real boolean even if a caller passes something else', () => {
@@ -171,5 +171,25 @@ describe('Settings devTools (2026-11-03)', () => {
     test('a failed save never throws and reports false', () => {
         global.localStorage.setItem = () => { throw new Error('quota'); };
         expect(Settings.save({ devTools: true })).toBe(false);
+    });
+});
+
+describe('Settings screenBuzz (2026-11-10)', () => {
+    beforeEach(() => { localStorage.clear(); });
+
+    test('is ON by default', () => {
+        expect(Settings.DEFAULTS.screenBuzz).toBe(true);
+        expect(Settings.load().screenBuzz).toBe(true);
+    });
+
+    test('only a real false turns it off; it survives a save of another field and can be turned on again', () => {
+        Settings.save({ screenBuzz: false });
+        expect(Settings.load().screenBuzz).toBe(false);
+        Settings.save({ effectsIntensity: 'reduced' });
+        expect(Settings.load().screenBuzz).toBe(false);
+        Settings.save({ screenBuzz: true });
+        expect(Settings.load().screenBuzz).toBe(true);
+        localStorage.setItem(Settings.SETTINGS_KEY, JSON.stringify({ screenBuzz: 'no' }));
+        expect(Settings.load().screenBuzz).toBe(true);
     });
 });

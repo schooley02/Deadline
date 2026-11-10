@@ -16,6 +16,7 @@
  *   currentIntensity, onChangeIntensity(intensity),
  *   currentEveningTime ("HH:MM"), onChangeEveningTime(value),   (Habit Goals Build 3)
  *   currentDevTools (bool), onChangeDevTools(bool),             (Developer tools switch, 2026-11-03: shows the DEV button, js/ui/devPanel.js)
+ *   currentScreenBuzz (bool), onChangeScreenBuzz(bool),         (Buzz switch, 2026-11-10: the phone vibration with the screen thump)
  *   buildExportEnvelope(): envelope,       — script.js: ExportImport.buildEnvelope(...)
  *   currentSummary: ExportImport summary shape (this device's live state, for the confirm compare),
  *   onConfirmImport(envelope)              — script.js: backup + localStorage write + reload
@@ -95,6 +96,14 @@ const SettingsView = (() => {
                 <p class="settings-section-hint">Controls the on-fire/blazing visual for high-streak habits.</p>
                 <div class="settings-radio-group">${optionsHtml}</div>
             </div>
+            <div class="settings-section settings-buzz-section">
+                <h4>Screen Thump</h4>
+                <p class="settings-section-hint">Completing a task or habit thumps the screen (it follows the effects setting above). On a phone that supports it, it can buzz too: Android Chrome only, and not in silent or battery-saver mode.</p>
+                <label class="settings-radio-row settings-buzz-row">
+                    <input type="checkbox" id="screenBuzzToggle" ${deps.currentScreenBuzz !== false ? 'checked' : ''}>
+                    <span class="settings-radio-label">Buzz the phone when I complete something</span>
+                </label>
+            </div>
             <div class="settings-section settings-evening-section">
                 <h4>Evening Check</h4>
                 <p class="settings-section-hint">Each evening the game asks about every Break Habit you haven't answered yet today. It only shows while the game is open; tomorrow morning's check-in still catches anything you miss.</p>
@@ -160,6 +169,14 @@ const SettingsView = (() => {
         if (eveningInput) {
             eveningInput.addEventListener('change', (e) => {
                 if (typeof deps.onChangeEveningTime === 'function') deps.onChangeEveningTime(e.target.value);
+            });
+        }
+
+        // Buzz switch (2026-11-10): script.js saves it per device; turning it ON gives one sample buzz so the player can feel it.
+        const screenBuzzToggle = container.querySelector('#screenBuzzToggle');
+        if (screenBuzzToggle) {
+            screenBuzzToggle.addEventListener('change', (e) => {
+                if (typeof deps.onChangeScreenBuzz === 'function') deps.onChangeScreenBuzz(!!e.target.checked);
             });
         }
 
