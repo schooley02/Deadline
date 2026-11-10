@@ -39,6 +39,14 @@ const CONFIG = {
     // shakes at most once per cooldown; the flash still fires on every hit.
     BASE_SHAKE_COOLDOWN_MS: 3000,
     BASE_SHAKE_DURATION_MS: 300,
+    // Screen thump (visual only, not balance; 2026-11-09 Jeremy): when a task / habit is completed the whole canvas (#gameCanvas) gives a
+    // small downward jolt, as if it took the hero's hit. js/ui/canvasThump.js decides when; the motion is css/gameCanvas.css
+    // `.canvas-thump` (KEEP CANVAS_THUMP_DURATION_MS in sync with that animation's 0.22s). DELAY lines it up with the hero's strike
+    // (the attack row is 9 frames at HERO_ONESHOT_FPS; the hit lands around the middle: a dial to tune by eye). COOLDOWN stops a pile
+    // of quick completions from rattling the screen.
+    CANVAS_THUMP_DELAY_MS: 350,
+    CANVAS_THUMP_DURATION_MS: 220,
+    CANVAS_THUMP_COOLDOWN_MS: 500,
     BASE_HEAL_FLOAT_MS: 1400, // the floating "+N" over the church when the base heals (2026-11-02, Jeremy); js/damage.js showHealFloat
 
     // --- Offline catch-up (decided 2026-07-17, see DECISIONS.md) ---

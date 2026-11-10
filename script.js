@@ -1108,7 +1108,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 FrozenNotice.showRoutineKoNotice(routine.name);
             },
             // Completion (2026-10-26): the item's hero plays its `attack` row once.
-            onItemDefeated: (item) => heroAttackOnDefeat(item),
+            // Screen thump (2026-11-09): the whole canvas gives a small jolt as the hit lands (js/ui/canvasThump.js; visual only).
+            onItemDefeated: (item) => { heroAttackOnDefeat(item); CanvasThump.onDefeat(gameCanvas); },
             // Daily record (D2, 2026-10-27): every gameplay seam bumps through here.
             recordDaily: State.bumpToday,
             // Goals (Build A, 2026-11-05): a finished / un-finished task or habit counts toward any linked goal target.

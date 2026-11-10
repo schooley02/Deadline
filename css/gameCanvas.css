@@ -636,6 +636,43 @@
     80% { translate: 1px 0; }
 }
 
+/* Screen thump (2026-11-09, Jeremy): a completed task / habit jolts the WHOLE canvas down a few pixels, as if the screen took the hit.
+   js/ui/canvasThump.js adds the class after CONFIG.CANVAS_THUMP_DELAY_MS and removes it after CONFIG.CANVAS_THUMP_DURATION_MS (KEEP IN
+   SYNC with the 0.22s below). Vertical only (a sideways shake would push the scene past the screen edge and widen the page), whole
+   pixels (step-end holds each keyframe), `translate` so it never fights a child's own transform. The HUD is a sibling, so it stays
+   still. .canvas-thumping on the parent keeps the strip the jolt uncovers dark instead of the light fallback gradient. */
+.game-canvas.canvas-thumping {
+    background: #0b0b24;
+}
+.canvas-thump {
+    animation: canvas-thump 0.22s step-end;
+}
+@keyframes canvas-thump {
+    0%, 100% { translate: 0 0; }
+    12% { translate: 0 3px; }
+    40% { translate: 0 -1px; }
+    70% { translate: 0 1px; }
+}
+/* body.fx-reduced: the same beat at 1px. */
+.canvas-thump-soft {
+    animation: canvas-thump-soft 0.22s step-end;
+}
+@keyframes canvas-thump-soft {
+    0%, 100% { translate: 0 0; }
+    12% { translate: 0 1px; }
+    55% { translate: 0 0; }
+}
+body.fx-off #gameCanvas.canvas-thump,
+body.fx-off #gameCanvas.canvas-thump-soft {
+    animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+    #gameCanvas.canvas-thump,
+    #gameCanvas.canvas-thump-soft {
+        animation: none !important;
+    }
+}
+
 /* Effects intensity (body.fx-reduced / body.fx-off from js/settings.js) and
    prefers-reduced-motion: reduced = slower sway; off / reduced-motion = church
    holds frame 0 and never shakes. The flash stays (it is not motion). */
