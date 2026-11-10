@@ -44,7 +44,7 @@ const CONFIG = {
     // `.canvas-thump` (KEEP CANVAS_THUMP_DURATION_MS in sync with that animation's 0.22s). DELAY lines it up with the hero's strike
     // (the attack row is 9 frames at HERO_ONESHOT_FPS; the hit lands around the middle: a dial to tune by eye). COOLDOWN stops a pile
     // of quick completions from rattling the screen.
-    CANVAS_THUMP_DELAY_MS: 350,
+    CANVAS_THUMP_DELAY_MS: 150,
     CANVAS_THUMP_DURATION_MS: 220,
     CANVAS_THUMP_COOLDOWN_MS: 500,
     BASE_HEAL_FLOAT_MS: 1400, // the floating "+N" over the church when the base heals (2026-11-02, Jeremy); js/damage.js showHealFloat

@@ -16,7 +16,7 @@ const CanvasThump = (() => {
     const FULL = 'canvas-thump';
     const SOFT = 'canvas-thump-soft';
     const HOST = 'canvas-thumping';
-    const DEFAULTS = { delayMs: 350, durationMs: 220, cooldownMs: 500 };
+    const DEFAULTS = { delayMs: 150, durationMs: 220, cooldownMs: 500 };
 
     let lastMs = -Infinity;
     let delayTimer = 0;
