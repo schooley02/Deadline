@@ -32,7 +32,7 @@
 
 .hero-spotlight {
     position: absolute;
-    left: 80px; /* centre of the 160px church column = the door */
+    left: calc(80px - var(--base-bleed, 0px)); /* centre of the 160px church column = the door (the church sits --base-bleed left of the canvas edge, css/gameCanvas.css) */
     bottom: 8px; /* front-lane feet line */
     width: 64px;
     height: 104px;

@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-10 (morning) -- Church shake room: the base sits 4px further left (Claude app session; Sonnet 5.5; Jeremy: "when my base shakes from being attacked, on my phone in landscape ... we need to nudge the base further to the left so it has more room to move side to side without showing the left base edge")
+
+- **Decision:** `--base-bleed: 4px` on `#gameCanvas` (0 in the portrait strip): `#base` is `left: -4px`, and the hero spotlight's `left` is `80px - 4px` so it stays on the door. Reproduced in headless Chromium at 844x390: the art started at x = 0, so at the +2px extreme of `base-shake` a 2px strip of the scene showed at the screen's left edge.
+- **Why 4px:** the shake is +-2px, so 2px would only just reach the edge; 4px = two art pixels at the 2x scale, so the church stays on the pixel grid and keeps a 2px margin. The box width stays 160 (`BASE_WIDTH` = `offsetWidth`), so zombies, the village, graveyard and layout do not move; only the art shifts, and the 4px gap before the zombies' stopping line is not noticeable.
+- **Rejected:** shifting only the background (the idle-loop strips would show 4px of the NEXT frame's left wall at the right of the box); a narrower box (BASE_WIDTH and the 160px hero / scrim column would all need to change); making the shake smaller (Jeremy wanted room, not less shake).
+- **Files:** `css/gameCanvas.css`, `css/heroSpotlight.css`, `sw.js` v310, `test/baseShakeRoom.test.js` (new), UI_UX.
+
 ## 2026-11-09 (night) -- Screen thump on completion (Claude app session; Sonnet 5.5; Jeremy: "make the whole canvas and everything in it shake a little when a task gets completed ... nothing too big, just a sort of thump" -> "all completions")
 
 - **Decision:** every completion (task, sub-task, habit, KO ghost) gives `#gameCanvas` a small downward jolt (3px, then -1 / +1, 0.22 s, whole pixels) 150 ms after the tap so it lands with the hero's strike; at most one per 500 ms; Effects Reduced = 1px, Effects Off / reduce-motion = none. Hooked on the existing `onItemDefeated` seam, so one call covers every completion path.

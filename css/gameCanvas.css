@@ -579,13 +579,22 @@
     justify-content: center;
     align-items: center;
     position: absolute;
-    left: 0;
+    left: calc(0px - var(--base-bleed, 0px)); /* the art's left edge hangs off the screen: see --base-bleed below */
     top: 0;
     box-sizing: border-box;
     font-weight: bold;
     color: var(--color-primary-white);
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
+
+/* Shake room (2026-11-10, Jeremy: on a phone in landscape the church's left edge showed a gap when it shook right): the church art
+   starts at the very left of the canvas, so the hit shake (base-shake, up to 2px each way) pulled that edge on screen and showed the
+   scene behind it. The church now sits --base-bleed (4px = two art pixels at 2x) further left, so its left edge stays off the screen
+   through the whole shake; the hero spotlight's door-centre follows it (css/heroSpotlight.css). BASE_WIDTH is the box width, so
+   zombies, the village and the layout do not move. Keep --base-bleed >= the biggest base-shake offset (test/baseShakeRoom.test.js).
+   The portrait strip already crops the art's left side, so it has none. */
+#gameCanvas { --base-bleed: 4px; }
+body.glance-strip #gameCanvas { --base-bleed: 0px; }
 
 
 /* Animated idle loops (2026-10-20). js/damage.js applyBaseArt sets
