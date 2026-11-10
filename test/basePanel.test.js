@@ -286,3 +286,39 @@ describe('open()', () => {
         expect(calls).toBe(after);
     });
 });
+
+// Ice (docs/ICE_PLAN.md, 2026-11-10): the attacker row says "Iced" and when it thaws; the HUD chip counts only the zombies that hit.
+describe('iced attackers', () => {
+    const iced = (id, min, extra) => att(id, 10, Object.assign({ iceMs: min * MIN }, extra));
+    test('an iced row is flagged, shows its thaw countdown, and has no "hits in"', () => {
+        const vm = BasePanel.buildViewModel(ctxFor(80, [iced('a', 42)]));
+        const row = vm.attackers.rows[0];
+        expect(row.iced).toBe(true);
+        expect(row.thawing).toBe(false);
+        expect(vm.binds['ice_a']).toBe('42:00');
+        const html = BasePanel.panelHtml(vm);
+        expect(html).toContain('Iced');
+        expect(html).toContain('thaws in');
+        expect(html).not.toContain('hits in');
+    });
+    test('a cracking row says Thawing', () => {
+        const vm = BasePanel.buildViewModel(ctxFor(80, [iced('a', 3, { iceThawing: true })]));
+        expect(vm.attackers.rows[0].thawing).toBe(true);
+        expect(BasePanel.panelHtml(vm)).toContain('Thawing');
+    });
+    test('a normal row beside an iced one still shows "hits in"', () => {
+        const vm = BasePanel.buildViewModel(ctxFor(80, [iced('a', 42), att('b', 5)]));
+        const html = BasePanel.panelHtml(vm);
+        expect(html).toContain('hits in');
+        expect(html).toContain('thaws in');
+    });
+    test('the HUD chip counts only the zombies that hit; all iced reads "Iced"', () => {
+        expect(BasePanel.chipModel(ctxFor(80, [iced('a', 42), att('b', 5)])).text).toBe('−1 / 5m');
+        expect(BasePanel.chipModel(ctxFor(80, [iced('a', 42)])).text).toBe('Iced');
+        expect(BasePanel.chipModel(ctxFor(80, [iced('a', 42), iced('b', 10)])).text).toBe('Iced');
+    });
+    test('the attackers note explains the ice', () => {
+        const html = BasePanel.panelHtml(BasePanel.buildViewModel(ctxFor(80, [att('a', 10)]), { info: 'attackers' }));
+        expect(html).toContain('iced');
+    });
+});

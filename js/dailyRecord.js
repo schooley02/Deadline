@@ -70,7 +70,9 @@ const DailyRecord = (() => {
     // missed), met = recurring periods met, done = milestones completed. (`goals` is taken by the Habit Goals tally since v5.)
     // v11 (2026-11-05, Goals Build C): `pg` also carries `pts` (the bonus points goals paid today: a recurring period met) and `items`
     // (Earned Sick Days paid: a one-time goal finished or a monthly period met). Older days read them as 0.
-    const V = 11;
+    // v12 (2026-11-10, Iced zombies; docs/ICE_PLAN.md): `ice` = { n, min }, the stretches of ice today: n = times a zombie's ice ended (a
+    // stop, a spent budget, a moved due date), min = the minutes of ice they lasted (fractional, like timer.workMin). Recorded at the thaw.
+    const V = 12;
     // Mirrors Habits.GOAL_UNIT_SUGGESTIONS (test/dailyRecord.test.js checks they match). Kept local: no global dependencies.
     const GOAL_UNITS = ['pages', 'glasses', 'oz', 'steps', 'miles', 'km', 'reps', 'words', 'servings', 'drinks', 'cigarettes', 'cups', '$', 'times'];
     const GOAL_TYPES = ['time', 'amount', 'note'];
@@ -167,6 +169,8 @@ const DailyRecord = (() => {
             pri: { m: 0, d: 0, s: 0 },
             // v10: the player's Goals today (see V above).
             pg: { climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 },
+            // v12: stretches of ice today (see V above).
+            ice: { n: 0, min: 0 },
             ko: 0,
             revived: 0,
             timer: { workMin: 0, limitMin: 0, edits: 0, editMin: 0 },
@@ -487,6 +491,13 @@ const DailyRecord = (() => {
                 });
                 break;
             }
+            case 'ice': {
+                // A stretch of ice ended: p = { ms } (how long it lasted). A zero / junk length is not a stretch.
+                if (!rec.ice) rec.ice = { n: 0, min: 0 };
+                const ms = Number(p && p.ms);
+                if (ms > 0 && Number.isFinite(ms)) { rec.ice.n += 1; rec.ice.min += ms / 60000; }
+                break;
+            }
             case 'tcorr': {
                 // A timer-session correction charged back halved damage: p = { hp } (the HP actually taken, floor applied).
                 if (!rec.tcorr) rec.tcorr = { n: 0, hp: 0 };
@@ -705,6 +716,9 @@ const DailyRecord = (() => {
         dst.pri.s += (src.pri && src.pri.s) || 0;
         if (!dst.pg) dst.pg = { climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 };
         ['climb', 'drop', 'met', 'done', 'pts', 'items'].forEach((k) => { dst.pg[k] = (dst.pg[k] || 0) + ((src.pg && src.pg[k]) || 0); });
+        if (!dst.ice) dst.ice = { n: 0, min: 0 };
+        dst.ice.n += (src.ice && src.ice.n) || 0;
+        dst.ice.min += (src.ice && src.ice.min) || 0;
         dst.ko += src.ko || 0;
         dst.revived += src.revived || 0;
         dst.active.touches += (src.active && src.active.touches) || 0;

@@ -166,3 +166,35 @@ describe('formatting', () => {
         expect(BaseModel.formatApprox(27 * 60 * MIN)).toBe('1d 3h');
     });
 });
+
+// Ice (docs/ICE_PLAN.md, 2026-11-10): an attacker whose task has the work timer running deals no damage until its ice ends, so its
+// first hit is `iceMs` away plus one tick. The panel's timers (next hit, art worsens, church falls) all read the same schedule.
+describe('iced attackers', () => {
+    test('the first hit comes after the ice plus one tick, and the row carries the ice', () => {
+        const m = base(58, [att('a', 10, { iceMs: 20 * MIN })]);
+        expect(m.attackers[0].nextHitMs).toBe(20 * MIN + CONFIG.DAMAGE_INTERVAL_MS);
+        expect(m.attackers[0].iceMs).toBe(20 * MIN);
+        expect(m.nextHitMs).toBe(20 * MIN + CONFIG.DAMAGE_INTERVAL_MS);
+    });
+    test('a row that is not iced has iceMs 0 and keeps its normal schedule', () => {
+        const m = base(58, [att('a', 10)]);
+        expect(m.attackers[0].iceMs).toBe(0);
+        expect(m.attackers[0].iceThawing).toBe(false);
+        expect(m.attackers[0].nextHitMs).toBe(4 * MIN);
+    });
+    test('the thawing flag rides on the row', () => {
+        expect(base(58, [att('a', 10, { iceMs: 3 * MIN, iceThawing: true })]).attackers[0].iceThawing).toBe(true);
+    });
+    test('"church falls in" waits for the ice: one HP left, 20 min of ice, falls at ice + one tick', () => {
+        expect(base(1, [att('a', 10)]).fallsMs).toBe(4 * MIN);
+        expect(base(1, [att('a', 10, { iceMs: 20 * MIN })]).fallsMs).toBe(25 * MIN);
+    });
+    test('an iced zombie does not stop another one from hitting on schedule', () => {
+        const m = base(58, [att('a', 10, { iceMs: 20 * MIN }), att('b', 5)]);
+        expect(m.nextHitMs).toBe(4 * MIN);
+        expect(m.lossNext15).toBe(CONFIG.OVERDUE_DAMAGE * 3); // b hits at 4, 9, 14 min; a is still iced
+    });
+    test('the church is still "attacked" while only iced zombies are at the base (regen stays paused)', () => {
+        expect(base(58, [att('a', 10, { iceMs: 20 * MIN })]).state).toBe('attacked');
+    });
+});

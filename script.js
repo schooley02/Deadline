@@ -1901,9 +1901,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return { ok: true, running: false };
             }
             if ((action && action !== 'play') || !Timer.canTimer(item)) return { ok: false };
-            const other = Timer.findRunning(items);
-            if (other) Timer.stop(other, now);
-            Timer.start(item, now);
+            // One timer at a time (Jeremy, 2026-11-10): Timer.startExclusive stops the timer running on any other item (its time
+            // is kept), ends every other item's ice grace (never two zombies iced at once) and starts this one.
+            Timer.startExclusive(items, item, now);
         }
         syncWorkHero(Timer.findRunning(items));
         updateTimerButtons(now);
@@ -2258,6 +2258,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     hp: Math.max(0, State.getBaseHealth() - amount)
                 });
             },
+            // Ice (docs/ICE_PLAN.md, 2026-11-10): one daily-record entry per stretch of ice, at its end (ms = how long it lasted).
+            recordIce: (p) => State.bumpToday('ice', { ms: p.ms }),
             healBase: (amount) => Damage.healBase(amount, damageDeps()),
             updateMidnightLine,
             runLiveGapCatchUp: () => Damage.runLiveGapCatchUp(damageDeps()),
@@ -2998,6 +3000,8 @@ document.addEventListener('DOMContentLoaded', () => {
             .map(i => ({
                 id: i.id, name: i.name, dueMs: i.dueDateTime.getTime(),
                 tickMs: Timer.damageIntervalMs(i, CONFIG.DAMAGE_INTERVAL_MS),
+                // Ice (docs/ICE_PLAN.md): an iced attacker deals nothing for iceMs; the panel counts down to the thaw.
+                iceMs: Ice.leftMs(i, nowMs), iceThawing: Ice.state(i, nowMs).thawing,
                 lastDamageTickMs: typeof i.lastDamageTickTime === 'number' ? i.lastDamageTickTime : nowMs,
             }));
         let nextDue = null;

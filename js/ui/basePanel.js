@@ -113,7 +113,11 @@ const BasePanel = (() => {
             const rows = m.attackers.map(a => {
                 binds['over_' + a.id] = `overdue ${fmt(a.overdueMs)}`;
                 binds['hit_' + a.id] = cd(a.nextHitMs);
-                const row = { id: a.id, name: a.name || 'Zombie', price, label, note, canBuy: false, need: 0, ariaLabel: '' };
+                // Ice (docs/ICE_PLAN.md): an iced row counts down to the thaw instead of the next hit.
+                const iced = a.iceMs > 0;
+                if (iced) binds['ice_' + a.id] = cd(a.iceMs);
+                const row = { id: a.id, name: a.name || 'Zombie', price, label, note, canBuy: false, need: 0, ariaLabel: '',
+                    iced, thawing: iced && !!a.iceThawing };
                 if (note !== null && price !== null) {
                     row.canBuy = true;
                     row.ariaLabel = `Push back ${row.name} by ${label}, ${note}.`;
@@ -159,10 +163,11 @@ const BasePanel = (() => {
         let text;
         if (m.health <= 0) text = 'Fallen';
         else if (m.state === 'attacked') {
-            const per = (ctx.attackers || []).reduce((s, a) =>
-                s + c.OVERDUE_DAMAGE * c.DAMAGE_INTERVAL_MS / (a.tickMs > 0 ? a.tickMs : c.DAMAGE_INTERVAL_MS), 0);
+            // An iced attacker deals nothing right now, so it adds nothing to the rate (all iced = "Iced").
+            const per = (ctx.attackers || []).reduce((s, a) => (a.iceMs > 0 ? s :
+                s + c.OVERDUE_DAMAGE * c.DAMAGE_INTERVAL_MS / (a.tickMs > 0 ? a.tickMs : c.DAMAGE_INTERVAL_MS)), 0);
             const n = Math.round(per * 10) / 10;
-            text = `\u2212${n} / ${mins}m`;
+            text = per === 0 ? 'Iced' : `\u2212${n} / ${mins}m`;
         } else if (m.state === 'healing') {
             text = `+${c.BASE_REGEN_HP} in ${Math.max(1, Math.ceil(m.nextHealMs / 60000))}m`;
         } else text = 'Full';
@@ -197,7 +202,9 @@ const BasePanel = (() => {
                 `<span class="bp-push-main">Push back ${esc(r.label)}</span>` +
                 `<span class="bp-push-sub">${r.note ? esc(r.note) : (r.canBuy ? `${r.price} pts` : `Need ${r.need} more pts`)}</span></button>`;
             return `<li class="bp-attacker"><div class="bp-attacker-info"><span class="bp-attacker-name">${esc(r.name)}</span>` +
-                `<span class="bp-attacker-meta">${bind(vm, 'over_' + r.id)} · hits in ${bind(vm, 'hit_' + r.id)}</span></div>${btn}</li>`;
+                `<span class="bp-attacker-meta">${bind(vm, 'over_' + r.id)} · ${r.iced
+                    ? `${r.thawing ? 'Thawing' : 'Iced'} · thaws in ${bind(vm, 'ice_' + r.id)}`
+                    : `hits in ${bind(vm, 'hit_' + r.id)}`}</span></div>${btn}</li>`;
         }).join('');
         const more = a.more > 0
             ? `<button type="button" class="bp-link" data-action="showall" data-key="showall">${plural(a.more, 'more attacker')} · Show all</button>`
@@ -206,7 +213,7 @@ const BasePanel = (() => {
         const tokenLine = a.tokens === null ? ''
             : `<p class="bp-token-line">${esc(a.sizeName)} tokens: ${a.tokens > 0 ? `${a.tokens} held \u00B7 used when the free pushbacks run out` : 'none held'}</p>`;
         const pop = vm.ui.info === 'attackers'
-            ? `<div class="bp-popover" role="note">Each zombie past its due time hits the church for 1 HP every 5 minutes (slower while you run a work timer on it). Pushing one back moves its due time to 1 hour from now, which stops its hits. Healing resumes once no zombie is attacking.</div>` : '';
+            ? `<div class="bp-popover" role="note">Each zombie past its due time hits the church for 1 HP every 5 minutes (slower while you run a work timer on it). A zombie at the church whose timer is running is iced: it can't hit for up to an hour of work per task, then it hits at the slower rate. Pushing one back moves its due time to 1 hour from now, which stops its hits. Healing resumes once no zombie is attacking.</div>` : '';
         return `<section class="bp-card bp-attackers" aria-label="Attackers">` +
             `<div class="bp-card-head"><h4>Attackers <span class="bp-count">${a.total}</span></h4>${infoButton('attackers', 'How attackers work', vm)}</div>${pop}` +
             `<ul class="bp-attacker-list">${rows}</ul>${more}${tokenLine}</section>`;

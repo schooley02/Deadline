@@ -12,14 +12,16 @@
  *   fallsMs                      attacked: ms until HP reaches 0 (null if no attackers)
  *   nextHealMs, nextStageMs, nextStageHp, healsToStage, fullMs      healing
  *   kits[]                       { id, name, heal, held, effectiveHeal, wasted, landsAt, usable, savesMs | buysMs }
- *   attackers[]                  [{ id, name, overdueMs, nextHitMs }] most overdue first
+ *   attackers[]                  [{ id, name, overdueMs, nextHitMs, iceMs, iceThawing }] most overdue first
  * }
  *
- * ctx: { health, nowMs, lastRegenTickMs, attackers:[{id,name,dueMs,tickMs,lastDamageTickMs}],
+ * ctx: { health, nowMs, lastRegenTickMs, attackers:[{id,name,dueMs,tickMs,lastDamageTickMs,iceMs?,iceThawing?}],
  *        inventory:{}, shopItems:[], config }
  * Timing mirrors js/loop.js: each attacker hits for OVERDUE_DAMAGE every tickMs
  * (default DAMAGE_INTERVAL_MS; stretched by a running work timer) from its
  * lastDamageTickMs; regen ticks every BASE_REGEN_INTERVAL_MS from lastRegenTickMs.
+ * Ice (docs/ICE_PLAN.md, 2026-11-10): an attacker with `iceMs` > 0 is iced (js/ice.js): it deals no damage for that long, so its
+ * first hit is iceMs + one tick away (tickMs is the rate it will have after the thaw). It still counts as an attacker: regen is paused.
  */
 const BaseModel = (() => {
     const STAGE_FLOORS = [0, 25, 50, 75]; // church art changes at >75 / >50 / >25 / >0
@@ -99,7 +101,9 @@ const BaseModel = (() => {
             const last = (typeof a.lastDamageTickMs === 'number') ? a.lastDamageTickMs : nowMs;
             let nextHitAt = last + tickMs;
             if (nextHitAt < nowMs) nextHitAt = nowMs; // loop is about to fire it
-            return { id: a.id, name: a.name, dueMs: a.dueMs, tickMs, nextHitAt,
+            const iceMs = a.iceMs > 0 ? a.iceMs : 0;
+            if (iceMs > 0) nextHitAt = nowMs + iceMs + tickMs; // iced: the damage clock restarts at the thaw
+            return { id: a.id, name: a.name, dueMs: a.dueMs, tickMs, nextHitAt, iceMs, iceThawing: iceMs > 0 && !!a.iceThawing,
                 overdueMs: Math.max(0, nowMs - a.dueMs), nextHitMs: Math.max(0, nextHitAt - nowMs) };
         }).sort((x, y) => y.overdueMs - x.overdueMs);
 
@@ -108,7 +112,7 @@ const BaseModel = (() => {
         const out = {
             state, color: colorKey(health), health, max,
             attackerCount: attackers.length,
-            attackers: attackers.map(a => ({ id: a.id, name: a.name, overdueMs: a.overdueMs, nextHitMs: a.nextHitMs })),
+            attackers: attackers.map(a => ({ id: a.id, name: a.name, overdueMs: a.overdueMs, nextHitMs: a.nextHitMs, iceMs: a.iceMs, iceThawing: a.iceThawing })),
             nextHitMs: null, lossNext15: 0, worsenAtHp: null, worsenMs: null, fallsMs: null,
             nextHealMs: null, nextStageMs: null, nextStageHp: null, healsToStage: null, fullMs: null,
             kits: [],

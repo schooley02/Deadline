@@ -7,8 +7,8 @@
  * earlier stop/starts accumulate in `item.timerMsBanked`. Both persist as plain
  * item fields (schema 14), so a reload mid-timer just keeps running.
  *
- * Only ONE timer runs at a time; that rule is enforced by the caller via
- * findRunning (starting a second stops the first).
+ * Only ONE timer runs at a time; that rule is enforced by startExclusive (starting a
+ * second stops the first), which script.js toggleWorkTimer calls.
  */
 const Timer = (() => {
     const DEFAULTS = {
@@ -25,6 +25,12 @@ const Timer = (() => {
     function sessions() {
         if (typeof TimerSessions !== 'undefined') return TimerSessions;
         return typeof require === 'function' ? require('./timerSessions.js') : null;
+    }
+
+    // Ice (docs/ICE_PLAN.md, 2026-11-10): js/ice.js loads BEFORE this file in the browser (a global); node tests require it.
+    function ice() {
+        if (typeof Ice !== 'undefined') return Ice;
+        return typeof require === 'function' ? require('./ice.js') : null;
     }
 
     // Definition-level target (habit editors): minutes 1..600 or null. A NEGATIVE habit's
@@ -226,7 +232,19 @@ const Timer = (() => {
         item.timer = { startedAt: nowMs, checkedAt: nowMs, promptedAt: null };
         item.timerPaused = false;
         if (typeof item.timerMsBanked !== 'number') item.timerMsBanked = 0;
+        const I = ice(); if (I) I.clearGrace(item); // a resume ends the pause grace (the running timer ices it again)
         return true;
+    }
+
+    // One timer at a time (Jeremy, 2026-11-10): starts `item`'s timer after stopping the one running on any OTHER item (its time is
+    // kept), and ends every other item's pause grace so two zombies are never iced at once. Returns false -- and changes nothing --
+    // when `item` cannot be timed or already runs. js/script.js toggleWorkTimer is the only caller.
+    function startExclusive(items, item, nowMs) {
+        if (!canTimer(item) || isRunning(item)) return false;
+        const other = findRunning(items);
+        if (other && other !== item) stop(other, nowMs);
+        const I = ice(); if (I) I.clearOthers(items, item);
+        return start(item, nowMs);
     }
 
     // Attack windows (timer sessions, 2026-11-04): the live loop calls this every tick for a RUNNING timer with whether the
@@ -284,6 +302,7 @@ const Timer = (() => {
         }
         item.timer = null;
         item.timerPaused = false;
+        const I = ice(); if (I) I.clearGrace(item); // a stop is not a pause: the ice thaws at once
         if (span > 0 && spanListener) {
             try { spanListener(item, span, startedAt, startedAt + span); } catch (e) { /* never break a stop */ }
         }
@@ -295,6 +314,7 @@ const Timer = (() => {
         if (!isRunning(item)) return 0;
         const span = stop(item, nowMs);
         item.timerPaused = true;
+        const I = ice(); if (I) I.onPause(item, nowMs); // an iced zombie keeps its ice (cracking) for ICE_GRACE_MS
         return span;
     }
 
@@ -302,6 +322,7 @@ const Timer = (() => {
     function endPaused(item) {
         if (!isPaused(item)) return false;
         item.timerPaused = false;
+        const I = ice(); if (I) I.clearGrace(item);
         return true;
     }
 
@@ -321,6 +342,7 @@ const Timer = (() => {
         const span = Math.max(0, nowMs - item.timer.startedAt);
         item.timer = null;
         item.timerPaused = false;
+        const I = ice(); if (I) I.clearGrace(item);
         if (typeof item.timerMinutes === 'number' && elapsedMs(item, nowMs) < item.timerMinutes * 60000) {
             item.goalAcked = false;
         }
@@ -414,7 +436,7 @@ const Timer = (() => {
 
     return {
         normalizeTarget, modeFor, isRunning, canWorkTimer, isLimit, canLimitTimer, canTimer,
-        isPaused, buttonTitle, pause, endPaused, controlState, stopButtonHtml, PAUSE_ICON_SVG, PLAY_ICON_SVG, STOP_ICON_SVG, loggedMinutes, hasLogged, loggedText, isOverLimit, limitReadout, limitText, limitCaptionHtml, acknowledgeGoal, discardSession, setLogged, recordKind, MAX_LOGGED_MS, buttonLabel, popupLabel, ICON_SVG, buttonHtml, popupHtml, shouldNudge, NUDGE_TITLE, nudgeNote, shouldPrompt, PROMPT_TITLE, elapsedMs, onSpan, start, stop, findRunning,
+        isPaused, buttonTitle, pause, endPaused, controlState, stopButtonHtml, PAUSE_ICON_SVG, PLAY_ICON_SVG, STOP_ICON_SVG, loggedMinutes, hasLogged, loggedText, isOverLimit, limitReadout, limitText, limitCaptionHtml, acknowledgeGoal, discardSession, setLogged, recordKind, MAX_LOGGED_MS, buttonLabel, popupLabel, ICON_SVG, buttonHtml, popupHtml, shouldNudge, NUDGE_TITLE, nudgeNote, shouldPrompt, PROMPT_TITLE, elapsedMs, onSpan, start, startExclusive, stop, findRunning,
         pendingAction, promptDueAt, markPrompted, confirmStillWorking, autoStop,
         damageIntervalMs, formatElapsed, trackAttack,
     };

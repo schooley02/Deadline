@@ -1,0 +1,40 @@
+/**
+ * enemyIce.css -- iced zombies (docs/ICE_PLAN.md, DESIGNED 2026-11-10; CSS placeholder, PixelLab art later).
+ *
+ * js/loop.js puts `.enemy-iced` on a zombie that is camped at the church while the work timer runs on ITS task, and
+ * `.enemy-thawing` while the ice is cracking (the pause grace, and the last stretch of the budget). The ice REPLACES the
+ * red overdue glow (same fragment variable, enemyStatus.css composes the filter), holds the attack animation on its
+ * first frame, and tints the sprite cool. Effects Off / reduce-motion: the tint stays, nothing flickers.
+ */
+@property --ice-blur { syntax: '<length>'; inherits: true; initial-value: 7px; }
+
+.enemy.enemy-iced > .enemy-sprite,
+.enemy.enemy-iced:not(.has-anim-sprite),
+.enemy.enemy-thawing > .enemy-sprite,
+.enemy.enemy-thawing:not(.has-anim-sprite) {
+    --g-overdue: drop-shadow(0 0 2px #e8f7ff) drop-shadow(0 0 var(--ice-blur) #4fc3f7);
+    --an-od: none;
+}
+/* Cracking: the cold glow flickers through the overdue pulse slot (enemyStatus.css wires --an-od), so it respects the same
+   Effects gating and never fights the priority / streak pulses. */
+.enemy.enemy-thawing > .enemy-sprite,
+.enemy.enemy-thawing:not(.has-anim-sprite) {
+    --an-od: ice-crack;
+}
+/* The tint lives on the sprite child (or the box for a static fallback PNG), on top of the glow chain. */
+.enemy.enemy-iced > .enemy-sprite,
+.enemy.enemy-iced:not(.has-anim-sprite) {
+    filter: var(--g-ghost,) var(--g-hover,) var(--g-habit,) var(--g-lurker,) var(--g-streak,) var(--g-priority,) var(--g-overdue,) var(--g-started,)
+            saturate(0.45) hue-rotate(160deg) brightness(1.12);
+}
+.enemy.enemy-thawing > .enemy-sprite,
+.enemy.enemy-thawing:not(.has-anim-sprite) {
+    filter: var(--g-ghost,) var(--g-hover,) var(--g-habit,) var(--g-lurker,) var(--g-streak,) var(--g-priority,) var(--g-overdue,) var(--g-started,)
+            saturate(0.7) hue-rotate(160deg) brightness(1.05);
+}
+/* Held on one frame: an iced zombie does not swing. */
+.enemy.enemy-iced .enemy-sprite-sheet,
+.enemy.enemy-thawing .enemy-sprite-sheet {
+    animation-play-state: paused;
+}
+@keyframes ice-crack { from { --ice-blur: 5px; } to { --ice-blur: 12px; } }

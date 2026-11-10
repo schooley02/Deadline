@@ -190,11 +190,15 @@ const HowItWorks = (() => {
         const stopMin = Math.round(config.WORK_TIMER_AUTO_STOP_MS / 60000);
         // 1 HP per the damage a running timer skips: the damage interval / (1 - factor) (js/timerSessions.js chargeIntervalMs).
         const takeBackMin = Math.round(config.DAMAGE_INTERVAL_MS / (1 - factor) / 60000);
+        // Ice (docs/ICE_PLAN.md, 2026-11-10): the budget and the pause grace come from CONFIG.ICE_MAX_MS / ICE_GRACE_MS.
+        const iceMin = Math.round((config.ICE_MAX_MS || 60 * 60000) / 60000);
+        const graceMin = Math.round((config.ICE_GRACE_MS || 5 * 60000) / 60000);
         return {
             id: 'timers',
             title: 'Timers and Time Logged',
             what: [
                 `Tap the stopwatch on a task or Build Habit to time it. While the timer runs, that zombie's damage to the church is cut to ${pct}% and its hero stands guard in front of the church. After ${checkMin} minutes the game asks "Still working?"; if nobody answers for ${stopMin} minutes the timer stops itself, counting time only up to the check.`,
+                `A zombie already at the church is iced while you time it: it can't hit the church while the timer runs, for up to ${iceMin} minutes of ice per task in total. Then it hits at the reduced rate while the timer is still running. Pause keeps the ice for ${graceMin} more minutes; Stop thaws it at once. Only one timer runs at a time, so only one zombie is iced at a time.`,
                 'Every Stop, Pause or auto-stop saves a session: when it started, when it stopped and how long. Time Logged is the total of your sessions. Open a task and look under Sessions to fix a start or stop time, delete a session, or add one you forgot (a session that crosses midnight counts toward both days). Time with no start and stop, such as a total you typed or time logged before sessions existed, shows as "No start/stop recorded".',
                 'You can also type a Time Logged total, but never below your timed sessions. To remove timed time, edit its session.',
                 `Shortening or deleting a session takes back the halved damage for the minutes it was running while its zombie was attacking: 1 HP for every ${takeBackMin} minutes (rounded down), never below 1 HP of church health. Making a session longer or adding one never gives HP back. Editing sessions never changes points, XP, or whether something was on time.`,

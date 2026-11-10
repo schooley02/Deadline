@@ -11,6 +11,12 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-10 (iced zombies BUILT) -- Claude app session; Sonnet 5.5 (design was Opus 5.5); Jeremy: "lets start now and yes to the 2 numbers"
+**Did:** built iced zombies per `docs/ICE_PLAN.md`. NEW `js/ice.js`, `css/enemyIce.css`; edited `config.js` (`ICE_MAX_MS` 60 min, `ICE_GRACE_MS` 5 min), `timer.js` (`startExclusive`, grace hooks), `loop.js` (tick, damage skip, classes, `recordIce`), `dailyRecord.js` (v12 `ice`), `baseModel.js` + `ui/basePanel.js` (Iced / Thawing rows, chip), `ui/howItWorks.js`, `script.js` (`toggleWorkTimer` -> `startExclusive`, deps), `index.html`, `sw.js` (v314). New tests: `ice`, `ice-timer`, `ice-loop`, `dailyRecordIce`; appended baseModel / basePanel / howItWorks; version pins 11 -> 12. Docs: ICE_PLAN, MECHANICS, DATA_SCHEMA, DAILY_RECORD_PLAN, ECONOMY, DECISIONS, ROADMAP, CLAUDE.md.
+**State:** Jest 213 suites / 4,846 tests pass (run in a scratchpad clone; `how-it-works-info-buttons` needs the real CRLF index.html). Headless Chromium end-to-end: no console errors, iced look checked. NOT yet checked on Jeremy's phone. Not committed at the time of writing.
+**Next:** phone check (swipe the app away and reopen for sw v314); then PixelLab ice art (reference image + prompt), the "frosted while walking" cue, shard burst on thaw. W1b mood check-in is now DailyRecord v13.
+**Watch out:** script.js and index.html are CRLF on disk. Iced minutes still count as attack windows in `Timer.trackAttack` charge-back (half rate). Never name it "frozen". Regen stays paused while an iced attacker sits at the church.
+
 ## 2026-11-10 (iced zombies design) -- Claude app session; Opus 5.5; Jeremy: "should we have an item that freezes zombies in place ... does this mess with the core goals" -> "pushbacks currently push the zombie and due time back, but what if a the task in real life can't be pushed back" -> "i agree with your suggestions"
 **Did:** design only, no code. Iced zombies: an attacker whose own task has the work timer running deals 0 damage up to a per-item ice budget, then the timer's half rate. Wrote `docs/ICE_PLAN.md`; DECISIONS 2026-11-10 (ice); ROADMAP post-pre-alpha parked line; CLAUDE.md Doc Map row.
 **State:** NOT BUILT. Proposed `ICE_MAX_MS` 60 min, `ICE_GRACE_MS` 5 min (not in CONFIG; balance process first). Tests not run (docs only).

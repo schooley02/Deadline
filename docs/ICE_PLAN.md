@@ -1,6 +1,8 @@
 # Ice (work-timer freeze) -- plan
 
-DESIGNED 2026-11-10 (Claude app session, Opus 5.5; Jeremy: "i agree with your suggestions"). NOT BUILT. Parked in ROADMAP "Post-pre-alpha candidates" until scheduled. Numbers below are PROPOSED and go through the balance-tuning process before the build (DECISIONS 2026-11-10 (ice)).
+DESIGNED 2026-11-10 (Claude app session, Opus 5.5; Jeremy: "i agree with your suggestions"). **BUILT 2026-11-10 (Sonnet 5.5, same day; Jeremy: "lets start now and yes to the 2 numbers"; sw v314; DB v12).** Numbers APPROVED: `ICE_MAX_MS` 60 min, `ICE_GRACE_MS` 5 min (DECISIONS 2026-11-10 (ice built)).
+
+**As built (deviations from the plan below):** the pure core is `js/ice.js` with `atBase / state / leftMs / thawAt / onPause / clearGrace / clearOthers / tick / budgetLeftMs / graceLeftMs` (not the `isIced / spend` names). Pause-grace start is a new saved field `item.icePausedAt` (the timer stores no pause timestamp); `item.iceUsedMs` is the budget. Unsaved per-item tracking (last tick, episode length, phase) is a WeakMap inside `Ice`. One-timer rule is now `Timer.startExclusive(items, item, now)` (stops any other running timer, ends other items' grace), used by `toggleWorkTimer`. DailyRecord is **v12** `ice` { n, min }: `n` counts ice STRETCHES (each thaw), `min` = ice minutes; recorded once at each thaw. So W1b mood is now **v13**. `js/baseModel.js` attackers take `iceMs` / `iceThawing`; the Base Health panel rows read "Iced · thaws in X" / "Thawing · thaws in X" and the chip says "Iced" when every attacker is iced. CSS placeholder `css/enemyIce.css` (blue-grey tint + cold glow, sprite sheet paused; thawing flickers). **Not built (deferred):** the "frosted while walking" cue, shard burst on thaw, shatter on completion, fx-off variants beyond the static tint. **Known limits:** the first ~50 ms tick of a stretch is not counted; session charge-back (Timer.trackAttack) still treats iced minutes as attack windows, so shortening a session later charges them back at the half rate.
 
 ## Goal
 
@@ -31,7 +33,7 @@ Why: it rewards the hardest step (starting) at the moment players most often giv
 10. **One timer at a time (Jeremy, 2026-11-10: "make sure you can only start a timer on one task/habit at a time").** Already true today: `toggleWorkTimer` in script.js (the only caller of `Timer.start`) stops any running timer before starting a new one, so at most ONE zombie can be iced. Two gaps the build closes: (a) a PAUSED item in its pause grace loses its ice the moment a timer starts on a different item (otherwise two zombies could be iced at once for up to `ICE_GRACE_MS`); (b) no test locks the rule today, so the build adds one (starting B stops A; A's ice and grace end at once).
 11. **"Still working?"** (60 min) and the auto-stop 10 min later are unchanged. With the proposed cap equal to the check time, the ice cracks when "Still working?" appears: answering yes keeps the timer at the half rate.
 
-## Numbers (PROPOSED -- balance-tuning process before the build)
+## Numbers (APPROVED 2026-11-10)
 
 | Key | Proposed | Why |
 |---|---|---|
@@ -43,8 +45,8 @@ New `CONFIG` keys, data only. Tune in `js/config.js` per the balance protocol, l
 ## Data (additive, no schema bump, no migration)
 
 - `item.iceUsedMs` (number, absent = 0): ice spent so far.
-- Pause-grace start comes from the timer's existing pause timestamp; no new field if the timer already stores it (check at build; otherwise `item.icePausedAt`).
-- **DailyRecord field `ice` { n, min }** (Jeremy, 2026-11-10: yes): `n` = items iced that day, `min` = whole minutes of ice spent. Next DailyRecord version (v12, or v13 if W1b mood ships first and takes v12); follow `docs/DAILY_RECORD_PLAN.md` (seam, roll-up, version bump, tests).
+- Pause-grace start: `item.icePausedAt` (ms epoch, null when none). The timer stores no pause timestamp, so the build added this field.
+- **DailyRecord field `ice` { n, min }** (Jeremy, 2026-11-10: yes): `n` = items iced that day, `min` = whole minutes of ice spent. DailyRecord **v12** (BUILT); W1b mood moves to v13. Followed `docs/DAILY_RECORD_PLAN.md` (seam, roll-up, version bump, tests).
 
 ## Pure core: `js/ice.js` (test-first)
 
@@ -85,7 +87,7 @@ Player-facing: **Iced** / **Thawing**. Code: `ice*`. Do NOT use "frozen" / "free
 - DailyRecord `ice` { n, min } recorded and rolled up; old records without it read as 0.
 - Wording rule test still passes.
 
-## Build order
+## Build order (DONE 2026-11-10)
 
 One build, **Sonnet 5.5, medium effort**: `js/ice.js` + tests -> loop wiring -> timer boundaries -> damage panel -> CSS placeholder -> DailyRecord `ice` -> How Deadline works line -> docs (MECHANICS Timers + Overdue Damage, UI_UX, DATA_SCHEMA, ECONOMY "not a shop item" note) -> sw bump. Phone check by Jeremy.
 

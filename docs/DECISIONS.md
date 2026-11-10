@@ -4,6 +4,12 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-10 (ice built) -- Iced zombies built; the two numbers approved (Claude app session; Sonnet 5.5; Jeremy: "lets start now and yes to the 2 numbers")
+- **Numbers approved through the balance process:** `ICE_MAX_MS` = 60 min (matches `WORK_TIMER_CHECK_MS`), `ICE_GRACE_MS` = 5 min. Both data-only in `js/config.js`.
+- **Built as designed**, with these calls: ice state is `item.iceUsedMs` + `item.icePausedAt`; unsaved tracking in a WeakMap inside `Ice` (no schema bump). One-timer rule extracted into `Timer.startExclusive` (closes the grace-overlap gap). While iced the loop holds `lastDamageTickTime = now`, so catch-up never charges iced time; it is also reset on thaw. Regen stays paused (no code change). DailyRecord v12 `ice` { n, min }, `n` = stretches (one per thaw); W1b mood is now v13.
+- **Deferred:** the "frosted while walking" cue, shard burst / shatter, PixelLab art (CSS tint is a placeholder). **Accepted limits:** first ~50 ms tick of a stretch is not counted; session charge-back for iced minutes uses the half-rate rule.
+- **Naming:** player-facing "Iced" / "Thawing"; code `ice*`; never "frozen".
+
 ## 2026-11-10 (ice) -- A zombie at the church can't attack while you're working on it (Claude app session; Opus 5.5; Jeremy: "i agree with your suggestions", after "what if a the task in real life can't be pushed back ... the zombie would still be infront of the base if its due time is up, but it won't be able to attack while you are working on it, if it takes too long, you didn't plan well enough and thawing out would resume the half damage")
 
 - **Decision (design only, NOT BUILT; parked in ROADMAP post-pre-alpha):** "Iced" zombies. An attacker whose own task has the work timer running deals 0 damage, capped by a per-item ice budget (`item.iceUsedMs`, counted across sessions so stop/start can't refill it). When the budget runs out with the timer still on it attacks at the existing work-timer half rate (`WORK_TIMER_DAMAGE_FACTOR`); timer stopped = full rate. Free and automatic: NOT a shop item or held token. Position and due time never move (not pushback). Only zombies at the church are iced; a walking one may show a faint frost. Only the timed item: sub-task and parent never share ice. Catch-up damage ignores ice, as it already ignores timers. Full plan: `docs/ICE_PLAN.md`.

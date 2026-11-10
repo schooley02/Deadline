@@ -43,6 +43,8 @@
     <link rel="stylesheet" href="css/timeSlider.css">
     <link rel="stylesheet" href="css/dayPager.css">
     <link rel="stylesheet" href="css/enemyAnim.css">
+    <!-- css/enemyIce.css (2026-11-10): iced zombies (.enemy-iced / .enemy-thawing, set by js/loop.js); after enemyStatus + enemyAnim so it wins. -->
+    <link rel="stylesheet" href="css/enemyIce.css">
     <link rel="stylesheet" href="css/graveyard.css">
     <link rel="stylesheet" href="css/village.css">
     <link rel="stylesheet" href="css/villageCard.css">
@@ -628,6 +630,8 @@
     <script src="js/state.js"></script>
     <!-- js/timerSessions.js (2026-11-04): pure session maths; Timer reads it as a global, so it loads first. -->
     <script src="js/timerSessions.js"></script>
+    <!-- js/ice.js (2026-11-10): pure ice rules (docs/ICE_PLAN.md); Timer and Loop read it as a global, so it loads first. -->
+    <script src="js/ice.js"></script>
     <script src="js/timer.js"></script>
     <script src="js/startedMarker.js"></script>
     <!-- js/enemyRing.js (2026-11-06): family-on-tap for the ground ring; script.js handleEnemyClick calls it. -->

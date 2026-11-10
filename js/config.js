@@ -1020,6 +1020,12 @@ const CONFIG = {
     // banks time only up to the prompt.
     WORK_TIMER_CHECK_MS: 60 * 60 * 1000,
     WORK_TIMER_AUTO_STOP_MS: 10 * 60 * 1000,
+    // Ice (docs/ICE_PLAN.md; numbers approved by Jeremy 2026-11-10): a zombie at the church can't attack while the work timer
+    // runs on ITS task, for up to ICE_MAX_MS of ice per task in total (across sessions; when it is spent the zombie attacks
+    // again at the timer's usual half rate). Pausing leaves it iced for ICE_GRACE_MS. ICE_MAX_MS matches WORK_TIMER_CHECK_MS,
+    // so "Still working?" and the ice cracking are one moment. Balance numbers: change only through the balance process.
+    ICE_MAX_MS: 60 * 60 * 1000,
+    ICE_GRACE_MS: 5 * 60 * 1000,
 };
 
 // Export for Jest/Node; browser picks up the global `CONFIG` via <script> tag.

@@ -457,3 +457,21 @@ describe('Timers and Time Logged (Timer sessions Build C, 2026-11-04)', () => {
         expect(textOf(topic('timers', retuned))).toContain('30 minutes');
     });
 });
+
+describe('Timers topic: ice (docs/ICE_PLAN.md, 2026-11-10)', () => {
+    const text = () => textOf(topic('timers'));
+    test('explains the ice with the real numbers from CONFIG', () => {
+        expect(text()).toContain('iced');
+        expect(text()).toContain(`${CONFIG.ICE_MAX_MS / 60000} minutes of ice per task`);
+        expect(text()).toContain(`${CONFIG.ICE_GRACE_MS / 60000} more minutes`);
+    });
+    test('says Stop thaws it and that only one timer runs at a time', () => {
+        expect(text()).toContain('Stop thaws it at once');
+        expect(text()).toContain('Only one timer runs at a time');
+    });
+    test('retuned ice numbers flow through', () => {
+        const retuned = Object.assign({}, CONFIG, { ICE_MAX_MS: 45 * 60000, ICE_GRACE_MS: 3 * 60000 });
+        expect(textOf(topic('timers', retuned))).toContain('45 minutes of ice per task');
+        expect(textOf(topic('timers', retuned))).toContain('3 more minutes');
+    });
+});

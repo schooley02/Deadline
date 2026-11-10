@@ -202,8 +202,31 @@ const Loop = (() => {
                 Timer.trackAttack(item, currentTimeMs, !!(item.isOverdue && !isLurker));
             }
 
+            // Ice (docs/ICE_PLAN.md, 2026-11-10): an attacker whose own task has the work timer running (or is in its pause grace)
+            // deals no damage until its ice budget is spent. Runs for EVERY item each tick so a thaw is seen the moment it
+            // happens (stop, due date moved, budget spent). Optional global, no-op without it (old tests / callers).
+            let iced = false;
+            if (typeof Ice !== 'undefined') {
+                const ice = Ice.tick(item, currentTimeMs);
+                iced = ice.iced;
+                if (ice.phaseChanged && item.element && item.element.classList) {
+                    item.element.classList.remove('enemy-iced');
+                    item.element.classList.remove('enemy-thawing');
+                    if (ice.phase === 'iced') item.element.classList.add('enemy-iced');
+                    else if (ice.phase === 'thawing') item.element.classList.add('enemy-thawing');
+                }
+                // The thaw moment restarts the damage clock (no back-charge for the iced time; next hit one full interval later).
+                if (ice.thawed && item.isOverdue) item.lastDamageTickTime = currentTimeMs;
+                // One daily-record entry per stretch of ice, at its end (the episode length).
+                if (ice.thawed && ice.episodeMs > 0 && deps.recordIce) deps.recordIce({ ms: ice.episodeMs });
+            }
+
             // Handle damage from overdue items
-            if (item.isOverdue && !isLurker) {
+            if (item.isOverdue && !isLurker && iced) {
+                // Iced: no hit, and the damage clock moves with the ice, so the next hit is one full interval after the thaw and
+                // offline / live-gap catch-up (which ignores ice, like timers) only ever charges the time it really covers.
+                item.lastDamageTickTime = currentTimeMs;
+            } else if (item.isOverdue && !isLurker) {
                 // Work timer (Build 3, 2026-10-25): while a timer runs on this item the
                 // tick interval is stretched (damage x WORK_TIMER_DAMAGE_FACTOR, never
                 // zero). Live loop only -- catch-up paths ignore the timer.
