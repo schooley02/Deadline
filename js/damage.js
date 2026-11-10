@@ -181,6 +181,11 @@ const Damage = (() => {
         const { baseElement, isGameOver } = deps;
         if (!baseElement || (isGameOver && isGameOver())) return false;
         if (!hasThreateningOverdue(deps)) return false;
+        // Iced zombies (docs/ICE_PLAN.md) are at the church but cannot hit: if every attacker is iced, no flash or shake.
+        if (typeof deps.isIced === 'function') {
+            const lurker = deps.isNonThreatening || ((item) => item.type === 'habit' && item.isNegative === true);
+            if (!deps.getActiveItems().some(item => item.isOverdue && !lurker(item) && !deps.isIced(item))) return false;
+        }
         if (!pulseAllowed()) return false;
         if (!shouldShake(nowMs, lastShakeMs, CONFIG.BASE_SHAKE_COOLDOWN_MS)) return false;
         playFlash(baseElement);

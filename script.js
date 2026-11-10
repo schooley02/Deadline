@@ -1677,7 +1677,7 @@ document.addEventListener('DOMContentLoaded', () => {
         heroAttackLastMs = now;
         // A just-completed zombie stays in the list while its death animation plays: it no longer attacks.
         const ids = (timePreviewActive || State.isGameOver()) ? []
-            : HeroSpotlight.attackedHeroIds(State.getActiveItems().filter(i => !i.completedAt), findRoutineForItemDeps, CONFIG.HERO_CATEGORIES, Items.isNonThreatening);
+            : HeroSpotlight.attackedHeroIds(State.getActiveItems().filter(i => !i.completedAt), findRoutineForItemDeps, CONFIG.HERO_CATEGORIES, Items.isNonThreatening, (it) => Ice.state(it, now).iced);
         HeroSpotlight.setAttackedHeroes(ids);
         refreshHeroLane();
     }
@@ -2212,6 +2212,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     getActiveItems: State.getActiveItems,
                     isGameOver: State.isGameOver,
                     isNonThreatening: Items.isNonThreatening,
+                    isIced: (it) => Ice.state(it, Date.now()).iced,
                 });
                 processTimers(Date.now());
                 pollEveningCheck(Date.now());

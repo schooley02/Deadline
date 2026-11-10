@@ -147,6 +147,18 @@ describe('under-attack pulse (visual only)', () => {
         expect(Damage.pulseIfUnderAttack(50_000 + 1000, deps)).toBe(false);
         expect(Damage.pulseIfUnderAttack(50_000 + CONFIG.BASE_SHAKE_COOLDOWN_MS, deps)).toBe(true);
     });
+    test('iced attackers do not make the church flash or shake (docs/ICE_PLAN.md)', () => {
+        const a = overdue({ id: 1 }); const b = overdue({ id: 2 });
+        const iced = (it) => it === a;
+        const { el, deps } = mk([a], { isIced: iced });
+        expect(Damage.pulseIfUnderAttack(10_000, deps)).toBe(false);
+        expect(el.classList.contains('base-hit-flash')).toBe(false);
+        expect(el.classList.contains('base-hit-shake')).toBe(false);
+        // one iced + one live attacker: the live one still pulses
+        expect(Damage.pulseIfUnderAttack(10_000, mk([a, b], { isIced: iced }).deps)).toBe(true);
+        // no isIced dep: unchanged behaviour
+        expect(Damage.pulseIfUnderAttack(20_000, mk([a]).deps)).toBe(true);
+    });
     test('changes no health and never calls save', () => {
         let saved = 0; let hp = 80;
         const { deps } = mk([overdue()], { saveGame: () => { saved++; }, getBaseHealth: () => hp });

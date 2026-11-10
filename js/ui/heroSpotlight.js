@@ -126,11 +126,12 @@ const HeroSpotlight = (() => {
      * threatening (same rule as the church pulse / base-health panel), resolved to its hero with
      * resolveHeroForItem (routine hero, else category hero).
      */
-    function attackedHeroIds(activeItems, findRoutine, categories, isNonThreatening) {
+    function attackedHeroIds(activeItems, findRoutine, categories, isNonThreatening, isIced) {
         const seen = new Set();
         (activeItems || []).forEach(item => {
             if (!item || !item.isOverdue) return;
             if (typeof isNonThreatening === 'function' && isNonThreatening(item)) return;
+            if (typeof isIced === 'function' && isIced(item)) return; // an iced zombie cannot hit, so its hero is not hurt
             const hero = resolveHeroForItem(item, activeItems, findRoutine, categories);
             if (hero) seen.add(hero.id);
         });

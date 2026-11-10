@@ -106,6 +106,17 @@ describe('hurt loop while a zombie attacks (2026-10-26)', () => {
         expect(HeroSpotlight.attackedHeroIds(null, find, cats, nonThreat)).toEqual([]);
     });
 
+    test('an iced zombie does not hurt its hero; a live one of the same hero still does', () => {
+        const items = [
+            { id: 1, category: 'lifestyle', isOverdue: true },
+            { id: 2, category: 'career', isOverdue: true },
+        ];
+        const iced = (it) => it.id === 1;
+        expect(HeroSpotlight.attackedHeroIds(items, find, cats, nonThreat, iced)).toEqual(['__cat:career']);
+        expect(HeroSpotlight.attackedHeroIds([items[0]], find, cats, nonThreat, iced)).toEqual([]);
+        expect(HeroSpotlight.attackedHeroIds(items, find, cats, nonThreat).sort()).toEqual(['__cat:career', '__cat:lifestyle']);
+    });
+
     test('attackedHeroIds without an isNonThreatening fn still returns overdue items', () => {
         const items = [{ id: 1, category: 'health', isOverdue: true, koGhost: true }];
         expect(HeroSpotlight.attackedHeroIds(items, find, cats)).toEqual(['__cat:health']);
