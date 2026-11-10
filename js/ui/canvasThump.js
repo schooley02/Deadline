@@ -6,7 +6,8 @@
  * whole-pixel steps, vertical only so the page never gains width); this file decides WHEN and WHETHER:
  *   - a short delay after the completion, so the thump lands with the hero's strike (CONFIG.CANVAS_THUMP_DELAY_MS);
  *   - at most one thump per CONFIG.CANVAS_THUMP_COOLDOWN_MS, so ticking off a pile of tasks never turns into a rattle;
- *   - fx-off or prefers-reduced-motion: none; fx-reduced: the soft 1px version.
+ *   - fx-off or prefers-reduced-motion: none; fx-reduced: the soft 1px version;
+ *   - the phone gives one short vibration with it (CONFIG.CANVAS_THUMP_VIBRATE_MS, 2026-11-09; Android Chrome only).
  * The HUD (stats overlay) is a sibling of #gameCanvas, not inside it, so it stays still. While it plays, the parent .game-canvas
  * carries `canvas-thumping` so the 3px strip the jolt uncovers is the scene's own dark colour, never the light fallback gradient.
  *
@@ -16,7 +17,7 @@ const CanvasThump = (() => {
     const FULL = 'canvas-thump';
     const SOFT = 'canvas-thump-soft';
     const HOST = 'canvas-thumping';
-    const DEFAULTS = { delayMs: 150, durationMs: 220, cooldownMs: 500 };
+    const DEFAULTS = { delayMs: 150, durationMs: 220, cooldownMs: 500, vibrateMs: 20 };
 
     let lastMs = -Infinity;
     let delayTimer = 0;
@@ -28,6 +29,7 @@ const CanvasThump = (() => {
             delayMs: (typeof c.CANVAS_THUMP_DELAY_MS === 'number') ? c.CANVAS_THUMP_DELAY_MS : DEFAULTS.delayMs,
             durationMs: (typeof c.CANVAS_THUMP_DURATION_MS === 'number') ? c.CANVAS_THUMP_DURATION_MS : DEFAULTS.durationMs,
             cooldownMs: (typeof c.CANVAS_THUMP_COOLDOWN_MS === 'number') ? c.CANVAS_THUMP_COOLDOWN_MS : DEFAULTS.cooldownMs,
+            vibrateMs: (typeof c.CANVAS_THUMP_VIBRATE_MS === 'number') ? c.CANVAS_THUMP_VIBRATE_MS : DEFAULTS.vibrateMs,
         };
     }
 
@@ -56,6 +58,16 @@ const CanvasThump = (() => {
         return motionMode(state);
     }
 
+    // One short buzz with the thump (CONFIG.CANVAS_THUMP_VIBRATE_MS; 0 = off). Android Chrome only; a phone in silent / battery-saver
+    // mode, or any browser without navigator.vibrate (iOS), just does nothing.
+    function buzz(ms) {
+        if (!(ms > 0)) return false;
+        try {
+            if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') return navigator.vibrate(ms) !== false;
+        } catch (e) { /* ignore */ }
+        return false;
+    }
+
     function clear(el) {
         if (!el || !el.classList) return;
         el.classList.remove(FULL, SOFT);
@@ -75,6 +87,7 @@ const CanvasThump = (() => {
         void el.offsetWidth; // restart the CSS animation if a previous one is still on the element
         el.classList.add(mode === 'soft' ? SOFT : FULL);
         if (el.parentElement && el.parentElement.classList) el.parentElement.classList.add(HOST);
+        buzz(c.vibrateMs);
         if (endTimer) clearTimeout(endTimer);
         endTimer = setTimeout(() => { endTimer = 0; clear(el); }, c.durationMs);
         return true;

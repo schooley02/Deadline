@@ -47,6 +47,9 @@ const CONFIG = {
     CANVAS_THUMP_DELAY_MS: 150,
     CANVAS_THUMP_DURATION_MS: 220,
     CANVAS_THUMP_COOLDOWN_MS: 500,
+    // Buzz (2026-11-09, Jeremy): the phone also gives one short vibration with each thump (navigator.vibrate; Android Chrome, not iOS).
+    // 0 = no buzz. Follows the thump: none under Effects Off / reduce-motion.
+    CANVAS_THUMP_VIBRATE_MS: 20,
     BASE_HEAL_FLOAT_MS: 1400, // the floating "+N" over the church when the base heals (2026-11-02, Jeremy); js/damage.js showHealFloat
 
     // --- Offline catch-up (decided 2026-07-17, see DECISIONS.md) ---

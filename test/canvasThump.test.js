@@ -106,6 +106,38 @@ describe('play / onDefeat', () => {
     });
 });
 
+describe('phone buzz', () => {
+    afterEach(() => { delete navigator.vibrate; });
+    test('a thump vibrates once for CONFIG.CANVAS_THUMP_VIBRATE_MS', () => {
+        const el = mount();
+        navigator.vibrate = jest.fn(() => true);
+        expect(CanvasThump.play(el, 1)).toBe(true);
+        expect(navigator.vibrate).toHaveBeenCalledTimes(1);
+        expect(navigator.vibrate).toHaveBeenCalledWith(CONFIG.CANVAS_THUMP_VIBRATE_MS);
+    });
+    test('no buzz inside the cooldown, under fx-off, or under reduce-motion', () => {
+        const el = mount();
+        navigator.vibrate = jest.fn(() => true);
+        CanvasThump.play(el, 1000);
+        CanvasThump.play(el, 1100);
+        expect(navigator.vibrate).toHaveBeenCalledTimes(1);
+        document.body.classList.add('fx-off');
+        CanvasThump.play(el, 9000);
+        expect(navigator.vibrate).toHaveBeenCalledTimes(1);
+    });
+    test('a browser without navigator.vibrate (iOS) or one that throws still thumps', () => {
+        const el = mount();
+        expect(CanvasThump.play(el, 1)).toBe(true);
+        CanvasThump.resetForTests();
+        navigator.vibrate = () => { throw new Error('blocked'); };
+        expect(CanvasThump.play(el, 1)).toBe(true);
+    });
+    test('the buzz is short and on by default', () => {
+        expect(CONFIG.CANVAS_THUMP_VIBRATE_MS).toBeGreaterThan(0);
+        expect(CONFIG.CANVAS_THUMP_VIBRATE_MS).toBeLessThanOrEqual(50);
+    });
+});
+
 describe('shell, CSS and wiring agree', () => {
     const css = read('css/gameCanvas.css');
     test('the CSS has both animations, vertical only, whole pixels, and the off gates', () => {
