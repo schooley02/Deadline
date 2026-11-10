@@ -11,7 +11,7 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 - **Why:** rewards starting a late task at the moment players usually give up, and can only be used by doing the task. Works for real deadlines that can't be pushed.
 - **Rejected:** a buyable per-zombie freeze item (a second snooze button next to pushback; frozen zombies look "handled" so the task rots); freezing walking zombies (the walk is the clock: a thaw either jumps the zombie or moves the due time, which is pushback); a whole-field "Frost Day" for days off (Sick Day / Skip Day / Habit Cheat Day already cover it).
 - **Naming:** player-facing Iced / Thawing, code `ice*`; never "frozen"/"freeze" (frozen routine slots, `FrozenNotice`).
-- **Open at build:** does an iced attacker still pause base regen; does Ice get a DailyRecord field.
+- **Settled the same morning (Jeremy: "yes to both your questions"):** an iced attacker still pauses base regen (ice stops the bleeding; only finishing heals), and Ice gets a DailyRecord field `ice` { n: items iced, min: minutes of ice spent } in the next DailyRecord version (v12, or v13 if W1b mood takes v12).
 
 ## 2026-11-10 (morning) -- The buzz gets its own switch (Claude app session; Sonnet 5.5; Jeremy: "yes to your question", answering "should the phone buzz get its own on/off switch? It currently follows the Effects setting")
 

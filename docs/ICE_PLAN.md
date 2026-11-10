@@ -26,7 +26,7 @@ Why: it rewards the hardest step (starting) at the moment players most often giv
 5. **Pause grace:** pausing the timer leaves the ice on for `ICE_GRACE_MS` (cracking visual), counted against the budget. Resume within the grace window = still iced. Grace ends, or Stop, or Complete-elsewhere = thaw at once.
 6. **Damage clock on thaw:** the attacker's `lastDamageTickTime` is set to the thaw moment, so no hit is back-charged for iced time and the next hit lands one full interval later (same rule as "items created already overdue").
 7. **Catch-up ignores ice**, exactly as it already ignores timers ("Catch-up damage ignores timers", MECHANICS Timers line). Offline and live-gap damage are unchanged. No new catch-up math.
-8. **Regen** is still paused while anything is attacking; an iced zombie counts as NOT attacking for regen only if it is the only attacker (proposed; confirm at build). Simplest alternative: iced still blocks regen. **Open: pick one at build.**
+8. **Regen stays paused** (Jeremy, 2026-11-10): an iced zombie still counts as attacking, so the church does not heal while it sits there. Ice stops the bleeding; only finishing the task lets the church recover.
 9. **Break Habits** never attack (lurker model), so ice never applies to them. Build Habits on a work timer follow the same rules as tasks.
 10. **"Still working?"** (60 min) and the auto-stop 10 min later are unchanged. With the proposed cap equal to the check time, the ice cracks when "Still working?" appears: answering yes keeps the timer at the half rate.
 
@@ -43,7 +43,7 @@ New `CONFIG` keys, data only. Tune in `js/config.js` per the balance protocol, l
 
 - `item.iceUsedMs` (number, absent = 0): ice spent so far.
 - Pause-grace start comes from the timer's existing pause timestamp; no new field if the timer already stores it (check at build; otherwise `item.icePausedAt`).
-- Optional DailyRecord field `ice` { n: items iced, min: damage-free minutes } -- only if cheap; otherwise skip (DAILY_RECORD_PLAN says new mechanics should get a row: decide at build).
+- **DailyRecord field `ice` { n, min }** (Jeremy, 2026-11-10: yes): `n` = items iced that day, `min` = whole minutes of ice spent. Next DailyRecord version (v12, or v13 if W1b mood ships first and takes v12); follow `docs/DAILY_RECORD_PLAN.md` (seam, roll-up, version bump, tests).
 
 ## Pure core: `js/ice.js` (test-first)
 
@@ -79,11 +79,13 @@ Player-facing: **Iced** / **Thawing**. Code: `ice*`. Do NOT use "frozen" / "free
 - `loop` damage: iced attacker 0 HP over N ticks; other attackers still half; after cap this one half.
 - Catch-up: offline / live-gap damage identical with and without ice.
 - Damage panel ETA uses `thawAt`.
+- Regen stays paused while the only attacker is iced.
+- DailyRecord `ice` { n, min } recorded and rolled up; old records without it read as 0.
 - Wording rule test still passes.
 
 ## Build order
 
-One build, **Sonnet 5.5, medium effort**: `js/ice.js` + tests -> loop wiring -> timer boundaries -> damage panel -> CSS placeholder -> How Deadline works line -> docs (MECHANICS Timers + Overdue Damage, UI_UX, DATA_SCHEMA, ECONOMY "not a shop item" note) -> sw bump. Phone check by Jeremy.
+One build, **Sonnet 5.5, medium effort**: `js/ice.js` + tests -> loop wiring -> timer boundaries -> damage panel -> CSS placeholder -> DailyRecord `ice` -> How Deadline works line -> docs (MECHANICS Timers + Overdue Damage, UI_UX, DATA_SCHEMA, ECONOMY "not a shop item" note) -> sw bump. Phone check by Jeremy.
 
 ## Not doing / risks
 
