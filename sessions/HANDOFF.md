@@ -11,10 +11,16 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-10 (priority group) -- Claude app session; Sonnet 5.5; Jeremy: "anything marked priority needs to be locked into the top of the list view, maybe in it's own section"
+**Did:** "★ Priority (N)" group at the top of Today's list. NEW `js/priorityGroup.js`, `test/priorityGroup.test.js`; edited `js/ui/agendaList.js`, `css/prioritySlots.css`, `index.html`, `sw.js` (v318). Docs: DECISIONS, UI_UX, PRIORITY_SLOTS_PLAN, ROADMAP. Jeremy chose: scrolls with the list; priority + started shows once, under Priority.
+**State:** Jest 214 suites / 4,862 tests pass in a scratch clone (this includes the week-strip trim below). Browser check at 390px on localhost: priority task sat above an earlier-due plain task, heading + "By due time" correct; test save cleared afterward. NOT yet seen on Jeremy's phone. Not committed at the time of writing (device_bash down; files written through the bridge, re-staged and `cmp`'d identical).
+**Next:** Jeremy commits + pushes (one commit covers the week-strip trim and this), swipes the app away and reopens. Then phone-check: a priority task with the timer running, an overdue priority task, and a priority task due tomorrow (should NOT be in Today's group).
+**Watch out:** `sw.js` got a new shell entry (`js/priorityGroup.js`); a stale cache hides the group until the app is swiped away. Group membership uses the due date, so it re-sorts on the next list render (midnight rollover re-renders). Later-day sections are not grouped.
+
 ## 2026-11-10 (week strip trim) -- Claude app session; Sonnet 5.5 (plan Opus 5.5 chat); Jeremy: "I agree, continue"
-**Did:** removed the `★N/3` priority tally and the orange heavy-day border from the week-strip tabs. Edited `js/dayPager.js` (`weekStripSummary` -> `{ offset, dayStart, totalCount }`), `js/ui/dayPagerView.js`, `css/dayPager.css`, `test/day-pager-week-strip.test.js`, `sw.js` (v317). Docs: DECISIONS, UI_UX, PRIORITY_SLOTS_PLAN, ROADMAP (done item + parked per-day breakdown candidate).
+**Did:** removed the `★N/3` priority tally and the orange heavy-day border from the week-strip tabs. Edited `js/dayPager.js` (`weekStripSummary` -> `{ offset, dayStart, totalCount }`), `js/ui/dayPagerView.js`, `css/dayPager.css`, `test/day-pager-week-strip.test.js`, `sw.js` (v317). Docs: DECISIONS, UI_UX, PRIORITY_SLOTS_PLAN, ROADMAP (done item).
 **State:** Jest 213 suites / 4,846 of 4,847 pass in a scratch clone; the one failure is the known `how-it-works-info-buttons` CRLF test on an LF clone. Browser check on localhost at 390px: 7 tabs, no star or heavy class in the DOM, served CSS/JS clean, sw v317. Not yet seen on Jeremy's phone. Not committed at the time of writing (device_bash was down; files written through the bridge and re-staged, byte-identical).
-**Next:** Jeremy commits + pushes, then swipes the app away and reopens (cache-first SW). The earlier iced-zombie commit may still be unpushed too.
+**Next:** (the per-day breakdown idea was rejected; nothing to build.) Jeremy commits + pushes, then swipes the app away and reopens (cache-first SW). The earlier iced-zombie commit may still be unpushed too.
 **Watch out:** `sw.js` v316 -> v317 is the same byte count, the same-size-write bug's trigger; it was re-staged and `cmp`'d OK. Today's tab count is the live board (shrinks as items finish); later days count what is due that day.
 
 ## 2026-11-10 (iced zombies BUILT) -- Claude app session; Sonnet 5.5 (design was Opus 5.5); Jeremy: "lets start now and yes to the 2 numbers"

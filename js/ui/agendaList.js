@@ -652,11 +652,24 @@ const AgendaList = (() => {
                 // Started marker (2026-11-04): rows inside their Start -> Due window move into a "Started (N)" group
                 // above the due-time rows. Display only -- `layout` (and so the canvas layering and any hand order)
                 // is untouched; the group rows just render first. No group = the old single list, no headings.
+                // Priority group (2026-11-10): priority tasks due today or earlier lift into "Priority (N)" ABOVE the
+                // Started group (js/priorityGroup.js). Display only; a row shows once, in the first group it fits.
+                const nowMs = Date.now();
+                const endOfTodayMs = (typeof TimeSlider !== 'undefined' && TimeSlider.getDayBounds)
+                    ? TimeSlider.getDayBounds(new Date(nowMs)).end.getTime()
+                    : (() => { const d = new Date(nowMs); d.setHours(24, 0, 0, 0); return d.getTime(); })();
+                const pri = (typeof PriorityGroup !== 'undefined')
+                    ? PriorityGroup.split(allRows, endOfTodayMs)
+                    : { priority: [], rest: allRows };
+                const priorityIds = new Set(pri.priority.map(i => i.id));
                 const split = (typeof StartedMarker !== 'undefined')
-                    ? StartedMarker.split(allRows, deps.activeItems, Date.now())
-                    : { started: [], rest: allRows };
+                    ? StartedMarker.split(pri.rest, deps.activeItems, nowMs)
+                    : { started: [], rest: pri.rest };
                 const startedIds = new Set(split.started.map(i => i.id));
-                const rows = split.started.concat(split.rest);
+                const rows = pri.priority.concat(split.started, split.rest);
+                const firstStartedIdx = pri.priority.length;
+                const firstRestIdx = pri.priority.length + split.started.length;
+                const hasGroups = pri.priority.length > 0 || split.started.length > 0;
                 const heading = (cls, html) => {
                     const h = document.createElement('li');
                     h.className = `list-group-heading ${cls}`;
@@ -666,19 +679,25 @@ const AgendaList = (() => {
                 };
                 const stopwatch = (typeof Timer !== 'undefined' && Timer.ICON_SVG) ? Timer.ICON_SVG : '';
                 rows.forEach((item, idx) => {
-                    if (split.started.length && idx === 0) {
+                    if (pri.priority.length && idx === 0) {
+                        heading('priority-group-heading', `<span class="priority-group-star" aria-hidden="true">\u2605</span><span>Priority (${pri.priority.length})</span>`);
+                    }
+                    if (split.started.length && idx === firstStartedIdx) {
                         heading('started-group-heading', `${stopwatch}<span>Started (${split.started.length})</span>`);
                     }
-                    if (split.started.length && split.rest.length && idx === split.started.length) {
+                    if (hasGroups && split.rest.length && idx === firstRestIdx) {
                         heading('due-group-heading', '<span>By due time</span>');
                     }
                     if (item.listItemElement) {
                         deps.activeItemsListUL.appendChild(item.listItemElement);
-                        if (item.listItemElement.classList) item.listItemElement.classList.toggle('started-group-row', startedIds.has(item.id));
+                        if (item.listItemElement.classList) {
+                            item.listItemElement.classList.toggle('started-group-row', startedIds.has(item.id));
+                            item.listItemElement.classList.toggle('priority-group-row', priorityIds.has(item.id));
+                        }
                         const wrap = typeof item.listItemElement.querySelector === 'function'
                             ? item.listItemElement.querySelector('.reorder-controls') : null;
-                        if (wrap && startedIds.has(item.id)) {
-                            wrap.style.display = 'none'; // its tie-group neighbours sit in the other group
+                        if (wrap && (startedIds.has(item.id) || priorityIds.has(item.id))) {
+                            wrap.style.display = 'none'; // its tie-group neighbours sit in another group
                         } else if (wrap) {
                             const up = layout && ListOrder.canMove(layout, item.id, -1);
                             const down = layout && ListOrder.canMove(layout, item.id, 1);

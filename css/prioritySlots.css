@@ -98,3 +98,15 @@
     font-size: var(--text-caption);
     opacity: 0.85;
 }
+
+/* Priority group (2026-11-10): the "Priority (N)" heading + rows above the other agenda rows (js/priorityGroup.js,
+   js/ui/agendaList.js). Shares the list-group-heading base from css/startedMarker.css; gold like the pips. */
+.task-list li.priority-group-heading {
+    color: #8a6a00;
+}
+.task-list li.priority-group-heading .priority-group-star {
+    color: var(--color-holy-gold);
+    font-size: 13px;
+    line-height: 1;
+}
+/* Rows keep their own gold left border + star (css/agendaList.css .high-priority-list-item); .priority-group-row is only a hook. */
