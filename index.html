@@ -211,8 +211,11 @@
                 <!-- Weather badge (run climate Build 2, js/ui/weatherPanel.js): the pixel icon of the sky, beside the moon; tap = the
                      Weather panel. Hidden until a result exists and in the portrait strip (Stats shows the same readout there). -->
                 <button type="button" id="weatherBadge" class="weather-badge" aria-label="Weather" hidden>
-                    <span class="weather-badge-chip"><span class="weather-badge-icon"></span><span class="weather-badge-trend"></span></span>
+                    <span class="weather-badge-chip"><span class="weather-badge-icon"></span><span class="weather-badge-trend"></span><span class="weather-badge-set" aria-hidden="true" hidden></span></span>
                 </button>
+                <!-- Sky toast (W1c amendment, 2026-11-09): one small line under the badge when the REAL band changes while the player's sky is
+                     picked. Not the LEVEL UP banner (that one is a big celebration); pointer-events none; portrait strip hides it. -->
+                <div id="skyToast" class="sky-toast" role="status" aria-live="polite" hidden></div>
                 <div class="climate-beam" aria-hidden="true"></div>
                 <div class="climate-fireflies" aria-hidden="true">
                     <span class="firefly firefly--b" style="left:65%;--ff-top:5px;--ff-d:8s;--ff-t:-6s;--ff-x:21px;--ff-y:-11px"></span>
@@ -585,6 +588,8 @@
     <script src="js/villageDrops.js"></script>
     <!-- js/runClimate.js (2026-11-03): pure run climate (the sky's weather from the last ~7 closed days of this run); zero module dependencies. -->
     <script src="js/runClimate.js"></script>
+    <!-- js/skyPick.js (2026-11-09, W1c): the pure sky-picker rules (view-only pick over the real climate); zero module dependencies. -->
+    <script src="js/skyPick.js"></script>
     <!-- js/rainSim.js (2026-11-07): pure Storm rain rules (drops, wind, splashes, lightning timing); zero module dependencies. -->
     <script src="js/rainSim.js"></script>
     <!-- js/devDemo.js (2026-11-03): the dev tools' in-memory demo state (forced weather, pretend village stars); never saved. Read by script.js; the DEV button is js/ui/devPanel.js. -->

@@ -646,8 +646,8 @@ describe('migrate: v11 -> v12 (list-order layering, 2026-10-13)', () => {
         expect(save.activeItems[0].listRank).toBeUndefined();
         expect(save.activeItems[1].listRank).toBe(5);
     });
-    test('SCHEMA_VERSION is 18', () => {
-        expect(Persistence.SCHEMA_VERSION).toBe(18);
+    test('SCHEMA_VERSION is 19', () => {
+        expect(Persistence.SCHEMA_VERSION).toBe(19);
     });
 });
 
@@ -837,5 +837,27 @@ describe('migrate: version handling', () => {
         const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
         expect(Persistence.migrate({ schemaVersion: 99 })).toBeNull();
         warn.mockRestore();
+    });
+});
+
+describe('migrate: v18 -> v19 seeds skyPick (W1c sky picker, 2026-11-09)', () => {
+    const migrate18 = extra => Persistence.migrate(Object.assign({ schemaVersion: 18 }, extra));
+
+    test('an older save follows the run: skyPick null', () => {
+        const save = migrate18({});
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
+        expect(save.skyPick).toBeNull();
+    });
+    test('a valid band name is kept; junk becomes null', () => {
+        expect(migrate18({ skyPick: 'storm' }).skyPick).toBe('storm');
+        expect(migrate18({ skyPick: 'clear' }).skyPick).toBe('clear');
+        expect(migrate18({ skyPick: 'blizzard' }).skyPick).toBeNull();
+        expect(migrate18({ skyPick: 7 }).skyPick).toBeNull();
+    });
+    test('a v17 save walks all the way up and gets the field too', () => {
+        const save = Persistence.migrate({ schemaVersion: 17 });
+        expect(save.schemaVersion).toBe(19);
+        expect(save.skyPick).toBeNull();
+        expect(save.goals).toBeTruthy();
     });
 });

@@ -158,8 +158,14 @@ const LevelPanel = (() => {
         return `<${tag}${type} class="lp-pip lp-pip--${pip.kind}"${action} data-routine-id="${esc(pip.routineId)}" aria-label="${esc(label)}"><span class="lp-pip-icon" aria-hidden="true">${pip.kind === 'frozen' ? '🥶' : pip.emoji}</span><span class="lp-pip-label">${esc(pip.name)}</span>${note ? `<span class="lp-pip-note">${note}</span>` : ''}</${tag}>`;
     }
 
+    // A perk's line: its own label, else the theme's name for it (the sky picker's "Geo Storm" lives in js/theme.js only).
+    function perkText(perk) {
+        if (perk && perk.label) return perk.label;
+        return (typeof Theme !== 'undefined' && Theme.perkLabel) ? Theme.perkLabel(perk) : '';
+    }
+
     function perkRowHtml(perk) {
-        return `<li class="lp-perk"><span class="lp-perk-lv">Lv ${perk.level}</span><span class="lp-perk-text">${esc(perk.label || '')}</span></li>`;
+        return `<li class="lp-perk"><span class="lp-perk-lv">Lv ${perk.level}</span><span class="lp-perk-text">${esc(perkText(perk))}</span></li>`;
     }
 
     function panelHtml(model) {

@@ -84,7 +84,7 @@ describe('perksModel', () => {
     test('current = this level\'s perks; next = the following two levels', () => {
         const p = LevelPanel.perksModel(CONFIG.LEVEL_PERKS, 3, 2);
         expect(p.current.map(x => x.label)).toEqual(['2nd routine slot']);
-        expect(p.next.map(x => x.level)).toEqual([4, 5]);
+        expect(p.next.map(x => x.level)).toEqual([4, 4, 5]); // Lv 4 has two perks: the discount + the sky picker
         expect(p.discount).toBe(0);
         expect(p.title).toBeNull();
     });

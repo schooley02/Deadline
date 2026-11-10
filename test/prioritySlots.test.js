@@ -473,8 +473,8 @@ describe('Persistence v16 -> v17', () => {
         const kept = { [KEY5]: 2 };
         expect(Persistence.migrate({ schemaVersion: 16, priorityMarks: kept }).priorityMarks).toBe(kept);
     });
-    test('SCHEMA_VERSION is 18', () => {
-        expect(Persistence.SCHEMA_VERSION).toBe(18);
+    test('SCHEMA_VERSION is at least 18 (19 added skyPick, 2026-11-09)', () => {
+        expect(Persistence.SCHEMA_VERSION).toBeGreaterThanOrEqual(18);
     });
 });
 

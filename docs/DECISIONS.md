@@ -4,6 +4,16 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-09 -- W1c sky picker BUILT (Claude app session; Sonnet 5.5; Jeremy: "i pushed it, continue")
+
+- **Built as designed + amended:** Lv 4 perk (`{ type: 'unlock', unlock: 'skyPicker' }`, theme name "Geo Storm" via `Theme.perkLabel`), view-only pick over the real climate (`js/skyPick.js`), `save.skyPick` (schema 19), badge paintbrush, panel "Sky set to X · your run is Y" + "Show my real sky", the picker row, a sky-change toast, hold-the-badge-to-peek. Details: WORLD_FEEDBACK_PLAN "W1c as built". Balance-tuning protocol: perk table edited, no economy number moved.
+- **One deviation from the amendment:** the toast is its own small line (`#skyToast`), not "the existing toast surface" -- the only toast in the game is the big green LEVEL UP / GAME OVER banner, which would read as a celebration. Not on load (armed after the restore), so a player coming back after a night away sees the badge icon + pulse, not a toast.
+- **Why the perk label is empty in CONFIG:** "Geo Storm" is a theme word (Baseline rule: theme words live in `js/theme.js` only); `Theme.perkLabel` supplies it to the level-up toast and the Level panel. A test fails if the name appears in config, the pure rules, state or the CSS.
+- **Precedence:** dev panel sky > `?climate=` > player pick > real (a forced result is never overridden by a pick).
+- Files: js/skyPick.js (new), js/config.js, js/progression.js, js/theme.js, js/state.js, js/persistence.js, js/ui/weatherPanel.js, js/ui/climateView.js, js/ui/levelPanel.js, script.js, index.html, css/weatherPanel.css, css/glanceStrip.css, sw.js v305. Tests: test/skyPick.test.js, test/skyPickUi.test.js, climateWiring, + schema-19 / two-perk updates to older tests.
+
+---
+
 ## 2026-11-09 -- W1c amendment: how the player knows the sky is their pick (Claude app session; Opus 5.5; design only; Jeremy: "how do we let the user know when the cosmetic weather is turned on?" -> "yes, i like your ideas")
 
 - **Problem:** the sky does two jobs, decoration and a readout of the run. A pick takes away the readout, so the indicator must keep the REAL weather visible, not just say "custom sky on".

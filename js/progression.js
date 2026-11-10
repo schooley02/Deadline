@@ -92,6 +92,31 @@ const Progression = (() => {
     }
 
     /**
+     * Does a player at `level` have the named unlock perk ({ type: 'unlock', unlock: key }) at or below that level?
+     * Derived from the level every call, never persisted (like shopDiscount), so a new run (level 1) loses it again.
+     */
+    function hasUnlock(table, level, key) {
+        if (!table || typeof level !== 'number' || !key) return false;
+        return Object.keys(table).some(k => {
+            const lv = Number(k);
+            if (lv > level || !Array.isArray(table[k])) return false;
+            return table[k].some(p => p && p.type === 'unlock' && p.unlock === key);
+        });
+    }
+
+    /** The level at which the named unlock perk is granted (lowest such level in the table), or null. */
+    function unlockLevel(table, key) {
+        if (!table || !key) return null;
+        let found = null;
+        Object.keys(table).forEach(k => {
+            const lv = Number(k);
+            if (!Array.isArray(table[k]) || !table[k].some(p => p && p.type === 'unlock' && p.unlock === key)) return;
+            if (found === null || lv < found) found = lv;
+        });
+        return found;
+    }
+
+    /**
      * The cosmetic title perk the player has earned at `level` (highest level
      * at or below it that carries one), or null. Run records store the peak
      * level, so a past run's card can ask "which title did that run earn?".
@@ -157,6 +182,8 @@ const Progression = (() => {
         checkLevelUp,
         perksForLevels,
         shopDiscount,
+        hasUnlock,
+        unlockLevel,
         titleForLevel,
         xpProgress,
         slotsAtLevel,

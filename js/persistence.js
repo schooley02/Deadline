@@ -72,7 +72,9 @@ const Persistence = (() => {
     // player's goals, slot high-water mark and finished-goals roster (js/goals.js owns the shape). Seeded empty and NOT yet seeded with
     // the suggested starters: State.ensureGoalsSeeded does that on the first boot of a save that has never seen them. Goals carry across
     // runs (State.initGame never touches them).
-    const SCHEMA_VERSION = 18;
+    // v19 (2026-11-09, W1c sky picker; docs/WORLD_FEEDBACK_PLAN.md): the save gains `skyPick` -- null (follow my run) or a band name -- the
+    // player's cosmetic sky for THIS run (js/skyPick.js owns the rules). Reset by State.initGame like the level perks; never in `deadline.days`.
+    const SCHEMA_VERSION = 19;
     const DEBOUNCE_MS = 500;
 
     // DOM references on item objects — never serialized, rebuilt on load.
@@ -548,6 +550,13 @@ const Persistence = (() => {
                 save.goals = { bestSlots: 0, active: [], done: [], nextId: 1, seeded: false };
             }
             save.schemaVersion = 18;
+        }
+
+        // v18 -> v19 (2026-11-09, W1c sky picker): `skyPick` seeded null (= follow my run); a valid band name is kept. Inline, no module deps.
+        if (save.schemaVersion === 18) {
+            const bands = ['clear', 'hazy', 'overcast', 'fog', 'storm'];
+            if (typeof save.skyPick !== 'string' || bands.indexOf(save.skyPick) < 0) save.skyPick = null;
+            save.schemaVersion = 19;
         }
 
         if (save.schemaVersion !== SCHEMA_VERSION) {

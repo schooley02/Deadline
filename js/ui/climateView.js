@@ -16,7 +16,11 @@
  * Dev override: ?climate=clear|hazy|overcast|fog|storm (+ &trend=up|down) forces a band for art checks, like the
  * ?villageTier= params (parseOverride below; script.js turns it into a RunClimate.forced result).
  *
- * Deps: { getResult: () => RunClimate result | null, onChange?: (result | null) => void  (called when the classes change, and once at start) }
+ * Sky picker (W1c, 2026-11-09): the result may carry `pick: { band, realBand }` (js/skyPick.js; the band is then the player's pick and the
+ * trend is still the real run's). The change key includes the real band + the pick so the badge follows a real-band change under a pick
+ * even when the sky's classes did not move. peek(true) wears the REAL result (deps.getRealResult) while the player holds the badge.
+ *
+ * Deps: { getResult: () => RunClimate result | null, getRealResult?: () => the unpicked result, onChange?: (result | null) => void  (called when the classes change, and once at start) }
  */
 const ClimateView = (() => {
     const BANDS = ['clear', 'hazy', 'overcast', 'fog', 'storm'];
@@ -25,6 +29,14 @@ const ClimateView = (() => {
     let deps = null;
     let canvasEl = null;
     let lastKey = null;
+    let peeking = false;
+
+    /** Pure. The change key: the classes plus the real band / pick behind them ('' for no result). */
+    function keyFor(result) {
+        const classes = classesFor(result).join(' ');
+        if (!result || !result.pick) return classes;
+        return classes + '|' + result.pick.realBand + '|' + result.pick.band;
+    }
 
     /** Pure. A RunClimate result -> the classes for #gameCanvas ([] for anything unusable). */
     function classesFor(result) {
@@ -68,19 +80,28 @@ const ClimateView = (() => {
         if (!deps || !canvasEl) return;
         let result = null;
         try {
-            result = deps.getResult ? deps.getResult() : null;
+            result = (peeking && deps.getRealResult) ? deps.getRealResult() : (deps.getResult ? deps.getResult() : null);
         } catch (err) {
             if (typeof console !== 'undefined') console.error('Deadline: run climate failed', err);
             result = null;
         }
-        const key = classesFor(result).join(' ');
+        const key = keyFor(result) + (peeking ? '|peek' : '');
         if (key === lastKey) return;
         lastKey = key;
         apply(canvasEl, result);
-        // The badge / panel follow the same change (js/ui/weatherPanel.js). A failure there never breaks the sky.
-        if (deps.onChange) {
+        // The badge / panel follow the same change (js/ui/weatherPanel.js). A failure there never breaks the sky. Not while peeking
+        // (the badge keeps its paintbrush; the held sky is a glance, not a change).
+        if (deps.onChange && !peeking) {
             try { deps.onChange(result); } catch (err) { if (typeof console !== 'undefined') console.error('Deadline: weather badge failed', err); }
         }
+    }
+
+    /** Press-and-hold on the badge: wear the real sky while `on`, the picked one again after. No-op without a getRealResult dep. */
+    function peek(on) {
+        const next = !!on && !!(deps && deps.getRealResult);
+        if (next === peeking) return;
+        peeking = next;
+        refresh();
     }
 
     function init(d) {
@@ -91,7 +112,7 @@ const ClimateView = (() => {
         refresh();
     }
 
-    return { BANDS, classesFor, parseOverride, apply, init, refresh };
+    return { BANDS, classesFor, keyFor, parseOverride, apply, init, refresh, peek };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

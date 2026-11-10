@@ -70,12 +70,12 @@ describe('DailyRecord v10 / v11: pg', () => {
 });
 
 describe('Persistence schema 18', () => {
-    test('the version is 18', () => {
-        expect(Persistence.SCHEMA_VERSION).toBe(18);
+    test('the version is at least 18 (19 added skyPick, 2026-11-09)', () => {
+        expect(Persistence.SCHEMA_VERSION).toBeGreaterThanOrEqual(18);
     });
     test('v17 -> v18 seeds an empty, UNSEEDED goals object', () => {
         const save = Persistence.migrate({ schemaVersion: 17 });
-        expect(save.schemaVersion).toBe(18);
+        expect(save.schemaVersion).toBe(Persistence.SCHEMA_VERSION);
         expect(save.goals).toEqual({ bestSlots: 0, active: [], done: [], nextId: 1, seeded: false });
     });
     test('v17 -> v18 keeps goals that are already there, and repairs junk', () => {
@@ -84,8 +84,8 @@ describe('Persistence schema 18', () => {
         expect(Persistence.migrate({ schemaVersion: 17, goals: [] }).goals.seeded).toBe(false);
         expect(Persistence.migrate({ schemaVersion: 17, goals: 'x' }).goals.active).toEqual([]);
     });
-    test('an older save walks every step up to 18', () => {
-        expect(Persistence.migrate({ schemaVersion: 16 }).schemaVersion).toBe(18);
+    test('an older save walks every step up to the current version', () => {
+        expect(Persistence.migrate({ schemaVersion: 16 }).schemaVersion).toBe(Persistence.SCHEMA_VERSION);
     });
 });
 

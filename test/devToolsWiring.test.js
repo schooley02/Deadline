@@ -130,7 +130,7 @@ describe('script.js hook-up', () => {
     });
 
     test('the sky asks the demo FIRST, then the ?climate= param, then the real climate', () => {
-        const body = fnBody('climateNow');
+        const body = fnBody('realClimateNow'); // the REAL sky; climateNow() adds the player's Lv 4 pick on top (W1c, 2026-11-09)
         const demoAt = body.indexOf('DevDemo.weather()');
         const urlAt = body.indexOf('if (climateOverride)');
         const realAt = body.indexOf('RunClimate.compute(');

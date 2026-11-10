@@ -522,7 +522,7 @@ morning card (once per local day, in-memory flag + `save.today` check) + the rol
 table column + Stats readout; the Bad / Awful help card (copy in one place; CONFIG for the threshold); How-it-works line;
 `sw.js` bump; DATA_SCHEMA + DAILY_RECORD_PLAN "as built". Art: the 5-step glyph set is **fine as planned for now** (Jeremy 2026-11-07): code-drawn pixel glyphs, theme-neutral, as a placeholder; PixelLab art can replace them later without touching logic.
 
-## W1c Sky picker (Lv 4 perk) -- DESIGNED 2026-11-07 (Claude app session, Fable 5.1; Jeremy). NOT BUILT.
+## W1c Sky picker (Lv 4 perk) -- DESIGNED 2026-11-07 (Claude app session, Fable 5.1; Jeremy). BUILT 2026-11-09 (Sonnet 5.5, with the amendment below; sw v305; see "W1c as built"). Not yet phone-checked.
 
 Decision logged in `docs/DECISIONS.md` 2026-11-07 (same entry). Perk table: `docs/LEVEL_PERKS_PLAN.md` Lv 4.
 
@@ -582,6 +582,7 @@ amendment pins down how the pick reads and adds the moment of change the sky wou
   ~0.5 s and the scene shows the REAL band while held, fading back on release; a plain tap still opens the panel.
   Reduced motion / fx-off = instant swap. On the badge, not the sky, because sky taps belong to buildings and zombies.
   Phones: block the long-press menu on the badge (`contextmenu` + `-webkit-touch-callout: none`).
+- **One change from the text above, made while building:** the toast is NOT on "the existing toast surface". The only toast the game has is the big green LEVEL UP / GAME OVER banner (`.message-overlay`), which would read as a celebration, so the sky toast is its own small line (`#skyToast`, see "W1c as built").
 - **Rejected:** a tint, frame or vignette on the scene to mark a picked sky (fights the art, players stop seeing it); a
   "custom sky" label only in Settings (set once, forgotten); turning the pick off when the run gets worse (breaks the
   perk's promise; the toast is the gentle version).
@@ -594,6 +595,18 @@ result; tests (`climateView`, `weatherPanel`, `levelPerks`, persistence migratio
 "as built"; phone check of Storm-forever frame rate; 2026-11-09 amendment: paintbrush "set" mark, "Show my real sky"
 header button, sky-change toast (tests: fires once per real band change with a pick on, never without a pick, Clear-drop
 copy), hold-to-peek last.
+
+### W1c as built (2026-11-09, Claude app session; Sonnet 5.5; sw v305, schema 19)
+- **Rules, pure + tested:** `js/skyPick.js` (`sanitize`, `pickableBands`, `resolve`, `realBandOf`, `changeNotice`). `resolve(real, savedPick, unlocked)` returns the REAL result untouched for no perk / no pick / a dev-forced sky / a Clear pick while the run is not Clear (`slipped`, ignored not deleted); otherwise a COPY of the real result with the picked band, `score: null` when the band differs (rain at full strength, like the dev sky) and `pick: { band, realBand }`. Trend and `recent` stay the REAL run's, so the moonbeam / darker clouds and the Weather table keep telling the truth.
+- **Perk:** `CONFIG.LEVEL_PERKS[4]` = the 10% discount + `{ type: 'unlock', unlock: 'skyPicker', label: '' }` (the label is empty ON PURPOSE: the name is a theme word). `Progression.hasUnlock(table, level, key)` / `unlockLevel(table, key)` derive it from the level every call. `Theme.strings.perks.skyPicker` = "Geo Storm" + "You control the weather (visuals only)"; `Theme.perkLabel(perk)` is read by the level-up toast and the Level panel. "Geo Storm" appears nowhere else (test).
+- **Save:** schema 19, `save.skyPick` (null | band). `State.getSkyPick/setSkyPick` (sanitised), reset by `initGame`, restored on load, exported with the save, never in `deadline.days`; migration v18 -> v19 seeds null and keeps a valid band. One persistence change in this session.
+- **script.js:** `realClimateNow()` (dev panel sky > `?climate=` > the run's climate) and `climateNow()` = `skyNow().result` (the real sky + the pick, cached on real result / pick / perk). ClimateView, RainFx, the badge, the panel and the Stats readout all read `climateNow`. `setSkyPick(band)` saves and repaints; it refuses a pick without the perk and Clear while the run is not Clear.
+- **Badge + panel (`js/ui/weatherPanel.js`, `css/weatherPanel.css`):** the badge keeps the REAL band icon; a 14px paintbrush (code-drawn placeholder) sits in the chip's top-left while a pick is in force. The panel shows "Sky set to Storm . your run is Hazy" + a "Show my real sky" button (= Follow my run), then the real band's line, trend, note, the picker (Follow my run, Clear, Hazy, Overcast, Fog, Storm; Clear disabled unless the run is Clear, the pick in force pressed; before Lv 4 one locked line, "Geo Storm unlocks at Lv 4: ...") and the table. Picking redraws the panel in place. A dev-forced sky hides the picker. Stats readout gets the same set line. Every new button has its own background in the CSS.
+- **Sky toast:** `#skyToast` (small line under the Nights Survived label, about 5 s, `pointer-events: none`, hidden in the portrait strip). `watchRealSky` in script.js compares the REAL band across `ClimateView` changes and asks `SkyPick.changeNotice`: "Your run's weather is now Storm. Your sky stays Fog." / "Clear slipped away. Your run is Hazy now." Once per real change; never without a pick or the perk, never for a dev / `?climate=` sky, never when the sky already shows the new band, and NOT on load (armed only after the saved game is restored, `armSkyWatch`).
+- **Hold to peek:** press and hold the badge about 0.45 s with a sky picked: `ClimateView.peek(true)` wears the real result (`getRealResult`) until release / leave / cancel; no `onChange` while peeking; the release does not open the panel; a plain tap still does. `contextmenu` blocked on the badge, `-webkit-touch-callout` / `user-select: none`, `touch-action: manipulation`. No pick = no peek.
+- **Tests:** `test/skyPick.test.js` (22: rules, Lv 4 perk, theme name, State field), `test/skyPickUi.test.js` (19: view model, panel markup, badge mark, picker clicks, toast, peek, ClimateView key + peek), `test/climateWiring.test.js` (+8 wiring checks); older tests updated for schema 19, the two-perk Lv 4 and `realClimateNow`. Full Jest in a scratch copy of the repo + this session's files: 205 suites, 4,713 tests, all pass (index.html and script.js kept CRLF). Headless Chromium at 844x390: locked row at Lv 1, picker at Lv 4, Storm pick saved, badge real + brush, hold shows Hazy and release restores Storm without opening the panel, no console errors.
+- **Not checked:** a real phone (tap sizes of the picker buttons, the 450 ms hold with a finger, the long-press menu, Storm-forever frame rate on a phone), and the toast firing at a REAL rollover (covered by the pure `changeNotice` tests, not driven end to end).
+- **Where the picker sits:** at 390px landscape the picker is below the fold of the Weather panel (it scrolls). If that is annoying, move the picker above the trend line.
 
 ### Parked ideas (later enhancements, Jeremy 2026-11-03)
 - **Observatory** (a telescope aimed at the moon) or a **weather balloon** in the distance as the weather tap target
@@ -614,7 +627,7 @@ copy), hold-to-peek last.
 - [ ] **W1b — Mood check-in (DESIGNED 2026-11-07, Fable; Sonnet build):** five-level one-tap mood + optional tags, on the
   DailyRecord (v12), glyph beside the weather badge, Mood column in the Weather table, Bad / Awful help card. The sky stays
   the run climate. See "W1b Mood check-in" below.
-- [ ] **W1c — Sky picker, Lv 4 perk (DESIGNED 2026-11-07, Fable; Sonnet build):** Clear is the only band you earn; every
+- [x] **W1c — Sky picker, Lv 4 perk (DESIGNED 2026-11-07, Fable; BUILT 2026-11-09, Sonnet, sw v305; phone check owed):** Clear is the only band you earn; every
   other band is yours to pick; badge, trend, record and AI keep the real climate. See "W1c Sky picker" below.
 - [ ] **W2 — Achievement VILLAGE, Americana small town (Sonnet + PixelLab art; REPLACES the headstone-markers idea; direction DECIDED 2026-10-28):**
   8 category buildings (5 tiers x 3 conditions, state carried by the art + code filters) on the horizon hill behind the zombies + the

@@ -282,8 +282,8 @@ describe('weather badge (Build 2)', () => {
 
 describe('script.js: badge + Stats readout', () => {
     test('WeatherPanel is initialised before ClimateView (so the first refresh reaches the badge) and ClimateView reports changes to it', () => {
-        expect(script.indexOf('WeatherPanel.init({ getResult: climateNow });')).toBeGreaterThan(0);
-        expect(script.indexOf('WeatherPanel.init({ getResult: climateNow });')).toBeLessThan(script.indexOf('ClimateView.init({ getResult: climateNow, onChange'));
+        expect(script.indexOf('WeatherPanel.init({\n        getResult: climateNow,')).toBeGreaterThan(0);
+        expect(script.indexOf('WeatherPanel.init({\n        getResult: climateNow,')).toBeLessThan(script.indexOf('ClimateView.init({ getResult: climateNow, getRealResult: realClimateNow, onChange'));
     });
 
     test('the Stats window gets the sky readout, built from the same lazy result', () => {
@@ -390,7 +390,7 @@ describe('portrait glance strip hides the weather layers', () => {
 
 describe('script.js hook-up', () => {
     test('ClimateView is initialised with the lazy result and refreshed from the layout hook, the tick and after the restore', () => {
-        expect(script).toContain('ClimateView.init({ getResult: climateNow, onChange: (r) => WeatherPanel.updateBadge(r) });');
+        expect(script).toContain('ClimateView.init({ getResult: climateNow, getRealResult: realClimateNow, onChange: (r) => { WeatherPanel.updateBadge(r); watchRealSky(r); } });');
         expect((script.match(/ClimateView\.refresh\(\)/g) || []).length).toBeGreaterThanOrEqual(3);
         expect(script.indexOf('VillageView.render(BASE_WIDTH);\n        ClimateView.refresh();')).toBeGreaterThan(0);
     });
@@ -408,7 +408,71 @@ describe('script.js hook-up', () => {
     });
 
     test('nothing about the climate is persisted: no new storage key or State field', () => {
-        const mine = script.slice(script.indexOf('const climateCache'), script.indexOf('ClimateView.init({ getResult: climateNow, onChange'));
+        // The REAL climate part (up to the sky picker, W1c): the computed sky is never saved. Only the player's pick is (State.setSkyPick).
+        const mine = script.slice(script.indexOf('const climateCache'), script.indexOf('const skyCache'));
         expect(mine).not.toMatch(/localStorage|saveGame|Persistence\.save/);
+    });
+});
+
+describe('sky picker wiring (W1c, 2026-11-09)', () => {
+    const state = read('js/state.js');
+    const persistence = read('js/persistence.js');
+    const wp = read('js/ui/weatherPanel.js');
+
+    test('js/skyPick.js is in the shell, loaded before state.js and the sky code, and the cache was bumped', () => {
+        expect(sw).toContain("'js/skyPick.js'");
+        expect(fs.existsSync(path.join(__dirname, '..', 'js/skyPick.js'))).toBe(true);
+        const at = (src) => html.indexOf(`<script src="${src}"></script>`);
+        expect(at('js/skyPick.js')).toBeGreaterThan(at('js/runClimate.js'));
+        expect(at('js/skyPick.js')).toBeLessThan(at('js/state.js'));
+        expect(at('js/skyPick.js')).toBeLessThan(at('js/ui/weatherPanel.js'));
+        expect(Number(/CACHE_NAME = 'deadline-shell-v(\d+)'/.exec(sw)[1])).toBeGreaterThanOrEqual(305);
+    });
+
+    test('the badge has a "set" slot and there is a small sky toast (not the LEVEL UP banner), hidden in the portrait strip', () => {
+        expect(html).toContain('class="weather-badge-set"');
+        expect(html).toMatch(/<div id="skyToast" class="sky-toast" role="status" aria-live="polite" hidden><\/div>/);
+        expect(strip).toMatch(/body\.glance-strip \.sky-toast,/);
+        expect(wpCss).toMatch(/\.sky-toast \{[^}]*pointer-events: none/);
+        expect(wp).not.toContain('levelUpMessage');
+    });
+
+    test('the pick is saved game state, per run: schema 19, initGame resets it, restore reads it, never in the daily record', () => {
+        expect(persistence).toMatch(/const SCHEMA_VERSION = 19;/);
+        expect(state).toContain('setSkyPick(null); // ...and the sky follows the run again');
+        expect(state).toContain('setSkyPick(save.skyPick);');
+        expect(state).toContain('skyPick: getSkyPick(),');
+        expect(read('js/dailyRecord.js')).not.toMatch(/skyPick/);
+        expect(read('js/runClimate.js')).not.toMatch(/skyPick/);
+    });
+
+    test('script.js: precedence dev sky > ?climate= > player pick > real, the pick only with the perk, and the toast is armed after the restore', () => {
+        expect(script).toContain('function realClimateNow() {');
+        expect(script).toContain('function climateNow() { return skyNow().result; }');
+        expect(script).toContain('SkyPick.resolve(real, pick, unlocked)');
+        expect(script).toContain('Progression.hasUnlock(CONFIG.LEVEL_PERKS, State.getPlayerLevel(), SkyPick.UNLOCK_KEY)');
+        // realClimateNow answers the dev panel sky and ?climate= first; resolve() leaves a forced result alone
+        const real = script.slice(script.indexOf('function realClimateNow() {'), script.indexOf('const skyCache'));
+        expect(real.indexOf('DevDemo.weather()')).toBeLessThan(real.indexOf('climateOverride'));
+        expect(script).toContain('armSkyWatch(); // from here on a real-band change under a sky pick gets its toast');
+        expect(script.indexOf('ClimateView.refresh(); // the sky for the restored run')).toBeLessThan(script.indexOf('armSkyWatch();'));
+        expect(script).toContain('SkyPick.changeNotice(prev, next, State.getSkyPick(), skyUnlocked())');
+    });
+
+    test('script.js: picking saves the pick and repaints; Clear is refused while the run is not Clear', () => {
+        const fn = script.slice(script.indexOf('function setSkyPick(band) {'), script.indexOf('const skyWatch'));
+        expect(fn).toContain('State.setSkyPick(next);');
+        expect(fn).toContain('saveGame();');
+        expect(fn).toContain('ClimateView.refresh();');
+        expect(fn).toMatch(/next === 'clear' && SkyPick\.realBandOf\(skyNow\(\)\.result\) !== 'clear'\) return;/);
+    });
+
+    test('RainFx still reads the worn sky (a picked Storm has no score = full rain)', () => {
+        expect(script).toContain('RainFx.init({ getResult: climateNow });');
+    });
+
+    test('the level-up toast and the Level panel name the perk through the theme', () => {
+        expect(script).toContain('const perkLine = perk.label || Theme.perkLabel(perk);');
+        expect(read('js/ui/levelPanel.js')).toContain('Theme.perkLabel(perk)');
     });
 });

@@ -58,6 +58,9 @@ Rules:
   state is thrown away by the reload regardless — same class of hazard as the session-52
   stub-before-edit trick, see CLAUDE.md's Cowork section).
 
+### schemaVersion 19 (BUILT 2026-11-09, W1c sky picker; docs/WORLD_FEEDBACK_PLAN.md)
+- The v18 -> v19 migration seeds `skyPick: null` (a valid band name is kept, anything else becomes null). `State.initGame` resets it like the level perks; it rides in `getPersistableState` and the export envelope; never in `deadline.days`.
+
 ### schemaVersion 18 (BUILT 2026-11-05, Goals Build A; docs/GOALS_PLAN.md)
 - Root `goals`: `{ bestSlots, active: Goal[], done: GoalRecord[], nextId, seeded }`. Repaired on load by `Goals.sanitizeGoals`. **Carries across runs** (`initGame` never touches it); the dev Reset wipes it.
   - `bestSlots`: the most goal slots ever held (high-water mark; slots for a level = `max(CONFIG.GOAL_SLOTS_PER_LEVEL[level], bestSlots)`).
@@ -427,7 +430,7 @@ Save {
 - `drops` (v7, 2026-11-03, Village tier drops): `{ n, pts }` = the free items a village building paid that day (`n` = items added to the held inventory, `pts` = their shop value, baseCost x count). Bumped by the `drop` event from script.js `payVillageDrops`; summed by the month roll-up; older days have no field and read as zero. Kept apart from `pts.spent` (bought) and `tokens` (used).
   - **v4 (2026-11-01, Habit Goals Build 2c; additive, `V` 4):** `timer.edits` (count of logged-time corrections) and `timer.editMin` (signed net minutes actually applied) beside `timer.workMin` / `limitMin`, so insights can tell measured time (`workMin - editMin`) from corrected time. Written by `DailyRecord.adjustTimer(rec, kind, deltaMin)` (pure; minutes never go below 0; a correction the floor swallows counts nothing), reached through `State.adjustDayTimer(dateKey, kind, deltaMin)`: an active item corrects TODAY's open record; a completed item corrects the day of its `completedAt` (the open record, or that day's CLOSED record in `deadline.days`, written back). A day with no record (never seen, or rolled into a month) is left alone. `kind` = `Timer.recordKind(item)` ('limit' for Break habits, else 'work'). An older day lacks the counters (reads as 0); the month roll-up sums them. Known imprecision: a check-in Slipped entry is dated when it was answered, so editing its time corrects that day, not the day the time was measured.
 - `mood` (v12, PLANNED 2026-11-07, NOT BUILT -- `docs/WORLD_FEEDBACK_PLAN.md` "W1b Mood check-in"): `[[hour, level, tagBits], ...]` = the player's own one-tap mood entries that day (`level` 1..5 = Awful .. Rad; `tagBits` over the append-only `CONFIG.MOOD.tags`; a new entry in the same local hour replaces that hour's). Derived first / last / min / max at read. Month roll-up keeps `moodHist [5]` and drops the entries. Numbers only; the free-text journal stays in its own key.
-- `save.skyPick` (PLANNED 2026-11-07, NOT BUILT -- WORLD_FEEDBACK_PLAN "W1c Sky picker"): `null` | band name; the Lv 4 perk's cosmetic sky pick, per run (reset by `initGame`), view-only (never in `deadline.days`, never read by `RunClimate`). Needs a schema bump when built.
+- `save.skyPick` (BUILT 2026-11-09, schema 19 -- WORLD_FEEDBACK_PLAN "W1c as built"): `null` | band name (`clear|hazy|overcast|fog|storm`); the Lv 4 perk's cosmetic sky pick, per run (reset by `initGame`), view-only (never in `deadline.days`, never read by `RunClimate`). A pick the player no longer qualifies for (Clear without a Clear run, or no perk after a restart) is ignored, not deleted. Migration v18 -> v19 seeds `null` and keeps a valid band.
 - **Rule:** a mechanic that changes what can happen in a day adds its counter in the same session
   (`DailyRecord.bump` event + a `recordDaily`/`State.bumpToday` seam) and bumps `DailyRecord.V`.
 

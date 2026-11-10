@@ -85,6 +85,7 @@ body.glance-strip .nights-ui {
 
 /* The run climate's weather layers (css/climate.css) are landscape/desktop only too: the strip has its own sky. */
 body.glance-strip .weather-badge,
+body.glance-strip .sky-toast,
 body.glance-strip .climate-haze-far,
 body.glance-strip .climate-near,
 body.glance-strip .village-haze,

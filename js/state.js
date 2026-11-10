@@ -79,6 +79,9 @@ const State = (() => {
     // { 'YYYY-MM-DD': n } (schema 17). A mark is spent when a task is marked and never given back (PrioritySlots owns the
     // maths). Pruned to yesterday-and-later at rollover; a fresh run (initGame) starts with none spent.
     let priorityMarks = {};
+    // Sky picker (2026-11-09, W1c, docs/WORLD_FEEDBACK_PLAN.md; schema 19): the band the player picked for THIS run's sky, or null = follow my
+    // run. View-only (js/skyPick.js owns the rules); reset by initGame like the level perks, exported with the save, never in `deadline.days`.
+    let skyPick = null;
     // Goals (2026-11-05, Goals Build A, docs/GOALS_PLAN.md): the player's goals { bestSlots, active, done, nextId, seeded } (schema 18).
     // CARRIES ACROSS RUNS like lifetimeStats: initGame never resets it, so a lost run keeps every goal, streak and slot.
     let goals = (typeof Goals !== 'undefined') ? Goals.freshGoals() : { bestSlots: 0, active: [], done: [], nextId: 1, seeded: false };
@@ -155,6 +158,13 @@ const State = (() => {
     // Keeps only { 'YYYY-MM-DD': n > 0 }; junk and old saves become empty. No-op shape when PrioritySlots isn't loaded (tests).
     const setPriorityMarks = (obj) => {
         priorityMarks = (typeof PrioritySlots !== 'undefined') ? PrioritySlots.sanitizeMarks(obj) : ((obj && typeof obj === 'object') ? obj : {});
+    };
+    const getSkyPick = () => skyPick;
+    // A band name or null; anything else (junk, an old save) becomes null = follow. Without the SkyPick module it checks the five names itself.
+    const setSkyPick = (band) => {
+        skyPick = (typeof SkyPick !== 'undefined')
+            ? SkyPick.sanitize(band)
+            : (['clear', 'hazy', 'overcast', 'fog', 'storm'].indexOf(band) >= 0 ? band : null);
     };
     const getGoals = () => goals;
     // Repairs whatever it is given (junk, a pre-18 save -> fresh). Without the Goals module (some tests) it just stores the object.
@@ -303,6 +313,7 @@ const State = (() => {
         setPushbackUses(null); // a fresh run: no charges used (Clock tower stars reset too)
         setAnytimeCreditUses(null); // ...and no anytime morning credits spent
         setPriorityMarks(null); // ...and no priority slots spent (a plan for a day that ended the run is moot)
+        setSkyPick(null); // ...and the sky follows the run again (the Lv 4 picker perk is per run, like every perk)
         setSickDayDate(null); // frozen-slots sub-session 5 — fresh run has no active Sick Day
         // Run stats reset with the run; runHistory is deliberately NOT
         // touched here — it must survive restart (session 52, RUN_HISTORY_PLAN).
@@ -392,6 +403,7 @@ const State = (() => {
             pushbackUses: getPushbackUses(),
             anytimeCreditUses: getAnytimeCreditUses(),
             priorityMarks: getPriorityMarks(),
+            skyPick: getSkyPick(),
             goals: getGoals(),
             runHistory: getRunHistory(),
             currentRunStats: getCurrentRunStats(),
@@ -558,6 +570,7 @@ const State = (() => {
         setPushbackUses(save.pushbackUses);
         setAnytimeCreditUses(save.anytimeCreditUses);
         setPriorityMarks(save.priorityMarks);
+        setSkyPick(save.skyPick);
         // Run history (session 52, docs/RUN_HISTORY_PLAN.md). The v9→v10
         // migration seeds both, but guard here too so a malformed save can
         // never crash boot. currentRunStats keeps accruing across a mid-run
@@ -1366,6 +1379,7 @@ const State = (() => {
         getPushbackUses, setPushbackUses,
         getAnytimeCreditUses, setAnytimeCreditUses,
         getPriorityMarks, setPriorityMarks,
+        getSkyPick, setSkyPick,
         getGoals, setGoals, goalSlotCount, syncGoalSlots, ensureGoalsSeeded, settleGoals, applyGoalCompletion, closeGoalPeriods,
         getGoalViews, getGoalSlotInfo, updateGoalTarget, retireGoal, deleteGoal, takeGoalEvents,
         addGoal, editGoal, getGoalLinkOptions, getGoalLinkedItemIds, claimGoalReward, keepGoal,

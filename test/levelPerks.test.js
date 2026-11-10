@@ -94,8 +94,8 @@ describe('perksForLevels', () => {
 
     test('a multi-level jump pays out EVERY level crossed, in order', () => {
         const perks = Progression.perksForLevels(PERKS, 1, 4);
-        expect(perks.map(p => p.level)).toEqual([2, 3, 4]);
-        expect(perks.map(p => p.type)).toEqual(['item', 'slot', 'discount']);
+        expect(perks.map(p => p.level)).toEqual([2, 3, 4, 4]);
+        expect(perks.map(p => p.type)).toEqual(['item', 'slot', 'discount', 'unlock']);
     });
 
     test('same level / lower level / missing table -> nothing', () => {

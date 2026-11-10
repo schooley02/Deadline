@@ -8,6 +8,11 @@
  *   - the STATS readout (a section in the current-run panel): the same table; this is how the portrait strip, which has no
  *     sky, sees the weather.
  *
+ * SKY PICKER (W1c, 2026-11-09; docs/WORLD_FEEDBACK_PLAN.md "W1c Sky picker" + its amendment): when the player has picked a sky the result
+ * carries `pick: { band, realBand }` and everything here keeps telling the REAL run -- the badge icon, the panel text, the table -- with a
+ * paintbrush on the badge, a "Sky set to X . your run is Y" line + a "Show my real sky" button in the panel, the picker itself (Lv 4 perk;
+ * a locked row before), a small toast when the real band moves, and press-and-hold on the badge to peek at the real sky.
+ *
  * PURE / DOM split like basePanel.js: iconSvg, buildViewModel, panelHtml, statsHtml, nextBadgeState and badgeLabel are pure
  * and unit-tested (test/weatherPanel.test.js); open() and updateBadge() are DOM. Globals read at call time: Modal, HowItWorks.
  *
@@ -50,6 +55,21 @@ const WeatherPanel = (() => {
     };
     const COLORS = { c: '#f6f0d4', g: '#a8a6bf', d: '#6e6c86', y: '#f2d36b', b: '#8fb4cf' };
 
+    // 9x9 paintbrush for the "sky is set" mark (code-drawn placeholder; PixelLab later if wanted): h = wood, g = ferrule, p = paint.
+    const BRUSH = ['.......hh', '......hh.', '.....hh..', '....gg...', '...gg....', '..pp.....', '.ppp.....', 'pp.......', '.........'];
+    const BRUSH_COLORS = { h: '#c9a26b', g: '#d9d6e6', p: '#e8795f' };
+    function brushSvg(size) {
+        const px = size || 14;
+        let rects = '';
+        BRUSH.forEach((row, y) => {
+            for (let x = 0; x < row.length; x++) {
+                const col = BRUSH_COLORS[row[x]];
+                if (col) rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${col}"/>`;
+            }
+        });
+        return `<svg viewBox="0 0 9 9" width="${px}" height="${px}" shape-rendering="crispEdges" aria-hidden="true" focusable="false">${rects}</svg>`;
+    }
+
     // ---- pure ---------------------------------------------------------------
 
     function bandInfo(band) { return BAND_INFO[band] || null; }
@@ -84,10 +104,15 @@ const WeatherPanel = (() => {
         return (Math.round(n * 10) / 10) + ' HP';
     }
 
-    /** A RunClimate result -> what the three surfaces show (null when there is no result). */
+    /**
+     * A RunClimate result -> what the three surfaces show (null when there is no result). With a sky pick on the result
+     * (`result.pick = { band, realBand }`, js/skyPick.js) everything describes the REAL band and `vm.pick` names the picked one.
+     */
     function buildViewModel(result) {
         if (!result || !BAND_INFO[result.band]) return null;
-        const info = BAND_INFO[result.band];
+        const pick = (result.pick && BAND_INFO[result.pick.band] && BAND_INFO[result.pick.realBand]) ? result.pick : null;
+        const realBand = pick ? pick.realBand : result.band;
+        const info = BAND_INFO[realBand];
         const trend = TREND_INFO[result.trend] || TREND_INFO.steady;
         const recent = Array.isArray(result.recent) ? result.recent : [];
         let note;
@@ -96,8 +121,10 @@ const WeatherPanel = (() => {
         else if (result.usedPrior) note = 'Early in a run the sky leans toward Hazy until a full week of days has been scored.';
         else note = '';
         return {
-            band: result.band,
+            band: realBand,
             label: info.label,
+            pick: pick ? { band: pick.band, label: BAND_INFO[pick.band].label } : null,
+            setLine: pick ? `Sky set to ${BAND_INFO[pick.band].label} \u00B7 your run is ${info.label}` : '',
             line: info.line,
             trendKey: TREND_INFO[result.trend] ? result.trend : 'steady',
             trendLabel: trend.label,
@@ -126,27 +153,68 @@ const WeatherPanel = (() => {
         return (typeof HowItWorks !== 'undefined' && HowItWorks.buttonHtml) ? HowItWorks.buttonHtml('weather', 'How the sky works') : '';
     }
 
-    /** The Weather panel overlay markup. */
-    function panelHtml(vm) {
+    /**
+     * The picker's rows. info = { unlocked, pick (the pick IN FORCE: null = follow), realBand, unlockLevel }.
+     * Clear is only offered while the run is Clear; the others are always yours. Not unlocked -> a locked line instead of options.
+     */
+    function pickerModel(info) {
+        const i = info || {};
+        const t = (typeof Theme !== 'undefined' && Theme.strings && Theme.strings.perks) ? Theme.strings.perks.skyPicker : null;
+        if (!i.unlocked) {
+            const lv = i.unlockLevel || 4;
+            return { unlocked: false, lockedLine: t ? `${t.name} unlocks at Lv ${lv}: ${t.tagline}.` : `The sky picker unlocks at Lv ${lv}.`, options: [] };
+        }
+        const pick = BAND_INFO[i.pick] ? i.pick : null;
+        const options = [{ key: 'follow', label: 'Follow my run', selected: !pick, disabled: false }];
+        ['clear', 'hazy', 'overcast', 'fog', 'storm'].forEach((b) => {
+            options.push({ key: b, label: BAND_INFO[b].label, selected: pick === b, disabled: b === 'clear' && i.realBand !== 'clear' });
+        });
+        return { unlocked: true, title: t ? t.name : 'Your sky', tagline: t ? t.tagline : '', options };
+    }
+
+    function pickerHtml(pm) {
+        if (!pm) return '';
+        if (!pm.unlocked) return `<div class="wx-picker wx-picker--locked"><p class="wx-locked">\uD83D\uDD12 ${esc(pm.lockedLine)}</p></div>`;
+        const buttons = pm.options.map(o =>
+            `<button type="button" class="wx-pick${o.selected ? ' wx-pick--on' : ''}" data-sky-pick="${o.key}" aria-pressed="${o.selected ? 'true' : 'false'}"${o.disabled ? ' disabled' : ''}>${esc(o.label)}</button>`).join('');
+        return `<div class="wx-picker">
+                        <h4 class="wx-picker-heading">${esc(pm.title)}</h4>
+                        ${pm.tagline ? `<p class="wx-picker-tag">${esc(pm.tagline)}</p>` : ''}
+                        <div class="wx-picks" role="group" aria-label="Pick your sky">${buttons}</div>
+                        <p class="wx-picker-rule">Clear is the only sky you earn: it is yours only while your run is Clear.</p>
+                    </div>`;
+    }
+
+    /** The Weather panel overlay markup. `picker` = pickerModel(...) or null (no picker row). */
+    function panelHtml(vm, picker) {
         if (!vm) return '';
-        const trendRow = `<p class="wx-trend wx-trend--${vm.trendKey}"><span class="wx-trend-label">${vm.arrow ? `<span aria-hidden="true">${vm.arrow}</span> ` : ''}${esc(vm.trendLabel)}</span> ${esc(vm.trendLine)}</p>`;
         return `
             <div class="modal-overlay wx-overlay">
-                <div class="modal-content wx-panel" role="dialog" aria-label="Weather">
+                <div class="modal-content wx-panel" role="dialog" aria-label="Weather">${panelInner(vm, picker)}</div>
+            </div>`;
+    }
+
+    /** What is INSIDE the panel (re-rendered in place when the player picks a sky). */
+    function panelInner(vm, picker, trendRow) {
+        const row = trendRow || `<p class="wx-trend wx-trend--${vm.trendKey}"><span class="wx-trend-label">${vm.arrow ? `<span aria-hidden="true">${vm.arrow}</span> ` : ''}${esc(vm.trendLabel)}</span> ${esc(vm.trendLine)}</p>`;
+        const setBanner = vm.pick
+            ? `<div class="wx-set"><span class="wx-set-brush" aria-hidden="true">${brushSvg(16)}</span><span class="wx-set-text">${esc(vm.setLine)}</span><button type="button" class="wx-real-btn" data-sky-pick="follow">Show my real sky</button></div>`
+            : '';
+        return `
                     <div class="wx-head">
                         <span class="wx-icon wx-icon--${vm.band}" aria-hidden="true">${iconSvg(vm.band)}</span>
                         <h3>${esc(vm.label)} ${infoButton()}</h3>
                     </div>
+                    ${setBanner}
                     <p class="wx-line">${esc(vm.line)}</p>
-                    ${trendRow}
+                    ${row}
                     ${vm.note ? `<p class="wx-note">${esc(vm.note)}</p>` : ''}
+                    ${(picker && !vm.forced) ? pickerHtml(picker) : ''}
                     ${vm.rows.length ? `<h4 class="wx-days-heading">Last ${vm.rows.length} finished day${vm.rows.length === 1 ? '' : 's'}</h4>${tableHtml(vm)}` : ''}
                     <p class="wx-foot">The sky changes once a day, when a day closes.</p>
                     <button type="button" class="modal-close-x" data-action="close" aria-label="Close">
                         <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M2 2 L10 10 M10 2 L2 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-                    </button>
-                </div>
-            </div>`;
+                    </button>`;
     }
 
     /** The Stats window's section ('' when there is no result). */
@@ -156,6 +224,7 @@ const WeatherPanel = (() => {
             <div class="stats-weather wx-stats">
                 <div class="wx-stats-head"><span class="wx-icon wx-icon--${vm.band}" aria-hidden="true">${iconSvg(vm.band)}</span>
                     <span class="wx-stats-title">Sky: <strong>${esc(vm.label)}</strong>${vm.arrow ? ` <span class="wx-trend wx-trend--${vm.trendKey}">${vm.arrow} ${esc(vm.trendLabel)}</span>` : ''} ${infoButton()}</span></div>
+                ${vm.pick ? `<p class="wx-set-stats"><span aria-hidden="true">${brushSvg(12)}</span> ${esc(vm.setLine)}</p>` : ''}
                 <p class="wx-line">${esc(vm.line)}</p>
                 ${vm.note ? `<p class="wx-note">${esc(vm.note)}</p>` : ''}
                 ${tableHtml(vm)}
@@ -166,7 +235,8 @@ const WeatherPanel = (() => {
     function badgeLabel(vm) {
         if (!vm) return 'Weather';
         const t = vm.trendKey === 'steady' ? '' : `, ${vm.trendLabel.toLowerCase()}`;
-        return `Weather: ${vm.label}${t}. Tap for details.`;
+        const set = vm.pick ? ` Your sky is set to ${vm.pick.label}.` : '';
+        return `Weather: ${vm.label}${t}.${set} Tap for details.`;
     }
 
     /**
@@ -196,22 +266,61 @@ const WeatherPanel = (() => {
     }
 
     let getResult = null;
+    let getPickerInfo = null; // () => { unlocked, pick, realBand, unlockLevel } -- the picker row (omitted = no picker row)
+    let onPick = null;        // (key: 'follow' | band) => void -- script.js saves the pick and refreshes the sky
+    let onPeek = null;        // (on: boolean) => void -- press-and-hold on the badge: show the REAL sky while held
     let badgeEl = null;
+    let toastEl = null;
+    let toastTimer = null;
     let lastResult = null;
+
+    const HOLD_MS = 450;   // press-and-hold on the badge (only when a sky is picked) peeks at the real sky
+    const TOAST_MS = 5000;
+
+    function currentModels() {
+        const vm = buildViewModel(getResult ? getResult() : lastResult);
+        const picker = (vm && getPickerInfo) ? pickerModel(getPickerInfo()) : null;
+        return { vm, picker };
+    }
 
     /** The Weather panel (one at a time). Safe to call with no result (does nothing). */
     function open() {
-        const vm = buildViewModel(getResult ? getResult() : lastResult);
+        const { vm, picker } = currentModels();
         if (!vm || typeof Modal === 'undefined') return null;
-        const overlay = Modal.open(panelHtml(vm), { dedupeSelector: '.wx-overlay' });
+        const overlay = Modal.open(panelHtml(vm, picker), { dedupeSelector: '.wx-overlay' });
         if (!overlay) return null;
         overlay.addEventListener('click', (e) => {
-            const btn = e.target.closest ? e.target.closest('[data-action="close"]') : null;
-            if (!btn) return;
+            const target = e.target && e.target.closest ? e.target : null;
+            const btn = target ? target.closest('[data-action="close"]') : null;
+            if (btn) {
+                e.stopPropagation();
+                overlay.remove();
+                return;
+            }
+            const pickBtn = target ? target.closest('[data-sky-pick]') : null;
+            if (!pickBtn || pickBtn.disabled) return;
             e.stopPropagation();
-            overlay.remove();
+            if (onPick) onPick(pickBtn.getAttribute('data-sky-pick'));
+            // Re-draw the panel in place (the sky, badge and header all changed).
+            const panel = overlay.querySelector('.wx-panel');
+            const next = currentModels();
+            if (panel && next.vm) panel.innerHTML = panelInner(next.vm, next.picker);
         });
         return overlay;
+    }
+
+    /** One small line near the badge, about 5 s (the sky-change notice; css/weatherPanel.css .sky-toast). */
+    function showSkyToast(text) {
+        if (!text) return;
+        if (!toastEl && typeof document !== 'undefined') toastEl = document.getElementById('skyToast');
+        if (!toastEl) return;
+        toastEl.textContent = text;
+        toastEl.hidden = false;
+        toastEl.classList.remove('sky-toast--show');
+        void toastEl.offsetWidth; // restart the fade if a toast was already up
+        toastEl.classList.add('sky-toast--show');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { toastEl.hidden = true; toastEl.classList.remove('sky-toast--show'); toastTimer = null; }, TOAST_MS);
     }
 
     /** Called by ClimateView whenever the result changes (and once at start). */
@@ -226,6 +335,20 @@ const WeatherPanel = (() => {
         badgeEl.title = `${vm.label}${vm.arrow ? ' ' + vm.arrow : ''}`;
         const chip = badgeEl.querySelector('.weather-badge-icon');
         if (chip) chip.innerHTML = iconSvg(vm.band);
+        // The "set" mark: a paintbrush in the chip's top-left corner while the sky is the player's pick (the icon stays the REAL band).
+        let mark = badgeEl.querySelector('.weather-badge-set');
+        const chipBox = badgeEl.querySelector('.weather-badge-chip');
+        if (!mark && chipBox) {
+            mark = document.createElement('span');
+            mark.className = 'weather-badge-set';
+            mark.setAttribute('aria-hidden', 'true');
+            chipBox.appendChild(mark);
+        }
+        if (mark) {
+            mark.hidden = !vm.pick;
+            mark.innerHTML = vm.pick ? brushSvg(14) : '';
+        }
+        badgeEl.classList.toggle('weather-badge--set', !!vm.pick);
         const arrow = badgeEl.querySelector('.weather-badge-trend');
         if (arrow) {
             arrow.textContent = vm.arrow;
@@ -239,12 +362,40 @@ const WeatherPanel = (() => {
 
     function init(deps) {
         getResult = (deps && deps.getResult) || null;
+        getPickerInfo = (deps && deps.getPickerInfo) || null;
+        onPick = (deps && deps.onPick) || null;
+        onPeek = (deps && deps.onPeek) || null;
+        toastEl = document.getElementById('skyToast');
         badgeEl = document.getElementById('weatherBadge');
         if (!badgeEl) return;
         if (!badgeEl.dataset.wired) {
             badgeEl.dataset.wired = '1';
+            // Press-and-hold peeks at the REAL sky while a sky is picked (build last; a plain tap still opens the panel). The long-press
+            // menu is blocked on the badge only (css: -webkit-touch-callout / user-select, and contextmenu below).
+            let holdTimer = null;
+            let peeking = false;
+            let swallowClick = false;
+            const endHold = () => {
+                if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+                if (peeking) { peeking = false; badgeEl.classList.remove('weather-badge--peek'); if (onPeek) onPeek(false); }
+            };
+            badgeEl.addEventListener('pointerdown', () => {
+                swallowClick = false;
+                const vm = buildViewModel(getResult ? getResult() : lastResult);
+                if (!vm || !vm.pick || !onPeek) return;
+                holdTimer = setTimeout(() => {
+                    holdTimer = null;
+                    peeking = true;
+                    swallowClick = true; // the release after a hold must not also open the panel
+                    badgeEl.classList.add('weather-badge--peek');
+                    onPeek(true);
+                }, HOLD_MS);
+            });
+            ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => badgeEl.addEventListener(ev, endHold));
+            badgeEl.addEventListener('contextmenu', (e) => e.preventDefault());
             badgeEl.addEventListener('click', (e) => {
                 e.stopPropagation(); // Modal's outside-click dismiss would see the same tap
+                if (swallowClick) { swallowClick = false; return; }
                 const vm = buildViewModel(getResult ? getResult() : lastResult);
                 if (vm && !(getResult && getResult() && getResult().forced)) writeStored(nextBadgeState(readStored(), vm.band, true).next);
                 badgeEl.classList.remove('weather-badge--pulse');
@@ -254,7 +405,7 @@ const WeatherPanel = (() => {
         updateBadge(lastResult);
     }
 
-    return { BAND_INFO, TREND_INFO, STORAGE_KEY, bandInfo, iconSvg, dayLabel, buildViewModel, panelHtml, statsHtml, badgeLabel, nextBadgeState, init, updateBadge, open };
+    return { BAND_INFO, TREND_INFO, STORAGE_KEY, bandInfo, iconSvg, brushSvg, dayLabel, buildViewModel, pickerModel, panelHtml, statsHtml, badgeLabel, nextBadgeState, init, updateBadge, open, showSkyToast };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

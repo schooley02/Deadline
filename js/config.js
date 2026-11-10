@@ -180,7 +180,12 @@ const CONFIG = {
         1: [{ type: 'slot', value: 1, label: '1 routine slot' }],
         2: [{ type: 'item', itemId: 'repair_small', count: 1, label: 'Repair Kit (Small) ×1' }],
         3: [{ type: 'slot', value: 2, label: '2nd routine slot' }],
-        4: [{ type: 'discount', value: 0.10, label: '10% off the shop' }],
+        // Lv 4 also unlocks the sky picker (W1c, designed 2026-11-07; docs/WORLD_FEEDBACK_PLAN.md "W1c Sky picker"): a cosmetic perk,
+        // no economy number. Its player-facing name lives in js/theme.js only (Theme.perkLabel), so the label here stays ''.
+        4: [
+            { type: 'discount', value: 0.10, label: '10% off the shop' },
+            { type: 'unlock', unlock: 'skyPicker', label: '' },
+        ],
         5: [{ type: 'slot', value: 3, label: '3rd routine slot' }],
         6: [{ type: 'item', itemId: 'repair_medium', count: 1, label: 'Repair Kit (Medium) ×1' }],
         7: [{ type: 'slot', value: 4, label: '4th routine slot' }],

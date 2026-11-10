@@ -26,6 +26,11 @@ const Theme = (() => {
             // "{level}" is replaced by fill().
             lockedLine: 'Unlocks at Lv {level}',
         },
+        // Level-perk names that are theme words (2026-11-09): CONFIG.LEVEL_PERKS keeps an empty label for these, Theme.perkLabel
+        // supplies it. The tagline is the honesty line: the pick changes the picture, never the run's real climate (Jeremy, "for now").
+        perks: {
+            skyPicker: { name: 'Geo Storm', tagline: 'You control the weather (visuals only)' },
+        },
         // Milestone markers (2026-11-08; js/milestoneMarkers.js, js/ui/markerPanel.js): the small stones on the graveyard hill that show the
         // all-time achievements. Placeholders: {name}, {tier}, {value}, {threshold}, {unit}.
         markers: {
@@ -74,7 +79,15 @@ const Theme = (() => {
         return file ? a.root + '/' + file : '';
     }
 
-    return { strings, assets, fill, goalAsset };
+    /** A level perk's player-facing line: its own label, else the theme's "Name: tagline" for its unlock key ('' when neither). */
+    function perkLabel(perk) {
+        if (!perk) return '';
+        if (perk.label) return String(perk.label);
+        const t = perk.unlock && strings.perks[perk.unlock];
+        return t ? t.name + ': ' + t.tagline : '';
+    }
+
+    return { strings, assets, fill, goalAsset, perkLabel };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

@@ -232,7 +232,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Dev override: ?climate=clear|hazy|overcast|fog|storm (+ &trend=up|down). On any failure: no result = the sky looks as before.
     const climateCache = { key: null, result: null };
     const climateOverride = ClimateView.parseOverride(window.location.search);
-    function climateNow() {
+    // realClimateNow() = the REAL sky (dev panel sky > ?climate= > the run's own climate). climateNow() below = what the canvas WEARS: the same
+    // thing with the player's Lv 4 sky pick on top (W1c, js/skyPick.js; view-only, so only the canvas, rain, badge and panel ever see it).
+    function realClimateNow() {
         const demoSky = DevDemo.weather(); // Dev tools (2026-11-03): a band picked in the DEV panel (null = none); wins over ?climate=
         if (demoSky) return demoSky;
         if (climateOverride) return RunClimate.forced(climateOverride.band, climateOverride.trend);
@@ -252,8 +254,63 @@ document.addEventListener('DOMContentLoaded', () => {
             return climateCache.result; // last good value, or null = no climate class
         }
     }
-    WeatherPanel.init({ getResult: climateNow });
-    ClimateView.init({ getResult: climateNow, onChange: (r) => WeatherPanel.updateBadge(r) });
+    const skyCache = { real: null, pick: null, unlocked: null, out: null };
+    function skyUnlocked() {
+        return Progression.hasUnlock(CONFIG.LEVEL_PERKS, State.getPlayerLevel(), SkyPick.UNLOCK_KEY);
+    }
+    function skyNow() { // { result, active, pick, slipped }; recomputed only when the real sky, the pick or the perk changed
+        const real = realClimateNow();
+        const pick = State.getSkyPick();
+        const unlocked = skyUnlocked();
+        if (!skyCache.out || skyCache.real !== real || skyCache.pick !== pick || skyCache.unlocked !== unlocked) {
+            skyCache.real = real; skyCache.pick = pick; skyCache.unlocked = unlocked;
+            skyCache.out = SkyPick.resolve(real, pick, unlocked);
+        }
+        return skyCache.out;
+    }
+    function climateNow() { return skyNow().result; }
+    // Picking a sky (the Weather panel's picker): save, repaint. 'follow' / null = follow my run. Clear only while the run is Clear.
+    function setSkyPick(band) {
+        const next = band === 'follow' ? null : SkyPick.sanitize(band);
+        if (next && !skyUnlocked()) return;
+        if (next === 'clear' && SkyPick.realBandOf(skyNow().result) !== 'clear') return;
+        State.setSkyPick(next);
+        saveGame();
+        ClimateView.refresh();
+    }
+    // The sky-change toast (W1c amendment): when the REAL band moves while a pick is in force, say so once. Armed only after the saved
+    // game is restored (the first refresh runs on a blank state and would see a "change"); a dev / ?climate= sky never toasts.
+    const skyWatch = { armed: false, last: null };
+    function watchRealSky(result) {
+        if (!skyWatch.armed) return;
+        if (!result || result.forced) { skyWatch.last = null; return; }
+        const prev = skyWatch.last;
+        const next = SkyPick.realBandOf(result);
+        skyWatch.last = next;
+        if (prev === null || prev === next) return;
+        const text = SkyPick.changeNotice(prev, next, State.getSkyPick(), skyUnlocked());
+        if (text) WeatherPanel.showSkyToast(text);
+    }
+    function armSkyWatch() {
+        skyWatch.armed = true;
+        const r = climateNow();
+        skyWatch.last = (r && !r.forced) ? SkyPick.realBandOf(r) : null;
+    }
+    WeatherPanel.init({
+        getResult: climateNow,
+        getPickerInfo: () => {
+            const s = skyNow();
+            return {
+                unlocked: skyUnlocked(),
+                pick: s.active ? s.pick : null,
+                realBand: SkyPick.realBandOf(s.result),
+                unlockLevel: Progression.unlockLevel(CONFIG.LEVEL_PERKS, SkyPick.UNLOCK_KEY),
+            };
+        },
+        onPick: setSkyPick,
+        onPeek: (on) => ClimateView.peek(on),
+    });
+    ClimateView.init({ getResult: climateNow, getRealResult: realClimateNow, onChange: (r) => { WeatherPanel.updateBadge(r); watchRealSky(r); } });
     RainFx.init({ getResult: climateNow }); // Storm rain (canvas in each .rain host); starts / stops itself from the climate-storm class (2026-11-07)
     const baseHealthDisplay = document.getElementById('baseHealthDisplay');
     const playerXpDisplay = document.getElementById('playerXpDisplay');
@@ -952,7 +1009,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 State.setPlayerInventory(gift.newInventory);
                 inventoryChanged = true;
             }
-            if (perk.label) perkLabels.push(perk.label);
+            const perkLine = perk.label || Theme.perkLabel(perk);
+            if (perkLine) perkLabels.push(perkLine);
         });
         LevelPanel.goalSlotPerks(CONFIG.GOAL_SLOTS_PER_LEVEL, levelBefore, result.level).forEach(perk => perkLabels.push(perk.label));
         if (inventoryChanged) saveGame();
@@ -3897,6 +3955,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initGame();
     State.restoreGameState(stateDeps());
     ClimateView.refresh(); // the sky for the restored run (ClimateView.init above ran before the state was restored)
+    armSkyWatch(); // from here on a real-band change under a sky pick gets its toast
     // Dev tools (2026-11-03): the DEV button + demo panel (js/ui/devPanel.js), shown only while the Settings "Developer tools" switch is
     // on (per device). A demo change redraws the sky and the village at once (the church's live width = what BASE_WIDTH holds).
     DevPanel.init({
