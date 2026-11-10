@@ -1,10 +1,11 @@
 /**
  * SkyPick -- the pure rules of the Lv 4 sky picker (W1c; designed 2026-11-07, amended 2026-11-09; docs/WORLD_FEEDBACK_PLAN.md
- * "W1c Sky picker"). Rule, one sentence: Clear is the only band you earn; every other band is yours to pick.
+ * "W1c Sky picker"). Rule, one sentence: every band is yours to pick, Clear included (Jeremy, 2026-11-09, reversing the original
+ * "Clear is the only band you earn"; the record, table, Stats and AI still carry the REAL climate, so the pick can never fake the run).
  *
  * The pick is VIEW-ONLY. RunClimate (the real climate), the daily record, the Weather table, Stats and the AI never see it; only the
  * sky on the canvas does. `resolve` turns the REAL result + the saved pick into the result the canvas should wear:
- *   - no perk / no pick / a dev-forced sky / a pick that is Clear while the run is not  ->  the real result, untouched
+ *   - no perk / no pick / a dev-forced sky  ->  the real result, untouched
  *   - otherwise a COPY of the real result with the picked band, `score: null` when the band differs (rain at full strength, like the
  *     dev sky) and `pick: { band, realBand }`. Trend, recent days and everything else stay the REAL run's, so the moonbeam / darker
  *     clouds and the Weather table keep telling the truth.
@@ -26,24 +27,22 @@ const SkyPick = (() => {
 
     function label(band) { return LABELS[band] || ''; }
 
-    /** The bands the picker may offer right now: Clear only while the real band is Clear. In sky order. */
-    function pickableBands(realBand) {
-        return BANDS.filter(b => b !== 'clear' || realBand === 'clear');
+    /** The bands the picker offers: all five, in sky order (Clear is a free pick since 2026-11-09). */
+    function pickableBands() {
+        return BANDS.slice();
     }
 
     /**
-     * { result, active, pick, slipped }
+     * { result, active, pick }
      *   result   what the canvas wears (the same object as `real` when nothing overrides it)
      *   active   a pick is in force
      *   pick     the saved pick, sanitised (null = follow)
-     *   slipped  the saved pick is Clear but the run is no longer Clear (ignored, not deleted; Clear greys out in the picker)
      */
     function resolve(real, savedPick, unlocked) {
         const pick = sanitize(savedPick);
-        const none = { result: real, active: false, pick, slipped: false };
+        const none = { result: real, active: false, pick };
         if (!real || typeof real !== 'object' || real.forced) return none;
         if (!unlocked || !pick) return none;
-        if (pick === 'clear' && real.band !== 'clear') return Object.assign(none, { slipped: true });
         const same = pick === real.band;
         const shown = Object.assign({}, real, {
             band: pick,
@@ -51,7 +50,7 @@ const SkyPick = (() => {
             score: same ? real.score : null,
             pick: { band: pick, realBand: real.band },
         });
-        return { result: shown, active: true, pick, slipped: false };
+        return { result: shown, active: true, pick };
     }
 
     /** The REAL band behind a result the canvas wears (the result's own band when no pick is on it). */
@@ -69,10 +68,6 @@ const SkyPick = (() => {
         const pick = sanitize(savedPick);
         if (!unlocked || !pick) return '';
         if (BANDS.indexOf(prevReal) < 0 || BANDS.indexOf(nextReal) < 0 || prevReal === nextReal) return '';
-        if (pick === 'clear') {
-            // A Clear pick only holds while the run is Clear: leaving Clear drops the sky to the real band (the fireflies leaving is the cue).
-            return (prevReal === 'clear' && nextReal !== 'clear') ? `Clear slipped away. Your run is ${LABELS[nextReal]} now.` : '';
-        }
         if (pick === nextReal) return '';
         return `Your run's weather is now ${LABELS[nextReal]}. Your sky stays ${LABELS[pick]}.`;
     }

@@ -19,7 +19,7 @@ Jeremy asked (2026-10-23): where can I see how many routine slots I have, which 
 | 1 | 0 | 1 routine slot | start |
 | 2 | 2 | Repair Kit (Small) ×1 | 25 pts; welcome gift, teaches the shop |
 | 3 | 4 | 2nd routine slot | existing |
-| 4 | 7 | 10% off the shop **+ Geo Storm (sky picker)** (PLANNED 2026-11-07, not built) | first week; the picker lets the player dress the sky Hazy..Storm, Clear only while the run has earned it -- `docs/WORLD_FEEDBACK_PLAN.md` "W1c Sky picker" |
+| 4 | 7 | 10% off the shop **+ Geo Storm (sky picker)** (BUILT 2026-11-09) | first week; the picker lets the player dress the sky any band, Clear included (Jeremy 2026-11-09; it was Hazy..Storm, Clear only while earned) -- `docs/WORLD_FEEDBACK_PLAN.md` "W1c Sky picker" |
 | 5 | 12 | 3rd routine slot | existing |
 | 6 | 17 | Repair Kit (Medium) ×1 | 50 pts (swapped from a pushback — see Facts) |
 | 7 | 24 | 4th routine slot | existing |

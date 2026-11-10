@@ -26,10 +26,8 @@ describe('bands', () => {
         RunClimate.BANDS.forEach(b => expect(SkyPick.sanitize(b)).toBe(b));
         [null, undefined, '', 'blizzard', 4, {}, 'STORM'].forEach(v => expect(SkyPick.sanitize(v)).toBeNull());
     });
-    test('Clear is offered only while the run is Clear; the other four always', () => {
-        expect(SkyPick.pickableBands('clear')).toEqual(['clear', 'hazy', 'overcast', 'fog', 'storm']);
-        ['hazy', 'overcast', 'fog', 'storm'].forEach(b =>
-            expect(SkyPick.pickableBands(b)).toEqual(['hazy', 'overcast', 'fog', 'storm']));
+    test('all five bands are offered whatever the run is, Clear included (Jeremy, 2026-11-09)', () => {
+        RunClimate.BANDS.forEach(b => expect(SkyPick.pickableBands(b)).toEqual(['clear', 'hazy', 'overcast', 'fog', 'storm']));
     });
 });
 
@@ -58,18 +56,21 @@ describe('resolve: what the canvas wears', () => {
         expect(SkyPick.resolve(real('storm'), 'storm', true).result.score).toBe(0.42);
     });
 
-    test('Clear is only yours while the run is Clear: a saved Clear pick is ignored (not deleted) once the run slips', () => {
-        const slipped = SkyPick.resolve(real('hazy'), 'clear', true);
-        expect(slipped).toMatchObject({ active: false, slipped: true, pick: 'clear' });
-        expect(slipped.result.band).toBe('hazy');
-        const holds = SkyPick.resolve(real('clear'), 'clear', true);
-        expect(holds).toMatchObject({ active: true, slipped: false });
-        expect(holds.result.band).toBe('clear');
+    test('Clear is a free pick like the others: a Clear sky over a Hazy run, with the real run still behind it', () => {
+        const s = SkyPick.resolve(real('hazy'), 'clear', true);
+        expect(s).toMatchObject({ active: true, pick: 'clear' });
+        expect(s.result).toMatchObject({ band: 'clear', bandIndex: 0, score: null, trend: 'up' });
+        expect(s.result.pick).toEqual({ band: 'clear', realBand: 'hazy' });
+        expect(SkyPick.realBandOf(s.result)).toBe('hazy');
     });
 
-    test('picking a band WORSE than the real one is always allowed (rain lovers)', () => {
-        ['hazy', 'overcast', 'fog', 'storm'].forEach(b =>
-            expect(SkyPick.resolve(real('clear'), b, true).result.band).toBe(b));
+    test('every band can be picked over every real band', () => {
+        RunClimate.BANDS.forEach(realBand => RunClimate.BANDS.forEach(b => {
+            const s = SkyPick.resolve(real(realBand), b, true);
+            expect(s.active).toBe(true);
+            expect(s.result.band).toBe(b);
+            expect(SkyPick.realBandOf(s.result)).toBe(realBand);
+        }));
     });
 
     test('realBandOf reads the band behind a worn result', () => {
@@ -84,8 +85,9 @@ describe('changeNotice: the toast when the REAL band moves under a pick', () => 
         expect(SkyPick.changeNotice('hazy', 'storm', 'fog', true)).toBe("Your run's weather is now Storm. Your sky stays Fog.");
         expect(SkyPick.changeNotice('storm', 'hazy', 'storm', true)).toBe("Your run's weather is now Hazy. Your sky stays Storm.");
     });
-    test('a Clear pick that loses its Clear run gets its own line', () => {
-        expect(SkyPick.changeNotice('clear', 'hazy', 'clear', true)).toBe('Clear slipped away. Your run is Hazy now.');
+    test('a Clear pick is told like any other: the run left Clear, the sky stays Clear', () => {
+        expect(SkyPick.changeNotice('clear', 'hazy', 'clear', true)).toBe("Your run's weather is now Hazy. Your sky stays Clear.");
+        expect(SkyPick.changeNotice('hazy', 'storm', 'clear', true)).toBe("Your run's weather is now Storm. Your sky stays Clear.");
     });
     test('never without a pick, without the perk, or when nothing moved', () => {
         expect(SkyPick.changeNotice('hazy', 'storm', null, true)).toBe('');
@@ -96,8 +98,7 @@ describe('changeNotice: the toast when the REAL band moves under a pick', () => 
     test('never when the sky already shows the new real band', () => {
         expect(SkyPick.changeNotice('hazy', 'storm', 'storm', true)).toBe('');
     });
-    test('a Clear pick says nothing for changes that are not leaving Clear (it was already ignored)', () => {
-        expect(SkyPick.changeNotice('hazy', 'overcast', 'clear', true)).toBe('');
+    test('a Clear pick says nothing when the run arrives at Clear (the sky already shows it)', () => {
         expect(SkyPick.changeNotice('hazy', 'clear', 'clear', true)).toBe('');
     });
 });

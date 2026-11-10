@@ -52,16 +52,16 @@ describe('panel markup', () => {
         expect(without).not.toContain('wx-set-brush');
     });
 
-    test('the picker lists Follow + the five bands; Clear is disabled unless the run is Clear; the pick in force is pressed', () => {
+    test('the picker lists Follow + the five bands, ALL enabled (Clear is free too); the pick in force is pressed', () => {
         const pm = WeatherPanel.pickerModel(unlocked({ pick: 'fog' }));
         expect(pm.options.map(o => o.key)).toEqual(['follow', 'clear', 'hazy', 'overcast', 'fog', 'storm']);
-        expect(pm.options.find(o => o.key === 'clear').disabled).toBe(true);
-        expect(pm.options.filter(o => o.key !== 'clear').every(o => !o.disabled)).toBe(true);
+        expect(pm.options.every(o => !o.disabled)).toBe(true);
         expect(pm.options.filter(o => o.selected).map(o => o.key)).toEqual(['fog']);
-        expect(WeatherPanel.pickerModel(unlocked({ realBand: 'clear' })).options.find(o => o.key === 'clear').disabled).toBe(false);
+        expect(WeatherPanel.pickerModel(unlocked({ realBand: 'storm' })).options.find(o => o.key === 'clear').disabled).toBe(false);
         expect(WeatherPanel.pickerModel(unlocked()).options.find(o => o.key === 'follow').selected).toBe(true);
         const html = WeatherPanel.panelHtml(WeatherPanel.buildViewModel(real('hazy')), pm);
-        expect(html).toContain('data-sky-pick="clear" aria-pressed="false" disabled');
+        expect(html).toContain('data-sky-pick="clear" aria-pressed="false">Clear</button>');
+        expect(html).not.toContain(' disabled');
         expect(html).toContain('data-sky-pick="fog" aria-pressed="true"');
         expect(html).toContain('You control the weather (visuals only)');
     });
@@ -143,12 +143,14 @@ describe('badge, picker clicks, toast and hold-to-peek in the DOM', () => {
         expect(document.querySelector('[data-sky-pick="follow"]').getAttribute('aria-pressed')).toBe('true');
     });
 
-    test('a disabled Clear button does not call onPick', () => {
+    test('Clear can be picked over a Hazy run (it is a free pick), and the real band stays on the badge', () => {
         badge().click();
         const clear = document.querySelector('[data-sky-pick="clear"]');
-        expect(clear.disabled).toBe(true);
+        expect(clear.disabled).toBe(false);
         clear.click();
-        expect(pickedKeys).toEqual([]);
+        expect(pickedKeys).toEqual(['clear']);
+        expect(document.querySelector('.wx-set-text').textContent).toBe('Sky set to Clear \u00B7 your run is Hazy');
+        expect(badge().dataset.band).toBe('hazy');
     });
 
     test('the sky toast shows the line, then hides after about 5 s; a newer toast replaces it', () => {

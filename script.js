@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function skyUnlocked() {
         return Progression.hasUnlock(CONFIG.LEVEL_PERKS, State.getPlayerLevel(), SkyPick.UNLOCK_KEY);
     }
-    function skyNow() { // { result, active, pick, slipped }; recomputed only when the real sky, the pick or the perk changed
+    function skyNow() { // { result, active, pick }; recomputed only when the real sky, the pick or the perk changed
         const real = realClimateNow();
         const pick = State.getSkyPick();
         const unlocked = skyUnlocked();
@@ -269,11 +269,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return skyCache.out;
     }
     function climateNow() { return skyNow().result; }
-    // Picking a sky (the Weather panel's picker): save, repaint. 'follow' / null = follow my run. Clear only while the run is Clear.
+    // Picking a sky (the Weather panel's picker): save, repaint. 'follow' / null = follow my run. Every band is allowed, Clear too (2026-11-09).
     function setSkyPick(band) {
         const next = band === 'follow' ? null : SkyPick.sanitize(band);
         if (next && !skyUnlocked()) return;
-        if (next === 'clear' && SkyPick.realBandOf(skyNow().result) !== 'clear') return;
         State.setSkyPick(next);
         saveGame();
         ClimateView.refresh();

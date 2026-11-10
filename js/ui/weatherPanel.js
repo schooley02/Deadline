@@ -155,7 +155,7 @@ const WeatherPanel = (() => {
 
     /**
      * The picker's rows. info = { unlocked, pick (the pick IN FORCE: null = follow), realBand, unlockLevel }.
-     * Clear is only offered while the run is Clear; the others are always yours. Not unlocked -> a locked line instead of options.
+     * Every band is offered, Clear included (a free pick since 2026-11-09). Not unlocked -> a locked line instead of options.
      */
     function pickerModel(info) {
         const i = info || {};
@@ -167,7 +167,7 @@ const WeatherPanel = (() => {
         const pick = BAND_INFO[i.pick] ? i.pick : null;
         const options = [{ key: 'follow', label: 'Follow my run', selected: !pick, disabled: false }];
         ['clear', 'hazy', 'overcast', 'fog', 'storm'].forEach((b) => {
-            options.push({ key: b, label: BAND_INFO[b].label, selected: pick === b, disabled: b === 'clear' && i.realBand !== 'clear' });
+            options.push({ key: b, label: BAND_INFO[b].label, selected: pick === b, disabled: false });
         });
         return { unlocked: true, title: t ? t.name : 'Your sky', tagline: t ? t.tagline : '', options };
     }
@@ -181,7 +181,7 @@ const WeatherPanel = (() => {
                         <h4 class="wx-picker-heading">${esc(pm.title)}</h4>
                         ${pm.tagline ? `<p class="wx-picker-tag">${esc(pm.tagline)}</p>` : ''}
                         <div class="wx-picks" role="group" aria-label="Pick your sky">${buttons}</div>
-                        <p class="wx-picker-rule">Clear is the only sky you earn: it is yours only while your run is Clear.</p>
+                        <p class="wx-picker-rule">Your pick changes the picture only. The weather on the badge and in the table is your real run.</p>
                     </div>`;
     }
 

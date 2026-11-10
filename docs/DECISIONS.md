@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-09 (later) -- Sky picker: Clear is a free pick too (Claude app session; Sonnet 5.5; Jeremy: "I think we should let the user select clear if they want to")
+
+- **Decision:** REVERSES the 2026-11-07 rule "Clear is the only band you earn; every other band is yours to pick". All five bands are now pickable at Lv 4 whatever the run is, Clear included. Rule now: every band is yours to pick; the pick changes the picture only.
+- **What the old rule protected, and why it is acceptable now:** the Clear look (fireflies, all stars) lost its trophy value, i.e. a player on a struggling run can wear a Clear sky. The record, the Weather table, Stats and the AI still carry the REAL climate, and the badge still shows the real band with the paintbrush, so the pick cannot fake the run. The Lv 4 gate (about day 7, per run, lost with the run) is unchanged.
+- **How:** `SkyPick.resolve` no longer special-cases Clear (the `slipped` state is gone); `pickableBands()` returns all five; the picker's Clear button is always enabled; `setSkyPick` has no Clear check; the toast treats a Clear pick like any other ("Your run's weather is now Hazy. Your sky stays Clear."; no more "Clear slipped away" line). The picker's note now reads "Your pick changes the picture only. The weather on the badge and in the table is your real run." A saved Clear pick from before this change simply works. No schema change, no balance number.
+- Docs: WORLD_FEEDBACK_PLAN ("W1c" rule, "as built"), UI_UX, ROADMAP, LEVEL_PERKS_PLAN, HANDOFF. The 2026-11-07 entry is left as written (append-only).
+
+---
+
 ## 2026-11-09 -- W1c sky picker BUILT (Claude app session; Sonnet 5.5; Jeremy: "i pushed it, continue")
 
 - **Built as designed + amended:** Lv 4 perk (`{ type: 'unlock', unlock: 'skyPicker' }`, theme name "Geo Storm" via `Theme.perkLabel`), view-only pick over the real climate (`js/skyPick.js`), `save.skyPick` (schema 19), badge paintbrush, panel "Sky set to X · your run is Y" + "Show my real sky", the picker row, a sky-change toast, hold-the-badge-to-peek. Details: WORLD_FEEDBACK_PLAN "W1c as built". Balance-tuning protocol: perk table edited, no economy number moved.

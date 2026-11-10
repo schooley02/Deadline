@@ -533,7 +533,7 @@ override can harm is the earned reward in the scene, and the only band with trop
 the look a run starts without). A struggling player who opens to a bleak world every morning may stop opening (engagement
 priority), so the gloom bands should be free to lift too.
 
-**Rule, one sentence: Clear is the only band you earn; every other band is yours to pick.**
+**Rule, one sentence: every band is yours to pick, Clear included.** (UPDATED 2026-11-09, Jeremy: "let the user select clear if they want to". It was "Clear is the only band you earn; every other band is yours to pick" with Clear offered only while the run was Clear. The rest of this section still describes that original design; where it talks about Clear gating, the Clear greying out or the "Clear slipped away" toast, read it as superseded by the "Clear is free" note in "W1c as built".)
 
 ### How it works
 - **Unlock = Level 4 perk** (about day 7), beside the existing 10% shop discount. Perks are per run, so game over loses the
@@ -606,6 +606,7 @@ copy), hold-to-peek last.
 - **Hold to peek:** press and hold the badge about 0.45 s with a sky picked: `ClimateView.peek(true)` wears the real result (`getRealResult`) until release / leave / cancel; no `onChange` while peeking; the release does not open the panel; a plain tap still does. `contextmenu` blocked on the badge, `-webkit-touch-callout` / `user-select: none`, `touch-action: manipulation`. No pick = no peek.
 - **Tests:** `test/skyPick.test.js` (22: rules, Lv 4 perk, theme name, State field), `test/skyPickUi.test.js` (19: view model, panel markup, badge mark, picker clicks, toast, peek, ClimateView key + peek), `test/climateWiring.test.js` (+8 wiring checks); older tests updated for schema 19, the two-perk Lv 4 and `realClimateNow`. Full Jest in a scratch copy of the repo + this session's files: 205 suites, 4,713 tests, all pass (index.html and script.js kept CRLF). Headless Chromium at 844x390: locked row at Lv 1, picker at Lv 4, Storm pick saved, badge real + brush, hold shows Hazy and release restores Storm without opening the panel, no console errors.
 - **Not checked:** a real phone (tap sizes of the picker buttons, the 450 ms hold with a finger, the long-press menu, Storm-forever frame rate on a phone), and the toast firing at a REAL rollover (covered by the pure `changeNotice` tests, not driven end to end).
+- **Clear is free (2026-11-09):** `resolve` has no Clear special case (no `slipped`), `pickableBands()` = all five, the Clear button is never disabled, `setSkyPick` has no Clear check, and the toast has no "Clear slipped away" line (a Clear pick gets the normal "Your run's weather is now X. Your sky stays Clear."). The picker's note says the pick changes the picture only. Tests updated (skyPick 22, skyPickUi 19, climateWiring; counts unchanged).
 - **Where the picker sits:** at 390px landscape the picker is below the fold of the Weather panel (it scrolls). If that is annoying, move the picker above the trend line.
 
 ### Parked ideas (later enhancements, Jeremy 2026-11-03)

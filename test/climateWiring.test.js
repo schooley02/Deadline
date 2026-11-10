@@ -459,12 +459,12 @@ describe('sky picker wiring (W1c, 2026-11-09)', () => {
         expect(script).toContain('SkyPick.changeNotice(prev, next, State.getSkyPick(), skyUnlocked())');
     });
 
-    test('script.js: picking saves the pick and repaints; Clear is refused while the run is not Clear', () => {
+    test('script.js: picking saves the pick and repaints; every band is allowed, Clear included', () => {
         const fn = script.slice(script.indexOf('function setSkyPick(band) {'), script.indexOf('const skyWatch'));
         expect(fn).toContain('State.setSkyPick(next);');
         expect(fn).toContain('saveGame();');
         expect(fn).toContain('ClimateView.refresh();');
-        expect(fn).toMatch(/next === 'clear' && SkyPick\.realBandOf\(skyNow\(\)\.result\) !== 'clear'\) return;/);
+        expect(fn).not.toMatch(/'clear'/); // no special case for Clear (2026-11-09)
     });
 
     test('RainFx still reads the worn sky (a picked Storm has no score = full rain)', () => {
