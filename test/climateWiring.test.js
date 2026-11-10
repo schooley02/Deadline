@@ -163,14 +163,14 @@ describe('Build 2 layers: markup + z-order + input', () => {
         expect(canvas.indexOf('id="climateWxNear"')).toBeGreaterThan(canvas.indexOf('id="climateNear"'));
     });
 
-    test('36 fireflies (24 in the air, 12 low over the ground), the moonbeam and the break glow exist and are decorative', () => {
+    test('36 fireflies (24 in the air, 12 low over the ground) exist and are decorative; the moonbeam + break glow are gone', () => {
         const flies = canvas.match(/class="firefly[^"]*"/g) || [];
         expect(flies.length).toBe(36);
         expect(flies.filter(f => f.includes('firefly--g')).length).toBe(12);
         (canvas.match(/class="firefly firefly--g[^"]*" style="[^"]*"/g) || []).forEach(f => expect(f).toMatch(/--ff-bot:\d+px/));
         expect(canvas).toMatch(/class="climate-fireflies"[^>]*aria-hidden="true"/);
-        expect(canvas).toMatch(/class="climate-beam"[^>]*aria-hidden="true"/);
-        expect(html).toMatch(/class="climate-break"[^>]*aria-hidden="true"/);
+        expect(html).not.toContain('climate-beam');
+        expect(html).not.toContain('climate-break');
     });
 
     test('ground fireflies are placed from the bottom (on the ground art) and the core is bright enough to see', () => {
@@ -195,14 +195,12 @@ describe('Build 2 layers: markup + z-order + input', () => {
         expect(zAny(css, '.climate-wx-near')).toBeLessThan(90);
     });
 
-    test('fireflies are under the zombies (30+); the beam is not above the village; the lightning and break glow stay in the sky', () => {
+    test('fireflies are under the zombies (30+); the lightning stays in the sky', () => {
         expect(zAny(css, '.climate-fireflies')).toBeLessThan(30);
-        expect(zAny(css, '.climate-beam')).toBeLessThanOrEqual(1);
         expect(zAny(css, '.climate-lightning')).toBeLessThan(0);
-        expect(zAny(css, '.climate-break')).toBeLessThan(0);
     });
 
-    test.each(['.village-wx', '.fog-bank', '.rain', '.climate-fireflies', '.climate-beam', '.climate-break'])('%s never takes a tap', sel => {
+    test.each(['.village-wx', '.fog-bank', '.rain', '.climate-fireflies'])('%s never takes a tap', sel => {
         const re = new RegExp(`(^|[\\s,])${sel.replace('.', '\\.')}[,\\s]*(\\{|[^{]*\\{)[^}]*pointer-events:\\s*none`, 'm');
         expect(css).toMatch(re);
     });
@@ -219,8 +217,7 @@ describe('Build 2 layers: markup + z-order + input', () => {
         expect(css).toMatch(/climate-fog[^{]*\.fog-bank/);
         expect(css).toMatch(/climate-storm[^{]*\.rain/);
         expect(css).toMatch(/climate-clear[^{]*\.climate-fireflies/);
-        expect(css).toMatch(/climate-trend-up[^{]*\.climate-beam/);
-        expect(css).toMatch(/climate-trend-up[^{]*\.climate-break/);
+        expect(css).not.toMatch(/climate-beam|climate-break/);
     });
 
     test('motion settings: fog + rain stop, lightning + fireflies vanish (fx-reduced / fx-off / prefers-reduced-motion)', () => {

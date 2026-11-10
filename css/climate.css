@@ -20,7 +20,7 @@
  * Rule: weather may hide DECORATION (stars, moon, far scenery), never recovery information.
  * Clear with no override = today's look exactly: every var below has the old value as its fallback in gameCanvas.css.
  * Build 2 (below the number styles): Fog ground banks at four depths, Storm rain at four depths + soft lightning, fireflies at
- * Clear, the trend visuals (up = a break of light near the moon + a moonbeam on the church + a brighter moon; down = sky clouds
+ * Clear, the trend visuals (up = a brighter moon; down = sky clouds
  * drift faster). The weather badge / panel are in css/weatherPanel.css.
  */
 
@@ -212,8 +212,6 @@
 .village-wx,
 .climate-wx-near,
 .climate-fireflies,
-.climate-beam,
-.climate-break,
 .climate-lightning { display: none; }
 
 .fog-bank,
@@ -225,8 +223,6 @@
 #gameCanvas.climate-storm .rain { display: block; }
 #gameCanvas.climate-storm .climate-lightning { display: block; }
 #gameCanvas.climate-clear .climate-fireflies { display: block; }
-#gameCanvas.climate-trend-up .climate-beam,
-#gameCanvas.climate-trend-up .climate-break { display: block; }
 
 /* ---------- Fog: the pixel cloud sprites, lightened + see-through (Assets/scene/fog-tile.png = clouds-tile.png at
    brightness 1.35 / saturation 0.35, pre-baked so no per-frame filter), laid along the ground. The nearer, the faster
@@ -390,27 +386,7 @@ body.glance-strip #gameCanvas.climate-storm::before {
     100% { transform: translate(calc(var(--ff-x, 14px) * 0.3), calc(var(--ff-y, -8px) * -0.8)); }
 }
 
-/* ---------- Trend UP (any band): a break of light around the moon, a moonbeam that falls on the church, a brighter moon ---------- */
-
-.climate-break {
-    position: absolute;
-    inset: 0;
-    z-index: -2; /* later in the DOM than the scene => over the sky clouds + far haze, under the ground (-1) */
-    pointer-events: none;
-    background: radial-gradient(ellipse 130px 90px at calc(100% - var(--moon-right, 30px) - 29px) calc(8% + 29px),
-        rgba(253, 251, 232, 0.16), rgba(253, 251, 232, 0.05) 55%, rgba(253, 251, 232, 0) 100%);
-}
-
-.climate-beam {
-    position: absolute;
-    inset: 0;
-    z-index: 1; /* same level as #base but later in the DOM => over the church (and the village layer under it); zombies (30+) stay over it */
-    pointer-events: none;
-    /* from just under the moon down to the church's door */
-    clip-path: polygon(calc(100% - var(--moon-right, 30px) - 52px) calc(8% + 36px),
-        calc(100% - var(--moon-right, 30px) - 8px) calc(8% + 50px), 230px 100%, 70px 100%);
-    background: linear-gradient(240deg, rgba(253, 251, 232, 0.2), rgba(253, 251, 232, 0.07) 70%, rgba(253, 251, 232, 0.03));
-}
+/* ---------- Trend UP (any band): a brighter moon (the moonbeam + break of light were removed 2026-11-09, Jeremy) ---------- */
 
 #gameCanvas.climate-trend-up .nights-moon { opacity: min(1, calc(var(--clm-moon, 1) + 0.25)); }
 

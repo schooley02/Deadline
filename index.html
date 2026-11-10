@@ -155,9 +155,6 @@
                     <div class="scene-layer climate-lightning"></div>
                     <div class="scene-layer scene-ground"></div>
                 </div>
-                <!-- Run climate trend UP (css/climate.css): a soft break of light around the moon (above the sky clouds, z -2 and later
-                     in the DOM than the scene) -- the moonbeam that falls on the church is .climate-beam below. Decorative. -->
-                <div class="climate-break" aria-hidden="true"></div>
                 <!-- Achievement village (V7 W2 first slice, 2026-10-29; docs/ART_STYLE.md "Achievement village art"):
                      the Clock tower on the horizon hill, behind the zombie lanes and UNDER #midnightLine
                      (css/village.css z-index 1). Decorative, filled by js/ui/villageView.js. Landscape/desktop
@@ -204,7 +201,6 @@
                      (z 88, under the Nights Survived number at 89). pointer-events none: every tap passes through. Decorative. -->
                 <div id="climateNear" class="climate-near" aria-hidden="true"></div>
                 <!-- Run climate extras (Build 2, 2026-11-03; css/climate.css), all decorative with pointer-events none:
-                     the moonbeam (trend up) lands on the church (z 0, after #base in the DOM => over it, under the village + zombies);
                      fireflies (Clear only; 36 on 2026-11-07: 28 BEHIND the zombies (z 28) and 8 IN FRONT of them (z 83), 12 of the 36 low over the ground art); and the NEAR weather wrapper
                      (z 87, clipped to the canvas) holds Fog's front banks and Storm's two near rain layers. The village's own row /
                      mid fog + rain are built inside #villageLayer by js/ui/villageView.js. -->
@@ -216,7 +212,6 @@
                 <!-- Sky toast (W1c amendment, 2026-11-09): one small line under the badge when the REAL band changes while the player's sky is
                      picked. Not the LEVEL UP banner (that one is a big celebration); pointer-events none; portrait strip hides it. -->
                 <div id="skyToast" class="sky-toast" role="status" aria-live="polite" hidden></div>
-                <div class="climate-beam" aria-hidden="true"></div>
                 <div class="climate-fireflies" aria-hidden="true">
                     <span class="firefly firefly--b" style="left:65%;--ff-top:5px;--ff-d:8s;--ff-t:-6s;--ff-x:21px;--ff-y:-11px"></span>
                     <span class="firefly" style="left:82%;--ff-top:-45px;--ff-d:11s;--ff-t:-4s;--ff-x:20px;--ff-y:7px"></span>
