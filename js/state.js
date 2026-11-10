@@ -63,6 +63,7 @@ const State = (() => {
     // already executed).
     let baseHealth, playerXP, playerLevel, playerPoints, routineSlots;
     let bestRoutineSlots = 0; // run-end carryover (2026-11-03): the most routine slots ever held; survives a new run
+    let bestPlayerLevel = 0; // sky unlocks (W1d, 2026-11-09): the highest player level ever reached; survives a new run (initGame never touches it)
     let bestVillageTiers = {}; // Memorial (2026-11-08, js/memorial.js): each building's all-time best tier { kind: 1..5 }; survives a new run
     let playerInventory = {};
     let sickDayDate = null;
@@ -108,7 +109,19 @@ const State = (() => {
     const getPlayerXP = () => playerXP;
     const setPlayerXP = (n) => { playerXP = n; };
     const getPlayerLevel = () => playerLevel;
-    const setPlayerLevel = (n) => { playerLevel = n; };
+    const setPlayerLevel = (n) => {
+        playerLevel = n;
+        raiseBestPlayerLevel(n); // a lifetime high-water mark: a level reached once is kept for good (it only ever goes up)
+    };
+    // Sky unlocks (W1d): Hazy opens at best level 4. Same pattern as bestRoutineSlots / bestVillageTiers: raised on the way up, saved as an
+    // additive root field (no schema bump), seeded from run history + the current level when a save from before this field loads, and
+    // forgotten only by a dev Reset Game.
+    const raiseBestPlayerLevel = (n) => {
+        const v = (typeof SkyPick !== 'undefined') ? SkyPick.sanitizeLevel(n) : ((typeof n === 'number' && isFinite(n) && n > 0) ? Math.floor(n) : 0);
+        if (v > bestPlayerLevel) bestPlayerLevel = v;
+    };
+    const getBestPlayerLevel = () => bestPlayerLevel;
+    const resetBestPlayerLevel = () => { bestPlayerLevel = 0; };
     const getPlayerPoints = () => playerPoints;
     const setPlayerPoints = (n) => { playerPoints = n; };
     const getRoutineSlots = () => routineSlots;
@@ -313,7 +326,7 @@ const State = (() => {
         setPushbackUses(null); // a fresh run: no charges used (Clock tower stars reset too)
         setAnytimeCreditUses(null); // ...and no anytime morning credits spent
         setPriorityMarks(null); // ...and no priority slots spent (a plan for a day that ended the run is moot)
-        setSkyPick(null); // ...and the sky follows the run again (the Lv 4 picker perk is per run, like every perk)
+        setSkyPick(null); // ...and the sky follows the run again (the PICK is per run; the skies you EARNED are lifetime, W1d: bestPlayerLevel + bestVillageTiers)
         setSickDayDate(null); // frozen-slots sub-session 5 — fresh run has no active Sick Day
         // Run stats reset with the run; runHistory is deliberately NOT
         // touched here — it must survive restart (session 52, RUN_HISTORY_PLAN).
@@ -413,6 +426,7 @@ const State = (() => {
             routineSlots: getRoutineSlots(),
             bestRoutineSlots: getBestRoutineSlots(),
             bestVillageTiers: getBestVillageTiers(),
+            bestPlayerLevel: getBestPlayerLevel(),
             itemIdCounter: getItemIdCounter(),
             gameIsOver: isGameOver(),
             daysSurvived: getDaysSurvived(),
@@ -627,6 +641,12 @@ const State = (() => {
         setRoutineSlots(slotsForLevel(restoredLevel));
         // Memorial (2026-11-08): the saved mark, plus the peaks of every run still in history (that seeds a save from before this field
         // existed). Reset first so loading a different save cannot inherit the previous one's mark.
+        // Sky unlocks (W1d): the saved best level, the level this save is at, and the peak of every run still in history (that seeds a save
+        // from before this field). Reset first so loading a different save cannot inherit the previous one's mark.
+        resetBestPlayerLevel();
+        raiseBestPlayerLevel(save.bestPlayerLevel);
+        raiseBestPlayerLevel(getPlayerLevel());
+        raiseBestPlayerLevel((typeof SkyPick !== 'undefined') ? SkyPick.bestLevelFromHistory(getRunHistory()) : 0);
         resetBestVillageTiers();
         setBestVillageTiers(save.bestVillageTiers);
         setBestVillageTiers((typeof Memorial !== 'undefined') ? Memorial.fromHistory(getRunHistory()) : null);
@@ -1374,6 +1394,7 @@ const State = (() => {
         getRoutineSlots, setRoutineSlots,
         getBestRoutineSlots, setBestRoutineSlots, slotsForLevel,
         getBestVillageTiers, setBestVillageTiers, resetBestVillageTiers,
+        getBestPlayerLevel, resetBestPlayerLevel,
         getPlayerInventory, setPlayerInventory,
         getSickDayDate, setSickDayDate,
         getPushbackUses, setPushbackUses,

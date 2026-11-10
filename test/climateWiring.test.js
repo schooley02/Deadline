@@ -449,18 +449,22 @@ describe('sky picker wiring (W1c, 2026-11-09)', () => {
     test('script.js: precedence dev sky > ?climate= > player pick > real, the pick only with the perk, and the toast is armed after the restore', () => {
         expect(script).toContain('function realClimateNow() {');
         expect(script).toContain('function climateNow() { return skyNow().result; }');
-        expect(script).toContain('SkyPick.resolve(real, pick, unlocked)');
-        expect(script).toContain('Progression.hasUnlock(CONFIG.LEVEL_PERKS, State.getPlayerLevel(), SkyPick.UNLOCK_KEY)');
+        // W1d: the earned skies are lifetime (best level + best village stars), not the current level
+        expect(script).toContain("SkyPick.resolve(real, pick, unlocked ? unlocked.split(',') : [])");
+        expect(script).toContain('SkyPick.unlockedBands(CONFIG.SKY_UNLOCKS, skyBest())');
+        expect(script).toContain('{ level: State.getBestPlayerLevel(), tiers: State.getBestVillageTiers() }');
+        expect(script).not.toContain('Progression.hasUnlock(CONFIG.LEVEL_PERKS, State.getPlayerLevel(), SkyPick.UNLOCK_KEY)');
         // realClimateNow answers the dev panel sky and ?climate= first; resolve() leaves a forced result alone
         const real = script.slice(script.indexOf('function realClimateNow() {'), script.indexOf('const skyCache'));
         expect(real.indexOf('DevDemo.weather()')).toBeLessThan(real.indexOf('climateOverride'));
         expect(script).toContain('armSkyWatch(); // from here on a real-band change under a sky pick gets its toast');
         expect(script.indexOf('ClimateView.refresh(); // the sky for the restored run')).toBeLessThan(script.indexOf('armSkyWatch();'));
-        expect(script).toContain('SkyPick.changeNotice(prev, next, State.getSkyPick(), skyUnlocked())');
+        expect(script).toContain('SkyPick.changeNotice(prev, next, State.getSkyPick(), skyUnlockedBands())');
     });
 
     test('script.js: picking saves the pick and repaints; every band is allowed, Clear included', () => {
         const fn = script.slice(script.indexOf('function setSkyPick(band) {'), script.indexOf('const skyWatch'));
+        expect(fn).toContain('skyUnlockedBands().indexOf(next) < 0'); // W1d: only an EARNED sky can be picked
         expect(fn).toContain('State.setSkyPick(next);');
         expect(fn).toContain('saveGame();');
         expect(fn).toContain('ClimateView.refresh();');

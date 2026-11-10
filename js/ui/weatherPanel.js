@@ -154,8 +154,9 @@ const WeatherPanel = (() => {
     }
 
     /**
-     * The picker's rows. info = { unlocked, pick (the pick IN FORCE: null = follow), realBand, unlockLevel }.
-     * Every band is offered, Clear included (a free pick since 2026-11-09). Not unlocked -> a locked line instead of options.
+     * The picker's rows. info = { unlocked, pick (the pick IN FORCE: null = follow), realBand, unlockLevel, bands }.
+     * `bands` (W1d) = [{ band, unlocked, requirement }] for the five skies: an earned sky is a button, a locked one is a disabled button
+     * that shows its requirement. Without `bands` every sky is offered. Nothing earned yet -> a locked line instead of options.
      */
     function pickerModel(info) {
         const i = info || {};
@@ -167,7 +168,11 @@ const WeatherPanel = (() => {
         const pick = BAND_INFO[i.pick] ? i.pick : null;
         const options = [{ key: 'follow', label: 'Follow my run', selected: !pick, disabled: false }];
         ['clear', 'hazy', 'overcast', 'fog', 'storm'].forEach((b) => {
-            options.push({ key: b, label: BAND_INFO[b].label, selected: pick === b, disabled: false });
+            const row = Array.isArray(i.bands) ? i.bands.find(x => x && x.band === b) : null;
+            const locked = !!row && !row.unlocked;
+            const option = { key: b, label: BAND_INFO[b].label, selected: !locked && pick === b, disabled: locked };
+            if (locked) { option.locked = true; option.requirement = String(row.requirement || ''); }
+            options.push(option);
         });
         return { unlocked: true, title: t ? t.name : 'Your sky', tagline: t ? t.tagline : '', options };
     }
@@ -175,8 +180,13 @@ const WeatherPanel = (() => {
     function pickerHtml(pm) {
         if (!pm) return '';
         if (!pm.unlocked) return `<div class="wx-picker wx-picker--locked"><p class="wx-locked">\uD83D\uDD12 ${esc(pm.lockedLine)}</p></div>`;
-        const buttons = pm.options.map(o =>
-            `<button type="button" class="wx-pick${o.selected ? ' wx-pick--on' : ''}" data-sky-pick="${o.key}" aria-pressed="${o.selected ? 'true' : 'false'}"${o.disabled ? ' disabled' : ''}>${esc(o.label)}</button>`).join('');
+        const buttons = pm.options.map((o) => {
+            if (o.locked) {
+                const req = o.requirement ? `, locked. Unlocks at ${o.requirement}` : ', locked';
+                return `<button type="button" class="wx-pick wx-pick--locked" data-sky-pick="${o.key}" aria-pressed="false" aria-label="${esc(o.label + req)}" disabled><span class="wx-pick-name"><span aria-hidden="true">\uD83D\uDD12</span> ${esc(o.label)}</span>${o.requirement ? `<span class="wx-pick-req">${esc(o.requirement)}</span>` : ''}</button>`;
+            }
+            return `<button type="button" class="wx-pick${o.selected ? ' wx-pick--on' : ''}" data-sky-pick="${o.key}" aria-pressed="${o.selected ? 'true' : 'false'}"${o.disabled ? ' disabled' : ''}>${esc(o.label)}</button>`;
+        }).join('');
         return `<div class="wx-picker">
                         <h4 class="wx-picker-heading">${esc(pm.title)}</h4>
                         ${pm.tagline ? `<p class="wx-picker-tag">${esc(pm.tagline)}</p>` : ''}

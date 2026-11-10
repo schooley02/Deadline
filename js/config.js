@@ -343,6 +343,17 @@ const CONFIG = {
     //   thresholds     a score at or above the line is that band (below `fog` = Storm); `hysteresis` = how far past a line the score
     //                  must go before the sky actually changes, so it does not flicker.
     //   trendDays / trendDelta   improving / worsening = the climate vs trendDays closed days ago, by at least trendDelta.
+    // Sky unlocks (W1d, designed 2026-11-09, docs/WORLD_FEEDBACK_PLAN.md "W1d Sky unlocks"): each sky is its own LIFETIME unlock on a
+    // different track, so a new run keeps every sky you earned. `level` = the best player level ever reached; `kind` + `tier` = that
+    // village building's best star ever (`bestVillageTiers`; star N = tier N). Hazy is the starter and rides the Lv 4 perk (a test keeps
+    // the two numbers equal). Nothing new is measured: every number reuses an existing level or village threshold.
+    SKY_UNLOCKS: {
+        hazy:     { level: 4 },
+        overcast: { kind: 'nights',   tier: 3 }, // Radio tower
+        fog:      { kind: 'defense',  tier: 3 }, // Jailhouse
+        storm:    { kind: 'bestdays', tier: 3 }, // Windmill
+        clear:    { kind: 'nights',   tier: 4 }, // Radio tower
+    },
     CLIMATE: {
         windowDays: 7,
         decay: 0.85,

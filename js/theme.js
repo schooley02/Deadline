@@ -31,6 +31,13 @@ const Theme = (() => {
         perks: {
             skyPicker: { name: 'Geo Storm', tagline: 'You control the weather (visuals only)' },
         },
+        // Sky unlock requirements (W1d, 2026-11-09): the line under a locked sky in the Weather panel. Building names are theme words,
+        // so they live here and never in SkyPick or the panel. Placeholders: {level}, {building}, {tier}.
+        skyUnlocks: {
+            level: 'Player Lv {level}',
+            star: '{building} star {tier}',
+            buildings: { nights: 'Radio tower', defense: 'Jailhouse', bestdays: 'Windmill' },
+        },
         // Milestone markers (2026-11-08; js/milestoneMarkers.js, js/ui/markerPanel.js): the small stones on the graveyard hill that show the
         // all-time achievements. Placeholders: {name}, {tier}, {value}, {threshold}, {unit}.
         markers: {
@@ -87,7 +94,17 @@ const Theme = (() => {
         return t ? t.name + ': ' + t.tagline : '';
     }
 
-    return { strings, assets, fill, goalAsset, perkLabel };
+    /** A SKY_UNLOCKS rule ({ level } or { kind, tier }) -> its player-facing requirement ('' for a malformed rule). */
+    function skyRequirement(rule) {
+        const t = strings.skyUnlocks;
+        if (!rule || typeof rule !== 'object') return '';
+        if (Number.isFinite(rule.level)) return fill(t.level, { level: rule.level });
+        const building = t.buildings[rule.kind];
+        if (building && Number.isFinite(rule.tier)) return fill(t.star, { building, tier: rule.tier });
+        return '';
+    }
+
+    return { strings, assets, fill, goalAsset, perkLabel, skyRequirement };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

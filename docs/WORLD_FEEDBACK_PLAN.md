@@ -609,6 +609,29 @@ copy), hold-to-peek last.
 - **Clear is free (2026-11-09):** `resolve` has no Clear special case (no `slipped`), `pickableBands()` = all five, the Clear button is never disabled, `setSkyPick` has no Clear check, and the toast has no "Clear slipped away" line (a Clear pick gets the normal "Your run's weather is now X. Your sky stays Clear."). The picker's note says the pick changes the picture only. Tests updated (skyPick 22, skyPickUi 19, climateWiring; counts unchanged).
 - **Where the picker sits:** at 390px landscape the picker is below the fold of the Weather panel (it scrolls). If that is annoying, move the picker above the trend line.
 
+### W1d Sky unlocks -- DESIGNED 2026-11-09 (Claude app session; Sonnet 5.5; Jeremy: "weather types unlock as a perk or reward for lvl ups of various kinds, first is hazy/starter" -> "i agree with your suggestions"). BUILT 2026-11-09 (Sonnet 5.5; sw v306; no schema bump)
+- **Rule, one sentence:** each sky is its own LIFETIME unlock on a different track; the picker opens with the first one you earn and a locked sky shows what unlocks it. Lifetime = a new run or a game over never takes one back.
+- **The tracks (`CONFIG.SKY_UNLOCKS`, every number reuses an existing level or village threshold, nothing new is measured):**
+
+  | Sky | Unlock | Why this track |
+  |---|---|---|
+  | Hazy | player Lv 4 (the Geo Storm perk) | the starter; about the first week |
+  | Overcast | Radio tower star 3 (18 nights) | nights survived, about 3 weeks |
+  | Fog | Jailhouse star 3 (14 nights held at 75%+ health) | defending the church |
+  | Storm | Windmill star 3 (5 heavy days handled) | surviving hard days |
+  | Clear | Radio tower star 4 (50 nights) | the one you really earn |
+
+- **Dropped:** a player max-level change (every level-keyed table would need new rows). "Star N" = tier N, so star 3 is the SECOND number of `VILLAGE_TIER_THRESHOLDS[kind]` (nights 18, defense 14, bestdays 5) and star 4 is the third (nights 50).
+- **What it reads:** `bestPlayerLevel` (NEW, one additive root save field, no schema bump) and the existing `bestVillageTiers` (the Memorial's high-water mark). `State.setPlayerLevel` raises `bestPlayerLevel` (it only goes up); `initGame` never touches it; a save from before the field is seeded from the current level and the `peakPlayerLevel` of every run still in history (`SkyPick.bestLevelFromHistory`); a dev Reset Game forgets it (`State.resetBestPlayerLevel`).
+- **Pure rules (`js/skyPick.js`):** `unlockedBands(rules, { level, tiers })` -> the earned bands in sky order; `ruleMet`; `allowedBands`. `resolve` / `changeNotice` now take the LIST of earned bands as the third argument (a boolean still works: true = all five, false = none). A saved pick whose band is not earned is ignored, so the canvas shows the real sky (no pick is ever written for a locked band: `setSkyPick` refuses it).
+- **Picker opens when ANY sky is earned** (in practice Lv 4 / Hazy). Before that: the old locked line "Geo Storm unlocks at Lv 4".
+- **Weather panel (`js/ui/weatherPanel.js`, `css/weatherPanel.css`):** `pickerModel(info)` takes `info.bands = [{ band, unlocked, requirement }]`. An earned sky is a normal button; a locked one is a DISABLED button with a lock, the sky name, and its requirement under it ("Jailhouse star 3"), with an `aria-label` like "Fog, locked. Unlocks at Jailhouse star 3". Follow my run is always enabled. Without `bands` (an old caller) every sky is offered.
+- **Theme words:** requirement lines come from `Theme.skyRequirement(rule)` and `Theme.strings.skyUnlocks` ("Player Lv {level}", "{building} star {tier}", building names Radio tower / Jailhouse / Windmill). Neither `SkyPick` nor the panel holds a building name (a test checks).
+- **script.js:** `skyBest()`, `skyUnlockedBands()`; `skyNow()` caches on real result / pick / earned list; `setSkyPick` refuses a locked band; `getPickerInfo` builds `bands`; `handleConfirmReset` calls `State.resetBestPlayerLevel()`. The once-a-second best-tier tracker already raises `bestVillageTiers`, so a sky unlocks the moment the star is reached.
+- **Tests:** `test/skyUnlocks.test.js` (rules, config, history seed, theme lines, locked-row markup, State field + wiring), `test/climateWiring.test.js` (wiring checks updated). Full suite in a fresh clone: 207 suites, 4,747 of 4,748 pass (the one failure is the CRLF check on the clone's LF `index.html`, which does not apply to the device).
+- **Checked:** headless Chromium at 844x390 with a save at Lv 4 + Radio tower star 3: Hazy and Overcast are buttons, Clear / Fog / Storm are locked rows showing their requirement, no console errors, page width unchanged (846 vs 844 is the same without this change). NOT checked on a phone (tap size and wrapping of the two-line locked rows).
+- **Watch out:** (1) no unlock toast yet, a sky just becomes available (an idea if it feels silent); (2) the Windmill's pace (heavy days handled) has never been measured, so Storm's timing is a guess; (3) Clear at 50 nights vs the 100-night star 5 is a dial to confirm after play; (4) the dev level tools raise `bestPlayerLevel` too (they go through `setPlayerLevel`), so a dev jump to Lv 4 unlocks Hazy for good until a Reset Game; (5) the pick itself is still per run (reset by `initGame`), only the unlocks are lifetime.
+
 ### Parked ideas (later enhancements, Jeremy 2026-11-03)
 - **Observatory** (a telescope aimed at the moon) or a **weather balloon** in the distance as the weather tap target
   instead of the badge. An observatory would need its own stat to be a village building, or be the one building that only
@@ -630,6 +653,8 @@ copy), hold-to-peek last.
   the run climate. See "W1b Mood check-in" below.
 - [x] **W1c — Sky picker, Lv 4 perk (DESIGNED 2026-11-07, Fable; BUILT 2026-11-09, Sonnet, sw v305; phone check owed):** Clear is the only band you earn; every
   other band is yours to pick; badge, trend, record and AI keep the real climate. See "W1c Sky picker" below.
+- [x] **W1d — Sky unlocks (DESIGNED + BUILT 2026-11-09, Sonnet, sw v306; phone check owed):** each sky is its own lifetime unlock (Hazy Lv 4, Overcast Radio tower star 3,
+  Fog Jailhouse star 3, Storm Windmill star 3, Clear Radio tower star 4); locked skies show their requirement. See "W1d Sky unlocks" below.
 - [ ] **W2 — Achievement VILLAGE, Americana small town (Sonnet + PixelLab art; REPLACES the headstone-markers idea; direction DECIDED 2026-10-28):**
   8 category buildings (5 tiers x 3 conditions, state carried by the art + code filters) on the horizon hill behind the zombies + the
   Memorial on the right hill; tap -> close-up village view (same sprite at 4x). Art spec, 2x pixel-scale rule, vertical budget, Americana

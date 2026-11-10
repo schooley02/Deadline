@@ -4,6 +4,19 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-09 (night) -- W1d sky unlocks: designed and built (Claude app session; Sonnet 5.5; Jeremy: "weather types unlock as a perk or reward for lvl ups of various kinds, first is hazy/starter" -> "i agree with your suggestions")
+
+- **Decision:** the skies unlock one by one, each as a LIFETIME unlock on its own track, instead of all five opening at Lv 4. Hazy = player Lv 4 (the starter, the Geo Storm perk); Overcast = Radio tower star 3; Fog = Jailhouse star 3; Storm = Windmill star 3; Clear = Radio tower star 4. Locked skies are shown in the Weather panel with their requirement. `CONFIG.SKY_UNLOCKS` holds the rules.
+- **Why:** gives the player a reason to chase each building and the sky a reward value again after Clear became a free pick (2026-11-09), using thresholds that already exist. Nothing new is measured, no economy number moves, so the balance-tuning protocol is not involved.
+- **Lifetime, not per run:** read from the all-time bests (`bestPlayerLevel`, `bestVillageTiers`), so a game over or a new run never takes a sky back. The PICK itself stays per run (unchanged from W1c).
+- **One new field:** `bestPlayerLevel` (additive root save field, NO schema bump): raised by `State.setPlayerLevel`, never lowered, seeded from the current level and run-history `peakPlayerLevel` for older saves, forgotten only by a dev Reset Game. Same pattern as `bestRoutineSlots` / `bestVillageTiers`.
+- **Rejected:** raising the player max level (every level-keyed table would need new rows); a per-run unlock (a lost run would take the skies back); a separate "unlocked skies" saved list (it is derivable from two high-water marks, so it would only be a second copy to drift).
+- **Behaviour details:** the picker opens when ANY sky is earned; a saved pick whose band is not earned is ignored (the real sky shows); `setSkyPick` refuses a locked band; requirement text is a theme word (`Theme.skyRequirement`), never in `SkyPick` or the panel; Hazy's Lv 4 is kept equal to the Lv 4 perk by a test.
+- **Open dials (confirm after real play):** the Windmill's pace has never been measured, so Storm's timing is a guess; Clear at 50 nights vs the 100-night star 5; whether a newly earned sky needs a toast.
+- Docs: WORLD_FEEDBACK_PLAN ("W1d Sky unlocks" + build order), ROADMAP (V7 W1d checked), LEVEL_PERKS_PLAN (Lv 4 row), DATA_SCHEMA (`bestPlayerLevel`), UI_UX, HANDOFF.
+
+---
+
 ## 2026-11-09 (later) -- Sky picker: Clear is a free pick too (Claude app session; Sonnet 5.5; Jeremy: "I think we should let the user select clear if they want to")
 
 - **Decision:** REVERSES the 2026-11-07 rule "Clear is the only band you earn; every other band is yours to pick". All five bands are now pickable at Lv 4 whatever the run is, Clear included. Rule now: every band is yours to pick; the pick changes the picture only.

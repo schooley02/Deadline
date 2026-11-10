@@ -255,16 +255,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     const skyCache = { real: null, pick: null, unlocked: null, out: null };
-    function skyUnlocked() {
-        return Progression.hasUnlock(CONFIG.LEVEL_PERKS, State.getPlayerLevel(), SkyPick.UNLOCK_KEY);
-    }
-    function skyNow() { // { result, active, pick }; recomputed only when the real sky, the pick or the perk changed
+    // W1d sky unlocks (docs/WORLD_FEEDBACK_PLAN.md "W1d Sky unlocks"): every sky is its own LIFETIME unlock (CONFIG.SKY_UNLOCKS), read from
+    // the all-time bests (best player level, best village stars), so a new run or a game over never takes one back.
+    function skyBest() { return { level: State.getBestPlayerLevel(), tiers: State.getBestVillageTiers() }; }
+    function skyUnlockedBands() { return SkyPick.unlockedBands(CONFIG.SKY_UNLOCKS, skyBest()); }
+    function skyNow() { // { result, active, pick }; recomputed only when the real sky, the pick or the earned skies changed
         const real = realClimateNow();
         const pick = State.getSkyPick();
-        const unlocked = skyUnlocked();
+        const unlocked = skyUnlockedBands().join(',');
         if (!skyCache.out || skyCache.real !== real || skyCache.pick !== pick || skyCache.unlocked !== unlocked) {
             skyCache.real = real; skyCache.pick = pick; skyCache.unlocked = unlocked;
-            skyCache.out = SkyPick.resolve(real, pick, unlocked);
+            skyCache.out = SkyPick.resolve(real, pick, unlocked ? unlocked.split(',') : []);
         }
         return skyCache.out;
     }
@@ -272,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Picking a sky (the Weather panel's picker): save, repaint. 'follow' / null = follow my run. Every band is allowed, Clear too (2026-11-09).
     function setSkyPick(band) {
         const next = band === 'follow' ? null : SkyPick.sanitize(band);
-        if (next && !skyUnlocked()) return;
+        if (next && skyUnlockedBands().indexOf(next) < 0) return; // a sky you have not earned cannot be picked
         State.setSkyPick(next);
         saveGame();
         ClimateView.refresh();
@@ -287,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const next = SkyPick.realBandOf(result);
         skyWatch.last = next;
         if (prev === null || prev === next) return;
-        const text = SkyPick.changeNotice(prev, next, State.getSkyPick(), skyUnlocked());
+        const text = SkyPick.changeNotice(prev, next, State.getSkyPick(), skyUnlockedBands());
         if (text) WeatherPanel.showSkyToast(text);
     }
     function armSkyWatch() {
@@ -299,8 +300,10 @@ document.addEventListener('DOMContentLoaded', () => {
         getResult: climateNow,
         getPickerInfo: () => {
             const s = skyNow();
+            const earned = skyUnlockedBands();
             return {
-                unlocked: skyUnlocked(),
+                unlocked: earned.length > 0,
+                bands: SkyPick.BANDS.map(b => ({ band: b, unlocked: earned.indexOf(b) >= 0, requirement: Theme.skyRequirement(CONFIG.SKY_UNLOCKS[b]) })),
                 pick: s.active ? s.pick : null,
                 realBand: SkyPick.realBandOf(s.result),
                 unlockLevel: Progression.unlockLevel(CONFIG.LEVEL_PERKS, SkyPick.UNLOCK_KEY),
@@ -3454,6 +3457,7 @@ document.addEventListener('DOMContentLoaded', () => {
         State.setAchievements(Achievements.freshUnlocked());
         State.setBestRoutineSlots(0); // run-end carryover: a dev Reset forgets the best slot count too
         State.resetBestVillageTiers(); // ...and the Memorial's all-time best tiers (its stage is derived from them)
+        State.resetBestPlayerLevel(); // ...and the best player level (the sky unlocks read it)
         State.setGoals(null); // ...and every goal, streak and goal slot (initGame then seeds the suggested starters again)
         if (typeof Persistence !== 'undefined') Persistence.clear();
         initGame();
