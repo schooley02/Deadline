@@ -28,7 +28,8 @@ Why: it rewards the hardest step (starting) at the moment players most often giv
 7. **Catch-up ignores ice**, exactly as it already ignores timers ("Catch-up damage ignores timers", MECHANICS Timers line). Offline and live-gap damage are unchanged. No new catch-up math.
 8. **Regen stays paused** (Jeremy, 2026-11-10): an iced zombie still counts as attacking, so the church does not heal while it sits there. Ice stops the bleeding; only finishing the task lets the church recover.
 9. **Break Habits** never attack (lurker model), so ice never applies to them. Build Habits on a work timer follow the same rules as tasks.
-10. **"Still working?"** (60 min) and the auto-stop 10 min later are unchanged. With the proposed cap equal to the check time, the ice cracks when "Still working?" appears: answering yes keeps the timer at the half rate.
+10. **One timer at a time (Jeremy, 2026-11-10: "make sure you can only start a timer on one task/habit at a time").** Already true today: `toggleWorkTimer` in script.js (the only caller of `Timer.start`) stops any running timer before starting a new one, so at most ONE zombie can be iced. Two gaps the build closes: (a) a PAUSED item in its pause grace loses its ice the moment a timer starts on a different item (otherwise two zombies could be iced at once for up to `ICE_GRACE_MS`); (b) no test locks the rule today, so the build adds one (starting B stops A; A's ice and grace end at once).
+11. **"Still working?"** (60 min) and the auto-stop 10 min later are unchanged. With the proposed cap equal to the check time, the ice cracks when "Still working?" appears: answering yes keeps the timer at the half rate.
 
 ## Numbers (PROPOSED -- balance-tuning process before the build)
 
@@ -80,6 +81,7 @@ Player-facing: **Iced** / **Thawing**. Code: `ice*`. Do NOT use "frozen" / "free
 - Catch-up: offline / live-gap damage identical with and without ice.
 - Damage panel ETA uses `thawAt`.
 - Regen stays paused while the only attacker is iced.
+- One timer at a time: starting a timer on B stops a running A and ends A's ice; a paused A in grace thaws when B starts; never two iced zombies at once.
 - DailyRecord `ice` { n, min } recorded and rolled up; old records without it read as 0.
 - Wording rule test still passes.
 
