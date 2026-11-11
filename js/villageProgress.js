@@ -13,7 +13,7 @@
  *   punctuality  Clock tower   items completed on time (done minus late; closed days + the open day)
  *   habits       Hospital      habit check-ins this run
  *   lurkers      Boxing gym    days with no slips (at least one bad habit resolved, none slipped)
- *   defense      Jailhouse     nights the church ended at >= 75% health
+ *   defense      Jailhouse     nights the church ended at >= 75% health AND the day was defended (Momentum, 2026-11-11)
  *   heroes       High school   hero stars banked: each closed day adds every routine's star rating at day close (0-5 each)
  *   bestdays     Windmill      heavy days handled (> 1.25x this run's recent average and >= 1 item above it, nothing missed)
  *
@@ -29,6 +29,7 @@
  *     today,           the open day's record (save.today) or null
  *     runNumber,       the current run (runHistory.length + 1); only days with rec.run === runNumber count
  *     maxHp,           CONFIG.MAX_BASE_HEALTH
+ *     countsAsNight?,  (rec) => boolean, Momentum.countsAsNight bound to the save's start day; the Jailhouse also needs it (absent = every day counts)
  *     thresholds?,     defaults to DEFAULT_THRESHOLDS (a test checks it matches CONFIG)
  *     defenseFrac?, prioritySlots?, heavyWindow?, heavyMinDays?, heavyFactor?, heavyExtra? }   defaults mirror CONFIG
  */
@@ -207,7 +208,9 @@ const VillageProgress = (() => {
             // Hospital = good habits only (2026-10-31); a run from before the field existed falls back to the old count.
             habits: Number.isFinite(rs.goodHabitsCompleted) ? num(rs.goodHabitsCompleted) : num(rs.habitsCompleted),
             lurkers: days.filter(isNoSlipDay).length,
-            defense: days.filter((r) => churchHeld(r, c.maxHp, o.defenseFrac)).length,
+            // Momentum Build A (2026-11-11): the church must have held AND the day must count as a night (`countsAsNight`, from Momentum;
+            // absent = every day counts, the old rule). An empty day used to pass the health test for free.
+            defense: days.filter((r) => churchHeld(r, c.maxHp, o.defenseFrac) && (typeof c.countsAsNight !== 'function' || c.countsAsNight(r))).length,
             // High school v2 (2026-10-31): banked hero stars, summed over this run's closed days. Days from before the field existed count 0.
             heroes: days.reduce((sum, r) => sum + starsTotal(r), 0),
             bestdays: heavyDays(days, o.heavyWindow, o.heavyMinDays, o.heavyFactor, o.heavyExtra).handled,

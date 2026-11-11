@@ -9,7 +9,7 @@ const rec = () => DailyRecord.fresh({ date: '2026-11-04', tz: 0 });
 
 describe('v8 tcorr tally', () => {
     test('a fresh record starts with no corrections', () => {
-        expect(DailyRecord.V).toBe(13);
+        expect(DailyRecord.V).toBe(14);
         expect(rec().tcorr).toEqual({ n: 0, hp: 0 });
     });
     test('each charged correction adds one to n and its HP to hp', () => {

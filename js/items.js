@@ -407,6 +407,16 @@ const Items = (() => {
             return typeof PrioritySlots !== 'undefined' && PrioritySlots.takesSlot(item, priorityParentOf(item, deps));
         } catch (err) { return false; }
     }
+    // Momentum Build A (2026-11-11, daily record v14): a priority finish only DEFENDS the night when the task was at least
+    // CONFIG.MOMENTUM.MIN_PRIORITY_AGE_MS old when it was finished (a task made and finished within minutes does not). Only meaningful with
+    // `pri`; an item with no creation time (an older save) counts.
+    function dailyPriorityQualifies(item, atMs) {
+        try {
+            if (typeof Momentum === 'undefined') return true;
+            const min = (typeof CONFIG !== 'undefined' && CONFIG.MOMENTUM) ? CONFIG.MOMENTUM.MIN_PRIORITY_AGE_MS : undefined;
+            return Momentum.priorityQualifies(item && item.creationTime, atMs, min);
+        } catch (err) { return true; }
+    }
     // Habit Goals Build 3 (2026-11-01): the optional "How much?" of an Amount goal rides on the answered entry as
     // `goalActual`. A Time goal's How much? is the logged time (plan Decision 14), so it never lands here. Only a valid,
     // non-negative number is kept; anything else leaves the entry untouched.
@@ -905,7 +915,8 @@ const Items = (() => {
             kind: dailyKindFor(item), category: item.category,
             at: item.completedAt.getTime(), late: dailyIsLate(item), points: pointsGained,
             routineId: dailyRoutineId(item, deps),
-            pri: dailyTakesPrioritySlot(item, deps) // daily record v9: a priority that spent a slot (see js/prioritySlots.js)
+            pri: dailyTakesPrioritySlot(item, deps), // daily record v9: a priority that spent a slot (see js/prioritySlots.js)
+            priQ: dailyTakesPrioritySlot(item, deps) && dailyPriorityQualifies(item, item.completedAt.getTime()) // v14: old enough to defend the night
         });
         goalProgress(item, deps, +1);
         deps.saveGame();
@@ -1904,7 +1915,8 @@ const Items = (() => {
             kind: dailyKindFor(item), category: item.category,
             at: dailyCompletedAtMs, late: dailyWasLate, points: dailyPointsLost,
             routineId: dailyRoutineId(item, deps),
-            pri: dailyTakesPrioritySlot(item, deps)
+            pri: dailyTakesPrioritySlot(item, deps),
+            priQ: dailyTakesPrioritySlot(item, deps) && dailyPriorityQualifies(item, dailyCompletedAtMs) // v14: mirrors the completion
         });
         goalProgress(item, deps, -1);
         // Habit Goals Build 3 (daily record v5): the undone answer's goal entry goes with it (same closed-day guard via `at`).

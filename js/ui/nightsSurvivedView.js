@@ -22,7 +22,10 @@
  * when the number changes), so script.js just calls init once. While the game
  * is over the count is frozen at its last value.
  *
- * Deps: { getRunStartedAtMs: () => number|null, isGameOver: () => boolean }
+ * MOMENTUM (Build A, 2026-11-11): the number is now the nights the run DEFENDED, not calendar midnights (js/momentum.js). script.js
+ * passes `getNights(nowMs)`; without it the view falls back to the old calendar count (tests, and a build without Momentum).
+ *
+ * Deps: { getRunStartedAtMs: () => number|null, isGameOver: () => boolean, getNights?: (nowMs) => number }
  */
 const NightsSurvivedView = (() => {
     const REFRESH_MS = 5000;
@@ -61,7 +64,7 @@ const NightsSurvivedView = (() => {
     function render() {
         if (!deps || !rootEl || !countEl) return;
         if (shown !== null && deps.isGameOver && deps.isGameOver()) return;
-        const n = countMidnights(deps.getRunStartedAtMs(), Date.now());
+        const n = typeof deps.getNights === 'function' ? deps.getNights(Date.now()) : countMidnights(deps.getRunStartedAtMs(), Date.now());
         if (n === shown) return;
         shown = n;
         countEl.textContent = String(n);

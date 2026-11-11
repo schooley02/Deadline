@@ -20,7 +20,7 @@
  *
  * bump(rec, event, p) events (p = payload; `hour` 0-23, or `at` in ms from
  * which the local hour is derived):
- *   complete    {kind:'task'|'subtask'|'habit'|'lurker', category, hour|at, late?, points?, routineId?}
+ *   complete    {kind:'task'|'subtask'|'habit'|'lurker', category, hour|at, late?, points?, routineId?, pri?, priQ?}   (pri = a priority that spent a slot; priQ = it was old enough to defend the night, v14)
  *               ('lurker' = a negative habit successfully avoided: counts in
  *               lurk.avoided, NOT done.*; hours / category / points as usual)
  *   uncomplete  same payload -- exact reverse of complete (floors at 0)
@@ -77,7 +77,11 @@ const DailyRecord = (() => {
     // the Windmill, best / worst day, clean days and the run climate count tasks + habits only; sub-tasks stay fully recorded
     // (`done.subtask`, `missed.subtask`) for later insights. Days closed before v13 keep their old numbers (a few late sub-tasks may
     // still sit inside their `done.late`; the on-time total floors at 0).
-    const V = 13;
+    // v14 (2026-11-11, Momentum Build A; docs/MOMENTUM_PLAN.md): `pri.q` = priority finishes that were at least
+    // CONFIG.MOMENTUM.MIN_PRIORITY_AGE_MS old when finished (an undo takes one back). `pri.d` keeps counting EVERY priority finish (the
+    // Command Post reads it); `pri.q` is what defends a night (js/momentum.js). Days before v14 read `pri.d` instead. A Sick Day needed
+    // no new field: `tokens.sick` already records the day it was used.
+    const V = 14;
     // Mirrors Habits.GOAL_UNIT_SUGGESTIONS (test/dailyRecord.test.js checks they match). Kept local: no global dependencies.
     const GOAL_UNITS = ['pages', 'glasses', 'oz', 'steps', 'miles', 'km', 'reps', 'words', 'servings', 'drinks', 'cigarettes', 'cups', '$', 'times'];
     const GOAL_TYPES = ['time', 'amount', 'note'];
@@ -171,7 +175,7 @@ const DailyRecord = (() => {
             // v8: timer-session corrections that took halved damage back (see V above).
             tcorr: { n: 0, hp: 0 },
             // v9: priority slots marked / finished today (see V above).
-            pri: { m: 0, d: 0, s: 0 },
+            pri: { m: 0, d: 0, s: 0, q: 0 },
             // v10: the player's Goals today (see V above).
             pg: { climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 },
             // v12: stretches of ice today (see V above).
@@ -382,8 +386,13 @@ const DailyRecord = (() => {
             return;
         }
         if (p.pri === true) {
-            if (!rec.pri) rec.pri = { m: 0, d: 0, s: 0 };
+            if (!rec.pri) rec.pri = { m: 0, d: 0, s: 0, q: 0 };
             rec.pri.d = dir > 0 ? rec.pri.d + 1 : dec(rec.pri.d);
+            // v14: only a priority finish that was old enough defends the night (the caller decides: `priQ`).
+            if (p.priQ === true) {
+                const q = Number.isFinite(rec.pri.q) ? rec.pri.q : 0;
+                rec.pri.q = dir > 0 ? q + 1 : dec(q);
+            }
         }
         // v13: a late SUB-task does not count in done.late (the on-time totals no longer include sub-tasks).
         const countsLate = p.late && kind !== 'subtask';
@@ -485,7 +494,7 @@ const DailyRecord = (() => {
             }
             case 'pri': {
                 // A priority slot was spent (a task marked): p = { mark: 1 }. Finishes ride on 'complete' / 'uncomplete' (p.pri).
-                if (!rec.pri) rec.pri = { m: 0, d: 0, s: 0 };
+                if (!rec.pri) rec.pri = { m: 0, d: 0, s: 0, q: 0 };
                 if (Math.floor(Number(p.mark)) > 0) rec.pri.m += 1;
                 break;
             }
@@ -717,10 +726,11 @@ const DailyRecord = (() => {
         if (!dst.tcorr) dst.tcorr = { n: 0, hp: 0 };
         dst.tcorr.n += (src.tcorr && src.tcorr.n) || 0;
         dst.tcorr.hp += (src.tcorr && src.tcorr.hp) || 0;
-        if (!dst.pri) dst.pri = { m: 0, d: 0, s: 0 };
+        if (!dst.pri) dst.pri = { m: 0, d: 0, s: 0, q: 0 };
         dst.pri.m += (src.pri && src.pri.m) || 0;
         dst.pri.d += (src.pri && src.pri.d) || 0;
         dst.pri.s += (src.pri && src.pri.s) || 0;
+        dst.pri.q = (dst.pri.q || 0) + ((src.pri && src.pri.q) || 0);
         if (!dst.pg) dst.pg = { climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 };
         ['climb', 'drop', 'met', 'done', 'pts', 'items'].forEach((k) => { dst.pg[k] = (dst.pg[k] || 0) + ((src.pg && src.pg[k]) || 0); });
         if (!dst.ice) dst.ice = { n: 0, min: 0 };

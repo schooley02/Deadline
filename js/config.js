@@ -967,6 +967,14 @@ const CONFIG = {
     // number is the set size and the reset size. A balance number: change it only via the balance-tuning process (DECISIONS).
     PRIORITY_SLOTS_PER_DAY: 3,
 
+    // --- Momentum (DESIGNED 2026-11-11, Jeremy + Claude; docs/MOMENTUM_PLAN.md; DECISIONS 2026-11-11 (momentum)). Build A: what defends a night.
+    // A night counts only when the day was DEFENDED: a priority task finished (and at least MIN_PRIORITY_AGE_MS old when it was finished, so
+    // create-and-finish spam does not count; it still pays its points and clears its zombie) or a routine fully completed. THEORY dial:
+    // change it only via the balance-tuning process (DECISIONS). The window and the barricade states come with Build B / C.
+    MOMENTUM: {
+        MIN_PRIORITY_AGE_MS: 10 * 60 * 1000, // same 10 minutes as RESCHEDULE_GRACE_MS (a typo-fix window), by design
+    },
+
     // --- Goals (DESIGNED 2026-11-04, Jeremy; docs/GOALS_PLAN.md; DECISIONS 2026-11-04 (goals)). Build A data + rules; nothing on screen yet.
     // Goal SLOTS by player level. Slots unlock by in-run level and are kept forever as a high-water mark (`goals.bestSlots`, the
     // `bestRoutineSlots` precedent), so a lost run never takes a slot back. Even levels only: a goal slot never lands on the same

@@ -27,6 +27,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // still override it for art checks. Tapping a building opens its card (js/ui/villageCard.js).
     // The tier maths is cached: it re-runs only when a counter it reads changes (VillageView.render runs every tick).
     const villageCache = { key: null, progress: null, daysKey: null, days: null };
+    // Nights Survived (Momentum Build A, 2026-11-11; js/momentum.js, docs/MOMENTUM_PLAN.md): the ONE number the moon, game over, the Radio
+    // tower, the tree and the run stats read = the nights the run DEFENDED (a priority finished, old enough, or a routine fully done), plus the
+    // calendar nights a save already had before the rule started on it. The closed days are read once per open day / run change; the sum is
+    // cached by the calendar date (a night only ever counts at a rollover).
+    const nightsCache = { daysKey: null, days: null, key: null, value: 0 };
+    function nightsSurvivedNow(nowMs) {
+        const now = typeof nowMs === 'number' ? nowMs : Date.now();
+        try {
+            const today = State.getToday();
+            const runNumber = (State.getRunHistory() || []).length + 1;
+            const daysKey = (today && today.date ? today.date : '') + '|' + runNumber;
+            if (nightsCache.daysKey !== daysKey) {
+                nightsCache.days = State.getClosedDays();
+                nightsCache.daysKey = daysKey;
+                nightsCache.key = null;
+            }
+            const fromDay = State.getMomentumFromDay();
+            const key = [Momentum.keyOf(now), State.getRunStartedAtMs(), fromDay].join('|');
+            if (nightsCache.key !== key) {
+                nightsCache.value = Momentum.nights({ runStartMs: State.getRunStartedAtMs(), nowMs: now, days: nightsCache.days, runNumber, fromDay });
+                nightsCache.key = key;
+            }
+            return nightsCache.value;
+        } catch (err) {
+            console.error('Deadline: nights survived failed', err);
+            return Damage.computeDaysSurvived(State.getRunStartedAtMs(), now, CONFIG.MS_PER_REAL_DAY);
+        }
+    }
     function villageContext() {
         const runStats = State.getCurrentRunStats() || {};
         const today = State.getToday() || null;
@@ -39,7 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return {
             runStats,
-            nightsSurvived: Damage.computeDaysSurvived(State.getRunStartedAtMs(), Date.now(), CONFIG.MS_PER_REAL_DAY),
+            nightsSurvived: nightsSurvivedNow(),
+            // Jailhouse (Momentum Build A): a night the church held only counts when the day was defended too (days before the rule are exempt).
+            countsAsNight: (rec) => Momentum.countsAsNight(rec, State.getMomentumFromDay()),
             days: villageCache.days,
             today,
             runNumber,
@@ -113,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const demoTree = DevDemo.treeStage(); // the DEV panel's Graveyard tree chips (2026-11-08) win over ?treeStage= and the real stage
         if (demoTree != null) return demoTree;
         const stats = State.getLifetimeStats() || {};
-        const current = NightsSurvivedView.countMidnights(State.getRunStartedAtMs(), Date.now());
+        const current = nightsSurvivedNow();
         const nights = TreeGrowth.total(stats.nightsSurvived, current, State.isGameOver());
         return TreeGrowth.resolve(window.location.search, TreeGrowth.stage(nights, CONFIG.TREE_STAGE_NIGHTS));
     }
@@ -121,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // tells the truth about the save. Read-only.
     function realTreeNights() {
         const stats = State.getLifetimeStats() || {};
-        const current = NightsSurvivedView.countMidnights(State.getRunStartedAtMs(), Date.now());
+        const current = nightsSurvivedNow();
         return { banked: stats.nightsSurvived, current, gameOver: State.isGameOver() };
     }
     function realTreeStage() {
@@ -689,6 +719,8 @@ document.addEventListener('DOMContentLoaded', () => {
             })),
             // Village Build 3: the run's real tiers, read by Damage.gameOver just before the record joins history.
             getVillageTiers: () => realVillageTiers(),
+            // Momentum Build A (2026-11-11): the run's nights at death are its defended nights (see nightsSurvivedNow).
+            getNightsSurvived: () => nightsSurvivedNow(),
             // Achievements sub-session 2 (session 65): run-end lifetime bump,
             // called by js/damage.js's gameOver ONLY on a real death (never
             // on an alreadyOver restore -- gating lives at the call site).
@@ -3371,7 +3403,7 @@ document.addEventListener('DOMContentLoaded', () => {
             shopCatalog: CONFIG.SHOP_ITEMS, playerInventory: State.getPlayerInventory(), playerPoints: State.getPlayerPoints(), baseHealth: State.getBaseHealth(),
             onShopBuy: handleShopPurchase, onShopUse: handleShopUse, shopDiscount: currentShopDiscount(), pushbackHelpCtx,
             weatherHtml: WeatherPanel.statsHtml(WeatherPanel.buildViewModel(climateNow())), // Stats > the sky readout (run climate Build 2)
-            currentRunStats: State.getCurrentRunStats(), runHistory: State.getRunHistory(), daysSurvivedSoFar: Damage.computeDaysSurvived(State.getRunStartedAtMs(), Date.now(), CONFIG.MS_PER_REAL_DAY),
+            currentRunStats: State.getCurrentRunStats(), runHistory: State.getRunHistory(), daysSurvivedSoFar: nightsSurvivedNow(),
             achievementsCatalog: CONFIG.ACHIEVEMENTS, lifetimeStats: State.getLifetimeStats(), achievements: State.getAchievements(),
             goals: State.getGoals(), // Stats > Goals row + roster (Goals Build B2)
             // D2 step 5: closed days + today's open record for Stats best/worst day.
@@ -4021,6 +4053,7 @@ document.addEventListener('DOMContentLoaded', () => {
     NightsSurvivedView.init({
         getRunStartedAtMs: State.getRunStartedAtMs,
         isGameOver: State.isGameOver,
+        getNights: nightsSurvivedNow, // Momentum Build A (2026-11-11): defended nights, not calendar midnights
     });
     // Sub-session 4 ([P1-DATA-005], check-in prompt, 2026-07-19): if the
     // rollover just ran (above) and left any negative-habit pendingCheckIn

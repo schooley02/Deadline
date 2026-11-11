@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v327';
+const CACHE_NAME = 'deadline-shell-v328';
 
 const APP_SHELL = [
     './',
@@ -83,6 +83,7 @@ const APP_SHELL = [
     'js/villageProgress.js',
     'js/memorial.js',
     'js/treeGrowth.js', // growing tree rule (2026-11-08)
+    'js/momentum.js', // defended-night rule + Nights Survived (2026-11-11, Momentum Build A)
     'js/milestoneMarkers.js', // milestone marker rule (2026-11-08)
     'js/villageDrops.js',
     'js/runClimate.js',

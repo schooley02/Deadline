@@ -99,6 +99,7 @@ A shop consumable (200 pts, held-inventory exponential pricing like repair kits 
 
 ## Nights Survived (was "Days Survived")
 
+- **Since 2026-11-11 (Jeremy, Momentum Build A): a night counts only when the day was DEFENDED** -- at least 1 priority finished (10+ minutes old when finished) or 1 routine fully completed. Late finishes count. Days away are missed. Nights already recorded are kept (`momentumFromDay`). `Momentum.nights(...)` in `js/momentum.js`; `docs/MOMENTUM_PLAN.md`. The midnight rule below is the grandfathered base.
 - **Since 2026-10-27 (Jeremy): NIGHTS = local midnights crossed since the run started** (`Damage.computeDaysSurvived`, same count as the moon's `NightsSurvivedView.countMidnights`; a test keeps them identical). A run started at 11 PM counts 1 at midnight. Used by the moon, game-over screen, Stats, run history and the Survivor / Steady Hands achievements. The saved field is still `daysSurvived` (no schema change); run records saved before this keep their old full-24h counts. Frozen at death by `gameOver()`.
 - Before 2026-10-27: full 24h periods, `floor((now - runStartedAtMs) / CONFIG.MS_PER_REAL_DAY)`.
 - Not a tick counter. The old accelerated timer (`DAY_DURATION_MS`, 1 real minute = 1 "day") was removed 2026-07-18 — it reported "22 Days" for 22 minutes of runtime while ignoring the ~10 hours the machine was asleep. See DECISIONS.md.

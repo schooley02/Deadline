@@ -141,7 +141,7 @@ describe('script.js hooks', () => {
         expect(i).toBeGreaterThan(0);
         const body = script.slice(i, script.indexOf('\n    }\n', i));
         expect(body).toContain('stats.nightsSurvived');
-        expect(body).toContain('NightsSurvivedView.countMidnights(State.getRunStartedAtMs(), Date.now())');
+        expect(body).toContain('nightsSurvivedNow()'); // Momentum Build A (2026-11-11): the live run counts DEFENDED nights, the moon's number
         expect(body).toContain('TreeGrowth.total(stats.nightsSurvived, current, State.isGameOver())');
         expect(body).toContain('TreeGrowth.stage(nights, CONFIG.TREE_STAGE_NIGHTS)');
         expect(body).toContain('TreeGrowth.resolve(window.location.search');

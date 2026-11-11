@@ -40,7 +40,7 @@ afterAll(() => { delete global.Persistence; });
 
 describe('DailyRecord v10 / v11: pg', () => {
     test('version 11 and a fresh record starts with an all-zero pg', () => {
-        expect(DailyRecord.V).toBe(13);
+        expect(DailyRecord.V).toBe(14);
         expect(DailyRecord.fresh().pg).toEqual({ climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 });
     });
     test("the 'pgoal' event adds whole counts and ignores junk", () => {

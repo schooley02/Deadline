@@ -81,7 +81,7 @@ describe('week strip refresh: script.js wiring guard', () => {
         const rows = script.split(/\r?\n/);
         const start = rows.findIndex(l => /^\s*function popupsDeps\(\)/.test(l));
         expect(start).toBeGreaterThan(-1);
-        expect(rows.slice(start, start + 12).join('\n')).toMatch(/updateTaskCountDisplay,/);
+        expect(rows.slice(start, start + 16).join('\n')).toMatch(/updateTaskCountDisplay,/);
         expect(read('js/ui/popups.js')).toMatch(/deps\.updateTaskCountDisplay\(\)/);
     });
 });

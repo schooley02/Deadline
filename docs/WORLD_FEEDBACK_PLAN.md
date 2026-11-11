@@ -516,7 +516,7 @@ corrective). Low engagement (it changes once a day) is fine; it is the morning r
   time slider = possible later (entries carry an hour), not v1. "Set the weather for the vibe" = the Sky picker, below.
 
 ### Build (Sonnet, medium; one session)
-`js/mood.js` (pure: levels, tags, log merge-by-hour, derived first/last/min/max, histogram) + tests; DailyRecord v12 (`mood`
+`js/mood.js` (pure: levels, tags, log merge-by-hour, derived first/last/min/max, histogram) + tests; DailyRecord v15 (`mood`
 event, roll-up histogram, normalize) + tests; glyph (UI layer, hidden in the strip) + Weather panel Mood row + picker; the
 morning card (once per local day, in-memory flag + `save.today` check) + the rollover / game-over prompt; the Weather
 table column + Stats readout; the Bad / Awful help card (copy in one place; CONFIG for the threshold); How-it-works line;

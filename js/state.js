@@ -101,6 +101,9 @@ const State = (() => {
     let definedRoutines = [];
     let itemIdCounter, gameIsOver, daysSurvived, currentGameDate;
     let runStartedAtMs = null;
+    // Momentum Build A (2026-11-11): the local day ("YYYY-MM-DD") the defended-night rule started on THIS save. A run already in progress
+    // keeps the nights it had before that day (js/momentum.js). Set the first time the new rule loads; additive, no schema bump.
+    let momentumFromDay = null;
     let lastLoopTickMs = null;
     let lastRegenTickMs = null;
 
@@ -294,6 +297,8 @@ const State = (() => {
     const setGameIsOver = (v) => { gameIsOver = v; };
     const setGameOver = () => { gameIsOver = true; };
     const getDaysSurvived = () => daysSurvived;
+    const getMomentumFromDay = () => momentumFromDay;
+    const setMomentumFromDay = (k) => { momentumFromDay = (typeof k === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(k)) ? k : null; };
     const setDaysSurvived = (n) => { daysSurvived = n; };
     const getCurrentGameDate = () => currentGameDate;
     const setCurrentGameDate = (d) => { currentGameDate = d; };
@@ -430,6 +435,7 @@ const State = (() => {
             itemIdCounter: getItemIdCounter(),
             gameIsOver: isGameOver(),
             daysSurvived: getDaysSurvived(),
+            momentumFromDay: getMomentumFromDay(),
             runStartedAtMs: getRunStartedAtMs(),
             currentGameDate: getCurrentGameDate(),
             activeItems: getActiveItems(),
@@ -509,6 +515,8 @@ const State = (() => {
             renderGameOverReview: deps.renderGameOverReview,
             // Village Build 3 (2026-10-30): script.js's real (non-URL-overridden) tiers, saved on the run record.
             getVillageTiers: deps.getVillageTiers,
+            // Momentum Build A (2026-11-11): the run's nights at death = defended nights (script.js nightsSurvivedNow); absent -> the old calendar count.
+            getNightsSurvived: deps.getNightsSurvived,
             // Sub-session 4, session 55 — read back on gameOver(deps, true)
             // (restoring an already-dead save) instead of recomputing a
             // drifted day count. See js/damage.js's gameOver() header.
@@ -663,6 +671,10 @@ const State = (() => {
         setBaseHealth((typeof save.baseHealth === 'number') ? save.baseHealth : CONFIG.MAX_BASE_HEALTH);
         setItemIdCounter(save.itemIdCounter || 1);
         setDaysSurvived(save.daysSurvived || 0);
+        // Momentum Build A (2026-11-11): a save from before the rule keeps the nights it had; the rule starts on the first day it loads.
+        // A save that has the field keeps its own. (A new run starts on or after this day, so it is judged from its first day.)
+        // `null` is a real value (a game that started under the rule: judged from its first day); only an ABSENT field means an older save.
+        setMomentumFromDay(save.momentumFromDay !== undefined ? save.momentumFromDay : (typeof DailyRecord !== 'undefined' ? DailyRecord.dateKey(new Date()) : null));
         // Saves written before 2026-07-18 have no runStartedAtMs (days were
         // counted by the old accelerated timer). Fall back to the save's own
         // timestamp so a restored run doesn't report a bogus day count.
@@ -1416,6 +1428,8 @@ const State = (() => {
         getItemIdCounter, setItemIdCounter,
         isGameOver, setGameIsOver, setGameOver,
         getDaysSurvived, setDaysSurvived,
+        getMomentumFromDay, setMomentumFromDay,
+        getClosedDays: () => cachedClosedDays(),
         getCurrentGameDate, setCurrentGameDate,
         getRunStartedAtMs, setRunStartedAtMs,
         getLastLoopTickMs, setLastLoopTickMs,

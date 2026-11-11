@@ -125,7 +125,7 @@ long-gap reload. The month roll-up does not carry per-routine stars (the counter
 5. Stats: best/worst day per run.
 6. Docs: DATA_SCHEMA.md, MECHANICS.md note, CLAUDE.md codebase state; sw.js bump.
 
-## v14 addition (was v12, then v13: iced zombies took v12 on 2026-11-10 and sub-task credit took v13 on 2026-11-11): mood check-in (DESIGNED 2026-11-07, Fable; NOT BUILT -- design in `docs/WORLD_FEEDBACK_PLAN.md` "W1b Mood check-in")
+## v15 addition (was v12, v13, then v14: iced zombies took v12 on 2026-11-10, sub-task credit v13 and momentum `pri.q` v14 on 2026-11-11): mood check-in (DESIGNED 2026-11-07, Fable; NOT BUILT -- design in `docs/WORLD_FEEDBACK_PLAN.md` "W1b Mood check-in")
 The player's own one-tap mood, kept with the numbers so Stats and the AI read it without a join: `mood: [[hour, level, tagBits], ...]`
 on the open day and on CLOSED days (`level` 1..5 = Awful .. Rad; `tagBits` = bits over the fixed, append-only `CONFIG.MOOD.tags` list;
 `hour` = local hour of the entry). Several entries a day; a new entry in the same hour REPLACES that hour's entry. Derived at read

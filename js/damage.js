@@ -74,6 +74,7 @@
  *                                //   module; optional — gameOver() falls back to
  *                                //   the old plain-text message when omitted, so
  *                                //   every existing damage test is unaffected)
+ *   getNightsSurvived?,          // () -> number  Momentum Build A (2026-11-11): the run's defended nights; absent -> calendar count
  *   getDaysSurvived,             // () -> number  (sub-session 4, session 55 —
  *                                //   optional; used only when gameOver's 2nd
  *                                //   arg `alreadyOver` is true, to avoid
@@ -484,7 +485,9 @@ const Damage = (() => {
         // frozen at the real death instead, when available.
         const daysSurvived = (alreadyOver && deps.getDaysSurvived)
             ? deps.getDaysSurvived()
-            : computeDaysSurvived(getRunStartedAtMs(), Date.now(), CONFIG.MS_PER_REAL_DAY);
+            : (typeof deps.getNightsSurvived === 'function'
+                ? deps.getNightsSurvived() // Momentum Build A (2026-11-11): defended nights, not calendar midnights
+                : computeDaysSurvived(getRunStartedAtMs(), Date.now(), CONFIG.MS_PER_REAL_DAY));
         if (!alreadyOver) setDaysSurvived(daysSurvived);
 
         // Run history (sub-session 2, 2026-07-19 session 53): finalize the

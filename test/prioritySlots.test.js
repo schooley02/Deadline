@@ -406,9 +406,9 @@ describe('Items.completeItem / uncompleteItem: the daily record `pri` flag', () 
 });
 
 describe('DailyRecord v9: pri', () => {
-    test('the version is 11 (v10 adds pg, v11 adds pg.pts / items) and a fresh record carries pri { m, d, s }', () => {
-        expect(DailyRecord.V).toBe(13);
-        expect(DailyRecord.fresh().pri).toEqual({ m: 0, d: 0, s: 0 });
+    test('the version is 11 (v10 adds pg, v11 adds pg.pts / items) and a fresh record carries pri { m, d, s, q } (v14 adds q)', () => {
+        expect(DailyRecord.V).toBe(14);
+        expect(DailyRecord.fresh().pri).toEqual({ m: 0, d: 0, s: 0, q: 0 });
     });
     test('a mark bumps m; a priority completion bumps d and an undo takes it back (floor 0)', () => {
         const rec = DailyRecord.fresh();
@@ -430,15 +430,15 @@ describe('DailyRecord v9: pri', () => {
         DailyRecord.bump(rec, 'complete', { kind: 'task', category: 'other', at: Date.now() });
         DailyRecord.bump(rec, 'pri', { mark: 0 });
         DailyRecord.bump(rec, 'pri', {});
-        expect(rec.pri).toEqual({ m: 0, d: 0, s: 0 });
+        expect(rec.pri).toEqual({ m: 0, d: 0, s: 0, q: 0 });
     });
     test('close writes s = full sets of three; older records without pri normalise to zeros', () => {
         const rec = DailyRecord.fresh();
         rec.pri = { m: 7, d: 7, s: 0 };
-        expect(DailyRecord.close(rec, {}).pri).toEqual({ m: 7, d: 7, s: 2 });
+        expect(DailyRecord.close(rec, {}).pri).toEqual({ m: 7, d: 7, s: 2, q: 0 });
         const old = DailyRecord.fresh();
         delete old.pri;
-        expect(DailyRecord.normalize(old).pri).toEqual({ m: 0, d: 0, s: 0 });
+        expect(DailyRecord.normalize(old).pri).toEqual({ m: 0, d: 0, s: 0, q: 0 });
     });
     test('the month roll-up sums pri', () => {
         const a = DailyRecord.fresh({ date: '2026-10-01' });
@@ -451,7 +451,7 @@ describe('DailyRecord v9: pri', () => {
         const rolled = DailyRecord.rollUp(store, new Date(2028, 5, 1)); // far enough on that October is a month
         const month = rolled.months['2026-10'];
         expect(month).toBeTruthy();
-        expect(month.pri).toEqual({ m: 5, d: 4, s: 1 });
+        expect(month.pri).toEqual({ m: 5, d: 4, s: 1, q: 0 });
     });
 });
 
