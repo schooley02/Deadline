@@ -334,3 +334,78 @@ describe('graveyard headstones section (2026-11-08)', () => {
     });
 });
 
+describe('ice section (2026-11-10): Iced / Thawing / Burst preview on the zombies on screen', () => {
+    const setup = () => {
+        document.body.innerHTML = '<div class="enemy" id="a"></div><div class="enemy" id="b"></div><div class="enemy enemy-dying" id="c"></div>';
+        const calls = [];
+        global.IceOverlay = {
+            FORM_MS: 480,
+            _ov: new Set(),
+            get(el) { return this._ov.has(el) ? {} : null; },
+            sync(el, phase) { calls.push([el.id, phase]); if (phase) this._ov.add(el); else this._ov.delete(el); },
+        };
+        return calls;
+    };
+    afterEach(() => { delete global.IceOverlay; jest.useRealTimers(); });
+
+    test('the panel has the three ice buttons, and they are actions that change no demo value', () => {
+        setup();
+        DevPanel.init({ demo: DevDemo });
+        DevPanel.setEnabled(true);
+        click(btn());
+        expect(Array.from(panel().querySelectorAll('[data-dev-ice]')).map((b) => b.getAttribute('data-dev-ice'))).toEqual(['iced', 'thawing', 'burst']);
+        click(q('[data-dev-ice="iced"]'));
+        expect(DevDemo.snapshot().active).toBe(false);
+    });
+
+    test('Iced and Thawing sync every live zombie (never a dying one) and set the tint classes', () => {
+        const calls = setup();
+        expect(DevPanel.icePreview('iced')).toBe(2);
+        expect(calls).toEqual([['a', 'iced'], ['b', 'iced']]);
+        expect(document.getElementById('a').classList.contains('enemy-iced')).toBe(true);
+        DevPanel.icePreview('thawing');
+        expect(document.getElementById('a').classList.contains('enemy-iced')).toBe(false);
+        expect(document.getElementById('a').classList.contains('enemy-thawing')).toBe(true);
+        expect(document.getElementById('c').classList.contains('enemy-thawing')).toBe(false);
+    });
+
+    test('Burst on an iced zombie bursts now and clears the classes; on a bare one it forms, then bursts', () => {
+        jest.useFakeTimers();
+        const calls = setup();
+        DevPanel.icePreview('iced');
+        calls.length = 0;
+        DevPanel.icePreview('burst');
+        expect(calls).toEqual([['a', null], ['b', null]]);
+        expect(document.getElementById('a').classList.contains('enemy-iced')).toBe(false);
+        calls.length = 0;
+        DevPanel.icePreview('burst'); // now bare: forms first
+        expect(calls).toEqual([['a', 'iced'], ['b', 'iced']]);
+        jest.advanceTimersByTime(480 + 450);
+        expect(calls.slice(2)).toEqual([['a', null], ['b', null]]);
+    });
+
+    test('no IceOverlay, a bad phase, or a throwing overlay never throws', () => {
+        document.body.innerHTML = '<div class="enemy"></div>';
+        expect(DevPanel.icePreview('iced')).toBe(0);
+        global.IceOverlay = { FORM_MS: 480, get: () => null, sync: () => { throw new Error('boom'); } };
+        expect(DevPanel.icePreview('nope')).toBe(0);
+        DevPanel.init({ demo: DevDemo });
+        DevPanel.setEnabled(true);
+        click(btn());
+        const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        expect(() => click(q('[data-dev-ice="iced"]'))).not.toThrow();
+        spy.mockRestore();
+    });
+
+    test('ice clicks do not bubble out of the panel, and it touches no storage', () => {
+        setup();
+        DevPanel.init({ demo: DevDemo });
+        DevPanel.setEnabled(true);
+        click(btn());
+        const seen = jest.fn();
+        document.addEventListener('click', seen);
+        click(q('[data-dev-ice="thawing"]'));
+        document.removeEventListener('click', seen);
+        expect(seen).not.toHaveBeenCalled();
+    });
+});

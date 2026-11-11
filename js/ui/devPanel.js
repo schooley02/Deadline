@@ -9,7 +9,7 @@
  * watch the sky / village change while you tap, so nothing may dim or cover the scene. It is not a Modal overlay. Sections:
  * Weather (Real / Clear / Hazy / Overcast / Fog / Storm), Village stars (Real / 1..5 for all eight
  * buildings), Graveyard monument (Real / 1..5, the Memorial obelisk on its own) and Graveyard tree (Real / 1 Sapling / 2 Young / 3 Giant), Graveyard headstones (Real / 0 Cross .. 4 Platinum, every milestone marker at that stage), Church (Real / 100 / 75 / 50 / 25 / 0 = the damage picture + its idle animation, plus a Hit button that plays the
- * flash + shake once; ART ONLY, no health or stat changes) and Reset. Every choice goes through DevDemo (in-memory only; see its header); this file only draws and wires.
+ * flash + shake once; ART ONLY, no health or stat changes), Ice (Iced / Thawing / Burst: shows the ice art on every zombie on screen, ART ONLY: see icePreview) and Reset. Every choice goes through DevDemo (in-memory only; see its header); this file only draws and wires.
  *
  * Every click inside the button / panel stopPropagation()s: Modal's outside-click dismiss is a bubbling document handler and
  * would otherwise close whatever window is open underneath.
@@ -47,6 +47,40 @@ const DevPanel = (() => {
         };
     }
 
+    /**
+     * The Ice section's preview (2026-11-10, Jeremy: quick buttons to test freezing, thawing and the burst). ART ONLY, like Hit:
+     * it puts the ice look on every zombie currently on screen via IceOverlay + the same `.enemy-iced` / `.enemy-thawing` classes
+     * the loop uses, and touches no item, timer, budget (`iceUsedMs`), save or record. A zombie that is REALLY iced keeps whatever
+     * the loop last set until its phase changes, so test on zombies that are not iced. 'iced' = form once, then hold (press it
+     * again after a Burst to replay the form); 'thawing' = the cracked frame (+ the zombie wiggle and drips); 'burst' = the thaw:
+     * an iced zombie bursts now, a bare one forms first and bursts when the form is done. Returns how many zombies it touched.
+     */
+    function icePreview(phase, root) {
+        const doc = root || (typeof document !== 'undefined' ? document : null);
+        const Overlay = typeof IceOverlay !== 'undefined' ? IceOverlay : null;
+        if (!doc || !Overlay || (phase !== 'iced' && phase !== 'thawing' && phase !== 'burst')) return 0;
+        const els = Array.prototype.slice.call(doc.querySelectorAll('.enemy:not(.enemy-dying)'));
+        els.forEach((el) => {
+            const setClasses = (p) => {
+                el.classList.toggle('enemy-iced', p === 'iced');
+                el.classList.toggle('enemy-thawing', p === 'thawing');
+            };
+            if (phase === 'burst') {
+                const burstNow = () => { Overlay.sync(el, null); setClasses(null); };
+                if (Overlay.get(el)) burstNow();
+                else {
+                    setClasses('iced');
+                    Overlay.sync(el, 'iced');
+                    setTimeout(burstNow, (Overlay.FORM_MS || 480) + 450);
+                }
+            } else {
+                setClasses(phase);
+                Overlay.sync(el, phase);
+            }
+        });
+        return els.length;
+    }
+
     function esc(text) {
         return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
@@ -76,6 +110,12 @@ const DevPanel = (() => {
             + '</section>'
             + '<section class="dev-section"><h4>Graveyard headstones</h4>'
             + '<div class="dev-chips" role="group" aria-label="Headstone stage for every marker">' + chips(model.markers, 'data-dev-markers') + '</div>'
+            + '</section>'
+            + '<section class="dev-section"><h4>Ice (zombies on screen, picture only)</h4>'
+            + '<div class="dev-chips" role="group" aria-label="Ice preview on every zombie on screen">'
+            + '<button type="button" class="dev-chip dev-chip--action" data-dev-ice="iced" aria-label="Ice every zombie on screen">Iced</button>'
+            + '<button type="button" class="dev-chip dev-chip--action" data-dev-ice="thawing" aria-label="Show every zombie thawing">Thawing</button>'
+            + '<button type="button" class="dev-chip dev-chip--action" data-dev-ice="burst" aria-label="Burst the ice on every zombie">Burst</button></div>'
             + '</section>'
             + '<section class="dev-section"><h4>Church (picture only)</h4>'
             + '<div class="dev-chips" role="group" aria-label="Church damage picture">' + chips(model.church, 'data-dev-church')
@@ -124,6 +164,9 @@ const DevPanel = (() => {
         else if (t.hasAttribute('data-dev-memorial')) demo.setMemorial(t.getAttribute('data-dev-memorial'));
         else if (t.hasAttribute('data-dev-tree')) demo.setTree(t.getAttribute('data-dev-tree'));
         else if (t.hasAttribute('data-dev-markers')) demo.setMarkers(t.getAttribute('data-dev-markers'));
+        else if (t.hasAttribute('data-dev-ice')) {
+            try { icePreview(t.getAttribute('data-dev-ice')); } catch (err) { if (typeof console !== 'undefined') console.error('Deadline: dev ice preview failed', err); }
+        }
         else if (t.hasAttribute('data-dev-hit')) {
             if (deps && typeof deps.onHit === 'function') {
                 try { deps.onHit(); } catch (err) { if (typeof console !== 'undefined') console.error('Deadline: dev church hit failed', err); }
@@ -181,7 +224,7 @@ const DevPanel = (() => {
         render();
     }
 
-    return { panelModel, panelHtml, init, setEnabled, isOpen: () => open };
+    return { panelModel, panelHtml, icePreview, init, setEnabled, isOpen: () => open };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
