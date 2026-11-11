@@ -595,7 +595,10 @@ const Damage = (() => {
         const { hits } = computeGapCatchUpHits(getActiveItems(), nowMs, item => {
             item.x = baseWidth + getSubTaskClusterOffset(item);
             markAsOverdue(item, now);
-            if (item.element) item.element.style.left = item.x + 'px';
+            // Floor at the base edge like the live loop does: a left-fanned sub's offset is negative, and an
+            // overdue item is never repositioned again, so an unclamped left stuck it behind / past the church
+            // (2026-11-11: sub-tasks went overdue under a parent due tomorrow while the tab slept).
+            if (item.element) item.element.style.left = Math.max(baseWidth, item.x) + 'px';
         }, isNonThreatening);
 
         // Regen for the suspended span BEFORE damage (2026-10-26): the quiet

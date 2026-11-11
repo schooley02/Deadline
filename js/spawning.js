@@ -157,7 +157,7 @@ const Spawning = (() => {
             // separately — see restoreGameState/runOfflineCatchUp.)
             itemData.lastDamageTickTime = Date.now();
             itemData.x = baseWidth + getSubTaskClusterOffset(itemData);
-            if (itemData.element) itemData.element.style.left = itemData.x + 'px';
+            if (itemData.element) itemData.element.style.left = Math.max(baseWidth, itemData.x) + 'px'; // floor at the base edge
         }
 
         activeItems.push(itemData);

@@ -1728,7 +1728,7 @@ const Items = (() => {
         }
 
         // Position the enemy
-        itemElement.style.left = item.x + 'px';
+        itemElement.style.left = Math.max(deps.baseWidth, item.x) + 'px';
         itemElement.style.top = deps.getItemTopPosition(item, itemSpriteHeight) + 'px';
 
         // Set up click handler
@@ -2062,7 +2062,7 @@ const Items = (() => {
             markAsOverdue(item, now, Object.assign({}, deps, { skipHabitMiss: true }));
             item.lastDamageTickTime = now.getTime();
             item.x = deps.baseWidth + deps.getSubTaskClusterOffset(item);
-            if (item.element) item.element.style.left = item.x + 'px';
+            if (item.element) item.element.style.left = Math.max(deps.baseWidth, item.x) + 'px'; // floor at the base edge (negative sub fan offset)
         }
     }
 
