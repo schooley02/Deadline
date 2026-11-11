@@ -263,6 +263,8 @@ const Loop = (() => {
                     item.element.classList.remove('enemy-thawing');
                     if (ice.phase === 'iced') item.element.classList.add('enemy-iced');
                     else if (ice.phase === 'thawing') item.element.classList.add('enemy-thawing');
+                    // The ice ART (js/iceOverlay.js, wired 2026-11-10): form -> hold -> cracked -> burst, moved on the same phase change.
+                    if (typeof IceOverlay !== 'undefined') IceOverlay.sync(item.element, ice.phase);
                 }
                 // The thaw moment restarts the damage clock (no back-charge for the iced time; next hit one full interval later).
                 if (ice.thawed && item.isOverdue) item.lastDamageTickTime = currentTimeMs;

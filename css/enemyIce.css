@@ -5,6 +5,9 @@
  * `.enemy-thawing` while the ice is cracking (the pause grace, and the last stretch of the budget). The ice REPLACES the
  * red overdue glow (same fragment variable, enemyStatus.css composes the filter), holds the attack animation on its
  * first frame, and tints the sprite cool. Effects Off / reduce-motion: the tint stays, nothing flickers.
+ *
+ * ART (2026-11-10, wired by js/iceOverlay.js): the PixelLab ice overlay (Assets/Effects/ice/) sits on top of the sprite (.ice-overlay,
+ * bottom of this file); the tint + glow above stay UNDER it. While thawing the ZOMBIE wiggles (the sheet), the ice stays still.
  */
 @property --ice-blur { syntax: '<length>'; inherits: true; initial-value: 7px; }
 
@@ -88,4 +91,104 @@ body.glance-strip .enemy .ice-countdown {
     background: #3a2a14;
     color: #ffe2b3;
     box-shadow: inset 0 0 0 1px #ffb74d;
+}
+
+/* ---- Ice art overlay (js/iceOverlay.js; docs/ICE_PLAN.md "Art"; frames in Assets/Effects/ice/) ----
+   A 128x128 frame, drawn 1:1 like the zombie art. Its row 118 is the feet line: the enemy box's bottom edge is where css/enemyAnim.css
+   lands every atlas's planted foot, so the frame sits 10px below the box bottom (128 - 118). It scales about that same feet line with the
+   sprite (--ice-scale, mirrored from --sprite-scale by SpriteAnim.syncScale), so sub-tasks (0.5x) and the portrait strip scale with it.
+   It is NOT inside .enemy-sprite: that element carries the tint filter (which would hue-shift the art) and the glow animations. */
+.enemy > .ice-overlay {
+    --ice-scale: 1;
+    position: absolute;
+    left: 50%;
+    bottom: -10px;
+    width: 128px;
+    height: 128px;
+    margin-left: -64px;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    pointer-events: none;
+    transform: scale(var(--ice-scale));
+    transform-origin: 50% 118px;
+    z-index: 2; /* above the sprite (1), under the thaw countdown badge (5) */
+}
+.ice-overlay.ice-forming {
+    background-image: url('../Assets/Effects/ice/ice_form.png');
+    background-size: 1024px 128px;
+    animation: ice-form 0.48s steps(8, jump-none) forwards; /* 8 frames x 60ms; keep = IceOverlay.FORM_MS; ends on the hold frame */
+}
+.ice-overlay.ice-hold {
+    background-image: url('../Assets/Effects/ice/ice_hold.png');
+    background-size: 128px 128px;
+}
+.ice-overlay.ice-cracked {
+    background-image: url('../Assets/Effects/ice/ice_hold_cracked.png');
+    background-size: 128px 128px;
+}
+/* Burst (thaw, or the zombie completed): 7 frames x 70ms, the last frame is the meltwater puddle, which then fades over 250ms.
+   Keep 0.49s + 0.25s = IceOverlay.BURST_TOTAL_MS. */
+.ice-overlay.ice-burst {
+    background-image: url('../Assets/Effects/ice/ice_burst.png');
+    background-size: 896px 128px;
+    animation: ice-burst 0.49s steps(7, jump-none) forwards, ice-puddle-fade 0.25s linear 0.49s forwards;
+}
+@keyframes ice-form  { from { background-position: 0 0; } to { background-position: -896px 0; } }
+@keyframes ice-burst { from { background-position: 0 0; } to { background-position: -768px 0; } }
+@keyframes ice-puddle-fade { from { opacity: 1; } to { opacity: 0; } }
+
+/* Drips while the ice is cracked: two 2x3px drops falling off the shard edges into the meltwater, whole pixels. */
+.ice-overlay.ice-cracked::before,
+.ice-overlay.ice-cracked::after {
+    content: '';
+    position: absolute;
+    width: 2px;
+    height: 3px;
+    background: #b7e5f9;
+    opacity: 0;
+    animation: ice-drip 1.2s steps(7, end) infinite;
+}
+.ice-overlay.ice-cracked::before { left: 58px; top: 84px; }
+.ice-overlay.ice-cracked::after  { left: 92px; top: 96px; animation-duration: 1.5s; animation-delay: 0.55s; }
+@keyframes ice-drip {
+    0%   { opacity: 1; translate: 0 0; }
+    75%  { opacity: 1; translate: 0 14px; }
+    100% { opacity: 0; translate: 0 14px; }
+}
+
+/* The struggle: while the ice is cracked the ZOMBIE wiggles side to side, whole pixels, in short bursts; the ice stays put.
+   On the sheet, not the sprite window (the window's animation slots belong to the glows, enemyStatus.css), and with the individual
+   `translate` property so the sheet's own frame-stepping transform is untouched. The scale comes from the window's transform. The
+   sheet's frame cycle stays paused (animation-play-state's first value); only the wiggle runs. */
+.enemy.enemy-thawing .enemy-sprite-sheet {
+    animation: enemy-sprite-run var(--sprite-dur) steps(var(--frames)) infinite, ice-struggle 0.9s steps(1, end) infinite;
+    animation-play-state: paused, running;
+}
+@keyframes ice-struggle {
+    0%   { translate: 0 0; }
+    8%   { translate: -2px 0; }
+    16%  { translate: 2px 0; }
+    24%  { translate: -1px 0; }
+    32%  { translate: 1px 0; }
+    40%  { translate: 0 0; }
+    100% { translate: 0 0; }
+}
+
+/* Other days' ghosts hold still, like their sprites. */
+.enemy.time-preview-ghost > .ice-overlay { animation-play-state: paused; }
+
+/* Effects Off / Reduced and the OS reduce-motion setting: no form, burst, drips or wiggle (js/iceOverlay.js also skips form + burst);
+   the hold / cracked frames simply appear and disappear. */
+.fx-off .ice-overlay,
+.fx-reduced .ice-overlay { animation: none !important; }
+.fx-off .ice-overlay::before, .fx-off .ice-overlay::after,
+.fx-reduced .ice-overlay::before, .fx-reduced .ice-overlay::after { display: none; }
+.fx-reduced .enemy.enemy-thawing .enemy-sprite-sheet {
+    animation-name: enemy-sprite-run;
+    animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+    .ice-overlay { animation: none !important; }
+    .ice-overlay::before, .ice-overlay::after { display: none; }
+    .enemy.enemy-thawing .enemy-sprite-sheet { animation-name: enemy-sprite-run; animation-play-state: paused; }
 }

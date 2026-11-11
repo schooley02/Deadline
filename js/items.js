@@ -925,6 +925,9 @@ const Items = (() => {
         let exitMs = 500;
         if (item.element) {
             const deathMs = (typeof SpriteAnim !== 'undefined') ? SpriteAnim.playDeath(item.element) : 0;
+            // Ice (docs/ICE_PLAN.md "Art", Jeremy 2026-11-10): completing an iced / thawing zombie bursts its ice in the SAME instant
+            // as the death animation (nothing waits for the other). No-op without ice; with motion off the held ice fades with it.
+            if (typeof IceOverlay !== 'undefined') IceOverlay.burstOnDefeat(item.element);
             if (deathMs > 0) {
                 const FADE_MS = 200;
                 exitMs = deathMs;

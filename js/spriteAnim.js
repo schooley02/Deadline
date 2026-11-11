@@ -72,6 +72,8 @@ const SpriteAnim = (() => {
         if (sprite._spriteScale === scale) return;
         sprite._spriteScale = scale;
         sprite.style.setProperty('--sprite-scale', String(scale));
+        // The ice overlay (js/iceOverlay.js) scales with the zombie.
+        if (typeof IceOverlay !== 'undefined') IceOverlay.syncScale(enemyEl, scale);
     }
 
     // Warm the browser cache so a freshly spawned zombie doesn't flash blank
