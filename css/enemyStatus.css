@@ -81,6 +81,17 @@
     --g-priority: drop-shadow(var(--outline-step) 0 0 #f2c14e) drop-shadow(calc(var(--outline-step) * -1) 0 0 #f2c14e)
                   drop-shadow(0 var(--outline-step) 0 #f2c14e) drop-shadow(0 calc(var(--outline-step) * -1) 0 #f2c14e);
 }
+/* Grown parents (2026-11-11, Jeremy: the 1px line looked odd on a parent enlarged by open sub-tasks). A parent
+   is drawn at 1.075x-1.3x, so its art pixels are wider than 1 screen px and a 1px line is thinner than the art and
+   resamples unevenly. Round the on-screen line width UP to a whole pixel: scale <= 1 (normal zombies, 0.5x
+   sub-tasks) stays 1px, any grown parent gets 2px (scale <= 2, so never more). Chrome 125+ `round()`; an older
+   browser fails the @supports test and keeps the 1px rule above. */
+@supports (width: round(up, 1.5px, 1px)) {
+    .enemy.high-priority > .enemy-sprite,
+    .enemy.high-priority:not(.has-anim-sprite) {
+        --outline-step: calc(round(up, var(--sprite-scale, 1), 1) * 1px / var(--sprite-scale, 1));
+    }
+}
 
 /* Overdue (camped at the base) — red glow. */
 .enemy.enemy-at-base > .enemy-sprite,
