@@ -72,6 +72,15 @@ New `CONFIG` keys, data only. Tune in `js/config.js` per the balance protocol, l
 - `fx-off` / `fx-reduced` / `prefers-reduced-motion`: static tint only, no flicker or shards.
 - Later art (PixelLab): ice-block overlay, cracked frame, shard sprite. Hand Jeremy a reference image + PixelLab prompt per his art workflow.
 
+### Art (DONE 2026-11-10, Opus 5.5; DECISIONS 2026-11-10 (ice art); NOT wired)
+
+- Files: `Assets/Effects/ice/`: `ice_form.png` (8 frames, forming), `ice_hold.png` (iced), `ice_hold_cracked.png` (thawing: the melting / broken frame, not crack lines), `ice_burst.png` (7 frames, thaw + shatter). Frames 128x128 at 1:1 (the same scale as the zombie art), laid out left to right in a strip.
+- Anchor: the overlay box is 128x128, centered on the zombie's cell (left = cell/2 - 64), its row 118 on the zombie's feet line (the mock used each atlas JSON's `feetY`; in the game, line it up with the sprite's planted foot including `--dy-attack`, and check it with `?` dev overrides on all 8). Scales with the sprite (0.5x sub-tasks, portrait strip).
+- Play order: timer starts on a zombie at the church (or it reaches the church with its timer running) -> `ice_form` once (~60 ms/frame) -> `ice_hold` (held) -> `.enemy-thawing` swaps to `ice_hold_cracked`, the ZOMBIE wiggles (Jeremy, 2026-11-10: "the zombies need to wiggle a little with the broken ice artwork since they are about to break free"): a small struggling side-to-side jiggle on the sprite only, the ice stays put, plus drips (CSS) -> thaw: `ice_burst` once (~70 ms/frame), then the puddle fades (~250 ms) and the zombie resumes attacking.
+- **Completing an iced zombie (Jeremy, 2026-11-10):** play `.enemy-dying` and `ice_burst` AT THE SAME TIME (plus the screen thump). Do not wait for one to finish before the other.
+- `fx-off` / `fx-reduced` / `prefers-reduced-motion`: no form / burst / wiggle; `ice_hold` / `ice_hold_cracked` simply appear and disappear. The cool tint stays.
+- Keep the current CSS tint + glow under the overlay unless it looks wrong next to the art (judge on the phone).
+
 ## Naming
 
 Player-facing: **Iced** / **Thawing**. Code: `ice*`. Do NOT use "frozen" / "freeze": already taken by frozen routine slots (`docs/FROZEN_SLOTS_PLAN.md`) and `FrozenNotice`.
