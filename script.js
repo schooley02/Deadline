@@ -1678,7 +1678,7 @@ document.addEventListener('DOMContentLoaded', () => {
         heroAttackLastMs = now;
         // A just-completed zombie stays in the list while its death animation plays: it no longer attacks.
         const ids = (timePreviewActive || State.isGameOver()) ? []
-            : HeroSpotlight.attackedHeroIds(State.getActiveItems().filter(i => !i.completedAt), findRoutineForItemDeps, CONFIG.HERO_CATEGORIES, Items.isNonThreatening, (it) => Ice.state(it, now).iced);
+            : HeroSpotlight.attackedHeroIds(State.getActiveItems().filter(i => !i.completedAt), findRoutineForItemDeps, CONFIG.HERO_CATEGORIES, Items.isNonThreatening, (it) => Ice.stateIn(it, State.getActiveItems(), now).iced);
         HeroSpotlight.setAttackedHeroes(ids);
         refreshHeroLane();
     }
@@ -2213,7 +2213,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     getActiveItems: State.getActiveItems,
                     isGameOver: State.isGameOver,
                     isNonThreatening: Items.isNonThreatening,
-                    isIced: (it) => Ice.state(it, Date.now()).iced,
+                    isIced: (it) => Ice.stateIn(it, State.getActiveItems(), Date.now()).iced,
                 });
                 processTimers(Date.now());
                 pollEveningCheck(Date.now());
@@ -3001,9 +3001,10 @@ document.addEventListener('DOMContentLoaded', () => {
             .filter(i => i.isOverdue && !Items.isNonThreatening(i))
             .map(i => ({
                 id: i.id, name: i.name, dueMs: i.dueDateTime.getTime(),
-                tickMs: Timer.damageIntervalMs(i, CONFIG.DAMAGE_INTERVAL_MS),
+                tickMs: Family.intervalMs(i, items, CONFIG.DAMAGE_INTERVAL_MS, {
+                    timers: true, isLurker: Items.isNonThreatening, isIced: (m) => Ice.stateIn(m, items, nowMs).iced }),
                 // Ice (docs/ICE_PLAN.md): an iced attacker deals nothing for iceMs; the panel counts down to the thaw.
-                iceMs: Ice.leftMs(i, nowMs), iceThawing: Ice.state(i, nowMs).thawing,
+                iceMs: Ice.leftMsIn(i, items, nowMs), iceThawing: Ice.stateIn(i, items, nowMs).thawing,
                 lastDamageTickMs: typeof i.lastDamageTickTime === 'number' ? i.lastDamageTickTime : nowMs,
             }));
         let nextDue = null;

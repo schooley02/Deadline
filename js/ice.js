@@ -53,20 +53,22 @@ const Ice = (() => {
      * (the budget left while the timer runs; the shorter of grace and budget after a pause). `thawing` = the ice is cracking:
      * in the pause grace, or in the last ICE_GRACE_MS of the budget. Reads only; never spends.
      */
-    function state(item, nowMs, c) {
+    function state(item, nowMs, c, holder) {
         const none = { iced: false, leftMs: 0, thawing: false };
         if (!atBase(item)) return none;
         const left = budgetLeftMs(item, c);
         if (left <= 0) return none;
-        if (isRunning(item)) return { iced: true, leftMs: left, thawing: left <= cfg('ICE_GRACE_MS', c) };
-        const g = graceLeftMs(item, nowMs, c);
+        // `holder` = the item whose timer does the icing: the item itself, or (family rule, 2026-11-11) its PARENT.
+        const h = holder || item;
+        if (isRunning(h)) return { iced: true, leftMs: left, thawing: left <= cfg('ICE_GRACE_MS', c) };
+        const g = graceLeftMs(h, nowMs, c);
         if (g > 0) return { iced: true, leftMs: Math.min(left, g), thawing: true };
         return none;
     }
 
     // When the ice ends if nothing changes (ms epoch), or null when the item is not iced. The Base Health panel's ETA uses it.
-    function thawAt(item, nowMs, c) {
-        const s = state(item, nowMs, c);
+    function thawAt(item, nowMs, c, holder) {
+        const s = state(item, nowMs, c, holder);
         return s.iced ? nowMs + s.leftMs : null;
     }
 
@@ -95,11 +97,11 @@ const Ice = (() => {
      *   episodeMs            (thawed only) how long this stretch of ice lasted
      *   phase / phaseChanged 'iced' | 'thawing' | null, for the CSS classes (touched only when it moves)
      */
-    function tick(item, nowMs, c) {
+    function tick(item, nowMs, c, holder) {
         const out = { iced: false, leftMs: 0, started: false, thawed: false, episodeMs: 0, phase: null, phaseChanged: false };
         if (!item || typeof item !== 'object') return out;
         let tr = track.get(item);
-        const before = state(item, nowMs, c);
+        const before = state(item, nowMs, c, holder);
         if (!tr && !before.iced) return out;
         if (!tr) { tr = { at: null, episodeMs: 0, iced: false, phase: null }; track.set(item, tr); }
         if (before.iced) {
@@ -110,7 +112,7 @@ const Ice = (() => {
             }
             tr.at = nowMs;
         }
-        const after = state(item, nowMs, c);
+        const after = state(item, nowMs, c, holder);
         out.iced = after.iced;
         out.leftMs = after.leftMs;
         out.started = after.iced && !tr.iced;
@@ -128,12 +130,25 @@ const Ice = (() => {
     }
 
     // ms of ice left (0 when not iced): the Base Health panel's ETA and its attacker rows read this.
-    function leftMs(item, nowMs, c) {
-        const s = state(item, nowMs, c);
+    function leftMs(item, nowMs, c, holder) {
+        const s = state(item, nowMs, c, holder);
         return s.iced ? s.leftMs : 0;
     }
 
-    return { atBase, state, leftMs, thawAt, onPause, clearGrace, clearOthers, tick, budgetLeftMs, graceLeftMs };
+    // Family rule (docs/FAMILY_DAMAGE_PLAN.md, 2026-11-11): a timer on a PARENT ices every one of its sub-tasks that is at the
+    // church (each on its own budget, so a late sub can't refill anything); a timer on a SUB-TASK ices only that sub-task, never
+    // its parent or siblings. Returns the item whose timer does the icing for `item`.
+    function holderFor(item, items) {
+        if (!item || !item.parentId) return item;
+        const parent = (items || []).find(i => i && i.id === item.parentId);
+        if (parent && (isRunning(parent) || (parent.timerPaused === true && typeof parent.icePausedAt === 'number'))) return parent;
+        return item;
+    }
+    // state / leftMs for an item among its siblings (what the panel, the church pulse and the heroes call).
+    function stateIn(item, items, nowMs, c) { return state(item, nowMs, c, holderFor(item, items)); }
+    function leftMsIn(item, items, nowMs, c) { return leftMs(item, nowMs, c, holderFor(item, items)); }
+
+    return { holderFor, stateIn, leftMsIn, atBase, state, leftMs, thawAt, onPause, clearGrace, clearOthers, tick, budgetLeftMs, graceLeftMs };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

@@ -1030,6 +1030,14 @@ const CONFIG = {
     // so "Still working?" and the ice cracking are one moment. Balance numbers: change only through the balance process.
     ICE_MAX_MS: 60 * 60 * 1000,
     ICE_GRACE_MS: 5 * 60 * 1000,
+    // Family damage (docs/FAMILY_DAMAGE_PLAN.md; designed + approved by Jeremy 2026-11-11): a parent and its sub-tasks attack as one
+    // group. Tier = family members attacking at the church right now (parent included): 1-2 -> x1.0, 3-4 -> x1.5, 5+ -> x2.0 of ONE
+    // zombie's damage. A timer on any member halves the family (WORK_TIMER_DAMAGE_FACTOR). Starting dials: if it feels harsh, raise
+    // the thresholds (4 / 6) rather than dropping the parent from the count. Balance numbers: change only through the balance process.
+    FAMILY_TIER_2_AT: 3,
+    FAMILY_TIER_3_AT: 5,
+    FAMILY_DAMAGE_TIER_2: 1.5,
+    FAMILY_DAMAGE_TIER_3: 2.0,
 };
 
 // Export for Jest/Node; browser picks up the global `CONFIG` via <script> tag.

@@ -256,7 +256,7 @@ const Loop = (() => {
             // happens (stop, due date moved, budget spent). Optional global, no-op without it (old tests / callers).
             let iced = false;
             if (typeof Ice !== 'undefined') {
-                const ice = Ice.tick(item, currentTimeMs);
+                const ice = Ice.tick(item, currentTimeMs, undefined, Ice.holderFor(item, deps.activeItems));
                 iced = ice.iced;
                 if (ice.phaseChanged && item.element && item.element.classList) {
                     item.element.classList.remove('enemy-iced');
@@ -282,9 +282,16 @@ const Loop = (() => {
                 // Work timer (Build 3, 2026-10-25): while a timer runs on this item the
                 // tick interval is stretched (damage x WORK_TIMER_DAMAGE_FACTOR, never
                 // zero). Live loop only -- catch-up paths ignore the timer.
-                const tickMs = (typeof Timer !== 'undefined')
-                    ? Timer.damageIntervalMs(item, CONFIG.DAMAGE_INTERVAL_MS)
-                    : CONFIG.DAMAGE_INTERVAL_MS;
+                // Family damage (docs/FAMILY_DAMAGE_PLAN.md, 2026-11-11): the hit interval comes from the whole family's tier and its
+                // timers (a timer on ANY member halves the family). Without Family (old tests / callers) the old per-item rule holds.
+                const tickMs = (typeof Family !== 'undefined')
+                    ? Family.intervalMs(item, deps.activeItems, CONFIG.DAMAGE_INTERVAL_MS, {
+                        timers: true, isLurker: deps.isNonThreatening,
+                        isIced: (typeof Ice !== 'undefined') ? (m => Ice.stateIn(m, deps.activeItems, currentTimeMs).iced) : undefined,
+                    })
+                    : (typeof Timer !== 'undefined')
+                        ? Timer.damageIntervalMs(item, CONFIG.DAMAGE_INTERVAL_MS)
+                        : CONFIG.DAMAGE_INTERVAL_MS;
                 if (currentTimeMs >= item.lastDamageTickTime + tickMs) {
                     // Run-history blame attribution (sub-session 2, session
                     // 53) — MUST run BEFORE deps.damageBase below. damageBase

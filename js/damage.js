@@ -203,10 +203,10 @@ const Damage = (() => {
     // already overdue before the save were charged live while the game was
     // open, so the window starts at the LATER of (due time, start of offline
     // window) — no double-charging with the live tick loop either.
-    function computeOfflineOverdueDamage(dueMs, nowMs, offlineMs, alreadyCharged, savedTickMs) {
+    function computeOfflineOverdueDamage(dueMs, nowMs, offlineMs, alreadyCharged, savedTickMs, intervalMs) {
         const remaining = CONFIG.OFFLINE_DAMAGE_CAP_PER_ITEM - (alreadyCharged || 0);
         if (offlineMs <= 0 || dueMs >= nowMs || remaining <= 0) return 0;
-        const { ticks } = computeOfflineTicks(dueMs, nowMs, offlineMs, savedTickMs);
+        const { ticks } = computeOfflineTicks(dueMs, nowMs, offlineMs, savedTickMs, intervalMs);
         return Math.min(ticks * CONFIG.OVERDUE_DAMAGE, remaining);
     }
 
@@ -219,8 +219,9 @@ const Damage = (() => {
     // while the app was open counts too. Items that fell due while offline (no
     // savedTickMs) start at the later of due time and the start of the absence,
     // as before. Pure; never returns a resume time after nowMs.
-    function computeOfflineTicks(dueMs, nowMs, offlineMs, savedTickMs) {
-        const interval = CONFIG.DAMAGE_INTERVAL_MS;
+    function computeOfflineTicks(dueMs, nowMs, offlineMs, savedTickMs, intervalMs) {
+        // intervalMs (optional): this member's hit interval under the family tier (js/family.js, 2026-11-11); default = one zombie's.
+        const interval = (typeof intervalMs === 'number' && intervalMs > 0) ? intervalMs : CONFIG.DAMAGE_INTERVAL_MS;
         const floorMs = Math.max(dueMs, nowMs - Math.max(0, offlineMs));
         let startMs = floorMs;
         if (typeof savedTickMs === 'number' && isFinite(savedTickMs) && savedTickMs <= nowMs) {
@@ -255,18 +256,26 @@ const Damage = (() => {
         const hits = [];
         const newlyOverdue = [];
 
+        // Pass 1: mark everything that fell due, so pass 2 sees the whole family at the church.
         activeItems.forEach(item => {
             if (isLurker(item)) return; // never overdue, never damaged
             if (item.dueDateTime.getTime() > nowMs) return; // not due yet
-
             if (!item.isOverdue) {
                 newlyOverdue.push(item);
                 if (markFn) markFn(item);
             }
+        });
 
-            const pendingTicks = Math.floor((nowMs - item.lastDamageTickTime) / CONFIG.DAMAGE_INTERVAL_MS);
+        activeItems.forEach(item => {
+            if (isLurker(item)) return;
+            if (item.dueDateTime.getTime() > nowMs) return;
+
+            // Family tier (js/family.js): catch-up ignores timers and ice, like before, but a family at the church swings at its
+            // tier's pace (each member's interval = base * attackers / multiplier).
+            const interval = familyInterval(item, activeItems, nowMs, isLurker);
+            const pendingTicks = Math.floor((nowMs - item.lastDamageTickTime) / interval);
             if (pendingTicks <= 0) return;
-            item.lastDamageTickTime += pendingTicks * CONFIG.DAMAGE_INTERVAL_MS;
+            item.lastDamageTickTime += pendingTicks * interval;
 
             const remaining = CONFIG.OFFLINE_DAMAGE_CAP_PER_ITEM - (item.offlineDamageCharged || 0);
             const dmg = Math.min(pendingTicks * CONFIG.OVERDUE_DAMAGE, Math.max(0, remaining));
@@ -277,6 +286,15 @@ const Damage = (() => {
     }
 
     // Duration of the offline catch-up animation for N moving sprites.
+    // This item's hit interval under the family tier for catch-up (no timers, no ice). Falls back to the plain interval when the
+    // Family module is not loaded (old tests / callers).
+    function familyInterval(item, activeItems, nowMs, isLurker) {
+        if (typeof Family === 'undefined') return CONFIG.DAMAGE_INTERVAL_MS;
+        return Family.intervalMs(item, activeItems, CONFIG.DAMAGE_INTERVAL_MS, {
+            isLurker, isAttacking: m => m.dueDateTime && m.dueDateTime.getTime() <= nowMs,
+        });
+    }
+
     function computeCatchUpDuration(animatableCount) {
         return Math.max(
             CONFIG.OFFLINE_CATCHUP_MIN_MS,
@@ -641,8 +659,9 @@ const Damage = (() => {
             if (isLurker(item)) return; // [P1-DATA-005] session 27 — no offline damage for lurkers
             const dueMs = item.dueDateTime.getTime();
             const savedTickMs = savedTicks.get(item);
+            const interval = familyInterval(item, getActiveItems(), nowMs, isLurker);
             const dmg = computeOfflineOverdueDamage(
-                dueMs, nowMs, offlineMs, item.offlineDamageCharged, savedTickMs
+                dueMs, nowMs, offlineMs, item.offlineDamageCharged, savedTickMs, interval
             );
             if (dmg > 0) hits.push({ item, dmg });
             // Keep the partial countdown: resume the live damage clock at the
@@ -651,7 +670,7 @@ const Damage = (() => {
             // loop never replays the ticks the cap refused. Only touches items
             // that are actually overdue.
             if (item.isOverdue && dueMs < nowMs && offlineMs > 0) {
-                const { nextTickMs } = computeOfflineTicks(dueMs, nowMs, offlineMs, savedTickMs);
+                const { nextTickMs } = computeOfflineTicks(dueMs, nowMs, offlineMs, savedTickMs, interval);
                 item.lastDamageTickTime = nextTickMs;
             }
         });
