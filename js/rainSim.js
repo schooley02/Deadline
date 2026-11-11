@@ -40,6 +40,7 @@ const RainSim = (() => {
     const MAX_SPLASHES = 28;          // per layer
     const MIN_INTENSITY = 0.3;
     const MAX_INTENSITY = 2;
+    const MAX_DENSITY = 6;
 
     /** Small seeded generator (mulberry32): a function returning [0, 1). The same seed always gives the same rain. */
     function mulberry32(seed) {
@@ -140,7 +141,7 @@ const RainSim = (() => {
     function targetCount(layer) {
         const r = layer.recipe;
         const widen = (layer.w + MAX_SLOPE * layer.h * r.windMul) / Math.max(1, layer.w);
-        return Math.max(1, Math.round((layer.w * layer.h / r.area) * layer.intensity * widen));
+        return Math.max(1, Math.round((layer.w * layer.h / r.area) * layer.intensity * (layer.density || 1) * widen));
     }
 
     function fill(layer, scatter) {
@@ -158,6 +159,9 @@ const RainSim = (() => {
             w: Math.max(1, Math.floor(w)), h: Math.max(1, Math.floor(h)),
             hz: Number.isFinite(o.hz) ? o.hz : 0,
             intensity: clamp(Number.isFinite(o.intensity) ? o.intensity : 1, MIN_INTENSITY, MAX_INTENSITY),
+            // Extra drops per area for a small canvas (the portrait strip, 2026-11-11): at the landscape density its 92px sky only
+            // held a handful of drops and the rain did not read. 1 = the tuned landscape density.
+            density: clamp(Number.isFinite(o.density) ? o.density : 1, 1, MAX_DENSITY),
             drops: [], splashes: [],
             step(dt, wind) { stepLayer(layer, dt, wind); },
             resize(nw, nh, hz) {
@@ -167,6 +171,12 @@ const RainSim = (() => {
                 layer.drops = [];
                 layer.splashes = [];
                 fill(layer, true);
+            },
+            setDensity(d) {
+                const next = clamp(Number.isFinite(d) ? d : 1, 1, MAX_DENSITY);
+                if (next === layer.density) return;
+                layer.density = next;
+                fill(layer, false);
             },
             setIntensity(i) {
                 const next = clamp(Number.isFinite(i) ? i : 1, MIN_INTENSITY, MAX_INTENSITY);

@@ -277,6 +277,30 @@ describe('intensity', () => {
     });
 });
 
+describe('portrait glance strip (2026-11-11)', () => {
+    test('the near rain lands on the strip floor (sky 32 + marker 32 - inset 8 = 56px), not the landscape horizon', () => {
+        expect(RainFx.stripHorizon()).toBe(56);
+        document.body.className = 'glance-strip';
+        buildDom(true);
+        RainFx.init({ getResult: () => null });
+        RainFx._entries().forEach((e) => expect(e.layer.hz).toBe(56 / RainFx.PX));
+    });
+
+    test('the strip gets STRIP_RAIN_DENSITY x the drops; landscape stays at 1', () => {
+        buildDom(true);
+        RainFx.init({ getResult: () => null });
+        const far = RainFx._entries().find((e) => e.role === 'far');
+        expect(far.layer.density).toBe(1);
+        const landscapeDrops = far.layer.drops.length;
+        document.body.className = 'glance-strip';
+        sizeHost(far.host, 390, 92); // the strip's size
+        jest.advanceTimersByTime(700); // the rescan
+        expect(far.layer.density).toBe(RainFx.STRIP_RAIN_DENSITY);
+        expect(far.layer.hz).toBe(56 / RainFx.PX);
+        expect(landscapeDrops).toBeGreaterThan(0);
+    });
+});
+
 describe('shell + load order + css', () => {
     const html = read('index.html');
     const sw = read('sw.js');

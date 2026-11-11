@@ -61,8 +61,9 @@ body.glance-strip #gameCanvas {
     background: linear-gradient(180deg, #1a1b3a 0%, #0b0b24 100%);
 }
 
-/* Minimal backdrop only — no scene props in portrait. */
-body.glance-strip .graveyard-scene {
+/* Minimal backdrop only — no scene props in portrait. The scene box itself shows (2026-11-11) because the strip's weather
+   (sky clouds, far rain, lightning, far haze) lives in it; everything else in it stays hidden. */
+body.glance-strip .graveyard-scene > :not(.scene-clouds-extra, .climate-haze-far, .rain, .climate-lightning) {
     display: none;
 }
 
@@ -83,21 +84,57 @@ body.glance-strip .nights-ui {
     display: none;
 }
 
-/* The run climate's weather layers (css/climate.css) are landscape/desktop only too: the strip has its own sky. */
+/* Run climate in the strip (2026-11-11, Jeremy: "add the weather effects to the portrait view canvas on mobile"). The strip gets a
+   strip-sized cut of the weather (css/climate.css still decides WHICH band shows what; the rules below only resize and thin it):
+   sky tint, sky clouds from Overcast on, Storm rain (far + near, splashes on the floor) + lightning, Fog banks over the lanes (they may
+   dim the markers a little, Jeremy said yes), a few Clear fireflies. Still hidden: the weather badge + sky toast (no room, Jeremy),
+   the village haze / fog (no village here) and the near film. Everything stays pointer-events: none (climate.css). */
 body.glance-strip .weather-badge,
 body.glance-strip .sky-toast,
-body.glance-strip .climate-haze-far,
 body.glance-strip .climate-near,
 body.glance-strip .village-haze,
-body.glance-strip .scene-clouds-extra,
 body.glance-strip .village-wx,
-body.glance-strip .climate-wx-near,
-body.glance-strip .climate-fireflies,
 body.glance-strip .climate-beam,
-body.glance-strip .climate-break,
-body.glance-strip .climate-lightning,
-body.glance-strip .rain {
+body.glance-strip .climate-break {
     display: none !important;
+}
+
+/* Strip horizon for the weather = the floor tile's top edge (sky + marker - inset = 56px). The near weather and fireflies place
+   themselves from --clm-hz, which VillageView writes on #gameCanvas for the LANDSCAPE village; redefine it on the wrappers here.
+   js/ui/rainFx.js uses the same number for where the near rain splashes (RainFx.stripHorizon). */
+body.glance-strip .climate-wx-near,
+body.glance-strip .climate-fireflies {
+    --clm-hz: calc(var(--strip-sky) + var(--strip-marker) - var(--strip-inset));
+}
+
+/* Sky tint: the strip's own gradient takes the band's sky colours (Clear keeps the original strip gradient above). */
+body.glance-strip #gameCanvas:is(.climate-hazy, .climate-overcast, .climate-fog, .climate-storm) {
+    background: linear-gradient(180deg, var(--clm-s0) 0%, var(--clm-s2) 60%, var(--clm-s3) 100%);
+}
+
+/* Sky clouds: the same tinted layers as landscape, shrunk to fit the 32px sky and thinned (fewer layers = cheaper on a phone). */
+body.glance-strip #gameCanvas .scene-clouds-x4,
+body.glance-strip #gameCanvas .scene-clouds-x5,
+body.glance-strip #gameCanvas:is(.climate-overcast, .climate-fog) .scene-clouds-x3 {
+    display: none;
+}
+body.glance-strip #gameCanvas.climate-overcast .scene-clouds-x1 { --cl-top: -14px; --cl-scale: 0.4; }
+body.glance-strip #gameCanvas.climate-overcast .scene-clouds-x2 { --cl-top: -8px; --cl-scale: 0.34; }
+body.glance-strip #gameCanvas.climate-fog .scene-clouds-x1 { --cl-top: -12px; --cl-scale: 0.45; }
+body.glance-strip #gameCanvas.climate-fog .scene-clouds-x2 { --cl-top: 0px; --cl-scale: 0.4; }
+body.glance-strip #gameCanvas.climate-storm .scene-clouds-x1 { --cl-top: -20px; --cl-scale: 0.45; }
+body.glance-strip #gameCanvas.climate-storm .scene-clouds-x2 { --cl-top: -12px; --cl-scale: 0.45; }
+body.glance-strip #gameCanvas.climate-storm .scene-clouds-x3 { --cl-top: -4px; --cl-scale: 0.4; }
+
+/* Fog: two light banks drifting over the lanes (the third is landscape only). */
+body.glance-strip .fog-bank--n1 { --fb-top: -42px; --fb-scale: 0.4; --fb-op: 0.3; }
+body.glance-strip .fog-bank--n2 { --fb-top: -16px; --fb-scale: 0.35; --fb-op: 0.24; }
+body.glance-strip .fog-bank--n3 { display: none; }
+
+/* Clear: five fireflies (landscape has 36), behind the markers only. */
+body.glance-strip .climate-fireflies--front,
+body.glance-strip .climate-fireflies .firefly:nth-child(n+6) {
+    display: none;
 }
 
 /* FLOOR band (PixelLab tileable art, 2026-10-13): Assets/scene/strip-floor.png is

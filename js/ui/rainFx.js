@@ -61,7 +61,25 @@ const RainFx = (() => {
         return 'live';
     }
 
+    /** The portrait glance strip's horizon (px): the floor tile's top edge = sky + marker - inset (css/glanceStrip.css). */
+    function stripHorizon() {
+        const C = (typeof CONFIG !== 'undefined') ? CONFIG : {};
+        return (C.STRIP_SKY_HEIGHT || 32) + (C.STRIP_MARKER_HEIGHT || 32) - (C.STRIP_FLOOR_FEET_INSET || 8);
+    }
+
+    function isStrip() {
+        return !!(typeof document !== 'undefined' && document.body && document.body.classList &&
+            document.body.classList.contains('glance-strip'));
+    }
+
+    // Drops per area in the strip, x the landscape density (its sky is 92px tall, so at 1 only a few drops showed).
+    const STRIP_RAIN_DENSITY = 3;
+    function density() { return isStrip() ? STRIP_RAIN_DENSITY : 1; }
+
     function horizon() {
+        // The strip (2026-11-11) has no village, so VillageView's --clm-hz is the LANDSCAPE horizon: use the strip floor instead.
+        // Switching modes changes the host size too, so scan() re-sizes the layer and picks this up.
+        if (isStrip()) return stripHorizon() / PX;
         let v = NaN;
         try { v = parseFloat(canvasEl.style.getPropertyValue('--clm-hz')); } catch (e) { /* default below */ }
         return (Number.isFinite(v) ? v : 224) / PX;
@@ -103,8 +121,11 @@ const RainFx = (() => {
             if (!e.layer || w !== e.w || h !== e.h) {
                 e.w = w; e.h = h;
                 e.canvas.width = w; e.canvas.height = h;
-                if (!e.layer) e.layer = sim().createLayer(role, w, h, rng, { hz: horizon(), intensity: intensity() });
-                else e.layer.resize(w, h, horizon());
+                if (!e.layer) e.layer = sim().createLayer(role, w, h, rng, { hz: horizon(), intensity: intensity(), density: density() });
+                else {
+                    if (e.layer.setDensity) e.layer.setDensity(density());
+                    e.layer.resize(w, h, horizon());
+                }
                 if (motionMode() === 'still') drawStill(e);
             }
         }
@@ -266,7 +287,7 @@ const RainFx = (() => {
         flashEl = null;
     }
 
-    return { PX, CLOUD_GUST_RATE, cloudRateFor, init, sync, destroy, motionMode, _entries: () => entries };
+    return { PX, CLOUD_GUST_RATE, cloudRateFor, init, sync, destroy, motionMode, stripHorizon, STRIP_RAIN_DENSITY, _entries: () => entries };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

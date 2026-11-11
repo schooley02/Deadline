@@ -374,10 +374,29 @@ describe('looks key off one class per band', () => {
     });
 });
 
-describe('portrait glance strip hides the weather layers', () => {
-    test.each(['.nights-ui', '.climate-haze-far', '.climate-near', '.village-haze', '.scene-clouds-extra'])('%s', sel => {
+describe('portrait glance strip hides the weather layers it has no room for', () => {
+    // 2026-11-11 (Jeremy): the strip now shows a strip-sized cut of the weather; only these stay hidden.
+    test.each(['.nights-ui', '.climate-near', '.village-haze', '.village-wx', '.weather-badge'])('%s', sel => {
         const m = new RegExp(`body\\.glance-strip ${sel.replace('.', '\\.')}[,\\s{][^{]*\\{\\s*display:\\s*none`).exec(strip);
         expect(m).not.toBeNull();
+    });
+
+    test('the strip SHOWS sky clouds, far haze, rain, lightning, near weather and fireflies (no display: none for them)', () => {
+        ['.climate-haze-far', '.scene-clouds-extra', '.climate-wx-near', '.climate-fireflies', '.climate-lightning', '.rain'].forEach(sel => {
+            const m = new RegExp(`body\\.glance-strip ${sel.replace('.', '\\.')}\\s*[,{][^{]*\\{\\s*display:\\s*none`).exec(strip); // the selector alone, not a child rule
+            expect(m).toBeNull();
+        });
+        // the scene box shows, but only its weather children
+        expect(strip).toContain('body.glance-strip .graveyard-scene > :not(.scene-clouds-extra, .climate-haze-far, .rain, .climate-lightning)');
+    });
+
+    test('the strip tints its sky with the band colours, but Clear keeps the original strip gradient', () => {
+        expect(strip).toMatch(/body\.glance-strip #gameCanvas:is\(\.climate-hazy, \.climate-overcast, \.climate-fog, \.climate-storm\) \{\s*background: linear-gradient\(180deg, var\(--clm-s0\)/);
+        expect(strip).toContain('background: linear-gradient(180deg, #1a1b3a 0%, #0b0b24 100%);');
+    });
+
+    test('the strip weather places itself from the strip floor (--clm-hz redefined on its wrappers)', () => {
+        expect(strip).toMatch(/body\.glance-strip \.climate-wx-near,\s*body\.glance-strip \.climate-fireflies \{\s*--clm-hz: calc\(var\(--strip-sky\) \+ var\(--strip-marker\) - var\(--strip-inset\)\);/);
     });
 
     test('graveyard.css moves the number layer left of the hill together with the moon', () => {

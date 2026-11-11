@@ -226,6 +226,30 @@ describe('createLayer', () => {
     });
 });
 
+describe('density (portrait strip, 2026-11-11)', () => {
+    test('defaults to 1; a density of 3 holds about 3x the drops; clamped to 1..6', () => {
+        const base = RainSim.createLayer('far', 200, 46, rng(5));
+        expect(base.density).toBe(1);
+        const dense = RainSim.createLayer('far', 200, 46, rng(5), { density: 3 });
+        expect(dense.drops.length).toBeGreaterThanOrEqual(base.drops.length * 3 - 2);
+        expect(dense.drops.length).toBeLessThanOrEqual(base.drops.length * 3 + 2);
+        expect(RainSim.createLayer('far', 200, 46, rng(5), { density: 0.2 }).density).toBe(1);
+        expect(RainSim.createLayer('far', 200, 46, rng(5), { density: 50 }).density).toBe(6);
+    });
+
+    test('setDensity tops the drops up or trims them, and a no-op keeps them', () => {
+        const layer = RainSim.createLayer('near1', 200, 46, rng(9));
+        const n1 = layer.drops.length;
+        layer.setDensity(3);
+        expect(layer.drops.length).toBeGreaterThan(n1);
+        const kept = layer.drops.slice();
+        layer.setDensity(3);
+        expect(layer.drops).toEqual(kept);
+        layer.setDensity(1);
+        expect(layer.drops.length).toBe(n1);
+    });
+});
+
 describe('streak', () => {
     test('whole pixels, head first, the tail leaning back up-wind', () => {
         const px = RainSim.streak({ x: 10.4, y: 20.6, len: 5 }, 0.5);
