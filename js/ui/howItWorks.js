@@ -155,10 +155,10 @@ const HowItWorks = (() => {
             title: 'The sky',
             what: [
                 `The sky shows how your run has been going lately, all of it together. It scores each of the last ${days} finished days of this run: finishing on time counts ${pct(w.onTime || 0)} (a late finish counts half), keeping your habits ${pct(w.habits || 0)}, and keeping the church healthy ${pct(w.church || 0)} (${c.damageCap || 25} HP of damage in one day scores zero). Recent days count more than older ones.`,
-                'There are five skies, best to worst: Clear, Hazy, Overcast, Fog and Storm. A new run starts Hazy, and several strong days in a row clear it. It changes once a day, when a day closes, so the morning sky is the report on how things have gone.',
+                `There are five skies, best to worst: Clear, Hazy, Overcast, Fog and Storm. A new run starts Hazy, and several strong days in a row clear it. The finished days set the sky, and today moves it as it goes: once ${c.liveFullAt || 4} things have been finished or have gone overdue, today counts extra, so a rough afternoon can darken the sky and a strong day can lift it. When the day closes it settles to its normal weight, so the morning sky is the report on how things have gone. The arrow and the sky-change notice follow finished days only.`,
                 'The small icon beside the moon shows the sky, with an arrow when the run is clearing or worsening. Tap it to see the last days. The same readout is in Stats.',
             ],
-            why: 'Base health, overdue zombies and missed habits already show what is happening right now. The sky shows the direction of the whole run: it is slow to change, so one bad day does not ruin it and one good day does not fix it. As it worsens, decoration fades (stars, the moon, far buildings), but the things that help you recover (zombies, the church, your numbers) always stay readable.',
+            why: 'Base health, overdue zombies and missed habits already show what is happening right now. The sky shows the direction of the whole run: it is slow to change: one bad day dims it without ruining it, and one good day lifts it without fixing it. As it worsens, decoration fades (stars, the moon, far buildings), but the things that help you recover (zombies, the church, your numbers) always stay readable.',
         };
     }
 

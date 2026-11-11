@@ -231,6 +231,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // store is read once per such change (same cache idea as villageContext above) and climateView.refresh() can run every tick.
     // Dev override: ?climate=clear|hazy|overcast|fog|storm (+ &trend=up|down). On any failure: no result = the sky looks as before.
     const climateCache = { key: null, result: null };
+    // Live sky (2026-11-11, docs/LIVE_SKY_PLAN.md): while the day is open, today's score so far moves the sky on top of the cached closed-day
+    // result (RunClimate.withToday). Rebuilt only when a counter it reads changes, so the same object comes back otherwise (the sky and
+    // the badge compare results by identity). Off during game over, and when the open day belongs to another run.
+    const liveClimateCache = { closed: null, sig: null, result: null };
+    function liveClimate(closed, runNumber, over) {
+        const today = State.getToday();
+        if (over || !closed || closed.forced || !today || today.run !== runNumber) return closed;
+        const d = today.done || {}, m = today.missed || {}, l = today.lurk || {}, g = today.dmg || {};
+        const sig = [d.task, d.habit, d.late, m.task, m.habit, l.avoided, l.slipped, g.taken, g.offline].join('|');
+        if (liveClimateCache.closed !== closed || liveClimateCache.sig !== sig) {
+            liveClimateCache.closed = closed;
+            liveClimateCache.sig = sig;
+            liveClimateCache.result = RunClimate.withToday(closed, today, CONFIG.CLIMATE);
+        }
+        return liveClimateCache.result;
+    }
     const climateOverride = ClimateView.parseOverride(window.location.search);
     // realClimateNow() = the REAL sky (dev panel sky > ?climate= > the run's own climate). climateNow() below = what the canvas WEARS: the same
     // thing with the player's Lv 4 sky pick on top (W1c, js/skyPick.js; view-only, so only the canvas, rain, badge and panel ever see it).
@@ -248,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 climateCache.result = RunClimate.compute(Persistence.loadDays(), runNumber, CONFIG.CLIMATE);
                 climateCache.key = key;
             }
-            return climateCache.result;
+            return liveClimate(climateCache.result, runNumber, over);
         } catch (err) {
             console.error('Deadline: run climate failed', err);
             return climateCache.result; // last good value, or null = no climate class
@@ -285,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!skyWatch.armed) return;
         if (!result || result.forced) { skyWatch.last = null; return; }
         const prev = skyWatch.last;
-        const next = SkyPick.realBandOf(result);
+        const next = result.closedBand || SkyPick.realBandOf(result); // the toast follows FINISHED days only (the live sky moves all day)
         skyWatch.last = next;
         if (prev === null || prev === next) return;
         const text = SkyPick.changeNotice(prev, next, State.getSkyPick(), skyUnlockedBands());
@@ -294,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function armSkyWatch() {
         skyWatch.armed = true;
         const r = climateNow();
-        skyWatch.last = (r && !r.forced) ? SkyPick.realBandOf(r) : null;
+        skyWatch.last = (r && !r.forced) ? (r.closedBand || SkyPick.realBandOf(r)) : null;
     }
     WeatherPanel.init({
         getResult: climateNow,

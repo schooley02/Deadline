@@ -25,6 +25,7 @@
  *
  *   result = { band, bandIndex, score, trend, scoredDays, usedPrior, recent: [ { date, score, onTime, habits, church, damage } ] }
  *   (`recent` = the last window days, NEWEST FIRST, for the future Weather panel.)
+ *   withToday() (2026-11-11, live sky) returns a copy with the band / score moved by today so far, plus closedBand, today, live: true.
  */
 const RunClimate = (() => {
     // Best -> worst. The index is the "worse than" order the hysteresis uses.
@@ -43,6 +44,8 @@ const RunClimate = (() => {
         hysteresis: 0.03,
         trendDays: 3,
         trendDelta: 0.05,
+        liveFullAt: 4,
+        liveWeight: 2,
     };
 
     function num(v) { return Number.isFinite(v) && v > 0 ? v : 0; }
@@ -199,6 +202,60 @@ const RunClimate = (() => {
         };
     }
 
+    /**
+     * LIVE SKY (2026-11-11, docs/LIVE_SKY_PLAN.md): today's score SO FAR, from the open day's record. `due` is only stamped at close,
+     * so the day's "due so far" is derived: what was finished plus what went overdue (a late finish sits in both, so it is taken
+     * out once). Items due later today are in neither, so they never count against the player. The numbers then go through the
+     * SAME formulas as a closed day (partsWith), so a live day and its closed self agree. null = nothing judged yet.
+     * Returns { score, onTime, habits, church, damage, resolved }; `resolved` = how many things the day has judged so far.
+     */
+    function liveParts(todayRec, options) {
+        if (!todayRec || typeof todayRec !== 'object') return null;
+        const o = opts(options);
+        const done = todayRec.done || {}, missed = todayRec.missed || {}, lurk = todayRec.lurk || {};
+        const doneN = num(done.task) + num(done.habit);
+        const dueSoFar = Math.max(doneN, doneN + num(missed.task) + num(missed.habit) - num(done.late));
+        const rec = Object.assign({}, todayRec, { due: { task: dueSoFar, habit: 0 } });
+        const p = partsWith(rec, o);
+        if (!p) return null;
+        return Object.assign({}, p, { resolved: dueSoFar + num(lurk.avoided) + num(lurk.slipped) });
+    }
+
+    /** The total weight the closed days (and the fading start prior) carry in climateAfter after `n` scored days. */
+    function closedWeight(n, options) {
+        const o = opts(options);
+        const k = Math.max(0, Math.min(n, o.windowDays));
+        let w = 0;
+        for (let age = 0; age < k; age++) w += Math.pow(o.decay, age);
+        return w + Math.max(0, o.startWeightDays * (1 - k / o.windowDays));
+    }
+
+    /**
+     * The sky the canvas wears while the day is still open: the closed-day result blended with today's score so far.
+     * Today's share = ramp (resolved / liveFullAt, max 1) x liveWeight / (liveWeight + decay x the closed weight), so at full
+     * strength today counts like `liveWeight` newest days. The band is chosen from the CLOSED band with the usual hysteresis,
+     * every time: nothing is stored, so it cannot ratchet or flicker. Returns `closed` itself (same object) when today has no
+     * say yet, or the sky is forced. Otherwise a copy with band / bandIndex / score live, `closedBand` / `closedBandIndex` /
+     * `closedScore` kept for the things that stay closed-day only (the toast), `today` = liveParts and `live: true`.
+     * Trend, recent days and scoredDays stay the closed run's.
+     */
+    function withToday(closed, todayRec, options) {
+        if (!closed || closed.forced || !Number.isFinite(closed.score)) return closed;
+        const o = opts(options);
+        const parts = liveParts(todayRec, o);
+        if (!parts) return closed;
+        const ramp = Math.min(1, parts.resolved / Math.max(1, o.liveFullAt));
+        if (!(ramp > 0)) return closed;
+        const share = ramp * (o.liveWeight / (o.liveWeight + o.decay * closedWeight(closed.scoredDays || 0, o)));
+        const score = closed.score * (1 - share) + parts.score * share;
+        const bandIndex = nextBandIndex(closed.bandIndex, score, o);
+        return Object.assign({}, closed, {
+            band: BANDS[bandIndex], bandIndex, score,
+            closedBand: closed.band, closedBandIndex: closed.bandIndex, closedScore: closed.score,
+            today: parts, live: true,
+        });
+    }
+
     /** A fake result for the dev override (?climate=fog&trend=up): { band, trend } only. */
     function forced(band, trend) {
         const idx = BANDS.indexOf(band);
@@ -207,7 +264,7 @@ const RunClimate = (() => {
         return { band: BANDS[idx], bandIndex: idx, score: null, trend: t, scoredDays: 0, usedPrior: false, recent: [], forced: true };
     }
 
-    return { BANDS, DEFAULTS, dayParts, dayScore, scoredDays, climateAfter, rawBandIndex, nextBandIndex, compute, forced };
+    return { BANDS, DEFAULTS, dayParts, dayScore, scoredDays, climateAfter, rawBandIndex, nextBandIndex, compute, forced, liveParts, closedWeight, withToday };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

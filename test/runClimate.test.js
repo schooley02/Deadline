@@ -5,7 +5,7 @@
 const RunClimate = require('../js/runClimate.js');
 const CONFIG = require('../js/config.js');
 
-const { dayParts, dayScore, scoredDays, climateAfter, rawBandIndex, nextBandIndex, compute, forced, BANDS } = RunClimate;
+const { dayParts, dayScore, scoredDays, climateAfter, rawBandIndex, nextBandIndex, compute, forced, liveParts, closedWeight, withToday, BANDS } = RunClimate;
 
 // A closed daily record: `due` items (habits + tasks), the fraction finished, habits kept, damage.
 function rec(i, o = {}) {
@@ -320,5 +320,145 @@ describe('forced (dev override)', () => {
         expect(forced('blizzard', 'up')).toBeNull();
         expect(forced('storm', 'sideways').trend).toBe('steady');
         expect(forced('clear').trend).toBe('steady');
+    });
+});
+
+// ---- Live sky (2026-11-11, docs/LIVE_SKY_PLAN.md) ---------------------------------------------------------------------------
+// An OPEN day's record: `due` is only stamped at close, so liveParts derives "due so far" from done + missed.
+function openDay(o = {}) {
+    return {
+        done: { task: o.doneTask || 0, habit: o.doneHabit || 0, subtask: 0, late: o.late || 0 },
+        missed: { task: o.missedTask || 0, habit: o.missedHabit || 0, subtask: o.missedSub || 0 },
+        lurk: { avoided: o.avoided || 0, slipped: o.slipped || 0 },
+        dmg: { taken: o.dmg || 0, hits: 0, offline: o.offline || 0 },
+    };
+}
+const sevenGood = () => compute(Array.from({ length: 7 }, (_, i) => rec(i + 1, { doneFrac: 0.95, habitFrac: 0.95, dmg: 1 })), 1);
+
+describe('liveParts: today so far', () => {
+    test('a fresh day has nothing judged: null (today has no say)', () => {
+        expect(liveParts(openDay())).toBeNull();
+        expect(liveParts(null)).toBeNull();
+    });
+
+    test('items due LATER today are in neither done nor missed, so they never count against the player', () => {
+        const p = liveParts(openDay({ doneTask: 2 }));
+        expect(p.onTime).toBe(1);
+        expect(p.resolved).toBe(2);
+    });
+
+    test('an overdue item still pending counts as missed; a late finish counts once (half credit), not twice', () => {
+        expect(liveParts(openDay({ missedTask: 1 })).onTime).toBe(0);
+        // 1 finished late (it was also bumped missed when it went overdue): due so far = 1, credit = 1 - 0.5
+        const late = liveParts(openDay({ doneTask: 1, missedTask: 1, late: 1 }));
+        expect(late.onTime).toBeCloseTo(0.5, 6);
+        expect(late.resolved).toBe(1);
+    });
+
+    test('agrees with a closed day: the same counts give the same parts as dayParts on the stamped record', () => {
+        const o = openDay({ doneTask: 3, doneHabit: 2, missedTask: 1, missedHabit: 1, dmg: 6 });
+        const closed = Object.assign({}, o, { due: { task: 4, habit: 3 } });
+        const live = liveParts(o);
+        const c = dayParts(closed);
+        expect(live.onTime).toBeCloseTo(c.onTime, 9);
+        expect(live.habits).toBeCloseTo(c.habits, 9);
+        expect(live.score).toBeCloseTo(c.score, 9);
+        expect(live.damage).toBe(6);
+    });
+
+    test('sub-tasks are not read (v13: tasks + habits only)', () => {
+        const o = openDay({ doneTask: 1 });
+        o.done.subtask = 5; o.missed.subtask = 5;
+        expect(liveParts(o).resolved).toBe(1);
+    });
+
+    test('Break-habit answers resolve the day too', () => {
+        const p = liveParts(openDay({ avoided: 1, slipped: 1 }));
+        expect(p.habits).toBe(0.5);
+        expect(p.resolved).toBe(2);
+    });
+});
+
+describe('withToday: the live sky', () => {
+    const closed = sevenGood();
+
+    test('no say yet (nothing judged, or under 1 resolved) -> the SAME closed object comes back', () => {
+        expect(withToday(closed, openDay())).toBe(closed);
+        expect(withToday(closed, null)).toBe(closed);
+    });
+
+    test('a dev-forced sky and a score-less result are left alone', () => {
+        const f = forced('storm', 'down');
+        expect(withToday(f, openDay({ missedTask: 3 }))).toBe(f);
+        expect(withToday(null, openDay({ missedTask: 3 }))).toBeNull();
+    });
+
+    test('the ramp: one resolved item moves the sky a quarter as far as four do', () => {
+        const bad1 = withToday(closed, openDay({ missedTask: 1 }));
+        const bad4 = withToday(closed, openDay({ missedTask: 4 }));
+        const full = closed.score - bad4.score;
+        expect(full).toBeGreaterThan(0);
+        expect((closed.score - bad1.score) / full).toBeCloseTo(0.25, 6);
+        const bad9 = withToday(closed, openDay({ missedTask: 9 }));
+        expect(bad9.score).toBeCloseTo(bad4.score, 6); // capped at full strength
+    });
+
+    test('full strength = liveWeight newest days against the closed weight (a third of the sky, not a fifth)', () => {
+        const share = 2 / (2 + 0.85 * closedWeight(7));
+        expect(share).toBeGreaterThan(0.3);
+        const r = withToday(closed, openDay({ missedTask: 4, dmg: 25 }));
+        const today = liveParts(openDay({ missedTask: 4, dmg: 25 })).score;
+        expect(r.score).toBeCloseTo(closed.score * (1 - share) + today * share, 9);
+    });
+
+    test('liveWeight 1 at full strength lands close to what the day will do once it closes (no big midnight jump)', () => {
+        const todayRec = openDay({ doneTask: 6, doneHabit: 2, missedTask: 0, missedHabit: 2, dmg: 3 });
+        const live = withToday(closed, todayRec, { liveWeight: 1 });
+        const stamped = Object.assign({}, todayRec, { date: '2026-11-08', run: 1, due: { task: 6, habit: 4 } });
+        const days = Array.from({ length: 7 }, (_, i) => rec(i + 1, { doneFrac: 0.95, habitFrac: 0.95, dmg: 1 }));
+        const after = compute(days.concat([stamped]), 1);
+        // not exact: closing also slides the 7-day window (the oldest closed day drops out) and fades the start prior
+        expect(Math.abs(live.score - after.score)).toBeLessThan(0.01);
+    });
+
+    test('a rough day pulls a mid-Hazy sky down to Overcast; a great day lifts an Overcast sky up (closed band kept for the toast)', () => {
+        const hazyMid = { band: 'hazy', bandIndex: 1, score: 0.8, trend: 'steady', scoredDays: 7, usedPrior: false, recent: [] };
+        const rough = withToday(hazyMid, openDay({ missedTask: 4, dmg: 5 }));
+        expect(rough.band).toBe('overcast');
+        expect(rough.closedBand).toBe('hazy');
+        expect(rough.closedScore).toBe(0.8);
+        expect(rough.live).toBe(true);
+        expect(rough.today.resolved).toBe(4);
+        const overcast = { band: 'overcast', bandIndex: 2, score: 0.66, trend: 'steady', scoredDays: 7, usedPrior: false, recent: [] };
+        const great = withToday(overcast, openDay({ doneTask: 4, doneHabit: 4 }));
+        expect(great.band).toBe('hazy');
+    });
+
+    test('trend, recent days and scoredDays stay the closed run\'s', () => {
+        const r = withToday(closed, openDay({ missedTask: 4, dmg: 25 }));
+        expect(r.trend).toBe(closed.trend);
+        expect(r.recent).toBe(closed.recent);
+        expect(r.scoredDays).toBe(closed.scoredDays);
+    });
+
+    test('hysteresis still applies from the CLOSED band: a score just past a line does not flip it', () => {
+        const edge = { band: 'hazy', bandIndex: 1, score: 0.72, trend: 'steady', scoredDays: 7, usedPrior: false, recent: [] };
+        // a very slightly worse today: the blended score stays within 0.03 of Hazy's 0.70 line
+        const r = withToday(edge, openDay({ doneTask: 3, missedTask: 1 }));
+        expect(r.band).toBe('hazy');
+    });
+
+    test('nothing is stored: the same inputs always give the same sky', () => {
+        const a = withToday(closed, openDay({ missedTask: 3 }));
+        const b = withToday(closed, openDay({ missedTask: 3 }));
+        expect(b.band).toBe(a.band);
+        expect(b.score).toBe(a.score);
+    });
+
+    test('a brand-new run (prior only) moves less than a full week would (the prior is heavy)', () => {
+        const fresh = compute([], 1);
+        const g = withToday(fresh, openDay({ missedTask: 4, dmg: 25 }));
+        const w = withToday(closed, openDay({ missedTask: 4, dmg: 25 }));
+        expect((fresh.score - g.score) / fresh.score).toBeLessThan((closed.score - w.score) / closed.score);
     });
 });

@@ -3,7 +3,7 @@
  * "Weather badge (the tap target)"). Three surfaces share one view model:
  *   - the BADGE (#weatherBadge in #gameCanvas, beside the moon): a small pixel icon of the band, an arrow when the run is
  *     clearing / worsening; tap = the Weather panel. Landscape / desktop only (hidden in the portrait strip).
- *   - the WEATHER PANEL (a modal): the band, the trend in words, and the last days' on-time %, habits kept and church damage,
+ *   - the WEATHER PANEL (a modal): the band, the trend in words, and today so far plus the last days' on-time %, habits kept and church damage,
  *     with an (i) link to the "The sky" topic of How Deadline works.
  *   - the STATS readout (a section in the current-run panel): the same table; this is how the portrait strip, which has no
  *     sky, sees the weather.
@@ -132,6 +132,10 @@ const WeatherPanel = (() => {
             arrow: trend.arrow,
             forced: !!result.forced,
             note,
+            // Live sky (2026-11-11): the first table row is TODAY so far (null for a dev-forced sky). `pending` = nothing judged yet.
+            today: result.forced ? null : (result.today
+                ? { pending: false, onTime: pct(result.today.onTime), habits: pct(result.today.habits), damage: hp(result.today.damage) }
+                : { pending: true }),
             rows: recent.map(r => ({
                 date: r.date,
                 label: dayLabel(r.date),
@@ -142,11 +146,24 @@ const WeatherPanel = (() => {
         };
     }
 
+    function todayRowHtml(t) {
+        if (!t) return '';
+        if (t.pending) return '<tr class="wx-row--live"><th scope="row">Today so far</th><td colspan="3" class="wx-pending">Nothing judged yet</td></tr>';
+        return `<tr class="wx-row--live"><th scope="row">Today so far</th><td>${esc(t.onTime)}</td><td>${esc(t.habits)}</td><td>${esc(t.damage)}</td></tr>`;
+    }
+
     function tableHtml(vm) {
-        if (!vm.rows.length) return '';
-        const body = vm.rows.map(r =>
+        if (!vm.rows.length && !vm.today) return '';
+        const body = todayRowHtml(vm.today) + vm.rows.map(r =>
             `<tr><th scope="row">${esc(r.label)}</th><td>${esc(r.onTime)}</td><td>${esc(r.habits)}</td><td>${esc(r.damage)}</td></tr>`).join('');
         return `<table class="wx-table"><thead><tr><th scope="col">Day</th><th scope="col">On time</th><th scope="col">Habits kept</th><th scope="col">Church damage</th></tr></thead><tbody>${body}</tbody></table>`;
+    }
+
+    function daysHeadingHtml(vm) {
+        if (!vm.rows.length && !vm.today) return '';
+        const n = vm.rows.length;
+        const text = !n ? 'Today' : (vm.today ? `Today and the last ${n} finished day${n === 1 ? '' : 's'}` : `Last ${n} finished day${n === 1 ? '' : 's'}`);
+        return `<h4 class="wx-days-heading">${text}</h4>`;
     }
 
     function infoButton() {
@@ -220,8 +237,8 @@ const WeatherPanel = (() => {
                     ${row}
                     ${vm.note ? `<p class="wx-note">${esc(vm.note)}</p>` : ''}
                     ${(picker && !vm.forced) ? pickerHtml(picker) : ''}
-                    ${vm.rows.length ? `<h4 class="wx-days-heading">Last ${vm.rows.length} finished day${vm.rows.length === 1 ? '' : 's'}</h4>${tableHtml(vm)}` : ''}
-                    <p class="wx-foot">The sky changes once a day, when a day closes.</p>
+                    ${daysHeadingHtml(vm)}${tableHtml(vm)}
+                    <p class="wx-foot">Today moves the sky as it fills in, and counts extra until it closes.</p>
                     <button type="button" class="modal-close-x" data-action="close" aria-label="Close">
                         <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M2 2 L10 10 M10 2 L2 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                     </button>`;

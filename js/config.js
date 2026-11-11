@@ -381,6 +381,11 @@ const CONFIG = {
         hysteresis: 0.03,
         trendDays: 3,
         trendDelta: 0.05,
+        // Live sky (2026-11-11, docs/LIVE_SKY_PLAN.md): today moves the sky while the day is open. liveFullAt = how many things the day
+        // must have judged (finished + gone overdue) before it counts at full strength; liveWeight = at full strength, today counts like
+        // this many newest days (2 = louder than the 1 it carries once closed, so the sky follows how the day feels).
+        liveFullAt: 4,
+        liveWeight: 2,
     },
     HERO_ONESHOT_FRAMES: 9,
     HERO_ONESHOT_FRAME_OVERRIDES: { hurt: { financial: 7, health: 7 } },

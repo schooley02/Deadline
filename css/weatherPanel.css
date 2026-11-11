@@ -186,3 +186,5 @@
 .wx-picker-rule { margin: 6px 0 0; font-size: 12px; color: var(--color-text-secondary, #5b5b6b); }
 .wx-locked { margin: 0; font-size: 13px; color: var(--color-neutral, #6b6b7b); }
 .wx-set-stats { display: flex; align-items: center; gap: 6px; margin: 6px 0 0; font-size: 13px; font-weight: 600; }
+.wx-table tbody tr.wx-row--live th, .wx-table tbody tr.wx-row--live td { font-style: italic; background: rgba(10, 95, 85, 0.07); }
+.wx-table .wx-pending { text-align: left; font-weight: 400; color: var(--color-text-secondary, #5b5b6b); }

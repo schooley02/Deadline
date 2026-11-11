@@ -400,11 +400,18 @@ describe('The sky (run climate)', () => {
         expect(textOf(topic('weather'))).not.toContain('counts 60%');
     });
 
-    test('names all five skies, says a new run starts Hazy and that the sky changes once a day', () => {
+    test('names all five skies, says a new run starts Hazy and that today moves it', () => {
         const text = textOf(topic('weather'));
         ['Clear', 'Hazy', 'Overcast', 'Fog', 'Storm'].forEach(b => expect(text).toContain(b));
         expect(text).toContain('A new run starts Hazy');
-        expect(text).toContain('once a day');
+        expect(text).toContain('today moves it as it goes');
+        expect(text).toContain('finished days only');
+    });
+
+    test('the live-sky words follow CONFIG (how many things before today counts extra)', () => {
+        const retuned = Object.assign({}, CONFIG, { CLIMATE: Object.assign({}, CONFIG.CLIMATE, { liveFullAt: 6 }) });
+        expect(textOf(topic('weather', retuned))).toContain('once 6 things have been finished');
+        expect(textOf(topic('weather'))).toContain('once 4 things have been finished');
     });
 });
 

@@ -106,19 +106,26 @@ describe('markup (pure)', () => {
         expect(html).toContain('role="dialog"');
         expect(html).toContain('Overcast');
         expect(html).toContain('Worsening');
-        expect(html).toContain('Last 2 finished days');
+        expect(html).toContain('Today and the last 2 finished days');
         expect(html).toContain('<th scope="row">Mon Nov 2</th>');
         expect(html).toContain('data-action="close"');
         expect(html).toContain('data-hiw-topic="weather"');
-        expect(html).toContain('once a day');
+        expect(html).toContain('Today moves the sky as it fills in');
     });
 
-    test('panel: no days yet -> no table, no heading; one day -> singular', () => {
+    test('panel: no finished days yet -> just the Today row under a "Today" heading; one day -> singular', () => {
         const empty = WeatherPanel.panelHtml(WeatherPanel.buildViewModel(result('hazy', { recent: [] })));
-        expect(empty).not.toContain('<table');
-        expect(empty).not.toContain('wx-days-heading');
+        expect(empty).toContain('<h4 class="wx-days-heading">Today</h4>');
+        expect(empty).toContain('Nothing judged yet');
+        expect(empty).not.toContain('the last');
         const one = WeatherPanel.panelHtml(WeatherPanel.buildViewModel(result('hazy', { recent: [day('2026-11-02')] })));
-        expect(one).toContain('Last 1 finished day<');
+        expect(one).toContain('Today and the last 1 finished day<');
+    });
+
+    test('a dev-forced sky has no Today row and no table when there are no days', () => {
+        const f = WeatherPanel.panelHtml(WeatherPanel.buildViewModel(RunClimate.forced('storm', 'down')));
+        expect(f).not.toContain('<table');
+        expect(f).not.toContain('wx-days-heading');
     });
 
     test('stats section: the same facts, no modal chrome', () => {
@@ -256,5 +263,31 @@ describe('badge + panel in the DOM', () => {
         document.body.innerHTML = '';
         expect(() => WeatherPanel.init({ getResult: () => current })).not.toThrow();
         expect(() => WeatherPanel.updateBadge(current)).not.toThrow();
+    });
+});
+
+describe('live sky: the Today so far row (2026-11-11, docs/LIVE_SKY_PLAN.md)', () => {
+    const live = (extra) => result('hazy', Object.assign({
+        live: true, closedBand: 'hazy', today: { score: 0.4, onTime: 0.5, habits: 1, church: 0.8, damage: 5, resolved: 4 },
+    }, extra));
+
+    test('view model: the first table row is today, from the result\'s live numbers', () => {
+        const vm = WeatherPanel.buildViewModel(live());
+        expect(vm.today).toEqual({ pending: false, onTime: '50%', habits: '100%', damage: '5 HP' });
+        expect(WeatherPanel.buildViewModel(result('hazy')).today).toEqual({ pending: true });
+        expect(WeatherPanel.buildViewModel(RunClimate.forced('fog')).today).toBeNull();
+    });
+
+    test('the Today row comes first, is marked live, and the finished days follow; the Stats table has it too', () => {
+        const vm = WeatherPanel.buildViewModel(live());
+        const html = WeatherPanel.panelHtml(vm);
+        expect(html).toContain('<tr class="wx-row--live"><th scope="row">Today so far</th><td>50%</td><td>100%</td><td>5 HP</td></tr>');
+        expect(html.indexOf('Today so far')).toBeLessThan(html.indexOf('Mon Nov 2'));
+        expect(WeatherPanel.statsHtml(vm)).toContain('Today so far');
+    });
+
+    test('nothing judged yet reads as a words row, not a row of dashes', () => {
+        const html = WeatherPanel.panelHtml(WeatherPanel.buildViewModel(result('hazy')));
+        expect(html).toContain('<td colspan="3" class="wx-pending">Nothing judged yet</td>');
     });
 });
