@@ -346,16 +346,52 @@ describe('ice section (2026-11-10): Iced / Thawing / Burst preview on the zombie
         };
         return calls;
     };
-    afterEach(() => { delete global.IceOverlay; jest.useRealTimers(); });
+    afterEach(() => { DevPanel.icePreview('real'); delete global.IceOverlay; jest.useRealTimers(); });
 
-    test('the panel has the three ice buttons, and they are actions that change no demo value', () => {
+    test('the panel has Real / Iced / Thawing / Burst chips, and they change no demo value', () => {
         setup();
         DevPanel.init({ demo: DevDemo });
         DevPanel.setEnabled(true);
         click(btn());
-        expect(Array.from(panel().querySelectorAll('[data-dev-ice]')).map((b) => b.getAttribute('data-dev-ice'))).toEqual(['iced', 'thawing', 'burst']);
+        expect(Array.from(panel().querySelectorAll('[data-dev-ice]')).map((b) => b.getAttribute('data-dev-ice'))).toEqual(['real', 'iced', 'thawing', 'burst']);
         click(q('[data-dev-ice="iced"]'));
         expect(DevDemo.snapshot().active).toBe(false);
+    });
+
+    test('the chip you pressed shows as selected (Real when nothing is previewed), and Real / Reset put it back', () => {
+        setup();
+        DevPanel.init({ demo: DevDemo });
+        DevPanel.setEnabled(true);
+        click(btn());
+        const on = () => Array.from(panel().querySelectorAll('[data-dev-ice][aria-pressed="true"]')).map((b) => b.getAttribute('data-dev-ice'));
+        expect(on()).toEqual(['real']);
+        expect(q('[data-dev-ice="iced"]').classList.contains('dev-chip--action')).toBe(false);
+        click(q('[data-dev-ice="iced"]'));
+        expect(on()).toEqual(['iced']);
+        expect(q('[data-dev-ice="iced"]').classList.contains('dev-chip--on')).toBe(true);
+        click(q('[data-dev-ice="thawing"]'));
+        expect(on()).toEqual(['thawing']);
+        click(q('[data-dev-ice="burst"]'));
+        expect(on()).toEqual(['burst']);
+        expect(q('[data-dev-reset]').disabled).toBe(false); // a preview counts as an active demo
+        click(q('[data-dev-reset]'));
+        expect(on()).toEqual(['real']);
+        click(q('[data-dev-ice="thawing"]'));
+        click(q('[data-dev-ice="real"]'));
+        expect(on()).toEqual(['real']);
+    });
+
+    test('Real takes the preview off and gives a really iced zombie its ice back', () => {
+        const calls = setup();
+        document.getElementById('a').classList.add('enemy-iced'); // the game says: a is really iced
+        DevPanel.icePreview('thawing');
+        expect(document.getElementById('a').classList.contains('enemy-thawing')).toBe(true);
+        calls.length = 0;
+        DevPanel.icePreview('real');
+        expect(document.getElementById('a').classList.contains('enemy-iced')).toBe(true);
+        expect(document.getElementById('a').classList.contains('enemy-thawing')).toBe(false);
+        expect(document.getElementById('b').classList.contains('enemy-iced')).toBe(false);
+        expect(calls).toEqual([['a', 'iced']]); // only the really iced one is re-synced
     });
 
     test('Iced and Thawing sync every live zombie (never a dying one) and set the tint classes', () => {
