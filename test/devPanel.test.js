@@ -242,6 +242,32 @@ describe('church section', () => {
         spy.mockRestore();
     });
 
+    test('Buzz buttons call onBuzz with each size and change no demo value (2026-11-11)', () => {
+        const onBuzz = jest.fn();
+        DevPanel.init({ demo: DevDemo, onBuzz });
+        DevPanel.setEnabled(true);
+        click(btn());
+        click(q('[data-dev-buzz="normal"]'));
+        click(q('[data-dev-buzz="heavy"]'));
+        click(q('[data-dev-buzz="massive"]'));
+        expect(onBuzz.mock.calls.map((c) => c[0])).toEqual(['normal', 'heavy', 'massive']);
+        expect(DevDemo.snapshot().active).toBe(false);
+        expect(q('[data-dev-reset]').disabled).toBe(true);
+    });
+
+    test('Buzz with no onBuzz dep, or a throwing one, never throws', () => {
+        DevPanel.init({ demo: DevDemo });
+        DevPanel.setEnabled(true);
+        click(btn());
+        expect(() => click(q('[data-dev-buzz="massive"]'))).not.toThrow();
+        const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        DevPanel.init({ demo: DevDemo, onBuzz: () => { throw new Error('boom'); } });
+        DevPanel.setEnabled(true);
+        click(btn());
+        expect(() => click(q('[data-dev-buzz="heavy"]'))).not.toThrow();
+        spy.mockRestore();
+    });
+
     test('church clicks do not bubble out of the panel', () => {
         DevPanel.init({ demo: DevDemo });
         DevPanel.setEnabled(true);

@@ -9,12 +9,12 @@
  * watch the sky / village change while you tap, so nothing may dim or cover the scene. It is not a Modal overlay. Sections:
  * Weather (Real / Clear / Hazy / Overcast / Fog / Storm), Village stars (Real / 1..5 for all eight
  * buildings), Graveyard monument (Real / 1..5, the Memorial obelisk on its own) and Graveyard tree (Real / 1 Sapling / 2 Young / 3 Giant), Graveyard headstones (Real / 0 Cross .. 4 Platinum, every milestone marker at that stage), Church (Real / 100 / 75 / 50 / 25 / 0 = the damage picture + its idle animation, plus a Hit button that plays the
- * flash + shake once; ART ONLY, no health or stat changes), Ice (Iced / Thawing / Burst: shows the ice art on every zombie on screen, ART ONLY: see icePreview) and Reset. Every choice goes through DevDemo (in-memory only; see its header); this file only draws and wires.
+ * flash + shake once; ART ONLY, no health or stat changes), Ice (Iced / Thawing / Burst: shows the ice art on every zombie on screen, ART ONLY: see icePreview) Buzz (Normal / Heavy / Massive: plays the completion thump + vibration at that size, 2026-11-11; nothing saved) and Reset. Every choice goes through DevDemo (in-memory only; see its header); this file only draws and wires.
  *
  * Every click inside the button / panel stopPropagation()s: Modal's outside-click dismiss is a bubbling document handler and
  * would otherwise close whatever window is open underneath.
  *
- * Pure parts (panelModel, panelHtml) are exported for tests. Deps: { demo (DevDemo, defaults to the global), onDemoChange?: () => void, onHit?: () => void }.
+ * Pure parts (panelModel, panelHtml) are exported for tests. Deps: { demo (DevDemo, defaults to the global), onDemoChange?: () => void, onHit?: () => void, onBuzz?: (tier) => void }.
  */
 const DevPanel = (() => {
     const BAND_LABELS = { clear: 'Clear', hazy: 'Hazy', overcast: 'Overcast', fog: 'Fog', storm: 'Storm' };
@@ -133,6 +133,12 @@ const DevPanel = (() => {
             + '<section class="dev-section"><h4>Ice (zombies on screen, picture only)</h4>'
             + '<div class="dev-chips" role="group" aria-label="Ice preview on every zombie on screen">' + chips(model.ice, 'data-dev-ice') + '</div>'
             + '</section>'
+            + '<section class="dev-section"><h4>Buzz (the completion thump + vibration)</h4>'
+            + '<div class="dev-chips" role="group" aria-label="Play the completion buzz at each size">'
+            + '<button type="button" class="dev-chip dev-chip--action" data-dev-buzz="normal" aria-label="Play the normal buzz">Normal</button>'
+            + '<button type="button" class="dev-chip dev-chip--action" data-dev-buzz="heavy" aria-label="Play the heavy buzz">Heavy</button>'
+            + '<button type="button" class="dev-chip dev-chip--action" data-dev-buzz="massive" aria-label="Play the massive buzz">Massive</button></div>'
+            + '</section>'
             + '<section class="dev-section"><h4>Church (picture only)</h4>'
             + '<div class="dev-chips" role="group" aria-label="Church damage picture">' + chips(model.church, 'data-dev-church')
             + '<button type="button" class="dev-chip dev-chip--action" data-dev-hit aria-label="Play a hit on the church">Hit</button></div>'
@@ -187,6 +193,11 @@ const DevPanel = (() => {
         else if (t.hasAttribute('data-dev-hit')) {
             if (deps && typeof deps.onHit === 'function') {
                 try { deps.onHit(); } catch (err) { if (typeof console !== 'undefined') console.error('Deadline: dev church hit failed', err); }
+            }
+        }
+        else if (t.hasAttribute('data-dev-buzz')) {
+            if (deps && typeof deps.onBuzz === 'function') {
+                try { deps.onBuzz(t.getAttribute('data-dev-buzz')); } catch (err) { if (typeof console !== 'undefined') console.error('Deadline: dev buzz failed', err); }
             }
         }
         else if (t.hasAttribute('data-dev-reset')) {

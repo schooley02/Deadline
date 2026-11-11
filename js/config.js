@@ -50,6 +50,14 @@ const CONFIG = {
     // Buzz (2026-11-09, Jeremy): the phone also gives one short vibration with each thump (navigator.vibrate; Android Chrome, not iOS).
     // 0 = no buzz. Follows the thump: none under Effects Off / reduce-motion.
     CANVAS_THUMP_VIBRATE_MS: 20,
+    // Bigger buzzes for a bigger hit (2026-11-11, Jeremy: "as if you're landing a big strong hit"). A browser can only set a buzz's length and
+    // pattern, not its strength, so these are navigator.vibrate patterns ([buzz, pause, buzz, ...] in ms). HEAVY = the completed item had
+    // sub-tasks, or HEAVY_MIN+ minutes logged on it; MASSIVE = MASSIVE_MIN+ minutes logged (Jeremy: "anything 1 hr or more"). Feel dials,
+    // not balance: tune by hand on the phone with the dev panel's Buzz buttons. CANVAS_THUMP_VIBRATE_MS = 0 mutes every size.
+    CANVAS_THUMP_HEAVY_MIN: 30,
+    CANVAS_THUMP_MASSIVE_MIN: 60,
+    CANVAS_THUMP_HEAVY_PATTERN: [40, 30, 70],
+    CANVAS_THUMP_MASSIVE_PATTERN: [50, 40, 90, 50, 130],
     BASE_HEAL_FLOAT_MS: 1400, // the floating "+N" over the church when the base heals (2026-11-02, Jeremy); js/damage.js showHealFloat
 
     // --- Offline catch-up (decided 2026-07-17, see DECISIONS.md) ---

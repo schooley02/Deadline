@@ -214,6 +214,14 @@ describe('church damage preview is ART ONLY', () => {
         expect(panel).toContain('Church (picture only)');
     });
 
+    test('the panel has a Buzz section (Normal / Heavy / Massive) wired to CanvasThump.preview', () => {
+        const panel = read('js/ui/devPanel.js');
+        ['normal', 'heavy', 'massive'].forEach((t) => expect(panel).toContain('data-dev-buzz="' + t + '"'));
+        const js = read('script.js');
+        expect(js).toContain('onBuzz: previewBuzz');
+        expect(js).toMatch(/function previewBuzz\(tier\) \{ CanvasThump\.preview\(gameCanvas, tier\); \}/);
+    });
+
     test('the game files that own health know nothing about the preview', () => {
         ['js/damage.js', 'js/state.js', 'js/hud.js', 'js/persistence.js', 'js/ui/timeSliderView.js'].forEach((f) => {
             if (fs.existsSync(path.join(__dirname, '..', f))) expect(read(f)).not.toMatch(/DevDemo|DevPanel|churchHealth/);

@@ -1109,7 +1109,8 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             // Completion (2026-10-26): the item's hero plays its `attack` row once.
             // Screen thump (2026-11-09): the whole canvas gives a small jolt as the hit lands (js/ui/canvasThump.js; visual only).
-            onItemDefeated: (item) => { heroAttackOnDefeat(item); CanvasThump.onDefeat(gameCanvas); },
+            // The item sizes the buzz (2026-11-11): had sub-tasks / 30+ min logged = heavy, 60+ min = massive.
+            onItemDefeated: (item) => { heroAttackOnDefeat(item); CanvasThump.onDefeat(gameCanvas, item); },
             // Daily record (D2, 2026-10-27): every gameplay seam bumps through here.
             recordDaily: State.bumpToday,
             // Goals (Build A, 2026-11-05): a finished / un-finished task or habit counts toward any linked goal target.
@@ -3521,6 +3522,9 @@ document.addEventListener('DOMContentLoaded', () => {
         churchHitTimer = setTimeout(() => { baseElement.classList.remove('base-hit-flash', 'base-hit-shake'); }, Math.max(300, CONFIG.BASE_SHAKE_DURATION_MS) + 50);
     }
 
+    // The Buzz buttons (2026-11-11): the completion thump + vibration at one size, right now, nothing saved (CanvasThump.preview).
+    function previewBuzz(tier) { CanvasThump.preview(gameCanvas, tier); }
+
     // Developer tools (2026-11-03): the Settings switch. Saved per device (js/settings.js), then the DEV button shows / hides right away;
     // turning it off also clears any demo (DevPanel.setEnabled -> DevDemo.setEnabled(false)), which redraws the real sky, village and church picture.
     function handleDevToolsChange(on) {
@@ -3981,6 +3985,7 @@ document.addEventListener('DOMContentLoaded', () => {
     DevPanel.init({
         onDemoChange: () => { VillageView.render(baseElement.offsetWidth); ClimateView.refresh(); applyChurchPreview(); },
         onHit: previewChurchHit,
+        onBuzz: previewBuzz,
     });
     DevPanel.setEnabled(Settings.load().devTools === true);
     // Time slider (Milestone 4, 2026-07-20) — after initGame() so

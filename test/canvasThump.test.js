@@ -213,6 +213,124 @@ describe('shell, CSS and wiring agree', () => {
     });
     test('script.js fires it from the completion hook, on every completion', () => {
         const js = read('script.js');
-        expect(js).toMatch(/onItemDefeated: \(item\) => \{ heroAttackOnDefeat\(item\); CanvasThump\.onDefeat\(gameCanvas\); \}/);
+        expect(js).toMatch(/onItemDefeated: \(item\) => \{ heroAttackOnDefeat\(item\); CanvasThump\.onDefeat\(gameCanvas, item\); \}/);
+    });
+});
+
+describe('buzz sizes (2026-11-11): normal / heavy / massive', () => {
+    afterEach(() => { delete navigator.vibrate; delete global.Timer; });
+    const w = (minutes, subs) => ({ minutes, subs: !!subs });
+
+    test('tierFor: massive at 60+ min, heavy with sub-tasks or 30+ min, else normal', () => {
+        expect(CONFIG.CANVAS_THUMP_MASSIVE_MIN).toBe(60);
+        expect(CanvasThump.tierFor(w(0, false))).toBe('normal');
+        expect(CanvasThump.tierFor(w(29, false))).toBe('normal');
+        expect(CanvasThump.tierFor(w(30, false))).toBe('heavy');
+        expect(CanvasThump.tierFor(w(0, true))).toBe('heavy');
+        expect(CanvasThump.tierFor(w(59, true))).toBe('heavy');
+        expect(CanvasThump.tierFor(w(60, false))).toBe('massive');
+        expect(CanvasThump.tierFor(w(600, true))).toBe('massive');
+        expect(CanvasThump.tierFor()).toBe('normal');
+    });
+    test('weightOf: sub-tasks kept by a completed parent count, logged minutes come from Timer', () => {
+        expect(CanvasThump.weightOf(null)).toEqual({ subs: false, minutes: 0 });
+        expect(CanvasThump.weightOf({ type: 'task', subTasks: [], totalSubTasks: 0, completedSubTasks: 0 }).subs).toBe(false);
+        expect(CanvasThump.weightOf({ type: 'task', subTasks: [], totalSubTasks: 3, completedSubTasks: 3 }).subs).toBe(true);
+        expect(CanvasThump.weightOf({ type: 'task', subTasks: [], completedSubTasks: 2 }).subs).toBe(true);
+        expect(CanvasThump.weightOf({ timerMsBanked: 75 * 60000 }).minutes).toBe(75);
+        global.Timer = { loggedMinutes: jest.fn(() => 42) };
+        expect(CanvasThump.weightOf({}, 5000).minutes).toBe(42);
+        expect(global.Timer.loggedMinutes).toHaveBeenCalledWith({}, 5000);
+        global.Timer = { loggedMinutes: () => { throw new Error('x'); } };
+        expect(CanvasThump.weightOf({ timerMsBanked: 1 }).minutes).toBe(0);
+    });
+    test('the patterns are real vibrate patterns, each bigger than the last', () => {
+        const total = (p) => (Array.isArray(p) ? p.reduce((a, b) => a + b, 0) : p);
+        expect(Array.isArray(CONFIG.CANVAS_THUMP_HEAVY_PATTERN)).toBe(true);
+        expect(Array.isArray(CONFIG.CANVAS_THUMP_MASSIVE_PATTERN)).toBe(true);
+        expect(CONFIG.CANVAS_THUMP_HEAVY_PATTERN.every((n) => n > 0)).toBe(true);
+        expect(CONFIG.CANVAS_THUMP_MASSIVE_PATTERN.every((n) => n > 0)).toBe(true);
+        expect(total(CONFIG.CANVAS_THUMP_HEAVY_PATTERN)).toBeGreaterThan(total(CONFIG.CANVAS_THUMP_VIBRATE_MS));
+        expect(total(CONFIG.CANVAS_THUMP_MASSIVE_PATTERN)).toBeGreaterThan(total(CONFIG.CANVAS_THUMP_HEAVY_PATTERN));
+        expect(CanvasThump.buzzFor('normal')).toBe(CONFIG.CANVAS_THUMP_VIBRATE_MS);
+        expect(CanvasThump.buzzFor('heavy')).toBe(CONFIG.CANVAS_THUMP_HEAVY_PATTERN);
+        expect(CanvasThump.buzzFor('massive')).toBe(CONFIG.CANVAS_THUMP_MASSIVE_PATTERN);
+    });
+    test('onDefeat buzzes at the item\'s size (plain number for normal, a pattern for the others)', () => {
+        const el = mount();
+        navigator.vibrate = jest.fn(() => true);
+        CanvasThump.onDefeat(el, { timerMsBanked: 2 * 60000 });
+        jest.advanceTimersByTime(CONFIG.CANVAS_THUMP_DELAY_MS + 5);
+        expect(navigator.vibrate).toHaveBeenLastCalledWith(CONFIG.CANVAS_THUMP_VIBRATE_MS);
+        CanvasThump.resetForTests();
+        CanvasThump.onDefeat(el, { completedSubTasks: 2, totalSubTasks: 2, subTasks: [] });
+        jest.advanceTimersByTime(CONFIG.CANVAS_THUMP_DELAY_MS + 5);
+        expect(navigator.vibrate).toHaveBeenLastCalledWith(CONFIG.CANVAS_THUMP_HEAVY_PATTERN);
+        CanvasThump.resetForTests();
+        CanvasThump.onDefeat(el, { timerMsBanked: 61 * 60000 });
+        jest.advanceTimersByTime(CONFIG.CANVAS_THUMP_DELAY_MS + 5);
+        expect(navigator.vibrate).toHaveBeenLastCalledWith(CONFIG.CANVAS_THUMP_MASSIVE_PATTERN);
+    });
+    test('onDefeat with no item stays a normal tick (old callers keep working)', () => {
+        const el = mount();
+        navigator.vibrate = jest.fn(() => true);
+        CanvasThump.onDefeat(el);
+        jest.advanceTimersByTime(CONFIG.CANVAS_THUMP_DELAY_MS + 5);
+        expect(navigator.vibrate).toHaveBeenCalledWith(CONFIG.CANVAS_THUMP_VIBRATE_MS);
+    });
+    test('two completions inside the strike delay share one thump at the bigger size', () => {
+        const el = mount();
+        navigator.vibrate = jest.fn(() => true);
+        CanvasThump.onDefeat(el, { timerMsBanked: 90 * 60000 });
+        CanvasThump.onDefeat(el, {});
+        jest.advanceTimersByTime(CONFIG.CANVAS_THUMP_DELAY_MS + 5);
+        expect(navigator.vibrate).toHaveBeenCalledTimes(1);
+        expect(navigator.vibrate).toHaveBeenCalledWith(CONFIG.CANVAS_THUMP_MASSIVE_PATTERN);
+        CanvasThump.resetForTests();
+        CanvasThump.onDefeat(el, {});
+        jest.advanceTimersByTime(CONFIG.CANVAS_THUMP_DELAY_MS + 5);
+        expect(navigator.vibrate).toHaveBeenLastCalledWith(CONFIG.CANVAS_THUMP_VIBRATE_MS);
+    });
+    test('the Settings switch and CANVAS_THUMP_VIBRATE_MS = 0 mute every size', () => {
+        const el = mount();
+        navigator.vibrate = jest.fn(() => true);
+        global.Settings = { load: () => ({ screenBuzz: false }) };
+        CanvasThump.play(el, 1, 'massive');
+        expect(navigator.vibrate).not.toHaveBeenCalled();
+        delete global.Settings;
+        const saved = CONFIG.CANVAS_THUMP_VIBRATE_MS;
+        CONFIG.CANVAS_THUMP_VIBRATE_MS = 0;
+        CanvasThump.play(el, 9999, 'massive');
+        CONFIG.CANVAS_THUMP_VIBRATE_MS = saved;
+        expect(navigator.vibrate).not.toHaveBeenCalled();
+    });
+});
+
+describe('dev preview (the dev panel Buzz buttons)', () => {
+    afterEach(() => { delete navigator.vibrate; delete global.Settings; });
+    test('preview plays the thump and the tier\'s buzz now, ignoring the cooldown and the Settings switch', () => {
+        const el = mount();
+        navigator.vibrate = jest.fn(() => true);
+        global.Settings = { load: () => ({ screenBuzz: false }) };
+        expect(CanvasThump.preview(el, 'massive')).toBe('massive');
+        expect(CanvasThump.preview(el, 'heavy')).toBe('heavy');
+        expect(el.classList.contains('canvas-thump')).toBe(true);
+        expect(navigator.vibrate).toHaveBeenNthCalledWith(1, CONFIG.CANVAS_THUMP_MASSIVE_PATTERN);
+        expect(navigator.vibrate).toHaveBeenNthCalledWith(2, CONFIG.CANVAS_THUMP_HEAVY_PATTERN);
+        jest.advanceTimersByTime(CONFIG.CANVAS_THUMP_DURATION_MS + 5);
+        expect(el.classList.contains('canvas-thump')).toBe(false);
+    });
+    test('an unknown tier is the normal buzz; fx-off keeps the buzz but skips the motion; a missing element never throws', () => {
+        const el = mount();
+        navigator.vibrate = jest.fn(() => true);
+        expect(CanvasThump.preview(el, 'bogus')).toBe('normal');
+        expect(navigator.vibrate).toHaveBeenCalledWith(CONFIG.CANVAS_THUMP_VIBRATE_MS);
+        document.body.classList.add('fx-off');
+        const el2 = document.getElementById('gameCanvas');
+        el2.className = '';
+        CanvasThump.preview(el2, 'heavy');
+        expect(el2.classList.contains('canvas-thump')).toBe(false);
+        expect(navigator.vibrate).toHaveBeenLastCalledWith(CONFIG.CANVAS_THUMP_HEAVY_PATTERN);
+        expect(() => CanvasThump.preview(null, 'massive')).not.toThrow();
     });
 });
