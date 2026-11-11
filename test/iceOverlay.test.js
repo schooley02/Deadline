@@ -276,10 +276,14 @@ describe('static wiring', () => {
         expect(rule).toMatch(/z-index:\s*2/);
         expect(css).toMatch(/\.enemy \.ice-countdown\s*\{[^}]*z-index:\s*5/s);
     });
-    test('the zombie wiggles on the SHEET (not the sprite window, whose animation slots are the glows) and the ice itself does not move', () => {
+    test('the zombie wiggles on the SHEET (not the sprite window, whose animation slots are the glows) and (2026-11-11 try-out) the cracked ice wiggles with it on the same clock', () => {
         expect(css).toMatch(/\.enemy\.enemy-thawing \.enemy-sprite-sheet\s*\{[^}]*ice-struggle[^}]*animation-play-state:\s*paused, running/s);
         expect(css).not.toMatch(/\.enemy-thawing > \.enemy-sprite\s*\{[^}]*animation:/s);
-        expect(css).not.toMatch(/\.ice-overlay[^{]*\{[^}]*ice-struggle/s);
+        expect(css).toMatch(/\.ice-overlay\.ice-cracked\s*\{\s*animation:\s*ice-struggle-ice 0\.9s steps\(1, end\) infinite/);
+        // same keyframe percentages as the zombie's, scaled by --ice-scale (the overlay sits outside the sprite window's scale)
+        const pct = (name) => (css.match(new RegExp('@keyframes ' + name + '\\s*\\{([^@]*?)\\n\\}', 's')) || [])[1].match(/\d+%/g);
+        expect(pct('ice-struggle-ice')).toEqual(pct('ice-struggle'));
+        expect(css).toMatch(/@keyframes ice-struggle-ice[^@]*calc\(var\(--ice-scale, 1\) \* -2px\)/s);
         expect(css).toMatch(/@keyframes ice-struggle[^{]*\{[^}]*translate:/s);
     });
     test('motion gating in CSS: fx-off / fx-reduced / reduce-motion turn the overlay animations, drips and wiggle off', () => {

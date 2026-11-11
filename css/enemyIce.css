@@ -156,7 +156,8 @@ body.glance-strip .enemy .ice-countdown {
     100% { opacity: 0; translate: 0 14px; }
 }
 
-/* The struggle: while the ice is cracked the ZOMBIE wiggles side to side, whole pixels, in short bursts; the ice stays put.
+/* The struggle: while the ice is cracked the ZOMBIE wiggles side to side, whole pixels, in short bursts. TRY-OUT 2026-11-11 (Jeremy):
+   the ICE wiggles with it, as one piece (the rule after the keyframes below). To go back to "ice stays still", delete that rule.
    On the sheet, not the sprite window (the window's animation slots belong to the glows, enemyStatus.css), and with the individual
    `translate` property so the sheet's own frame-stepping transform is untouched. The scale comes from the window's transform. The
    sheet's frame cycle stays paused (animation-play-state's first value); only the wiggle runs. */
@@ -170,6 +171,20 @@ body.glance-strip .enemy .ice-countdown {
     16%  { translate: 2px 0; }
     24%  { translate: -1px 0; }
     32%  { translate: 1px 0; }
+    40%  { translate: 0 0; }
+    100% { translate: 0 0; }
+}
+
+/* The ice wiggles WITH the zombie (2026-11-11 try-out): the same steps on the same 0.9 s clock, started in the same loop tick as the
+   sheet's (both classes change in one block), so they move as one. The overlay is outside the sprite window's scale, so the pixel
+   offsets are multiplied by --ice-scale (0.5x sub-tasks wiggle half as far, like their zombie). The drips ride along (children). */
+.ice-overlay.ice-cracked { animation: ice-struggle-ice 0.9s steps(1, end) infinite; }
+@keyframes ice-struggle-ice {
+    0%   { translate: 0 0; }
+    8%   { translate: calc(var(--ice-scale, 1) * -2px) 0; }
+    16%  { translate: calc(var(--ice-scale, 1) * 2px) 0; }
+    24%  { translate: calc(var(--ice-scale, 1) * -1px) 0; }
+    32%  { translate: calc(var(--ice-scale, 1) * 1px) 0; }
     40%  { translate: 0 0; }
     100% { translate: 0 0; }
 }
