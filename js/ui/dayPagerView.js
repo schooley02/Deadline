@@ -365,6 +365,19 @@ const DayPagerView = (() => {
     // Delegated click (assigned, not addEventListener — same re-open-safe
     // pattern as statsView.js's run-card expansion) reads the offset off
     // each cell's data attribute and jumps the pager straight there.
+    // Momentum Build B (2026-11-11): TODAY's cell carries a mark: a hollow ring = today not yet secured, a check = secured (a Sick Day
+    // shows a dash). Only today gets one: the strip looks AHEAD, and past nights live in the Barricade window. Empty when no momentum dep.
+    function momentumMarkHtml() {
+        const info = typeof deps.getMomentum === 'function' ? deps.getMomentum() : null;
+        if (!info) return '';
+        const t = info.today;
+        const label = t === 'secured' ? "Today's momentum is secured. Open the Barricade."
+            : t === 'excused' ? 'Sick Day. Open the Barricade.'
+            : "Today's momentum is not secured yet. Open the Barricade.";
+        const glyph = t === 'secured' ? '&#10003;' : (t === 'excused' ? '&ndash;' : '');
+        return `<span class="week-strip-momentum week-strip-momentum--${t}" role="button" tabindex="0" aria-label="${label}">${glyph}</span>`;
+    }
+
     function renderWeekStrip() {
         if (!deps.weekStripRowEl) return;
         const currentGameDate = deps.getCurrentGameDate();
@@ -394,11 +407,19 @@ const DayPagerView = (() => {
                         aria-label="${weekday}, ${entry.totalCount} item${entry.totalCount === 1 ? '' : 's'}">
                     <span class="week-strip-weekday">${weekday}</span>
                     <span class="week-strip-count">${entry.totalCount}</span>
+                    ${entry.offset === 0 ? momentumMarkHtml() : ''}
                 </button>
             `;
         }).join('');
 
         deps.weekStripRowEl.onclick = (e) => {
+            // Momentum Build B: the mark on Today's cell opens the Barricade window and does NOT move the pager.
+            const mark = e.target.closest ? e.target.closest('.week-strip-momentum') : null;
+            if (mark && deps.weekStripRowEl.contains(mark) && typeof deps.onMomentumTap === 'function') {
+                e.stopPropagation();
+                deps.onMomentumTap();
+                return;
+            }
             const cell = e.target.closest('.week-strip-cell');
             if (!cell || !deps.weekStripRowEl.contains(cell)) return;
             goToOffset(Number(cell.dataset.offset));

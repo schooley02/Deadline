@@ -251,9 +251,38 @@ const HowItWorks = (() => {
         };
     }
 
+    // ---- Nights and momentum (Momentum Build B, 2026-11-11; docs/MOMENTUM_PLAN.md) ---------------------------------------------
+    // Every number comes from CONFIG.MOMENTUM. Anything built against cheating is explained here (Jeremy): none of these rules depend on
+    // secrecy.
+    function momentumTopic(config) {
+        const m = config.MOMENTUM || {};
+        const windowNights = m.WINDOW_NIGHTS || 7;
+        const minAge = Math.round((m.MIN_PRIORITY_AGE_MS != null ? m.MIN_PRIORITY_AGE_MS : 600000) / 60000);
+        const states = (m.BARRICADE_STATES || []).slice().sort((a, b) => a.min - b.min);
+        const stateLine = states.length
+            ? `The barricade has ${states.length} states by momentum: ${states.map((s, i) => {
+                const next = states[i + 1];
+                const range = next ? (next.min - 1 > s.min ? `${s.min} to ${next.min - 1}` : `${s.min}`) : `${s.min}`;
+                return `${s.name} (${range})`;
+            }).join(', ')}.` : '';
+        return {
+            id: 'momentum',
+            title: 'Nights and momentum',
+            what: [
+                `A night counts only when you defended it. A day is defended when you finish at least 1 priority task or fully complete at least 1 routine. A priority task has to be at least ${minAge} minutes old when you finish it, so making a task and finishing it at once does not count. It still pays its points. Finishing late still counts.`,
+                `Nights Survived, the Radio tower, the Survivor badge and the tree count defended nights. A night you were away, or did nothing, adds nothing.`,
+                `Momentum is how many of your last ${windowNights} nights you defended. Today counts as soon as you secure it, and a day you have not secured yet never lowers it. Days away count as missed, so momentum slides while you are gone and you rebuild it when you come back.`,
+                `A Sick Day is skipped: it is not missed, and the count looks one night further back. Skip Day and Cheat Day cover one habit and do not change momentum.`,
+                stateLine,
+                `Tap the mark on Today in the week strip to open the Barricade.`,
+            ].filter(Boolean),
+            why: `Nights should show that you kept showing up, not that time passed. Counting a night only when you did something, and measuring the last ${windowNights}, rewards steady use without punishing a few off days.`,
+        };
+    }
+
     function topics(config) {
         const cfg = config || (typeof CONFIG !== 'undefined' ? CONFIG : {});
-        return [pointsTopic(cfg), prioritiesTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg), timersTopic(cfg), runsTopic(cfg), goalsTopic(cfg)];
+        return [pointsTopic(cfg), prioritiesTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg), timersTopic(cfg), runsTopic(cfg), momentumTopic(cfg), goalsTopic(cfg)];
     }
 
     // ---- Markup ------------------------------------------------------------------------------------------------
@@ -306,7 +335,7 @@ const HowItWorks = (() => {
     // Capture + stopPropagation is deliberate: Modal's outside-click dismiss (a bubbling document handler) would
     // otherwise see the same tap and close the popup or window the button sits in, and a row's own tap handler
     // (agenda rows, hero rows) must not fire as well.
-    const TOPIC_IDS = ['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'goals'];
+    const TOPIC_IDS = ['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'goals'];
 
     function buttonHtml(topicId, label) {
         if (TOPIC_IDS.indexOf(topicId) === -1) return '';

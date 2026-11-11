@@ -12,7 +12,7 @@
  * they read `pri.d` (every priority finish) instead.
  *
  * A Sick Day EXCUSES a night: not defended, not missed (`tokens.sick` on that day's record, written when the Sick Day is used).
- * Build B's momentum window skips excused nights; the Nights Survived count simply does not add one for them.
+ * momentum() (Build B) skips excused nights; the Nights Survived count simply does not add one for them.
  *
  * NIGHTS SURVIVED = the nights the run defended. A night counts at its midnight, when its day CLOSES (the open day is never
  * counted, so the number only ever ticks at a rollover and an undo can only touch the open day). Days with no record (the app
@@ -154,6 +154,73 @@ const Momentum = (() => {
         return finishedAtMs - created >= min;
     }
 
+    /** The barricade state for a momentum count: the first row (best first) whose `min` the count reaches. */
+    function barricadeState(count, states) {
+        const rows = (Array.isArray(states) && states.length) ? states : [
+            { id: 'reinforced', name: 'Reinforced', min: 7 }, { id: 'solid', name: 'Solid', min: 5 },
+            { id: 'partial', name: 'Partial', min: 3 }, { id: 'none', name: 'None', min: 0 },
+        ];
+        const n = whole(count);
+        const hit = rows.slice().sort((a, b) => b.min - a.min).find((r) => n >= r.min);
+        return hit ? { id: hit.id, name: hit.name, min: hit.min } : { id: 'none', name: 'None', min: 0 };
+    }
+
+    function dateKeyFromIndex(idx) {
+        const d = new Date(idx * MS_PER_DAY);
+        return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());
+    }
+
+    /**
+     * MOMENTUM (Build B, 2026-11-11): defended nights among the last `windowNights` (default 7) of this run.
+     *   ctx = { nowMs, runStartMs, runNumber, days (CLOSED records: array | store | map), todayRec (the open day's record),
+     *           windowNights?, maxLookbackDays?, states? }
+     * - Today counts the moment it is SECURED (defended). While it is still PENDING it never lowers momentum: the window is then the
+     *   last N closed nights. At midnight a pending day becomes a missed night.
+     * - A Sick Day night is EXCUSED: skipped, not counted and not missed, and the window looks one night further back.
+     * - A closed day with no record of this run (the app was not opened) is MISSED. Days before the run began are not nights.
+     * Returns { count, max, state: {id,name,min}, today: 'secured'|'pending'|'excused', todayKey, nights: [{ date, status }] (oldest first; the
+     * nights the window looked at, excused ones included) }.
+     */
+    function momentum(ctx) {
+        const c = ctx || {};
+        const max = whole(c.windowNights) || 7;
+        const cap = whole(c.maxLookbackDays) || 21;
+        const todayKey = keyOf(c.nowMs);
+        const startKey = keyOf(c.runStartMs);
+        const empty = { count: 0, max, state: barricadeState(0, c.states), today: 'pending', todayKey: todayKey || null, nights: [] };
+        if (!todayKey) return empty;
+        const byDate = {};
+        recordList(c.days).forEach((r) => {
+            if (r && typeof r === 'object' && validKey(r.date) && r.run === c.runNumber) byDate[r.date] = r;
+        });
+        const todayRec = c.todayRec && typeof c.todayRec === 'object' ? c.todayRec : null;
+        const today = todayRec && isDefended(todayRec) ? 'secured' : (isExcused(todayRec) ? 'excused' : 'pending');
+        const todayIdx = dayIndex(todayKey);
+        const startIdx = startKey ? dayIndex(startKey) : -Infinity;
+        const seen = [];
+        let counted = 0;
+        let defended = 0;
+        const consider = (date, status) => {
+            seen.push({ date, status });
+            if (status === 'excused') return;
+            counted += 1;
+            if (status === 'defended') defended += 1;
+        };
+        if (today === 'secured') consider(todayKey, 'defended');
+        else if (today === 'excused') seen.push({ date: todayKey, status: 'excused' });
+        for (let back = 1; back <= cap && counted < max; back++) {
+            const idx = todayIdx - back;
+            if (idx < startIdx) break;
+            const date = dateKeyFromIndex(idx);
+            const rec = byDate[date];
+            let status = 'missed';
+            if (rec) status = isDefended(rec) ? 'defended' : (isExcused(rec) ? 'excused' : 'missed');
+            consider(date, status);
+        }
+        seen.reverse();
+        return { count: defended, max, state: barricadeState(defended, c.states), today, todayKey, nights: seen };
+    }
+
     return {
         DEFAULT_MIN_PRIORITY_AGE_MS,
         keyOf,
@@ -167,6 +234,8 @@ const Momentum = (() => {
         calendarNights,
         nights,
         priorityQualifies,
+        barricadeState,
+        momentum,
     };
 })();
 

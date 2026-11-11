@@ -1,4 +1,4 @@
-# Momentum + the Barricade (PLAN, DESIGNED 2026-11-11; BUILD A BUILT 2026-11-11, Builds B and C NOT BUILT)
+# Momentum + the Barricade (PLAN, DESIGNED 2026-11-11; BUILDS A and B BUILT 2026-11-11, Build C NOT BUILT)
 
 Designed 2026-11-11, Claude app session (Opus 5.5 first pass, Fable 5.2 design), with Jeremy. DECISIONS 2026-11-11 (momentum).
 Mockup (week strip + Barricade window): https://claude.ai/artifact/M7244g3Vt9ixmbudCvWd4W

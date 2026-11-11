@@ -44,3 +44,6 @@ Copy lives in `js/ui/howItWorks.js` `runsTopic` (slot-unlock levels are read fro
 
 ## Addendum (2026-11-05): 10th topic, "Goals" (id `goals`)
 Copy in `js/ui/howItWorks.js` `goalsTopic` (slot ladder read from `CONFIG.GOAL_SLOTS_PER_LEVEL`). Includes the reward lines (Build C): `PointsInfo.goalRewardLine(config)` (bonus percentages and the Earned Sick Day, read from `CONFIG.GOAL_REWARDS`; no XP) plus the self-reward and next-period-edit sentence; both appear only when `CONFIG.GOAL_REWARDS` exists. (i) button on the Stats Goals heading.
+
+## Addendum (2026-11-11): 11th topic, "Nights and momentum" (id `momentum`)
+Copy in `js/ui/howItWorks.js` `momentumTopic`, placed after "When a run ends". States the defended-night rule (1 priority at least `CONFIG.MOMENTUM.MIN_PRIORITY_AGE_MS` old, or 1 routine fully completed; late counts), what counts defended nights (Nights Survived, Radio tower, Survivor, tree), momentum over the last `WINDOW_NIGHTS`, days away and Sick Days, and the barricade states from `BARRICADE_STATES`, with a "Why". Anything built against cheating is explained here (Jeremy). See docs/MOMENTUM_PLAN.md.

@@ -1,0 +1,66 @@
+/* The Barricade window + the momentum mark on Today's week-strip cell (Momentum Build B, 2026-11-11;
+   js/ui/barricadeWindow.js, js/ui/dayPagerView.js; docs/MOMENTUM_PLAN.md). Linked before responsive.css (which must load last). */
+
+/* ---- the mark on Today's week-strip cell: hollow ring = not yet secured, check = secured, dash = Sick Day ---- */
+.week-strip-momentum {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    box-sizing: border-box;
+    border: 2px solid var(--color-primary-dark-green);
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--color-primary-dark-green);
+    cursor: pointer;
+}
+.week-strip-momentum::after { content: ''; position: absolute; inset: -14px; } /* thumb-sized tap area around the small ring */
+.week-strip-momentum--secured { background: var(--color-primary-dark-green); color: #fff; }
+.week-strip-momentum--excused { border-style: dashed; }
+
+/* ---- the Barricade window ---- */
+.barricade-panel {
+    position: relative;
+    max-width: 420px;
+    width: calc(100vw - 32px);
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    box-sizing: border-box;
+    text-align: left;
+}
+.barricade-title { margin: 0 0 8px; padding-right: 28px; }
+.barricade-score {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-secondary-green-pale);
+    border-radius: 8px;
+    background: var(--color-primary-white, #fff);
+}
+.barricade-count { font-size: 24px; font-weight: 700; color: var(--color-text-primary); }
+.barricade-state { font-weight: 600; color: var(--color-primary-dark-green); }
+.barricade-score--none .barricade-state { color: var(--color-neutral); }
+.barricade-today { margin: 10px 0 4px; font-size: 14px; }
+.barricade-today--pending { font-weight: 600; }
+.barricade-fallen { margin: 4px 0; font-size: 13px; color: var(--color-neutral); }
+.barricade-sub { margin: 12px 0 6px; font-size: 13px; color: var(--color-neutral); text-transform: uppercase; letter-spacing: 0.04em; }
+.barricade-nights { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.barricade-night {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    background: var(--color-bg-light);
+}
+.barricade-night--defended { background: var(--color-secondary-green-pale); }
+.barricade-night--excused { font-style: italic; }
+.barricade-night-status { font-weight: 600; }
+.barricade-empty, .barricade-note { margin: 8px 0 0; font-size: 12px; color: var(--color-neutral); }

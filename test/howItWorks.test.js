@@ -23,14 +23,14 @@ const topic = (id, cfg) => all(cfg).find(t => t.id === id);
 // Everything a player can read in a topic, as one lowercase-insensitive string.
 const textOf = (t) => [].concat(t.what || [], t.list || [], t.html || '', t.why || '').join(' ');
 
-describe('the ten topics', () => {
+describe('the eleven topics', () => {
     test('Points, Priorities, Pushbacks, Streaks, Hero ranking, Achievements, The sky, Timers and Time Logged, When a run ends, Goals, in that order', () => {
-        expect(all().map(t => t.title)).toEqual(['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Goals']);
-        expect(all().map(t => t.id)).toEqual(['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'goals']);
+        expect(all().map(t => t.title)).toEqual(['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Goals']);
+        expect(all().map(t => t.id)).toEqual(['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'goals']);
     });
 
     test('Streaks, Hero ranking, Achievements, The sky, Timers and When a run ends carry a "Why"; Points and Pushbacks do not invent one', () => {
-        ['priorities', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'goals'].forEach(id => expect(topic(id).why).toBeTruthy());
+        ['priorities', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'goals'].forEach(id => expect(topic(id).why).toBeTruthy());
         ['points', 'pushbacks'].forEach(id => expect(topic(id).why).toBeUndefined());
     });
 });
@@ -266,8 +266,8 @@ describe('Achievements', () => {
 describe('windowHtml', () => {
     test('one <details> per topic, in order, with the corner x', () => {
         const html = HowItWorks.windowHtml(all());
-        expect((html.match(/<details /g) || []).length).toBe(10);
-        const order = ['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Goals'].map(n => html.indexOf(`<summary>${n}</summary>`));
+        expect((html.match(/<details /g) || []).length).toBe(11);
+        const order = ['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Goals'].map(n => html.indexOf(`<summary>${n}</summary>`));
         expect(order.every(i => i > 0)).toBe(true);
         expect(order).toEqual(order.slice().sort((a, b) => a - b));
         expect(html).toContain('modal-close-x');
@@ -480,5 +480,33 @@ describe('Timers topic: ice (docs/ICE_PLAN.md, 2026-11-10)', () => {
         const retuned = Object.assign({}, CONFIG, { ICE_MAX_MS: 45 * 60000, ICE_GRACE_MS: 3 * 60000 });
         expect(textOf(topic('timers', retuned))).toContain('45 minutes of ice per task');
         expect(textOf(topic('timers', retuned))).toContain('3 more minutes');
+    });
+});
+
+describe('Nights and momentum (Momentum Build B, 2026-11-11)', () => {
+    const text = () => textOf(topic('momentum'));
+    test('states the defended-night rule with the numbers from CONFIG', () => {
+        const t = text();
+        expect(t).toContain('at least 1 priority task or fully complete at least 1 routine');
+        expect(t).toContain(`at least ${Math.round(CONFIG.MOMENTUM.MIN_PRIORITY_AGE_MS / 60000)} minutes old`);
+        expect(t).toContain(`last ${CONFIG.MOMENTUM.WINDOW_NIGHTS} nights`);
+        expect(t).toContain('Finishing late still counts');
+    });
+    test('a retuned dial changes the page', () => {
+        const cfg = Object.assign({}, CONFIG, { MOMENTUM: Object.assign({}, CONFIG.MOMENTUM, { MIN_PRIORITY_AGE_MS: 20 * 60000, WINDOW_NIGHTS: 5 }) });
+        const t = textOf(topic('momentum', cfg));
+        expect(t).toContain('at least 20 minutes old');
+        expect(t).toContain('last 5 nights');
+    });
+    test('lists every barricade state by its momentum range', () => {
+        const t = text();
+        expect(t).toContain('None (0 to 2), Partial (3 to 4), Solid (5 to 6), Reinforced (7)');
+    });
+    test('explains days away, Sick Days and the cheat-proofing, and opens from the (i) button', () => {
+        const t = text();
+        expect(t).toContain('Days away count as missed');
+        expect(t).toContain('A Sick Day is skipped');
+        expect(t).toContain('does not count');
+        expect(HowItWorks.buttonHtml('momentum')).toContain('data-hiw-topic="momentum"');
     });
 });

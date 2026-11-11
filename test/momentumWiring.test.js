@@ -261,3 +261,15 @@ describe('shell wiring', () => {
         expect(read('js/ui/nightsSurvivedView.js')).toMatch(/typeof deps\.getNights === 'function' \? deps\.getNights\(Date\.now\(\)\) : countMidnights\(/);
     });
 });
+
+describe('startup order (found in the live check, Build B)', () => {
+    test('nightsCache is declared before GraveyardView.init, whose first render reads the tree stage and so the night count', () => {
+        const src = read('script.js');
+        const cache = src.indexOf('const nightsCache =');
+        const init = src.indexOf('GraveyardView.init({');
+        expect(cache).toBeGreaterThan(-1);
+        expect(init).toBeGreaterThan(-1);
+        expect(cache).toBeLessThan(init);
+        expect(src.match(/const nightsCache =/g)).toHaveLength(1);
+    });
+});

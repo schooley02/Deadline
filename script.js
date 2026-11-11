@@ -1,5 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
 
+    // Nights Survived cache (Momentum Build A): declared FIRST because GraveyardView.init below reads the tree stage (-> nightsSurvivedNow) on its
+    // first render, before the rest of this file's consts exist (a later declaration threw a TDZ error, caught, and fell back to calendar nights).
+    const nightsCache = { daysKey: null, days: null, key: null, value: 0 };
+
     // --- DOM Elements ---
     const gameCanvas = document.getElementById('gameCanvas');
     const baseElement = document.getElementById('base');
@@ -31,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // tower, the tree and the run stats read = the nights the run DEFENDED (a priority finished, old enough, or a routine fully done), plus the
     // calendar nights a save already had before the rule started on it. The closed days are read once per open day / run change; the sum is
     // cached by the calendar date (a night only ever counts at a rollover).
-    const nightsCache = { daysKey: null, days: null, key: null, value: 0 };
     function nightsSurvivedNow(nowMs) {
         const now = typeof nowMs === 'number' ? nowMs : Date.now();
         try {
@@ -54,6 +57,26 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Deadline: nights survived failed', err);
             return Damage.computeDaysSurvived(State.getRunStartedAtMs(), now, CONFIG.MS_PER_REAL_DAY);
         }
+    }
+    // Momentum (Build B, 2026-11-11): defended nights among the last 7 + the barricade state (Momentum.momentum). Today counts the moment it is
+    // secured; a pending today never lowers it. Feeds the week strip's mark and the Barricade window.
+    function momentumNow(nowMs) {
+        const now = typeof nowMs === 'number' ? nowMs : Date.now();
+        try {
+            const m = CONFIG.MOMENTUM || {};
+            return Momentum.momentum({
+                nowMs: now, runStartMs: State.getRunStartedAtMs(), runNumber: (State.getRunHistory() || []).length + 1,
+                days: State.getClosedDays(), todayRec: State.getToday(),
+                windowNights: m.WINDOW_NIGHTS, maxLookbackDays: m.MAX_LOOKBACK_DAYS, states: m.BARRICADE_STATES,
+            });
+        } catch (err) {
+            console.error('Deadline: momentum failed', err);
+            return null;
+        }
+    }
+    function openBarricadeWindow() {
+        const info = momentumNow();
+        if (info) BarricadeWindow.open(info);
     }
     function villageContext() {
         const runStats = State.getCurrentRunStats() || {};
@@ -2420,6 +2443,9 @@ document.addEventListener('DOMContentLoaded', () => {
             activeItemsListEl: activeItemsListUL,
             timeSliderEl,
             weekStripRowEl,
+            // Momentum Build B (2026-11-11): today's mark on the week strip (secured / not yet) and its tap -> the Barricade window.
+            getMomentum: () => momentumNow(),
+            onMomentumTap: openBarricadeWindow,
             // 2026-07-20 Milestone 5 UX batch (playtest finding #3): the
             // header count previously always showed Hud's global activeItems
             // count regardless of viewed day. taskCountDisplayEl lets

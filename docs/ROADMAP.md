@@ -373,7 +373,7 @@ Scoped from a structured live playtest.
 
 - [ ] **Momentum + the Barricade (DESIGNED 2026-11-11, Claude app session, Fable 5.2; Jeremy; plan `docs/MOMENTUM_PLAN.md`; DECISIONS 2026-11-11 (momentum); NOT BUILT):** a night counts only when defended (1 priority finished or 1 routine completed); Momentum = defended nights of the last 7; the barricade in front of the base shows it and gives a small damage bonus at Solid / Reinforced. Sonnet for the builds.
   - [x] Build A -- defended-night rule + data, Nights Survived / Radio tower / Jailhouse on the new rule, grandfathered counts, tests. BUILT 2026-11-11 (Sonnet 5.5; `js/momentum.js`, DailyRecord v14 `pri.q`, `save.momentumFromDay`, sw v328; 73 new tests; DECISIONS 2026-11-11 (momentum build A)).
-  - [ ] Build B -- Barricade window, today's week-strip mark, "Finish 1 priority or 1 routine to secure today's momentum.", How Deadline works topic.
+  - [x] Build B -- Barricade window, today's week-strip mark, "Finish 1 priority or 1 routine to secure today's momentum.", How Deadline works topic. BUILT 2026-11-11 (Sonnet 5.5; `Momentum.momentum()`, `js/ui/barricadeWindow.js`, `css/barricade.css`, topic `momentum`, sw v329; live-checked in headless Chromium; DECISIONS 2026-11-11 (momentum build B)). The barricade ART (Build C) adds a second tap target for the same window.
   - [ ] Build C -- barricade art on the canvas (mock on the real canvas first; PixelLab art by Jeremy) + the damage bonus (balance process).
 
 ## Pre-alpha finish line (WORKING DEFINITION 2026-11-02 late night, Claude app session, Opus; Jeremy: "not sure I know how to answer the done enough portion just yet")

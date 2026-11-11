@@ -111,7 +111,8 @@ const PrioritySlotsView = (() => {
         const n = per(perDay);
         const left = slots ? slots.left : n;
         return 'You get ' + n + ' priority slots a day. A priority task pays double. Marking one uses a slot for good, even if ' +
-            'you unmark it. Finish all ' + n + ' and ' + n + ' more open up. ' + leftText(left, n) + ' ' + (word || 'today') + '.';
+            'you unmark it. Finish all ' + n + ' and ' + n + ' more open up. ' + leftText(left, n) + ' ' + (word || 'today') + '. ' +
+            "Finish 1 priority or 1 routine to secure today's momentum.";
     }
 
     /**

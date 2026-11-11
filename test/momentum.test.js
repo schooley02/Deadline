@@ -320,3 +320,87 @@ describe('DailyRecord v14: pri.q', () => {
         expect(Momentum.isExcused(r)).toBe(true);
     });
 });
+
+describe('momentum(): defended nights among the last 7 (Build B, 2026-11-11)', () => {
+    const NOW = NOON(2026, 11, 11);
+    const START = NOON(2026, 10, 1);
+    const run = (days, todayRec, extra) => Momentum.momentum(Object.assign({ nowMs: NOW, runStartMs: START, runNumber: 1, days, todayRec }, extra || {}));
+    const defended = (dates) => store(...dates.map((d) => withPri(d, 1)));
+    const pending = () => day('2026-11-11');
+    const secured = () => withPri('2026-11-11', 1);
+
+    test('counts the last 7 closed nights while today is pending; a pending today never lowers it', () => {
+        const days = defended(['2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08', '2026-11-09', '2026-11-10']);
+        const m = run(days, pending());
+        expect(m.count).toBe(7);
+        expect(m.state.id).toBe('reinforced');
+        expect(m.today).toBe('pending');
+        expect(m.nights).toHaveLength(7);
+    });
+    test('securing today counts immediately and the window slides one night', () => {
+        const days = defended(['2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08', '2026-11-09', '2026-11-10']);
+        expect(run(days, pending()).count).toBe(6);
+        const m = run(days, secured());
+        expect(m.today).toBe('secured');
+        expect(m.count).toBe(7);
+        expect(m.nights[m.nights.length - 1]).toEqual({ date: '2026-11-11', status: 'defended' });
+    });
+    test('a day with no record (the app was not opened) is missed, so momentum slides while away', () => {
+        const m = run(defended(['2026-11-10', '2026-11-09']), pending());
+        expect(m.count).toBe(2);
+        expect(m.state.id).toBe('none');
+        expect(m.nights.filter((n) => n.status === 'missed').length).toBe(5);
+    });
+    test('a Sick Day night is skipped: not counted, not missed, the window looks one night further back', () => {
+        const sick = withPri('2026-11-09', 0, { tokens: { sick: 1 } });
+        const days = Object.assign(defended(['2026-11-10', '2026-11-08', '2026-11-07', '2026-11-06', '2026-11-05', '2026-11-04', '2026-11-03']), store(sick));
+        const m = run(days, pending());
+        expect(m.count).toBe(7);
+        expect(m.nights.find((n) => n.date === '2026-11-09').status).toBe('excused');
+    });
+    test('a Sick Day that was defended anyway counts as defended', () => {
+        const d = withPri('2026-11-10', 1, { tokens: { sick: 1 } });
+        expect(run(store(d), pending()).nights.find((n) => n.date === '2026-11-10').status).toBe('defended');
+    });
+    test('today as a Sick Day is excused: it neither counts nor drops anything', () => {
+        const days = defended(['2026-11-10', '2026-11-09']);
+        const m = run(days, withPri('2026-11-11', 0, { tokens: { sick: 1 } }));
+        expect(m.today).toBe('excused');
+        expect(m.count).toBe(2);
+    });
+    test('a routine fully completed secures today, like a priority', () => {
+        const rec = day('2026-11-11', { rt: { r1: [2, 0, 0] } });
+        expect(run({}, rec).today).toBe('secured');
+        expect(run({}, rec).count).toBe(1);
+    });
+    test('a new run counts only its own days; days before the run began are not nights', () => {
+        const m = run(defended(['2026-11-10']), secured(), { runStartMs: NOON(2026, 11, 9) });
+        expect(m.count).toBe(2);
+        expect(m.nights.map((n) => n.date)).toEqual(['2026-11-09', '2026-11-10', '2026-11-11']);
+        const other = store(Object.assign(withPri('2026-11-10', 1), { run: 2 }));
+        expect(run(other, pending()).count).toBe(0);
+    });
+    test('the lookback is capped so a long illness cannot walk back forever', () => {
+        const days = {};
+        for (let i = 1; i <= 30; i++) {
+            const d = new Date(2026, 10, 11 - i, 12);
+            const key = Momentum.keyOf(d.getTime());
+            days[key] = withPri(key, 0, { tokens: { sick: 1 } });
+        }
+        const m = run(days, pending());
+        expect(m.count).toBe(0);
+        expect(m.nights.length).toBeLessThanOrEqual(21);
+    });
+    test('the state lines come from the table: 0-2 None, 3-4 Partial, 5-6 Solid, 7 Reinforced', () => {
+        const ids = [0, 1, 2, 3, 4, 5, 6, 7].map((n) => Momentum.barricadeState(n, CONFIG.MOMENTUM.BARRICADE_STATES).id);
+        expect(ids).toEqual(['none', 'none', 'none', 'partial', 'partial', 'solid', 'solid', 'reinforced']);
+    });
+    test('bad input is a quiet empty result', () => {
+        expect(Momentum.momentum({}).count).toBe(0);
+        expect(Momentum.momentum().state.id).toBe('none');
+    });
+    test('the config dials exist', () => {
+        expect(CONFIG.MOMENTUM.WINDOW_NIGHTS).toBe(7);
+        expect(CONFIG.MOMENTUM.BARRICADE_STATES.map((s) => s.min)).toEqual([7, 5, 3, 0]);
+    });
+});

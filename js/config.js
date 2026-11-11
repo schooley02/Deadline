@@ -973,6 +973,17 @@ const CONFIG = {
     // change it only via the balance-tuning process (DECISIONS). The window and the barricade states come with Build B / C.
     MOMENTUM: {
         MIN_PRIORITY_AGE_MS: 10 * 60 * 1000, // same 10 minutes as RESCHEDULE_GRACE_MS (a typo-fix window), by design
+        // Build B (2026-11-11): momentum = defended nights among the last WINDOW_NIGHTS (a Sick Day night is skipped, not counted; the
+        // lookback is capped so a long illness cannot walk back forever). Barricade states by momentum, best first. THEORY dials (3 / 5 /
+        // 7): change via the balance process. The damage bonus per state is Build C; here the states only NAME the momentum.
+        WINDOW_NIGHTS: 7,
+        MAX_LOOKBACK_DAYS: 21,
+        BARRICADE_STATES: [
+            { id: 'reinforced', name: 'Reinforced', min: 7 },
+            { id: 'solid', name: 'Solid', min: 5 },
+            { id: 'partial', name: 'Partial', min: 3 },
+            { id: 'none', name: 'None', min: 0 },
+        ],
     },
 
     // --- Goals (DESIGNED 2026-11-04, Jeremy; docs/GOALS_PLAN.md; DECISIONS 2026-11-04 (goals)). Build A data + rules; nothing on screen yet.
