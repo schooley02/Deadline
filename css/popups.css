@@ -314,3 +314,118 @@
 .timer-nudge-note[hidden] { display: none; }
 .timer-nudge-note.timer-nudge-switch { border-left-color: #e0a84f; background: rgba(224, 168, 79, 0.12); }
 .timer-nudge-note.timer-nudge-running { border-left-color: #2e8b57; background: rgba(46, 139, 87, 0.1); }
+
+/* Sub-task list in a parent's zombie window + "Part of" link in a sub-task's window (2026-11-11, Jeremy).
+   min-width: 0 + ellipsis on the name so a long sub-task name can never push the window wider than a phone. */
+.popup-subtasks {
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-secondary-green-pale);
+}
+
+.popup-subtasks-header {
+    margin: 0 0 var(--space-2) 0;
+    color: var(--color-text-primary);
+}
+
+.popup-subtasks-count {
+    font-size: 12px;
+    color: var(--color-neutral);
+}
+
+.popup-subtask-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.popup-subtask-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    font: inherit;
+    font-size: 13px;
+    text-align: left;
+    color: var(--color-text-primary);
+    background: transparent;
+    border: 1px solid var(--color-secondary-green-pale);
+    border-radius: 6px;
+}
+
+button.popup-subtask-row {
+    cursor: pointer;
+}
+
+button.popup-subtask-row:hover,
+button.popup-subtask-row:focus-visible {
+    background: var(--color-secondary-green-pale);
+}
+
+.popup-subtask-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.popup-subtask-due {
+    flex: 0 0 auto;
+    font-size: 12px;
+    color: var(--color-neutral);
+    white-space: nowrap;
+}
+
+.popup-subtask-tag {
+    flex: 0 0 auto;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.popup-subtask-tag--overdue { color: var(--color-error); }
+.popup-subtask-tag--timer { color: var(--color-neutral); }
+
+.popup-subtask-go {
+    flex: 0 0 auto;
+    color: var(--color-neutral);
+}
+
+.popup-subtask-row--done {
+    opacity: 0.55;
+    border-style: dashed;
+}
+
+.popup-subtask-row--done .popup-subtask-name {
+    text-decoration: line-through;
+}
+
+.popup-subtask-check {
+    flex: 0 0 auto;
+}
+
+.popup-parent-line {
+    min-width: 0;
+}
+
+.popup-parent-link {
+    font: inherit;
+    padding: 0;
+    color: var(--color-primary-dark-green);
+    background: none;
+    border: none;
+    text-decoration: underline;
+    cursor: pointer;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+}

@@ -1283,6 +1283,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function popupsDeps() {
         return {
             gameIsOver: State.isGameOver(), activeItems: State.getActiveItems(),
+            completedItems: () => State.getCompletedItems(), // the sub-task list's finished rows (2026-11-11)
             definedHabits: () => State.getDefinedHabits(), // habit popup 'Points:' line (PointsInfo)
             // Goals Build B2: the details popup's goal badge (a task linked to a goal) and its tap.
             goalBadgeHtml: (item) => { const b = GoalsPane.badgeFor(item, (State.getGoals() || {}).active); return b ? GoalsPane.badgeHtml(b) : ''; },

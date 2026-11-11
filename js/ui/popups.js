@@ -232,6 +232,53 @@ const Popups = (() => {
         return !!item && item.type === 'task' && !item.parentId && !item.koGhost && !(deps && deps.gameIsOver);
     }
 
+    // Sub-task list in a parent's zombie window (2026-11-11, Jeremy): "clicking the parent on the canvas should have the
+    // window show the subtasks in it so the user can navigate to it from there." Open sub-tasks are tappable rows (they
+    // open that sub-task's own window); finished ones show greyed with a check. The header counts "N of M done" from the
+    // parent's own counter, so it stays right even when a finished sub-task's record is no longer around.
+    function subTaskRowDue(sub) {
+        const d = sub.dueDateTime;
+        if (!(d instanceof Date)) return '';
+        const now = new Date();
+        const sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+        const time = d.toLocaleTimeString([], { timeStyle: 'short' });
+        return sameDay ? time : d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + time;
+    }
+
+    function buildSubTaskListHtml(item, deps) {
+        if (!item || item.type !== 'task' || item.parentId) return '';
+        const open = (deps.activeItems || []).filter(i => i.type === 'task' && i.parentId === item.id);
+        const finished = ((typeof deps.completedItems === 'function' ? deps.completedItems() : null) || [])
+            .filter(i => i.type === 'task' && i.parentId === item.id);
+        const doneCount = Math.max(item.completedSubTasks || 0, finished.length);
+        const total = open.length + doneCount;
+        if (total === 0) return '';
+        const openRows = open.map((sub) => {
+            const tags = [];
+            if (sub.isOverdue) tags.push('<span class="popup-subtask-tag popup-subtask-tag--overdue">attacking</span>');
+            if (typeof Timer !== 'undefined' && Timer.isRunning && Timer.isRunning(sub)) tags.push('<span class="popup-subtask-tag popup-subtask-tag--timer">timing</span>');
+            return `<li><button type="button" class="popup-subtask-row" data-sub-id="${escapeNoteText(sub.id)}" title="Open this sub-task">`
+                + `<span class="popup-subtask-name">${escapeNoteText(sub.name)}</span>`
+                + `<span class="popup-subtask-due">${escapeNoteText(subTaskRowDue(sub))}</span>${tags.join('')}`
+                + `<span class="popup-subtask-go" aria-hidden="true">\u203A</span></button></li>`;
+        }).join('');
+        const doneRows = finished.map(sub =>
+            `<li class="popup-subtask-row popup-subtask-row--done"><span class="popup-subtask-check" aria-hidden="true">\u2713</span>`
+            + `<span class="popup-subtask-name">${escapeNoteText(sub.name)}</span></li>`).join('');
+        return `<div class="popup-subtasks" id="popupSubTasks">
+                <p class="popup-subtasks-header"><strong>Sub-tasks:</strong> <span class="popup-subtasks-count">${doneCount} of ${total} done</span></p>
+                <ul class="popup-subtask-list">${openRows}${doneRows}</ul>
+            </div>`;
+    }
+
+    // A sub-task's window links back up to its parent (2026-11-11, Jeremy: yes to "Part of" link).
+    function buildParentLineHtml(item, deps) {
+        if (!item || !item.parentId) return '';
+        const parent = (deps.activeItems || []).find(i => i.id === item.parentId && i.type === 'task');
+        if (!parent) return '';
+        return `<p class="popup-parent-line"><strong>Part of:</strong> <button type="button" class="popup-parent-link" id="openParentBtn" title="Open the parent task">${escapeNoteText(parent.name)}</button></p>`;
+    }
+
     function buildActionsHtml(item, deps) {
         // KO ghost (2026-10-25): completable, but no edit / pushback / cheat day /
         // skip day while the routine is down.
@@ -250,7 +297,8 @@ const Popups = (() => {
                         <input type="checkbox" id="completeTaskCheck" class="completion-checkbox-input" aria-label="Mark as complete"${openSubs ? ' disabled' : ''} />
                         ${openSubs ? `<span class="completion-remaining">(${openSubs} remaining)</span>` : ''}
                     </label>
-                </div>`;
+                </div>
+                ${buildSubTaskListHtml(item, deps)}`;
         }
         if (isNegativeHabitInstance(item)) {
             const cheatDayActive = typeof deps.isCheatDayActiveForItem === 'function' && deps.isCheatDayActiveForItem(item);
@@ -297,6 +345,7 @@ const Popups = (() => {
                 </label>
             </div>
             ${timerOk ? nudgeNoteHtml(item, deps) : ''}
+            ${buildSubTaskListHtml(item, deps)}
             ${canAddSubTaskFromPopup(item, deps) ? '<div class="task-subtask-row" style="display: flex; justify-content: flex-end; margin-top: 8px;"><button type="button" id="addSubTaskBtn" class="add-subtask-button" title="Add Sub-task" style="font-size: 12px; padding: 4px 8px;">+ Sub-task</button></div>' : ''}
             ${buildPushbackSectionHtml(item, deps)}
             ${buildSkipDaySectionHtml(item, deps)}
@@ -425,6 +474,7 @@ const Popups = (() => {
                     ${item.koGhost ? '<p class="ko-ghost-note">\u{1F4A4} Knocked out \u2014 revives tomorrow. Finishing this still counts (XP and streak, no points); skipping it is excused.</p>' : ''}
                     <div class="task-details">
                         <p><strong>Category:</strong> ${item.category}</p>
+                        ${buildParentLineHtml(item, deps)}
                         ${isNegativeHabitInstance(item)
                             ? `<p><strong>Tempting around:</strong> <span class="task-due-display">${item.dueDateTime.toLocaleTimeString([], { timeStyle: 'short' })}</span></p>`
                             : `<p><strong>Due:</strong> <span class="task-due-display">${taskDueDisplayText(item)}</span></p>`}
@@ -525,6 +575,30 @@ const Popups = (() => {
                 Modal.closeModal();
                 setTimeout(() => createSubTaskPrompt(item.id, deps), 0);
             });
+        }
+
+        // Sub-task rows and the "Part of" link move between windows: close this one, open the other on the next tick
+        // (same close-then-open care as "+ Sub-task" above).
+        const openOther = (target) => {
+            if (!target) return;
+            Modal.closeModal();
+            setTimeout(() => showTaskDetailsPopup(target, deps), 0);
+        };
+        if (overlay) {
+            overlay.querySelectorAll('.popup-subtask-row[data-sub-id]').forEach((row) => {
+                row.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = row.getAttribute('data-sub-id');
+                    openOther((deps.activeItems || []).find(i => String(i.id) === id && i.parentId === item.id));
+                });
+            });
+            const parentLink = overlay.querySelector('#openParentBtn');
+            if (parentLink) {
+                parentLink.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openOther((deps.activeItems || []).find(i => i.id === item.parentId && i.type === 'task'));
+                });
+            }
         }
 
         const workTimerButton = document.getElementById('workTimerBtn');
@@ -1182,6 +1256,7 @@ const Popups = (() => {
         pushbackNoteText,
         pushbackButtonText,
         pushbackButtonHtml,
+        buildSubTaskListHtml,
     };
 })();
 
