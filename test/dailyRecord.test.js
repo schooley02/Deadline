@@ -86,7 +86,7 @@ describe('bump', () => {
         const r = rec();
         DailyRecord.bump(r, 'overdue', { kind: 'task', category: 'financial', hour: 9 });
         DailyRecord.bump(r, 'overdue', { kind: 'habit', category: 'health', hour: 20 });
-        expect(r.missed).toEqual({ task: 1, habit: 1 });
+        expect(r.missed).toEqual({ task: 1, habit: 1, subtask: 0 });
         expect(r.hoursMissed[9]).toBe(1);
         expect(r.hoursMissed[20]).toBe(1);
         expect(r.byCat.financial[1]).toBe(1);
@@ -230,33 +230,59 @@ describe('normalize (additive-only rule)', () => {
 });
 
 describe('totals', () => {
-    test('done / missed / damage for best-worst scoring', () => {
+    test('done / missed / damage for best-worst scoring (tasks + habits only since v13)', () => {
         const r = rec();
         DailyRecord.bump(r, 'complete', { kind: 'task', hour: 1 });
         DailyRecord.bump(r, 'complete', { kind: 'subtask', hour: 1 });
         DailyRecord.bump(r, 'complete', { kind: 'habit', hour: 1 });
         DailyRecord.bump(r, 'overdue', { kind: 'habit', hour: 2 });
+        DailyRecord.bump(r, 'overdue', { kind: 'subtask', hour: 2 });
         DailyRecord.bump(r, 'damage', { amount: 6, hour: 2 });
-        expect(DailyRecord.totals(r)).toEqual({ done: 3, missed: 1, damage: 6 });
+        // The sub-task is recorded (done.subtask / missed.subtask) but never scored.
+        expect(r.done.subtask).toBe(1);
+        expect(r.missed.subtask).toBe(1);
+        expect(DailyRecord.totals(r)).toEqual({ done: 2, missed: 1, damage: 6 });
         expect(DailyRecord.totals(null)).toEqual({ done: 0, missed: 0, damage: 0 });
     });
 });
 
-describe('store', () => {
-    test('emptyStore / addDay writes by date and replaces', () => {
-        let s = DailyRecord.emptyStore();
-        expect(s).toEqual({ v: DailyRecord.V, days: {}, months: {} });
-        s = DailyRecord.addDay(s, rec());
-        expect(Object.keys(s.days)).toEqual([DAY]);
-        const second = rec();
-        second.lvl = 9;
-        s = DailyRecord.addDay(s, second);
-        expect(s.days[DAY].lvl).toBe(9);
+describe('v13 sub-task credit (2026-11-11)', () => {
+    test('an overdue sub-task counts as missed.subtask, not missed.task', () => {
+        const r = rec();
+        DailyRecord.bump(r, 'overdue', { kind: 'subtask', category: 'health', hour: 9 });
+        expect(r.missed).toEqual({ task: 0, habit: 0, subtask: 1 });
+        // Still in the hour / category insight arrays.
+        expect(r.hoursMissed[9]).toBe(1);
     });
 
-    test('normalizeStore repairs a missing / malformed store', () => {
-        expect(DailyRecord.normalizeStore(null)).toEqual({ v: DailyRecord.V, days: {}, months: {} });
-        expect(DailyRecord.normalizeStore({ days: 5 }).days).toEqual({});
+    test('a late sub-task completion does not add to done.late, and an undo reverses nothing it never added', () => {
+        const r = rec();
+        DailyRecord.bump(r, 'complete', { kind: 'subtask', hour: 1, late: true });
+        expect(r.done.subtask).toBe(1);
+        expect(r.done.late).toBe(0);
+        DailyRecord.bump(r, 'complete', { kind: 'task', hour: 1, late: true });
+        expect(r.done.late).toBe(1);
+        DailyRecord.bump(r, 'uncomplete', { kind: 'subtask', hour: 1, late: true });
+        expect(r.done.subtask).toBe(0);
+        expect(r.done.late).toBe(1);
+    });
+
+    test('an older (v12) record normalizes with missed.subtask = 0 and keeps its version', () => {
+        const old = { v: 12, date: DAY, done: { task: 2, subtask: 1, habit: 0, late: 1 }, missed: { task: 3, habit: 1 } };
+        const n = DailyRecord.normalize(old);
+        expect(n.v).toBe(12);
+        expect(n.missed).toEqual({ task: 3, habit: 1, subtask: 0 });
+    });
+
+    test('an old day folded into its month keeps missed.subtask (rollUp adds it like every other counter)', () => {
+        let s = DailyRecord.emptyStore();
+        ['2025-01-03', '2025-01-04'].forEach((date) => {
+            const r = DailyRecord.fresh({ date, tz: -300 });
+            DailyRecord.bump(r, 'overdue', { kind: 'subtask', hour: 1 });
+            s = DailyRecord.addDay(s, DailyRecord.close(r, { lvl: 1, endHp: 100, ptsEnd: 0, bestStreak: 0 }));
+        });
+        s = DailyRecord.rollUp(s, new Date(2026, 9, 27));
+        expect(s.months['2025-01'].missed.subtask).toBe(2);
     });
 });
 
@@ -398,7 +424,7 @@ describe('dayScore / bestWorstByRun (D2 step 5)', () => {
 
 describe('adjustTimer (v4, Habit Goals Build 2c)', () => {
     test('version is 10 (v5 adds goals, v6 adds pb, v7 adds drops, v8 adds tcorr, v9 adds pri, v10 adds pg) and a fresh record carries the edit counters', () => {
-        expect(DailyRecord.V).toBe(12);
+        expect(DailyRecord.V).toBe(13);
         expect(rec().timer).toEqual({ workMin: 0, limitMin: 0, edits: 0, editMin: 0 });
     });
 

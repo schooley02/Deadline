@@ -91,20 +91,16 @@ const CONFIG = {
     // currency/shop-pressure change, not a leveling-pace change.
     POINTS_PER_TASK: 1,
     POINTS_PER_HABIT: 1,
-    // Sub-task economy ([P1-DATA-004] sub-session 3, 2026-07-19; points
-    // re-tuned 2026-07-21). Originally "half of POINTS_PER_TASK" — with the
-    // base at 1, half has no clean value, so Jeremy's call: a sub-task pays
-    // the SAME base as a standalone task (1 pt), but a parent task that ever
-    // had sub-tasks now pays 0 of its own on final completion — all the
-    // points for a sub-tasked task come from completing its subs, not from
-    // checking off the parent (items.js's completeItem/uncompleteItem gate
-    // this on `completedSubTasks > 0`; XP is unaffected, parent still earns
-    // its own XP_PER_TASK_DEFEAT). The high-priority ×2 rule
-    // (Economy.taskPoints) still applies to a SUB's own priority flag on top
-    // of this base, so a high-priority sub can pay up to 2, same ceiling
-    // logic as a standalone high-priority task. See DECISIONS.md.
+    // Sub-task economy ([P1-DATA-004] sub-session 3, 2026-07-19; REWORKED 2026-11-11, Jeremy: "break difficult tasks into smaller
+    // bites without encouraging cheating, so a little extra fits"; DECISIONS 2026-11-11 (sub-task credit)). A task is worth the same
+    // however it is split. XP: each sub-task still pays SUBTASK_XP, but all the sub-tasks of ONE parent together pay at most
+    // SUBTASK_XP_FAMILY_CAP (the parent still earns its own XP_PER_TASK_DEFEAT on top), so a broken-down task is worth at most
+    // double a plain one. Points: sub-tasks pay SUBTASK_POINTS = 0 and the PARENT pays its normal POINTS_PER_TASK (x2 when
+    // priority, Economy.taskPoints) on completion. This REVERSES the 2026-07-21 rule (a parent that had subs paid 0 and each
+    // sub paid 1, so a priority task split in 5 paid 10 instead of 2). The sub-task still dies, thumps and buzzes like any other.
     SUBTASK_XP: 5,
-    SUBTASK_POINTS: 1,
+    SUBTASK_XP_FAMILY_CAP: 10,
+    SUBTASK_POINTS: 0,
     // Growing/shrinking parent visuals ([P1-DATA-004] sub-session 4,
     // 2026-07-19; plan values, docs/SUBTASKS_PLAN.md). A parent task's
     // rendered box grows 15% per OPEN sub-task (js/movement.js's

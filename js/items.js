@@ -740,24 +740,28 @@ const Items = (() => {
         let pointsGained = 0;
 
         if (item.type === 'task') {
-            // Sub-task economy ([P1-DATA-004] sub-session 3, 2026-07-19;
-            // points re-tuned 2026-07-21, Jeremy's call — see DECISIONS.md).
-            // A sub-task pays its own base (CONFIG.SUBTASK_XP/SUBTASK_POINTS);
-            // the parent (parentId falsy) still ALWAYS earns its own XP, but
-            // a parent that ever HAD sub-tasks (completedSubTasks > 0) now
-            // earns 0 POINTS of its own — all the points for a sub-tasked
-            // task come from completing its subs, not from checking off the
-            // parent. A parent that never had subs (a plain standalone task)
-            // is unaffected. XP is deliberately untouched either way — this
-            // is a currency-only rule. The high-priority ×2 rule still
-            // applies to a sub's OWN priority flag on top of its base, via
-            // the same Economy.taskPoints seam (0 base × 2 is still 0 for a
-            // subbed parent).
+            // Sub-task economy (reworked 2026-11-11, Jeremy; DECISIONS 2026-11-11 (sub-task credit); CONFIG.SUBTASK_*): a task is worth
+            // the same however it is split. XP: a sub-task pays up to SUBTASK_XP, but all the subs of ONE parent together stop at
+            // SUBTASK_XP_FAMILY_CAP (the parent still earns its own XP). The XP actually paid is STAMPED on the sub
+            // (`subXpAwarded`) and tallied on the parent (`subXpEarned`) so uncompleteItem refunds exactly that, even though
+            // a cap-limited sub paid less than the base. Points: subs pay SUBTASK_POINTS (0); the PARENT pays its normal points
+            // on completion (the 2026-07-21 "a parent that had subs pays 0" rule is gone). The points paid are stamped on the
+            // item too (`taskPointsAwarded`, before any KO-ghost factor) so a refund stays exact across a rule change.
             const isSub = !!item.parentId;
-            const hadSubTasks = !isSub && item.completedSubTasks > 0;
-            xpGained = isSub ? CONFIG.SUBTASK_XP : deps.xpPerTaskDefeat;
-            const basePoints = isSub ? CONFIG.SUBTASK_POINTS : (hadSubTasks ? 0 : deps.pointsPerTask);
+            if (isSub) {
+                const family = deps.activeItems.find(candidate => candidate.id === item.parentId);
+                // A family already part-way through (subs completed before `subXpEarned` existed) counts those at the base.
+                const earned = !family ? 0 : (Number.isFinite(family.subXpEarned)
+                    ? family.subXpEarned : (family.completedSubTasks || 0) * CONFIG.SUBTASK_XP);
+                xpGained = Math.max(0, Math.min(CONFIG.SUBTASK_XP, CONFIG.SUBTASK_XP_FAMILY_CAP - earned));
+                item.subXpAwarded = xpGained;
+                if (family) family.subXpEarned = earned + xpGained;
+            } else {
+                xpGained = deps.xpPerTaskDefeat;
+            }
+            const basePoints = isSub ? CONFIG.SUBTASK_POINTS : deps.pointsPerTask;
             pointsGained = Economy.taskPoints(item.isHighPriority, basePoints);
+            item.taskPointsAwarded = pointsGained;
             // Routine task: a success occurrence for the hero star rate.
             recordRoutineTaskOccurrence(item, true, deps);
         } else if (item.type === 'habit') {
@@ -799,7 +803,8 @@ const Items = (() => {
         // scaled by CONFIG.KO_GHOST_POINTS_FACTOR (0 = the routine's economy is down).
         pointsGained = ghostAdjustedPoints(item, pointsGained);
 
-        if (xpGained > 0) {
+        // A sub-task past its family's XP cap pays 0 XP but is still a real completion (run + lifetime counters below).
+        if (xpGained > 0 || (item.type === 'task' && item.parentId)) {
             deps.setPlayerXP(deps.getPlayerXP() + xpGained);
             // Achievements sub-session 2 (session 65): detect the Back in
             // Black crossing (negative → ≥0) around this award. Old/new pair
@@ -1808,19 +1813,24 @@ const Items = (() => {
 
         // Reverse the XP and points gained (if any)
         if (item.type === 'task') {
-            // Sub-task economy refund ([P1-DATA-004] sub-session 3; points
-            // re-tuned 2026-07-21): mirrors completeItem's award exactly — a
-            // sub's parentId can't change between complete and uncomplete,
-            // and completedSubTasks isn't touched by uncompleting the PARENT
-            // itself (only by uncompleting one of its subs, a different call
-            // site), so the same isSub/hadSubTasks branches are symmetric by
-            // construction (no stamp-and-reuse pattern needed, unlike
-            // routine XP's award/refund below which spans a level-up).
+            // Sub-task economy refund: mirrors completeItem's award EXACTLY by reading back what it stamped (`subXpAwarded`,
+            // `taskPointsAwarded`), so the 2026-11-11 cap / points change cannot unbalance an undo. An item completed before
+            // the stamps existed falls back to the rule that paid it (sub 5 XP + 1 pt; a parent that had subs paid 0 pts).
             const isSub = !!item.parentId;
+            const LEGACY_SUBTASK_POINTS = 1;
             const hadSubTasks = !isSub && item.completedSubTasks > 0;
-            const xpLost = isSub ? CONFIG.SUBTASK_XP : deps.xpPerTaskDefeat;
-            const basePointsLost = isSub ? CONFIG.SUBTASK_POINTS : (hadSubTasks ? 0 : deps.pointsPerTask);
-            const pointsLost = Economy.taskPoints(item.isHighPriority, basePointsLost);
+            const xpLost = isSub
+                ? (Number.isFinite(item.subXpAwarded) ? item.subXpAwarded : CONFIG.SUBTASK_XP)
+                : deps.xpPerTaskDefeat;
+            const pointsLost = Number.isFinite(item.taskPointsAwarded)
+                ? item.taskPointsAwarded
+                : Economy.taskPoints(item.isHighPriority, isSub ? LEGACY_SUBTASK_POINTS : (hadSubTasks ? 0 : deps.pointsPerTask));
+            if (isSub) {
+                const family = deps.activeItems.find(candidate => candidate.id === item.parentId);
+                if (family && Number.isFinite(family.subXpEarned)) family.subXpEarned = Math.max(0, family.subXpEarned - xpLost);
+                delete item.subXpAwarded;
+            }
+            delete item.taskPointsAwarded;
 
             dailyPointsLost = refundPoints(pointsLost);
             deps.setPlayerXP(Math.max(0, deps.getPlayerXP() - xpLost));
@@ -1930,7 +1940,7 @@ const Items = (() => {
         // Hour = the due time's hour (when it went wrong), not when we noticed.
         if (item.type !== 'habit') {
             recordDaily(deps, 'overdue', {
-                kind: 'task', category: item.category, at: item.dueDateTime.getTime(),
+                kind: dailyKindFor(item), category: item.category, at: item.dueDateTime.getTime(),
                 routineId: dailyRoutineId(item, deps)
             });
             // Routine task: a miss occurrence for the hero star rate (an edit

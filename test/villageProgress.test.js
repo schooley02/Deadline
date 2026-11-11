@@ -184,12 +184,12 @@ describe('counters', () => {
         expect(c.habits).toBe(15);
     });
 
-    test('punctuality = done minus late, over closed days plus the open day', () => {
-        const d1 = day(dated(1), { done: { task: 5, subtask: 2, habit: 3, late: 4 } }); // 6 on time
+    test('punctuality = tasks + habits done minus late (sub-tasks never count, v13), over closed days plus the open day', () => {
+        const d1 = day(dated(1), { done: { task: 5, subtask: 2, habit: 3, late: 4 } }); // 8 - 4 = 4 on time (the 2 sub-tasks are ignored)
         const d2 = day(dated(2), { done: { task: 2, subtask: 0, habit: 0, late: 5 } });  // floors at 0
         const open = day(dated(3), { done: { task: 4, subtask: 0, habit: 1, late: 1 } }); // 4
-        expect(VillageProgress.counters(ctx({ days: [d1, d2], today: open })).punctuality).toBe(10);
-        expect(VillageProgress.counters(ctx({ days: [d1, d2] })).punctuality).toBe(6);
+        expect(VillageProgress.counters(ctx({ days: [d1, d2], today: open })).punctuality).toBe(8);
+        expect(VillageProgress.counters(ctx({ days: [d1, d2] })).punctuality).toBe(4);
     });
 
     test('an open day from another run is ignored', () => {
@@ -340,7 +340,7 @@ describe('DailyRecord routine attendance (feeds the High school)', () => {
     function rec() { return DailyRecord.fresh({ date: '2026-11-01', run: RUN }); }
 
     test('v2 and a zeroed att / empty rt on a fresh record', () => {
-        expect(DailyRecord.V).toBe(12); // v12 (Iced zombies: ice); v11 (Goals Build C: pg.pts / items); v10 (Goals: pg); v9 (Priority slots: pri); v8 (Timer sessions: tcorr); v7 Village tier drops: drops; v6 Pushback charges Build B: pb; v5 goals; v4 was Build 2c timer edits
+        expect(DailyRecord.V).toBe(13); // v13 (Sub-task credit: missed.subtask); v12 (Iced zombies: ice); v11 (Goals Build C: pg.pts / items); v10 (Goals: pg); v9 (Priority slots: pri); v8 (Timer sessions: tcorr); v7 Village tier drops: drops; v6 Pushback charges Build B: pb; v5 goals; v4 was Build 2c timer edits
         const r = rec();
         expect(r.att).toEqual({ active: 0, perfect: 0 });
         expect(r.rt).toEqual({});

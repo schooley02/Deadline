@@ -490,9 +490,10 @@ const AgendaList = (() => {
                 subTaskProgressSpan.textContent = `${completedSubTasks}/${totalSubTasksEver} sub-tasks`;
                 itemDetailsContainer.appendChild(subTaskProgressSpan);
             }
-            // x2 tag (2026-11-02, Jeremy): a high-priority task or sub-task pays double. Not on a parent that has
-            // sub-tasks (it pays nothing itself) or on a knocked-out ghost (no points).
-            if (itemData.isHighPriority && totalSubTasksEver === 0 && !itemData.koGhost) {
+            // x2 tag (2026-11-02, Jeremy): a high-priority task pays double. Since 2026-11-11 (sub-task credit) the PARENT pays
+            // its own points again, so a priority parent shows the tag with or without sub-tasks; sub-tasks pay none.
+            // Not on a knocked-out ghost (no points).
+            if (itemData.isHighPriority && !itemData.koGhost) {
                 const bonusSpan = document.createElement('span');
                 bonusSpan.classList.add('item-bonus');
                 bonusSpan.title = 'Priority tasks pay double';

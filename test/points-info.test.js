@@ -50,6 +50,15 @@ describe('PointsInfo.rulesLines', () => {
         expect(text).toMatch(/knocked-out routine/);
     });
 
+    test('the sub-task line (2026-11-11): the task pays, sub-tasks add capped XP, and the cap follows CONFIG', () => {
+        const text = lines.join(' ');
+        expect(text).toContain(`Splitting a task into sub-tasks never pays more points: the task pays when you finish it, and its sub-tasks together add up to ${CONFIG.SUBTASK_XP_FAMILY_CAP} XP.`);
+        expect(text).not.toMatch(/pays nothing/);
+        const retuned = PointsInfo.rulesLines(Object.assign({}, CONFIG, { SUBTASK_XP_FAMILY_CAP: 20 })).join(' ');
+        expect(retuned).toContain('together add up to 20 XP');
+        expect(PointsInfo.rulesLines(Object.assign({}, CONFIG, { SUBTASK_XP_FAMILY_CAP: undefined })).join(' ')).not.toMatch(/Splitting a task/);
+    });
+
     test('numbers follow CONFIG, not hardcoded text', () => {
         const custom = Object.assign({}, CONFIG, {
             HABIT_RATE_WINDOW: 10,

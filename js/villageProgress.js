@@ -93,7 +93,7 @@ const VillageProgress = (() => {
     function missedTotal(r) { return num(r && r.missed && r.missed.task) + num(r && r.missed && r.missed.habit); }
     function doneTotal(r) {
         const d = (r && r.done) || {};
-        return num(d.task) + num(d.subtask) + num(d.habit);
+        return num(d.task) + num(d.habit); // v13 (2026-11-11): sub-tasks are recorded but never counted toward the Clock tower
     }
     /** Command Post: priority tasks finished that day (DailyRecord v9 `pri.d`), capped at the daily slot count. Days before v9 count 0. */
     function priorityDone(r, cap) { return Math.min(num(r && r.pri && r.pri.d), cap); }

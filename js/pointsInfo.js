@@ -41,8 +41,9 @@ const PointsInfo = (() => {
             : `A task pays ${perTask} ${plural(perTask, 'point')}; a habit pays ${perHabit}.`);
         const slots = config.PRIORITY_SLOTS_PER_DAY != null ? config.PRIORITY_SLOTS_PER_DAY : 3;
         lines.push(`Priority tasks pay double (${slots} priority ${plural(slots, 'slot')} a day).`);
-        if (config.SUBTASK_POINTS != null) {
-            lines.push(`A task with sub-tasks pays through them instead: ${config.SUBTASK_POINTS} ${plural(config.SUBTASK_POINTS, 'point')} per sub-task, and the task itself pays nothing.`);
+        // Sub-task credit (2026-11-11): the parent pays its points; sub-tasks add a capped bit of XP and no points.
+        if (config.SUBTASK_XP_FAMILY_CAP != null) {
+            lines.push(`Splitting a task into sub-tasks never pays more points: the task pays when you finish it, and its sub-tasks together add up to ${config.SUBTASK_XP_FAMILY_CAP} XP.`);
         }
         const tiers = sortedTiers(config);
         if (tiers.length > 0) {

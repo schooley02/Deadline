@@ -72,7 +72,12 @@ const DailyRecord = (() => {
     // (Earned Sick Days paid: a one-time goal finished or a monthly period met). Older days read them as 0.
     // v12 (2026-11-10, Iced zombies; docs/ICE_PLAN.md): `ice` = { n, min }, the stretches of ice today: n = times a zombie's ice ended (a
     // stop, a spent budget, a moved due date), min = the minutes of ice they lasted (fractional, like timer.workMin). Recorded at the thaw.
-    const V = 12;
+    // v13 (2026-11-11, Sub-task credit; DECISIONS 2026-11-11 (sub-task credit)): `missed.subtask` counts overdue SUB-tasks on their own
+    // (they used to land in `missed.task`), and a sub-task's late completion no longer adds to `done.late`. Day totals, the Clock tower,
+    // the Windmill, best / worst day, clean days and the run climate count tasks + habits only; sub-tasks stay fully recorded
+    // (`done.subtask`, `missed.subtask`) for later insights. Days closed before v13 keep their old numbers (a few late sub-tasks may
+    // still sit inside their `done.late`; the on-time total floors at 0).
+    const V = 13;
     // Mirrors Habits.GOAL_UNIT_SUGGESTIONS (test/dailyRecord.test.js checks they match). Kept local: no global dependencies.
     const GOAL_UNITS = ['pages', 'glasses', 'oz', 'steps', 'miles', 'km', 'reps', 'words', 'servings', 'drinks', 'cigarettes', 'cups', '$', 'times'];
     const GOAL_TYPES = ['time', 'amount', 'note'];
@@ -147,7 +152,7 @@ const DailyRecord = (() => {
             load: { habits: 0, routines: 0, tasksDue: 0 },
             due: { task: 0, habit: 0 },
             done: { task: 0, subtask: 0, habit: 0, late: 0 },
-            missed: { task: 0, habit: 0 },
+            missed: { task: 0, habit: 0, subtask: 0 },
             lurk: { avoided: 0, slipped: 0 },
             byCat: freshByCat(),
             hoursDone: zeros(24),
@@ -380,15 +385,17 @@ const DailyRecord = (() => {
             if (!rec.pri) rec.pri = { m: 0, d: 0, s: 0 };
             rec.pri.d = dir > 0 ? rec.pri.d + 1 : dec(rec.pri.d);
         }
+        // v13: a late SUB-task does not count in done.late (the on-time totals no longer include sub-tasks).
+        const countsLate = p.late && kind !== 'subtask';
         if (dir > 0) {
             rec.done[kind] += 1;
-            if (p.late) rec.done.late += 1;
+            if (countsLate) rec.done.late += 1;
             if (h != null) rec.hoursDone[h] += 1;
             cat[0] += 1;
             if (p.points > 0) rec.pts.earned += p.points;
         } else {
             rec.done[kind] = dec(rec.done[kind]);
-            if (p.late) rec.done.late = dec(rec.done.late);
+            if (countsLate) rec.done.late = dec(rec.done.late);
             if (h != null) rec.hoursDone[h] = dec(rec.hoursDone[h]);
             cat[0] = dec(cat[0]);
             if (p.points > 0) rec.pts.earned = Math.max(0, rec.pts.earned - p.points);
@@ -412,7 +419,7 @@ const DailyRecord = (() => {
                 bumpComplete(rec, p, -1);
                 break;
             case 'overdue': {
-                const kind = p.kind === 'habit' ? 'habit' : 'task';
+                const kind = p.kind === 'habit' ? 'habit' : p.kind === 'subtask' ? 'subtask' : 'task';
                 const h = hourOf(p);
                 rec.missed[kind] += 1;
                 tally(rec, p.routineId, 1, +1);
@@ -592,7 +599,7 @@ const DailyRecord = (() => {
         const r = rec || {};
         const d = r.done || {}, m = r.missed || {}, g = r.dmg || {};
         return {
-            done: (d.task || 0) + (d.subtask || 0) + (d.habit || 0),
+            done: (d.task || 0) + (d.habit || 0), // v13: sub-tasks are recorded (done.subtask) but never scored
             missed: (m.task || 0) + (m.habit || 0),
             damage: g.taken || 0,
         };
