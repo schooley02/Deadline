@@ -54,6 +54,30 @@ const SettingsView = (() => {
         return new URLSearchParams(search).has('dev');
     }
 
+    /**
+     * Which version of the app this device is running (2026-11-11, Jeremy: "I don't see any mention of which version of the app I'm
+     * seeing"). The service worker (sw.js) keeps exactly ONE cache, named `deadline-shell-v<N>` (it deletes the older ones when a new
+     * version activates), so that number is the installed version. Pure: the highest number among the cache names, as 'v322', or null.
+     */
+    function appVersionFromKeys(keys) {
+        let best = -1;
+        (Array.isArray(keys) ? keys : []).forEach((k) => {
+            const m = /^deadline-shell-v(\d+)$/.exec(String(k));
+            if (m && Number(m[1]) > best) best = Number(m[1]);
+        });
+        return best >= 0 ? 'v' + best : null;
+    }
+
+    /** Resolves to 'v322' (or null: no service worker cache yet, a browser without the Cache API, or any failure). Never rejects. */
+    function readAppVersion() {
+        try {
+            if (typeof caches === 'undefined' || !caches || typeof caches.keys !== 'function') return Promise.resolve(null);
+            return Promise.resolve(caches.keys()).then(appVersionFromKeys, () => null);
+        } catch (e) {
+            return Promise.resolve(null);
+        }
+    }
+
     const OPTIONS = [
         { value: 'full', label: 'Full', hint: 'Animated fire effects for high-streak habits' },
         { value: 'reduced', label: 'Reduced', hint: 'Static glow, no animation' },
@@ -148,6 +172,10 @@ const SettingsView = (() => {
                     <span class="settings-radio-label">Show the DEV button</span>
                 </label>
             </div>
+            <div class="settings-section settings-version-section">
+                <h4>App version</h4>
+                <p class="settings-section-hint" id="appVersionLine">Checking...</p>
+            </div>
             ${devMode ? `
             <div class="settings-section settings-danger-section">
                 <h4>Reset Game</h4>
@@ -163,6 +191,15 @@ const SettingsView = (() => {
                     deps.onChangeIntensity(e.target.value);
                 }
             });
+        });
+
+        // App version line (2026-11-11): filled in once the cache names are read; the window may have closed by then, so look it up again.
+        readAppVersion().then((version) => {
+            const line = container.querySelector('#appVersionLine');
+            if (!line) return;
+            line.textContent = version
+                ? 'Version ' + version + ' (the app files this device is running). A new version loads in the background: close and reopen the app to switch to it.'
+                : 'No saved app files on this device yet, so there is no version number. Reload once and check again.';
         });
 
         const eveningInput = container.querySelector('#eveningCheckTime');
@@ -390,6 +427,8 @@ const SettingsView = (() => {
     return {
         renderSettingsWindow,
         isDevMode,
+        appVersionFromKeys,
+        readAppVersion,
     };
 })();
 
