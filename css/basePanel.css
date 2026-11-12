@@ -158,3 +158,12 @@
     .base-health-button .bh-ring { width: 14px; height: 14px; }
     .bh-chip { font-size: 10px; }
 }
+
+/* Barricade card (Momentum Build C, 2026-11-12): one tappable row that opens the Barricade window. */
+.bp-barricade-btn {
+    display: flex; flex-direction: column; align-items: flex-start; justify-content: center; width: 100%;
+    min-height: 44px; padding: 6px 12px; box-sizing: border-box; font: inherit; cursor: pointer; text-align: left;
+    border: 1px solid var(--color-primary-dark-green); border-radius: 8px;
+    background: var(--color-primary-white); color: var(--color-primary-dark-green);
+}
+.bp-barricade-btn:focus-visible { outline: 2px solid var(--color-primary-dark-green); outline-offset: 2px; }

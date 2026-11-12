@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v330';
+const CACHE_NAME = 'deadline-shell-v339';
 
 const APP_SHELL = [
     './',
@@ -158,6 +158,7 @@ const APP_SHELL = [
     'js/ui/timeSliderView.js',
     'js/ui/nightsSurvivedView.js',
     'js/ui/barricadeWindow.js',
+    'js/ui/barricadeView.js', // the barricade on the canvas (2026-11-11, Momentum Build C)
     'js/ui/graveyardView.js',
     'js/ui/villageView.js',
     'js/ui/climateView.js',
@@ -180,6 +181,10 @@ const APP_SHELL = [
     // Assets/ folder also holds .psd/reference files (see CLAUDE.md
     // "Never open .pdf/.psd/..." rule) that are never fetched at runtime
     // and shouldn't be shipped to every installed client.
+    'Assets/Barricade/barricade_none.png', // placeholder art until PixelLab (Momentum Build C)
+    'Assets/Barricade/barricade_partial.png',
+    'Assets/Barricade/barricade_solid.png',
+    'Assets/Barricade/barricade_reinforced.png',
     'Assets/Base/base_000.png',
     'Assets/Base/base_025.png',
     'Assets/Base/base_025_anim.png',

@@ -376,7 +376,8 @@ Scoped from a structured live playtest.
   - [x] Build B -- Barricade window, today's week-strip mark, "Finish 1 priority or 1 routine to secure today's momentum.", How Deadline works topic. BUILT 2026-11-11 (Sonnet 5.5; `Momentum.momentum()`, `js/ui/barricadeWindow.js`, `css/barricade.css`, topic `momentum`, sw v329; live-checked in headless Chromium; DECISIONS 2026-11-11 (momentum build B)). The barricade ART (Build C) adds a second tap target for the same window.
   - [ ] Build C -- barricade art on the canvas (mock on the real canvas first; PixelLab art by Jeremy) + the damage bonus (balance process).
     - [x] Damage bonus BUILT 2026-11-11 (Sonnet 5.5; `damageCut` 10% Solid / 20% Reinforced, `Momentum.cutIntervalMs`, loop + Base Health panel, window + topic wording, sw v330; 17 tests; DECISIONS 2026-11-11 (momentum build C, damage bonus)). Not phone-checked.
-    - [ ] Barricade art on the canvas + the barricade as a second tap target for the Barricade window (next session).
+    - [x] Barricade on the canvas BUILT 2026-11-11 (Sonnet 5.5; `#barricade`, `js/ui/barricadeView.js`, `Theme.barricadeAsset`, 4 placeholder PNGs, tap -> the Barricade window, `?barricade=<state>` preview, portrait strip; sw v335; live-checked in headless Chromium desktop + portrait; DECISIONS 2026-11-11 (momentum build C, canvas)). Not phone-checked.
+    - [ ] PixelLab art for the 4 states (Jeremy): replace `Assets/Barricade/barricade_<none|partial|solid|reinforced>.png` at 32x32, bottom-aligned. Placeholders stay until then.
 
 ## Pre-alpha finish line (WORKING DEFINITION 2026-11-02 late night, Claude app session, Opus; Jeremy: "not sure I know how to answer the done enough portion just yet")
 Loose on purpose; tighten it after the Goals + Targets design session (V7 D1). Pre-alpha is done when:

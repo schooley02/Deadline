@@ -408,7 +408,7 @@ describe('script.js hook-up', () => {
     test('ClimateView is initialised with the lazy result and refreshed from the layout hook, the tick and after the restore', () => {
         expect(script).toContain('ClimateView.init({ getResult: climateNow, getRealResult: realClimateNow, onChange: (r) => { WeatherPanel.updateBadge(r); watchRealSky(r); } });');
         expect((script.match(/ClimateView\.refresh\(\)/g) || []).length).toBeGreaterThanOrEqual(3);
-        expect(script.indexOf('VillageView.render(BASE_WIDTH);\n        ClimateView.refresh();')).toBeGreaterThan(0);
+        expect(script.indexOf('VillageView.render(churchWidth());\n        ClimateView.refresh();')).toBeGreaterThan(0);
     });
 
     test('the result is derived from the closed-days store for THIS run, cached per day|run|over, and uses CONFIG.CLIMATE', () => {

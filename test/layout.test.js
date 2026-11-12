@@ -587,13 +587,13 @@ describe('Layout ground lanes (landscape)', () => {
             const sub = item(9, 56, { parentId: 4 });
             sub.element.offsetHeight = 96; sub.element.style.height = '96px';
             items.push(sub);
-            Layout.applyGroundLanes(items, 250, { noListOrder: true, baseWidth: 56 });
+            Layout.applyGroundLanes(items, 250, { noListOrder: true, baseWidth: 56, laneSlant: 0 });
             expect(items[0].element.props['--lane-dx']).toBeUndefined();
             expect(items[3].element.props['--lane-dx']).toBe(CONFIG.LANE_OVERFLOW_OFFSET_PX + 'px');
             expect(sub.element.props['--lane-dx']).toBe(CONFIG.LANE_OVERFLOW_OFFSET_PX + 'px');
             // one of them completes -> #4 now has a free lane and its offset clears
             items.splice(0, 1);
-            Layout.applyGroundLanes(items, 250, { noListOrder: true, baseWidth: 56 });
+            Layout.applyGroundLanes(items, 250, { noListOrder: true, baseWidth: 56, laneSlant: 0 });
             expect(items[2].element.props['--lane-dx']).toBeUndefined();
             expect(sub.element.props['--lane-dx']).toBeUndefined();
         });

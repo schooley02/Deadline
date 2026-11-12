@@ -451,6 +451,34 @@ const Layout = (() => {
         if (px) st.setProperty('--lane-dx', v); else if (typeof st.removeProperty === 'function') st.removeProperty('--lane-dx');
     }
 
+    // Lane slant (Momentum Build C, 2026-11-12): the barricade runs at an angle, so the back lanes stand further right than the front
+    // lane. Drawn offset only (rides --lane-dx): item.x, the timeline and damage are untouched. 0 for the front lane, the full
+    // CONFIG.GROUND_LANE_SLANT_PX for the back lane (lane 0), proportional between.
+    function laneSlantPx(lane, opts) {
+        const c = (typeof CONFIG !== 'undefined') ? CONFIG : {};
+        const slant = (opts && opts.laneSlant != null) ? opts.laneSlant : (Number(c.GROUND_LANE_SLANT_PX) || 0);
+        const laneCount = (opts && opts.laneCount) || c.STRIP_LANE_COUNT || 3;
+        if (!slant || laneCount < 2 || lane == null) return 0;
+        const t = Math.max(0, Math.min(1, lane / (laneCount - 1)));
+        return Math.round(slant * (1 - t));
+    }
+
+    // Feet on the line (Momentum Build C, 2026-11-12): a zombie's box has transparent padding, different per sprite, so a box stopped on
+    // the front line left its legs well short of the barricade. This slides each zombie left until its front foot (or the stroller's
+    // front, for the relationships zombie) is CONFIG.FEET_LINE_CLEARANCE_PX past the line, so its arms reach over the wall. Drawn only
+    // (rides --lane-dx): item.x, the timeline and damage are untouched. Scales with the box (sub-tasks, grown parents).
+    function feetDxPx(item, opts) {
+        if (opts && opts.feetAlign === false) return 0;
+        const c = (typeof CONFIG !== 'undefined') ? CONFIG : {};
+        const table = (opts && opts.feetInset) || c.ZOMBIE_FEET_INSET;
+        const frac = table && item ? table[item.category] : undefined;
+        if (typeof frac !== 'number') return 0;
+        const el = item.element;
+        const w = (el && ((el.style && parseFloat(el.style.width)) || el.offsetWidth)) || c.ENEMY_WIDTH || 128;
+        const clear = (opts && opts.feetClearance != null) ? opts.feetClearance : (Number(c.FEET_LINE_CLEARANCE_PX) || 0);
+        return Math.round(clear - frac * w);
+    }
+
     // Writes element tops only on change; no-op in portrait strip mode (the
     // strip has its own lanes). Parents first, subs bottom-align to their parent.
     function applyGroundLanes(items, canvasHeight, opts) {
@@ -475,13 +503,13 @@ const Layout = (() => {
             const top = Math.max(0, Math.min(groundLaneFeet(lanes[i.id], canvasHeight, opts) - h, canvasHeight - h));
             write(i, Math.round(top));
             if (el.dataset) setData(el, 'lane', String(lanes[i.id]));
-            setDx(i, gl.offsets[i.id] || 0);
+            setDx(i, (gl.offsets[i.id] || 0) + laneSlantPx(lanes[i.id], opts) + feetDxPx(i, opts));
         });
         items.filter(i => i.parentId).forEach(i => {
             const el = i.element;
             const parent = items.find(p => p.id === i.parentId);
             if (el && el.dataset) setData(el, 'lane', null); // subs ride their parent's lane (no stale strip lane)
-            if (parent) setDx(i, gl.offsets[parent.id] || 0);
+            if (parent) setDx(i, (gl.offsets[parent.id] || 0) + laneSlantPx(lanes[parent.id], opts) + feetDxPx(i, opts));
             if (!el || !parent || !parent.element || !tops.has(parent.id)) return;
             const h = heightOf(el);
             write(i, Math.round(tops.get(parent.id) + (heightOf(parent.element) - h)));
@@ -519,7 +547,7 @@ const Layout = (() => {
 
     return { GLANCE_QUERY, isGlanceStrip, isActive, applyBodyClass, init, computeSubBadges, applySubBadges,
         computeStripLayout, applyStripLayout, isParkedLurker,
-        computeGroundLanes, computeGroundLayout, groundLaneFeet, applyGroundLanes, assignLanes };
+        computeGroundLanes, computeGroundLayout, groundLaneFeet, laneSlantPx, feetDxPx, applyGroundLanes, assignLanes };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

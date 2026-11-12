@@ -275,11 +275,11 @@ const HowItWorks = (() => {
             what: [
                 `A night counts only when you defended it. A day is defended when you finish at least 1 priority task or fully complete at least 1 routine. A priority task has to be at least ${minAge} minutes old when you finish it, so making a task and finishing it at once does not count. It still pays its points. Finishing late still counts.`,
                 `Nights Survived, the Radio tower, the Survivor badge and the tree count defended nights. A night you were away, or did nothing, adds nothing.`,
-                `Momentum is how many of your last ${windowNights} nights you defended. Today counts as soon as you secure it, and a day you have not secured yet never lowers it. Days away count as missed, so momentum slides while you are gone and you rebuild it when you come back.`,
+                `Momentum is how many of your last ${windowNights} nights you defended. Today counts as soon as you secure it, and a day you have not secured yet never lowers it. Any day you did not defend counts as missed, whether you opened the game or not, so momentum slides while you are away or do nothing, and you rebuild it by securing days again.`,
                 `A Sick Day is skipped: it is not missed, and the count looks one night further back. Skip Day and Cheat Day cover one habit and do not change momentum.`,
                 stateLine,
                 cutLine,
-                `Tap the mark on Today in the week strip to open the Barricade.`,
+                `Open the Barricade window from the Barricade card in the Base Health window, from the mark on Today in the week strip, or by tapping the barricade in front of the church.`,
             ].filter(Boolean),
             why: `Nights should show that you kept showing up, not that time passed. Counting a night only when you did something, and measuring the last ${windowNights}, rewards steady use without punishing a few off days.`,
         };

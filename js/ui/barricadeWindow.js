@@ -2,7 +2,7 @@
  * BarricadeWindow -- the Barricade window (Momentum Build B, 2026-11-11; docs/MOMENTUM_PLAN.md "Where the player sees it").
  *
  * Shows the player's MOMENTUM: "N of 7" and the barricade state, the nights the count looked at (Defended / Missed / Excused),
- * today's status, and one line each on days away and Sick Days. Until the barricade art exists (Build C) the way in is the mark on
+ * today's status, and one line each on days away and Sick Days. The ways in: the barricade on the canvas (Build C) and the mark on
  * today's cell of the week strip (dayPagerView); Build C adds the barricade itself as a second tap target for the same window.
  *
  * PURE / DOM split like the other UI windows: every word and the markup are pure strings (unit-tested in test/barricadeWindow.test.js,
@@ -17,7 +17,7 @@
  */
 const BarricadeWindow = (() => {
     const SECURE_TEXT = "Finish 1 priority or 1 routine to secure today's momentum.";
-    const AWAY_TEXT = 'Days you do not open the game count as missed, so momentum slides while you are away and rebuilds when you come back.';
+    const AWAY_TEXT = 'A night counts only when you finish a priority or complete a routine that day. Any other day is missed, whether you opened the game or not, so momentum slides when you are away or do nothing, and rebuilds as you secure days again.';
     const SICK_TEXT = 'A Sick Day is skipped: it is not missed, and the count looks one night further back.';
     const FALLEN_TEXT = 'The barricade fell while you were away. Finish a priority or a routine to start building it again.';
     const STATUS_WORD = { defended: 'Defended', missed: 'Missed', excused: 'Sick Day' };

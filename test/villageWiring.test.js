@@ -151,7 +151,7 @@ describe('script.js hook-up', () => {
     });
 
     test('rendered after every layout change and every tick', () => {
-        const calls = script.split('VillageView.render(BASE_WIDTH);').length - 1;
+        const calls = script.split('VillageView.render(churchWidth());').length - 1;
         expect(calls).toBe(2);
     });
 });

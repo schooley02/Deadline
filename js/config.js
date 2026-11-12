@@ -473,6 +473,10 @@ const CONFIG = {
     ],
 
     // --- Sprites ---
+    // Zombie front line = church width + this gap (the barricade stands in it; Momentum Build C, 2026-11-12). Layout only, not balance.
+    FRONT_LINE_GAP_PX: 28,
+    FRONT_LINE_GAP_STRIP_PX: 14, // portrait glance strip (half-size barricade)
+    GROUND_LANE_SLANT_PX: 30, // back lane stands this far right of the front lane (matches the barricade's angle; drawn only, landscape only)
     ENEMY_WIDTH: 128,
     HABIT_ENEMY_WIDTH: 128,
     SUBTASK_ENEMY_WIDTH: 96, // was 64 (2026-10-13: too small on phone landscape, Jeremy)
@@ -812,6 +816,14 @@ const CONFIG = {
         other:         { left: 0.125, right: 0.195 },
     },
     ZOMBIE_VISIBLE_MARGIN_FALLBACK: { left: 0.2, right: 0.2 },
+    // Where each sprite's FRONT FOOT stands (the stroller's front for relationships), as a fraction of the box width from its left
+    // edge. Measured 2026-11-12 from the attack rows' standing frames (bottom 10px above feetY), same 128px region as above.
+    // Layout.feetDxPx slides each zombie left so that point sits FEET_LINE_CLEARANCE_PX past the front line. Drawn only, landscape only.
+    ZOMBIE_FEET_INSET: {
+        career: 0.383, creativity: 0.273, financial: 0.359, health: 0.320,
+        lifestyle: 0.219, relationships: 0.047, spirituality: 0.328, other: 0.375,
+    },
+    FEET_LINE_CLEARANCE_PX: 4,
 
     // Run history (Milestone 3 "Run history + run review", sub-session 1,
     // session 52 — docs/RUN_HISTORY_PLAN.md). Oldest records drop past the

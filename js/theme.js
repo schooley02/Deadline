@@ -66,6 +66,12 @@ const Theme = (() => {
             exitFrames: 8,
             exitFps: 8,
         },
+        // Barricade (Momentum Build C, 2026-11-11): one picture per barricade state id (CONFIG.MOMENTUM.BARRICADE_STATES), 80x48 drawn at 2x (it wraps the church, front-left end to the back of the lane).
+        // A second theme supplies its own four files (a palisade, wards ...) under its own root.
+        barricade: {
+            root: 'Assets/Barricade',
+            file: 'barricade_{id}.png',
+        },
     };
 
     /** Replaces {name} placeholders in a theme string. */
@@ -86,6 +92,13 @@ const Theme = (() => {
         return file ? a.root + '/' + file : '';
     }
 
+    /** Full path of the barricade picture for a state id ('none' | 'partial' | 'solid' | 'reinforced'); '' for a missing id. */
+    function barricadeAsset(stateId) {
+        const a = assets.barricade;
+        const id = String(stateId == null ? '' : stateId).replace(/[^a-z0-9_-]/gi, '');
+        return id ? a.root + '/' + fill(a.file, { id }) : '';
+    }
+
     /** A level perk's player-facing line: its own label, else the theme's "Name: tagline" for its unlock key ('' when neither). */
     function perkLabel(perk) {
         if (!perk) return '';
@@ -104,7 +117,7 @@ const Theme = (() => {
         return '';
     }
 
-    return { strings, assets, fill, goalAsset, perkLabel, skyRequirement };
+    return { strings, assets, fill, goalAsset, barricadeAsset, perkLabel, skyRequirement };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

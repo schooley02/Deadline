@@ -147,6 +147,13 @@ const BasePanel = (() => {
             return { id: k.id, short, held: k.held, heal: k.heal, usable: k.usable, note, ariaLabel };
         });
         vm.kitNotes = kitNotes(m.kits, m.max);
+        // Barricade card (Momentum Build C, 2026-11-12): the state and what it does to damage, with a button to the Barricade window.
+        // ctx.barricade = { name, cut } (cut 0..1) comes from script.js; absent = no card.
+        if (ctx.barricade && typeof ctx.barricade.name === 'string') {
+            const cut = Math.max(0, Math.min(1, Number(ctx.barricade.cut) || 0));
+            const effect = cut > 0 ? `${Math.round(cut * 100)}% less damage` : 'no damage cut yet';
+            vm.barricade = { name: ctx.barricade.name, effect, ariaLabel: `Barricade: ${ctx.barricade.name}, ${effect}. Open the Barricade window.` };
+        }
         return vm;
     }
 
@@ -232,6 +239,15 @@ const BasePanel = (() => {
             `<div class="bp-kit-row">${buttons}</div></section>`;
     }
 
+    function barricadeHtml(vm) {
+        if (!vm.barricade) return '';
+        const b = vm.barricade;
+        return `<section class="bp-card bp-barricade" aria-label="Barricade">` +
+            `<div class="bp-card-head"><h4>Barricade</h4></div>` +
+            `<button type="button" class="bp-barricade-btn" data-action="barricade" data-key="barricade" aria-label="${esc(b.ariaLabel)}">` +
+            `<span class="bp-kit-main">${esc(b.name)}</span><span class="bp-kit-sub">${esc(b.effect)}</span></button></section>`;
+    }
+
     function innerHtml(vm) {
         const ticks = vm.ticks.map(t => `<span class="bp-tick" style="left:${t.pct}%"></span>`).join('');
         const lossLeft = Math.max(0, vm.pct - vm.lossPct);
@@ -260,6 +276,7 @@ const BasePanel = (() => {
             ${warning}
             ${attackersHtml(vm)}
             ${kitsHtml(vm)}
+            ${barricadeHtml(vm)}
             <p class="bp-foot">${esc(vm.footnote)}</p>`;
     }
 
@@ -331,13 +348,14 @@ const BasePanel = (() => {
             else if (action === 'showfew') ui.showAll = false;
             else if (action === 'pushback' && deps.onPushback) deps.onPushback(btn.dataset.attackerId);
             else if (action === 'kit' && deps.onUseKit) deps.onUseKit(btn.dataset.kitId);
+            else if (action === 'barricade' && deps.onBarricade) { deps.onBarricade(); return; }
             render();
         });
 
         timerId = setInterval(render, REFRESH_MS);
     }
 
-    return { kitShortName, kitNotes, chipModel, buildViewModel, structureSignature, innerHtml, panelHtml, open, STATE_LABELS };
+    return { kitShortName, kitNotes, chipModel, buildViewModel, structureSignature, innerHtml, panelHtml, barricadeHtml, open, STATE_LABELS };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

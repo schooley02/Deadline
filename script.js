@@ -86,6 +86,23 @@ document.addEventListener('DOMContentLoaded', () => {
         barricadeCutCache.at = now;
         return barricadeCutCache.cut;
     }
+    // The barricade on the canvas (Build C): follows the momentum state, redrawn only when the state id changes. Called from the game tick,
+    // at most every 2 s (momentum reads the closed days). The tap opens the same window as the week-strip mark.
+    let barricadeViewAt = 0;
+    function refreshBarricadeView(force) {
+        const now = Date.now();
+        if (!force && now - barricadeViewAt < 2000) return;
+        barricadeViewAt = now;
+        let info = momentumNow(now);
+        // DEV preview (visual only, like ?armoryTier=): ?barricade=none|partial|solid|reinforced shows that picture. It changes nothing else:
+        // the damage cut, the window and momentum still use the real state.
+        try {
+            const want = new URLSearchParams(window.location.search).get('barricade');
+            const row = want && ((CONFIG.MOMENTUM || {}).BARRICADE_STATES || []).find((r) => r.id === want);
+            if (row && info) info = Object.assign({}, info, { state: { id: row.id, name: row.name, min: row.min }, count: row.min });
+        } catch (err) { /* no preview */ }
+        if (info) BarricadeView.render(info);
+    }
     function openBarricadeWindow() {
         const info = momentumNow();
         if (info) BarricadeWindow.open(info);
@@ -504,6 +521,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let GAME_SCREEN_WIDTH, BASE_WIDTH, ENEMY_WIDTH, HABIT_ENEMY_WIDTH;
 
+    // BASE_WIDTH is the FRONT LINE: where a zombie stops (the due line, the timeline's left end, the overdue pile, offline catch-up).
+    // It is the church's width plus a gap for the barricade to stand in (Momentum Build C, 2026-11-12), so the village and graveyard,
+    // which sit to the right of the CHURCH, get churchWidth() instead. Half-size gap in the portrait strip.
+    function churchWidth() { return baseElement.offsetWidth; }
+    function frontLineGap() { return Layout.isActive() ? CONFIG.FRONT_LINE_GAP_STRIP_PX : CONFIG.FRONT_LINE_GAP_PX; }
+    function frontLineX() { return churchWidth() + frontLineGap(); }
+
     // In glance-strip mode enemies are small dots, so the TIMELINE math uses
     // CONFIG.STRIP_MARKER_WIDTH as the enemy width (otherwise 128px would be
     // reserved at the right edge and the strip's resolution cut by ~40%).
@@ -546,9 +570,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function refreshLayoutDims(isStrip, modeChanged) {
         GAME_SCREEN_WIDTH = gameCanvas.offsetWidth - GraveyardView.zoneWidth();
-        BASE_WIDTH = baseElement.offsetWidth;
-        GraveyardView.render(BASE_WIDTH);
-        VillageView.render(BASE_WIDTH);
+        BASE_WIDTH = frontLineX();
+        GraveyardView.render(churchWidth());
+        VillageView.render(churchWidth());
         ClimateView.refresh();
         ENEMY_WIDTH = enemyWidthForMode(CONFIG.ENEMY_WIDTH);
         HABIT_ENEMY_WIDTH = enemyWidthForMode(CONFIG.HABIT_ENEMY_WIDTH);
@@ -789,7 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // state setters (State.* — see getters comment above)
             setGameScreenWidth: (n) => { GAME_SCREEN_WIDTH = n - GraveyardView.zoneWidth(); }, // n = canvas width; the graveyard hill is not walkable field
-            setBaseWidth: (n) => { BASE_WIDTH = n; },
+            setBaseWidth: (n) => { BASE_WIDTH = n + frontLineGap(); },
             setEnemyWidth: (n) => { ENEMY_WIDTH = enemyWidthForMode(n); },
             setHabitEnemyWidth: (n) => { HABIT_ENEMY_WIDTH = enemyWidthForMode(n); },
             setPlayerXP: State.setPlayerXP,
@@ -2305,8 +2329,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 payVillageDrops(Date.now());
                 trackBestVillageTiers(Date.now());
                 refreshBaseChip();
-                GraveyardView.render(BASE_WIDTH);
-                VillageView.render(BASE_WIDTH);
+                GraveyardView.render(churchWidth());
+                VillageView.render(churchWidth());
                 ClimateView.refresh();
                 refreshHeroAttack();
                 maybeShowTimerHint();
@@ -2515,6 +2539,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateGame() {
         Loop.updateGame(loopDeps());
+        refreshBarricadeView(false);
         // [P1-UI-006] sub-session 3, 2026-07-19 — hero chips render from
         // state only, so a per-tick call keeps them live across every event
         // that can change a routine's health/XP/level/star rate/frozen/KO/
@@ -3076,6 +3101,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (villageButton) villageButton.addEventListener('click', openVillagePanel);
     // Keep each HUD button looking pressed while its window is open (js/ui/hudButtons.js).
     HudButtons.init();
+    BarricadeView.init(document.getElementById('barricade'), { onTap: () => openBarricadeWindow() });
+    refreshBarricadeView(true);
 
     // ---- Base Health panel (docs/BASE_PANEL_PLAN.md steps 3-4, 2026-10-26) ----
     // Everything the panel and the HUD chip show is derived from live state on each call
@@ -3124,6 +3151,8 @@ document.addEventListener('DOMContentLoaded', () => {
             pushbackPrice: mq ? mq.cost : null,
             pushbackLabel: medium ? Pushback.plusLabel(medium.ms).replace('+', '') : '2 hr', pushbackNote, nextDue,
             pushbackTokens: pbTokens, pushbackSizeName: 'Medium',
+            // The Barricade card (Build C): state name and damage cut, from the same momentum read as the loop.
+            barricade: (() => { const mi = momentumNow(nowMs); return mi && mi.state ? { name: mi.state.name, cut: Momentum.damageCut(mi.state.id, (CONFIG.MOMENTUM || {}).BARRICADE_STATES) } : null; })(),
         };
     }
 
@@ -3161,6 +3190,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 refreshBaseChip(true);
             },
             onUseKit: (kitId) => { handleShopUse(kitId); refreshBaseChip(true); },
+            // Opens the Barricade window on top of this panel (Build C).
+            onBarricade: () => openBarricadeWindow(),
         });
     }
     if (baseHealthButton) baseHealthButton.addEventListener('click', openBasePanel);
