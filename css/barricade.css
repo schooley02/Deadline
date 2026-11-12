@@ -104,3 +104,11 @@ body.glance-strip .barricade {
 body.glance-strip .barricade-hit {
     clip-path: polygon(11px 30px, 29px 16px, 38px 27px, 32px 44px, 17px 52px, 10px 52px, 8px 51px, 6px 49px);
 }
+/* Each PixelLab tier has its own silhouette, so the tap area follows the state (BarricadeView sets data-state). The rules above are tier 1 (none);
+   states without their own rule (the solid / reinforced placeholders, for now) use them too. Tier 2 'partial' (2026-11-12): */
+.barricade[data-state="partial"] .barricade-hit {
+    clip-path: polygon(27px 33px, 68px 8px, 78px 54px, 40px 102px, 20px 104px, 10px 104px, 6px 102px, 3px 99px);
+}
+body.glance-strip .barricade[data-state="partial"] .barricade-hit {
+    clip-path: polygon(13px 16px, 34px 4px, 39px 27px, 20px 51px, 10px 52px, 5px 52px, 3px 51px, 1px 49px);
+}

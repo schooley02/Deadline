@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v344';
+const CACHE_NAME = 'deadline-shell-v345';
 
 const APP_SHELL = [
     './',
@@ -182,7 +182,7 @@ const APP_SHELL = [
     // "Never open .pdf/.psd/..." rule) that are never fetched at runtime
     // and shouldn't be shipped to every installed client.
     'Assets/Barricade/barricade_none.png', // PixelLab art 80x104 (2026-11-12); the other three are placeholders until PixelLab
-    'Assets/Barricade/barricade_partial.png',
+    'Assets/Barricade/barricade_partial.png', // PixelLab art 80x104 (2026-11-12)
     'Assets/Barricade/barricade_solid.png',
     'Assets/Barricade/barricade_reinforced.png',
     'Assets/Base/base_000.png',
