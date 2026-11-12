@@ -504,7 +504,7 @@ describe('Nights and momentum (Momentum Build B, 2026-11-11)', () => {
     });
     test('explains days away, Sick Days and the cheat-proofing, and opens from the (i) button', () => {
         const t = text();
-        expect(t).toContain('Days away count as missed');
+        expect(t).toContain('Any day you did not defend counts as missed, whether you opened the game or not');
         expect(t).toContain('A Sick Day is skipped');
         expect(t).toContain('does not count');
         expect(HowItWorks.buttonHtml('momentum')).toContain('data-hiw-topic="momentum"');

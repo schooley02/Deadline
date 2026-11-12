@@ -50,7 +50,7 @@ describe('windowHtml', () => {
         expect(html).toContain('not yet secured');
         expect(html).toContain('barricade-night--defended');
         expect(html).toContain('barricade-night--missed');
-        expect(html).toContain('Days you do not open the game count as missed');
+        expect(html).toContain('whether you opened the game or not');
         expect(html).toContain('A Sick Day is skipped');
         expect(html).toContain('role="dialog"');
         expect(html).toContain('modal-close-x');
