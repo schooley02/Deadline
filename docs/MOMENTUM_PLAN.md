@@ -66,7 +66,7 @@ A barricade stands in front of the base. It is NOT an item. Four states by momen
   Barricade window.
 - **How Deadline works:** new topic "Nights and momentum" with the rules above and a Why line. Jeremy: anything built against cheating is
   explained there. Publishing the exact rules is fine; none depend on secrecy. Numbers read from CONFIG.
-- **Return after time away:** plain, never scolding ("The barricade fell while you were away.").
+- **Return after time away:** plain, never scolding ("The barricade has fallen." -- no "while you were away", since it also falls when you are present but finish nothing; 2026-11-12).
 
 ## Parked (not v1)
 - **Momentum check-ins (Jeremy, 2026-11-11):** when momentum falls off, step in with recommendations or check-ins to help the player get

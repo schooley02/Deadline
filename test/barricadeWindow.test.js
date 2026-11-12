@@ -34,7 +34,7 @@ describe('the words', () => {
         expect(BarricadeWindow.hasFallen(info({ state: none, count: 0 }))).toBe(true);
         expect(BarricadeWindow.hasFallen(info({ state: none, count: 0, today: 'secured' }))).toBe(false);
         expect(BarricadeWindow.hasFallen(info())).toBe(false);
-        expect(BarricadeWindow.FALLEN_TEXT).toBe('The barricade fell while you were away. Finish a priority or a routine to start building it again.');
+        expect(BarricadeWindow.FALLEN_TEXT).toBe('The barricade has fallen. Finish a priority or a routine to start building it again.');
     });
     test('night labels are local-calendar days', () => {
         expect(BarricadeWindow.nightLabel({ date: '2026-11-09' })).toBe('Mon 9');

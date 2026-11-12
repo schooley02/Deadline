@@ -19,7 +19,7 @@ const BarricadeWindow = (() => {
     const SECURE_TEXT = "Finish 1 priority or 1 routine to secure today's momentum.";
     const AWAY_TEXT = 'A night counts only when you finish a priority or complete a routine that day. Any other day is missed, whether you opened the game or not, so momentum slides when you are away or do nothing, and rebuilds as you secure days again.';
     const SICK_TEXT = 'A Sick Day is skipped: it is not missed, and the count looks one night further back.';
-    const FALLEN_TEXT = 'The barricade fell while you were away. Finish a priority or a routine to start building it again.';
+    const FALLEN_TEXT = 'The barricade has fallen. Finish a priority or a routine to start building it again.';
     const STATUS_WORD = { defended: 'Defended', missed: 'Missed', excused: 'Sick Day' };
 
     function esc(value) {
