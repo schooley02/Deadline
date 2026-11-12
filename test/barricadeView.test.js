@@ -130,4 +130,13 @@ describe('wiring', () => {
         expect(cut).toContain('momentumNow(now)');
         expect(cut).not.toContain("get('barricade')");
     });
+
+    test('first draw comes AFTER the save is restored (phone bug 2026-11-12: it drew the bottom tier, then jumped a level)', () => {
+        const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'script.js'), 'utf8').replace(/\r\n/g, '\n');
+        const restore = src.indexOf('State.restoreGameState(stateDeps());');
+        const first = src.indexOf('refreshBarricadeView(true);');
+        expect(restore).toBeGreaterThan(0);
+        expect(first).toBeGreaterThan(restore);
+        expect(src.split('refreshBarricadeView(true);').length - 1).toBe(1);
+    });
 });

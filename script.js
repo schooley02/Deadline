@@ -3101,8 +3101,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (villageButton) villageButton.addEventListener('click', openVillagePanel);
     // Keep each HUD button looking pressed while its window is open (js/ui/hudButtons.js).
     HudButtons.init();
+    // The first draw waits for the restored save (see the call after State.restoreGameState below): drawing it here read an empty state and
+    // showed the bottom tier for a second before the first tick corrected it (found on the phone 2026-11-12).
     BarricadeView.init(document.getElementById('barricade'), { onTap: () => openBarricadeWindow() });
-    refreshBarricadeView(true);
 
     // ---- Base Health panel (docs/BASE_PANEL_PLAN.md steps 3-4, 2026-10-26) ----
     // Everything the panel and the HUD chip show is derived from live state on each call
@@ -4099,6 +4100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize the game
     initGame();
     State.restoreGameState(stateDeps());
+    refreshBarricadeView(true); // the barricade for the restored run (BarricadeView.init above ran before the state was restored)
     ClimateView.refresh(); // the sky for the restored run (ClimateView.init above ran before the state was restored)
     armSkyWatch(); // from here on a real-band change under a sky pick gets its toast
     // Dev tools (2026-11-03): the DEV button + demo panel (js/ui/devPanel.js), shown only while the Settings "Developer tools" switch is
