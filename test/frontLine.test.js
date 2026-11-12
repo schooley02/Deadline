@@ -8,9 +8,9 @@ const css = read('css/barricade.css');
 const CONFIG = require('../js/config.js');
 
 describe('front line gap', () => {
-    test('config: 28px landscape, 14px portrait strip (half size)', () => {
-        expect(CONFIG.FRONT_LINE_GAP_PX).toBe(28);
-        expect(CONFIG.FRONT_LINE_GAP_STRIP_PX).toBe(14);
+    test('config: 40px landscape, 20px portrait strip (half size; was 28 / 14 until 2026-11-12)', () => {
+        expect(CONFIG.FRONT_LINE_GAP_PX).toBe(40);
+        expect(CONFIG.FRONT_LINE_GAP_STRIP_PX).toBe(20);
         expect(CONFIG.FRONT_LINE_GAP_STRIP_PX * 2).toBe(CONFIG.FRONT_LINE_GAP_PX);
     });
     test('BASE_WIDTH is church width + gap at both measuring points', () => {

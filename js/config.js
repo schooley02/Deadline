@@ -474,8 +474,9 @@ const CONFIG = {
 
     // --- Sprites ---
     // Zombie front line = church width + this gap (the barricade stands in it; Momentum Build C, 2026-11-12). Layout only, not balance.
-    FRONT_LINE_GAP_PX: 28,
-    FRONT_LINE_GAP_STRIP_PX: 14, // portrait glance strip (half-size barricade)
+    // 28 -> 40 (2026-11-12, Jeremy: zombies stood a little too close to the new PixelLab wreckage, which reaches further right than the placeholder).
+    FRONT_LINE_GAP_PX: 40,
+    FRONT_LINE_GAP_STRIP_PX: 20, // portrait glance strip (half-size barricade)
     GROUND_LANE_SLANT_PX: 30, // back lane stands this far right of the front lane (matches the barricade's angle; drawn only, landscape only)
     ENEMY_WIDTH: 128,
     HABIT_ENEMY_WIDTH: 128,
