@@ -121,8 +121,8 @@ body.glance-strip .barricade[data-state="solid"] .barricade-hit {
 }
 /* Tier 4 'reinforced' (2026-11-12): */
 .barricade[data-state="reinforced"] .barricade-hit {
-    clip-path: polygon(4px 57px, 34px 27px, 74px 4px, 80px 85px, 18px 152px, 7px 152px, 5px 151px, 1px 147px);
+    clip-path: polygon(4px 57px, 34px 29px, 74px 11px, 80px 92px, 18px 152px, 7px 152px, 5px 151px, 1px 147px);
 }
 body.glance-strip .barricade[data-state="reinforced"] .barricade-hit {
-    clip-path: polygon(2px 28px, 17px 13px, 37px 2px, 40px 42px, 9px 76px, 3px 76px, 2px 75px, 0px 73px);
+    clip-path: polygon(2px 28px, 17px 14px, 37px 5px, 40px 46px, 9px 76px, 3px 76px, 2px 75px, 0px 73px);
 }
