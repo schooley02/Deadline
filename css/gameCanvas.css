@@ -594,6 +594,18 @@
    zombies, the village and the layout do not move. Keep --base-bleed >= the biggest base-shake offset (test/baseShakeRoom.test.js).
    The portrait strip already crops the art's left side, so it has none. */
 #gameCanvas { --base-bleed: 4px; }
+
+/* Hover (2026-11-12, Jeremy: "like the other canvas elements"): the church grows 5% from its base and gets the white glow (the zombies' /
+   headstones' / barricade's recipe). `scale`, not transform, so it never fights the hit shake (`translate`); the hit flash animates `filter`
+   and wins for its 0.3s, then the glow returns. Desktop only (touch has no real :hover). */
+#base { transform-origin: 50% 100%; transition: scale 120ms ease-out, filter 120ms ease-out; }
+@media (hover: hover) {
+    #base:hover {
+        scale: 1.05;
+        filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px rgba(255, 255, 255, 0.9));
+    }
+}
+@media (prefers-reduced-motion: reduce) { #base { transition: none; } }
 body.glance-strip #gameCanvas { --base-bleed: 0px; }
 
 
