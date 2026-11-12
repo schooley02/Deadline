@@ -74,6 +74,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return null;
         }
     }
+    // Barricade damage cut (Build C, 2026-11-11): the share of zombie damage the barricade takes right now (0 at None / Partial, 0.1 Solid, 0.2
+    // Reinforced; CONFIG.MOMENTUM.BARRICADE_STATES `damageCut`). Live loop only. Momentum reads the closed days, so it is cached for a few
+    // seconds; the cut is asked only on a tick where a zombie could hit.
+    const barricadeCutCache = { at: 0, cut: 0 };
+    function barricadeDamageCut() {
+        const now = Date.now();
+        if (now - barricadeCutCache.at < 5000) return barricadeCutCache.cut;
+        const info = momentumNow(now);
+        barricadeCutCache.cut = info ? Momentum.damageCut(info.state.id, (CONFIG.MOMENTUM || {}).BARRICADE_STATES) : 0;
+        barricadeCutCache.at = now;
+        return barricadeCutCache.cut;
+    }
     function openBarricadeWindow() {
         const info = momentumNow();
         if (info) BarricadeWindow.open(info);
@@ -2338,6 +2350,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateMidnightLine,
             runLiveGapCatchUp: () => Damage.runLiveGapCatchUp(damageDeps()),
             saveGame,
+            getBarricadeDamageCut: barricadeDamageCut,
             // [P1-DATA-005] session 27 — negative-habit lurker exclusion
             isNonThreatening: Items.isNonThreatening,
             // Negative habit's time arrived: once-per-day indulged/avoided prompt (2026-10-21)
@@ -3076,8 +3089,9 @@ document.addEventListener('DOMContentLoaded', () => {
             .filter(i => i.isOverdue && !Items.isNonThreatening(i))
             .map(i => ({
                 id: i.id, name: i.name, dueMs: i.dueDateTime.getTime(),
-                tickMs: Family.intervalMs(i, items, CONFIG.DAMAGE_INTERVAL_MS, {
-                    timers: true, isLurker: Items.isNonThreatening, isIced: (m) => Ice.stateIn(m, items, nowMs).iced }),
+                // The barricade's cut (Momentum Build C) stretches the live hit interval, so the panel's countdown and ETA match the loop.
+                tickMs: Momentum.cutIntervalMs(Family.intervalMs(i, items, CONFIG.DAMAGE_INTERVAL_MS, {
+                    timers: true, isLurker: Items.isNonThreatening, isIced: (m) => Ice.stateIn(m, items, nowMs).iced }), barricadeDamageCut()),
                 // Ice (docs/ICE_PLAN.md): an iced attacker deals nothing for iceMs; the panel counts down to the thaw.
                 iceMs: Ice.leftMsIn(i, items, nowMs), iceThawing: Ice.stateIn(i, items, nowMs).thawing,
                 lastDamageTickMs: typeof i.lastDamageTickTime === 'number' ? i.lastDamageTickTime : nowMs,

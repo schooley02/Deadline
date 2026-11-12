@@ -35,6 +35,20 @@ const BarricadeWindow = (() => {
         return 'Today: not yet secured. ' + SECURE_TEXT;
     }
 
+    /**
+     * What the barricade does for damage right now, from the state rows (`damageCut`). A state with a cut says so; otherwise it names the next
+     * state that has one. Wording never says a weak barricade adds damage: it does not.
+     */
+    function damageLine(info, states) {
+        const rows = (Array.isArray(states) ? states : []).filter((r) => r && Number(r.damageCut) > 0);
+        if (!rows.length || !info || !info.state) return '';
+        const pct = (r) => Math.round(r.damageCut * 100);
+        const mine = rows.find((r) => r.id === info.state.id);
+        if (mine) return `${mine.name}: zombies do ${pct(mine)}% less damage at the church.`;
+        const next = rows.slice().sort((a, b) => a.min - b.min)[0];
+        return `Reach ${next.name} (${next.min} of ${info.max || 7}) and zombies do ${pct(next)}% less damage at the church.`;
+    }
+
     /** "Mon 9" for a "YYYY-MM-DD" key (local calendar, no timezone drift). */
     function nightLabel(night) {
         const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(night && night.date));
@@ -66,6 +80,7 @@ const BarricadeWindow = (() => {
         const o = opts || {};
         const more = (typeof HowItWorks !== 'undefined' && HowItWorks.buttonHtml)
             ? HowItWorks.buttonHtml('momentum', 'How nights and momentum work') : '';
+        const dmg = damageLine(i, (typeof CONFIG !== 'undefined' && CONFIG.MOMENTUM) ? CONFIG.MOMENTUM.BARRICADE_STATES : null);
         const fallen = hasFallen(i) ? '<p class="barricade-fallen">' + esc(FALLEN_TEXT) + '</p>' : '';
         return `
             <div class="modal-overlay barricade-overlay">
@@ -76,6 +91,7 @@ const BarricadeWindow = (() => {
                         <span class="barricade-state">${esc(i.state.name)}</span>
                     </div>
                     <p class="barricade-today barricade-today--${esc(i.today)}">${esc(todayLine(i))}</p>
+                    ${dmg ? '<p class="barricade-damage">' + esc(dmg) + '</p>' : ''}
                     ${fallen}
                     <h4 class="barricade-sub">Your last nights</h4>
                     ${nightsHtml(i)}
@@ -102,7 +118,7 @@ const BarricadeWindow = (() => {
         return overlay;
     }
 
-    return { SECURE_TEXT, AWAY_TEXT, SICK_TEXT, FALLEN_TEXT, todayLine, nightLabel, hasFallen, nightsHtml, windowHtml, open, esc };
+    return { SECURE_TEXT, AWAY_TEXT, SICK_TEXT, FALLEN_TEXT, todayLine, damageLine, nightLabel, hasFallen, nightsHtml, windowHtml, open, esc };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

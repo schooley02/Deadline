@@ -265,6 +265,10 @@ const HowItWorks = (() => {
                 const range = next ? (next.min - 1 > s.min ? `${s.min} to ${next.min - 1}` : `${s.min}`) : `${s.min}`;
                 return `${s.name} (${range})`;
             }).join(', ')}.` : '';
+        // Build C (2026-11-11): the damage cut per state, from the same rows. Only states with a cut are named; a fallen barricade never adds damage.
+        const cuts = states.filter((st) => Number(st.damageCut) > 0).sort((a, b) => b.min - a.min);
+        const cutLine = cuts.length
+            ? `${cuts.map((st) => `${st.name} takes ${Math.round(st.damageCut * 100)}% off the damage zombies do at the church`).join(', and ')}. A weak barricade never adds damage. The cut applies while the app is open: damage for time you were away is charged at the normal rate.` : '';
         return {
             id: 'momentum',
             title: 'Nights and momentum',
@@ -274,6 +278,7 @@ const HowItWorks = (() => {
                 `Momentum is how many of your last ${windowNights} nights you defended. Today counts as soon as you secure it, and a day you have not secured yet never lowers it. Days away count as missed, so momentum slides while you are gone and you rebuild it when you come back.`,
                 `A Sick Day is skipped: it is not missed, and the count looks one night further back. Skip Day and Cheat Day cover one habit and do not change momentum.`,
                 stateLine,
+                cutLine,
                 `Tap the mark on Today in the week strip to open the Barricade.`,
             ].filter(Boolean),
             why: `Nights should show that you kept showing up, not that time passed. Counting a night only when you did something, and measuring the last ${windowNights}, rewards steady use without punishing a few off days.`,

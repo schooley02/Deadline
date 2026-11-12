@@ -165,6 +165,23 @@ const Momentum = (() => {
         return hit ? { id: hit.id, name: hit.name, min: hit.min } : { id: 'none', name: 'None', min: 0 };
     }
 
+    /**
+     * The damage cut (0 to 0.5) a barricade state gives, read from the state rows' `damageCut`. An unknown id, a missing or bad value is 0
+     * (normal damage), and the cut is capped at 0.5 so a mistyped dial can never make the church close to immune.
+     */
+    function damageCut(stateId, states) {
+        const rows = Array.isArray(states) ? states : [];
+        const row = rows.find((r) => r && r.id === stateId);
+        const cut = row ? Number(row.damageCut) : 0;
+        return (isFinite(cut) && cut > 0) ? Math.min(cut, 0.5) : 0;
+    }
+
+    /** A hit interval stretched by a damage cut: 10% less damage = hits 1 / 0.9 times as far apart. Never shortens it. */
+    function cutIntervalMs(intervalMs, cut) {
+        const c = (typeof cut === 'number' && cut > 0 && cut < 1) ? cut : 0;
+        return c ? Math.round(intervalMs / (1 - c)) : intervalMs;
+    }
+
     function dateKeyFromIndex(idx) {
         const d = new Date(idx * MS_PER_DAY);
         return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());
@@ -235,6 +252,8 @@ const Momentum = (() => {
         nights,
         priorityQualifies,
         barricadeState,
+        damageCut,
+        cutIntervalMs,
         momentum,
     };
 })();

@@ -134,6 +134,7 @@ const Loop = (() => {
             deps.setLastRegenTickMs(lastRegen + CONFIG.BASE_REGEN_INTERVAL_MS);
         }
 
+        let barricadeCut; // undefined until a hit could land this tick (see the damage branch)
         for (let i = deps.activeItems.length - 1; i >= 0; i--) {
             const item = deps.activeItems[i];
 
@@ -284,7 +285,7 @@ const Loop = (() => {
                 // zero). Live loop only -- catch-up paths ignore the timer.
                 // Family damage (docs/FAMILY_DAMAGE_PLAN.md, 2026-11-11): the hit interval comes from the whole family's tier and its
                 // timers (a timer on ANY member halves the family). Without Family (old tests / callers) the old per-item rule holds.
-                const tickMs = (typeof Family !== 'undefined')
+                let tickMs = (typeof Family !== 'undefined')
                     ? Family.intervalMs(item, deps.activeItems, CONFIG.DAMAGE_INTERVAL_MS, {
                         timers: true, isLurker: deps.isNonThreatening,
                         isIced: (typeof Ice !== 'undefined') ? (m => Ice.stateIn(m, deps.activeItems, currentTimeMs).iced) : undefined,
@@ -292,6 +293,10 @@ const Loop = (() => {
                     : (typeof Timer !== 'undefined')
                         ? Timer.damageIntervalMs(item, CONFIG.DAMAGE_INTERVAL_MS)
                         : CONFIG.DAMAGE_INTERVAL_MS;
+                // Barricade (docs/MOMENTUM_PLAN.md, Build C): a Solid / Reinforced barricade stretches the hit interval (10% / 20% less damage).
+                // Live loop only -- catch-up paths never get it. Asked once per tick and only when a hit could land; optional collaborator.
+                if (barricadeCut === undefined) barricadeCut = (typeof deps.getBarricadeDamageCut === 'function') ? (Number(deps.getBarricadeDamageCut()) || 0) : 0;
+                if (barricadeCut > 0 && typeof Momentum !== 'undefined') tickMs = Momentum.cutIntervalMs(tickMs, barricadeCut);
                 if (currentTimeMs >= item.lastDamageTickTime + tickMs) {
                     // Run-history blame attribution (sub-session 2, session
                     // 53) — MUST run BEFORE deps.damageBase below. damageBase

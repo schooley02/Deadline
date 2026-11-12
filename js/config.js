@@ -975,14 +975,16 @@ const CONFIG = {
         MIN_PRIORITY_AGE_MS: 10 * 60 * 1000, // same 10 minutes as RESCHEDULE_GRACE_MS (a typo-fix window), by design
         // Build B (2026-11-11): momentum = defended nights among the last WINDOW_NIGHTS (a Sick Day night is skipped, not counted; the
         // lookback is capped so a long illness cannot walk back forever). Barricade states by momentum, best first. THEORY dials (3 / 5 /
-        // 7): change via the balance process. The damage bonus per state is Build C; here the states only NAME the momentum.
+        // 7): change via the balance process. `damageCut` (Build C, 2026-11-11, approved with the design) is the share of zombie damage the
+        // barricade takes at the church while the app is open: 0.1 = 10% fewer hits (the hit interval is divided by 1 - cut). A fallen
+        // barricade is NORMAL damage (cut 0), never extra; offline / live-gap catch-up gets no cut. THEORY dials: balance process only.
         WINDOW_NIGHTS: 7,
         MAX_LOOKBACK_DAYS: 21,
         BARRICADE_STATES: [
-            { id: 'reinforced', name: 'Reinforced', min: 7 },
-            { id: 'solid', name: 'Solid', min: 5 },
-            { id: 'partial', name: 'Partial', min: 3 },
-            { id: 'none', name: 'None', min: 0 },
+            { id: 'reinforced', name: 'Reinforced', min: 7, damageCut: 0.2 },
+            { id: 'solid', name: 'Solid', min: 5, damageCut: 0.1 },
+            { id: 'partial', name: 'Partial', min: 3, damageCut: 0 },
+            { id: 'none', name: 'None', min: 0, damageCut: 0 },
         ],
     },
 

@@ -1,4 +1,4 @@
-# Momentum + the Barricade (PLAN, DESIGNED 2026-11-11; BUILDS A and B BUILT 2026-11-11, Build C NOT BUILT)
+# Momentum + the Barricade (PLAN, DESIGNED 2026-11-11; BUILDS A and B BUILT 2026-11-11; BUILD C: the damage bonus BUILT 2026-11-11, the canvas art NOT BUILT)
 
 Designed 2026-11-11, Claude app session (Opus 5.5 first pass, Fable 5.2 design), with Jeremy. DECISIONS 2026-11-11 (momentum).
 Mockup (week strip + Barricade window): https://claude.ai/artifact/M7244g3Vt9ixmbudCvWd4W
@@ -47,6 +47,7 @@ A barricade stands in front of the base. It is NOT an item. Four states by momen
 - **Red-line exception (Jeremy, 2026-11-11):** LEVEL_PERKS says nothing softens damage. The barricade is the one approved exception,
   "because momentum is so important for the user". The level-perk red line itself is unchanged.
 - **Away:** offline / live-gap catch-up damage uses NORMAL damage, no barricade bonus (no coasting on a Reinforced barricade while gone).
+- **BUILT 2026-11-11 (Build C, damage half; DECISIONS 2026-11-11 (momentum build C, damage bonus)):** `damageCut` on each `CONFIG.MOMENTUM.BARRICADE_STATES` row; the live loop divides the hit interval by `1 - cut` (`Momentum.cutIntervalMs`, `js/loop.js` dep `getBarricadeDamageCut`, `script.js barricadeDamageCut()` cached 5 s); the Base Health panel uses the same cut; catch-up (`js/damage.js`) never does; wording in the Barricade window and the topic.
 - **The 10% / 20% values and the 3 / 5 / 7 state lines are THEORY dials** (proposed `CONFIG.MOMENTUM`): change only via the balance process.
 - **Theme:** barricade -> palisade / wards in a fantasy theme; state names and art come from the theme seam.
 - **This is the parked "Fence + gate structure"** (ROADMAP, 2026-11-03): its stat is momentum. Mock it on the real canvas first, as that
