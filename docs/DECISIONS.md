@@ -5795,3 +5795,6 @@ Jeremy: leave it as is. A parked negative-habit lurker standing idle at the base
 
 ### 2026-11-12 -- fallen-barricade wording (momentum build C)
 - The Barricade window's fallen line is now "The barricade has fallen. Finish a priority or a routine to start building it again." (Jeremy agreed to drop "while you were away": a barricade also falls when you open the game daily but finish nothing, so the old line could say you were away when you were not.) Wording only. sw v340.
+
+### 2026-11-12 -- barricade first draw after the restore (bug fix, momentum build C)
+- Phone report (Jeremy): the barricade loaded as the bottom tier and jumped a level after about a second. Cause: `refreshBarricadeView(true)` ran right after `BarricadeView.init`, before `State.restoreGameState`, so momentum read an empty record; the first game tick redrew it. Fix: the forced first draw now runs after the restore (like `ClimateView.refresh`); a test pins the order. No balance or layout change. sw v341.

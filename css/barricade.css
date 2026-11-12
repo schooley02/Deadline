@@ -67,7 +67,7 @@
 .barricade-empty, .barricade-note { margin: 8px 0 0; font-size: 12px; color: var(--color-neutral); }
 
 /* ---------- the barricade on the canvas (Momentum Build C, 2026-11-11; due line moved 2026-11-12) ----------
-   A 40x52 picture drawn at 2x (80x104): a wall ACROSS the lane IN FRONT OF THE STAIRS. The zombie front line (the due line) is the
+   An 80x104 box (PixelLab art 80x104 drawn 1:1; old 40x52 placeholders at 2x), bottom on the canvas bottom (2026-11-12, so the wall reaches in front of the front lane): a wall ACROSS the lane IN FRONT OF THE STAIRS. The zombie front line (the due line) is the
    church width + CONFIG.FRONT_LINE_GAP_PX (28px) = canvas x 188, so the wall spans x 150-230: it stands just right of the stairs and runs up and to the right at the
    same angle as the lane slant (CONFIG.GROUND_LANE_SLANT_PX), so the zombies line up along it. z 15: above the church (1), BELOW the hero scrim (20),
    the hero (25) and every zombie (30+). Only the wall's silhouette takes taps (.barricade-hit). Placeholder pictures until the PixelLab
@@ -75,7 +75,7 @@
 .barricade {
     position: absolute;
     left: calc(150px - var(--base-bleed, 0px));
-    bottom: 8px;
+    bottom: 0;
     width: 80px;
     height: 104px;
     z-index: 15;
@@ -89,18 +89,18 @@
     pointer-events: auto;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    clip-path: polygon(22px 104px, 22px 66px, 34px 44px, 54px 22px, 66px 10px, 80px 10px, 80px 56px, 62px 80px, 44px 104px);
+    clip-path: polygon(22px 60px, 59px 32px, 77px 55px, 65px 89px, 35px 104px, 20px 104px, 17px 103px, 12px 98px); /* tier-1 wreckage silhouette (2026-11-12) */
 }
 .barricade:focus-visible { outline: 2px solid #fff6d8; outline-offset: 2px; }
 .barricade[hidden] { display: none; }
 /* Portrait strip (56px church, 14px gap): half size, just right of the church. */
 body.glance-strip .barricade {
     left: 50px;
-    bottom: 2px;
+    bottom: 0;
     width: 40px;
     height: 52px;
     background-size: 40px 52px;
 }
 body.glance-strip .barricade-hit {
-    clip-path: polygon(11px 52px, 11px 33px, 17px 22px, 27px 11px, 33px 5px, 40px 5px, 40px 28px, 31px 40px, 22px 52px);
+    clip-path: polygon(11px 30px, 29px 16px, 38px 27px, 32px 44px, 17px 52px, 10px 52px, 8px 51px, 6px 49px);
 }

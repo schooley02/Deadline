@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v341';
+const CACHE_NAME = 'deadline-shell-v342';
 
 const APP_SHELL = [
     './',
@@ -181,7 +181,7 @@ const APP_SHELL = [
     // Assets/ folder also holds .psd/reference files (see CLAUDE.md
     // "Never open .pdf/.psd/..." rule) that are never fetched at runtime
     // and shouldn't be shipped to every installed client.
-    'Assets/Barricade/barricade_none.png', // placeholder art until PixelLab (Momentum Build C)
+    'Assets/Barricade/barricade_none.png', // PixelLab art 80x104 (2026-11-12); the other three are placeholders until PixelLab
     'Assets/Barricade/barricade_partial.png',
     'Assets/Barricade/barricade_solid.png',
     'Assets/Barricade/barricade_reinforced.png',
