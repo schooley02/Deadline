@@ -75,6 +75,8 @@ describe('BarricadeView', () => {
         const css = read('css/barricade.css');
         expect(css).toMatch(/\.barricade \{[^}]*pointer-events:\s*none/);
         expect(css).toMatch(/\.barricade-hit \{[^}]*pointer-events:\s*auto/);
+        // hover like the other canvas elements (2026-11-12): grows + white glow, only over the silhouette, desktop only
+        expect(css).toMatch(/@media \(hover: hover\) \{\s*\.barricade:has\(\.barricade-hit:hover\) \{[^}]*scale\(1\.05\)[^}]*drop-shadow/);
     });
     test('no info = the None picture; no element = a quiet no-op', () => {
         BarricadeView.render(null);

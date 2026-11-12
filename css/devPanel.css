@@ -177,3 +177,11 @@
     .dev-section:nth-child(n) { grid-column: auto; grid-row: auto; }
     .dev-chips { flex-wrap: wrap; }
 }
+
+/* Desktop (2026-11-12, Jeremy): the panel is tall, so on a wide screen it is twice as wide and its sections flow into two balanced
+   columns (a section never splits across them). Short landscape phones keep their own grid above (max-height 500px). */
+@media (min-width: 900px) and (min-height: 501px) {
+    .dev-panel { width: min(680px, calc(100vw - 24px)); }
+    .dev-panel-body { columns: 2; column-gap: 18px; }
+    .dev-section { break-inside: avoid; display: inline-block; width: 100%; margin-top: 0; }
+}
