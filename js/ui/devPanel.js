@@ -9,18 +9,30 @@
  * watch the sky / village change while you tap, so nothing may dim or cover the scene. It is not a Modal overlay. Sections:
  * Weather (Real / Clear / Hazy / Overcast / Fog / Storm), Village stars (Real / 1..5 for all eight
  * buildings), Graveyard monument (Real / 1..5, the Memorial obelisk on its own) and Graveyard tree (Real / 1 Sapling / 2 Young / 3 Giant), Graveyard headstones (Real / 0 Cross .. 4 Platinum, every milestone marker at that stage), Church (Real / 100 / 75 / 50 / 25 / 0 = the damage picture + its idle animation, plus a Hit button that plays the
- * flash + shake once; ART ONLY, no health or stat changes), Ice (Iced / Thawing / Burst: shows the ice art on every zombie on screen, ART ONLY: see icePreview) Buzz (Normal / Heavy / Massive: plays the completion thump + vibration at that size, 2026-11-11; nothing saved) and Reset. Every choice goes through DevDemo (in-memory only; see its header); this file only draws and wires.
+ * flash + shake once; ART ONLY, no health or stat changes), Ice (Iced / Thawing / Burst: shows the ice art on every zombie on screen, ART ONLY: see icePreview) Buzz (Normal / Heavy / Massive: plays the completion thump + vibration at that size, 2026-11-11; nothing saved), Barricade (Real / None / Partial / Solid / Reinforced + Next: the barricade PICTURE only, 2026-11-12, for checking the PixelLab art; momentum, the damage cut and the window keep the real state) and Reset. Every choice goes through DevDemo (in-memory only; see its header); this file only draws and wires.
  *
  * Every click inside the button / panel stopPropagation()s: Modal's outside-click dismiss is a bubbling document handler and
  * would otherwise close whatever window is open underneath.
  *
- * Pure parts (panelModel, panelHtml) are exported for tests. Deps: { demo (DevDemo, defaults to the global), onDemoChange?: () => void, onHit?: () => void, onBuzz?: (tier) => void }.
+ * Pure parts (panelModel, panelHtml) are exported for tests. Deps: { demo (DevDemo, defaults to the global), onDemoChange?: () => void, onHit?: () => void, onBuzz?: (tier) => void, onBarricade?: (id | null) => void }.
  */
 const DevPanel = (() => {
     const BAND_LABELS = { clear: 'Clear', hazy: 'Hazy', overcast: 'Overcast', fog: 'Fog', storm: 'Storm' };
     const TREE_LABELS = { 1: '1 Sapling', 2: '2 Young', 3: '3 Giant' };
     const ICE_LABELS = { iced: 'Iced', thawing: 'Thawing', burst: 'Burst' };
     const MARKER_LABELS = { 0: '0 Cross', 1: '1 Bronze', 2: '2 Silver', 3: '3 Gold', 4: '4 Platinum' };
+    const BARRICADE_DEFAULT = [{ id: 'none', name: 'None' }, { id: 'partial', name: 'Partial' }, { id: 'solid', name: 'Solid' }, { id: 'reinforced', name: 'Reinforced' }];
+    /** The barricade states (id + name) from CONFIG.MOMENTUM.BARRICADE_STATES, or the four defaults. */
+    function barricadeStates() {
+        const rows = (typeof CONFIG !== 'undefined' && CONFIG.MOMENTUM && CONFIG.MOMENTUM.BARRICADE_STATES) || null;
+        return Array.isArray(rows) && rows.length ? rows.map((r) => ({ id: r.id, name: r.name || r.id })) : BARRICADE_DEFAULT;
+    }
+    /** Pure. The state after `current` in the cycle (null = Real -> the first state; the last wraps to the first). */
+    function nextBarricade(current, states) {
+        const ids = (states || barricadeStates()).map((r) => r.id);
+        const i = ids.indexOf(current);
+        return ids[(i + 1) % ids.length];
+    }
 
     /** Pure. A DevDemo snapshot -> what the panel shows: option lists with a `selected` flag each. */
     function panelModel(snap, bands, tiers, churchStates, memorialStages, treeStages, markerStages) {
@@ -46,7 +58,9 @@ const DevPanel = (() => {
                 .concat(markerList.map((n) => ({ value: String(n), label: MARKER_LABELS[n] || String(n), selected: s.markers === n }))),
             ice: [{ value: 'real', label: 'Real', selected: !s.ice }]
                 .concat(['iced', 'thawing', 'burst'].map((p) => ({ value: p, label: ICE_LABELS[p], selected: s.ice === p }))),
-            active: !!s.active || !!s.ice,
+            barricade: [{ value: 'real', label: 'Real', selected: !s.barricade }]
+                .concat(barricadeStates().map((r) => ({ value: r.id, label: r.name, selected: s.barricade === r.id }))),
+            active: !!s.active || !!s.ice || !!s.barricade,
         };
     }
 
@@ -139,6 +153,10 @@ const DevPanel = (() => {
             + '<button type="button" class="dev-chip dev-chip--action" data-dev-buzz="heavy" aria-label="Play the heavy buzz">Heavy</button>'
             + '<button type="button" class="dev-chip dev-chip--action" data-dev-buzz="massive" aria-label="Play the massive buzz">Massive</button></div>'
             + '</section>'
+            + '<section class="dev-section"><h4>Barricade (picture only)</h4>'
+            + '<div class="dev-chips" role="group" aria-label="Barricade picture">' + chips(model.barricade, 'data-dev-barricade')
+            + '<button type="button" class="dev-chip dev-chip--action" data-dev-barricade-next aria-label="Show the next barricade picture">Next ›</button></div>'
+            + '</section>'
             + '<section class="dev-section"><h4>Church (picture only)</h4>'
             + '<div class="dev-chips" role="group" aria-label="Church damage picture">' + chips(model.church, 'data-dev-church')
             + '<button type="button" class="dev-chip dev-chip--action" data-dev-hit aria-label="Play a hit on the church">Hit</button></div>'
@@ -155,10 +173,21 @@ const DevPanel = (() => {
     let panelEl = null;
     let unsubscribe = null;
     let open = false;
+    let barricadePick = null; // the barricade picture being previewed (null = the real one)
+
+    /** Show a barricade picture (an id) or the real one ('real' / null). Picture only: the deps.onBarricade callback redraws it. */
+    function setBarricade(value) {
+        const ids = barricadeStates().map((r) => r.id);
+        barricadePick = ids.indexOf(value) >= 0 ? value : null;
+        if (deps && typeof deps.onBarricade === 'function') {
+            try { deps.onBarricade(barricadePick); } catch (err) { if (typeof console !== 'undefined') console.error('Deadline: dev barricade preview failed', err); }
+        }
+        render();
+    }
 
     function render() {
         if (!demo || !buttonEl || !panelEl) return;
-        const snap = Object.assign({}, demo.snapshot(), { ice: icePhase });
+        const snap = Object.assign({}, demo.snapshot(), { ice: icePhase, barricade: barricadePick });
         const model = panelModel(snap, demo.BANDS, demo.TIERS, demo.CHURCH_STATES, demo.MEMORIAL_STAGES, demo.TREE_STAGES, demo.MARKER_STAGES);
         panelEl.innerHTML = panelHtml(model);
         buttonEl.classList.toggle('dev-button--active', model.active);
@@ -190,6 +219,8 @@ const DevPanel = (() => {
             try { icePreview(t.getAttribute('data-dev-ice')); } catch (err) { if (typeof console !== 'undefined') console.error('Deadline: dev ice preview failed', err); }
             render();
         }
+        else if (t.hasAttribute('data-dev-barricade')) setBarricade(t.getAttribute('data-dev-barricade'));
+        else if (t.hasAttribute('data-dev-barricade-next')) setBarricade(nextBarricade(barricadePick));
         else if (t.hasAttribute('data-dev-hit')) {
             if (deps && typeof deps.onHit === 'function') {
                 try { deps.onHit(); } catch (err) { if (typeof console !== 'undefined') console.error('Deadline: dev church hit failed', err); }
@@ -202,6 +233,7 @@ const DevPanel = (() => {
         }
         else if (t.hasAttribute('data-dev-reset')) {
             try { icePreview('real'); } catch (err) { if (typeof console !== 'undefined') console.error('Deadline: dev ice reset failed', err); }
+            if (barricadePick) setBarricade('real');
             demo.reset();
             render();
         }
@@ -213,7 +245,7 @@ const DevPanel = (() => {
         demo.setEnabled(on === true);
         const enabled = demo.snapshot().enabled;
         if (buttonEl) buttonEl.hidden = !enabled;
-        if (!enabled) { try { icePreview('real'); } catch (err) { /* nothing to restore */ } setOpen(false); }
+        if (!enabled) { try { icePreview('real'); } catch (err) { /* nothing to restore */ } if (barricadePick) setBarricade('real'); setOpen(false); }
         render();
     }
 
@@ -256,7 +288,7 @@ const DevPanel = (() => {
         render();
     }
 
-    return { panelModel, panelHtml, icePreview, init, setEnabled, isOpen: () => open };
+    return { panelModel, panelHtml, icePreview, nextBarricade, init, setEnabled, isOpen: () => open, barricadePick: () => barricadePick };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

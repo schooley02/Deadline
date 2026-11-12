@@ -471,3 +471,48 @@ describe('ice section (2026-11-10): Iced / Thawing / Burst preview on the zombie
         expect(seen).not.toHaveBeenCalled();
     });
 });
+
+describe('barricade section (2026-11-12): picture-only preview of the four barricade states', () => {
+    test('model: Real + the four states, Real selected by default; a pick makes the panel active', () => {
+        const m = DevPanel.panelModel({ enabled: true });
+        expect(m.barricade.map((c) => c.value)).toEqual(['real', 'none', 'partial', 'solid', 'reinforced']);
+        expect(m.barricade.filter((c) => c.selected).map((c) => c.value)).toEqual(['real']);
+        const p = DevPanel.panelModel({ enabled: true, barricade: 'solid' });
+        expect(p.barricade.filter((c) => c.selected).map((c) => c.value)).toEqual(['solid']);
+        expect(p.active).toBe(true);
+    });
+    test('nextBarricade cycles None -> Partial -> Solid -> Reinforced -> None, and Real starts at None', () => {
+        expect(DevPanel.nextBarricade(null)).toBe('none');
+        expect(DevPanel.nextBarricade('none')).toBe('partial');
+        expect(DevPanel.nextBarricade('solid')).toBe('reinforced');
+        expect(DevPanel.nextBarricade('reinforced')).toBe('none');
+    });
+    test('chips and Next call onBarricade (picture only: no DevDemo value changes); Reset and switching off send null', () => {
+        const onBarricade = jest.fn();
+        DevPanel.init({ demo: DevDemo, onBarricade });
+        DevPanel.setEnabled(true);
+        click(btn());
+        click(q('[data-dev-barricade="partial"]'));
+        click(q('[data-dev-barricade-next]'));
+        click(q('[data-dev-barricade-next]'));
+        expect(onBarricade.mock.calls.map((c) => c[0])).toEqual(['partial', 'solid', 'reinforced']);
+        expect(q('[data-dev-barricade="reinforced"]').getAttribute('aria-pressed')).toBe('true');
+        expect(DevDemo.snapshot().active).toBe(false);
+        expect(q('[data-dev-reset]').disabled).toBe(false);
+        click(q('[data-dev-reset]'));
+        expect(onBarricade).toHaveBeenLastCalledWith(null);
+        click(q('[data-dev-barricade="none"]'));
+        DevPanel.setEnabled(false);
+        expect(onBarricade).toHaveBeenLastCalledWith(null);
+        expect(DevPanel.barricadePick()).toBe(null);
+    });
+    test('a throwing onBarricade never throws out of the panel', () => {
+        const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        DevPanel.init({ demo: DevDemo, onBarricade: () => { throw new Error('boom'); } });
+        DevPanel.setEnabled(true);
+        click(btn());
+        expect(() => click(q('[data-dev-barricade-next]'))).not.toThrow();
+        DevPanel.setEnabled(false);
+        spy.mockRestore();
+    });
+});

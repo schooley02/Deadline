@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // The barricade on the canvas (Build C): follows the momentum state, redrawn only when the state id changes. Called from the game tick,
     // at most every 2 s (momentum reads the closed days). The tap opens the same window as the week-strip mark.
     let barricadeViewAt = 0;
+    let barricadeDevPick = null; // DEV panel preview (2026-11-12): a barricade state id to SHOW, picture only (set through DevPanel's onBarricade)
     function refreshBarricadeView(force) {
         const now = Date.now();
         if (!force && now - barricadeViewAt < 2000) return;
@@ -97,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // DEV preview (visual only, like ?armoryTier=): ?barricade=none|partial|solid|reinforced shows that picture. It changes nothing else:
         // the damage cut, the window and momentum still use the real state.
         try {
-            const want = new URLSearchParams(window.location.search).get('barricade');
+            const want = barricadeDevPick || new URLSearchParams(window.location.search).get('barricade');
             const row = want && ((CONFIG.MOMENTUM || {}).BARRICADE_STATES || []).find((r) => r.id === want);
             if (row && info) info = Object.assign({}, info, { state: { id: row.id, name: row.name, min: row.min }, count: row.min });
         } catch (err) { /* no preview */ }
@@ -4109,6 +4110,7 @@ document.addEventListener('DOMContentLoaded', () => {
         onDemoChange: () => { VillageView.render(baseElement.offsetWidth); ClimateView.refresh(); applyChurchPreview(); },
         onHit: previewChurchHit,
         onBuzz: previewBuzz,
+        onBarricade: (id) => { barricadeDevPick = id || null; barricadeViewAt = 0; refreshBarricadeView(); }, // picture only, like ?barricade= (resetting the 2 s throttle redraws now)
     });
     DevPanel.setEnabled(Settings.load().devTools === true);
     // Time slider (Milestone 4, 2026-07-20) — after initGame() so
