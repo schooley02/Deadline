@@ -19,14 +19,14 @@ describe('Theme.barricadeAsset', () => {
     test('one picture per barricade state, under the theme root', () => {
         STATES.forEach((s) => expect(Theme.barricadeAsset(s.id)).toBe('Assets/Barricade/barricade_' + s.id + '.png'));
     });
-    // 2026-11-12: every state picture is 80x136, drawn 1:1 in the 80x136 box (PixelLab art; shorter tiers padded with empty rows on top).
-    test('every state picture exists and is the 80x136 PNG the box draws 1:1', () => {
+    // 2026-11-12: every state picture is 80x152, drawn 1:1 in the 80x152 box (PixelLab art; shorter tiers padded with empty rows on top).
+    test('every state picture exists and is the 80x152 PNG the box draws 1:1', () => {
         STATES.forEach((s) => {
             const file = path.join(root, Theme.barricadeAsset(s.id));
             expect(fs.existsSync(file)).toBe(true);
             const buf = fs.readFileSync(file);
             const size = buf.readUInt32BE(16) + 'x' + buf.readUInt32BE(20); // IHDR width x height
-            expect(size).toBe('80x136');
+            expect(size).toBe('80x152');
         });
     });
     test('a bad or missing id is empty, and odd characters cannot climb out of the folder', () => {
