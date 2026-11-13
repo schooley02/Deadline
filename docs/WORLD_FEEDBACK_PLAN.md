@@ -535,7 +535,14 @@ Changes from the design (all Jeremy's calls):
 ### Build B1 as built (2026-11-13, Sonnet 5.5; sw v360)
 Read-only display half: the Weather panel's 7-day table (and the Stats sky readout, same table) gets a **Mood** column, shown only once some day has a mood (so a new player sees no empty column); each cell is one face, or "first \u2192 last" when the day's first and last entries differ (`Mood.dayGlyph`), a dash for a day with none, and "Today so far" shows today's. Stats best / worst day rows show the same face(s) after the date. `script.js` `moodForDay(key)` feeds all three (`WeatherPanel.init({ getMood })`, `buildViewModel(result, moodFor)`, Stats deps `moodFor`). The "The sky" How Deadline works topic has the line. No schema change.
 
-### Build B2 (still to do)
+### Build B2 as built (2026-11-13, Sonnet 5.5; sw v361)
+- **Help card** (`js/moodHelp.js` `helpModel`, `moodView` `helpHtml`): after a TAP on a Bad / Awful face (a picker merely opened on an already-low day shows nothing), one soft card under the faces, once per local day (stamp), shown in the morning card and in the Level panel. The line follows the picked feeling word (priority order: overwhelmed, unmotivated, anxious, stressed, exhausted, tired, distracted, sad, down; no word or another word = a general line). Two buttons: **Open my agenda** (closes the window, scrolls to the list) and **Add a 10-minute task: figure out what's behind this** (adds an Anytime task for today via the Add Task path, once per view); "Not now" hides it. It gives nothing and changes no numbers.
+- **Run-of-lows line**: on the morning card only, after 3 days in a row whose CLOSING mood (last check-in) is Bad / Awful (`MoodHelp.lowStreak`; today with no check-in yet is skipped, a past day with none ends the streak), at most once every 7 days. Plain words, no hotline or number.
+- **Stamps** live in their own per-device localStorage key `deadline.moodStamps` `{ help, lows }` ('YYYY-MM-DD'), not in the save, Settings or the export.
+- **End-of-day prompt: waits for the Daily Journal** (Jeremy: "part of the journal"); not built.
+- Left for later: the "timer on" nudges are words only (no auto-started timer); the journal "Add a note" hook.
+
+### Build B2 original notes
 (Mood column, Stats faces and the How Deadline works line are DONE in B1.) End-of-day / rollover prompt; the feeling-aware Bad/Awful help card (overwhelmed: pick 3 priorities and break the biggest into sub-tasks; unmotivated: small first step + start timer; anxious/stressed: mark the task behind it priority and break it up; exhausted/tired: a light day is allowed; distracted: one task, timer on; sad/down: "Cut yourself some slack today. A break is allowed."; plus a one-tap "Add a 10-minute task: figure out what's behind this"); the run-of-lows card (3 days in a row of Bad/Awful, at most once a week, gently suggests talking to someone); a How Deadline works line; later a journal "Add a note" hook.
 
 ## W1c Sky picker (Lv 4 perk) -- DESIGNED 2026-11-07 (Claude app session, Fable 5.1; Jeremy). BUILT 2026-11-09 (Sonnet 5.5, with the amendment below; sw v305; see "W1c as built"). Not yet phone-checked.

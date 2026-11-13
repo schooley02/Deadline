@@ -11,6 +11,14 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-13 — Mood Build B2 (help card, run-of-lows line)
+**Did:** New `js/moodHelp.js` (pure rules), `moodView` help card + lows slot, `css/mood.css`, `script.js` wiring (`moodDeps` helpAllowed / onHelpShown / onHelpAction / getLows, `moodStamps`, `addFigureItOutTask`), index.html + sw.js (v361). `test/moodHelp.test.js`. Also fixed three stale pins Jeremy's full run found (prioritySlots / villageProgress V 14 to 15, climateWiring RainFx).
+**State:** Cloud copy: every suite passes except those needing Assets PNGs. Jeremy's full run before B2 had only the 3 pin failures (now fixed). Not phone-checked.
+**Next:** Phone-check mood (Level panel Mood, morning card, help card, "Add a 10-minute task" shows in the list, Weather Mood column). The end-of-day mood prompt waits for the Daily Journal (`docs/DAILY_RECORD_PLAN.md` "Future - Daily Journal"). Art: the 10 avatar faces, then `CONFIG.MOOD.AVATAR_ART_READY`.
+**Watch out:** The two stamps are in localStorage `deadline.moodStamps` (per device; not exported). Reset does not clear them. script.js / index.html are CRLF.
+
+---
+
 ## 2026-11-13 — Mood Build B1 (Mood column, Stats faces)
 **Did:** `Mood.dayGlyph`; Weather panel + Stats readout table get a Mood column (only when some day has a mood); Stats best / worst day rows show the face(s); a line in the "The sky" How Deadline works topic; `script.js` `moodForDay` feeds them; `moodFor` passed through managementWindows / statsView. New `test/moodDisplay.test.js`; weatherPanel and climateWiring pins updated. sw v360.
 **State:** Targeted suites pass in a cloud copy; the only failures are the known ones (missing Assets PNG `fog-tile`, stale `climateWiring` RainFx pin). Full `npx jest` not run; no phone check.

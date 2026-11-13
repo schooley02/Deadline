@@ -92,3 +92,12 @@
 
 /* Stats best / worst day: the day's face(s) after the date (W1b Build B1). */
 .stats-best-worst-mood { margin-left: 4px; white-space: nowrap; }
+
+/* Help card + run-of-lows line (W1b Build B2): soft, never alarming. */
+.mood-help { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: rgba(10, 95, 85, 0.08); text-align: left; }
+.mood-help-line, .mood-lows { margin: 0 0 8px; font-size: 14px; line-height: 1.35; }
+.mood-lows { padding: 8px 10px; border-radius: 8px; background: rgba(10, 95, 85, 0.08); text-align: left; }
+.mood-card-lows:empty { display: none; }
+.mood-help-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.mood-help-actions .secondary-button { min-height: 44px; text-align: left; }
+.mood-help-added { font-size: 13px; opacity: 0.8; }

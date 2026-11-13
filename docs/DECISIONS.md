@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-13 (mood Build B2: the help card and the run-of-lows line) -- Claude app session, Sonnet 5.5; Jeremy
+- **Decisions (Jeremy):** (1) a day is LOW when its closing check-in is Bad / Awful (a rough morning that recovers does not count). (2) The help card shows after any Bad / Awful tap (morning card or Level panel), once per local day. (3) The Mood column stays in the Weather table. (4) The end-of-day mood prompt is part of the Daily Journal, so it waits for the journal.
+- **Built:** `js/moodHelp.js`; help card with a feeling-aware line + "Open my agenda" + "Add a 10-minute task"; run-of-lows line on the morning card (3 low days in a row, at most weekly). Informational only: no rewards, no number changes. sw v361, no schema change.
+- **Deviation:** the two once-a-day / once-a-week stamps are in their own key `deadline.moodStamps`, not Settings (adding fields to Settings changes many `toEqual` pins for no gain).
+
+---
+
 ## 2026-11-13 (mood Build B1: the Mood column) -- Claude app session, Sonnet 5.5; Jeremy ("yes continue" to the B1 / B2 split)
 - **Decision:** Build B is split. B1 (read-only display: Weather table Mood column, Stats best / worst faces, How Deadline works line) is built; B2 (Bad/Awful help card, run-of-lows card, rollover prompt) is its own session because it touches task creation and the agenda. The Mood column appears only once some day has a mood, so a new player sees no empty column. Informational only, as before.
 - **Shipped:** sw v360, no schema change, no balance numbers touched.

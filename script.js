@@ -1623,7 +1623,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveGame();
                 refreshAvatarFace();
             },
+            // Build B2 (2026-11-13): the help card after a Bad / Awful tap (once a day) and the run-of-lows line on the morning card
+            // (at most once a week). Both stamps live under their own per-device key, not in the save or the exported settings.
+            helpAllowed: () => moodStamps().help !== DailyRecord.dateKey(Date.now()),
+            onHelpShown: () => setMoodStamp('help', DailyRecord.dateKey(Date.now())),
+            onHelpAction: (id) => {
+                if (id === 'add10') addFigureItOutTask();
+                else if (id === 'agenda') { const list = document.getElementById('activeItemsList'); if (list && list.scrollIntoView) list.scrollIntoView({ block: 'start' }); }
+            },
+            getLows: () => {
+                if (typeof MoodHelp === 'undefined') return null;
+                const key = DailyRecord.dateKey(Date.now());
+                return MoodHelp.lowsCardDue(MoodHelp.lowStreak(key, moodForDay), moodStamps().lows, key) ? MoodHelp.LOWS_LINE : null;
+            },
+            onLowsShown: () => setMoodStamp('lows', DailyRecord.dateKey(Date.now())),
         };
+    }
+    const MOOD_STAMPS_KEY = 'deadline.moodStamps';
+    function moodStamps() {
+        try {
+            const v = JSON.parse(localStorage.getItem(MOOD_STAMPS_KEY) || '{}');
+            return v && typeof v === 'object' ? v : {};
+        } catch (e) { return {}; }
+    }
+    function setMoodStamp(name, dayKey) {
+        try { localStorage.setItem(MOOD_STAMPS_KEY, JSON.stringify(Object.assign(moodStamps(), { [name]: dayKey }))); } catch (e) { /* best effort */ }
+    }
+    // The help card's "Add a 10-minute task" button: an Anytime task for today, added the same way the Add Task form does.
+    function addFigureItOutTask() {
+        const fd = formsDeps();
+        const due = PrioritySlots.dayKey(State.getCurrentGameDate());
+        const data = fd.createTaskItemData('Figure out what\u2019s behind this (10 min)', 'other', false, due, '23:59', undefined, undefined, true);
+        fd.addItemToGame(data);
+        fd.sortAndRenderActiveList();
+        fd.updateTaskCountDisplay();
+        saveGame();
     }
 
     // The face is redrawn only when it changes (renderAvatarFace compares), so this is cheap enough for the per-tick call in updateGame.

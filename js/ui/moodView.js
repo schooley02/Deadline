@@ -116,12 +116,29 @@ const MoodView = (() => {
             </div>`;
     }
 
+    /** The help card (W1b Build B2): one line + buttons. `added` = the 10-minute task was already added this time. Pure. */
+    function helpHtml(model, added) {
+        if (!model) return '';
+        const buttons = model.actions.map((a) => {
+            if (a.id === 'add10' && added) return '<span class="mood-help-added">Added to your list.</span>';
+            return `<button type="button" class="secondary-button" data-mood-help="${esc(a.id)}">${esc(a.label)}</button>`;
+        }).join('');
+        return `<div class="mood-help" role="note"><p class="mood-help-line">${esc(model.line)}</p>
+            <div class="mood-help-actions">${buttons}<button type="button" class="mood-more" data-mood-help="dismiss">Not now</button></div></div>`;
+    }
+
+    /** The run-of-lows line (a plain paragraph). Pure. */
+    function lowsHtml(line) {
+        return line ? `<p class="mood-lows" role="note">${esc(line)}</p>` : '';
+    }
+
     function moodCardHtml(title) {
         return `
             <div class="modal-overlay mood-card-overlay">
                 <div class="modal-content mood-card" role="dialog" aria-label="${esc(title)}">
                     <h3>${esc(title)}</h3>
                     <p class="mood-card-hint">One tap is enough. Nothing is earned or lost for how you answer; it only helps you see your own patterns.</p>
+                    <div class="mood-card-lows" data-mood-lows></div>
                     <div class="mood-card-mount" data-mood-mount></div>
                     <div class="mood-card-actions"><button type="button" class="secondary-button" data-mood-done>Skip</button></div>
                 </div>
@@ -138,17 +155,51 @@ const MoodView = (() => {
         if (!container) return null;
         const now = typeof deps.now === 'function' ? deps.now : Date.now;
         let state = initialState(deps.getEntries());
-        const render = () => { container.innerHTML = pickerHtml(state); };
+        // The help card (Build B2): only after a TAP on a low face, once per day (deps.helpAllowed says whether today's card is still
+        // unused; deps.onHelpShown stamps it). It stays for the rest of this open view, and "Not now" hides it.
+        let tapped = false;
+        let helpOn = false;
+        let helpDismissed = false;
+        let added = false;
+        const helpNow = () => {
+            if (!tapped || helpDismissed || typeof MoodHelp === 'undefined') return null;
+            const m = MoodHelp.helpModel(state.level, state.feelings);
+            if (!m) return null;
+            if (!helpOn) {
+                if (typeof deps.helpAllowed === 'function' && !deps.helpAllowed()) return null;
+                helpOn = true;
+                if (typeof deps.onHelpShown === 'function') deps.onHelpShown();
+            }
+            return m;
+        };
+        const render = () => { container.innerHTML = pickerHtml(state) + helpHtml(helpNow(), added); };
         const log = () => deps.onLog({ level: state.level, feelings: state.feelings.slice(), context: state.context.slice() });
         container.addEventListener('click', (e) => {
             const btn = e.target.closest ? e.target.closest('button') : null;
             if (!btn || !container.contains(btn)) return;
             e.stopPropagation();
             const d = btn.dataset;
-            if (d.moodLevel) {
+            if (d.moodHelp) {
+                if (d.moodHelp === 'dismiss') {
+                    helpDismissed = true;
+                } else if (d.moodHelp === 'add10') {
+                    if (added) return;
+                    added = true;
+                    if (typeof deps.onHelpAction === 'function') deps.onHelpAction('add10');
+                } else if (d.moodHelp === 'agenda') {
+                    const host = container.closest ? container.closest('.modal-overlay') : null;
+                    if (host) host.remove();
+                    if (typeof deps.onHelpAction === 'function') deps.onHelpAction('agenda');
+                    return;
+                } else {
+                    return;
+                }
+            } else if (d.moodLevel) {
+                tapped = true;
                 state = pickLevel(state, Number(d.moodLevel), new Date(now()).getHours());
                 log();
             } else if (d.moodFeeling) {
+                tapped = true;
                 const next = toggleFeeling(state, d.moodFeeling);
                 if (next !== state) { state = next; log(); }
             } else if (d.moodContext) {
@@ -191,6 +242,13 @@ const MoodView = (() => {
             onChange: (state) => { if (done && state.level) done.textContent = 'Done'; },
         });
         mount(overlay.querySelector('[data-mood-mount]'), deps);
+        // Run-of-lows (Build B2): one gentle line above the faces when deps.getLows() has one (it stamps itself via onLowsShown).
+        const lowsSlot = overlay.querySelector('[data-mood-lows]');
+        const lowsLine = lowsSlot && typeof deps.getLows === 'function' ? deps.getLows() : null;
+        if (lowsLine) {
+            lowsSlot.innerHTML = lowsHtml(lowsLine);
+            if (typeof deps.onLowsShown === 'function') deps.onLowsShown();
+        }
         if (done) {
             done.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -221,6 +279,8 @@ const MoodView = (() => {
         pickerHtml,
         avatarPickerHtml,
         moodCardHtml,
+        helpHtml,
+        lowsHtml,
         mount,
         openAvatarPicker,
         openMoodCard,
