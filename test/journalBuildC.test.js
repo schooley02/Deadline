@@ -133,7 +133,29 @@ describe('wiring pins', () => {
         expect(fn.slice(0, 1200)).toMatch(/src: 'complete'/);
     });
     test('the service worker is bumped and the css has the chip', () => {
-        expect(read('sw.js')).toMatch(/deadline-shell-v367/);
+        expect(read('sw.js')).toMatch(/deadline-shell-v368/);
         expect(read('css/journal.css')).toMatch(/\.journal-chip-toast/);
+    });
+});
+
+describe('the run-level note wording (Jeremy, 2026-11-13: "Notes about this run")', () => {
+    const Journal = global.Journal = require('../js/journal.js');
+    const store = () => { const st = Journal.fresh(); Journal.add(st, { dayKey: '2026-11-13', text: 'about the run', about: 'general', run: 2 }, 1000); return st; };
+    const words = { button: 'Notes about this run', tag: 'About the run', filter: 'Run notes', title: 'Notes about this run' };
+    test('the Journal window button, the chip and the entry tag use the run wording', () => {
+        const html = JournalView.windowHtml(JournalView.buildModel(store(), { filter: { kind: 'all' } }, { gameName: 'Deadline', words, moodFor: () => [], now: 2000 }));
+        expect(html).toContain('Notes about this run');
+        expect(html).toContain('Run notes');
+        expect(html).toContain('About the run');
+        expect(html).not.toContain('Note about Deadline');
+    });
+    test('without words it falls back to the game name', () => {
+        const html = JournalView.windowHtml(JournalView.buildModel(store(), { filter: { kind: 'all' } }, { gameName: 'Deadline', moodFor: () => [], now: 2000 }));
+        expect(html).toContain('Note about Deadline');
+    });
+    test('the theme carries the words and script.js uses them for the note title', () => {
+        const theme = fs.readFileSync(path.join(__dirname, '..', 'js/theme.js'), 'utf8');
+        expect(theme).toMatch(/words: \{ button: 'Notes about this run'/);
+        expect(read('script.js')).toMatch(/title: journalWords\(\)\.title/);
     });
 });

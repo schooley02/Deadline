@@ -207,9 +207,9 @@ const JournalView = (() => {
     }
 
     /** What an entry is about, in words: the item / routine name (a snapshot), "The day", or the game's name. */
-    function aboutLabel(e, gameName) {
+    function aboutLabel(e, gameName, words) {
         if (e.about === 'item' || e.about === 'routine') return (e.ref && e.ref.name) || (e.about === 'routine' ? 'A routine' : 'An item');
-        if (e.about === 'general') return gameName || 'The game';
+        if (e.about === 'general') return (words && words.tag) || gameName || 'The game';
         return 'The day';
     }
 
@@ -218,7 +218,7 @@ const JournalView = (() => {
         const opts = o || {};
         const face = moodFace(e.mood);
         const canFilter = (e.about === 'item' || e.about === 'routine') && e.ref;
-        const label = esc(aboutLabel(e, opts.gameName));
+        const label = esc(aboutLabel(e, opts.gameName, opts.words));
         const about = canFilter
             ? `<button type="button" class="journal-entry-about journal-entry-about--link" data-journal-ref="${esc(e.id)}" title="Show every note about this">${label}</button>`
             : `<span class="journal-entry-about">${label}</span>`;
@@ -276,9 +276,9 @@ const JournalView = (() => {
         return `<div class="journal-window" data-journal-root>
             <div class="journal-top-actions">
                 <button type="button" class="primary-button journal-write-btn" data-journal-write="day">Note about today</button>
-                <button type="button" class="secondary-button journal-write-btn" data-journal-write="general">Note about ${esc(m.gameName || 'the game')}</button>
+                <button type="button" class="secondary-button journal-write-btn" data-journal-write="general">${esc((m.words && m.words.button) || `Note about ${m.gameName || 'the game'}`)}</button>
             </div>
-            <div class="journal-filters" role="group" aria-label="Filter notes">${chip('all', 'All')}${chip('days', 'Days')}${chip('game', esc(m.gameName || 'Game'))}</div>
+            <div class="journal-filters" role="group" aria-label="Filter notes">${chip('all', 'All')}${chip('days', 'Days')}${chip('game', esc((m.words && m.words.filter) || m.gameName || 'Game'))}</div>
             ${special ? `<p class="journal-filter-note"><span>${esc(special)}</span> <button type="button" class="secondary-button journal-clear-btn" data-journal-filter="all">Show all</button></p>` : ''}
             <div class="journal-list">${body}</div>
             ${m.hasMore ? '<button type="button" class="secondary-button journal-more-btn" data-journal-more>Show older days</button>' : ''}
@@ -313,7 +313,7 @@ const JournalView = (() => {
         if (!container || !deps || typeof deps.getStore !== 'function' || typeof Journal === 'undefined') return null;
         const state = { filter: deps.filter && deps.filter.kind ? deps.filter : { kind: 'all' }, days: DAYS_PER_PAGE };
         const render = () => {
-            container.innerHTML = windowHtml(buildModel(deps.getStore(), state, { gameName: deps.gameName, moodFor: deps.moodFor, now: Date.now() }));
+            container.innerHTML = windowHtml(buildModel(deps.getStore(), state, { gameName: deps.gameName, words: deps.words, moodFor: deps.moodFor, now: Date.now() }));
         };
         const later = (fn) => setTimeout(fn, 0); // the tap is still bubbling: open the new window one tick later
         container.onclick = (e) => {
@@ -339,7 +339,7 @@ const JournalView = (() => {
                 if (!hit) return;
                 later(() => openNote({
                     title: 'Edit note', initialText: hit.entry.text, saveLabel: 'Save changes', maxChars: deps.maxChars,
-                    context: `${dayHeading(hit.dayKey)} · ${aboutLabel(hit.entry, deps.gameName)}`,
+                    context: `${dayHeading(hit.dayKey)} · ${aboutLabel(hit.entry, deps.gameName, deps.words)}`,
                     onSave: (text) => {
                         const ok = typeof deps.onEdit === 'function' ? deps.onEdit(hit.entry.id, text) : false;
                         if (ok) render();

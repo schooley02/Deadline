@@ -1731,6 +1731,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return ref ? openJournalNote({ about: 'routine', ref, src: 'manual', title: `Note about ${routine.name}`, done }) : null;
     }
     // ---- Journal Build B (2026-11-13): the Journal window, edit / delete, the player-panel section, the day-end card ----
+    const journalWords = () => (Theme && Theme.strings && Theme.strings.journal && Theme.strings.journal.words) || {};
     const journalGameName = () => (Theme && Theme.strings && Theme.strings.journal && Theme.strings.journal.gameName) || 'the game';
     let pendingJournalFilter = null; // set by openJournal(filter), read once by journalWindowDeps() when the window opens
     function openJournal(filter) {
@@ -1770,10 +1771,11 @@ document.addEventListener('DOMContentLoaded', () => {
             getStore: journal,
             moodFor: moodForDay,
             gameName: journalGameName(),
+            words: journalWords(),
             filter,
             maxChars: CONFIG.JOURNAL.MAX_CHARS,
             onWrite: (about, afterSave) => openJournalNote(about === 'general'
-                ? { about: 'general', src: 'manual', title: `A note about ${journalGameName()}`, done: afterSave }
+                ? { about: 'general', src: 'manual', title: journalWords().title || `A note about ${journalGameName()}`, done: afterSave }
                 : { about: 'day', src: 'manual', title: 'A note about today', done: afterSave }),
             onEdit: editJournalNote,
             onDelete: deleteJournalNote,
