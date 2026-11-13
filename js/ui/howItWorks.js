@@ -279,7 +279,7 @@ const HowItWorks = (() => {
                 `A Sick Day is skipped: it is not missed, and the count looks one night further back. Skip Day and Cheat Day cover one habit and do not change momentum.`,
                 stateLine,
                 cutLine,
-                `Open the Barricade window from the Barricade card in the Base Health window, from the mark on Today in the week strip, or by tapping the barricade in front of the church.`,
+                `Open the Barricade window from the Barricade card in the Base Health window, from the mark beside your priorities on Today, or by tapping the barricade in front of the church.`,
             ].filter(Boolean),
             why: `Nights should show that you kept showing up, not that time passed. Counting a night only when you did something, and measuring the last ${windowNights}, rewards steady use without punishing a few off days.`,
         };

@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     // Momentum (Build B, 2026-11-11): defended nights among the last 7 + the barricade state (Momentum.momentum). Today counts the moment it is
-    // secured; a pending today never lowers it. Feeds the week strip's mark and the Barricade window.
+    // secured; a pending today never lowers it. Feeds the momentum mark beside the priority pips and the Barricade window.
     function momentumNow(nowMs) {
         const now = typeof nowMs === 'number' ? nowMs : Date.now();
         try {
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return barricadeCutCache.cut;
     }
     // The barricade on the canvas (Build C): follows the momentum state, redrawn only when the state id changes. Called from the game tick,
-    // at most every 2 s (momentum reads the closed days). The tap opens the same window as the week-strip mark.
+    // at most every 2 s (momentum reads the closed days). The tap opens the same window as the mark beside the priority pips.
     let barricadeViewAt = 0;
     let barricadeDevPick = null; // DEV panel preview (2026-11-12): a barricade state id to SHOW, picture only (set through DevPanel's onBarricade)
     function refreshBarricadeView(force) {
