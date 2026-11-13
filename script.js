@@ -2398,9 +2398,11 @@ document.addEventListener('DOMContentLoaded', () => {
             hasOpenSubTasks: item.type === 'task' && Array.isArray(item.subTasks) && item.subTasks.length > 0,
         }, {
             onMarkDone: () => {
-                Timer.stop(item, Date.now());
+                // Journal Build C: this path stops the timer itself, so completeItem sees no running timer; offer the chip from here.
+                const stoppedSpan = Timer.stop(item, Date.now());
                 Items.completeItem(item.id, itemsDeps());
                 const completed = !State.getActiveItems().includes(item);
+                if (completed) offerCompletionNoteChip(item, stoppedSpan);
                 refresh();
                 if (!completed) TimerView.showGoalBlocked(item);
             },
