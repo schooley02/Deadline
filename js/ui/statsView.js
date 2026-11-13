@@ -105,12 +105,26 @@ const StatsView = (() => {
         return g ? ` <span class="stats-best-worst-mood" title="${escHtml(g.title)}" role="img" aria-label="${escHtml('Mood: ' + g.title)}">${escHtml(g.text)}</span>` : '';
     }
 
-    function buildBestWorstDays(bw, moodFor) {
+    // Journal Build B (2026-11-13): a "Notes: N" line with a Read button (opens the Journal filtered to that run). Nothing without a count function.
+    function notesLineHtml(n, runNumber) {
+        if (typeof n !== 'number' || !isFinite(n)) return '';
+        const read = n > 0 ? ` <button type="button" class="stats-notes-read" data-journal-run="${runNumber}">Read</button>` : '';
+        return `<div class="stats-notes-line">Notes: ${n}${read}</div>`;
+    }
+
+    // A small note mark after a best / worst day that has notes (noteCountForDay(dateKey) -> number).
+    function noteMarkHtml(e, noteCountForDay) {
+        if (typeof noteCountForDay !== 'function') return '';
+        const n = noteCountForDay(e.date);
+        return n > 0 ? ` <span class="stats-best-worst-note" title="${n} note${n === 1 ? '' : 's'} on this day" role="img" aria-label="${n} note${n === 1 ? '' : 's'} on this day">&#128221;</span>` : '';
+    }
+
+    function buildBestWorstDays(bw, moodFor, noteCountForDay) {
         if (!bw || !bw.best || !bw.worst) return '';
         const row = (cls, label, e) => `
             <li class="stats-best-worst-row ${cls}">
                 <span class="stats-best-worst-label">${label}</span>
-                <span class="stats-best-worst-day">${formatDayKey(e.date)}${e.night ? ` · night ${e.night}` : ''}${moodGlyphHtml(e, moodFor)}</span>
+                <span class="stats-best-worst-day">${formatDayKey(e.date)}${e.night ? ` · night ${e.night}` : ''}${moodGlyphHtml(e, moodFor)}${noteMarkHtml(e, noteCountForDay)}</span>
                 <span class="stats-best-worst-nums">${e.done} done · ${e.missed} missed · ${e.damage} dmg</span>
             </li>`;
         return `<div class="stats-blame-heading">Best &amp; worst day</div>
@@ -133,6 +147,7 @@ const StatsView = (() => {
             <div class="stats-current-panel">
                 <h4>Run #${deps.currentRunNumber} — in progress</h4>
                 <div class="stats-days-survived">${deps.daysSurvivedSoFar} night${deps.daysSurvivedSoFar === 1 ? '' : 's'} survived so far${daysDeltaHtml}</div>
+                ${notesLineHtml(deps.noteCount, deps.currentRunNumber)}
                 ${deps.weatherHtml || ''}
                 <div class="stats-counter-row">
                     <div class="stats-counter">
@@ -161,7 +176,7 @@ const StatsView = (() => {
                     </div>
                 </div>
                 ${nearMissHtml}
-                ${buildBestWorstDays(deps.bestWorst, deps.moodFor)}
+                ${buildBestWorstDays(deps.bestWorst, deps.moodFor, deps.noteCountForDay)}
                 <div class="stats-blame-heading">Top offenders so far</div>
                 ${buildBlameList(blameRows, 3)}
             </div>
@@ -209,7 +224,8 @@ const StatsView = (() => {
     // setTimeout(0) hazard) and the personal-record run gets a 🏆 badge
     // (`isBest` — RunStats.bestRunNumber, computed once in
     // renderStatsWindow, not per card).
-    function buildRunCard(record, isBest, bestWorst, moodFor) {
+    function buildRunCard(record, isBest, bestWorst, moodFor, notes) {
+        // notes (Journal Build B) = { count, forDay(dateKey) } or undefined.
         const bestBadge = (isBest
             ? '<span class="stats-run-card-best" title="Personal record">🏆 Best run</span>'
             : '') + buildTitleBadge(record, 'stats-run-card-title-badge');
@@ -235,11 +251,12 @@ const StatsView = (() => {
                     ${record.totals.habitsMissed} missed · ${record.totals.pointsEarned} pts
                 </div>
                 ${villageLine}
+                ${notes ? notesLineHtml(notes.count, record.runNumber) : ''}
                 <div class="stats-run-card-summary-blame">${buildBlameList(record.blame, 3)}</div>
                 <div class="stats-run-card-details">
                     ${villageStrip}
                     <div class="stats-run-card-span">Started ${formatDate(record.startedAtMs)} · ${record.endReason === 'base_destroyed' ? 'Base destroyed' : record.endReason}</div>
-                    ${buildBestWorstDays(bestWorst, moodFor)}
+                    ${buildBestWorstDays(bestWorst, moodFor, notes && notes.forDay)}
                     <div class="stats-blame-heading">All offenders</div>
                     ${buildBlameList(record.blame, 10)}
                     ${routinesHtml}
@@ -435,6 +452,8 @@ const StatsView = (() => {
             currentRunNumber,
             weatherHtml: deps.weatherHtml,
             moodFor: deps.moodFor,
+            noteCount: typeof deps.noteCountForRun === 'function' ? deps.noteCountForRun(currentRunNumber) : undefined,
+            noteCountForDay: deps.noteCountForDay,
             lastRunRecord: runHistory[0] || null,
             achievementsCatalog: deps.achievementsCatalog,
             lifetimeStats: deps.lifetimeStats,
@@ -444,7 +463,8 @@ const StatsView = (() => {
         const bestRun = RunStats.bestRunNumber(runHistory);
         historyList.innerHTML = (runHistory.length === 0)
             ? '<div class="stats-empty">No past runs yet — this is your first.</div>'
-            : runHistory.map(record => buildRunCard(record, record.runNumber === bestRun, bestWorstFor(record.runNumber, []), deps.moodFor)).join('');
+            : runHistory.map(record => buildRunCard(record, record.runNumber === bestRun, bestWorstFor(record.runNumber, []), deps.moodFor,
+                typeof deps.noteCountForRun === 'function' ? { count: deps.noteCountForRun(record.runNumber), forDay: deps.noteCountForDay } : undefined)).join('');
 
         // Sub-session 5: expand/collapse delegation. ASSIGNED (not
         // addEventListener) so re-opening the window replaces rather than
@@ -457,7 +477,16 @@ const StatsView = (() => {
             const expanded = card.classList.toggle('stats-run-card-expanded');
             card.setAttribute('aria-expanded', expanded ? 'true' : 'false');
         };
-        historyList.onclick = (e) => toggleCard(e.target);
+        // Journal Build B: the "Read" button on a card opens the Journal for that run and never toggles the card.
+        const readNotes = (e) => {
+            const b = e.target && e.target.closest ? e.target.closest('[data-journal-run]') : null;
+            if (!b) return false;
+            e.stopPropagation();
+            if (typeof deps.onReadRunNotes === 'function') deps.onReadRunNotes(Number(b.getAttribute('data-journal-run')));
+            return true;
+        };
+        currentPanel.onclick = (e) => { readNotes(e); };
+        historyList.onclick = (e) => { if (!readNotes(e)) toggleCard(e.target); };
         historyList.onkeydown = (e) => {
             if (e.key !== 'Enter' && e.key !== ' ') return;
             if (!e.target.classList || !e.target.classList.contains('stats-run-card')) return;
@@ -492,6 +521,7 @@ const StatsView = (() => {
         buildCurrentRunPanel,
         buildRunCard,
         buildBestWorstDays,
+        notesLineHtml,
         buildRunRoutineRow,
         buildRoutineEntryRow,
         buildRoutineCard,

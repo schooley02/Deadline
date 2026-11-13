@@ -5875,3 +5875,9 @@ Jeremy: leave it as is. A parked negative-habit lurker standing idle at the base
 - Deviation: `Journal.sanitize` coerces an unknown `about` to `general` and an unknown `src` to `manual` instead of dropping the entry, so an import from a newer build loses nothing.
 - Ref ids are namespaced (`def:` for definitions, `item:` for one-off items and sub-tasks) because a definition id and an item id could otherwise collide.
 - The timer-stop hook sits at the manual Stop call site (not inside `Timer.stop`) and ignores Pause, completion and auto-stop; a span under `CONFIG.JOURNAL.TIMER_NOTE_MIN_MS` (60 s) does not prompt.
+
+### 2026-11-13 -- Journal Build B (as built)
+- Built per `docs/JOURNAL_PLAN.md` (Sonnet 5.5): the Journal window, the plus-menu row and Level-panel section (no new HUD button), "All notes" on the item / routine block, Stats "Notes: N" + Read, the evening day-end card and the next-morning line. sw v363. No balance numbers touched; notes still earn nothing.
+- The day-end card shows BEFORE the evening check cards and is stamped when shown (Skip / Close counts as shown); the evening check follows when it closes. A face tap on it is an ordinary mood check-in.
+- The "How did yesterday go?" fallback is a button on the morning mood card, not a separate card, so it only appears on a morning the mood card shows. The late note never edits a closed day; only today's `notes` count moves (the note was written today). Deleting any note written today takes one off that count.
+- The game's name in "Note about the game" is a theme string (`Theme.strings.journal.gameName`), per the Baseline / Deadline rule.

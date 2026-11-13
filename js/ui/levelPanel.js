@@ -138,7 +138,7 @@ const LevelPanel = (() => {
         const xp = xpModel(ctx.xp, ctx.thresholds, ctx.level);
         const slots = slotsModel(ctx);
         const perks = perksModel(ctx.perksTable, ctx.level, 2, ctx.goalSlotsTable);
-        return { level: ctx.level, maxed: xp.maxed, xp, slots, summary: slotsSummary(slots), perks, mood: !!ctx.mood };
+        return { level: ctx.level, maxed: xp.maxed, xp, slots, summary: slotsSummary(slots), perks, mood: !!ctx.mood, journal: ctx.journal || null };
     }
 
     // ---- DOM ----------------------------------------------------------------
@@ -194,6 +194,7 @@ const LevelPanel = (() => {
                     <div class="lp-xp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(model.xp.pct * 100)}"><span class="lp-xp-fill" style="width:${Math.round(model.xp.pct * 100)}%"></span></div>
                     ${titleRow}
                     ${model.mood ? '<h4 class="lp-section">Mood</h4><div class="lp-mood" data-mood-mount></div>' : ''}
+                    ${model.journal ? journalSectionHtml(model.journal) : ''}
                     <h4 class="lp-section">Routine slots <span class="lp-section-count">${esc(model.summary.replace('Routines ', ''))}</span></h4>
                     <div class="lp-pips">${slots.pips.map(pipHtml).join('')}</div>
                     <p class="lp-note">${notes.map(esc).join('. ')}.</p>
@@ -205,6 +206,16 @@ const LevelPanel = (() => {
                     </button>
                 </div>
             </div>`;
+    }
+
+    // Journal (Build B, 2026-11-13): a small section under Mood. j = { latest: 'Today · first words of the newest note' | null, count }.
+    function journalSectionHtml(j) {
+        const latest = j && j.latest ? `<p class="lp-journal-latest">${esc(j.latest)}</p>` : '<p class="lp-journal-latest lp-journal-latest--empty">No notes yet.</p>';
+        const open = j && j.count > 0 ? '<button type="button" class="secondary-button lp-journal-btn" data-action="journal-open">Open journal</button>' : '';
+        return `<h4 class="lp-section">Journal</h4>
+                    <div class="lp-journal">${latest}
+                        <div class="lp-journal-actions"><button type="button" class="secondary-button lp-journal-btn" data-action="journal-write">Write a note</button>${open}</div>
+                    </div>`;
     }
 
     /**
@@ -230,6 +241,9 @@ const LevelPanel = (() => {
             overlay.remove();
             if (action === 'manage' && ctx.onManage) ctx.onManage(btn.dataset.routineId);
             if (action === 'create' && ctx.onCreate) ctx.onCreate();
+            // Journal (Build B): both open another window, so the panel is already gone (above); one tick later keeps this click from dismissing it.
+            if (action === 'journal-write' && ctx.onJournalWrite) setTimeout(() => ctx.onJournalWrite(), 0);
+            if (action === 'journal-open' && ctx.onJournalOpen) setTimeout(() => ctx.onJournalOpen(), 0);
         });
     }
 

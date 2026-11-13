@@ -1417,6 +1417,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Journal Build A: the "Notes" block in the task / habit window.
             journalNotes: journalNotesForItem,
             onAddNote: (item, done) => openItemNote(item, { done }),
+            onOpenJournalFor: (ref) => openJournal({ kind: 'ref', ref }),
             setLoggedTime,
             changeSession,
             getBaseHealth: State.getBaseHealth,
@@ -1693,14 +1694,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
     const recentNotesLimit = () => CONFIG.JOURNAL.RECENT_ON_ITEM;
-    function journalNotesForItem(item) {
-        const ref = noteRefForItem(item);
-        return ref ? Journal.forRef(journal(), ref.kind, ref.id).slice(0, recentNotesLimit()) : [];
+    // The newest few notes about one thing; `.total` = how many exist (the block's "All notes" button shows when there are more).
+    function recentNotesFor(ref) {
+        if (!ref) return [];
+        const all = Journal.forRef(journal(), ref.kind, ref.id);
+        const out = all.slice(0, recentNotesLimit());
+        out.total = all.length;
+        return out;
     }
-    function journalNotesForRoutine(routine) {
-        const ref = noteRefForRoutine(routine);
-        return ref ? Journal.forRef(journal(), ref.kind, ref.id).slice(0, recentNotesLimit()) : [];
-    }
+    function journalNotesForItem(item) { return recentNotesFor(noteRefForItem(item)); }
+    function journalNotesForRoutine(routine) { return recentNotesFor(noteRefForRoutine(routine)); }
     // Open the note window. o: { about, ref, src, title, context, min, moodHour, done() }; `done` runs once a note was kept.
     function openJournalNote(o) {
         if (typeof JournalView === 'undefined') return null;
@@ -1726,6 +1729,134 @@ document.addEventListener('DOMContentLoaded', () => {
         const ref = noteRefForRoutine(routine);
         return ref ? openJournalNote({ about: 'routine', ref, src: 'manual', title: `Note about ${routine.name}`, done }) : null;
     }
+    // ---- Journal Build B (2026-11-13): the Journal window, edit / delete, the player-panel section, the day-end card ----
+    const journalGameName = () => (Theme && Theme.strings && Theme.strings.journal && Theme.strings.journal.gameName) || 'the game';
+    let pendingJournalFilter = null; // set by openJournal(filter), read once by journalWindowDeps() when the window opens
+    function openJournal(filter) {
+        pendingJournalFilter = filter && filter.kind ? filter : null;
+        openManagementWindow('journal');
+    }
+    function editJournalNote(id, text) {
+        const store = journal();
+        const hit = Journal.find(store, id);
+        if (!hit) return false;
+        const prevText = hit.entry.text;
+        const prevEdited = hit.entry.edited;
+        if (!Journal.edit(store, id, text, Date.now(), CONFIG.JOURNAL.MAX_CHARS)) return true; // unchanged (or empty): nothing to store
+        if (!Persistence.saveJournal(store)) {
+            hit.entry.text = prevText;
+            if (prevEdited === undefined) delete hit.entry.edited; else hit.entry.edited = prevEdited;
+            return false;
+        }
+        return true;
+    }
+    function deleteJournalNote(id) {
+        const store = journal();
+        const hit = Journal.find(store, id);
+        if (!hit) return false;
+        const backup = JSON.parse(JSON.stringify(store));
+        Journal.remove(store, id);
+        if (!Persistence.saveJournal(store)) { journalStore = backup; return false; }
+        // The open day counts the notes WRITTEN today: a note written today (a late "yesterday" note included) takes one off.
+        const today = State.getToday();
+        if (today && today.date && DailyRecord.dateKey(hit.entry.at) === today.date) { State.bumpToday('note', { n: -1 }); saveGame(); }
+        return true;
+    }
+    function journalWindowDeps() {
+        const filter = pendingJournalFilter;
+        pendingJournalFilter = null;
+        return {
+            getStore: journal,
+            moodFor: moodForDay,
+            gameName: journalGameName(),
+            filter,
+            maxChars: CONFIG.JOURNAL.MAX_CHARS,
+            onWrite: (about, afterSave) => openJournalNote(about === 'general'
+                ? { about: 'general', src: 'manual', title: `A note about ${journalGameName()}`, done: afterSave }
+                : { about: 'day', src: 'manual', title: 'A note about today', done: afterSave }),
+            onEdit: editJournalNote,
+            onDelete: deleteJournalNote,
+        };
+    }
+    // The Level (player) panel's Journal section: the newest note's first words, plus the two buttons.
+    function journalPanelSummary() {
+        if (typeof JournalView === 'undefined') return null;
+        const store = journal();
+        const e = Journal.latest(store);
+        return { count: Journal.count(store), latest: e ? `${JournalView.whenText(e.at)} · ${JournalView.snippet(e.text, 90)}` : null };
+    }
+
+    // Stamps (per device, never exported, like deadline.moodStamps): dayEnd = the local day the "How did today go?" card was shown;
+    // late = the day the next-morning "How did yesterday go?" line was shown.
+    const JOURNAL_STAMPS_KEY = 'deadline.journalStamps';
+    function journalStamps() {
+        try {
+            const v = JSON.parse(localStorage.getItem(JOURNAL_STAMPS_KEY) || '{}');
+            return v && typeof v === 'object' ? v : {};
+        } catch (e) { return {}; }
+    }
+    function setJournalStamp(name, dayKey) {
+        try { localStorage.setItem(JOURNAL_STAMPS_KEY, JSON.stringify(Object.assign(journalStamps(), { [name]: dayKey }))); } catch (e) { /* best effort */ }
+    }
+    function dayKeyDaysAgo(n) { const d = new Date(); d.setDate(d.getDate() - n); return DailyRecord.dateKey(d.getTime()); }
+    function dayEndAnswered(dayKey) { return Journal.forDay(journal(), dayKey).some((e) => e.src === 'dayEnd'); }
+
+    // The evening "How did today go?" card: due once per local day from the evening time on, if it was not shown or answered already.
+    // It comes BEFORE the evening check's habit / task cards (when it closes, the evening check follows). Skip / Close counts as shown.
+    function maybeShowDayEnd() {
+        if (typeof JournalView === 'undefined' || typeof MoodView === 'undefined' || typeof GoalCheck === 'undefined' || State.isGameOver()) return false;
+        if (timePreviewActive || offlineCatchUpActive) return false;
+        const nowMs = Date.now();
+        const key = DailyRecord.dateKey(nowMs);
+        if (journalStamps().dayEnd === key || dayEndAnswered(key)) return false;
+        if (!GoalCheck.isEveningTime(nowMs, Settings.load().eveningCheckTime)) return false;
+        if (document.querySelector('.modal-overlay')) return false; // never stacks on another dialog: the next poll tries again
+        setJournalStamp('dayEnd', key);
+        const overlay = JournalView.openDayEnd({
+            maxChars: CONFIG.JOURNAL.MAX_CHARS,
+            // A face tap here is an ordinary mood check-in; the "Add a note" row is not needed (the box is right below).
+            mountMood: (holder) => MoodView.mount(holder, Object.assign({}, moodDeps(), { onAddNote: null })),
+            onSave: (text) => addJournalNote({ about: 'day', src: 'dayEnd', text }),
+            onClose: () => { setTimeout(maybeShowEveningCheck, 0); },
+        });
+        return !!overlay;
+    }
+    function maybeShowEveningPrompts() {
+        if (maybeShowDayEnd()) return;
+        maybeShowEveningCheck();
+    }
+    // The next-morning fallback: one line on the morning mood card, one morning only. Needs a closed record for yesterday (the game was
+    // open then), no day-end card shown or answered for it, and no earlier line.
+    function yesterdayNoteDue() {
+        const y = dayKeyDaysAgo(1);
+        const st = journalStamps();
+        if (st.dayEnd === y || st.late === y || dayEndAnswered(y)) return false;
+        const days = State.getClosedDays();
+        return !!(days && days[y]);
+    }
+    // A late note: filed under YESTERDAY, its face on the entry only. The closed day's record is never edited (only today's note count moves,
+    // because the note was written today).
+    function addLateDayNote(text, level) {
+        const store = journal();
+        const now = Date.now();
+        const entry = Journal.add(store, {
+            dayKey: dayKeyDaysAgo(1), text, about: 'day', src: 'dayEnd', late: true, run: currentRunNumber(),
+            mood: level >= 1 && level <= 5 ? [level, 0, 0] : null,
+        }, now, CONFIG.JOURNAL.MAX_CHARS);
+        if (!entry) return false;
+        if (!Persistence.saveJournal(store)) { Journal.remove(store, entry.id); return false; }
+        State.bumpToday('note', { n: 1 });
+        saveGame();
+        return true;
+    }
+    function morningYesterdayDeps() {
+        return {
+            getYesterday: yesterdayNoteDue,
+            onYesterdayShown: () => setJournalStamp('late', dayKeyDaysAgo(1)),
+            onYesterday: () => JournalView.openDayEnd({ late: true, maxChars: CONFIG.JOURNAL.MAX_CHARS, onSave: (text, level) => addLateDayNote(text, level) }),
+        };
+    }
+
     // After a manual timer Stop (the Stop icon, a paused timer's Stop, "Still working?" > Stop): offer a note about that task. NOT on Pause,
     // not for a run shorter than CONFIG.JOURNAL.TIMER_NOTE_MIN_MS, and not when Settings turned it off. `spanMs` = the run that just stopped
     // (null for a paused timer's Stop, whose time was banked at the pause: the whole Time Logged decides then). One tick later: the stop click
@@ -1776,7 +1907,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function openMoodCardNow(todayKey) {
         Settings.save({ moodCardDay: todayKey });
-        MoodView.openMoodCard({ title: 'How are you starting?', deps: moodDeps() });
+        MoodView.openMoodCard({ title: 'How are you starting?', deps: Object.assign(moodDeps(), typeof JournalView !== 'undefined' ? morningYesterdayDeps() : {}) });
     }
 
     // First open of a local day: ask "Who's playing?" if no avatar is chosen yet, then "How are you starting?". One card per day, never
@@ -1827,7 +1958,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function pollEveningCheck(nowMs) {
         if (nowMs - lastEveningPollMs < 15000) return;
         lastEveningPollMs = nowMs;
-        maybeShowEveningCheck();
+        maybeShowEveningPrompts();
         maybeShowMorningTaskCheck();
         maybeShowMoodCard();
     }
@@ -3103,6 +3234,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Journal Build A: the routine window's "Notes" block.
             journalNotesForRoutine: journalNotesForRoutine,
             onAddNoteForRoutine: openRoutineNote,
+            onOpenJournalFor: (ref) => openJournal({ kind: 'ref', ref }),
             renderCompletedItems: () => AgendaList.renderCompletedItems(agendaListDeps()),
             // Habit Goals Build 2c: the completed entry's logged time is part of its entry edit.
             setLoggedTime,
@@ -3264,6 +3396,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function openLevelPanel() {
         LevelPanel.open(Object.assign(levelPanelContext(), {
             mood: moodDeps(),
+            // Journal Build B: the player-panel section (newest note, Write a note, Open journal).
+            journal: journalPanelSummary(),
+            onJournalWrite: () => openJournalNote({ about: 'day', src: 'manual', title: 'A note about today' }),
+            onJournalOpen: () => openJournal(),
             onManage: (routineKey) => {
                 const routine = State.getDefinedRoutines().find(r => String(r.id) === routineKey);
                 if (routine) showRoutineManagement(routine.id);
@@ -3651,6 +3787,7 @@ document.addEventListener('DOMContentLoaded', () => {
         routines: document.getElementById('routinesWindow'),
         shop: document.getElementById('shopWindow'),
         stats: document.getElementById('statsWindow'),
+        journal: document.getElementById('journalWindow'),
         settings: document.getElementById('settingsWindow')
     };
     
@@ -3675,6 +3812,9 @@ document.addEventListener('DOMContentLoaded', () => {
             shopCatalog: CONFIG.SHOP_ITEMS, playerInventory: State.getPlayerInventory(), playerPoints: State.getPlayerPoints(), baseHealth: State.getBaseHealth(),
             onShopBuy: handleShopPurchase, onShopUse: handleShopUse, shopDiscount: currentShopDiscount(), pushbackHelpCtx,
             weatherHtml: WeatherPanel.statsHtml(WeatherPanel.buildViewModel(climateNow(), moodForDay)), // Stats > the sky readout (run climate Build 2)
+            // Journal Build B: the Journal window's deps (built only when it opens: it consumes the pending filter), and Stats > Notes.
+            journalWindow: type === 'journal' ? journalWindowDeps() : undefined,
+            noteCountForRun: (n) => Journal.forRun(journal(), n).length, noteCountForDay: (k) => Journal.countDay(journal(), k), onReadRunNotes: (n) => openJournal({ kind: 'run', run: n }),
             moodFor: moodForDay, currentRunStats: State.getCurrentRunStats(), runHistory: State.getRunHistory(), daysSurvivedSoFar: nightsSurvivedNow(),
             achievementsCatalog: CONFIG.ACHIEVEMENTS, lifetimeStats: State.getLifetimeStats(), achievements: State.getAchievements(),
             goals: State.getGoals(), // Stats > Goals row + roster (Goals Build B2)
@@ -4354,7 +4494,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // markers, prompt for them now.
     showCheckInIfPending();
     // Evening check (Habit Goals Build 3): an app open at or after the evening time asks right away (the poll covers the rest).
-    maybeShowEveningCheck();
+    maybeShowEveningPrompts();
     // Anytime tasks that attacked overnight (Anytime Build 3): ask right away on the first open (waits behind any dialog above).
     maybeShowMorningTaskCheck();
     // Mood (Build A): the avatar face from today's record, and the once-a-day "How are you starting?" card (waits behind any dialog above).
@@ -4383,7 +4523,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (document.visibilityState === 'visible') {
             eveningDismissedFor = null;
             morningTaskDismissed = false;
-            maybeShowEveningCheck();
+            maybeShowEveningPrompts();
             maybeShowMorningTaskCheck();
             maybeShowMoodCard();
         }

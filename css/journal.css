@@ -43,3 +43,55 @@
 /* "Add a note" under the mood faces (the mood picker, the morning card). */
 .mood-note-row { margin-top: 8px; }
 .mood-note-btn { min-height: 44px; padding: 6px 14px; }
+
+/* ---- Journal Build B (2026-11-13): the Journal window, the day-end card, the player-panel section, Stats notes ---- */
+
+.journal-window { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.journal-top-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.journal-write-btn { min-height: 44px; flex: 1 1 140px; overflow-wrap: anywhere; }
+.journal-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.journal-chip { min-height: 44px; padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(0, 0, 0, 0.25); color: inherit; font: inherit; cursor: pointer; overflow-wrap: anywhere; }
+.journal-chip--on { background: var(--color-secondary-green-light, #2e7d5b); border-color: rgba(255, 255, 255, 0.6); font-weight: 600; }
+.journal-filter-note { margin: 0; font-size: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; overflow-wrap: anywhere; }
+.journal-clear-btn { min-height: 44px; padding: 6px 12px; }
+.journal-list { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.journal-empty { margin: 8px 0; opacity: 0.75; font-size: 14px; }
+.journal-day-head { margin: 0 0 4px; font-size: 15px; display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.journal-day-mood { font-size: 16px; }
+.journal-entries { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.journal-entry { padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(0, 0, 0, 0.18); min-width: 0; }
+.journal-entry-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; }
+.journal-entry-time { opacity: 0.7; white-space: nowrap; }
+.journal-entry-mood { font-size: 17px; line-height: 1; }
+.journal-entry-about { font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.journal-entry-about--link { background: none; border: 0; padding: 6px 2px; min-height: 44px; color: inherit; font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; text-align: left; }
+.journal-entry-tag { font-size: 11px; opacity: 0.7; border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 999px; padding: 1px 8px; }
+.journal-entry-text { margin: 6px 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; line-height: 1.35; }
+.journal-entry-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.journal-entry-btn { min-height: 44px; padding: 6px 14px; }
+.journal-more-btn { min-height: 44px; align-self: stretch; }
+.journal-size { margin: 4px 0 0; font-size: 12px; opacity: 0.65; }
+.journal-all-btn { min-height: 44px; margin-top: 6px; padding: 6px 14px; }
+
+/* The day-end card: the face row sits above the text box. */
+.journal-dayend-faces { margin: 4px 0 10px; min-width: 0; }
+.journal-level-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.journal-level-btn { flex: 1 1 56px; min-width: 52px; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 4px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(0, 0, 0, 0.25); color: inherit; font: inherit; font-size: 22px; cursor: pointer; }
+.journal-level-btn--on { background: var(--color-secondary-green-light, #2e7d5b); border-color: rgba(255, 255, 255, 0.7); }
+.journal-level-label { font-size: 11px; overflow-wrap: anywhere; }
+
+/* The player (Level) panel's Journal section. */
+.lp-journal { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.lp-journal-latest { margin: 0; font-size: 13px; opacity: 0.85; overflow-wrap: anywhere; }
+.lp-journal-latest--empty { opacity: 0.6; }
+.lp-journal-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.lp-journal-btn { min-height: 44px; padding: 6px 14px; flex: 1 1 120px; }
+
+/* "How did yesterday go?" on the morning mood card. */
+.mood-yesterday-row { margin: 8px 0 0; }
+.mood-yesterday-btn { min-height: 44px; padding: 6px 14px; }
+
+/* Stats > Notes: N. */
+.stats-notes-line { font-size: 13px; margin: 4px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.stats-notes-read { min-height: 44px; padding: 4px 12px; border-radius: 8px; border: 1px solid rgba(0, 0, 0, 0.25); background: rgba(255, 255, 255, 0.5); color: inherit; font: inherit; cursor: pointer; }
+.stats-best-worst-note { font-size: 13px; }

@@ -12,6 +12,8 @@
  */
 const Theme = (() => {
     const strings = {
+        // Journal (Build B, 2026-11-13): the game's own name, used where a note is about the game itself ("Note about Deadline").
+        journal: { gameName: 'Deadline' },
         goals: {
             paneTitle: 'The Lab',
             subject: 'Patient',

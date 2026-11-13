@@ -362,6 +362,10 @@
                     <span class="fab-menu-icon">📊</span>
                     <span class="fab-menu-label">Stats</span>
                 </button>
+                <button class="fab-menu-item" data-type="journal">
+                    <span class="fab-menu-icon">📓</span>
+                    <span class="fab-menu-label">Journal</span>
+                </button>
                 <button class="fab-menu-item" data-type="settings">
                     <span class="fab-menu-icon">⚙️</span>
                     <span class="fab-menu-label">Settings</span>
@@ -477,6 +481,18 @@
                 <h4 class="stats-history-heading">Achievements <button type="button" class="hiw-info-btn" data-hiw-topic="achievements" aria-label="How achievements work">&#9432;</button></h4>
                 <div id="statsAchievements">
                     <!-- Badge grid populated by js/ui/statsView.js -->
+                </div>
+            </div>
+        </div>
+
+        <div id="journalWindow" class="management-window hidden" role="dialog" aria-labelledby="journalWindowTitle" tabindex="-1">
+            <div class="window-header">
+                <h3 id="journalWindowTitle">Journal</h3>
+                <button class="close-window" data-window="journalWindow" aria-label="Close Journal window">×</button>
+            </div>
+            <div class="window-content">
+                <!-- Journal Build B (docs/JOURNAL_PLAN.md): populated by JournalView.renderWindow. -->
+                <div id="journalWindowContent">
                 </div>
             </div>
         </div>

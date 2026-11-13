@@ -146,6 +146,7 @@ const MoodView = (() => {
                     <p class="mood-card-hint">One tap is enough. Nothing is earned or lost for how you answer; it only helps you see your own patterns.</p>
                     <div class="mood-card-lows" data-mood-lows></div>
                     <div class="mood-card-mount" data-mood-mount></div>
+                    <div class="mood-card-yesterday" data-mood-yesterday></div>
                     <div class="mood-card-actions"><button type="button" class="secondary-button" data-mood-done>Skip</button></div>
                 </div>
             </div>`;
@@ -258,6 +259,21 @@ const MoodView = (() => {
         if (lowsLine) {
             lowsSlot.innerHTML = lowsHtml(lowsLine);
             if (typeof deps.onLowsShown === 'function') deps.onLowsShown();
+        }
+        // Journal Build B (2026-11-13): "How did yesterday go?" when the evening card never got answered. deps.getYesterday() -> true when it is due
+        // (it stamps itself via onYesterdayShown, so it appears one morning only); the button opens the late note window ON TOP of this card.
+        const ySlot = overlay.querySelector('[data-mood-yesterday]');
+        if (ySlot && typeof deps.getYesterday === 'function' && deps.getYesterday()) {
+            ySlot.innerHTML = '<p class="mood-yesterday-row"><button type="button" class="secondary-button mood-yesterday-btn" data-mood-yesterday-btn>How did yesterday go?</button></p>';
+            if (typeof deps.onYesterdayShown === 'function') deps.onYesterdayShown();
+            const yb = ySlot.querySelector('[data-mood-yesterday-btn]');
+            if (yb) {
+                yb.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    // One tick later: this click is still bubbling and Modal's dismiss handler must not see the new overlay.
+                    setTimeout(() => { if (typeof deps.onYesterday === 'function') deps.onYesterday(); }, 0);
+                });
+            }
         }
         if (done) {
             done.addEventListener('click', (e) => {

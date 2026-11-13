@@ -510,7 +510,7 @@ const Popups = (() => {
 
         // Journal Build A: "Add note" opens the note window on top; the recent list redraws once a note is saved.
         if (overlay && typeof JournalView !== 'undefined' && typeof deps.journalNotes === 'function' && typeof deps.onAddNote === 'function') {
-            JournalView.wireItemNotes(overlay, { getNotes: () => deps.journalNotes(item), onAdd: (done) => deps.onAddNote(item, done) });
+            JournalView.wireItemNotes(overlay, { getNotes: () => deps.journalNotes(item), onAdd: (done) => deps.onAddNote(item, done), onAll: deps.onOpenJournalFor });
         }
 
         // Add event listeners

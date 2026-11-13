@@ -171,6 +171,38 @@ const Journal = (() => {
     /** Notes whose about is 'general' (the game itself), newest first. */
     function forGame(store) { return newestFirst(flat(store).filter((e) => e.about === 'general')); }
 
+    /** The newest note by write time, or null. */
+    function latest(store) {
+        const all = newestFirst(flat(store));
+        return all.length ? all[0] : null;
+    }
+
+    /**
+     * The Journal window's filter. f: { kind: 'all' | 'days' | 'game' | 'ref' | 'run', ref?: { kind, id }, run?: number }.
+     * 'days' = notes about a day (the day-end card, a note on a mood check-in, a note written from the Journal window about today);
+     * 'game' = notes about the game. Unknown kinds read as 'all'. Newest first.
+     */
+    function filter(store, f) {
+        const all = newestFirst(flat(store));
+        const k = f && f.kind;
+        if (k === 'days') return all.filter((e) => e.about === 'day');
+        if (k === 'game') return all.filter((e) => e.about === 'general');
+        if (k === 'ref' && f.ref) return all.filter((e) => e.ref && e.ref.kind === f.ref.kind && String(e.ref.id) === String(f.ref.id));
+        if (k === 'run' && typeof f.run === 'number') return all.filter((e) => e.run === f.run);
+        return all;
+    }
+
+    /** Group entries (any order) by their `day`: [{ day, entries }] newest day first, entries oldest-first inside a day (reads as the day went). */
+    function groupByDay(entries) {
+        const map = new Map();
+        for (const e of Array.isArray(entries) ? entries : []) {
+            if (!e || typeof e.day !== 'string') continue;
+            if (!map.has(e.day)) map.set(e.day, []);
+            map.get(e.day).push(e);
+        }
+        return Array.from(map.keys()).sort().reverse().map((day) => ({ day, entries: map.get(day).slice().sort(byTime) }));
+    }
+
     function count(store) {
         let n = 0;
         if (store && store.days) for (const key of Object.keys(store.days)) n += store.days[key].length;
@@ -250,7 +282,7 @@ const Journal = (() => {
     return {
         V, DEFAULT_MAX_CHARS, ABOUT, SOURCES, REF_KINDS,
         fresh, isDayKey, cleanText, moodSnapshot, add, find, edit, remove,
-        forDay, forRef, forRun, forGame, count, countDay, sanitize, merge, sizeChars,
+        forDay, forRef, forRun, forGame, latest, filter, groupByDay, count, countDay, sanitize, merge, sizeChars,
     };
 })();
 

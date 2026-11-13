@@ -675,7 +675,7 @@ const RoutineViews = (() => {
 
         // Journal Build A (2026-11-13): the routine's Notes block.
         if (routineOverlay && typeof JournalView !== 'undefined' && typeof deps.journalNotesForRoutine === 'function' && typeof deps.onAddNoteForRoutine === 'function') {
-            JournalView.wireItemNotes(routineOverlay, { getNotes: () => deps.journalNotesForRoutine(routine), onAdd: (done) => deps.onAddNoteForRoutine(routine, done) });
+            JournalView.wireItemNotes(routineOverlay, { getNotes: () => deps.journalNotesForRoutine(routine), onAdd: (done) => deps.onAddNoteForRoutine(routine, done), onAll: deps.onOpenJournalFor });
         }
 
         // Populate the routine content (module-internal calls, same file)

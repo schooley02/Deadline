@@ -125,7 +125,16 @@ const ManagementWindows = (() => {
                     weatherHtml: deps.weatherHtml,
                     // Mood Build B1 (2026-11-13): (dateKey) => that day's mood entries, for the best / worst day faces.
                     moodFor: deps.moodFor,
+                    // Journal Build B (2026-11-13): "Notes: N" + Read on the run cards, and a note mark on the best / worst day rows.
+                    noteCountForRun: deps.noteCountForRun,
+                    noteCountForDay: deps.noteCountForDay,
+                    onReadRunNotes: deps.onReadRunNotes,
                 });
+            } else if (type === 'journal') {
+                // Journal Build B (2026-11-13): the Journal window. deps.journalWindow = JournalView.renderWindow's deps (built fresh by script.js).
+                if (typeof JournalView !== 'undefined' && deps.journalWindow) {
+                    JournalView.renderWindow(document.getElementById('journalWindowContent'), deps.journalWindow);
+                }
             } else if (type === 'settings') {
                 // [P2-UI-009] session 59 — same pass-through-deps-only shape
                 // as the shop/stats dispatches above.

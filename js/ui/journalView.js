@@ -7,7 +7,9 @@
  * an empty box, Esc or a tap outside all just close it. A typed draft is protected: a tap on the backdrop or Esc does nothing while
  * the box has text (only Save or Skip closes it), so a stray tap never throws a note away.
  *
- * DOM only. Modal / Mood are bare globals (loaded first). All saving is script.js's: onSave(text) returns true when the note was
+ * Build B adds the Journal window (renderWindow), the day-end card (openDayEnd) and their pure markup.
+ *
+ * DOM only. Modal / Mood / Journal / Dialog are bare globals (loaded first). All saving is script.js's: onSave(text) returns true when the note was
  * stored; false keeps the window open with an inline message (storage full, say).
  */
 const JournalView = (() => {
@@ -53,6 +55,7 @@ const JournalView = (() => {
                 <div class="modal-content journal-note-modal" role="dialog" aria-label="${esc(o.title || 'Add a note')}">
                     <h3 class="journal-note-title">${esc(o.title || 'Add a note')}</h3>
                     ${o.context ? `<p class="journal-note-context">${esc(o.context)}</p>` : ''}
+                    ${o.extraHtml || ''}
                     ${face ? `<p class="journal-note-mood" data-journal-mood><span class="journal-note-mood-face" aria-hidden="true">${face.emoji}</span> Mood today: ${esc(face.label)}</p>` : ''}
                     <textarea class="journal-note-text" rows="5" maxlength="${max}" data-journal-text
                         placeholder="${esc(o.placeholder || 'What worked? What got in the way? Anything you want to remember.')}">${esc(o.initialText || '')}</textarea>
@@ -116,6 +119,7 @@ const JournalView = (() => {
             if (!document.body.contains(overlay)) { observer.disconnect(); close(); }
         }) : null;
         if (observer) observer.observe(document.body, { childList: true });
+        if (typeof o.onOpen === 'function') { try { o.onOpen(overlay); } catch (e) { /* a broken extra never blocks the note */ } }
         if (ta && typeof ta.focus === 'function') setTimeout(() => { try { ta.focus(); } catch (e) { /* ignore */ } }, 0);
         return overlay;
     }
@@ -127,6 +131,8 @@ const JournalView = (() => {
         const o = opts || {};
         const max = typeof o.limit === 'number' && o.limit > 0 ? o.limit : 3;
         const list = Array.isArray(entries) ? entries.slice(0, max) : [];
+        // Build B: `entries.total` (set by the host) = how many notes exist about this thing; more than shown -> an "All notes" button.
+        const total = Array.isArray(entries) && typeof entries.total === 'number' ? entries.total : list.length;
         const rows = list.map((e) => {
             const face = moodFace(e.mood);
             return `<li class="journal-recent-row">
@@ -140,6 +146,7 @@ const JournalView = (() => {
                     <button type="button" class="secondary-button journal-add-btn" data-journal-add>Add note</button>
                 </div>
                 ${rows ? `<ul class="journal-recent">${rows}</ul>` : '<p class="journal-recent-empty">No notes yet.</p>'}
+                ${total > list.length ? `<button type="button" class="secondary-button journal-all-btn" data-journal-all>All notes (${total})</button>` : ''}
             </div>`;
     }
 
@@ -157,6 +164,19 @@ const JournalView = (() => {
             const next = fresh.firstElementChild;
             if (next && block.parentNode) { block.replaceWith(next); wireItemNotes(root, deps); }
         };
+        const all = block.querySelector('[data-journal-all]');
+        if (all) {
+            all.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const entries = typeof deps.getNotes === 'function' ? deps.getNotes() : [];
+                const ref = entries && entries[0] ? entries[0].ref : null;
+                if (!ref || typeof deps.onAll !== 'function') return;
+                // The item / routine window closes first: the Journal opens as its own window, one tick later (this click is still bubbling).
+                if (root.classList && root.classList.contains('modal-overlay') && root.parentNode) root.remove();
+                setTimeout(() => deps.onAll(ref), 0);
+            });
+        }
         const add = block.querySelector('[data-journal-add]');
         if (add) {
             add.addEventListener('click', (e) => {
@@ -169,7 +189,230 @@ const JournalView = (() => {
         return { redraw };
     }
 
-    return { noteWindowHtml, openNote, itemNotesHtml, wireItemNotes, whenText, moodFace, snippet, esc };
+    // ---- The Journal window (Build B) -------------------------------------------------------------------------------------
+
+    const DAYS_PER_PAGE = 30;
+
+    /** "Today" / "Yesterday" / "Fri, Nov 13" for a YYYY-MM-DD day key. */
+    function dayHeading(dayKey, nowMs) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dayKey));
+        if (!m) return String(dayKey || '');
+        const d = new Date(+m[1], +m[2] - 1, +m[3]);
+        const rel = whenText(d.getTime(), nowMs);
+        return rel === 'Today' || rel === 'Yesterday' ? rel : d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+
+    function timeText(at) {
+        try { return new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); } catch (e) { return ''; }
+    }
+
+    /** What an entry is about, in words: the item / routine name (a snapshot), "The day", or the game's name. */
+    function aboutLabel(e, gameName) {
+        if (e.about === 'item' || e.about === 'routine') return (e.ref && e.ref.name) || (e.about === 'routine' ? 'A routine' : 'An item');
+        if (e.about === 'general') return gameName || 'The game';
+        return 'The day';
+    }
+
+    /** One entry row. Pure markup; `idx` is the entry's position in the window's current list (the tap target finds it again by id). */
+    function entryHtml(e, o) {
+        const opts = o || {};
+        const face = moodFace(e.mood);
+        const canFilter = (e.about === 'item' || e.about === 'routine') && e.ref;
+        const label = esc(aboutLabel(e, opts.gameName));
+        const about = canFilter
+            ? `<button type="button" class="journal-entry-about journal-entry-about--link" data-journal-ref="${esc(e.id)}" title="Show every note about this">${label}</button>`
+            : `<span class="journal-entry-about">${label}</span>`;
+        return `<li class="journal-entry" data-entry-id="${esc(e.id)}">
+            <div class="journal-entry-head">
+                <span class="journal-entry-time">${esc(timeText(e.at))}</span>
+                ${face ? `<span class="journal-entry-mood" title="${esc(face.label)}" role="img" aria-label="${esc('Mood: ' + face.label)}">${face.emoji}</span>` : ''}
+                ${about}
+                ${e.late ? '<span class="journal-entry-tag">written the next morning</span>' : ''}
+                ${e.edited ? '<span class="journal-entry-tag">edited</span>' : ''}
+            </div>
+            <p class="journal-entry-text">${esc(e.text)}</p>
+            <div class="journal-entry-actions">
+                <button type="button" class="secondary-button journal-entry-btn" data-journal-edit="${esc(e.id)}">Edit</button>
+                <button type="button" class="secondary-button journal-entry-btn" data-journal-delete="${esc(e.id)}">Delete</button>
+            </div>
+        </li>`;
+    }
+
+    /** One day's block: the heading (date, run, the day's mood faces) then its entries. group = { day, entries }. */
+    function dayHtml(group, o) {
+        const opts = o || {};
+        const run = group.entries.length && group.entries[0].run > 0 ? ` · Run #${group.entries[0].run}` : '';
+        let glyph = '';
+        if (typeof opts.moodFor === 'function' && typeof Mood !== 'undefined' && typeof Mood.dayGlyph === 'function') {
+            const g = Mood.dayGlyph(opts.moodFor(group.day));
+            if (g) glyph = ` <span class="journal-day-mood" title="${esc(g.title)}" role="img" aria-label="${esc('Mood: ' + g.title)}">${esc(g.text)}</span>`;
+        }
+        return `<section class="journal-day" data-journal-day="${esc(group.day)}">
+            <h4 class="journal-day-head">${esc(dayHeading(group.day, opts.now))}${esc(run)}${glyph}</h4>
+            <ul class="journal-entries">${group.entries.map((e) => entryHtml(e, opts)).join('')}</ul>
+        </section>`;
+    }
+
+    function filterLabel(f, gameName) {
+        if (!f) return '';
+        if (f.kind === 'ref' && f.ref) return f.ref.name ? `Notes about ${f.ref.name}` : 'Notes about one thing';
+        if (f.kind === 'run') return `Notes from run #${f.run}`;
+        return '';
+    }
+
+    /**
+     * The whole window body. model: { filter: {kind,...}, groups: [{day, entries}], hasMore, total, shown, sizeChars, gameName, moodFor, now }.
+     * Pure markup (the DOM wiring is renderWindow).
+     */
+    function windowHtml(model) {
+        const m = model || {};
+        const f = m.filter || { kind: 'all' };
+        const chip = (kind, label) => `<button type="button" class="journal-chip${f.kind === kind ? ' journal-chip--on' : ''}" data-journal-filter="${kind}" aria-pressed="${f.kind === kind ? 'true' : 'false'}">${label}</button>`;
+        const special = filterLabel(f, m.gameName);
+        const kb = Math.max(1, Math.round((m.sizeChars || 0) / 1024));
+        const body = (m.groups && m.groups.length)
+            ? m.groups.map((g) => dayHtml(g, m)).join('')
+            : `<p class="journal-empty">${m.total ? 'Nothing matches this filter.' : 'No notes yet. Add one from the buttons above, after you stop a timer, or on any task, habit or routine.'}</p>`;
+        return `<div class="journal-window" data-journal-root>
+            <div class="journal-top-actions">
+                <button type="button" class="primary-button journal-write-btn" data-journal-write="day">Note about today</button>
+                <button type="button" class="secondary-button journal-write-btn" data-journal-write="general">Note about ${esc(m.gameName || 'the game')}</button>
+            </div>
+            <div class="journal-filters" role="group" aria-label="Filter notes">${chip('all', 'All')}${chip('days', 'Days')}${chip('game', esc(m.gameName || 'Game'))}</div>
+            ${special ? `<p class="journal-filter-note"><span>${esc(special)}</span> <button type="button" class="secondary-button journal-clear-btn" data-journal-filter="all">Show all</button></p>` : ''}
+            <div class="journal-list">${body}</div>
+            ${m.hasMore ? '<button type="button" class="secondary-button journal-more-btn" data-journal-more>Show older days</button>' : ''}
+            <p class="journal-size">${m.total || 0} note${m.total === 1 ? '' : 's'} on this device · about ${kb} KB. Notes are never sent anywhere and earn nothing.</p>
+        </div>`;
+    }
+
+    /**
+     * Build the model from a store (needs the Journal module, a bare global like Mood). state: { filter, days } (days = how many day blocks to show).
+     */
+    function buildModel(store, state, extra) {
+        const st = state || {};
+        const entries = Journal.filter(store, st.filter);
+        const groups = Journal.groupByDay(entries);
+        const limit = typeof st.days === 'number' && st.days > 0 ? st.days : DAYS_PER_PAGE;
+        return Object.assign({
+            filter: st.filter || { kind: 'all' },
+            groups: groups.slice(0, limit),
+            hasMore: groups.length > limit,
+            total: Journal.count(store),
+            sizeChars: Journal.sizeChars(store),
+        }, extra || {});
+    }
+
+    /**
+     * Draw the Journal window into `container` and wire it (taps are delegated and ASSIGNED, so a re-open replaces the handler).
+     * deps: { getStore(), moodFor(dayKey), gameName?, filter?, maxChars?, onWrite(about, afterSave), onEdit(id, text) -> boolean,
+     *         onDelete(id) -> boolean, confirmDelete?(entry) -> Promise<boolean> }.
+     * Returns { render, getState } or null.
+     */
+    function renderWindow(container, deps) {
+        if (!container || !deps || typeof deps.getStore !== 'function' || typeof Journal === 'undefined') return null;
+        const state = { filter: deps.filter && deps.filter.kind ? deps.filter : { kind: 'all' }, days: DAYS_PER_PAGE };
+        const render = () => {
+            container.innerHTML = windowHtml(buildModel(deps.getStore(), state, { gameName: deps.gameName, moodFor: deps.moodFor, now: Date.now() }));
+        };
+        const later = (fn) => setTimeout(fn, 0); // the tap is still bubbling: open the new window one tick later
+        container.onclick = (e) => {
+            const t = e.target && e.target.closest ? e.target.closest('button') : null;
+            if (!t || !container.contains(t)) return;
+            e.stopPropagation();
+            if (t.hasAttribute('data-journal-filter')) {
+                state.filter = { kind: t.getAttribute('data-journal-filter') }; state.days = DAYS_PER_PAGE; render(); return;
+            }
+            if (t.hasAttribute('data-journal-more')) { state.days += DAYS_PER_PAGE; render(); return; }
+            if (t.hasAttribute('data-journal-write')) {
+                const about = t.getAttribute('data-journal-write') === 'general' ? 'general' : 'day';
+                later(() => { if (typeof deps.onWrite === 'function') deps.onWrite(about, render); });
+                return;
+            }
+            if (t.hasAttribute('data-journal-ref')) {
+                const hit = Journal.find(deps.getStore(), t.getAttribute('data-journal-ref'));
+                if (hit && hit.entry.ref) { state.filter = { kind: 'ref', ref: { kind: hit.entry.ref.kind, id: hit.entry.ref.id, name: hit.entry.ref.name } }; state.days = DAYS_PER_PAGE; render(); }
+                return;
+            }
+            if (t.hasAttribute('data-journal-edit')) {
+                const hit = Journal.find(deps.getStore(), t.getAttribute('data-journal-edit'));
+                if (!hit) return;
+                later(() => openNote({
+                    title: 'Edit note', initialText: hit.entry.text, saveLabel: 'Save changes', maxChars: deps.maxChars,
+                    context: `${dayHeading(hit.dayKey)} · ${aboutLabel(hit.entry, deps.gameName)}`,
+                    onSave: (text) => {
+                        const ok = typeof deps.onEdit === 'function' ? deps.onEdit(hit.entry.id, text) : false;
+                        if (ok) render();
+                        return ok;
+                    },
+                }));
+                return;
+            }
+            if (t.hasAttribute('data-journal-delete')) {
+                const hit = Journal.find(deps.getStore(), t.getAttribute('data-journal-delete'));
+                if (!hit) return;
+                const ask = typeof deps.confirmDelete === 'function'
+                    ? deps.confirmDelete(hit.entry)
+                    : (typeof Dialog !== 'undefined'
+                        ? Dialog.confirm('This note will be removed from this device. This cannot be undone.', { title: 'Delete this note?', confirmLabel: 'Delete', cancelLabel: 'Keep', danger: true })
+                        : Promise.resolve(false));
+                Promise.resolve(ask).then((yes) => {
+                    if (yes && typeof deps.onDelete === 'function' && deps.onDelete(hit.entry.id)) render();
+                });
+            }
+        };
+        render();
+        return { render, getState: () => state };
+    }
+
+    // ---- The day-end card: "How did today go?" (Build B) -------------------------------------------------------------------
+
+    /**
+     * "How did today go?" (the evening) or "How did yesterday go?" (the next morning). One window: a face row, an optional note, Save / Skip.
+     * opts: { late?: boolean, maxChars?, mountMood?(container) -> draws the host's real mood picker (today's card; a face tap is an ordinary
+     * check-in), onSave(text, level|null) -> boolean, onClose?() }. A late card has no real picker: its own five faces fill `level`, which the
+     * host stores on the ENTRY only (a closed day's record is never edited). Returns the overlay or null.
+     */
+    function openDayEnd(opts) {
+        const o = opts || {};
+        const late = o.late === true;
+        let level = null;
+        const mountHtml = `<div class="journal-dayend-faces" data-journal-faces>${late ? `<div class="journal-level-row" role="group" aria-label="How yesterday felt">${(typeof Mood !== 'undefined' && Mood.LEVELS ? Mood.LEVELS : []).map((l) => `<button type="button" class="journal-level-btn" data-journal-level="${l.level}" aria-pressed="false" title="${esc(l.label)}"><span aria-hidden="true">${l.emoji}</span><span class="journal-level-label">${esc(l.label)}</span></button>`).join('')}</div>` : ''}</div>`;
+        return openNote({
+            title: late ? 'How did yesterday go?' : 'How did today go?',
+            context: 'One tap on a face, and a few words if you like. Optional: nothing is earned or lost either way.',
+            extraHtml: mountHtml,
+            placeholder: late ? 'Anything you want to remember about yesterday.' : 'What went well? What got in the way? Anything you want to remember.',
+            maxChars: o.maxChars,
+            mood: null,
+            onSave: (text) => (typeof o.onSave === 'function' ? o.onSave(text, level) : true),
+            onClose: o.onClose,
+            onOpen: (overlay) => {
+                const holder = overlay.querySelector('[data-journal-faces]');
+                if (!holder) return;
+                if (!late) {
+                    if (typeof o.mountMood === 'function') o.mountMood(holder);
+                    return;
+                }
+                holder.addEventListener('click', (e) => {
+                    const b = e.target.closest ? e.target.closest('[data-journal-level]') : null;
+                    if (!b) return;
+                    e.stopPropagation();
+                    level = Number(b.getAttribute('data-journal-level'));
+                    holder.querySelectorAll('[data-journal-level]').forEach((x) => {
+                        const on = x === b;
+                        x.setAttribute('aria-pressed', on ? 'true' : 'false');
+                        x.classList.toggle('journal-level-btn--on', on);
+                    });
+                });
+            },
+        });
+    }
+
+    return {
+        noteWindowHtml, openNote, itemNotesHtml, wireItemNotes, whenText, moodFace, snippet, esc,
+        dayHeading, aboutLabel, entryHtml, dayHtml, windowHtml, buildModel, renderWindow, openDayEnd, DAYS_PER_PAGE,
+    };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
