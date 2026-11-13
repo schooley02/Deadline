@@ -5869,3 +5869,9 @@ Jeremy: leave it as is. A parked negative-habit lurker standing idle at the base
 
 ### 2026-11-12 -- barricade first draw after the restore (bug fix, momentum build C)
 - Phone report (Jeremy): the barricade loaded as the bottom tier and jumped a level after about a second. Cause: `refreshBarricadeView(true)` ran right after `BarricadeView.init`, before `State.restoreGameState`, so momentum read an empty record; the first game tick redrew it. Fix: the forced first draw now runs after the restore (like `ClimateView.refresh`); a test pins the order. No balance or layout change. sw v341.
+
+### 2026-11-13 -- Journal Build A (as built)
+- Built per `docs/JOURNAL_PLAN.md` (Sonnet 5.5): store, note window, timer-stop note, item / routine / mood notes, export + merge import, DailyRecord v16 `notes`, Settings `noteOnTimerStop` (default on). sw v362. No balance numbers touched; notes earn nothing.
+- Deviation: `Journal.sanitize` coerces an unknown `about` to `general` and an unknown `src` to `manual` instead of dropping the entry, so an import from a newer build loses nothing.
+- Ref ids are namespaced (`def:` for definitions, `item:` for one-off items and sub-tasks) because a definition id and an item id could otherwise collide.
+- The timer-stop hook sits at the manual Stop call site (not inside `Timer.stop`) and ignores Pause, completion and auto-stop; a span under `CONFIG.JOURNAL.TIMER_NOTE_MIN_MS` (60 s) does not prompt.

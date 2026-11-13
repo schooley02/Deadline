@@ -463,6 +463,12 @@ const Popups = (() => {
         return d.toLocaleString();
     }
 
+    // Journal Build A (2026-11-13): the "Notes" block (Add note + the newest earlier notes). Needs deps.journalNotes(item) and deps.onAddNote.
+    function buildNotesSectionHtml(item, deps) {
+        if (typeof JournalView === 'undefined' || !deps || typeof deps.journalNotes !== 'function' || typeof deps.onAddNote !== 'function') return '';
+        return JournalView.itemNotesHtml(deps.journalNotes(item), { now: Date.now() });
+    }
+
     function showTaskDetailsPopup(item, deps) {
         // Goals Build B2 (2026-11-05): a task that counts toward a goal shows the goal's name as a tappable badge (deps are optional).
         const goalBadge = (item.type === 'task' && typeof deps.goalBadgeHtml === 'function') ? deps.goalBadgeHtml(item) : '';
@@ -486,6 +492,7 @@ const Popups = (() => {
                             ? `<p class="habit-goal-line"><strong>${item.isNegative ? 'Limit' : 'Goal'}:</strong> ${Habits.formatGoal(item.goal, item.isNegative).replace(/^(Goal|Limit): /, '').replace(/</g, '&lt;')}</p>` : ''}
                         ${buildLoggedTimeSectionHtml(item, deps)}
                         ${buildHowMuchSectionHtml(item)}
+                        ${buildNotesSectionHtml(item, deps)}
                         ${buildActionsHtml(item, deps)}
                     </div>
                 </div>
@@ -499,6 +506,11 @@ const Popups = (() => {
             overlay.querySelectorAll('.goal-badge').forEach((badge) => {
                 badge.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); deps.onOpenGoal(badge.dataset.goalId); });
             });
+        }
+
+        // Journal Build A: "Add note" opens the note window on top; the recent list redraws once a note is saved.
+        if (overlay && typeof JournalView !== 'undefined' && typeof deps.journalNotes === 'function' && typeof deps.onAddNote === 'function') {
+            JournalView.wireItemNotes(overlay, { getNotes: () => deps.journalNotes(item), onAdd: (done) => deps.onAddNote(item, done) });
         }
 
         // Add event listeners

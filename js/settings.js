@@ -32,9 +32,11 @@ const Settings = (() => {
     // (test/settings.test.js checks they match). A preference, not run state, so it survives a Reset and rides along in Backup & Transfer.
     // moodCardDay (same session): the local day "YYYY-MM-DD" the morning mood card was last shown, so it asks ONCE a day, even across a
     // reload. Per device like devTools: script.js leaves it OUT of Backup & Transfer.
+    // noteOnTimerStop (Journal Build A, 2026-11-13): ask for an optional note when a timer is stopped by hand (docs/JOURNAL_PLAN.md). ON by
+    // default. A preference like the avatar, so it rides along in Backup & Transfer.
     const VALID_AVATARS = ['male', 'female'];
     const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
-    const DEFAULTS = { effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null };
+    const DEFAULTS = { effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null, noteOnTimerStop: true };
     const TIME_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
 
     function cleanEveningTime(value) {
@@ -62,6 +64,7 @@ const Settings = (() => {
                 screenBuzz: !(parsed && parsed.screenBuzz === false),
                 avatar: cleanAvatar(parsed && parsed.avatar),
                 moodCardDay: cleanDay(parsed && parsed.moodCardDay),
+                noteOnTimerStop: !(parsed && parsed.noteOnTimerStop === false),
             };
         } catch (e) {
             console.error('Deadline: settings load failed', e);
@@ -80,6 +83,7 @@ const Settings = (() => {
             merged.screenBuzz = merged.screenBuzz !== false;
             merged.avatar = cleanAvatar(merged.avatar);
             merged.moodCardDay = cleanDay(merged.moodCardDay);
+            merged.noteOnTimerStop = merged.noteOnTimerStop !== false;
             if (VALID_INTENSITIES.indexOf(merged.effectsIntensity) === -1) merged.effectsIntensity = DEFAULTS.effectsIntensity;
             localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
             return true;

@@ -1083,6 +1083,14 @@ const CONFIG = {
     MOOD: {
         AVATAR_ART_READY: false,
     },
+    // Journal (docs/JOURNAL_PLAN.md; Build A 2026-11-13). UX dials, not balance numbers (a note earns nothing). MAX_CHARS: the longest note.
+    // TIMER_NOTE_MIN_MS: a timer stop shorter than this does not ask for a note. RECENT_ON_ITEM: how many earlier notes an item or routine
+    // window lists.
+    JOURNAL: {
+        MAX_CHARS: 2000,
+        TIMER_NOTE_MIN_MS: 60000,
+        RECENT_ON_ITEM: 3,
+    },
 };
 
 // Export for Jest/Node; browser picks up the global `CONFIG` via <script> tag.

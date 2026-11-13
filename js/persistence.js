@@ -18,6 +18,9 @@ const Persistence = (() => {
     // Closed daily records (DailyRecord store {v, days, months}). Lifetime data:
     // survives Reset Game / new run (Persistence.clear() only removes SAVE_KEY).
     const DAYS_KEY = 'deadline.days';
+    // The Journal (js/journal.js, Build A 2026-11-13): free-text notes keyed by day. Lifetime data like the closed days: Reset Game and a
+    // new run never touch it (Persistence.clear() only removes SAVE_KEY). Written only when a note is added / edited / deleted.
+    const JOURNAL_KEY = 'deadline.journal';
     // v2 (2026-07-18): habit definitions gained `routineId` (null = standalone).
     // v3 (2026-07-18): habit + routine-task definitions gained a `schedule`
     // object (replacing habits' bare `frequency` string; routine tasks had no
@@ -617,9 +620,37 @@ const Persistence = (() => {
         }
     }
 
+    /**
+     * Journal store (`deadline.journal`). Returns the parsed object or null when absent / corrupt -- callers sanitize through
+     * Journal.sanitize. Never throws.
+     */
+    function loadJournal() {
+        try {
+            const raw = localStorage.getItem(JOURNAL_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? parsed : null;
+        } catch (e) {
+            console.error('Deadline: journal load failed', e);
+            return null;
+        }
+    }
+
+    /** Writes the journal store. Returns true on success; false (never a throw) when the storage refuses. */
+    function saveJournal(store) {
+        try {
+            localStorage.setItem(JOURNAL_KEY, JSON.stringify(store));
+            return true;
+        } catch (e) {
+            console.error('Deadline: journal save failed', e);
+            return false;
+        }
+    }
+
     return {
         SAVE_KEY,
         DAYS_KEY,
+        JOURNAL_KEY,
         SCHEMA_VERSION,
         serialize,     // exposed for tests
         deserialize,   // exposed for tests
@@ -629,7 +660,9 @@ const Persistence = (() => {
         load,
         clear,
         loadDays,
-        saveDays
+        saveDays,
+        loadJournal,
+        saveJournal
     };
 })();
 

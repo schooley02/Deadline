@@ -40,6 +40,7 @@
     <link rel="stylesheet" href="css/goalsPane.css">
     <link rel="stylesheet" href="css/levelPanel.css">
     <link rel="stylesheet" href="css/mood.css">
+    <link rel="stylesheet" href="css/journal.css">
     <link rel="stylesheet" href="css/basePanel.css">
     <link rel="stylesheet" href="css/timeSlider.css">
     <link rel="stylesheet" href="css/dayPager.css">
@@ -563,6 +564,8 @@
     <!-- js/mood.js (2026-11-13): the mood check-in's pure core (levels, feeling / context words, the saved entry shape); no dependencies. -->
     <script src="js/mood.js"></script>
     <script src="js/moodHelp.js"></script>
+    <!-- js/journal.js (2026-11-13): the optional journal's pure core (the saved shape, add / edit / remove, lookups, sanitize, merge); no dependencies. -->
+    <script src="js/journal.js"></script>
     <!-- js/runStats.js has ZERO module dependencies (pure data functions,
          no bare-global refs at load time) — loaded here, right after
          config.js, so js/damage.js (below) can call it directly at
@@ -656,6 +659,8 @@
     <script src="js/ui/timerView.js"></script>
     <script src="js/loop.js"></script>
     <script src="js/ui/modal.js"></script>
+    <!-- js/ui/journalView.js (2026-11-13): the note window and the "Notes" block on an item / routine window; needs Modal + Mood at call time. -->
+    <script src="js/ui/journalView.js"></script>
     <script src="js/ui/dialog.js"></script>
     <script src="js/ui/hud.js"></script>
     <script src="js/ui/fabMenu.js"></script>

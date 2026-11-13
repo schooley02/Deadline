@@ -1,0 +1,45 @@
+/* Journal Build A (2026-11-13; docs/JOURNAL_PLAN.md): the note window and the "Notes" block on an item / routine window.
+   Modal buttons carry an explicit background class (primary-button / secondary-button). Every row wraps: nothing may be wider than
+   a 320px phone (check scrollWidth > clientWidth, not just the picture). */
+
+.journal-note-modal { max-width: 440px; width: 92%; box-sizing: border-box; }
+.journal-note-title { margin: 0 0 4px; overflow-wrap: anywhere; }
+.journal-note-context { margin: 0 0 8px; font-size: 14px; opacity: 0.85; overflow-wrap: anywhere; }
+.journal-note-mood { margin: 0 0 8px; font-size: 14px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.journal-note-mood-face { font-size: 20px; line-height: 1; }
+.journal-note-text {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 110px;
+    padding: 10px;
+    font: inherit;
+    font-size: 16px; /* 16px stops the phone from zooming the page when the box is focused */
+    line-height: 1.35;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(0, 0, 0, 0.25);
+    color: inherit;
+    resize: vertical;
+}
+.journal-note-count { margin: 4px 0 0; font-size: 12px; opacity: 0.6; text-align: right; }
+.journal-note-error { margin: 6px 0 0; font-size: 13px; color: #ff8a80; }
+.journal-note-hint { margin: 6px 0 10px; font-size: 12px; opacity: 0.7; }
+.journal-note-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.journal-note-actions .primary-button,
+.journal-note-actions .secondary-button { min-height: 44px; flex: 1 1 120px; }
+
+/* The "Notes" block inside the task / habit window and the routine window. */
+.journal-item-notes { margin: 12px 0; }
+.journal-item-notes-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.journal-add-btn { min-height: 44px; padding: 6px 14px; }
+.journal-recent { list-style: none; margin: 0; padding: 0; }
+.journal-recent-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; padding: 4px 0; font-size: 13px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.journal-recent-when { opacity: 0.65; white-space: nowrap; }
+.journal-recent-mood { font-size: 15px; line-height: 1; }
+.journal-recent-text { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
+.journal-recent-empty { margin: 0; font-size: 13px; opacity: 0.6; }
+
+/* "Add a note" under the mood faces (the mood picker, the morning card). */
+.mood-note-row { margin-top: 8px; }
+.mood-note-btn { min-height: 44px; padding: 6px 14px; }

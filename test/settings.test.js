@@ -46,22 +46,22 @@ afterEach(() => {
 
 describe('Settings.load', () => {
     test('returns the default (full) when nothing is stored', () => {
-        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null, noteOnTimerStop: true });
     });
 
     test('round-trips a saved value', () => {
         Settings.save({ effectsIntensity: 'reduced' });
-        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null, noteOnTimerStop: true });
     });
 
     test('falls back to full for an invalid stored value (defensive)', () => {
         global.localStorage.setItem('deadline.settings', JSON.stringify({ effectsIntensity: 'nonsense' }));
-        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null, noteOnTimerStop: true });
     });
 
     test('falls back to full for corrupt JSON (never breaks gameplay)', () => {
         global.localStorage.setItem('deadline.settings', '{not valid json');
-        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null, noteOnTimerStop: true });
     });
 });
 
@@ -156,7 +156,7 @@ describe('Settings devTools (2026-11-03)', () => {
 
     test('an older stored settings object (no devTools key) loads with it off and keeps its other fields', () => {
         localStorage.setItem(Settings.SETTINGS_KEY, JSON.stringify({ effectsIntensity: 'reduced', eveningCheckTime: '20:30', timerHintSeen: true }));
-        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '20:30', timerHintSeen: true, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '20:30', timerHintSeen: true, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null, noteOnTimerStop: true });
     });
 
     test('what is WRITTEN is a real boolean even if a caller passes something else', () => {

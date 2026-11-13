@@ -128,6 +128,12 @@ const MoodView = (() => {
     }
 
     /** The run-of-lows line (a plain paragraph). Pure. */
+    // Journal Build A (2026-11-13): once a face is picked, one quiet "Add a note" line (only when the host gave deps.onAddNote).
+    function noteRowHtml(state, deps) {
+        if (!state || !state.level || !deps || typeof deps.onAddNote !== 'function') return '';
+        return '<div class="mood-note-row"><button type="button" class="secondary-button mood-note-btn" data-mood-note>Add a note</button></div>';
+    }
+
     function lowsHtml(line) {
         return line ? `<p class="mood-lows" role="note">${esc(line)}</p>` : '';
     }
@@ -172,7 +178,7 @@ const MoodView = (() => {
             }
             return m;
         };
-        const render = () => { container.innerHTML = pickerHtml(state) + helpHtml(helpNow(), added); };
+        const render = () => { container.innerHTML = pickerHtml(state) + noteRowHtml(state, deps) + helpHtml(helpNow(), added); };
         const log = () => deps.onLog({ level: state.level, feelings: state.feelings.slice(), context: state.context.slice() });
         container.addEventListener('click', (e) => {
             const btn = e.target.closest ? e.target.closest('button') : null;
@@ -207,6 +213,10 @@ const MoodView = (() => {
                 log();
             } else if (btn.hasAttribute('data-mood-more')) {
                 state = toggleMore(state);
+            } else if (btn.hasAttribute('data-mood-note')) {
+                // Journal Build A: a note on this check-in. The picker stays as it is; the note window opens on top.
+                deps.onAddNote({ level: state.level, hour: new Date(now()).getHours() });
+                return;
             } else {
                 return;
             }

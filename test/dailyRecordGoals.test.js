@@ -10,9 +10,9 @@ const amountEntry = (o) => Object.assign({ habitId: 'h1', type: 'amount', amount
 
 describe('v5 shape', () => {
     test('version is 10 (v6 adds pb, v7 adds drops, v8 adds tcorr, v9 adds pri, v10 adds pg) and a fresh record starts with an empty goals map', () => {
-        expect(DailyRecord.V).toBe(15);
+        expect(DailyRecord.V).toBe(16);
         const r = rec();
-        expect(r.v).toBe(15);
+        expect(r.v).toBe(16);
         expect(r.goals).toEqual({});
     });
 
@@ -150,14 +150,14 @@ describe('settings round trip for the evening time', () => {
     test('saving only the effects intensity keeps the stored evening time (and vice versa)', () => {
         Settings.save({ eveningCheckTime: '19:30' });
         Settings.save({ effectsIntensity: 'off' });
-        expect(Settings.load()).toEqual({ effectsIntensity: 'off', eveningCheckTime: '19:30', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'off', eveningCheckTime: '19:30', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null, noteOnTimerStop: true });
         Settings.save({ eveningCheckTime: '22:00' });
-        expect(Settings.load()).toEqual({ effectsIntensity: 'off', eveningCheckTime: '22:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'off', eveningCheckTime: '22:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null, noteOnTimerStop: true });
     });
 
     test('an old save with no evening time loads the default', () => {
         global.localStorage.setItem('deadline.settings', JSON.stringify({ effectsIntensity: 'reduced' }));
-        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null, noteOnTimerStop: true });
     });
 
     test('a single-digit hour is stored padded', () => {

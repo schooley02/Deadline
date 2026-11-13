@@ -640,6 +640,9 @@ const RoutineViews = (() => {
                         <select id="routineHeroCategory">${HeroesView.heroCategoryOptionsHtml(Heroes.heroCategoryFor(routine, CONFIG.HERO_CATEGORIES), CONFIG)}</select>
                     </div>
 
+                    ${(typeof JournalView !== 'undefined' && typeof deps.journalNotesForRoutine === 'function' && typeof deps.onAddNoteForRoutine === 'function')
+                        ? JournalView.itemNotesHtml(deps.journalNotesForRoutine(routine), { now: Date.now() }) : ''}
+
                     <!-- Habits Section -->
                     <div style="margin-bottom: 20px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -668,7 +671,12 @@ const RoutineViews = (() => {
 
         // [P2-UI-011] Stage 2 sub-session 5: Modal.open() instead of raw
         // insertAdjacentHTML — see docs/MODAL_STAGE2_PLAN.md.
-        Modal.open(modalHtml);
+        const routineOverlay = Modal.open(modalHtml);
+
+        // Journal Build A (2026-11-13): the routine's Notes block.
+        if (routineOverlay && typeof JournalView !== 'undefined' && typeof deps.journalNotesForRoutine === 'function' && typeof deps.onAddNoteForRoutine === 'function') {
+            JournalView.wireItemNotes(routineOverlay, { getNotes: () => deps.journalNotesForRoutine(routine), onAdd: (done) => deps.onAddNoteForRoutine(routine, done) });
+        }
 
         // Populate the routine content (module-internal calls, same file)
         populateRoutineHabits(routine, { definedHabits: deps.definedHabits });

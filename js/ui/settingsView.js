@@ -17,7 +17,8 @@
  *   currentEveningTime ("HH:MM"), onChangeEveningTime(value),   (Habit Goals Build 3)
  *   currentDevTools (bool), onChangeDevTools(bool),             (Developer tools switch, 2026-11-03: shows the DEV button, js/ui/devPanel.js)
  *   currentScreenBuzz (bool), onChangeScreenBuzz(bool),         (Buzz switch, 2026-11-10: the phone vibration with the screen thump)
- *   buildExportEnvelope(): envelope,       — script.js: ExportImport.buildEnvelope(...)
+ *   currentNoteOnTimerStop (bool), onChangeNoteOnTimerStop(bool),   (Journal Build A, 2026-11-13: ask for a note when a timer is stopped by hand)
+ *   buildExportEnvelope({ includeJournal }): envelope,   — script.js: ExportImport.buildEnvelope(...); the "Include journal notes" box (default on)
  *   currentSummary: ExportImport summary shape (this device's live state, for the confirm compare),
  *   onConfirmImport(envelope)              — script.js: backup + localStorage write + reload
  *   onConfirmReset()                       — script.js: handleConfirmReset (wipe + re-init), see below
@@ -141,6 +142,14 @@ const SettingsView = (() => {
                     <span class="settings-radio-label">Buzz the phone when I complete something</span>
                 </label>
             </div>
+            <div class="settings-section settings-journal-section">
+                <h4>Journal Notes</h4>
+                <p class="settings-section-hint">Notes are always optional and earn nothing. They stay on this device, and you can look back at them next to your numbers.</p>
+                <label class="settings-radio-row settings-buzz-row">
+                    <input type="checkbox" id="noteOnTimerStopToggle" ${deps.currentNoteOnTimerStop !== false ? 'checked' : ''}>
+                    <span class="settings-radio-label">Ask for a note when I stop a timer</span>
+                </label>
+            </div>
             <div class="settings-section settings-evening-section">
                 <h4>Evening Check</h4>
                 <p class="settings-section-hint">Each evening the game asks about every Break Habit you haven't answered yet today. It only shows while the game is open; tomorrow morning's check-in still catches anything you miss.</p>
@@ -155,6 +164,10 @@ const SettingsView = (() => {
 
                 <div class="settings-data-subsection">
                     <h5>Export</h5>
+                    <label class="settings-radio-row settings-export-journal-row">
+                        <input type="checkbox" id="exportJournalToggle" checked>
+                        <span class="settings-radio-label">Include journal notes</span>
+                    </label>
                     <div class="settings-data-actions">
                         <button type="button" id="exportDownloadBtn" class="secondary-button">Download file</button>
                         <button type="button" id="exportCopyBtn" class="secondary-button">Copy to clipboard</button>
@@ -236,6 +249,14 @@ const SettingsView = (() => {
             });
         }
 
+        // Journal note switch (Journal Build A, 2026-11-13): saved with the settings, read fresh at every manual timer stop.
+        const noteOnTimerStopToggle = container.querySelector('#noteOnTimerStopToggle');
+        if (noteOnTimerStopToggle) {
+            noteOnTimerStopToggle.addEventListener('change', (e) => {
+                if (typeof deps.onChangeNoteOnTimerStop === 'function') deps.onChangeNoteOnTimerStop(!!e.target.checked);
+            });
+        }
+
         // Developer tools switch (2026-11-03): script.js saves it per device and shows / hides the DEV button right away.
         const devToolsToggle = container.querySelector('#devToolsToggle');
         if (devToolsToggle) {
@@ -287,11 +308,16 @@ const SettingsView = (() => {
         const statusEl = container.querySelector('#exportStatus');
         const downloadBtn = container.querySelector('#exportDownloadBtn');
         const copyBtn = container.querySelector('#exportCopyBtn');
+        // The journal is the one store with personal free text, so it is a choice at export time (default on).
+        const buildEnvelope = () => {
+            const box = container.querySelector('#exportJournalToggle');
+            return deps.buildExportEnvelope({ includeJournal: !box || box.checked });
+        };
 
         if (downloadBtn) {
             downloadBtn.addEventListener('click', () => {
                 try {
-                    downloadEnvelope(deps.buildExportEnvelope());
+                    downloadEnvelope(buildEnvelope());
                     setStatus(statusEl, 'Downloaded.', false);
                 } catch (e) {
                     console.error('Deadline: export download failed', e);
@@ -304,7 +330,7 @@ const SettingsView = (() => {
             copyBtn.addEventListener('click', () => {
                 let text;
                 try {
-                    text = JSON.stringify(deps.buildExportEnvelope());
+                    text = JSON.stringify(buildEnvelope());
                 } catch (e) {
                     console.error('Deadline: export build failed', e);
                     setStatus(statusEl, 'Export failed — see console.', true);

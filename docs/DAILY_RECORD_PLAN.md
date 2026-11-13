@@ -132,6 +132,8 @@ on the open day and on CLOSED days (`level` 1..5 = Awful .. Rad; `feelingBits` /
 (`Mood.derive`), never stored. The month roll-up keeps `moodHist [5 ints]` and drops the entries. Event `mood { at|hour, level, feelings, context }`.
 Older days have no field = no mood. The planned Daily Journal (below) stays free text in its own key. `V = 15`.
 
+v16 (BUILT 2026-11-13, Journal Build A): `notes` = count of journal notes written that day (text stays in `deadline.journal`); month roll-up sums it. `V = 16`.
+
 ## Future — Daily Journal (Jeremy, 2026-10-27; not in the D2 build)
 
 **Superseded 2026-11-13 by `docs/JOURNAL_PLAN.md` (full design; adds DailyRecord v16 `notes` count). Kept below as history.**

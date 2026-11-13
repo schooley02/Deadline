@@ -1,6 +1,8 @@
 # Journal — optional notes on the day, on any item, and on the game
 
-**Status: DESIGNED 2026-11-13 (Fable 5.2, Claude app; Jeremy approved the four forks). NOT BUILT.**
+**Status: DESIGNED 2026-11-13 (Fable 5.2, Claude app; Jeremy approved the four forks). Build A BUILT 2026-11-13 (Sonnet 5.5; sw v362; DailyRecord v16; NOT phone-checked). Builds B and C NOT BUILT.**
+
+Build A as built: ref ids are namespaced (`def:<definitionId>` for habits / routine tasks / recurring tasks, `item:<itemId>` for one-off tasks and sub-tasks, the routine id string for routines). `Journal.sanitize` coerces an unknown `about` to `general` and an unknown `src` to `manual` rather than dropping the entry (deviation from "reject"; keeps imports lossless). The timer-stop window opens one tick late (setTimeout 0) so the Modal outside-click dismiss does not close it.
 Decisions logged in `docs/DECISIONS.md` 2026-11-13 "Journal". Supersedes the short
 "Future — Daily Journal" section of `docs/DAILY_RECORD_PLAN.md` (that section stays as history).
 

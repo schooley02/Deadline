@@ -86,7 +86,10 @@ const DailyRecord = (() => {
     // lists). A new entry in the SAME local hour replaces that hour's entry. `moodHist` = [5 ints], entries per level (index = level - 1):
     // always zero on a day (its `mood` is the source) and filled only when a day folds into a month, which drops the entries.
     // Numbers only: no free text (the journal stays separate). Days before v15 have no mood.
-    const V = 15;
+    // v16 (2026-11-13, Journal Build A; docs/JOURNAL_PLAN.md): `notes` = how many journal notes were written about this day (a COUNT only;
+    // the text lives in its own key, `deadline.journal`). Event `note { n: +1 | -1 }`: a note added / deleted. A late "How did yesterday
+    // go?" note for a day that is already closed does NOT touch the closed record. The month roll-up sums it. Older days read as 0.
+    const V = 16;
     // Mirrors Habits.GOAL_UNIT_SUGGESTIONS (test/dailyRecord.test.js checks they match). Kept local: no global dependencies.
     const GOAL_UNITS = ['pages', 'glasses', 'oz', 'steps', 'miles', 'km', 'reps', 'words', 'servings', 'drinks', 'cigarettes', 'cups', '$', 'times'];
     const GOAL_TYPES = ['time', 'amount', 'note'];
@@ -192,6 +195,8 @@ const DailyRecord = (() => {
             // v15: the day's mood check-ins + the month roll-up histogram (see V above).
             mood: [],
             moodHist: zeros(MOOD_LEVELS),
+            // v16: journal notes written about this day (a count; see V above).
+            notes: 0,
             ko: 0,
             revived: 0,
             timer: { workMin: 0, limitMin: 0, edits: 0, editMin: 0 },
@@ -585,6 +590,12 @@ const DailyRecord = (() => {
                 rec.mood = sanitizeMood((Array.isArray(rec.mood) ? rec.mood : []).filter((e) => e && e[0] !== h).concat([entry]));
                 break;
             }
+            case 'note': {
+                // v16: a journal note was added (+1) or deleted (-1). Payload { n } (default +1). The count never goes below 0.
+                const n = p && Number.isFinite(p.n) ? Math.trunc(p.n) : 1;
+                rec.notes = Math.max(0, (Number.isFinite(rec.notes) ? rec.notes : 0) + n);
+                break;
+            }
             case 'touch': {
                 const h = hourOf(p);
                 rec.active.touches += 1;
@@ -778,6 +789,8 @@ const DailyRecord = (() => {
         if (!Array.isArray(dst.moodHist)) dst.moodHist = zeros(MOOD_LEVELS);
         for (let i = 0; i < MOOD_LEVELS; i++) dst.moodHist[i] += (src.moodHist && src.moodHist[i]) || 0;
         sanitizeMood(src.mood).forEach((e) => { dst.moodHist[e[1] - 1] += 1; });
+        // v16: journal notes written about the days folded in.
+        dst.notes = (Number.isFinite(dst.notes) ? dst.notes : 0) + (Number.isFinite(src.notes) ? src.notes : 0);
         dst.ko += src.ko || 0;
         dst.revived += src.revived || 0;
         dst.active.touches += (src.active && src.active.touches) || 0;

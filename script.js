@@ -1414,6 +1414,9 @@ document.addEventListener('DOMContentLoaded', () => {
             reschedulePricingFor,
             commitReschedule,
             toggleWorkTimer,
+            // Journal Build A: the "Notes" block in the task / habit window.
+            journalNotes: journalNotesForItem,
+            onAddNote: (item, done) => openItemNote(item, { done }),
             setLoggedTime,
             changeSession,
             getBaseHealth: State.getBaseHealth,
@@ -1637,6 +1640,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return MoodHelp.lowsCardDue(MoodHelp.lowStreak(key, moodForDay), moodStamps().lows, key) ? MoodHelp.LOWS_LINE : null;
             },
             onLowsShown: () => setMoodStamp('lows', DailyRecord.dateKey(Date.now())),
+            // Journal Build A: "Add a note" under the faces files a note about today, tied to the check-in's hour.
+            onAddNote: (c) => openJournalNote({ about: 'day', src: 'mood', title: 'A note about today\u2019s mood', moodHour: c && c.hour }),
         };
     }
     const MOOD_STAMPS_KEY = 'deadline.moodStamps';
@@ -1648,6 +1653,93 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function setMoodStamp(name, dayKey) {
         try { localStorage.setItem(MOOD_STAMPS_KEY, JSON.stringify(Object.assign(moodStamps(), { [name]: dayKey }))); } catch (e) { /* best effort */ }
+    }
+
+    // ---- Journal (Build A, 2026-11-13; docs/JOURNAL_PLAN.md, DECISIONS 2026-11-13 "Journal: design") ----
+    // Optional free-text notes in their OWN key (`deadline.journal`, lifetime data: Reset Game and a new run never touch it). A note can be
+    // about an item, a routine, the day or the game; every note copies the day's latest mood check-in onto itself. A note earns nothing.
+    // The store is read once (sanitized) and written only when a note is added. The open day's DailyRecord only gets a COUNT (v16 `notes`).
+    let journalStore = null;
+    function journal() {
+        if (!journalStore) journalStore = Journal.sanitize(Persistence.loadJournal(), CONFIG.JOURNAL.MAX_CHARS);
+        return journalStore;
+    }
+    function currentRunNumber() { return (State.getRunHistory() || []).length + 1; }
+    // What a note about an item is filed under. Recurring things (a habit, a routine task, a repeating task) use their DEFINITION id so the
+    // notes follow the thing from day to day; a one-off task uses its own id. The prefix keeps a definition id from ever matching an item id.
+    function noteRefForItem(item) {
+        if (!item || item.id == null) return null;
+        const kind = item.type === 'habit' ? 'habit' : 'task';
+        const byDefinition = item.definitionId != null && !item.parentId;
+        const ref = { kind, id: byDefinition ? 'def:' + item.definitionId : 'item:' + item.id, name: String(item.name || '') };
+        if (item.parentId != null) ref.parentId = String(item.parentId);
+        return ref;
+    }
+    function noteRefForRoutine(routine) {
+        return routine && routine.id != null ? { kind: 'routine', id: String(routine.id), name: String(routine.name || '') } : null;
+    }
+    function journalMoodSnapshot() { const t = State.getToday(); return Journal.moodSnapshot(t && t.mood); }
+    // Store one note about TODAY (the open day's record date). Returns true when it was kept; a storage refusal rolls it back and returns false.
+    function addJournalNote(input) {
+        const store = journal();
+        const now = Date.now();
+        const today = State.getToday();
+        const dayKey = today && today.date ? today.date : DailyRecord.dateKey(now);
+        const entry = Journal.add(store, Object.assign({ dayKey, run: currentRunNumber(), mood: journalMoodSnapshot() }, input), now, CONFIG.JOURNAL.MAX_CHARS);
+        if (!entry) return false;
+        if (!Persistence.saveJournal(store)) { Journal.remove(store, entry.id); return false; }
+        State.bumpToday('note', { n: 1 });
+        saveGame();
+        return true;
+    }
+    const recentNotesLimit = () => CONFIG.JOURNAL.RECENT_ON_ITEM;
+    function journalNotesForItem(item) {
+        const ref = noteRefForItem(item);
+        return ref ? Journal.forRef(journal(), ref.kind, ref.id).slice(0, recentNotesLimit()) : [];
+    }
+    function journalNotesForRoutine(routine) {
+        const ref = noteRefForRoutine(routine);
+        return ref ? Journal.forRef(journal(), ref.kind, ref.id).slice(0, recentNotesLimit()) : [];
+    }
+    // Open the note window. o: { about, ref, src, title, context, min, moodHour, done() }; `done` runs once a note was kept.
+    function openJournalNote(o) {
+        if (typeof JournalView === 'undefined') return null;
+        return JournalView.openNote({
+            title: o.title,
+            context: o.context || '',
+            mood: journalMoodSnapshot(),
+            maxChars: CONFIG.JOURNAL.MAX_CHARS,
+            onSave: (text) => {
+                const ok = addJournalNote({ about: o.about, ref: o.ref || null, src: o.src || 'manual', text, min: o.min, moodHour: o.moodHour });
+                if (ok && typeof o.done === 'function') o.done();
+                return ok;
+            },
+        });
+    }
+    function openItemNote(item, o) {
+        const ref = noteRefForItem(item);
+        if (!ref) return null;
+        const opts = o || {};
+        return openJournalNote({ about: 'item', ref, src: opts.src, title: `Note about ${item.name}`, context: opts.context, min: opts.min, done: opts.done });
+    }
+    function openRoutineNote(routine, done) {
+        const ref = noteRefForRoutine(routine);
+        return ref ? openJournalNote({ about: 'routine', ref, src: 'manual', title: `Note about ${routine.name}`, done }) : null;
+    }
+    // After a manual timer Stop (the Stop icon, a paused timer's Stop, "Still working?" > Stop): offer a note about that task. NOT on Pause,
+    // not for a run shorter than CONFIG.JOURNAL.TIMER_NOTE_MIN_MS, and not when Settings turned it off. `spanMs` = the run that just stopped
+    // (null for a paused timer's Stop, whose time was banked at the pause: the whole Time Logged decides then). One tick later: the stop click
+    // is still bubbling and Modal's dismiss handler must not see the new overlay.
+    function offerTimerNote(item, spanMs) {
+        if (typeof JournalView === 'undefined' || !item || State.isGameOver()) return;
+        if (Settings.load().noteOnTimerStop === false) return;
+        const now = Date.now();
+        const loggedMs = Timer.elapsedMs(item, now);
+        const basis = typeof spanMs === 'number' ? spanMs : loggedMs;
+        if (!(basis >= CONFIG.JOURNAL.TIMER_NOTE_MIN_MS)) return;
+        setTimeout(() => {
+            openItemNote(item, { src: 'timer', min: Math.floor(basis / 60000), context: `Time Logged: ${TimerView.formatMinutes(loggedMs / 60000)}` });
+        }, 0);
     }
     // The help card's "Add a 10-minute task" button: an Anytime task for today, added the same way the Add Task form does.
     function addFigureItOutTask() {
@@ -2102,13 +2194,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (action === 'play') return { ok: true, running: true };
             // Pause / Stop only bank the time. A Break habit's limit timer is a "logged so far" helper
             // (Habit Goals Build 2): it never answers Resisted / Slipped for the player.
-            if (action === 'stop') Timer.stop(item, now); else Timer.pause(item, now);
+            if (action === 'stop') { const span = Timer.stop(item, now); offerTimerNote(item, span); } else Timer.pause(item, now);
         } else {
             if (action === 'stop') {
                 // Stop on a paused timer: its time is already banked, so just end the session.
                 if (!Timer.endPaused(item)) return { ok: false };
                 updateTimerButtons(now);
                 saveGame();
+                offerTimerNote(item, null);
                 return { ok: true, running: false };
             }
             if ((action && action !== 'play') || !Timer.canTimer(item)) return { ok: false };
@@ -2222,7 +2315,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (Timer.pendingAction(running, nowMs) !== 'autostop') {
                 TimerView.showStillWorking(running, {
                     onContinue: () => { Timer.confirmStillWorking(running, Date.now()); saveGame(); },
-                    onStop: () => { Timer.stop(running, Date.now()); syncWorkHero(null); updateTimerButtons(Date.now()); saveGame(); },
+                    onStop: () => { const span = Timer.stop(running, Date.now()); syncWorkHero(null); updateTimerButtons(Date.now()); saveGame(); offerTimerNote(running, span); },
                 });
             }
         } else if (action === 'autostop') {
@@ -3007,6 +3100,9 @@ document.addEventListener('DOMContentLoaded', () => {
             updateTaskCountDisplay, // week strip (2026-11-02): the Add Selected picker changes routine membership itself
             // 2026-11-01: Edit Habit from the Completed list edits one completed entry (name/category/goal) and re-renders the list.
             completedItems: State.getCompletedItems,
+            // Journal Build A: the routine window's "Notes" block.
+            journalNotesForRoutine: journalNotesForRoutine,
+            onAddNoteForRoutine: openRoutineNote,
             renderCompletedItems: () => AgendaList.renderCompletedItems(agendaListDeps()),
             // Habit Goals Build 2c: the completed entry's logged time is part of its entry edit.
             setLoggedTime,
@@ -3595,16 +3691,21 @@ document.addEventListener('DOMContentLoaded', () => {
             // Buzz switch (2026-11-10): per device, read fresh each time the Settings window opens.
             currentScreenBuzz: Settings.load().screenBuzz !== false,
             onChangeScreenBuzz: handleScreenBuzzChange,
+            // Journal Build A (2026-11-13): ask for a note when a timer is stopped by hand. Saved with the settings (rides along in a backup).
+            currentNoteOnTimerStop: Settings.load().noteOnTimerStop !== false,
+            onChangeNoteOnTimerStop: (on) => { Settings.save({ noteOnTimerStop: on === true }); },
             // Avatar (Mood Build A, 2026-11-13): saved with the settings, so it survives a Reset and rides along in Backup & Transfer.
             currentAvatar,
             onChangeAvatar: setAvatar,
             // Export/Import (Milestone 5 first item, 2026-07-20) — see
             // js/exportImport.js header + handleConfirmImport below.
-            buildExportEnvelope: () => ExportImport.buildEnvelope({
+            buildExportEnvelope: (opts) => ExportImport.buildEnvelope({
                 getPersistableState: () => State.getPersistableState(),
                 getSettings: () => { const st = Settings.load(); delete st.devTools; delete st.screenBuzz; delete st.moodCardDay; return st; }, // Developer tools, the buzz and the once-a-day mood card stamp are per device: never exported
                 // D2 (2026-10-27): closed daily records ride along in the export.
                 getDays: () => Persistence.loadDays(),
+                // Journal Build A: the notes ride along unless the "Include journal notes" box was cleared (and only when there are any).
+                getJournal: () => ((opts && opts.includeJournal === false) || !Journal.count(journal())) ? null : journal(),
             }),
             currentSummary: ExportImport.buildSummary(State.getPersistableState()),
             onConfirmImport: handleConfirmImport,
@@ -3636,6 +3737,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 save: currentSaveRaw,
                 settings: currentSettingsRaw,
                 days: localStorage.getItem(Persistence.DAYS_KEY),
+                journal: localStorage.getItem(Persistence.JOURNAL_KEY),
             }));
         } catch (e) {
             console.error('Deadline: pre-import backup failed (continuing with import anyway)', e);
@@ -3674,6 +3776,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (e) {
             console.error('Deadline: daily records import failed (save import continues)', e);
+        }
+        // Journal Build A (2026-11-13): notes are lifetime data too, so they MERGE by entry id (an id already on this device is never overwritten).
+        try {
+            if (envelope.journal && typeof Journal !== 'undefined') {
+                const merged = Journal.merge(Persistence.loadJournal(), envelope.journal, CONFIG.JOURNAL.MAX_CHARS);
+                if (merged.added > 0) Persistence.saveJournal(merged.store);
+            }
+        } catch (e) {
+            console.error('Deadline: journal import failed (save import continues)', e);
         }
         window.location.reload();
     }

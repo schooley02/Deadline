@@ -82,6 +82,8 @@ const ExportImport = (() => {
     /**
      * deps: { getPersistableState(): rawSaveState, getSettings(): settingsObj,
      *         getDays(): closed-days store or null (optional; D2, 2026-10-27),
+     *         getJournal(): the journal store or null (optional; Journal Build A, 2026-11-13). Leave it out (or return null) to export
+     *           WITHOUT the notes: the Settings export has an "Include journal notes" box,
      *         now: Date (optional, defaults to new Date()) }
      * rawSaveState is the SAME shape state.js's getPersistableState()
      * returns (DOM refs and all) — we route it through Persistence.serialize
@@ -111,6 +113,10 @@ const ExportImport = (() => {
         // import by date, never replaced -- see DailyRecord.mergeStores.
         const daysObj = deps.getDays ? deps.getDays() : null;
         if (daysObj && typeof daysObj === 'object') envelope.days = daysObj;
+        // Journal Build A (2026-11-13): the free-text notes, only when the player left "Include journal notes" on. Like `days` it is an
+        // OPTIONAL field (older builds ignore it) and is MERGED on import by entry id, never replaced.
+        const journalObj = deps.getJournal ? deps.getJournal() : null;
+        if (journalObj && typeof journalObj === 'object') envelope.journal = journalObj;
         envelope.checksum = computeChecksum(envelope);
         return envelope;
     }
@@ -179,6 +185,7 @@ const ExportImport = (() => {
             save: parsed.save,
             settings: parsed.settings || {},
             days: (parsed.days && typeof parsed.days === 'object') ? parsed.days : null,
+            journal: (parsed.journal && typeof parsed.journal === 'object') ? parsed.journal : null,
             summary: parsed.summary || buildSummary(parsed.save),
         };
     }
