@@ -488,7 +488,7 @@ describe('sky picker wiring (W1c, 2026-11-09)', () => {
     });
 
     test('RainFx still reads the worn sky (a picked Storm has no score = full rain)', () => {
-        expect(script).toContain('RainFx.init({ getResult: climateNow });');
+        expect(script).toContain('RainFx.init({ getResult: climateNow, isFrozen:');
     });
 
     test('the level-up toast and the Level panel name the perk through the theme', () => {
