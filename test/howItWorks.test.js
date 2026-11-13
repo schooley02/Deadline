@@ -23,14 +23,14 @@ const topic = (id, cfg) => all(cfg).find(t => t.id === id);
 // Everything a player can read in a topic, as one lowercase-insensitive string.
 const textOf = (t) => [].concat(t.what || [], t.list || [], t.html || '', t.why || '').join(' ');
 
-describe('the eleven topics', () => {
+describe('the twelve topics', () => {
     test('Points, Priorities, Pushbacks, Streaks, Hero ranking, Achievements, The sky, Timers and Time Logged, When a run ends, Goals, in that order', () => {
-        expect(all().map(t => t.title)).toEqual(['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Goals']);
-        expect(all().map(t => t.id)).toEqual(['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'goals']);
+        expect(all().map(t => t.title)).toEqual(['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Being away', 'Goals']);
+        expect(all().map(t => t.id)).toEqual(['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals']);
     });
 
     test('Streaks, Hero ranking, Achievements, The sky, Timers and When a run ends carry a "Why"; Points and Pushbacks do not invent one', () => {
-        ['priorities', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'goals'].forEach(id => expect(topic(id).why).toBeTruthy());
+        ['priorities', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals'].forEach(id => expect(topic(id).why).toBeTruthy());
         ['points', 'pushbacks'].forEach(id => expect(topic(id).why).toBeUndefined());
     });
 });
@@ -267,8 +267,8 @@ describe('Achievements', () => {
 describe('windowHtml', () => {
     test('one <details> per topic, in order, with the corner x', () => {
         const html = HowItWorks.windowHtml(all());
-        expect((html.match(/<details /g) || []).length).toBe(11);
-        const order = ['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Goals'].map(n => html.indexOf(`<summary>${n}</summary>`));
+        expect((html.match(/<details /g) || []).length).toBe(12);
+        const order = ['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Being away', 'Goals'].map(n => html.indexOf(`<summary>${n}</summary>`));
         expect(order.every(i => i > 0)).toBe(true);
         expect(order).toEqual(order.slice().sort((a, b) => a - b));
         expect(html).toContain('modal-close-x');
@@ -509,5 +509,26 @@ describe('Nights and momentum (Momentum Build B, 2026-11-11)', () => {
         expect(t).toContain('A Sick Day is skipped');
         expect(t).toContain('does not count');
         expect(HowItWorks.buttonHtml('momentum')).toContain('data-hiw-topic="momentum"');
+    });
+});
+
+describe('Being away (2026-11-13)', () => {
+    const text = () => textOf(topic('away'));
+    test('states the per-item away limit and the slider preview rule', () => {
+        expect(text()).toContain(`at most ${CONFIG.OFFLINE_DAMAGE_CAP_PER_ITEM} HP`);
+        expect(text()).toContain('however long you stay gone');
+        expect(text()).toMatch(/slider is a preview only/);
+        expect(text()).toContain('nothing is charged');
+    });
+    test('a retuned cap changes the page', () => {
+        const t = textOf(topic('away', Object.assign({}, CONFIG, { OFFLINE_DAMAGE_CAP_PER_ITEM: 20 })));
+        expect(t).toContain('at most 20 HP');
+        expect(text()).not.toContain('at most 20 HP');
+    });
+    test('the barricade line points here instead of implying uncapped damage', () => {
+        expect(textOf(topic('momentum'))).toContain('up to the limit in Being away');
+    });
+    test('has an info button id', () => {
+        expect(HowItWorks.buttonHtml('away')).toContain('data-hiw-topic="away"');
     });
 });

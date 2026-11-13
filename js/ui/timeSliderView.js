@@ -304,6 +304,9 @@ const TimeSliderView = (() => {
         if (!nowBtnEl) return;
         const away = isParked() || viewedOffset() !== 0;
         if (nowBtnEl.hidden === away) nowBtnEl.hidden = !away;
+        // "Preview only" note (2026-11-13), optional: shown on exactly the same test as the Now button.
+        const note = (typeof document !== 'undefined') ? document.getElementById('timeSliderNote') : null;
+        if (note && note.hidden === away) note.hidden = !away;
     }
 
     // Back to the live board at the current time: preview off, real positions + HP restored, handle on now.

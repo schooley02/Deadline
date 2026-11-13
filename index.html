@@ -302,6 +302,8 @@
             <!-- Now (2026-11-04): the handle stays where it is released; this returns it to the current time (and to
                  Today when another day is on screen). Hidden while the slider is already live (js/ui/timeSliderView.js). -->
             <button type="button" id="timeSliderNow" class="time-slider-now" hidden aria-label="Back to the current time" title="Back to the current time"><svg class="time-slider-now-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M3.2 6.2 A5.2 5.2 0 1 1 3 9.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M1.6 3.4 L3.3 6.6 L6.5 5.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.4 5.2 V8.4 L10.6 9.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="time-slider-now-text">Now</span></button>
+            <!-- 2026-11-13: shown only while the slider is away from now (js/ui/timeSliderView.js refreshNowButton); sits just under the row. -->
+            <div id="timeSliderNote" class="time-slider-note" role="note" hidden>Preview only: nothing is charged here.</div>
         </div>
 
         <!-- Bottom 40% - Task List Section -->

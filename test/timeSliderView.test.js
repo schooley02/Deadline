@@ -509,3 +509,24 @@ describe('preview attackers get the red row (2026-10-27)', () => {
         expect(document.querySelectorAll('.preview-attack-list-item').length).toBe(0);
     });
 });
+
+describe('the "Preview only" note (2026-11-13)', () => {
+    test('shows while the slider is away from now, hides again on Now', () => {
+        const nowBtn = document.createElement('button');
+        const note = document.createElement('div');
+        note.id = 'timeSliderNote';
+        note.hidden = true;
+        document.body.appendChild(note);
+        const { deps, sliderEl } = makeDeps({ deps: { nowButtonEl: nowBtn } });
+        TimeSliderView.init(deps);
+        expect(note.hidden).toBe(true);
+        sliderEl.value = '600';
+        sliderEl.dispatchEvent(new Event('input'));
+        sliderEl.dispatchEvent(new Event('change'));
+        expect(note.hidden).toBe(false);
+        TimeSliderView.returnToNow();
+        nowBtn.click();
+        expect(TimeSliderView.isParked()).toBe(false);
+        expect(note.hidden).toBe(true);
+    });
+});

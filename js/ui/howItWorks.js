@@ -267,7 +267,7 @@ const HowItWorks = (() => {
         // Build C (2026-11-11): the damage cut per state, from the same rows. Only states with a cut are named; a fallen barricade never adds damage.
         const cuts = states.filter((st) => Number(st.damageCut) > 0).sort((a, b) => b.min - a.min);
         const cutLine = cuts.length
-            ? `${cuts.map((st) => `${st.name} takes ${Math.round(st.damageCut * 100)}% off the damage zombies do at the church`).join(', and ')}. A weak barricade never adds damage. The cut applies while the app is open: damage for time you were away is charged at the normal rate.` : '';
+            ? `${cuts.map((st) => `${st.name} takes ${Math.round(st.damageCut * 100)}% off the damage zombies do at the church`).join(', and ')}. A weak barricade never adds damage. The cut applies while the app is open: damage for time you were away is charged at the normal rate, up to the limit in Being away.` : '';
         return {
             id: 'momentum',
             title: 'Nights and momentum',
@@ -284,9 +284,27 @@ const HowItWorks = (() => {
         };
     }
 
+    // ---- Being away (2026-11-13, Jeremy: "how can we let the user know that overdue items will do no more than 12 damage while they are away") ----
+    // The offline / suspended-loop cap (CONFIG.OFFLINE_DAMAGE_CAP_PER_ITEM, a LIFETIME cap per item, js/damage.js) and the slider's
+    // preview-only rule, in plain words. Numbers come from CONFIG so a retune cannot leave the page lying.
+    function awayTopic(config) {
+        const cap = config.OFFLINE_DAMAGE_CAP_PER_ITEM;
+        const days = Math.round((config.OFFLINE_MAX_MS || 0) / 86400000);
+        return {
+            id: 'away',
+            title: 'Being away',
+            what: [
+                cap ? `A zombie that goes overdue keeps hitting the church while the app is closed or your device is asleep. For time you were away, one zombie can take at most ${cap} HP from the church in total, however long you stay gone.` : '',
+                `So the number of neglected items matters more than the hours away: one forgotten task cannot sink the church, but many overdue at once can.${days ? ` Time away counts for up to ${days} days.` : ''}`,
+                `The time slider is a preview only. Dragging it shows where zombies would be at that time, but nothing is charged and nothing heals while you look. Tap Now to go back to the live game.`,
+            ].filter(Boolean),
+            why: 'Being busy or asleep should not be able to end a run by itself, but ignoring a lot of things should still cost you.',
+        };
+    }
+
     function topics(config) {
         const cfg = config || (typeof CONFIG !== 'undefined' ? CONFIG : {});
-        return [pointsTopic(cfg), prioritiesTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg), timersTopic(cfg), runsTopic(cfg), momentumTopic(cfg), goalsTopic(cfg)];
+        return [pointsTopic(cfg), prioritiesTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg), timersTopic(cfg), runsTopic(cfg), momentumTopic(cfg), awayTopic(cfg), goalsTopic(cfg)];
     }
 
     // ---- Markup ------------------------------------------------------------------------------------------------
@@ -339,7 +357,7 @@ const HowItWorks = (() => {
     // Capture + stopPropagation is deliberate: Modal's outside-click dismiss (a bubbling document handler) would
     // otherwise see the same tap and close the popup or window the button sits in, and a row's own tap handler
     // (agenda rows, hero rows) must not fire as well.
-    const TOPIC_IDS = ['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'goals'];
+    const TOPIC_IDS = ['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals'];
 
     function buttonHtml(topicId, label) {
         if (TOPIC_IDS.indexOf(topicId) === -1) return '';

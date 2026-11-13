@@ -14,6 +14,7 @@
  */
 
 .time-slider-seam {
+    position: relative; /* anchors .time-slider-note */
     display: flex;
     align-items: center;
     gap: 12px;
@@ -125,3 +126,23 @@
 /* Enemy sprites additionally desaturate (V2, 2026-10-12: replaces the dashed
    outline) — see enemyStatus.css --g-ghost. No new motion, the slide itself
    is .enemy's existing transition (see file header). */
+
+/* Preview note (2026-11-13): while the slider is away from now, a small pill just under the row says nothing is charged.
+   Out of the flow (absolute) so it costs the row no room; clicks pass through it. */
+.time-slider-note {
+    position: absolute;
+    top: 100%;
+    right: var(--space-4);
+    z-index: 5;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--color-secondary-green-pale);
+    font-size: 11px;
+    color: var(--color-text-primary);
+    pointer-events: none;
+}
+
+.time-slider-note[hidden] {
+    display: none;
+}
