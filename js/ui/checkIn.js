@@ -299,6 +299,12 @@ const CheckIn = (() => {
         return true;
     }
 
+    // A plain Close link (restored 2026-11-13): closes like an outside tap or Esc, so cards left unanswered still hide the check until the next app open.
+    function wireCloseLink(overlay) {
+        const link = overlay.querySelector('.check-in-close-link');
+        if (link) link.addEventListener('click', (e) => { e.preventDefault(); overlay.remove(); });
+    }
+
     function showEveningModal(deps) {
         const items = deps.getCandidates() || [];
         const tasks = typeof deps.getTaskCandidates === 'function' ? (deps.getTaskCandidates() || []) : [];
@@ -311,12 +317,14 @@ const CheckIn = (() => {
                     <h3>Tonight's check-in</h3>
                     <p class="check-in-intro">Before the day ends: how did these go?${tasks.length ? ' Not tonight means no more questions about that task tonight.' : ''}</p>
                     <div class="evening-cards">${tasks.map(t => buildEveningTaskCardHtml(t, describe(t))).join('')}${items.map(buildEveningCardHtml).join('')}</div>
+                    <p class="check-in-snooze"><a href="#" class="check-in-close-link">Close</a></p>
                 </div>
             </div>
         `, { dedupeSelector: '.evening-overlay' });
         if (!overlay) return null;
 
         let skipped = false;
+        wireCloseLink(overlay);
         overlay.querySelectorAll('.evening-card').forEach((card) => {
             const itemId = Number(card.getAttribute('data-item-id'));
             const isTaskCard = card.getAttribute('data-card-kind') === 'task';
@@ -345,7 +353,7 @@ const CheckIn = (() => {
             });
         });
 
-        // However it closes (answered, Later, an outside tap or Esc; the "I'll check this later" link is gone, 2026-11-12): if any habit was left unanswered, tell the
+        // However it closes (answered, Later, Close, an outside tap or Esc; the "I'll check this later" link is gone, 2026-11-12): if any habit was left unanswered, tell the
         // caller so tonight's check stays quiet until the next app open.
         if (typeof MutationObserver !== 'undefined' && typeof deps.onDismiss === 'function') {
             const observer = new MutationObserver(() => {
@@ -384,11 +392,13 @@ const CheckIn = (() => {
                     <p class="check-in-intro">These were due on an earlier day and have already attacked. Did you finish them? The damage stays.${creditNote}</p>
                     ${credit && anyEligible ? `<p class="morning-credit">${escapeHtml(credit.text)}</p>` : ''}
                     <div class="evening-cards morning-task-cards">${tasks.map(t => buildEveningTaskCardHtml(t, describe(t), 'morning', credit, eligible(t))).join('')}</div>
+                    <p class="check-in-snooze"><a href="#" class="check-in-close-link">Close</a></p>
                 </div>
             </div>
         `, { dedupeSelector: '.morning-task-overlay' });
         if (!overlay) return null;
 
+        wireCloseLink(overlay);
         overlay.querySelectorAll('.morning-task-card').forEach((card) => {
             const itemId = Number(card.getAttribute('data-item-id'));
             card.querySelectorAll('.check-in-button').forEach((button) => {

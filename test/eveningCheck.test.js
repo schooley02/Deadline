@@ -159,6 +159,17 @@ describe('showEveningModal: Later and dismissal', () => {
         expect(document.querySelector('.evening-overlay').textContent).not.toMatch(/check this later/i);
     });
 
+    test('2026-11-13: a plain Close link closes the modal and, with cards left, reports a dismissal', async () => {
+        const d = makeDeps([item(1, 'A', AMOUNT)]);
+        CheckIn.showEveningModal(d);
+        const link = document.querySelector('.evening-overlay .check-in-close-link');
+        expect(link.textContent).toBe('Close');
+        link.click();
+        await flush();
+        expect(document.querySelector('.evening-overlay')).toBeNull();
+        expect(d.onDismiss).toHaveBeenCalledTimes(1);
+    });
+
     test('an outside tap / Esc (the overlay just disappears) with cards left reports a dismissal too', async () => {
         const d = makeDeps([item(1, 'A', AMOUNT)]);
         const overlay = CheckIn.showEveningModal(d);

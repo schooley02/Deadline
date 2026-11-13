@@ -319,6 +319,17 @@ describe('Morning modal: anytime task cards', () => {
         expect(deps.onDismiss).toHaveBeenCalledTimes(1);
     });
 
+    test('2026-11-13: a plain Close link closes the modal and reports a dismissal while cards are left', async () => {
+        const deps = makeDeps([task()]);
+        CheckIn.showMorningTaskModal(deps);
+        const link = document.querySelector('.morning-task-overlay .check-in-close-link');
+        expect(link.textContent).toBe('Close');
+        link.click();
+        await flush();
+        expect(document.querySelector('.morning-task-overlay')).toBeNull();
+        expect(deps.onDismiss).toHaveBeenCalledTimes(1);
+    });
+
     test('2026-11-12: the skip button reads "Not now" on the morning card', () => {
         CheckIn.showMorningTaskModal(makeDeps([task()]));
         expect(card(7).querySelector('[data-outcome="leave"]').textContent).toBe('Not now');
