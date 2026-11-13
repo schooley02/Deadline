@@ -364,9 +364,106 @@ describe('scrub-coupled animation (2026-10-27)', () => {
         expect(hero.currentTime).toBe(600); // 300 - 600 = -300 -> 600
 
         sliderEl.dispatchEvent(new Event('change'));
+        // 2026-11-12 (Jeremy): releasing away from now HOLDS every looping animation until Now (it used to resume them).
+        expect(walk.playbackRate).toBe(0);
+        expect(hero.playbackRate).toBe(0);
+        expect(cloud.playbackRate).toBe(0);
+        expect(oneShot.playbackRate).toBe(1);
+
+        TimeSliderView.returnToNow();
         expect(walk.playbackRate).toBe(1);
         expect(hero.playbackRate).toBe(1);
         expect(cloud.playbackRate).toBe(1);
+    });
+});
+
+describe('everything on the canvas holds still while the slider is away from now (2026-11-12)', () => {
+    afterEach(() => { document.body.innerHTML = ''; });
+
+    function fakeAnim({ iterations = Infinity } = {}) {
+        return {
+            playbackRate: 1, currentTime: 0, playState: 'running',
+            effect: { getComputedTiming: () => ({ duration: 1000, iterations, delay: 0 }) },
+        };
+    }
+    // jsdom has no Element.getAnimations: hand #gameCanvas one that lists whatever is "running" in it right now.
+    function mountCanvas(list) {
+        const canvas = document.createElement('div');
+        canvas.id = 'gameCanvas';
+        canvas.getAnimations = jest.fn(() => list.slice());
+        document.body.appendChild(canvas);
+        return canvas;
+    }
+
+    test('a release away from now freezes every looping animation under the canvas (not just the scrub targets); one-shots finish; Now lets go', () => {
+        const star = fakeAnim();           // scenery loop outside the scrub targets (stars, fog, glows, church idle, weather)
+        const sprite = fakeAnim();
+        const death = fakeAnim({ iterations: 1 }); // e.g. a zombie's death after a completion
+        const canvas = mountCanvas([star, sprite, death]);
+        const { deps, sliderEl } = makeDeps();
+        TimeSliderView.init(deps);
+        sliderEl.value = '600';
+        sliderEl.dispatchEvent(new Event('input'));
+        sliderEl.dispatchEvent(new Event('change'));
+        expect(canvas.getAnimations).toHaveBeenCalledWith({ subtree: true });
+        expect(star.playbackRate).toBe(0);
+        expect(sprite.playbackRate).toBe(0);
+        expect(death.playbackRate).toBe(1);
+        expect(TimeSliderView.isAway()).toBe(true);
+
+        TimeSliderView.returnToNow();
+        expect(star.playbackRate).toBe(1);
+        expect(sprite.playbackRate).toBe(1);
+        expect(TimeSliderView.isAway()).toBe(false);
+    });
+
+    test('the tick hook freezes an animation that starts while away and lets go of everything once the slider is back on now', () => {
+        const first = fakeAnim();
+        const list = [first];
+        mountCanvas(list);
+        const { deps, sliderEl } = makeDeps();
+        TimeSliderView.init(deps);
+        sliderEl.value = '600';
+        sliderEl.dispatchEvent(new Event('input'));
+        sliderEl.dispatchEvent(new Event('change'));
+        const late = fakeAnim(); // e.g. a new zombie sprite or a sky change while parked
+        list.push(late);
+        expect(late.playbackRate).toBe(1);
+        TimeSliderView.holdAnimations();
+        expect(late.playbackRate).toBe(0);
+        // A finished / removed animation is forgotten rather than kept forever.
+        late.playState = 'idle';
+        TimeSliderView.holdAnimations();
+        TimeSliderView.returnToNow();
+        expect(first.playbackRate).toBe(1);
+        TimeSliderView.holdAnimations(); // back on now: a no-op
+        expect(first.playbackRate).toBe(1);
+    });
+
+    test('another day on screen counts as away: the tick hook holds the canvas still there too, and a release on that day keeps it held', () => {
+        const loop = fakeAnim();
+        mountCanvas([loop]);
+        let offset = 2;
+        const { deps, sliderEl } = makeDeps({ deps: { getViewedDayOffset: () => offset, getViewedDayStart: () => new Date(2026, 10, 14) } });
+        TimeSliderView.init(deps);
+        TimeSliderView.holdAnimations();
+        expect(loop.playbackRate).toBe(0);
+        sliderEl.dispatchEvent(new Event('change')); // releasing on another day does not hand it back
+        expect(loop.playbackRate).toBe(0);
+        offset = 0; // the pager is back on Today (and nothing is parked)
+        TimeSliderView.holdAnimations();
+        expect(loop.playbackRate).toBe(1);
+    });
+
+    test('live (not away): the tick hook touches nothing', () => {
+        const loop = fakeAnim();
+        const canvas = mountCanvas([loop]);
+        const { deps } = makeDeps();
+        TimeSliderView.init(deps);
+        TimeSliderView.holdAnimations();
+        expect(canvas.getAnimations).not.toHaveBeenCalled();
+        expect(loop.playbackRate).toBe(1);
+        expect(TimeSliderView.isAway()).toBe(false);
     });
 });
 

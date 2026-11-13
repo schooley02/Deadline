@@ -148,6 +148,42 @@ const TimeSliderView = (() => {
         scrubbedAnims.clear();
     }
 
+    // ---- Everything holds still while the slider is away from now (2026-11-12, Jeremy: "when you slide the animation to
+    // any position other than now and let go, all animations on the canvas need to stop until the user hits the reset
+    // button or the user starts using the slider again") ----------------------------------------------------------------
+    // "Away" = the same test as the Now button: parked on Today, or another day on screen. While away, EVERY looping
+    // animation under #gameCanvas (zombie sprites, the hero, clouds, stars, fog, glows, the church idle, weather layers,
+    // ...) is held at playbackRate 0 -- not just the scrub targets. Finite one-shots (a zombie's death, the hero's attack
+    // after a completion, an ice form) are left to finish so a tap made while parked never freezes half way. Uses
+    // playbackRate for the same reason as the scrub (it leaves CSS animation-play-state alone). The tick hook below
+    // (`holdAnimations`) also catches animations that start while away (a new zombie sprite, a sky change) and lets go of
+    // everything once the slider is back on now. Dragging again still steps the frames (scrubAnimations); release holds.
+    function isAway() {
+        return isParked() || viewedOffset() !== 0;
+    }
+
+    function freezeLoopingAnimations() {
+        if (typeof document === 'undefined') return;
+        const root = canvasEl || document.getElementById('gameCanvas');
+        if (!root || typeof root.getAnimations !== 'function') return;
+        scrubbedAnims.forEach((anim) => { if (anim.playState === 'idle') scrubbedAnims.delete(anim); }); // finished / removed
+        root.getAnimations({ subtree: true }).forEach((anim) => {
+            if (scrubbedAnims.has(anim)) return;
+            const timing = (anim.effect && typeof anim.effect.getComputedTiming === 'function')
+                ? anim.effect.getComputedTiming() : null;
+            if (!timing || timing.iterations !== Infinity) return; // one-shots finish on their own
+            anim.playbackRate = 0;
+            scrubbedAnims.add(anim);
+        });
+    }
+
+    // Called on a release and every tick (script.js's checkDayPagerRollover): freeze while away, let go once back on now.
+    function holdAnimations() {
+        if (!deps) return;
+        if (isAway()) freezeLoopingAnimations();
+        else if (scrubbedAnims.size > 0) releaseAnimations();
+    }
+
     // Graveyard scene parallax (V1, 2026-07-21 — docs/VISUAL_DESIGN_PLAN.md).
     // Deliberately NOT threaded through the deps contract like the rest of
     // this module: it's a purely decorative, non-game-state DOM query
@@ -361,12 +397,12 @@ const TimeSliderView = (() => {
     // more than once per release (e.g. a browser sending both 'change' and
     // 'pointerup' for the same drag-end). Since 2026-11-04 a release no longer
     // snaps back to now on ANY day: the preview stays where the player left it
-    // and the Now button brings it back. Release only hands the looping
-    // animations back to CSS (the parked ghosts' pause rule holds their frame).
+    // and the Now button brings it back. Since 2026-11-12 a release also HOLDS every looping animation on the canvas
+    // (holdAnimations) until Now or the next drag; it no longer hands them back to CSS.
     function handleRelease() {
         noteActivity();
-        if (viewedOtherDayStart()) return;
-        releaseAnimations();
+        if (viewedOtherDayStart()) { holdAnimations(); return; }
+        holdAnimations();
         if (sceneEl) sceneEl.classList.remove('parallax-scrubbing');
         refreshNowButton();
     }
@@ -412,6 +448,8 @@ const TimeSliderView = (() => {
         checkParkedRollover,
         checkIdleReturn,
         isParked,
+        isAway,
+        holdAnimations,
     };
 })();
 

@@ -246,6 +246,19 @@ describe('drawing', () => {
         ctxs.forEach((c) => expect(c.calls.fillRect).toBeGreaterThan(0));
     });
 
+    test('2026-11-12: while the time slider is away from now the rain draws and steps nothing; it resumes without a jump', () => {
+        buildDom(true);
+        let frozen = true;
+        RainFx.init({ isFrozen: () => frozen });
+        let ts = 1000;
+        for (let i = 0; i < 30; i++) { ts += 40; rafCb(ts); }
+        ctxs.forEach((c) => expect(c.calls.fillRect).toBe(0)); // frozen: no drop was painted
+        expect(global.requestAnimationFrame).toHaveBeenCalled(); // the loop stays alive, so Now resumes it at once
+        frozen = false;
+        for (let i = 0; i < 10; i++) { ts += 40; rafCb(ts); }
+        ctxs.forEach((c) => expect(c.calls.fillRect).toBeGreaterThan(0));
+    });
+
     test('a hidden page does not keep the loop going', () => {
         buildDom(true);
         RainFx.init({});
@@ -326,7 +339,7 @@ describe('shell + load order + css', () => {
     test('script.js starts RainFx right after ClimateView, with the same climate source', () => {
         const i = script.indexOf('ClimateView.init(');
         expect(i).toBeGreaterThan(0);
-        expect(script.slice(i, i + 400)).toContain('RainFx.init({ getResult: climateNow })');
+        expect(script.slice(i, i + 400)).toContain('RainFx.init({ getResult: climateNow, isFrozen:');
     });
 
     test('the CSS rain is only hosts + a pixelated canvas: no gradient sheets, no tap-taking', () => {

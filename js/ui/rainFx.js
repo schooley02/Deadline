@@ -217,6 +217,9 @@ const RainFx = (() => {
         raf = 0;
         if (!isStorm() || (typeof document !== 'undefined' && document.hidden) || motionMode() !== 'live') return;
         raf = requestAnimationFrame(frame);
+        // The time slider is away from now (2026-11-12, Jeremy: all animations stop until Now): keep the loop alive but draw
+        // and step nothing; lastFrame follows the clock so the drops do not jump when it resumes.
+        if (deps && typeof deps.isFrozen === 'function' && deps.isFrozen()) { lastFrame = ts; return; }
         if (ts - lastFrame < FRAME_MS) return;
         const dt = Math.min(MAX_DT, lastFrame ? (ts - lastFrame) / 1000 : FRAME_MS / 1000);
         lastFrame = ts;

@@ -412,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
         onPeek: (on) => ClimateView.peek(on),
     });
     ClimateView.init({ getResult: climateNow, getRealResult: realClimateNow, onChange: (r) => { WeatherPanel.updateBadge(r); watchRealSky(r); } });
-    RainFx.init({ getResult: climateNow }); // Storm rain (canvas in each .rain host); starts / stops itself from the climate-storm class (2026-11-07)
+    RainFx.init({ getResult: climateNow, isFrozen: () => typeof TimeSliderView !== 'undefined' && TimeSliderView.isAway() }); // Storm rain (canvas in each .rain host); starts / stops itself from the climate-storm class (2026-11-07)
     const baseHealthDisplay = document.getElementById('baseHealthDisplay');
     const playerXpDisplay = document.getElementById('playerXpDisplay');
     const playerLevelDisplay = document.getElementById('playerLevelDisplay');
@@ -2387,7 +2387,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // even while previewing (see js/loop.js's updateGame comment for
             // why); OPTIONAL so loop.test.js's existing deps objects don't
             // need updating for this alone.
-            checkDayPagerRollover: () => { DayPagerView.checkRolloverReset(); TimeSliderView.checkParkedRollover(); TimeSliderView.checkIdleReturn(); },
+            checkDayPagerRollover: () => { DayPagerView.checkRolloverReset(); TimeSliderView.checkParkedRollover(); TimeSliderView.checkIdleReturn(); TimeSliderView.holdAnimations(); },
             // LIVE mid-session day rollover (2026-07-20) — stateDeps()
             // already carries every field State.checkLiveDayRollover needs
             // (it's the same deps shape restoreGameState's rollover branch
