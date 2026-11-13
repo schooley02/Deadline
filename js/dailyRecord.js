@@ -89,7 +89,9 @@ const DailyRecord = (() => {
     // v16 (2026-11-13, Journal Build A; docs/JOURNAL_PLAN.md): `notes` = how many journal notes were written about this day (a COUNT only;
     // the text lives in its own key, `deadline.journal`). Event `note { n: +1 | -1 }`: a note added / deleted. A late "How did yesterday
     // go?" note for a day that is already closed does NOT touch the closed record. The month roll-up sums it. Older days read as 0.
-    const V = 16;
+    // v17 (2026-11-13, Not needed passes): `ne` = how many "not needed" passes were spent that day (a COUNT only; delete of an overdue task,
+    // skip a habit or routine task for today, or move a one-off task to tomorrow). Event `notNeeded`. The month roll-up sums it. Older days read as 0.
+    const V = 17;
     // Mirrors Habits.GOAL_UNIT_SUGGESTIONS (test/dailyRecord.test.js checks they match). Kept local: no global dependencies.
     const GOAL_UNITS = ['pages', 'glasses', 'oz', 'steps', 'miles', 'km', 'reps', 'words', 'servings', 'drinks', 'cigarettes', 'cups', '$', 'times'];
     const GOAL_TYPES = ['time', 'amount', 'note'];
@@ -197,6 +199,8 @@ const DailyRecord = (() => {
             moodHist: zeros(MOOD_LEVELS),
             // v16: journal notes written about this day (a count; see V above).
             notes: 0,
+            // v17: "not needed" passes spent that day (a count; see V above).
+            ne: 0,
             ko: 0,
             revived: 0,
             timer: { workMin: 0, limitMin: 0, edits: 0, editMin: 0 },
@@ -590,6 +594,11 @@ const DailyRecord = (() => {
                 rec.mood = sanitizeMood((Array.isArray(rec.mood) ? rec.mood : []).filter((e) => e && e[0] !== h).concat([entry]));
                 break;
             }
+            case 'notNeeded': {
+                // v17: one "not needed" pass was spent.
+                rec.ne = (Number.isFinite(rec.ne) ? rec.ne : 0) + 1;
+                break;
+            }
             case 'note': {
                 // v16: a journal note was added (+1) or deleted (-1). Payload { n } (default +1). The count never goes below 0.
                 const n = p && Number.isFinite(p.n) ? Math.trunc(p.n) : 1;
@@ -791,6 +800,8 @@ const DailyRecord = (() => {
         sanitizeMood(src.mood).forEach((e) => { dst.moodHist[e[1] - 1] += 1; });
         // v16: journal notes written about the days folded in.
         dst.notes = (Number.isFinite(dst.notes) ? dst.notes : 0) + (Number.isFinite(src.notes) ? src.notes : 0);
+        // v17: "not needed" passes spent on the days folded in.
+        dst.ne = (Number.isFinite(dst.ne) ? dst.ne : 0) + (Number.isFinite(src.ne) ? src.ne : 0);
         dst.ko += src.ko || 0;
         dst.revived += src.revived || 0;
         dst.active.touches += (src.active && src.active.touches) || 0;

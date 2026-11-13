@@ -2168,6 +2168,7 @@ const Items = (() => {
     function spendNotNeededPass(deps) {
         if (typeof deps.setNotNeededUses !== 'function') return;
         deps.setNotNeededUses(NotNeeded.addUse(deps.getNotNeededUses(), Date.now(), deps.weekStartsOn));
+        recordDaily(deps, 'notNeeded', {}); // daily record v17
     }
 
     /**

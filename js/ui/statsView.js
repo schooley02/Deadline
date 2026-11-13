@@ -112,6 +112,11 @@ const StatsView = (() => {
         return `<div class="stats-notes-line">Notes: ${n}${read}</div>`;
     }
 
+    // "Not needed" passes spent this run (2026-11-13): a plain count line; nothing when the dep is missing or zero.
+    function notNeededLineHtml(n) {
+        return Number.isFinite(n) && n > 0 ? `<div class="stats-notes-line">Not needed: ${n}</div>` : '';
+    }
+
     // A small note mark after a best / worst day that has notes (noteCountForDay(dateKey) -> number).
     function noteMarkHtml(e, noteCountForDay) {
         if (typeof noteCountForDay !== 'function') return '';
@@ -148,6 +153,7 @@ const StatsView = (() => {
                 <h4>Run #${deps.currentRunNumber} — in progress</h4>
                 <div class="stats-days-survived">${deps.daysSurvivedSoFar} night${deps.daysSurvivedSoFar === 1 ? '' : 's'} survived so far${daysDeltaHtml}</div>
                 ${notesLineHtml(deps.noteCount, deps.currentRunNumber)}
+                ${notNeededLineHtml(deps.notNeededThisRun)}
                 ${deps.weatherHtml || ''}
                 <div class="stats-counter-row">
                     <div class="stats-counter">
@@ -522,6 +528,7 @@ const StatsView = (() => {
         buildRunCard,
         buildBestWorstDays,
         notesLineHtml,
+        notNeededLineHtml,
         buildRunRoutineRow,
         buildRoutineEntryRow,
         buildRoutineCard,

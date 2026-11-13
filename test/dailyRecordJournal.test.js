@@ -8,7 +8,7 @@ const rec = () => DailyRecord.fresh({ date: '2026-11-13', tz: 0 });
 
 describe('v16 notes count', () => {
     test('the version is 16 and a fresh record has notes 0', () => {
-        expect(DailyRecord.V).toBe(16);
+        expect(DailyRecord.V).toBe(17);
         expect(rec().notes).toBe(0);
     });
     test('a note adds one; an undo / delete takes one back; the count never goes below 0', () => {

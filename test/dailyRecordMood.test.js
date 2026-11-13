@@ -8,8 +8,8 @@ const Mood = require('../js/mood.js');
 const rec = () => DailyRecord.fresh({ date: '2026-11-13', tz: 0 });
 
 describe('v15 mood log', () => {
-    test('a fresh record has no mood and a zero histogram; the version is 16 (v16 adds notes)', () => {
-        expect(DailyRecord.V).toBe(16);
+    test('a fresh record has no mood and a zero histogram; the version is 17 (v16 adds notes, v17 adds ne)', () => {
+        expect(DailyRecord.V).toBe(17);
         expect(rec().mood).toEqual([]);
         expect(rec().moodHist).toEqual([0, 0, 0, 0, 0]);
     });

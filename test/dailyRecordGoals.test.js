@@ -10,9 +10,9 @@ const amountEntry = (o) => Object.assign({ habitId: 'h1', type: 'amount', amount
 
 describe('v5 shape', () => {
     test('version is 10 (v6 adds pb, v7 adds drops, v8 adds tcorr, v9 adds pri, v10 adds pg) and a fresh record starts with an empty goals map', () => {
-        expect(DailyRecord.V).toBe(16);
+        expect(DailyRecord.V).toBe(17);
         const r = rec();
-        expect(r.v).toBe(16);
+        expect(r.v).toBe(17);
         expect(r.goals).toEqual({});
     });
 

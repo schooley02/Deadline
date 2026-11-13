@@ -3847,11 +3847,25 @@ document.addEventListener('DOMContentLoaded', () => {
         FabMenu.closeFabMenu({ fabMenu, fabButton });
     }
 
+    // "Not needed" passes spent since this run began: closed days in the daily store plus today's open record (rolled-up months are not counted).
+    function notNeededUsedThisRun() {
+        try {
+            const startKey = Habits.toOccurrenceDate(new Date(State.getRunStartedAtMs()));
+            const days = (Persistence.loadDays() || {}).days || {};
+            let n = 0;
+            Object.keys(days).forEach((k) => { if (k >= startKey) n += Number((days[k] || {}).ne) || 0; });
+            const t = State.getToday();
+            if (t && !days[t.date]) n += Number(t.ne) || 0;
+            return n;
+        } catch (e) { return 0; }
+    }
+
     function openManagementWindow(type) {
         ManagementWindows.openManagementWindow(type, {
             managementWindows, closeFabMenu, activeItems: State.getActiveItems(), definedHabits: State.getDefinedHabits(),
             definedRoutines: State.getDefinedRoutines(), routineSlots: State.getRoutineSlots(), showRoutineManagement, toggleRoutineActive,
             runStartedAtMs: State.getRunStartedAtMs(),
+            notNeededThisRun: notNeededUsedThisRun(), // Stats > Not needed: N (daily record v17 `ne`)
             shopCatalog: CONFIG.SHOP_ITEMS, playerInventory: State.getPlayerInventory(), playerPoints: State.getPlayerPoints(), baseHealth: State.getBaseHealth(),
             onShopBuy: handleShopPurchase, onShopUse: handleShopUse, shopDiscount: currentShopDiscount(), pushbackHelpCtx,
             weatherHtml: WeatherPanel.statsHtml(WeatherPanel.buildViewModel(climateNow(), moodForDay)), // Stats > the sky readout (run climate Build 2)
