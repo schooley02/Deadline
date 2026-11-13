@@ -79,6 +79,14 @@ describe('the other doors and the evening prompt', () => {
         expect(fn).not.toContain('bumpClosed');
         expect(script).toContain("MoodView.openMoodCard({ title: 'How are you starting?', deps: Object.assign(moodDeps(), typeof JournalView !== 'undefined' ? morningYesterdayDeps() : {}) })");
     });
+    test('the yesterday button is on the morning card AND the player panel, and stays on offer all day until the late window is closed once', () => {
+        expect(script).toContain('onJournalYesterday: () => openLateDayNote()');
+        expect(script).toContain('yesterday: yesterdayNoteDue()');
+        const fn = script.slice(script.indexOf('function openLateDayNote'), script.indexOf('function morningYesterdayDeps'));
+        expect(fn).toContain("onClose: () => setJournalStamp('late', y)");
+        // not stamped merely because the line was displayed
+        expect(script).not.toContain('onYesterdayShown: () => setJournalStamp');
+    });
     test('deleting a note written today takes one off the open day\'s count', () => {
         const fn = script.slice(script.indexOf('function deleteJournalNote'), script.indexOf('function journalWindowDeps'));
         expect(fn).toContain("State.bumpToday('note', { n: -1 })");

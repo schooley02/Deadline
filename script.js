@@ -1783,7 +1783,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof JournalView === 'undefined') return null;
         const store = journal();
         const e = Journal.latest(store);
-        return { count: Journal.count(store), latest: e ? `${JournalView.whenText(e.at)} · ${JournalView.snippet(e.text, 90)}` : null };
+        return { count: Journal.count(store), latest: e ? `${JournalView.whenText(e.at)} · ${JournalView.snippet(e.text, 90)}` : null, yesterday: yesterdayNoteDue() };
     }
 
     // Stamps (per device, never exported, like deadline.moodStamps): dayEnd = the local day the "How did today go?" card was shown;
@@ -1825,7 +1825,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (maybeShowDayEnd()) return;
         maybeShowEveningCheck();
     }
-    // The next-morning fallback: one line on the morning mood card, one morning only. Needs a closed record for yesterday (the game was
+    // The next-morning fallback: a button on the morning mood card AND in the player panel's Journal section. Needs a closed record for yesterday (the game was
     // open then), no day-end card shown or answered for it, and no earlier line.
     function yesterdayNoteDue() {
         const y = dayKeyDaysAgo(1);
@@ -1849,12 +1849,18 @@ document.addEventListener('DOMContentLoaded', () => {
         saveGame();
         return true;
     }
+    // The late window (from the morning card or the player panel). It stays on offer for the rest of TODAY (tomorrow the day key moves on, so it is
+    // gone: one morning only) until the window is closed once, by Save or by Skip: then `late` is stamped and neither door shows it again.
+    function openLateDayNote() {
+        const y = dayKeyDaysAgo(1);
+        return JournalView.openDayEnd({
+            late: true, maxChars: CONFIG.JOURNAL.MAX_CHARS,
+            onSave: (text, level) => addLateDayNote(text, level),
+            onClose: () => setJournalStamp('late', y),
+        });
+    }
     function morningYesterdayDeps() {
-        return {
-            getYesterday: yesterdayNoteDue,
-            onYesterdayShown: () => setJournalStamp('late', dayKeyDaysAgo(1)),
-            onYesterday: () => JournalView.openDayEnd({ late: true, maxChars: CONFIG.JOURNAL.MAX_CHARS, onSave: (text, level) => addLateDayNote(text, level) }),
-        };
+        return { getYesterday: yesterdayNoteDue, onYesterday: openLateDayNote };
     }
 
     // After a manual timer Stop (the Stop icon, a paused timer's Stop, "Still working?" > Stop): offer a note about that task. NOT on Pause,
@@ -3400,6 +3406,7 @@ document.addEventListener('DOMContentLoaded', () => {
             journal: journalPanelSummary(),
             onJournalWrite: () => openJournalNote({ about: 'day', src: 'manual', title: 'A note about today' }),
             onJournalOpen: () => openJournal(),
+            onJournalYesterday: () => openLateDayNote(),
             onManage: (routineKey) => {
                 const routine = State.getDefinedRoutines().find(r => String(r.id) === routineKey);
                 if (routine) showRoutineManagement(routine.id);

@@ -212,9 +212,11 @@ const LevelPanel = (() => {
     function journalSectionHtml(j) {
         const latest = j && j.latest ? `<p class="lp-journal-latest">${esc(j.latest)}</p>` : '<p class="lp-journal-latest lp-journal-latest--empty">No notes yet.</p>';
         const open = j && j.count > 0 ? '<button type="button" class="secondary-button lp-journal-btn" data-action="journal-open">Open journal</button>' : '';
+        // The next-morning "How did yesterday go?" (j.yesterday): here too, so a mood logged elsewhere cannot hide it.
+        const yesterday = j && j.yesterday ? '<button type="button" class="secondary-button lp-journal-btn" data-action="journal-yesterday">How did yesterday go?</button>' : '';
         return `<h4 class="lp-section">Journal</h4>
                     <div class="lp-journal">${latest}
-                        <div class="lp-journal-actions"><button type="button" class="secondary-button lp-journal-btn" data-action="journal-write">Write a note</button>${open}</div>
+                        <div class="lp-journal-actions"><button type="button" class="secondary-button lp-journal-btn" data-action="journal-write">Write a note</button>${open}${yesterday}</div>
                     </div>`;
     }
 
@@ -244,6 +246,7 @@ const LevelPanel = (() => {
             // Journal (Build B): both open another window, so the panel is already gone (above); one tick later keeps this click from dismissing it.
             if (action === 'journal-write' && ctx.onJournalWrite) setTimeout(() => ctx.onJournalWrite(), 0);
             if (action === 'journal-open' && ctx.onJournalOpen) setTimeout(() => ctx.onJournalOpen(), 0);
+            if (action === 'journal-yesterday' && ctx.onJournalYesterday) setTimeout(() => ctx.onJournalYesterday(), 0);
         });
     }
 

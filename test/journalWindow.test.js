@@ -240,6 +240,17 @@ describe('player panel section', () => {
         LevelPanel.open(base());
         expect(document.querySelector('.lp-journal')).toBeNull();
     });
+    test('"How did yesterday go?" shows only when the host says it is due, and opens the late window one tick later', async () => {
+        const onJournalYesterday = jest.fn();
+        LevelPanel.open(Object.assign(base(), { journal: { count: 0, latest: null, yesterday: false }, onJournalYesterday }));
+        expect(document.querySelector('[data-action="journal-yesterday"]')).toBeNull();
+        document.body.innerHTML = '';
+        LevelPanel.open(Object.assign(base(), { journal: { count: 0, latest: null, yesterday: true }, onJournalYesterday }));
+        click(document.querySelector('[data-action="journal-yesterday"]'));
+        expect(document.querySelector('.level-panel')).toBeNull();
+        await tick();
+        expect(onJournalYesterday).toHaveBeenCalledTimes(1);
+    });
     test('the buttons close the panel and call the host one tick later', async () => {
         const onJournalWrite = jest.fn(); const onJournalOpen = jest.fn();
         LevelPanel.open(Object.assign(base(), { journal: { count: 1, latest: 'x' }, onJournalWrite, onJournalOpen }));

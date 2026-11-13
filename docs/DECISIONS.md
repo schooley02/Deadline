@@ -5881,3 +5881,6 @@ Jeremy: leave it as is. A parked negative-habit lurker standing idle at the base
 - The day-end card shows BEFORE the evening check cards and is stamped when shown (Skip / Close counts as shown); the evening check follows when it closes. A face tap on it is an ordinary mood check-in.
 - The "How did yesterday go?" fallback is a button on the morning mood card, not a separate card, so it only appears on a morning the mood card shows. The late note never edits a closed day; only today's `notes` count moves (the note was written today). Deleting any note written today takes one off that count.
 - The game's name in "Note about the game" is a theme string (`Theme.strings.journal.gameName`), per the Baseline / Deadline rule.
+
+### 2026-11-13 -- yesterday's note also in the player panel (Journal follow-up)
+- Jeremy: a mood logged from the player panel before the morning card must not hide "How did yesterday go?". The button is now ALSO in the player panel's Journal section, and `journalStamps.late` is set when the late window is closed (Save or Skip) instead of when the line first appears, so it stays on offer for the rest of that day and is gone the next. A day the app was never opened still has no record and no question.
