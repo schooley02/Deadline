@@ -51,7 +51,7 @@ describe('buildViewModel (pure)', () => {
         expect(vm.band).toBe(band);
         expect(vm.label).toBe(WeatherPanel.BAND_INFO[band].label);
         expect(vm.rows).toHaveLength(2);
-        expect(vm.rows[0]).toEqual({ date: '2026-11-02', label: 'Mon Nov 2', onTime: '90%', habits: '50%', damage: '0 HP' });
+        expect(vm.rows[0]).toEqual({ date: '2026-11-02', label: 'Mon Nov 2', onTime: '90%', habits: '50%', damage: '0 HP', mood: null });
         expect(vm.rows[1].onTime).toBe('25%');
         expect(vm.rows[1].damage).toBe('7.5 HP');
         expect(vm.note).toBe('');
@@ -273,8 +273,8 @@ describe('live sky: the Today so far row (2026-11-11, docs/LIVE_SKY_PLAN.md)', (
 
     test('view model: the first table row is today, from the result\'s live numbers', () => {
         const vm = WeatherPanel.buildViewModel(live());
-        expect(vm.today).toEqual({ pending: false, onTime: '50%', habits: '100%', damage: '5 HP' });
-        expect(WeatherPanel.buildViewModel(result('hazy')).today).toEqual({ pending: true });
+        expect(vm.today).toEqual({ pending: false, onTime: '50%', habits: '100%', damage: '5 HP', mood: null });
+        expect(WeatherPanel.buildViewModel(result('hazy')).today).toEqual({ pending: true, mood: null });
         expect(WeatherPanel.buildViewModel(RunClimate.forced('fog')).today).toBeNull();
     });
 

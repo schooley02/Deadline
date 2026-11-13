@@ -284,7 +284,7 @@ describe('script.js: badge + Stats readout', () => {
     });
 
     test('the Stats window gets the sky readout, built from the same lazy result', () => {
-        expect(script).toContain('weatherHtml: WeatherPanel.statsHtml(WeatherPanel.buildViewModel(climateNow()))');
+        expect(script).toContain('weatherHtml: WeatherPanel.statsHtml(WeatherPanel.buildViewModel(climateNow(), moodForDay))');
         expect(read('js/ui/managementWindows.js')).toContain('weatherHtml: deps.weatherHtml');
         const stats = read('js/ui/statsView.js');
         expect(stats).toContain('${deps.weatherHtml || \'\'}');

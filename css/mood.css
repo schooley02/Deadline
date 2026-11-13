@@ -89,3 +89,6 @@
 }
 .avatar-choice-emoji { font-size: 40px; line-height: 1.1; }
 .mood-card-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+
+/* Stats best / worst day: the day's face(s) after the date (W1b Build B1). */
+.stats-best-worst-mood { margin-left: 4px; white-space: nowrap; }

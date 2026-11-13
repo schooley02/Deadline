@@ -123,6 +123,8 @@ const ManagementWindows = (() => {
                     scoreWeights: deps.scoreWeights,
                     // Run climate Build 2 (2026-11-03): the sky readout (an HTML string built by WeatherPanel), shown in the current-run panel.
                     weatherHtml: deps.weatherHtml,
+                    // Mood Build B1 (2026-11-13): (dateKey) => that day's mood entries, for the best / worst day faces.
+                    moodFor: deps.moodFor,
                 });
             } else if (type === 'settings') {
                 // [P2-UI-009] session 59 — same pass-through-deps-only shape

@@ -98,12 +98,19 @@ const StatsView = (() => {
         return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString([], { month: 'short', day: 'numeric' });
     }
 
-    function buildBestWorstDays(bw) {
+    // `moodFor(dateKey)` (optional) -> that day's mood entries; a day with a mood gets its face(s) after the date (W1b Build B1).
+    function moodGlyphHtml(e, moodFor) {
+        if (typeof moodFor !== 'function' || typeof Mood === 'undefined') return '';
+        const g = Mood.dayGlyph(moodFor(e.date));
+        return g ? ` <span class="stats-best-worst-mood" title="${escHtml(g.title)}" role="img" aria-label="${escHtml('Mood: ' + g.title)}">${escHtml(g.text)}</span>` : '';
+    }
+
+    function buildBestWorstDays(bw, moodFor) {
         if (!bw || !bw.best || !bw.worst) return '';
         const row = (cls, label, e) => `
             <li class="stats-best-worst-row ${cls}">
                 <span class="stats-best-worst-label">${label}</span>
-                <span class="stats-best-worst-day">${formatDayKey(e.date)}${e.night ? ` · night ${e.night}` : ''}</span>
+                <span class="stats-best-worst-day">${formatDayKey(e.date)}${e.night ? ` · night ${e.night}` : ''}${moodGlyphHtml(e, moodFor)}</span>
                 <span class="stats-best-worst-nums">${e.done} done · ${e.missed} missed · ${e.damage} dmg</span>
             </li>`;
         return `<div class="stats-blame-heading">Best &amp; worst day</div>
@@ -154,7 +161,7 @@ const StatsView = (() => {
                     </div>
                 </div>
                 ${nearMissHtml}
-                ${buildBestWorstDays(deps.bestWorst)}
+                ${buildBestWorstDays(deps.bestWorst, deps.moodFor)}
                 <div class="stats-blame-heading">Top offenders so far</div>
                 ${buildBlameList(blameRows, 3)}
             </div>
@@ -202,7 +209,7 @@ const StatsView = (() => {
     // setTimeout(0) hazard) and the personal-record run gets a 🏆 badge
     // (`isBest` — RunStats.bestRunNumber, computed once in
     // renderStatsWindow, not per card).
-    function buildRunCard(record, isBest, bestWorst) {
+    function buildRunCard(record, isBest, bestWorst, moodFor) {
         const bestBadge = (isBest
             ? '<span class="stats-run-card-best" title="Personal record">🏆 Best run</span>'
             : '') + buildTitleBadge(record, 'stats-run-card-title-badge');
@@ -232,7 +239,7 @@ const StatsView = (() => {
                 <div class="stats-run-card-details">
                     ${villageStrip}
                     <div class="stats-run-card-span">Started ${formatDate(record.startedAtMs)} · ${record.endReason === 'base_destroyed' ? 'Base destroyed' : record.endReason}</div>
-                    ${buildBestWorstDays(bestWorst)}
+                    ${buildBestWorstDays(bestWorst, moodFor)}
                     <div class="stats-blame-heading">All offenders</div>
                     ${buildBlameList(record.blame, 10)}
                     ${routinesHtml}
@@ -427,6 +434,7 @@ const StatsView = (() => {
             daysSurvivedSoFar: deps.daysSurvivedSoFar,
             currentRunNumber,
             weatherHtml: deps.weatherHtml,
+            moodFor: deps.moodFor,
             lastRunRecord: runHistory[0] || null,
             achievementsCatalog: deps.achievementsCatalog,
             lifetimeStats: deps.lifetimeStats,
@@ -436,7 +444,7 @@ const StatsView = (() => {
         const bestRun = RunStats.bestRunNumber(runHistory);
         historyList.innerHTML = (runHistory.length === 0)
             ? '<div class="stats-empty">No past runs yet — this is your first.</div>'
-            : runHistory.map(record => buildRunCard(record, record.runNumber === bestRun, bestWorstFor(record.runNumber, []))).join('');
+            : runHistory.map(record => buildRunCard(record, record.runNumber === bestRun, bestWorstFor(record.runNumber, []), deps.moodFor)).join('');
 
         // Sub-session 5: expand/collapse delegation. ASSIGNED (not
         // addEventListener) so re-opening the window replaces rather than

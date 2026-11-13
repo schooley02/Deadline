@@ -188,3 +188,7 @@
 .wx-set-stats { display: flex; align-items: center; gap: 6px; margin: 6px 0 0; font-size: 13px; font-weight: 600; }
 .wx-table tbody tr.wx-row--live th, .wx-table tbody tr.wx-row--live td { font-style: italic; background: rgba(10, 95, 85, 0.07); }
 .wx-table .wx-pending { text-align: left; font-weight: 400; color: var(--color-text-secondary, #5b5b6b); }
+
+/* Mood column (W1b Build B1): the face(s) for the day, "first -> last" when they differ. */
+.wx-table td.wx-mood { white-space: nowrap; font-size: 15px; }
+.wx-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

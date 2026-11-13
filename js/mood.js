@@ -186,6 +186,20 @@ const Mood = (() => {
         return h;
     }
 
+    /**
+     * How a day's log reads in a table: { text, title } or null for no entries. One face when the day's first and last entries are the
+     * same level (or there is only one), "first \u2192 last" when they differ. `title` is the plain-words version for a tooltip / screen reader.
+     */
+    function dayGlyph(entries) {
+        const d = derive(entries);
+        if (!d) return null;
+        const a = levelInfo(d.first);
+        const b = levelInfo(d.last);
+        if (!a || !b) return null;
+        if (d.first === d.last) return { text: a.emoji, title: a.label };
+        return { text: a.emoji + ' \u2192 ' + b.emoji, title: a.label + ' to ' + b.label };
+    }
+
     // ---- the face --------------------------------------------------------------------------------------------------------
 
     /**
@@ -238,6 +252,7 @@ const Mood = (() => {
         sanitizeEntries,
         latest,
         derive,
+        dayGlyph,
         histogram,
         faceFor,
     };

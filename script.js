@@ -397,6 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     WeatherPanel.init({
         getResult: climateNow,
+        getMood: moodForDay,
         getPickerInfo: () => {
             const s = skyNow();
             const earned = skyUnlockedBands();
@@ -1626,6 +1627,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // The face is redrawn only when it changes (renderAvatarFace compares), so this is cheap enough for the per-tick call in updateGame.
+    // A day's mood entries for the Weather table and Stats (W1b Build B1): 'today' or the open day's date = the open record, else a closed day.
+    function moodForDay(key) {
+        const t = State.getToday();
+        if (key === 'today' || (t && key === t.date)) return t && Array.isArray(t.mood) ? t.mood : [];
+        const days = State.getClosedDays();
+        const rec = days && days[key];
+        return rec && Array.isArray(rec.mood) ? rec.mood : [];
+    }
     function refreshAvatarFace() {
         if (typeof MoodView === 'undefined') return;
         const t = State.getToday();
@@ -3535,8 +3544,8 @@ document.addEventListener('DOMContentLoaded', () => {
             runStartedAtMs: State.getRunStartedAtMs(),
             shopCatalog: CONFIG.SHOP_ITEMS, playerInventory: State.getPlayerInventory(), playerPoints: State.getPlayerPoints(), baseHealth: State.getBaseHealth(),
             onShopBuy: handleShopPurchase, onShopUse: handleShopUse, shopDiscount: currentShopDiscount(), pushbackHelpCtx,
-            weatherHtml: WeatherPanel.statsHtml(WeatherPanel.buildViewModel(climateNow())), // Stats > the sky readout (run climate Build 2)
-            currentRunStats: State.getCurrentRunStats(), runHistory: State.getRunHistory(), daysSurvivedSoFar: nightsSurvivedNow(),
+            weatherHtml: WeatherPanel.statsHtml(WeatherPanel.buildViewModel(climateNow(), moodForDay)), // Stats > the sky readout (run climate Build 2)
+            moodFor: moodForDay, currentRunStats: State.getCurrentRunStats(), runHistory: State.getRunHistory(), daysSurvivedSoFar: nightsSurvivedNow(),
             achievementsCatalog: CONFIG.ACHIEVEMENTS, lifetimeStats: State.getLifetimeStats(), achievements: State.getAchievements(),
             goals: State.getGoals(), // Stats > Goals row + roster (Goals Build B2)
             // D2 step 5: closed days + today's open record for Stats best/worst day.

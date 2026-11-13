@@ -532,8 +532,11 @@ Changes from the design (all Jeremy's calls):
 - **Morning card** ("How are you starting?") once per local day, after the avatar picker on first run. Deviation from the design: the once-a-day stamp is persisted in Settings `moodCardDay` (per device, not exported) rather than in memory.
 - Code: `js/mood.js` (pure), `js/ui/moodView.js`, `css/mood.css`.
 
-### Build B (still to do)
-Mood column in the Weather panel 7-day table + Stats readout; end-of-day / rollover prompt; the feeling-aware Bad/Awful help card (overwhelmed: pick 3 priorities and break the biggest into sub-tasks; unmotivated: small first step + start timer; anxious/stressed: mark the task behind it priority and break it up; exhausted/tired: a light day is allowed; distracted: one task, timer on; sad/down: "Cut yourself some slack today. A break is allowed."; plus a one-tap "Add a 10-minute task: figure out what's behind this"); the run-of-lows card (3 days in a row of Bad/Awful, at most once a week, gently suggests talking to someone); a How Deadline works line; later a journal "Add a note" hook.
+### Build B1 as built (2026-11-13, Sonnet 5.5; sw v360)
+Read-only display half: the Weather panel's 7-day table (and the Stats sky readout, same table) gets a **Mood** column, shown only once some day has a mood (so a new player sees no empty column); each cell is one face, or "first \u2192 last" when the day's first and last entries differ (`Mood.dayGlyph`), a dash for a day with none, and "Today so far" shows today's. Stats best / worst day rows show the same face(s) after the date. `script.js` `moodForDay(key)` feeds all three (`WeatherPanel.init({ getMood })`, `buildViewModel(result, moodFor)`, Stats deps `moodFor`). The "The sky" How Deadline works topic has the line. No schema change.
+
+### Build B2 (still to do)
+(Mood column, Stats faces and the How Deadline works line are DONE in B1.) End-of-day / rollover prompt; the feeling-aware Bad/Awful help card (overwhelmed: pick 3 priorities and break the biggest into sub-tasks; unmotivated: small first step + start timer; anxious/stressed: mark the task behind it priority and break it up; exhausted/tired: a light day is allowed; distracted: one task, timer on; sad/down: "Cut yourself some slack today. A break is allowed."; plus a one-tap "Add a 10-minute task: figure out what's behind this"); the run-of-lows card (3 days in a row of Bad/Awful, at most once a week, gently suggests talking to someone); a How Deadline works line; later a journal "Add a note" hook.
 
 ## W1c Sky picker (Lv 4 perk) -- DESIGNED 2026-11-07 (Claude app session, Fable 5.1; Jeremy). BUILT 2026-11-09 (Sonnet 5.5, with the amendment below; sw v305; see "W1c as built"). Not yet phone-checked.
 

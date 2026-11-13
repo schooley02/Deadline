@@ -11,6 +11,14 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-13 — Mood Build B1 (Mood column, Stats faces)
+**Did:** `Mood.dayGlyph`; Weather panel + Stats readout table get a Mood column (only when some day has a mood); Stats best / worst day rows show the face(s); a line in the "The sky" How Deadline works topic; `script.js` `moodForDay` feeds them; `moodFor` passed through managementWindows / statsView. New `test/moodDisplay.test.js`; weatherPanel and climateWiring pins updated. sw v360.
+**State:** Targeted suites pass in a cloud copy; the only failures are the known ones (missing Assets PNG `fog-tile`, stale `climateWiring` RainFx pin). Full `npx jest` not run; no phone check.
+**Next:** Build B2 (its own session): the feeling-aware Bad/Awful help card with the "Add a 10-minute task" button, the run-of-lows card (3 days in a row, at most once a week), the end-of-day prompt. Design is in `docs/WORLD_FEEDBACK_PLAN.md` "Build B2".
+**Watch out:** `js/ui/weatherPanel.js`, `script.js` and `test/weatherPanel.test.js` are CRLF: edit with the line endings preserved.
+
+---
+
 ## 2026-11-13 — Mood check-in Build A (avatar face + mood picker)
 **Did:** New `js/mood.js`, `js/ui/moodView.js`, `css/mood.css`; DailyRecord v15 (`mood`, `moodHist`); Settings `avatar` + `moodCardDay`; HUD Level button shows the avatar face; mood picker in the Level panel; first-run "Who's playing?" picker; once-a-day morning card; Settings > Avatar. Wired into index.html, sw.js (v359), script.js. 5 new test files plus pin updates (DailyRecord V 14 to 15, Settings objects). Docs updated (WORLD_FEEDBACK_PLAN, DATA_SCHEMA, DAILY_RECORD_PLAN, DECISIONS, ROADMAP, UI_UX, CLAUDE.md).
 **State:** Tested in a cloud copy: 56 of 60 targeted suites pass (1431 tests). 11 failures are missing Assets PNGs, 1 is a stale pin in climateWiring.test.js (`RainFx.init({ getResult: climateNow })`), none from this change. Full `npx jest` NOT run; no live browser/phone check yet.

@@ -4,6 +4,12 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-13 (mood Build B1: the Mood column) -- Claude app session, Sonnet 5.5; Jeremy ("yes continue" to the B1 / B2 split)
+- **Decision:** Build B is split. B1 (read-only display: Weather table Mood column, Stats best / worst faces, How Deadline works line) is built; B2 (Bad/Awful help card, run-of-lows card, rollover prompt) is its own session because it touches task creation and the agenda. The Mood column appears only once some day has a mood, so a new player sees no empty column. Informational only, as before.
+- **Shipped:** sw v360, no schema change, no balance numbers touched.
+
+---
+
 ## 2026-11-13 (mood check-in Build A: mood lives on the avatar) -- Claude app session, Sonnet 5.5 (design talk with Fable 5.2); Jeremy
 - **Decision:** (1) Mood is tied to the player's chosen avatar (male/female); the HUD Level button shows the avatar face instead of the chevron, and the Level panel is the "player panel" that hosts the picker. (2) 5 required levels (Rad/Good/Meh/Bad/Awful, stored 5..1); one tap is a complete check-in; same local hour replaces. (3) Feelings are plain word chips (20, append-only bit flags, max 2 per check-in; any word pickable via "More words"); context words (5) unlimited. (4) Only 10 avatar faces get art (5 levels x 2 avatars), not one per feeling; emoji until then; no-mood face is the avatar's person emoji. (5) Build A / Build B split; Build B holds the Mood column, Stats, rollover prompt, Bad/Awful help card, run-of-lows card. (6) Mood stays informational: no rewards, never changes the scene.
 - **Deviation from the 2026-11-07 design:** the morning card's once-a-day stamp is persisted in Settings `moodCardDay` (not in memory), so a reload does not re-ask; it is per device and not exported. The avatar is exported; an import without one keeps the current one.

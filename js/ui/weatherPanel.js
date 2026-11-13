@@ -108,7 +108,7 @@ const WeatherPanel = (() => {
      * A RunClimate result -> what the three surfaces show (null when there is no result). With a sky pick on the result
      * (`result.pick = { band, realBand }`, js/skyPick.js) everything describes the REAL band and `vm.pick` names the picked one.
      */
-    function buildViewModel(result) {
+    function buildViewModel(result, moodFor) {
         if (!result || !BAND_INFO[result.band]) return null;
         const pick = (result.pick && BAND_INFO[result.pick.band] && BAND_INFO[result.pick.realBand]) ? result.pick : null;
         const realBand = pick ? pick.realBand : result.band;
@@ -120,7 +120,17 @@ const WeatherPanel = (() => {
         else if (!recent.length) note = 'Your first finished day starts moving the sky. Until then a new run stays Hazy.';
         else if (result.usedPrior) note = 'Early in a run the sky leans toward Hazy until a full week of days has been scored.';
         else note = '';
+        // Mood (W1b Build B1): `moodFor(dateKey | 'today')` -> the day's mood entries; the column shows only once some day has one.
+        const glyphOf = (key) => {
+            if (typeof moodFor !== 'function' || typeof Mood === 'undefined') return null;
+            const g = Mood.dayGlyph(moodFor(key));
+            return g ? { text: g.text, title: g.title } : null;
+        };
+        const todayMood = result.forced ? null : glyphOf('today');
+        const rowMoods = recent.map(r => glyphOf(r.date));
+        const hasMood = !!todayMood || rowMoods.some(Boolean);
         return {
+            hasMood,
             band: realBand,
             label: info.label,
             pick: pick ? { band: pick.band, label: BAND_INFO[pick.band].label } : null,
@@ -134,10 +144,11 @@ const WeatherPanel = (() => {
             note,
             // Live sky (2026-11-11): the first table row is TODAY so far (null for a dev-forced sky). `pending` = nothing judged yet.
             today: result.forced ? null : (result.today
-                ? { pending: false, onTime: pct(result.today.onTime), habits: pct(result.today.habits), damage: hp(result.today.damage) }
-                : { pending: true }),
-            rows: recent.map(r => ({
+                ? { pending: false, onTime: pct(result.today.onTime), habits: pct(result.today.habits), damage: hp(result.today.damage), mood: todayMood }
+                : { pending: true, mood: todayMood }),
+            rows: recent.map((r, i) => ({
                 date: r.date,
+                mood: rowMoods[i],
                 label: dayLabel(r.date),
                 onTime: pct(r.onTime),
                 habits: pct(r.habits),
@@ -146,17 +157,25 @@ const WeatherPanel = (() => {
         };
     }
 
-    function todayRowHtml(t) {
+    function moodCellHtml(m) {
+        return m ? `<td class="wx-mood" title="${esc(m.title)}"><span aria-hidden="true">${esc(m.text)}</span><span class="wx-sr">${esc(m.title)}</span></td>` : '<td class="wx-mood">&mdash;</td>';
+    }
+
+    function todayRowHtml(t, withMood) {
         if (!t) return '';
-        if (t.pending) return '<tr class="wx-row--live"><th scope="row">Today so far</th><td colspan="3" class="wx-pending">Nothing judged yet</td></tr>';
-        return `<tr class="wx-row--live"><th scope="row">Today so far</th><td>${esc(t.onTime)}</td><td>${esc(t.habits)}</td><td>${esc(t.damage)}</td></tr>`;
+        if (t.pending) {
+            // "Nothing judged yet" spans the three score columns; a mood logged today still shows in its own column.
+            return `<tr class="wx-row--live"><th scope="row">Today so far</th><td colspan="3" class="wx-pending">Nothing judged yet</td>${withMood ? moodCellHtml(t.mood) : ''}</tr>`;
+        }
+        return `<tr class="wx-row--live"><th scope="row">Today so far</th><td>${esc(t.onTime)}</td><td>${esc(t.habits)}</td><td>${esc(t.damage)}</td>${withMood ? moodCellHtml(t.mood) : ''}</tr>`;
     }
 
     function tableHtml(vm) {
         if (!vm.rows.length && !vm.today) return '';
-        const body = todayRowHtml(vm.today) + vm.rows.map(r =>
-            `<tr><th scope="row">${esc(r.label)}</th><td>${esc(r.onTime)}</td><td>${esc(r.habits)}</td><td>${esc(r.damage)}</td></tr>`).join('');
-        return `<table class="wx-table"><thead><tr><th scope="col">Day</th><th scope="col">On time</th><th scope="col">Habits kept</th><th scope="col">Church damage</th></tr></thead><tbody>${body}</tbody></table>`;
+        const wm = !!vm.hasMood;
+        const body = todayRowHtml(vm.today, wm) + vm.rows.map(r =>
+            `<tr><th scope="row">${esc(r.label)}</th><td>${esc(r.onTime)}</td><td>${esc(r.habits)}</td><td>${esc(r.damage)}</td>${wm ? moodCellHtml(r.mood) : ''}</tr>`).join('');
+        return `<table class="wx-table"><thead><tr><th scope="col">Day</th><th scope="col">On time</th><th scope="col">Habits kept</th><th scope="col">Church damage</th>${wm ? '<th scope="col">Mood</th>' : ''}</tr></thead><tbody>${body}</tbody></table>`;
     }
 
     function daysHeadingHtml(vm) {
@@ -294,6 +313,7 @@ const WeatherPanel = (() => {
 
     let getResult = null;
     let getPickerInfo = null; // () => { unlocked, pick, realBand, unlockLevel } -- the picker row (omitted = no picker row)
+    let getMood = null;       // (dateKey | 'today') => mood entries, for the Mood column (script.js)
     let onPick = null;        // (key: 'follow' | band) => void -- script.js saves the pick and refreshes the sky
     let onPeek = null;        // (on: boolean) => void -- press-and-hold on the badge: show the REAL sky while held
     let badgeEl = null;
@@ -305,7 +325,7 @@ const WeatherPanel = (() => {
     const TOAST_MS = 5000;
 
     function currentModels() {
-        const vm = buildViewModel(getResult ? getResult() : lastResult);
+        const vm = buildViewModel(getResult ? getResult() : lastResult, getMood);
         const picker = (vm && getPickerInfo) ? pickerModel(getPickerInfo()) : null;
         return { vm, picker };
     }
@@ -391,6 +411,7 @@ const WeatherPanel = (() => {
         getResult = (deps && deps.getResult) || null;
         getPickerInfo = (deps && deps.getPickerInfo) || null;
         onPick = (deps && deps.onPick) || null;
+        getMood = (deps && deps.getMood) || null;
         onPeek = (deps && deps.onPeek) || null;
         toastEl = document.getElementById('skyToast');
         badgeEl = document.getElementById('weatherBadge');
@@ -408,7 +429,7 @@ const WeatherPanel = (() => {
             };
             badgeEl.addEventListener('pointerdown', () => {
                 swallowClick = false;
-                const vm = buildViewModel(getResult ? getResult() : lastResult);
+                const vm = buildViewModel(getResult ? getResult() : lastResult, getMood);
                 if (!vm || !vm.pick || !onPeek) return;
                 holdTimer = setTimeout(() => {
                     holdTimer = null;
@@ -423,7 +444,7 @@ const WeatherPanel = (() => {
             badgeEl.addEventListener('click', (e) => {
                 e.stopPropagation(); // Modal's outside-click dismiss would see the same tap
                 if (swallowClick) { swallowClick = false; return; }
-                const vm = buildViewModel(getResult ? getResult() : lastResult);
+                const vm = buildViewModel(getResult ? getResult() : lastResult, getMood);
                 if (vm && !(getResult && getResult() && getResult().forced)) writeStored(nextBadgeState(readStored(), vm.band, true).next);
                 badgeEl.classList.remove('weather-badge--pulse');
                 open();
