@@ -134,6 +134,8 @@ Older days have no field = no mood. The planned Daily Journal (below) stays free
 
 ## Future — Daily Journal (Jeremy, 2026-10-27; not in the D2 build)
 
+**Superseded 2026-11-13 by `docs/JOURNAL_PLAN.md` (full design; adds DailyRecord v16 `notes` count). Kept below as history.**
+
 A few free-text notes per day ("what went well / what was hard"). Design intent, reserved now:
 - **Separate key `deadline.journal`** keyed by the same `YYYY-MM-DD`; the `DailyRecord` stays
   numbers-only. AI joins the two on date (numbers = what happened, note = why, in the player's words).
