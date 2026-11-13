@@ -25,9 +25,9 @@
 .journal-note-count { margin: 4px 0 0; font-size: 12px; opacity: 0.6; text-align: right; }
 .journal-note-error { margin: 6px 0 0; font-size: 13px; color: #ff8a80; }
 .journal-note-hint { margin: 6px 0 10px; font-size: 12px; opacity: 0.7; }
-.journal-note-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.modal-buttons.journal-note-actions { display: flex; flex-direction: column; flex-wrap: nowrap; gap: 8px; }
 .journal-note-actions .primary-button,
-.journal-note-actions .secondary-button { min-height: 44px; flex: 1 1 120px; }
+.journal-note-actions .secondary-button { min-height: 44px; height: auto; flex: 0 0 auto; padding: 8px 14px; }
 
 /* The "Notes" block inside the task / habit window and the routine window. */
 .journal-item-notes { margin: 12px 0; }

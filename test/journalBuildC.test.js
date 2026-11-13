@@ -122,7 +122,7 @@ describe('wiring pins', () => {
         expect(fn.slice(0, 1200)).toMatch(/src: 'complete'/);
     });
     test('the service worker is bumped and the css has the chip', () => {
-        expect(read('sw.js')).toMatch(/deadline-shell-v364/);
+        expect(read('sw.js')).toMatch(/deadline-shell-v365/);
         expect(read('css/journal.css')).toMatch(/\.journal-chip-toast/);
     });
 });
