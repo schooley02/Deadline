@@ -191,6 +191,7 @@ const TimerView = (() => {
                         <button type="button" id="autoStopKeep" class="secondary-button">Keep New Time Logged</button>
                         <button type="button" id="autoStopDelete" class="danger-button">Delete New Time Logged</button>
                     </div>
+                    ${handlers && typeof handlers.onNote === 'function' ? '<p class="auto-stop-note-row"><button type="button" id="autoStopNote" class="auto-stop-note-link">Add a note</button></p>' : ''}
                 </div>
             </div>`);
         if (!overlay) return null;
@@ -201,6 +202,15 @@ const TimerView = (() => {
         wire('autoStopEdit', 'onEdit');
         wire('autoStopKeep', 'onKeep');
         wire('autoStopDelete', 'onDelete');
+        // Journal Build C: "Add a note" opens the note window ON TOP of this notice (which stays, so Edit / Keep / Delete is still the player's choice).
+        const noteLink = document.getElementById('autoStopNote');
+        if (noteLink) {
+            noteLink.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // One tick later: this click is still bubbling and Modal's dismiss handler must not see the new overlay.
+                setTimeout(() => handlers.onNote(), 0);
+            });
+        }
         return overlay;
     }
 

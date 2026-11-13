@@ -1220,6 +1220,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Screen thump (2026-11-09): the whole canvas gives a small jolt as the hit lands (js/ui/canvasThump.js; visual only).
             // The item sizes the buzz (2026-11-11): had sub-tasks / 30+ min logged = heavy, 60+ min = massive.
             onItemDefeated: (item) => { heroAttackOnDefeat(item); CanvasThump.onDefeat(gameCanvas, item); },
+            onTimedCompletion: (item, spanMs) => offerCompletionNoteChip(item, spanMs),
             // Daily record (D2, 2026-10-27): every gameplay seam bumps through here.
             recordDaily: State.bumpToday,
             // Goals (Build A, 2026-11-05): a finished / un-finished task or habit counts toward any linked goal target.
@@ -1863,6 +1864,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return { getYesterday: yesterdayNoteDue, onYesterday: openLateDayNote };
     }
 
+    // Finishing a task with its timer running (Items.completeItem -> deps.onTimedCompletion): a small "Add a note" chip that fades by itself.
+    // Same rules as the stop prompt (Settings switch, the minimum run), but never a window. The item is on its way out of the list, so the
+    // note is filed under its definition / item id exactly like any other.
+    function offerCompletionNoteChip(item, spanMs) {
+        if (typeof JournalView === 'undefined' || !item || State.isGameOver()) return;
+        if (Settings.load().noteOnTimerStop === false) return;
+        if (!(typeof spanMs === 'number' && spanMs >= CONFIG.JOURNAL.TIMER_NOTE_MIN_MS)) return;
+        const loggedMs = Timer.elapsedMs(item, Date.now());
+        JournalView.showChip({
+            text: 'Add a note',
+            onTap: () => openItemNote(item, { src: 'complete', min: Math.floor(spanMs / 60000), context: `Time Logged: ${TimerView.formatMinutes(loggedMs / 60000)}` }),
+        });
+    }
     // After a manual timer Stop (the Stop icon, a paused timer's Stop, "Still working?" > Stop): offer a note about that task. NOT on Pause,
     // not for a run shorter than CONFIG.JOURNAL.TIMER_NOTE_MIN_MS, and not when Settings turned it off. `spanMs` = the run that just stopped
     // (null for a paused timer's Stop, whose time was banked at the pause: the whole Time Logged decides then). One tick later: the stop click
@@ -2475,6 +2489,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const last = (typeof TimerSessions !== 'undefined') ? TimerSessions.latest(item) : null;
         const run = (last && Math.abs((last.end - last.start) - sessionMs) < 1500) ? last : null;
         TimerView.showAutoStopped(item, { sessionMs, totalMs }, {
+            // Journal Build C: "Add a note" on the notice (the notice stays open under the note window).
+            onNote: () => openItemNote(item, { src: 'timer', min: Math.floor(sessionMs / 60000), context: `Time Logged: ${TimerView.formatMinutes(totalMs / 60000)}` }),
             onEdit: () => {
                 // One tick later: this click is still bubbling, and the dismiss handler must not see the new overlay.
                 setTimeout(() => {

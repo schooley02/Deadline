@@ -365,6 +365,41 @@ const JournalView = (() => {
         return { render, getState: () => state };
     }
 
+    // ---- The completion chip (Build C) ---------------------------------------------------------------------------------------
+
+    const CHIP_MS = 7000;
+    const CHIP_FADE_MS = 400;
+
+    /**
+     * A small "Add a note" button that appears at the bottom-left when a task is finished with its timer running, then fades away by itself.
+     * Never a window and never blocking: tapping it opens the note window (one tick later), ignoring it costs nothing. One chip at a time.
+     * opts: { text, onTap(), ms? }. Returns the element, or null without a document.
+     */
+    function showChip(opts) {
+        if (typeof document === 'undefined' || !document.body) return null;
+        const o = opts || {};
+        document.querySelectorAll('.journal-chip-toast').forEach((el) => el.remove());
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.className = 'journal-chip-toast';
+        el.textContent = o.text || 'Add a note';
+        let gone = false;
+        const remove = () => { if (gone) return; gone = true; if (el.parentNode) el.remove(); };
+        const ms = typeof o.ms === 'number' && o.ms >= 0 ? o.ms : CHIP_MS;
+        const fadeTimer = setTimeout(() => {
+            el.classList.add('journal-chip-toast--out');
+            setTimeout(remove, CHIP_FADE_MS);
+        }, ms);
+        el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            clearTimeout(fadeTimer);
+            remove();
+            setTimeout(() => { if (typeof o.onTap === 'function') o.onTap(); }, 0);
+        });
+        document.body.appendChild(el);
+        return el;
+    }
+
     // ---- The day-end card: "How did today go?" (Build B) -------------------------------------------------------------------
 
     /**
@@ -411,7 +446,7 @@ const JournalView = (() => {
 
     return {
         noteWindowHtml, openNote, itemNotesHtml, wireItemNotes, whenText, moodFace, snippet, esc,
-        dayHeading, aboutLabel, entryHtml, dayHtml, windowHtml, buildModel, renderWindow, openDayEnd, DAYS_PER_PAGE,
+        dayHeading, aboutLabel, entryHtml, dayHtml, windowHtml, buildModel, renderWindow, openDayEnd, showChip, CHIP_MS, DAYS_PER_PAGE,
     };
 })();
 

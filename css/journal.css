@@ -95,3 +95,18 @@
 .stats-notes-line { font-size: 13px; margin: 4px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .stats-notes-read { min-height: 44px; padding: 4px 12px; border-radius: 8px; border: 1px solid rgba(0, 0, 0, 0.25); background: rgba(255, 255, 255, 0.5); color: inherit; font: inherit; cursor: pointer; }
 .stats-best-worst-note { font-size: 13px; }
+
+/* ---- Journal Build C: completion chip + auto-stop note link ---- */
+.journal-chip-toast {
+    position: fixed; left: 12px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 9000;
+    min-height: 44px; padding: 0 18px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(20,20,26,0.92); color: #f2f2f2; font: inherit; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5); opacity: 1; transition: opacity 0.4s ease;
+}
+.journal-chip-toast--out { opacity: 0; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .journal-chip-toast { transition: none; } }
+.auto-stop-note-row { margin: 10px 0 0; text-align: center; }
+.auto-stop-note-link {
+    min-height: 44px; padding: 0 12px; background: none; border: none; color: inherit; font: inherit;
+    text-decoration: underline; opacity: 0.85; cursor: pointer;
+}

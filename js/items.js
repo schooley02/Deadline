@@ -744,7 +744,9 @@ const Items = (() => {
         if (opts && opts.onTime === true) item.isOverdue = false;
 
         // Work timer (Build 3, 2026-10-25): completing an item ends its timer, banking the time.
-        if (typeof Timer !== 'undefined' && Timer.isRunning(item)) Timer.stop(item, Date.now());
+        // Journal Build C (2026-11-13): remember how long that run was, so the host can offer a note (a fading chip, never a window).
+        let stoppedSpanMs = null;
+        if (typeof Timer !== 'undefined' && Timer.isRunning(item)) stoppedSpanMs = Timer.stop(item, Date.now());
 
         let xpGained = 0;
         let pointsGained = 0;
@@ -928,6 +930,8 @@ const Items = (() => {
         // animation starts, while the sprite is still in place (script.js measures its lane). Optional
         // collaborator; every completion path (task, sub-task, habit, avoided lurker, KO ghost) lands here.
         if (typeof deps.onItemDefeated === 'function') deps.onItemDefeated(item);
+        // Journal Build C: finished with the timer running -> deps.onTimedCompletion(item, runMs). Optional; the item object is still intact here.
+        if (stoppedSpanMs !== null && typeof deps.onTimedCompletion === 'function') deps.onTimedCompletion(item, stoppedSpanMs);
 
         // Exit: play the death animation (P2-GAME-010 Stage 2b), then fade the
         // splat out over the last FADE_MS. Falls back to the plain 0.5s fade

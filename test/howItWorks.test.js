@@ -23,14 +23,14 @@ const topic = (id, cfg) => all(cfg).find(t => t.id === id);
 // Everything a player can read in a topic, as one lowercase-insensitive string.
 const textOf = (t) => [].concat(t.what || [], t.list || [], t.html || '', t.why || '').join(' ');
 
-describe('the twelve topics', () => {
+describe('the thirteen topics', () => {
     test('Points, Priorities, Pushbacks, Streaks, Hero ranking, Achievements, The sky, Timers and Time Logged, When a run ends, Goals, in that order', () => {
-        expect(all().map(t => t.title)).toEqual(['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Being away', 'Goals']);
-        expect(all().map(t => t.id)).toEqual(['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals']);
+        expect(all().map(t => t.title)).toEqual(['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Being away', 'Goals', 'Journal and notes']);
+        expect(all().map(t => t.id)).toEqual(['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals', 'journal']);
     });
 
     test('Streaks, Hero ranking, Achievements, The sky, Timers and When a run ends carry a "Why"; Points and Pushbacks do not invent one', () => {
-        ['priorities', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals'].forEach(id => expect(topic(id).why).toBeTruthy());
+        ['priorities', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals', 'journal'].forEach(id => expect(topic(id).why).toBeTruthy());
         ['points', 'pushbacks'].forEach(id => expect(topic(id).why).toBeUndefined());
     });
 });
@@ -267,8 +267,8 @@ describe('Achievements', () => {
 describe('windowHtml', () => {
     test('one <details> per topic, in order, with the corner x', () => {
         const html = HowItWorks.windowHtml(all());
-        expect((html.match(/<details /g) || []).length).toBe(12);
-        const order = ['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Being away', 'Goals'].map(n => html.indexOf(`<summary>${n}</summary>`));
+        expect((html.match(/<details /g) || []).length).toBe(13);
+        const order = ['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Being away', 'Goals', 'Journal and notes'].map(n => html.indexOf(`<summary>${n}</summary>`));
         expect(order.every(i => i > 0)).toBe(true);
         expect(order).toEqual(order.slice().sort((a, b) => a - b));
         expect(html).toContain('modal-close-x');

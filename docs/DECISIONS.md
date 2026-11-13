@@ -4,6 +4,12 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-13 (Journal Build C: topic, auto-stop link, completion chip) -- Claude app session, Sonnet 5.5; Jeremy ("continue build c")
+- **Decision:** the Journal's last pieces follow the plan. (1) How Deadline works gets a 13th topic, "Journal and notes" (optional; where notes can be written; earns nothing and why; stays on the device); its numbers come from `CONFIG.JOURNAL`. (2) The auto-stop notice gets an "Add a note" link that opens the note window on top, leaving the notice (Edit / Keep / Delete) in place. (3) Finishing a task with its timer running shows a small fading "Add a note" chip, never a window; same Settings switch and 60-second minimum as the stop prompt. The minimum stays a THEORY value Jeremy will revisit after play-testing.
+- **Why a chip and not a window:** completing a task is a moment of finishing; a window there would interrupt the reward moment and the next task. The chip costs nothing to ignore.
+- **Not built:** AI insights over notes, search / plain-text export, guided prompts, size roll-up (later, not designed).
+- **Version:** sw v364. Not phone-checked.
+
 ## 2026-11-13 (Journal: design) -- Claude app session, Fable 5.2; Jeremy
 - **Decision:** an optional journal of free-text notes, designed in `docs/JOURNAL_PLAN.md` (not built). One store `deadline.journal` (lifetime, keyed by local day, one entry type); the DailyRecord stays numbers-only and gains only a per-day `notes` count (v16). A note can be about an item (task / habit), a routine, the day, or the game in general. Every note copies the day's latest mood check-in onto itself; the mood picker gets "Add a note"; the end-of-day "How did today go?" prompt (faces + text) ships with the journal.
 - **Jeremy's four answers:** (1) the note window opens on a manual timer Stop and the auto-stop notice gets an "Add a note" link; NOT on Pause; completing with the timer running shows only a small "Add a note" chip. (2) "How did today go?" is the first card of the existing evening check (shown alone if there is nothing else to ask), with a one-morning "How did yesterday go?" fallback. (3) The journal lives in the player (Level) panel next to Mood AND as a "Journal" row in the plus menu; no new HUD button. (4) A Settings switch "Ask for a note when I stop a timer", default on.

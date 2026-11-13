@@ -303,9 +303,31 @@ const HowItWorks = (() => {
         };
     }
 
+    // ---- Journal (Journal Build C, 2026-11-13; docs/JOURNAL_PLAN.md) ----
+    // What the Journal is, that it is optional, that it earns nothing and why, where notes can be written, and that it stays on the device.
+    // The limits come from CONFIG.JOURNAL so a retune cannot leave the page lying.
+    function journalTopic(config) {
+        const j = config.JOURNAL || {};
+        const max = j.MAX_CHARS || 2000;
+        const minSec = Math.round((j.TIMER_NOTE_MIN_MS != null ? j.TIMER_NOTE_MIN_MS : 60000) / 1000);
+        return {
+            id: 'journal',
+            title: 'Journal and notes',
+            what: [
+                `The Journal is for your own words, and it is always optional. Write a note about a task, a habit, a routine, your day or the game itself (up to ${max} characters), or skip any prompt that asks.`,
+                `When you stop a timer yourself, the game offers a note about that task if the run lasted at least ${minSec} seconds. Pausing does not ask. Finishing a task with its timer running shows a small "Add a note" button that fades by itself. You can turn the stop prompt off in Settings.`,
+                `Other places to write: the Notes block on a task, habit or routine window, "Add a note" under the mood faces, the evening "How did today go?" card, and the Journal window (plus menu, or your player panel). If you missed the evening card, the next morning offers "How did yesterday go?" for that one day.`,
+                `Each note remembers your latest mood check-in that day, so it reads with the feeling it was written in.`,
+                `Notes stay on this device and are never sent anywhere. They are in a backup only if the box on Backup & Transfer is ticked, and Reset Game and new runs never erase them.`,
+                `Notes earn no points, XP or items.`,
+            ],
+            why: `The numbers show what happened; your words show why. Paying for notes would fill the Journal with filler, so a note is just for you, to look back on when you compare runs and see what helps and what derails you.`,
+        };
+    }
+
     function topics(config) {
         const cfg = config || (typeof CONFIG !== 'undefined' ? CONFIG : {});
-        return [pointsTopic(cfg), prioritiesTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg), timersTopic(cfg), runsTopic(cfg), momentumTopic(cfg), awayTopic(cfg), goalsTopic(cfg)];
+        return [pointsTopic(cfg), prioritiesTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg), timersTopic(cfg), runsTopic(cfg), momentumTopic(cfg), awayTopic(cfg), goalsTopic(cfg), journalTopic(cfg)];
     }
 
     // ---- Markup ------------------------------------------------------------------------------------------------
@@ -358,7 +380,7 @@ const HowItWorks = (() => {
     // Capture + stopPropagation is deliberate: Modal's outside-click dismiss (a bubbling document handler) would
     // otherwise see the same tap and close the popup or window the button sits in, and a row's own tap handler
     // (agenda rows, hero rows) must not fire as well.
-    const TOPIC_IDS = ['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals'];
+    const TOPIC_IDS = ['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals', 'journal'];
 
     function buttonHtml(topicId, label) {
         if (TOPIC_IDS.indexOf(topicId) === -1) return '';

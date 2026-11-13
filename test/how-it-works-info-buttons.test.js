@@ -113,7 +113,7 @@ describe('where the buttons are', () => {
     test('index.html: the Heroes popup and Routines window carry heroes, Stats > Achievements carries achievements, Stats > Goals carries goals', () => {
         const html = read('index.html');
         const found = [...html.matchAll(/data-hiw-topic="([a-z]+)"/g)].map(m => m[1]);
-        expect(found.slice().sort()).toEqual(['achievements', 'goals', 'heroes', 'heroes']);
+        expect(found.slice().sort()).toEqual(['achievements', 'goals', 'heroes', 'heroes', 'journal']);
         found.forEach(id => expect(HowItWorks.TOPIC_IDS).toContain(id));
         // each one sits in its own header
         expect(html).toMatch(/<h3>Heroes <button[^>]*data-hiw-topic="heroes"/);
