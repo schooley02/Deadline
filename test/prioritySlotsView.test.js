@@ -22,17 +22,17 @@ describe('words', () => {
         expect(PrioritySlotsView.dayWord(null, '2026-11-04')).toBe('that day');
     });
 
-    test('label, full text and set-complete text follow perDay', () => {
+    test('label and full text follow perDay; the full text no longer promises a refill', () => {
         expect(PrioritySlotsView.labelText(2, 3, 'today')).toBe('Priority: 2 of 3 left today');
-        expect(PrioritySlotsView.fullText(3, 'tomorrow')).toBe('No priority slots left tomorrow. Finish your 3 to unlock 3 more.');
-        expect(PrioritySlotsView.setCompleteText(3)).toBe('All 3 priorities done. 3 more unlocked.');
+        expect(PrioritySlotsView.fullText(3, 'tomorrow')).toBe('No priority slots left tomorrow.');
+        expect(PrioritySlotsView.setCompleteText).toBeUndefined(); // no set-complete notice any more (2026-11-12)
         expect(PrioritySlotsView.labelText(1, 5, 'today')).toBe('Priority: 1 of 5 left today');
     });
 
     test('player text never says "High Priority"', () => {
         const all = [
             PrioritySlotsView.labelText(0, 3, 'today'), PrioritySlotsView.fullText(3, 'today'),
-            PrioritySlotsView.setCompleteText(3), PrioritySlotsView.explainerText({ left: 1 }, 3, 'today'),
+            PrioritySlotsView.explainerText({ left: 1 }, 3, 'today'),
             PrioritySlotsView.CARRY_TEXT, PrioritySlotsView.COVERED_TEXT, PrioritySlotsView.KEEP_TEXT,
         ].join(' ');
         expect(all).not.toMatch(/high.priority/i);
@@ -47,13 +47,13 @@ describe('pips', () => {
         expect(PrioritySlotsView.pipStates({ marks: 3, done: 2, left: 0 }, 3)).toEqual(['done', 'done', 'used']);
     });
 
-    test('a finished set refills the pips (3 done -> three fresh, hollow)', () => {
-        expect(PrioritySlotsView.pipStates({ marks: 3, done: 3, left: 3 }, 3)).toEqual(['free', 'free', 'free']);
-        expect(PrioritySlotsView.pipStates({ marks: 4, done: 3, left: 2 }, 3)).toEqual(['used', 'free', 'free']);
+    test('a finished day stays full: 3 done shows three check pips, never a refill', () => {
+        expect(PrioritySlotsView.pipStates({ marks: 3, done: 3, left: 0 }, 3)).toEqual(['done', 'done', 'done']);
+        expect(PrioritySlotsView.pipStates({ marks: 4, done: 4, left: 0 }, 3)).toEqual(['done', 'done', 'done']); // saved before the cap
     });
 
-    test('free pips never exceed the room left in the set (done priorities that were never marked here)', () => {
-        expect(PrioritySlotsView.pipStates({ marks: 0, done: 3, left: 6 }, 3)).toEqual(['free', 'free', 'free']);
+    test('free pips never exceed the room left in the day (done priorities that were never marked here)', () => {
+        expect(PrioritySlotsView.pipStates({ marks: 0, done: 3, left: 3 }, 3)).toEqual(['done', 'done', 'done']);
         expect(PrioritySlotsView.pipStates({ marks: 0, done: 1, left: 3 }, 3)).toEqual(['done', 'free', 'free']);
     });
 
@@ -127,7 +127,7 @@ describe('bindRow', () => {
         const el = mount(false);
         PrioritySlotsView.bindRow(Object.assign({ checkbox: el.cb, deps: deps(), confirm }, el));
         expect(el.cb.disabled).toBe(true);
-        expect(el.hint.textContent).toBe('No priority slots left today. Finish your 3 to unlock 3 more.');
+        expect(el.hint.textContent).toBe('No priority slots left today.');
         setDate(el, '2026-11-05');
         expect(el.cb.disabled).toBe(false);
         expect(el.hint.textContent).toBe('');

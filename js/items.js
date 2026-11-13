@@ -522,7 +522,7 @@ const Items = (() => {
         const marks = PrioritySlots.marksFor(typeof deps.getPriorityMarks === 'function' ? deps.getPriorityMarks() : null, key);
         const completed = (typeof deps.completedItems === 'function' ? deps.completedItems() : null) || [];
         const done = PrioritySlots.countDone(completed, deps.activeItems || [], key);
-        return { key, marks, done, left: PrioritySlots.remaining(marks, done, priorityPerDay()) };
+        return { key, marks, done, left: PrioritySlots.remaining(marks, priorityPerDay()) };
     }
     /** Take the inherited flag back from a parent's sub-tasks (the parent was unmarked or moved to another day). */
     function dropInheritedPriority(parent, deps) {
@@ -547,7 +547,7 @@ const Items = (() => {
         const slots = prioritySlotsFor(item.dueDateTime, deps);
         const parent = priorityParentOf(item, deps);
         const plan = PrioritySlots.planChange({
-            item, parent, on: !!on, marks: slots.marks, done: slots.done, perDay: priorityPerDay(),
+            item, parent, on: !!on, marks: slots.marks, perDay: priorityPerDay(),
         });
         if (!plan.ok || plan.action === 'noop') {
             return { ok: plan.ok, changed: false, action: 'noop', left: plan.left, reason: plan.reason };
@@ -920,11 +920,6 @@ const Items = (() => {
         });
         goalProgress(item, deps, +1);
         deps.saveGame();
-        // Priority slots (Build B): a full set of priorities done on this task's day opens a fresh set -- tell the player.
-        if (typeof deps.onPrioritySetComplete === 'function' && dailyTakesPrioritySlot(item, deps)) {
-            const slots = prioritySlotsFor(item.dueDateTime, deps);
-            if (slots.done > 0 && slots.done % priorityPerDay() === 0) deps.onPrioritySetComplete(slots);
-        }
 
         // Show completed tasks section and render completed items
         deps.renderCompletedItems();

@@ -3,8 +3,7 @@
  * docs/PRIORITY_SLOTS_PLAN.md, DECISIONS 2026-11-04 (priority slots)).
  *
  * Three jobs, one place so the wording cannot drift between them:
- *   1. WORDS (pure): "Priority: 2 of 3 left today", the full-day text, the "doesn't carry over" line, the set-complete
- *      notice. Player-facing text says "Priority", never "High Priority".
+ *   1. WORDS (pure): "Priority: 2 of 3 left today", the full-day text, the "doesn't carry over" line. Player-facing text says "Priority", never "High Priority".
  *   2. PIPS (pure markup + one DOM write): the at-a-glance row in the list header. hollow = free, filled = used (open),
  *      check = done. `PrioritySlotsView.render(el, slots, opts)` fills `#prioritySlots`.
  *   3. THE FORM ROW (DOM): `bindRow` drives a "Priority" checkbox in Add Task / Edit Task / the sub-task form -- the live
@@ -52,35 +51,29 @@ const PrioritySlotsView = (() => {
 
     /** Shown under the box when nothing is left on that day. */
     function fullText(perDay, word) {
-        const n = per(perDay);
-        return 'No priority slots left ' + (word || 'today') + '. Finish your ' + n + ' to unlock ' + n + ' more.';
+        return 'No priority slots left ' + (word || 'today') + '.';
     }
 
     const CARRY_TEXT = "Priority doesn't carry over. Mark it again on the new day.";
     const COVERED_TEXT = "The parent's priority covers this sub-task.";
     const KEEP_TEXT = 'The slot stays used.';
 
-    function setCompleteText(perDay) {
-        const n = per(perDay);
-        return 'All ' + n + ' priorities done. ' + n + ' more unlocked.';
-    }
-
     // ---- pips (pure) ----------------------------------------------------------------------------------------------
 
     /**
-     * One state per slot of the CURRENT set: 'done' first, then 'used' (marked, still open -- or thrown away by an
-     * unmark), then 'free'. `slots` = { marks, done, left }. Always `perDay` entries.
+     * One state per slot of the day: 'done' first, then 'used' (marked, still open -- or thrown away by an unmark), then
+     * 'free'. `slots` = { marks, done, left }. Always `perDay` entries (the day's slots are a hard cap; no refill).
      */
     function pipStates(slots, perDay) {
         const n = per(perDay);
         const s = slots || {};
         const done = Math.max(0, Math.floor(Number(s.done) || 0));
         const left = Math.max(0, Math.floor(Number(s.left) || 0));
-        const doneInSet = done % n;
-        const free = Math.min(left, n - doneInSet);
-        const used = Math.max(0, n - doneInSet - free);
+        const doneInDay = Math.min(done, n);
+        const free = Math.min(left, n - doneInDay);
+        const used = Math.max(0, n - doneInDay - free);
         const out = [];
-        for (let i = 0; i < doneInSet; i++) out.push('done');
+        for (let i = 0; i < doneInDay; i++) out.push('done');
         for (let i = 0; i < used; i++) out.push('used');
         for (let i = 0; i < free; i++) out.push('free');
         return out;
@@ -111,7 +104,7 @@ const PrioritySlotsView = (() => {
         const n = per(perDay);
         const left = slots ? slots.left : n;
         return 'You get ' + n + ' priority slots a day. A priority task pays double. Marking one uses a slot for good, even if ' +
-            'you unmark it. Finish all ' + n + ' and ' + n + ' more open up. ' + leftText(left, n) + ' ' + (word || 'today') + '. ' +
+            'you unmark it. ' + leftText(left, n) + ' ' + (word || 'today') + '. ' +
             "Finish 1 priority or 1 routine to secure today's momentum.";
     }
 
@@ -242,7 +235,7 @@ const PrioritySlotsView = (() => {
     }
 
     return {
-        dayWord, leftText, labelText, fullText, setCompleteText, pipStates, pipsHtml, explainerText, render,
+        dayWord, leftText, labelText, fullText, pipStates, pipsHtml, explainerText, render,
         bindRow, rowHtml, dueFromDateValue, CARRY_TEXT, COVERED_TEXT, KEEP_TEXT, esc,
     };
 })();

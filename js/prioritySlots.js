@@ -6,8 +6,9 @@
  * has CONFIG.PRIORITY_SLOTS_PER_DAY of them (3). Rules, all pure here:
  *
  *   - A slot is SPENT when a task is marked (`marks[day]` goes up). Unmarking never gives it back.
- *   - Finishing a full set of three priorities on a day opens three fresh slots for that day.
- *       available = perDay + perDay * floor(done / perDay) - marks          (can go negative after an undo)
+ *   - A day's slots are a HARD CAP (Jeremy, 2026-11-12): finishing priorities never opens more. The old "finish three,
+ *       get three more" refill is gone (DECISIONS 2026-11-12 (priority cap)).
+ *       available = perDay - marks          (a save from before the cap can sit below 0; remaining() floors it)
  *   - Only a task that TAKES a slot counts: a priority standalone task, or a priority sub-task whose parent is NOT
  *     priority. A priority parent covers its sub-tasks for ONE slot (they inherit the look and the x2 points).
  *   - A move to another local day strips priority (the old day's slot stays spent).
@@ -39,25 +40,19 @@ const PrioritySlots = (() => {
         return Number.isFinite(v) && v > 0 ? Math.floor(v) : 0;
     }
 
-    /** Slots still free on a day, NOT floored (an undone completion after a reset can push it below 0). */
-    function available(marks, done, perDay) {
+    /** Slots still free on a day, NOT floored (a day that spent extra slots under the old refill rule can sit below 0). */
+    function available(marks, perDay) {
         const per = whole(perDay) || DEFAULT_PER_DAY;
-        return per + per * Math.floor(whole(done) / per) - whole(marks);
+        return per - whole(marks);
     }
 
     /** What the player sees: never below 0. */
-    function remaining(marks, done, perDay) {
-        return Math.max(0, available(marks, done, perDay));
+    function remaining(marks, perDay) {
+        return Math.max(0, available(marks, perDay));
     }
 
-    function canMark(marks, done, perDay) {
-        return available(marks, done, perDay) > 0;
-    }
-
-    /** How many full sets of priorities a day's completions make (each one opened three more slots). */
-    function setsCompleted(done, perDay) {
-        const per = whole(perDay) || DEFAULT_PER_DAY;
-        return Math.floor(whole(done) / per);
+    function canMark(marks, perDay) {
+        return available(marks, perDay) > 0;
     }
 
     function isTask(item) {
@@ -108,8 +103,8 @@ const PrioritySlots = (() => {
     }
 
     /**
-     * What would marking / unmarking do? `ctx` = { item, parent, on, marks, done, perDay } where marks / done are the
-     * counts for the item's due day. Returns { ok, action: 'mark' | 'unmark' | 'noop', left, reason? }:
+     * What would marking / unmarking do? `ctx` = { item, parent, on, marks, perDay } where marks is the count for the
+     * item's due day. Returns { ok, action: 'mark' | 'unmark' | 'noop', left, reason? }:
      *   mark   -- spends one slot (ok false, reason 'full' when none is left);
      *   unmark -- clears the flag, spends nothing and refunds nothing;
      *   noop   -- already in that state, or a sub-task covered by a priority parent (reason 'covered').
@@ -118,13 +113,13 @@ const PrioritySlots = (() => {
         const c = ctx || {};
         const item = c.item;
         const per = whole(c.perDay) || DEFAULT_PER_DAY;
-        const left = remaining(c.marks, c.done, per);
+        const left = remaining(c.marks, per);
         if (!isTask(item)) return { ok: false, action: 'noop', left, reason: 'not-a-task' };
         const covered = !!(item.parentId && c.parent && isTask(c.parent) && c.parent.isHighPriority);
         if (c.on) {
             if (covered) return { ok: true, action: 'noop', left, reason: 'covered' };
             if (item.isHighPriority) return { ok: true, action: 'noop', left };
-            if (!canMark(c.marks, c.done, per)) return { ok: false, action: 'noop', left, reason: 'full' };
+            if (!canMark(c.marks, per)) return { ok: false, action: 'noop', left, reason: 'full' };
             return { ok: true, action: 'mark', left: Math.max(0, left - 1) };
         }
         if (covered) return { ok: true, action: 'noop', left, reason: 'covered' };
@@ -169,7 +164,7 @@ const PrioritySlots = (() => {
     }
 
     return {
-        DEFAULT_PER_DAY, perDayOf, dayKey, available, remaining, canMark, setsCompleted,
+        DEFAULT_PER_DAY, perDayOf, dayKey, available, remaining, canMark,
         takesSlot, findParent, countDone, stripsOnMove, planChange,
         sanitizeMarks, addMark, marksFor, prune,
     };

@@ -976,8 +976,8 @@ const CONFIG = {
 
     // --- Priority slots (DESIGNED 2026-11-04, Jeremy; docs/PRIORITY_SLOTS_PLAN.md; DECISIONS 2026-11-04 (priority slots)).
     // A task's "Priority" box is a SLOT: this many per local due day. A slot is spent when a task is marked (unmarking never
-    // gives it back); finishing a full set of this many priorities on a day opens this many fresh slots for that day. The same
-    // number is the set size and the reset size. A balance number: change it only via the balance-tuning process (DECISIONS).
+    // gives it back). It is a HARD CAP: finishing priorities opens no more (the old "finish three, get three more" refill was
+    // removed 2026-11-12, DECISIONS 2026-11-12 (priority cap)). A balance number: change it only via the balance-tuning process (DECISIONS).
     PRIORITY_SLOTS_PER_DAY: 3,
 
     // --- Momentum (DESIGNED 2026-11-11, Jeremy + Claude; docs/MOMENTUM_PLAN.md; DECISIONS 2026-11-11 (momentum)). Build A: what defends a night.

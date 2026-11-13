@@ -20,7 +20,7 @@ Jeremy: "we want to encourage the user to try not to focus on too many big items
 
 1. **Three slots a day, fixed.** Not a level perk, not for sale. A perk ladder (1 -> 2 -> 3 by level) was rejected: perks reset with the run, so every game over would drop the player to one slot right when the reset should re-motivate, and it would shrink early x2 income. Buying extra slots was rejected: scarcity is the whole value, and a shop row is a standing invitation to overload yourself. (Parked: if play data says people want a release valve, a RARE held token -- e.g. a village star drop "Extra Priority x1" -- fits the drop system without ever being purchasable.)
 2. **A slot is spent when you mark it.** Unchecking an open priority removes the glow and the x2 but does NOT give the slot back. Replanning midday is allowed; it costs the slot. (Free re-marking was rejected: the three priorities would collapse into "whatever I'm about to finish", and the x2 would always land on the easiest wins.)
-3. **Finish all three, get three more.** Completing a full set of three priorities on a day opens three fresh slots for that day; nothing else does.
+3. **~~Finish all three, get three more.~~ REMOVED 2026-11-12 (Jeremy): the three are a hard cap.** Finishing priorities opens no more slots (DECISIONS 2026-11-12 (priority cap)). The rest of this plan still describes the refill where it was built; the code, tests, How Deadline works text and UI docs are current.
 4. **Slots belong to the task's DUE day.** Today has three; each later day has its own three, so tomorrow's three can be chosen tonight (Edit Task on a one-off task due tomorrow).
 5. **Tasks only.** Standalone tasks, routine-task instances and sub-tasks. Habits have no priority (unchanged).
 6. **Routine task definitions lose the checkbox.** A routine's saved task template no longer carries High Priority; every priority is a deliberate tap on the day's instance. (Option "the def takes a slot at spawn if one is free" was rejected: under rule 2 a routine would spend the player's slots at midnight before they looked at the day -- a choice made for them, the opposite of the point.)
@@ -31,7 +31,7 @@ Jeremy: "we want to encourage the user to try not to focus on too many big items
 
 - `marks[day]` = how many priority marks were spent on that day (stored, see Data). A mark is spent the moment a task due on `day` is set to priority (Add Task with the box ticked, Edit Task, the sub-task form, the zombie card). Unmarking never lowers it.
 - `done[day]` = priority tasks due on `day` that are completed (derived from `completedItems` + `activeItems` as today: `isHighPriority && completedAt`, counting a priority parent once and a priority sub only when its parent is not priority). Undo lowers it.
-- **`available(day) = 3 + 3 * floor(done[day] / 3) - marks[day]`**, shown as `max(0, available)`. Marking is allowed only while `available > 0`.
+- **`available(day) = 3 - marks[day]`** (was `3 + 3 * floor(done / 3) - marks` until 2026-11-12), shown as `max(0, available)`. Marking is allowed only while `available > 0`.
   - Mark 3 -> 0 left. Finish all 3 -> 3 fresh. Mark 1 more and finish it -> done 4 -> 2 left.
   - Unmark one open priority, finish the other two -> done 2, still 0 left, no reset (one slot thrown away).
   - Undo a completion after the reset -> can go negative -> shows 0, marking blocked until it is done again.

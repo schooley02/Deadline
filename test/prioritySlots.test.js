@@ -61,30 +61,22 @@ function makeDeps(active, completed, marks) {
 
 describe('PrioritySlots: the slot maths', () => {
     test('three free on a fresh day; each mark spends one', () => {
-        expect(PS.available(0, 0, 3)).toBe(3);
-        expect(PS.available(1, 0, 3)).toBe(2);
-        expect(PS.available(3, 0, 3)).toBe(0);
-        expect(PS.canMark(3, 0, 3)).toBe(false);
-        expect(PS.canMark(2, 0, 3)).toBe(true);
+        expect(PS.available(0, 3)).toBe(3);
+        expect(PS.available(1, 3)).toBe(2);
+        expect(PS.available(3, 3)).toBe(0);
+        expect(PS.canMark(3, 3)).toBe(false);
+        expect(PS.canMark(2, 3)).toBe(true);
     });
-    test('finishing a full set of three opens three more; finishing fewer does not', () => {
-        expect(PS.available(3, 2, 3)).toBe(0);
-        expect(PS.available(3, 3, 3)).toBe(3);
-        expect(PS.available(4, 3, 3)).toBe(2);
-        expect(PS.available(6, 6, 3)).toBe(3);
-        expect(PS.setsCompleted(2, 3)).toBe(0);
-        expect(PS.setsCompleted(3, 3)).toBe(1);
-        expect(PS.setsCompleted(7, 3)).toBe(2);
+    test('the three are a hard cap: there is no refill and no setsCompleted any more (2026-11-12)', () => {
+        expect(PS.setsCompleted).toBeUndefined();
+        expect(PS.available(3, 3)).toBe(0);
+        expect(PS.remaining(3, 3)).toBe(0);
+        expect(PS.canMark(3, 3)).toBe(false);
     });
-    test('unmarking never refunds: 3 marks, 1 unmarked and the other 2 finished is still 0 left (no reset)', () => {
-        // marks stays 3 (spent), done = 2 -> no set finished
-        expect(PS.remaining(3, 2, 3)).toBe(0);
-    });
-    test('an undone completion after a reset can go below 0, but the player never sees a negative', () => {
-        expect(PS.available(3, 2, 3)).toBe(0);
-        expect(PS.available(6, 2, 3)).toBe(-3);
-        expect(PS.remaining(6, 2, 3)).toBe(0);
-        expect(PS.canMark(6, 2, 3)).toBe(false);
+    test('a day that spent extra slots under the old refill rule shows 0 left, never a negative', () => {
+        expect(PS.available(6, 3)).toBe(-3);
+        expect(PS.remaining(6, 3)).toBe(0);
+        expect(PS.canMark(6, 3)).toBe(false);
     });
     test('perDayOf reads CONFIG.PRIORITY_SLOTS_PER_DAY (3) and falls back to 3', () => {
         expect(CONFIG.PRIORITY_SLOTS_PER_DAY).toBe(3);
@@ -231,15 +223,15 @@ describe('Items.setPriority', () => {
         expect(deps.marks()).toEqual({ [KEY5]: 3 });
         expect(Items.setPriority(4, true, deps).reason).toBe('full'); // the freed slot is spent
     });
-    test('finishing all three opens three fresh slots (completed priorities count by due day)', () => {
+    test('finishing all three opens NO fresh slots: a fourth mark is still refused (2026-11-12)', () => {
         const open = task({ id: 4 });
         const doneItems = [1, 2, 3].map(id => task({ id, isHighPriority: true, completedAt: new Date() }));
         const deps = makeDeps([open], doneItems, { [KEY5]: 3 });
-        expect(Items.prioritySlotsFor(at(5), deps)).toMatchObject({ marks: 3, done: 3, left: 3 });
-        expect(Items.setPriority(4, true, deps).ok).toBe(true);
-        expect(deps.marks()).toEqual({ [KEY5]: 4 });
+        expect(Items.prioritySlotsFor(at(5), deps)).toMatchObject({ marks: 3, done: 3, left: 0 });
+        expect(Items.setPriority(4, true, deps)).toMatchObject({ ok: false, changed: false, reason: 'full' });
+        expect(deps.marks()).toEqual({ [KEY5]: 3 });
     });
-    test('two of three finished is not a reset', () => {
+    test('two of three finished leaves the day just as full', () => {
         const doneItems = [1, 2].map(id => task({ id, isHighPriority: true }));
         const deps = makeDeps([task({ id: 4 })], doneItems, { [KEY5]: 3 });
         expect(Items.setPriority(4, true, deps).reason).toBe('full');

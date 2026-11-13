@@ -1227,10 +1227,6 @@ document.addEventListener('DOMContentLoaded', () => {
             getPriorityMarks: () => State.getPriorityMarks(),
             setPriorityMarks: (m) => State.setPriorityMarks(m),
             onPriorityChanged: () => refreshPrioritySlots(),
-            onPrioritySetComplete: () => {
-                refreshPrioritySlots();
-                FrozenNotice.showPrioritySetNotice(PrioritySlotsView.setCompleteText(CONFIG.PRIORITY_SLOTS_PER_DAY));
-            },
             // Habit Goals Build 2c: an edited logged time corrects the daily record of the item's own day.
             adjustDayTimer: (when, kind, deltaMin) => State.adjustDayTimer(DailyRecord.dateKey(when), kind, deltaMin),
             // Habit Goals Build 3 (daily record v5): an edited logged time refreshes the habit's recorded goal `actual` on that day.

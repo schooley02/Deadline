@@ -89,7 +89,8 @@ describe('Priorities', () => {
         expect(text).toContain(`${CONFIG.PRIORITY_SLOTS_PER_DAY} priority slots`);
         expect(text).toMatch(/uses a slot for good/);
         expect(text).toMatch(/does not give the slot back/);
-        expect(text).toMatch(new RegExp(`Finish all ${CONFIG.PRIORITY_SLOTS_PER_DAY} priorities`));
+        expect(text).toMatch(/Finishing priorities does not open more/);
+        expect(text).not.toMatch(/more open up|unlock/i); // the "finish three, get three more" refill is gone (2026-11-12)
         expect(text).toMatch(/covers its sub-tasks for one slot/);
         expect(text).toMatch(/drops its priority/);
     });
