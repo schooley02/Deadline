@@ -166,6 +166,7 @@ const DayPagerView = (() => {
             case 'avoided': return { icon: '✓', label: 'Resisted', cssClass: 'outcome-completed' };
             case 'missed': return { icon: '✕', label: 'Missed', cssClass: 'outcome-missed' };
             case 'indulged': return { icon: '✕', label: 'Slipped', cssClass: 'outcome-missed' };
+            case 'notNeeded': return { icon: '—', label: 'Not needed', cssClass: 'outcome-unknown' };
             default: return { icon: '—', label: 'No record', cssClass: 'outcome-unknown' };
         }
     }

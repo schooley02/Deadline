@@ -70,6 +70,13 @@ const Routines = (() => {
         return due;
     }
 
+    // 'YYYY-MM-DD' in local time, the same format Habits.toOccurrenceDate writes (routines.js does not depend on habits.js).
+    function localDateKey(date) {
+        const d = new Date(date);
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+
     // Which task definitions should spawn an instance for forWhichGameDay.
     // Only definitions attached to a currently-isActive routine spawn (an
     // orphaned definition, or one whose routine is deactivated, is inert —
@@ -100,6 +107,10 @@ const Routines = (() => {
             // this session, or a not-yet-migrated one) normalizes to daily, so
             // the prior "spawns every active day" behavior is preserved.
             if (!Schedule.isScheduledForDay(taskDef.schedule, forWhichGameDay)) return false;
+
+            // "Not needed today" (2026-11-13; js/notNeeded.js): a routine task the player marked not needed for this day stays gone. The
+            // same same-day respawn guard habits get from `skipDayDate`; the date compare makes it expire by itself the next day.
+            if (taskDef.skipDayDate && taskDef.skipDayDate === localDateKey(forWhichGameDay)) return false;
 
             const existingActiveInstance = activeItems.find(item =>
                 item.type === 'task' &&

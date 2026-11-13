@@ -974,6 +974,13 @@ const CONFIG = {
     ANYTIME_MORNING_CREDITS: 2,
     ANYTIME_MORNING_CREDIT_WINDOW_MS: 7 * 24 * 60 * 60 * 1000,
 
+    // --- "Not needed" passes (DESIGNED 2026-11-13, Jeremy + Opus 5.5; js/notNeeded.js; DECISIONS 2026-11-13 (Delete Task and Not needed today:
+    // design)). A pass pays for deleting an overdue one-off task, or for "Not needed today" (a day off a habit / routine task, or a one-off
+    // task moved a day later, before it is due). Free deletes before the due time cost none. This many per calendar week; the week starts on
+    // CONFIG.GOAL_WEEK_STARTS_ON (Monday). Starting number: 3, a THEORY dial (Jeremy: "we can try it and see how it goes"). Balance numbers
+    // change only through the balance-tuning process (DECISIONS).
+    NOT_NEEDED_PASSES_PER_WEEK: 3,
+
     // --- Priority slots (DESIGNED 2026-11-04, Jeremy; docs/PRIORITY_SLOTS_PLAN.md; DECISIONS 2026-11-04 (priority slots)).
     // A task's "Priority" box is a SLOT: this many per local due day. A slot is spent when a task is marked (unmarking never
     // gives it back). It is a HARD CAP: finishing priorities opens no more (the old "finish three, get three more" refill was

@@ -138,7 +138,7 @@ const LevelPanel = (() => {
         const xp = xpModel(ctx.xp, ctx.thresholds, ctx.level);
         const slots = slotsModel(ctx);
         const perks = perksModel(ctx.perksTable, ctx.level, 2, ctx.goalSlotsTable);
-        return { level: ctx.level, maxed: xp.maxed, xp, slots, summary: slotsSummary(slots), perks, mood: !!ctx.mood, journal: ctx.journal || null };
+        return { level: ctx.level, maxed: xp.maxed, xp, slots, summary: slotsSummary(slots), perks, mood: !!ctx.mood, journal: ctx.journal || null, passes: ctx.passes || null };
     }
 
     // ---- DOM ----------------------------------------------------------------
@@ -195,6 +195,7 @@ const LevelPanel = (() => {
                     ${titleRow}
                     ${model.mood ? '<h4 class="lp-section">Mood</h4><div class="lp-mood" data-mood-mount></div>' : ''}
                     ${model.journal ? journalSectionHtml(model.journal) : ''}
+                    ${model.passes ? passesLineHtml(model.passes) : ''}
                     <h4 class="lp-section">Routine slots <span class="lp-section-count">${esc(model.summary.replace('Routines ', ''))}</span></h4>
                     <div class="lp-pips">${slots.pips.map(pipHtml).join('')}</div>
                     <p class="lp-note">${notes.map(esc).join('. ')}.</p>
@@ -206,6 +207,11 @@ const LevelPanel = (() => {
                     </button>
                 </div>
             </div>`;
+    }
+
+    // "Not needed" passes (2026-11-13): one line. p = { left, cap, resets: 'Monday' }.
+    function passesLineHtml(p) {
+        return `<p class="lp-passes">Not needed passes: ${esc(p.left)} of ${esc(p.cap)} left this week${p.left <= 0 && p.resets ? ' (resets ' + esc(p.resets) + ')' : ''}</p>`;
     }
 
     // Journal (Build B, 2026-11-13): a small section under Mood. j = { latest: 'Today · first words of the newest note' | null, count }.
@@ -259,6 +265,7 @@ const LevelPanel = (() => {
         goalSlotPerks,
         buildModel,
         panelHtml,
+        passesLineHtml,
         open,
     };
 })();

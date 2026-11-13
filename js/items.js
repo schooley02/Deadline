@@ -2122,6 +2122,114 @@ const Items = (() => {
         return clamped;
     }
 
+    // ---------------------------------------------------------------------------------------------------------------------
+    // "Not needed" passes (2026-11-13, Jeremy + Opus 5.5; js/notNeeded.js has the rules; DECISIONS 2026-11-13 (Delete Task and Not needed
+    // today: design)). deps (on top of removeItem's): getNotNeededUses, setNotNeededUses, notNeededCap, weekStartsOn, isGameOver,
+    // definedHabits, definedTasks, createListItem, sortAndRenderActiveList, and recomputeOverdueStateAfterEdit's own deps.
+    // ---------------------------------------------------------------------------------------------------------------------
+
+    /** Is this item, or any sub-task under it, due / overdue? (Deleting a parent takes its sub-tasks with it.) */
+    function isAttackingTree(item, deps) {
+        if (!item) return false;
+        if (NotNeeded.isDue(item, Date.now())) return true;
+        return (deps.activeItems || []).some(child => child.parentId === item.id && isAttackingTree(child, deps));
+    }
+
+    function notNeededCtx(item, action, deps) {
+        return {
+            item,
+            action,
+            nowMs: Date.now(),
+            uses: typeof deps.getNotNeededUses === 'function' ? deps.getNotNeededUses() : [],
+            cap: deps.notNeededCap,
+            weekStartsOn: deps.weekStartsOn,
+            attacking: isAttackingTree(item, deps),
+            gameOver: typeof deps.isGameOver === 'function' ? !!deps.isGameOver() : false,
+        };
+    }
+
+    /**
+     * What would `action` ('delete' | 'notNeeded') do to this item right now? The NotNeeded.plan result plus `subTaskCount` (how many
+     * sub-tasks a delete would take with it, for the confirm window). Changes nothing; the UI calls it to draw its buttons.
+     */
+    function planNotNeeded(itemId, action, deps) {
+        const item = (deps.activeItems || []).find(i => i.id === itemId);
+        const plan = NotNeeded.plan(notNeededCtx(item, action, deps));
+        const subTaskCount = item ? (deps.activeItems || []).filter(c => c.parentId === item.id).length : 0;
+        const passesNow = plan.usesPass ? plan.left + 1 : plan.left;
+        return Object.assign({}, plan, { subTaskCount, passesNow, resetMs: NotNeeded.nextResetMs(Date.now(), deps.weekStartsOn) });
+    }
+
+    /** Passes left this week (for the player panel and Stats). */
+    function notNeededPassesLeft(deps) {
+        return NotNeeded.passesLeft(deps.getNotNeededUses(), Date.now(), deps.notNeededCap, deps.weekStartsOn);
+    }
+
+    function spendNotNeededPass(deps) {
+        if (typeof deps.setNotNeededUses !== 'function') return;
+        deps.setNotNeededUses(NotNeeded.addUse(deps.getNotNeededUses(), Date.now(), deps.weekStartsOn));
+    }
+
+    /**
+     * Delete a one-off task or sub-task for good (and its sub-tasks). Free while nothing under it is due; once overdue it spends a pass.
+     * No XP, no points, no damage change (damage already taken stays), nothing recorded as done. A deleted priority keeps its slot spent
+     * (PrioritySlots: a slot is never given back). Returns the plan: { ok: false, reason } when refused.
+     */
+    function deleteTask(itemId, deps) {
+        const check = planNotNeeded(itemId, 'delete', deps);
+        if (!check.ok) return check;
+        if (check.usesPass) spendNotNeededPass(deps);
+        removeItem(itemId, deps); // stops a running timer, cascades to sub-tasks, fixes the parent's counters, saves
+        return check;
+    }
+
+    /**
+     * "Not needed today". Always spends a pass, and only before the item is due:
+     *   - a Build habit or a routine task: today's instance leaves the board and the definition's `skipDayDate` keeps it from coming back
+     *     (no occurrence recorded; streak and history untouched, like Skip Day);
+     *   - a one-off task: moves a day later (same time of day), once per task (`notNeededMoved`); its priority does not carry over.
+     */
+    function markNotNeeded(itemId, deps) {
+        const item = (deps.activeItems || []).find(i => i.id === itemId);
+        const check = planNotNeeded(itemId, 'notNeeded', deps);
+        if (!check.ok) return check;
+
+        if (check.effect === 'skip-day') {
+            const dateKey = Habits.toOccurrenceDate(item.originalDueDate || item.dueDateTime);
+            const def = item.type === 'habit'
+                ? (deps.definedHabits() || []).find(d => d.id === item.definitionId)
+                : routineTaskDefFor(item, deps);
+            if (def) def.skipDayDate = dateKey;
+            spendNotNeededPass(deps);
+            removeItem(itemId, deps);
+            return check;
+        }
+
+        // 'move-tomorrow': the same steps as the Edit Task save (due + start, anytime flag, priority, overdue re-check, row refresh).
+        const oldDue = new Date(item.dueDateTime);
+        const newDue = new Date(oldDue.getTime());
+        newDue.setDate(newDue.getDate() + 1);
+        item.dueDateTime = newDue;
+        if (item.startDateTime instanceof Date && !isNaN(item.startDateTime.getTime())) {
+            const newStart = new Date(item.startDateTime.getTime());
+            newStart.setDate(newStart.getDate() + 1);
+            item.startDateTime = newStart;
+        }
+        item.notNeededMoved = true;
+        syncAnytimeFlag(item);
+        syncPriorityOnMove(item, oldDue, deps);
+        recomputeOverdueStateAfterEdit(item, deps);
+        spendNotNeededPass(deps);
+        if (item.listItemElement) {
+            item.listItemElement.remove();
+            if (!item.parentId && typeof deps.createListItem === 'function') deps.createListItem(item);
+        }
+        if (typeof deps.sortAndRenderActiveList === 'function') deps.sortAndRenderActiveList();
+        deps.updateTaskCountDisplay(); // the week strip: the task changed days
+        deps.saveGame();
+        return check;
+    }
+
     return {
         isNonThreatening,
         ghostAdjustedPoints,
@@ -2147,6 +2255,11 @@ const Items = (() => {
         settleExcusedCheatDay,
         useSkipDayOnItem,
         useSickDayGlobally,
+        isAttackingTree,
+        notNeededPassesLeft,
+        planNotNeeded,
+        deleteTask,
+        markNotNeeded,
         uncompleteItem,
         uncompleteItemWithDuePrompt,
         markAsOverdue,

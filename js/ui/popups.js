@@ -226,6 +226,61 @@ const Popups = (() => {
         return `<button type="button" id="useSkipDayBtn" class="negative-habit-button skipday-btn">Use Skip Day (${heldSkipDays} held)</button>`;
     }
 
+    // "Not needed today" and "Delete Task" (2026-11-13, Jeremy). The rules live in NotNeeded.plan (via deps.planNotNeeded); this only
+    // draws what the plan says. Refused-for-a-reason rows show greyed with the reason; rows that never apply are left out.
+    function resetWeekdayLabel(resetMs) {
+        return Number.isFinite(resetMs) ? new Date(resetMs).toLocaleDateString([], { weekday: 'long' }) : 'next week';
+    }
+    function notNeededNoteFor(plan) {
+        if (plan.reason === 'due') return 'Only available before it is due.';
+        if (plan.reason === 'already-moved') return 'Already moved once.';
+        if (plan.reason === 'no-passes') return 'No passes left. Resets ' + resetWeekdayLabel(plan.resetMs) + '.';
+        return '';
+    }
+    function deleteTaskLabel(plan) {
+        if (plan.reason === 'no-passes') return 'Delete Task';
+        return plan.usesPass ? 'Delete Task · uses 1 pass' : 'Delete Task';
+    }
+    // Edit Task form: a Delete Task row for one-off tasks and sub-tasks (same plan as the zombie window's button).
+    function editDeleteHtml(item, deps) {
+        if (typeof deps.planNotNeeded !== 'function') return '';
+        const del = deps.planNotNeeded(item.id, 'delete');
+        if (!del || !['one-off', 'sub-task'].includes(del.kind) || ['not-available', 'unavailable', 'ko', 'not-deletable'].includes(del.reason)) return '';
+        const note = del.ok ? '' : notNeededNoteFor(del);
+        return `<div class="modal-buttons delete-habit-row"><button type="button" id="deleteTaskEditBtn" class="not-needed-btn not-needed-btn--delete"${del.ok ? '' : ' disabled'}>${deleteTaskLabel(del)}</button></div>`
+            + (note ? `<p class="not-needed-note">${escapeNoteText(note)}</p>` : '');
+    }
+
+    function buildNotNeededSectionHtml(item, deps) {
+        if (typeof deps.planNotNeeded !== 'function' || item.koGhost) return '';
+        const parts = [];
+        const skip = deps.planNotNeeded(item.id, 'notNeeded');
+        if (skip && ['one-off', 'routine-task', 'habit'].includes(skip.kind) && !['not-available', 'unavailable', 'ko', 'not-deletable'].includes(skip.reason)) {
+            const note = skip.ok ? '' : notNeededNoteFor(skip);
+            parts.push(`<button type="button" id="notNeededBtn" class="not-needed-btn"${skip.ok ? '' : ' disabled'}>Not needed today · ${skip.passesNow} left this week</button>`
+                + (note ? `<p class="not-needed-note">${escapeNoteText(note)}</p>` : ''));
+        }
+        const del = deps.planNotNeeded(item.id, 'delete');
+        if (del && ['one-off', 'sub-task'].includes(del.kind) && !['not-available', 'unavailable', 'ko', 'not-deletable'].includes(del.reason)) {
+            const note = del.ok ? '' : notNeededNoteFor(del);
+            parts.push(`<button type="button" id="deleteTaskBtn" class="not-needed-btn not-needed-btn--delete"${del.ok ? '' : ' disabled'}>${deleteTaskLabel(del)}</button>`
+                + (note ? `<p class="not-needed-note">${escapeNoteText(note)}</p>` : ''));
+        }
+        return parts.length ? `<div class="not-needed-section">${parts.join('')}</div>` : '';
+    }
+
+    // Shared click wiring: the handler (script.js) asks for confirmation and does the action; the window closes only on success.
+    function wireNotNeededButton(id, handlerName, item, deps) {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+            if (typeof deps[handlerName] !== 'function') return;
+            Promise.resolve(deps[handlerName](item)).then((result) => {
+                if (result && result.ok) Modal.closeModal();
+            });
+        });
+    }
+
     // "+ Sub-task" in the zombie window (2026-11-09, Jeremy). Same rule as the list row's button: tasks only (never habits),
     // top-level only (sub-tasks stay one level deep), not a KO ghost, not after game over.
     function canAddSubTaskFromPopup(item, deps) {
@@ -349,6 +404,7 @@ const Popups = (() => {
             ${canAddSubTaskFromPopup(item, deps) ? '<div class="task-subtask-row" style="display: flex; justify-content: flex-end; margin-top: 8px;"><button type="button" id="addSubTaskBtn" class="add-subtask-button" title="Add Sub-task" style="font-size: 12px; padding: 4px 8px;">+ Sub-task</button></div>' : ''}
             ${buildPushbackSectionHtml(item, deps)}
             ${buildSkipDaySectionHtml(item, deps)}
+            ${buildNotNeededSectionHtml(item, deps)}
         `;
     }
 
@@ -578,6 +634,9 @@ const Popups = (() => {
                 }
             });
         }
+
+        wireNotNeededButton('notNeededBtn', 'onNotNeeded', item, deps);
+        wireNotNeededButton('deleteTaskBtn', 'onDeleteTask', item, deps);
 
         // "+ Sub-task": close this window, then open the usual Create Sub-task form for this task. The form is opened on the
         // next tick so Modal.closeModal() can't race the new Modal.open() (same care as the Cheat Day rebuild above).
@@ -884,6 +943,7 @@ const Popups = (() => {
                         <button id="saveTaskChanges" class="primary-button">Save Changes</button>
                         <button class="secondary-button" onclick="closeModal()">Cancel</button>
                     </div>
+                    ${editDeleteHtml(item, deps)}
                 </div>
             </div>
         `;
@@ -909,6 +969,7 @@ const Popups = (() => {
         // pushback (free charge, held token, then points). Live line under the date/time says
         // which; Save is blocked when it can't be paid (never debt). Optional dep — older callers
         // without it keep the old free behavior.
+        wireNotNeededButton('deleteTaskEditBtn', 'onDeleteTask', item, deps);
         const saveButton = document.getElementById('saveTaskChanges');
         const priceNote = document.getElementById('editRescheduleNote');
         const readNewDue = () => {
@@ -1269,6 +1330,8 @@ const Popups = (() => {
         pushbackButtonText,
         pushbackButtonHtml,
         buildSubTaskListHtml,
+        buildNotNeededSectionHtml,
+        editDeleteHtml,
     };
 })();
 

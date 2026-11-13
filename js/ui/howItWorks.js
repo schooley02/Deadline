@@ -325,9 +325,25 @@ const HowItWorks = (() => {
         };
     }
 
+    // ---- Not needed passes (2026-11-13; DECISIONS 2026-11-13 Delete Task and Not needed today) ----
+    function passesTopic(config) {
+        const n = config.NOT_NEEDED_PASSES_PER_WEEK != null ? config.NOT_NEEDED_PASSES_PER_WEEK : 3;
+        return {
+            id: 'passes',
+            title: 'Not needed today and Delete Task',
+            what: [
+                `Sometimes a task is not needed through no fault of yours. You get ${n} "not needed" passes each week, and they refill on Monday. They are not reset by a new run.`,
+                `"Not needed today" takes a task, build habit or routine task off today without a miss. A habit or routine task skips today only, and your streak is not affected. A one-off task moves to tomorrow, once per task, and loses its priority. It only works before the item is due, and always uses a pass.`,
+                `Delete Task removes a one-off task or sub-task for good. It is free while nothing is due yet. Once it is overdue and attacking, deleting it uses a pass, and damage already taken stays. Deleting a task also deletes its sub-tasks.`,
+                `Neither earns points or XP, and neither counts as done.`,
+            ],
+            why: 'A plan that changed should not cost you a streak, but a free exit from every hard task would empty the game, so the passes are limited.',
+        };
+    }
+
     function topics(config) {
         const cfg = config || (typeof CONFIG !== 'undefined' ? CONFIG : {});
-        return [pointsTopic(cfg), prioritiesTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg), timersTopic(cfg), runsTopic(cfg), momentumTopic(cfg), awayTopic(cfg), goalsTopic(cfg), journalTopic(cfg)];
+        return [pointsTopic(cfg), prioritiesTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg), timersTopic(cfg), runsTopic(cfg), momentumTopic(cfg), awayTopic(cfg), goalsTopic(cfg), journalTopic(cfg), passesTopic(cfg)];
     }
 
     // ---- Markup ------------------------------------------------------------------------------------------------
@@ -380,7 +396,7 @@ const HowItWorks = (() => {
     // Capture + stopPropagation is deliberate: Modal's outside-click dismiss (a bubbling document handler) would
     // otherwise see the same tap and close the popup or window the button sits in, and a row's own tap handler
     // (agenda rows, hero rows) must not fire as well.
-    const TOPIC_IDS = ['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals', 'journal'];
+    const TOPIC_IDS = ['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals', 'journal', 'passes'];
 
     function buttonHtml(topicId, label) {
         if (TOPIC_IDS.indexOf(topicId) === -1) return '';

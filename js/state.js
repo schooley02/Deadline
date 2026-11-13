@@ -76,6 +76,10 @@ const State = (() => {
     // Anytime morning-card credits (2026-11-02): use stamps (ms) of the on-time credits spent, a rolling window read by
     // AnytimeCheck.creditInfo. Additive root save field, no schema bump; a fresh run starts with none spent.
     let anytimeCreditUses = [];
+    // "Not needed" passes (2026-11-13; js/notNeeded.js): use stamps (ms) of the passes spent. NotNeeded.passesLeft counts the stamps in the
+    // current calendar week (Monday start), so nothing needs clearing at rollover. Deliberately NOT cleared by a new run: the allowance is
+    // per real week, not per run (a game over must not hand out fresh passes). Additive root save field, no schema bump.
+    let notNeededUses = [];
     // Priority slots (2026-11-04, docs/PRIORITY_SLOTS_PLAN.md): how many priority slots were SPENT per local due day,
     // { 'YYYY-MM-DD': n } (schema 17). A mark is spent when a task is marked and never given back (PrioritySlots owns the
     // maths). Pruned to yesterday-and-later at rollover; a fresh run (initGame) starts with none spent.
@@ -169,6 +173,11 @@ const State = (() => {
     // Keeps only finite ms stamps; anything else (junk, old saves) becomes empty.
     const setAnytimeCreditUses = (arr) => {
         anytimeCreditUses = Array.isArray(arr) ? arr.filter(n => typeof n === 'number' && isFinite(n)) : [];
+    };
+    const getNotNeededUses = () => notNeededUses;
+    // Keeps only finite ms stamps; anything else (junk, old saves) becomes empty.
+    const setNotNeededUses = (arr) => {
+        notNeededUses = Array.isArray(arr) ? arr.filter(n => typeof n === 'number' && isFinite(n)) : [];
     };
     const getPriorityMarks = () => priorityMarks;
     // Keeps only { 'YYYY-MM-DD': n > 0 }; junk and old saves become empty. No-op shape when PrioritySlots isn't loaded (tests).
@@ -420,6 +429,7 @@ const State = (() => {
             sickDayDate: getSickDayDate(),
             pushbackUses: getPushbackUses(),
             anytimeCreditUses: getAnytimeCreditUses(),
+            notNeededUses: getNotNeededUses(),
             priorityMarks: getPriorityMarks(),
             skyPick: getSkyPick(),
             goals: getGoals(),
@@ -591,6 +601,7 @@ const State = (() => {
         setSickDayDate((typeof save.sickDayDate === 'string') ? save.sickDayDate : null);
         setPushbackUses(save.pushbackUses);
         setAnytimeCreditUses(save.anytimeCreditUses);
+        setNotNeededUses(save.notNeededUses);
         setPriorityMarks(save.priorityMarks);
         setSkyPick(save.skyPick);
         // Run history (session 52, docs/RUN_HISTORY_PLAN.md). The v9→v10
@@ -1411,6 +1422,7 @@ const State = (() => {
         getSickDayDate, setSickDayDate,
         getPushbackUses, setPushbackUses,
         getAnytimeCreditUses, setAnytimeCreditUses,
+        getNotNeededUses, setNotNeededUses,
         getPriorityMarks, setPriorityMarks,
         getSkyPick, setSkyPick,
         getGoals, setGoals, goalSlotCount, syncGoalSlots, ensureGoalsSeeded, settleGoals, applyGoalCompletion, closeGoalPeriods,

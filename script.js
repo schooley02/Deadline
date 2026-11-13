@@ -1223,6 +1223,11 @@ document.addEventListener('DOMContentLoaded', () => {
             onTimedCompletion: (item, spanMs) => offerCompletionNoteChip(item, spanMs),
             // Daily record (D2, 2026-10-27): every gameplay seam bumps through here.
             recordDaily: State.bumpToday,
+            // "Not needed" passes (2026-11-13): the weekly use stamps and the numbers Items.deleteTask / markNotNeeded plan with.
+            getNotNeededUses: () => State.getNotNeededUses(),
+            setNotNeededUses: (uses) => State.setNotNeededUses(uses),
+            notNeededCap: CONFIG.NOT_NEEDED_PASSES_PER_WEEK,
+            weekStartsOn: CONFIG.GOAL_WEEK_STARTS_ON,
             // Goals (Build A, 2026-11-05): a finished / un-finished task or habit counts toward any linked goal target.
             onGoalProgress: (info, dir) => { State.applyGoalCompletion(info, dir); renderGoals(); },
             // Priority slots (2026-11-04): the spent-marks map per due day, read and written by Items.setPriority.
@@ -1440,6 +1445,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // + excuses + removes the targeted instance.
             getSkipDayHeldCount: () => Shop.heldCount(State.getPlayerInventory(), 'skip_day'),
             onUseSkipDay: handleUseSkipDay,
+            planNotNeeded: (id, action) => Items.planNotNeeded(id, action, itemsDeps()),
+            onNotNeeded: handleNotNeeded,
+            onDeleteTask: handleDeleteTask,
             // Dependent due dates ([P1-DATA-004] sub-session 2): after a
             // PARENT's deadline is edited, re-clamp any children now due
             // later than it (Jeremy's clamp model — earlier allowed, later
@@ -3421,11 +3429,17 @@ document.addEventListener('DOMContentLoaded', () => {
             config: CONFIG, runStartedAtMs: State.getRunStartedAtMs(),
         };
     }
+    function notNeededPanelSummary() {
+        const deps = itemsDeps();
+        const next = NotNeeded.nextResetMs(Date.now(), deps.weekStartsOn);
+        return { left: Items.notNeededPassesLeft(deps), cap: deps.notNeededCap, resets: new Date(next).toLocaleDateString([], { weekday: 'long' }) };
+    }
     function openLevelPanel() {
         LevelPanel.open(Object.assign(levelPanelContext(), {
             mood: moodDeps(),
             // Journal Build B: the player-panel section (newest note, Write a note, Open journal).
             journal: journalPanelSummary(),
+            passes: notNeededPanelSummary(),
             onJournalWrite: () => openJournalNote({ about: 'day', src: 'manual', title: 'A note about today' }),
             onJournalOpen: () => openJournal(),
             onJournalYesterday: () => openLateDayNote(),
@@ -4298,6 +4312,36 @@ document.addEventListener('DOMContentLoaded', () => {
         saveGame();
 
         return { ok: true };
+    }
+
+    // "Not needed today" and "Delete Task" (2026-11-13). Rules: js/notNeeded.js (via Items.planNotNeeded). Each asks first, then acts.
+    // Resolves { ok } so the zombie window / Edit Task form closes only when something happened.
+    function passesWord(n) { return n + ' pass' + (n === 1 ? '' : 'es'); }
+    async function handleNotNeeded(item) {
+        const plan = Items.planNotNeeded(item.id, 'notNeeded', itemsDeps());
+        if (!plan.ok) return { ok: false };
+        const left = passesWord(plan.left) + ' left this week';
+        const message = plan.effect === 'move-tomorrow'
+            ? `Move "${item.name}" to tomorrow? You can do this once per task. It uses 1 pass (${left}). A priority star does not carry over, and today's star stays used.`
+            : `Skip "${item.name}" for today only? Your streak is not affected, and it comes back as usual tomorrow. It uses 1 pass (${left}).`;
+        const go = await Dialog.confirm(message, { title: 'Not needed today?', confirmLabel: 'Not needed', cancelLabel: 'Cancel' });
+        if (!go) return { ok: false };
+        const result = Items.markNotNeeded(item.id, itemsDeps());
+        if (result && result.ok) { updateTaskCountDisplay(); saveGame(); }
+        return result;
+    }
+    async function handleDeleteTask(item) {
+        const plan = Items.planNotNeeded(item.id, 'delete', itemsDeps());
+        if (!plan.ok) return { ok: false };
+        const subs = plan.subTaskCount > 0 ? ` Its ${plan.subTaskCount} sub-task${plan.subTaskCount === 1 ? '' : 's'} will be deleted too.` : '';
+        const cost = plan.usesPass
+            ? ` It is overdue, so this uses 1 pass (${passesWord(plan.left)} left this week). Damage already taken stays.`
+            : ' It is not due yet, so this is free.';
+        const go = await Dialog.confirm(`Delete "${item.name}"? You will not earn anything for it.${subs}${cost}`, { title: 'Delete task?', confirmLabel: 'Delete', cancelLabel: 'Cancel', danger: true });
+        if (!go) return { ok: false };
+        const result = Items.deleteTask(item.id, itemsDeps());
+        if (result && result.ok) { updateTaskCountDisplay(); saveGame(); }
+        return result;
     }
 
     // Sick Day GLOBAL apply handler (frozen-slots sub-session 5, 2026-07-19),

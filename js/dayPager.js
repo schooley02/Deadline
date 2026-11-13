@@ -217,6 +217,8 @@ const DayPager = (() => {
     // negative habit's false entry is always labeled 'indulged'.
     function outcomeForHabitOnDay(habitDef, targetDate) {
         const dateKey = toLocalDateKey(targetDate);
+        // "Not needed today" (2026-11-13): the player used a weekly pass, so no occurrence was recorded.
+        if (habitDef.skipDayDate && habitDef.skipDayDate === dateKey) return 'notNeeded';
         const entry = (habitDef.occurrenceHistory || []).find(o => o.date === dateKey);
         if (!entry) return 'unknown';
         if (entry.success) return habitDef.isNegative ? 'avoided' : 'completed';
@@ -261,6 +263,7 @@ const DayPager = (() => {
     // hero star rate; this pager view doesn't read it yet -- defs created
     // earlier have no entries for older days.)
     function outcomeForTaskOnDay(taskDef, completedItems, targetDate) {
+        if (taskDef.skipDayDate && taskDef.skipDayDate === toLocalDateKey(targetDate)) return 'notNeeded';
         const dayString = targetDate.toDateString();
         const wasCompleted = (completedItems || []).some(item =>
             item.type === 'task' && item.definitionId === taskDef.id &&

@@ -23,14 +23,14 @@ const topic = (id, cfg) => all(cfg).find(t => t.id === id);
 // Everything a player can read in a topic, as one lowercase-insensitive string.
 const textOf = (t) => [].concat(t.what || [], t.list || [], t.html || '', t.why || '').join(' ');
 
-describe('the thirteen topics', () => {
+describe('the fourteen topics', () => {
     test('Points, Priorities, Pushbacks, Streaks, Hero ranking, Achievements, The sky, Timers and Time Logged, When a run ends, Goals, in that order', () => {
-        expect(all().map(t => t.title)).toEqual(['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Being away', 'Goals', 'Journal and notes']);
-        expect(all().map(t => t.id)).toEqual(['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals', 'journal']);
+        expect(all().map(t => t.title)).toEqual(['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Being away', 'Goals', 'Journal and notes', 'Not needed today and Delete Task']);
+        expect(all().map(t => t.id)).toEqual(['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals', 'journal', 'passes']);
     });
 
     test('Streaks, Hero ranking, Achievements, The sky, Timers and When a run ends carry a "Why"; Points and Pushbacks do not invent one', () => {
-        ['priorities', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals', 'journal'].forEach(id => expect(topic(id).why).toBeTruthy());
+        ['priorities', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals', 'journal', 'passes'].forEach(id => expect(topic(id).why).toBeTruthy());
         ['points', 'pushbacks'].forEach(id => expect(topic(id).why).toBeUndefined());
     });
 });
@@ -267,7 +267,7 @@ describe('Achievements', () => {
 describe('windowHtml', () => {
     test('one <details> per topic, in order, with the corner x', () => {
         const html = HowItWorks.windowHtml(all());
-        expect((html.match(/<details /g) || []).length).toBe(13);
+        expect((html.match(/<details /g) || []).length).toBe(14);
         const order = ['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Being away', 'Goals', 'Journal and notes'].map(n => html.indexOf(`<summary>${n}</summary>`));
         expect(order.every(i => i > 0)).toBe(true);
         expect(order).toEqual(order.slice().sort((a, b) => a - b));
@@ -530,5 +530,15 @@ describe('Being away (2026-11-13)', () => {
     });
     test('has an info button id', () => {
         expect(HowItWorks.buttonHtml('away')).toContain('data-hiw-topic="away"');
+    });
+});
+
+describe('Not needed passes topic (2026-11-13)', () => {
+    test('uses the configured weekly count and says what is free', () => {
+        const t = HowItWorks.topics({ NOT_NEEDED_PASSES_PER_WEEK: 4 }).find(x => x.id === 'passes');
+        const text = t.what.join(' ');
+        expect(text).toContain('4 "not needed" passes');
+        expect(text).toMatch(/free while nothing is due/);
+        expect(t.why).toBeTruthy();
     });
 });
