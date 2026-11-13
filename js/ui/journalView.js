@@ -253,6 +253,24 @@ const JournalView = (() => {
         </section>`;
     }
 
+    const RUNS_PER_PAGE = 10;
+
+    /** One run's block (the By run view): a header (Run N, its dates, the note count, Open), then the run-level notes, then its days. */
+    function runHtml(g, o) {
+        const opts = o || {};
+        const title = g.run > 0 ? `Run #${g.run}` : 'No run recorded';
+        const dates = g.first === g.last ? dayHeading(g.first, opts.now) : `${dayHeading(g.first, opts.now)} to ${dayHeading(g.last, opts.now)}`;
+        const notesHead = (opts.words && opts.words.title) || 'Notes about this run';
+        const notes = g.notes.length
+            ? `<section class="journal-run-notes"><h5 class="journal-run-notes-head">${esc(notesHead)}</h5><ul class="journal-entries">${g.notes.map((e) => entryHtml(e, opts)).join('')}</ul></section>`
+            : '';
+        return `<section class="journal-run" data-journal-run-block="${g.run}">
+            <h4 class="journal-run-head"><span>${esc(title)}</span> <span class="journal-run-meta">${esc(dates)} · ${g.count} note${g.count === 1 ? '' : 's'}</span>
+                ${g.run > 0 ? `<button type="button" class="secondary-button journal-run-open" data-journal-run="${g.run}">Open</button>` : ''}</h4>
+            ${notes}${g.days.map((d) => dayHtml(d, opts)).join('')}
+        </section>`;
+    }
+
     function filterLabel(f, gameName) {
         if (!f) return '';
         if (f.kind === 'ref' && f.ref) return f.ref.name ? `Notes about ${f.ref.name}` : 'Notes about one thing';
@@ -270,7 +288,11 @@ const JournalView = (() => {
         const chip = (kind, label) => `<button type="button" class="journal-chip${f.kind === kind ? ' journal-chip--on' : ''}" data-journal-filter="${kind}" aria-pressed="${f.kind === kind ? 'true' : 'false'}">${label}</button>`;
         const special = filterLabel(f, m.gameName);
         const kb = Math.max(1, Math.round((m.sizeChars || 0) / 1024));
-        const body = (m.groups && m.groups.length)
+        const byRun = m.view === 'run';
+        const view = (id, label) => `<button type="button" class="journal-chip${(byRun ? 'run' : 'day') === id ? ' journal-chip--on' : ''}" data-journal-view="${id}" aria-pressed="${(byRun ? 'run' : 'day') === id ? 'true' : 'false'}">${label}</button>`;
+        const body = byRun && m.runGroups && m.runGroups.length
+            ? m.runGroups.map((g) => runHtml(g, m)).join('')
+            : (!byRun && m.groups && m.groups.length)
             ? m.groups.map((g) => dayHtml(g, m)).join('')
             : `<p class="journal-empty">${m.total ? 'Nothing matches this filter.' : 'No notes yet. Add one from the buttons above, after you stop a timer, or on any task, habit or routine.'}</p>`;
         return `<div class="journal-window" data-journal-root>
@@ -279,9 +301,10 @@ const JournalView = (() => {
                 <button type="button" class="secondary-button journal-write-btn" data-journal-write="general">${esc((m.words && m.words.button) || `Note about ${m.gameName || 'the game'}`)}</button>
             </div>
             <div class="journal-filters" role="group" aria-label="Filter notes">${chip('all', 'All')}${chip('days', 'Days')}${chip('game', esc((m.words && m.words.filter) || m.gameName || 'Game'))}</div>
+            <div class="journal-views" role="group" aria-label="Group notes">${view('day', 'By day')}${view('run', 'By run')}</div>
             ${special ? `<p class="journal-filter-note"><span>${esc(special)}</span> <button type="button" class="secondary-button journal-clear-btn" data-journal-filter="all">Show all</button></p>` : ''}
             <div class="journal-list">${body}</div>
-            ${m.hasMore ? '<button type="button" class="secondary-button journal-more-btn" data-journal-more>Show older days</button>' : ''}
+            ${m.hasMore ? `<button type="button" class="secondary-button journal-more-btn" data-journal-more>${byRun ? 'Show older runs' : 'Show older days'}</button>` : ''}
             <p class="journal-size">${m.total || 0} note${m.total === 1 ? '' : 's'} on this device · about ${kb} KB. Notes are never sent anywhere and earn nothing.</p>
         </div>`;
     }
@@ -294,10 +317,15 @@ const JournalView = (() => {
         const entries = Journal.filter(store, st.filter);
         const groups = Journal.groupByDay(entries);
         const limit = typeof st.days === 'number' && st.days > 0 ? st.days : DAYS_PER_PAGE;
+        const byRun = st.view === 'run';
+        const runs = byRun ? Journal.groupByRun(entries) : [];
+        const runLimit = typeof st.runs === 'number' && st.runs > 0 ? st.runs : RUNS_PER_PAGE;
         return Object.assign({
             filter: st.filter || { kind: 'all' },
+            view: byRun ? 'run' : 'day',
             groups: groups.slice(0, limit),
-            hasMore: groups.length > limit,
+            runGroups: runs.slice(0, runLimit),
+            hasMore: byRun ? runs.length > runLimit : groups.length > limit,
             total: Journal.count(store),
             sizeChars: Journal.sizeChars(store),
         }, extra || {});
@@ -311,7 +339,7 @@ const JournalView = (() => {
      */
     function renderWindow(container, deps) {
         if (!container || !deps || typeof deps.getStore !== 'function' || typeof Journal === 'undefined') return null;
-        const state = { filter: deps.filter && deps.filter.kind ? deps.filter : { kind: 'all' }, days: DAYS_PER_PAGE };
+        const state = { filter: deps.filter && deps.filter.kind ? deps.filter : { kind: 'all' }, days: DAYS_PER_PAGE, view: 'day', runs: RUNS_PER_PAGE };
         const render = () => {
             container.innerHTML = windowHtml(buildModel(deps.getStore(), state, { gameName: deps.gameName, words: deps.words, moodFor: deps.moodFor, now: Date.now() }));
         };
@@ -323,7 +351,9 @@ const JournalView = (() => {
             if (t.hasAttribute('data-journal-filter')) {
                 state.filter = { kind: t.getAttribute('data-journal-filter') }; state.days = DAYS_PER_PAGE; render(); return;
             }
-            if (t.hasAttribute('data-journal-more')) { state.days += DAYS_PER_PAGE; render(); return; }
+            if (t.hasAttribute('data-journal-view')) { state.view = t.getAttribute('data-journal-view') === 'run' ? 'run' : 'day'; state.days = DAYS_PER_PAGE; state.runs = RUNS_PER_PAGE; render(); return; }
+            if (t.hasAttribute('data-journal-run')) { state.filter = { kind: 'run', run: Number(t.getAttribute('data-journal-run')) }; state.days = DAYS_PER_PAGE; state.runs = RUNS_PER_PAGE; render(); return; }
+            if (t.hasAttribute('data-journal-more')) { if (state.view === 'run') state.runs += RUNS_PER_PAGE; else state.days += DAYS_PER_PAGE; render(); return; }
             if (t.hasAttribute('data-journal-write')) {
                 const about = t.getAttribute('data-journal-write') === 'general' ? 'general' : 'day';
                 later(() => { if (typeof deps.onWrite === 'function') deps.onWrite(about, render); });
@@ -452,7 +482,7 @@ const JournalView = (() => {
 
     return {
         noteWindowHtml, openNote, itemNotesHtml, wireItemNotes, whenText, moodFace, snippet, esc,
-        dayHeading, aboutLabel, entryHtml, dayHtml, windowHtml, buildModel, renderWindow, openDayEnd, showChip, CHIP_MS, CHIP_ARM_MS, DAYS_PER_PAGE,
+        dayHeading, aboutLabel, entryHtml, dayHtml, windowHtml, runHtml, buildModel, renderWindow, openDayEnd, showChip, CHIP_MS, CHIP_ARM_MS, DAYS_PER_PAGE, RUNS_PER_PAGE,
     };
 })();
 

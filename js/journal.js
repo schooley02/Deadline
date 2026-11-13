@@ -203,6 +203,31 @@ const Journal = (() => {
         return Array.from(map.keys()).sort().reverse().map((day) => ({ day, entries: map.get(day).slice().sort(byTime) }));
     }
 
+    /**
+     * Group entries by run (the "By run" view). Newest run first (highest run number; entries with no run go last as run 0).
+     * Each group: { run, first, last (the earliest / latest day key), count, notes (the run-level "about the run" entries, newest first),
+     * days: [{ day, entries }] (every OTHER entry, newest day first) }.
+     */
+    function groupByRun(entries) {
+        const map = new Map();
+        for (const e of Array.isArray(entries) ? entries : []) {
+            if (!e || typeof e.day !== 'string') continue;
+            const run = typeof e.run === 'number' && e.run > 0 ? e.run : 0;
+            if (!map.has(run)) map.set(run, []);
+            map.get(run).push(e);
+        }
+        const runs = Array.from(map.keys()).sort((a, b) => ((a === 0) - (b === 0)) || (b - a));
+        return runs.map((run) => {
+            const list = map.get(run);
+            const dayKeys = list.map((e) => e.day).sort();
+            return {
+                run, first: dayKeys[0], last: dayKeys[dayKeys.length - 1], count: list.length,
+                notes: list.filter((e) => e.about === 'general').sort((a, b) => byTime(b, a)),
+                days: groupByDay(list.filter((e) => e.about !== 'general')),
+            };
+        });
+    }
+
     function count(store) {
         let n = 0;
         if (store && store.days) for (const key of Object.keys(store.days)) n += store.days[key].length;
@@ -282,7 +307,7 @@ const Journal = (() => {
     return {
         V, DEFAULT_MAX_CHARS, ABOUT, SOURCES, REF_KINDS,
         fresh, isDayKey, cleanText, moodSnapshot, add, find, edit, remove,
-        forDay, forRef, forRun, forGame, latest, filter, groupByDay, count, countDay, sanitize, merge, sizeChars,
+        forDay, forRef, forRun, forGame, latest, filter, groupByDay, groupByRun, count, countDay, sanitize, merge, sizeChars,
     };
 })();
 

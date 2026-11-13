@@ -112,3 +112,11 @@
     min-height: 44px; padding: 0 12px; background: none; border: none; color: inherit; font: inherit;
     text-decoration: underline; opacity: 0.85; cursor: pointer;
 }
+
+/* ---- Journal "By run" view ---- */
+.journal-views { display: flex; flex-wrap: wrap; gap: 6px; }
+.journal-run { display: flex; flex-direction: column; gap: 10px; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.18); }
+.journal-run-head { margin: 0; font-size: 16px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.journal-run-meta { font-size: 13px; opacity: 0.75; font-weight: 400; }
+.journal-run-open { min-height: 44px; padding: 6px 14px; margin-left: auto; }
+.journal-run-notes-head { margin: 0 0 4px; font-size: 14px; opacity: 0.9; }
