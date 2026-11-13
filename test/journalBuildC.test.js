@@ -83,10 +83,21 @@ describe('the completion chip', () => {
         const onTap = jest.fn();
         const chip = JournalView.showChip({ text: 'Add a note', onTap });
         expect(document.querySelectorAll('.journal-chip-toast').length).toBe(1);
+        await tick(JournalView.CHIP_ARM_MS + 50);
+        expect(chip.classList.contains('journal-chip-toast--armed')).toBe(true);
         click(chip);
         expect(document.querySelector('.journal-chip-toast')).toBeNull();
         await tick();
         expect(onTap).toHaveBeenCalledTimes(1);
+    });
+
+    test('a click right after it appears (the completing tap arriving late) is ignored', async () => {
+        const onTap = jest.fn();
+        const chip = JournalView.showChip({ onTap });
+        click(chip);
+        await tick(20);
+        expect(onTap).not.toHaveBeenCalled();
+        expect(document.querySelector('.journal-chip-toast')).toBeTruthy();
     });
 
     test('fades by itself and never calls onTap', async () => {
@@ -122,7 +133,7 @@ describe('wiring pins', () => {
         expect(fn.slice(0, 1200)).toMatch(/src: 'complete'/);
     });
     test('the service worker is bumped and the css has the chip', () => {
-        expect(read('sw.js')).toMatch(/deadline-shell-v366/);
+        expect(read('sw.js')).toMatch(/deadline-shell-v367/);
         expect(read('css/journal.css')).toMatch(/\.journal-chip-toast/);
     });
 });

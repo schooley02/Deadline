@@ -369,6 +369,9 @@ const JournalView = (() => {
 
     const CHIP_MS = 7000;
     const CHIP_FADE_MS = 400;
+    // The chip ignores touches for this long after it appears: the tap that finished the task (often at the bottom-left, where the chip
+    // lands) can deliver a late click to whatever is under the finger, and that must not open the note window by accident.
+    const CHIP_ARM_MS = 700;
 
     /**
      * A small "Add a note" button that appears at the bottom-left when a task is finished with its timer running, then fades away by itself.
@@ -384,7 +387,9 @@ const JournalView = (() => {
         el.className = 'journal-chip-toast';
         el.textContent = o.text || 'Add a note';
         let gone = false;
-        const remove = () => { if (gone) return; gone = true; if (el.parentNode) el.remove(); };
+        const shownAt = Date.now();
+        const armTimer = setTimeout(() => el.classList.add('journal-chip-toast--armed'), CHIP_ARM_MS);
+        const remove = () => { if (gone) return; gone = true; clearTimeout(armTimer); if (el.parentNode) el.remove(); };
         const ms = typeof o.ms === 'number' && o.ms >= 0 ? o.ms : CHIP_MS;
         const fadeTimer = setTimeout(() => {
             el.classList.add('journal-chip-toast--out');
@@ -392,6 +397,7 @@ const JournalView = (() => {
         }, ms);
         el.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (Date.now() - shownAt < CHIP_ARM_MS) return; // a late click from the completing tap: ignore it
             clearTimeout(fadeTimer);
             remove();
             setTimeout(() => { if (typeof o.onTap === 'function') o.onTap(); }, 0);
@@ -446,7 +452,7 @@ const JournalView = (() => {
 
     return {
         noteWindowHtml, openNote, itemNotesHtml, wireItemNotes, whenText, moodFace, snippet, esc,
-        dayHeading, aboutLabel, entryHtml, dayHtml, windowHtml, buildModel, renderWindow, openDayEnd, showChip, CHIP_MS, DAYS_PER_PAGE,
+        dayHeading, aboutLabel, entryHtml, dayHtml, windowHtml, buildModel, renderWindow, openDayEnd, showChip, CHIP_MS, CHIP_ARM_MS, DAYS_PER_PAGE,
     };
 })();
 

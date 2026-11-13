@@ -4,6 +4,9 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-13 (Journal: phone fixes after Build C) -- Claude app session, Sonnet 5.5; Jeremy
+- **Decision:** (1) The note window's buttons are natural height (44px), not stretched; (2) the completion chip is armed 700 ms after it appears (`JournalView.CHIP_ARM_MS`), because on the phone the tap that finished the task delivered a late click to the chip and opened the note window; (3) the Goal reached notice's "Mark done" offers the chip itself, since it stops the timer before completing. (4) Jeremy: the game-level note's wording ("Note about Deadline") sounds like a developer note; the whole Journal gets a review once real entries exist (ROADMAP "Journal revisit"). No balance numbers touched; sw v365 / v366 / v367.
+
 ## 2026-11-13 (Journal Build C: topic, auto-stop link, completion chip) -- Claude app session, Sonnet 5.5; Jeremy ("continue build c")
 - **Decision:** the Journal's last pieces follow the plan. (1) How Deadline works gets a 13th topic, "Journal and notes" (optional; where notes can be written; earns nothing and why; stays on the device); its numbers come from `CONFIG.JOURNAL`. (2) The auto-stop notice gets an "Add a note" link that opens the note window on top, leaving the notice (Edit / Keep / Delete) in place. (3) Finishing a task with its timer running shows a small fading "Add a note" chip, never a window; same Settings switch and 60-second minimum as the stop prompt. The minimum stays a THEORY value Jeremy will revisit after play-testing.
 - **Why a chip and not a window:** completing a task is a moment of finishing; a window there would interrupt the reward moment and the next task. The chip costs nothing to ignore.
