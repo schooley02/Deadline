@@ -173,6 +173,25 @@ describe('Evening modal: anytime task cards', () => {
         expect(c.querySelector('.evening-task-cost').textContent).toBe('Free: more than 4 hours away');
     });
 
+    test('2026-11-12: the skip button reads "Not tonight" with its meaning in the intro and tooltip (was "Leave it")', () => {
+        CheckIn.showEveningModal(makeDeps([task({ id: 1 })]));
+        const btn = card(1).querySelector('[data-outcome="leave"]');
+        expect(btn.textContent).toBe('Not tonight');
+        expect(btn.getAttribute('title')).toBe("Don't ask about this task again tonight");
+        expect(document.querySelector('.check-in-intro').textContent).toContain('Not tonight means no more questions about that task tonight.');
+        expect(document.querySelector('.evening-later-link')).toBeNull();
+    });
+
+    test('2026-11-12: a parent with open sub-tasks has no Done button; a plain line says how many are open', () => {
+        CheckIn.showEveningModal(makeDeps([task({ id: 1, subTasks: [11, 12, 13] }), task({ id: 2 })]));
+        expect(card(1).querySelector('[data-outcome="done"]')).toBeNull();
+        expect(card(1).querySelector('.evening-task-subs').textContent).toBe('3 sub-tasks are still open. Finish them to mark this done.');
+        expect(card(1).querySelector('[data-outcome="tomorrow"]')).not.toBeNull();
+        expect(card(1).querySelector('[data-outcome="leave"]')).not.toBeNull();
+        expect(card(2).querySelector('[data-outcome="done"]')).not.toBeNull(); // a task with no sub-tasks keeps Done
+        expect(card(2).querySelector('.evening-task-subs')).toBeNull();
+    });
+
     test('no habits and no tasks: nothing opens', () => {
         expect(CheckIn.showEveningModal(makeDeps([]))).toBeNull();
     });
@@ -224,11 +243,10 @@ describe('Evening modal: anytime task cards', () => {
         expect(card(1).querySelector('.evening-task-cost--blocked').textContent).toContain('Costs 30 pts');
     });
 
-    test('a parent with open sub-tasks cannot be marked Done from the card', () => {
+    test('a parent with open sub-tasks cannot be marked Done from the card (no Done button at all, 2026-11-12)', () => {
         CheckIn.showEveningModal(makeDeps([task({ id: 1, subTasks: [{ id: 5 }] })]));
-        const done = card(1).querySelector('[data-outcome="done"]');
-        expect(done.disabled).toBe(true);
-        expect(done.textContent).toMatch(/sub-tasks/);
+        expect(card(1).querySelector('[data-outcome="done"]')).toBeNull();
+        expect(card(1).querySelector('.evening-task-subs').textContent).toBe('1 sub-task is still open. Finish it to mark this done.');
     });
 
     test('closing the modal with a task card left tells the caller (hidden until the next app open)', async () => {

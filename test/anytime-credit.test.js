@@ -151,11 +151,12 @@ describe('Morning modal: credit line and Done labels', () => {
         expect(doneBtn(3).textContent).toBe('Done (counts late)');
     });
 
-    test('a parent with open sub-tasks keeps its "Finish the sub-tasks first" button', () => {
-        const parent = Object.assign(task(1), { subTasks: [{ id: 9 }] });
+    test('a parent with open sub-tasks has no Done button (a line explains it, 2026-11-12) and a refresh after another card is fine', () => {
+        const parent = Object.assign(task(1), { subTasks: [{ id: 9 }, { id: 10 }] });
         CheckIn.showMorningTaskModal(makeDeps([parent, task(2)], [NOW - DAY]));
         doneBtn(2).click();
-        expect(doneBtn(1).textContent).toBe('Finish the sub-tasks first');
+        expect(doneBtn(1)).toBeNull();
+        expect(document.querySelector('[data-item-id="1"] .evening-task-subs').textContent).toBe('2 sub-tasks are still open. Finish them to mark this done.');
     });
 
     test('2026-11-09: only eligible cards say "on time"; a refresh after a Done leaves the others at "counts late"', () => {

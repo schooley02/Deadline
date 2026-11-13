@@ -303,18 +303,25 @@ describe('Morning modal: anytime task cards', () => {
         expect(card(7).querySelector('.evening-task-cost--blocked')).not.toBeNull();
     });
 
-    test('a parent with open sub-tasks cannot be marked Done from the card', () => {
+    test('a parent with open sub-tasks has no Done button; a plain line says why (2026-11-12)', () => {
         CheckIn.showMorningTaskModal(makeDeps([task({ subTasks: [{ id: 5 }] })]));
-        expect(card(7).querySelector('[data-outcome="done"]').disabled).toBe(true);
+        expect(card(7).querySelector('[data-outcome="done"]')).toBeNull();
+        expect(card(7).querySelector('.evening-task-subs').textContent).toBe('1 sub-task is still open. Finish it to mark this done.');
+        expect(card(7).querySelector('[data-outcome="today"]')).not.toBeNull(); // the other buttons stay
     });
 
-    test('"I\'ll check this later" closes it and reports a dismissal while cards are left', async () => {
+    test('2026-11-12: no "I\'ll check this later" link; an outside tap / Esc (the overlay disappears) still reports a dismissal', async () => {
         const deps = makeDeps([task()]);
-        CheckIn.showMorningTaskModal(deps);
-        document.querySelector('.morning-later-link').click();
+        const overlay = CheckIn.showMorningTaskModal(deps);
+        expect(document.querySelector('.morning-later-link')).toBeNull();
+        overlay.remove();
         await flush();
-        expect(document.querySelector('.morning-task-overlay')).toBeNull();
         expect(deps.onDismiss).toHaveBeenCalledTimes(1);
+    });
+
+    test('2026-11-12: the skip button reads "Not now" on the morning card', () => {
+        CheckIn.showMorningTaskModal(makeDeps([task()]));
+        expect(card(7).querySelector('[data-outcome="leave"]').textContent).toBe('Not now');
     });
 
     test('answering every card does NOT report a dismissal', async () => {

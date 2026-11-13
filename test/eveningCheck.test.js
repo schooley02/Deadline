@@ -153,15 +153,10 @@ describe('showEveningModal: Later and dismissal', () => {
         expect(d.onDismiss).not.toHaveBeenCalled();
     });
 
-    test('the "I\'ll check this later" link closes with cards left and reports a dismissal', async () => {
-        const d = makeDeps([item(1, 'A', AMOUNT), item(2, 'B', AMOUNT)]);
-        CheckIn.showEveningModal(d);
-        click(1, 'avoided');
-        document.querySelector('.evening-later-link').click();
-        await flush();
-        expect(document.querySelector('.evening-overlay')).toBeNull();
-        expect(card(2)).toBeNull();
-        expect(d.onDismiss).toHaveBeenCalledTimes(1);
+    test('2026-11-12: the "I\'ll check this later" link is gone (it did the same as an outside tap / Esc and read like the card button)', () => {
+        CheckIn.showEveningModal(makeDeps([item(1, 'A', AMOUNT)]));
+        expect(document.querySelector('.evening-later-link')).toBeNull();
+        expect(document.querySelector('.evening-overlay').textContent).not.toMatch(/check this later/i);
     });
 
     test('an outside tap / Esc (the overlay just disappears) with cards left reports a dismissal too', async () => {
