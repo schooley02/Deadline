@@ -9,7 +9,7 @@ const rec = () => DailyRecord.fresh({ date: '2026-11-10', tz: 0 });
 
 describe('v12 ice tally', () => {
     test('a fresh record starts with no ice', () => {
-        expect(DailyRecord.V).toBe(14);
+        expect(DailyRecord.V).toBe(15);
         expect(rec().ice).toEqual({ n: 0, min: 0 });
     });
     test('each stretch adds one to n and its minutes to min', () => {

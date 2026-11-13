@@ -109,11 +109,24 @@ const SettingsView = (() => {
             </label>
         `).join('');
 
+        // Avatar (Mood Build A, 2026-11-13): the same two choices as the first-open picker; none is selected until one is chosen.
+        const avatarOptionsHtml = (typeof Mood !== 'undefined' ? Mood.AVATARS : []).map((a) => `
+            <label class="settings-radio-row">
+                <input type="radio" name="avatar" value="${a.id}" ${deps.currentAvatar === a.id ? 'checked' : ''}>
+                <span class="settings-radio-label">${a.emoji} ${a.label}</span>
+            </label>
+        `).join('');
+
         container.innerHTML = `
             <div class="settings-section settings-howitworks-section">
                 <h4>How Deadline works</h4>
                 <p class="settings-section-hint">What points, pushbacks, streaks, hero ranking and badges are for.</p>
                 <button type="button" id="howItWorksBtn" class="secondary-button">Open</button>
+            </div>
+            <div class="settings-section settings-avatar-section">
+                <h4>Avatar</h4>
+                <p class="settings-section-hint">Your face on the level button. It shows how you said you feel today.</p>
+                <div class="settings-radio-group">${avatarOptionsHtml}</div>
             </div>
             <div class="settings-section">
                 <h4>Streak Fire Effects</h4>
@@ -190,6 +203,12 @@ const SettingsView = (() => {
                 if (typeof deps.onChangeIntensity === 'function') {
                     deps.onChangeIntensity(e.target.value);
                 }
+            });
+        });
+
+        container.querySelectorAll('input[name="avatar"]').forEach((input) => {
+            input.addEventListener('change', (e) => {
+                if (typeof deps.onChangeAvatar === 'function') deps.onChangeAvatar(e.target.value);
             });
         });
 

@@ -39,6 +39,7 @@
     <link rel="stylesheet" href="css/heroTray.css">
     <link rel="stylesheet" href="css/goalsPane.css">
     <link rel="stylesheet" href="css/levelPanel.css">
+    <link rel="stylesheet" href="css/mood.css">
     <link rel="stylesheet" href="css/basePanel.css">
     <link rel="stylesheet" href="css/timeSlider.css">
     <link rel="stylesheet" href="css/dayPager.css">
@@ -74,7 +75,7 @@
                         <span id="baseHealthChip" class="bh-chip">Full</span>
                     </button>
                     <button type="button" id="levelButton" class="stat-item level-button" aria-label="Level 1. Open level panel">
-                        <svg class="hud-icon" viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 9l6-5 6 5M4 16l6-5 6 5"/></svg>
+                        <span id="playerAvatarFace" class="hud-avatar" aria-hidden="true">&#128578;</span>
                         <span id="playerLevelDisplay">1</span>
                         <span class="level-xp-bar" aria-hidden="true"><span id="playerXpBar" class="level-xp-fill"></span></span>
                     </button>
@@ -559,6 +560,8 @@
     <script src="js/graveyardLayout.js"></script>
     <script src="js/villageLayout.js"></script>
     <script src="js/settings.js"></script>
+    <!-- js/mood.js (2026-11-13): the mood check-in's pure core (levels, feeling / context words, the saved entry shape); no dependencies. -->
+    <script src="js/mood.js"></script>
     <!-- js/runStats.js has ZERO module dependencies (pure data functions,
          no bare-global refs at load time) — loaded here, right after
          config.js, so js/damage.js (below) can call it directly at
@@ -676,6 +679,8 @@
     <script src="js/ui/goalsPane.js"></script>
     <script src="js/ui/goalCard.js"></script>
     <script src="js/ui/goalForm.js"></script>
+    <!-- js/ui/moodView.js (2026-11-13): the avatar face, the mood picker, the avatar picker and the morning card; needs Mood + Modal at call time. -->
+    <script src="js/ui/moodView.js"></script>
     <script src="js/ui/levelPanel.js"></script>
     <script src="js/ui/basePanel.js"></script>
     <script src="js/ui/timeSliderView.js"></script>

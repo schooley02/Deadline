@@ -449,7 +449,7 @@ hills, distant buildings (and later the distant city) may fade.
 - **Storm ground (PixelLab puddles on the normal ground, same day):** shown only under `climate-storm`. Jeremy generated puddle art in PixelLab (option 4 of four) but the whole tile looked like different ground (no grass, different dark band), so the three puddles (small, big, medium) were cut out of it and pasted onto 4 copies of the normal `floor-tile.png`: `Assets/scene/storm-floor-tile.png` 508x72, puddles ~130 px apart, so they repeat only every 508 px. `storm-strip-floor.png` = `strip-floor.png` x4 (256x36) with the puddles halved. `css/climate.css`: `#gameCanvas.climate-storm .scene-ground` swaps image + `background-size: 508px 72px`; `body.glance-strip #gameCanvas.climate-storm::before` does the strip at 256x36. Same surface height and grass as the normal ground. sw v267. `test/stormGround.test.js` (5). Raw PixelLab output kept in `Assets/scene/_source/storm-floor-pixellab-128.png`.
 - **Checked:** Jest `rainSim` 27 + `rainFx` 21 + the existing climate suites (`climateWiring` 66, `climateView`, `devToolsWiring`) green in a cloud copy. A stand-in page (the real `climate.css` + the two scripts) in headless Chromium at 390x700 and 844x390: four canvases, no console errors, ~16.5 ms per frame, splashes at the horizon. NOT checked: the real game in a browser, a real phone (Jeremy). Look at: density feel, the lean, splash height against the village's feet, bolt position, frame rate on the phone. Preview through Settings > Developer tools > DEV > Storm.
 
-## W1b Mood check-in -- DESIGNED 2026-11-07 (Claude app session, Fable 5.1; Jeremy). NOT BUILT.
+## W1b Mood check-in -- DESIGNED 2026-11-07 (Claude app session, Fable 5.1; Jeremy). BUILD A BUILT 2026-11-13 (Sonnet 5.5; sw v359; see "W1b Build A as built"). Build B NOT BUILT.
 
 Decision logged in `docs/DECISIONS.md` 2026-11-07 "Weather stays the run climate; mood is its own check-in". Record
 shape in `docs/DAILY_RECORD_PLAN.md` "v12 addition: mood" and `docs/DATA_SCHEMA.md`.
@@ -521,6 +521,19 @@ event, roll-up histogram, normalize) + tests; glyph (UI layer, hidden in the str
 morning card (once per local day, in-memory flag + `save.today` check) + the rollover / game-over prompt; the Weather
 table column + Stats readout; the Bad / Awful help card (copy in one place; CONFIG for the threshold); How-it-works line;
 `sw.js` bump; DATA_SCHEMA + DAILY_RECORD_PLAN "as built". Art: the 5-step glyph set is **fine as planned for now** (Jeremy 2026-11-07): code-drawn pixel glyphs, theme-neutral, as a placeholder; PixelLab art can replace them later without touching logic.
+
+## W1b Build A as built (2026-11-13, Sonnet 5.5; Jeremy's rework of the design above)
+Changes from the design (all Jeremy's calls):
+- **Mood belongs to the avatar, not the weather badge.** The player picks a male or female avatar once ("Who's playing?"; changeable in Settings > Avatar). The HUD Level button's chevron is replaced by the avatar face (`#playerAvatarFace`). Emoji faces until the PixelLab art exists: no mood yet = the avatar's person emoji (man/woman), a mood = that level's face. Art contract: `Assets/Avatars/<male|female>_<neutral|rad|good|meh|bad|awful>.png` (10 faces + 2 neutral), switched on by `CONFIG.MOOD.AVATAR_ART_READY`.
+- **The Level panel is the player panel** and hosts the picker (Mood section under the title). Title left as "Level N".
+- **5 levels** (stored 1..5): Rad 5, Good 4, Meh 3, Bad 2, Awful 1. One tap on a face is a complete check-in; the same local hour replaces that hour's entry.
+- **Feelings are plain word chips (no faces), up to 2 per check-in**, 20 in append-only bit order: fired_up, focused, excited, proud, motivated, calm, content, hopeful, blah, distracted, tired, unmotivated, anxious, stressed, sad, frustrated, overwhelmed, exhausted, down, angry. Each level suggests its own; "More words" shows all. **Context words** (unlimited): sick, slept_badly, busy_day, traveling, day_off.
+- Entry = `[hour, level, feelingBits, contextBits]` on `DailyRecord` v15. Informational only: no rewards, never changes the scene.
+- **Morning card** ("How are you starting?") once per local day, after the avatar picker on first run. Deviation from the design: the once-a-day stamp is persisted in Settings `moodCardDay` (per device, not exported) rather than in memory.
+- Code: `js/mood.js` (pure), `js/ui/moodView.js`, `css/mood.css`.
+
+### Build B (still to do)
+Mood column in the Weather panel 7-day table + Stats readout; end-of-day / rollover prompt; the feeling-aware Bad/Awful help card (overwhelmed: pick 3 priorities and break the biggest into sub-tasks; unmotivated: small first step + start timer; anxious/stressed: mark the task behind it priority and break it up; exhausted/tired: a light day is allowed; distracted: one task, timer on; sad/down: "Cut yourself some slack today. A break is allowed."; plus a one-tap "Add a 10-minute task: figure out what's behind this"); the run-of-lows card (3 days in a row of Bad/Awful, at most once a week, gently suggests talking to someone); a How Deadline works line; later a journal "Add a note" hook.
 
 ## W1c Sky picker (Lv 4 perk) -- DESIGNED 2026-11-07 (Claude app session, Fable 5.1; Jeremy). BUILT 2026-11-09 (Sonnet 5.5, with the amendment below; sw v305; see "W1c as built"). Not yet phone-checked.
 

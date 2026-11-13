@@ -1607,6 +1607,67 @@ document.addEventListener('DOMContentLoaded', () => {
         CheckIn.showMorningTaskModal(morningTaskDeps());
     }
 
+    // ---- Mood check-in + avatar (W1b Build A, 2026-11-13; docs/WORLD_FEEDBACK_PLAN.md "W1b Mood check-in", DECISIONS 2026-11-13) ----
+    // The player's avatar face sits on the HUD level button and shows today's latest mood; the mood picker lives in the Level panel and
+    // in a once-a-day morning card. Mood is informational only: it earns nothing and never touches the scene. Entries are the day's
+    // `mood` list (DailyRecord v15), written through State.bumpToday like every other daily-record seam.
+    let currentAvatar = Settings.load().avatar; // 'male' | 'female' | null (not chosen yet); changes go through setAvatar
+    let moodCardShownFor = null; // the local day key the morning card (or the avatar question) was shown this session: never twice a day
+
+    function moodDeps() {
+        return {
+            getEntries: () => { const t = State.getToday(); return t && Array.isArray(t.mood) ? t.mood : []; },
+            onLog: (c) => {
+                State.bumpToday('mood', { at: Date.now(), level: c.level, feelings: Mood.packFeelings(c.feelings), context: Mood.packContext(c.context) });
+                saveGame();
+                refreshAvatarFace();
+            },
+        };
+    }
+
+    // The face is redrawn only when it changes (renderAvatarFace compares), so this is cheap enough for the per-tick call in updateGame.
+    function refreshAvatarFace() {
+        if (typeof MoodView === 'undefined') return;
+        const t = State.getToday();
+        MoodView.renderAvatarFace(document.getElementById('playerAvatarFace'), MoodView.faceModel(currentAvatar, t && t.mood, CONFIG.MOOD.AVATAR_ART_READY));
+    }
+
+    function setAvatar(id) {
+        if (!Mood.isAvatar(id)) return;
+        currentAvatar = id;
+        Settings.save({ avatar: id });
+        refreshAvatarFace();
+    }
+
+    function openMoodCardNow(todayKey) {
+        Settings.save({ moodCardDay: todayKey });
+        MoodView.openMoodCard({ title: 'How are you starting?', deps: moodDeps() });
+    }
+
+    // First open of a local day: ask "Who's playing?" if no avatar is chosen yet, then "How are you starting?". One card per day, never
+    // stacked on another dialog (the next poll tries again), never during a time preview or the offline catch-up, never after a mood was
+    // already logged today from the Level panel. Closing the avatar question without choosing asks again on the NEXT open, not this one.
+    function maybeShowMoodCard() {
+        if (typeof MoodView === 'undefined' || typeof Mood === 'undefined' || State.isGameOver()) return;
+        if (timePreviewActive || offlineCatchUpActive) return;
+        if (document.querySelector('.modal-overlay')) return;
+        const todayKey = DailyRecord.dateKey(Date.now());
+        if (moodCardShownFor === todayKey) return;
+        if (moodDeps().getEntries().length > 0) { moodCardShownFor = todayKey; return; }
+        if (Settings.load().moodCardDay === todayKey && currentAvatar) { moodCardShownFor = todayKey; return; }
+        moodCardShownFor = todayKey;
+        if (!currentAvatar) {
+            MoodView.openAvatarPicker({
+                onPick: (id) => {
+                    setAvatar(id);
+                    if (Settings.load().moodCardDay !== todayKey && moodDeps().getEntries().length === 0) openMoodCardNow(todayKey);
+                },
+            });
+            return;
+        }
+        openMoodCardNow(todayKey);
+    }
+
     // True while the evening check is the thing that will ask about a Break habit right now: the evening time has arrived and
     // the player has not closed tonight's check. The same-day "Time's up" arrival popup stands down in that window (it would ask
     // the same question a moment earlier, on top of the evening modal). It skips WITHOUT using its once-per-day stamp, so a habit
@@ -1633,6 +1694,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lastEveningPollMs = nowMs;
         maybeShowEveningCheck();
         maybeShowMorningTaskCheck();
+        maybeShowMoodCard();
     }
 
     // Negative-habit "time has arrived" prompt (2026-10-21, Jeremy). Once per habit per
@@ -2543,6 +2605,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // active state, without new render hooks inside the pure modules.
         renderHeroesAtBase();
         renderGoals();
+        refreshAvatarFace();
     }
 
     // Habit system functions
@@ -3061,6 +3124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function openLevelPanel() {
         LevelPanel.open(Object.assign(levelPanelContext(), {
+            mood: moodDeps(),
             onManage: (routineKey) => {
                 const routine = State.getDefinedRoutines().find(r => String(r.id) === routineKey);
                 if (routine) showRoutineManagement(routine.id);
@@ -3488,11 +3552,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // Buzz switch (2026-11-10): per device, read fresh each time the Settings window opens.
             currentScreenBuzz: Settings.load().screenBuzz !== false,
             onChangeScreenBuzz: handleScreenBuzzChange,
+            // Avatar (Mood Build A, 2026-11-13): saved with the settings, so it survives a Reset and rides along in Backup & Transfer.
+            currentAvatar,
+            onChangeAvatar: setAvatar,
             // Export/Import (Milestone 5 first item, 2026-07-20) — see
             // js/exportImport.js header + handleConfirmImport below.
             buildExportEnvelope: () => ExportImport.buildEnvelope({
                 getPersistableState: () => State.getPersistableState(),
-                getSettings: () => { const st = Settings.load(); delete st.devTools; delete st.screenBuzz; return st; }, // Developer tools and the buzz are per device: never exported
+                getSettings: () => { const st = Settings.load(); delete st.devTools; delete st.screenBuzz; delete st.moodCardDay; return st; }, // Developer tools, the buzz and the once-a-day mood card stamp are per device: never exported
                 // D2 (2026-10-27): closed daily records ride along in the export.
                 getDays: () => Persistence.loadDays(),
             }),
@@ -3550,6 +3617,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const importedSettings = Object.assign({}, envelope.settings || Settings.DEFAULTS);
             delete importedSettings.devTools;
             delete importedSettings.screenBuzz; // the buzz is per device too
+            delete importedSettings.moodCardDay; // and so is the once-a-day mood card stamp
+            if (!importedSettings.avatar) delete importedSettings.avatar; // a backup with no avatar must not wipe the one chosen here
             Settings.save(importedSettings);
         }
         // D2 (2026-10-27): daily records are LIFETIME data, so they MERGE by
@@ -4134,6 +4203,9 @@ document.addEventListener('DOMContentLoaded', () => {
     maybeShowEveningCheck();
     // Anytime tasks that attacked overnight (Anytime Build 3): ask right away on the first open (waits behind any dialog above).
     maybeShowMorningTaskCheck();
+    // Mood (Build A): the avatar face from today's record, and the once-a-day "How are you starting?" card (waits behind any dialog above).
+    refreshAvatarFace();
+    maybeShowMoodCard();
 
     // Daily record `active` window (D2, 2026-10-27): any pointer interaction
     // counts as a touch, throttled so `active.touches` is roughly "half-minutes
@@ -4159,6 +4231,7 @@ document.addEventListener('DOMContentLoaded', () => {
             morningTaskDismissed = false;
             maybeShowEveningCheck();
             maybeShowMorningTaskCheck();
+            maybeShowMoodCard();
         }
     });
     window.addEventListener('beforeunload', () => {

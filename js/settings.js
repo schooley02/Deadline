@@ -28,7 +28,13 @@ const Settings = (() => {
     // left OUT of Backup & Transfer (script.js strips it on export and import) so a backup never turns it on somewhere else.
     // screenBuzz (2026-11-10, Jeremy): the phone's short vibration with the screen thump on a completion (js/ui/canvasThump.js). ON by
     // default; per device like devTools (script.js leaves it OUT of Backup & Transfer, so a backup never changes it somewhere else).
-    const DEFAULTS = { effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true };
+    // avatar (Mood Build A, 2026-11-13): 'male' | 'female', the player's choice (null = not chosen yet, which asks once). Mirrors Mood.AVATARS
+    // (test/settings.test.js checks they match). A preference, not run state, so it survives a Reset and rides along in Backup & Transfer.
+    // moodCardDay (same session): the local day "YYYY-MM-DD" the morning mood card was last shown, so it asks ONCE a day, even across a
+    // reload. Per device like devTools: script.js leaves it OUT of Backup & Transfer.
+    const VALID_AVATARS = ['male', 'female'];
+    const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+    const DEFAULTS = { effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null };
     const TIME_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
 
     function cleanEveningTime(value) {
@@ -36,6 +42,9 @@ const Settings = (() => {
         const [h, m] = value.trim().split(':');
         return (h.length === 1 ? '0' + h : h) + ':' + m;
     }
+
+    function cleanAvatar(value) { return VALID_AVATARS.indexOf(value) !== -1 ? value : null; }
+    function cleanDay(value) { return typeof value === 'string' && DAY_RE.test(value) ? value : null; }
 
     function load() {
         try {
@@ -51,6 +60,8 @@ const Settings = (() => {
                 timerHintSeen: !!(parsed && parsed.timerHintSeen === true),
                 devTools: !!(parsed && parsed.devTools === true),
                 screenBuzz: !(parsed && parsed.screenBuzz === false),
+                avatar: cleanAvatar(parsed && parsed.avatar),
+                moodCardDay: cleanDay(parsed && parsed.moodCardDay),
             };
         } catch (e) {
             console.error('Deadline: settings load failed', e);
@@ -67,6 +78,8 @@ const Settings = (() => {
             merged.timerHintSeen = merged.timerHintSeen === true;
             merged.devTools = merged.devTools === true;
             merged.screenBuzz = merged.screenBuzz !== false;
+            merged.avatar = cleanAvatar(merged.avatar);
+            merged.moodCardDay = cleanDay(merged.moodCardDay);
             if (VALID_INTENSITIES.indexOf(merged.effectsIntensity) === -1) merged.effectsIntensity = DEFAULTS.effectsIntensity;
             localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
             return true;
@@ -101,9 +114,11 @@ const Settings = (() => {
         load,
         save,
         cleanEveningTime,
+        cleanAvatar,
         bodyClassesForIntensity,
         applyEffectsIntensity,
         VALID_INTENSITIES,
+        VALID_AVATARS,
         DEFAULTS,
     };
 })();

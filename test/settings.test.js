@@ -46,22 +46,22 @@ afterEach(() => {
 
 describe('Settings.load', () => {
     test('returns the default (full) when nothing is stored', () => {
-        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null });
     });
 
     test('round-trips a saved value', () => {
         Settings.save({ effectsIntensity: 'reduced' });
-        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null });
     });
 
     test('falls back to full for an invalid stored value (defensive)', () => {
         global.localStorage.setItem('deadline.settings', JSON.stringify({ effectsIntensity: 'nonsense' }));
-        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null });
     });
 
     test('falls back to full for corrupt JSON (never breaks gameplay)', () => {
         global.localStorage.setItem('deadline.settings', '{not valid json');
-        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'full', eveningCheckTime: '21:00', timerHintSeen: false, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null });
     });
 });
 
@@ -141,7 +141,7 @@ describe('Settings devTools (2026-11-03)', () => {
         expect(Settings.load().devTools).toBe(true);
         Settings.save({ effectsIntensity: 'reduced' });
         expect(Settings.load().devTools).toBe(true);
-        Settings.save({ devTools: false, screenBuzz: true });
+        Settings.save({ devTools: false, screenBuzz: true, avatar: null, moodCardDay: null });
         expect(Settings.load().devTools).toBe(false);
     });
 
@@ -156,7 +156,7 @@ describe('Settings devTools (2026-11-03)', () => {
 
     test('an older stored settings object (no devTools key) loads with it off and keeps its other fields', () => {
         localStorage.setItem(Settings.SETTINGS_KEY, JSON.stringify({ effectsIntensity: 'reduced', eveningCheckTime: '20:30', timerHintSeen: true }));
-        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '20:30', timerHintSeen: true, devTools: false, screenBuzz: true });
+        expect(Settings.load()).toEqual({ effectsIntensity: 'reduced', eveningCheckTime: '20:30', timerHintSeen: true, devTools: false, screenBuzz: true, avatar: null, moodCardDay: null });
     });
 
     test('what is WRITTEN is a real boolean even if a caller passes something else', () => {
@@ -191,5 +191,37 @@ describe('Settings screenBuzz (2026-11-10)', () => {
         expect(Settings.load().screenBuzz).toBe(true);
         localStorage.setItem(Settings.SETTINGS_KEY, JSON.stringify({ screenBuzz: 'no' }));
         expect(Settings.load().screenBuzz).toBe(true);
+    });
+});
+
+describe('Settings avatar + moodCardDay (Mood Build A, 2026-11-13)', () => {
+    test('both start empty (no avatar chosen yet, no card shown yet)', () => {
+        expect(Settings.DEFAULTS.avatar).toBeNull();
+        expect(Settings.DEFAULTS.moodCardDay).toBeNull();
+        expect(Settings.load().avatar).toBeNull();
+        expect(Settings.load().moodCardDay).toBeNull();
+    });
+    test('the valid avatars mirror Mood.AVATARS', () => {
+        const Mood = require('../js/mood.js');
+        expect(Settings.VALID_AVATARS).toEqual(Mood.AVATARS.map((a) => a.id));
+    });
+    test('an avatar and a day round-trip; saving one field keeps the other', () => {
+        Settings.save({ avatar: 'female' });
+        Settings.save({ moodCardDay: '2026-11-13' });
+        expect(Settings.load().avatar).toBe('female');
+        expect(Settings.load().moodCardDay).toBe('2026-11-13');
+        Settings.save({ effectsIntensity: 'off' });
+        expect(Settings.load().avatar).toBe('female');
+        expect(Settings.load().moodCardDay).toBe('2026-11-13');
+    });
+    test('bad values read back as empty and a bad save never stores them', () => {
+        localStorage.setItem(Settings.SETTINGS_KEY, JSON.stringify({ avatar: 'robot', moodCardDay: 'yesterday' }));
+        expect(Settings.load().avatar).toBeNull();
+        expect(Settings.load().moodCardDay).toBeNull();
+        Settings.save({ avatar: 'robot', moodCardDay: 7 });
+        expect(JSON.parse(localStorage.getItem(Settings.SETTINGS_KEY)).avatar).toBeNull();
+        expect(JSON.parse(localStorage.getItem(Settings.SETTINGS_KEY)).moodCardDay).toBeNull();
+        expect(Settings.cleanAvatar('male')).toBe('male');
+        expect(Settings.cleanAvatar(null)).toBeNull();
     });
 });

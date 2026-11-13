@@ -1,0 +1,91 @@
+/* Mood check-in (W1b Build A, 2026-11-13; js/ui/moodView.js): the avatar face on the HUD level button, the picker (faces, feeling words,
+   context words), the "Who's playing?" avatar picker and the morning card. The picker also sits inside the Level panel (.lp-mood). */
+
+/* ---- HUD level button: the avatar's face replaces the old chevron icon ---- */
+.hud-avatar {
+    display: inline-block;
+    flex: none;
+    width: 22px;
+    font-size: 18px;
+    line-height: 1;
+    text-align: center;
+}
+.hud-avatar-img { display: block; width: 22px; height: 22px; image-rendering: pixelated; }
+
+/* ---- Picker ---- */
+.mood-picker { margin: 0; }
+.mood-faces { display: flex; gap: 6px; justify-content: space-between; }
+.mood-face {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 56px;
+    padding: 6px 2px;
+    box-sizing: border-box;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    font: inherit; font-size: 11px;
+    color: var(--color-text-primary);
+    background: var(--color-primary-white);
+    border: 1px solid var(--color-secondary-green-light);
+    border-radius: 8px;
+    cursor: pointer;
+}
+.mood-face-emoji { font-size: 24px; line-height: 1.1; }
+.mood-face-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mood-face.is-selected {
+    border-color: var(--color-primary-dark-green);
+    box-shadow: inset 0 0 0 1px var(--color-primary-dark-green);
+    background: #E8F3EF;
+    font-weight: 600;
+}
+.mood-face:focus-visible, .mood-chip:focus-visible, .mood-more:focus-visible, .avatar-choice:focus-visible {
+    outline: 2px solid var(--color-primary-dark-green); outline-offset: 2px;
+}
+.mood-hint { margin: 10px 0 4px; font-size: 12px; color: var(--color-neutral); }
+.mood-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.mood-chip {
+    min-height: 32px;
+    padding: 4px 12px;
+    box-sizing: border-box;
+    font: inherit; font-size: 13px;
+    color: var(--color-text-primary);
+    background: var(--color-primary-white);
+    border: 1px solid var(--color-secondary-green-light);
+    border-radius: 16px;
+    cursor: pointer;
+}
+.mood-chip.is-on {
+    color: var(--color-primary-white);
+    background: var(--color-primary-dark-green);
+    border-color: var(--color-primary-dark-green);
+}
+.mood-chip.is-disabled { opacity: 0.45; cursor: default; }
+.mood-more {
+    min-height: 32px;
+    padding: 4px 6px;
+    font: inherit; font-size: 13px;
+    color: var(--color-primary-dark-green);
+    background: none; border: none; text-decoration: underline;
+    cursor: pointer;
+}
+
+/* ---- Level panel section ---- */
+.lp-mood { margin: 0 0 4px; }
+
+/* ---- Avatar picker + morning card ---- */
+.avatar-picker, .mood-card { position: relative; max-width: 380px; }
+.avatar-picker h3, .mood-card h3 { margin: 0 0 6px; }
+.avatar-picker-hint, .mood-card-hint { margin: 0 0 12px; font-size: 13px; color: var(--color-neutral); }
+.avatar-choices { display: flex; gap: 12px; }
+.avatar-choice {
+    flex: 1 1 0;
+    min-height: 96px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    font: inherit; font-size: 14px;
+    color: var(--color-text-primary);
+    background: var(--color-primary-white);
+    border: 1px solid var(--color-secondary-green-light);
+    border-radius: 10px;
+    cursor: pointer;
+}
+.avatar-choice-emoji { font-size: 40px; line-height: 1.1; }
+.mood-card-actions { display: flex; justify-content: flex-end; margin-top: 14px; }

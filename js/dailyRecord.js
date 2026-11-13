@@ -81,7 +81,12 @@ const DailyRecord = (() => {
     // CONFIG.MOMENTUM.MIN_PRIORITY_AGE_MS old when finished (an undo takes one back). `pri.d` keeps counting EVERY priority finish (the
     // Command Post reads it); `pri.q` is what defends a night (js/momentum.js). Days before v14 read `pri.d` instead. A Sick Day needed
     // no new field: `tokens.sick` already records the day it was used.
-    const V = 14;
+    // v15 (2026-11-13, Mood check-in Build A; docs/WORLD_FEEDBACK_PLAN.md "W1b Mood check-in"): `mood` = [[hour, level, feelingBits,
+    // contextBits], ...], the day's mood check-ins (level 1 Awful .. 5 Rad; the bits index js/mood.js's append-only FEELINGS / CONTEXT
+    // lists). A new entry in the SAME local hour replaces that hour's entry. `moodHist` = [5 ints], entries per level (index = level - 1):
+    // always zero on a day (its `mood` is the source) and filled only when a day folds into a month, which drops the entries.
+    // Numbers only: no free text (the journal stays separate). Days before v15 have no mood.
+    const V = 15;
     // Mirrors Habits.GOAL_UNIT_SUGGESTIONS (test/dailyRecord.test.js checks they match). Kept local: no global dependencies.
     const GOAL_UNITS = ['pages', 'glasses', 'oz', 'steps', 'miles', 'km', 'reps', 'words', 'servings', 'drinks', 'cigarettes', 'cups', '$', 'times'];
     const GOAL_TYPES = ['time', 'amount', 'note'];
@@ -93,6 +98,10 @@ const DailyRecord = (() => {
     // Mirrors CONFIG.PUSHBACK_SIZES ids (test/dailyRecord.test.js checks they match). Kept local: no global dependencies.
     const PB_SIZES = ['short', 'medium', 'long'];
     const PB_SOURCES = ['charge', 'token', 'points'];
+    // Mirror js/mood.js (test/dailyRecordMood.test.js checks they match). Kept local: no global dependencies.
+    const MOOD_LEVELS = 5;
+    const MOOD_FEELING_MASK = Math.pow(2, 20) - 1;
+    const MOOD_CONTEXT_MASK = Math.pow(2, 5) - 1;
     function freshPb() {
         const pb = { late: 0 };
         PB_SIZES.forEach((z) => { pb[z] = { charge: 0, token: 0, points: 0 }; });
@@ -180,6 +189,9 @@ const DailyRecord = (() => {
             pg: { climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 },
             // v12: stretches of ice today (see V above).
             ice: { n: 0, min: 0 },
+            // v15: the day's mood check-ins + the month roll-up histogram (see V above).
+            mood: [],
+            moodHist: zeros(MOOD_LEVELS),
             ko: 0,
             revived: 0,
             timer: { workMin: 0, limitMin: 0, edits: 0, editMin: 0 },
@@ -289,6 +301,21 @@ const DailyRecord = (() => {
 
     // Repair a record read from storage so every field a bump touches exists
     // (additive-only rule: older records simply lack newer fields).
+    function maskedBits(v, mask) {
+        return Number.isInteger(v) && v >= 0 && v <= mask ? v : 0;
+    }
+
+    // v15: a day's mood entries as read from disk / an import: well-formed only, one per hour (the later one wins), sorted by hour.
+    function sanitizeMood(src) {
+        const byHour = {};
+        (Array.isArray(src) ? src : []).forEach((e) => {
+            if (!Array.isArray(e) || !Number.isInteger(e[0]) || e[0] < 0 || e[0] > 23) return;
+            if (!Number.isInteger(e[1]) || e[1] < 1 || e[1] > MOOD_LEVELS) return;
+            byHour[e[0]] = [e[0], e[1], maskedBits(e[2], MOOD_FEELING_MASK), maskedBits(e[3], MOOD_CONTEXT_MASK)];
+        });
+        return Object.keys(byHour).map(Number).sort((a, b) => a - b).map((h) => byHour[h]);
+    }
+
     function normalize(rec) {
         if (!rec || typeof rec !== 'object') return fresh();
         const f = fresh({ date: rec.date, tz: rec.tz });
@@ -314,6 +341,7 @@ const DailyRecord = (() => {
         f.rt = sanitizeRt(rec.rt);
         f.stars = sanitizeStars(rec.stars);
         f.goals = sanitizeGoals(rec.goals);
+        f.mood = sanitizeMood(rec.mood);
         // `fill` skips null/undefined sources, but null IS a legal value for
         // active.first/last and base.*; copy those straight across.
         if (rec.active) { f.active.first = rec.active.first != null ? rec.active.first : null; f.active.last = rec.active.last != null ? rec.active.last : null; }
@@ -547,6 +575,16 @@ const DailyRecord = (() => {
                 // v5: the answer was undone (a Build habit un-completed): its goal entry goes with it.
                 if (p.habitId != null && rec.goals && typeof rec.goals === 'object') delete rec.goals[String(p.habitId)];
                 break;
+            case 'mood': {
+                // v15: one check-in. Payload { at | hour, level (1..5), feelings (bits), context (bits) }. The same local hour replaces
+                // that hour's entry, so fiddling with the picker never logs six rows.
+                const h = hourOf(p);
+                const level = Math.floor(Number(p && p.level));
+                if (h == null || !(level >= 1 && level <= MOOD_LEVELS)) break;
+                const entry = [h, level, maskedBits(p.feelings, MOOD_FEELING_MASK), maskedBits(p.context, MOOD_CONTEXT_MASK)];
+                rec.mood = sanitizeMood((Array.isArray(rec.mood) ? rec.mood : []).filter((e) => e && e[0] !== h).concat([entry]));
+                break;
+            }
             case 'touch': {
                 const h = hourOf(p);
                 rec.active.touches += 1;
@@ -736,6 +774,10 @@ const DailyRecord = (() => {
         if (!dst.ice) dst.ice = { n: 0, min: 0 };
         dst.ice.n += (src.ice && src.ice.n) || 0;
         dst.ice.min += (src.ice && src.ice.min) || 0;
+        // v15: a month keeps the mood HISTOGRAM and drops the entries (a day's own entries count once each).
+        if (!Array.isArray(dst.moodHist)) dst.moodHist = zeros(MOOD_LEVELS);
+        for (let i = 0; i < MOOD_LEVELS; i++) dst.moodHist[i] += (src.moodHist && src.moodHist[i]) || 0;
+        sanitizeMood(src.mood).forEach((e) => { dst.moodHist[e[1] - 1] += 1; });
         dst.ko += src.ko || 0;
         dst.revived += src.revived || 0;
         dst.active.touches += (src.active && src.active.touches) || 0;
@@ -838,6 +880,7 @@ const DailyRecord = (() => {
         adjustTimer,
         setGoalActual,
         sanitizeGoals,
+        sanitizeMood,
         GOAL_UNITS,
         PB_SIZES,
     };

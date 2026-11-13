@@ -13,6 +13,8 @@
  *                it revives; shown as its own state, never as plain "empty")
  *       empty  = an open slot (dashed, "+"; tap -> Routines window to create one)
  *       locked = a slot a higher level unlocks ("Lv N")
+ *   - Mood (W1b Build A, 2026-11-13): when ctx.mood is given, the mood check-in picker (js/ui/moodView.js) under the XP bar, so the
+ *     panel reads as the player's panel: level, how they feel, their slots and perks.
  *   - Perks: this level's perks, the active shop discount, the next two levels'
  *     perks, and the title row at max level.
  *
@@ -136,7 +138,7 @@ const LevelPanel = (() => {
         const xp = xpModel(ctx.xp, ctx.thresholds, ctx.level);
         const slots = slotsModel(ctx);
         const perks = perksModel(ctx.perksTable, ctx.level, 2, ctx.goalSlotsTable);
-        return { level: ctx.level, maxed: xp.maxed, xp, slots, summary: slotsSummary(slots), perks };
+        return { level: ctx.level, maxed: xp.maxed, xp, slots, summary: slotsSummary(slots), perks, mood: !!ctx.mood };
     }
 
     // ---- DOM ----------------------------------------------------------------
@@ -191,6 +193,7 @@ const LevelPanel = (() => {
                     </div>
                     <div class="lp-xp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(model.xp.pct * 100)}"><span class="lp-xp-fill" style="width:${Math.round(model.xp.pct * 100)}%"></span></div>
                     ${titleRow}
+                    ${model.mood ? '<h4 class="lp-section">Mood</h4><div class="lp-mood" data-mood-mount></div>' : ''}
                     <h4 class="lp-section">Routine slots <span class="lp-section-count">${esc(model.summary.replace('Routines ', ''))}</span></h4>
                     <div class="lp-pips">${slots.pips.map(pipHtml).join('')}</div>
                     <p class="lp-note">${notes.map(esc).join('. ')}.</p>
@@ -215,6 +218,9 @@ const LevelPanel = (() => {
         const model = buildModel(ctx);
         const overlay = Modal.open(panelHtml(model), { dedupeSelector: '.level-panel-overlay' });
         if (!overlay) return;
+        // Mood (W1b Build A): the check-in picker lives here, with the level info. ctx.mood = MoodView.mount's deps; its taps stop
+        // propagation themselves, so they never reach the click handler below.
+        if (ctx.mood && typeof MoodView !== 'undefined') MoodView.mount(overlay.querySelector('[data-mood-mount]'), ctx.mood);
         overlay.addEventListener('click', (e) => {
             const btn = e.target.closest ? e.target.closest('[data-action]') : null;
             if (!btn) return;

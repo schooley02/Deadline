@@ -161,3 +161,19 @@ describe('Hud.xpFraction / level button', () => {
         expect(button._attrs['aria-label']).toBe('Level 2, 175 XP. Open level panel');
     });
 });
+
+describe('mood section (W1b Build A, 2026-11-13)', () => {
+    test('the panel has a Mood block only when the caller gives mood deps', () => {
+        const without = LevelPanel.panelHtml(LevelPanel.buildModel(ctxFor(3, [])));
+        const withMood = LevelPanel.panelHtml(LevelPanel.buildModel(ctxFor(3, [], { mood: { getEntries: () => [], onLog: () => {} } })));
+        expect(without).not.toContain('data-mood-mount');
+        expect(withMood).toContain('data-mood-mount');
+        expect(withMood).toContain('>Mood<');
+    });
+    test('the Mood block sits between the title and the routine slots', () => {
+        const html = LevelPanel.panelHtml(LevelPanel.buildModel(ctxFor(3, [], { mood: {} })));
+        expect(html.indexOf('lp-xp-bar')).toBeLessThan(html.indexOf('data-mood-mount'));
+        expect(html.indexOf('data-mood-mount')).toBeLessThan(html.indexOf('Routine slots'));
+    });
+});
+

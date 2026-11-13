@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-13 (mood check-in Build A: mood lives on the avatar) -- Claude app session, Sonnet 5.5 (design talk with Fable 5.2); Jeremy
+- **Decision:** (1) Mood is tied to the player's chosen avatar (male/female); the HUD Level button shows the avatar face instead of the chevron, and the Level panel is the "player panel" that hosts the picker. (2) 5 required levels (Rad/Good/Meh/Bad/Awful, stored 5..1); one tap is a complete check-in; same local hour replaces. (3) Feelings are plain word chips (20, append-only bit flags, max 2 per check-in; any word pickable via "More words"); context words (5) unlimited. (4) Only 10 avatar faces get art (5 levels x 2 avatars), not one per feeling; emoji until then; no-mood face is the avatar's person emoji. (5) Build A / Build B split; Build B holds the Mood column, Stats, rollover prompt, Bad/Awful help card, run-of-lows card. (6) Mood stays informational: no rewards, never changes the scene.
+- **Deviation from the 2026-11-07 design:** the morning card's once-a-day stamp is persisted in Settings `moodCardDay` (not in memory), so a reload does not re-ask; it is per device and not exported. The avatar is exported; an import without one keeps the current one.
+- **Why:** mood is the player's own state, so it belongs to the player (avatar), not the sky; feelings are too many to draw, and they do not drive the face.
+- **Shipped:** DailyRecord v15, sw v359. No balance numbers touched.
+
+---
+
 ## 2026-11-13 (being away: tell the player the away limit) -- A "Being away" topic in How Deadline works and a "Preview only" note at the time slider (Claude app session, Sonnet 5.5; Jeremy: "how can we let the user know that over due items will do no more than 12 damage while they are away ... especially when they are using the time slider" -> "yes to both")
 - **Finding:** nothing told the player about the per-item away limit (`CONFIG.OFFLINE_DAMAGE_CAP_PER_ITEM`, 12 HP, a lifetime cap per item); the barricade line even said away damage is "charged at the normal rate".
 - **Decision:** (1) a 12th topic, "Being away" (`id: 'away'`, after Nights and momentum): one zombie takes at most N HP from the church for time you were away, however long you stay gone; the count of neglected items matters more than the hours; time away counts up to 3 days; the slider is preview only. The numbers come from CONFIG. The barricade line now says "up to the limit in Being away". (2) A small "Preview only: nothing is charged here." note under the slider row while it is away from now (`#timeSliderNote`, shown on the same test as the Now button). No 12 on the slider itself: it stays short for the phone strip.

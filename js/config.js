@@ -1077,6 +1077,12 @@ const CONFIG = {
     FAMILY_TIER_3_AT: 5,
     FAMILY_DAMAGE_TIER_2: 1.5,
     FAMILY_DAMAGE_TIER_3: 2.0,
+    // Mood check-in (docs/WORLD_FEEDBACK_PLAN.md "W1b Mood check-in"; Build A 2026-11-13). Not a balance number. AVATAR_ART_READY: flip to
+    // true once the PixelLab faces exist as Assets/Avatars/<male|female>_<neutral|rad|good|meh|bad|awful>.png (js/mood.js faceFor builds
+    // the path); until then the level button shows emoji.
+    MOOD: {
+        AVATAR_ART_READY: false,
+    },
 };
 
 // Export for Jest/Node; browser picks up the global `CONFIG` via <script> tag.

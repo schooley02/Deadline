@@ -231,7 +231,7 @@ describe('church damage preview is ART ONLY', () => {
 
 describe('the switch is per device: never in a backup', () => {
     test('export strips devTools from the settings it writes', () => {
-        expect(script).toMatch(/getSettings: \(\) => \{ const st = Settings\.load\(\); delete st\.devTools; delete st\.screenBuzz; return st; \}/); // (the buzz switch, 2026-11-10, is per device too)
+        expect(script).toMatch(/getSettings: \(\) => \{ const st = Settings\.load\(\); delete st\.devTools; delete st\.screenBuzz; delete st\.moodCardDay; return st; \}/); // (the buzz switch, 2026-11-10, and the once-a-day mood card stamp, 2026-11-13, are per device too)
     });
 
     test('import ignores a devTools flag in the file', () => {
