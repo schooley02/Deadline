@@ -73,6 +73,29 @@
     transform: rotate(45deg);
 }
 
+/* ---- the momentum mark (beside the pips, TODAY only; moved off the week strip 2026-11-13) ----
+   hollow ring = today not secured yet, check = secured, dashed ring = Sick Day. Green, so it never reads as a fourth gold pip. */
+.priority-momentum {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 16px;
+    height: 16px;
+    margin-left: var(--space-2);
+    box-sizing: border-box;
+    border: 2px solid var(--color-primary-dark-green);
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--color-primary-dark-green);
+    cursor: pointer;
+}
+.priority-momentum::after { content: ''; position: absolute; inset: -14px -6px; } /* thumb-sized tap area; narrow sideways so it never steals taps from the pips beside it */
+.priority-momentum--secured { background: var(--color-primary-dark-green); color: #fff; }
+.priority-momentum--excused { border-style: dashed; }
+
 /* Phone: the pips take their own row under the title (one line, never squeezing "Today's Deadlines"); a tap opens the
  * one-line explainer. */
 @media (max-width: 600px) {

@@ -1,27 +1,5 @@
-/* The Barricade window + the momentum mark on Today's week-strip cell (Momentum Build B, 2026-11-11;
-   js/ui/barricadeWindow.js, js/ui/dayPagerView.js; docs/MOMENTUM_PLAN.md). Linked before responsive.css (which must load last). */
-
-/* ---- the mark on Today's week-strip cell: hollow ring = not yet secured, check = secured, dash = Sick Day ---- */
-.week-strip-momentum {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    width: 16px;
-    height: 16px;
-    margin-top: 2px;
-    box-sizing: border-box;
-    border: 2px solid var(--color-primary-dark-green);
-    border-radius: 50%;
-    font-size: 10px;
-    font-weight: 700;
-    line-height: 1;
-    color: var(--color-primary-dark-green);
-    cursor: pointer;
-}
-.week-strip-momentum::after { content: ''; position: absolute; inset: -14px; } /* thumb-sized tap area around the small ring */
-.week-strip-momentum--secured { background: var(--color-primary-dark-green); color: #fff; }
-.week-strip-momentum--excused { border-style: dashed; }
+/* The Barricade window (Momentum Build B, 2026-11-11; js/ui/barricadeWindow.js, docs/MOMENTUM_PLAN.md). Linked before
+   responsive.css (which must load last). The momentum mark that opens it lives beside the priority pips: css/prioritySlots.css. */
 
 /* ---- the Barricade window ---- */
 .barricade-panel {

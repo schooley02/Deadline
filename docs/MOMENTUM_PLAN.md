@@ -50,7 +50,7 @@ A barricade stands in front of the base. It is NOT an item. Four states by momen
 - **BUILT 2026-11-11 (Build C, damage half; DECISIONS 2026-11-11 (momentum build C, damage bonus)):** `damageCut` on each `CONFIG.MOMENTUM.BARRICADE_STATES` row; the live loop divides the hit interval by `1 - cut` (`Momentum.cutIntervalMs`, `js/loop.js` dep `getBarricadeDamageCut`, `script.js barricadeDamageCut()` cached 5 s); the Base Health panel uses the same cut; catch-up (`js/damage.js`) never does; wording in the Barricade window and the topic.
 - **The 10% / 20% values and the 3 / 5 / 7 state lines are THEORY dials** (proposed `CONFIG.MOMENTUM`): change only via the balance process.
 - **BUILT 2026-11-11 (Build C, canvas half; DECISIONS 2026-11-11 (momentum build C, canvas)):** `#barricade` + `js/ui/barricadeView.js` + `Theme.barricadeAsset`, four PLACEHOLDER pictures in `Assets/Barricade/`, tap opens the window, `?barricade=<state>` dev preview, portrait strip at half size. Not phone-checked.
-- **BUILT 2026-11-12 (Build C, placement; DECISIONS 2026-11-12):** the wall stands across the lane just right of the stairs (40x52 art at 2x). The zombie front line moved 28px right (`CONFIG.FRONT_LINE_GAP_PX`; 14 in the portrait strip) so it has real width; zombies are drawn on a 30px back-lane slant and slid so their feet nearly touch it (drawn only: timeline, due times and damage unchanged). Because an overdue zombie's box covers the wall, the Base Health window has a Barricade card (state + damage cut) that opens the Barricade window; the week-strip mark still works.
+- **BUILT 2026-11-12 (Build C, placement; DECISIONS 2026-11-12):** the wall stands across the lane just right of the stairs (40x52 art at 2x). The zombie front line moved 28px right (`CONFIG.FRONT_LINE_GAP_PX`; 14 in the portrait strip) so it has real width; zombies are drawn on a 30px back-lane slant and slid so their feet nearly touch it (drawn only: timeline, due times and damage unchanged). Because an overdue zombie's box covers the wall, the Base Health window has a Barricade card (state + damage cut) that opens the Barricade window; the momentum mark beside the priority pips still works.
 - **Theme:** barricade -> palisade / wards in a fantasy theme; state names and art come from the theme seam.
 - **This is the parked "Fence + gate structure"** (ROADMAP, 2026-11-03): its stat is momentum. Mock it on the real canvas first, as that
   item says (a low line in front of the church the zombies reach).
@@ -60,8 +60,10 @@ A barricade stands in front of the base. It is NOT an item. Four states by momen
 - **Tap the barricade** -> the Barricade window: "N of 7" + state name, the last 7 nights (Defended / Missed / Excused), today's status
   ("Today: not yet secured" / secured), one line on away days and Sick Days, a link to How Deadline works. New HUD window -> `HudButtons.WINDOWS`.
 - **The moon** keeps Nights Survived (now defended nights).
-- **Week strip:** the strip is today + 6 days AHEAD, so only TODAY's cell gets a mark: hollow ring = not yet secured, filled check = secured.
-  Past nights live in the Barricade window, not the strip.
+- **Priority pips (MOVED here from the week strip 2026-11-13; DECISIONS 2026-11-13 (momentum mark)):** a small mark right after the pips in the
+  list header, on TODAY only: hollow ring = not yet secured, filled check = secured, dashed ring = Sick Day. A tap opens the Barricade window
+  (a tap on the pips still opens the priority explainer). Viewing Yesterday or a later day shows no mark. The week strip carries no mark any more:
+  the mark describes today only, so on a day cell it read as a per-day marker. Past nights live in the Barricade window.
 - **Wording (Jeremy):** "Finish 1 priority or 1 routine to secure today's momentum." Used in the priority window / pips explainer and the
   Barricade window.
 - **How Deadline works:** new topic "Nights and momentum" with the rules above and a Why line. Jeremy: anything built against cheating is

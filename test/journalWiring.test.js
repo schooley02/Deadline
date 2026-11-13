@@ -137,7 +137,8 @@ describe('shell registration', () => {
         expect(html.indexOf('js/ui/modal.js')).toBeLessThan(html.indexOf('js/ui/journalView.js'));
     });
     test('the cache name was bumped for the new shell files', () => {
-        expect(sw).toMatch(/const CACHE_NAME = 'deadline-shell-v36[2-9]';/);
+        const n = Number((sw.match(/const CACHE_NAME = 'deadline-shell-v(\d+)';/) || [])[1]);
+        expect(n).toBeGreaterThanOrEqual(362); // v362 or later: every later shell change bumps it again
     });
     test('Settings has the switch and the export box', () => {
         const sv = read('js/ui/settingsView.js');

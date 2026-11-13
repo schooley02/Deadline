@@ -5,7 +5,10 @@
  * Three jobs, one place so the wording cannot drift between them:
  *   1. WORDS (pure): "Priority: 2 of 3 left today", the full-day text, the "doesn't carry over" line. Player-facing text says "Priority", never "High Priority".
  *   2. PIPS (pure markup + one DOM write): the at-a-glance row in the list header. hollow = free, filled = used (open),
- *      check = done. `PrioritySlotsView.render(el, slots, opts)` fills `#prioritySlots`.
+ *      check = done. `PrioritySlotsView.render(el, slots, opts)` fills `#prioritySlots`. On TODAY only it also carries the
+ *      momentum mark (hollow ring = not secured yet, check = secured, dash = Sick Day); a tap opens the Barricade window.
+ *      The mark moved here from the week strip (2026-11-13): it describes today only, so it sits beside the priorities
+ *      that can secure it, never on a day cell that reads as a per-day marker.
  *   3. THE FORM ROW (DOM): `bindRow` drives a "Priority" checkbox in Add Task / Edit Task / the sub-task form -- the live
  *      "N of 3 left" label, disabled at 0, re-read when the due date changes, and the "Remove priority?" confirm.
  *
@@ -99,6 +102,21 @@ const PrioritySlotsView = (() => {
             '<span class="priority-pips" aria-hidden="true">' + pips + '</span>' + text + '</button>';
     }
 
+    /**
+     * The momentum mark for TODAY (Momentum Build B, moved off the week strip 2026-11-13). `info` = Momentum.momentum()
+     * ({ today: 'secured' | 'excused' | else not yet }). '' when there is no info. A sibling of the pips button, not a
+     * child (no button inside a button), so its tap never opens the priority explainer.
+     */
+    function momentumMarkHtml(info) {
+        if (!info) return '';
+        const t = info.today === 'secured' || info.today === 'excused' ? info.today : 'open';
+        const label = t === 'secured' ? "Today's momentum is secured. Open the Barricade."
+            : t === 'excused' ? 'Sick Day. Open the Barricade.'
+            : "Today's momentum is not secured yet. Open the Barricade.";
+        const glyph = t === 'secured' ? '&#10003;' : (t === 'excused' ? '&ndash;' : '');
+        return '<span class="priority-momentum priority-momentum--' + t + '" role="button" tabindex="0" aria-label="' + esc(label) + '">' + glyph + '</span>';
+    }
+
     /** The one-line explainer the pips open on a tap (phone shows only the pips). */
     function explainerText(slots, perDay, word) {
         const n = per(perDay);
@@ -110,7 +128,8 @@ const PrioritySlotsView = (() => {
 
     /**
      * Fill the list-header element. `slots` = { key, marks, done, left } for the viewed day; `opts` = { perDay, word,
-     * readOnly, onTap }. Hides the element when `slots` is null (nothing to show).
+     * readOnly, onTap, momentum, onMomentumTap }. Hides the element when `slots` is null (nothing to show). `momentum`
+     * is passed for TODAY only; any other day gets no mark.
      */
     function render(el, slots, opts) {
         if (!el) return;
@@ -121,9 +140,16 @@ const PrioritySlotsView = (() => {
             return;
         }
         el.classList.remove('hidden');
-        el.innerHTML = pipsHtml(slots, o.perDay, o);
+        el.innerHTML = pipsHtml(slots, o.perDay, o) + momentumMarkHtml(o.momentum);
         const btn = el.querySelector('.priority-slots-btn');
         if (btn && typeof o.onTap === 'function') btn.onclick = () => o.onTap(slots);
+        const mark = el.querySelector('.priority-momentum');
+        if (mark && typeof o.onMomentumTap === 'function') {
+            mark.onclick = (e) => { e.stopPropagation(); o.onMomentumTap(); };
+            mark.onkeydown = (e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); o.onMomentumTap(); }
+            };
+        }
     }
 
     // ---- the form row (DOM) ---------------------------------------------------------------------------------------
@@ -235,7 +261,7 @@ const PrioritySlotsView = (() => {
     }
 
     return {
-        dayWord, leftText, labelText, fullText, pipStates, pipsHtml, explainerText, render,
+        dayWord, leftText, labelText, fullText, pipStates, pipsHtml, momentumMarkHtml, explainerText, render,
         bindRow, rowHtml, dueFromDateValue, CARRY_TEXT, COVERED_TEXT, KEEP_TEXT, esc,
     };
 })();

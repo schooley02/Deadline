@@ -80,6 +80,64 @@ describe('pips', () => {
         expect(el.innerHTML).toBe('');
     });
 
+    describe('the momentum mark (beside the pips, Today only)', () => {
+        const slots = { key: '2026-11-13', marks: 1, done: 0, left: 2 };
+        const mount = () => {
+            document.body.innerHTML = '<div id="prioritySlots"></div>';
+            return document.getElementById('prioritySlots');
+        };
+
+        test('markup: hollow ring when not secured, check when secured, dash on a Sick Day, nothing without info', () => {
+            expect(PrioritySlotsView.momentumMarkHtml(null)).toBe('');
+            expect(PrioritySlotsView.momentumMarkHtml({ today: 'open' })).toContain('priority-momentum--open');
+            expect(PrioritySlotsView.momentumMarkHtml({ today: 'secured' })).toContain('&#10003;');
+            expect(PrioritySlotsView.momentumMarkHtml({ today: 'secured' })).toContain('priority-momentum--secured');
+            expect(PrioritySlotsView.momentumMarkHtml({ today: 'excused' })).toContain('priority-momentum--excused');
+            expect(PrioritySlotsView.momentumMarkHtml({ today: 'secured' })).toContain('Today&#39;s momentum is secured.');
+            expect(PrioritySlotsView.momentumMarkHtml({ today: 'open' })).toContain('Today&#39;s momentum is not secured yet.');
+        });
+
+        test('render puts the mark after the pips; it is not inside the pips button', () => {
+            const el = mount();
+            PrioritySlotsView.render(el, slots, { perDay: 3, word: 'today', momentum: { today: 'open' } });
+            const mark = el.querySelector('.priority-momentum');
+            expect(mark).not.toBeNull();
+            expect(mark.closest('.priority-slots-btn')).toBeNull();
+            expect(el.querySelector('.priority-slots-btn').nextElementSibling).toBe(mark);
+        });
+
+        test('no momentum passed (any day but Today) -> no mark, pips unchanged', () => {
+            const el = mount();
+            PrioritySlotsView.render(el, slots, { perDay: 3, word: 'tomorrow', momentum: null });
+            expect(el.querySelector('.priority-momentum')).toBeNull();
+            expect(el.querySelectorAll('.priority-pip')).toHaveLength(3);
+        });
+
+        test('a tap on the mark opens the Barricade and does NOT open the priority explainer; a tap on the pips does the reverse', () => {
+            const el = mount();
+            const onTap = jest.fn();
+            const onMomentumTap = jest.fn();
+            PrioritySlotsView.render(el, slots, { perDay: 3, word: 'today', momentum: { today: 'secured' }, onTap, onMomentumTap });
+            el.querySelector('.priority-momentum').click();
+            expect(onMomentumTap).toHaveBeenCalledTimes(1);
+            expect(onTap).not.toHaveBeenCalled();
+            el.querySelector('.priority-slots-btn').click();
+            expect(onTap).toHaveBeenCalledTimes(1);
+            expect(onMomentumTap).toHaveBeenCalledTimes(1);
+        });
+
+        test('Enter and Space on the mark open the Barricade too', () => {
+            const el = mount();
+            const onMomentumTap = jest.fn();
+            PrioritySlotsView.render(el, slots, { perDay: 3, word: 'today', momentum: { today: 'open' }, onMomentumTap });
+            const mark = el.querySelector('.priority-momentum');
+            mark.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+            mark.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+            mark.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
+            expect(onMomentumTap).toHaveBeenCalledTimes(2);
+        });
+    });
+
     test('Yesterday is read-only: no text, no left count in the label', () => {
         document.body.innerHTML = '<div id="prioritySlots"></div>';
         const el = document.getElementById('prioritySlots');

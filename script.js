@@ -2585,8 +2585,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const due = viewStart || State.getCurrentGameDate();
         const slots = Items.prioritySlotsFor(due, itemsDeps());
         const word = PrioritySlotsView.dayWord(slots.key, rowDeps.todayKey);
+        // Momentum Build B (2026-11-11, moved here from the week strip 2026-11-13): today's mark (secured / not yet) sits beside the
+        // priority pips and only on TODAY (it says nothing about any other day); its tap opens the Barricade window.
+        const isToday = offset === 0;
         PrioritySlotsView.render(el, slots, {
             perDay: rowDeps.perDay, word, readOnly: offset < 0,
+            momentum: isToday ? momentumNow() : null,
+            onMomentumTap: openBarricadeWindow,
             onTap: (s) => Dialog.notice(PrioritySlotsView.explainerText(s, rowDeps.perDay, word), { title: 'Priority slots' }),
         });
     }
@@ -2832,9 +2837,6 @@ document.addEventListener('DOMContentLoaded', () => {
             activeItemsListEl: activeItemsListUL,
             timeSliderEl,
             weekStripRowEl,
-            // Momentum Build B (2026-11-11): today's mark on the week strip (secured / not yet) and its tap -> the Barricade window.
-            getMomentum: () => momentumNow(),
-            onMomentumTap: openBarricadeWindow,
             // 2026-07-20 Milestone 5 UX batch (playtest finding #3): the
             // header count previously always showed Hud's global activeItems
             // count regardless of viewed day. taskCountDisplayEl lets

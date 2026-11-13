@@ -1,6 +1,6 @@
 /**
- * The Barricade window (Momentum Build B, 2026-11-11; js/ui/barricadeWindow.js, docs/MOMENTUM_PLAN.md). Pure words + markup, the week-strip
- * mark and the wiring. `open` is DOM and live-checked.
+ * The Barricade window (Momentum Build B, 2026-11-11; js/ui/barricadeWindow.js, docs/MOMENTUM_PLAN.md). Pure words + markup, the momentum
+ * mark (beside the priority pips since 2026-11-13) and the wiring. `open` is DOM and live-checked.
  */
 const fs = require('fs');
 const path = require('path');
@@ -68,15 +68,18 @@ describe('windowHtml', () => {
 });
 
 describe('wiring', () => {
-    test("Today's week-strip cell carries the mark; its tap opens the window and does not move the pager", () => {
-        const src = read('js/ui/dayPagerView.js');
-        expect(src).toContain("entry.offset === 0 ? momentumMarkHtml() : ''");
-        expect(src).toContain('week-strip-momentum--${t}');
-        expect(src).toMatch(/closest\('\.week-strip-momentum'\)[\s\S]{0,260}deps\.onMomentumTap\(\);\s*return;/);
+    test("the momentum mark sits beside the priority pips on Today only; its tap opens the window; the week strip carries none", () => {
+        const strip = read('js/ui/dayPagerView.js');
+        expect(strip).not.toContain('momentumMarkHtml');
+        expect(strip).not.toContain('week-strip-momentum');
+        expect(strip).not.toContain('onMomentumTap');
+        expect(strip).not.toContain('getMomentum');
+        expect(read('css/barricade.css')).not.toContain('week-strip-momentum');
         const script = read('script.js');
-        expect(script).toContain('getMomentum: () => momentumNow(),');
+        expect(script).toContain('momentum: isToday ? momentumNow() : null,');
         expect(script).toContain('onMomentumTap: openBarricadeWindow,');
         expect(script).toContain('Momentum.momentum({');
+        expect(read('css/prioritySlots.css')).toContain('.priority-momentum--secured');
     });
     test('the script, stylesheet and service worker are wired', () => {
         expect(read('index.html')).toContain('<script src="js/ui/barricadeWindow.js"></script>');
