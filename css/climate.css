@@ -319,12 +319,13 @@
 /* ---------- Storm ground: the NORMAL ground with a few rain puddles on it (2026-11-07). Only the picture and its size change; the
    repeat, position, height (72px / the strip's 36px) and pixelated rendering stay from gameCanvas.css / glanceStrip.css. The tile is
    floor-tile.png repeated 4x (508 px wide) with three puddles cut out of the PixelLab art and pasted far apart, so the puddles repeat
-   only every 508 px. Assets/scene/storm-floor-tile.png = 508x72; storm-strip-floor.png = 256x36 (strip-floor.png x4, puddles halved).
+   only every 508 px. Assets/scene/storm-floor-tile.png = 512x72; storm-strip-floor.png = 256x36. 2026-11-14 TEST: the path floor x2 with the three old
+   puddles moved onto it (edges still carry old-floor colours; final art pending, see docs/ART_STYLE.md).
    Raw PixelLab output: Assets/scene/_source/storm-floor-pixellab-128.png. ---------- */
 
 #gameCanvas.climate-storm .scene-ground {
     background-image: url("../Assets/scene/storm-floor-tile.png");
-    background-size: 508px 72px;
+    background-size: 512px 72px;
 }
 
 body.glance-strip #gameCanvas.climate-storm::before {

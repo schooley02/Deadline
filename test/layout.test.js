@@ -353,7 +353,7 @@ describe('desktop floor band stays in sync between CONFIG and css/gameCanvas.css
     const gc = require('fs').readFileSync(require('path').join(__dirname, '../css/gameCanvas.css'), 'utf8');
     test('.scene-ground height == CONFIG.GROUND_FLOOR_HEIGHT and the tile is that tall', () => {
         expect(gc).toMatch(new RegExp(`\\.scene-ground \\{[^}]*height: ${CONFIG.GROUND_FLOOR_HEIGHT}px;`));
-        expect(gc).toContain(`/ 127px ${CONFIG.GROUND_FLOOR_HEIGHT}px;`);
+        expect(gc).toContain(`/ 256px ${CONFIG.GROUND_FLOOR_HEIGHT}px;`);
     });
 });
 
