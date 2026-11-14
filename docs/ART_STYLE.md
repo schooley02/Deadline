@@ -263,6 +263,119 @@ Nov 7 graveyard art.
 **Card scale exception (Jeremy 2026-10-30):** the building card fits the 128x256 Clock tower to the 3x buildings' height at **1.5x**, a deliberate exception to the
 whole-number rule above (in the scene it is still 1:1). Every other card sprite uses 3x or 2x.
 
+## Village 2.0: three-quarter buildings + shape classes (DECIDED 2026-11-14, Jeremy + Claude; Gym art DONE, nothing wired in the game yet)
+
+Every village building is being redrawn as THREE-QUARTER art, one at a time, starting with the Gym (`lurkers`, formerly the Boxing gym). The old front-view
+sprites stay in the game until each replacement is done. **The arrangement is redone only once ALL the new art exists** (Jeremy: see where we stand first).
+These rules are meant to work for any theme built on Baseline, not just Deadline.
+
+**1. View and light (every building):** three-quarter view, the FRONT faces the viewer and the LEFT side wall recedes into the distance (Jeremy's reference:
+`Assets/Village/_source/americana-gym/future_direction_t4_three_quarter.png`). The side wall is ~20-25% of the front's width; its top and bottom edges converge
+slightly toward the back (top drops, bottom rises, ~1 px per 4 px). Light comes from the front-right: the front is lit, the side wall is in shade.
+**Mirroring (`flip`) is BANNED** for three-quarter art (it would show the right wall and light from the left), unless a corrected-light version is drawn.
+
+**2. Shape classes, by ROW (revised the same day after the 800x360 mock-ups `village_plan_tower_back_800x360.png`; Jeremy chose bigger front-row buildings).**
+Canvas sizes on a 16/32 px grid; a theme draws to the class, the layout places classes. Detail scale is relative to the FRONT row (1.0).
+
+| Class | Front row (detail 1.0) | Back row (detail ~0.75) | Far row (detail ~0.55) | Typical use |
+|---|---|---|---|---|
+| Square | 160x160 | 128x128 | 96x96 | sheriff's office, command post, small store |
+| Wide | 192x160 | 160x128 | 128x96 | Gym, school, hospital |
+| Tall | 160x192 | 128x160 | 96x160 | tower with a shed at its foot |
+| Narrow tall | 96x224 | 112x208 (Clock tower) | 80x144-96x160 | clock tower, water tower, windmill, radio mast |
+
+The 128x256 Landmark class is retired: the Clock tower moves to the BACK row, where its smaller details also make it shorter (~208 px), so it fits the
+smallest screen. Visible art stays at least 2 px inside the canvas on the left and right. All art is bottom-anchored (the lowest art row is the canvas's
+last row); the **anchor point is the front-left corner** (where the front wall meets the side wall), so three-quarter bases line up along a row.
+Placement rules keep using the VISIBLE art (`CONFIG.VILLAGE_ART_X`, ART-BOX COLLISION RULE above). Add-ons may rise above the class box (rule 8).
+
+**3. Fixed spots (option A) and the NEW ARRANGEMENT (Jeremy 2026-11-14):** the arrangement is a list of SPOTS, each with a row and a shape class; a theme
+supplies one building per spot. No building is ever dropped: if something does not fit at the smallest screen, the spots are rearranged.
+- **Front** (left to right): Gym (Wide), Jailhouse (Square, where the Clock tower stood), Command Post (Square, where the Jailhouse stood; keep it the
+  shortest front building, it sits just under the "NIGHTS SURVIVED" label).
+- **Back:** Hospital (Wide), Clock tower (Narrow tall), School (Wide).
+- **Far:** Windmill, Radio tower (nudge the radio left of the moon label when placed).
+- **Row heights change:** back-row feet **60 px** above the front row (was 30), far-row feet **95 px** (was 60), so the back rows show above the bigger
+  front row (the hill backdrop must show that higher slope). Final pixel positions are set once ALL the new art exists (Jeremy).
+- Mock-up result at 800x360: every building keeps a visible 32x32 tap patch. Option "front row 1.25x with the tower still in front" was rejected: it hid
+  the back row and the tower could not grow.
+- Not now: a smaller church on phones (needs a church redraw: 5 damage states + 4 animation strips, and the zombie front line / barricade re-check);
+  revisit when the church gets its own art pass (maybe three-quarter too).
+
+**4. Smallest screen = 800x360 landscape** (the 360x800 phone, #2 most common worldwide on StatCounter, Aug 2026). All spots must show there.
+
+**5. Same row = same detail sizes** (so depth reads correctly; extends the Door rule in "Village ARRANGEMENT"). Measured on the APPROVED Gym T3
+(2026-11-14, `Assets/Village/_source/gym-3q/gym_t3_final_192x160.png`), 1x pixels; back row ~0.75x, far row ~0.55x:
+
+| Row | Front wall | Person door (leaf / with frame) | Window (with frame) | Sign | Big opening (garage) |
+|---|---|---|---|---|---|
+| Front | ~85 wide x ~106 tall | ~14x44 / 22x48 | ~9x14 | ~57x31 | ~32x42 |
+| Back | ~64x80 | ~11x33 / 16x36 | ~7x11 | ~43x23 | ~24x32 |
+| Far | ~47x58 | ~8x24 / 12x26 | ~5x8 | ~31x17 | ~18x23 |
+
+Windows on the gym came out small; other buildings may use bigger windows (up to ~12x18 front) as long as doors match the row.
+
+**6. Covered is fine if it is still tappable:** a building may be partly hidden behind a nearer building, but at least a **32x32 px area of its visible art**
+must stay uncovered (by buildings, the HUD, the moon label or the tree) at every supported screen size.
+
+**7. Animation spots stay put:** anything Jeremy may animate later (flags, torches, flickering signs, smoke, lamps) sits at the SAME pixel spot on all five
+tiers, marked on each building's layout guide, so the frames can be drawn later without redrawing the building. Glow and halo are code, never in the art.
+
+**8. Tier ladder (Jeremy 2026-11-14; applies to every BUILDING, not the Memorial obelisk, which keeps its own ladder).** Overall the
+ladder goes from DARK and DULL to BRIGHT and COLOURFUL: every tier is at least as bright and at least as saturated as the one below.
+
+| Tier | Story | Condition | Light | People | Defenses |
+|---|---|---|---|---|---|
+| **T1 Abandoned** | Run-down, empty | Broken windows, holes, sagging, weeds, rubble; main feature damaged or faded | None | None | None |
+| **T2 Squatters** | Someone is living in it | Temporary repairs: boards, tarps, scrap patches, rope; main feature present, sign NOT lit | At least one: a window or an outside light (lantern, fire barrel) | Optional, small | None |
+| **T3 Normal** | A kept-up, lived-in building | No damage, no repairs, clean; sign lit | Windows lit as a normal working building | Optional (in a window) | None |
+| **T4 Hardened** | First zombie defenses | Exterior hardening starts: plated or barred windows, sandbags, barbed wire, spikes | More light sources than T3 (windows + at least one outside light / torch) | Welcome, in a window or outside | First layer |
+| **T5 Stronghold** | Survivor camp | Way more hardening and defenses | The MOST light: more lit windows, lights outside AND on the building | Welcome | Heavy; plus the **survivor camp flag** somewhere on it (ONE shared flag design for every building, Jeremy 2026-11-14; a theme asset) |
+
+**Size:** a building may grow a little as it levels up, as long as its BODY still fits its shape class box. **Add-ons** (flag poles, lookouts, antennas,
+smoke) may rise ABOVE the building and the class box (larger screens show them); on small screens they may be cut off or covered, and the 32x32 tap rule
+applies to the body. **Identity:** the same building, material and main feature (sign, bag, clock face, beacon) in the same spot on all five tiers;
+tiers add and repair, they never redesign it (no new dome, no repainted front). **Every step must be readable at 1x on a phone:** at least two things change,
+one of them light or condition.
+
+### Gym (`lurkers`, front-row Wide 192x160) -- PixelLab brief (2026-11-14)
+Small-town GARAGE gym, grey weathered clapboard, a roll-up garage door, a hand-painted sign with a dumbbell, the heavy bag kept (hung on a wooden bracket at
+the right corner), a squat rack against the side wall (Jeremy: no tires, no bike rack, no pull-up bar), 2 kettlebells in the garage opening. The bag is dark. Card name "Gym". The kind, stat (Break Habits resisted) and star-5 Habit Cheat Day are unchanged.
+**T3 APPROVED 2026-11-14:** `Assets/Village/_source/gym-3q/gym_t3_final_192x160.png`. Made through the PixelLab API: Pro generate (refs + layout guide) -> Resize 1.28x (the normal generator keeps the reference's pixel size, so a bigger canvas alone does NOT make a bigger building) -> Pro inpaint-v3 for the squat rack and the garage interior (person benching, lit floor, 2 kettlebells with shadows, light spill) -> code: 1 kettlebell removed, rack darkened 22%, art moved up 6 px for the spill. First layout guide (160x128) kept: `gym_layout_guide_160x128_whitebg.png`.
+**ALL FIVE TIERS DONE 2026-11-14** (Jeremy approved each; finals `Assets/Village/_source/gym-3q/gym_t1..t5_final_192x160.png`, also saved in Jeremy's
+PixelLab gallery as "Deadline Gym T1..T5 FINAL"; NOT wired into the game yet). Every tier is an EDIT of its neighbour (T2 and T4 from T3, T1 from T2, T5 from
+T4), so size, angle and spots stay identical. Ladder as built:
+- **T1 abandoned:** caved-in roof with broken boards, faded sign hanging crooked, garage door bent off its track (dark opening), side door dark and ajar on a
+  small wooden step, no lantern (bare nail), torn bag fallen from its chain onto the ground, rubble/weeds; darkest, dullest. Jeremy did a final pixel clean-up.
+- **T2 squatters:** blue tarp over a roof hole, faded unlit sign, boarded front window, garage door down with a plywood patch, ONE bright lantern by the side
+  door (warm glow on the wall), boarded side window, junk pile where the rack was (no squat rack), torn bag; duller than T3.
+- **T3 normal:** see "T3 APPROVED" above (squat rack, lit garage with a person benching, 2 kettlebells, light spill, lit sign).
+- **T4 hardened:** new sign (cream, red border, bolts, lamp glow cone in code), bars on both windows, sandbags both sides of the side door, ONE bright lantern
+  RIGHT of the garage, barbed-wire coils along the front roof edge and down the side roof edge, a boxer behind the heavy bag (future animation: make him a
+  separate frame strip), siding evened; a bit brighter/more colourful than T3. Jeremy fixed one white pixel.
+- **T5 stronghold:** the shared SURVIVOR FLAG (tattered rust-red, white star) on a short pole at the roof's front-right corner, clear of the wire; a spotlight
+  on a post at the front-left roof corner facing out; string lights under the roof edge; garage fully up; a man squatting in the rack (future animation);
+  sandbags on both sides of the door, right of the garage and against the side wall; plated side wall with a 2nd lit window and floodlight; freshly painted
+  siding (code); brightest. Jeremy cleaned the wire.
+
+### PixelLab API workflow (learned on the Gym, 2026-11-14) -- use for every Village 2.0 building
+- **Access:** Jeremy's API key lives only in the Claude session workspace (never in the repo); `api.pixellab.ai` is on the allowed-domains list. Check
+  `GET /v2/balance` and report generations used after every batch. The claude.ai custom connector does NOT work (PixelLab MCP wants a Bearer header, not OAuth).
+- **What worked:** `generate-image-v2` (Pro, 15 gen / 4 images) with Jeremy's pick as reference + a flat-colour layout guide; `resize` (1 gen) to make a building
+  BIGGER -- the generators copy the reference's pixel size, so a bigger canvas alone does not enlarge the building; `inpaint-v3` (Pro, 10 gen per image) with
+  a white-on-black mask for every tier edit and fix (people, equipment, defenses, flag). Run 2 seeds and let Jeremy pick.
+- **What failed:** `create-image-bitforge` with an upscaled init (turned clapboard into brick); bitforge inpaint (painted blank wall); thin things from
+  scratch (barbed wire: draw it in code first, then inpaint OVER it); redrawing a small object already there (the spotlight back, the flag) -- keep the code
+  fix instead.
+- **Box seams:** an inpaint patch only redraws inside its rectangle; if the area around it was tone-shifted in code, the patch edge shows as a box. So do
+  brightness/colour passes ONLY at the very end of a tier, never between edits. A per-plank-row luminance pull evens siding if boxes appear.
+- **Clean-ups to expect:** inpaint over sky fills the gaps with dark navy (erase dark pixels above the roof line); objects cut at the mask edge (redo with a
+  mask that leaves room); straight unoutlined cut edges (add a dark outline in code).
+- **Delivering:** every approved final goes to the project AND to Jeremy's PixelLab gallery via `POST /v2/save-to-asset` (`gallery:new`, then
+  `gallery:<id>` to replace; free). API generations also appear in his PixelLab history, failed ones included -- tell him which one is final.
+  `POST /v2/objects/import` (free) would put a picture in his object library for animating. Jeremy's `.pxo` (Pixelorama) files: the cel is raw RGBA at the
+  cel's `image_size` and `offset` in `data.json`, not the canvas size.
+
 ## Milestone markers (headstones) art (BUILT 2026-11-08)
 
 Seven small markers on the graveyard hill, ONE shared 5-picture set: `Assets/scene/headstone-0.png` wooden cross (tinted brown, no badge yet), `-1` Bronze, `-2` Silver, `-3` Gold, `-4` Platinum. 32x32 RGBA, stone centred on column 16, the same 3-row dirt lip at the foot so every stage stands on the hill the same way. Made in PixelLab (Creator, Palette = NONE; sheets come back as 64 variations of 32x32 tiles; trim by deleting rows, never resize), then trimmed / brightened so they read against the hill. Sources, guides and scripts: `Assets/scene/_source/headstones/`. Survivor-camp rule: no flags or red-white-blue. Drawn at 48px (the 32px file at 1.5x, `image-rendering: pixelated`; `background-size: 100% 100%`) so they are easier to tap; positions: `CONFIG.MARKER_SLOTS`, staggered over the hill face and the dirt band at its foot (the add-task button covers feet < 24 at zone x 60-116, so nothing sits there). Checked headless; tune by eye.
