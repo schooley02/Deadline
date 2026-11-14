@@ -138,7 +138,7 @@ body.glance-strip .climate-fireflies .firefly:nth-child(n+6) {
 }
 
 /* FLOOR band (PixelLab tileable art, 2026-10-13): Assets/scene/strip-floor.png is
-   128x36 (the 256x72 floor-tile.png path, halved; 2026-11-14), tiled sideways at 1:1 with crisp
+   640x36 (the 1280x72 floor-tile.png path strip, halved; 2026-11-14), tiled sideways at 1:1 with crisp
    pixels. It runs the full strip width, UNDER the church too (2026-10-26, Jeremy: the ground
    stopped at the church's right edge; #base paints above it by DOM order); its top edge is --strip-inset (8px) ABOVE
    where lane 0's feet (marker bottom) land (the tile's opaque ground starts ~6 rows down, so
@@ -153,7 +153,7 @@ body.glance-strip #gameCanvas::before {
     right: 0;
     top: calc(var(--strip-sky) + var(--strip-marker) - var(--strip-inset));
     bottom: 0;
-    background: url("../Assets/scene/strip-floor.png") repeat-x 0 0 / 128px 36px;
+    background: url("../Assets/scene/strip-floor.png") repeat-x 0 0 / 640px 36px;
     image-rendering: pixelated;
 }
 

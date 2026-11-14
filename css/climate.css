@@ -319,18 +319,18 @@
 /* ---------- Storm ground: the NORMAL ground with a few rain puddles on it (2026-11-07). Only the picture and its size change; the
    repeat, position, height (72px / the strip's 36px) and pixelated rendering stay from gameCanvas.css / glanceStrip.css. The tile is
    floor-tile.png repeated 4x (508 px wide) with three puddles cut out of the PixelLab art and pasted far apart, so the puddles repeat
-   only every 508 px. Assets/scene/storm-floor-tile.png = 512x72; storm-strip-floor.png = 256x36. 2026-11-14 TEST: the path floor x2 with the three old
-   puddles moved onto it (edges still carry old-floor colours; final art pending, see docs/ART_STYLE.md).
+   only every 508 px. Assets/scene/storm-floor-tile.png = 1280x72; storm-strip-floor.png = 640x36. 2026-11-14 TEST: the path strip with the three old
+   puddles placed 6 times (some mirrored) (edges still carry old-floor colours; final art pending, see docs/ART_STYLE.md).
    Raw PixelLab output: Assets/scene/_source/storm-floor-pixellab-128.png. ---------- */
 
 #gameCanvas.climate-storm .scene-ground {
     background-image: url("../Assets/scene/storm-floor-tile.png");
-    background-size: 512px 72px;
+    background-size: 1280px 72px;
 }
 
 body.glance-strip #gameCanvas.climate-storm::before {
     background-image: url("../Assets/scene/storm-strip-floor.png");
-    background-size: 256px 36px;
+    background-size: 640px 36px;
 }
 
 /* ---------- Clear: fireflies. 36 of them (2026-11-07, Jeremy: too hard to see): 24 float in the air over the zombie lanes and 12 sit LOW over
