@@ -300,7 +300,7 @@ describe('Armory', () => {
         expect(slots(844, 334, { slain: 2 }).map(x => x.kind)).toEqual(['slain']);
     });
 
-    test.each([1, 2, 3, 4, 5])('shipped slain tier %i exists and is the authored 128x128 canvas', tier => {
+    test.each([1, 2, 3, 4, 5])('shipped slain tier %i exists and is the authored 160x160 canvas (3/4 Command Post art, 2026-11-15)', tier => {
         const file = path.join(__dirname, '..', VillageLayout.spriteUrl('slain', tier));
         expect(fs.existsSync(file)).toBe(true);
         const b = fs.readFileSync(file);
@@ -759,7 +759,10 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
             ['front', 'back'].forEach((row) => {
                 if (row === 'front' && w < 817) return; // see the Gym note above
                 const r = s.filter(x => x.row === row).sort((a, b) => a.artLeft - b.artLeft);
-                for (let i = 1; i < r.length; i++) expect(r[i].artLeft).toBeGreaterThanOrEqual(r[i - 1].artRight);
+                for (let i = 1; i < r.length; i++) {
+                    if (row === 'back' && w < 800 && r[i - 1].kind === 'heroes' && r[i].kind === 'slain') continue; // 2026-11-15: 160px Command Post art; pinned in 'Command Post over the High school'
+                    expect(r[i].artLeft).toBeGreaterThanOrEqual(r[i - 1].artRight);
+                }
             });
         });
     });
@@ -767,7 +770,9 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
     // 2026-11-08: the Armory moved 26px left (right 66 -> 40, after a first 44px and a phone check) so the grown tree's canopy leaves its tower clear. Narrow fields squeeze every building's
     // left edge toward the church (the `k` scale), so at 640 -- the narrowest width this suite covers -- the Armory's art now overlaps the High school's by
     // 16px. Nothing else overlaps, and the overlap is pinned so it cannot get worse. (66 -> 60 already started to overlap at 640; at right 22 it was 27px.)
-    test('at 640 the only overlaps are the Armory over the High school (<= 16px), the 3/4 Gym over the Clock tower (<= 60px) and the Police station over the Clock tower (<= 4px)', () => {
+    // 2026-11-15: the Command Post is now 160x160 3/4 art (159px of visible art vs 120), `right` 40 -> 41 so it clears the High school at 817+; its left edge reaches further
+    // toward the School on narrow fields: 4px at 800, 27px at 700, 41px at 640 (pinned below; the Village 2.0 re-arrangement replaces this back-row spot).
+    test('at 640 the only overlaps are the Command Post over the High school (<= 41px), the 3/4 Gym over the Clock tower (<= 60px) and the Police station over the Clock tower (<= 4px)', () => {
         const s = at(640);
         const front = s.filter(x => x.row === 'front').sort((a, b) => a.artLeft - b.artLeft);
         for (let i = 1; i < front.length; i++) {
@@ -779,7 +784,7 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
         const back = s.filter(x => x.row === 'back').sort((a, b) => a.artLeft - b.artLeft);
         for (let i = 1; i < back.length; i++) {
             const overlap = back[i - 1].artRight - back[i].artLeft;
-            if (back[i - 1].kind === 'heroes' && back[i].kind === 'slain') expect(overlap).toBeLessThanOrEqual(16);
+            if (back[i - 1].kind === 'heroes' && back[i].kind === 'slain') expect(overlap).toBeLessThanOrEqual(41);
             else expect(overlap).toBeLessThanOrEqual(0);
         }
     });
@@ -798,11 +803,20 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
         expect(s.slain.artRight).toBe(817 - 140 + P.slain.right);
     });
 
-    test('nothing stands BEHIND the Armory, and on the phone its left side tucks 56px behind the Jail', () => {
+    test('Command Post over the High school: clear at 817+, then never worse than pinned (800 / 700 / 640)', () => {
+        const gap = (w) => { const f = byKind(at(w)); return f.heroes.artRight - f.slain.artLeft; };
+        expect(gap(817)).toBeLessThanOrEqual(0);
+        expect(gap(844)).toBeLessThanOrEqual(0);
+        expect(gap(800)).toBeLessThanOrEqual(4);
+        expect(gap(700)).toBeLessThanOrEqual(27);
+        expect(gap(640)).toBeLessThanOrEqual(41);
+    });
+
+    test('nothing stands BEHIND the Command Post, and on the phone its left side tucks 94px behind the Police station', () => {
         const s = byKind(at(817));
         const behind = Object.values(s).filter(x => x.row === 'far' && x.artRight > s.slain.artLeft && x.artLeft < s.slain.artRight);
         expect(behind).toEqual([]);
-        expect(s.defense.artRight - s.slain.artLeft).toBe(56); // was 30; the Armory moved 26px left on 2026-11-08 so the grown tree's canopy leaves its tower clear
+        expect(s.defense.artRight - s.slain.artLeft).toBe(94); // was 56 for the 120px Armory art (30 before 2026-11-08); 160x160 art 2026-11-15
     });
 
     test('only short buildings stand under the moon (the ~90px left of the hill) at the design width and wider', () => {

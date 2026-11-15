@@ -276,6 +276,8 @@ slightly toward the back (top drops, bottom rises, ~1 px per 4 px). Light comes 
 
 **Gym wired (2026-11-14):** `Assets/Village/lurkers_t1..t5.png` = the 192x160 art; `CONFIG.VILLAGE_GYM_W_PX/H_PX` 192/160; `VILLAGE_ART_X.lurkers` [2,191]; `VILLAGE_PLACEMENT.lurkers.right` -323 (keeps the art's left edge where the old 128px Gym's was, by the church); card name "Gym"; sw v377. Building card draws it at 2x (384x320), the panel thumb fits it in the 64px box. The art's right edge is 1px inside the canvas (rule 2 asks 2px). **Known overlap:** the Gym reaches the Clock tower below ~817px wide (touching at 800, 23px at 740, 60px at 640), pinned in `test/villageLayout.test.js`; the re-arrangement (rule 3) removes it. Old front-view Gym art: `_source/americana-gym/t1_ship..t5_ship.png`.
 
+**Command Post wired (2026-11-15, interim back-row spot):** `Assets/Village/slain_t1..t5.png` = the 160x160 Quonset art (copies of `_source/command-3q/command_t*_final_160x160.png`); `CONFIG.VILLAGE_ARMORY_W/H_PX` 160/160; `VILLAGE_ART_X.slain` [1,160]; `VILLAGE_PLACEMENT.slain` back row `right` 41; sw v379. It overlaps the School by 4px at 800 and 41px at 640 until the re-arrangement moves it to the front row.
+
 **2. Shape classes, by ROW (revised the same day after the 800x360 mock-ups `village_plan_tower_back_800x360.png`; Jeremy chose bigger front-row buildings).**
 Canvas sizes on a 16/32 px grid; a theme draws to the class, the layout places classes. Detail scale is relative to the FRONT row (1.0).
 

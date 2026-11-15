@@ -4,6 +4,11 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-15 (wiring the Command Post three-quarter art) -- Claude app session, Sonnet 5.5; Jeremy ("lets wire the command post")
+- **Command Post wired alone, ahead of the re-arrangement,** like the Gym and Police station. `Assets/Village/slain_t1..t5.png` = the 160x160 Quonset finals (old 128x128 art stays in `_source/americana-armory/`); `VILLAGE_ARMORY_W/H_PX` 160x160 (+ `villageLayout.js` DEFAULTS; the ARMORY / `armoryTier` names stay); `VILLAGE_ART_X.slain` [5,125] -> [1,160] (measured from the PNGs); sw v378 -> v379. Card name was already "Command Post".
+- **Interim spot: stays in the BACK row** (Jeremy OK'd). The front row is full (Gym, Clock tower, Police station) until the Village 2.0 re-arrangement, which still waits for the rest of the art. `right` 40 -> 41: the 159px-wide art touched the High school by 1px at 817; 41 clears it at 817+. Cost: 4px over the School at 800, 27px at 700, 41px at 640 (pinned in `villageLayout.test.js`; the 740 back-row no-overlap check now skips this one pair below 800).
+- **Open, needs Jeremy's eyes:** the sprite is 32px taller than the Armory (top 68 vs the Police station's 86 at a 296 canvas), so check it against the moon / NIGHTS SURVIVED label and the grown tree's canopy with `?armoryTier=1..5`; tune `right` / add `raise` if it crowds.
+
 ## 2026-11-15 (Village 2.0: Command Post art) -- Claude app session, Opus 5.5; Jeremy ("lets work on the command post art like we have for the gym and police station")
 - **The Command Post becomes a military Quonset BUNKER** (three-quarter, front-row Square 160x160), not a three-quarter tent: Claude suggested it (a real building that can be repaired/hardened tier by tier and reads distinct from the Gym's box and the Police station's brick); Jeremy chose the metal version ("makes me think of a bunker"; wood-planked fronts "read too much like a log cabin"). Skull-and-crossbones sign kept as the identifier; the guard tower kept as a green shack on stilts behind the bunker. Card name, kind, stat and rewards unchanged.
 - **Height:** not forced short (Jeremy was unsure it needed to be); the bunker's roof ends up the lowest of the front row and only the tower/antenna/flag rise above it. The door stays ~32 px (a 44 px door would push the hut past 160 px).

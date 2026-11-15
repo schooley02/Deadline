@@ -681,9 +681,11 @@ const CONFIG = {
     VILLAGE_JAIL_W_PX: 160,
     VILLAGE_JAIL_H_PX: 160,
     VILLAGE_DEV_JAIL_TIER: 3, // DEV: no defense tier data yet. `?jailTier=1..5` overrides, `off` hides; null = hidden
-    // Command Post (kind `slain`, built as the Armory 2026-10-29, re-aimed at priorities 2026-11-09): survivor army camp (tent + guard tower), 128x128, RIGHT of the tower.
-    VILLAGE_ARMORY_W_PX: 128,
-    VILLAGE_ARMORY_H_PX: 128,
+    // Command Post (kind `slain`, built as the Armory 2026-10-29, re-aimed at priorities 2026-11-09; redrawn 2026-11-15 as THREE-QUARTER Village 2.0 art,
+    // Square class 160x160: a military quonset bunker). Still stands in the BACK row (interim spot) until the Village 2.0 re-arrangement moves it to the front row.
+    // The old VILLAGE_ARMORY_* / armoryTier names stay (config keys).
+    VILLAGE_ARMORY_W_PX: 160,
+    VILLAGE_ARMORY_H_PX: 160,
     VILLAGE_DEV_ARMORY_TIER: 3, // DEV: no slain tier data yet. `?armoryTier=1..5` overrides, `off` hides; null = hidden
     // Radio tower (kind `nights` = Nights Survived, added 2026-10-29): steel mast + radio shack, 128x160, a BACK-ROW building
     // between the Police station and the tower. Raised on the ridge, darker, painted first (the front row covers it).
@@ -729,11 +731,11 @@ const CONFIG = {
         defense: { row: 'front', right: -24, raise: 12 }, // Police station (160x160 3/4 art, 2026-11-14), under the moon; `raise` = px further back (up) than the row's feet, so the officers read smaller like the Gym athletes (Jeremy: bases line up with the Gym at +7, go further back)
         habits: { row: 'back', right: -305 },            // Hospital, behind the gym / tower gap
         heroes: { row: 'back', right: -118 },            // High school, between the tower and the jail
-        slain: { row: 'back', right: 40 },               // Armory: nudged 26px left on 2026-11-08 (was 66; first 44 left, then 18 back right after Jeremy's phone check) so the grown tree's canopy leaves most of its tower clear; 16px over the High school at 640 wide only
+        slain: { row: 'back', right: 41 },               // Command Post (160x160 3/4 art, 2026-11-15, interim back-row spot; right 40 -> 41 so the 159px-wide art clears the High school at 817; the old 128px Armory note follows): nudged 26px left on 2026-11-08 (was 66; first 44 left, then 18 back right after Jeremy's phone check) so the grown tree's canopy leaves most of its tower clear; 16px over the High school at 640 wide only
         bestdays: { row: 'far', right: -406, flip: true }, // Windmill, wheel over the gym + hospital (mirrored)
         nights: { row: 'far', right: -119, flip: true },   // Radio mast, right of the HUD Points button (mirrored)
     },
-    VILLAGE_ART_X: { punctuality: [20, 113], defense: [3, 160], slain: [5, 125], nights: [12, 115], lurkers: [2, 191], heroes: [6, 125], habits: [9, 119], bestdays: [13, 116] },
+    VILLAGE_ART_X: { punctuality: [20, 113], defense: [3, 160], slain: [1, 160], nights: [12, 115], lurkers: [2, 191], heroes: [6, 125], habits: [9, 119], bestdays: [13, 116] },
 
     // ---- Village tiers (DECIDED 2026-10-30 night, DECISIONS "Village tiers"; docs/WORLD_FEEDBACK_PLAN.md "Village tiers + building cards") ----
     // BALANCE numbers, approved by Jeremy as a THEORY pass (rates are estimates; re-check against real play, like the shop prices).
