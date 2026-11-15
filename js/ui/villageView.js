@@ -1,7 +1,7 @@
 /**
  * VillageView -- DOM half of the achievement village (V7 W2, first slice 2026-10-29). The maths
  * is in js/villageLayout.js (pure, unit-tested); this file only measures the canvas and writes
- * each building's sprite position (Clock tower + Jailhouse + Armory + Radio tower + boxing gym + high school + hospital so far).
+ * each building's sprite position (Clock tower + Jailhouse + Armory + Radio tower + gym + high school + hospital so far).
  *
  *   #villageLayer   decorative layer inside #gameCanvas (aria-hidden, pointer-events none,
  *                   z-index 1: above the scene layers, UNDER #midnightLine (5), the church's
@@ -170,7 +170,7 @@ const VillageView = (() => {
      * Pure. The sprites to hit-test, TOPMOST FIRST by their PAINT order (the z-index render() gives each slot), never by the
      * browser's stacking at the moment. 2026-11-09 (Jeremy): the hovered building is lifted to z 40 by .village-hover, so
      * `elementsFromPoint` listed it first and it kept the glow while the pointer slid onto a building drawn IN FRONT of it
-     * (windmill tower behind the boxing gym's roof). Sorting by the slot z keeps "the building you see on top wins".
+     * (windmill tower behind the gym's roof). Sorting by the slot z keeps "the building you see on top wins".
      */
     function byPaintOrder(sprites) {
         const z = (el) => { const n = Number(el && el.style ? el.style.zIndex : NaN); return isFinite(n) ? n : -1; };

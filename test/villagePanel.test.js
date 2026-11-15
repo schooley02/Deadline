@@ -148,7 +148,7 @@ describe('HUD button + shell wiring', () => {
         const opts = VillageLayout.fromConfig(CONFIG);
         ALL_KINDS.forEach((k) => {
             const [w, h] = VillageLayout.sizeOf(k, opts);
-            expect(w).toBe(128);
+            expect(w).toBeGreaterThanOrEqual(128); // 128 for most kinds; the Gym is 192x160 (Village 2.0, 2026-11-14); the 64px thumb fits any size
             expect(h).toBeGreaterThanOrEqual(128);
         });
         expect(Object.keys(VillageProgress.compute({}))).toEqual(expect.arrayContaining(ALL_KINDS));

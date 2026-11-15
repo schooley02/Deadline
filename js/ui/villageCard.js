@@ -51,11 +51,11 @@ const VillageCard = (() => {
         },
         habits: {
             name: 'Hospital', unit: 'habits built',
-            measures: 'Build Habits done: every habit you are building, checked off in its window. Habits you are breaking count at the Boxing gym.',
+            measures: 'Build Habits done: every habit you are building, checked off in its window. Habits you are breaking count at the Gym.',
             why: 'Habits grow through repetition. Every check-in is one more rep, and a long unbroken run of reps is how a habit starts to feel automatic instead of like effort.',
         },
         lurkers: {
-            name: 'Boxing gym', unit: 'clean days',
+            name: 'Gym', unit: 'clean days',
             measures: 'Days you had a Break Habit due and did not slip. Days with nothing to resist do not count.',
             why: 'Resisting something you are trying to quit is a skill that gets stronger with practice. Counting clean days shows how often you win the fight, not how rarely you lose it.',
         },
@@ -77,7 +77,7 @@ const VillageCard = (() => {
     };
 
     // The words in an empty line that become a text-link button when the card is given a handler for it (2026-11-04,
-    // Jeremy): the Boxing gym's "Break Habit" opens the Add Habit form with Break Habit picked.
+    // Jeremy): the Gym's "Break Habit" opens the Add Habit form with Break Habit picked.
     const EMPTY_LINKS = {
         lurkers: { text: 'Break Habit', action: 'add-break-habit', handler: 'onAddBreakHabit' },
     };
@@ -262,7 +262,7 @@ const VillageCard = (() => {
             if (!btn) return;
             e.stopPropagation();
             if (btn.dataset.action === 'close') overlay.remove();
-            // "Break Habit" link on the Boxing gym's empty line: close the card, then open the Add Habit form with
+            // "Break Habit" link on the Gym's empty line: close the card, then open the Add Habit form with
             // Break Habit picked (script.js openAddHabitForm). The click is already stopped above, so Modal's
             // outside-click dismiss can't close the new form.
             if (btn.dataset.action === 'add-break-habit' && typeof ctx.onAddBreakHabit === 'function') {

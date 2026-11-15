@@ -46,7 +46,7 @@ const BANNED = [
 
 // Spots Jeremy chose to leave as they are (2026-11-04). Each is matched by file + a snippet of the line.
 const ALLOWED = [
-    { rel: 'js/ui/villageCard.js', snippet: 'every habit you are building, checked off in its window. Habits you are breaking count at the Boxing gym.' },
+    { rel: 'js/ui/villageCard.js', snippet: 'every habit you are building, checked off in its window. Habits you are breaking count at the Gym.' },
 ];
 
 function findings() {

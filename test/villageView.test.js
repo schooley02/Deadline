@@ -274,8 +274,8 @@ describe('Radio tower (back row)', () => {
     });
 });
 
-// ---- Boxing gym (kind `lurkers`, front row), added 2026-10-30 ----
-describe('Boxing gym (front row)', () => {
+// ---- Gym (kind `lurkers`, front row), added 2026-10-30 ----
+describe('Gym (front row)', () => {
     const q = k => document.querySelector(`#villageLayer .village-sprite[data-kind="${k}"]`);
     const ALL = { punctuality: 3, defense: 3, slain: 3, nights: 3, lurkers: 3 };
     function initAll(over = {}, size = {}) {
@@ -293,7 +293,7 @@ describe('Boxing gym (front row)', () => {
         return state;
     }
 
-    test('draws the gym at its layout slot: front row (no back class, no filter), 128x128', () => {
+    test('draws the gym at its layout slot: front row (no back class, no filter), 192x160', () => {
         initAll();
         const want = VillageLayout.villageSlots(844, 334, 160, 140, ALL, VillageLayout.fromConfig(CONFIG)).find(s => s.kind === 'lurkers');
         const img = q('lurkers');
@@ -303,8 +303,8 @@ describe('Boxing gym (front row)', () => {
         expect(img.style.filter).toBe('');
         expect(img.style.left).toBe(want.left + 'px');
         expect(img.style.top).toBe(want.top + 'px');
-        expect(img.style.width).toBe('128px');
-        expect(img.style.height).toBe('128px');
+        expect(img.style.width).toBe('192px');
+        expect(img.style.height).toBe('160px');
         expect(img.getAttribute('alt')).toBe('');
         expect(img.draggable).toBe(false);
     });

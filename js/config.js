@@ -691,9 +691,9 @@ const CONFIG = {
     VILLAGE_DEV_RADIO_TIER: 3, // DEV: no nights tier data yet. `?radioTier=1..5` overrides, `off` hides; null = hidden
     VILLAGE_BACK_ROW_RAISE_PX: 30, // back-row feet stand this far above the front row's feet (depth by ridge position, same sprite size; 2026-10-30: 14 -> 30, Jeremy: the village sits on a hill sloping down to the church and lanes)
     VILLAGE_BACK_ROW_BRIGHTNESS: 0.8, // back-row sprites are drawn at this brightness (CSS filter) so they recede behind the front row
-    // Boxing gym (kind `lurkers` = willpower, added 2026-10-30): old grey clapboard gym, 128x128, FRONT row between the tower and the Armory.
-    VILLAGE_GYM_W_PX: 128,
-    VILLAGE_GYM_H_PX: 128,
+    // Gym (kind `lurkers` = willpower, added 2026-10-30; redrawn 2026-11-14 as THREE-QUARTER Village 2.0 art, Wide class 192x160, FRONT row, leftmost by the church).
+    VILLAGE_GYM_W_PX: 192,
+    VILLAGE_GYM_H_PX: 160,
     VILLAGE_DEV_GYM_TIER: 3, // DEV: no lurkers tier data yet. `?gymTier=1..5` overrides, `off` hides; null = hidden
     // High school (kind `heroes`, 2026-10-30): a BACK-ROW building; position in VILLAGE_PLACEMENT.
     VILLAGE_SCHOOL_W_PX: 128,
@@ -723,7 +723,7 @@ const CONFIG = {
     // Only short buildings may stand in the ~90px under the moon + "NIGHTS SURVIVED" label. `flip` mirrors the sprite.
     VILLAGE_DESIGN_FIELD_PX: 517,
     VILLAGE_PLACEMENT: {
-        lurkers: { row: 'front', right: -401 },          // Boxing gym, by the church
+        lurkers: { row: 'front', right: -323 },          // Gym (192x160 3/4 art, 2026-11-14): art is 189px wide, so `right` moved +78 (was -401 for 111px) to keep its LEFT edge exactly where it was, clear of the church
         punctuality: { row: 'front', right: -224 },      // Clock tower, centre
         defense: { row: 'front', right: -24 },           // Jailhouse, under the moon (short)
         habits: { row: 'back', right: -305 },            // Hospital, behind the gym / tower gap
@@ -732,7 +732,7 @@ const CONFIG = {
         bestdays: { row: 'far', right: -406, flip: true }, // Windmill, wheel over the gym + hospital (mirrored)
         nights: { row: 'far', right: -119, flip: true },   // Radio mast, right of the HUD Points button (mirrored)
     },
-    VILLAGE_ART_X: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [11, 122], heroes: [6, 125], habits: [9, 119], bestdays: [13, 116] },
+    VILLAGE_ART_X: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [2, 191], heroes: [6, 125], habits: [9, 119], bestdays: [13, 116] },
 
     // ---- Village tiers (DECIDED 2026-10-30 night, DECISIONS "Village tiers"; docs/WORLD_FEEDBACK_PLAN.md "Village tiers + building cards") ----
     // BALANCE numbers, approved by Jeremy as a THEORY pass (rates are estimates; re-check against real play, like the shop prices).
@@ -744,7 +744,7 @@ const CONFIG = {
         slain: [8, 36, 100, 200],         // Command Post (was the Armory): priority tasks finished, max PRIORITY_SLOTS_PER_DAY a day (~2/day; Radio tower ladder x2). THEORY, 2026-11-09, docs/COMMAND_POST_PLAN.md
         punctuality: [25, 120, 350, 750], // Clock tower: completed on time (~8/day)
         habits: [20, 80, 250, 500],       // Hospital: habit check-ins (~5/day)
-        lurkers: [3, 14, 40, 80],         // Boxing gym: days with no slips (>= 1 bad habit resolved, none slipped)
+        lurkers: [3, 14, 40, 80],         // Gym: days with no slips (>= 1 bad habit resolved, none slipped)
         defense: [3, 14, 40, 80],         // Jailhouse: nights the church ended at >= VILLAGE_DEFENSE_HELD_FRAC of max health
         // High school: hero stars banked (each closed day adds every routine's star rating, 0-5 each; High school v2, Jeremy 2026-10-31).
         // THEORY PASS: ~85% completion, routines added as slots unlock (1 routine at the start, max 4 at Lv3/5/7) -> T2 about the end
@@ -777,7 +777,7 @@ const CONFIG = {
             4: { itemId: 'repair_medium',   count: 1 }, // Repair Kit (Medium), 50 pts
             5: { itemId: 'repair_large',    count: 1 }, // Repair Kit (Large), 100 pts
         },
-        lurkers: { 5: { itemId: 'cheat_day', count: 1 } }, // Boxing gym: Habit Cheat Day (Break habits only, like the gym)
+        lurkers: { 5: { itemId: 'cheat_day', count: 1 } }, // Gym: Habit Cheat Day (Break habits only, like the gym)
         habits:  { 5: { itemId: 'skip_day',  count: 1 } }, // Hospital: Skip Day (one habit)
         nights:  { 5: { itemId: 'sick_day',  count: 1 } }, // Radio tower: Sick Day (every habit)
     },

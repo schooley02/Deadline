@@ -44,8 +44,8 @@ const VillageLayout = (() => {
         radioWidthPx: 128,
         radioHeightPx: 160,
         devRadioTier: 3,
-        gymWidthPx: 128,
-        gymHeightPx: 128,
+        gymWidthPx: 192,
+        gymHeightPx: 160,
         devGymTier: 3,
         schoolWidthPx: 128,
         schoolHeightPx: 128,
@@ -58,7 +58,7 @@ const VillageLayout = (() => {
         farRowRaisePx: 30,
         farRowBrightness: 0.65,
         devHospitalTier: 3,
-        art: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [11, 122], heroes: [6, 125], habits: [9, 119], bestdays: [13, 116] },
+        art: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [2, 191], heroes: [6, 125], habits: [9, 119], bestdays: [13, 116] },
         backRowRaisePx: 30,
         backRowBrightness: 0.8,
         clockScale: 1,
@@ -67,7 +67,7 @@ const VillageLayout = (() => {
         // Placement model (2026-10-30 night): mirrors CONFIG.VILLAGE_PLACEMENT / VILLAGE_DESIGN_FIELD_PX.
         designFieldPx: 517,
         placement: {
-            lurkers: { row: 'front', right: -401 },
+            lurkers: { row: 'front', right: -323 },
             punctuality: { row: 'front', right: -224 },
             defense: { row: 'front', right: -24 },
             habits: { row: 'back', right: -305 },
@@ -183,7 +183,7 @@ const VillageLayout = (() => {
         return resolveTierParam(search, 'radioTier', o.devRadioTier, o.tiers);
     }
 
-    // Boxing gym: `?gymTier=`
+    // Gym: `?gymTier=`
     function resolveDevGymTier(search, opts) {
         const o = opts || DEFAULTS;
         return resolveTierParam(search, 'gymTier', o.devGymTier, o.tiers);

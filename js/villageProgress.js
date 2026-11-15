@@ -12,7 +12,7 @@
  *                              (saved keys). docs/COMMAND_POST_PLAN.md
  *   punctuality  Clock tower   items completed on time (done minus late; closed days + the open day)
  *   habits       Hospital      habit check-ins this run
- *   lurkers      Boxing gym    days with no slips (at least one bad habit resolved, none slipped)
+ *   lurkers      Gym           days with no slips (at least one bad habit resolved, none slipped)
  *   defense      Jailhouse     nights the church ended at >= 75% health AND the day was defended (Momentum, 2026-11-11)
  *   heroes       High school   hero stars banked: each closed day adds every routine's star rating at day close (0-5 each)
  *   bestdays     Windmill      heavy days handled (> 1.25x this run's recent average and >= 1 item above it, nothing missed)
@@ -119,7 +119,7 @@ const VillageProgress = (() => {
         return !!(a && a.active >= 1 && a.perfect === a.active);
     }
 
-    /** Boxing gym: a day with at least one bad habit resolved and none slipped. */
+    /** Gym: a day with at least one bad habit resolved and none slipped. */
     function isNoSlipDay(r) {
         const l = (r && r.lurk) || {};
         return num(l.avoided) > 0 && num(l.slipped) === 0;
