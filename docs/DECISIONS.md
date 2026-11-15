@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-14 (Village 2.0: Police station art) -- Claude app session, Opus 5.5; Jeremy ("new 3 quarter turn artwork for the jailhouse ... I want it to be a police station")
+- **The Jailhouse (`defense`) is redrawn as a small-town POLICE STATION**, front-row Square 160x160: tan brick, gold badge on the parapet, POLICE sign, blue globe lamps, patrol car, holding-cell window. Why: Jeremy wants a police station; tan brick keeps it apart from the grey Gym, red-brick Clock tower and olive Command Post. Card name to become "Police station" when wired; kind / stat / stars unchanged.
+- **Camera angle and door size are matched to the Gym** (eye level, flat front, roof hidden; door ~44 tall). Rejected: the first top-down batch.
+- **T4 uses barricades, not sandbags** (crowd barriers + a lit sawhorse) and the utility pole + P sign + wall wiring from an earlier take instead of a side work lamp; the officer's window is open, not barred. **T5 flag sits right of the parapet**, raised to clear the wire, because the 160 canvas has no room at the corner. All Jeremy 2026-11-14.
+- **Ladder brightness from T4 on is measured on the building front** (the pole and dark side wall pull the whole-picture average down); front rises T3 137.7 -> T4 140.4 -> T5 140.6.
+- **Placement:** raise the police station 7-12 px when wired rather than lowering the Gym (the Gym's walls end 7 px above its canvas bottom because of the light spill). No balance number changed.
+
 ## 2026-11-14 (wiring the Gym three-quarter art) -- Claude app session, Sonnet 5.5; Jeremy ("lets wire in the new gym artwork")
 - **Gym wired alone, ahead of the re-arrangement.** Canvas 192x160 (Wide front class), art extent [2,191], card name "Gym". Placement keeps the art's LEFT edge where the old Boxing gym's was (`right` -401 -> -323), because it is anchored by the church, not the Clock tower.
 - **Known cost:** the Gym's 189px of art now reaches the Clock tower in the front row on screens narrower than ~817px (touching at 800, overlapping below). Accepted until the Village 2.0 re-arrangement (Gym / Jailhouse / Command Post front, Clock tower to the back); tests pin the worst overlap per width so it cannot grow, and the old "front row never overlaps" test now applies at 817+.

@@ -316,7 +316,8 @@ Scoped from a structured live playtest.
   - [ ] **V7 Village 2.0 -- three-quarter buildings (DECIDED 2026-11-14; rules in ART_STYLE "Village 2.0", DECISIONS 2026-11-14):**
     - [x] Rules: shape classes by row, fixed spots, 800x360 floor, same-row detail sizes, tap patch, animation spots, tier ladder, shared flag, new arrangement (DONE 2026-11-14).
     - [x] **Gym (`lurkers`) art T1-T5** (DONE 2026-11-14, PixelLab API; `Assets/Village/_source/gym-3q/gym_t1..t5_final_192x160.png`). **Wired alone 2026-11-14** (Sonnet; sw v377; 192x160 canvas, `VILLAGE_ART_X` [2,191], `right` -323, card "Gym"; village/layout/view/panel suites green in a cloud copy; full `npm test` + live/phone check owed; overlaps the Clock tower below ~817px wide until the re-arrangement).
-    - [ ] Jailhouse, Command Post (front Squares 160x160); Hospital, School (back Wide); Clock tower (back Narrow tall ~112x208); Windmill, Radio (far). Same workflow.
+    - [x] **Police station (`defense`, was the Jailhouse) art T1-T5** (DONE 2026-11-14, PixelLab API + code; `Assets/Village/_source/police-3q/police_t1..t5_final_160x160.png`; NOT wired; Jeremy will clean up in PixelLab; raise it 7-12 px when wired, see ART_STYLE "Police station").
+    - [ ] Command Post (front Square 160x160); Hospital, School (back Wide); Clock tower (back Narrow tall ~112x208); Windmill, Radio (far). Same workflow.
     - [ ] Wire the REST of the new art (the Gym is done, see above): canvas sizes per kind, `VILLAGE_ART_X`, spots + row raises 60/95, hill backdrop slope, building-card sprites; run the 32x32 tap check at 800x360 with every building at T5.
     - [ ] Animations later: boxer (T4/T5), squatter (T5), flag, lantern/sign flicker (code).
     - [ ] Optional: smaller church on phones (church redraw; revisit with a church art pass).
