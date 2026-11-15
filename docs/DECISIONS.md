@@ -4,6 +4,11 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-14 (wiring the Gym three-quarter art) -- Claude app session, Sonnet 5.5; Jeremy ("lets wire in the new gym artwork")
+- **Gym wired alone, ahead of the re-arrangement.** Canvas 192x160 (Wide front class), art extent [2,191], card name "Gym". Placement keeps the art's LEFT edge where the old Boxing gym's was (`right` -401 -> -323), because it is anchored by the church, not the Clock tower.
+- **Known cost:** the Gym's 189px of art now reaches the Clock tower in the front row on screens narrower than ~817px (touching at 800, overlapping below). Accepted until the Village 2.0 re-arrangement (Gym / Jailhouse / Command Post front, Clock tower to the back); tests pin the worst overlap per width so it cannot grow, and the old "front row never overlaps" test now applies at 817+.
+- No balance number changed. Old 128x128 Gym art stays in `Assets/Village/_source/americana-gym/`.
+
 ## 2026-11-14 (Village 2.0: three-quarter buildings, shape classes, tier ladder, Gym art) -- Claude app session, Opus 5.5; Jeremy ("redo the building art to be a 3 quarters turn artwork for each building that i will likely animate"; "make it easier for players to fit buildings with different artwork")
 - **Every village building becomes three-quarter art**, left wall showing, light from the front-right; mirroring banned unless the light is redrawn. Why: Jeremy loves the depth/detail; it animates better. Old front-view sprites stay until each replacement exists.
 - **Shape classes by row + fixed spots (option A)** so a Baseline theme draws to a class and the layout places classes. Front row 1.25x bigger (Wide 192x160, Square 160x160); back ~0.75x detail; far ~0.55x. Smallest screen 800x360 (360x800 phones); NO building is ever dropped -- rearrange instead. Rejected: free auto-placement (option B); bigger front row with the Clock tower still in front (hid the back row; tower could not grow).

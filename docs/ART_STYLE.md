@@ -263,7 +263,7 @@ Nov 7 graveyard art.
 **Card scale exception (Jeremy 2026-10-30):** the building card fits the 128x256 Clock tower to the 3x buildings' height at **1.5x**, a deliberate exception to the
 whole-number rule above (in the scene it is still 1:1). Every other card sprite uses 3x or 2x.
 
-## Village 2.0: three-quarter buildings + shape classes (DECIDED 2026-11-14, Jeremy + Claude; Gym art DONE, nothing wired in the game yet)
+## Village 2.0: three-quarter buildings + shape classes (DECIDED 2026-11-14, Jeremy + Claude; Gym art DONE and WIRED 2026-11-14, nothing else wired yet)
 
 Every village building is being redrawn as THREE-QUARTER art, one at a time, starting with the Gym (`lurkers`, formerly the Boxing gym). The old front-view
 sprites stay in the game until each replacement is done. **The arrangement is redone only once ALL the new art exists** (Jeremy: see where we stand first).
@@ -273,6 +273,8 @@ These rules are meant to work for any theme built on Baseline, not just Deadline
 `Assets/Village/_source/americana-gym/future_direction_t4_three_quarter.png`). The side wall is ~20-25% of the front's width; its top and bottom edges converge
 slightly toward the back (top drops, bottom rises, ~1 px per 4 px). Light comes from the front-right: the front is lit, the side wall is in shade.
 **Mirroring (`flip`) is BANNED** for three-quarter art (it would show the right wall and light from the left), unless a corrected-light version is drawn.
+
+**Gym wired (2026-11-14):** `Assets/Village/lurkers_t1..t5.png` = the 192x160 art; `CONFIG.VILLAGE_GYM_W_PX/H_PX` 192/160; `VILLAGE_ART_X.lurkers` [2,191]; `VILLAGE_PLACEMENT.lurkers.right` -323 (keeps the art's left edge where the old 128px Gym's was, by the church); card name "Gym"; sw v377. Building card draws it at 2x (384x320), the panel thumb fits it in the 64px box. The art's right edge is 1px inside the canvas (rule 2 asks 2px). **Known overlap:** the Gym reaches the Clock tower below ~817px wide (touching at 800, 23px at 740, 60px at 640), pinned in `test/villageLayout.test.js`; the re-arrangement (rule 3) removes it. Old front-view Gym art: `_source/americana-gym/t1_ship..t5_ship.png`.
 
 **2. Shape classes, by ROW (revised the same day after the 800x360 mock-ups `village_plan_tower_back_800x360.png`; Jeremy chose bigger front-row buildings).**
 Canvas sizes on a 16/32 px grid; a theme draws to the class, the layout places classes. Detail scale is relative to the FRONT row (1.0).
