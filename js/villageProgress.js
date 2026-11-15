@@ -13,7 +13,7 @@
  *   punctuality  Clock tower   items completed on time (done minus late; closed days + the open day)
  *   habits       Hospital      habit check-ins this run
  *   lurkers      Gym           days with no slips (at least one bad habit resolved, none slipped)
- *   defense      Jailhouse     nights the church ended at >= 75% health AND the day was defended (Momentum, 2026-11-11)
+ *   defense      Police station nights the church ended at >= 75% health AND the day was defended (Momentum, 2026-11-11)
  *   heroes       High school   hero stars banked: each closed day adds every routine's star rating at day close (0-5 each)
  *   bestdays     Windmill      heavy days handled (> 1.25x this run's recent average and >= 1 item above it, nothing missed)
  *
@@ -29,7 +29,7 @@
  *     today,           the open day's record (save.today) or null
  *     runNumber,       the current run (runHistory.length + 1); only days with rec.run === runNumber count
  *     maxHp,           CONFIG.MAX_BASE_HEALTH
- *     countsAsNight?,  (rec) => boolean, Momentum.countsAsNight bound to the save's start day; the Jailhouse also needs it (absent = every day counts)
+ *     countsAsNight?,  (rec) => boolean, Momentum.countsAsNight bound to the save's start day; the Police station also needs it (absent = every day counts)
  *     thresholds?,     defaults to DEFAULT_THRESHOLDS (a test checks it matches CONFIG)
  *     defenseFrac?, prioritySlots?, heavyWindow?, heavyMinDays?, heavyFactor?, heavyExtra? }   defaults mirror CONFIG
  */
@@ -125,7 +125,7 @@ const VillageProgress = (() => {
         return num(l.avoided) > 0 && num(l.slipped) === 0;
     }
 
-    /** Jailhouse: the church ended the day at >= frac of max health. */
+    /** Police station: the church ended the day at >= frac of max health. */
     function churchHeld(r, maxHp, frac) {
         const hp = r && r.base && r.base.endHp;
         if (hp == null || !Number.isFinite(hp) || !(maxHp > 0)) return false;

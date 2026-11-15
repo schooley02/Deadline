@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-14 (wiring the Police station three-quarter art) -- Claude app session, Sonnet 5.5; Jeremy ("lets wire the police station")
+- **Police station wired alone, ahead of the re-arrangement,** the same way as the Gym. `Assets/Village/defense_t1..t5.png` = the 160x160 finals (old 128x128 art stays in `_source/americana-jail/`); `VILLAGE_JAIL_W/H_PX` 160x160 (+ `villageLayout.js` DEFAULTS); card name "Jailhouse" -> "Police station"; sw v377 -> v378. The config keys keep the `JAIL` / `jailTier` names (renaming is churn for no gain).
+- **Art extent `VILLAGE_ART_X.defense` = [3,160]** (`[first opaque column, last opaque column + 1)`, measured from the five PNGs; T4/T5 reach x 159). That leaves 0 px margin vs the 2 px rule: accepted as approved art (Jeremy cleaned T4/T5 up in PixelLab); the Gym's [2,191] uses the same convention. The earlier handoff's "[3,159]" counted the last pixel inclusively.
+- **Placement `right` stays -24** (the art's right edge keeps its place, 24 px in front of the hill; the building grows leftwards, 43 px clear of the Clock tower at 817).
+- **New placement option `raise` (px, >= 0, default none):** the sprite stands that far further back than its row's feet; `feetY` (the row's horizon, read by the haze plan) is NOT changed, so showing the Police station alone cannot move the haze. Police station `raise: 12`, the top of the 7-12 px range, plus a bit, because its officers read smaller than the Gym athletes and its bases already line up with the Gym at +7 (Jeremy). A tunable lever, not a balance number.
+- **Known cost:** the 157px-wide Police station overlaps the Clock tower by 4 px at 640 wide (clear from ~653 up, about 39 px gap at the 800 px floor). Pinned by the 640 test so it cannot grow; the Village 2.0 re-arrangement (Clock tower to the back row) removes it.
+- No balance number changed. Not live-checked in the real game or on a phone.
+
 ## 2026-11-14 (Village 2.0: Police station art) -- Claude app session, Opus 5.5; Jeremy ("new 3 quarter turn artwork for the jailhouse ... I want it to be a police station")
 - **The Jailhouse (`defense`) is redrawn as a small-town POLICE STATION**, front-row Square 160x160: tan brick, gold badge on the parapet, POLICE sign, blue globe lamps, patrol car, holding-cell window. Why: Jeremy wants a police station; tan brick keeps it apart from the grey Gym, red-brick Clock tower and olive Command Post. Card name to become "Police station" when wired; kind / stat / stars unchanged.
 - **Camera angle and door size are matched to the Gym** (eye level, flat front, roof hidden; door ~44 tall). Rejected: the first top-down batch.

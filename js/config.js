@@ -365,7 +365,7 @@ const CONFIG = {
     SKY_UNLOCKS: {
         hazy:     { level: 4 },
         overcast: { kind: 'nights',   tier: 3 }, // Radio tower
-        fog:      { kind: 'defense',  tier: 3 }, // Jailhouse
+        fog:      { kind: 'defense',  tier: 3 }, // Police station
         storm:    { kind: 'bestdays', tier: 3 }, // Windmill
         clear:    { kind: 'nights',   tier: 4 }, // Radio tower
     },
@@ -676,16 +676,17 @@ const CONFIG = {
     VILLAGE_MIN_FIELD_PX: 220, // a narrower walking field hides the village
     VILLAGE_TIERS: 5,
     VILLAGE_DEV_CLOCK_TIER: 3, // DEV: no punctuality tier data yet. `?villageTier=1..5` in the URL overrides, `off` hides; null = hidden
-    // Jailhouse / sheriff's office (kind `defense` = Church Defense; re-keyed from `lurkers` 2026-10-29): 128x128 canvas, fieldstone, left of the tower.
-    VILLAGE_JAIL_W_PX: 128,
-    VILLAGE_JAIL_H_PX: 128,
+    // Police station (kind `defense` = Church Defense; was the Jailhouse until 2026-11-14, re-keyed from `lurkers` 2026-10-29; redrawn 2026-11-14 as
+    // THREE-QUARTER Village 2.0 art, Square class 160x160, FRONT row, left of the tower). The old name stays in the VILLAGE_JAIL_* / jailTier keys.
+    VILLAGE_JAIL_W_PX: 160,
+    VILLAGE_JAIL_H_PX: 160,
     VILLAGE_DEV_JAIL_TIER: 3, // DEV: no defense tier data yet. `?jailTier=1..5` overrides, `off` hides; null = hidden
     // Command Post (kind `slain`, built as the Armory 2026-10-29, re-aimed at priorities 2026-11-09): survivor army camp (tent + guard tower), 128x128, RIGHT of the tower.
     VILLAGE_ARMORY_W_PX: 128,
     VILLAGE_ARMORY_H_PX: 128,
     VILLAGE_DEV_ARMORY_TIER: 3, // DEV: no slain tier data yet. `?armoryTier=1..5` overrides, `off` hides; null = hidden
     // Radio tower (kind `nights` = Nights Survived, added 2026-10-29): steel mast + radio shack, 128x160, a BACK-ROW building
-    // between the Jailhouse and the tower. Raised on the ridge, darker, painted first (the front row covers it).
+    // between the Police station and the tower. Raised on the ridge, darker, painted first (the front row covers it).
     VILLAGE_RADIO_W_PX: 128,
     VILLAGE_RADIO_H_PX: 160,
     VILLAGE_DEV_RADIO_TIER: 3, // DEV: no nights tier data yet. `?radioTier=1..5` overrides, `off` hides; null = hidden
@@ -725,14 +726,14 @@ const CONFIG = {
     VILLAGE_PLACEMENT: {
         lurkers: { row: 'front', right: -323 },          // Gym (192x160 3/4 art, 2026-11-14): art is 189px wide, so `right` moved +78 (was -401 for 111px) to keep its LEFT edge exactly where it was, clear of the church
         punctuality: { row: 'front', right: -224 },      // Clock tower, centre
-        defense: { row: 'front', right: -24 },           // Jailhouse, under the moon (short)
+        defense: { row: 'front', right: -24, raise: 12 }, // Police station (160x160 3/4 art, 2026-11-14), under the moon; `raise` = px further back (up) than the row's feet, so the officers read smaller like the Gym athletes (Jeremy: bases line up with the Gym at +7, go further back)
         habits: { row: 'back', right: -305 },            // Hospital, behind the gym / tower gap
         heroes: { row: 'back', right: -118 },            // High school, between the tower and the jail
         slain: { row: 'back', right: 40 },               // Armory: nudged 26px left on 2026-11-08 (was 66; first 44 left, then 18 back right after Jeremy's phone check) so the grown tree's canopy leaves most of its tower clear; 16px over the High school at 640 wide only
         bestdays: { row: 'far', right: -406, flip: true }, // Windmill, wheel over the gym + hospital (mirrored)
         nights: { row: 'far', right: -119, flip: true },   // Radio mast, right of the HUD Points button (mirrored)
     },
-    VILLAGE_ART_X: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [2, 191], heroes: [6, 125], habits: [9, 119], bestdays: [13, 116] },
+    VILLAGE_ART_X: { punctuality: [20, 113], defense: [3, 160], slain: [5, 125], nights: [12, 115], lurkers: [2, 191], heroes: [6, 125], habits: [9, 119], bestdays: [13, 116] },
 
     // ---- Village tiers (DECIDED 2026-10-30 night, DECISIONS "Village tiers"; docs/WORLD_FEEDBACK_PLAN.md "Village tiers + building cards") ----
     // BALANCE numbers, approved by Jeremy as a THEORY pass (rates are estimates; re-check against real play, like the shop prices).
@@ -745,14 +746,14 @@ const CONFIG = {
         punctuality: [25, 120, 350, 750], // Clock tower: completed on time (~8/day)
         habits: [20, 80, 250, 500],       // Hospital: habit check-ins (~5/day)
         lurkers: [3, 14, 40, 80],         // Gym: days with no slips (>= 1 bad habit resolved, none slipped)
-        defense: [3, 14, 40, 80],         // Jailhouse: nights the church ended at >= VILLAGE_DEFENSE_HELD_FRAC of max health
+        defense: [3, 14, 40, 80],         // Police station: nights the church ended at >= VILLAGE_DEFENSE_HELD_FRAC of max health
         // High school: hero stars banked (each closed day adds every routine's star rating, 0-5 each; High school v2, Jeremy 2026-10-31).
         // THEORY PASS: ~85% completion, routines added as slots unlock (1 routine at the start, max 4 at Lv3/5/7) -> T2 about the end
         // of week 1, T3 ~3 weeks, T4 ~7 weeks, T5 ~100 days (the Radio tower's pace). Re-check with real play data.
         heroes: [10, 75, 300, 750],
         bestdays: [2, 5, 15, 30],         // Windmill: heavy days handled (more due than the recent average, nothing missed)
     },
-    VILLAGE_DEFENSE_HELD_FRAC: 0.75, // a night counts for the Jailhouse when the church ends the day at >= this fraction of MAX_BASE_HEALTH
+    VILLAGE_DEFENSE_HELD_FRAC: 0.75, // a night counts for the Police station when the church ends the day at >= this fraction of MAX_BASE_HEALTH
     VILLAGE_HEAVY_DAY_WINDOW: 14, // the Windmill's "recent average" = this run's last N closed days
     VILLAGE_HEAVY_DAY_MIN_DAYS: 3, // ...and needs at least this many closed days of history before any day can be heavy
     VILLAGE_HEAVY_DAY_FACTOR: 1.25, // a day is HEAVY only when more than this x the recent average was due (Jeremy 2026-10-30, option 2: a permanent step up stops scoring once the average catches up)

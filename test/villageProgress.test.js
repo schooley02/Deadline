@@ -218,7 +218,7 @@ describe('counters', () => {
         });
     });
 
-    describe('defense (Jailhouse): nights the church held', () => {
+    describe('defense (Police station): nights the church held', () => {
         test('counts days that END at >= 75% of max health', () => {
             const held = day(dated(1), { base: { endHp: 75, minHp: 40 } });
             const justShort = day(dated(2), { base: { endHp: 74, minHp: 74 } });

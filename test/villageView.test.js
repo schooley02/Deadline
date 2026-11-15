@@ -123,7 +123,7 @@ function initBoth({ hill = 140, clock = 3, jail = 3, ...size } = {}) {
 }
 const byKind = k => document.querySelector(`#villageLayer .village-sprite[data-kind="${k}"]`);
 
-test('draws the Jailhouse next to the Clock tower, each at its own layout slot', () => {
+test('draws the Police station next to the Clock tower, each at its own layout slot', () => {
     initBoth();
     expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(2);
     const want = VillageLayout.villageSlots(844, 334, 160, 140, { punctuality: 3, defense: 3 }, VillageLayout.fromConfig(CONFIG));
@@ -136,7 +136,8 @@ test('draws the Jailhouse next to the Clock tower, each at its own layout slot',
         expect(img.style.height).toBe(slot.height + 'px');
     });
     expect(byKind('defense').getAttribute('src')).toBe('Assets/Village/defense_t3.png');
-    expect(byKind('defense').style.height).toBe('128px');
+    expect(byKind('defense').style.height).toBe('160px'); // 160x160 three-quarter art since 2026-11-14
+    expect(byKind('defense').style.width).toBe('160px');
 });
 
 test('the jail is decorative like the tower and has its own class', () => {

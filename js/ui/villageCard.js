@@ -60,7 +60,7 @@ const VillageCard = (() => {
             why: 'Resisting something you are trying to quit is a skill that gets stronger with practice. Counting clean days shows how often you win the fight, not how rarely you lose it.',
         },
         defense: {
-            name: 'Jailhouse', unit: 'nights',
+            name: 'Police station', unit: 'nights',
             measures: 'Nights the church ended the day at 75% health or better.',
             why: 'A healthy base means you are not letting deadlines pile up. Protect and serve your future self: ending each day strong keeps you out of the hole, where catching up costs the most.',
         },

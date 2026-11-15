@@ -1,7 +1,7 @@
 /**
  * VillageView -- DOM half of the achievement village (V7 W2, first slice 2026-10-29). The maths
  * is in js/villageLayout.js (pure, unit-tested); this file only measures the canvas and writes
- * each building's sprite position (Clock tower + Jailhouse + Armory + Radio tower + gym + high school + hospital so far).
+ * each building's sprite position (Clock tower + Police station + Armory + Radio tower + gym + high school + hospital so far).
  *
  *   #villageLayer   decorative layer inside #gameCanvas (aria-hidden, pointer-events none,
  *                   z-index 1: above the scene layers, UNDER #midnightLine (5), the church's

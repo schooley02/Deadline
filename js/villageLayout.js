@@ -35,8 +35,8 @@ const VillageLayout = (() => {
         minFieldPx: 220,
         tiers: 5,
         devClockTier: 3,
-        jailWidthPx: 128,
-        jailHeightPx: 128,
+        jailWidthPx: 160,
+        jailHeightPx: 160,
         devJailTier: 3,
         armoryWidthPx: 128,
         armoryHeightPx: 128,
@@ -58,7 +58,7 @@ const VillageLayout = (() => {
         farRowRaisePx: 30,
         farRowBrightness: 0.65,
         devHospitalTier: 3,
-        art: { punctuality: [20, 113], defense: [14, 122], slain: [5, 125], nights: [12, 115], lurkers: [2, 191], heroes: [6, 125], habits: [9, 119], bestdays: [13, 116] },
+        art: { punctuality: [20, 113], defense: [3, 160], slain: [5, 125], nights: [12, 115], lurkers: [2, 191], heroes: [6, 125], habits: [9, 119], bestdays: [13, 116] },
         backRowRaisePx: 30,
         backRowBrightness: 0.8,
         clockScale: 1,
@@ -69,7 +69,7 @@ const VillageLayout = (() => {
         placement: {
             lurkers: { row: 'front', right: -323 },
             punctuality: { row: 'front', right: -224 },
-            defense: { row: 'front', right: -24 },
+            defense: { row: 'front', right: -24, raise: 12 },
             habits: { row: 'back', right: -305 },
             heroes: { row: 'back', right: -118 },
             slain: { row: 'back', right: 40 },
@@ -165,7 +165,7 @@ const VillageLayout = (() => {
         return resolveTierParam(search, 'villageTier', o.devClockTier, o.tiers);
     }
 
-    // Jailhouse: `?jailTier=`
+    // Police station (was the Jailhouse): `?jailTier=`
     function resolveDevJailTier(search, opts) {
         const o = opts || DEFAULTS;
         return resolveTierParam(search, 'jailTier', o.devJailTier, o.tiers);
@@ -308,7 +308,11 @@ const VillageLayout = (() => {
             const artRight = left + a1;
             if (artLeft < fieldLeft || artRight > fieldRight + hillW) return;
             const feetY = Math.round(feet[row]);
-            const slot = { kind, tier, url: spriteUrl(kind, tier), left, top: feetY - h, width: w, height: h, feetY, artLeft, artRight, row, flip };
+            // Optional per-building `raise` (px, >= 0): stands the sprite further back than its row without touching `feetY` (the row's
+            // horizon, which the haze plan reads). Police station 2026-11-14: raised so its smaller officers sit behind the Gym's athletes.
+            const raise = Math.max(0, Math.round(Number(p.raise) || 0));
+            const slot = { kind, tier, url: spriteUrl(kind, tier), left, top: feetY - h - raise, width: w, height: h, feetY, artLeft, artRight, row, flip };
+            if (raise > 0) slot.raise = raise;
             if (row !== 'front') { slot.back = true; slot.brightness = bright[row]; }
             if (row === 'far') slot.far = true;
             out.push(slot);

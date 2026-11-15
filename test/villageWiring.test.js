@@ -110,7 +110,7 @@ describe('script.js hook-up', () => {
         expect(script).toContain("villageTierDep('punctuality', 'villageTier')"); // real tier, URL param overrides (Build 2)
     });
 
-    test('the Jailhouse tier is fed to the view too (kind defense; dev ?jailTier= until defense tier data exists)', () => {
+    test('the Police station tier is fed to the view too (kind defense; dev ?jailTier= until defense tier data exists)', () => {
         expect(script).toContain('getJailTier:');
         expect(script).toContain("villageTierDep('defense', 'jailTier')"); // real tier, URL param overrides (Build 2)
     });
@@ -142,7 +142,7 @@ describe('script.js hook-up', () => {
         expect(script).toContain("villageTierDep('bestdays', 'windmillTier')"); // real tier, URL param overrides (Build 2)
     });
 
-    test('`lurkers_t*` is the boxing gym now (128x128); the Jailhouse stays `defense_t*`', () => {
+    test('`lurkers_t*` is the Gym now; the Police station stays `defense_t*`', () => {
         [1, 2, 3, 4, 5].forEach(t => {
             ['lurkers', 'defense'].forEach(k => expect(fs.existsSync(path.join(__dirname, '..', `Assets/Village/${k}_t${t}.png`))).toBe(true));
             expect(sw).toContain(`'Assets/Village/lurkers_t${t}.png'`);

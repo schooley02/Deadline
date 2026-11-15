@@ -123,8 +123,8 @@ describe('shipped sprites', () => {
     });
 });
 
-// ---- Jailhouse (kind `defense`, was `lurkers`), added 2026-10-29 ----
-describe('Jailhouse config', () => {
+// ---- Police station (kind `defense`, was the Jailhouse and before that `lurkers`), added 2026-10-29; redrawn 160x160 three-quarter 2026-11-14 ----
+describe('Police station config', () => {
     test('fromConfig mirrors the jail CONFIG and DEFAULTS agree with it', () => {
         expect(OPTS.jailWidthPx).toBe(CONFIG.VILLAGE_JAIL_W_PX);
         expect(OPTS.jailHeightPx).toBe(CONFIG.VILLAGE_JAIL_H_PX);
@@ -139,9 +139,10 @@ describe('Jailhouse config', () => {
         expect(VillageLayout.fromConfig({ VILLAGE_DEV_JAIL_TIER: null }).devJailTier).toBeNull();
     });
 
-    test('the jail is shorter than the tower (the tower stays the landmark)', () => {
+    test('the Police station is the Village 2.0 Square class (160x160) and shorter than the tower (the tower stays the landmark)', () => {
+        expect(CONFIG.VILLAGE_JAIL_W_PX).toBe(160);
+        expect(CONFIG.VILLAGE_JAIL_H_PX).toBe(160);
         expect(CONFIG.VILLAGE_JAIL_H_PX).toBeLessThan(CONFIG.VILLAGE_SPRITE_H_PX);
-        expect(CONFIG.VILLAGE_JAIL_W_PX).toBe(CONFIG.VILLAGE_SPRITE_W_PX);
     });
 });
 
@@ -180,7 +181,7 @@ describe('villageSlots', () => {
 });
 
 describe('shipped jail sprites', () => {
-    test.each([1, 2, 3, 4, 5])('defense (Jailhouse) tier %i exists and is the authored 192x160 canvas', tier => {
+    test.each([1, 2, 3, 4, 5])('defense (Police station) tier %i exists and is the authored 160x160 canvas', tier => {
         const file = path.join(__dirname, '..', VillageLayout.spriteUrl('defense', tier));
         expect(fs.existsSync(file)).toBe(true);
         const b = fs.readFileSync(file);
@@ -400,6 +401,37 @@ describe('Gym (front row) + art-box collision', () => {
         });
     });
 
+
+    test('Police station (2026-11-14): art extent is the union of the five 160x160 tiers, measured from the PNGs', () => {
+        expect(CONFIG.VILLAGE_ART_X.defense).toEqual([3, 160]); // [first opaque column, last opaque column + 1); T4/T5 reach x 159, so 0 px margin on the right (approved by Jeremy)
+    });
+
+    test('Police station `raise`: stands the sprite 12px further back than the front row, feet / haze line unchanged', () => {
+        expect(CONFIG.VILLAGE_PLACEMENT.defense.raise).toBe(12);
+        const s = Object.fromEntries(VillageLayout.villageSlots(817, 296, 160, 140, { punctuality: 3, defense: 3, lurkers: 3 }, OPTS).map(x => [x.kind, x]));
+        expect(s.defense.feetY).toBe(s.punctuality.feetY); // feetY stays the row's horizon (the haze plan reads it)
+        expect(s.defense.top).toBe(s.defense.feetY - s.defense.height - 12);
+        expect(s.defense.raise).toBe(12);
+        expect(s.lurkers.raise).toBeUndefined(); // other buildings are untouched
+        expect(s.lurkers.top).toBe(s.lurkers.feetY - s.lurkers.height);
+    });
+
+    test('a missing, negative or junk `raise` means no raise', () => {
+        [undefined, -5, 'x', NaN].forEach(r => {
+            const o = { ...OPTS, placement: { defense: { row: 'front', right: -24, raise: r } } };
+            const [d] = VillageLayout.villageSlots(817, 296, 160, 140, { defense: 3 }, o);
+            expect(d.top).toBe(d.feetY - d.height);
+            expect(d.raise).toBeUndefined();
+        });
+    });
+
+    test('Police station clears the Clock tower and the church at the design width and the smallest screens (800 wide)', () => {
+        [817, 800, 844].forEach(w => {
+            const s = Object.fromEntries(VillageLayout.villageSlots(w, 360, 160, 140, { punctuality: 3, defense: 3, lurkers: 3 }, OPTS).map(x => [x.kind, x]));
+            expect(s.defense).toBeDefined(); // never dropped
+            expect(s.defense.artLeft).toBeGreaterThan(s.punctuality.artRight); // no overlap with the tower art
+        });
+    });
 
     test('resolveDevGymTier reads only ?gymTier=', () => {
         expect(VillageLayout.resolveDevGymTier('', OPTS)).toBe(CONFIG.VILLAGE_DEV_GYM_TIER);
@@ -644,7 +676,7 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
         Object.keys(ALL8).forEach(k => expect(['front', 'back', 'far']).toContain(P[k].row));
     });
 
-    test('rows follow door size: front = Gym, Clock tower, Jail; back = Hospital, School, Armory; far = Windmill, Radio', () => {
+    test('rows follow door size: front = Gym, Clock tower, Police station; back = Hospital, School, Armory; far = Windmill, Radio', () => {
         const rows = r => Object.keys(P).filter(k => P[k].row === r).sort();
         expect(rows('front')).toEqual(['defense', 'lurkers', 'punctuality']);
         expect(rows('back')).toEqual(['habits', 'heroes', 'slain']);
@@ -735,12 +767,13 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
     // 2026-11-08: the Armory moved 26px left (right 66 -> 40, after a first 44px and a phone check) so the grown tree's canopy leaves its tower clear. Narrow fields squeeze every building's
     // left edge toward the church (the `k` scale), so at 640 -- the narrowest width this suite covers -- the Armory's art now overlaps the High school's by
     // 16px. Nothing else overlaps, and the overlap is pinned so it cannot get worse. (66 -> 60 already started to overlap at 640; at right 22 it was 27px.)
-    test('at 640 the only overlaps are the Armory over the High school (<= 16px) and the 3/4 Gym over the Clock tower (<= 60px)', () => {
+    test('at 640 the only overlaps are the Armory over the High school (<= 16px), the 3/4 Gym over the Clock tower (<= 60px) and the Police station over the Clock tower (<= 4px)', () => {
         const s = at(640);
         const front = s.filter(x => x.row === 'front').sort((a, b) => a.artLeft - b.artLeft);
         for (let i = 1; i < front.length; i++) {
             const overlap = front[i - 1].artRight - front[i].artLeft;
             if (front[i - 1].kind === 'lurkers' && front[i].kind === 'punctuality') expect(overlap).toBeLessThanOrEqual(60);
+            else if (front[i - 1].kind === 'punctuality' && front[i].kind === 'defense') expect(overlap).toBeLessThanOrEqual(4); // 160px Police station (2026-11-14): clear from ~653 up, 4px at 640
             else expect(overlap).toBeLessThanOrEqual(0);
         }
         const back = s.filter(x => x.row === 'back').sort((a, b) => a.artLeft - b.artLeft);
