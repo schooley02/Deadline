@@ -585,13 +585,38 @@ describe('Hospital (back row)', () => {
         });
     });
 
-    test.each([1, 2, 3, 4, 5])('shipped habits tier %i exists and is the authored 128x160 canvas', tier => {
+    test.each([1, 2, 3, 4, 5])('shipped habits tier %i exists and is the authored 160x128 canvas (3/4 Hospital, 2026-11-15)', tier => {
         const file = path.join(__dirname, '..', VillageLayout.spriteUrl('habits', tier));
         expect(fs.existsSync(file)).toBe(true);
         const b = fs.readFileSync(file);
         expect(b.slice(1, 4).toString()).toBe('PNG');
         expect(b.readUInt32BE(16)).toBe(CONFIG.VILLAGE_HOSPITAL_W_PX);
         expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_HOSPITAL_H_PX);
+    });
+
+    // 3/4 Hospital (2026-11-15): Wide 160x128 canvas, art x [6,159] (union of the five tiers, also pinned by the ART_X test above).
+    test('the Hospital canvas is the Wide 160x128 and its art extent is [6, 159]', () => {
+        expect([CONFIG.VILLAGE_HOSPITAL_W_PX, CONFIG.VILLAGE_HOSPITAL_H_PX]).toEqual([160, 128]);
+        expect(CONFIG.VILLAGE_ART_X.habits).toEqual([6, 159]);
+        expect(VillageLayout.DEFAULTS.art.habits).toEqual([6, 159]);
+    });
+
+    test('the 3/4 Hospital clears the High school at every width (the back row has no overlap but the Command Post one)', () => {
+        [[640, 334], [700, 334], [740, 334], [760, 334], [800, 334], ...SIZES].forEach(([w, h]) => {
+            const s = slots(w, h, ALL);
+            const hospital = s.find(x => x.kind === 'habits'), school = s.find(x => x.kind === 'heroes');
+            expect(hospital).toBeDefined();
+            expect(hospital.artRight).toBeLessThanOrEqual(school.artLeft);
+        });
+    });
+
+    test('at the 844 design width the Hospital ends 3px left of the Clock tower art (the ambulance stays visible) and is never dropped', () => {
+        const s = slots(844, 334, { ...ALL });
+        const hospital = s.find(x => x.kind === 'habits'), tower = s.find(x => x.kind === 'punctuality');
+        expect(tower.artLeft - hospital.artRight).toBeGreaterThanOrEqual(3);
+        expect(hospital.artRight - hospital.artLeft).toBe(153);
+        expect(hospital.row).toBe('back');
+        [640, 700, 800, 844, 1265].forEach(w => expect(slots(w, 334, ALL).some(x => x.kind === 'habits')).toBe(true));
     });
 });
 

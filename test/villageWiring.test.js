@@ -23,7 +23,7 @@ const SPRITES = [
     ...[1, 2, 3, 4, 5].map(t => `Assets/Village/nights_t${t}.png`),
     ...[1, 2, 3, 4, 5].map(t => `Assets/Village/lurkers_t${t}.png`), // the boxing gym (2026-10-30)
     ...[1, 2, 3, 4, 5].map(t => `Assets/Village/heroes_t${t}.png`), // the high school (2026-10-30)
-    ...[1, 2, 3, 4, 5].map(t => `Assets/Village/habits_t${t}.png`), // the hospital (2026-10-30, placeholder = T3 x5)
+    ...[1, 2, 3, 4, 5].map(t => `Assets/Village/habits_t${t}.png`), // the hospital (3/4 art T1-T5 wired 2026-11-15)
     ...[1, 2, 3, 4, 5].map(t => `Assets/Village/bestdays_t${t}.png`), // the windmill, far row (2026-10-30, placeholder art)
 ];
 

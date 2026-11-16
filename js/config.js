@@ -702,10 +702,11 @@ const CONFIG = {
     VILLAGE_SCHOOL_W_PX: 128,
     VILLAGE_SCHOOL_H_PX: 128,
     VILLAGE_DEV_SCHOOL_TIER: 3, // DEV: no heroes tier data yet. `?schoolTier=1..5` overrides, `off` hides; null = hidden
-    // Hospital (kind `habits`, 2026-10-30): sage stucco hospital + ER wing, 128x160, a BACK-ROW building in the gap between the gym
-    // and the Armory. PLACEHOLDER ART: habits_t1..t5 are all the locked T3 until the other tiers are generated (PixelLab, Nov 7).
-    VILLAGE_HOSPITAL_W_PX: 128,
-    VILLAGE_HOSPITAL_H_PX: 160,
+    // Hospital (kind `habits`, 2026-10-30): a BACK-ROW building in the gap between the gym and the tower. 2026-11-15: three-quarter art,
+    // two storeys + ER wing, a Wide 160x128 canvas, all five tiers final (habits_t1..t5 = _source/hospital-3q/hospital_t*_final_160x128.png;
+    // the old 128x160 front-view placeholders are archived in _source/americana-hospital/).
+    VILLAGE_HOSPITAL_W_PX: 160,
+    VILLAGE_HOSPITAL_H_PX: 128,
     VILLAGE_DEV_HOSPITAL_TIER: 3, // DEV: no habits tier data yet. `?hospitalTier=1..5` overrides, `off` hides; null = hidden
     // Windmill (kind `bestdays`, 2026-10-30, PLACEHOLDER art until PixelLab credits return Nov 7): farm water-pumping windmill on a
     // timber tower + barn-red pump house, 128x160, the first FAR-ROW building: one ridge further back than the back row (feet
@@ -729,13 +730,13 @@ const CONFIG = {
         lurkers: { row: 'front', right: -323 },          // Gym (192x160 3/4 art, 2026-11-14): art is 189px wide, so `right` moved +78 (was -401 for 111px) to keep its LEFT edge exactly where it was, clear of the church
         punctuality: { row: 'front', right: -224 },      // Clock tower, centre
         defense: { row: 'front', right: -24, raise: 12 }, // Police station (160x160 3/4 art, 2026-11-14), under the moon; `raise` = px further back (up) than the row's feet, so the officers read smaller like the Gym athletes (Jeremy: bases line up with the Gym at +7, go further back)
-        habits: { row: 'back', right: -305 },            // Hospital, behind the gym / tower gap
+        habits: { row: 'back', right: -320 },            // Hospital (160x128 3/4 art, 2026-11-15; art is 153px wide, was 110): `right` -305 -> -320 so the wider art ends 3px left of the Clock tower (the ambulance stays visible) and clears the High school at every width (-305 overlapped it 8px at 640); the left end passes behind the Gym
         heroes: { row: 'back', right: -118 },            // High school, between the tower and the jail
         slain: { row: 'back', right: 41 },               // Command Post (160x160 3/4 art, 2026-11-15, interim back-row spot; right 40 -> 41 so the 159px-wide art clears the High school at 817; the old 128px Armory note follows): nudged 26px left on 2026-11-08 (was 66; first 44 left, then 18 back right after Jeremy's phone check) so the grown tree's canopy leaves most of its tower clear; 16px over the High school at 640 wide only
         bestdays: { row: 'far', right: -406, flip: true }, // Windmill, wheel over the gym + hospital (mirrored)
         nights: { row: 'far', right: -119, flip: true },   // Radio mast, right of the HUD Points button (mirrored)
     },
-    VILLAGE_ART_X: { punctuality: [20, 113], defense: [3, 160], slain: [1, 160], nights: [12, 115], lurkers: [2, 191], heroes: [6, 125], habits: [9, 119], bestdays: [13, 116] },
+    VILLAGE_ART_X: { punctuality: [20, 113], defense: [3, 160], slain: [1, 160], nights: [12, 115], lurkers: [2, 191], heroes: [6, 125], habits: [6, 159], bestdays: [13, 116] },
 
     // ---- Village tiers (DECIDED 2026-10-30 night, DECISIONS "Village tiers"; docs/WORLD_FEEDBACK_PLAN.md "Village tiers + building cards") ----
     // BALANCE numbers, approved by Jeremy as a THEORY pass (rates are estimates; re-check against real play, like the shop prices).
