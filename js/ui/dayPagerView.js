@@ -339,7 +339,7 @@ const DayPagerView = (() => {
         return (sections || []).map(section => `
             <section class="day-list-section" data-offset="${section.offset}">
                 <h3 class="day-list-divider">${escapeText(section.label)}</h3>
-                <ul class="task-list day-list-ghosts">${ghostRowsHtml(section.ghosts, 'Nothing scheduled')}</ul>
+                <ul class="task-list day-list-ghosts">${ghostRowsHtml(section.ghosts, section.emptyMessage || 'Nothing scheduled')}</ul>
             </section>`).join('');
     }
 
@@ -441,10 +441,17 @@ const DayPagerView = (() => {
         const sections = [];
         for (let offset = 1; offset <= DayPager.MAX_OFFSET; offset++) {
             const bounds = DayPager.dayBoundsForOffset(currentGameDate, offset);
+            // 2026-11-15: a real top-level task due that day already sits in the live list above, under its own day heading
+            // ("Tomorrow's Deadlines", js/ui/agendaList.js), so it is not repeated here as a ghost card. The day keeps its section
+            // (the week strip and the scroll-to-day logic need one per day) and says "Nothing else scheduled" when real rows
+            // account for the rest of it.
+            const all = DayPager.conjureGhostsForDay(cd, currentGameDate, offset);
+            const ghosts = all.filter(g => !(g.itemId != null && g.parentId == null));
             sections.push({
                 offset,
                 label: formatDividerLabel(offset, bounds),
-                ghosts: DayPager.conjureGhostsForDay(cd, currentGameDate, offset),
+                ghosts,
+                emptyMessage: ghosts.length < all.length ? 'Nothing else scheduled' : 'Nothing scheduled',
             });
         }
         const html = futureSectionsHtml(sections);

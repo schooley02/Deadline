@@ -103,10 +103,10 @@ describe('AgendaList "Priority (N)" group', () => {
         const ul = render([task({ id: 'b', dueDateTime: at(16) }), task({ id: 'a', dueDateTime: at(12) })]);
         expect(layout(ul)).toEqual(['[★Priority (2)]', 'a', 'b']);
     });
-    test('priority due tomorrow stays in the normal order, not in Today\'s Priority group', () => {
+    test('priority due tomorrow is not in Today\'s Priority group; it sits under Tomorrow\'s Deadlines (2026-11-15)', () => {
         Date.now = () => at(9).getTime();
         const ul = render([task({ id: 'tmrw', dueDateTime: at(9, 0, 1) }), task({ id: 'now', dueDateTime: at(14) })]);
-        expect(layout(ul)).toEqual(['[★Priority (1)]', 'now', '[By due time]', 'tmrw']);
+        expect(layout(ul)).toEqual(['[★Priority (1)]', 'now', "[Tomorrow's Deadlines]", 'tmrw']);
     });
     test('order is Priority, then Started, then By due time; a priority + started task shows once, under Priority', () => {
         Date.now = () => at(13, 30).getTime();

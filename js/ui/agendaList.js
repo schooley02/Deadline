@@ -607,6 +607,44 @@ const AgendaList = (() => {
      *         definedHabits (getter), definedRoutines (getter),
      *         openManagementWindow }
      */
+    // Day groups (2026-11-15, Jeremy: "when some task gets pushed to tomorrow, it needs to show in the list view under a title
+    // that says Tomorrow's Deadlines"). The live list is sorted by due time and used to run every open row together, so a task
+    // moved to tomorrow sat in Today's list. Rows due after tonight's end of day now split off into one group per day, each under
+    // its own heading (Tomorrow's Deadlines, then "Wed \u00b7 Nov 18's Deadlines", ...), after everything that is due today or earlier.
+    // `endOfTodayMs` is the same boundary the Priority group uses. Pure: rows in, { today, later: [{ offset, dayStart, rows }] } out;
+    // each group keeps the rows' incoming order. A row with no usable due time stays in Today.
+    function laterDayGroups(rows, endOfTodayMs) {
+        const list = Array.isArray(rows) ? rows : [];
+        if (!isFinite(endOfTodayMs)) return { today: list.slice(), later: [] };
+        const todayStart = new Date(endOfTodayMs);
+        todayStart.setDate(todayStart.getDate() - 1);
+        todayStart.setHours(0, 0, 0, 0);
+        const today = [];
+        const later = [];
+        const byOffset = new Map();
+        list.forEach((row) => {
+            const due = row && row.dueDateTime ? new Date(row.dueDateTime).getTime() : NaN;
+            if (!isFinite(due) || due < endOfTodayMs) { today.push(row); return; }
+            const dayStart = new Date(due);
+            dayStart.setHours(0, 0, 0, 0);
+            const offset = Math.round((dayStart.getTime() - todayStart.getTime()) / 86400000); // round: a DST day is 23/25 h
+            let group = byOffset.get(offset);
+            if (!group) { group = { offset, dayStart, rows: [] }; byOffset.set(offset, group); later.push(group); }
+            group.rows.push(row);
+        });
+        later.sort((a, b) => a.offset - b.offset);
+        return { today, later };
+    }
+
+    // Heading text for a later day: the same wording the header takes when that day is viewed ("Tomorrow's Deadlines",
+    // "Wed \u00b7 Nov 18's Deadlines"; DayPagerView.formatDayLabel).
+    function dayGroupLabel(offset, dayStart) {
+        if (offset === 1) return "Tomorrow's Deadlines";
+        const weekday = dayStart.toLocaleDateString('en-US', { weekday: 'short' });
+        const month = dayStart.toLocaleDateString('en-US', { month: 'short' });
+        return `${weekday} \u00b7 ${month} ${dayStart.getDate()}'s Deadlines`;
+    }
+
     function sortAndRenderActiveList(deps) {
         // Sort by due date (most urgent first). The LIST order below layers
         // hand-ordering inside 30-min tie groups on top of this (ListOrder).
@@ -659,9 +697,12 @@ const AgendaList = (() => {
                 const endOfTodayMs = (typeof TimeSlider !== 'undefined' && TimeSlider.getDayBounds)
                     ? TimeSlider.getDayBounds(new Date(nowMs)).end.getTime()
                     : (() => { const d = new Date(nowMs); d.setHours(24, 0, 0, 0); return d.getTime(); })();
+                // Day groups (2026-11-15): only rows due today or earlier go through Priority / Started / By due time;
+                // rows due tomorrow or later (a pushed task, a Started one due tomorrow) get their own day heading below.
+                const dayParts = laterDayGroups(allRows, endOfTodayMs);
                 const pri = (typeof PriorityGroup !== 'undefined')
-                    ? PriorityGroup.split(allRows, endOfTodayMs)
-                    : { priority: [], rest: allRows };
+                    ? PriorityGroup.split(dayParts.today, endOfTodayMs)
+                    : { priority: [], rest: dayParts.today };
                 const priorityIds = new Set(pri.priority.map(i => i.id));
                 const split = (typeof StartedMarker !== 'undefined')
                     ? StartedMarker.split(pri.rest, deps.activeItems, nowMs)
@@ -677,6 +718,28 @@ const AgendaList = (() => {
                     h.setAttribute('role', 'presentation');
                     h.innerHTML = html;
                     deps.activeItemsListUL.appendChild(h);
+                    return h;
+                };
+                const appendRow = (item) => {
+                    if (!item.listItemElement) return;
+                    deps.activeItemsListUL.appendChild(item.listItemElement);
+                    if (item.listItemElement.classList) {
+                        item.listItemElement.classList.toggle('started-group-row', startedIds.has(item.id));
+                        item.listItemElement.classList.toggle('priority-group-row', priorityIds.has(item.id));
+                    }
+                    const wrap = typeof item.listItemElement.querySelector === 'function'
+                        ? item.listItemElement.querySelector('.reorder-controls') : null;
+                    if (wrap && (startedIds.has(item.id) || priorityIds.has(item.id))) {
+                        wrap.style.display = 'none'; // its tie-group neighbours sit in another group
+                    } else if (wrap) {
+                        const up = layout && ListOrder.canMove(layout, item.id, -1);
+                        const down = layout && ListOrder.canMove(layout, item.id, 1);
+                        wrap.style.display = (up || down) ? 'flex' : 'none';
+                        const upBtn = wrap.querySelector('.reorder-up');
+                        const downBtn = wrap.querySelector('.reorder-down');
+                        if (upBtn) upBtn.style.visibility = up ? 'visible' : 'hidden';
+                        if (downBtn) downBtn.style.visibility = down ? 'visible' : 'hidden';
+                    }
                 };
                 const stopwatch = (typeof Timer !== 'undefined' && Timer.ICON_SVG) ? Timer.ICON_SVG : '';
                 rows.forEach((item, idx) => {
@@ -689,26 +752,13 @@ const AgendaList = (() => {
                     if (hasGroups && split.rest.length && idx === firstRestIdx) {
                         heading('due-group-heading', '<span>By due time</span>');
                     }
-                    if (item.listItemElement) {
-                        deps.activeItemsListUL.appendChild(item.listItemElement);
-                        if (item.listItemElement.classList) {
-                            item.listItemElement.classList.toggle('started-group-row', startedIds.has(item.id));
-                            item.listItemElement.classList.toggle('priority-group-row', priorityIds.has(item.id));
-                        }
-                        const wrap = typeof item.listItemElement.querySelector === 'function'
-                            ? item.listItemElement.querySelector('.reorder-controls') : null;
-                        if (wrap && (startedIds.has(item.id) || priorityIds.has(item.id))) {
-                            wrap.style.display = 'none'; // its tie-group neighbours sit in another group
-                        } else if (wrap) {
-                            const up = layout && ListOrder.canMove(layout, item.id, -1);
-                            const down = layout && ListOrder.canMove(layout, item.id, 1);
-                            wrap.style.display = (up || down) ? 'flex' : 'none';
-                            const upBtn = wrap.querySelector('.reorder-up');
-                            const downBtn = wrap.querySelector('.reorder-down');
-                            if (upBtn) upBtn.style.visibility = up ? 'visible' : 'hidden';
-                            if (downBtn) downBtn.style.visibility = down ? 'visible' : 'hidden';
-                        }
-                    }
+                    appendRow(item);
+                });
+                // One heading + its rows per later day, after everything due today or earlier.
+                dayParts.later.forEach((group) => {
+                    const h = heading('day-group-heading', `<span>${dayGroupLabel(group.offset, group.dayStart)}</span>`);
+                    h.dataset.dayOffset = String(group.offset);
+                    group.rows.forEach(appendRow);
                 });
             }
 
@@ -1130,6 +1180,8 @@ const AgendaList = (() => {
         buildCompletedSubTaskRow,
         showEditHabitInstanceModal,
         isFirstRunEmpty,
+        laterDayGroups,
+        dayGroupLabel,
     };
 })();
 

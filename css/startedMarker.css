@@ -123,6 +123,18 @@ body.glance-strip .enemy.started-marker .started-badge svg {
     transform: none;
     box-shadow: none;
 }
+/* Day group heading (2026-11-15): "Tomorrow's Deadlines" and later days inside the live list, same look as the later-day dividers
+   (css/dayPager.css .day-list-divider) so a day reads as a section, not a small group label. */
+.task-list li.day-group-heading {
+    margin-top: var(--space-3, 12px);
+    padding-top: var(--space-2);
+    border-top: 2px solid var(--color-secondary-green-pale);
+    font-size: var(--text-caption, 12px);
+}
+.task-list li.day-group-heading:first-child {
+    margin-top: 0;
+    border-top: none;
+}
 .task-list li.started-group-heading {
     color: #9a6a12;
 }

@@ -337,7 +337,9 @@ describe('phone landscape keeps the old one-day-at-a-time pager', () => {
 });
 
 describe('continuous list: stays in step with saves', () => {
-    test('a task added for tomorrow shows up in the list at the next strip refresh, and an unchanged week is not rewritten', () => {
+    // 2026-11-15: a real top-level task due tomorrow now sits in the live list under "Tomorrow's Deadlines" (js/ui/agendaList.js), so
+    // the later-day section no longer repeats it as a ghost card; the section stays (one per day) and its empty line follows the save.
+    test('a task added for tomorrow leaves the section at the next strip refresh ("Nothing else scheduled"), and an unchanged week is not rewritten', () => {
         const items = [];
         setup({ activeItems: items });
         const firstSectionBefore = document.querySelector('.day-list-section');
@@ -347,12 +349,15 @@ describe('continuous list: stays in step with saves', () => {
         items.push({ id: 7, type: 'task', definitionId: null, name: 'Dentist', category: 'other', dueDateTime: new Date(2026, 10, 4, 15, 0), isHighPriority: false });
         view.refreshWeekStrip();
         const tomorrow = document.querySelector('.day-list-section[data-offset="1"]');
-        expect(tomorrow.textContent).toContain('Dentist');
-        expect(document.querySelector('.day-list-section[data-offset="2"]').textContent).toContain('Nothing scheduled');
+        expect(tomorrow.textContent).not.toContain('Dentist'); // shown by the live list, not as a ghost
+        expect(tomorrow.textContent).toContain('Nothing else scheduled');
+        const dayAfter = document.querySelector('.day-list-section[data-offset="2"]').textContent;
+        expect(dayAfter).toContain('Nothing scheduled');
+        expect(dayAfter).not.toContain('Nothing else scheduled');
     });
 
-    test('an Anytime task due tomorrow reads Midnight', () => {
-        const items = [{ id: 9, type: 'task', definitionId: null, name: 'Call the bank', category: 'other', anytime: true, dueDateTime: new Date(2026, 10, 4, 23, 59), isHighPriority: false }];
+    test('an Anytime sub-task due tomorrow still reads Midnight (top-level tasks are in the live list instead)', () => {
+        const items = [{ id: 9, type: 'task', definitionId: null, parentId: 3, name: 'Call the bank', category: 'other', anytime: true, dueDateTime: new Date(2026, 10, 4, 23, 59), isHighPriority: false }];
         setup({ activeItems: items });
         expect(document.querySelector('.day-list-section[data-offset="1"]').textContent).toContain('Midnight');
     });
