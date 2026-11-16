@@ -24,6 +24,7 @@ const BOX_TOP = 100;
 const LAYOUT = { 1: 300, 2: 600, 3: 900, 4: 1200, 5: 1500, 6: 1800 };
 
 let view, box, deps, matchesContinuous, realRect;
+let headingTops = {}; // content-space top of each in-list day heading (li.day-group-heading), by offset
 
 function makeBox() {
     const el = document.createElement('div');
@@ -42,6 +43,7 @@ function setup({ continuous = true, activeItems = [] } = {}) {
     jest.resetModules();
     document.body.innerHTML = '';
     matchesContinuous = continuous;
+    headingTops = {};
     window.matchMedia = (q) => ({
         matches: q.includes('orientation: landscape') ? matchesContinuous : false,
         addEventListener: () => {}, removeEventListener: () => {},
@@ -53,6 +55,10 @@ function setup({ continuous = true, activeItems = [] } = {}) {
         if (this.classList && this.classList.contains('day-list-section')) {
             const top = BOX_TOP - box.scrollTop + LAYOUT[Number(this.dataset.offset)];
             return { top, bottom: top + 300, left: 0, right: 300, width: 300, height: 300 };
+        }
+        if (this.classList && this.classList.contains('day-group-heading')) {
+            const top = BOX_TOP - box.scrollTop + headingTops[Number(this.dataset.dayOffset)];
+            return { top, bottom: top + 30, left: 0, right: 300, width: 300, height: 30 };
         }
         return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 };
     };
@@ -360,5 +366,69 @@ describe('continuous list: stays in step with saves', () => {
         const items = [{ id: 9, type: 'task', definitionId: null, parentId: 3, name: 'Call the bank', category: 'other', anytime: true, dueDateTime: new Date(2026, 10, 4, 23, 59), isHighPriority: false }];
         setup({ activeItems: items });
         expect(document.querySelector('.day-list-section[data-offset="1"]').textContent).toContain('Midnight');
+    });
+});
+
+// 2026-11-15 (Jeremy): a day with real rows in the live list has an in-list heading ("Tomorrow's Deadlines"); the day starts THERE.
+describe('continuous list: the in-list day headings own the top of the day', () => {
+    beforeEach(() => setup());
+
+    function addHeading(offset, top) {
+        headingTops[offset] = top;
+        const li = document.createElement('li');
+        li.className = 'list-group-heading day-group-heading';
+        li.dataset.dayOffset = String(offset);
+        deps.activeItemsListEl.appendChild(li);
+        view.refreshWeekStrip(); // the shared strip refresh re-checks which day owns the top
+        jest.advanceTimersByTime(32);
+    }
+
+    test("the header and canvas switch when the Tomorrow's Deadlines heading reaches the top, well before the ghost divider", () => {
+        addHeading(1, 120);
+        scrollTo(100);
+        expect(view.getViewedDayOffset()).toBe(0);
+        scrollTo(120);
+        expect(view.getViewedDayOffset()).toBe(1);
+        expect(deps.taskSectionTitleEl.textContent).toBe("Tomorrow's Deadlines");
+        expect(activeCell()).toBe(1);
+        expect(deps.gameCanvasEl.classList.contains('viewing-other-day')).toBe(true);
+    });
+
+    test('scrolling back above the heading returns to Today', () => {
+        addHeading(1, 120);
+        scrollTo(130);
+        expect(view.getViewedDayOffset()).toBe(1);
+        scrollTo(0);
+        expect(view.getViewedDayOffset()).toBe(0);
+        expect(deps.taskSectionTitleEl.textContent).toBe("Today's Deadlines");
+    });
+
+    test('a heading that is first in the list (nothing due today) does not take Today away at rest', () => {
+        addHeading(1, 0);
+        scrollTo(0);
+        expect(view.getViewedDayOffset()).toBe(0);
+        expect(deps.gameCanvasEl.classList.contains('viewing-other-day')).toBe(false);
+        scrollTo(300); // the ghost divider still works
+        expect(view.getViewedDayOffset()).toBe(1);
+    });
+
+    test('tapping the day scrolls to its heading, not to the ghost divider', () => {
+        addHeading(1, 120);
+        view.goToOffset(1);
+        expect(box.scrollTo).toHaveBeenCalledWith({ top: 120, behavior: 'smooth' });
+    });
+
+    test('a later day with a heading is never active above an earlier day that has none', () => {
+        addHeading(3, 200);
+        scrollTo(200);
+        expect(view.getViewedDayOffset()).toBe(3);
+        scrollTo(150);
+        expect(view.getViewedDayOffset()).toBe(0);
+    });
+
+    test('days without a heading still use their ghost-section divider', () => {
+        addHeading(1, 120);
+        scrollTo(600);
+        expect(view.getViewedDayOffset()).toBe(2);
     });
 });

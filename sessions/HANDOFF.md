@@ -11,9 +11,15 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
-## 2026-11-15 -- Fix the villageProgress DailyRecord version pin (Sonnet 5.5, Claude app)
-**Did:** `test/villageProgress.test.js` pinned `DailyRecord.V` at 16; the code has been v17 since the Not needed passes (`ne`). Changed the pin to 17 and added v17 to the comment. Test-only change; no game code touched, no balance numbers.
-**State:** `villageProgress.test.js` 58/58 green in a cloud copy; file re-read from the device afterwards. Full `npm test` NOT run here (cloud copy only has the files this session staged).
+## 2026-11-15 -- Header follows the in-list day headings (Sonnet 5.5, Claude app)
+**Did:** Jeremy said yes to the open question: the pinned header now switches to "Tomorrow's Deadlines" (and the canvas / week strip follow) when the in-list heading reaches the top, and tapping a day scrolls to that heading. `js/ui/dayPagerView.js` `dividerTops()` uses `li.day-group-heading[data-day-offset]` for a day that has one (kept in day order); a first-in-list heading is ignored so nothing due today cannot hide Today's live canvas; `renderFutureSections` re-checks the top even when the sections did not change. sw v381 -> v382. 6 new tests in `test/day-scroll-sync-dom.test.js`.
+**State:** 13 related suites / 296 tests green in a cloud copy (day-pager*, day-scroll-sync*, week-strip-refresh, agendaDayGroups, appVersion, priorityGroup, agenda-list, layout, wording-rule). Not live-checked. Full `npm test` re-run owed on the PC.
+**Next:** Jeremy pushes a task to tomorrow and scrolls the list on the phone: the header should read Tomorrow's Deadlines as the heading reaches the top (Settings = v382). Then School art (Opus) or the Village 2.0 re-arrangement (also fixes the Hospital hidden at phone width).
+**Watch out:** when the header flips to Tomorrow the canvas also goes to the tomorrow preview (ghost zombies, slider at 12:00 AM), as it already did at the ghost divider; if that feels busy, make the preview optional. Docs have reverted on the device before: check `git diff` shows this entry on top of `sessions/HANDOFF.md`.
+
+## 2026-11-15 -- Fix the stale test pins from the full npm test (Sonnet 5.5, Claude app)
+**Did:** Jeremy's full `npm test` showed 5 stale-pin failures in 5 suites (all test-only, no game code or balance numbers touched): `villageProgress`, `goalsState` and `momentum` pinned `DailyRecord.V` at 16 (code is v17 since the Not needed passes) -> 17; `treeWiring` pinned the Command Post `right` at 40 (it is 41 since the 3/4 art, v379) -> 41; `journalBuildC` assumed the Journal is the LAST How-it-works topic (Passes was added after it) -> now just checks it is registered, and its sw pin `deadline-shell-v369` -> `deadline-shell-v\d+` so it stops breaking on every bump.
+**State:** the five suites (195 tests) green in a cloud copy; files re-read from the device afterwards are byte-identical. Jeremy's full run before this fix: 253 of 257 suites passed (the 4 failing suites held exactly these 5 tests).
 **Next:** Jeremy runs `npm test` on the PC to confirm the whole suite is green, then the next building's three-quarter art (School) or the Village 2.0 re-arrangement. Also owed: the Hospital is mostly hidden behind the Gym / Clock tower on a phone-width screen; Jeremy chose to fix it in the re-arrangement.
 **Watch out:** `test/movement.test.js` "sub-task within threshold" still fails about 11 PM to midnight local time (time-of-day dependent, not a bug in the code).
 

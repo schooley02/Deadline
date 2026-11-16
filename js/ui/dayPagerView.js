@@ -456,7 +456,8 @@ const DayPagerView = (() => {
         }
         const html = futureSectionsHtml(sections);
         updateViewportPad();
-        if (html === lastFutureHtml) return;
+        // A day heading in the live list may have appeared or gone without the sections changing: re-check which day owns the top.
+        if (html === lastFutureHtml) { scheduleSync(); return; }
         lastFutureHtml = html;
         futureEl.innerHTML = html;
         scheduleSync(); // the sections moved; re-check which day owns the top
@@ -473,6 +474,21 @@ const DayPagerView = (() => {
         futureEl.querySelectorAll('.day-list-section').forEach(section => {
             tops.push({ offset: Number(section.dataset.offset), top: section.getBoundingClientRect().top - origin });
         });
+        // 2026-11-15 (Jeremy): a day that has real rows in the live list has an in-list heading ("Tomorrow's Deadlines",
+        // js/ui/agendaList.js, li.day-group-heading[data-day-offset]) well above its ghost-section divider, so THAT is where the
+        // day starts: the header, canvas and week strip switch when the heading reaches the top, and a tap on the day scrolls to it.
+        box.querySelectorAll('li.day-group-heading[data-day-offset]').forEach(heading => {
+            const offset = Number(heading.dataset.dayOffset);
+            const entry = tops.find(e => e.offset === offset);
+            if (!entry) return;
+            const headingTop = heading.getBoundingClientRect().top - origin;
+            // A heading that is the very first thing in the list (nothing due today) would own the top at rest and hide Today's
+            // live canvas: it only counts when something sits above it.
+            if (headingTop <= DayPager.SCROLL_ACTIVE_THRESHOLD_PX) return;
+            entry.top = Math.min(entry.top, headingTop);
+        });
+        // Keep the starts in day order (a later day with a heading must not start above an earlier day's divider).
+        for (let i = tops.length - 2; i >= 0; i--) tops[i].top = Math.min(tops[i].top, tops[i + 1].top);
         return tops;
     }
 
