@@ -521,6 +521,17 @@ describe('High school (back row)', () => {
     });
 
 
+    test('the 3/4 High school is the 160x128 canvas with 156px of visible art [2,158], authored for the back row (2026-11-16)', () => {
+        expect(CONFIG.VILLAGE_SCHOOL_W_PX).toBe(160);
+        expect(CONFIG.VILLAGE_SCHOOL_H_PX).toBe(128);
+        expect(CONFIG.VILLAGE_ART_X.heroes).toEqual([2, 158]);
+        expect(VillageLayout.DEFAULTS.art.heroes).toEqual([2, 158]);
+        expect(CONFIG.VILLAGE_PLACEMENT.heroes).toEqual({ row: 'back', right: -118 });
+        const s = slots(844, 334, { heroes: 3 }).find(x => x.kind === 'heroes');
+        expect([s.width, s.height]).toEqual([160, 128]);
+        expect(s.artRight - s.artLeft).toBe(156);
+    });
+
     test('adding the school never moves or drops another building (every width)', () => {
         [[640, 334], [700, 334], [760, 334], [800, 334], ...SIZES].forEach(([w, h]) => {
             const without = slots(w, h, FIVE);
@@ -540,7 +551,7 @@ describe('High school (back row)', () => {
         });
     });
 
-    test.each([1, 2, 3, 4, 5])('shipped heroes tier %i exists and is the authored 128x128 canvas', tier => {
+    test.each([1, 2, 3, 4, 5])('shipped heroes tier %i exists and is the authored 160x128 canvas', tier => {
         const file = path.join(__dirname, '..', VillageLayout.spriteUrl('heroes', tier));
         expect(fs.existsSync(file)).toBe(true);
         const b = fs.readFileSync(file);
@@ -601,13 +612,17 @@ describe('Hospital (back row)', () => {
         expect(VillageLayout.DEFAULTS.art.habits).toEqual([6, 159]);
     });
 
-    test('the 3/4 Hospital clears the High school at every width (the back row has no overlap but the Command Post one)', () => {
-        [[640, 334], [700, 334], [740, 334], [760, 334], [800, 334], ...SIZES].forEach(([w, h]) => {
+    // 2026-11-16: the High school is now 160x128 3/4 art (156px of visible art vs 119), so it reaches further left toward the Hospital on narrow fields:
+    // clear from 700 up, 22px at 640 (pinned; the Village 2.0 re-arrangement replaces these back-row spots).
+    test('the 3/4 Hospital clears the 3/4 High school from 700 wide up, and is never worse than 22px over it at 640', () => {
+        [[700, 334], [740, 334], [760, 334], [800, 334], ...SIZES].forEach(([w, h]) => {
             const s = slots(w, h, ALL);
             const hospital = s.find(x => x.kind === 'habits'), school = s.find(x => x.kind === 'heroes');
             expect(hospital).toBeDefined();
             expect(hospital.artRight).toBeLessThanOrEqual(school.artLeft);
         });
+        const s640 = slots(640, 334, ALL);
+        expect(s640.find(x => x.kind === 'habits').artRight - s640.find(x => x.kind === 'heroes').artLeft).toBeLessThanOrEqual(22);
     });
 
     test('at the 844 design width the Hospital ends 3px left of the Clock tower art (the ambulance stays visible) and is never dropped', () => {
@@ -797,7 +812,7 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
     // 16px. Nothing else overlaps, and the overlap is pinned so it cannot get worse. (66 -> 60 already started to overlap at 640; at right 22 it was 27px.)
     // 2026-11-15: the Command Post is now 160x160 3/4 art (159px of visible art vs 120), `right` 40 -> 41 so it clears the High school at 817+; its left edge reaches further
     // toward the School on narrow fields: 4px at 800, 27px at 700, 41px at 640 (pinned below; the Village 2.0 re-arrangement replaces this back-row spot).
-    test('at 640 the only overlaps are the Command Post over the High school (<= 41px), the 3/4 Gym over the Clock tower (<= 60px) and the Police station over the Clock tower (<= 4px)', () => {
+    test('at 640 the only overlaps are the Command Post over the High school (<= 54px), the High school over the Hospital (<= 22px), the 3/4 Gym over the Clock tower (<= 60px) and the Police station over the Clock tower (<= 4px)', () => {
         const s = at(640);
         const front = s.filter(x => x.row === 'front').sort((a, b) => a.artLeft - b.artLeft);
         for (let i = 1; i < front.length; i++) {
@@ -809,7 +824,8 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
         const back = s.filter(x => x.row === 'back').sort((a, b) => a.artLeft - b.artLeft);
         for (let i = 1; i < back.length; i++) {
             const overlap = back[i - 1].artRight - back[i].artLeft;
-            if (back[i - 1].kind === 'heroes' && back[i].kind === 'slain') expect(overlap).toBeLessThanOrEqual(41);
+            if (back[i - 1].kind === 'heroes' && back[i].kind === 'slain') expect(overlap).toBeLessThanOrEqual(54); // 2026-11-16: 156px High school art
+            else if (back[i - 1].kind === 'habits' && back[i].kind === 'heroes') expect(overlap).toBeLessThanOrEqual(22);
             else expect(overlap).toBeLessThanOrEqual(0);
         }
     });
@@ -832,9 +848,10 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
         const gap = (w) => { const f = byKind(at(w)); return f.heroes.artRight - f.slain.artLeft; };
         expect(gap(817)).toBeLessThanOrEqual(0);
         expect(gap(844)).toBeLessThanOrEqual(0);
-        expect(gap(800)).toBeLessThanOrEqual(4);
-        expect(gap(700)).toBeLessThanOrEqual(27);
-        expect(gap(640)).toBeLessThanOrEqual(41);
+        // 2026-11-16: the 160x128 3/4 High school (156px art, same right edge) overlaps a little more on narrow fields: 5px at 800, 35 at 700, 54 at 640.
+        expect(gap(800)).toBeLessThanOrEqual(5);
+        expect(gap(700)).toBeLessThanOrEqual(35);
+        expect(gap(640)).toBeLessThanOrEqual(54);
     });
 
     test('nothing stands BEHIND the Command Post, and on the phone its left side tucks 94px behind the Police station', () => {
