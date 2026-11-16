@@ -66,8 +66,8 @@ describe('placement is the one Jeremy settled on (2026-11-08)', () => {
         const memorialRight = CONFIG.GRAVEYARD_MEMORIAL_CENTER_X_PX + 97 / 2; // T5 is the widest (~97px)
         expect(CONFIG.GRAVEYARD_TREE_BASE_X_PX).toBeGreaterThan(memorialRight);
     });
-    test('the Armory sits 26px left of where it was (right 66 -> 40; a phone check moved it back 18px from 22)', () => {
-        expect(CONFIG.VILLAGE_PLACEMENT.slain).toEqual({ row: 'back', right: 40 });
+    test('the Command Post (was the Armory) sits at right 41 (2026-11-15: 40 -> 41 so the 159px-wide 3/4 art clears the High school at 817; before that 66 -> 40)', () => {
+        expect(CONFIG.VILLAGE_PLACEMENT.slain).toEqual({ row: 'back', right: 41 });
     });
 });
 
