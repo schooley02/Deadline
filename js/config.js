@@ -678,6 +678,7 @@ const CONFIG = {
     VILLAGE_DEV_CLOCK_TIER: 3, // DEV: no punctuality tier data yet. `?villageTier=1..5` in the URL overrides, `off` hides; null = hidden
     // Police station (kind `defense` = Church Defense; was the Jailhouse until 2026-11-14, re-keyed from `lurkers` 2026-10-29; redrawn 2026-11-14 as
     // THREE-QUARTER Village 2.0 art, Square class 160x160, FRONT row, left of the tower). The old name stays in the VILLAGE_JAIL_* / jailTier keys.
+    // 2026-11-17: redrawn again as the RED-BRICK station (blue POLICE corner pillar, church-style dusk shading); same 160x160 canvas, art x 3..159, walls on row 159.
     VILLAGE_JAIL_W_PX: 160,
     VILLAGE_JAIL_H_PX: 160,
     VILLAGE_DEV_JAIL_TIER: 3, // DEV: no defense tier data yet. `?jailTier=1..5` overrides, `off` hides; null = hidden
