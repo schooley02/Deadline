@@ -58,7 +58,7 @@ const VillageLayout = (() => {
         farRowRaisePx: 30,
         farRowBrightness: 0.65,
         devHospitalTier: 3,
-        art: { punctuality: [20, 113], defense: [3, 160], slain: [1, 160], nights: [12, 115], lurkers: [2, 191], heroes: [2, 158], habits: [6, 159], bestdays: [13, 116] },
+        art: { punctuality: [20, 113], defense: [3, 160], slain: [1, 160], nights: [12, 115], lurkers: [3, 191], heroes: [2, 158], habits: [6, 159], bestdays: [13, 116] },
         backRowRaisePx: 30,
         backRowBrightness: 0.8,
         clockScale: 1,

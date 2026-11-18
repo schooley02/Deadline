@@ -4,6 +4,11 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-17 (wiring the metal Gym + Police T5 glow) -- Claude app session, Sonnet 5.5; Jeremy ("lets wire in the new gym artwork and swap out the police station t5 with the transparent glow for the spotlight")
+- **The metal Gym is live:** `Assets/Village/lurkers_t1..t5.png` are now `_source/gym-metal/gym_t1..t5_final_192x160.png` (192x160, same canvas, same prop spots). The clapboard art is kept in `_source/gym-3q`. `CONFIG.VILLAGE_ART_X.lurkers` (and the `villageLayout.js` DEFAULTS copy) [2,191] -> [3,191], measured from the five PNGs (visible columns 3..190); `right: -323` unchanged, so the art's left edge moves 1px right and nothing else shifts.
+- **Police station T5 glow:** `defense_t5.png` was already the see-through-glow version (identical to `_source/police-brick/police_t5_final_160x160.png`), so nothing was swapped; the sw bump below is what ships it.
+- **sw v385 -> v386** (ships both). No balance numbers touched.
+
 ## 2026-11-17 (Gym METAL redraw + see-through light) -- Claude app session, Opus 5.5; Jeremy ("the grey can be too dark at higher tiers... make the building look more like a metal building and keeping the garage door")
 - **The Gym becomes a galvanized metal building** -- why: the grey clapboard went too dark at T4/T5 and a metal building reads as a garage gym. Colour: light GALVANIZED steel with charcoal trim (Jeremy picked it over a dusty teal; burnt orange rejected as too close to the Police bricks and the survivor flag). Kept every prop (garage door, sign, bag, rack, kettlebells, the person benching) and the 192x160 canvas, so wiring is a file swap.
 - **Gable roof facing us + an open side bay** over the squat rack (Jeremy's photos): the gable breaks up the village's flat rooflines; the bay's front edge was shortened so both posts fit inside the canvas. Right eave hangs past the wall with a squared trim end. Steel door with one window; the small front window removed.

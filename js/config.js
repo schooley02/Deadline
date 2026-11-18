@@ -737,7 +737,7 @@ const CONFIG = {
         bestdays: { row: 'far', right: -406, flip: true }, // Windmill, wheel over the gym + hospital (mirrored)
         nights: { row: 'far', right: -119, flip: true },   // Radio mast, right of the HUD Points button (mirrored)
     },
-    VILLAGE_ART_X: { punctuality: [20, 113], defense: [3, 160], slain: [1, 160], nights: [12, 115], lurkers: [2, 191], heroes: [2, 158], habits: [6, 159], bestdays: [13, 116] },
+    VILLAGE_ART_X: { punctuality: [20, 113], defense: [3, 160], slain: [1, 160], nights: [12, 115], lurkers: [3, 191], heroes: [2, 158], habits: [6, 159], bestdays: [13, 116] },
 
     // ---- Village tiers (DECIDED 2026-10-30 night, DECISIONS "Village tiers"; docs/WORLD_FEEDBACK_PLAN.md "Village tiers + building cards") ----
     // BALANCE numbers, approved by Jeremy as a THEORY pass (rates are estimates; re-check against real play, like the shop prices).
