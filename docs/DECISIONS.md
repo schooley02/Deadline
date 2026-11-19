@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-18 (wiring the 176x144 High school) -- Claude app session, Sonnet 5.5; Jeremy ("lets wire in the updated school artwork that I cleaned up in pixel lab's editor")
+- **Wired Jeremy's cleaned 176x144 files as the High school finals** -- `heroes_t1..t5.png`; tiers matched to the drafts by pixel comparison (T3 / T4 unchanged, T1 / T2 / T5 edited). `VILLAGE_SCHOOL_W/H_PX` 160x128 -> 176x144, `VILLAGE_ART_X.heroes` [2,158] -> [0,174] (measured), sw v388 -> v389.
+- **Placement `right: -118` unchanged (interim)** -- why: the right edge stays put so the Command Post still clears it at 817+; the extra 18px grows left, toward the Hospital. Measured with the real layout code: nothing dropped at any width; Hospital clears from 740 up (13px over at 700, 34px at 640); School over the Command Post 6px at 800, 39 at 700, 60 at 640. Accepted and pinned in `villageLayout.test.js` (back-row, narrow phones only; the Village 2.0 re-arrangement replaces these spots). Rejected: moving the Hospital left (does not fix 640, pushes it further behind the Gym).
+- **Rule-2 two-pixel margins not enforced for the School** -- the art touches x 0 and x 173 (the oak on the left); accepted rather than trimming Jeremy's cleaned files.
+
+---
+
 ## 2026-11-18 (High school redraw: back row at ~0.85 on 176x144, plum + brass Knights, gritty-adult art rule) -- Claude app session, Opus 5.5, PixelLab API + code; Jeremy ("they look the furthest away and have smaller doors, windows, people"; "they don't really look like pixel art"; "I want all of our buildings and elements to fit the darker grittier theme")
 - **Back-row detail ~0.75 -> ~0.85, Wide back class 160x128 -> 176x144** -- why: the School / Hospital doors measured ~20-25 px vs the Police ~40 (0.5-0.6, far-row scale), so they read a row further back and their details turned to mush. 0.85 keeps a depth step and readable doors (~33 px). Rejected: front-row 192x160 (no depth step; with the back row raised 60 px a full-size back row + Clock tower would not fit 800x360). Applies to the Hospital and the Clock tower next. ART_STYLE "Village 2.0" table + "High school 176x144 REDRAW".
 - **Back-row coverage rule for the re-arrangement (rule 6b)** -- Jeremy: back-row buildings must stay noticeable, not just tappable: door + main sign + ~60% of the front wall uncovered at 800x360; the back row never covers the front row.

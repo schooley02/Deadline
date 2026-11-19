@@ -699,9 +699,9 @@ const CONFIG = {
     VILLAGE_GYM_W_PX: 192,
     VILLAGE_GYM_H_PX: 160,
     VILLAGE_DEV_GYM_TIER: 3, // DEV: no lurkers tier data yet. `?gymTier=1..5` overrides, `off` hides; null = hidden
-    // High school (kind `heroes`, 2026-10-30): a BACK-ROW building; position in VILLAGE_PLACEMENT. 2026-11-16: 160x128 three-quarter art (was 128x128).
-    VILLAGE_SCHOOL_W_PX: 160,
-    VILLAGE_SCHOOL_H_PX: 128,
+    // High school (kind `heroes`, 2026-10-30): a BACK-ROW building; position in VILLAGE_PLACEMENT. 2026-11-16: 160x128 three-quarter art (was 128x128). 2026-11-18: 176x144 redraw (Knights plum + brass), art measured [0,174].
+    VILLAGE_SCHOOL_W_PX: 176,
+    VILLAGE_SCHOOL_H_PX: 144,
     VILLAGE_DEV_SCHOOL_TIER: 3, // DEV: no heroes tier data yet. `?schoolTier=1..5` overrides, `off` hides; null = hidden
     // Hospital (kind `habits`, 2026-10-30): a BACK-ROW building in the gap between the gym and the tower. 2026-11-15: three-quarter art,
     // two storeys + ER wing, a Wide 160x128 canvas, all five tiers final (habits_t1..t5 = _source/hospital-3q/hospital_t*_final_160x128.png;
@@ -737,7 +737,7 @@ const CONFIG = {
         bestdays: { row: 'far', right: -406, flip: true }, // Windmill, wheel over the gym + hospital (mirrored)
         nights: { row: 'far', right: -119, flip: true },   // Radio mast, right of the HUD Points button (mirrored)
     },
-    VILLAGE_ART_X: { punctuality: [20, 113], defense: [3, 160], slain: [1, 160], nights: [12, 115], lurkers: [3, 191], heroes: [2, 158], habits: [6, 159], bestdays: [13, 116] },
+    VILLAGE_ART_X: { punctuality: [20, 113], defense: [3, 160], slain: [1, 160], nights: [12, 115], lurkers: [3, 191], heroes: [0, 174], habits: [6, 159], bestdays: [13, 116] },
 
     // ---- Village tiers (DECIDED 2026-10-30 night, DECISIONS "Village tiers"; docs/WORLD_FEEDBACK_PLAN.md "Village tiers + building cards") ----
     // BALANCE numbers, approved by Jeremy as a THEORY pass (rates are estimates; re-check against real play, like the shop prices).
