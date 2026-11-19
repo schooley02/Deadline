@@ -4,6 +4,17 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-19 (Hospital redraw at 176x144) -- Claude app session, Opus 5.5, PixelLab API + code; Jeremy ("redraw the Hospital ... at the new back-row size ... Same approach we just used for the High school")
+- **Hospital follows the School into the back-row Wide class 176x144 (~0.85 detail, doors ~33 px)** -- why: at 160x128 its doors were ~25 px and it read a row further back; all old elements carried over (list in ART_STYLE "Hospital 176x144 REDRAW"). Drafts only; Jeremy cleans them up in PixelLab, wiring is a separate task (grow left, keep the right edge).
+- **Ambulance keeps the OLD Type III design at bus scale (~47x30)** -- why: Jeremy wanted its driver about the School bus driver's size; a new code-drawn ambulance "feels more like a box truck that got converted"; the corner red/blue lights help it read. The ER door narrowed 16 -> 14 px so it fits in front of the wing.
+- **The star of life becomes a BLUE CROSS** (matches the building's cross, keeps the ambulance blue); dirtier on lower tiers (T3 faded + grimy, T4 light wear, T5 clean). Jeremy adds a cross to the helicopter himself.
+- **Light:** see-through glow stays on fixtures only. T4 ER sign lit (letters darker so they are not hard on the eyes, more glow on the band); T4 ambulance lights glow, kept 2 px inside the canvas; T5 ambulance lights have NO glow but wash the ER wall behind the truck; the T5 spotlight points down-left with a short beam that stops inside the canvas; the T5 medic and soldier are kept out of every glow (normal lighting).
+- **Added / changed vs the old ladder (Jeremy):** T1 broken fire escape + trash at the ER wall + jagged (not smooth) broken corner; T2 hand-painted slanted graffiti, thick entrance planks, candle behind the glass; T4 nurse in white with a cap, old generator design, looped coil wire like the old art; T5 soldier on the top fire-escape landing, clean helicopter + ambulance; removed: generator cable / cord, T5 string lights.
+- **Saturation ladder left as is** (0.14 / 0.17 / 0.31 / 0.26 / 0.24; T3's lit sign + ambulance push it up) -- Jeremy is fine with T4/T5 colour; value rises every step (55 / 73 / 97 / 103 / 109).
+- No code, no balance numbers touched. Cost ~232 PixelLab generations (302 -> 70).
+
+---
+
 ## 2026-11-19 (slider track width fixed) -- Claude app session, Opus 5.5; Jeremy (screenshots: live 8:53, dragged the handle LEFT, label said 9:02 and the FORECAST look showed)
 - **Cause:** `.time-slider-now[hidden] { display: none; }` let the range input take the Now button's room while live; the first drag step un-hides Now, the track shrinks by the button's width under the finger, and the same finger spot maps to a later minute (left drag -> later time). Not a time-math bug (`TimeSlider` mapping is linear and correct).
 - **Fix:** the hidden Now button is `visibility: hidden; pointer-events: none` (room always kept), so the track never changes width. Cost: the track is the Now button's width shorter while live (~80px desktop, 32px on the phone strip). Rejected: an absolutely positioned Now button over the track's right end (would cover the late-evening part of the track while parked). `test/time-slider-steady-track.test.js` pins it. sw v395.
