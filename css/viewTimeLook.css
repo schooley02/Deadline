@@ -23,7 +23,8 @@
     --view-look-future-filter: grayscale(0.55) sepia(0.35) hue-rotate(150deg) saturate(1.3) contrast(1.02) brightness(1.06);
     --view-look-past-ink: #dfe8cf;
     --view-look-future-ink: #9fe6ff;
-    --view-look-stamp-top: 58px; /* under the HUD row */
+    --view-look-stamp-bottom: 16px; /* bottom-left, just inside the forecast's corner bracket (Jeremy, 2026-11-19) */
+    --view-look-stamp-left: 16px;
 }
 
 .view-look-tint,
@@ -155,8 +156,8 @@
 /* ---- Stamp ---- */
 .view-look-stamp {
     position: absolute;
-    top: var(--view-look-stamp-top);
-    left: 12px;
+    bottom: var(--view-look-stamp-bottom);
+    left: var(--view-look-stamp-left);
     display: none;
     gap: 8px;
     padding: 2px 6px;
@@ -174,6 +175,11 @@
 }
 #gameCanvas.view-look-past .view-look-stamp { color: var(--view-look-past-ink); text-shadow: 1px 0 rgba(255, 60, 60, 0.35); }
 #gameCanvas.view-look-future .view-look-stamp { color: var(--view-look-future-ink); text-shadow: 0 0 4px rgba(120, 220, 255, 0.5); }
+
+/* The DEV button (Developer tools on) is fixed at the screen's bottom-left: step the stamp right of it. */
+body:has(.dev-button:not([hidden])) #gameCanvas {
+    --view-look-stamp-left: 84px;
+}
 
 /* ---- Motion (full effects only) ---- */
 @keyframes view-look-grain {

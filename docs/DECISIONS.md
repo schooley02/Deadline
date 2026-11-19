@@ -13,7 +13,8 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 - **Build vs Break and the zombie categories get no special handling** (Jeremy: he will show them through the character art, redone after the buildings).
 - **Not changed (open):** the older rule that hides the selection ring and the started badge / ring on previewed real zombies. The started marker shows the CURRENT timer, so in the past it could mislead; Jeremy to decide.
 - **Parked: planning ahead + Windmill stat + TARGET marker** (ROADMAP, Fable design session). Jeremy's leanings: free edits of a future day's priorities, Windmill counts days that started with planned priorities (option a), a move between future days keeps the priority and takes a free slot.
-- sw v390 -> v391.
+- **Stamp at the bottom-left** (Jeremy, after seeing it under the HUD): just inside the corner bracket; steps right of the DEV button when Developer tools are on.
+- sw v390 -> v391, then v392 for the stamp move.
 
 ---
 
