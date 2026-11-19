@@ -103,3 +103,17 @@ describe('SceneScale wiring', () => {
         expect(src).toMatch(/cr\.height \/ gameCanvas\.offsetHeight/);
     });
 });
+
+describe('SceneScale keeps graveyard taps >= 44 screen px', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'js/ui/graveyardView.js'), 'utf8');
+    test('one helper: 44 / scale layout px', () => {
+        expect(src).toMatch(/function minTapPx\(\)/);
+        expect(src).toMatch(/Math\.ceil\(44 \/ s\)/);
+    });
+    test('used by the Memorial, the tree, the milestone markers and the run graves', () => {
+        expect(src).toMatch(/Math\.max\(minTapPx\(\), c\.GRAVEYARD_MEMORIAL_HIT_W_PX/);
+        expect(src).toMatch(/Math\.max\(minTapPx\(\), c\.GRAVEYARD_TREE_HIT_W_PX/);
+        expect(src).toMatch(/hitPx: Math\.max\(minTapPx\(\), c\.MARKER_HIT_PX/);
+        expect(src).toMatch(/const tap = minTapPx\(\);/);
+    });
+});

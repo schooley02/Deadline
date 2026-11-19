@@ -94,14 +94,21 @@ const GraveyardView = (() => {
     // above the canvas bottom when the sprite's own bottom edge is `below` px lower still. The sprite's centre column sits `centerX` px in
     // from the zone's left edge. The tap box is hitW x hitH, centred on the obelisk with its bottom on the plinth's lower edge; the art is
     // placed inside it with negative left/bottom offsets (the art is wider and lower than the box).
+    // Tap boxes must stay >= 44 SCREEN px. When the scene is drawn smaller than its layout (DEV spike ?sceneScale=, js/sceneScale.js),
+    // a 44px layout box shows smaller, so every graveyard tap box grows to 44 / scale layout px (44 when unscaled).
+    function minTapPx() {
+        const s = (typeof SceneScale !== 'undefined' && SceneScale.get) ? SceneScale.get() : 1;
+        return (s > 0 && s < 1) ? Math.ceil(44 / s) : 44;
+    }
+
     function memorialGeometry(c) {
         const artW = c.GRAVEYARD_MEMORIAL_ART_W_PX || 128;
         const artH = c.GRAVEYARD_MEMORIAL_ART_H_PX || 192;
         const plinthRow = typeof c.GRAVEYARD_MEMORIAL_PLINTH_ROW === 'number' ? c.GRAVEYARD_MEMORIAL_PLINTH_ROW : 181;
         const feet = typeof c.GRAVEYARD_MEMORIAL_FEET_PX === 'number' ? c.GRAVEYARD_MEMORIAL_FEET_PX : 86;
         const centerX = typeof c.GRAVEYARD_MEMORIAL_CENTER_X_PX === 'number' ? c.GRAVEYARD_MEMORIAL_CENTER_X_PX : 92;
-        const hitW = Math.max(44, c.GRAVEYARD_MEMORIAL_HIT_W_PX || 72);
-        const hitH = Math.max(44, c.GRAVEYARD_MEMORIAL_HIT_H_PX || 132);
+        const hitW = Math.max(minTapPx(), c.GRAVEYARD_MEMORIAL_HIT_W_PX || 72);
+        const hitH = Math.max(minTapPx(), c.GRAVEYARD_MEMORIAL_HIT_H_PX || 132);
         const below = artH - 1 - plinthRow; // transparent rows under the plinth's last row
         return {
             artW, artH,
@@ -160,8 +167,8 @@ const GraveyardView = (() => {
     function renderTreeHit(c, stage, hillH) {
         if (!(stage >= 1 && stage <= 3)) return;
         const sink = typeof c.GRAVEYARD_TREE_SINK_PX === 'number' ? c.GRAVEYARD_TREE_SINK_PX : 5;
-        const hitW = Math.max(44, c.GRAVEYARD_TREE_HIT_W_PX || 44);
-        const hitH = Math.max(44, c.GRAVEYARD_TREE_HIT_H_PX || 110);
+        const hitW = Math.max(minTapPx(), c.GRAVEYARD_TREE_HIT_W_PX || 44);
+        const hitH = Math.max(minTapPx(), c.GRAVEYARD_TREE_HIT_H_PX || 110);
         const hitLeft = typeof c.GRAVEYARD_TREE_HIT_LEFT_PX === 'number' ? c.GRAVEYARD_TREE_HIT_LEFT_PX : 96;
         const b = makeButton('graveyard-tree-hit', `Tree, stage ${stage} of 3. Open`, openTree);
         b.dataset.stage = String(stage);
@@ -185,7 +192,7 @@ const GraveyardView = (() => {
     function renderMarkers(c, markers) {
         if (!Array.isArray(markers) || !markers.length || typeof MilestoneMarkers === 'undefined') return;
         const slots = Array.isArray(c.MARKER_SLOTS) ? c.MARKER_SLOTS : [];
-        const places = MilestoneMarkers.placements(slots, { artPx: c.MARKER_ART_PX, hitPx: c.MARKER_HIT_PX, zBase: c.MARKER_Z_BASE });
+        const places = MilestoneMarkers.placements(slots, { artPx: c.MARKER_ART_PX, hitPx: Math.max(minTapPx(), c.MARKER_HIT_PX || 44), zBase: c.MARKER_Z_BASE });
         markers.slice(0, places.length).forEach((m, i) => {
             const p = places[i];
             const b = makeButton('milestone-marker', markerLabel(m), (e) => openMarkers(m.id, e));
@@ -225,8 +232,11 @@ const GraveyardView = (() => {
             const b = makeButton('run-grave', `Run ${g.id} grave. Open Stats`);
             b.dataset.run = String(g.id);
             b.dataset.lane = String(g.lane);
-            b.style.left = (g.x - 22) + 'px';
-            b.style.top = Math.round(feet - 42) + 'px';
+            // 44px box (css/graveyard.css) centred on the stone, bottom 2px under its feet; bigger when the scene is scaled down (minTapPx).
+            const tap = minTapPx();
+            b.style.left = (g.x - tap / 2) + 'px';
+            b.style.top = Math.round(feet - (tap - 2)) + 'px';
+            if (tap > 44) { b.style.width = tap + 'px'; b.style.height = tap + 'px'; }
             b.style.zIndex = String(laneBase + g.lane * stride - 1); // just under this lane's zombies
             b.style.opacity = String(g.opacity);
             const art = document.createElement('span');
