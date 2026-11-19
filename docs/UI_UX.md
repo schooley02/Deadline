@@ -363,6 +363,8 @@ Whenever the time on screen is not now, the canvas says so at a glance. **Past**
 
 ## Time slider on a viewed day (built 2026-11-03; DECISIONS 2026-11-03 (slider))
 
+**Steady track (2026-11-19, DECISIONS (slider track width fixed)):** the Now button's room is kept even while it is hidden (`visibility: hidden`), so the track never changes width when it appears. It used to collapse, and the first drag step that revealed it squeezed the track under the finger (a left drag could jump forward in time).
+
 On any day other than Today (Yesterday and week-strip offsets 1-6; Yesterday since 2026-11-04) the hour slider belongs to that day. Moving there resets it to 12:00 AM and places the ghost zombies as the day looks at its first minute (most walk in from the right; none are camped at the base). Dragging the slider slides that day's ghosts; it never changes the real board, the damage preview or the freeze. Releasing leaves the handle where you put it. Changing day resets it; returning to Today points it back at the current time. On Yesterday a ghost that was beaten (Completed / Resisted) fades out once the slider passes the time it was beaten; missed and Slipped ones stay at the church with their ✕.
 
 **Tappable ghosts (2026-11-04):** tapping a ghost opens a read-only card (`js/ui/ghostCard.js`): name, type (Task / Sub-task / Build Habit / Break Habit), category, routine, day, Start, Due (or Midnight) and, on Yesterday, the result with its time. The sprite glows gold and its list row is outlined while the card is open. A ghost that is a real one-off task still on the board also has **Open task** (its normal card).

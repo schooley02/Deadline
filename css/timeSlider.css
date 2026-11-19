@@ -73,7 +73,8 @@
 
 /* Now button (2026-11-04): the handle stays where it is released; this
    returns it to the current time. Hidden (the `hidden` attribute) while the
-   slider is already live, so it costs no room in the row then. */
+   slider is already live. Since 2026-11-19 its room is ALWAYS kept (see the
+   [hidden] rule below). */
 .time-slider-now {
     flex: 0 0 auto;
     display: inline-flex;
@@ -90,8 +91,13 @@
     cursor: pointer;
 }
 
+/* Invisible, not removed (2026-11-19, Jeremy's slider bug): it used to be `display: none`, so the first drag step
+   that showed it squeezed the track by the button's width UNDER THE FINGER, and the same finger spot then meant a
+   later time (dragging left could jump forward, e.g. 8:53 -> 9:02). Keeping its room makes the track width fixed.
+   visibility: hidden also drops it from taps, focus and the accessibility tree. */
 .time-slider-now[hidden] {
-    display: none;
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .time-slider-now-icon {
@@ -99,7 +105,7 @@
 }
 
 /* The range input keeps a ~130px intrinsic width; let it give up room to the
-   Now button on a narrow row (it grows back when Now hides). */
+   Now button on a narrow row (the Now button's room is kept even while hidden, 2026-11-19). */
 .time-slider {
     min-width: 0;
 }

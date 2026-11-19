@@ -4,6 +4,12 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-19 (slider track width fixed) -- Claude app session, Opus 5.5; Jeremy (screenshots: live 8:53, dragged the handle LEFT, label said 9:02 and the FORECAST look showed)
+- **Cause:** `.time-slider-now[hidden] { display: none; }` let the range input take the Now button's room while live; the first drag step un-hides Now, the track shrinks by the button's width under the finger, and the same finger spot maps to a later minute (left drag -> later time). Not a time-math bug (`TimeSlider` mapping is linear and correct).
+- **Fix:** the hidden Now button is `visibility: hidden; pointer-events: none` (room always kept), so the track never changes width. Cost: the track is the Now button's width shorter while live (~80px desktop, 32px on the phone strip). Rejected: an absolutely positioned Now button over the track's right end (would cover the late-evening part of the track while parked). `test/time-slider-steady-track.test.js` pins it. sw v395.
+
+---
+
 ## 2026-11-19 (view-time look: past = PLAYBACK tape, future = FORECAST) -- Claude app session, Opus 5.5; Jeremy ("a new effect ... to look into the past ... sepia or something as if to imply it's old footage"; "I like your suggestion over the sepia"; "security camera footage [doesn't make] as much sense for the future")
 - **Past = surveillance tape, not sepia** -- why: CCTV / found footage fits zombies besieging a church better than a 1920s photo look, and the corner timestamp is useful (which day / time you are on). Rejected: sepia film.
 - **Future = tactical forecast (planning session)** -- why: it pairs with the tape (survivor tech: recorded vs projected), and looking ahead in Deadline IS planning; crisp grid vs grain keeps the two looks opposite. Rejected: prophetic vision (golden / violet haze, edge blur: atmospheric but blurs tap targets on a phone) and thermal sensor scan (heat-signature zombies fight the full-colour cue rule; too close to the tape).
