@@ -282,6 +282,14 @@ const TimeSliderView = (() => {
         if (deps.labelEl) deps.labelEl.textContent = TimeSlider.formatLabel(time);
         updateParallax(minutes);
         refreshNowButton();
+        reportViewTime(time);
+    }
+
+    // Past / future canvas look (2026-11-19, js/ui/viewTimeLookView.js): told the time on screen wherever the label is
+    // written. Live = the slider is on now with Today on screen. Read as a bare global; absent (tests) = skipped.
+    function reportViewTime(time) {
+        if (typeof ViewTimeLookView === 'undefined' || !ViewTimeLookView) return;
+        ViewTimeLookView.show(time, !isParked() && viewedOffset() === 0);
     }
 
     // The day on screen when it is a ghosted future day (offsets 1..6 of the day pager), else null. While one is
@@ -377,6 +385,7 @@ const TimeSliderView = (() => {
             if (typeof deps.onOtherDayScrub === 'function') deps.onOtherDayScrub(otherTime);
             lastScrubMinutes = otherMinutes;
             updateParallax(otherMinutes);
+            reportViewTime(otherTime);
             return;
         }
         const now = new Date();
@@ -388,6 +397,7 @@ const TimeSliderView = (() => {
         refreshNowButton();
         if (deps.labelEl) deps.labelEl.textContent = TimeSlider.formatLabel(previewTime);
         applyPreview(previewTime, true);
+        reportViewTime(previewTime);
         scrubAnimations(lastScrubMinutes == null ? 0 : minutes - lastScrubMinutes);
         lastScrubMinutes = minutes;
         // .parallax-scrubbing marks #graveyardScene for the duration of the scrub

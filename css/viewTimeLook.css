@@ -1,0 +1,222 @@
+/**
+ * viewTimeLook.css — the past / future canvas look (2026-11-19; js/ui/viewTimeLookView.js toggles
+ * `#gameCanvas.view-look-past` / `.view-look-future`; DECISIONS 2026-11-19 (view-time look)).
+ *
+ *   past   = surveillance tape playback: grey-green tint, 2px scanlines, pixel grain, a rolling tracking band,
+ *            a dark vignette, "◀◀ PLAYBACK · NOV 18 · 3:40 PM" with a blinking mark.
+ *   future = tactical forecast: cool blueprint tint, a faint 32px grid, corner brackets, a slow scan sweep,
+ *            "▶▶ FORECAST · NOV 20 · 9:00 AM". Crisp: no grain.
+ *
+ * WHAT STAYS FULL COLOUR: the zombies' state glows (priority outline, overdue, streak fire) because the tint enters
+ * their filter chain through --g-ghost, which css/enemyStatus.css lists BEFORE every glow; the ice overlay (a
+ * sibling of the sprite); the HUD (outside #gameCanvas). Everything is pointer-events: none, so taps still work.
+ *
+ * WHY A BACKDROP LAYER and not `filter` on the scene wrappers: a filter makes its element a stacking context, which
+ * would flatten #runGraves' per-lane z-indexes and re-order the scene's negative-z layers. The tint layer sits at
+ * z 29, over every static layer (scene < 0, church 1, village 1, hill 6, barricade 15, scrim 20, hero 25,
+ * back fireflies 28) and under the zombie band (30-79). The few leaf layers drawn above 29 get the filter directly.
+ *
+ * Tuning: the two filter variables below are the whole tint (Jeremy will redo the zombie art; retune here).
+ */
+#gameCanvas {
+    --view-look-past-filter: grayscale(0.75) sepia(0.45) hue-rotate(50deg) saturate(1.15) contrast(1.08) brightness(0.9);
+    --view-look-future-filter: grayscale(0.55) sepia(0.35) hue-rotate(150deg) saturate(1.3) contrast(1.02) brightness(1.06);
+    --view-look-past-ink: #dfe8cf;
+    --view-look-future-ink: #9fe6ff;
+    --view-look-stamp-top: 58px; /* under the HUD row */
+}
+
+.view-look-tint,
+.view-look-fx {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.view-look-tint { z-index: 29; }
+.view-look-fx { z-index: 88; overflow: hidden; }
+
+#gameCanvas.view-look-past .view-look-tint,
+#gameCanvas.view-look-future .view-look-tint,
+#gameCanvas.view-look-past .view-look-fx,
+#gameCanvas.view-look-future .view-look-fx {
+    opacity: 1;
+}
+
+/* ---- Tint ---- */
+#gameCanvas.view-look-past .view-look-tint {
+    -webkit-backdrop-filter: var(--view-look-past-filter);
+    backdrop-filter: var(--view-look-past-filter);
+}
+#gameCanvas.view-look-future .view-look-tint {
+    -webkit-backdrop-filter: var(--view-look-future-filter);
+    backdrop-filter: var(--view-look-future-filter);
+}
+
+/* Zombie bodies: the --g-ghost slot (first in the chain, so the glows after it keep their colour). */
+#gameCanvas.view-look-past .enemy > .enemy-sprite,
+#gameCanvas.view-look-past .enemy:not(.has-anim-sprite) {
+    --g-ghost: var(--view-look-past-filter);
+}
+#gameCanvas.view-look-future .enemy > .enemy-sprite,
+#gameCanvas.view-look-future .enemy:not(.has-anim-sprite) {
+    --g-ghost: var(--view-look-future-filter);
+}
+
+/* Leaf layers drawn above the tint layer: filtered directly (each is already its own layer, so no stacking change). */
+#gameCanvas.view-look-past .run-graves > *,
+#gameCanvas.view-look-past .climate-fireflies--front,
+#gameCanvas.view-look-past #climateWxNear,
+#gameCanvas.view-look-past #nightsSurvivedUi {
+    filter: var(--view-look-past-filter);
+}
+#gameCanvas.view-look-future .run-graves > *,
+#gameCanvas.view-look-future .climate-fireflies--front,
+#gameCanvas.view-look-future #climateWxNear,
+#gameCanvas.view-look-future #nightsSurvivedUi {
+    filter: var(--view-look-future-filter);
+}
+
+/* The preview dim (0.55, css/timeSlider.css) made the outlines faint. With the look on, the tint already says "not
+   live", so previewed zombies and the church come back to 0.85 and their cues read. Ghosts the pager hides
+   (`.ghost-done`, opacity 0 !important) stay hidden. */
+#gameCanvas.view-look-past .time-preview-ghost,
+#gameCanvas.view-look-future .time-preview-ghost {
+    opacity: 0.85;
+}
+
+/* ---- Past: tape ---- */
+#gameCanvas.view-look-past .view-look-fx {
+    background:
+        repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.16) 0 2px, transparent 2px 4px),
+        radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+.view-look-grain {
+    position: absolute;
+    inset: -64px; /* room for the jitter below */
+    display: none;
+    background-size: 128px 128px; /* the 64px tile at 2x = 2px grain, on the art's pixel grid */
+    image-rendering: pixelated;
+    opacity: 0.09;
+}
+#gameCanvas.view-look-past .view-look-grain {
+    display: block;
+}
+
+.view-look-sweep {
+    position: absolute;
+    inset: 0;
+    display: none;
+}
+/* Tracking band: a soft light stripe in the middle of a full-size layer, moved top to bottom with a pause. */
+#gameCanvas.view-look-past .view-look-sweep {
+    display: block;
+    background: linear-gradient(to bottom,
+        transparent calc(50% - 8px),
+        rgba(255, 255, 255, 0.07) calc(50% - 4px),
+        rgba(255, 255, 255, 0.13) 50%,
+        rgba(255, 255, 255, 0.07) calc(50% + 4px),
+        transparent calc(50% + 8px));
+    transform: translateY(-60%);
+}
+
+/* ---- Future: forecast ---- */
+#gameCanvas.view-look-future .view-look-fx {
+    --vl-c: rgba(159, 230, 255, 0.55);
+    background:
+        /* corner brackets, 10px in from each corner */
+        linear-gradient(var(--vl-c), var(--vl-c)) left 10px top 10px / 18px 2px no-repeat,
+        linear-gradient(var(--vl-c), var(--vl-c)) left 10px top 10px / 2px 18px no-repeat,
+        linear-gradient(var(--vl-c), var(--vl-c)) right 10px top 10px / 18px 2px no-repeat,
+        linear-gradient(var(--vl-c), var(--vl-c)) right 10px top 10px / 2px 18px no-repeat,
+        linear-gradient(var(--vl-c), var(--vl-c)) left 10px bottom 10px / 18px 2px no-repeat,
+        linear-gradient(var(--vl-c), var(--vl-c)) left 10px bottom 10px / 2px 18px no-repeat,
+        linear-gradient(var(--vl-c), var(--vl-c)) right 10px bottom 10px / 18px 2px no-repeat,
+        linear-gradient(var(--vl-c), var(--vl-c)) right 10px bottom 10px / 2px 18px no-repeat,
+        /* grid: 2px lines every 32px (the art's 2x grid) */
+        linear-gradient(to right, rgba(140, 220, 255, 0.09) 2px, transparent 2px) 0 0 / 32px 32px,
+        linear-gradient(to bottom, rgba(140, 220, 255, 0.09) 2px, transparent 2px) 0 0 / 32px 32px,
+        radial-gradient(ellipse at center, transparent 60%, rgba(8, 36, 56, 0.32) 100%);
+}
+/* Scan sweep: a soft cyan column in the middle of a full-size layer, moved left to right with a pause. */
+#gameCanvas.view-look-future .view-look-sweep {
+    display: block;
+    background: linear-gradient(to right,
+        transparent calc(50% - 10px),
+        rgba(159, 230, 255, 0.06) calc(50% - 5px),
+        rgba(159, 230, 255, 0.14) 50%,
+        rgba(159, 230, 255, 0.06) calc(50% + 5px),
+        transparent calc(50% + 10px));
+    transform: translateX(-60%);
+}
+
+/* ---- Stamp ---- */
+.view-look-stamp {
+    position: absolute;
+    top: var(--view-look-stamp-top);
+    left: 12px;
+    display: none;
+    gap: 8px;
+    padding: 2px 6px;
+    background: rgba(0, 0, 0, 0.42);
+    font-family: 'Courier New', ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 16px;
+    white-space: nowrap;
+}
+#gameCanvas.view-look-past .view-look-stamp,
+#gameCanvas.view-look-future .view-look-stamp {
+    display: inline-flex;
+}
+#gameCanvas.view-look-past .view-look-stamp { color: var(--view-look-past-ink); text-shadow: 1px 0 rgba(255, 60, 60, 0.35); }
+#gameCanvas.view-look-future .view-look-stamp { color: var(--view-look-future-ink); text-shadow: 0 0 4px rgba(120, 220, 255, 0.5); }
+
+/* ---- Motion (full effects only) ---- */
+@keyframes view-look-grain {
+    0%   { transform: translate(0, 0); }
+    25%  { transform: translate(-32px, 16px); }
+    50%  { transform: translate(16px, -32px); }
+    75%  { transform: translate(-16px, -16px); }
+    100% { transform: translate(32px, 32px); }
+}
+@keyframes view-look-track {
+    0%   { transform: translateY(-60%); }
+    70%  { transform: translateY(60%); }
+    100% { transform: translateY(60%); }
+}
+@keyframes view-look-scan {
+    0%   { transform: translateX(-60%); }
+    60%  { transform: translateX(60%); }
+    100% { transform: translateX(60%); }
+}
+@keyframes view-look-blink {
+    0%, 60%  { opacity: 1; }
+    61%, 100% { opacity: 0.25; }
+}
+@media (prefers-reduced-motion: no-preference) {
+    body:not(.fx-reduced):not(.fx-off) #gameCanvas.view-look-past .view-look-grain {
+        animation: view-look-grain 0.4s steps(1) infinite;
+    }
+    body:not(.fx-reduced):not(.fx-off) #gameCanvas.view-look-past .view-look-sweep {
+        animation: view-look-track 9s steps(60) infinite;
+    }
+    body:not(.fx-reduced):not(.fx-off) #gameCanvas.view-look-future .view-look-sweep {
+        animation: view-look-scan 7s steps(56) infinite;
+    }
+    body:not(.fx-reduced):not(.fx-off) #gameCanvas.view-look-past .view-look-stamp-mark {
+        animation: view-look-blink 1.2s steps(1) infinite;
+    }
+}
+/* Effects off: keep the tint, lines, grid and stamp (they carry the meaning), drop grain and the moving bands. */
+body.fx-off #gameCanvas .view-look-grain,
+body.fx-off #gameCanvas .view-look-sweep {
+    display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+    .view-look-tint,
+    .view-look-fx { transition: none; }
+}

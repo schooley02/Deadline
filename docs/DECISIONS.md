@@ -4,6 +4,19 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-19 (view-time look: past = PLAYBACK tape, future = FORECAST) -- Claude app session, Opus 5.5; Jeremy ("a new effect ... to look into the past ... sepia or something as if to imply it's old footage"; "I like your suggestion over the sepia"; "security camera footage [doesn't make] as much sense for the future")
+- **Past = surveillance tape, not sepia** -- why: CCTV / found footage fits zombies besieging a church better than a 1920s photo look, and the corner timestamp is useful (which day / time you are on). Rejected: sepia film.
+- **Future = tactical forecast (planning session)** -- why: it pairs with the tape (survivor tech: recorded vs projected), and looking ahead in Deadline IS planning; crisp grid vs grain keeps the two looks opposite. Rejected: prophetic vision (golden / violet haze, edge blur: atmospheric but blurs tap targets on a phone) and thermal sensor scan (heat-signature zombies fight the full-colour cue rule; too close to the tape).
+- **Dotted projected paths rejected** (Jeremy: every enemy walks the same lane and attacks eventually, so they add nothing); time tags rejected too (the list already shows due times).
+- **Cues stay full colour, taps keep working** (Jeremy: the priority outline, started glow, streak fire, ice and selection matter when reviewing; the effect stays when the slider is stopped but the canvas must stay interactive). Done with a z-29 `backdrop-filter` layer under the zombie band + the zombies' own `--g-ghost` slot (first in the glow chain). Rejected: `filter` on the scene wrappers (stacking contexts would flatten the run graves' per-lane z and re-order the negative-z scene).
+- **Preview dim 0.55 -> 0.85 while a look is on** -- why: at 0.55 the outlines read faintly; the tint already says "not live".
+- **Build vs Break and the zombie categories get no special handling** (Jeremy: he will show them through the character art, redone after the buildings).
+- **Not changed (open):** the older rule that hides the selection ring and the started badge / ring on previewed real zombies. The started marker shows the CURRENT timer, so in the past it could mislead; Jeremy to decide.
+- **Parked: planning ahead + Windmill stat + TARGET marker** (ROADMAP, Fable design session). Jeremy's leanings: free edits of a future day's priorities, Windmill counts days that started with planned priorities (option a), a move between future days keeps the priority and takes a free slot.
+- sw v390 -> v391.
+
+---
+
 ## 2026-11-19 ("sky" -> "weather" in the player-facing words) -- Claude app session, Sonnet 5.5; Jeremy ("in the journal, can you change 'The Sky' to say 'The Weather'" ... "really anywhere we say sky because the weather effects more than just the sky")
 - **Every player-facing "sky" is now "weather"** -- How Deadline works topic "The weather" + its text, the Weather panel ("Weather: Hazy" title, "Weather set to X", "Show my real weather", "Pick your weather", "Your weather", notes, (i) "How the weather works"), the pick-change toast ("Your weather stays Fog"), Dev panel and Settings hints. Why: the band (Clear / Hazy / Overcast / Fog / Storm) changes far more than the sky (rain, fog, lightning, ground, decoration). No "The Sky" text exists in the Journal itself; Jeremy meant the wording everywhere.
 - **Not renamed (code, not words):** `SkyPick`, `skyPick` save key, `data-sky-pick`, `wx-*` / `sky-toast` CSS classes, comments (several tests pin source comments), and the docs (UI_UX, WORLD_FEEDBACK_PLAN, HOW_IT_WORKS_PLAN still say "sky"). Rename only if it ever causes confusion; a save-key rename would need a migration.
