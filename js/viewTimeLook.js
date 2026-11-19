@@ -33,6 +33,19 @@ const ViewTimeLook = (() => {
         return d < 0 ? 'past' : 'future';
     }
 
+    // Stamp mark while the slider is being dragged (2026-11-19, Jeremy: "rewind" feel). dir < 0 = back, > 0 = forward.
+    const SCRUB_MARKS = {
+        past: { back: '◀◀ REWIND', fwd: '▶▶ FAST FWD' },
+        future: { back: '◀◀ FORECAST', fwd: '▶▶ FORECAST' },
+    };
+
+    /** The stamp mark for `kind` while dragging in direction `dir`; null when not dragging (dir 0) or no look. */
+    function scrubMark(kind, dir) {
+        const set = SCRUB_MARKS[kind];
+        if (!set || !dir) return null;
+        return dir < 0 ? set.back : set.fwd;
+    }
+
     /** { mark, text } for the corner stamp, e.g. { mark: '◀◀ PLAYBACK', text: 'NOV 18 · 3:40 PM' }; null kind = null. */
     function stampParts(viewTime, kind) {
         if (!MARKS[kind]) return null;
@@ -46,7 +59,7 @@ const ViewTimeLook = (() => {
         return { mark: MARKS[kind], text: MONTHS[d.getMonth()] + ' ' + d.getDate() + ' · ' + h + ':' + mm + ' ' + ampm };
     }
 
-    return { classify, stampParts, PRESENT_MS, MARKS };
+    return { classify, stampParts, scrubMark, PRESENT_MS, MARKS };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

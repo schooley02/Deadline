@@ -16,9 +16,16 @@
  *     or grid / brackets / scan sweep (future), plus the stamp.
  * A handle parked on Today slowly becomes the past as real time moves on, so while the look is not live it
  * re-checks itself every REFRESH_MS.
+ *
+ * Drag-linked rewind (2026-11-19, Jeremy): TimeSliderView calls scrub(deltaMinutes) on every drag step.
+ * `.view-look-rewind` / `.view-look-ffwd` go on #gameCanvas (the CSS speeds the tracking band / scan sweep in that
+ * direction and adds tape streaks to the past) and the stamp mark reads REWIND / FAST FWD (past) or flips its
+ * arrows (future). A still finger keeps the direction; SCRUB_SETTLE_MS after the last moving step, or on
+ * release (endScrub), it settles back to the calm look.
  */
 const ViewTimeLookView = (() => {
     const REFRESH_MS = 30 * 1000;
+    const SCRUB_SETTLE_MS = 350;
     const GRAIN_PX = 64;
 
     let canvasEl = null;
@@ -28,6 +35,8 @@ const ViewTimeLookView = (() => {
     let lastTime = null;
     let lastLive = true;
     let refreshTimer = null;
+    let scrubDir = 0; // -1 back, 1 forward, 0 not dragging
+    let settleTimer = null;
 
     function core() {
         if (typeof ViewTimeLook !== 'undefined' && ViewTimeLook) return ViewTimeLook;
@@ -86,6 +95,8 @@ const ViewTimeLookView = (() => {
             grain.className = 'view-look-grain';
             const sweep = document.createElement('div');
             sweep.className = 'view-look-sweep';
+            const streaks = document.createElement('div');
+            streaks.className = 'view-look-streaks';
             const stamp = document.createElement('div');
             stamp.className = 'view-look-stamp';
             const mark = document.createElement('span');
@@ -96,6 +107,7 @@ const ViewTimeLookView = (() => {
             stamp.appendChild(text);
             fx.appendChild(grain);
             fx.appendChild(sweep);
+            fx.appendChild(streaks);
             fx.appendChild(stamp);
             el.appendChild(fx);
             const url = grainUrl();
@@ -128,7 +140,8 @@ const ViewTimeLookView = (() => {
         canvasEl.classList.toggle('view-look-future', nextKind === 'future');
         const c = core();
         const parts = (nextKind && c) ? c.stampParts(time, nextKind) : null;
-        if (stampMarkEl) stampMarkEl.textContent = parts ? parts.mark : '';
+        const dragMark = (parts && c && c.scrubMark) ? c.scrubMark(nextKind, scrubDir) : null;
+        if (stampMarkEl) stampMarkEl.textContent = parts ? (dragMark || parts.mark) : '';
         if (stampTextEl) stampTextEl.textContent = parts ? parts.text : '';
         kind = nextKind;
     }
@@ -145,6 +158,47 @@ const ViewTimeLookView = (() => {
         scheduleRefresh();
     }
 
+    function applyScrubClasses() {
+        if (!canvasEl) return;
+        canvasEl.classList.toggle('view-look-rewind', scrubDir < 0);
+        canvasEl.classList.toggle('view-look-ffwd', scrubDir > 0);
+    }
+
+    function stopSettle() {
+        if (settleTimer !== null) {
+            clearTimeout(settleTimer);
+            settleTimer = null;
+        }
+    }
+
+    /** One drag step moved the slider by `deltaMinutes` (signed). 0 = a still finger: keep the current direction. */
+    function scrub(deltaMinutes) {
+        const d = Number(deltaMinutes);
+        if (!Number.isFinite(d) || d === 0) return;
+        const dir = d < 0 ? -1 : 1;
+        if (!ensureLayers()) return;
+        if (dir !== scrubDir) {
+            scrubDir = dir;
+            applyScrubClasses();
+            if (kind !== null) apply(kind, lastTime);
+        }
+        stopSettle();
+        if (typeof setTimeout === 'function') settleTimer = setTimeout(() => { settleTimer = null; endScrub(); }, SCRUB_SETTLE_MS);
+    }
+
+    /** The drag stopped (release, or SCRUB_SETTLE_MS without movement): back to the calm look. */
+    function endScrub() {
+        stopSettle();
+        if (scrubDir === 0) return;
+        scrubDir = 0;
+        applyScrubClasses();
+        if (kind !== null && canvasEl) apply(kind, lastTime);
+    }
+
+    function scrubDirection() {
+        return scrubDir;
+    }
+
     /** Re-check the last time shown against the clock (a parked handle drifting into the past). */
     function refresh() {
         if (lastTime === null) return;
@@ -158,6 +212,8 @@ const ViewTimeLookView = (() => {
     // Tests: forget the canvas and the last state.
     function reset() {
         stopRefresh();
+        stopSettle();
+        scrubDir = 0;
         canvasEl = null;
         stampMarkEl = null;
         stampTextEl = null;
@@ -166,7 +222,7 @@ const ViewTimeLookView = (() => {
         lastLive = true;
     }
 
-    return { show, refresh, current, reset, REFRESH_MS };
+    return { show, refresh, current, reset, scrub, endScrub, scrubDirection, REFRESH_MS, SCRUB_SETTLE_MS };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

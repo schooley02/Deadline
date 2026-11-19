@@ -95,3 +95,70 @@ test('no #gameCanvas = no throw', () => {
     document.body.innerHTML = '';
     expect(() => ViewTimeLookView.show(new Date(Date.now() - HOUR), false)).not.toThrow();
 });
+
+describe('drag-linked rewind', () => {
+    const mark = () => canvas().querySelector('.view-look-stamp-mark').textContent;
+    const has = (c) => canvas().classList.contains(c);
+
+    test('dragging back in the past = rewind class + REWIND mark; forward = FAST FWD', () => {
+        ViewTimeLookView.show(new Date(Date.now() - 3 * HOUR), false);
+        ViewTimeLookView.scrub(-5);
+        expect(has('view-look-rewind')).toBe(true);
+        expect(has('view-look-ffwd')).toBe(false);
+        expect(mark()).toBe('◀◀ REWIND');
+        ViewTimeLookView.scrub(4);
+        expect(has('view-look-ffwd')).toBe(true);
+        expect(has('view-look-rewind')).toBe(false);
+        expect(mark()).toBe('▶▶ FAST FWD');
+    });
+
+    test('the mark survives the show() each drag step makes', () => {
+        ViewTimeLookView.show(new Date(Date.now() - 3 * HOUR), false);
+        ViewTimeLookView.scrub(-2);
+        ViewTimeLookView.show(new Date(Date.now() - 3 * HOUR - 2 * 60 * 1000), false);
+        expect(mark()).toBe('◀◀ REWIND');
+    });
+
+    test('a still finger (0) keeps the direction', () => {
+        ViewTimeLookView.show(new Date(Date.now() - 3 * HOUR), false);
+        ViewTimeLookView.scrub(-3);
+        ViewTimeLookView.scrub(0);
+        expect(ViewTimeLookView.scrubDirection()).toBe(-1);
+    });
+
+    test('release puts the calm look back', () => {
+        ViewTimeLookView.show(new Date(Date.now() - 3 * HOUR), false);
+        ViewTimeLookView.scrub(-3);
+        ViewTimeLookView.endScrub();
+        expect(has('view-look-rewind')).toBe(false);
+        expect(mark()).toBe('◀◀ PLAYBACK');
+        expect(has('view-look-past')).toBe(true);
+    });
+
+    test('it settles by itself shortly after the last moving step', () => {
+        jest.useFakeTimers();
+        ViewTimeLookView.show(new Date(Date.now() - 3 * HOUR), false);
+        ViewTimeLookView.scrub(-3);
+        jest.advanceTimersByTime(ViewTimeLookView.SCRUB_SETTLE_MS - 50);
+        expect(ViewTimeLookView.scrubDirection()).toBe(-1);
+        ViewTimeLookView.scrub(-1); // still moving: the settle timer restarts
+        jest.advanceTimersByTime(ViewTimeLookView.SCRUB_SETTLE_MS - 50);
+        expect(ViewTimeLookView.scrubDirection()).toBe(-1);
+        jest.advanceTimersByTime(100);
+        expect(ViewTimeLookView.scrubDirection()).toBe(0);
+        expect(has('view-look-rewind')).toBe(false);
+    });
+
+    test('future: arrows flip with the drag', () => {
+        ViewTimeLookView.show(new Date(Date.now() + 30 * HOUR), false);
+        ViewTimeLookView.scrub(-10);
+        expect(mark()).toBe('◀◀ FORECAST');
+        ViewTimeLookView.scrub(10);
+        expect(mark()).toBe('▶▶ FORECAST');
+    });
+
+    test('streak layer exists once', () => {
+        ViewTimeLookView.show(new Date(Date.now() - HOUR), false);
+        expect(canvas().querySelectorAll('.view-look-streaks')).toHaveLength(1);
+    });
+});

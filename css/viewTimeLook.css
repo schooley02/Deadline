@@ -16,6 +16,11 @@
  * z 29, over every static layer (scene < 0, church 1, village 1, hill 6, barricade 15, scrim 20, hero 25,
  * back fireflies 28) and under the zombie band (30-79). The few leaf layers drawn above 29 get the filter directly.
  *
+ * DRAG (2026-11-19, Jeremy): while the slider is dragged, js/ui/viewTimeLookView.js adds `.view-look-rewind` (back)
+ * or `.view-look-ffwd` (forward) to #gameCanvas for a moment. Past: the tracking band races in the drag direction
+ * (up for rewind) and thin tape streaks flicker sideways; future: the scan sweep races in the drag direction.
+ * The idle grain stays random on purpose (drifting grain reads as a sliding texture).
+ *
  * Tuning: the two filter variables below are the whole tint (Jeremy will redo the zombie art; retune here).
  */
 #gameCanvas {
@@ -123,6 +128,27 @@
     transform: translateY(-60%);
 }
 
+/* Tape streaks (drag only): a few thin bright lines at fixed heights, jittered sideways. */
+.view-look-streaks {
+    position: absolute;
+    inset: 0 -40px;
+    display: none;
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.22)) 12% 18% / 38% 2px no-repeat,
+        linear-gradient(rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.14)) 70% 41% / 52% 2px no-repeat,
+        linear-gradient(rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.18)) 30% 63% / 30% 2px no-repeat,
+        linear-gradient(rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.12)) 85% 82% / 44% 2px no-repeat;
+}
+#gameCanvas.view-look-past.view-look-rewind .view-look-streaks,
+#gameCanvas.view-look-past.view-look-ffwd .view-look-streaks {
+    display: block;
+}
+/* The mark stops blinking while dragging (a held REWIND / FAST FWD button). */
+#gameCanvas.view-look-rewind .view-look-stamp-mark,
+#gameCanvas.view-look-ffwd .view-look-stamp-mark {
+    opacity: 1;
+}
+
 /* ---- Future: forecast ---- */
 #gameCanvas.view-look-future .view-look-fx {
     --vl-c: rgba(159, 230, 255, 0.55);
@@ -199,6 +225,28 @@ body:has(.dev-button:not([hidden])) #gameCanvas {
     60%  { transform: translateX(60%); }
     100% { transform: translateX(60%); }
 }
+@keyframes view-look-track-up {
+    from { transform: translateY(60%); }
+    to   { transform: translateY(-60%); }
+}
+@keyframes view-look-track-down {
+    from { transform: translateY(-60%); }
+    to   { transform: translateY(60%); }
+}
+@keyframes view-look-scan-back {
+    from { transform: translateX(60%); }
+    to   { transform: translateX(-60%); }
+}
+@keyframes view-look-scan-fwd {
+    from { transform: translateX(-60%); }
+    to   { transform: translateX(60%); }
+}
+@keyframes view-look-streak {
+    0%   { transform: translateX(0);     opacity: 1; }
+    33%  { transform: translateX(-24px); opacity: 0.5; }
+    66%  { transform: translateX(16px);  opacity: 0.9; }
+    100% { transform: translateX(-8px);  opacity: 0.6; }
+}
 @keyframes view-look-blink {
     0%, 60%  { opacity: 1; }
     61%, 100% { opacity: 0.25; }
@@ -216,10 +264,32 @@ body:has(.dev-button:not([hidden])) #gameCanvas {
     body:not(.fx-reduced):not(.fx-off) #gameCanvas.view-look-past .view-look-stamp-mark {
         animation: view-look-blink 1.2s steps(1) infinite;
     }
+    /* Drag: faster, directional (these come later at higher specificity, so they replace the idle runs). */
+    body:not(.fx-reduced):not(.fx-off) #gameCanvas.view-look-past.view-look-rewind .view-look-sweep {
+        animation: view-look-track-up 0.5s steps(10) infinite;
+    }
+    body:not(.fx-reduced):not(.fx-off) #gameCanvas.view-look-past.view-look-ffwd .view-look-sweep {
+        animation: view-look-track-down 0.5s steps(10) infinite;
+    }
+    body:not(.fx-reduced):not(.fx-off) #gameCanvas.view-look-future.view-look-rewind .view-look-sweep {
+        animation: view-look-scan-back 0.8s steps(16) infinite;
+    }
+    body:not(.fx-reduced):not(.fx-off) #gameCanvas.view-look-future.view-look-ffwd .view-look-sweep {
+        animation: view-look-scan-fwd 0.8s steps(16) infinite;
+    }
+    body:not(.fx-reduced):not(.fx-off) #gameCanvas.view-look-past.view-look-rewind .view-look-streaks,
+    body:not(.fx-reduced):not(.fx-off) #gameCanvas.view-look-past.view-look-ffwd .view-look-streaks {
+        animation: view-look-streak 0.24s steps(1) infinite;
+    }
+    body:not(.fx-reduced):not(.fx-off) #gameCanvas.view-look-rewind .view-look-stamp-mark,
+    body:not(.fx-reduced):not(.fx-off) #gameCanvas.view-look-ffwd .view-look-stamp-mark {
+        animation: none;
+    }
 }
 /* Effects off: keep the tint, lines, grid and stamp (they carry the meaning), drop grain and the moving bands. */
 body.fx-off #gameCanvas .view-look-grain,
-body.fx-off #gameCanvas .view-look-sweep {
+body.fx-off #gameCanvas .view-look-sweep,
+body.fx-off #gameCanvas .view-look-streaks {
     display: none;
 }
 @media (prefers-reduced-motion: reduce) {

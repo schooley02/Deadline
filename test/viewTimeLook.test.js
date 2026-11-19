@@ -44,3 +44,16 @@ describe('stampParts', () => {
         expect(ViewTimeLook.stampParts('soon', 'past')).toBeNull();
     });
 });
+
+describe('scrubMark', () => {
+    test('past reads REWIND / FAST FWD, future flips its arrows', () => {
+        expect(ViewTimeLook.scrubMark('past', -1)).toBe('◀◀ REWIND');
+        expect(ViewTimeLook.scrubMark('past', 1)).toBe('▶▶ FAST FWD');
+        expect(ViewTimeLook.scrubMark('future', -1)).toBe('◀◀ FORECAST');
+        expect(ViewTimeLook.scrubMark('future', 1)).toBe('▶▶ FORECAST');
+    });
+    test('not dragging or no look = null', () => {
+        expect(ViewTimeLook.scrubMark('past', 0)).toBeNull();
+        expect(ViewTimeLook.scrubMark(null, -1)).toBeNull();
+    });
+});

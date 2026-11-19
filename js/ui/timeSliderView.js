@@ -162,12 +162,30 @@ const TimeSliderView = (() => {
         return isParked() || viewedOffset() !== 0;
     }
 
+    // The past / future look's own layers (js/ui/viewTimeLookView.js, inside .view-look-fx) are exempt WHILE the slider
+    // is being dragged, so the rewind / fast-forward band, streaks and sweep can run (2026-11-19, Jeremy: "I don't see
+    // the movement"); after the drag settles they freeze like everything else (a parked view = a paused tape).
+    function isLookAnim(anim) {
+        const target = anim && anim.effect ? anim.effect.target : null;
+        return !!(target && typeof target.closest === 'function' && target.closest('.view-look-fx'));
+    }
+
+    function lookDragging() {
+        return typeof ViewTimeLookView !== 'undefined' && !!ViewTimeLookView
+            && typeof ViewTimeLookView.scrubDirection === 'function' && ViewTimeLookView.scrubDirection() !== 0;
+    }
+
     function freezeLoopingAnimations() {
         if (typeof document === 'undefined') return;
         const root = canvasEl || document.getElementById('gameCanvas');
         if (!root || typeof root.getAnimations !== 'function') return;
         scrubbedAnims.forEach((anim) => { if (anim.playState === 'idle') scrubbedAnims.delete(anim); }); // finished / removed
+        const dragging = lookDragging();
         root.getAnimations({ subtree: true }).forEach((anim) => {
+            if (dragging && isLookAnim(anim)) {
+                if (scrubbedAnims.has(anim)) { anim.playbackRate = 1; scrubbedAnims.delete(anim); }
+                return;
+            }
             if (scrubbedAnims.has(anim)) return;
             const timing = (anim.effect && typeof anim.effect.getComputedTiming === 'function')
                 ? anim.effect.getComputedTiming() : null;
@@ -292,6 +310,13 @@ const TimeSliderView = (() => {
         ViewTimeLookView.show(time, !isParked() && viewedOffset() === 0);
     }
 
+    // Drag-linked rewind / fast-forward on the look (2026-11-19, Jeremy): the signed minutes moved by this drag step.
+    function reportScrub(deltaMinutes) {
+        if (typeof ViewTimeLookView === 'undefined' || !ViewTimeLookView) return;
+        ViewTimeLookView.scrub(deltaMinutes);
+        if (lookDragging()) freezeLoopingAnimations(); // lets the look's layers go right away (the rest stays as it was)
+    }
+
     // The day on screen when it is a ghosted future day (offsets 1..6 of the day pager), else null. While one is
     // showing, the slider belongs to THAT day: dragging slides its ghosts and never touches the real board, the
     // damage preview or the preview flag (the pager holds it on), and releasing leaves the handle where it is.
@@ -383,9 +408,11 @@ const TimeSliderView = (() => {
             const otherTime = TimeSlider.minutesOfDayToTime(otherMinutes, otherDayStart);
             if (deps.labelEl) deps.labelEl.textContent = TimeSlider.formatLabel(otherTime);
             if (typeof deps.onOtherDayScrub === 'function') deps.onOtherDayScrub(otherTime);
+            const otherDelta = lastScrubMinutes == null ? 0 : otherMinutes - lastScrubMinutes;
             lastScrubMinutes = otherMinutes;
             updateParallax(otherMinutes);
             reportViewTime(otherTime);
+            reportScrub(otherDelta);
             return;
         }
         const now = new Date();
@@ -398,7 +425,9 @@ const TimeSliderView = (() => {
         if (deps.labelEl) deps.labelEl.textContent = TimeSlider.formatLabel(previewTime);
         applyPreview(previewTime, true);
         reportViewTime(previewTime);
-        scrubAnimations(lastScrubMinutes == null ? 0 : minutes - lastScrubMinutes);
+        const delta = lastScrubMinutes == null ? 0 : minutes - lastScrubMinutes;
+        scrubAnimations(delta);
+        reportScrub(delta);
         lastScrubMinutes = minutes;
         // .parallax-scrubbing marks #graveyardScene for the duration of the scrub
         // (the clouds' drift is now driven by scrubAnimations, see above).
@@ -414,6 +443,7 @@ const TimeSliderView = (() => {
     // (holdAnimations) until Now or the next drag; it no longer hands them back to CSS.
     function handleRelease() {
         noteActivity();
+        if (typeof ViewTimeLookView !== 'undefined' && ViewTimeLookView) ViewTimeLookView.endScrub();
         if (viewedOtherDayStart()) { holdAnimations(); return; }
         holdAnimations();
         if (sceneEl) sceneEl.classList.remove('parallax-scrubbing');

@@ -14,7 +14,9 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 - **Not changed (open):** the older rule that hides the selection ring and the started badge / ring on previewed real zombies. The started marker shows the CURRENT timer, so in the past it could mislead; Jeremy to decide.
 - **Parked: planning ahead + Windmill stat + TARGET marker** (ROADMAP, Fable design session). Jeremy's leanings: free edits of a future day's priorities, Windmill counts days that started with planned priorities (option a), a move between future days keeps the priority and takes a free slot.
 - **Stamp at the bottom-left** (Jeremy, after seeing it under the HUD): just inside the corner bracket; steps right of the DEV button when Developer tools are on.
-- sw v390 -> v391, then v392 for the stamp move.
+- **Rewind feel follows the drag, not the idle grain** (Jeremy asked whether the grain should drift toward the bottom-left going back in time): idle grain stays random (real tape noise flickers in place; a drift reads as a sliding texture and outshouts the zombies). Instead, while dragging: band + streaks + REWIND / FAST FWD mark (past), sweep direction + arrows (future); settles 350 ms after the last move or on release.
+- **The freeze spares the look only while dragging** (Jeremy saw the streaks but no movement: the 2026-11-12 away-from-now freeze held the look's animations too). Parked = everything still, including the grain and band (a paused tape), keeping the 2026-11-12 rule.
+- sw v390 -> v391, v392 for the stamp move, v393 for the drag rewind, v394 for the freeze fix.
 
 ---
 

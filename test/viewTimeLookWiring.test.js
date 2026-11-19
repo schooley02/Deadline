@@ -45,6 +45,21 @@ describe('TimeSliderView reports the time on screen', () => {
         expect(scrub).toContain('reportViewTime(otherTime)');
         expect(scrub).toContain('reportViewTime(previewTime)');
     });
+    test('both scrub branches report the signed drag step, and a release ends the drag look', () => {
+        const scrub = body('handleScrubInput');
+        expect(scrub).toContain('reportScrub(otherDelta)');
+        expect(scrub).toContain('reportScrub(delta)');
+        expect(body('handleRelease')).toContain('ViewTimeLookView.endScrub()');
+        expect(body('reportScrub')).toContain("typeof ViewTimeLookView === 'undefined'");
+    });
+    test('the away-from-now freeze spares the look layers only while dragging', () => {
+        const freeze = body('freezeLoopingAnimations');
+        expect(freeze).toContain('dragging && isLookAnim(anim)');
+        expect(freeze).toContain('anim.playbackRate = 1');
+        expect(body('isLookAnim')).toContain(".closest('.view-look-fx')");
+        expect(body('lookDragging')).toContain('ViewTimeLookView.scrubDirection() !== 0');
+        expect(body('reportScrub')).toContain('freezeLoopingAnimations()');
+    });
     test('live = not parked and Today on screen; the view is optional', () => {
         const r = body('reportViewTime');
         expect(r).toContain("typeof ViewTimeLookView === 'undefined'");
@@ -68,14 +83,19 @@ describe('css/viewTimeLook.css contract', () => {
         const chain = read('css/enemyStatus.css').match(/filter:\s*var\(--g-ghost,\)([^;]*);/);
         expect(chain).not.toBeNull(); // --g-ghost still leads the chain, so the glows after it keep their colour
     });
+    test('the drag states are keyed on the look, so a drag on the live board shows nothing', () => {
+        expect(css).toContain('#gameCanvas.view-look-past.view-look-rewind .view-look-sweep');
+        expect(css).toContain('#gameCanvas.view-look-future.view-look-ffwd .view-look-sweep');
+        expect(css).toMatch(/body\.fx-off #gameCanvas \.view-look-streaks/);
+    });
     test('no filter on the run graves wrapper or the scene wrappers (stacking contexts)', () => {
         expect(css).not.toMatch(/\.run-graves\s*\{/);
         expect(css).not.toMatch(/#graveyardScene\s*\{[^}]*filter/);
         expect(css).not.toMatch(/#gameCanvas\.view-look-(past|future)\s*\{[^}]*filter/);
     });
     test('moving parts only with full effects and motion allowed', () => {
-        const anims = css.match(/animation:\s*view-look-[a-z]+/g) || [];
-        expect(anims.length).toBe(4);
+        const anims = css.match(/animation:\s*view-look-[a-z-]+/g) || [];
+        expect(anims.length).toBe(9); // 4 idle + 5 drag (band up / down, sweep back / forward, streaks)
         const motionBlock = css.slice(css.indexOf('@media (prefers-reduced-motion: no-preference)'));
         anims.forEach((a) => expect(motionBlock).toContain(a));
         expect(css).toContain('body:not(.fx-reduced):not(.fx-off)');
