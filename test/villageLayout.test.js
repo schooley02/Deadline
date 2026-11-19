@@ -596,7 +596,7 @@ describe('Hospital (back row)', () => {
         });
     });
 
-    test.each([1, 2, 3, 4, 5])('shipped habits tier %i exists and is the authored 160x128 canvas (3/4 Hospital, 2026-11-15)', tier => {
+    test.each([1, 2, 3, 4, 5])('shipped habits tier %i exists and is the authored 176x144 canvas (3/4 Hospital, 2026-11-19 redraw)', tier => {
         const file = path.join(__dirname, '..', VillageLayout.spriteUrl('habits', tier));
         expect(fs.existsSync(file)).toBe(true);
         const b = fs.readFileSync(file);
@@ -605,33 +605,37 @@ describe('Hospital (back row)', () => {
         expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_HOSPITAL_H_PX);
     });
 
-    // 3/4 Hospital (2026-11-15): Wide 160x128 canvas, art x [6,159] (union of the five tiers, also pinned by the ART_X test above).
-    test('the Hospital canvas is the Wide 160x128 and its art extent is [6, 159]', () => {
-        expect([CONFIG.VILLAGE_HOSPITAL_W_PX, CONFIG.VILLAGE_HOSPITAL_H_PX]).toEqual([160, 128]);
-        expect(CONFIG.VILLAGE_ART_X.habits).toEqual([6, 159]);
-        expect(VillageLayout.DEFAULTS.art.habits).toEqual([6, 159]);
+    // 3/4 Hospital (2026-11-15): Wide 160x128 canvas, art x [6,159]. 2026-11-19: redrawn at 176x144 (Jeremy's PixelLab-cleaned finals), art x [1,174]
+    // (union of the five tiers, also pinned by the ART_X test above); the art right edge stays put (`right` -320), so it grows 20px to the left.
+    test('the Hospital canvas is 176x144 and its art extent is [1, 174]', () => {
+        expect([CONFIG.VILLAGE_HOSPITAL_W_PX, CONFIG.VILLAGE_HOSPITAL_H_PX]).toEqual([176, 144]);
+        expect(CONFIG.VILLAGE_ART_X.habits).toEqual([1, 174]);
+        expect(VillageLayout.DEFAULTS.art.habits).toEqual([1, 174]);
     });
 
     // 2026-11-18: the High school is now 176x144 art (174px of visible art vs 156, same right edge), so it reaches 18px further left toward the Hospital on narrow fields:
-    // clear from 740 up, 13px at 700, 34px at 640 (pinned; the Village 2.0 re-arrangement replaces these back-row spots).
-    test('the 3/4 Hospital clears the 176x144 High school from 740 wide up, and is never worse than 13px over it at 700 or 34px at 640', () => {
-        [[740, 334], [760, 334], [800, 334], ...SIZES].forEach(([w, h]) => {
+    // clear from 740 up, 13px at 700, 34px at 640. 2026-11-19: the Hospital is 176x144 too (173px of visible art vs 153), so its right edge also drifts right on narrow
+    // fields (the model scales only the left offset): clear from 760 up, 2px over at 740, 18px at 700, 41px at 640 (pinned; the Village 2.0 re-arrangement replaces these back-row spots).
+    test('the 3/4 Hospital clears the 176x144 High school from 760 wide up, and is never worse than 2px over it at 740, 18px at 700 or 41px at 640', () => {
+        [[760, 334], [800, 334], ...SIZES].forEach(([w, h]) => {
             const s = slots(w, h, ALL);
             const hospital = s.find(x => x.kind === 'habits'), school = s.find(x => x.kind === 'heroes');
             expect(hospital).toBeDefined();
             expect(hospital.artRight).toBeLessThanOrEqual(school.artLeft);
         });
         const s640 = slots(640, 334, ALL);
-        expect(s640.find(x => x.kind === 'habits').artRight - s640.find(x => x.kind === 'heroes').artLeft).toBeLessThanOrEqual(34);
+        expect(s640.find(x => x.kind === 'habits').artRight - s640.find(x => x.kind === 'heroes').artLeft).toBeLessThanOrEqual(41);
         const s700 = slots(700, 334, ALL);
-        expect(s700.find(x => x.kind === 'habits').artRight - s700.find(x => x.kind === 'heroes').artLeft).toBeLessThanOrEqual(13);
+        expect(s700.find(x => x.kind === 'habits').artRight - s700.find(x => x.kind === 'heroes').artLeft).toBeLessThanOrEqual(18);
+        const s740 = slots(740, 334, ALL);
+        expect(s740.find(x => x.kind === 'habits').artRight - s740.find(x => x.kind === 'heroes').artLeft).toBeLessThanOrEqual(2);
     });
 
     test('at the 844 design width the Hospital ends 3px left of the Clock tower art (the ambulance stays visible) and is never dropped', () => {
         const s = slots(844, 334, { ...ALL });
         const hospital = s.find(x => x.kind === 'habits'), tower = s.find(x => x.kind === 'punctuality');
         expect(tower.artLeft - hospital.artRight).toBeGreaterThanOrEqual(3);
-        expect(hospital.artRight - hospital.artLeft).toBe(153);
+        expect(hospital.artRight - hospital.artLeft).toBe(173); // 2026-11-19: 176x144 art (was 153)
         expect(hospital.row).toBe('back');
         [640, 700, 800, 844, 1265].forEach(w => expect(slots(w, 334, ALL).some(x => x.kind === 'habits')).toBe(true));
     });
@@ -802,6 +806,7 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
                 if (row === 'front' && w < 817) return; // see the Gym note above
                 const r = s.filter(x => x.row === row).sort((a, b) => a.artLeft - b.artLeft);
                 for (let i = 1; i < r.length; i++) {
+                    if (row === 'back' && w < 760 && r[i - 1].kind === 'habits' && r[i].kind === 'heroes') continue; // 2026-11-19: 173px Hospital art, 2px over the School at 740; pinned in 'the 3/4 Hospital clears the 176x144 High school'
                     if (row === 'back' && w < 800 && r[i - 1].kind === 'heroes' && r[i].kind === 'slain') continue; // 2026-11-15: 160px Command Post art; pinned in 'Command Post over the High school'
                     expect(r[i].artLeft).toBeGreaterThanOrEqual(r[i - 1].artRight);
                 }
@@ -814,7 +819,7 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
     // 16px. Nothing else overlaps, and the overlap is pinned so it cannot get worse. (66 -> 60 already started to overlap at 640; at right 22 it was 27px.)
     // 2026-11-15: the Command Post is now 160x160 3/4 art (159px of visible art vs 120), `right` 40 -> 41 so it clears the High school at 817+; its left edge reaches further
     // toward the School on narrow fields: 4px at 800, 27px at 700, 41px at 640 (pinned below; the Village 2.0 re-arrangement replaces this back-row spot).
-    test('at 640 the only overlaps are the Command Post over the High school (<= 60px), the High school over the Hospital (<= 34px), the 3/4 Gym over the Clock tower (<= 60px) and the Police station over the Clock tower (<= 4px)', () => {
+    test('at 640 the only overlaps are the Command Post over the High school (<= 60px), the High school over the Hospital (<= 41px), the 3/4 Gym over the Clock tower (<= 60px) and the Police station over the Clock tower (<= 4px)', () => {
         const s = at(640);
         const front = s.filter(x => x.row === 'front').sort((a, b) => a.artLeft - b.artLeft);
         for (let i = 1; i < front.length; i++) {
@@ -827,7 +832,7 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
         for (let i = 1; i < back.length; i++) {
             const overlap = back[i - 1].artRight - back[i].artLeft;
             if (back[i - 1].kind === 'heroes' && back[i].kind === 'slain') expect(overlap).toBeLessThanOrEqual(60); // 2026-11-18: 174px High school art (was 54 for 156px)
-            else if (back[i - 1].kind === 'habits' && back[i].kind === 'heroes') expect(overlap).toBeLessThanOrEqual(34);
+            else if (back[i - 1].kind === 'habits' && back[i].kind === 'heroes') expect(overlap).toBeLessThanOrEqual(41); // 2026-11-19: 173px Hospital art (was 34 for 153px)
             else expect(overlap).toBeLessThanOrEqual(0);
         }
     });

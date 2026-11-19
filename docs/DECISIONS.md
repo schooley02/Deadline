@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-19 (Hospital 176x144 wired) -- Claude app session, Sonnet 5.5; Jeremy ("lets wire in the new hospital artwork that is attached")
+- **Jeremy's PixelLab-cleaned Hospital finals are the shipped art:** `Assets/Village/habits_t1..t5.png` (also `_source/hospital-176/hospital_t1..t5_final_176x144.png`). The five attachments arrived out of tier order (T3, T5, T2, T1, T4); matched to the drafts by pixel comparison (T3 / T4 / T5 touched up by 96 / 98 / 510 px; T1 / T2 edited).
+- **Canvas 176x144, art measured [1,174] (173px, was 153 at [6,159]); `right` -320 unchanged** -- why: `right` pins the VISIBLE-art right edge, so the building grows 20px to the left and still ends 3px left of the Clock tower at 817+. Rejected: moving `right` (it would break the 3px Clock tower clearance for no gain).
+- **Narrow-field overlaps accepted and pinned** (the Village 2.0 re-arrangement replaces these back-row spots): Hospital over the School clear from 760 up, 2px at 740, 18px at 700, 41px at 640 (was clear from 740, 13 / 34). The Hospital's art right edge drifts a few px right on narrow fields because the placement model scales only the left offset.
+- No balance numbers touched. sw v395 -> v396.
+
+---
+
 ## 2026-11-19 (Hospital redraw at 176x144) -- Claude app session, Opus 5.5, PixelLab API + code; Jeremy ("redraw the Hospital ... at the new back-row size ... Same approach we just used for the High school")
 - **Hospital follows the School into the back-row Wide class 176x144 (~0.85 detail, doors ~33 px)** -- why: at 160x128 its doors were ~25 px and it read a row further back; all old elements carried over (list in ART_STYLE "Hospital 176x144 REDRAW"). Drafts only; Jeremy cleans them up in PixelLab, wiring is a separate task (grow left, keep the right edge).
 - **Ambulance keeps the OLD Type III design at bus scale (~47x30)** -- why: Jeremy wanted its driver about the School bus driver's size; a new code-drawn ambulance "feels more like a box truck that got converted"; the corner red/blue lights help it read. The ER door narrowed 16 -> 14 px so it fits in front of the wing.
