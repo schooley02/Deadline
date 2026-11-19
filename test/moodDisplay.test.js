@@ -117,7 +117,7 @@ describe('wiring + copy', () => {
         expect(read('js/ui/managementWindows.js')).toContain('moodFor: deps.moodFor');
         expect(read('js/ui/statsView.js')).toContain('moodFor: deps.moodFor');
     });
-    test('The sky topic carries the mood line', () => {
+    test('The weather topic carries the mood line', () => {
         expect(read('js/ui/howItWorks.js')).toContain('the face on your level button is you');
     });
 });

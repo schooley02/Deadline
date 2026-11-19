@@ -24,12 +24,12 @@ const topic = (id, cfg) => all(cfg).find(t => t.id === id);
 const textOf = (t) => [].concat(t.what || [], t.list || [], t.html || '', t.why || '').join(' ');
 
 describe('the fourteen topics', () => {
-    test('Points, Priorities, Pushbacks, Streaks, Hero ranking, Achievements, The sky, Timers and Time Logged, When a run ends, Goals, in that order', () => {
-        expect(all().map(t => t.title)).toEqual(['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Being away', 'Goals', 'Journal and notes', 'Not needed today and Delete Task']);
+    test('Points, Priorities, Pushbacks, Streaks, Hero ranking, Achievements, The weather, Timers and Time Logged, When a run ends, Goals, in that order', () => {
+        expect(all().map(t => t.title)).toEqual(['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The weather', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Being away', 'Goals', 'Journal and notes', 'Not needed today and Delete Task']);
         expect(all().map(t => t.id)).toEqual(['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals', 'journal', 'passes']);
     });
 
-    test('Streaks, Hero ranking, Achievements, The sky, Timers and When a run ends carry a "Why"; Points and Pushbacks do not invent one', () => {
+    test('Streaks, Hero ranking, Achievements, The weather, Timers and When a run ends carry a "Why"; Points and Pushbacks do not invent one', () => {
         ['priorities', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals', 'journal', 'passes'].forEach(id => expect(topic(id).why).toBeTruthy());
         ['points', 'pushbacks'].forEach(id => expect(topic(id).why).toBeUndefined());
     });
@@ -268,7 +268,7 @@ describe('windowHtml', () => {
     test('one <details> per topic, in order, with the corner x', () => {
         const html = HowItWorks.windowHtml(all());
         expect((html.match(/<details /g) || []).length).toBe(14);
-        const order = ['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The sky', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Being away', 'Goals', 'Journal and notes'].map(n => html.indexOf(`<summary>${n}</summary>`));
+        const order = ['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The weather', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Being away', 'Goals', 'Journal and notes'].map(n => html.indexOf(`<summary>${n}</summary>`));
         expect(order.every(i => i > 0)).toBe(true);
         expect(order).toEqual(order.slice().sort((a, b) => a - b));
         expect(html).toContain('modal-close-x');
@@ -383,7 +383,7 @@ describe('shell wiring', () => {
 });
 
 
-describe('The sky (run climate)', () => {
+describe('The weather (run climate)', () => {
     test('quotes the scoring weights, the window and the damage cap from CONFIG.CLIMATE', () => {
         const text = textOf(topic('weather'));
         expect(text).toContain(`last ${CONFIG.CLIMATE.windowDays} finished days`);
@@ -401,7 +401,7 @@ describe('The sky (run climate)', () => {
         expect(textOf(topic('weather'))).not.toContain('counts 60%');
     });
 
-    test('names all five skies, says a new run starts Hazy and that today moves it', () => {
+    test('names all five kinds of weather, says a new run starts Hazy and that today moves it', () => {
         const text = textOf(topic('weather'));
         ['Clear', 'Hazy', 'Overcast', 'Fog', 'Storm'].forEach(b => expect(text).toContain(b));
         expect(text).toContain('A new run starts Hazy');

@@ -116,9 +116,9 @@ const WeatherPanel = (() => {
         const trend = TREND_INFO[result.trend] || TREND_INFO.steady;
         const recent = Array.isArray(result.recent) ? result.recent : [];
         let note;
-        if (result.forced) note = 'Dev preview: this sky was forced (dev tools or ?climate=). It is not your run.';
-        else if (!recent.length) note = 'Your first finished day starts moving the sky. Until then a new run stays Hazy.';
-        else if (result.usedPrior) note = 'Early in a run the sky leans toward Hazy until a full week of days has been scored.';
+        if (result.forced) note = 'Dev preview: this weather was forced (dev tools or ?climate=). It is not your run.';
+        else if (!recent.length) note = 'Your first finished day starts moving the weather. Until then a new run stays Hazy.';
+        else if (result.usedPrior) note = 'Early in a run the weather leans toward Hazy until a full week of days has been scored.';
         else note = '';
         // Mood (W1b Build B1): `moodFor(dateKey | 'today')` -> the day's mood entries; the column shows only once some day has one.
         const glyphOf = (key) => {
@@ -134,7 +134,7 @@ const WeatherPanel = (() => {
             band: realBand,
             label: info.label,
             pick: pick ? { band: pick.band, label: BAND_INFO[pick.band].label } : null,
-            setLine: pick ? `Sky set to ${BAND_INFO[pick.band].label} \u00B7 your run is ${info.label}` : '',
+            setLine: pick ? `Weather set to ${BAND_INFO[pick.band].label} \u00B7 your run is ${info.label}` : '',
             line: info.line,
             trendKey: TREND_INFO[result.trend] ? result.trend : 'steady',
             trendLabel: trend.label,
@@ -186,7 +186,7 @@ const WeatherPanel = (() => {
     }
 
     function infoButton() {
-        return (typeof HowItWorks !== 'undefined' && HowItWorks.buttonHtml) ? HowItWorks.buttonHtml('weather', 'How the sky works') : '';
+        return (typeof HowItWorks !== 'undefined' && HowItWorks.buttonHtml) ? HowItWorks.buttonHtml('weather', 'How the weather works') : '';
     }
 
     /**
@@ -199,7 +199,7 @@ const WeatherPanel = (() => {
         const t = (typeof Theme !== 'undefined' && Theme.strings && Theme.strings.perks) ? Theme.strings.perks.skyPicker : null;
         if (!i.unlocked) {
             const lv = i.unlockLevel || 4;
-            return { unlocked: false, lockedLine: t ? `${t.name} unlocks at Lv ${lv}: ${t.tagline}.` : `The sky picker unlocks at Lv ${lv}.`, options: [] };
+            return { unlocked: false, lockedLine: t ? `${t.name} unlocks at Lv ${lv}: ${t.tagline}.` : `The weather picker unlocks at Lv ${lv}.`, options: [] };
         }
         const pick = BAND_INFO[i.pick] ? i.pick : null;
         const options = [{ key: 'follow', label: 'Follow my run', selected: !pick, disabled: false }];
@@ -210,7 +210,7 @@ const WeatherPanel = (() => {
             if (locked) { option.locked = true; option.requirement = String(row.requirement || ''); }
             options.push(option);
         });
-        return { unlocked: true, title: t ? t.name : 'Your sky', tagline: t ? t.tagline : '', options };
+        return { unlocked: true, title: t ? t.name : 'Your weather', tagline: t ? t.tagline : '', options };
     }
 
     function pickerHtml(pm) {
@@ -226,7 +226,7 @@ const WeatherPanel = (() => {
         return `<div class="wx-picker">
                         <h4 class="wx-picker-heading">${esc(pm.title)}</h4>
                         ${pm.tagline ? `<p class="wx-picker-tag">${esc(pm.tagline)}</p>` : ''}
-                        <div class="wx-picks" role="group" aria-label="Pick your sky">${buttons}</div>
+                        <div class="wx-picks" role="group" aria-label="Pick your weather">${buttons}</div>
                         <p class="wx-picker-rule">Your pick changes the picture only. The weather on the badge and in the table is your real run.</p>
                     </div>`;
     }
@@ -244,7 +244,7 @@ const WeatherPanel = (() => {
     function panelInner(vm, picker, trendRow) {
         const row = trendRow || `<p class="wx-trend wx-trend--${vm.trendKey}"><span class="wx-trend-label">${vm.arrow ? `<span aria-hidden="true">${vm.arrow}</span> ` : ''}${esc(vm.trendLabel)}</span> ${esc(vm.trendLine)}</p>`;
         const setBanner = vm.pick
-            ? `<div class="wx-set"><span class="wx-set-brush" aria-hidden="true">${brushSvg(16)}</span><span class="wx-set-text">${esc(vm.setLine)}</span><button type="button" class="wx-real-btn" data-sky-pick="follow">Show my real sky</button></div>`
+            ? `<div class="wx-set"><span class="wx-set-brush" aria-hidden="true">${brushSvg(16)}</span><span class="wx-set-text">${esc(vm.setLine)}</span><button type="button" class="wx-real-btn" data-sky-pick="follow">Show my real weather</button></div>`
             : '';
         return `
                     <div class="wx-head">
@@ -257,7 +257,7 @@ const WeatherPanel = (() => {
                     ${vm.note ? `<p class="wx-note">${esc(vm.note)}</p>` : ''}
                     ${(picker && !vm.forced) ? pickerHtml(picker) : ''}
                     ${daysHeadingHtml(vm)}${tableHtml(vm)}
-                    <p class="wx-foot">Today moves the sky as it fills in, and counts extra until it closes.</p>
+                    <p class="wx-foot">Today moves the weather as it fills in, and counts extra until it closes.</p>
                     <button type="button" class="modal-close-x" data-action="close" aria-label="Close">
                         <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M2 2 L10 10 M10 2 L2 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                     </button>`;
@@ -269,7 +269,7 @@ const WeatherPanel = (() => {
         return `
             <div class="stats-weather wx-stats">
                 <div class="wx-stats-head"><span class="wx-icon wx-icon--${vm.band}" aria-hidden="true">${iconSvg(vm.band)}</span>
-                    <span class="wx-stats-title">Sky: <strong>${esc(vm.label)}</strong>${vm.arrow ? ` <span class="wx-trend wx-trend--${vm.trendKey}">${vm.arrow} ${esc(vm.trendLabel)}</span>` : ''} ${infoButton()}</span></div>
+                    <span class="wx-stats-title">Weather: <strong>${esc(vm.label)}</strong>${vm.arrow ? ` <span class="wx-trend wx-trend--${vm.trendKey}">${vm.arrow} ${esc(vm.trendLabel)}</span>` : ''} ${infoButton()}</span></div>
                 ${vm.pick ? `<p class="wx-set-stats"><span aria-hidden="true">${brushSvg(12)}</span> ${esc(vm.setLine)}</p>` : ''}
                 <p class="wx-line">${esc(vm.line)}</p>
                 ${vm.note ? `<p class="wx-note">${esc(vm.note)}</p>` : ''}
@@ -281,7 +281,7 @@ const WeatherPanel = (() => {
     function badgeLabel(vm) {
         if (!vm) return 'Weather';
         const t = vm.trendKey === 'steady' ? '' : `, ${vm.trendLabel.toLowerCase()}`;
-        const set = vm.pick ? ` Your sky is set to ${vm.pick.label}.` : '';
+        const set = vm.pick ? ` Your weather is set to ${vm.pick.label}.` : '';
         return `Weather: ${vm.label}${t}.${set} Tap for details.`;
     }
 

@@ -114,7 +114,7 @@ const SkyPick = (() => {
         if (!pick || allowedBands(unlocked).indexOf(pick) < 0) return '';
         if (BANDS.indexOf(prevReal) < 0 || BANDS.indexOf(nextReal) < 0 || prevReal === nextReal) return '';
         if (pick === nextReal) return '';
-        return `Your run's weather is now ${LABELS[nextReal]}. Your sky stays ${LABELS[pick]}.`;
+        return `Your run's weather is now ${LABELS[nextReal]}. Your weather stays ${LABELS[pick]}.`;
     }
 
     return { BANDS, UNLOCK_KEY, sanitize, label, pickableBands, allowedBands, ruleMet, unlockedBands, bestLevelFromHistory, sanitizeLevel, resolve, realBandOf, changeNotice };

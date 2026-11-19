@@ -164,7 +164,7 @@ const DevPanel = (() => {
             + '</div>'
             + '<div class="dev-panel-foot"><button type="button" class="dev-reset" data-dev-reset' + (model.active ? '' : ' disabled') + '>Reset demos</button>'
             + '<span class="dev-note">Preview only. Nothing here is saved.</span>'
-            + '<span class="dev-portrait-hint">The sky and village show in landscape.</span></div>';
+            + '<span class="dev-portrait-hint">The weather and village show in landscape.</span></div>';
     }
 
     let deps = null;

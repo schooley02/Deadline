@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-19 ("sky" -> "weather" in the player-facing words) -- Claude app session, Sonnet 5.5; Jeremy ("in the journal, can you change 'The Sky' to say 'The Weather'" ... "really anywhere we say sky because the weather effects more than just the sky")
+- **Every player-facing "sky" is now "weather"** -- How Deadline works topic "The weather" + its text, the Weather panel ("Weather: Hazy" title, "Weather set to X", "Show my real weather", "Pick your weather", "Your weather", notes, (i) "How the weather works"), the pick-change toast ("Your weather stays Fog"), Dev panel and Settings hints. Why: the band (Clear / Hazy / Overcast / Fog / Storm) changes far more than the sky (rain, fog, lightning, ground, decoration). No "The Sky" text exists in the Journal itself; Jeremy meant the wording everywhere.
+- **Not renamed (code, not words):** `SkyPick`, `skyPick` save key, `data-sky-pick`, `wx-*` / `sky-toast` CSS classes, comments (several tests pin source comments), and the docs (UI_UX, WORLD_FEEDBACK_PLAN, HOW_IT_WORKS_PLAN still say "sky"). Rename only if it ever causes confusion; a save-key rename would need a migration.
+- sw v389 -> v390 (the shell changed).
+
+---
+
 ## 2026-11-18 (wiring the 176x144 High school) -- Claude app session, Sonnet 5.5; Jeremy ("lets wire in the updated school artwork that I cleaned up in pixel lab's editor")
 - **Wired Jeremy's cleaned 176x144 files as the High school finals** -- `heroes_t1..t5.png`; tiers matched to the drafts by pixel comparison (T3 / T4 unchanged, T1 / T2 / T5 edited). `VILLAGE_SCHOOL_W/H_PX` 160x128 -> 176x144, `VILLAGE_ART_X.heroes` [2,158] -> [0,174] (measured), sw v388 -> v389.
 - **Placement `right: -118` unchanged (interim)** -- why: the right edge stays put so the Command Post still clears it at 817+; the extra 18px grows left, toward the Hospital. Measured with the real layout code: nothing dropped at any width; Hospital clears from 740 up (13px over at 700, 34px at 640); School over the Command Post 6px at 800, 39 at 700, 60 at 640. Accepted and pinned in `villageLayout.test.js` (back-row, narrow phones only; the Village 2.0 re-arrangement replaces these spots). Rejected: moving the Hospital left (does not fix 640, pushes it further behind the Gym).

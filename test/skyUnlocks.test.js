@@ -105,9 +105,9 @@ describe('resolve / changeNotice with a list of earned bands', () => {
     });
 
     test('the sky-change toast only fires for a pick that is earned', () => {
-        expect(SkyPick.changeNotice('hazy', 'storm', 'fog', ['hazy', 'fog'])).toContain('Your sky stays Fog');
+        expect(SkyPick.changeNotice('hazy', 'storm', 'fog', ['hazy', 'fog'])).toContain('Your weather stays Fog');
         expect(SkyPick.changeNotice('hazy', 'storm', 'clear', ['hazy', 'fog'])).toBe('');
-        expect(SkyPick.changeNotice('hazy', 'storm', 'fog', true)).toContain('Your sky stays Fog');
+        expect(SkyPick.changeNotice('hazy', 'storm', 'fog', true)).toContain('Your weather stays Fog');
     });
 });
 

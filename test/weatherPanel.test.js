@@ -110,7 +110,7 @@ describe('markup (pure)', () => {
         expect(html).toContain('<th scope="row">Mon Nov 2</th>');
         expect(html).toContain('data-action="close"');
         expect(html).toContain('data-hiw-topic="weather"');
-        expect(html).toContain('Today moves the sky as it fills in');
+        expect(html).toContain('Today moves the weather as it fills in');
     });
 
     test('panel: no finished days yet -> just the Today row under a "Today" heading; one day -> singular', () => {

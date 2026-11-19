@@ -192,7 +192,7 @@ const SettingsView = (() => {
             </div>
             <div class="settings-section settings-devtools-section">
                 <h4>Developer tools</h4>
-                <p class="settings-section-hint">Shows a small DEV button at the bottom-left of the game for previewing the sky's weather and the village's stars. Whatever you preview is never saved or exported. Off by default, and only for this device.</p>
+                <p class="settings-section-hint">Shows a small DEV button at the bottom-left of the game for previewing the weather and the village's stars. Whatever you preview is never saved or exported. Off by default, and only for this device.</p>
                 <label class="settings-radio-row settings-devtools-row">
                     <input type="checkbox" id="devToolsToggle" ${deps.currentDevTools === true ? 'checked' : ''}>
                     <span class="settings-radio-label">Show the DEV button</span>

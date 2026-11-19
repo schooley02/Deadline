@@ -74,7 +74,7 @@ describe('look + position', () => {
     });
 
     test('portrait says the sky and village show in landscape (the strip draws neither)', () => {
-        expect(read('js/ui/devPanel.js')).toContain('The sky and village show in landscape.');
+        expect(read('js/ui/devPanel.js')).toContain('The weather and village show in landscape.');
         expect(css).toMatch(/@media \(orientation: portrait\) \{\s*\.dev-portrait-hint \{ display: block; \}/);
     });
 
@@ -244,7 +244,7 @@ describe('the switch is per device: never in a backup', () => {
 describe('the Weather panel note is true for both ways of forcing a sky', () => {
     test('the Dev preview note no longer claims the sky came only from ?climate=', () => {
         const wp = read('js/ui/weatherPanel.js');
-        expect(wp).toMatch(/Dev preview: this sky was forced/);
+        expect(wp).toMatch(/Dev preview: this weather was forced/);
         expect(wp).toContain('dev tools');
     });
 });

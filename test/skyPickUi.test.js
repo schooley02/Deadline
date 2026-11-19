@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  *
- * Sky picker UI (W1c + the 2026-11-09 amendment): the paintbrush "set" mark, the panel's "Sky set to X . your run is Y" line, "Show my
+ * Sky picker UI (W1c + the 2026-11-09 amendment): the paintbrush "set" mark, the panel's "Weather set to X . your run is Y" line, "Show my
  * real sky", the picker rows (locked / unlocked / Clear gating), the sky-change toast, press-and-hold peek, and ClimateView's key + peek.
  */
 const RunClimate = require('../js/runClimate.js');
@@ -25,7 +25,7 @@ describe('view model with a pick', () => {
         expect(vm.label).toBe('Hazy');
         expect(vm.line).toBe(WeatherPanel.BAND_INFO.hazy.line);
         expect(vm.pick).toEqual({ band: 'storm', label: 'Storm' });
-        expect(vm.setLine).toBe('Sky set to Storm · your run is Hazy');
+        expect(vm.setLine).toBe('Weather set to Storm · your run is Hazy');
         expect(vm.rows).toHaveLength(1); // the real days
     });
     test('no pick: unchanged (pick null, no set line)', () => {
@@ -35,20 +35,20 @@ describe('view model with a pick', () => {
     });
     test('the badge label says the sky is set', () => {
         expect(WeatherPanel.badgeLabel(WeatherPanel.buildViewModel(picked('hazy', 'storm'))))
-            .toBe('Weather: Hazy. Your sky is set to Storm. Tap for details.');
+            .toBe('Weather: Hazy. Your weather is set to Storm. Tap for details.');
     });
 });
 
 describe('panel markup', () => {
     const unlocked = (extra) => Object.assign({ unlocked: true, pick: null, realBand: 'hazy' }, extra);
 
-    test('a pick shows the set line, the paintbrush and the "Show my real sky" button; no pick shows none of them', () => {
+    test('a pick shows the set line, the paintbrush and the "Show my real weather" button; no pick shows none of them', () => {
         const withPick = WeatherPanel.panelHtml(WeatherPanel.buildViewModel(picked('hazy', 'storm')), WeatherPanel.pickerModel(unlocked({ pick: 'storm' })));
-        expect(withPick).toContain('Sky set to Storm · your run is Hazy');
-        expect(withPick).toContain('class="wx-real-btn" data-sky-pick="follow">Show my real sky</button>');
+        expect(withPick).toContain('Weather set to Storm · your run is Hazy');
+        expect(withPick).toContain('class="wx-real-btn" data-sky-pick="follow">Show my real weather</button>');
         expect(withPick).toContain('wx-set-brush');
         const without = WeatherPanel.panelHtml(WeatherPanel.buildViewModel(real('hazy')), WeatherPanel.pickerModel(unlocked()));
-        expect(without).not.toContain('Show my real sky');
+        expect(without).not.toContain('Show my real weather');
         expect(without).not.toContain('wx-set-brush');
     });
 
@@ -81,8 +81,8 @@ describe('panel markup', () => {
     });
 
     test('Stats readout carries the set line when a sky is picked', () => {
-        expect(WeatherPanel.statsHtml(WeatherPanel.buildViewModel(picked('hazy', 'storm')))).toContain('Sky set to Storm');
-        expect(WeatherPanel.statsHtml(WeatherPanel.buildViewModel(real('hazy')))).not.toContain('Sky set to');
+        expect(WeatherPanel.statsHtml(WeatherPanel.buildViewModel(picked('hazy', 'storm')))).toContain('Weather set to Storm');
+        expect(WeatherPanel.statsHtml(WeatherPanel.buildViewModel(real('hazy')))).not.toContain('Weather set to');
     });
 });
 
@@ -130,12 +130,12 @@ describe('badge, picker clicks, toast and hold-to-peek in the DOM', () => {
         expect(badge().classList.contains('weather-badge--set')).toBe(false);
     });
 
-    test('picking a band calls onPick and redraws the panel in place; "Show my real sky" follows the run', () => {
+    test('picking a band calls onPick and redraws the panel in place; "Show my real weather" follows the run', () => {
         badge().click();
-        expect(document.querySelector('.wx-set-text').textContent).toContain('Sky set to Storm');
+        expect(document.querySelector('.wx-set-text').textContent).toContain('Weather set to Storm');
         document.querySelector('[data-sky-pick="fog"]').click();
         expect(pickedKeys).toEqual(['fog']);
-        expect(document.querySelector('.wx-set-text').textContent).toBe('Sky set to Fog · your run is Hazy');
+        expect(document.querySelector('.wx-set-text').textContent).toBe('Weather set to Fog · your run is Hazy');
         expect(document.querySelectorAll('.wx-overlay')).toHaveLength(1); // redrawn, not re-opened
         document.querySelector('.wx-real-btn').click();
         expect(pickedKeys).toEqual(['fog', 'follow']);
@@ -149,15 +149,15 @@ describe('badge, picker clicks, toast and hold-to-peek in the DOM', () => {
         expect(clear.disabled).toBe(false);
         clear.click();
         expect(pickedKeys).toEqual(['clear']);
-        expect(document.querySelector('.wx-set-text').textContent).toBe('Sky set to Clear \u00B7 your run is Hazy');
+        expect(document.querySelector('.wx-set-text').textContent).toBe('Weather set to Clear \u00B7 your run is Hazy');
         expect(badge().dataset.band).toBe('hazy');
     });
 
     test('the sky toast shows the line, then hides after about 5 s; a newer toast replaces it', () => {
         const el = document.getElementById('skyToast');
-        WeatherPanel.showSkyToast("Your run's weather is now Storm. Your sky stays Fog.");
+        WeatherPanel.showSkyToast("Your run's weather is now Storm. Your weather stays Fog.");
         expect(el.hidden).toBe(false);
-        expect(el.textContent).toBe("Your run's weather is now Storm. Your sky stays Fog.");
+        expect(el.textContent).toBe("Your run's weather is now Storm. Your weather stays Fog.");
         jest.advanceTimersByTime(3000);
         WeatherPanel.showSkyToast('Clear slipped away. Your run is Hazy now.');
         jest.advanceTimersByTime(3000);

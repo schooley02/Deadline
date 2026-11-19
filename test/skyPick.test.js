@@ -81,13 +81,13 @@ describe('resolve: what the canvas wears', () => {
 });
 
 describe('changeNotice: the toast when the REAL band moves under a pick', () => {
-    test('a pick in force + a real change -> one line naming both skies', () => {
-        expect(SkyPick.changeNotice('hazy', 'storm', 'fog', true)).toBe("Your run's weather is now Storm. Your sky stays Fog.");
-        expect(SkyPick.changeNotice('storm', 'hazy', 'storm', true)).toBe("Your run's weather is now Hazy. Your sky stays Storm.");
+    test('a pick in force + a real change -> one line naming both weathers', () => {
+        expect(SkyPick.changeNotice('hazy', 'storm', 'fog', true)).toBe("Your run's weather is now Storm. Your weather stays Fog.");
+        expect(SkyPick.changeNotice('storm', 'hazy', 'storm', true)).toBe("Your run's weather is now Hazy. Your weather stays Storm.");
     });
-    test('a Clear pick is told like any other: the run left Clear, the sky stays Clear', () => {
-        expect(SkyPick.changeNotice('clear', 'hazy', 'clear', true)).toBe("Your run's weather is now Hazy. Your sky stays Clear.");
-        expect(SkyPick.changeNotice('hazy', 'storm', 'clear', true)).toBe("Your run's weather is now Storm. Your sky stays Clear.");
+    test('a Clear pick is told like any other: the run left Clear, the weather stays Clear', () => {
+        expect(SkyPick.changeNotice('clear', 'hazy', 'clear', true)).toBe("Your run's weather is now Hazy. Your weather stays Clear.");
+        expect(SkyPick.changeNotice('hazy', 'storm', 'clear', true)).toBe("Your run's weather is now Storm. Your weather stays Clear.");
     });
     test('never without a pick, without the perk, or when nothing moved', () => {
         expect(SkyPick.changeNotice('hazy', 'storm', null, true)).toBe('');

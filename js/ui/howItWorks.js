@@ -151,14 +151,14 @@ const HowItWorks = (() => {
         const days = c.windowDays || 7;
         return {
             id: 'weather',
-            title: 'The sky',
+            title: 'The weather',
             what: [
-                `The sky shows how your run has been going lately, all of it together. It scores each of the last ${days} finished days of this run: finishing on time counts ${pct(w.onTime || 0)} (a late finish counts half), keeping your habits ${pct(w.habits || 0)}, and keeping the church healthy ${pct(w.church || 0)} (${c.damageCap || 25} HP of damage in one day scores zero). Recent days count more than older ones.`,
-                `There are five skies, best to worst: Clear, Hazy, Overcast, Fog and Storm. A new run starts Hazy, and several strong days in a row clear it. The finished days set the sky, and today moves it as it goes: once ${c.liveFullAt || 4} things have been finished or have gone overdue, today counts extra, so a rough afternoon can darken the sky and a strong day can lift it. When the day closes it settles to its normal weight, so the morning sky is the report on how things have gone. The arrow and the sky-change notice follow finished days only.`,
-                'The small icon beside the moon shows the sky, with an arrow when the run is clearing or worsening. Tap it to see the last days. The same readout is in Stats.',
-                'The sky is your run; the face on your level button is you. Tap it to log how you feel (one tap is enough, and you can add a word or two). Your moods show in the sky table and beside the best and worst day in Stats. A mood is only a record: it earns nothing and never changes the sky.',
+                `The weather shows how your run has been going lately, all of it together. It scores each of the last ${days} finished days of this run: finishing on time counts ${pct(w.onTime || 0)} (a late finish counts half), keeping your habits ${pct(w.habits || 0)}, and keeping the church healthy ${pct(w.church || 0)} (${c.damageCap || 25} HP of damage in one day scores zero). Recent days count more than older ones.`,
+                `There are five kinds of weather, best to worst: Clear, Hazy, Overcast, Fog and Storm. A new run starts Hazy, and several strong days in a row clear it. The finished days set the weather, and today moves it as it goes: once ${c.liveFullAt || 4} things have been finished or have gone overdue, today counts extra, so a rough afternoon can darken the weather and a strong day can lift it. When the day closes it settles to its normal weight, so the morning weather is the report on how things have gone. The arrow and the weather-change notice follow finished days only.`,
+                'The small icon beside the moon shows the weather, with an arrow when the run is clearing or worsening. Tap it to see the last days. The same readout is in Stats.',
+                'The weather is your run; the face on your level button is you. Tap it to log how you feel (one tap is enough, and you can add a word or two). Your moods show in the weather table and beside the best and worst day in Stats. A mood is only a record: it earns nothing and never changes the weather.',
             ],
-            why: 'Base health, overdue zombies and missed habits already show what is happening right now. The sky shows the direction of the whole run: it is slow to change: one bad day dims it without ruining it, and one good day lifts it without fixing it. As it worsens, decoration fades (stars, the moon, far buildings), but the things that help you recover (zombies, the church, your numbers) always stay readable.',
+            why: 'Base health, overdue zombies and missed habits already show what is happening right now. The weather shows the direction of the whole run: it is slow to change: one bad day dims it without ruining it, and one good day lifts it without fixing it. As it worsens, decoration fades (stars, the moon, far buildings), but the things that help you recover (zombies, the church, your numbers) always stay readable.',
         };
     }
 
@@ -175,7 +175,7 @@ const HowItWorks = (() => {
             what: [
                 'When the church falls, the run is over. The game-over card shows what the run came to, what hit hardest, and what the next run keeps.',
                 'You keep your habits, routines and heroes (with their levels), your open tasks and sub-tasks with their due dates, your run history, achievements and daily records, and your routine slots: a new run never starts with fewer slots than the most you have ever earned.' + unlockLine,
-                'The run itself starts over: church health, level, XP and points, level perks, pushback charges, the village and the sky. Held items earned in the run (bought with its points, or gifted by a level perk or a village star) go with it; an item that cannot be earned again by playing is kept until you use it.',
+                'The run itself starts over: church health, level, XP and points, level perks, pushback charges, the village and the weather. Held items earned in the run (bought with its points, or gifted by a level perk or a village star) go with it; an item that cannot be earned again by playing is kept until you use it.',
                 'An overdue task carried into a new run starts it at the church with a fresh clock, so the new run is not hit for the old run\'s unpaid time.',
             ],
             why: 'A fallen church should cost you the run, not your real to-do list or the routines you spent weeks building. Level, perks and items reset so each run is a fresh climb; slots stay because a routine you can no longer switch on is a routine you stop using.',
