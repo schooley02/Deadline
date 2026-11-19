@@ -50,6 +50,9 @@ const Layout = (() => {
     function applyBodyClass(doc, win) {
         active = isGlanceStrip(win);
         if (doc && doc.body) doc.body.classList.toggle('glance-strip', active);
+        // DEV spike (2026-11-19): `?sceneScale=` shrinks the battlefield to fit; sized here so it is in place
+        // BEFORE the caller re-measures the canvas (js/sceneScale.js). No-op without the URL param.
+        if (typeof SceneScale !== 'undefined' && doc && doc.getElementById) SceneScale.apply(doc, win, active);
         return active;
     }
 

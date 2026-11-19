@@ -2094,9 +2094,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const er = el.getBoundingClientRect();
         if (!er.height) return null;
         const cr = gameCanvas.getBoundingClientRect();
+        // DEV spike (2026-11-19, ?sceneScale=): the canvas may be drawn smaller than its layout size; the rects are on-screen px,
+        // `bottom` is layout px, so convert by the on-screen / layout ratio (1 when the scene isn't scaled).
+        const k = (gameCanvas.offsetHeight > 0 && cr.height > 0) ? cr.height / gameCanvas.offsetHeight : 1;
         // absolute `bottom` is measured from the padding box's bottom edge
-        const padBottom = cr.top + (gameCanvas.clientTop || 0) + gameCanvas.clientHeight;
-        const px = padBottom - er.bottom;
+        const padBottom = cr.top + ((gameCanvas.clientTop || 0) + gameCanvas.clientHeight) * k;
+        const px = (padBottom - er.bottom) / k;
         return (isFinite(px) && px > -2 && px < gameCanvas.clientHeight) ? Math.round(px * 2) / 2 : null;
     }
     // A category edit can change which hero an item stands for (resolveHeroForItem follows the item's own
