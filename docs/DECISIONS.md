@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-20 (angled church base redraw, art only) -- Claude app session, Opus 5.5 (one stretch on Fable 5.2); Jeremy ("revisit the base artwork ... turning its angle like the barricade so it's narrower on screen")
+- **The base becomes an angled three-quarter church at the village's eye-level camera** (184x200, drawn at 2x; front faces right, the nave runs off to the left so small screens crop the left side and keep the door, steps and barricade) -- why: narrower on phones, matches the Village 2.0 buildings and the barricade's angle. It stays a church (survivor sanctuary): white siding (neutral, 10% darker on the walls than first drawn), stained glass at full health, belfry with the bell centred, a cross on the gable, prayer statue, sandbags, lantern post, flag. Rejected: converting it to a clinic for the undead-nurse logic (Jeremy kept the church).
+- **Damage ladder:** 75% = grime, mud, handprints, varied boards, a sunken roof patch, cracked glass with light beams; 50% = a small fire inside (the lantern fell and pushed in one door), roof hole, cross hanging crooked, sagging belfry, torn sandbags; 25% = engulfed (fire licking out of every opening, the roof hole and behind the far side, burning flag, the cross fallen and burning on the steps); 0% = burned to RUBBLE (a low pile with the bell on top, the statue still standing, sandbags + steps kept). Rejected for 0%: a standing burnt shell (too close to 25% without fire).
+- **Lighting split:** Jeremy touches up an UNLIT base; the firelight is added in code by the idle animation (screen blend from the flame pixels) -- why: touch-ups don't have to repaint light, and the light can flicker.
+- **Art rules made standing (Jeremy):** board variety on every boarded window; damage drawn on top, never pasted rectangles; see-through glow only on light sources (fire counts; one exception, the 75% window beams); muted and gritty.
+- Nothing wired; no balance numbers touched.
+
+---
+
 ## 2026-11-19 (Hospital 176x144 wired) -- Claude app session, Sonnet 5.5; Jeremy ("lets wire in the new hospital artwork that is attached")
 - **Jeremy's PixelLab-cleaned Hospital finals are the shipped art:** `Assets/Village/habits_t1..t5.png` (also `_source/hospital-176/hospital_t1..t5_final_176x144.png`). The five attachments arrived out of tier order (T3, T5, T2, T1, T4); matched to the drafts by pixel comparison (T3 / T4 / T5 touched up by 96 / 98 / 510 px; T1 / T2 edited).
 - **Canvas 176x144, art measured [1,174] (173px, was 153 at [6,159]); `right` -320 unchanged** -- why: `right` pins the VISIBLE-art right edge, so the building grows 20px to the left and still ends 3px left of the Clock tower at 817+. Rejected: moving `right` (it would break the 3px Clock tower clearance for no gain).
