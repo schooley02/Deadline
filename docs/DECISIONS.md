@@ -12,6 +12,7 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 - **75%:** the window beams pulse "from flames inside the church" (Jeremy's idea): one fire, each window slightly out of step; stained glass and walls stay still.
 - **50%:** beams + the lit window holes + the roof hole pulse with the fire (Jeremy); front-window frames must NOT flicker (hole light only there). Smoke added (Jeremy): fire smoke, not steam -- charcoal / sooty brown, dense at the opening, billows with moonlit tops, firelit underside; from the roof hole, the top of the far-left window, the doorway and the tips of both front windows; each column looks different; the front-wall columns move slower. Rule: soot marks on the wall need smoke above them, otherwise the soot goes.
 - **Art fix:** 4 bluish-white post pixels (x115, y44-48) left over from 100% were grimed in the 75% and 50% stills.
+- **"Under attack" (when the attack strip with the ringing bell plays) = any zombie currently dealing damage to the base** (Jeremy, answered at wrap-up). **75% window holes stay still** (only the 75% beams pulse; Jeremy: no).
 - Nothing wired; no balance numbers touched.
 
 ## 2026-11-20 (angled church base redraw, art only) -- Claude app session, Opus 5.5 (one stretch on Fable 5.2); Jeremy ("revisit the base artwork ... turning its angle like the barricade so it's narrower on screen")
