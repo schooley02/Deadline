@@ -8,10 +8,13 @@ The smoke sheet: frames in a grid (cols across), each smoke_w x smoke_h art px; 
 frame's top-left.
 Usage: python3 ingame_mock3.py <vw> <vh> <out_prefix> <idle|attack> <smoke_name> <smoke_w> <smoke_h> <frames> <cols> [clip_w] [frames_to_record] [bottom_px=8]
   e.g. python3 ingame_mock3.py 1280 720 mock idle smoke 304 136 40 8 700 80
+       SMOKE_UP=340 python3 ingame_mock3.py 3840 2160 mock idle smoke_tall 448 306 80 8 1000 80
 env: SMOKE_Z      stacking of the layer (default 1 = just behind the church). FINDING 2026-11-22: with z-index auto the layer
                   sits UNDER the game's scenery and looks washed out; the wiring must put it directly behind #base.
      LAYER_SCALE  screen px per sheet px (default 2 = the church's pixel size)
      BASE_SHIFT   px; moves church + smoke left to imitate the small-screen crop of the church
+     SMOKE_UP     px; the smoke sheet's top edge sits this far ABOVE the church frame's top (340 for the taller sheet,
+                  base_025_smoke_layer_tall_final_80f.png: 448 x 306 frames, 80 frames, 8 columns)
 Limits: laptop layout only; the phone "glance strip" is not handled; the barricade is just pushed 208 px right."""
 import sys, json, io, os
 from playwright.sync_api import sync_playwright
@@ -35,7 +38,7 @@ with sync_playwright() as p:
       const base=document.getElementById('base'), c=document.getElementById('gameCanvas');
       const st=document.createElement('style');
       st.textContent=`#base{width:368px!important;--base-fw:368px;--base-fh:400px;background-image:url('Assets/Base/mock/${a.strip}.png')!important;background-size:5888px 400px!important;animation:none!important;background-repeat:no-repeat!important}
-        #mockSmoke{z-index:${a.z};position:absolute;left:calc(0px - var(--base-bleed,0px));bottom:${a.bottom + 400 - a.sh*a.ls}px;width:${a.sw*a.ls}px;height:${a.sh*a.ls}px;background:url('Assets/Base/mock/${a.sname}.png') 0 0 / ${a.sw*a.ls*a.cols}px ${a.sh*a.ls*a.rows}px no-repeat;image-rendering:pixelated;pointer-events:none}
+        #mockSmoke{z-index:${a.z};position:absolute;left:calc(0px - var(--base-bleed,0px));bottom:${a.bottom + 400 - a.sh*a.ls + a.up}px;width:${a.sw*a.ls}px;height:${a.sh*a.ls}px;background:url('Assets/Base/mock/${a.sname}.png') 0 0 / ${a.sw*a.ls*a.cols}px ${a.sh*a.ls*a.rows}px no-repeat;image-rendering:pixelated;pointer-events:none}
         *{animation-play-state:paused!important}`;
       document.head.appendChild(st);
       base.removeAttribute('data-base-anim'); base.style.setProperty('background-image', `url('Assets/Base/mock/${a.strip}.png')`, 'important'); const bar=document.getElementById('barricade'); if(bar) bar.style.translate='208px 0';
@@ -43,7 +46,7 @@ with sync_playwright() as p:
       window.__mockFrame=(f)=>{ base.style.setProperty('background-position', `${-(f%16)*368}px bottom ${a.bottom}px`, 'important'); const g=f%a.sn; s.style.backgroundPosition=`${-(g%a.cols)*a.sw*a.ls}px ${-Math.floor(g/a.cols)*a.sh*a.ls}px`; };
       window.__mockFrame(0);
       const r=c.getBoundingClientRect(); return {x:r.x,y:r.y,w:r.width,h:r.height};
-    }""", {"strip": strip, "bottom": BOTTOM, "sname": sname, "sw": sw, "sh": sh, "sn": sn, "cols": cols, "rows": rows, "ls": int(os.environ.get("LAYER_SCALE", "2")), "z": os.environ.get("SMOKE_Z", "1"), "shift": int(os.environ.get("BASE_SHIFT", "0"))})
+    }""", {"strip": strip, "bottom": BOTTOM, "sname": sname, "sw": sw, "sh": sh, "sn": sn, "cols": cols, "rows": rows, "ls": int(os.environ.get("LAYER_SCALE", "2")), "z": os.environ.get("SMOKE_Z", "1"), "shift": int(os.environ.get("BASE_SHIFT", "0")), "up": int(os.environ.get("SMOKE_UP", "0"))})
     print(json.dumps(info)); pg.wait_for_timeout(1200)
     clip = {"x": 0, "y": max(0, info["y"]), "width": min(clipw, w), "height": min(info["h"], h)}
     frames = []
