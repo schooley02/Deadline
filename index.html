@@ -197,6 +197,9 @@
                     </div>
                     <div id="graveyardStones" class="graveyard-stones"></div><!-- the Memorial obelisk lives here (graveyardView.js) -->
                 </div>
+                <!-- 25% smoke layer (2026-11-22, css/gameCanvas.css): a plume BEHIND the church, in front of the village; no z-index so it paints in the
+                     church's own layer, and it must stay BEFORE #base in the DOM. The clip wrapper stops it at the canvas edge. Shown only at 25%. -->
+                <div id="baseSmokeClip" aria-hidden="true"><div id="baseSmoke"></div></div>
                 <div id="base"></div>
                 <!-- Hero spotlight (docs/HERO_SPOTLIGHT_PLAN.md, 2026-10-21): scrim + hero on
                      the layer in front of the church, below the enemies (css/heroSpotlight.css). -->

@@ -2683,14 +2683,17 @@ document.addEventListener('DOMContentLoaded', () => {
             // Per-tick lanes + "+N" badges for the portrait glance strip
             // (V3b-1 sub badges, V3b-2 lanes / collision + overdue-pile badges).
             afterTick: () => {
-                // Church flash + shake every few seconds while attackers are at the base (visual only).
-                Damage.pulseIfUnderAttack(Date.now(), {
+                // Church flash + shake every few seconds while attackers are at the base (visual only), and the
+                // "under attack" strip (bell ringing) for as long as any zombie is dealing damage to it.
+                const attackDeps = {
                     baseElement,
                     getActiveItems: State.getActiveItems,
                     isGameOver: State.isGameOver,
                     isNonThreatening: Items.isNonThreatening,
                     isIced: (it) => Ice.stateIn(it, State.getActiveItems(), Date.now()).iced,
-                });
+                };
+                Damage.pulseIfUnderAttack(Date.now(), attackDeps);
+                Damage.syncBaseAttack(attackDeps);
                 processTimers(Date.now());
                 pollEveningCheck(Date.now());
                 observeClockStar(Date.now());

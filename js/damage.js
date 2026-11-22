@@ -116,13 +116,15 @@ const Damage = (() => {
         return BASE_IMAGE_DIR + 'base_000.png';
     }
 
-    // Animated idle loops (2026-10-20, V4 follow-up). A damage state listed here
-    // has a horizontal frame strip `Assets/Base/base_<key>_anim.png` (80x200
-    // frames). The inline background-image stays the STATIC png (fallback, and
-    // what the time-slider preview / tests read); `data-base-anim="<key>"` lets
-    // css/gameCanvas.css swap in the strip and step through it. Adding a sheet =
-    // key here + a `#base[data-base-anim="<key>"]` rule (frame count) + sw.js.
-    const BASE_ANIM_STATES = ['100', '075', '050', '025'];
+    // Animated loops (2026-10-20, V4 follow-up; angled base wired 2026-11-22). A damage state listed here
+    // has a horizontal frame strip `Assets/Base/base_<key>_anim.png` (16 frames of 184x200, 8 fps). The
+    // inline background-image stays the STATIC png (fallback, and what the time-slider preview / tests
+    // read); `data-base-anim="<key>"` lets css/gameCanvas.css swap in the strip and step through it.
+    // 100 / 075 / 050 / 025 also have an "under attack" strip `base_<key>_attack.png` (the bell rings),
+    // shown while `data-base-attack` is set (syncBaseAttack); 000 has an idle strip only.
+    // Adding a sheet = key here + a `#base[data-base-anim="<key>"]` rule (frame count) + sw.js.
+    const BASE_ANIM_STATES = ['100', '075', '050', '025', '000'];
+    const BASE_ATTACK_STATES = ['100', '075', '050', '025'];
     function resolveBaseAnimKey(baseHealth) {
         const m = /base_(\d{3})\.png$/.exec(resolveBaseImage(baseHealth));
         const key = m ? m[1] : '';
@@ -138,6 +140,8 @@ const Damage = (() => {
         const key = resolveBaseAnimKey(baseHealth);
         if (key) baseElement.dataset.baseAnim = key;
         else delete baseElement.dataset.baseAnim;
+        // A state with no attack strip (0%) can never stay in "under attack".
+        if (BASE_ATTACK_STATES.indexOf(key) === -1) delete baseElement.dataset.baseAttack;
     }
 
     // Hit shake (2026-10-20, Jeremy): at most once per BASE_SHAKE_COOLDOWN_MS so
@@ -178,8 +182,11 @@ const Damage = (() => {
         }
         return true;
     }
-    function pulseIfUnderAttack(nowMs, deps) {
-        const { baseElement, isGameOver } = deps;
+    // True while any zombie is currently dealing damage to the base: a threatening overdue item that is not
+    // iced (Jeremy 2026-11-21: this is when the church shows its "under attack" strip with the bell ringing).
+    // Pure apart from the deps reads; the pulse below and syncBaseAttack share it.
+    function isBaseUnderAttack(deps) {
+        const { baseElement, isGameOver } = deps || {};
         if (!baseElement || (isGameOver && isGameOver())) return false;
         if (!hasThreateningOverdue(deps)) return false;
         // Iced zombies (docs/ICE_PLAN.md) are at the church but cannot hit: if every attacker is iced, no flash or shake.
@@ -187,6 +194,27 @@ const Damage = (() => {
             const lurker = deps.isNonThreatening || ((item) => item.type === 'habit' && item.isNegative === true);
             if (!deps.getActiveItems().some(item => item.isOverdue && !lurker(item) && !deps.isIced(item))) return false;
         }
+        return true;
+    }
+
+    // Sets / clears `data-base-attack` on the church so css/gameCanvas.css shows the attack strip instead of
+    // the idle one. Only states that HAVE an attack strip can be "under attack" (0% never is). Visual only: no
+    // state, no save. Called every live tick from the loop's afterTick; returns whether the attribute is on.
+    function syncBaseAttack(deps) {
+        const el = deps && deps.baseElement;
+        if (!el || !el.dataset) return false;
+        const on = isBaseUnderAttack(deps) && BASE_ATTACK_STATES.indexOf(el.dataset.baseAnim || '') !== -1;
+        if (on) {
+            if (el.dataset.baseAttack !== '1') el.dataset.baseAttack = '1';
+        } else if (el.dataset.baseAttack !== undefined) {
+            delete el.dataset.baseAttack;
+        }
+        return on;
+    }
+
+    function pulseIfUnderAttack(nowMs, deps) {
+        if (!isBaseUnderAttack(deps)) return false;
+        const { baseElement } = deps;
         if (!pulseAllowed()) return false;
         if (!shouldShake(nowMs, lastShakeMs, CONFIG.BASE_SHAKE_COOLDOWN_MS)) return false;
         playFlash(baseElement);
@@ -742,6 +770,7 @@ const Damage = (() => {
         resolveBaseAnimKey,
         shouldShake,
         BASE_ANIM_STATES,
+        BASE_ATTACK_STATES,
         computeOfflineOverdueDamage,
         computeOfflineTicks,
         computeGapCatchUpHits,
@@ -752,6 +781,8 @@ const Damage = (() => {
         updateBaseVisuals,
         applyBaseArt,
         pulseIfUnderAttack,
+        isBaseUnderAttack,
+        syncBaseAttack,
         resetShakeForTests,
         damageBase,
         healBase,

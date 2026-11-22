@@ -7,7 +7,8 @@
  * ABOVE the scrim so a zombie at the door is never dimmed. Both elements are siblings
  * of #base, so the church's hit shake / flash does not move the hero.
  *
- * Geometry mirrors #base: landscape/desktop = 160px column, hero centred on the door at
+ * Geometry mirrors #base: landscape/desktop = a --base-w column (set on #gameCanvas, css/gameCanvas.css), hero centred on the door
+ * (108px left of the church's right edge: the angled art's door is 54 art px from its right edge) at
  * the front-lane feet line (GROUND_FLOOR_FEET_BOTTOM_PAD = 8px); portrait strip
  * (body.glance-strip) = 56px window, hero at ~0.55 scale. Placeholder art = emoji block.
  */
@@ -15,7 +16,7 @@
     position: absolute;
     left: 0;
     bottom: 0;
-    width: 160px;
+    width: var(--base-w, 188px);
     height: 100%;
     z-index: 20;
     background: rgba(12, 14, 24, var(--hero-scrim-opacity, 0.4));
@@ -32,7 +33,7 @@
 
 .hero-spotlight {
     position: absolute;
-    left: calc(80px - var(--base-bleed, 0px)); /* centre of the 160px church column = the door (the church sits --base-bleed left of the canvas edge, css/gameCanvas.css) */
+    left: calc(var(--base-w, 188px) - 108px - var(--base-bleed, 0px)); /* the door: 108px (54 art px) left of the church's right edge (the church sits --base-bleed left of the canvas edge, css/gameCanvas.css) */
     bottom: 8px; /* front-lane feet line */
     width: 64px;
     height: 104px;

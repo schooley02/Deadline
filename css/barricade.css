@@ -46,13 +46,13 @@
 
 /* ---------- the barricade on the canvas (Momentum Build C, 2026-11-11; due line moved 2026-11-12) ----------
    An 80x152 box (2026-11-12: grown 80x104 -> 80x136 -> 80x152 so tiers 3-4 can stand taller and tier 4's torches fit; every picture is 80x152, drawn 1:1, the shorter tiers padded with empty rows on top), bottom on the canvas bottom (2026-11-12, so the wall reaches in front of the front lane): a wall ACROSS the lane IN FRONT OF THE STAIRS. The zombie front line (the due line) is the
-   church width + CONFIG.FRONT_LINE_GAP_PX (28px) = canvas x 188, so the wall spans x 150-230: it stands just right of the stairs and runs up and to the right at the
+   church width + CONFIG.FRONT_LINE_GAP_PX (28px) = canvas x 188 (old 160px church; now --base-w + 28), so the wall spans x 150-230 (now --base-w - 10 .. + 70): it stands just right of the stairs and runs up and to the right at the
    same angle as the lane slant (CONFIG.GROUND_LANE_SLANT_PX), so the zombies line up along it. z 15: above the church (1), BELOW the hero scrim (20),
    the hero (25) and every zombie (30+). Only the wall's silhouette takes taps (.barricade-hit). Placeholder pictures until the PixelLab
    art lands (Assets/Barricade/barricade_<state>.png). */
 .barricade {
     position: absolute;
-    left: calc(150px - var(--base-bleed, 0px));
+    left: calc(var(--base-w, 188px) - 10px - var(--base-bleed, 0px)); /* 10px left of the church's right edge (was 150px for the old 160px church) */
     bottom: 0;
     width: 80px;
     height: 152px;

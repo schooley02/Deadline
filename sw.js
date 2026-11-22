@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v397';
+const CACHE_NAME = 'deadline-shell-v398';
 
 const APP_SHELL = [
     './',
@@ -198,14 +198,20 @@ const APP_SHELL = [
     'Assets/Barricade/barricade_solid.png', // PixelLab art (2026-11-12)
     'Assets/Barricade/barricade_reinforced.png', // PixelLab art (2026-11-12)
     'Assets/Base/base_000.png',
+    'Assets/Base/base_000_anim.png',
     'Assets/Base/base_025.png',
     'Assets/Base/base_025_anim.png',
+    'Assets/Base/base_025_attack.png',
+    'Assets/Base/base_025_smoke_layer.png',
     'Assets/Base/base_050.png',
     'Assets/Base/base_050_anim.png',
+    'Assets/Base/base_050_attack.png',
     'Assets/Base/base_075.png',
     'Assets/Base/base_075_anim.png',
+    'Assets/Base/base_075_attack.png',
     'Assets/Base/base_100.png',
     'Assets/Base/base_100_anim.png',
+    'Assets/Base/base_100_attack.png',
     'Assets/Effects/ice/ice_form.png',
     'Assets/Effects/ice/ice_hold.png',
     'Assets/Effects/ice/ice_hold_cracked.png',

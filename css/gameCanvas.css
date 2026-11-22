@@ -550,23 +550,25 @@
 }
 
 /* Base (Church) */
-/* V4 (2026-10-14): pixel church art (Assets/Base/base_*.png, 80x200 source, all five states share one canvas; the art ends 7 rows above the
-   image bottom) drawn at an exact 2x (160x400) with crisp pixels, standing on the FRONT-lane feet line
+/* Angled church (wired 2026-11-22): pixel art (Assets/Base/base_*.png, 184x200 source, all five states share one canvas; the art ends 5 rows
+   above the image bottom) drawn at an exact 2x (368x400) with crisp pixels, standing on the FRONT-lane feet line
    (GROUND_FLOOR_FEET_BOTTOM_PAD = 8px above the canvas bottom). The box is full height so
    a short canvas just clips the roof (door + windows always show); no background
-   color / border -- the art is transparent and sits on the scene. 160px wide = room for
-   4 hero chips per row. BASE_WIDTH is re-measured from this element. */
+   color / border -- the art is transparent and sits on the scene. The box is --base-w wide (set on #gameCanvas below, per screen) and
+   shows the RIGHT part of the art: the left side of the church is cropped away as the screen shrinks (Jeremy 2026-11-19).
+   BASE_WIDTH is re-measured from this element. The door is 54 art px = 108px from the art's right edge: the hero spotlight and the
+   barricade (css/heroSpotlight.css, css/barricade.css) place themselves from --base-w. */
 #base {
     cursor: pointer; /* tap the church = Base Health panel (2026-11-01) */
-    /* Frame geometry for the idle-loop strips (2026-10-20): one 80x200 frame at 2x.
+    /* Frame geometry for the loop strips: one 184x200 frame at 2x.
        glanceStrip.css overrides these for the 1:1 portrait strip. A static png is
        just a 1-frame strip, so the same background-size works for both. */
-    --base-fw: 160px;
+    --base-fw: 368px;
     --base-fh: 400px;
-    --base-x0: 0px;     /* x of frame 0 (left-aligned here) */
+    --base-x0: calc(var(--base-w, 188px) - var(--base-fw)); /* x of frame 0: right-aligned, so a window narrower than the art crops the LEFT side */
     --base-frames: 1;
-    --base-fps: 6;      /* Jeremy 2026-10-20: start at 6, tune by eye */
-    width: 160px;
+    --base-fps: 8;      /* the finished strips are 16 frames at 8 fps (2 s) */
+    width: var(--base-w, 188px);
     height: 100%;
     background-color: transparent;
     background-image: url('../Assets/Base/base_100.png');
@@ -574,7 +576,7 @@
     /* idle loop + hit flash + hit shake run side by side (each is a var so the
        hit classes never cancel the loop by replacing the animation shorthand) */
     animation: var(--base-idle, none), var(--base-flash, none), var(--base-shake, none);
-    background-position: left bottom -6px; /* = 8px front-lane pad - 14px (7 empty rows x 2) */
+    background-position: var(--base-x0) calc(100% + 2px); /* = `bottom -2px`: 8px front-lane pad - 10px (5 empty rows x 2); written as calc() because a var() x offset cannot take the 3-value keyword form */
     background-repeat: no-repeat;
     image-rendering: pixelated;
     display: flex;
@@ -597,6 +599,14 @@
    The portrait strip already crops the art's left side, so it has none. */
 #gameCanvas { --base-bleed: 4px; }
 
+/* How much of the church shows (2026-11-22; the art is 368px wide at 2x): the full church on a big screen, the LEFT side cropped away as the
+   screen shrinks so the village gets the room (Jeremy 2026-11-19). 188px = the right 94 art px (door, steps, belfry, flag). A phone held
+   sideways (short screen) always gets the smallest. The portrait strip sets its own below (css/glanceStrip.css, wins by specificity). */
+#gameCanvas { --base-w: 188px; }
+@media (min-width: 700px) and (min-height: 521px)  { #gameCanvas { --base-w: 236px; } }
+@media (min-width: 1024px) and (min-height: 521px) { #gameCanvas { --base-w: 300px; } }
+@media (min-width: 1280px) and (min-height: 521px) { #gameCanvas { --base-w: 368px; } }
+
 /* Hover (2026-11-12, Jeremy: "like the other canvas elements"): the church grows 5% from its base and gets the white glow (the zombies' /
    headstones' / barricade's recipe). `scale`, not transform, so it never fights the hit shake (`translate`); the hit flash animates `filter`
    and wins for its 0.3s, then the glow returns. Desktop only (touch has no real :hover). */
@@ -611,30 +621,81 @@
 body.glance-strip #gameCanvas { --base-bleed: 0px; }
 
 
-/* Animated idle loops (2026-10-20). js/damage.js applyBaseArt sets
+/* Animated loops (2026-10-20; angled base 2026-11-22). js/damage.js applyBaseArt sets
    data-base-anim="<state>" when that damage state has a strip
-   (Assets/Base/base_<state>_anim.png); the inline style keeps the static png
-   as the fallback, so the strip needs !important. --base-frames MUST match the
-   strip width / 80 (test/baseAnim.test.js checks it). */
+   (Assets/Base/base_<state>_anim.png) and syncBaseAttack adds data-base-attack while any
+   zombie is dealing damage to the church (Assets/Base/base_<state>_attack.png, the bell
+   rings; 0% has none). The inline style keeps the static png as the fallback, so the strips need
+   !important. All strips are 16 frames of 184x200 at 8 fps = 2 s. --base-frames MUST match the
+   strip width / 184 (test/baseAnim.test.js checks it). */
 #base[data-base-anim] {
     --base-idle: base-idle calc(var(--base-frames) / var(--base-fps) * 1s) steps(var(--base-frames)) infinite;
 }
 #base[data-base-anim="100"] {
     background-image: url('../Assets/Base/base_100_anim.png') !important;
-    --base-frames: 8;
+    --base-frames: 16;
+}
+#base[data-base-anim="100"][data-base-attack] {
+    background-image: url('../Assets/Base/base_100_attack.png') !important;
 }
 #base[data-base-anim="075"] {
     background-image: url('../Assets/Base/base_075_anim.png') !important;
-    --base-frames: 8;
+    --base-frames: 16;
+}
+#base[data-base-anim="075"][data-base-attack] {
+    background-image: url('../Assets/Base/base_075_attack.png') !important;
 }
 #base[data-base-anim="050"] {
     background-image: url('../Assets/Base/base_050_anim.png') !important;
-    --base-frames: 7; /* 7 distinct frames (smoke + embers), not 8 */
+    --base-frames: 16;
+}
+#base[data-base-anim="050"][data-base-attack] {
+    background-image: url('../Assets/Base/base_050_attack.png') !important;
 }
 #base[data-base-anim="025"] {
     background-image: url('../Assets/Base/base_025_anim.png') !important;
-    --base-frames: 9; /* poses 0-5 then back 4,3,2 (flames) */
+    --base-frames: 16;
 }
+#base[data-base-anim="025"][data-base-attack] {
+    background-image: url('../Assets/Base/base_025_attack.png') !important;
+}
+#base[data-base-anim="000"] {
+    background-image: url('../Assets/Base/base_000_anim.png') !important;
+    --base-frames: 16; /* embers only: idle strip, no attack strip */
+}
+
+/* 25% smoke layer (2026-11-22): one big plume BEHIND the church (it is earlier in the DOM and has no z-index, so it paints in the church's
+   own layer, above the village and graveyard). Shown only while the church is at 25%. Sheet = Assets/Base/base_025_smoke_layer.png, 80 frames
+   in a grid of 8 across x 10 down, each 448x306 art px (896x612 on screen at 2x), 8 fps = 10 s loop (x steps 8 times a second, y steps
+   once a second). The wrapper is the canvas-sized clip (the canvas itself is overflow: visible); the plume's left edge sits on the church
+   art's left edge (it moves with the church when the left side is cropped) and its top edge is 340px above the art's top: bottom-anchored
+   like the church, so a taller canvas needs no lift. Hidden in the portrait strip. */
+#baseSmokeClip {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    display: none;
+}
+#gameCanvas:has(#base[data-base-anim="025"]) #baseSmokeClip { display: block; }
+body.glance-strip #baseSmokeClip { display: none !important; }
+#baseSmoke {
+    --smoke-fps: 8;
+    position: absolute;
+    left: calc(var(--base-w, 188px) - 368px - var(--base-bleed, 0px)); /* the art's left edge */
+    bottom: 126px; /* the church art's bottom is 2px below the canvas bottom; its top 400px above that: the plume's 612px start 340px above it */
+    width: 896px;
+    height: 612px;
+    background: url('../Assets/Base/base_025_smoke_layer.png') 0 0 / 7168px 6120px no-repeat;
+    image-rendering: pixelated;
+    animation: base-smoke-x calc(8 / var(--smoke-fps) * 1s) steps(8) infinite,
+               base-smoke-y calc(80 / var(--smoke-fps) * 1s) steps(10) infinite;
+}
+@keyframes base-smoke-x { from { background-position-x: 0; } to { background-position-x: -7168px; } }
+@keyframes base-smoke-y { from { background-position-y: 0; } to { background-position-y: -6120px; } }
+body.fx-reduced #baseSmoke { --smoke-fps: 3; }
+body.fx-off #baseSmoke { animation: none; }
+@media (prefers-reduced-motion: reduce) { #baseSmoke { animation: none; } }
 
 @keyframes base-idle {
     from { background-position-x: var(--base-x0); }

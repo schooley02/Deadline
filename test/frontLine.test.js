@@ -24,11 +24,13 @@ describe('front line gap', () => {
         expect((script.match(/GraveyardView\.render\(churchWidth\(\)\)/g) || []).length).toBe(2);
         expect((script.match(/VillageView\.render\(churchWidth\(\)\)/g) || []).length).toBe(2);
     });
-    test('barricade box straddles the gap: starts at the stairs, ends past the front line (160+28)', () => {
-        const left = Number(/left: calc\((\d+)px - var\(--base-bleed/.exec(css)[1]);
+    test('barricade box straddles the gap: starts at the stairs, ends past the front line (church width + gap)', () => {
+        // Since 2026-11-22 the box is placed from --base-w (the church box width): left = --base-w - inset - bleed, so
+        // the wall starts `inset` px left of the church's right edge and must end past church width + gap.
+        const inset = Number(/left: calc\(var\(--base-w, \d+px\) - (\d+)px - var\(--base-bleed/.exec(css)[1]);
         const width = Number(/\.barricade \{[^}]*?width: (\d+)px/s.exec(css)[1]);
-        expect(left).toBeLessThan(160);
-        expect(left + width).toBeGreaterThan(160 + CONFIG.FRONT_LINE_GAP_PX);
+        expect(inset).toBeGreaterThan(0);
+        expect(width - inset).toBeGreaterThan(CONFIG.FRONT_LINE_GAP_PX);
     });
 });
 
