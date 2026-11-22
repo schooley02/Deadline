@@ -157,13 +157,13 @@ body.glance-strip #gameCanvas::before {
     image-rendering: pixelated;
 }
 
-body.glance-strip #gameCanvas { --base-w: 56px; } /* BASE_WIDTH is re-measured from the church box on mode change */
+body.glance-strip #gameCanvas { --base-w: 76px; } /* BASE_WIDTH is re-measured from the church box on mode change */
 body.glance-strip #base {
-    /* The art at half size (92x100, a clean 2:1 of the 184x200 frame) so the whole church height fits the strip; the 56px window
-       shows the door (centred) and the walls either side. Feet on the front lane. */
+    /* The art at half size (92x100, a clean 2:1 of the 184x200 frame) so the whole church height fits the strip; the 76px window
+       shows the door, the lantern post and the flag at the right edge, and the left wall up to the tower. Feet on the front lane. */
     --base-fw: 92px;
     --base-fh: 100px;
-    --base-x0: -37px; /* frame 0's x: the 56px window shows art x 37..93 of 92, centred on the double door (door centre = x 65, where the hero stands at left: 28px); only the far-left wall is cropped */
+    --base-x0: -16px; /* frame 0's x: right-aligned (76 - 92), so the 76px window shows art x 16..92: the whole right side (steps, sandbags, lantern post, flag); the door centre (x 65) lands at 49, where the hero stands */
     background-position: var(--base-x0) calc(100% - 5px); /* = `bottom 5px`: 8px pad - 2.5 empty rows */
 }
 

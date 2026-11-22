@@ -226,14 +226,14 @@
     .hero-sprite[data-anim="ko"] .hero-sprite-sheet { transform: translate3d(-1312px, 0, 0); }
 }
 
-/* Portrait glance strip: 56px church window, 92px strip. */
+/* Portrait glance strip: 76px church window, 92px strip. */
 body.glance-strip #baseScrim {
-    width: 56px;
+    width: 76px;
     border-radius: 0 8px 8px 0;
 }
 
 body.glance-strip .hero-spotlight {
-    left: 28px;
+    left: 48px;
     bottom: 2px;
     width: 36px;
     height: 58px;

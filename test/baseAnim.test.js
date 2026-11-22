@@ -289,11 +289,11 @@ describe('strips, CSS and sw.js agree', () => {
         expect(base).toMatch(/width:\s*var\(--base-w, 188px\)/);
     });
 
-    test('the church shows the right part of the art: --base-w per screen, the portrait strip shows 56px', () => {
+    test('the church shows the right part of the art: --base-w per screen, the portrait strip shows 76px', () => {
         expect(css).toMatch(/#gameCanvas \{ --base-w: 188px; \}/);
         expect(css).toMatch(/min-width: 1280px\) and \(min-height: 521px\)\s*\{ #gameCanvas \{ --base-w: 368px; \}/);
         const glance = fs.readFileSync(path.join(ROOT, 'css/glanceStrip.css'), 'utf8');
-        expect(glance).toMatch(/body\.glance-strip #gameCanvas \{ --base-w: 56px; \}/);
+        expect(glance).toMatch(/body\.glance-strip #gameCanvas \{ --base-w: 76px; \}/);
         expect(glance).toMatch(/--base-fw:\s*184px/);
     });
 });
