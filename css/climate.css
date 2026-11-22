@@ -166,7 +166,7 @@
 
 /* The church sits ABOVE the village layer (z 1, same as the layer but later in the DOM), so the village haze and fog, which now
    run the full width, pass BEHIND it. Zombies (30+), the scrim (20) and the spotlight (25) are unchanged. */
-#base { z-index: 1; }
+#base { z-index: 3; } /* 3: above the 25% smoke (2) which is above the village layer (1) and its haze veils */
 
 /* ---------- the Nights Survived number: "lit sign" ink from Overcast on ---------- */
 

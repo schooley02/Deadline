@@ -60,7 +60,7 @@ describe('haze and fog run the full width, behind the church (2026-11-07)', () =
     });
 
     test('the church is lifted above the village layer (z 1, later in the DOM) so the veils and fog pass behind it; zombies stay above', () => {
-        expect(css).toMatch(/\n#base \{ z-index: 1; \}/);
+        expect(css).toMatch(/\n#base \{ z-index: 3; \}/);
         expect(html.indexOf('id="villageLayer"')).toBeLessThan(html.indexOf('id="base"'));
         // (the moonbeam, .climate-beam, was removed 2026-11-09, Jeremy: nothing left over the church to order against)
         expect(html).not.toContain('climate-beam');

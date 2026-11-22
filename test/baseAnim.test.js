@@ -322,13 +322,14 @@ describe('25% smoke layer', () => {
         expect(css).toMatch(/#gameCanvas:has\(#base\[data-base-anim="025"\]\) #baseSmokeClip \{ display: block; \}/);
         expect(css).toMatch(/body\.glance-strip #baseSmokeClip \{ display: none !important; \}/);
     });
-    test('sits directly behind #base in the DOM, with no z-index (so it paints in the church layer, above the village)', () => {
+    test('sits directly behind #base in the DOM, above the village layer and its haze (z 2) and under the church (z 3)', () => {
         const smoke = html.indexOf('id="baseSmokeClip"');
         const base = html.indexOf('<div id="base"></div>');
         expect(smoke).toBeGreaterThan(-1);
         expect(smoke).toBeLessThan(base);
-        expect(/#baseSmokeClip \{([^}]*)\}/.exec(css)[1]).not.toMatch(/z-index/);
+        expect(/#baseSmokeClip \{([^}]*)\}/.exec(css)[1]).toMatch(/z-index: 2;/);
         expect(/#baseSmoke \{([^}]*)\}/.exec(css)[1]).not.toMatch(/z-index/);
+        expect(fs.readFileSync(path.join(__dirname, '..', 'css', 'climate.css'), 'utf8')).toMatch(/#base \{ z-index: 3; \}/);
     });
     test('holds still under fx-off and reduced motion', () => {
         expect(css).toMatch(/body\.fx-off #baseSmoke \{ animation: none; \}/);

@@ -664,14 +664,14 @@ body.glance-strip #gameCanvas { --base-bleed: 0px; }
     --base-frames: 16; /* embers only: idle strip, no attack strip */
 }
 
-/* 25% smoke layer (2026-11-22): one big plume BEHIND the church (it is earlier in the DOM and has no z-index, so it paints in the church's
-   own layer, above the village and graveyard). Shown only while the church is at 25%. Sheet = Assets/Base/base_025_smoke_layer.png, 80 frames
+/* 25% smoke layer (2026-11-22): one big plume BEHIND the church (z-index 2: over the village layer and its weather haze veils so they never tint it, under #base at 3; the near rain/snow at 87 still falls in front). Shown only while the church is at 25%. Sheet = Assets/Base/base_025_smoke_layer.png, 80 frames
    in a grid of 8 across x 10 down, each 448x306 art px (896x612 on screen at 2x), 8 fps = 10 s loop (x steps 8 times a second, y steps
    once a second). The wrapper is the canvas-sized clip (the canvas itself is overflow: visible); the plume's left edge sits on the church
    art's left edge (it moves with the church when the left side is cropped) and its top edge is 340px above the art's top: bottom-anchored
    like the church, so a taller canvas needs no lift. Hidden in the portrait strip. */
 #baseSmokeClip {
     position: absolute;
+    z-index: 2; /* above #villageLayer (1) and its haze veils, so weather haze never tints it; below #base (3); rain/fog (87) still draw over it */
     inset: 0;
     overflow: hidden;
     pointer-events: none;
