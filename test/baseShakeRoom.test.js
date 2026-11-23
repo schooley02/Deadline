@@ -28,7 +28,12 @@ describe('church shake room', () => {
         expect(read('css/heroSpotlight.css')).toMatch(/\.hero-spotlight \{[^}]*left: calc\(var\(--base-w, 188px\) - 108px - var\(--base-bleed, 0px\)\);/);
         expect(read('css/heroSpotlight.css')).toMatch(/#baseScrim \{[^}]*width: var\(--base-w, 188px\);/);
     });
-    test('the barricade stands 10px left of the church right edge', () => {
-        expect(read('css/barricade.css')).toMatch(/\.barricade \{[^}]*left: calc\(var\(--base-w, 188px\) - 10px - var\(--base-bleed, 0px\)\);/);
+    // 2026-11-23: hovering a village building made the church jump one screen pixel for a few frames (Chrome lifted #base into its own layer only
+    // while the building's hover transition ran). Pinned as layers, like the graveyard zone (test/markerPanel.test.js).
+    test('the church and its 25% smoke are pinned compositor layers, so a village hover never re-rasters them', () => {
+        expect(css).toMatch(/#base,\s*#baseSmokeClip \{ will-change: transform; \}/);
+    });
+    test('the barricade stands 48px left of the church right edge', () => {
+        expect(read('css/barricade.css')).toMatch(/\.barricade \{[^}]*left: calc\(var\(--base-w, 188px\) - 48px - var\(--base-bleed, 0px\)\);/);
     });
 });
