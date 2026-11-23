@@ -17,21 +17,18 @@ const css = read('css/climate.css');
 const sw = read('sw.js');
 
 describe('storm ground assets', () => {
-    test('the storm lane + churchyard match the dry ones: lane 1280x72 / 640x36, yard 560x72 / 280x36 (lane art rework, 2026-11-22)', () => {
-        expect(pngSize('Assets/scene/storm-lane-2track.png')).toEqual({ w: 1280, h: 72 });
-        expect(pngSize('Assets/scene/storm-lane-2track-strip.png')).toEqual({ w: 640, h: 36 });
-        expect(pngSize('Assets/scene/storm-lane-yard.png')).toEqual({ w: 560, h: 72 });
-        expect(pngSize('Assets/scene/storm-lane-yard-strip.png')).toEqual({ w: 280, h: 36 });
-        expect(pngSize('Assets/scene/lane-2track.png')).toEqual({ w: 1280, h: 72 });
-        expect(pngSize('Assets/scene/lane-2track-strip.png')).toEqual({ w: 640, h: 36 });
-        expect(pngSize('Assets/scene/lane-yard.png')).toEqual({ w: 560, h: 72 });
-        expect(pngSize('Assets/scene/lane-yard-strip.png')).toEqual({ w: 280, h: 36 });
+    test('the storm lane + churchyard match the dry ones: lane 640x36, yard 280x36 art (chunky pixels: drawn 2x in landscape, 1:1 on the strip; 2026-11-22)', () => {
+        expect(pngSize('Assets/scene/storm-lane-2track.png')).toEqual({ w: 640, h: 36 });
+        expect(pngSize('Assets/scene/storm-lane-yard.png')).toEqual({ w: 280, h: 36 });
+        expect(pngSize('Assets/scene/lane-2track.png')).toEqual({ w: 640, h: 36 });
+        expect(pngSize('Assets/scene/lane-yard.png')).toEqual({ w: 280, h: 36 });
     });
 
-    test('all eight lane pictures are in the service worker APP_SHELL and the cache was bumped past v402', () => {
-        ['lane-2track', 'lane-2track-strip', 'lane-yard', 'lane-yard-strip', 'storm-lane-2track', 'storm-lane-2track-strip', 'storm-lane-yard', 'storm-lane-yard-strip']
-            .forEach((n) => expect(sw).toContain("'Assets/scene/" + n + ".png'"));
-        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(403);
+    test('all four lane pictures are in the service worker APP_SHELL (the old -strip copies are not) and the cache was bumped past v405', () => {
+        ['lane-2track', 'lane-yard', 'storm-lane-2track', 'storm-lane-yard'].forEach((n) => expect(sw).toContain("'Assets/scene/" + n + ".png'"));
+        expect(sw).not.toContain('lane-2track-strip.png');
+        expect(sw).not.toContain('lane-yard-strip.png');
+        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(406);
     });
 });
 
@@ -41,12 +38,12 @@ describe('storm ground css', () => {
     });
 
     test('the phone strip floor swaps only under climate-storm, at the strip tile\'s real size', () => {
-        expect(css).toMatch(/body\.glance-strip #gameCanvas\.climate-storm::before \{\s*background-image: url\("\.\.\/Assets\/scene\/storm-lane-yard-strip\.png"\), url\("\.\.\/Assets\/scene\/storm-lane-2track-strip\.png"\);\s*background-size: 280px 36px, 640px 36px;/);
+        expect(css).toMatch(/body\.glance-strip #gameCanvas\.climate-storm::before \{\s*background-image: url\("\.\.\/Assets\/scene\/storm-lane-yard\.png"\), url\("\.\.\/Assets\/scene\/storm-lane-2track\.png"\);\s*background-size: 280px 36px, 640px 36px;/);
     });
 
     test('no other band mentions the storm tiles', () => {
         const uses = css.split('url("../Assets/scene/storm-').length - 1;
-        expect(uses).toBe(4); // yard + lane, landscape and strip
+        expect(uses).toBe(4); // yard + lane, landscape and strip (the same two files in both rules)
     });
 });
 

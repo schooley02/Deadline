@@ -318,9 +318,9 @@
 
 /* ---------- Storm ground: the NORMAL ground with a few rain puddles on it (2026-11-07). Only the pictures change; the repeat, position
    (anchored to the church, see css/gameCanvas.css), height (72px / the strip's 36px) and pixelated rendering stay from gameCanvas.css /
-   glanceStrip.css. 2026-11-22 (lane art rework): storm-lane-2track.png = 1280x72 (the two-track gravel lane with rain puddles in the
-   tracks, none in the 114px gap that lands under the barricade) + storm-lane-yard.png = 560x72 (the churchyard); the strip versions are
-   storm-lane-2track-strip.png 640x36 and storm-lane-yard-strip.png 280x36. Source + scripts: Assets/scene/_source/lane-2track/. ---------- */
+   glanceStrip.css. 2026-11-22 (lane art rework): storm-lane-2track.png = 640x36 art (the two-track gravel lane with rain puddles in the
+   tracks, none in the 110px gap that lands under the barricade) + storm-lane-yard.png = 280x36 art (the churchyard), drawn 2x on the
+   landscape canvas and 1:1 on the portrait strip (one set of files for both). Source + scripts: Assets/scene/_source/lane-2track/. ---------- */
 
 #gameCanvas.climate-storm .scene-ground {
     background-image: url("../Assets/scene/storm-lane-yard.png"), url("../Assets/scene/storm-lane-2track.png");
@@ -328,7 +328,7 @@
 }
 
 body.glance-strip #gameCanvas.climate-storm::before {
-    background-image: url("../Assets/scene/storm-lane-yard-strip.png"), url("../Assets/scene/storm-lane-2track-strip.png");
+    background-image: url("../Assets/scene/storm-lane-yard.png"), url("../Assets/scene/storm-lane-2track.png");
     background-size: 280px 36px, 640px 36px;
 }
 

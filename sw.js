@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v405';
+const CACHE_NAME = 'deadline-shell-v406';
 
 const APP_SHELL = [
     './',
@@ -258,7 +258,7 @@ const APP_SHELL = [
     'Assets/Heroes/creativity-head.png',
     'Assets/Heroes/anim/career.png',
     'Assets/Heroes/career-head.png',
-    // Lane art (2026-11-22): two-track gravel lane + churchyard, dry + storm, landscape (css/gameCanvas.css, css/climate.css) + portrait strip (css/glanceStrip.css). NOT the old floor-tile / strip-floor files (kept on disk, unused) or scene/_source/.
+    // Lane art (2026-11-22): two-track gravel lane + churchyard, dry + storm; ONE set of 640x36 / 280x36 files, drawn 2x in landscape (css/gameCanvas.css, css/climate.css) and 1:1 on the portrait strip (css/glanceStrip.css). The *-strip.png lane files are unused. NOT the old floor-tile / strip-floor files (kept on disk, unused) or scene/_source/.
     'Assets/Village/punctuality_t1.png',
     'Assets/Village/punctuality_t2.png',
     'Assets/Village/punctuality_t3.png',
@@ -305,13 +305,9 @@ const APP_SHELL = [
     'Assets/Village/memorial_t4.png',
     'Assets/Village/memorial_t5.png',
     'Assets/scene/lane-2track.png',
-    'Assets/scene/lane-2track-strip.png',
     'Assets/scene/lane-yard.png',
-    'Assets/scene/lane-yard-strip.png',
     'Assets/scene/storm-lane-2track.png',
-    'Assets/scene/storm-lane-2track-strip.png',
     'Assets/scene/storm-lane-yard.png',
-    'Assets/scene/storm-lane-yard-strip.png',
     'Assets/scene/clouds-tile.png',
     'Assets/scene/fog-tile.png',
     'Assets/scene/moon.png',

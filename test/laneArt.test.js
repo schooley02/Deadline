@@ -14,7 +14,7 @@ const CONFIG = require('../js/config.js');
 
 describe('landscape ground', () => {
     const block = /\n\.scene-ground \{([^}]*)\}/.exec(gc)[1];
-    test('yard over lane, both pictures at their real size', () => {
+    test('yard over lane, both pictures at 2x their file size (640x36 / 280x36 art, chunky pixels like the church)', () => {
         expect(block).toMatch(/background-image: url\("\.\.\/Assets\/scene\/lane-yard\.png"\), url\("\.\.\/Assets\/scene\/lane-2track\.png"\);/);
         expect(block).toMatch(/background-size: 560px 72px, 1280px 72px;/);
         expect(block).toMatch(/background-repeat: no-repeat, repeat-x;/);
@@ -27,8 +27,8 @@ describe('landscape ground', () => {
 });
 
 describe('portrait strip ground', () => {
-    test('half-size yard + lane anchored to the 92px church window', () => {
-        expect(strip).toMatch(/background-image: url\("\.\.\/Assets\/scene\/lane-yard-strip\.png"\), url\("\.\.\/Assets\/scene\/lane-2track-strip\.png"\);/);
+    test('the same yard + lane files at 1:1, anchored to the 92px church window', () => {
+        expect(strip).toMatch(/background-image: url\("\.\.\/Assets\/scene\/lane-yard\.png"\), url\("\.\.\/Assets\/scene\/lane-2track\.png"\);/);
         expect(strip).toMatch(/background-position: calc\(var\(--base-w, 92px\) - 192px\) 0, calc\(var\(--base-w, 92px\) - 118px\) 0;/);
         expect(strip).toMatch(/background-size: 280px 36px, 640px 36px;/);
     });

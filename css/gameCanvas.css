@@ -509,7 +509,9 @@
        (lane-yard.png, 560x72, ragged edge along the barricade diagonal) laid over it. Both are anchored to the CHURCH (--base-w), not to the
        screen: the yard's right edge sits 176px past the church box and the lane tile starts 235px before it, so the storm puddles
        (a 114px puddle-free gap at tile x 206-319) always land clear of the barricade, on every screen width. The ground now runs the
-       canvas width (was 130% / -15%) so those offsets are canvas x. The old floor-tile.png / strip-floor.png stay in Assets/scene, unused. */
+       canvas width (was 130% / -15%) so those offsets are canvas x. The old floor-tile.png / strip-floor.png stay in Assets/scene, unused.
+       2026-11-22 (later, Jeremy: chunkier pixels like the church): the pictures are now 640x36 / 280x36 ART drawn at 2x here (the sizes below are
+       twice the files), the same pixel size as the church; the portrait strip shows the SAME files at 1:1 (css/glanceStrip.css). */
     background-image: url("../Assets/scene/lane-yard.png"), url("../Assets/scene/lane-2track.png");
     background-repeat: no-repeat, repeat-x;
     background-position: calc(var(--base-w, 188px) - 384px) 100%, calc(var(--base-w, 188px) - 235px) 100%;

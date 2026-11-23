@@ -153,9 +153,9 @@ body.glance-strip #gameCanvas::before {
     right: 0;
     top: calc(var(--strip-sky) + var(--strip-marker) - var(--strip-inset));
     bottom: 0;
-    /* 2026-11-22 (lane art rework): lane-2track-strip.png (640x36) + the churchyard lane-yard-strip.png (280x36), half the landscape art
-       and anchored to the church window (--base-w 92px): yard 88px past it, lane tile 118px before it (puddle-free gap clear of the barricade). */
-    background-image: url("../Assets/scene/lane-yard-strip.png"), url("../Assets/scene/lane-2track-strip.png");
+    /* 2026-11-22 (lane art rework): lane-2track.png (640x36) + the churchyard lane-yard.png (280x36) at 1:1, the same files the landscape
+       canvas draws at 2x, anchored to the church window (--base-w 92px): yard 88px past it, lane tile 118px before it (puddle-free gap clear of the barricade). */
+    background-image: url("../Assets/scene/lane-yard.png"), url("../Assets/scene/lane-2track.png");
     background-repeat: no-repeat, repeat-x;
     background-position: calc(var(--base-w, 92px) - 192px) 0, calc(var(--base-w, 92px) - 118px) 0;
     background-size: 280px 36px, 640px 36px;

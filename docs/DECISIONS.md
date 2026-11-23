@@ -4,6 +4,16 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-22 (late night) (Barricade redo: new art for all four tiers, not wired) -- Claude app session, Fable 5.2; Jeremy ("we can start the barricade redo", "feel free to deviate from the original artwork", "it needs to look 3d", "this one doesn't really look like it belongs in this game when sitting next to the church", "that looks good", "I will touch up the partial in pixel lab")
+
+- **Concept:** a sandbag wall in the church's own sandbags, behind a timber post-and-plank front, tires at both ends; tiers = fallen wreckage / half-height wall / full wall with wire / full wall + metal sheets and stakes. Replaces the 2026-11-12 material ladder (wreckage, palisade, posts + sandbags, metal + torches).
+- **Pixel size:** church-size pixels (art shown 2x), not the old fine 1x.
+- **Position:** today's distance from the church (Jeremy: the lantern pole must stay clearly visible behind it). An earlier ask to move it closer for a longer lane was withdrawn for now.
+- **Zombie stop line:** 40 -> 56px, provisional (Jeremy: "might need to change for some of the other sprites. We'll need to readjust after we redesign them"). Why: at 40px their feet were at the wall's foot and they looked like they floated on it. Costs 16px of lane.
+- **Layering:** zombies stay drawn over the wall (Jeremy: the depth-sorted alternative hides the wall as well).
+- **Rejected along the way:** a flat sheared side view (looked flat); a warm-brown plump-bag version (did not match the church); a from-scratch PixelLab partial tier (strange boards: the partial is now cut from the solid wall); tire stacks in front of the wall (must be at the ends, in line); a lantern on the reinforced tier.
+- **Not done:** wiring, tap outlines, portrait strip version, tests. Details: ART_STYLE "Barricade v2".
+
 ## 2026-11-22 (night) (Lane art wired into the game) -- Claude app session, Sonnet 5.5; Jeremy ("lets wire the new lane art into the game", then "okay" to the one-task plan)
 
 - **Wired as planned:** lane + churchyard, dry + storm, landscape + portrait strip; sw v403. New filenames (`lane-2track*.png`, `lane-yard*.png`, `storm-lane-*`) instead of overwriting `floor-tile.png` / `strip-floor.png`, so the old tiles stay on disk until Jeremy has seen the new ground on his phone and laptop (not cached, not referenced).
@@ -15,6 +25,7 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 - **Lane grass redrawn (same night, Fable 5.2; Jeremy: "it looks very speckled", then "i like A"):** the lane's grass was per-pixel noise while the grass by the statue, the building bushes and the village field are flat tones with distinct tufts. Replaced in code (`scripts/regrass.py`) with flat clumps + separate tufts + a blade fringe, in the strip's own greens; gravel and puddles untouched; sw v404. Rejected: two PixelLab redraws (B flat with too few tufts, C flattest and a lighter green). Open: whether to calm the speckled gravel too; pushing the final strip to the PixelLab workspace.
 - **Gravel + churchyard dirt calmed (same night, Fable 5.2; Jeremy: "1. yes 2. yes" to calming the gravel and pushing the finals to PixelLab):** gravel = flat patches + separate pebbles (`regrass.py` gravel level 1 of 3); the churchyard dirt got the same treatment (`reyard.py`) without being asked by name, because speckled dirt beside calm gravel stood out (easy to undo from the source files). Puddles kept; sw v405.
+- **Lane + churchyard in chunky pixels (same night; Jeremy asked "should the lane art also have a chunkier use of pixels?", then "1. yes"):** the church is 2x art, the lane was 1x; the lane and churchyard are now 640x36 / 280x36 art drawn 2x in landscape and 1:1 on the strip, one file set for both (sw v406). Why: the ground the church stands on should have the church's pixel size; it also halves the lane pictures to keep in sync.
 
 ## 2026-11-22 (evening) (Lane art rework: two-track gravel lane + separate churchyard; portrait church back to full size) -- Claude app session, Fable 5.2 then Sonnet 5.5; Jeremy ("when I say ground art, i'm actually referring to the lane art", "I like the two track gravel lane the best", "I like 3 the best", "I don't want the half size because the enemies look giant compared to the church")
 
