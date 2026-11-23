@@ -4,6 +4,18 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-23 (Graveyard v3: flat fenced plot, tree removed, headstones v2) -- Claude app session, Fable 5.2; Jeremy ("next is reworking the graveyard hill to match our updated art style")
+
+- **Flat ground instead of a hill.** A hill face only reads from a raised camera; the church, barricade and lanes are now seen low and from the side, and every hill mock (walled bank, fence climbing the slope, rounded mound with a gate) looked wrong beside them to Jeremy. The plot is flat grass the full height of the lane band (72px), its left edge on the lane diagonal (88 right per 72 up, the barricade's angle).
+- **Zone 140 -> 120px.** Seven headstones at 48px set the width; narrower (104 / 88) meant a wall-to-wall cluster or smaller stones, and Jeremy wants 48px for tapping. Village room on a 667px phone 339 -> 359px, on 817px 489 -> 509px: a small gain; the village re-arrangement is the real lever.
+- **Tree removed from the game, lifetime-nights display dropped (not moved).** Jeremy: it looked too small for what it measures and is not important enough to keep. Rejected: a bare tree (mocked), a line in the headstone window, an eighth headstone.
+- **Wrought-iron fence, continuous, no gate.** Chosen over a fieldstone retaining wall. A gate (arched, then plain) was tried and dropped: too hard to see at game size. Posts solid black; ordinary bars keep small grey tips. The fence is drawn over the front row and takes no taps.
+- **Headstones overlap** on an even staggered grid (46px apart, rows 18px apart), covering the Memorial's base; the Memorial stands behind them, centre 75 / feet 54. Every stone opens the same window, so overlap does not hurt tapping.
+- **Full graveyard on every screen for now.** A small-screen version that opens a window was explored: a compact picture was rejected ("a little ridiculous and unrealistic"), Memorial-only was mocked (+24px) and shelved.
+- **Graveyard art = the code version**, not the PixelLab redraw (its heavier fence hid the front stones and lost the distance fade).
+- **Headstones v2:** 24x24 art at exactly 2x (was 32px at 1.5x). After a first draft Jeremy found the stones too alike, each stage is a different form and material; the wooden cross stays as plain as the original. He picked the cross + flat marker from PixelLab redraw 1 and stages 2-4 from redraw 2. The Memorial is left as it is until seen in the game.
+- **Not built:** everything above is art + design; the wiring is one later task (HANDOFF 2026-11-23, `Assets/scene/_source/graveyard-v3/NOTES.md`).
+
 ## 2026-11-22 (night) (Barricade v2 wired into the game) -- Claude app session, Sonnet 5.5; Jeremy ("lets wire in the new barricade artwork", then "lets go with what you recommend and make adjustments as necessary")
 
 - **Wired as planned:** four 119x98 pictures at 2x in a 238x150 box at `--base-w - 48px` (bottom 46px cropped by the box itself), `FRONT_LINE_GAP_PX` 40 -> 56 (strip 20 -> 28), tap outlines traced from each tier's alpha, portrait strip at 1:1 (box 119x75, `--base-w - 24px`), sw v407.
