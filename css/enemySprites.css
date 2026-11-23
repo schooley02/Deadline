@@ -348,3 +348,32 @@ body:not(.glance-strip) .enemy.zombie-subtask {
     background-size: 96px 96px !important;
 }
 
+/* Body-only taps + ground shadow (2026-11-22, lane art rework; landscape / desktop only; the portrait strip uses ::after for its badges).
+   The zombie's box is 128px wide but the drawing only fills part of it, and with the lanes only 20px apart the empty margins of a front
+   zombie used to swallow taps meant for the one behind it. The box itself no longer takes pointer events; its ::after does, and that is
+   only the drawn body: left/right inset by the sprite's measured transparent margins (CONFIG.ZOMBIE_VISIBLE_MARGINS, same numbers, as
+   fractions of the box width, --tap-l / --tap-r). The click still lands on the .enemy (a pseudo-element's events target its element),
+   so the click handler, :hover and the sub-task rules are untouched. The same ::after paints the soft ground shadow under the feet
+   (z-index 0: under the sprite sheet at 1; the sprite's planted foot sits on the box's bottom edge, so the shadow reaches 5px below it). */
+.enemy { --tap-l: 0.2; --tap-r: 0.2; } /* fallback (CONFIG.ZOMBIE_VISIBLE_MARGIN_FALLBACK); low specificity so the category lines below win */
+body:not(.glance-strip) .enemy { pointer-events: none; }
+body:not(.glance-strip) .enemy::after {
+    content: "";
+    position: absolute;
+    left: calc(var(--tap-l) * 100%);
+    right: calc(var(--tap-r) * 100%);
+    top: 0;
+    bottom: -5px;
+    z-index: 0;
+    pointer-events: auto;
+    background: radial-gradient(ellipse 48% 5px at 50% calc(100% - 5px), rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.32) 55%, rgba(0, 0, 0, 0) 100%) no-repeat;
+}
+body:not(.glance-strip) .enemy.enemy-dying::after { pointer-events: none; }
+.zombie-career        { --tap-l: 0.188; --tap-r: 0.141; }
+.zombie-creativity    { --tap-l: 0.078; --tap-r: 0.070; }
+.zombie-financial     { --tap-l: 0.109; --tap-r: 0.141; }
+.zombie-health        { --tap-l: 0.172; --tap-r: 0.234; }
+.zombie-lifestyle     { --tap-l: 0.031; --tap-r: 0.023; }
+.zombie-relationships { --tap-l: 0.047; --tap-r: 0.039; }
+.zombie-spirituality  { --tap-l: 0.141; --tap-r: 0.195; }
+.zombie-other         { --tap-l: 0.125; --tap-r: 0.195; }

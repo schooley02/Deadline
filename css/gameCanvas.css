@@ -505,10 +505,18 @@
        ground (fill/fence) is hidden below; the fog ::before still drifts. */
     height: 72px;
     min-height: 44px;
-    background: url("../Assets/scene/floor-tile.png") repeat-x 0 100% / 1280px 72px;
+    /* 2026-11-22 (lane art rework, Jeremy): the two-track gravel lane (lane-2track.png, 1280x72, tiled sideways) with the dirt CHURCHYARD
+       (lane-yard.png, 560x72, ragged edge along the barricade diagonal) laid over it. Both are anchored to the CHURCH (--base-w), not to the
+       screen: the yard's right edge sits 176px past the church box and the lane tile starts 235px before it, so the storm puddles
+       (a 114px puddle-free gap at tile x 206-319) always land clear of the barricade, on every screen width. The ground now runs the
+       canvas width (was 130% / -15%) so those offsets are canvas x. The old floor-tile.png / strip-floor.png stay in Assets/scene, unused. */
+    background-image: url("../Assets/scene/lane-yard.png"), url("../Assets/scene/lane-2track.png");
+    background-repeat: no-repeat, repeat-x;
+    background-position: calc(var(--base-w, 188px) - 384px) 100%, calc(var(--base-w, 188px) - 235px) 100%;
+    background-size: 560px 72px, 1280px 72px;
     image-rendering: pixelated;
-    width: 130%;
-    left: -15%;
+    width: 100%;
+    left: 0;
     /* 2026-10-27 (Jeremy): locked in place; no longer moves with the time slider. */
 }
 

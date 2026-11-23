@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-22 (night) (Lane art wired into the game) -- Claude app session, Sonnet 5.5; Jeremy ("lets wire the new lane art into the game", then "okay" to the one-task plan)
+
+- **Wired as planned:** lane + churchyard, dry + storm, landscape + portrait strip; sw v403. New filenames (`lane-2track*.png`, `lane-yard*.png`, `storm-lane-*`) instead of overwriting `floor-tile.png` / `strip-floor.png`, so the old tiles stay on disk until Jeremy has seen the new ground on his phone and laptop (not cached, not referenced).
+- **Anchored to the church, not the screen:** yard and lane positions are `calc(var(--base-w) - N)`; the ground element became `left: 0; width: 100%` (was 130% / -15%) so the offsets are canvas x. Why: the storm lane has one 114px puddle-free stretch; anchoring puts exactly that under the barricade at every width (before, the tile shifted with the screen and puddles could land under the wall).
+- **Slant 30 -> 88px** (`CONFIG.GROUND_LANE_SLANT_PX`, landscape only, drawn only). The barricade art still has the old angle; fixed by the barricade redo.
+- **Body-only taps + ground shadow: landscape only.** The strip's `::after` is already used for badges, so the strip keeps whole-box taps and has no shadow for now. The tap area is the drawn body horizontally (measured `ZOMBIE_VISIBLE_MARGINS`) and the full box height; the earlier idea of >= 44 / 52 / 67px tap squares per lane was not re-derived here, so check by hand that a zombie behind another is still tappable.
+- **Assumption to confirm:** slant and taps kept landscape-only, as before; portrait strip lanes unchanged.
+- **Tests:** `frontLine` (slant 88), `stormGround` (new names, 4 storm pictures, sw list, v403), new `laneArt.test.js` (anchoring, strip layers, body-only taps, tap insets == measured margins). Cloud run of those three: green. Full `npm test` to be run on Jeremy's machine.
+
 ## 2026-11-22 (evening) (Lane art rework: two-track gravel lane + separate churchyard; portrait church back to full size) -- Claude app session, Fable 5.2 then Sonnet 5.5; Jeremy ("when I say ground art, i'm actually referring to the lane art", "I like the two track gravel lane the best", "I like 3 the best", "I don't want the half size because the enemies look giant compared to the church")
 
 - **Scope:** "ground art" = the enemy LANE art; the ground under the village is revisited later. Goal: free room for village buildings on small screens, keep enemies easy to see and tap at the base and far right.

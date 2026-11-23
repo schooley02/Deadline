@@ -477,7 +477,7 @@ const CONFIG = {
     // 28 -> 40 (2026-11-12, Jeremy: zombies stood a little too close to the new PixelLab wreckage, which reaches further right than the placeholder).
     FRONT_LINE_GAP_PX: 40,
     FRONT_LINE_GAP_STRIP_PX: 20, // portrait glance strip (half-size barricade)
-    GROUND_LANE_SLANT_PX: 30, // back lane stands this far right of the front lane (matches the barricade's angle; drawn only, landscape only)
+    GROUND_LANE_SLANT_PX: 88, // back lane stands this far right of the front lane (2026-11-22, was 30: the churchyard's edge runs on this diagonal, 88px over the 72px band; the barricade art still has the old angle until its redo; drawn only, landscape only)
     ENEMY_WIDTH: 128,
     HABIT_ENEMY_WIDTH: 128,
     SUBTASK_ENEMY_WIDTH: 96, // was 64 (2026-10-13: too small on phone landscape, Jeremy)

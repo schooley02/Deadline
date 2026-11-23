@@ -36,7 +36,7 @@ describe('front line gap', () => {
 
 describe('lane slant', () => {
     const Layout = require('../js/layout.js');
-    test('config: back lane stands 30px right of the front lane', () => expect(CONFIG.GROUND_LANE_SLANT_PX).toBe(30));
+    test('config: back lane stands 88px right of the front lane (2026-11-22, was 30: the churchyard edge runs on this diagonal)', () => expect(CONFIG.GROUND_LANE_SLANT_PX).toBe(88));
     test('0 at the front lane, full at the back lane, proportional between', () => {
         const o = { laneSlant: 30, laneCount: 3 };
         expect(Layout.laneSlantPx(2, o)).toBe(0);

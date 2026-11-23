@@ -316,21 +316,20 @@
     100% { opacity: 0; }
 }
 
-/* ---------- Storm ground: the NORMAL ground with a few rain puddles on it (2026-11-07). Only the picture and its size change; the
-   repeat, position, height (72px / the strip's 36px) and pixelated rendering stay from gameCanvas.css / glanceStrip.css. The tile is
-   floor-tile.png repeated 4x (508 px wide) with three puddles cut out of the PixelLab art and pasted far apart, so the puddles repeat
-   only every 508 px. Assets/scene/storm-floor-tile.png = 1280x72; storm-strip-floor.png = 640x36. 2026-11-14 TEST: the path strip with the three old
-   puddles placed 6 times (some mirrored) (edges still carry old-floor colours; final art pending, see docs/ART_STYLE.md).
-   Raw PixelLab output: Assets/scene/_source/storm-floor-pixellab-128.png. ---------- */
+/* ---------- Storm ground: the NORMAL ground with a few rain puddles on it (2026-11-07). Only the pictures change; the repeat, position
+   (anchored to the church, see css/gameCanvas.css), height (72px / the strip's 36px) and pixelated rendering stay from gameCanvas.css /
+   glanceStrip.css. 2026-11-22 (lane art rework): storm-lane-2track.png = 1280x72 (the two-track gravel lane with rain puddles in the
+   tracks, none in the 114px gap that lands under the barricade) + storm-lane-yard.png = 560x72 (the churchyard); the strip versions are
+   storm-lane-2track-strip.png 640x36 and storm-lane-yard-strip.png 280x36. Source + scripts: Assets/scene/_source/lane-2track/. ---------- */
 
 #gameCanvas.climate-storm .scene-ground {
-    background-image: url("../Assets/scene/storm-floor-tile.png");
-    background-size: 1280px 72px;
+    background-image: url("../Assets/scene/storm-lane-yard.png"), url("../Assets/scene/storm-lane-2track.png");
+    background-size: 560px 72px, 1280px 72px;
 }
 
 body.glance-strip #gameCanvas.climate-storm::before {
-    background-image: url("../Assets/scene/storm-strip-floor.png");
-    background-size: 640px 36px;
+    background-image: url("../Assets/scene/storm-lane-yard-strip.png"), url("../Assets/scene/storm-lane-2track-strip.png");
+    background-size: 280px 36px, 640px 36px;
 }
 
 /* ---------- Clear: fireflies. 36 of them (2026-11-07, Jeremy: too hard to see): 24 float in the air over the zombie lanes and 12 sit LOW over
