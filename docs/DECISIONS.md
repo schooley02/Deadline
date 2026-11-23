@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-22 (night) (Barricade v2 wired into the game) -- Claude app session, Sonnet 5.5; Jeremy ("lets wire in the new barricade artwork", then "lets go with what you recommend and make adjustments as necessary")
+
+- **Wired as planned:** four 119x98 pictures at 2x in a 238x150 box at `--base-w - 48px` (bottom 46px cropped by the box itself), `FRONT_LINE_GAP_PX` 40 -> 56 (strip 20 -> 28), tap outlines traced from each tier's alpha, portrait strip at 1:1 (box 119x75, `--base-w - 24px`), sw v407.
+- **Why crop in the box, not below the canvas:** the canvas is `overflow: visible`, so a 196px box with `bottom: -46px` would hang over the page under the game. A 150px box with the picture pinned to its top gives the same look with no overflow.
+- **Why the convex hull for taps:** the wall is one solid diagonal mass, so a hull covers it without the tap holes a hand polygon left; tiers differ only in height (wreckage lowest).
+- **Not changed:** zombie layering (zombies over the wall), the barricade's distance to the church, the Barricade window / momentum rules.
+- **Open:** strip placement is by eye (not seen on a phone); 56px stop line and 238px width at the narrowest `--base-w` (188) need a look on a laptop; enemies redo will re-tune the gap. Full `npm test` not run from here (only `frontLine.test.js`, 12/12 green in a scratch copy).
+
 ## 2026-11-22 (late night) (Barricade redo: new art for all four tiers, not wired) -- Claude app session, Fable 5.2; Jeremy ("we can start the barricade redo", "feel free to deviate from the original artwork", "it needs to look 3d", "this one doesn't really look like it belongs in this game when sitting next to the church", "that looks good", "I will touch up the partial in pixel lab")
 
 - **Concept:** a sandbag wall in the church's own sandbags, behind a timber post-and-plank front, tires at both ends; tiers = fallen wreckage / half-height wall / full wall with wire / full wall + metal sheets and stakes. Replaces the 2026-11-12 material ladder (wreckage, palisade, posts + sandbags, metal + torches).

@@ -44,20 +44,22 @@
 .barricade-night-status { font-weight: 600; }
 .barricade-empty, .barricade-note { margin: 8px 0 0; font-size: 12px; color: var(--color-neutral); }
 
-/* ---------- the barricade on the canvas (Momentum Build C, 2026-11-11; due line moved 2026-11-12) ----------
-   An 80x152 box (2026-11-12: grown 80x104 -> 80x136 -> 80x152 so tiers 3-4 can stand taller and tier 4's torches fit; every picture is 80x152, drawn 1:1, the shorter tiers padded with empty rows on top), bottom on the canvas bottom (2026-11-12, so the wall reaches in front of the front lane): a wall ACROSS the lane IN FRONT OF THE STAIRS. The zombie front line (the due line) is the
-   church width + CONFIG.FRONT_LINE_GAP_PX (28px) = canvas x 188 (old 160px church; now --base-w + 28), so the wall spans x 150-230 (now --base-w - 10 .. + 70): it stands just right of the stairs and runs up and to the right at the
-   same angle as the lane slant (CONFIG.GROUND_LANE_SLANT_PX), so the zombies line up along it. z 15: above the church (1), BELOW the hero scrim (20),
-   the hero (25) and every zombie (30+). Only the wall's silhouette takes taps (.barricade-hit). Placeholder pictures until the PixelLab
-   art lands (Assets/Barricade/barricade_<state>.png). */
+/* ---------- the barricade on the canvas (Momentum Build C, 2026-11-11; REDRAWN 2026-11-22 for the 88px lane diagonal, v2 art) ----------
+   Four 119x98 pictures (Assets/Barricade/barricade_<state>.png, one shared canvas, source in _source/v2/), drawn at 2x = 238px wide. The box is
+   238x150: the pictures' bottom 23 art rows (46px) are CROPPED by the box (background-position top), so the near tire stack runs off the
+   canvas bottom on purpose without hanging below the (overflow: visible) canvas. Its left edge sits 48px left of the church's right edge
+   (--base-w - 48px), so the wall stands in FRONT of the stairs and runs up and to the right along the lane diagonal. The zombie front line
+   is the church width + CONFIG.FRONT_LINE_GAP_PX (56px, provisional: re-tune after the enemy redo) = --base-w + 56. z 15: above the church (1),
+   BELOW the hero scrim (20), the hero (25) and every zombie (30+), so zombies stay drawn OVER the wall. Only the wall's silhouette takes taps
+   (.barricade-hit; one traced outline per tier, from the picture's alpha). */
 .barricade {
     position: absolute;
-    left: calc(var(--base-w, 188px) - 10px - var(--base-bleed, 0px)); /* 10px left of the church's right edge (was 150px for the old 160px church) */
+    left: calc(var(--base-w, 188px) - 48px - var(--base-bleed, 0px)); /* 48px left of the church's right edge */
     bottom: 0;
-    width: 80px;
-    height: 152px;
+    width: 238px;
+    height: 150px;
     z-index: 15;
-    background: transparent no-repeat left bottom / 80px 152px;
+    background: transparent no-repeat left top / 238px 196px;
     image-rendering: pixelated;
     pointer-events: none;
 }
@@ -67,7 +69,7 @@
     pointer-events: auto;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    clip-path: polygon(22px 108px, 59px 80px, 77px 103px, 65px 137px, 35px 152px, 20px 152px, 17px 151px, 12px 146px); /* tier-1 wreckage silhouette (2026-11-12) */
+    clip-path: polygon(36px 148px, 82px 118px, 114px 98px, 152px 84px, 158px 82px, 182px 82px, 190px 86px, 194px 90px, 200px 98px, 200px 108px, 194px 114px, 126px 138px, 90px 150px, 36px 150px); /* tier-1 wreckage silhouette (2026-11-22) */
 }
 .barricade:focus-visible { outline: 2px solid #fff6d8; outline-offset: 2px; }
 /* Hover (2026-11-12, Jeremy: "like the other canvas elements"): the zombies' / headstones' recipe -- grows 5% from its base and gets the white
@@ -81,36 +83,35 @@
 }
 @media (prefers-reduced-motion: reduce) { .barricade { transition: none; } }
 .barricade[hidden] { display: none; }
-/* Portrait strip (92px church window): half size, just right of the lantern post (window x ~80). To be redone with the new lane art. */
+/* Portrait strip (92px church window): the same pictures at 1:1 (119x98 art), like the church on the strip (Jeremy, 2026-11-22: "we can try
+   the new art at half the size"). 48px left of the church edge at 2x = 24px here; the bottom 23 rows are cropped the same way (box 119x75).
+   Placed by eye against the church window and CONFIG.FRONT_LINE_GAP_STRIP_PX (28, half of the landscape 56). */
 body.glance-strip .barricade {
-    left: 80px;
+    left: calc(var(--base-w, 92px) - 24px);
     bottom: 0;
-    width: 40px;
-    height: 76px;
-    background-size: 40px 76px;
+    width: 119px;
+    height: 75px;
+    background-size: 119px 98px;
 }
 body.glance-strip .barricade-hit {
-    clip-path: polygon(11px 54px, 29px 40px, 38px 51px, 32px 68px, 17px 76px, 10px 76px, 8px 75px, 6px 73px);
+    clip-path: polygon(18px 74px, 41px 59px, 57px 49px, 76px 42px, 79px 41px, 91px 41px, 95px 43px, 97px 45px, 100px 49px, 100px 54px, 97px 57px, 63px 69px, 45px 75px, 18px 75px);
 }
-/* Each PixelLab tier has its own silhouette, so the tap area follows the state (BarricadeView sets data-state). The rules above are tier 1 (none);
-   every PixelLab tier has its own rule below. Tier 2 'partial' (2026-11-12): */
+/* Each tier has its own silhouette, so the tap area follows the state (BarricadeView sets data-state). The rules above are tier 1 (none). */
 .barricade[data-state="partial"] .barricade-hit {
-    clip-path: polygon(27px 81px, 68px 56px, 78px 102px, 40px 150px, 20px 152px, 10px 152px, 6px 150px, 3px 147px);
+    clip-path: polygon(26px 132px, 30px 126px, 70px 94px, 144px 62px, 172px 52px, 178px 52px, 190px 56px, 194px 58px, 200px 64px, 204px 76px, 204px 78px, 200px 88px, 192px 96px, 180px 104px, 124px 128px, 100px 138px, 70px 150px, 26px 150px);
 }
 body.glance-strip .barricade[data-state="partial"] .barricade-hit {
-    clip-path: polygon(13px 40px, 34px 28px, 39px 51px, 20px 75px, 10px 76px, 5px 76px, 3px 75px, 1px 73px);
+    clip-path: polygon(13px 66px, 15px 63px, 35px 47px, 72px 31px, 86px 26px, 89px 26px, 95px 28px, 97px 29px, 100px 32px, 102px 38px, 102px 39px, 100px 44px, 96px 48px, 90px 52px, 62px 64px, 50px 69px, 35px 75px, 13px 75px);
 }
-/* Tier 3 'solid' (2026-11-12): */
 .barricade[data-state="solid"] .barricade-hit {
-    clip-path: polygon(20px 72px, 63px 35px, 74px 93px, 23px 151px, 21px 152px, 12px 152px, 10px 151px, 6px 147px);
+    clip-path: polygon(26px 132px, 52px 80px, 56px 76px, 70px 66px, 144px 34px, 172px 24px, 178px 24px, 180px 26px, 200px 64px, 204px 76px, 204px 78px, 200px 88px, 192px 96px, 180px 104px, 124px 128px, 100px 138px, 70px 150px, 26px 150px);
 }
 body.glance-strip .barricade[data-state="solid"] .barricade-hit {
-    clip-path: polygon(10px 36px, 31px 17px, 37px 46px, 11px 75px, 10px 76px, 6px 76px, 5px 75px, 3px 73px);
+    clip-path: polygon(13px 66px, 26px 40px, 28px 38px, 35px 33px, 72px 17px, 86px 12px, 89px 12px, 90px 13px, 100px 32px, 102px 38px, 102px 39px, 100px 44px, 96px 48px, 90px 52px, 62px 64px, 50px 69px, 35px 75px, 13px 75px);
 }
-/* Tier 4 'reinforced' (2026-11-12): */
 .barricade[data-state="reinforced"] .barricade-hit {
-    clip-path: polygon(4px 57px, 34px 29px, 74px 11px, 80px 92px, 18px 152px, 7px 152px, 5px 151px, 1px 147px);
+    clip-path: polygon(26px 132px, 52px 80px, 56px 76px, 70px 66px, 144px 34px, 172px 24px, 178px 24px, 180px 26px, 200px 64px, 204px 76px, 204px 78px, 200px 94px, 178px 116px, 126px 138px, 102px 148px, 78px 150px, 26px 150px);
 }
 body.glance-strip .barricade[data-state="reinforced"] .barricade-hit {
-    clip-path: polygon(2px 28px, 17px 14px, 37px 5px, 40px 46px, 9px 76px, 3px 76px, 2px 75px, 0px 73px);
+    clip-path: polygon(13px 66px, 26px 40px, 28px 38px, 35px 33px, 72px 17px, 86px 12px, 89px 12px, 90px 13px, 100px 32px, 102px 38px, 102px 39px, 100px 47px, 89px 58px, 63px 69px, 51px 74px, 39px 75px, 13px 75px);
 }
