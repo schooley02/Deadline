@@ -4,6 +4,18 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-22 (evening) (Lane art rework: two-track gravel lane + separate churchyard; portrait church back to full size) -- Claude app session, Fable 5.2 then Sonnet 5.5; Jeremy ("when I say ground art, i'm actually referring to the lane art", "I like the two track gravel lane the best", "I like 3 the best", "I don't want the half size because the enemies look giant compared to the church")
+
+- **Scope:** "ground art" = the enemy LANE art; the ground under the village is revisited later. Goal: free room for village buildings on small screens, keep enemies easy to see and tap at the base and far right.
+- **Lane surface:** two-track gravel lane (worn tyre tracks, grass strip between). A cracked county road with a dirt end at the church was rejected (a road that just ends in dirt, a graveyard on the road, odd). The lane does NOT run through the church: a separate dirt churchyard piece sits behind the barricade, and its colours were matched to the gravel.
+- **Tone:** "tone 3" of three options: gravel ~35% darker / cooler (brightness ~83), so zombie outlines (~39) and bright parts (~136) both read. Ground shadows under zombies are part of tone 3 (to be built in the wiring step). No dark dirt patches in the dry strip (looked unnatural).
+- **Storm:** puddles on the gravel (inpainted, sky-reflection streaks, wet tone), kept ~46px clear of the barricade line in the churchyard; lane puddles can still land under the barricade until the strip is anchored to the church (wiring step).
+- **Geometry (decided, not built):** keep the 72px band, today's lane positions and 20px spacing; wider diagonal at the base (back lane ~88px right of the front lane instead of 30px); taps follow the zombie's body so the biggest tap square is >= 44px (audit: 44 / 52 / 67px back / middle / front).
+- **Later (Jeremy):** the barricade is redone after the lanes; the hill is redone (no need to match its colours); enemies are redone (outline + thin pale edge, ground shadow, avoid ground-coloured large areas).
+- **Art status:** source art only in `Assets/scene/_source/lane-2track/` (8 final PNGs + originals + scripts); not wired, not in `sw.js`, not in the PixelLab gallery.
+- **Portrait strip church (reverses the half-size wiring of v398-v401):** full size, 184x200 at 1:1, in a 92px window (art x 92..184): the front wall's left edge, the door, the steps and sandbags, the lantern post. Half size made the enemies look giant next to the church. Cost: the strip's church column is 16px wider than the 76px window. Hero spotlight (left 20px, scrim 92px) and the strip barricade (left 80px) follow the window. `sw.js` v402.
+- **Tests:** `baseAnim` strip expectations = 92 / 184 / 200; `journalBuildBWiring` compares the cache number (>= 363) instead of a v363-v399 regex.
+
 ## 2026-11-22 (Angled base wired into the game: stills, idle + attack strips, 25% smoke layer, per-screen crop) -- Claude app session, Sonnet 5.5; Jeremy ("lets wire the new base art and animations into the game", then "do everything in one pass")
 
 - **What shipped:** `Assets/Base/base_<state>.png` (184x200 stills: 100 / 075 / 050 / 025 / 000), `base_<state>_anim.png` (idle, 16 frames of 184x200, 8 fps, all five states), `base_<state>_attack.png` (100 / 075 / 050 / 025 only; 0% has none), `base_025_smoke_layer.png` (the tall smoke sheet, 8 x 10 frames of 448x306). Same file names as before, so the old 80x200 art is overwritten. The 050 still is the `unlit` final (the only 50% still); the 025 still is the `lit` final (= frame 1 of the idle strip). `sw.js` registers all 15 files, cache v397 -> v398.

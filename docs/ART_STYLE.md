@@ -508,6 +508,15 @@ Four pictures, one per barricade state (`CONFIG.MOMENTUM.BARRICADE_STATES` ids),
 
 **PixelLab prompt pattern:** "pixel art <material> barricade, a tall wall running along a steep diagonal from the bottom left corner up to the upper right, 80x152, transparent background, dark black outline, muted dusk palette, no church, no zombies, no ground. Keep the posts in the same spots as the reference ..." + the tier's materials; avoid "posts moved together, flat front-facing fence, short posts, logs, branches, sticks, grass, ground shadow, background".
 
+## Lane art rework: two-track gravel lane + churchyard (ART DONE 2026-11-22 evening; NOT wired; DECISIONS 2026-11-22 evening)
+
+- **Files** (`Assets/scene/_source/lane-2track/`, staging only): `lane_two_track_1280x72.png` + `lane_two_track_strip_640x36.png`; `base_yard_560x72.png` + `base_yard_strip_280x36.png`; the same four as `storm_*`. Originals / guides: `lane_tile_pixellab_original_256x128.png`, `yard_dirt_pixellab_original_256x128.png`, `*_guide_256x128.png`; previews `preview_*`; `scripts/` (build.py, finish.py, storm.py, nopatch.py, ...). Picked tile: `twotrack_s701_0`.
+- **Look:** two worn tyre tracks of gravel with a grass strip between, "tone 3" (gravel ~35% darker / cooler, brightness ~83; zombie outlines ~39, bright parts ~136, so the ground sits between them). The lane does NOT run through the church: a separate dirt churchyard sits behind the barricade. No dark dirt patches in the dry strip.
+- **Storm:** wet tone, inpainted puddles with sky-reflection streaks on the gravel only; the churchyard puddle is ~46px from the barricade line.
+- **Recipe (PixelLab, Create with layout guide):** a flat code-drawn guide + edit_with_text (`edit-images-v2`) works best; `inpaint-v3` for puddles; tile by walk / mirror to a seamless 1280px strip; the half-size strip is a 2x2 majority downsample. Keep the 72px band, today's lane positions (feet rows 24 / 44 / 64) and 20px spacing.
+- **Wiring to do:** replace `floor-tile.png` (1280x72, `.scene-ground`, `width:130%; left:-15%`) and `strip-floor.png` (640x36, `css/glanceStrip.css`); anchor the lane strip to the church; wider diagonal at the base (`GROUND_LANE_SLANT_PX` 30 -> ~88); body-only taps; ground shadows under zombies.
+- **Portrait strip church (2026-11-22):** full size (184x200 at 1:1) in a 92px window showing art x 92..184 (front wall's left edge to past the sandbags and lantern post).
+
 ## Asset Sources
 - **FINISHED sprites: `Assets/Zombies/<category>-zombie.png` + `-64.png` (64×64) for all 8 categories** — use these.
 - Base damage states: `Assets/Base/base_000..100.png`.
