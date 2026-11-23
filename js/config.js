@@ -594,10 +594,6 @@ const CONFIG = {
     GRAVEYARD_ART_REACH_PX: 48, // how far the three layers reach left of the zone (also the stones layer's left clip, css/graveyard.css --gy-reach)
     GRAVEYARD_LANES: 3,
     GRAVEYARD_LANE_RISE_PX: 28, // each back lane sits this much higher up the hill
-    GRAVEYARD_STONE_PITCH_PX: 44, // = tap-target width; odd lanes shift by half a pitch into the gaps
-    GRAVEYARD_STONE_HIT_PX: 44, // minimum tap box (visual art can be smaller)
-    GRAVEYARD_PAD_PX: 6,
-    GRAVEYARD_TRUNK_PX: 24, // LEGACY: right-edge reserve of GraveyardLayout.stoneSlots() (the old placeholder tree's trunk strip); the game no longer calls it
     // Milestone markers (2026-11-08; Assets/scene/headstone-0..4.png, js/milestoneMarkers.js, js/ui/markerPanel.js, docs/ART_STYLE "Milestone markers" +
     // "Headstones v2"): one marker per all-time achievement family standing in the plot, showing how far that family has come (no badge yet = a wooden
     // cross, then Bronze / Silver / Gold / Platinum, one picture each). Jeremy's picks: the seven families that have tiers to climb, in slot order

@@ -8,7 +8,7 @@ const CONFIG = require('../js/config.js');
 const OPTS = GraveyardLayout.fromConfig(CONFIG);
 
 describe('fieldRight', () => {
-    test('canvas minus hill', () => {
+    test('canvas minus zone', () => {
         expect(GraveyardLayout.fieldRight(844, 140)).toBe(704);
     });
     test('no hill (portrait strip) leaves the whole canvas', () => {
@@ -22,53 +22,11 @@ describe('fieldRight', () => {
     });
 });
 
-describe('stoneSlots', () => {
-    const slots = GraveyardLayout.stoneSlots(3, CONFIG.GRAVEYARD_HILL_WIDTH_PX, 8, OPTS);
-
-    test('LEGACY helper (the game no longer calls it; markers use CONFIG.MARKER_SLOTS): the 120px zone holds 3 stones, extras are dropped', () => {
-        // 2026-11-03 achievements swap: 8 families now (Steady Hands out; Honor Roll, Clean Sweep, Iron Will in).
-        // The hill was sized for exactly 6, so the last families have no headstone. Widening it (or a 4th lane) is a
-        // design call: the headstones are placeholders for the village (WORLD_FEEDBACK_PLAN W2).
-        const capacity = GraveyardLayout.stoneCapacity(CONFIG.GRAVEYARD_HILL_WIDTH_PX, OPTS);
-        expect(capacity).toBe(3);
-        expect(slots).toHaveLength(3);
-        expect(GraveyardLayout.stoneSlots(CONFIG.ACHIEVEMENTS.length, CONFIG.GRAVEYARD_HILL_WIDTH_PX, 8, OPTS)).toHaveLength(capacity);
-    });
-
-    test('front lane stands on the bottom pad; each back lane is LANE_RISE higher', () => {
-        const byLane = [0, 1, 2].map(l => slots.find(s => s.lane === l).feetFromBottom);
-        expect(byLane).toEqual([8, 8 + CONFIG.GRAVEYARD_LANE_RISE_PX, 8 + 2 * CONFIG.GRAVEYARD_LANE_RISE_PX]);
-    });
-
-    test('odd lanes are shifted by half a pitch so they peek between the front stones', () => {
-        const half = Math.round(CONFIG.GRAVEYARD_STONE_PITCH_PX / 2);
-        const front = slots.filter(s => s.lane === 0).map(s => s.x);
-        const mid = slots.filter(s => s.lane === 1).map(s => s.x);
-        mid.forEach((x, i) => expect(x - front[i]).toBe(half));
-    });
-
-    test('no two stones in one lane overlap their tap boxes', () => {
-        [0, 1, 2].forEach(l => {
-            const xs = slots.filter(s => s.lane === l).map(s => s.x).sort((a, b) => a - b);
-            for (let i = 1; i < xs.length; i++) expect(xs[i] - xs[i - 1]).toBeGreaterThanOrEqual(CONFIG.GRAVEYARD_STONE_HIT_PX);
-        });
-    });
-
-    test('every stone box stays inside the hill, left of the visible trunk strip', () => {
-        slots.forEach(s => {
-            expect(s.x).toBeGreaterThanOrEqual(CONFIG.GRAVEYARD_PAD_PX);
-            expect(s.x + CONFIG.GRAVEYARD_STONE_HIT_PX).toBeLessThanOrEqual(CONFIG.GRAVEYARD_HILL_WIDTH_PX - CONFIG.GRAVEYARD_TRUNK_PX + CONFIG.GRAVEYARD_STONE_PITCH_PX / 2 + 1);
-        });
-    });
-
-    test('a hill too narrow for the request drops the extras instead of overflowing', () => {
-        const narrow = GraveyardLayout.stoneSlots(6, 100, 8, OPTS);
-        expect(narrow.length).toBe(GraveyardLayout.stoneCapacity(100, OPTS));
-        expect(narrow.length).toBeLessThan(6);
-    });
-
-    test('zero stones, zero slots', () => {
-        expect(GraveyardLayout.stoneSlots(0, 140, 8, OPTS)).toEqual([]);
+describe('the old stone-slot helpers are gone (2026-11-23)', () => {
+    test('the module no longer exports stoneSlots / stoneCapacity, and CONFIG has no stone-slot or tree-trunk numbers', () => {
+        expect(GraveyardLayout.stoneSlots).toBeUndefined();
+        expect(GraveyardLayout.stoneCapacity).toBeUndefined();
+        ['GRAVEYARD_STONE_PITCH_PX', 'GRAVEYARD_STONE_HIT_PX', 'GRAVEYARD_PAD_PX', 'GRAVEYARD_TRUNK_PX'].forEach((k) => expect(CONFIG[k]).toBeUndefined());
     });
 });
 

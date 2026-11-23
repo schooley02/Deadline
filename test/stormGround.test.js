@@ -32,6 +32,28 @@ describe('storm ground assets', () => {
     });
 });
 
+describe('storm graveyard ground (2026-11-23)', () => {
+    test('is 84x40 like the dry graveyard ground, cached by the service worker, cache past v408', () => {
+        expect(pngSize('Assets/scene/storm-graveyard-ground.png')).toEqual({ w: 84, h: 40 });
+        expect(pngSize('Assets/scene/graveyard-ground.png')).toEqual({ w: 84, h: 40 });
+        expect(sw).toContain("'Assets/scene/storm-graveyard-ground.png'");
+        expect(Number(/deadline-shell-v(\d+)/.exec(sw)[1])).toBeGreaterThanOrEqual(409);
+    });
+
+    test('every opaque pixel is the dry one remapped by the lane\'s dry -> storm grass pairs, and the shape (alpha) is identical', () => {
+        const { PNG } = require('pngjs');
+        const load = (f) => PNG.sync.read(fs.readFileSync(path.join(root, 'Assets/scene', f)));
+        const dry = load('graveyard-ground.png');
+        const storm = load('storm-graveyard-ground.png');
+        const PAIRS = { '12,26,24': [11, 24, 23], '21,38,34': [18, 35, 33], '30,50,42': [26, 46, 41], '41,61,53': [36, 56, 52], '51,73,62': [45, 67, 60] };
+        for (let i = 0; i < dry.data.length; i += 4) {
+            expect(storm.data[i + 3]).toBe(dry.data[i + 3]);
+            if (dry.data[i + 3] === 0) continue;
+            expect([storm.data[i], storm.data[i + 1], storm.data[i + 2]]).toEqual(PAIRS[[dry.data[i], dry.data[i + 1], dry.data[i + 2]].join(',')]);
+        }
+    });
+});
+
 describe('storm ground css', () => {
     test('the canvas ground swaps its picture only under climate-storm, at the tile\'s real size', () => {
         expect(css).toMatch(/#gameCanvas\.climate-storm \.scene-ground \{\s*background-image: url\("\.\.\/Assets\/scene\/storm-lane-yard\.png"\), url\("\.\.\/Assets\/scene\/storm-lane-2track\.png"\);\s*background-size: 560px 72px, 1280px 72px;/);
@@ -43,7 +65,12 @@ describe('storm ground css', () => {
 
     test('no other band mentions the storm tiles', () => {
         const uses = css.split('url("../Assets/scene/storm-').length - 1;
-        expect(uses).toBe(4); // yard + lane, landscape and strip (the same two files in both rules)
+        expect(uses).toBe(5); // yard + lane, landscape and strip (the same two files in both rules) + the graveyard ground (2026-11-23)
+    });
+
+    test('the graveyard ground swaps to its storm picture only under climate-storm, and nothing else about it changes', () => {
+        expect(css).toMatch(/#gameCanvas\.climate-storm \.graveyard-ground \{\s*background-image: url\("\.\.\/Assets\/scene\/storm-graveyard-ground\.png"\);\s*\}/);
+        expect(css).not.toMatch(/\.graveyard-fence/); // the fences are not changed in a storm
     });
 });
 

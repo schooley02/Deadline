@@ -2,11 +2,9 @@
  * GraveyardLayout -- pure placement maths for the right-hand graveyard zone
  * (V7 W0, 2026-10-28; docs/WORLD_FEEDBACK_PLAN.md). No DOM, no State.
  *
- *   HILL      fixed-width zone at the right edge of #gameCanvas. Achievement headstones
- *             stand in CONFIG.GRAVEYARD_LANES staggered lanes: lane 0 is the front/lowest,
- *             every higher lane sits LANE_RISE_PX up the hill and odd lanes shift by half a
- *             stone pitch, so a back stone peeks out between two front stones.
- *   FIELD     the walking field ends where the hill starts: fieldWidth = canvasWidth - hill.
+ *   ZONE      fixed-width graveyard zone at the right edge of #gameCanvas (the headstones are placed by
+ *             CONFIG.MARKER_SLOTS, not here; the old stoneSlots / stoneCapacity helpers were removed 2026-11-23).
+ *   FIELD     the walking field ends where the zone starts: fieldWidth = canvasWidth - zone.
  *             script.js feeds this to the timeline as gameScreenWidth.
  *   RUN GRAVES past-run markers creeping across the field: index 0 = NEWEST, next to the
  *             hill; the oldest sits furthest left. Spacing starts wide and tightens with the
@@ -22,11 +20,6 @@
 const GraveyardLayout = (() => {
     const DEFAULTS = {
         hillWidthPx: 120,
-        lanes: 3,
-        laneRisePx: 28,
-        stonePitchPx: 44,
-        padPx: 6,
-        trunkPx: 24,
         runMaxSpacingPx: 110,
         runMinSpacingPx: 22,
         runJitterFrac: 0.35,
@@ -42,11 +35,6 @@ const GraveyardLayout = (() => {
         if (!cfg) return { ...DEFAULTS };
         return {
             hillWidthPx: cfg.GRAVEYARD_HILL_WIDTH_PX,
-            lanes: cfg.GRAVEYARD_LANES,
-            laneRisePx: cfg.GRAVEYARD_LANE_RISE_PX,
-            stonePitchPx: cfg.GRAVEYARD_STONE_PITCH_PX,
-            padPx: cfg.GRAVEYARD_PAD_PX,
-            trunkPx: cfg.GRAVEYARD_TRUNK_PX,
             runMaxSpacingPx: cfg.RUN_GRAVE_MAX_SPACING_PX,
             runMinSpacingPx: cfg.RUN_GRAVE_MIN_SPACING_PX,
             runJitterFrac: cfg.RUN_GRAVE_JITTER_FRAC,
@@ -74,41 +62,6 @@ const GraveyardLayout = (() => {
         const cw = Math.max(0, Number(canvasWidth) || 0);
         const hw = Math.max(0, Math.min(cw, Number(hillWidth) || 0));
         return cw - hw;
-    }
-
-    // Hill slots for `count` stones: [{ index, lane, col, x, feetFromBottom }].
-    // x is the stone slot's left edge inside the hill; feetFromBottom is measured up from
-    // the canvas bottom to the stone's feet (front lane = bottomPadPx).
-    function stoneSlots(count, hillWidth, bottomPadPx, opts) {
-        const o = merge(opts);
-        const n = Math.max(0, Math.floor(count) || 0);
-        const lanes = Math.max(1, o.lanes);
-        const half = lanes > 1 ? Math.round(o.stonePitchPx / 2) : 0;
-        const usable = Math.max(0, hillWidth - o.padPx - o.trunkPx - half);
-        const cols = Math.max(1, Math.floor(usable / o.stonePitchPx));
-        const slots = [];
-        for (let i = 0; i < n && i < cols * lanes; i++) {
-            // fill column by column so the front lane stays visible first
-            const col = Math.floor(i / lanes);
-            const lane = i % lanes;
-            slots.push({
-                index: i,
-                lane,
-                col,
-                x: o.padPx + col * o.stonePitchPx + (lane % 2 ? half : 0),
-                feetFromBottom: bottomPadPx + lane * o.laneRisePx,
-            });
-        }
-        return slots;
-    }
-
-    // How many stones fit the hill at all.
-    function stoneCapacity(hillWidth, opts) {
-        const o = merge(opts);
-        const lanes = Math.max(1, o.lanes);
-        const half = lanes > 1 ? Math.round(o.stonePitchPx / 2) : 0;
-        const usable = Math.max(0, hillWidth - o.padPx - o.trunkPx - half);
-        return Math.max(1, Math.floor(usable / o.stonePitchPx)) * lanes;
     }
 
     // Spacing between neighbouring run graves for `count` runs over `spanPx` of field.
@@ -152,7 +105,7 @@ const GraveyardLayout = (() => {
         return Math.abs(h) % 100000;
     }
 
-    return { DEFAULTS, fromConfig, seeded, fieldRight, stoneSlots, stoneCapacity, runSpacing, runGraves };
+    return { DEFAULTS, fromConfig, seeded, fieldRight, runSpacing, runGraves };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

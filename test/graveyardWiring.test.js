@@ -63,7 +63,7 @@ describe('CSS agrees with CONFIG', () => {
     });
 
     test('run-grave and Memorial tap boxes meet the 44px minimum', () => {
-        expect(CONFIG.GRAVEYARD_STONE_HIT_PX).toBeGreaterThanOrEqual(44);
+        expect(CONFIG.MARKER_HIT_PX).toBeGreaterThanOrEqual(44);
         expect(css).toMatch(/\.run-grave\s*\{[^}]*width:\s*44px;[^}]*height:\s*44px/s);
         expect(CONFIG.GRAVEYARD_MEMORIAL_HIT_W_PX).toBeGreaterThanOrEqual(44);
         expect(CONFIG.GRAVEYARD_MEMORIAL_HIT_H_PX).toBeGreaterThanOrEqual(44);

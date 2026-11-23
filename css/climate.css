@@ -332,6 +332,14 @@ body.glance-strip #gameCanvas.climate-storm::before {
     background-size: 280px 36px, 640px 36px;
 }
 
+/* Storm graveyard ground (2026-11-23, graveyard v3): the plot's grass in the storm lane's own darker, greyer shades (Assets/scene/storm-graveyard-ground.png,
+   84x40, same size and 2x as graveyard-ground.png, which css/graveyard.css draws; only the picture changes). Recolour only, no puddles (the lane's puddles
+   stand on road and dirt, never on grass); the fences do not change in a storm. Source: Assets/scene/_source/graveyard-v3/scripts/storm_ground.py. The
+   portrait strip hides the whole graveyard, so there is no strip rule. */
+#gameCanvas.climate-storm .graveyard-ground {
+    background-image: url("../Assets/scene/storm-graveyard-ground.png");
+}
+
 /* ---------- Clear: fireflies. 36 of them (2026-11-07, Jeremy: too hard to see): 24 float in the air over the zombie lanes and 12 sit LOW over
    the ground art (.firefly--g, placed from the canvas bottom: the ground is the bottom 72px, so --ff-bot 5-60px is on the ground picture).
    28 sit BEHIND the zombies (z 28 < 30) and 8 IN FRONT of them (.climate-fireflies--front, z 83: over the pile 80, under the near weather 87; Jeremy: "in front and behind would work"). A warm pale-green core that reaches full opacity, a tight ring + two soft halos, and a real blink
