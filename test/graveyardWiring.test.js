@@ -111,9 +111,9 @@ describe('Memorial art must not widen the page (2026-11-08 phone bug)', () => {
     const css = fs2.readFileSync(path2.join(__dirname, '..', 'css', 'graveyard.css'), 'utf8').replace(/\r\n/g, '\n');
     const block = (css.match(/\n\.graveyard-stones \{[^}]*\}/) || [''])[0];
 
-    test('the layer holding the 128px obelisk is clipped at the zone edge (it overhangs the 140px zone by 16px)', () => {
-        // 2026-11-08: clip-path instead of overflow:hidden so a headstone can stand on the hill's left slope (52px past the zone); the RIGHT edge is still cut at 0
-        expect(block).toMatch(/clip-path:\s*inset\(0 0 0 -52px\)/);
+    test('the layer holding the 128px obelisk is clipped at the zone edge (open 48px to the left for the 168px-wide layers; the 128px obelisk sits well inside the 120px zone)', () => {
+        // 2026-11-08: clip-path instead of overflow:hidden so a headstone can stand on the hill's left slope (graveyard v3, 2026-11-23: the art origin is --gy-reach = 48px past the zone); the RIGHT edge is still cut at 0
+        expect(block).toMatch(/clip-path:\s*inset\(0 0 0 calc\(var\(--gy-reach, 48px\) \* -1\)\)/);
         expect(block).toMatch(/right:\s*0/);
         expect(block).toMatch(/left:\s*0/);
         expect(block).toMatch(/bottom:\s*0/);

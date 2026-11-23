@@ -68,7 +68,6 @@
 
 /* The Memorial link at the bottom of the Village panel (css/villagePanel.css has the rest of that panel). */
 .vp-memorial,
-.vp-tree,
 .vp-markers {
     display: flex;
     align-items: center;
@@ -88,9 +87,7 @@
     cursor: pointer;
 }
 .vp-memorial:hover,
-.vp-tree:hover,
 .vp-markers:hover { background: rgba(0, 0, 0, 0.04); }
 .vp-memorial:focus-visible,
-.vp-tree:focus-visible,
 .vp-markers:focus-visible { outline: 2px solid var(--color-primary-dark-green); outline-offset: 2px; }
 .vp-memorial-stage { font-weight: 700; color: var(--color-primary-dark-green); }

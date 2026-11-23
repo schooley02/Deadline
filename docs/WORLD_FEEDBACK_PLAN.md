@@ -148,7 +148,7 @@ list. PROPOSED extensions:
   for long streaks). BUILT 2026-11-08 (sapling / young / giant at 0-29 / 30-99 / 100+ nights); lanterns / crows not decided.
 - Optional: a fresh grave for a KO'd hero until revived (may be one thing too many).
 
-**Superseded by "W0 layout" below for placement (tree on the right edge, run graves in the field).**
+**Superseded by "W0 layout" below for placement (tree on the right edge, run graves in the field). The tree and the 140px hill were removed 2026-11-23 (graveyard v3: a flat fenced 120px plot; see docs/UI_UX.md "Graveyard zone"); the tree notes in this file are history.**
 DECIDED 2026-10-27: the V1 decorative tombstones AND the 3 bare trees are removed outright
 (Jeremy); the graveyard markers + the growth tree replace them. Marker size vs tap-target minimum (44px hit area, visual can
 be smaller — the V3c-1 chip trick).

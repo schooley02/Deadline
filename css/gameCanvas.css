@@ -359,8 +359,8 @@
 
 .nights-label {
     margin-top: 7px;
-    /* Dark backing, always on (2026-11-08, Jeremy): the grown tree's canopy reaches this label, so it must stay readable over branches. Fog / Storm
-       (css/climate.css) already used the same plate. */
+    /* Dark backing, always on (2026-11-08, Jeremy; added for the graveyard tree's canopy, which is gone since 2026-11-23, kept so the label stays readable
+       over the moon, the mountains and the Radio tower). Fog / Storm (css/climate.css) already used the same plate. */
     background: rgba(11, 11, 36, 0.6);
     padding: 3px 5px;
     white-space: nowrap;

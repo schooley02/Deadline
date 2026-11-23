@@ -32,7 +32,7 @@ const Achievements = (() => {
             subtasksCompleted: 0, // 2026-10-27: sub-tasks no longer feed tasksCompleted / Task Slayer
             habitsCompleted: 0,
             bestRunDaysSurvived: 0,
-            nightsSurvived: 0, // LIFETIME nights banked from finished runs (2026-11-08, js/treeGrowth.js: the graveyard tree's growth); seeded from run history on older saves
+            nightsSurvived: 0, // LIFETIME nights banked from finished runs (2026-11-08; shown on the Stats tab since 2026-11-23, the graveyard tree that first used it is gone); seeded from run history on older saves
             bestHabitStreak: 0,
             pointsRecoveries: 0,
             // Achievements swap (2026-11-03, schema 16; docs/HOW_IT_WORKS_PLAN.md): the lifetime counters behind
@@ -152,8 +152,33 @@ const Achievements = (() => {
         return nudges;
     }
 
+    function whole(n) {
+        return (typeof n === 'number' && isFinite(n) && n > 0) ? Math.floor(n) : 0;
+    }
+
+    /**
+     * Lifetime nights survived (2026-11-23; was TreeGrowth.total, the graveyard tree's rule): the BANKED nights of finished runs
+     * (`lifetimeStats.nightsSurvived`, raised by each run's nights at game over) plus the live run's nights. The live run counts for 0 once
+     * the game is over, because that run is already in the bank: that keeps the total from jumping at game over and from ever going down
+     * at Restart. Bad input counts as 0. Pure.
+     */
+    function lifetimeNights(banked, currentRunNights, gameOver) {
+        return whole(banked) + (gameOver ? 0 : whole(currentRunNights));
+    }
+
+    /**
+     * The bank for a save that has none yet: the nights of every run still in history (newest-first records with `daysSurvived`; the history is
+     * capped at CONFIG.RUN_HISTORY_MAX, so this only SEEDS an older save). The run in progress is not in the seed, it counts live. Pure.
+     */
+    function seedNightsBanked(history) {
+        const list = Array.isArray(history) ? history : [];
+        return list.reduce((sum, r) => sum + whole(r && typeof r === 'object' ? r.daysSurvived : 0), 0);
+    }
+
     return {
         freshLifetimeStats,
+        lifetimeNights,
+        seedNightsBanked,
         freshUnlocked,
         dayDeltas,
         evaluateFamily,

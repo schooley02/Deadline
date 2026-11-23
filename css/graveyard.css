@@ -8,17 +8,19 @@
  * script.js refreshLayoutDims() measures #graveyardZone's width and the zombie field ends at
  * its left edge, so changing the width here (or in CONFIG) needs no other code change.
  *
- * Art: the hill, the Memorial obelisk and the growing tree (3 stages) are PixelLab PNGs (2026-11-08). Each is its own element so they can be
- * swapped one by one.
+ * Art (graveyard v3, WIRED 2026-11-23; docs/ART_STYLE "Graveyard v3" + "Headstones v2"): a FLAT fenced plot. Three layers (ground 84x40, fence back 84x52,
+ * fence front 84x24 art px) are drawn at 2x, pixelated, on one origin 48px LEFT of the zone's left edge (--gy-reach, CONFIG.GRAVEYARD_ART_REACH_PX), bottom
+ * row = the canvas bottom. Paint order inside the zone (one stacking context): ground -> fence back -> stones layer (Memorial, then the headstones) ->
+ * fence front (above the stones, pointer-events none). The Memorial obelisk is a PixelLab PNG (2026-11-08) and each headstone its own 24x24 PNG shown at 2x.
  */
 
 #gameCanvas {
-    --gy-hill-w: 140px;
-    --gy-hill-h: 101px;
+    --gy-hill-w: 120px;
+    --gy-hill-h: 72px;
+    --gy-reach: 48px;
 }
 
-/* The moon, its count and the weather badge sit in the canvas's TOP-RIGHT corner (2026-11-07, Jeremy; they were left of
-   the hill, "so a grown tree never covers it"). The giant tree's canopy now reaches up to the Nights Survived label on purpose (2026-11-08); the label has its own dark backing. --moon-right is shared with the badge
+/* The moon, its count and the weather badge sit in the canvas's TOP-RIGHT corner (2026-11-07, Jeremy). --moon-right is shared with the badge
    (css/weatherPanel.css) and the trend-up light break + moonbeam (css/climate.css). */
 #gameCanvas {
     --moon-right: 30px;
@@ -44,55 +46,28 @@
     will-change: transform;
 }
 
-.graveyard-hill {
-    /* PixelLab mound (2026-11-08), 192x128 drawn 1:1, pinned to the canvas's bottom-right corner. It is 52px wider than the 140px
-       zone on purpose: the low left slope runs out over the ground band BEHIND the zombies (zone z 6 < zombies 30+), while the zone
-       (tap area, zombie field edge) stays 140. Top 23 rows are transparent: the visible top is CONFIG.GRAVEYARD_HILL_HEIGHT_PX. */
+.graveyard-ground,
+.graveyard-fence-back,
+.graveyard-fence-front {
+    /* Graveyard v3 layers (2026-11-23), 84px-wide art drawn at 2x = 168px, left edge --gy-reach (48px) left of the zone so the plot's ragged left
+       side runs out over the lane band BEHIND the zombies (zone z 6 < zombies 30+); the zone itself (tap area, zombie field edge) stays 120px.
+       Bottom row = the canvas bottom. Never take taps. */
     position: absolute;
-    right: 0;
+    left: calc(var(--gy-reach, 48px) * -1);
     bottom: 0;
-    width: 192px;
-    height: 128px;
-    background: url("../Assets/scene/graveyard-hill.png") no-repeat right bottom;
-    background-size: 192px 128px;
+    width: 168px;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
     image-rendering: pixelated;
-}
-
-/* The tree runs off the right edge on purpose, and #gameCanvas is overflow:visible (clip-path would not
-   stop it widening the page), so the tree sits in a clipper that is cut at the zone's right edge but
-   stays open upward/leftward for the canopy. Only the trunk strip (CONFIG.GRAVEYARD_TRUNK_PX) is on
-   the canvas; the canopy overhangs the hill behind the Memorial. */
-.graveyard-tree-clip {
-    position: absolute;
-    left: -80px; /* graveyardView.js rewrites left / bottom from CONFIG.GRAVEYARD_TREE_*; these are the matching fallbacks */
-    right: 0;
-    bottom: calc(var(--gy-hill-h) - 5px);
-    height: 600px;
-    overflow: hidden;
-    z-index: 1;
     pointer-events: none;
 }
-
-/* Growing tree (2026-11-08): three PixelLab PNGs, 192x128, drawn 1:1, trunk base in the same column in all three (docs/ART_STYLE "Growing tree").
-   graveyardView.js sets the size and left from CONFIG.GRAVEYARD_TREE_*; the clipper above cuts the art at the zone's right edge. */
-.graveyard-tree {
-    position: absolute;
-    display: block;
-    left: 44px; /* = clip reach 80 + base 110 - trunk column 146 */
-    bottom: 0;
-    width: 192px;
-    height: 128px;
-    background-repeat: no-repeat;
-    background-size: 192px 128px;
-    image-rendering: pixelated;
-}
-.graveyard-tree[hidden] { display: none; }
-.graveyard-tree[data-stage="1"] { background-image: url("../Assets/scene/graveyard-tree-1.png"); }
-.graveyard-tree[data-stage="2"] { background-image: url("../Assets/scene/graveyard-tree-2.png"); }
-.graveyard-tree[data-stage="3"] { background-image: url("../Assets/scene/graveyard-tree-3.png"); }
+.graveyard-ground { height: 80px; background-image: url("../Assets/scene/graveyard-ground.png"); z-index: 0; }
+.graveyard-fence-back { height: 104px; background-image: url("../Assets/scene/graveyard-fence-back.png"); z-index: 1; }
+/* In FRONT of the stones (z 3 > the stones layer's 2): hides most of the front row's feet, and must NOT take taps. */
+.graveyard-fence-front { height: 48px; background-image: url("../Assets/scene/graveyard-fence-front.png"); z-index: 3; }
 
 .graveyard-stones {
-    /* The Memorial's 128px art is 16px wider than the 140px zone on its right (its corners are transparent). #gameCanvas is
+    /* The Memorial's 128px art is wider than the 120px zone on its right (its corners are transparent). #gameCanvas is
        overflow:visible, so that overhang WIDENED THE PAGE (scrollWidth 860 at 844: the right edge, label and + button were cut off
        on a phone, 2026-11-08). Clip the layer at the zone's right edge instead, and stretch it far upward (children are placed from
        the bottom, so their positions do not change) so the tall obelisk and its hover glow are not cut off. */
@@ -101,16 +76,15 @@
     right: 0;
     bottom: 0;
     left: 0;
-    /* Clip at the zone's right edge and the bottom, but let a marker stand out over the hill's low left slope (the hill art runs 52px past the
-       zone's left edge, 2026-11-08, Jeremy). clip-path (not overflow) so the left reach is open while the right stays cut. */
-    clip-path: inset(0 0 0 -52px);
-    z-index: 2; /* clip-path makes this layer its own stacking context: keep it above the tree's clipper (z 1) so the Memorial, markers and tree tap box still draw in front of the tree art */
+    /* Clip at the zone's right edge and the bottom, but let a stone at the plot's left side stand out over the ground's left reach (--gy-reach, 48px;
+       the ground and fences run that far past the zone's left edge). clip-path (not overflow) so the left reach is open while the right stays cut. */
+    clip-path: inset(0 0 0 calc(var(--gy-reach, 48px) * -1));
+    z-index: 2; /* clip-path makes this layer its own stacking context: above the ground (0) and the back fence (1), below the front fence (3) */
 }
 
 /* Memorial obelisk (2026-11-08; js/memorial.js picks the stage, js/ui/graveyardView.js places it from CONFIG.GRAVEYARD_MEMORIAL_*).
    ONE button (a >=44px tap box standing on the plinth) holding the 128x192 art, which is wider and lower than the box, so it overhangs it. */
-.graveyard-memorial,
-.graveyard-tree-hit {
+.graveyard-memorial {
     position: absolute;
     padding: 0;
     margin: 0;
@@ -121,8 +95,7 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-.graveyard-memorial:focus-visible,
-.graveyard-tree-hit:focus-visible {
+.graveyard-memorial:focus-visible {
     outline: 2px solid #f1d27a;
     outline-offset: 1px;
 }
@@ -133,7 +106,7 @@
     background-repeat: no-repeat;
     background-size: 128px 192px;
     image-rendering: pixelated;
-    pointer-events: none; /* only the tap box takes taps; the transparent corners of the art must not block the tree, zombies or moon */
+    pointer-events: none; /* only the tap box takes taps; the transparent corners of the art must not block zombies or the moon */
 }
 
 .graveyard-memorial-art[data-stage="1"] { background-image: url("../Assets/Village/memorial_t1.png"); }
@@ -142,7 +115,7 @@
 .graveyard-memorial-art[data-stage="4"] { background-image: url("../Assets/Village/memorial_t4.png"); }
 .graveyard-memorial-art[data-stage="5"] { background-image: url("../Assets/Village/memorial_t5.png"); }
 
-/* Hover / keyboard focus (2026-11-08, Jeremy: "like the zombies"): the hovered Memorial, headstone or tree grows a little, comes to the front and gets a
+/* Hover / keyboard focus (2026-11-08, Jeremy: "like the zombies"): the hovered Memorial or headstone grows a little, comes to the front and gets a
    white glow (css/enemySprites.css .enemy:hover + css/enemyStatus.css --g-hover use the same recipe). Desktop only: touch has no real :hover. The
    tap boxes are bigger than the art, so the raise-to-front keeps the pointer on the one stone it is over (no flicker between overlapping boxes). */
 .graveyard-memorial-art,
@@ -152,24 +125,15 @@
     will-change: transform; /* same reason as .graveyard-zone: a hovered stone's transition must not re-raster the stones next to it */
 }
 
-.graveyard-tree { transition: transform 120ms ease-out, filter 120ms ease-out; will-change: transform; }
-
 @media (hover: hover) {
     .graveyard-memorial:hover,
-    .milestone-marker:hover { z-index: 60 !important; } /* above every marker (21+), the Memorial (20) and the tree's tap box (10); inline z-index needs !important */
+    .milestone-marker:hover { z-index: 60 !important; } /* above every marker (21+) and the Memorial (20); inline z-index needs !important. Still under the front fence (own layer, z 3 of the zone). */
     .graveyard-memorial:hover .graveyard-memorial-art {
         transform: scale(1.05);
         filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px rgba(255, 255, 255, 0.9));
     }
     .milestone-marker:hover .milestone-marker-art {
         transform: scale(1.1);
-        filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px rgba(255, 255, 255, 0.9));
-    }
-    /* The tree's art is its own element (inside the clipper), so the tap box's hover reaches it through :has. Grows from the trunk's base column. */
-    .graveyard-zone:has(.graveyard-tree-hit:hover) .graveyard-tree-clip { z-index: 3; }
-    .graveyard-zone:has(.graveyard-tree-hit:hover) .graveyard-tree {
-        transform: scale(1.05);
-        transform-origin: 146px 100%;
         filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px rgba(255, 255, 255, 0.9));
     }
 }
@@ -179,9 +143,10 @@
     filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px rgba(255, 255, 255, 0.9));
 }
 
-/* Milestone markers (2026-11-08; js/milestoneMarkers.js picks the stage, js/ui/graveyardView.js places each one from CONFIG.MARKER_*): small stones on the
-   hill's face, one per all-time achievement. Each is a >=44px tap box holding a 32x32 picture, drawn 1:1; the five PNGs share one canvas, every stone
-   centred on column 16 with the same dirt lip on its bottom three rows (stage 0 = a wooden cross ... stage 4 = the nicest stone). */
+/* Milestone markers (2026-11-08; js/milestoneMarkers.js picks the stage, js/ui/graveyardView.js places each one from CONFIG.MARKER_*): headstones
+   in the plot, one per all-time achievement. Each is a 48px tap box holding a 24x24 picture drawn at EXACTLY 2x (Headstones v2, 2026-11-23); the five PNGs
+   share one canvas, every stone centred on columns 11/12, foot on row 22, row 23 = grass contact shadow (stage 0 = a wooden cross, 1 = a flat
+   fieldstone marker, 2 = a rough upright stone, 3 = polished granite, 4 = tall white marble). */
 .milestone-marker {
     position: absolute;
     padding: 0;
@@ -202,7 +167,7 @@
     position: absolute;
     display: block;
     background-repeat: no-repeat;
-    background-size: 100% 100%; /* the 32x32 PNG scaled to MARKER_ART_PX (inline width/height) */
+    background-size: 100% 100%; /* the 24x24 PNG scaled 2x to MARKER_ART_PX (inline width/height) */
     image-rendering: pixelated;
     pointer-events: none; /* only the tap box takes taps */
 }
@@ -216,7 +181,7 @@
 /* Mouse hit area (2026-11-08, Jeremy: the glow flickered as the pointer crossed the stones). Each tap box is 48px square but the stone drawn in it is
    smaller, and the boxes overlap, so a mouse lit up stones it was nowhere near. With a precise pointer the box itself ignores the pointer and a
    ::before layer takes it, cut (clip-path hit-tests) to the stone's visible bounds (about 1px of slack): inset(top right bottom left), one per stage from each
-   PNG's non-transparent bounds x1.5. Touch keeps the full 48px box (a finger needs it). The art is a separate child, so its glow is not clipped. */
+   v2 PNG's non-transparent bounds x2 (re-derived 2026-11-23 from the 24x24 files: opaque columns/rows 6-17 x 8-23, 3-20 x 16-23, 5-18 x 9-23, 2-22 x 6-23, 1-22 x 1-23). Touch keeps the full 48px box (a finger needs it). The art is a separate child, so its glow is not clipped. */
 @media (pointer: fine) {
     .milestone-marker { pointer-events: none; }
     .milestone-marker::before {
@@ -229,11 +194,11 @@
         pointer-events: auto;
         cursor: pointer;
     }
-    .milestone-marker[data-stage="0"]::before { clip-path: inset(14px 8px 0 9px); }
-    .milestone-marker[data-stage="1"]::before { clip-path: inset(21px 8px 0 8px); }
-    .milestone-marker[data-stage="2"]::before { clip-path: inset(17px 6px 0 8px); }
-    .milestone-marker[data-stage="3"]::before { clip-path: inset(14px 2px 0 2px); }
-    .milestone-marker[data-stage="4"]::before { clip-path: inset(6px 3px 0 3px); }
+    .milestone-marker[data-stage="0"]::before { clip-path: inset(15px 11px 0 11px); }
+    .milestone-marker[data-stage="1"]::before { clip-path: inset(31px 5px 0 5px); }
+    .milestone-marker[data-stage="2"]::before { clip-path: inset(17px 9px 0 9px); }
+    .milestone-marker[data-stage="3"]::before { clip-path: inset(11px 1px 0 3px); }
+    .milestone-marker[data-stage="4"]::before { clip-path: inset(1px 1px 0 1px); }
 }
 
 .milestone-marker:focus-visible .milestone-marker-art,

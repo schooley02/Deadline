@@ -102,7 +102,7 @@ describe('open', () => {
 
 describe('the stones on the hill', () => {
     function build() {
-        document.body.innerHTML = `<div id="gameCanvas"><div id="runGraves"></div><div id="graveyardZone"><div class="graveyard-tree-clip"><span id="graveyardTree" class="graveyard-tree" hidden></span></div><div id="graveyardStones"></div></div></div>`;
+        document.body.innerHTML = `<div id="gameCanvas"><div id="runGraves"></div><div id="graveyardZone"><div class="graveyard-ground"></div><div class="graveyard-fence-back"></div><div id="graveyardStones"></div></div></div>`;
         [['gameCanvas', 844, 250], ['graveyardZone', 140, 70]].forEach(([id, w, h]) => {
             const el = document.getElementById(id);
             Object.defineProperty(el, 'offsetWidth', { configurable: true, get: () => w });
@@ -111,7 +111,7 @@ describe('the stones on the hill', () => {
     }
     function init(markers, onOpenMarkers = jest.fn()) {
         build();
-        GraveyardView.init({ getRunHistory: () => [], getMemorialStage: () => 1, getTreeStage: () => 1, getMarkers: () => markers, onOpenMarkers });
+        GraveyardView.init({ getRunHistory: () => [], getMemorialStage: () => 1, getMarkers: () => markers, onOpenMarkers });
         GraveyardView.render(160);
         return onOpenMarkers;
     }
@@ -188,11 +188,11 @@ describe('art + shell + wiring', () => {
     const hill = read('css/graveyard.css');
     const panelCss = read('css/markerPanel.css');
 
-    test.each([0, 1, 2, 3, 4])('headstone-%i.png is a 32x32 RGBA picture, drawn by both stylesheets and cached by the service worker', (n) => {
+    test.each([0, 1, 2, 3, 4])('headstone-%i.png is a 24x24 RGBA picture (Headstones v2: drawn at exactly 2x = 48px), drawn by both stylesheets and cached by the service worker', (n) => {
         const f = `Assets/scene/headstone-${n}.png`;
         const b = fs.readFileSync(path.join(root, f));
         expect(b.slice(1, 4).toString()).toBe('PNG');
-        expect({ w: b.readUInt32BE(16), h: b.readUInt32BE(20), colorType: b[25] }).toEqual({ w: 32, h: 32, colorType: 6 });
+        expect({ w: b.readUInt32BE(16), h: b.readUInt32BE(20), colorType: b[25] }).toEqual({ w: 24, h: 24, colorType: 6 });
         expect(hill).toContain(`headstone-${n}.png`);
         expect(hill).toMatch(/\.milestone-marker-art \{[^}]*background-size: 100% 100%/);
         expect(panelCss).toContain(`headstone-${n}.png`);
@@ -223,17 +223,17 @@ describe('art + shell + wiring', () => {
         const ctxFn = /function markerPanelContext[\s\S]*?\n    }/.exec(script)[0];
         expect(ctxFn).not.toMatch(/DevDemo|override/);
     });
-    test('the stones layer is clipped at the zone\'s right edge but open 52px to the left (a marker stands on the hill\'s left slope)', () => {
-        expect(hill).toMatch(/\.graveyard-stones \{[^}]*clip-path: inset\(0 0 0 -52px\)/);
+    test('the stones layer is clipped at the zone\'s right edge but open --gy-reach (48px) to the left (a marker can stand on the plot\'s left reach)', () => {
+        expect(hill).toMatch(/\.graveyard-stones \{[^}]*clip-path: inset\(0 0 0 calc\(var\(--gy-reach, 48px\) \* -1\)\)/);
+        expect(hill).toMatch(/--gy-reach:\s*48px/);
         expect(hill).not.toMatch(/\.graveyard-stones \{[^}]*overflow: hidden/);
     });
-    test('hover = the zombie recipe: a little bigger, to the front, white glow; the Memorial and the tree do the same (desktop only)', () => {
+    test('hover = the zombie recipe: a little bigger, to the front, white glow; the Memorial does the same (desktop only); the tree rules are gone', () => {
         expect(hill).toMatch(/@media \(hover: hover\)/);
         expect(hill).toMatch(/\.milestone-marker:hover \.milestone-marker-art \{\s*transform: scale\(1\.1\);\s*filter: drop-shadow\(0 0 3px #fff\)/);
         expect(hill).toMatch(/\.milestone-marker:hover \{ z-index: 60 !important; \}|\.milestone-marker:hover \{ z-index: 60 !important;/);
         expect(hill).toMatch(/\.graveyard-memorial:hover \.graveyard-memorial-art \{\s*transform: scale\(1\.05\);\s*filter: drop-shadow\(0 0 3px #fff\)/);
-        expect(hill).toMatch(/:has\(\.graveyard-tree-hit:hover\) \.graveyard-tree \{\s*transform: scale\(1\.05\);/);
-        expect(hill).toMatch(/:has\(\.graveyard-tree-hit:hover\) \.graveyard-tree-clip \{ z-index: 3; \}/);
+        expect(hill).not.toMatch(/graveyard-tree/);
     });
     test('a mouse only hits the visible stone: with a fine pointer a ::before layer clipped per stage takes the pointer; touch keeps the full box', () => {
         expect(hill).toMatch(/@media \(pointer: fine\) \{\s*\.milestone-marker \{ pointer-events: none; \}/);
@@ -243,11 +243,23 @@ describe('art + shell + wiring', () => {
     test('the hill and its hover-animated parts are pinned compositor layers (will-change) so a transition elsewhere never re-rasters the pixel art', () => {
         expect(hill).toMatch(/\.graveyard-zone \{[^}]*will-change: transform;/);
         expect(hill).toMatch(/\.graveyard-memorial-art,\s*\.milestone-marker-art \{[^}]*will-change: transform;/);
-        expect(hill).toMatch(/\.graveyard-tree \{[^}]*will-change: transform;/);
     });
-    test('the stones layer stays above the tree clipper (clip-path made it a stacking context)', () => {
-        expect(hill).toMatch(/\.graveyard-stones \{[^}]*z-index: 2;/);
-        expect(hill).toMatch(/\.graveyard-tree-clip \{[^}]*z-index: 1;/);
+    test('z order in the zone: ground 0, fence-back 1, stones 2 (clip-path makes the layer a stacking context), fence-front 3 and it takes no taps', () => {
+        const z = (cls) => new RegExp(`\\.${cls} \\{[^}]*z-index: (\\d+);`).exec(hill)[1];
+        expect([z('graveyard-ground'), z('graveyard-fence-back'), z('graveyard-stones'), z('graveyard-fence-front')]).toEqual(['0', '1', '2', '3']);
+        expect(hill).toMatch(/\.graveyard-fence-front \{[^}]*pointer-events: none;/);
+    });
+    test('the per-stage mouse hit insets come from each PNG\'s opaque bounds at 2x, minus 1px of slack (re-derived for Headstones v2)', () => {
+        const { PNG } = require('pngjs');
+        [0, 1, 2, 3, 4].forEach((n) => {
+            const png = PNG.sync.read(fs.readFileSync(path.join(root, `Assets/scene/headstone-${n}.png`)));
+            let x0 = 99, y0 = 99, x1 = -1;
+            for (let y = 0; y < png.height; y++) for (let x = 0; x < png.width; x++) {
+                if (png.data[(y * png.width + x) * 4 + 3] > 0) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x + 1); }
+            }
+            const top = Math.max(0, 2 * y0 - 1), left = Math.max(0, 2 * x0 - 1), right = Math.max(0, 48 - 2 * x1 - 1);
+            expect(hill).toContain(`.milestone-marker[data-stage="${n}"]::before { clip-path: inset(${top}px ${right}px 0 ${left}px); }`);
+        });
     });
     test('nothing is saved: no new state field for the markers', () => {
         expect(read('js/state.js')).not.toMatch(/marker/i);

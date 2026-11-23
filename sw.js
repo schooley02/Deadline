@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v407';
+const CACHE_NAME = 'deadline-shell-v408';
 
 const APP_SHELL = [
     './',
@@ -52,7 +52,6 @@ const APP_SHELL = [
     'css/villageCard.css',
     'css/villagePanel.css',
     'css/memorialPanel.css',
-    'css/treePanel.css',
     'css/markerPanel.css',
     'css/howItWorks.css',
     'css/barricade.css',
@@ -90,7 +89,6 @@ const APP_SHELL = [
     'js/anytimeCheck.js',
     'js/villageProgress.js',
     'js/memorial.js',
-    'js/treeGrowth.js', // growing tree rule (2026-11-08)
     'js/momentum.js', // defended-night rule + Nights Survived (2026-11-11, Momentum Build A)
     'js/milestoneMarkers.js', // milestone marker rule (2026-11-08)
     'js/villageDrops.js',
@@ -181,7 +179,6 @@ const APP_SHELL = [
     'js/ui/villageCard.js',
     'js/ui/villagePanel.js',
     'js/ui/memorialPanel.js',
-    'js/ui/treePanel.js',
     'js/ui/markerPanel.js',
     'js/ui/hudButtons.js',
     'js/ui/ghostCard.js',
@@ -314,11 +311,10 @@ const APP_SHELL = [
     'Assets/scene/mountains.png', // backdrop (2026-11-07)
     'Assets/scene/treeline.png',
     'Assets/scene/village-field.png',
-    'Assets/scene/graveyard-hill.png', // graveyard mound (2026-11-08)
-    'Assets/scene/graveyard-tree-1.png', // growing tree: sapling / young / giant (2026-11-08)
-    'Assets/scene/graveyard-tree-2.png',
-    'Assets/scene/graveyard-tree-3.png',
-    'Assets/scene/headstone-0.png', // milestone markers: cross, Bronze, Silver, Gold, Platinum (2026-11-08)
+    'Assets/scene/graveyard-ground.png', // graveyard v3 (2026-11-23): flat ground + back fence + front fence, shown at 2x
+    'Assets/scene/graveyard-fence-back.png',
+    'Assets/scene/graveyard-fence-front.png',
+    'Assets/scene/headstone-0.png', // milestone markers (Headstones v2, 24x24 shown at 2x, 2026-11-23): cross, flat marker, rough stone, granite, marble
     'Assets/scene/headstone-1.png',
     'Assets/scene/headstone-2.png',
     'Assets/scene/headstone-3.png',

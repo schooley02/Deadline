@@ -669,10 +669,10 @@ const State = (() => {
         resetBestVillageTiers();
         setBestVillageTiers(save.bestVillageTiers);
         setBestVillageTiers((typeof Memorial !== 'undefined') ? Memorial.fromHistory(getRunHistory()) : null);
-        // Growing tree (2026-11-08, js/treeGrowth.js): the lifetime night bank. A save from before this field gets the nights of every run still
-        // in history (the run in progress counts live, so it is NOT in the seed). A saved number is the truth and is never re-seeded.
-        if (typeof TreeGrowth !== 'undefined' && typeof restoredLifetimeStats.nightsSurvived !== 'number') {
-            restoredLifetimeStats.nightsSurvived = TreeGrowth.seedBanked(getRunHistory());
+        // The lifetime night bank (2026-11-08; Achievements.seedNightsBanked since the graveyard tree left, 2026-11-23): a save from before this field gets the
+        // nights of every run still in history (the run in progress counts live, so it is NOT in the seed). A saved number is the truth and is never re-seeded.
+        if (typeof restoredLifetimeStats.nightsSurvived !== 'number') {
+            restoredLifetimeStats.nightsSurvived = Achievements.seedNightsBanked(getRunHistory());
         }
         // Goals (2026-11-05): repaired on the way in; the slot mark catches up with the restored level, and a save that has never seen
         // the suggested starters (a migrated one) gets them now.

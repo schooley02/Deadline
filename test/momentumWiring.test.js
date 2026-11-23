@@ -225,10 +225,11 @@ describe('script.js: one number for every reader', () => {
         expect(body).toContain('State.getMomentumFromDay()');
         expect(body).toContain('(State.getRunHistory() || []).length + 1');
     });
-    test('the village, the tree (both reads), the run stats, game over and the moon all use it', () => {
+    test('the village, the Stats lifetime-nights line, the run stats, game over and the moon all use it (the tree reads went with the tree, 2026-11-23)', () => {
         expect(script).toMatch(/nightsSurvived: nightsSurvivedNow\(\)/);
         expect(script).toMatch(/countsAsNight: \(rec\) => Momentum\.countsAsNight\(rec, State\.getMomentumFromDay\(\)\)/);
-        expect((script.match(/const current = nightsSurvivedNow\(\);/g) || []).length).toBe(2);
+        expect((script.match(/const current = nightsSurvivedNow\(\);/g) || []).length).toBe(0); // the two tree reads are gone
+        expect(script).toMatch(/Achievements\.lifetimeNights\(stats\.nightsSurvived, nightsSurvivedNow\(\), State\.isGameOver\(\)\)/);
         expect(script).toMatch(/daysSurvivedSoFar: nightsSurvivedNow\(\)/);
         expect(script).toMatch(/getNightsSurvived: \(\) => nightsSurvivedNow\(\)/);
         expect(script).toMatch(/getNights: nightsSurvivedNow/);

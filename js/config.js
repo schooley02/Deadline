@@ -582,70 +582,55 @@ const CONFIG = {
     GROUND_LANE_FEET_TOP_FRAC: 0.72,
     GROUND_LANE_FEET_BOTTOM_FRAC: 0.99,
 
-    // --- Graveyard zone (V7 W0, 2026-10-28; docs/WORLD_FEEDBACK_PLAN.md) ---
-    // Landscape + desktop only (hidden in the portrait glance strip). A fixed-width hill on the
-    // RIGHT of #gameCanvas holds one headstone per achievement family in staggered lanes; the
-    // zombie field ends where the hill starts (script.js refreshLayoutDims subtracts the zone's
-    // measured width, so parked/spawning zombies stand just left of it). The tree is its own
-    // graphic pushed partly off the right edge. Layout constants, not balance.
-    GRAVEYARD_HILL_WIDTH_PX: 140,
-    // Height of the hill's flat top above the canvas bottom = the visible rows of Assets/scene/graveyard-hill.png (192x128, 2026-11-08;
-    // the art is 192 wide so its low left slope runs 52px past the 140px zone, drawn BEHIND the zombies; the zone/tap width stays 140).
-    GRAVEYARD_HILL_HEIGHT_PX: 101,
+    // --- Graveyard zone (V7 W0, 2026-10-28; docs/WORLD_FEEDBACK_PLAN.md; v3 WIRED 2026-11-23, docs/ART_STYLE "Graveyard v3") ---
+    // Landscape + desktop only (hidden in the portrait glance strip). A fixed-width FLAT fenced plot on the RIGHT of #gameCanvas (no hill, no tree):
+    // the zombie field ends at its left edge (script.js refreshLayoutDims subtracts the zone's measured width, so parked/spawning zombies stand just
+    // left of it). Three layers (Assets/scene/graveyard-ground / -fence-back / -fence-front.png, 84px-wide art) are drawn at 2x,
+    // pixelated, on ONE shared origin that is GRAVEYARD_ART_REACH_PX LEFT of the zone's left edge (art x 0 = 48px left of the zone; bottom row = the
+    // canvas bottom). The ground and both fences run out over the lane band BEHIND the zombies (zone z 6 < zombies 30+). Paint order, back to front:
+    // ground -> fence back -> Memorial + headstones -> fence front (in front of the stones; takes no taps). Layout constants, not balance.
+    GRAVEYARD_HILL_WIDTH_PX: 120, // name kept for the readers (villageLayout, script.js, tests): the zone's width; the plot is flat. Was 140 with the hill.
+    GRAVEYARD_HILL_HEIGHT_PX: 72, // the lane band's top edge: the back fence run stands on it (also the zone box's height, --gy-hill-h)
+    GRAVEYARD_ART_REACH_PX: 48, // how far the three layers reach left of the zone (also the stones layer's left clip, css/graveyard.css --gy-reach)
     GRAVEYARD_LANES: 3,
     GRAVEYARD_LANE_RISE_PX: 28, // each back lane sits this much higher up the hill
     GRAVEYARD_STONE_PITCH_PX: 44, // = tap-target width; odd lanes shift by half a pitch into the gaps
     GRAVEYARD_STONE_HIT_PX: 44, // minimum tap box (visual art can be smaller)
     GRAVEYARD_PAD_PX: 6,
-    GRAVEYARD_TRUNK_PX: 24, // old placeholder tree's visible trunk strip (unused since the PixelLab tree, 2026-11-08)
-    // Growing tree (2026-11-08; Assets/scene/graveyard-tree-1..3.png, js/treeGrowth.js, docs/ART_STYLE "Growing tree"): sapling / young / giant by
-    // LIFETIME nights survived. The three PNGs are 192x128, drawn 1:1, and share ONE trunk base: art column TRUNK_COL stands BASE_X_PX in from the
-    // zone's left edge, and the art's bottom edge sinks SINK_PX below the hill's flat top (roots on the slope). The tree sits in a clipper that is cut
-    // at the zone's right edge (#gameCanvas is overflow:visible). The giant's canopy reaches up to the Nights Survived label (the label has its own
-    // dark backing for that) and spreads left over the Armory's tower. TREE_STAGE_NIGHTS = [young at, giant at]: first values (Jeremy, 2026-11-08).
-    GRAVEYARD_TREE_ART_W_PX: 192,
-    GRAVEYARD_TREE_ART_H_PX: 128,
-    GRAVEYARD_TREE_TRUNK_COL: 146,
-    GRAVEYARD_TREE_BASE_X_PX: 110,
-    GRAVEYARD_TREE_SINK_PX: 5, // was 15; raised 10px 2026-11-08 (Jeremy: more ground above it)
-    GRAVEYARD_TREE_CLIP_LEFT_PX: 80, // how far the clipper reaches left of the zone (the canopy overhangs the field)
-    // The tree's one tap box (opens the Tree window, js/ui/treePanel.js): the 44px strip of zone to the right of the Memorial's tap box (which spans
-    // x 24-96), so the two never overlap. It stands on the trunk's base (bottom = hill height - sink) and rises hitH (2026-11-08).
-    GRAVEYARD_TREE_HIT_LEFT_PX: 96,
-    GRAVEYARD_TREE_HIT_W_PX: 44,
-    GRAVEYARD_TREE_HIT_H_PX: 110,
-    TREE_STAGE_NIGHTS: [30, 100],
-    // Milestone markers (2026-11-08; Assets/scene/headstone-0..4.png, js/milestoneMarkers.js, js/ui/markerPanel.js, docs/ART_STYLE "Milestone markers"):
-    // one small marker per all-time achievement family standing on the hill's face, showing how far that family has come (no badge yet = a
-    // wooden cross, then Bronze / Silver / Gold / Platinum, one picture each). Jeremy's picks: the seven families that have tiers to climb, in slot
-    // order (Back in Black is a single badge, so it has none). MARKER_SLOTS: x = the picture's centre column in px from the zone's left edge,
-    // feet = its bottom row in px above the canvas bottom. The five PNGs are 32x32, drawn scaled to MARKER_ART_PX square (48 = 1.5x, pixelated; 2026-11-08 Jeremy: bigger, easier to tap), every stone centred on column 16
-    // with the same dirt lip on its bottom three rows. The layer is clipped at the zone's right edge and 52px past its left, so keep x between -30 and 118 (the stone itself is ~44px wide at
-    // 48px; the left reach is the hill's low slope, which runs 52px past the zone, and css/graveyard.css clips the layer at -52). Every marker opens ONE window listing all of them; the tap box is MARKER_HIT_PX square (>= 44), so neighbours
-    // overlap and the one drawn in front takes the tap (they all go to the same window).
+    GRAVEYARD_TRUNK_PX: 24, // LEGACY: right-edge reserve of GraveyardLayout.stoneSlots() (the old placeholder tree's trunk strip); the game no longer calls it
+    // Milestone markers (2026-11-08; Assets/scene/headstone-0..4.png, js/milestoneMarkers.js, js/ui/markerPanel.js, docs/ART_STYLE "Milestone markers" +
+    // "Headstones v2"): one marker per all-time achievement family standing in the plot, showing how far that family has come (no badge yet = a wooden
+    // cross, then Bronze / Silver / Gold / Platinum, one picture each). Jeremy's picks: the seven families that have tiers to climb, in slot order
+    // (Back in Black is a single badge, so it has none). v2 (2026-11-23): the five PNGs are 24x24 shown at EXACTLY 2x = MARKER_ART_PX 48, each form and
+    // material different, centred on columns 11/12, foot on row 22, row 23 = grass shadow. MARKER_SLOTS: x = the picture's centre column in px from the
+    // zone's left edge, feet = its bottom row in px above the canvas bottom: an even staggered grid, 46px apart in a row, rows 18px apart (graveyard-v3
+    // NOTES.md), listed front row first, left to right (slot i = family i). The layer is clipped at the zone's right edge and GRAVEYARD_ART_REACH_PX past
+    // its left, so every 48px stone fits (x = 98 ends exactly on the zone's right edge, x = 6 reaches 18px left of it). Every marker opens ONE window listing
+    // all of them; the tap box is MARKER_HIT_PX square (>= 44), so neighbours overlap and the one drawn in front takes the tap (same window).
+    // The front fence is drawn OVER the front row and takes no taps; the add-task (+) button covers part of the two right front stones on a landscape phone
+    // (left as designed, Jeremy 2026-11-23: judge it on the phone first).
     MARKER_FAMILIES: ['task_slayer', 'habit_hero', 'survivor', 'clean_sweep', 'on_fire', 'iron_will', 'honor_roll'],
     MARKER_SLOTS: [
-        { x: 10, feet: 48 },
-        { x: 94, feet: 44 },
-        { x: 118, feet: 62 },
-        { x: 46, feet: 38 },
-        { x: 70, feet: 24 },
-        { x: 118, feet: 22 },
-        { x: 22, feet: 18 },
+        { x: 6, feet: 8 },
+        { x: 52, feet: 8 },
+        { x: 98, feet: 8 },
+        { x: 29, feet: 26 },
+        { x: 75, feet: 26 },
+        { x: 52, feet: 44 },
+        { x: 98, feet: 44 },
     ],
     MARKER_ART_PX: 48,
     MARKER_HIT_PX: 48,
-    MARKER_Z_BASE: 21, // above the Memorial's 20 and the tree's tap box (10): a marker standing over the obelisk's base takes its own tap
-    // Memorial obelisk (2026-11-08; Assets/Village/memorial_t1..t5.png, js/memorial.js, docs/ART_STYLE "Memorial obelisk T1-T5"). It replaced the six
-    // placeholder headstones: ONE sprite on the hill's flat top, drawn in front of the tree. Placement decided with Jeremy on mocks of the real
-    // layers: the plinth's bottom row stands FEET_PX above the canvas bottom (the hill rim is 101, so ~14px of plinth sits down in the lighter top
-    // band) and the sprite's centre column is CENTER_X_PX in from the zone's left edge. Do not make a stage taller or raise the feet (the tip
-    // touches the moon's bottom at 1280x720). The PNGs are 128x192, drawn 1:1, bottom-aligned; PLINTH_ROW is the last plinth row (0-based).
+    MARKER_Z_BASE: 21, // above the Memorial's 20: a marker standing over the obelisk's base takes its own tap
+    // Memorial obelisk (2026-11-08; Assets/Village/memorial_t1..t5.png, js/memorial.js, docs/ART_STYLE "Memorial obelisk T1-T5"): ONE sprite in the plot,
+    // drawn behind the headstones. v3 (2026-11-23): the plinth's bottom row stands FEET_PX above the canvas bottom and the sprite's centre column is
+    // CENTER_X_PX in from the zone's left edge (was 60 / 74 on the hill). Do not make a stage taller or raise the feet (the tip touches the moon's
+    // bottom at 1280x720). The PNGs are 128x192, drawn 1:1, bottom-aligned; PLINTH_ROW is the last plinth row (0-based).
     GRAVEYARD_MEMORIAL_ART_W_PX: 128,
     GRAVEYARD_MEMORIAL_ART_H_PX: 192,
     GRAVEYARD_MEMORIAL_PLINTH_ROW: 181,
-    GRAVEYARD_MEMORIAL_FEET_PX: 74, // was 86 / 92: moved down-left on 2026-11-08 so the growing tree's trunk shows beside it (Jeremy)
-    GRAVEYARD_MEMORIAL_CENTER_X_PX: 60,
+    GRAVEYARD_MEMORIAL_FEET_PX: 54,
+    GRAVEYARD_MEMORIAL_CENTER_X_PX: 75,
     GRAVEYARD_MEMORIAL_HIT_W_PX: 72, // the one tap box (>= 44), centred on the obelisk
     GRAVEYARD_MEMORIAL_HIT_H_PX: 132, // from the plinth up = the obelisk's height
     // Past-run graves creep out of the hill across the field: newest next to the hill, oldest
@@ -723,18 +708,18 @@ const CONFIG = {
     // Visible-art extent [left, right) inside each kind's 128px canvas, the UNION over its five tiers (measured from the shipped sprites, 2026-10-30).
     // Collision, the church/hill edges and the back-row overlap use THESE, not the 128px boxes (most of a box is empty air), so five buildings fit.
     // ---- Village ARRANGEMENT (2026-10-30 night, Jeremy + Claude; DECISIONS "Village arrangement"). Designed for a landscape
-    // phone (817px wide = a 517px walking field) and anchored to the graveyard hill. `right` = px from the field's right edge
+    // phone (817px wide = a 537px walking field since graveyard v3, was 517) and anchored to the graveyard hill. `right` = px from the field's right edge
     // (the hill) to the building's visible-art right edge (> 0 = tucked behind the hill); narrower fields scale it by
     // field / VILLAGE_DESIGN_FIELD_PX; wider ones keep the same cluster and CENTRE it in the field (Jeremy 2026-10-30). Rows by DOOR SIZE: front doors ~26-31px, back ~16-21, far ~17-18.
     // Only short buildings may stand in the ~90px under the moon + "NIGHTS SURVIVED" label. `flip` mirrors the sprite.
-    VILLAGE_DESIGN_FIELD_PX: 517,
+    VILLAGE_DESIGN_FIELD_PX: 537, // 817 - 120 (zone, was 140 until graveyard v3, 2026-11-23: 517) - 160 (church): every `right` below keeps its distance from the plot's left edge at 817
     VILLAGE_PLACEMENT: {
         lurkers: { row: 'front', right: -323 },          // Gym (192x160 3/4 art, 2026-11-14): art is 189px wide, so `right` moved +78 (was -401 for 111px) to keep its LEFT edge exactly where it was, clear of the church
         punctuality: { row: 'front', right: -224 },      // Clock tower, centre
         defense: { row: 'front', right: -24, raise: 12 }, // Police station (160x160 3/4 art, 2026-11-14), under the moon; `raise` = px further back (up) than the row's feet, so the officers read smaller like the Gym athletes (Jeremy: bases line up with the Gym at +7, go further back)
         habits: { row: 'back', right: -320 },            // Hospital (160x128 3/4 art, 2026-11-15; art is 153px wide, was 110): `right` -305 -> -320 so the wider art ends 3px left of the Clock tower (the ambulance stays visible) and clears the High school at every width (-305 overlapped it 8px at 640); the left end passes behind the Gym
         heroes: { row: 'back', right: -118 },            // High school (160x128 3/4 art, 2026-11-16; art is 156px wide, was 119): `right` unchanged so its right edge stays put and the Command Post still clears it at 817+; the extra width grows left into the gap before the Hospital
-        slain: { row: 'back', right: 41 },               // Command Post (160x160 3/4 art, 2026-11-15, interim back-row spot; right 40 -> 41 so the 159px-wide art clears the High school at 817; the old 128px Armory note follows): nudged 26px left on 2026-11-08 (was 66; first 44 left, then 18 back right after Jeremy's phone check) so the grown tree's canopy leaves most of its tower clear; 16px over the High school at 640 wide only
+        slain: { row: 'back', right: 41 },               // Command Post (160x160 3/4 art, 2026-11-15, interim back-row spot; right 40 -> 41 so the 159px-wide art clears the High school at 817; the old 128px Armory note follows): nudged 26px left on 2026-11-08 (was 66; first 44 left, then 18 back right after Jeremy's phone check) so the (since removed, 2026-11-23) growing tree's canopy left most of its tower clear, kept there as the distance to the plot is unchanged; 16px over the High school at 640 wide only
         bestdays: { row: 'far', right: -406, flip: true }, // Windmill, wheel over the gym + hospital (mirrored)
         nights: { row: 'far', right: -119, flip: true },   // Radio mast, right of the HUD Points button (mirrored)
     },

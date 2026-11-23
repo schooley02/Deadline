@@ -274,7 +274,7 @@ const HowItWorks = (() => {
             title: 'Nights and momentum',
             what: [
                 `A night counts only when you defended it. A day is defended when you finish at least 1 priority task or fully complete at least 1 routine. A priority task has to be at least ${minAge} minutes old when you finish it, so making a task and finishing it at once does not count. It still pays its points. Finishing late still counts.`,
-                `Nights Survived, the Radio tower, the Survivor badge and the tree count defended nights. A night you were away, or did nothing, adds nothing.`,
+                `Nights Survived, the Radio tower, the Survivor badge and the lifetime total on the Stats tab count defended nights. A night you were away, or did nothing, adds nothing.`,
                 `Momentum is how many of your last ${windowNights} nights you defended. Today counts as soon as you secure it, and a day you have not secured yet never lowers it. Any day you did not defend counts as missed, whether you opened the game or not, so momentum slides while you are away or do nothing, and you rebuild it by securing days again.`,
                 `A Sick Day is skipped: it is not missed, and the count looks one night further back. Skip Day and Cheat Day cover one habit and do not change momentum.`,
                 stateLine,

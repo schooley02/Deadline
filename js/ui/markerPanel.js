@@ -1,6 +1,6 @@
 /**
  * MarkerPanel -- the window behind the milestone markers on the graveyard hill (2026-11-08, Jeremy: every marker opens ONE window that lists them all,
- * with the one he tapped highlighted). Modelled on TreePanel / MemorialPanel. Opened by tapping any marker (js/ui/graveyardView.js) and by the link at the
+ * with the one he tapped highlighted). Modelled on MemorialPanel. Opened by tapping any marker (js/ui/graveyardView.js) and by the link at the
  * bottom of the Village panel, which is how a portrait phone reaches it (the graveyard is hidden in the portrait strip).
  *
  * One row per all-time achievement: the marker's picture at 2x, its name, the tier it has reached (or "No badge yet"), a bar toward the next tier and
@@ -9,7 +9,7 @@
  * READ-ONLY and REAL: the caller (script.js openMarkerPanel) passes the real unlocked tiers and lifetime stats, never the DEV panel's marker chips or
  * `?markers=`, so this window always tells the truth about the save. Nothing here saves, pays or reads State.
  *
- * PURE / DOM split like TreePanel: `buildModel` and `panelHtml` are pure and unit-tested (test/markerPanel.test.js); `open` is DOM.
+ * PURE / DOM split like MemorialPanel: `buildModel` and `panelHtml` are pure and unit-tested (test/markerPanel.test.js); `open` is DOM.
  * Globals read at call time: MilestoneMarkers (js/milestoneMarkers.js), Theme (js/theme.js, every player-facing word), Modal (open).
  *
  * buildModel(ctx): ctx = { catalog, ids, unlocked, stats, selected }   (selected = the tapped marker's id, or null)

@@ -166,7 +166,7 @@ describe('resolveDevJailTier (dev only: ?jailTier=)', () => {
 
 
 describe('villageSlots', () => {
-    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 140) =>
+    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 120) =>
         VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, OPTS);
 
 
@@ -244,14 +244,14 @@ describe('clock tower fit on short canvases (the tower is 246px of art, so short
     });
 
     test('the jail stands on the same row as the tower when both show (even when lowered)', () => {
-        const s = VillageLayout.villageSlots(1265, 298, 160, 140, { punctuality: 3, defense: 3 }, OPTS);
+        const s = VillageLayout.villageSlots(1265, 298, 160, 120, { punctuality: 3, defense: 3 }, OPTS);
         expect(s).toHaveLength(2);
         expect(s[0].feetY).toBe(s[1].feetY);
         expect(s[0].feetY).toBe(feet(298));
     });
 
     test('with no tower the jail uses the plain horizon', () => {
-        const s = VillageLayout.villageSlots(1265, 298, 160, 140, { defense: 3 }, OPTS);
+        const s = VillageLayout.villageSlots(1265, 298, 160, 120, { defense: 3 }, OPTS);
         expect(s[0].feetY).toBe(base(298));
     });
 
@@ -262,7 +262,7 @@ describe('clock tower fit on short canvases (the tower is 246px of art, so short
 
 // ---- Armory (kind `slain`), added 2026-10-29: survivor army camp, right of the tower ----
 describe('Armory', () => {
-    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 140) =>
+    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 120) =>
         VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, OPTS);
     const ALL = { punctuality: 3, defense: 3, slain: 3 };
 
@@ -312,7 +312,7 @@ describe('Armory', () => {
 
 // ---- Radio tower (kind `nights`, a BACK-ROW building), added 2026-10-29 ----
 describe('Radio tower (back row)', () => {
-    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 140, opts = OPTS) =>
+    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 120, opts = OPTS) =>
         VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts);
     const FRONT = { punctuality: 3, defense: 3, slain: 3 };
     const ALL = { ...FRONT, nights: 3 };
@@ -371,7 +371,7 @@ describe('Radio tower (back row)', () => {
 
 // ---- Gym (kind `lurkers` = willpower, a FRONT-row building), added 2026-10-30 ----
 describe('Gym (front row) + art-box collision', () => {
-    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 140, opts = OPTS) =>
+    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 120, opts = OPTS) =>
         VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts);
     const FOUR = { punctuality: 3, defense: 3, slain: 3, lurkers: 3 };
     const ALL = { ...FOUR, nights: 3 };
@@ -408,7 +408,7 @@ describe('Gym (front row) + art-box collision', () => {
 
     test('Police station `raise`: stands the sprite 12px further back than the front row, feet / haze line unchanged', () => {
         expect(CONFIG.VILLAGE_PLACEMENT.defense.raise).toBe(12);
-        const s = Object.fromEntries(VillageLayout.villageSlots(817, 296, 160, 140, { punctuality: 3, defense: 3, lurkers: 3 }, OPTS).map(x => [x.kind, x]));
+        const s = Object.fromEntries(VillageLayout.villageSlots(817, 296, 160, 120, { punctuality: 3, defense: 3, lurkers: 3 }, OPTS).map(x => [x.kind, x]));
         expect(s.defense.feetY).toBe(s.punctuality.feetY); // feetY stays the row's horizon (the haze plan reads it)
         expect(s.defense.top).toBe(s.defense.feetY - s.defense.height - 12);
         expect(s.defense.raise).toBe(12);
@@ -419,7 +419,7 @@ describe('Gym (front row) + art-box collision', () => {
     test('a missing, negative or junk `raise` means no raise', () => {
         [undefined, -5, 'x', NaN].forEach(r => {
             const o = { ...OPTS, placement: { defense: { row: 'front', right: -24, raise: r } } };
-            const [d] = VillageLayout.villageSlots(817, 296, 160, 140, { defense: 3 }, o);
+            const [d] = VillageLayout.villageSlots(817, 296, 160, 120, { defense: 3 }, o);
             expect(d.top).toBe(d.feetY - d.height);
             expect(d.raise).toBeUndefined();
         });
@@ -427,7 +427,7 @@ describe('Gym (front row) + art-box collision', () => {
 
     test('Police station clears the Clock tower and the church at the design width and the smallest screens (800 wide)', () => {
         [817, 800, 844].forEach(w => {
-            const s = Object.fromEntries(VillageLayout.villageSlots(w, 360, 160, 140, { punctuality: 3, defense: 3, lurkers: 3 }, OPTS).map(x => [x.kind, x]));
+            const s = Object.fromEntries(VillageLayout.villageSlots(w, 360, 160, 120, { punctuality: 3, defense: 3, lurkers: 3 }, OPTS).map(x => [x.kind, x]));
             expect(s.defense).toBeDefined(); // never dropped
             expect(s.defense.artLeft).toBeGreaterThan(s.punctuality.artRight); // no overlap with the tower art
         });
@@ -494,7 +494,7 @@ describe('Gym (front row) + art-box collision', () => {
 
 // ---- High school (kind `heroes`, a BACK-ROW building between the tower and the gym), added 2026-10-30 ----
 describe('High school (back row)', () => {
-    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 140, opts = OPTS) =>
+    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 120, opts = OPTS) =>
         VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts);
     const FIVE = { punctuality: 3, defense: 3, slain: 3, lurkers: 3, nights: 3 };
     const ALL = { ...FIVE, heroes: 3 };
@@ -563,7 +563,7 @@ describe('High school (back row)', () => {
 
 // ---- Hospital (kind `habits`, a BACK-ROW building between the gym and the Armory), added 2026-10-30 (placeholder art) ----
 describe('Hospital (back row)', () => {
-    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 140, opts = OPTS) =>
+    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 120, opts = OPTS) =>
         VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts);
     const SIX = { punctuality: 3, defense: 3, slain: 3, lurkers: 3, nights: 3, heroes: 3 };
     const ALL = { ...SIX, habits: 3 };
@@ -643,7 +643,7 @@ describe('Hospital (back row)', () => {
 
 // ---- Windmill (kind `bestdays`), the first FAR-ROW building, PLACEHOLDER art 2026-10-30 ----
 describe('Windmill (far row)', () => {
-    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 140, opts = OPTS) =>
+    const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 120, opts = OPTS) =>
         VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts);
     const SEVEN = { punctuality: 3, defense: 3, slain: 3, lurkers: 3, nights: 3, heroes: 3, habits: 3 };
     const ALL = { ...SEVEN, bestdays: 3 };
@@ -713,7 +713,7 @@ describe('resolveTier (Build 2, 2026-10-30): the REAL tier unless the URL overri
 describe('arrangement / placement model (2026-10-30 night): designed for the landscape phone, anchored to the graveyard', () => {
     const ALL8 = { punctuality: 3, defense: 3, slain: 3, nights: 3, lurkers: 3, heroes: 3, habits: 3, bestdays: 3 };
     const P = CONFIG.VILLAGE_PLACEMENT;
-    const at = (w, h = 296, tiers = ALL8, hill = 140) => VillageLayout.villageSlots(w, h, 160, hill, tiers, OPTS);
+    const at = (w, h = 296, tiers = ALL8, hill = 120) => VillageLayout.villageSlots(w, h, 160, hill, tiers, OPTS);
     const byKind = s => Object.fromEntries(s.map(x => [x.kind, x]));
 
     test('CONFIG and the module defaults agree; every kind has a row', () => {
@@ -729,10 +729,10 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
         expect(rows('far')).toEqual(['bestdays', 'nights']);
     });
 
-    test('at the design width (817 = a 517px field) every art right edge sits exactly `right` px from the hill', () => {
+    test('at the design width (817 = a 537px field) every art right edge sits exactly `right` px from the hill', () => {
         const s = at(817);
         expect(s).toHaveLength(8);
-        const fieldRight = 817 - 140;
+        const fieldRight = 817 - 120;
         s.forEach(x => expect(x.artRight).toBe(fieldRight + P[x.kind].right));
     });
 
@@ -749,8 +749,8 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
             // the cluster sits in the middle: equal open field (within 1px) left of the leftmost and right of the rightmost design edge
             const lefts = Object.values(s).map(x => x.artLeft);
             const leftGap = Math.min(...lefts) - 160;
-            const designRight = (w - 140) - shift; // where the hill would be for the phone layout
-            expect(Math.abs(leftGap - ((w - 140) - designRight) - (phone.lurkers.artLeft - 160))).toBeLessThanOrEqual(1);
+            const designRight = (w - 120) - shift; // where the hill would be for the phone layout
+            expect(Math.abs(leftGap - ((w - 120) - designRight) - (phone.lurkers.artLeft - 160))).toBeLessThanOrEqual(1);
         });
     });
 
@@ -766,7 +766,7 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
     });
 
     test('a field too narrow drops buildings (never moves the rest); below VILLAGE_MIN_FIELD_PX nothing shows', () => {
-        expect(at(160 + 140 + CONFIG.VILLAGE_MIN_FIELD_PX - 1)).toEqual([]);
+        expect(at(160 + 120 + CONFIG.VILLAGE_MIN_FIELD_PX - 1)).toEqual([]);
         expect(at(817, 296, ALL8, 0)).toEqual([]); // portrait strip
     });
 
@@ -796,7 +796,7 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
     });
 
     // 2026-11-14: the Gym is now 192x160 three-quarter art (189px of visible art vs 111 before), anchored by its LEFT edge at the church, so its right
-    // edge reaches the Clock tower on fields narrower than the 517px design field. At the phone width (817) there is a 6px gap; at 800 (the smallest screen in
+    // edge reaches the Clock tower on fields narrower than the 537px design field. At the phone width (817) there is a 6px gap; at 800 (the smallest screen in
     // docs/ART_STYLE "Village 2.0") they touch by 1px; below 800 the Gym overlaps the tower (pinned so it cannot get worse). The full re-arrangement
     // (Village 2.0 "NEW ARRANGEMENT") will replace this; until then nothing else may overlap.
     test('front-row buildings never overlap each other at 817+, and back-row buildings never overlap each other', () => {
@@ -848,7 +848,7 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
 
     test('the phone width is unchanged by centring (the field is exactly the design width)', () => {
         const s = byKind(at(817));
-        expect(s.slain.artRight).toBe(817 - 140 + P.slain.right);
+        expect(s.slain.artRight).toBe(817 - 120 + P.slain.right);
     });
 
     test('Command Post over the High school: clear at 817+, then never worse than pinned (800 / 700 / 640)', () => {
@@ -871,7 +871,7 @@ describe('arrangement / placement model (2026-10-30 night): designed for the lan
     test('only short buildings stand under the moon (the ~90px left of the hill) at the design width and wider', () => {
         const SHORT = ['defense', 'slain', 'heroes', 'lurkers'];
         [817, 1366].forEach((w) => {
-            const fieldRight = w - 140;
+            const fieldRight = w - 120;
             at(w).forEach((x) => {
                 if (x.artRight > fieldRight - 90 && x.artLeft < fieldRight + 6) expect(SHORT).toContain(x.kind);
             });

@@ -26,6 +26,13 @@
     margin-bottom: var(--space-2);
 }
 
+.stats-lifetime-nights {
+    font-size: 13px;
+    color: var(--color-neutral);
+    margin-bottom: var(--space-2);
+}
+.stats-lifetime-nights strong { color: inherit; font-weight: 700; }
+
 .stats-counter-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));

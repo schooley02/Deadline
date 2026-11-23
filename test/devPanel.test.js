@@ -298,39 +298,35 @@ describe('clicks never bubble out (Modal dismiss would close a window underneath
     });
 });
 
-describe('graveyard monument + tree sections (2026-11-08)', () => {
-    test('the model lists Real + 1..5 (monument) and Real + the three named tree stages, with the chosen one selected', () => {
+describe('graveyard monument section (2026-11-08; the tree section went with the tree, 2026-11-23)', () => {
+    test('the model lists Real + 1..5 (monument) with the chosen one selected, and has no tree', () => {
         const none = DevPanel.panelModel({ enabled: true });
         expect(none.memorial.map((c) => c.value)).toEqual(['real', '1', '2', '3', '4', '5']);
-        expect(none.tree.map((c) => c.value)).toEqual(['real', '1', '2', '3']);
-        expect(none.tree.map((c) => c.label)).toEqual(['Real', '1 Sapling', '2 Young', '3 Giant']);
+        expect(none.tree).toBeUndefined();
         expect(none.memorial[0].selected).toBe(true);
-        expect(none.tree[0].selected).toBe(true);
-        const m = DevPanel.panelModel({ enabled: true, memorial: 4, tree: 3, active: true });
+        const m = DevPanel.panelModel({ enabled: true, memorial: 4, active: true });
         expect(m.memorial.filter((c) => c.selected).map((c) => c.value)).toEqual(['4']);
-        expect(m.tree.filter((c) => c.selected).map((c) => c.value)).toEqual(['3']);
     });
 
-    test('the panel has a Graveyard monument section and a Graveyard tree section', () => {
+    test('the panel has a Graveyard monument section and no tree section', () => {
         const html = DevPanel.panelHtml(DevPanel.panelModel({ enabled: true }));
         expect(html).toContain('Graveyard monument');
-        expect(html).toContain('Graveyard tree');
+        expect(html).not.toContain('Graveyard tree');
         expect(html).toContain('data-dev-memorial="5"');
-        expect(html).toContain('data-dev-tree="3"');
+        expect(html).not.toContain('data-dev-tree');
     });
 
-    test('tapping a chip sets the demo; Real clears it; Reset clears both', () => {
+    test('tapping a chip sets the demo; Real clears it; Reset clears it', () => {
         DevPanel.init({ demo: DevDemo });
         DevPanel.setEnabled(true);
         click(btn());
         click(q('[data-dev-memorial="5"]'));
-        click(q('[data-dev-tree="2"]'));
-        expect(DevDemo.snapshot()).toMatchObject({ memorial: 5, tree: 2, active: true });
+        expect(DevDemo.snapshot()).toMatchObject({ memorial: 5, active: true });
         expect(q('[data-dev-memorial="5"]').getAttribute('aria-pressed')).toBe('true');
-        click(q('[data-dev-tree="real"]'));
-        expect(DevDemo.snapshot().tree).toBeNull();
+        click(q('[data-dev-memorial="real"]'));
+        expect(DevDemo.snapshot().memorial).toBeNull();
         click(q('[data-dev-reset]'));
-        expect(DevDemo.snapshot()).toMatchObject({ memorial: null, tree: null, active: false });
+        expect(DevDemo.snapshot()).toMatchObject({ memorial: null, active: false });
     });
 });
 

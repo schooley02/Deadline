@@ -3,10 +3,11 @@
  * docs/WORLD_FEEDBACK_PLAN.md). The maths is in js/graveyardLayout.js (pure, unit-tested);
  * this file only measures the canvas, writes element positions and wires the taps.
  *
- *   #graveyardZone   fixed-width hill on the right (CONFIG.GRAVEYARD_HILL_WIDTH_PX) with ONE Memorial obelisk on its flat top
- *                    (2026-11-08; it replaced the six placeholder headstones, one per achievement family). The sprite is the
- *                    Memorial's stage (js/memorial.js: floor of the average of the 8 buildings' all-time best tiers), drawn in front
- *                    of the tree; one tap box opens the Memorial window (js/ui/memorialPanel.js; run graves still open Stats).
+ *   #graveyardZone   the fixed-width FLAT fenced plot on the right (CONFIG.GRAVEYARD_HILL_WIDTH_PX, 120; graveyard v3, 2026-11-23: no hill, no
+ *                    tree). Its three picture layers (ground, fence back, fence front) are CSS-drawn at 2x (css/graveyard.css); the
+ *                    stones layer holds the ONE Memorial obelisk (the Memorial's stage, js/memorial.js: floor of the average of the 8
+ *                    buildings' all-time best tiers) and the seven headstones. One tap box opens the Memorial window
+ *                    (js/ui/memorialPanel.js; run graves still open Stats). The front fence is drawn over the stones and takes no taps.
  *   #runGraves       past-run graves on the ZOMBIE lanes (newest next to the hill). Each is a
  *                    direct child with its own z-index just under its lane's zombies (lane L
  *                    zombies own z CONFIG.LIST_Z_MIN + L*CONFIG.LIST_Z_LANE_STRIDE and up), so
@@ -20,24 +21,21 @@
  *
  * Deps: { getRunHistory: () => newest-first array of run records ({ run: n, ... }),
  *         getMemorialStage: () => 1..5, or null to hide the obelisk (DEV: ?memorialTier=off),
- *         getTreeStage: () => 1..3 (sapling / young / giant by lifetime nights, js/treeGrowth.js), or null to hide the tree (DEV: ?treeStage=off),
  *         onOpenMemorial: () => void   (the obelisk's tap),
- *         onOpenTree: () => void       (the tree's tap box, beside the obelisk; opens the Tree window),
  *         getMarkers: () => [{ id, name, stage, tierLabel }] in slot order (js/milestoneMarkers.js: one small stone per all-time achievement,
  *                      stage 0..4), or null to hide them (DEV: ?markers=off),
  *         onOpenMarkers: (id) => void  (a marker's tap; every marker opens the same window, which highlights `id`),
  *         onOpenStats: () => void }   (a run grave's tap)
  *
- * Milestone markers (2026-11-08): up to CONFIG.MARKER_SLOTS.length small stones on the hill's face, between the Memorial and the tree's trunk
- * and below the obelisk. They share the stones layer (so they are clipped at the zone's edges) and draw in front of the Memorial (z >= CONFIG.MARKER_Z_BASE).
+ * Milestone markers (2026-11-08; v2 2026-11-23): up to CONFIG.MARKER_SLOTS.length 48px stones (24x24 art at 2x) on the plot's staggered grid. They share
+ * the stones layer (so they are clipped at the zone's right edge and CONFIG.GRAVEYARD_ART_REACH_PX past its left) and draw in front of the Memorial
+ * (z >= CONFIG.MARKER_Z_BASE) but behind the front fence.
  */
 const GraveyardView = (() => {
     let deps = null;
     let canvasEl = null;
     let zoneEl = null;
     let memorialLayerEl = null;
-    let treeEl = null;
-    let treeClipEl = null;
     let runsEl = null;
     let lastSig = null;
 
@@ -52,7 +50,7 @@ const GraveyardView = (() => {
         return zoneEl.offsetWidth || 0;
     }
 
-    // Hill height: the PixelLab mound's flat top (CONFIG.GRAVEYARD_HILL_HEIGHT_PX, 2026-11-08); without it (old configs / tests)
+    // Plot height = the lane band's top edge (CONFIG.GRAVEYARD_HILL_HEIGHT_PX, 72); without it (old configs / tests)
     // fall back to front-lane feet pad + the rise of the back lanes + a little crest above them.
     function hillHeight(c) {
         if (typeof c.GRAVEYARD_HILL_HEIGHT_PX === 'number') return c.GRAVEYARD_HILL_HEIGHT_PX;
@@ -77,11 +75,6 @@ const GraveyardView = (() => {
     function openMemorial(e) {
         if (e && e.stopPropagation) e.stopPropagation(); // Modal's document click would dismiss the window at once
         if (deps && deps.onOpenMemorial) deps.onOpenMemorial();
-    }
-
-    function openTree(e) {
-        if (e && e.stopPropagation) e.stopPropagation(); // Modal's document click would dismiss the window at once
-        if (deps && deps.onOpenTree) deps.onOpenTree();
     }
 
     function openMarkers(id, e) {
@@ -127,7 +120,7 @@ const GraveyardView = (() => {
         b.style.bottom = g.hitBottom + 'px';
         b.style.width = g.hitW + 'px';
         b.style.height = g.hitH + 'px';
-        b.style.zIndex = '20'; // in front of the tree (its clipper is z 1 inside the zone's stacking context)
+        b.style.zIndex = '20'; // behind every headstone (z >= MARKER_Z_BASE 21)
         const art = document.createElement('span');
         art.className = 'graveyard-memorial-art';
         art.setAttribute('aria-hidden', 'true');
@@ -140,49 +133,9 @@ const GraveyardView = (() => {
         memorialLayerEl.appendChild(b);
     }
 
-    // The growing tree (docs/ART_STYLE "Growing tree"): ONE span inside the clipper, its PNG chosen by data-stage in css/graveyard.css. All three
-    // stages are artW x artH drawn 1:1 with the trunk base in the same column, so only the picture changes as the tree grows. The art's
-    // trunk column stands baseX px in from the zone's left edge, its bottom edge `sink` px below the hill's flat top; the clipper reaches
-    // `clipLeft` px left of the zone and is cut at the zone's right edge.
-    function renderTree(c, stage, hillH) {
-        if (!treeEl || !treeClipEl) return;
-        if (!(stage >= 1 && stage <= 3)) { treeEl.hidden = true; treeEl.removeAttribute('data-stage'); return; }
-        const artW = c.GRAVEYARD_TREE_ART_W_PX || 192;
-        const artH = c.GRAVEYARD_TREE_ART_H_PX || 128;
-        const trunkCol = typeof c.GRAVEYARD_TREE_TRUNK_COL === 'number' ? c.GRAVEYARD_TREE_TRUNK_COL : 146;
-        const baseX = typeof c.GRAVEYARD_TREE_BASE_X_PX === 'number' ? c.GRAVEYARD_TREE_BASE_X_PX : 110;
-        const sink = typeof c.GRAVEYARD_TREE_SINK_PX === 'number' ? c.GRAVEYARD_TREE_SINK_PX : 5;
-        const clipLeft = typeof c.GRAVEYARD_TREE_CLIP_LEFT_PX === 'number' ? c.GRAVEYARD_TREE_CLIP_LEFT_PX : 80;
-        treeClipEl.style.left = (-clipLeft) + 'px';
-        treeClipEl.style.bottom = (hillH - sink) + 'px';
-        treeEl.hidden = false;
-        treeEl.dataset.stage = String(stage);
-        treeEl.style.width = artW + 'px';
-        treeEl.style.height = artH + 'px';
-        treeEl.style.left = (clipLeft + baseX - trunkCol) + 'px';
-    }
-
-    // The tree's tap box (2026-11-08): ONE >=44px button in the stones layer, in the strip of the zone to the right of the Memorial's box, standing
-    // on the trunk's base. Transparent (the tree is drawn by the clipper); below the obelisk (z 10 < 20). Appended AFTER renderMemorial, which clears the layer.
-    function renderTreeHit(c, stage, hillH) {
-        if (!(stage >= 1 && stage <= 3)) return;
-        const sink = typeof c.GRAVEYARD_TREE_SINK_PX === 'number' ? c.GRAVEYARD_TREE_SINK_PX : 5;
-        const hitW = Math.max(minTapPx(), c.GRAVEYARD_TREE_HIT_W_PX || 44);
-        const hitH = Math.max(minTapPx(), c.GRAVEYARD_TREE_HIT_H_PX || 110);
-        const hitLeft = typeof c.GRAVEYARD_TREE_HIT_LEFT_PX === 'number' ? c.GRAVEYARD_TREE_HIT_LEFT_PX : 96;
-        const b = makeButton('graveyard-tree-hit', `Tree, stage ${stage} of 3. Open`, openTree);
-        b.dataset.stage = String(stage);
-        b.style.left = hitLeft + 'px';
-        b.style.bottom = (hillH - sink) + 'px';
-        b.style.width = hitW + 'px';
-        b.style.height = hitH + 'px';
-        b.style.zIndex = '10';
-        memorialLayerEl.appendChild(b);
-    }
-
-    // Milestone markers (docs/ART_STYLE "Milestone markers"): one >=44px button per marker in the stones layer, holding its 32x32 picture (chosen by
+    // Milestone markers (docs/ART_STYLE "Milestone markers"): one >=44px button per marker in the stones layer, holding its 24x24 picture (shown at 2x) (chosen by
     // data-stage in css/graveyard.css). Positions come from CONFIG.MARKER_SLOTS via MilestoneMarkers.placements; the marker nearest the viewer is drawn in
-    // front. Appended AFTER renderMemorial and renderTreeHit, which clear / fill the layer.
+    // front. Appended AFTER renderMemorial, which clears the layer.
     function markerLabel(m) {
         const t = (typeof Theme !== 'undefined' && Theme.strings && Theme.strings.markers) ? Theme.strings.markers : null;
         const tier = m.tierLabel || (t ? t.noBadge : 'No badge yet');
@@ -252,8 +205,9 @@ const GraveyardView = (() => {
         if (!deps || !canvasEl || !zoneEl) return;
         const c = cfg();
         if (!canvasEl.style.getPropertyValue('--gy-hill-w')) {
-            canvasEl.style.setProperty('--gy-hill-w', (c.GRAVEYARD_HILL_WIDTH_PX || 140) + 'px');
+            canvasEl.style.setProperty('--gy-hill-w', (c.GRAVEYARD_HILL_WIDTH_PX || 120) + 'px');
             canvasEl.style.setProperty('--gy-hill-h', hillHeight(c) + 'px');
+            canvasEl.style.setProperty('--gy-reach', (typeof c.GRAVEYARD_ART_REACH_PX === 'number' ? c.GRAVEYARD_ART_REACH_PX : 48) + 'px');
         }
         const hillW = zoneWidth();
         const canvasW = canvasEl.offsetWidth || 0;
@@ -261,10 +215,9 @@ const GraveyardView = (() => {
         const baseW = (typeof baseWidth === 'number' ? baseWidth : 0);
         const history = (deps.getRunHistory && deps.getRunHistory()) || [];
         const stage = (deps.getMemorialStage && deps.getMemorialStage());
-        const treeStage = (deps.getTreeStage && deps.getTreeStage());
         const markers = (deps.getMarkers && deps.getMarkers()) || null;
         const markerSig = markers ? markers.map(m => m.id + ':' + m.stage).join(',') : '-';
-        const sig = [hillW, canvasW, canvasH, baseW, stage == null ? '-' : stage, treeStage == null ? '-' : treeStage, markerSig, history.map(r => r && r.run).join(',')].join('|');
+        const sig = [hillW, canvasW, canvasH, baseW, stage == null ? '-' : stage, markerSig, history.map(r => r && r.run).join(',')].join('|');
         if (sig === lastSig) return;
         lastSig = sig;
         if (hillW === 0) { // portrait strip / hidden: nothing to place
@@ -272,9 +225,7 @@ const GraveyardView = (() => {
             runsEl.textContent = '';
             return;
         }
-        renderTree(c, treeStage, hillHeight(c));
         renderMemorial(c, stage);
-        renderTreeHit(c, treeStage, hillHeight(c));
         renderMarkers(c, markers);
         renderRuns(c, canvasW, canvasH, hillW, baseW);
     }
@@ -284,8 +235,6 @@ const GraveyardView = (() => {
         canvasEl = document.getElementById('gameCanvas');
         zoneEl = document.getElementById('graveyardZone');
         memorialLayerEl = document.getElementById('graveyardStones');
-        treeEl = document.getElementById('graveyardTree');
-        treeClipEl = treeEl ? treeEl.parentElement : null;
         runsEl = document.getElementById('runGraves');
         lastSig = null;
         if (!canvasEl || !zoneEl || !memorialLayerEl || !runsEl) { deps = null; return; }

@@ -65,7 +65,7 @@ const VillageLayout = (() => {
         clockArtHeightPx: 246,
         feetMaxDropPx: 24,
         // Placement model (2026-10-30 night): mirrors CONFIG.VILLAGE_PLACEMENT / VILLAGE_DESIGN_FIELD_PX.
-        designFieldPx: 517,
+        designFieldPx: 537,
         placement: {
             lurkers: { row: 'front', right: -323 },
             punctuality: { row: 'front', right: -224 },
@@ -256,7 +256,7 @@ const VillageLayout = (() => {
 
     /**
      * PLACEMENT MODEL (2026-10-30 night, Jeremy + Claude; DECISIONS "Village arrangement"). The village is designed for a
-     * landscape PHONE (817px wide, a 517px walking field) and anchored to the graveyard hill: each building's VISIBLE-ART
+     * landscape PHONE (817px wide, a 537px walking field since graveyard v3, was 517) and anchored to the graveyard hill: each building's VISIBLE-ART
      * right edge sits `placement[kind].right` px from the field's right edge (the hill's left edge; > 0 = tucked behind the
      * hill). Wider screens keep the exact phone arrangement, CENTRED in the field (extra width = open field on both sides); narrower ones
      * pull every art-left offset in proportionally (field / designFieldPx). Rows set depth: `front` stands on the tower's row (feet

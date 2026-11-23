@@ -206,14 +206,20 @@ animations, default leaves them running; hero-chip zone (base's leftmost 120px) 
 console errors beyond the standard Chrome-extension message-channel noise.
 
 ## Graveyard zone + past-run graves (V7 W0, 2026-10-28)
-Landscape/desktop only (hidden in the portrait strip). A fixed 140px hill (`#graveyardZone`, `css/graveyard.css`,
-`js/ui/graveyardView.js`, geometry in `CONFIG.GRAVEYARD_*`) sits on the right of `#gameCanvas`; the zombie field
-ends at its left edge. ONE Memorial obelisk on the hill's flat top (2026-11-08; stage 1-5 = floor of the average of the 8 buildings'
-all-time best tiers, 72x132 tap box, in front of the tree; it replaced the six placeholder headstones) and the
-past-run graves (`#runGraves`, newest by the hill, tightening spacing, oldest fade near the church, each just
-under its lane's zombies) are buttons that open Stats; run graves are tappable only where no zombie covers
-them. The tree (own graphic) runs off the right edge inside `.graveyard-tree-clip`. The moon sits left of the hill.
-Full decisions + limitations: `docs/WORLD_FEEDBACK_PLAN.md` "W0 layout".
+Landscape/desktop only (hidden in the portrait strip; the FULL graveyard shows at every landscape size). **Graveyard v3 (WIRED 2026-11-23, sw v408):** a
+FLAT, fenced plot 120px wide (`#graveyardZone`, `css/graveyard.css`, `js/ui/graveyardView.js`, geometry in `CONFIG.GRAVEYARD_*`; was a 140px hill with a
+growing tree) on the right of `#gameCanvas`; the zombie field ends at its left edge. Its picture is three CSS layers drawn at 2x with crisp pixels,
+sharing one origin 48px (`--gy-reach`, `CONFIG.GRAVEYARD_ART_REACH_PX`) LEFT of the zone, so the ragged left side runs out behind the zombies: ground
+(z 0), fence-back (z 1), the stones layer (z 2: the Memorial and the seven headstones), fence-front (z 3, drawn OVER the
+headstones, `pointer-events: none`). Memorial obelisk (stage 1-5 = floor of the average of the 8 buildings' all-time best tiers; 72x132 tap box):
+centre x 75 / feet 54 (`GRAVEYARD_MEMORIAL_*`). SEVEN headstones (one per milestone family, 24x24 art shown at 2x = 48px, 48px tap box): `CONFIG.MARKER_SLOTS`
+(x = art centre, feet = bottom of the box) (6,8) (52,8) (98,8) / (29,26) (75,26) / (52,44) (98,44), slot i = family i. The two outer FRONT-row stones
+stand behind the add-task (+) button on a landscape phone: left as designed, to be judged on the phone. Mouse hit areas are cut to each stage's opaque
+shape (`.milestone-marker[data-stage] ::before` insets, derived from the PNG alpha at 2x minus 1px; pinned by test/markerPanel.test.js). The past-run graves
+(`#runGraves`, newest by the plot, tightening spacing, oldest fade near the church, each just under its lane's zombies) open Stats; they are tappable only
+where no zombie covers them. The moon sits left of the plot. **The growing tree is removed** (code, tap window, CSS, config, tests); its saved lifetime-night
+total is kept and shown on the Stats tab ("N nights survived across all runs", under "N nights survived so far"). Still open: no storm version of the ground
+layer. Full decisions + history: `docs/WORLD_FEEDBACK_PLAN.md` "W0 layout" (the tree / hill parts there are superseded), `docs/DECISIONS.md` 2026-11-23.
 
 ## Enemy state glows (V2, 2026-10-12) + highlight redesign Build A (2026-11-06)
 

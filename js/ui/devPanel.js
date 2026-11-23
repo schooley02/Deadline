@@ -8,7 +8,7 @@
  * The panel: a compact card docked above the button, with NO backdrop and no focus trap, on purpose: the whole point is to
  * watch the sky / village change while you tap, so nothing may dim or cover the scene. It is not a Modal overlay. Sections:
  * Weather (Real / Clear / Hazy / Overcast / Fog / Storm), Village stars (Real / 1..5 for all eight
- * buildings), Graveyard monument (Real / 1..5, the Memorial obelisk on its own) and Graveyard tree (Real / 1 Sapling / 2 Young / 3 Giant), Graveyard headstones (Real / 0 Cross .. 4 Platinum, every milestone marker at that stage), Church (Real / 100 / 75 / 50 / 25 / 0 = the damage picture + its idle animation, plus a Hit button that plays the
+ * buildings), Graveyard monument (Real / 1..5, the Memorial obelisk on its own) and Graveyard headstones (Real / 0 Cross .. 4 Platinum, every milestone marker at that stage), Church (Real / 100 / 75 / 50 / 25 / 0 = the damage picture + its idle animation, plus a Hit button that plays the
  * flash + shake once; ART ONLY, no health or stat changes), Ice (Iced / Thawing / Burst: shows the ice art on every zombie on screen, ART ONLY: see icePreview) Buzz (Normal / Heavy / Massive: plays the completion thump + vibration at that size, 2026-11-11; nothing saved), Barricade (Real / None / Partial / Solid / Reinforced + Next: the barricade PICTURE only, 2026-11-12, for checking the PixelLab art; momentum, the damage cut and the window keep the real state) and Reset. Every choice goes through DevDemo (in-memory only; see its header); this file only draws and wires.
  *
  * Every click inside the button / panel stopPropagation()s: Modal's outside-click dismiss is a bubbling document handler and
@@ -18,7 +18,6 @@
  */
 const DevPanel = (() => {
     const BAND_LABELS = { clear: 'Clear', hazy: 'Hazy', overcast: 'Overcast', fog: 'Fog', storm: 'Storm' };
-    const TREE_LABELS = { 1: '1 Sapling', 2: '2 Young', 3: '3 Giant' };
     const ICE_LABELS = { iced: 'Iced', thawing: 'Thawing', burst: 'Burst' };
     const MARKER_LABELS = { 0: '0 Cross', 1: '1 Bronze', 2: '2 Silver', 3: '3 Gold', 4: '4 Platinum' };
     const BARRICADE_DEFAULT = [{ id: 'none', name: 'None' }, { id: 'partial', name: 'Partial' }, { id: 'solid', name: 'Solid' }, { id: 'reinforced', name: 'Reinforced' }];
@@ -35,13 +34,12 @@ const DevPanel = (() => {
     }
 
     /** Pure. A DevDemo snapshot -> what the panel shows: option lists with a `selected` flag each. */
-    function panelModel(snap, bands, tiers, churchStates, memorialStages, treeStages, markerStages) {
+    function panelModel(snap, bands, tiers, churchStates, memorialStages, markerStages) {
         const s = snap || {};
         const bandList = bands || ['clear', 'hazy', 'overcast', 'fog', 'storm'];
         const tierList = tiers || [1, 2, 3, 4, 5];
         const churchList = churchStates || [100, 75, 50, 25, 0];
         const memorialList = memorialStages || [1, 2, 3, 4, 5];
-        const treeList = treeStages || [1, 2, 3];
         const markerList = markerStages || [0, 1, 2, 3, 4];
         return {
             bands: [{ value: 'real', label: 'Real', selected: !s.band }]
@@ -52,8 +50,6 @@ const DevPanel = (() => {
                 .concat(churchList.map((n) => ({ value: String(n), label: String(n), selected: s.church === n }))),
             memorial: [{ value: 'real', label: 'Real', selected: s.memorial == null }]
                 .concat(memorialList.map((n) => ({ value: String(n), label: String(n), selected: s.memorial === n }))),
-            tree: [{ value: 'real', label: 'Real', selected: s.tree == null }]
-                .concat(treeList.map((n) => ({ value: String(n), label: TREE_LABELS[n] || String(n), selected: s.tree === n }))),
             markers: [{ value: 'real', label: 'Real', selected: s.markers == null }]
                 .concat(markerList.map((n) => ({ value: String(n), label: MARKER_LABELS[n] || String(n), selected: s.markers === n }))),
             ice: [{ value: 'real', label: 'Real', selected: !s.ice }]
@@ -138,9 +134,6 @@ const DevPanel = (() => {
             + '<section class="dev-section"><h4>Graveyard monument</h4>'
             + '<div class="dev-chips" role="group" aria-label="Memorial obelisk stage">' + chips(model.memorial, 'data-dev-memorial') + '</div>'
             + '</section>'
-            + '<section class="dev-section"><h4>Graveyard tree</h4>'
-            + '<div class="dev-chips" role="group" aria-label="Graveyard tree stage">' + chips(model.tree, 'data-dev-tree') + '</div>'
-            + '</section>'
             + '<section class="dev-section"><h4>Graveyard headstones</h4>'
             + '<div class="dev-chips" role="group" aria-label="Headstone stage for every marker">' + chips(model.markers, 'data-dev-markers') + '</div>'
             + '</section>'
@@ -188,7 +181,7 @@ const DevPanel = (() => {
     function render() {
         if (!demo || !buttonEl || !panelEl) return;
         const snap = Object.assign({}, demo.snapshot(), { ice: icePhase, barricade: barricadePick });
-        const model = panelModel(snap, demo.BANDS, demo.TIERS, demo.CHURCH_STATES, demo.MEMORIAL_STAGES, demo.TREE_STAGES, demo.MARKER_STAGES);
+        const model = panelModel(snap, demo.BANDS, demo.TIERS, demo.CHURCH_STATES, demo.MEMORIAL_STAGES, demo.MARKER_STAGES);
         panelEl.innerHTML = panelHtml(model);
         buttonEl.classList.toggle('dev-button--active', model.active);
         buttonEl.setAttribute('aria-label', model.active ? 'Developer tools (a demo is active)' : 'Developer tools');
@@ -213,7 +206,6 @@ const DevPanel = (() => {
         else if (t.hasAttribute('data-dev-tier')) demo.setTier(t.getAttribute('data-dev-tier'));
         else if (t.hasAttribute('data-dev-church')) demo.setChurch(t.getAttribute('data-dev-church'));
         else if (t.hasAttribute('data-dev-memorial')) demo.setMemorial(t.getAttribute('data-dev-memorial'));
-        else if (t.hasAttribute('data-dev-tree')) demo.setTree(t.getAttribute('data-dev-tree'));
         else if (t.hasAttribute('data-dev-markers')) demo.setMarkers(t.getAttribute('data-dev-markers'));
         else if (t.hasAttribute('data-dev-ice')) {
             try { icePreview(t.getAttribute('data-dev-ice')); } catch (err) { if (typeof console !== 'undefined') console.error('Deadline: dev ice preview failed', err); }

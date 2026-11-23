@@ -22,9 +22,8 @@ const DevDemo = (() => {
     // The church preview's states, as the health each damage picture starts at (100 > 75 > 50 > 25 > 0 pick the five pictures).
     // Only script.js's art-only preview reads one; no game rule, HUD number, save or record ever does.
     const CHURCH_STATES = [100, 75, 50, 25, 0];
-    // The graveyard's Memorial obelisk (5 stages) and growing tree (3 stages), previewed on their own (2026-11-08).
+    // The graveyard's Memorial obelisk (5 stages), previewed on its own (2026-11-08; the growing tree left with graveyard v3, 2026-11-23).
     const MEMORIAL_STAGES = [1, 2, 3, 4, 5];
-    const TREE_STAGES = [1, 2, 3];
     // The milestone markers' picture (0 = wooden cross ... 4 = the nicest stone), previewed on all seven at once (2026-11-08).
     const MARKER_STAGES = [0, 1, 2, 3, 4];
 
@@ -33,7 +32,6 @@ const DevDemo = (() => {
     let tier = null;          // null = the real village
     let church = null;        // null = the real church picture
     let memorial = null;      // null = the real Memorial stage (1..5 pins the obelisk)
-    let tree = null;          // null = the real tree stage (1..3 pins the tree)
     let markers = null;       // null = the real marker stages (0..4 draws every marker at that stage)
     const listeners = [];
 
@@ -45,19 +43,19 @@ const DevDemo = (() => {
 
     /** A copy of the demo values (what the panel draws from). */
     function snapshot() {
-        return { enabled, band, tier, church, memorial, tree, markers, active: isActive() };
+        return { enabled, band, tier, church, memorial, markers, active: isActive() };
     }
 
     /** True while a demo value is both set and allowed (the switch is on). */
     function isActive() {
-        return enabled && (band !== null || tier !== null || church !== null || memorial !== null || tree !== null || markers !== null);
+        return enabled && (band !== null || tier !== null || church !== null || memorial !== null || markers !== null);
     }
 
     function setEnabled(on) {
         const next = on === true;
         if (next === enabled) return;
         enabled = next;
-        if (!enabled) { band = null; tier = null; church = null; memorial = null; tree = null; markers = null; }
+        if (!enabled) { band = null; tier = null; church = null; memorial = null; markers = null; }
         emit();
     }
 
@@ -101,7 +99,7 @@ const DevDemo = (() => {
         return true;
     }
 
-    /** Shared by the Memorial and tree setters: a whole number in `list`, or null/'real' for the real one; anything else is ignored. */
+    /** Shared by the Memorial and marker setters: a whole number in `list`, or null/'real' for the real one; anything else is ignored. */
     function pick(value, list) {
         if (value === null || value === 'real') return null;
         const n = Number(value);
@@ -118,16 +116,6 @@ const DevDemo = (() => {
         return true;
     }
 
-    /** Graveyard tree stage: 1..3 (sapling / young / giant), or null/'real' for the real stage. Anything else is ignored. */
-    function setTree(value) {
-        if (!enabled) return false;
-        const next = pick(value, TREE_STAGES);
-        if (next === undefined) return false;
-        tree = next;
-        emit();
-        return true;
-    }
-
     /** Milestone marker stage: 0..4 (every marker drawn at that stage), or null/'real' for the real stages. Anything else is ignored. */
     function setMarkers(value) {
         if (!enabled) return false;
@@ -138,10 +126,10 @@ const DevDemo = (() => {
         return true;
     }
 
-    /** Back to the real sky, village, church, Memorial, tree and markers (the switch stays on). */
+    /** Back to the real sky, village, church, Memorial and markers (the switch stays on). */
     function reset() {
-        if (band === null && tier === null && church === null && memorial === null && tree === null && markers === null) return;
-        band = null; tier = null; church = null; memorial = null; tree = null; markers = null;
+        if (band === null && tier === null && church === null && memorial === null && markers === null) return;
+        band = null; tier = null; church = null; memorial = null; markers = null;
         emit();
     }
 
@@ -171,11 +159,6 @@ const DevDemo = (() => {
         return enabled ? memorial : null;
     }
 
-    /** The pretend tree stage (1..3), or null = use the real stage / ?treeStage=. */
-    function treeStage() {
-        return enabled ? tree : null;
-    }
-
     /** The pretend marker stage (0..4) for every milestone marker, or null = use the real stages / ?markers=. */
     function markerStage() {
         return enabled ? markers : null;
@@ -193,14 +176,14 @@ const DevDemo = (() => {
 
     /** Test helper: back to a cold start (switch off, nothing set, no listeners). */
     function resetForTests() {
-        enabled = false; band = null; tier = null; church = null; memorial = null; tree = null; markers = null;
+        enabled = false; band = null; tier = null; church = null; memorial = null; markers = null;
         listeners.length = 0;
     }
 
     return {
-        BANDS, TIERS, CHURCH_STATES, MEMORIAL_STAGES, TREE_STAGES, MARKER_STAGES,
-        snapshot, isActive, setEnabled, setBand, setTier, setChurch, setMemorial, setTree, setMarkers, reset,
-        weather, villageTier, churchHealth, memorialStage, treeStage, markerStage, onChange, resetForTests,
+        BANDS, TIERS, CHURCH_STATES, MEMORIAL_STAGES, MARKER_STAGES,
+        snapshot, isActive, setEnabled, setBand, setTier, setChurch, setMemorial, setMarkers, reset,
+        weather, villageTier, churchHealth, memorialStage, markerStage, onChange, resetForTests,
     };
 })();
 

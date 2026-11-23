@@ -53,7 +53,6 @@
     <link rel="stylesheet" href="css/villageCard.css">
     <link rel="stylesheet" href="css/villagePanel.css">
     <link rel="stylesheet" href="css/memorialPanel.css">
-    <link rel="stylesheet" href="css/treePanel.css">
     <link rel="stylesheet" href="css/markerPanel.css">
     <link rel="stylesheet" href="css/howItWorks.css">
     <link rel="stylesheet" href="css/barricade.css">
@@ -184,18 +183,15 @@
                      context) so each button's own z-index slots just under its lane's zombies
                      (js/ui/graveyardView.js). Landscape/desktop only. -->
                 <div id="runGraves" class="run-graves"></div>
-                <!-- Graveyard zone (V7 W0): the right-hand hill. Fixed width (CONFIG.GRAVEYARD_HILL_WIDTH_PX);
-                     the zombie field ends at its left edge. Hill, tree and each headstone are separate
-                     graphics (placeholder CSS/SVG until the PixelLab art lands, W2). Hidden in the
-                     portrait glance strip (css/glanceStrip.css). -->
+                <!-- Graveyard zone (V7 W0; v3 2026-11-23): the right-hand FLAT fenced plot. Fixed width (CONFIG.GRAVEYARD_HILL_WIDTH_PX, 120);
+                     the zombie field ends at its left edge. Ground, back fence, the stones layer (Memorial + headstones) and the front fence are
+                     separate layers, painted in that order (css/graveyard.css); the three pictures reach 48px left of the zone and the front fence
+                     takes no taps. Hidden in the portrait glance strip (css/glanceStrip.css). -->
                 <div id="graveyardZone" class="graveyard-zone">
-                    <div class="graveyard-hill" aria-hidden="true"></div>
-                    <div class="graveyard-tree-clip" aria-hidden="true">
-                        <!-- Growing tree (2026-11-08): sapling / young / giant by lifetime nights; the picture is chosen by data-stage (css/graveyard.css),
-                             placed by graveyardView.js from CONFIG.GRAVEYARD_TREE_*. Hidden until the view renders. -->
-                        <span id="graveyardTree" class="graveyard-tree" hidden></span>
-                    </div>
-                    <div id="graveyardStones" class="graveyard-stones"></div><!-- the Memorial obelisk lives here (graveyardView.js) -->
+                    <div class="graveyard-ground" aria-hidden="true"></div>
+                    <div class="graveyard-fence-back" aria-hidden="true"></div>
+                    <div id="graveyardStones" class="graveyard-stones"></div><!-- the Memorial obelisk and the headstones live here (graveyardView.js) -->
+                    <div class="graveyard-fence-front" aria-hidden="true"></div>
                 </div>
                 <!-- 25% smoke layer (2026-11-22, css/gameCanvas.css): a plume BEHIND the church, in front of the village; no z-index so it paints in the
                      church's own layer, and it must stay BEFORE #base in the DOM. The clip wrapper stops it at the canvas edge. Shown only at 25%. -->
@@ -611,9 +607,6 @@
     <!-- js/memorial.js (2026-11-08): pure Memorial obelisk stage (floor of the average of the 8 buildings' all-time best tiers); zero module
          dependencies. State keeps the high-water mark (bestVillageTiers); the graveyard view draws the stage. -->
     <script src="js/memorial.js"></script>
-    <!-- js/treeGrowth.js (2026-11-08): pure growing-tree rule (lifetime nights -> sapling / young / giant); zero module dependencies. State seeds the
-         night bank from run history; script.js treeStageNow() feeds the graveyard view. -->
-    <script src="js/treeGrowth.js"></script>
     <!-- js/milestoneMarkers.js (2026-11-08): pure marker rule (unlocked tiers -> stage 0..4, hill placements, ?markers= override); zero module dependencies. -->
     <script src="js/milestoneMarkers.js"></script>
     <!-- js/villageDrops.js (2026-11-03): pure village tier DROPS (the fixed item each building pays at star 2-5, once per star per run,
@@ -734,8 +727,6 @@
     <script src="js/ui/villagePanel.js"></script>
     <!-- js/ui/memorialPanel.js (2026-11-08): the Memorial's own window (stage, rule, best-ever vs this-run tiers); needs Memorial + VillageCard + Modal at call time. -->
     <script src="js/ui/memorialPanel.js"></script>
-    <!-- js/ui/treePanel.js (2026-11-08): the graveyard tree's own window (stage, rule, lifetime nights, bar to the next stage); needs TreeGrowth + Modal at call time. -->
-    <script src="js/ui/treePanel.js"></script>
     <!-- js/ui/markerPanel.js (2026-11-08): the milestone markers' window (all seven all-time records, the tapped one highlighted); needs MilestoneMarkers + Theme + Modal at call time. -->
     <script src="js/ui/markerPanel.js"></script>
     <script src="js/ui/hudButtons.js"></script>

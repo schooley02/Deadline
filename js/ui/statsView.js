@@ -136,7 +136,15 @@ const StatsView = (() => {
             <ul class="stats-best-worst">${row('stats-best-day', '▲ Best', bw.best)}${row('stats-worst-day', '▼ Worst', bw.worst)}</ul>`;
     }
 
-    // deps: { currentRunStats, daysSurvivedSoFar, currentRunNumber,
+    // The lifetime night total under "N nights survived so far" (2026-11-23; it was the graveyard tree's number, js/achievements.js lifetimeNights):
+    // every finished run's nights plus this run's. Hidden when the caller has no number (old callers, tests).
+    function lifetimeNightsLineHtml(total) {
+        if (!(typeof total === 'number' && isFinite(total) && total >= 0)) return '';
+        const n = Math.floor(total);
+        return `<div class="stats-lifetime-nights"><strong>${n}</strong> night${n === 1 ? '' : 's'} survived across all runs</div>`;
+    }
+
+    // deps: { currentRunStats, daysSurvivedSoFar, lifetimeNights?, currentRunNumber,
     //         lastRunRecord, achievementsCatalog, lifetimeStats, achievements }
     function buildCurrentRunPanel(deps) {
         const stats = deps.currentRunStats || RunStats.freshRunStats();
@@ -152,6 +160,7 @@ const StatsView = (() => {
             <div class="stats-current-panel">
                 <h4>Run #${deps.currentRunNumber} — in progress</h4>
                 <div class="stats-days-survived">${deps.daysSurvivedSoFar} night${deps.daysSurvivedSoFar === 1 ? '' : 's'} survived so far${daysDeltaHtml}</div>
+                ${lifetimeNightsLineHtml(deps.lifetimeNights)}
                 ${notesLineHtml(deps.noteCount, deps.currentRunNumber)}
                 ${notNeededLineHtml(deps.notNeededThisRun)}
                 ${deps.weatherHtml || ''}
@@ -455,6 +464,7 @@ const StatsView = (() => {
             bestWorst: bestWorstFor(currentRunNumber, deps.todayRecord ? [deps.todayRecord] : []),
             currentRunStats: deps.currentRunStats,
             daysSurvivedSoFar: deps.daysSurvivedSoFar,
+            lifetimeNights: deps.lifetimeNights,
             currentRunNumber,
             weatherHtml: deps.weatherHtml,
             moodFor: deps.moodFor,
@@ -525,6 +535,7 @@ const StatsView = (() => {
         buildTitleBadge,
         formatDeltaBadge,
         buildCurrentRunPanel,
+        lifetimeNightsLineHtml,
         buildRunCard,
         buildBestWorstDays,
         notesLineHtml,

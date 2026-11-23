@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Nights Survived cache (Momentum Build A): declared FIRST because GraveyardView.init below reads the tree stage (-> nightsSurvivedNow) on its
-    // first render, before the rest of this file's consts exist (a later declaration threw a TDZ error, caught, and fell back to calendar nights).
+    // Nights Survived cache (Momentum Build A): declared FIRST so any early first render that reads nightsSurvivedNow (it was the graveyard tree's stage until
+    // 2026-11-23) finds it before the rest of this file's consts exist (a later declaration threw a TDZ error, caught, and fell back to calendar nights).
     const nightsCache = { daysKey: null, days: null, key: null, value: 0 };
 
     // --- DOM Elements ---
@@ -18,9 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     GraveyardView.init({
         getRunHistory: () => State.getRunHistory(),
         getMemorialStage: () => memorialStageNow(),
-        getTreeStage: () => treeStageNow(),
         onOpenMemorial: () => openMemorialPanel(),
-        onOpenTree: () => openTreePanel(),
         getMarkers: () => markersNow(),
         onOpenMarkers: (id) => openMarkerPanel(id),
         onOpenStats: () => openManagementWindow('stats'),
@@ -32,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // The tier maths is cached: it re-runs only when a counter it reads changes (VillageView.render runs every tick).
     const villageCache = { key: null, progress: null, daysKey: null, days: null };
     // Nights Survived (Momentum Build A, 2026-11-11; js/momentum.js, docs/MOMENTUM_PLAN.md): the ONE number the moon, game over, the Radio
-    // tower, the tree and the run stats read = the nights the run DEFENDED (a priority finished, old enough, or a routine fully done), plus the
+    // tower, the Stats tab's lifetime total and the run stats read = the nights the run DEFENDED (a priority finished, old enough, or a routine fully done), plus the
     // calendar nights a save already had before the rule started on it. The closed days are read once per open day / run change; the sum is
     // cached by the calendar date (a night only ever counts at a rollover).
     function nightsSurvivedNow(nowMs) {
@@ -189,30 +187,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (demoTier != null) return VillageLayout.resolveTier('', 'memorialTier', demoTier, tiers);
         return VillageLayout.resolveTier(window.location.search, 'memorialTier', real, tiers);
     }
-    // Growing tree (2026-11-08, js/treeGrowth.js): sapling / young / giant by LIFETIME nights = the banked nights of finished runs
-    // (lifetimeStats.nightsSurvived) + the run in progress, counted like the moon's number (0 once the game is over: that run is already
-    // banked). `?treeStage=1..3|off` overrides it for art checks. Read-only: nothing here saves or pays.
-    function treeStageNow() {
-        const demoTree = DevDemo.treeStage(); // the DEV panel's Graveyard tree chips (2026-11-08) win over ?treeStage= and the real stage
-        if (demoTree != null) return demoTree;
+    // Lifetime nights survived (the Stats tab's "across all runs" line; 2026-11-23, was the growing tree's rule): the banked nights of finished runs
+    // (lifetimeStats.nightsSurvived) + the run in progress, counted like the moon's number (0 once the game is over: that run is already banked).
+    // Read-only: nothing here saves or pays.
+    function lifetimeNightsNow() {
         const stats = State.getLifetimeStats() || {};
-        const current = nightsSurvivedNow();
-        const nights = TreeGrowth.total(stats.nightsSurvived, current, State.isGameOver());
-        return TreeGrowth.resolve(window.location.search, TreeGrowth.stage(nights, CONFIG.TREE_STAGE_NIGHTS));
-    }
-    // The Tree's own window (js/ui/treePanel.js, 2026-11-08): the REAL banked + live nights, never the DEV tree chip or ?treeStage=, so it always
-    // tells the truth about the save. Read-only.
-    function realTreeNights() {
-        const stats = State.getLifetimeStats() || {};
-        const current = nightsSurvivedNow();
-        return { banked: stats.nightsSurvived, current, gameOver: State.isGameOver() };
-    }
-    function realTreeStage() {
-        const n = realTreeNights();
-        return TreeGrowth.stage(TreeGrowth.total(n.banked, n.current, n.gameOver), CONFIG.TREE_STAGE_NIGHTS);
-    }
-    function openTreePanel() {
-        TreePanel.open(Object.assign(realTreeNights(), { thresholds: CONFIG.TREE_STAGE_NIGHTS }));
+        return Achievements.lifetimeNights(stats.nightsSurvived, nightsSurvivedNow(), State.isGameOver());
     }
     // Milestone markers (2026-11-08, js/milestoneMarkers.js): one small stone per all-time achievement family (CONFIG.MARKER_FAMILIES), its picture
     // chosen by the highest unlocked tier. The DEV panel's Headstones chips win, then `?markers=0..4|off`, then the real unlocked tiers. Read-only.
@@ -789,7 +769,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // run end only raises the best-run high-water mark now.
             recordLifetimeRunEnd: (record, days) => applyLifetimeProgress((stats) => {
                 stats.bestRunDaysSurvived = Math.max(stats.bestRunDaysSurvived || 0, days || 0);
-                // Growing tree (2026-11-08): bank the run's nights so the lifetime total never goes down when a new run starts.
+                // Lifetime nights (2026-11-08): bank the run's nights so the lifetime total (Stats tab) never goes down when a new run starts.
                 stats.nightsSurvived = (stats.nightsSurvived || 0) + Math.max(0, days || 0);
             }),
             // Achievements swap (2026-11-03): State.closeDailyRecord hands over each CLOSED day (after the days store
@@ -3472,8 +3452,6 @@ document.addEventListener('DOMContentLoaded', () => {
             spriteFor: villageSpriteFor,
             memorial: { stage: Memorial.stage(State.getBestVillageTiers()) },
             onOpenMemorial: () => openMemorialPanel(),
-            tree: { stage: realTreeStage() },
-            onOpenTree: () => openTreePanel(),
             markers: realMarkerCounts(),
             onOpenMarkers: () => openMarkerPanel(null),
             onOpenBuilding: (kind) => {
@@ -3878,7 +3856,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Journal Build B: the Journal window's deps (built only when it opens: it consumes the pending filter), and Stats > Notes.
             journalWindow: type === 'journal' ? journalWindowDeps() : undefined,
             noteCountForRun: (n) => Journal.forRun(journal(), n).length, noteCountForDay: (k) => Journal.countDay(journal(), k), onReadRunNotes: (n) => openJournal({ kind: 'run', run: n }),
-            moodFor: moodForDay, currentRunStats: State.getCurrentRunStats(), runHistory: State.getRunHistory(), daysSurvivedSoFar: nightsSurvivedNow(),
+            moodFor: moodForDay, currentRunStats: State.getCurrentRunStats(), runHistory: State.getRunHistory(), daysSurvivedSoFar: nightsSurvivedNow(), lifetimeNights: lifetimeNightsNow(),
             achievementsCatalog: CONFIG.ACHIEVEMENTS, lifetimeStats: State.getLifetimeStats(), achievements: State.getAchievements(),
             goals: State.getGoals(), // Stats > Goals row + roster (Goals Build B2)
             // D2 step 5: closed days + today's open record for Stats best/worst day.

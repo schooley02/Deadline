@@ -1,5 +1,5 @@
 /**
- * MilestoneMarkers -- the small markers on the graveyard hill that show the player's all-time achievements (built 2026-11-08; decided with
+ * MilestoneMarkers -- the small markers in the graveyard plot that show the player's all-time achievements (built 2026-11-08; decided with
  * Jeremy the same day: DECISIONS "Milestone markers"; art: docs/ART_STYLE "Milestone markers"). Pure core, zero module dependencies.
  *
  * Seven all-time achievement families each get ONE marker (CONFIG.MARKER_FAMILIES, in slot order: Task Slayer, Habit Hero, Survivor,
@@ -86,7 +86,7 @@ const MilestoneMarkers = (() => {
     }
 
     /**
-     * Where each marker stands on the hill. slots = [{ x, feet }] (x = the marker's centre column, px in from the zone's left edge;
+     * Where each marker stands in the plot. slots = [{ x, feet }] (x = the marker's centre column, px in from the zone's left edge;
      * feet = the bottom row of its picture, px above the canvas bottom). opts = { artPx, hitPx, zBase }.
      * The picture is artPx x artPx; the tap box is hitPx x hitPx (>= 44) centred on it. z-index: the marker nearest the viewer (lowest feet)
      * is drawn in front, starting at zBase (above the Memorial's 20, so a marker standing over the obelisk's base takes its own tap).
@@ -117,7 +117,7 @@ const MilestoneMarkers = (() => {
 
     /**
      * The dev URL override `?markers=`: undefined = not given (use the real stages), 'off' = hide every marker, or a whole number
-     * 0..MAX_STAGE = every marker at that stage (anything above is clamped). Mirrors TreeGrowth.resolve's `?treeStage=`.
+     * 0..MAX_STAGE = every marker at that stage (anything above is clamped). The same shape as the buildings' `?xTier=` overrides.
      */
     function override(search) {
         const m = /(?:^|[?&])markers=([^&]*)/.exec(search || '');

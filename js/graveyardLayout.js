@@ -21,7 +21,7 @@
  */
 const GraveyardLayout = (() => {
     const DEFAULTS = {
-        hillWidthPx: 140,
+        hillWidthPx: 120,
         lanes: 3,
         laneRisePx: 28,
         stonePitchPx: 44,
