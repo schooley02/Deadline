@@ -100,6 +100,9 @@ describe('words, shell and docs', () => {
         expect(script).toContain('Theme.strings.journal.gameName');
     });
     test('the cache name was bumped for Build B (v363 or later)', () => {
-        expect(sw).toMatch(/const CACHE_NAME = 'deadline-shell-v3(6[3-9]|[7-9]\d)';/);
+        // compare the number itself: the old pattern only allowed v363-v399 and broke at v400
+        const m = /const CACHE_NAME = 'deadline-shell-v(\d+)';/.exec(sw);
+        expect(m).not.toBeNull();
+        expect(Number(m[1])).toBeGreaterThanOrEqual(363);
     });
 });

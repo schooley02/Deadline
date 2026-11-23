@@ -293,8 +293,10 @@ describe('strips, CSS and sw.js agree', () => {
         expect(css).toMatch(/#gameCanvas \{ --base-w: 188px; \}/);
         expect(css).toMatch(/min-width: 1280px\) and \(min-height: 521px\)\s*\{ #gameCanvas \{ --base-w: 368px; \}/);
         const glance = fs.readFileSync(path.join(ROOT, 'css/glanceStrip.css'), 'utf8');
-        expect(glance).toMatch(/body\.glance-strip #gameCanvas \{ --base-w: 76px; \}/);
+        expect(glance).toMatch(/body\.glance-strip #gameCanvas \{ --base-w: 92px; \}/);
+        // the strip draws the church at full size (184x200, 1:1 with the file); half size made the enemies look giant (see css/glanceStrip.css)
         expect(glance).toMatch(/--base-fw:\s*184px/);
+        expect(glance).toMatch(/--base-fh:\s*200px/);
     });
 });
 

@@ -157,14 +157,14 @@ body.glance-strip #gameCanvas::before {
     image-rendering: pixelated;
 }
 
-body.glance-strip #gameCanvas { --base-w: 76px; } /* BASE_WIDTH is re-measured from the church box on mode change */
+body.glance-strip #gameCanvas { --base-w: 92px; } /* BASE_WIDTH is re-measured from the church box on mode change */
 body.glance-strip #base {
-    /* The art at half size (92x100, a clean 2:1 of the 184x200 frame) so the whole church height fits the strip; the 76px window
-       shows the door, the lantern post and the flag at the right edge, and the left wall up to the tower. Feet on the front lane. */
-    --base-fw: 92px;
-    --base-fh: 100px;
-    --base-x0: -16px; /* frame 0's x: right-aligned (76 - 92), so the 76px window shows art x 16..92: the whole right side (steps, sandbags, lantern post, flag); the door centre (x 65) lands at 49, where the hero stands */
-    background-position: var(--base-x0) calc(100% - 5px); /* = `bottom 5px`: 8px pad - 2.5 empty rows */
+    /* The art at full size (184x200, 1:1 with the file; half size made the enemies look giant next to it, Jeremy 2026-11-22). The 92px
+       window shows art x 92..184: from the front wall's left edge past the steps and sandbags to the lantern post and flag. Feet on the front lane. */
+    --base-fw: 184px;
+    --base-fh: 200px;
+    --base-x0: -92px; /* frame 0's x: right-aligned (92 - 184), so the window shows art x 92..184; the door centre (art x ~130) lands at ~38, where the hero stands; the lantern post (art x ~168) lands at ~76 */
+    background-position: var(--base-x0) calc(100% - 3px); /* = `bottom 3px`: 8px pad - 5 empty rows */
 }
 
 /* The vertical "MIDNIGHT" label is taller than the strip; keep post + lantern. */

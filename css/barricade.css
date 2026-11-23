@@ -81,9 +81,9 @@
 }
 @media (prefers-reduced-motion: reduce) { .barricade { transition: none; } }
 .barricade[hidden] { display: none; }
-/* Portrait strip (56px church, 14px gap): half size, just right of the church. */
+/* Portrait strip (92px church window): half size, just right of the lantern post (window x ~80). To be redone with the new lane art. */
 body.glance-strip .barricade {
-    left: 50px;
+    left: 80px;
     bottom: 0;
     width: 40px;
     height: 76px;
