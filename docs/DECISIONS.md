@@ -13,6 +13,8 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 - **Assumption to confirm:** slant and taps kept landscape-only, as before; portrait strip lanes unchanged.
 - **Tests:** `frontLine` (slant 88), `stormGround` (new names, 4 storm pictures, sw list, v403), new `laneArt.test.js` (anchoring, strip layers, body-only taps, tap insets == measured margins). Cloud run of those three: green. Full `npm test` to be run on Jeremy's machine.
 
+- **Lane grass redrawn (same night, Fable 5.2; Jeremy: "it looks very speckled", then "i like A"):** the lane's grass was per-pixel noise while the grass by the statue, the building bushes and the village field are flat tones with distinct tufts. Replaced in code (`scripts/regrass.py`) with flat clumps + separate tufts + a blade fringe, in the strip's own greens; gravel and puddles untouched; sw v404. Rejected: two PixelLab redraws (B flat with too few tufts, C flattest and a lighter green). Open: whether to calm the speckled gravel too; pushing the final strip to the PixelLab workspace.
+
 ## 2026-11-22 (evening) (Lane art rework: two-track gravel lane + separate churchyard; portrait church back to full size) -- Claude app session, Fable 5.2 then Sonnet 5.5; Jeremy ("when I say ground art, i'm actually referring to the lane art", "I like the two track gravel lane the best", "I like 3 the best", "I don't want the half size because the enemies look giant compared to the church")
 
 - **Scope:** "ground art" = the enemy LANE art; the ground under the village is revisited later. Goal: free room for village buildings on small screens, keep enemies easy to see and tap at the base and far right.

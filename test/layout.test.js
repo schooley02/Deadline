@@ -353,7 +353,8 @@ describe('desktop floor band stays in sync between CONFIG and css/gameCanvas.css
     const gc = require('fs').readFileSync(require('path').join(__dirname, '../css/gameCanvas.css'), 'utf8');
     test('.scene-ground height == CONFIG.GROUND_FLOOR_HEIGHT and the tile is that tall', () => {
         expect(gc).toMatch(new RegExp(`\\.scene-ground \\{[^}]*height: ${CONFIG.GROUND_FLOOR_HEIGHT}px;`));
-        expect(gc).toContain(`/ 1280px ${CONFIG.GROUND_FLOOR_HEIGHT}px;`);
+        // lane art rework (2026-11-22): two layers, yard then lane (`background-size: 560px 72px, 1280px 72px;`)
+        expect(gc).toContain(`560px ${CONFIG.GROUND_FLOOR_HEIGHT}px, 1280px ${CONFIG.GROUND_FLOOR_HEIGHT}px;`);
     });
 });
 
@@ -369,7 +370,8 @@ describe('strip geometry stays in sync between CONFIG and css/glanceStrip.css', 
         expect(css).toContain(`--strip-inset: ${CONFIG.STRIP_FLOOR_FEET_INSET}px;`);
         // floor tile (36px) = inset + (lanes-1)*pitch + pad; its top = sky + marker - inset
         const floor = CONFIG.STRIP_FLOOR_FEET_INSET + (CONFIG.STRIP_LANE_COUNT - 1) * CONFIG.STRIP_LANE_PITCH + CONFIG.STRIP_FLOOR_PAD_BOTTOM;
-        expect(css).toContain(`/ 640px ${floor}px;`);
+        // lane art rework (2026-11-22): two layers, yard then lane (`background-size: 280px 36px, 640px 36px;`)
+        expect(css).toContain(`280px ${floor}px, 640px ${floor}px;`);
         expect(css).toContain('top: calc(var(--strip-sky) + var(--strip-marker) - var(--strip-inset));');
         const h = CONFIG.STRIP_SKY_HEIGHT + CONFIG.STRIP_MARKER_HEIGHT + (CONFIG.STRIP_LANE_COUNT - 1) * CONFIG.STRIP_LANE_PITCH + CONFIG.STRIP_FLOOR_PAD_BOTTOM;
         expect(css).toMatch(new RegExp(`#gameCanvas \\{\\s*height: ${h}px;`));
