@@ -2,7 +2,7 @@
  * VillageCard -- the building card (V7 W2 village, Build 2, 2026-10-30; plan docs/WORLD_FEEDBACK_PLAN.md
  * "Village tiers + building cards"). Tapping a village building opens it through `Modal`, like the level panel.
  *
- * Shows: the sprite at 3x/2x when that fits, else fitted to the column height (3x for the 128px canvases, 1.5x for the Clock tower), the building's name, five tier STARS (filled = earned, in the header),
+ * Shows: the sprite at 3x/2x when that fits, else fitted to the column height (3x for the 128px canvases, 2x for the Clock tower), the building's name, five tier STARS (filled = earned, in the header),
  * a progress bar "N / M <unit> to earn star <n+1>" ("Fully rebuilt" at T5), the flavour lines that never
  * drive a tier (school = attendance streak, windmill = comeback days), then "What we measure" and "Why it helps" (KINDS[kind].measures / .why). Two empty states: the gym with no bad
  * habit to resist, the school with no routine.
@@ -103,11 +103,12 @@ const VillageCard = (() => {
     }
 
     // Two-column card (art left, text right). Whole-number scales keep the pixels perfectly even, so the sprite uses 3x
-    // (then 2x) when that fits the art column: 3x for the 128px-tall canvases. A canvas too tall for 2x (the Clock tower,
-    // 128x256) is instead fitted to the column height (FIT_H), so its height matches the 3x buildings: 1.5x, a
-    // non-whole scale that image-rendering: pixelated keeps crisp (some pixels come out a hair wider than others).
+    // (then 2x) when that fits the art column: 3x for the 128px-tall canvases, 2x for the 112x208 Clock tower (416px tall;
+    // MAX_ART_H was 400 until 2026-11-24, when the tower was fitted at a non-whole scale). A canvas too tall even for 2x is
+    // fitted to the column height (FIT_H): a non-whole scale that image-rendering: pixelated keeps crisp (some pixels come
+    // out a hair wider than others).
     const MAX_ART_W = 384;
-    const MAX_ART_H = 400;
+    const MAX_ART_H = 416;
     const FIT_H = 384;
     function spriteScale(w, h) {
         for (let k = 3; k >= 2; k--) {

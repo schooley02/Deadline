@@ -15,9 +15,9 @@
  *   ROWS     back and far rows stand higher (backRowRaisePx, farRowRaisePx), darker
  *            (backRowBrightness, farRowBrightness) and are painted first.
  *
- *   SPRITE   authored on a 128px-wide canvas (Clock tower 128x256, bottom-anchored, tower art
- *            bottom-aligned inside it) and shown 1:1, the same pixel scale as the animated
- *            zombies and heroes. Never scaled, never rotated.
+ *   SPRITE   authored on its shape-class canvas (Clock tower 112x208 since 2026-11-24, bottom-anchored)
+ *            and shown 1:1, the same pixel scale as the animated zombies and heroes. Never scaled,
+ *            never rotated.
  *   FEET     on the horizon: just above the floor band's top edge (CONFIG.GROUND_FLOOR_HEIGHT),
  *            i.e. behind all three zombie lanes.
  *   X        anchored to the graveyard hill (VILLAGE_PLACEMENT), centred on wide screens.
@@ -28,8 +28,8 @@
  */
 const VillageLayout = (() => {
     const DEFAULTS = {
-        spriteWidthPx: 128,
-        spriteHeightPx: 256,
+        spriteWidthPx: 112,
+        spriteHeightPx: 208,
         floorHeightPx: 72,
         feetAboveFloorPx: 4,
         minFieldPx: 220,
@@ -55,26 +55,24 @@ const VillageLayout = (() => {
         windmillWidthPx: 128,
         windmillHeightPx: 160,
         devWindmillTier: 3,
-        farRowRaisePx: 30,
+        farRowRaisePx: 35,
         farRowBrightness: 0.65,
         devHospitalTier: 3,
-        art: { punctuality: [20, 113], defense: [3, 160], slain: [1, 160], nights: [12, 115], lurkers: [3, 191], heroes: [0, 174], habits: [1, 174], bestdays: [13, 116] },
-        backRowRaisePx: 30,
+        art: { punctuality: [16, 105], defense: [3, 160], slain: [1, 160], nights: [12, 115], lurkers: [3, 191], heroes: [0, 174], habits: [1, 174], bestdays: [13, 116] },
+        backRowRaisePx: 60,
         backRowBrightness: 0.8,
-        clockScale: 1,
-        clockArtHeightPx: 246,
-        feetMaxDropPx: 24,
-        // Placement model (2026-10-30 night): mirrors CONFIG.VILLAGE_PLACEMENT / VILLAGE_DESIGN_FIELD_PX.
-        designFieldPx: 537,
+        baseTuckPx: 24,
+        // Placement model (2026-10-30 night; spots redone 2026-11-24): mirrors CONFIG.VILLAGE_PLACEMENT / VILLAGE_DESIGN_FIELD_PX.
+        designFieldPx: 492,
         placement: {
-            lurkers: { row: 'front', right: -323 },
-            punctuality: { row: 'front', right: -224 },
-            defense: { row: 'front', right: -24, raise: 12 },
-            habits: { row: 'back', right: -320 },
-            heroes: { row: 'back', right: -118 },
-            slain: { row: 'back', right: 41 },
-            bestdays: { row: 'far', right: -406, flip: true },
-            nights: { row: 'far', right: -119, flip: true },
+            lurkers: { row: 'front', right: -324 },
+            defense: { row: 'front', right: -125, raise: 12 },
+            slain: { row: 'front', right: 34 },
+            habits: { row: 'back', right: -317 },
+            punctuality: { row: 'back', right: -240, sink: 60, overTop: 12 },
+            heroes: { row: 'back', right: 20 },
+            bestdays: { row: 'far', right: -299, flip: true },
+            nights: { row: 'far', right: -127, flip: true },
         },
     };
 
@@ -115,9 +113,7 @@ const VillageLayout = (() => {
             farRowBrightness: pick(cfg.VILLAGE_FAR_ROW_BRIGHTNESS, DEFAULTS.farRowBrightness),
             devHospitalTier: (cfg.VILLAGE_DEV_HOSPITAL_TIER === null) ? null : pick(cfg.VILLAGE_DEV_HOSPITAL_TIER, DEFAULTS.devHospitalTier),
             art: (cfg.VILLAGE_ART_X && typeof cfg.VILLAGE_ART_X === 'object') ? cfg.VILLAGE_ART_X : DEFAULTS.art,
-            clockScale: pick(cfg.VILLAGE_CLOCK_SCALE, DEFAULTS.clockScale),
-            clockArtHeightPx: pick(cfg.VILLAGE_CLOCK_ART_H_PX, DEFAULTS.clockArtHeightPx),
-            feetMaxDropPx: pick(cfg.VILLAGE_FEET_MAX_DROP_PX, DEFAULTS.feetMaxDropPx),
+            baseTuckPx: pick(cfg.VILLAGE_BASE_TUCK_PX, DEFAULTS.baseTuckPx),
             designFieldPx: pick(cfg.VILLAGE_DESIGN_FIELD_PX, DEFAULTS.designFieldPx),
             placement: (cfg.VILLAGE_PLACEMENT && typeof cfg.VILLAGE_PLACEMENT === 'object') ? cfg.VILLAGE_PLACEMENT : DEFAULTS.placement,
         };
@@ -219,24 +215,6 @@ const VillageLayout = (() => {
         return canvasH - o.floorHeightPx - o.feetAboveFloorPx;
     }
 
-    // The stretched tower is taller than a short canvas has room for. Two levers, in order:
-    //  1. lower its feet into the top of the floor band, up to feetMaxDropPx (still behind the back zombie
-    //     lane, which stands 24px below the floor's top edge);
-    //  2. if it still would not fit, shrink the stretch (never below 1) to the biggest scale that does.
-    // So CONFIG.VILLAGE_CLOCK_SCALE is a MAXIMUM: roomy screens get it in full, short ones a little less.
-    function clockScaleFor(canvasH, o) {
-        const room = horizonFeetY(canvasH, o) + Math.max(0, o.feetMaxDropPx);
-        const fit = Math.floor((room / o.clockArtHeightPx) * 100) / 100;
-        return Math.max(1, Math.min(o.clockScale, fit));
-    }
-
-    function clockFeetY(canvasH, o) {
-        const base = horizonFeetY(canvasH, o);
-        const need = Math.ceil(o.clockArtHeightPx * clockScaleFor(canvasH, o));
-        if (base >= need) return base;
-        return Math.min(need, base + Math.max(0, o.feetMaxDropPx));
-    }
-
     // Canvas size of each kind, from opts.
     function sizeOf(kind, o) {
         switch (kind) {
@@ -255,16 +233,22 @@ const VillageLayout = (() => {
     const ROW_ORDER = { far: 0, back: 1, front: 2 };
 
     /**
-     * PLACEMENT MODEL (2026-10-30 night, Jeremy + Claude; DECISIONS "Village arrangement"). The village is designed for a
-     * landscape PHONE (817px wide, a 537px walking field since graveyard v3, was 517) and anchored to the graveyard hill: each building's VISIBLE-ART
-     * right edge sits `placement[kind].right` px from the field's right edge (the hill's left edge; > 0 = tucked behind the
-     * hill). Wider screens keep the exact phone arrangement, CENTRED in the field (extra width = open field on both sides); narrower ones
-     * pull every art-left offset in proportionally (field / designFieldPx). Rows set depth: `front` stands on the tower's row (feet
-     * = the Clock tower's feet when it shows, else the horizon), `back` is backRowRaisePx higher and darker, `far` another
-     * farRowRaisePx higher and darker still. `flip: true` mirrors the sprite (the view sets scaleX(-1); artLeft/artRight
-     * are mirrored here). Rows are ordered by DOOR SIZE (front doors ~26-31px, back ~16-21, far ~17-18) so doors shrink with
-     * depth; the strip under the moon + "NIGHTS SURVIVED" label (about 90px left of the hill) only holds short buildings.
-     * A building is dropped (never moved) if its art would reach over the church or past the hill.
+     * PLACEMENT MODEL (2026-10-30 night, Jeremy + Claude; DECISIONS "Village arrangement"; spots redone 2026-11-24, DECISIONS "Village
+     * re-arrangement"). The village is designed for the SMALLEST screen, the 800x360 landscape phone (a 492px walking field: 800 - the 120px
+     * plot - the 188px church box) and anchored to the graveyard plot: each building's VISIBLE-ART right edge sits `placement[kind].right` px
+     * from the field's right edge (the plot's left edge; > 0 = tucked behind the plot). Wider screens keep the exact phone arrangement,
+     * CENTRED in the field (extra width = open field on both sides); narrower ones pull every art-left offset in proportionally
+     * (field / designFieldPx). Rows set depth: `front` stands on the horizon, `back` is backRowRaisePx higher and darker, `far` another
+     * farRowRaisePx higher and darker still. `flip: true` mirrors the sprite (the view sets scaleX(-1); artLeft/artRight are mirrored
+     * here; banned for three-quarter art). Per-building options:
+     *   raise  px (>= 0) further back (up) than the row's feet.
+     *   sink   px (>= 0) the building may stand LOWER than its row when its canvas would otherwise run off the top of the scene: it drops
+     *          only as far as needed, never more than `sink`, and never below the front row's feet (Clock tower, 2026-11-24: 208px of
+     *          tower on a 60px-high back row needs 268px of sky and a phone has about 230). `feetY` stays the row's horizon either way.
+     *   overTop px (>= 0) of the canvas's top rows that may run off the top of the scene before `sink` starts: the building sinks only
+     *          until that much is cut (Clock tower 12: it stands 12px up with the raised Police station, so a phone cuts its roof tip).
+     * The church draws OVER the village, so a building's art may start up to baseTuckPx inside the church's box (the Gym, beside the
+     * lantern). A building is dropped (never moved) if its art would reach further over the church than that, or past the plot.
      * Paint order: far row, back row, front row; left to right within a row.
      */
     function villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts) {
@@ -278,41 +262,44 @@ const VillageLayout = (() => {
         const k = (o.designFieldPx > 0) ? Math.min(1, field / o.designFieldPx) : 1;
         // Wider than the phone: slide the whole (unchanged) cluster to the middle of the field (Jeremy 2026-10-30).
         const centreShift = (o.designFieldPx > 0) ? Math.max(0, (field - o.designFieldPx) / 2) : 0;
-        const clockTier = clampTier(t.punctuality, o.tiers);
-        const frontFeet = clockTier !== null ? clockFeetY(canvasH, o) : horizonFeetY(canvasH, o);
+        const frontFeet = horizonFeetY(canvasH, o);
         const feet = {
             front: frontFeet,
             back: frontFeet - Math.max(0, o.backRowRaisePx),
             far: frontFeet - Math.max(0, o.backRowRaisePx) - Math.max(0, o.farRowRaisePx),
         };
         const bright = { front: 1, back: o.backRowBrightness, far: o.farRowBrightness };
+        const tuck = Math.max(0, Number(o.baseTuckPx) || 0);
         const out = [];
         Object.keys(o.placement || {}).forEach((kind) => {
             const p = o.placement[kind] || {};
             const tier = clampTier(t[kind], o.tiers);
             if (tier === null) return;
             const row = (p.row === 'back' || p.row === 'far') ? p.row : 'front';
-            const [w0, h0] = sizeOf(kind, o);
-            const scale = (kind === 'punctuality') ? clockScaleFor(canvasH, o) : 1;
-            const w = Math.round(w0 * scale);
-            const h = Math.round(h0 * scale);
-            const art = (o.art && o.art[kind]) || [0, w0];
+            const [w, h] = sizeOf(kind, o);
+            const art = (o.art && o.art[kind]) || [0, w];
             const flip = !!p.flip;
-            const a0 = Math.round((flip ? w0 - art[1] : art[0]) * scale);
-            const a1 = Math.round((flip ? w0 - art[0] : art[1]) * scale);
+            const a0 = flip ? w - art[1] : art[0];
+            const a1 = flip ? w - art[0] : art[1];
             // `right` is authored at the design width; narrower fields scale the art's LEFT-edge offset (so a building that
             // cleared the church at the design width still clears it), keeping the sprite's width.
             const designLeft = (Number(p.right) || 0) - (a1 - a0);
             const artLeft = Math.round(fieldRight - centreShift + designLeft * k);
             const left = artLeft - a0;
             const artRight = left + a1;
-            if (artLeft < fieldLeft || artRight > fieldRight + hillW) return;
+            if (artLeft < fieldLeft - tuck || artRight > fieldRight + hillW) return;
             const feetY = Math.round(feet[row]);
             // Optional per-building `raise` (px, >= 0): stands the sprite further back than its row without touching `feetY` (the row's
-            // horizon, which the haze plan reads). Police station 2026-11-14: raised so its smaller officers sit behind the Gym's athletes.
+            // horizon, which the haze plan reads).
             const raise = Math.max(0, Math.round(Number(p.raise) || 0));
-            const slot = { kind, tier, url: spriteUrl(kind, tier), left, top: feetY - h - raise, width: w, height: h, feetY, artLeft, artRight, row, flip };
+            // Optional per-building `sink` (px, >= 0): see the doc comment above.
+            const maxSink = Math.max(0, Math.round(Number(p.sink) || 0));
+            const rawTop = feetY - h - raise;
+            const overTop = Math.max(0, Math.round(Number(p.overTop) || 0));
+            const sink = (maxSink > 0 && rawTop < -overTop) ? Math.max(0, Math.min(maxSink, -rawTop - overTop, Math.round(frontFeet) - (feetY - raise))) : 0;
+            const slot = { kind, tier, url: spriteUrl(kind, tier), left, top: rawTop + sink, width: w, height: h, feetY, artLeft, artRight, row, flip };
             if (raise > 0) slot.raise = raise;
+            if (sink > 0) slot.sink = sink;
             if (row !== 'front') { slot.back = true; slot.brightness = bright[row]; }
             if (row === 'far') slot.far = true;
             out.push(slot);
@@ -321,7 +308,7 @@ const VillageLayout = (() => {
         return out;
     }
 
-    return { DEFAULTS, fromConfig, clampTier, resolveTier, sizeOf, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, resolveDevHospitalTier, resolveDevWindmillTier, fieldWidth, spriteUrl, clockScaleFor, clockFeetY, villageSlots };
+    return { DEFAULTS, fromConfig, clampTier, resolveTier, sizeOf, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, resolveDevHospitalTier, resolveDevWindmillTier, fieldWidth, spriteUrl, horizonFeetY, villageSlots };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

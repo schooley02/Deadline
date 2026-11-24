@@ -645,15 +645,11 @@ const CONFIG = {
     // Layout constants, not balance. One building so far: the Clock tower (kind `punctuality`).
     // Sprites are authored 128 wide and drawn 1:1 (same pixel scale as the animated zombies).
     VILLAGE_ENABLED: true, // false hides the whole layer
-    VILLAGE_SPRITE_W_PX: 128, // Clock tower canvas width
-    VILLAGE_SPRITE_H_PX: 256, // Clock tower canvas height (regenerated 2026-10-29, T1-T5 all 128x256); bottom-anchored
+    VILLAGE_SPRITE_W_PX: 112, // Clock tower canvas width (2026-11-24: the three-quarter stone tower, back-row Narrow tall 112x208; was the 128x256 front-view tower)
+    VILLAGE_SPRITE_H_PX: 208, // Clock tower canvas height; bottom-anchored (every tier's lowest art row is 207)
     VILLAGE_FEET_ABOVE_FLOOR_PX: 4, // feet sit this far above the floor band's top edge (the horizon)
-    // The 1.3x STOPGAP stretch (2026-10-29 early) is OVER: the regenerated 128x256 Clock tower art has a door the same
-    // size as the Jailhouse's, so the tower is drawn 1:1 like every other building. Kept as a lever (it is a MAXIMUM
-    // scale in VillageLayout.clockScaleFor); leave it at 1 -- a non-whole scale breaks the ART_STYLE pixel rule.
-    VILLAGE_CLOCK_SCALE: 1, // 1 = clean 1:1 pixels
-    VILLAGE_CLOCK_ART_H_PX: 246, // tallest tier's visible art height (T5 = 246, T1 = 245), used to decide how far to lower the feet; must fit a 298px canvas (feet drop 24)
-    VILLAGE_FEET_MAX_DROP_PX: 24, // the tower's feet may sink this far below the horizon on short canvases
+    // 2026-11-24: the tower's own stretch / feet-drop levers (VILLAGE_CLOCK_SCALE, VILLAGE_CLOCK_ART_H_PX, VILLAGE_FEET_MAX_DROP_PX) are GONE. The tower
+    // is a back-row building now; a building too tall for a short canvas uses the placement option `sink` instead (see VILLAGE_PLACEMENT).
     VILLAGE_MIN_FIELD_PX: 220, // a narrower walking field hides the village
     VILLAGE_TIERS: 5,
     VILLAGE_DEV_CLOCK_TIER: 3, // DEV: no punctuality tier data yet. `?villageTier=1..5` in the URL overrides, `off` hides; null = hidden
@@ -664,7 +660,7 @@ const CONFIG = {
     VILLAGE_JAIL_H_PX: 160,
     VILLAGE_DEV_JAIL_TIER: 3, // DEV: no defense tier data yet. `?jailTier=1..5` overrides, `off` hides; null = hidden
     // Command Post (kind `slain`, built as the Armory 2026-10-29, re-aimed at priorities 2026-11-09; redrawn 2026-11-15 as THREE-QUARTER Village 2.0 art,
-    // Square class 160x160: a military quonset bunker). Still stands in the BACK row (interim spot) until the Village 2.0 re-arrangement moves it to the front row.
+    // Square class 160x160: a military quonset bunker). FRONT row, right end, since the 2026-11-24 re-arrangement (was an interim back-row spot).
     // The old VILLAGE_ARMORY_* / armoryTier names stay (config keys).
     VILLAGE_ARMORY_W_PX: 160,
     VILLAGE_ARMORY_H_PX: 160,
@@ -674,7 +670,7 @@ const CONFIG = {
     VILLAGE_RADIO_W_PX: 128,
     VILLAGE_RADIO_H_PX: 160,
     VILLAGE_DEV_RADIO_TIER: 3, // DEV: no nights tier data yet. `?radioTier=1..5` overrides, `off` hides; null = hidden
-    VILLAGE_BACK_ROW_RAISE_PX: 30, // back-row feet stand this far above the front row's feet (depth by ridge position, same sprite size; 2026-10-30: 14 -> 30, Jeremy: the village sits on a hill sloping down to the church and lanes)
+    VILLAGE_BACK_ROW_RAISE_PX: 60, // 2026-11-24 re-arrangement: 30 -> 60 so the back row shows above the bigger 160px front row (ART_STYLE Village 2.0 rule 3). Older note: back-row feet stand this far above the front row's feet (depth by ridge position, same sprite size; 2026-10-30: 14 -> 30, Jeremy: the village sits on a hill sloping down to the church and lanes)
     VILLAGE_BACK_ROW_BRIGHTNESS: 0.8, // back-row sprites are drawn at this brightness (CSS filter) so they recede behind the front row
     // Gym (kind `lurkers` = willpower, added 2026-10-30; redrawn 2026-11-14 as THREE-QUARTER Village 2.0 art, Wide class 192x160, FRONT row, leftmost by the church).
     VILLAGE_GYM_W_PX: 192,
@@ -699,27 +695,31 @@ const CONFIG = {
     VILLAGE_WINDMILL_W_PX: 128,
     VILLAGE_WINDMILL_H_PX: 160,
     VILLAGE_DEV_WINDMILL_TIER: 3, // DEV: no bestdays tier data yet. `?windmillTier=1..5` overrides, `off` hides; null = hidden
-    VILLAGE_FAR_ROW_RAISE_PX: 30, // far-row feet stand this far above the BACK row's feet
+    VILLAGE_FAR_ROW_RAISE_PX: 35, // far-row feet stand this far above the BACK row's feet (2026-11-24: 30 -> 35, so the far row is 95px above the front row)
     VILLAGE_FAR_ROW_BRIGHTNESS: 0.65, // darker than the back row (0.8) so it reads as further away
     // Visible-art extent [left, right) inside each kind's 128px canvas, the UNION over its five tiers (measured from the shipped sprites, 2026-10-30).
     // Collision, the church/hill edges and the back-row overlap use THESE, not the 128px boxes (most of a box is empty air), so five buildings fit.
-    // ---- Village ARRANGEMENT (2026-10-30 night, Jeremy + Claude; DECISIONS "Village arrangement"). Designed for a landscape
-    // phone (817px wide = a 537px walking field since graveyard v3, was 517) and anchored to the graveyard hill. `right` = px from the field's right edge
+    // ---- Village ARRANGEMENT model (2026-10-30 night, Jeremy + Claude; DECISIONS "Village arrangement"; the spots themselves were redone 2026-11-24, see below). Designed for a landscape
+    // phone and anchored to the graveyard plot. `right` = px from the field's right edge
     // (the hill) to the building's visible-art right edge (> 0 = tucked behind the hill); narrower fields scale it by
     // field / VILLAGE_DESIGN_FIELD_PX; wider ones keep the same cluster and CENTRE it in the field (Jeremy 2026-10-30). Rows by DOOR SIZE: front doors ~26-31px, back ~16-21, far ~17-18.
     // Only short buildings may stand in the ~90px under the moon + "NIGHTS SURVIVED" label. `flip` mirrors the sprite.
-    VILLAGE_DESIGN_FIELD_PX: 537, // 817 - 120 (zone, was 140 until graveyard v3, 2026-11-23: 517) - 160 (church): every `right` below keeps its distance from the plot's left edge at 817
+    // ---- RE-ARRANGEMENT (2026-11-24, Jeremy approved mock "D"; DECISIONS 2026-11-24 "Village re-arrangement"). The design screen is now the SMALLEST one,
+    // the 800x360 phone: 800 - 120 (plot) - 188 (the church box on phones, --base-w) = a 492px field, where every `right` below is exact.
+    // Front: Gym, Police station, Command Post. Back: Hospital, Clock tower, High school. Far: Windmill, Radio (old art, rough spots until redrawn).
+    VILLAGE_DESIGN_FIELD_PX: 492,
+    VILLAGE_BASE_TUCK_PX: 24, // a building's art may start this far INSIDE the church's box (the church draws over it): the Gym sits 20px in, beside the lantern
     VILLAGE_PLACEMENT: {
-        lurkers: { row: 'front', right: -323 },          // Gym (192x160 3/4 art, 2026-11-14): art is 189px wide, so `right` moved +78 (was -401 for 111px) to keep its LEFT edge exactly where it was, clear of the church
-        punctuality: { row: 'front', right: -224 },      // Clock tower, centre
-        defense: { row: 'front', right: -24, raise: 12 }, // Police station (160x160 3/4 art, 2026-11-14), under the moon; `raise` = px further back (up) than the row's feet, so the officers read smaller like the Gym athletes (Jeremy: bases line up with the Gym at +7, go further back)
-        habits: { row: 'back', right: -320 },            // Hospital (160x128 3/4 art, 2026-11-15; art is 153px wide, was 110): `right` -305 -> -320 so the wider art ends 3px left of the Clock tower (the ambulance stays visible) and clears the High school at every width (-305 overlapped it 8px at 640); the left end passes behind the Gym
-        heroes: { row: 'back', right: -118 },            // High school (160x128 3/4 art, 2026-11-16; art is 156px wide, was 119): `right` unchanged so its right edge stays put and the Command Post still clears it at 817+; the extra width grows left into the gap before the Hospital
-        slain: { row: 'back', right: 41 },               // Command Post (160x160 3/4 art, 2026-11-15, interim back-row spot; right 40 -> 41 so the 159px-wide art clears the High school at 817; the old 128px Armory note follows): nudged 26px left on 2026-11-08 (was 66; first 44 left, then 18 back right after Jeremy's phone check) so the (since removed, 2026-11-23) growing tree's canopy left most of its tower clear, kept there as the distance to the plot is unchanged; 16px over the High school at 640 wide only
-        bestdays: { row: 'far', right: -406, flip: true }, // Windmill, wheel over the gym + hospital (mirrored)
-        nights: { row: 'far', right: -119, flip: true },   // Radio mast, right of the HUD Points button (mirrored)
+        lurkers: { row: 'front', right: -324 },             // Gym: art x 168-356 at 800 wide, 20px inside the church box (Jeremy: there is room by the lantern)
+        defense: { row: 'front', right: -125, raise: 12 },  // Police station: art 398-555. A 42px gap to the Gym (wider below T5) shows the Clock tower. `raise` = px further back (up) than the row's feet, so the officers read smaller like the Gym athletes (Jeremy 2026-11-14; kept in the re-arrangement, Jeremy 2026-11-24)
+        slain: { row: 'front', right: 34 },                 // Command Post: art 555-714, its right end behind the plot's back fence, just short of the Memorial (719)
+        habits: { row: 'back', right: -317 },               // Hospital: art 190-363; its ER end and the ambulance show between the Gym and the tower
+        punctuality: { row: 'back', right: -240, sink: 60, overTop: 12 }, // Clock tower: art 351-440 (T2-T5 361-437), in the Gym / Police gap so its door shows. `sink` = how far (px) it may stand lower than its row so its roof fits a short canvas (never below the front row's feet); `overTop` = px of its roof tip that may run off the top before it sinks (Jeremy 2026-11-24: the tower stands 12px up with the Police station, so on the 800x360 phone the tip is cut 12px)
+        heroes: { row: 'back', right: 20 },                 // High school: art 526-700, 12px short of the moon (buildings draw over the moon)
+        bestdays: { row: 'far', right: -299, flip: true },  // Windmill (old front-view art, mirrored): rough far-row spot until it is redrawn
+        nights: { row: 'far', right: -127, flip: true },    // Radio mast (old front-view art, mirrored): rough far-row spot until it is redrawn
     },
-    VILLAGE_ART_X: { punctuality: [20, 113], defense: [3, 160], slain: [1, 160], nights: [12, 115], lurkers: [3, 191], heroes: [0, 174], habits: [1, 174], bestdays: [13, 116] },
+    VILLAGE_ART_X: { punctuality: [16, 105], defense: [3, 160], slain: [1, 160], nights: [12, 115], lurkers: [3, 191], heroes: [0, 174], habits: [1, 174], bestdays: [13, 116] },
 
     // ---- Village tiers (DECIDED 2026-10-30 night, DECISIONS "Village tiers"; docs/WORLD_FEEDBACK_PLAN.md "Village tiers + building cards") ----
     // BALANCE numbers, approved by Jeremy as a THEORY pass (rates are estimates; re-check against real play, like the shop prices).

@@ -140,7 +140,8 @@ describe('spriteScale', () => {
         expect(VillageCard.spriteScale(128, 133)).toBe(3);
         expect(VillageCard.spriteScale(128, 160)).toBe(2);
         expect(VillageCard.spriteScale(146, 150)).toBe(2);
-        expect(VillageCard.spriteScale(128, 256)).toBe(1.5); // Clock tower: 256 * 1.5 = 384 tall, same as a 3x building
+        expect(VillageCard.spriteScale(112, 208)).toBe(2); // Clock tower (112x208 since 2026-11-24): an even 2x, 416px tall
+        expect(VillageCard.spriteScale(128, 256)).toBe(1.5); // a canvas too tall for 2x (the old 128x256 tower) is fitted: 256 * 1.5 = 384 tall
         expect(VillageCard.spriteScale(0, 0)).toBe(3); // unknown size: the card omits the width style
     });
     test('the card is two columns: art (.vc-art) beside the info (.vc-info)', () => {

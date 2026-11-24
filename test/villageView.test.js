@@ -363,11 +363,12 @@ describe('High school (back row)', () => {
         expect(img.style.top).toBe(want.top + 'px');
     });
 
-    test('all six buildings at 844 wide; the school paints under every front building', () => {
+    test('all six buildings at 844 wide; the school paints under every front building and over the tower (same row, further right; 2026-11-24)', () => {
         initAll();
         expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(6);
         const z = k => Number(q(k).style.zIndex);
-        ['defense', 'lurkers', 'slain', 'punctuality'].forEach(k => expect(z('heroes')).toBeLessThan(z(k)));
+        ['defense', 'lurkers', 'slain'].forEach(k => expect(z('heroes')).toBeLessThan(z(k)));
+        expect(z('punctuality')).toBeLessThan(z('heroes')); // the Clock tower is a back-row building now, left of the school
     });
 
 });
@@ -522,7 +523,7 @@ describe('tappable buildings (Build 2, 2026-10-30)', () => {
         window.HTMLCanvasElement.prototype.getContext = () => null; // no canvas in jsdom -> exercises the art-box fallback
         let bubbled = false;
         document.body.addEventListener('click', () => { bubbled = true; });
-        // inside the clock tower's art columns (CONFIG.VILLAGE_ART_X.punctuality = [20, 113])
+        // inside the clock tower's art columns (CONFIG.VILLAGE_ART_X.punctuality = [16, 105])
         img.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 60, clientY: 60 }));
         expect(opened).toHaveLength(1);
         expect(opened[0]).toMatchObject({ kind: 'punctuality', tier: 3, url: 'Assets/Village/punctuality_t3.png', width: 128, height: 128 });
@@ -751,8 +752,8 @@ describe('haze by depth (run climate)', () => {
         img.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 60, clientY: 60 }));
         expect(img.classList.contains('village-hover')).toBe(true);
         img.getBoundingClientRect = () => grown; // now it is drawn bigger, as a browser reports it
-        // the clock tower's art columns are [20, 113]: x 19 is outside them at the true size, though inside them if the grown box were used
-        img.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 19, clientY: 60 }));
+        // the clock tower's art columns are [16, 105]: x 15 is outside them at the true size, though inside them if the grown box were used (it starts at 13.6)
+        img.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 15, clientY: 60 }));
         expect(img.classList.contains('village-hover')).toBe(false);
         img.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 21, clientY: 60 }));
         expect(img.classList.contains('village-hover')).toBe(true);
