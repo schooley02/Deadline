@@ -31,7 +31,8 @@ describe('church shake room', () => {
     // 2026-11-23: hovering a village building made the church jump one screen pixel for a few frames (Chrome lifted #base into its own layer only
     // while the building's hover transition ran). Pinned as layers, like the graveyard zone (test/markerPanel.test.js).
     test('the church and its 25% smoke are pinned compositor layers, so a village hover never re-rasters them', () => {
-        expect(css).toMatch(/#base,\s*#baseSmokeClip \{ will-change: transform; \}/);
+        expect(css).toMatch(/#base \{ will-change: transform; \}/);
+        expect(/#baseSmokeClip \{([^}]*)\}/.exec(css)[1]).toMatch(/will-change: transform;/);
     });
     test('the barricade stands 48px left of the church right edge', () => {
         expect(read('css/barricade.css')).toMatch(/\.barricade \{[^}]*left: calc\(var\(--base-w, 188px\) - 48px - var\(--base-bleed, 0px\)\);/);

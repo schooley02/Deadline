@@ -634,10 +634,9 @@
    and while it runs Chrome lifts everything painted AFTER the village (the church, and the 25% smoke behind it) into a layer of its own, then
    drops it again. On window sizes where the canvas height is not a whole number of screen pixels (measured: 1536x864 at 125% Windows scaling,
    canvas 447.27px) the lifted copy is drawn one screen pixel off, so the church jumped for those few frames on every hover in and out.
-   Pinning both as layers keeps one raster the whole time. Reproduced and verified headless (Chrome, 1.25x): 16-17 moved frames before, 0 after.
+   Pinning both as layers keeps one raster the whole time (the smoke's pin is inside its own #baseSmokeClip block below). Reproduced and verified headless (Chrome, 1.25x): 16-17 moved frames before, 0 after.
    will-change only; the hover `scale`, the hit shake `translate` and the flash `filter` are untouched. */
-#base,
-#baseSmokeClip { will-change: transform; }
+#base { will-change: transform; }
 body.glance-strip #gameCanvas { --base-bleed: 0px; }
 
 
@@ -696,6 +695,7 @@ body.glance-strip #gameCanvas { --base-bleed: 0px; }
     overflow: hidden;
     pointer-events: none;
     display: none;
+    will-change: transform; /* always its own layer, like #base above (2026-11-23: a village hover must not re-raster it) */
 }
 #gameCanvas:has(#base[data-base-anim="025"]) #baseSmokeClip { display: block; }
 body.glance-strip #baseSmokeClip { display: none !important; }
