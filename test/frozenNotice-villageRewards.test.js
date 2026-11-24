@@ -11,12 +11,12 @@ afterEach(() => { jest.runOnlyPendingTimers(); jest.useRealTimers(); });
 const row = (building, star, label) => ({ building, star, label });
 
 test('shows the building, its star count and the item', () => {
-    FrozenNotice.showVillageRewardNotice([row('Radio tower', 3, 'Repair Kit (Small) ×1')]);
+    FrozenNotice.showVillageRewardNotice([row('Broadcast tower', 3, 'Repair Kit (Small) ×1')]);
     jest.advanceTimersByTime(10);
     expect(Modal.open).toHaveBeenCalledTimes(1);
     const html = document.body.innerHTML;
     expect(html).toContain('Village rewards');
-    expect(html).toContain('Radio tower ★★★: Repair Kit (Small) ×1');
+    expect(html).toContain('Broadcast tower ★★★: Repair Kit (Small) ×1');
 });
 
 test('a single reward and several rewards read differently but are ONE window either way', () => {

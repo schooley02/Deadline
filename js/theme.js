@@ -38,7 +38,7 @@ const Theme = (() => {
         skyUnlocks: {
             level: 'Player Lv {level}',
             star: '{building} star {tier}',
-            buildings: { nights: 'Radio tower', defense: 'Jailhouse', bestdays: 'Windmill' },
+            buildings: { nights: 'Broadcast tower', defense: 'Jailhouse', bestdays: 'Windmill' },
         },
         // Milestone markers (2026-11-08; js/milestoneMarkers.js, js/ui/markerPanel.js): the small stones on the graveyard hill that show the
         // all-time achievements. Placeholders: {name}, {tier}, {value}, {threshold}, {unit}.

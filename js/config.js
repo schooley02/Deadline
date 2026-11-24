@@ -665,10 +665,11 @@ const CONFIG = {
     VILLAGE_ARMORY_W_PX: 160,
     VILLAGE_ARMORY_H_PX: 160,
     VILLAGE_DEV_ARMORY_TIER: 3, // DEV: no slain tier data yet. `?armoryTier=1..5` overrides, `off` hides; null = hidden
-    // Radio tower (kind `nights` = Nights Survived, added 2026-10-29): steel mast + radio shack, 128x160, a BACK-ROW building
-    // between the Police station and the tower. Raised on the ridge, darker, painted first (the front row covers it).
+    // Broadcast tower (kind `nights` = Nights Survived; was the Radio tower, renamed 2026-11-24, Jeremy; the VILLAGE_RADIO_* / radioTier names stay as config keys).
+    // 2026-11-24: 128x208 three-quarter redraw at BACK-ROW detail (Jeremy: more detail for the building window; 208 = the tallest art the window shows at 2x),
+    // standing in the FAR row behind the High school. Old art: 128x160 front view (Assets/Village/_source/americana-radio/).
     VILLAGE_RADIO_W_PX: 128,
-    VILLAGE_RADIO_H_PX: 160,
+    VILLAGE_RADIO_H_PX: 208,
     VILLAGE_DEV_RADIO_TIER: 3, // DEV: no nights tier data yet. `?radioTier=1..5` overrides, `off` hides; null = hidden
     VILLAGE_BACK_ROW_RAISE_PX: 60, // 2026-11-24 re-arrangement: 30 -> 60 so the back row shows above the bigger 160px front row (ART_STYLE Village 2.0 rule 3). Older note: back-row feet stand this far above the front row's feet (depth by ridge position, same sprite size; 2026-10-30: 14 -> 30, Jeremy: the village sits on a hill sloping down to the church and lanes)
     VILLAGE_BACK_ROW_BRIGHTNESS: 0.8, // back-row sprites are drawn at this brightness (CSS filter) so they recede behind the front row
@@ -706,7 +707,7 @@ const CONFIG = {
     // Only short buildings may stand in the ~90px under the moon + "NIGHTS SURVIVED" label. `flip` mirrors the sprite.
     // ---- RE-ARRANGEMENT (2026-11-24, Jeremy approved mock "D"; DECISIONS 2026-11-24 "Village re-arrangement"). The design screen is now the SMALLEST one,
     // the 800x360 phone: 800 - 120 (plot) - 188 (the church box on phones, --base-w) = a 492px field, where every `right` below is exact.
-    // Front: Gym, Police station, Command Post. Back: Hospital, Clock tower, High school. Far: Windmill, Radio (old art, rough spots until redrawn).
+    // Front: Gym, Police station, Command Post. Back: Hospital, Clock tower, High school. Far: Windmill (old art, rough spot until redrawn), Broadcast tower.
     VILLAGE_DESIGN_FIELD_PX: 492,
     VILLAGE_BASE_TUCK_PX: 24, // a building's art may start this far INSIDE the church's box (the church draws over it): the Gym sits 20px in, beside the lantern
     VILLAGE_PLACEMENT: {
@@ -717,9 +718,9 @@ const CONFIG = {
         punctuality: { row: 'back', right: -240, drop: 26, sink: 34, overTop: 12 }, // Clock tower: art 351-440 (T2-T5 361-437), in the Gym / Police gap so its door shows. `drop` 26 = it ALWAYS stands 26px lower than the back row: feet 34px above the front row's, 22px above the raised Police station's, on every screen. That is mock-up "option 3" (Jeremy 2026-11-24: "closer to the station"); before this it only stood there on the 800x360 phone, and higher up the hill on anything taller. `sink` = how much further (px) it may stand lower so its roof fits a canvas shorter than that phone's (never below the front row's feet); `overTop` = px of roof tip that may run off the top before it sinks (12 = what the phone cuts)
         heroes: { row: 'back', right: 20 },                 // High school: art 526-700, 12px short of the moon (buildings draw over the moon)
         bestdays: { row: 'far', right: -299, flip: true },  // Windmill (old front-view art, mirrored): rough far-row spot until it is redrawn
-        nights: { row: 'far', right: -127, flip: true },    // Radio mast (old front-view art, mirrored): rough far-row spot until it is redrawn
+        nights: { row: 'far', right: 18, sink: 95 },         // Broadcast tower (128x208 three-quarter art, no flip): art 574-698 at 800 wide, its mast (canvas x 90) at 662, behind the High school's right wing, right of the phone HUD (ends 580) and left of the moon (712). Only its top shows above the school: the beacon, the big dish, the crew platform (all in the top 67px of the art). `sink` 95 = on a canvas too short for 208px above the far row it stands lower, as far as the front row's feet, so the beacon stays on screen (74px lower on the 800x360 phone; full far-row height from a 379px canvas)
     },
-    VILLAGE_ART_X: { punctuality: [16, 105], defense: [3, 160], slain: [1, 160], nights: [12, 115], lurkers: [3, 191], heroes: [0, 174], habits: [1, 174], bestdays: [13, 116] },
+    VILLAGE_ART_X: { punctuality: [16, 105], defense: [3, 160], slain: [1, 160], nights: [2, 126], lurkers: [3, 191], heroes: [0, 174], habits: [1, 174], bestdays: [13, 116] },
 
     // ---- Village tiers (DECIDED 2026-10-30 night, DECISIONS "Village tiers"; docs/WORLD_FEEDBACK_PLAN.md "Village tiers + building cards") ----
     // BALANCE numbers, approved by Jeremy as a THEORY pass (rates are estimates; re-check against real play, like the shop prices).

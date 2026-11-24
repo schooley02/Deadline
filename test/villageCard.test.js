@@ -12,7 +12,7 @@ const progress = (value, kind = 'nights') => VillageProgress.tierFor(value, Vill
 describe('buildModel', () => {
     test('a T1 building shows "N / M unit to earn star 2" and one current pip', () => {
         const m = VillageCard.buildModel({ kind: 'nights', progress: progress(1) });
-        expect(m.name).toBe('Radio tower');
+        expect(m.name).toBe('Broadcast tower');
         expect(m.tier).toBe(1);
         expect(m.barText).toBe('1 / 4 nights to earn star 2');
         expect(m.toNext).toBe(3);

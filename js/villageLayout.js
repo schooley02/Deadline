@@ -42,7 +42,7 @@ const VillageLayout = (() => {
         armoryHeightPx: 160,
         devArmoryTier: 3,
         radioWidthPx: 128,
-        radioHeightPx: 160,
+        radioHeightPx: 208,
         devRadioTier: 3,
         gymWidthPx: 192,
         gymHeightPx: 160,
@@ -58,7 +58,7 @@ const VillageLayout = (() => {
         farRowRaisePx: 35,
         farRowBrightness: 0.65,
         devHospitalTier: 3,
-        art: { punctuality: [16, 105], defense: [3, 160], slain: [1, 160], nights: [12, 115], lurkers: [3, 191], heroes: [0, 174], habits: [1, 174], bestdays: [13, 116] },
+        art: { punctuality: [16, 105], defense: [3, 160], slain: [1, 160], nights: [2, 126], lurkers: [3, 191], heroes: [0, 174], habits: [1, 174], bestdays: [13, 116] },
         backRowRaisePx: 60,
         backRowBrightness: 0.8,
         baseTuckPx: 24,
@@ -72,7 +72,7 @@ const VillageLayout = (() => {
             punctuality: { row: 'back', right: -240, drop: 26, sink: 34, overTop: 12 },
             heroes: { row: 'back', right: 20 },
             bestdays: { row: 'far', right: -299, flip: true },
-            nights: { row: 'far', right: -127, flip: true },
+            nights: { row: 'far', right: 18, sink: 95 },
         },
     };
 

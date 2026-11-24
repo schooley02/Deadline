@@ -35,7 +35,7 @@ const VillageCard = (() => {
     // One entry per building kind: its name, one line on what it measures, and the unit used in the bar.
     const KINDS = {
         nights: {
-            name: 'Radio tower', unit: 'nights',
+            name: 'Broadcast tower', unit: 'nights',
             measures: 'Nights survived. Each midnight you make it through, the tower broadcasts: "We are still here."',
             why: 'Staying in the game is what counts. A long run of ordinary nights beats one heroic day, and every night is proof that you can keep showing up.',
         },

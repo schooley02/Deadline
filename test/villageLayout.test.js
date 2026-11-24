@@ -384,7 +384,7 @@ describe('Radio tower (back row)', () => {
         expect(slots(844, 334, { barn: 3 })).toEqual([]);
     });
 
-    test.each([1, 2, 3, 4, 5])('shipped nights tier %i exists and is the authored 128x160 canvas', tier => {
+    test.each([1, 2, 3, 4, 5])('shipped nights tier %i exists and is the authored 128x208 canvas (Broadcast tower, 2026-11-24)', tier => {
         const file = path.join(__dirname, '..', VillageLayout.spriteUrl('nights', tier));
         expect(fs.existsSync(file)).toBe(true);
         const b = fs.readFileSync(file);
@@ -916,17 +916,41 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
 
     test('flipped buildings mirror their art columns', () => {
         const s = byKind(at(800));
-        ['bestdays', 'nights'].forEach((k) => {
+        ['bestdays'].forEach((k) => { // the Broadcast tower (`nights`) left this list 2026-11-24: its redraw is three-quarter art
             expect(s[k].flip).toBe(true);
             const art = CONFIG.VILLAGE_ART_X[k];
             expect(s[k].artLeft - s[k].left).toBe(128 - art[1]);
             expect(s[k].artRight - s[k].left).toBe(128 - art[0]);
         });
-        ['lurkers', 'defense', 'slain', 'habits', 'punctuality', 'heroes'].forEach(k => expect(s[k].flip).toBe(false)); // three-quarter art is never mirrored (ART_STYLE Village 2.0 rule 1)
+        ['lurkers', 'defense', 'slain', 'habits', 'punctuality', 'heroes', 'nights'].forEach(k => expect(s[k].flip).toBe(false)); // three-quarter art is never mirrored (ART_STYLE Village 2.0 rule 1)
     });
 
-    test('the radio mast stands right of the HUD (its art starts at least 400px into the canvas on the phone)', () => {
-        expect(byKind(at(800)).nights.artLeft).toBeGreaterThanOrEqual(400);
+    test('the Broadcast tower (2026-11-24): 128x208, far row, behind the High school\'s right wing, its mast right of the phone HUD and its art left of the moon', () => {
+        expect(CONFIG.VILLAGE_PLACEMENT.nights).toEqual({ row: 'far', right: 18, sink: 95 });
+        expect([CONFIG.VILLAGE_RADIO_W_PX, CONFIG.VILLAGE_RADIO_H_PX]).toEqual([128, 208]);
+        const s = byKind(at(800));
+        expect([s.nights.artLeft, s.nights.artRight]).toEqual([574, 698]);
+        expect(s.nights.left + 90).toBe(662);                              // the mast's centre line (canvas x 90)
+        expect(s.nights.left + 90 - 17).toBeGreaterThan(580);              // the crew platform's front edge clears the HUD (x 16-580 on the phone)
+        expect(s.nights.artRight).toBeLessThan(800 - 30 - 58);             // left of the moon box
+        expect(s.nights.left + 90).toBeGreaterThan(s.heroes.artLeft);      // it stands behind the High school...
+        expect(s.nights.artRight).toBeLessThanOrEqual(s.heroes.artRight);  // ...and does not reach past its right end
+    });
+
+    test('the Broadcast tower stands lower than the far row only on a canvas too short for it, so its beacon stays on screen', () => {
+        const tower = (h) => byKind(at(800, h)).nights;
+        const farFeet = (h) => VillageLayout.horizonFeetY(h, OPTS) - CONFIG.VILLAGE_BACK_ROW_RAISE_PX - CONFIG.VILLAGE_FAR_ROW_RAISE_PX;
+        const phone = tower(306);                                          // the 800x360 phone
+        expect(phone.top).toBe(0);
+        expect(phone.sink).toBe(208 - farFeet(306));                       // 73
+        expect(phone.feetY).toBe(farFeet(306));                            // `feetY` stays the row's horizon
+        const tall = tower(379);                                           // the first canvas with 208px of sky above the far row
+        expect(tall.sink).toBeUndefined();
+        expect(tall.top).toBe(0);
+        expect(tower(500).top).toBe(farFeet(500) - 208);
+        expect(tower(500).sink).toBeUndefined();
+        const tiny = tower(250);                                           // never below the front row's feet
+        expect(tiny.sink).toBe(CONFIG.VILLAGE_BACK_ROW_RAISE_PX + CONFIG.VILLAGE_FAR_ROW_RAISE_PX);
     });
 
     test('a building shows on its own; changing one tier never moves another', () => {

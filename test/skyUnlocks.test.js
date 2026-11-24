@@ -127,10 +127,10 @@ describe('best level from history, and the sanitiser', () => {
 describe('theme requirement lines', () => {
     test('a level rule and a star rule read as player words; building names live in the theme', () => {
         expect(Theme.skyRequirement(CONFIG.SKY_UNLOCKS.hazy)).toBe('Player Lv 4');
-        expect(Theme.skyRequirement(CONFIG.SKY_UNLOCKS.overcast)).toBe('Radio tower star 3');
+        expect(Theme.skyRequirement(CONFIG.SKY_UNLOCKS.overcast)).toBe('Broadcast tower star 3');
         expect(Theme.skyRequirement(CONFIG.SKY_UNLOCKS.fog)).toBe('Jailhouse star 3');
         expect(Theme.skyRequirement(CONFIG.SKY_UNLOCKS.storm)).toBe('Windmill star 3');
-        expect(Theme.skyRequirement(CONFIG.SKY_UNLOCKS.clear)).toBe('Radio tower star 4');
+        expect(Theme.skyRequirement(CONFIG.SKY_UNLOCKS.clear)).toBe('Broadcast tower star 4');
     });
     test('a malformed rule is an empty line, never "undefined"', () => {
         [null, undefined, {}, { kind: 'nope', tier: 3 }, { kind: 'nights' }, 'x'].forEach(r => expect(Theme.skyRequirement(r)).toBe(''));
@@ -139,7 +139,7 @@ describe('theme requirement lines', () => {
         const fs = require('fs');
         ['js/skyPick.js', 'js/ui/weatherPanel.js'].forEach((f) => {
             const text = fs.readFileSync(require('path').join(__dirname, '..', f), 'utf8');
-            expect(text).not.toMatch(/Radio tower|Jailhouse|Windmill/);
+            expect(text).not.toMatch(/Radio tower|Broadcast tower|Jailhouse|Windmill/);
         });
     });
 });
@@ -158,7 +158,7 @@ describe('Weather panel: locked rows', () => {
         expect(pm.options.find(o => o.key === 'hazy')).toMatchObject({ disabled: false });
         expect(pm.options.find(o => o.key === 'hazy').locked).toBeUndefined();
         expect(pm.options.find(o => o.key === 'fog')).toMatchObject({ disabled: true, locked: true, requirement: 'Jailhouse star 3' });
-        expect(pm.options.find(o => o.key === 'clear')).toMatchObject({ locked: true, requirement: 'Radio tower star 4' });
+        expect(pm.options.find(o => o.key === 'clear')).toMatchObject({ locked: true, requirement: 'Broadcast tower star 4' });
     });
 
     test('the markup shows the lock, the requirement, and a disabled button for each locked sky', () => {
@@ -166,7 +166,7 @@ describe('Weather panel: locked rows', () => {
         expect(html).toContain('wx-pick wx-pick--locked');
         expect(html).toContain('Jailhouse star 3');
         expect(html).toContain('Windmill star 3');
-        expect(html).toContain('Radio tower star 3');
+        expect(html).toContain('Broadcast tower star 3');
         expect(html).toContain('aria-label="Fog, locked. Unlocks at Jailhouse star 3"');
         expect((html.match(/wx-pick--locked/g) || []).length).toBe(4);
         expect(html).toContain('data-sky-pick="hazy" aria-pressed="false">Hazy</button>');
