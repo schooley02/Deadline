@@ -69,7 +69,7 @@ const VillageLayout = (() => {
             defense: { row: 'front', right: -125, raise: 12 },
             slain: { row: 'front', right: 34 },
             habits: { row: 'back', right: -317 },
-            punctuality: { row: 'back', right: -240, raise: 12, sink: 60, overTop: 12 },
+            punctuality: { row: 'back', right: -240, raise: 12, sink: 60, overTop: 24 },
             heroes: { row: 'back', right: 20 },
             bestdays: { row: 'far', right: -299, flip: true },
             nights: { row: 'far', right: -127, flip: true },

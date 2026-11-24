@@ -193,27 +193,27 @@ describe('Clock tower `sink` (2026-11-24): a back-row tower too tall for a short
     const withSink = sink => ({ ...OPTS, placement: { ...OPTS.placement, punctuality: { ...OPTS.placement.punctuality, sink } } });
 
     test('the tower is a back-row building that may sink up to the whole back-row raise', () => {
-        expect(CONFIG.VILLAGE_PLACEMENT.punctuality).toEqual({ row: 'back', right: -240, raise: 12, sink: 60, overTop: 12 });
+        expect(CONFIG.VILLAGE_PLACEMENT.punctuality).toEqual({ row: 'back', right: -240, raise: 12, sink: 60, overTop: 24 });
         expect(CONFIG.VILLAGE_PLACEMENT.punctuality.sink).toBeLessThanOrEqual(RAISE);
     });
 
-    test('800x360 phone (canvas 306): 208px of tower 72px up (60 row + 12 raise) needs 280px of sky, there are 230; 12px of roof tip may run off the top (overTop), so it sinks 38', () => {
+    test('800x360 phone (canvas 306): 208px of tower 72px up (60 row + 12 raise) needs 280px of sky, there are 230; 24px of roof tip may run off the top (overTop), so it sinks 26', () => {
         const t = tower(306);
         expect(t.row).toBe('back');
         expect(t.raise).toBe(12);
-        expect(t.sink).toBe(38);
-        expect(t.top).toBe(-12);
+        expect(t.sink).toBe(26);
+        expect(t.top).toBe(-24);
         expect(t.feetY).toBe(base(306) - RAISE); // feetY stays the row's horizon (the haze plan reads it)
     });
 
-    test('at every common height at most the 12px roof tip is cut, and the tower never sinks further than it must', () => {
+    test('at every common height at most the 24px roof tip is cut, and the tower never sinks further than it must', () => {
         [296, 298, 306, 320, 334, 344, 356].forEach((h) => {
             const t = tower(h);
-            expect(t.top).toBeGreaterThanOrEqual(-12);
-            expect(t.top).toBe(Math.max(-12, base(h) - RAISE - UP - H));
+            expect(t.top).toBeGreaterThanOrEqual(-24);
+            expect(t.top).toBe(Math.max(-24, base(h) - RAISE - UP - H));
         });
-        expect(tower(344).sink).toBeUndefined(); // 12px short of sky: exactly the allowance, so it keeps its full height
-        expect(tower(343).sink).toBe(1);
+        expect(tower(332).sink).toBeUndefined(); // 24px short of sky: exactly the allowance, so it keeps its full height
+        expect(tower(331).sink).toBe(1);
     });
 
     test('`overTop` 0 (or junk) means the whole canvas must fit: the tower sinks until its roof touches the top', () => {
@@ -763,7 +763,7 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
         expect(box('defense')).toEqual([398, 555, 58]); // 12px further back than the row line (`raise`)
         expect(box('slain')).toEqual([555, 714, 70]);
         expect(box('habits')).toEqual([190, 363, 26]);
-        expect(box('punctuality')).toEqual([351, 440, -12]); // 12px of roof tip off the top (`overTop`), Jeremy 2026-11-24
+        expect(box('punctuality')).toEqual([351, 440, -24]); // 24px of roof tip off the top (`overTop`): the 12px lift beside the Police station shows on the phone too, Jeremy 2026-11-24
         expect(box('heroes')).toEqual([526, 700, 26]);
     });
 
