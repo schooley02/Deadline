@@ -188,18 +188,20 @@ describe('Clock tower `sink` (2026-11-24): a back-row tower too tall for a short
     const base = h => h - CONFIG.GROUND_FLOOR_HEIGHT - CONFIG.VILLAGE_FEET_ABOVE_FLOOR_PX;
     const H = CONFIG.VILLAGE_SPRITE_H_PX;
     const RAISE = CONFIG.VILLAGE_BACK_ROW_RAISE_PX;
+    const UP = CONFIG.VILLAGE_PLACEMENT.punctuality.raise; // 12: the tower stands this far above the back row's line, with the raised Police station (Jeremy 2026-11-24)
     const tower = (h, opts = OPTS, tiers = { punctuality: 5 }) => VillageLayout.villageSlots(800, h, 188, 120, tiers, opts).find(x => x.kind === 'punctuality');
     const withSink = sink => ({ ...OPTS, placement: { ...OPTS.placement, punctuality: { ...OPTS.placement.punctuality, sink } } });
 
     test('the tower is a back-row building that may sink up to the whole back-row raise', () => {
-        expect(CONFIG.VILLAGE_PLACEMENT.punctuality).toEqual({ row: 'back', right: -240, sink: 60, overTop: 12 });
+        expect(CONFIG.VILLAGE_PLACEMENT.punctuality).toEqual({ row: 'back', right: -240, raise: 12, sink: 60, overTop: 12 });
         expect(CONFIG.VILLAGE_PLACEMENT.punctuality.sink).toBeLessThanOrEqual(RAISE);
     });
 
-    test('800x360 phone (canvas 306): 208px of tower on a 60px-high row needs 268px of sky, there are 230; 12px of roof tip may run off the top (overTop), so it sinks 26', () => {
+    test('800x360 phone (canvas 306): 208px of tower 72px up (60 row + 12 raise) needs 280px of sky, there are 230; 12px of roof tip may run off the top (overTop), so it sinks 38', () => {
         const t = tower(306);
         expect(t.row).toBe('back');
-        expect(t.sink).toBe(26);
+        expect(t.raise).toBe(12);
+        expect(t.sink).toBe(38);
         expect(t.top).toBe(-12);
         expect(t.feetY).toBe(base(306) - RAISE); // feetY stays the row's horizon (the haze plan reads it)
     });
@@ -208,31 +210,32 @@ describe('Clock tower `sink` (2026-11-24): a back-row tower too tall for a short
         [296, 298, 306, 320, 334, 344, 356].forEach((h) => {
             const t = tower(h);
             expect(t.top).toBeGreaterThanOrEqual(-12);
-            expect(t.top).toBe(Math.max(-12, base(h) - RAISE - H));
+            expect(t.top).toBe(Math.max(-12, base(h) - RAISE - UP - H));
         });
-        expect(tower(334).sink).toBeUndefined(); // 10px short of sky: inside the 12px allowance, so it keeps the back row's height
+        expect(tower(344).sink).toBeUndefined(); // 12px short of sky: exactly the allowance, so it keeps its full height
+        expect(tower(343).sink).toBe(1);
     });
 
     test('`overTop` 0 (or junk) means the whole canvas must fit: the tower sinks until its roof touches the top', () => {
         const noOver = v => ({ ...OPTS, placement: { ...OPTS.placement, punctuality: { ...OPTS.placement.punctuality, overTop: v } } });
         [0, undefined, -4, 'x'].forEach((v) => {
             const t = tower(306, noOver(v));
-            expect(t.sink).toBe(38);
+            expect(t.sink).toBe(50);
             expect(t.top).toBe(0);
         });
     });
 
-    test('a canvas tall enough needs no sink: the tower stands on the back row like its neighbours', () => {
+    test('a canvas tall enough needs no sink: the tower stands 12px above the back row\'s line (its `raise`)', () => {
         const t = tower(400);
         expect(t.sink).toBeUndefined();
-        expect(t.top).toBe(t.feetY - H);
+        expect(t.top).toBe(t.feetY - H - UP);
         expect(t.feetY).toBe(base(400) - RAISE);
     });
 
     test('it never sinks more than its `sink`, and never below the front row\'s feet', () => {
-        expect(tower(306, withSink(10)).top).toBe(-28); // 26 wanted, 10 allowed: the top 28px run off the screen
+        expect(tower(306, withSink(10)).top).toBe(-40); // 38 wanted, 10 allowed: the top 40px run off the screen
         const short = tower(240, withSink(200)); // 164px of sky: even on the front row's line the roof is cut
-        expect(short.sink).toBe(RAISE);
+        expect(short.sink).toBe(RAISE + UP);
         expect(short.top + H).toBe(base(240)); // its lowest row is on the front row's feet, not below them
     });
 
@@ -240,7 +243,7 @@ describe('Clock tower `sink` (2026-11-24): a back-row tower too tall for a short
         [undefined, -5, 'x', NaN, 0].forEach((v) => {
             const t = tower(306, withSink(v));
             expect(t.sink).toBeUndefined();
-            expect(t.top).toBe(t.feetY - H);
+            expect(t.top).toBe(t.feetY - H - UP);
         });
     });
 
