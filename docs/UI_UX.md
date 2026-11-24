@@ -218,8 +218,10 @@ stand behind the add-task (+) button on a landscape phone: left as designed, to 
 shape (`.milestone-marker[data-stage] ::before` insets, derived from the PNG alpha at 2x minus 1px; pinned by test/markerPanel.test.js). The past-run graves
 (`#runGraves`, newest by the plot, tightening spacing, oldest fade near the church, each just under its lane's zombies) open Stats; they are tappable only
 where no zombie covers them. The moon sits left of the plot. **The growing tree is removed** (code, tap window, CSS, config, tests); its saved lifetime-night
-total is kept and shown on the Stats tab ("N nights survived across all runs", under "N nights survived so far"). Still open: no storm version of the ground
-layer. Full decisions + history: `docs/WORLD_FEEDBACK_PLAN.md` "W0 layout" (the tree / hill parts there are superseded), `docs/DECISIONS.md` 2026-11-23.
+total is kept and shown on the Stats tab ("N nights survived across all runs", under "N nights survived so far"). In Storm weather only the ground
+swaps, to `storm-graveyard-ground.png` (the same grass in the storm lane's darker shades; no puddles; the fences do not change; `css/climate.css`).
+The church (`#base`) and its 25% smoke are pinned as their own layers (`will-change: transform`, `css/gameCanvas.css`, 2026-11-23) so a village building's
+hover never makes the church jump a pixel. Full decisions + history: `docs/WORLD_FEEDBACK_PLAN.md` "W0 layout" (the tree / hill parts there are superseded), `docs/DECISIONS.md` 2026-11-23.
 
 ## Enemy state glows (V2, 2026-10-12) + highlight redesign Build A (2026-11-06)
 

@@ -166,7 +166,7 @@ Mockups: Design canvas "Deadline World Feedback Mockups", boards 7a-7f (7f is a 
 - **Achievement headstones stand on the hill in 3 staggered lanes** (lane rise 28px, odd lane shifted half
   a 44px pitch so a back stone peeks between two front stones). One button per family
   (`CONFIG.ACHIEVEMENTS`), 44px tap box, tap -> Stats. W0 art is a placeholder stone for every family;
-  tier art (wooden cross -> mausoleum) is W2. 140px holds 6 families (capacity = `GraveyardLayout.stoneCapacity`).
+  tier art (wooden cross -> mausoleum) is W2. 140px holds 6 families (capacity = `GraveyardLayout.stoneCapacity`; HISTORY: that helper, `stoneSlots`, `CONFIG.GRAVEYARD_STONE_*`, `GRAVEYARD_PAD_PX` and `GRAVEYARD_TRUNK_PX` were removed 2026-11-23, the stones are placed by `CONFIG.MARKER_SLOTS`).
 - **The tree is its own graphic at the right edge, pushed partly off-screen** (only a trunk strip +
   the canopy overhanging the back stones show). It sits in a clipper (`.graveyard-tree-clip`) because
   `#gameCanvas` is `overflow: visible` and `clip-path` does NOT stop an element widening the page
