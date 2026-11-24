@@ -184,74 +184,94 @@ describe('shipped jail sprites', () => {
     });
 });
 
-describe('Clock tower `sink` (2026-11-24): a back-row tower too tall for a short canvas stands lower, only as far as needed', () => {
+describe('Clock tower `drop` and `sink` (2026-11-24): the tower stands beside the Police station on every screen, and lower still only on a canvas too short for it', () => {
     const base = h => h - CONFIG.GROUND_FLOOR_HEIGHT - CONFIG.VILLAGE_FEET_ABOVE_FLOOR_PX;
     const H = CONFIG.VILLAGE_SPRITE_H_PX;
     const RAISE = CONFIG.VILLAGE_BACK_ROW_RAISE_PX;
-    const UP = CONFIG.VILLAGE_PLACEMENT.punctuality.raise; // 12: the tower stands this far above the back row's line, with the raised Police station (Jeremy 2026-11-24)
-    const tower = (h, opts = OPTS, tiers = { punctuality: 5 }) => VillageLayout.villageSlots(800, h, 188, 120, tiers, opts).find(x => x.kind === 'punctuality');
-    const withSink = sink => ({ ...OPTS, placement: { ...OPTS.placement, punctuality: { ...OPTS.placement.punctuality, sink } } });
+    const DROP = CONFIG.VILLAGE_PLACEMENT.punctuality.drop; // 26: the tower always stands this far below the back row's line
+    const STATION_UP = CONFIG.VILLAGE_PLACEMENT.defense.raise; // 12
+    const tower = (h, opts = OPTS, tiers = { punctuality: 5 }, w = 800, baseW = 188) => VillageLayout.villageSlots(w, h, baseW, 120, tiers, opts).find(x => x.kind === 'punctuality');
+    const withP = extra => ({ ...OPTS, placement: { ...OPTS.placement, punctuality: { ...OPTS.placement.punctuality, ...extra } } });
+    const withSink = sink => withP({ sink });
 
-    test('the tower is a back-row building that may sink up to the whole back-row raise', () => {
-        expect(CONFIG.VILLAGE_PLACEMENT.punctuality).toEqual({ row: 'back', right: -240, raise: 12, sink: 60, overTop: 24 });
-        expect(CONFIG.VILLAGE_PLACEMENT.punctuality.sink).toBeLessThanOrEqual(RAISE);
+    test('the tower is a back-row building that always stands 26px lower than its row', () => {
+        expect(CONFIG.VILLAGE_PLACEMENT.punctuality).toEqual({ row: 'back', right: -240, drop: 26, sink: 34, overTop: 12 });
+        expect(DROP + CONFIG.VILLAGE_PLACEMENT.punctuality.sink).toBeLessThanOrEqual(RAISE);
     });
 
-    test('800x360 phone (canvas 306): 208px of tower 72px up (60 row + 12 raise) needs 280px of sky, there are 230; 24px of roof tip may run off the top (overTop), so it sinks 26', () => {
+    test('800x360 phone (canvas 306), mock-up "option 3": feet 196, roof tip cut 12px, no sink needed', () => {
         const t = tower(306);
         expect(t.row).toBe('back');
-        expect(t.raise).toBe(12);
-        expect(t.sink).toBe(26);
-        expect(t.top).toBe(-24);
+        expect(t.drop).toBe(26);
+        expect(t.raise).toBeUndefined();
+        expect(t.sink).toBeUndefined();
+        expect(t.top).toBe(-12);
+        expect(t.top + H).toBe(196);
         expect(t.feetY).toBe(base(306) - RAISE); // feetY stays the row's horizon (the haze plan reads it)
     });
 
-    test('at every common height at most the 24px roof tip is cut, and the tower never sinks further than it must', () => {
-        [296, 298, 306, 320, 334, 344, 356].forEach((h) => {
-            const t = tower(h);
-            expect(t.top).toBeGreaterThanOrEqual(-24);
-            expect(t.top).toBe(Math.max(-24, base(h) - RAISE - UP - H));
+    test('Jeremy 2026-11-24 ("closer to the station"): on EVERY screen from the phone up, the tower\'s feet are 22px above the raised Police station\'s (34 above the front row\'s)', () => {
+        [[800, 306, 188], [1024, 398, 300], [1280, 344, 368], [1440, 420, 368], [1920, 700, 368]].forEach(([w, h, baseW]) => {
+            const s = VillageLayout.villageSlots(w, h, baseW, 120, { punctuality: 5, defense: 5 }, OPTS);
+            const t = s.find(x => x.kind === 'punctuality');
+            const d = s.find(x => x.kind === 'defense');
+            expect(t.sink).toBeUndefined();
+            expect((d.top + d.height) - (t.top + t.height)).toBe(RAISE - DROP - STATION_UP);
+            expect(RAISE - DROP - STATION_UP).toBe(22);
+            expect(base(h) - (t.top + t.height)).toBe(34);
         });
-        expect(tower(332).sink).toBeUndefined(); // 24px short of sky: exactly the allowance, so it keeps its full height
-        expect(tower(331).sink).toBe(1);
+    });
+
+    test('`drop` never puts a building below the front row\'s feet; missing, negative or junk means none', () => {
+        const deep = tower(400, withP({ drop: 500 }));
+        expect(deep.drop).toBe(RAISE);
+        expect(deep.top + H).toBe(base(400));
+        [undefined, -5, 'x', NaN, 0].forEach((v) => {
+            const t = tower(400, withP({ drop: v }));
+            expect(t.drop).toBeUndefined();
+            expect(t.top).toBe(t.feetY - H);
+        });
+    });
+
+    test('a canvas shorter than the phone\'s: at most the 12px roof tip is cut, and the tower sinks no further than it must', () => {
+        [280, 296, 298, 304, 306, 320, 356].forEach((h) => {
+            const t = tower(h);
+            expect(t.top).toBe(Math.max(-12, base(h) - RAISE + DROP - H));
+        });
+        expect(tower(306).sink).toBeUndefined(); // exactly the allowance
+        expect(tower(305).sink).toBe(1);
+        expect(tower(296).sink).toBe(10);
     });
 
     test('`overTop` 0 (or junk) means the whole canvas must fit: the tower sinks until its roof touches the top', () => {
-        const noOver = v => ({ ...OPTS, placement: { ...OPTS.placement, punctuality: { ...OPTS.placement.punctuality, overTop: v } } });
         [0, undefined, -4, 'x'].forEach((v) => {
-            const t = tower(306, noOver(v));
-            expect(t.sink).toBe(50);
+            const t = tower(306, withP({ overTop: v }));
+            expect(t.sink).toBe(12);
             expect(t.top).toBe(0);
         });
     });
 
-    test('a canvas tall enough needs no sink: the tower stands 12px above the back row\'s line (its `raise`)', () => {
-        const t = tower(400);
-        expect(t.sink).toBeUndefined();
-        expect(t.top).toBe(t.feetY - H - UP);
-        expect(t.feetY).toBe(base(400) - RAISE);
-    });
-
     test('it never sinks more than its `sink`, and never below the front row\'s feet', () => {
-        expect(tower(306, withSink(10)).top).toBe(-40); // 38 wanted, 10 allowed: the top 40px run off the screen
+        expect(tower(290, withSink(10)).top).toBe(-18); // 16 wanted, 10 allowed: the top 18px run off the screen
         const short = tower(240, withSink(200)); // 164px of sky: even on the front row's line the roof is cut
-        expect(short.sink).toBe(RAISE + UP);
+        expect(short.sink).toBe(RAISE - DROP);
         expect(short.top + H).toBe(base(240)); // its lowest row is on the front row's feet, not below them
     });
 
     test('a missing, negative or junk `sink` means no sink', () => {
         [undefined, -5, 'x', NaN, 0].forEach((v) => {
-            const t = tower(306, withSink(v));
+            const t = tower(290, withSink(v));
             expect(t.sink).toBeUndefined();
-            expect(t.top).toBe(t.feetY - H - UP);
+            expect(t.top).toBe(t.feetY - H + DROP);
         });
     });
 
-    test('only the tower sinks; its neighbours keep their row, with or without it', () => {
+    test('only the tower drops or sinks; its neighbours keep their row, with or without it', () => {
         const ALL = { punctuality: 3, defense: 3, slain: 3, lurkers: 3, heroes: 3, habits: 3 };
         const s = VillageLayout.villageSlots(800, 306, 188, 120, ALL, OPTS);
         s.filter(x => x.kind !== 'punctuality').forEach((x) => {
             expect(x.sink).toBeUndefined();
+            expect(x.drop).toBeUndefined();
             expect(x.top).toBe(x.feetY - x.height - (x.raise || 0));
         });
         const without = VillageLayout.villageSlots(800, 306, 188, 120, { ...ALL, punctuality: null }, OPTS);
@@ -763,7 +783,7 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
         expect(box('defense')).toEqual([398, 555, 58]); // 12px further back than the row line (`raise`)
         expect(box('slain')).toEqual([555, 714, 70]);
         expect(box('habits')).toEqual([190, 363, 26]);
-        expect(box('punctuality')).toEqual([351, 440, -24]); // 24px of roof tip off the top (`overTop`): the 12px lift beside the Police station shows on the phone too, Jeremy 2026-11-24
+        expect(box('punctuality')).toEqual([351, 440, -12]); // mock-up "option 3": feet 196, 22px above the Police station's; 12px of roof tip off the top
         expect(box('heroes')).toEqual([526, 700, 26]);
     });
 

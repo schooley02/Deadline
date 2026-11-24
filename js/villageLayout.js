@@ -69,7 +69,7 @@ const VillageLayout = (() => {
             defense: { row: 'front', right: -125, raise: 12 },
             slain: { row: 'front', right: 34 },
             habits: { row: 'back', right: -317 },
-            punctuality: { row: 'back', right: -240, raise: 12, sink: 60, overTop: 24 },
+            punctuality: { row: 'back', right: -240, drop: 26, sink: 34, overTop: 12 },
             heroes: { row: 'back', right: 20 },
             bestdays: { row: 'far', right: -299, flip: true },
             nights: { row: 'far', right: -127, flip: true },
@@ -242,11 +242,14 @@ const VillageLayout = (() => {
      * farRowRaisePx higher and darker still. `flip: true` mirrors the sprite (the view sets scaleX(-1); artLeft/artRight are mirrored
      * here; banned for three-quarter art). Per-building options:
      *   raise  px (>= 0) further back (up) than the row's feet.
+     *   drop   px (>= 0) the building ALWAYS stands lower than its row, on every screen, never below the front row's feet (Clock tower
+     *          26: on the 60px back row that puts its feet 34px above the front row's, 22px above the raised Police station's, which
+     *          is where the approved mock-up "option 3" has it; before this it only stood there on a short phone canvas, by sinking).
      *   sink   px (>= 0) the building may stand LOWER than its row when its canvas would otherwise run off the top of the scene: it drops
-     *          only as far as needed, never more than `sink`, and never below the front row's feet (Clock tower, 2026-11-24: 208px of
-     *          tower on a 60px-high back row needs 268px of sky and a phone has about 230). `feetY` stays the row's horizon either way.
+     *          only as far as needed, never more than `sink`, and never below the front row's feet (Clock tower, 2026-11-24: for
+     *          canvases shorter than the 800x360 phone's). `feetY` stays the row's horizon either way.
      *   overTop px (>= 0) of the canvas's top rows that may run off the top of the scene before `sink` starts: the building sinks only
-     *          until that much is cut (Clock tower 12: it stands 12px up with the raised Police station, so a phone cuts its roof tip).
+     *          until that much is cut (Clock tower 12: on the 800x360 phone its roof tip is cut exactly 12px, as in the mock-up).
      * The church draws OVER the village, so a building's art may start up to baseTuckPx inside the church's box (the Gym, beside the
      * lantern). A building is dropped (never moved) if its art would reach further over the church than that, or past the plot.
      * Paint order: far row, back row, front row; left to right within a row.
@@ -294,11 +297,15 @@ const VillageLayout = (() => {
             const raise = Math.max(0, Math.round(Number(p.raise) || 0));
             // Optional per-building `sink` (px, >= 0): see the doc comment above.
             const maxSink = Math.max(0, Math.round(Number(p.sink) || 0));
-            const rawTop = feetY - h - raise;
+            // Optional per-building `drop` (px, >= 0): always stands this much lower than its row, never below the front row's feet.
+            const room = Math.max(0, Math.round(frontFeet) - (feetY - raise));
+            const drop = Math.max(0, Math.min(Math.round(Number(p.drop) || 0), room));
+            const rawTop = feetY - h - raise + drop;
             const overTop = Math.max(0, Math.round(Number(p.overTop) || 0));
-            const sink = (maxSink > 0 && rawTop < -overTop) ? Math.max(0, Math.min(maxSink, -rawTop - overTop, Math.round(frontFeet) - (feetY - raise))) : 0;
+            const sink = (maxSink > 0 && rawTop < -overTop) ? Math.max(0, Math.min(maxSink, -rawTop - overTop, room - drop)) : 0;
             const slot = { kind, tier, url: spriteUrl(kind, tier), left, top: rawTop + sink, width: w, height: h, feetY, artLeft, artRight, row, flip };
             if (raise > 0) slot.raise = raise;
+            if (drop > 0) slot.drop = drop;
             if (sink > 0) slot.sink = sink;
             if (row !== 'front') { slot.back = true; slot.brightness = bright[row]; }
             if (row === 'far') slot.far = true;
