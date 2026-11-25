@@ -70,9 +70,9 @@ const VillageCard = (() => {
             why: "This game puts your routines to the test. If your routines aren't making the grade, you need to study why, learn new methods, and test them again to advance.",
         },
         bestdays: {
-            name: 'Water tower', unit: 'whirlwind days',
-            measures: 'Whirlwind days: busier than your recent average, and you got through them with nothing missed.',
-            why: 'Anyone can keep up on a light day. A water tower stores up for the days demand surges. Get through every whirlwind day cleanly and the reserve in the tank grows, ready for the next one.',
+            name: 'Water tower', unit: 'planned days',
+            measures: 'Days you planned ahead: all three priorities were set before the day began, and you finished at least two of them.',
+            why: 'Planning is a skill, and it pays off. A day you planned before it began is a day you chose, not one that chose you. Set your three priorities ahead of time and finish at least two to bank a day here. Finish all three and it also counts as a Perfect plan, shown on this card but never worth extra stars.',
         },
     };
 
