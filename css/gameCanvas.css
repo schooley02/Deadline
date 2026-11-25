@@ -84,6 +84,33 @@
     .resource-panel > button.stat-item { transition: none; }
 }
 .hud-icon { flex: none; display: block; color: var(--color-primary-dark-green); }
+
+/* Collapse toggle (2026-11-25, Jeremy): a small chevron at the far left of the HUD row. Same raised-button look as the HUD buttons, but only 28px
+   wide so six buttons still fit. It points left while the buttons show (tap to hide them) and right while they are hidden. */
+.hud-collapse-button {
+    flex: none;
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 32px;
+    padding: 0;
+    color: var(--color-primary-dark-green);
+    border: 1.5px solid var(--color-primary-dark-green);
+    border-radius: 8px;
+    background: linear-gradient(#ffffff, #e6efec);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.22);
+    cursor: pointer;
+    pointer-events: all;
+}
+.hud-collapse-button:active { transform: translateY(2px); box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.22); }
+.hud-collapse-button[aria-expanded="false"] svg { transform: scaleX(-1); }
+/* Collapsed: the six buttons are hidden (visibility, so their boxes stay for anything that measures them) and let taps through to the village;
+   only the toggle stays. The portrait glance strip never collapses (nothing is covered there), so the toggle is hidden in it. */
+body:not(.glance-strip) .resource-panel.hud-collapsed { pointer-events: none; }
+body:not(.glance-strip) .resource-panel.hud-collapsed > button.stat-item { visibility: hidden; pointer-events: none; }
+body.glance-strip .hud-collapse-button { display: none; }
 /* Icon size (2026-11-01: bumped from 16-18px to 22px; the health ring is 26px). */
 .resource-panel > button.stat-item > svg:not(.bh-ring) { width: 22px; height: 22px; }
 .resource-panel > button.stat-item > svg.bh-ring { width: 26px; height: 26px; }

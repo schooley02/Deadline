@@ -4,6 +4,18 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-25 (Top-bar collapse button) -- Claude app session, Sonnet 5.5; Jeremy ("lets work on the top-bar collapse button"; all three plan picks: "i agree")
+
+- **What it is.** A small chevron button (`#hudCollapseButton`, 26x32px, same raised look as the HUD buttons) is the first thing in the HUD row, top left. Tap it and the six buttons (health, level, village, heroes, points, goals) are hidden; tap again to bring them back. Why: on the 800x360 phone the buttons sat over the Water tower's tank, the Hospital cross and the Clock tower belfry (ROADMAP, DECISIONS 2026-11-25 "Water tower WIRED").
+- **Only the toggle stays when collapsed (Jeremy: agreed).** Not the health ring: the toggle is the whole collapsed bar. Hidden buttons use `visibility: hidden` + `pointer-events: none` (not `display: none`) so their boxes still exist for anything that measures them, and the row stops catching taps, so the village underneath is tappable. A window that is open keeps working: the toggle is covered by its backdrop, not changed.
+- **Remembered per device (Jeremy: agreed).** `Settings.hudCollapsed` (default false = expanded), left OUT of Backup & Transfer like `devTools` / `screenBuzz` (export strips it, import ignores it), so a backup never changes it on another device.
+- **Portrait strip (Jeremy: agreed): no toggle.** The CSS rules are scoped to `body:not(.glance-strip)` and the toggle is `display: none` in the strip, where the HUD sits above the strip and covers nothing.
+- **Code:** `HudButtons.collapseModel` (pure) + `HudButtons.initCollapse(doc, { get, set })` in `js/ui/hudButtons.js`; markup in `index.html`; styles in `css/gameCanvas.css`; wiring in `script.js`; `Settings` field in `js/settings.js`. sw v426 -> v427.
+- **Checked** in headless Chrome at 800x360, 640x360 and 1024x768: the six buttons are hidden and a tap at a hidden button's spot reaches the village / canvas, the choice survives a reload, no console errors. NOT checked on a phone. The toggle adds 26px + the 4-8px gap to the row (right edge 624px at 800 wide; 517px at 640).
+- **Not done / ideas:** a hidden button's one-time hint or notice (none known) would point at nothing while collapsed; no animation (the row just hides).
+
+---
+
 ## 2026-11-25 (Planning ahead BUILT + windmill code cleaned up) -- Claude app session, Sonnet 5.5; Jeremy ("lets go with option 1 and make sure we clean up any unused code from the windmill"; renames: yes; current run starts at zero: yes; excused priorities: "I wouldn't count it since the planning wasn't helpful if it wasn't needed")
 
 - **The Water tower now counts planned days.** A day counts when EVERY priority slot of that day was set on an earlier local day (DailyRecord v18 `pri.p` >= `CONFIG.PRIORITY_SLOTS_PER_DAY`) AND at least two priorities were finished (`pri.d`). `extras.perfectPlans` (all three finished) feeds a new card line, "Perfect plans this run: N", that never adds stars. Thresholds stay [2, 5, 15, 30] (same ladder as the heavy-day counter it replaces; re-check with real play data through the balance-tuning process before changing them).

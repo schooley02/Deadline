@@ -70,6 +70,8 @@
             <!-- Player Stats Dashboard - Always visible -->
             <div class="stats-overlay">
                 <div class="resource-panel">
+                    <!-- Collapse toggle (2026-11-25, Jeremy): hides the six buttons below so the village shows clear of them; js/ui/hudButtons.js, css/gameCanvas.css. -->
+                    <button type="button" id="hudCollapseButton" class="hud-collapse-button" aria-label="Hide top buttons" title="Hide top buttons" aria-expanded="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="12.5 4.5 7 10 12.5 15.5"/></svg></button>
                     <button type="button" id="baseHealthButton" class="stat-item base-health-button" aria-label="Base health 100 of 100, full strength. Open base health panel">
                         <svg id="baseHealthRing" class="bh-ring bh-ring--full" viewBox="0 0 20 20" width="22" height="22" aria-hidden="true" focusable="false"><circle class="bh-ring-track" cx="10" cy="10" r="8" fill="none" stroke-width="3"/><circle id="baseHealthArc" class="bh-ring-arc" cx="10" cy="10" r="8" fill="none" stroke-width="3" stroke-linecap="round" transform="rotate(-90 10 10)" stroke-dasharray="50.27 50.27"/><path class="bh-shield" d="M10 6.2l3 1.2v2.5c0 1.9-1.3 3.1-3 3.8-1.7-.7-3-1.9-3-3.8V7.4z"/></svg>
                         <span id="baseHealthDisplay">100</span>

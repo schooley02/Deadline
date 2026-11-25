@@ -3466,6 +3466,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (villageButton) villageButton.addEventListener('click', openVillagePanel);
     // Keep each HUD button looking pressed while its window is open (js/ui/hudButtons.js).
     HudButtons.init();
+    // Top-bar collapse toggle (2026-11-25, Jeremy): hides the six buttons so the village shows clear of them; remembered per device (Settings.hudCollapsed).
+    HudButtons.initCollapse(document, { get: () => Settings.load().hudCollapsed === true, set: (on) => Settings.save({ hudCollapsed: on === true }) });
     // The first draw waits for the restored save (see the call after State.restoreGameState below): drawing it here read an empty state and
     // showed the bottom tier for a second before the first tick corrected it (found on the phone 2026-11-12).
     BarricadeView.init(document.getElementById('barricade'), { onTap: () => openBarricadeWindow() });
@@ -3884,7 +3886,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // js/exportImport.js header + handleConfirmImport below.
             buildExportEnvelope: (opts) => ExportImport.buildEnvelope({
                 getPersistableState: () => State.getPersistableState(),
-                getSettings: () => { const st = Settings.load(); delete st.devTools; delete st.screenBuzz; delete st.moodCardDay; return st; }, // Developer tools, the buzz and the once-a-day mood card stamp are per device: never exported
+                getSettings: () => { const st = Settings.load(); delete st.devTools; delete st.screenBuzz; delete st.moodCardDay; delete st.hudCollapsed; return st; }, // Developer tools, the buzz, the once-a-day mood card stamp and the collapsed top bar are per device: never exported
                 // D2 (2026-10-27): closed daily records ride along in the export.
                 getDays: () => Persistence.loadDays(),
                 // Journal Build A: the notes ride along unless the "Include journal notes" box was cleared (and only when there are any).
@@ -3946,6 +3948,7 @@ document.addEventListener('DOMContentLoaded', () => {
             delete importedSettings.devTools;
             delete importedSettings.screenBuzz; // the buzz is per device too
             delete importedSettings.moodCardDay; // and so is the once-a-day mood card stamp
+            delete importedSettings.hudCollapsed; // and the collapsed top bar
             if (!importedSettings.avatar) delete importedSettings.avatar; // a backup with no avatar must not wipe the one chosen here
             Settings.save(importedSettings);
         }
