@@ -19,3 +19,11 @@ Everything that must show on a phone sits in the top 67 px of the art (beacon, d
 - Small dish raised (TOP-17) on every tier so the lookout fits under it.
 - T4 (`make(tier=4, figure=...)`, `finish.build(tier=4, figure=...)`): the lookout (`figure.py`: PixelLab inpaint `../pieces/lookout_pixellab_raw.png`, lifted off the redrawn steel, helmet redrawn as a soft cap, brightened), a deck work lamp on the mast, the floodlight on the platform's front-right corner under the big dish at 45 degrees (the reason the canvas grew 128 -> 144: open air for the beam), barred + plated station windows, the Gym's sandbag stacks (`clock-3q/pieces/gym*`), a wire coil round the legs, an anti-climb plate over the ladder foot.
 - `bands=True` paints the whole tower in dull red / off-white bands (planned for T5, Jeremy: the whole mast).
+
+## 2026-11-24 late: T5 final
+- `broadcast_t5_final_144x208.png` (Jeremy approved). `finish.build(tier=5, figure=lookout, bands=True, guard=guard)`.
+- Whole tower in dull red / off-white bands (base: one band per bracing section, counted from the top; slim upper mast: thirds, red / white / red).
+- The shared survivor flag (`clock-3q/pieces/flag_r1.png`) on the right whip antenna beside the beacon; a pair of loudspeaker horns off the cap platform's left side.
+- Two red obstruction lights halfway up the front legs, a second wire coil round the legs, two more Gym sandbag stacks, a yard light on the station roof's right end.
+- The guard under the door lamp: PixelLab `generate-image-v2` at 32x48 (`../pieces/guard_pixellab_32x48.png`, pick 12 of 36), `resize` to 21x32.
+- No barbed wire on the station roof (Jeremy had it removed).

@@ -18,6 +18,7 @@ def make(soldier=False, steel_only=False, station_only=False, tier=3, figure=Non
     RED=((158,76,62),(124,58,52),(84,44,46),(58,34,42)); WHT=((192,190,182),(150,150,148),(100,102,112),(64,66,78)); GALV=(ST_L,ST_M,ST_D,ST_DD)
     def pal(i,n,off=0):
         if not bands: return GALV
+        if off==9: return RED if (n-1-i)*3//n!=1 else WHT          # the slim upper mast: thirds, red / white / red from the top
         return RED if (n-1-i+off)%2==0 else WHT
     def lattice(h0,h1,wb,wt_,n,xb=True,legw=2,sideK=0.36,ease=1.12,off=0):
         half=lambda h: (wb+(wt_-wb)*(h-h0)/(h1-h0))/2
@@ -60,6 +61,9 @@ def make(soldier=False, steel_only=False, station_only=False, tier=3, figure=Non
         legs(fl,fr,secs,2,off=1)
         for a,b in secs[1:]:                                    # gusset plates at the joints
             for x in (fl(a),fr(a)): d.rectangle([x-1,Y(a)-1,x+1,Y(a)+1],fill=ST_D+(255,))
+        if tier>=5:
+            for x in (fl(84),fr(84)):
+                x=int(round(x)); d.rectangle([x-1,Y(84)-2,x+1,Y(84)],fill=(206,58,46,255)); d.point((x,Y(84)-1),fill=(255,150,116,255)); d.line([x-1,Y(84)+1,x+1,Y(84)+1],fill=ST_DD+(255,))
         for _ in range(60):
             x=rnd.randint(40,116); y=rnd.randint(Y(PH),G-6)
             if P[x,y][3] and sum(P[x,y][:3])>330: P[x,y]=RUST+(255,)
@@ -67,7 +71,7 @@ def make(soldier=False, steel_only=False, station_only=False, tier=3, figure=Non
             d.rectangle([CX-5,Y(34),CX+4,Y(6)],fill=OUT+(255,)); d.rectangle([CX-4,Y(33),CX+3,Y(7)],fill=(92,98,104,255)); d.line([CX-4,Y(33),CX-4,Y(7)],fill=(66,70,78,255))
             for hh in (30,20,10): d.point((CX-2,Y(hh)),fill=(150,154,160,255)); d.point((CX+1,Y(hh)),fill=(150,154,160,255))
             d.rectangle([CX-3,Y(27),CX+2,Y(23)],fill=(186,150,58,255)); d.line([CX-2,Y(25),CX+1,Y(25)],fill=(40,36,30,255))
-            for hw in (40,):                                          # coil across the front face and round the side
+            for hw in ((40,62) if tier>=5 else (40,)):                                          # coil across the front face and round the side
                 x0_=int(fl(hw))-int((fr(hw)-fl(hw))*0.36)-1; x1_=int(fr(hw))+2
                 for x in range(x0_,x1_,4):
                     yy=Y(hw)+ (round((int(fl(hw))-x)*sl(hw)) if x<fl(hw) else 0)
@@ -84,9 +88,9 @@ def make(soldier=False, steel_only=False, station_only=False, tier=3, figure=Non
         mxp=dl-dep//2; myp=round((dep//2)*sl(PH)); d.line([mxp,pf-RH+myp,mxp,pf+myp],fill=ST_D+(255,))
         d.line([dl-dep,pf-RH+drop,dl-dep,pf+drop],fill=ST_D+(255,))
         # ---------- upper mast ----------
-        ufl,ufr,ubl,ubr,usecs=lattice(PH+1,TOP,11,8,5,xb=False,legw=1,sideK=0.4,ease=1.0)
+        ufl,ufr,ubl,ubr,usecs=lattice(PH+1,TOP,11,8,5,xb=False,legw=1,sideK=0.4,ease=1.0,off=9)
         d.line([CX-1,py,CX-1,Y(TOP)],fill=(60,62,74,255))
-        legs(ufl,ufr,usecs,2)
+        legs(ufl,ufr,usecs,2,off=9)
         if soldier:
             sx0=dl+3; f=pf+1
             OL=(84,92,66); OLD=(60,66,50); SK=(184,140,108)
@@ -115,6 +119,13 @@ def make(soldier=False, steel_only=False, station_only=False, tier=3, figure=Non
         d.rectangle([CX-3,Y(TOP+13),CX+2,Y(TOP+13)],fill=ST_D+(255,))
         d.rectangle([CX-3,Y(TOP+19),CX+2,Y(TOP+14)],fill=(206,58,46,255)); d.rectangle([CX-2,Y(TOP+20),CX+1,Y(TOP+20)],fill=(206,58,46,255))
         d.rectangle([CX-3,Y(TOP+19),CX-3,Y(TOP+14)],fill=(146,38,36,255)); d.rectangle([CX,Y(TOP+18),CX+1,Y(TOP+16)],fill=(255,150,116,255)); d.point((CX+1,Y(TOP+18)),fill=(255,210,180,255))
+        if tier>=5:                                                 # a pair of loudspeaker horns off the cap platform's left side, mouths facing left
+            d.line([CX-13,ty-4,CX-8,ty-4],fill=ST_D+(255,)); d.line([CX-13,ty-10,CX-13,ty+4],fill=ST_DD+(255,))     # arm + yoke
+            for cyh in (ty-8,ty+1):
+                mx=CX-18
+                d.polygon([(mx-1,cyh-4),(mx+3,cyh-4),(mx+7,cyh-2),(mx+7,cyh+2),(mx+3,cyh+4),(mx-1,cyh+4)],fill=OUT+(255,))
+                d.polygon([(mx+2,cyh-3),(mx+6,cyh-1),(mx+6,cyh+1),(mx+2,cyh+3)],fill=(112,116,128,255)); d.line([mx+2,cyh-3,mx+6,cyh-1],fill=(150,154,164,255))
+                d.rectangle([mx,cyh-3,mx+1,cyh+3],fill=(182,186,194,255)); d.rectangle([mx,cyh-2,mx,cyh+2],fill=(58,60,72,255)); d.point((mx,cyh),fill=(34,34,44,255))
         # ---------- panel antennas ----------
         PA=(202,196,176); PAD=(134,132,126); hp=TOP-14
         for x,c,cs in ((int(ufl(hp))-6,PAD,(100,100,98)),(CX-1,PA,PAD)):

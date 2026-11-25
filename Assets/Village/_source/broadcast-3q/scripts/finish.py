@@ -33,7 +33,7 @@ def glow(im,cx,cy,R,col,k0,cap=150,shape=None,opaque_only=False):
 def station_for(tier):
     st=station_pl()
     if tier>=4:                                                   # T4 additions drawn in code, laid over the PixelLab station
-        a=C.station_code(3).load(); bim=C.station_code(4); b=bim.load(); P=st.load()
+        a=C.station_code(3).load(); bim=C.station_code(tier); b=bim.load(); P=st.load()
         for y in range(H):
             for x in range(W):
                 if a[x,y]!=b[x,y] and b[x,y][3]: P[x,y]=b[x,y]
@@ -62,12 +62,21 @@ def cone(im,x0,y0,ang,length,half0,half1,col,k0,cap=110):
             else:
                 al=int(min(cap,255*k*0.9))
                 if al>=7 and a<al: P[x,y]=col+(al,)
-def build(soldier=False,station=None,tier=3,figure=None,front_rail=True,lights=True,bands=False):
+def build(soldier=False,station=None,tier=3,figure=None,front_rail=True,lights=True,bands=False,guard=None,flag=True):
     import math
     im=C.compose(station or station_for(tier),soldier,tier,figure,front_rail,bands)
     if tier>=4:
         PC='/home/claude/deadline-repo/Assets/Village/_source/clock-3q/pieces/'
         paste_piece(im,PC+'gymL_r2.png',61,H-1); paste_piece(im,PC+'gymR_r1.png',108,H-1)
+    if tier>=5:
+        paste_piece(im,PC+'gymR_r1.png',3,H-1,dim=0.86)                     # third stack at the station's shaded left corner
+        paste_piece(im,PC+'gymR_r1.png',76,H-1)                             # and one more beside the first, a low wall up to the ladder plate
+        if guard is not None: im.alpha_composite(guard)
+        if flag:                                                           # the shared survivor flag, on the right whip antenna beside the beacon
+            fx0,fy0=B.CX+5,Y(B.TOP+15)
+            P=im.load()
+            for yy in range(fy0-3,fy0+1): P[fx0,yy]=(84,88,102,255)         # the whip runs 3px higher to carry it
+            fl_=clean(Image.open(PC+'flag_r1.png')); im.alpha_composite(fl_,(fx0+1,fy0-3))
     if not lights: return im
     keep=im.copy()
     glow(im,B.CX-0.5,Y(B.TOP+17),7,(240,84,60),0.55,cap=120)
@@ -90,6 +99,15 @@ def build(soldier=False,station=None,tier=3,figure=None,front_rail=True,lights=T
         for yy in range(uy-1,uy+9):                                 # keep the housing and lens crisp
             for xx in range(ux-4,ux+6):
                 if kp[xx,yy][3]==255: P[xx,yy]=kp[xx,yy]
+    if tier>=5:
+        for hx in (-1,1):                                           # blooms on the mid-level obstruction lights
+            half=(44+(18-44)*84/B.PH)/2; x=round(B.CX+hx*half)
+            glow(im,x,Y(84)-1,4,(240,84,60),0.5,cap=110)
+        P=im.load()                                               # yard light on the station roof's right end, washing the sandbags and the tower foot
+        for (xx,yy,cc) in ((64,Y(47),(60,62,74)),(65,Y(47),(60,62,74)),(64,Y(46),(255,236,190)),(65,Y(46),(250,214,150))): P[xx,yy]=cc+(255,)
+        glow(im,66,Y(36),17,(255,220,160),0.30,opaque_only=True,shape=0.9)
+        glow(im,64.5,Y(46)+0.5,3,(255,220,160),0.5,cap=100)
+        glow(im,32,Y(39),11,(230,70,56),0.14,opaque_only=True,shape=1.6)           # the sign burns a little brighter
     return im
 if __name__=='__main__':
     t3=build(); t3.save('bt_t3_v1_128x208.png'); print(t3.getbbox())
