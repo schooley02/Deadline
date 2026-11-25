@@ -3,7 +3,7 @@
 # (same numbers as the Clock tower: ~0.0037 px/px per px of height above ~48 px, -0.2 at the ground).
 from PIL import Image, ImageDraw
 import random
-W,H=128,208; G=H-1
+W,H=144,208; G=H-1      # 144 wide since T4 (2026-11-24): 16px of open air on the right for the floodlight's 45-degree beam; the tower itself still ends at x 126
 OUT=(20,18,28)
 ST_L=(168,172,180); ST_M=(126,130,142); ST_D=(84,88,102); ST_DD=(56,58,72); RUST=(120,78,62)
 CON=(128,126,120); COND=(88,88,86)
@@ -11,67 +11,101 @@ def Y(h): return G-h
 def sl(h): return 0.0037*h if h>=48 else -0.2+0.0079*h
 def sideY(h,dx): return Y(h)+dx*sl(h)
 CX=90; PH=138; TOP=184
-def make(soldier=False, steel_only=False, station_only=False):
+def make(soldier=False, steel_only=False, station_only=False, tier=3, figure=None, front_rail=True, bands=False):
     im=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(im); P=im.load(); rnd=random.Random(11)
     L=lambda a,b,c,w=1: d.line([a,b],fill=c+(255,),width=w)
-    def lattice(h0,h1,wb,wt_,n,xb=True,legw=2,sideK=0.36,ease=1.12):
+    # painted bands (T5): dull aviation red / off-white, alternating by section, counted from the TOP so the top band is red
+    RED=((158,76,62),(124,58,52),(84,44,46),(58,34,42)); WHT=((192,190,182),(150,150,148),(100,102,112),(64,66,78)); GALV=(ST_L,ST_M,ST_D,ST_DD)
+    def pal(i,n,off=0):
+        if not bands: return GALV
+        return RED if (n-1-i+off)%2==0 else WHT
+    def lattice(h0,h1,wb,wt_,n,xb=True,legw=2,sideK=0.36,ease=1.12,off=0):
         half=lambda h: (wb+(wt_-wb)*(h-h0)/(h1-h0))/2
         fl=lambda h: CX-half(h); fr=lambda h: CX+half(h); sw=lambda h: 2*half(h)*sideK+0.6
         bl=lambda h: (fl(h)-sw(h), sideY(h,sw(h))); br=lambda h: (fr(h)-sw(h), sideY(h,sw(h)))
         hs=[h0+(h1-h0)*(1-(1-i/n)**ease) for i in range(n+1)]; secs=list(zip(hs,hs[1:]))
         for i,(a,b) in enumerate(secs):
-            L(br(a),br(b),ST_DD); L(bl(a),br(a),ST_DD)
-            if xb: L(bl(a),br(b),ST_DD)
+            l_,m_,d_,dd_=pal(i,n,off); L(br(a),br(b),dd_); L(bl(a),br(a),dd_)
+            if xb: L(bl(a),br(b),dd_)
         for i,(a,b) in enumerate(secs):
-            L(bl(a),bl(b),ST_D,legw); L(bl(a),(fl(a),Y(a)),ST_D)
-            if xb or i%2==0: L(bl(a),(fl(b),Y(b)),ST_D)
-            if xb or i%2==1: L((fl(a),Y(a)),bl(b),ST_D)
+            l_,m_,d_,dd_=pal(i,n,off); L(bl(a),bl(b),d_,legw); L(bl(a),(fl(a),Y(a)),d_)
+            if xb or i%2==0: L(bl(a),(fl(b),Y(b)),d_)
+            if xb or i%2==1: L((fl(a),Y(a)),bl(b),d_)
         for i,(a,b) in enumerate(secs):
-            L((fl(a),Y(a)),(fr(a),Y(a)),ST_M)
-            if xb or i%2==0: L((fl(a),Y(a)),(fr(b),Y(b)),ST_M)
-            if xb or i%2==1: L((fr(a),Y(a)),(fl(b),Y(b)),ST_M)
+            l_,m_,d_,dd_=pal(i,n,off); L((fl(a),Y(a)),(fr(a),Y(a)),m_)
+            if xb or i%2==0: L((fl(a),Y(a)),(fr(b),Y(b)),m_)
+            if xb or i%2==1: L((fr(a),Y(a)),(fl(b),Y(b)),m_)
         return fl,fr,bl,br,secs
-    def legs(fl,fr,secs,legw):
-        for a,b in secs:
-            L((fl(a),Y(a)),(fl(b),Y(b)),ST_M,legw); L((fr(a),Y(a)),(fr(b),Y(b)),ST_L,legw)
+    def legs(fl,fr,secs,legw,off=0):
+        n=len(secs)
+        for i,(a,b) in enumerate(secs):
+            l_,m_,d_,dd_=pal(i,n,off); L((fl(a),Y(a)),(fl(b),Y(b)),m_,legw); L((fr(a),Y(a)),(fr(b),Y(b)),l_,legw)
     if not station_only:
+        # ---------- crew platform, part 1 (wraps the tower: the deck overhangs the tower top by the SAME 10px on its left and right (front edge = tower front CX-9..CX+9, plus 10 each side, shifted 3px right because it is 3px of depth nearer), and 3px of depth in front and behind) ----------
+        # depth runs left 1px and down sl(PH) px per px going back, so the front edge sits 2px ABOVE the line where the tower's front legs
+        # meet the deck, and the back edge 5px below it: the four legs run up into the middle of the underside.
+        dl,dr=CX-16,CX+22; py=Y(PH); dep=13; pf=py-2; drop=round(dep*sl(PH)); RH=10
+        d.line([dl-dep,pf-RH+drop,dr-dep,pf-RH+drop],fill=ST_D+(255,))                    # back rail
+        d.line([dl-dep,pf-RH+5+drop,dr-dep,pf-RH+5+drop],fill=ST_DD+(255,))
+        for x in (dl-dep,dl-dep+11,dl-dep+23,dr-dep): d.line([x,pf-RH+drop,x,pf+drop],fill=ST_DD+(255,))
+        d.polygon([(dl,pf+2),(dr,pf+2),(dr-dep,pf+2+drop),(dl-dep,pf+2+drop)],fill=(44,46,58,255))   # underside
+        for k in (3,6,9):                                                                 # joists seen from below
+            kk=round(k*sl(PH)); d.line([dl-k,pf+2+kk,dr-k,pf+2+kk],fill=(58,60,74,255))
+        d.line([(dr,pf+2),(dr-dep,pf+2+drop)],fill=(34,36,46,255))
         # ---------- base lattice ----------
-        fl,fr,bl,br,secs=lattice(0,PH,44,18,8)
+        fl,fr,bl,br,secs=lattice(0,PH,44,18,8,off=1)
         # ladder up the front face to the platform hatch
         for hh in range(3,PH,3): d.line([CX-2,Y(hh),CX+1,Y(hh)],fill=ST_D+(255,))
         d.line([CX-2,Y(PH),CX-2,Y(2)],fill=(100,104,116,255)); d.line([CX+1,Y(PH),CX+1,Y(2)],fill=(140,144,154,255))
-        legs(fl,fr,secs,2)
+        legs(fl,fr,secs,2,off=1)
         for a,b in secs[1:]:                                    # gusset plates at the joints
             for x in (fl(a),fr(a)): d.rectangle([x-1,Y(a)-1,x+1,Y(a)+1],fill=ST_D+(255,))
         for _ in range(60):
             x=rnd.randint(40,116); y=rnd.randint(Y(PH),G-6)
             if P[x,y][3] and sum(P[x,y][:3])>330: P[x,y]=RUST+(255,)
+        if tier>=4:
+            d.rectangle([CX-5,Y(34),CX+4,Y(6)],fill=OUT+(255,)); d.rectangle([CX-4,Y(33),CX+3,Y(7)],fill=(92,98,104,255)); d.line([CX-4,Y(33),CX-4,Y(7)],fill=(66,70,78,255))
+            for hh in (30,20,10): d.point((CX-2,Y(hh)),fill=(150,154,160,255)); d.point((CX+1,Y(hh)),fill=(150,154,160,255))
+            d.rectangle([CX-3,Y(27),CX+2,Y(23)],fill=(186,150,58,255)); d.line([CX-2,Y(25),CX+1,Y(25)],fill=(40,36,30,255))
+            for hw in (40,):                                          # coil across the front face and round the side
+                x0_=int(fl(hw))-int((fr(hw)-fl(hw))*0.36)-1; x1_=int(fr(hw))+2
+                for x in range(x0_,x1_,4):
+                    yy=Y(hw)+ (round((int(fl(hw))-x)*sl(hw)) if x<fl(hw) else 0)
+                    col=(150,150,172) if x>=fl(hw) else (104,104,126)
+                    d.arc([x,yy-3,x+5,yy+3],0,360,fill=col+(255,))
+                    d.point((x+2,yy-3),fill=(196,196,214,255))
         for (x,y) in ((fl(0),Y(0)),(fr(0),Y(0))):
             d.rectangle([x-3,y-3,x+4,y],fill=CON+(255,)); d.line([x-3,y,x+4,y],fill=COND+(255,)); d.line([x-3,y-3,x+4,y-3],fill=(150,148,140,255))
         for bx,by in (bl(0),br(0)): d.rectangle([bx-3,by-3,bx+3,by],fill=COND+(255,))
-        # ---------- crew platform ----------
-        dl,dr=CX-17,CX+17; py=Y(PH); dep=12; drop=round(dep*sl(PH)); RH=10
-        d.polygon([(dl,py+1),(dr,py+1),(dr-dep,py+1+drop),(dl-dep,py+1+drop)],fill=(46,48,60,255))
-        for k in range(3,dep,3):                                # deck joists seen from below
-            kk=round(k*sl(PH)); d.line([dl-k,py+1+kk,dr-k,py+1+kk],fill=(60,62,76,255))
-        d.polygon([(dl,py-2),(dl,py+1),(dl-dep,py+1+drop),(dl-dep,py-2+drop)],fill=(66,68,82,255))
-        d.line([dl-dep,py-RH+drop,dr-dep,py-RH+drop],fill=ST_D+(255,))
-        for x in (dl-dep,dl-dep+11,dr-dep-11): d.line([x,py-RH+drop,x,py-2+drop],fill=ST_DD+(255,))
-        d.line([dl-dep,py-RH+drop,dl,py-RH],fill=ST_D+(255,)); d.line([dl-dep,py-RH+5+drop,dl,py-RH+5],fill=ST_DD+(255,))
+        # ---------- crew platform, part 2: left side fascia + side railing ----------
+        d.polygon([(dl,pf),(dl,pf+2),(dl-dep,pf+2+drop),(dl-dep,pf+drop)],fill=(70,72,86,255))
+        d.line([(dl,pf),(dl-dep,pf+drop)],fill=(92,96,110,255))
+        d.line([(dl-dep,pf-RH+drop),(dl,pf-RH)],fill=ST_D+(255,)); d.line([(dl-dep,pf-RH+5+drop),(dl,pf-RH+5)],fill=ST_DD+(255,))
+        mxp=dl-dep//2; myp=round((dep//2)*sl(PH)); d.line([mxp,pf-RH+myp,mxp,pf+myp],fill=ST_D+(255,))
+        d.line([dl-dep,pf-RH+drop,dl-dep,pf+drop],fill=ST_D+(255,))
         # ---------- upper mast ----------
         ufl,ufr,ubl,ubr,usecs=lattice(PH+1,TOP,11,8,5,xb=False,legw=1,sideK=0.4,ease=1.0)
-        d.line([CX-1,py-1,CX-1,Y(TOP)],fill=(60,62,74,255))
+        d.line([CX-1,py,CX-1,Y(TOP)],fill=(60,62,74,255))
         legs(ufl,ufr,usecs,2)
         if soldier:
-            sx0=dl+3; f=py-3
+            sx0=dl+3; f=pf+1
             OL=(84,92,66); OLD=(60,66,50); SK=(184,140,108)
             d.rectangle([sx0+1,f-9,sx0+3,f],fill=(44,46,44,255)); d.rectangle([sx0+5,f-9,sx0+7,f],fill=(44,46,44,255))
             d.rectangle([sx0,f-18,sx0+8,f-10],fill=OL+(255,)); d.line([sx0,f-18,sx0,f-11],fill=OLD+(255,)); d.line([sx0,f-10,sx0+8,f-10],fill=(40,38,34,255))
             d.rectangle([sx0+2,f-22,sx0+6,f-19],fill=SK+(255,)); d.rectangle([sx0+1,f-24,sx0+6,f-23],fill=OLD+(255,)); d.line([sx0+6,f-23,sx0+8,f-23],fill=OLD+(255,))
             d.line([sx0-2,f-11,sx0+11,f-19],fill=(30,30,34,255),width=2)
-        d.rectangle([dl,py-2,dr,py],fill=ST_D+(255,)); d.line([dl,py-2,dr,py-2],fill=ST_M+(255,)); d.line([dl,py,dr,py],fill=ST_DD+(255,))
-        for x in (dl,dl+8,CX-9,CX+8,dr-8,dr): d.line([x,py-RH,x,py-3],fill=ST_M+(255,))
-        d.line([dl,py-RH,dr,py-RH],fill=ST_L+(255,)); d.line([dl,py-RH+5,dr,py-RH+5],fill=ST_M+(255,))
+        if figure is not None:
+            im.alpha_composite(figure); d=ImageDraw.Draw(im); P=im.load()
+        if front_rail:
+            d.rectangle([dl,pf,dr,pf+2],fill=ST_D+(255,)); d.line([dl,pf,dr,pf],fill=ST_M+(255,)); d.line([dl,pf+2,dr,pf+2],fill=ST_DD+(255,))   # front fascia
+            for x in (dl,dl+9,dl+19,dl+29,dr): d.line([x,pf-RH,x,pf-1],fill=ST_M+(255,))
+            d.line([dl,pf-RH,dr,pf-RH],fill=ST_L+(255,)); d.line([dl,pf-RH+5,dr,pf-RH+5],fill=ST_M+(255,))
+        if tier>=4 and front_rail:                                  # floodlight on the platform's right end, at railing height just under the big dish, tilted 45 degrees outward (Jeremy 2026-11-24)
+            ux,uy=dr+4,pf-7                                         # top corner of the turned housing
+            d.line([dr,pf-5,ux-2,pf-5],fill=ST_D+(255,)); d.line([dr,pf-4,ux-3,pf-4],fill=ST_DD+(255,))   # bracket off the end post
+            d.polygon([(ux-4,uy+3),(ux,uy-1),(ux+5,uy+4),(ux+1,uy+8)],fill=OUT+(255,))
+            d.polygon([(ux-3,uy+3),(ux,uy),(ux+4,uy+4),(ux+1,uy+7)],fill=(80,84,96,255)); d.line([(ux-3,uy+3),(ux,uy)],fill=(114,118,130,255))
+            d.line([(ux+4,uy+4),(ux+1,uy+7)],fill=(236,244,255,255)); d.point((ux+3,uy+5),fill=(255,255,255,255)); d.point((ux+2,uy+6),fill=(255,255,255,255))
         # ---------- cap, spire, whips, beacon ----------
         ty=Y(TOP); d.rectangle([CX-8,ty-1,CX+7,ty],fill=ST_D+(255,)); d.line([CX-8,ty-1,CX+7,ty-1],fill=ST_M+(255,))
         for x in (CX-8,CX-3,CX+2,CX+7): d.line([x,ty-5,x,ty-2],fill=ST_M+(255,))
@@ -99,8 +133,8 @@ def make(soldier=False, steel_only=False, station_only=False):
         d.rectangle([cxd+rx+4,Y(dh+5),cxd+rx+7,Y(dh+2)],fill=ST_L+(255,)); d.rectangle([cxd+rx+4,Y(dh+2),cxd+rx+7,Y(dh+2)],fill=ST_D+(255,))
         for q in ((cxd-4,Y(dh-9)),(cxd-3,Y(dh-10)),(cxd-5,Y(dh-8)),(cxd+1,Y(dh-12)),(cxd-6,Y(dh+6))): d.point(q,fill=RUST+(255,))
         # ---------- drum dish (shaded left side) ----------
-        d2=TOP-30; lx=int(ubl(d2)[0])-10
-        d.line([lx+8,Y(d2),lx+11,Y(d2)],fill=ST_DD+(255,),width=2)
+        d2=TOP-17; lx=int(ubl(d2)[0])-12
+        d.line([lx+8,Y(d2),lx+13,Y(d2)],fill=ST_DD+(255,),width=2)
         d.ellipse([lx-1,Y(d2+8),lx+8,Y(d2-8)],fill=OUT+(255,)); d.ellipse([lx,Y(d2+7),lx+7,Y(d2-7)],fill=(96,100,112,255)); d.ellipse([lx,Y(d2+6),lx+5,Y(d2-6)],fill=(126,130,140,255)); d.ellipse([lx+1,Y(d2+4),lx+3,Y(d2-3)],fill=(148,152,160,255))
         # ---------- equipment cabinet at the tower foot + conduit ----------
         ex0,ex1,eh=97,115,20
@@ -147,6 +181,17 @@ def make(soldier=False, steel_only=False, station_only=False):
     for hh in (27,25,23): d.line([wx,Y(hh),wx+8,Y(hh)],fill=(196,146,80,255))
     d.line([wx+4,Y(29),wx+4,Y(17)],fill=(124,92,60,255)); d.line([wx,Y(21),wx+8,Y(21)],fill=(124,92,60,255))
     d.rectangle([wx+1,Y(20),wx+3,Y(18)],fill=(250,214,150,255)); d.line([wx-3,Y(14),wx+11,Y(14)],fill=(138,132,120,255))
+    if tier>=4:
+        for bxx in (wx+1,wx+4,wx+7): d.line([bxx,Y(30),bxx,Y(16)],fill=(40,42,50,255))
+        d.line([wx-1,Y(26),wx+9,Y(26)],fill=(40,42,50,255)); d.line([wx-1,Y(20),wx+9,Y(20)],fill=(40,42,50,255))
+        for i in range(3,11):
+            for hh in (16,31):
+                pass
+        for i in range(3,11):
+            for hh in range(16,32):
+                edge=(i in (3,10)) or hh in (16,31)
+                P[x0-i,round(sideY(hh,i))]=((60,64,72) if edge else (96,100,106))+(255,)
+        for (i,hh) in ((4,18),(9,18),(4,29),(9,29)): P[x0-i,round(sideY(hh,i))]=(150,154,160,255)
     # ON AIR sign (lit box) over the door
     sx,sy=18,Y(44)+1; d.rectangle([sx,sy,sx+24,sy+6],fill=OUT+(255,)); d.rectangle([sx+1,sy+1,sx+23,sy+5],fill=(120,28,26,255))
     LET={'O':["111","101","101","101","111"],'N':["101","111","111","111","101"],'A':["111","101","111","101","101"],'I':["1","1","1","1","1"],'R':["110","101","110","101","101"]}

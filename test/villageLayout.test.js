@@ -384,7 +384,7 @@ describe('Radio tower (back row)', () => {
         expect(slots(844, 334, { barn: 3 })).toEqual([]);
     });
 
-    test.each([1, 2, 3, 4, 5])('shipped nights tier %i exists and is the authored 128x208 canvas (Broadcast tower, 2026-11-24)', tier => {
+    test.each([1, 2, 3, 4, 5])('shipped nights tier %i exists and is the authored 144x208 canvas (Broadcast tower, 2026-11-24)', tier => {
         const file = path.join(__dirname, '..', VillageLayout.spriteUrl('nights', tier));
         expect(fs.existsSync(file)).toBe(true);
         const b = fs.readFileSync(file);
@@ -925,16 +925,19 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
         ['lurkers', 'defense', 'slain', 'habits', 'punctuality', 'heroes', 'nights'].forEach(k => expect(s[k].flip).toBe(false)); // three-quarter art is never mirrored (ART_STYLE Village 2.0 rule 1)
     });
 
-    test('the Broadcast tower (2026-11-24): 128x208, far row, behind the High school\'s right wing, its mast right of the phone HUD and its art left of the moon', () => {
-        expect(CONFIG.VILLAGE_PLACEMENT.nights).toEqual({ row: 'far', right: 18, sink: 95 });
-        expect([CONFIG.VILLAGE_RADIO_W_PX, CONFIG.VILLAGE_RADIO_H_PX]).toEqual([128, 208]);
+    test('the Broadcast tower (2026-11-24): 144x208, far row, behind the High school\'s right wing, its mast right of the phone HUD and its art left of the moon', () => {
+        expect(CONFIG.VILLAGE_PLACEMENT.nights).toEqual({ row: 'far', right: 34, sink: 95 });
+        expect([CONFIG.VILLAGE_RADIO_W_PX, CONFIG.VILLAGE_RADIO_H_PX]).toEqual([144, 208]);
         const s = byKind(at(800));
-        expect([s.nights.artLeft, s.nights.artRight]).toEqual([574, 698]);
+        expect([s.nights.artLeft, s.nights.artRight]).toEqual([574, 714]);                 // 698-714 is only the T4 / T5 floodlight beam
+        const body = s.nights.left + 126;                                  // where the tower itself ends (the dish's feed horn)
+        expect(body).toBe(698);
         expect(s.nights.left + 90).toBe(662);                              // the mast's centre line (canvas x 90)
         expect(s.nights.left + 90 - 17).toBeGreaterThan(580);              // the crew platform's front edge clears the HUD (x 16-580 on the phone)
-        expect(s.nights.artRight).toBeLessThan(800 - 30 - 58);             // left of the moon box
+        expect(body).toBeLessThan(800 - 30 - 58);                          // the tower is left of the moon box; the beam's faint tail may cross its edge
+        expect(s.nights.artRight).toBeLessThanOrEqual(800 - 120 + 39);     // nothing reaches past the Memorial
         expect(s.nights.left + 90).toBeGreaterThan(s.heroes.artLeft);      // it stands behind the High school...
-        expect(s.nights.artRight).toBeLessThanOrEqual(s.heroes.artRight);  // ...and does not reach past its right end
+        expect(body).toBeLessThanOrEqual(s.heroes.artRight);               // ...and the tower does not reach past its right end
     });
 
     test('the Broadcast tower stands lower than the far row only on a canvas too short for it, so its beacon stays on screen', () => {
