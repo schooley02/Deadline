@@ -4,6 +4,19 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-24 (Broadcast tower redraw + WIRED) -- Claude app session, Fable 5.2; Jeremy ("rework it based on the past reworks", "change it to Broadcast tower", "I think we should have a large dish so it is more noticable", "we could have a level up high where we can put a soldier", "the platform ... shouldn't it look like it wraps around it?", "maybe on the corner", "I prefer the charcoal one")
+
+- **Radio tower is now the Broadcast tower (kind `nights` unchanged).** Redrawn to the Village 2.0 rules: three-quarter view (front flat, left side recedes, light front-right, never flipped), muted gritty palette, tier ladder T1 abandoned to T5 stronghold. Name changed in `theme.js`, villageCard, howItWorks. Why: the 128x160 front-view lattice no longer matched the reworked buildings and ran off the top of a phone at far-row height.
+- **Size 144x208** (was 128x160). Jeremy chose to grow it for the building-window view; the upper mast must clear the High school roofline on a phone. Placement `nights: { row: 'far', right: 34, sink: 95 }`, `VILLAGE_ART_X.nights` [2, 142] (art 574-714 at 800 wide; tower body ends at 698, 698-714 is the T4 floodlight beam). Rejected: staying 128x160 (too little detail in the window).
+- **Identifiers on every tier:** red beacon light and a large dish (Jeremy). Phones show only what clears the roofline (beacon, dish, antennas, platform), so those carry the building.
+- **Lookout platform** at 138 px from the base: the deck wraps behind and around the legs with an EQUAL 10 px overhang left and right (first tries looked "in front" and uneven, both Jeremy catches). Soldier on it from T4, guard at the foot at T5.
+- **Ladder as built:** T1 dish hanging over the platform rail from a thick charcoal cable, no light; T2 dirtier / rustier mast and boxes, crooked dish, beacon ON (Jeremy toggled it off, then "leave it on since it's its signature"); T3 plain steel (option B), one lit window; T4 + soldier + floodlight; T5 red / white banded mast, guard, shared survivor flag.
+- **Floodlight (T4, kept at T5):** on the platform's front-right corner just under the dish, angled out 45 degrees, beam 32 px; canvas widened to 144 so the beam is not clipped. Rejected: high on the mast (odd height), back corner (not visible), underside mount.
+- **Cable colour charcoal** (74,74,84), not black (too dark to read on the night ground). Jeremy chose it over a near-black version.
+- **Station:** barbed wire removed (Jeremy); mast, boxes and electrical box dirtied at T2.
+- **Production method:** art is code-drawn (PIL scripts, kept in `_source/broadcast-3q/scripts/`); PixelLab only for station materials, the lookout soldier and guard figures, because it speckles lattices. Jeremy's PixelLab touch-ups ship for T1, T2 and T5; T3 and T4 are the code finals. About 122 generations used (~6,989 left at the time).
+- Not done: real-phone check; wide-screen cluster question is still open. Resulting `sw.js` v424.
+
 ## 2026-11-24 (Village re-arrangement + new Clock tower WIRED) -- Claude app session, Fable 5.2; Jeremy ("don't we have more room to the side to spread them out even more?", "slide the clock tower over a little more so we can see more of the ambulance", "we still have a little room here as well", "restore the 12 px", "i like option 3 best")
 
 - **Arrangement as built (Jeremy approved mock "D" at 800x360, then two follow-ups):** front row Gym, Police station, Command Post; back row Hospital, Clock tower, High school; far row Windmill, Radio (old art, rough spots until redrawn). Back row 60 px above the front (`VILLAGE_BACK_ROW_RAISE_PX` 30 -> 60), far row 95 px (`VILLAGE_FAR_ROW_RAISE_PX` 30 -> 35 above the back). This is Village 2.0 rule 3, now with real positions.
