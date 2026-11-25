@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     // Achievement village (V7 W2): eight buildings on the horizon hill. Build 2 (2026-10-30): each building's tier is
     // the REAL per-run tier from VillageProgress (a new game = a T1 village); the DEV URL params (?villageTier=,
-    // ?jailTier=, ?armoryTier=, ?radioTier=, ?gymTier=, ?schoolTier=, ?hospitalTier=, ?windmillTier= = 1..5 | off)
+    // ?jailTier=, ?armoryTier=, ?radioTier=, ?gymTier=, ?schoolTier=, ?hospitalTier=, ?waterTowerTier= = 1..5 | off)
     // still override it for art checks. Tapping a building opens its card (js/ui/villageCard.js).
     // The tier maths is cached: it re-runs only when a counter it reads changes (VillageView.render runs every tick).
     const villageCache = { key: null, progress: null, daysKey: null, days: null };
@@ -286,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
         getGymTier: villageTierDep('lurkers', 'gymTier'),
         getSchoolTier: villageTierDep('heroes', 'schoolTier'),
         getHospitalTier: villageTierDep('habits', 'hospitalTier'),
-        getWindmillTier: villageTierDep('bestdays', 'windmillTier'),
+        getWaterTowerTier: villageTierDep('bestdays', 'waterTowerTier'),
         onOpenBuilding: openVillageCard,
     });
     // Run climate (2026-11-03, docs/WORLD_FEEDBACK_PLAN.md "W1 Run climate"): the sky's weather from how the last ~7 CLOSED days
@@ -1213,6 +1213,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Priority slots (2026-11-04): the spent-marks map per due day, read and written by Items.setPriority.
             getPriorityMarks: () => State.getPriorityMarks(),
             setPriorityMarks: (m) => State.setPriorityMarks(m),
+            getPriorityPlanned: () => State.getPriorityPlanned(),
+            setPriorityPlanned: (m) => State.setPriorityPlanned(m),
             onPriorityChanged: () => refreshPrioritySlots(),
             // Habit Goals Build 2c: an edited logged time corrects the daily record of the item's own day.
             adjustDayTimer: (when, kind, deltaMin) => State.adjustDayTimer(DailyRecord.dateKey(when), kind, deltaMin),

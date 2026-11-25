@@ -414,7 +414,7 @@ describe('Hospital (back row)', () => {
 
 });
 
-// ---- Water tower (kind `bestdays`, FAR row; the windmill placeholder until 2026-11-25), added 2026-10-30 ----
+// ---- Water tower (kind `bestdays`, FAR row; was the windmill placeholder until 2026-11-25), added 2026-10-30 ----
 describe('Water tower (far row)', () => {
     const q = k => document.querySelector(`#villageLayer .village-sprite[data-kind="${k}"]`);
     const ALL = { punctuality: 3, defense: 3, slain: 3, nights: 3, lurkers: 3, heroes: 3, habits: 3, bestdays: 3 };
@@ -430,13 +430,13 @@ describe('Water tower (far row)', () => {
             getGymTier: () => 3,
             getSchoolTier: () => 3,
             getHospitalTier: () => 3,
-            getWindmillTier: () => state.mill,
+            getWaterTowerTier: () => state.mill,
         });
         VillageView.render(160);
         return state;
     }
 
-    test('draws the windmill at its layout slot, darker than the back row (class + far-row brightness filter)', () => {
+    test('draws the Water tower at its layout slot, darker than the back row (class + far-row brightness filter)', () => {
         initAll();
         const want = VillageLayout.villageSlots(844, 334, 160, 140, ALL, VillageLayout.fromConfig(CONFIG)).find(s => s.kind === 'bestdays');
         const img = q('bestdays');
@@ -447,14 +447,14 @@ describe('Water tower (far row)', () => {
         expect(img.style.top).toBe(want.top + 'px');
     });
 
-    test('all eight buildings at 844 wide; the windmill paints under every other building', () => {
+    test('all eight buildings at 844 wide; the Water tower paints under every other building', () => {
         initAll();
         expect(document.querySelectorAll('#villageLayer .village-sprite')).toHaveLength(8);
         const z = k => Number(q(k).style.zIndex);
         ['nights', 'heroes', 'habits', 'defense', 'lurkers', 'slain', 'punctuality'].forEach(k => expect(z('bestdays')).toBeLessThan(z(k)));
     });
 
-    test('a tier change swaps the image; clearing it removes only the windmill', () => {
+    test('a tier change swaps the image; clearing it removes only the Water tower', () => {
         const state = initAll({ mill: 1 });
         const img = q('bestdays');
         state.mill = 5;
@@ -483,8 +483,8 @@ describe('tappable buildings (Build 2, 2026-10-30)', () => {
     // the boxing gym drawn in front of it. Hit-testing now follows the slot z (paint order) only.
     test('byPaintOrder puts the sprite PAINTED last first, ignoring the hover lift', () => {
         const el = (id, z) => ({ id, style: { zIndex: String(z) } });
-        const windmill = el('bestdays', 0), hospital = el('habits', 2), gym = el('lurkers', 5);
-        expect(VillageView.byPaintOrder([windmill, gym, hospital]).map(e => e.id)).toEqual(['lurkers', 'habits', 'bestdays']);
+        const tower = el('bestdays', 0), hospital = el('habits', 2), gym = el('lurkers', 5);
+        expect(VillageView.byPaintOrder([tower, gym, hospital]).map(e => e.id)).toEqual(['lurkers', 'habits', 'bestdays']);
         expect(VillageView.byPaintOrder([el('x', ''), gym]).map(e => e.id)).toEqual(['lurkers', 'x']);
         expect(VillageView.byPaintOrder(null)).toEqual([]);
     });
@@ -545,7 +545,7 @@ describe('arrangement (2026-10-30 night): flips + forgiving taps', () => {
         VillageView.init({
             getHillWidth: () => 140,
             getClockTier: () => 3, getJailTier: () => 3, getArmoryTier: () => 3, getRadioTier: () => 3,
-            getGymTier: () => 3, getSchoolTier: () => 3, getHospitalTier: () => 3, getWindmillTier: () => 3,
+            getGymTier: () => 3, getSchoolTier: () => 3, getHospitalTier: () => 3, getWaterTowerTier: () => 3,
         });
         VillageView.render(160);
         const el = k => document.querySelector('.village-' + k);
@@ -631,7 +631,7 @@ describe('haze by depth (run climate)', () => {
         build();
         VillageView.init({
             getHillWidth: () => 140, getClockTier: () => tiers.p, getJailTier: () => tiers.d, getArmoryTier: () => tiers.s,
-            getRadioTier: () => tiers.n, getGymTier: () => tiers.l, getSchoolTier: () => tiers.h, getHospitalTier: () => tiers.b, getWindmillTier: () => tiers.w,
+            getRadioTier: () => tiers.n, getGymTier: () => tiers.l, getSchoolTier: () => tiers.h, getHospitalTier: () => tiers.b, getWaterTowerTier: () => tiers.w,
         });
         VillageView.render(160);
     }

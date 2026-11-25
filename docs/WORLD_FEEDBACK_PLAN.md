@@ -205,7 +205,7 @@ building opens a card that shows how far it is to the next tier.
 | `lurkers` | Boxing gym | days with no slips (>= 1 bad habit due, 0 slipped) | daily records `lurk` | 3 / 14 / 40 / 80 |
 | `defense` | Jailhouse | nights the church held (day ended >= 75% health) | daily records `base.endHp` | 3 / 14 / 40 / 80 |
 | `heroes` | High school | hero stars banked (each closed day adds every routine's star rating, 0-5 each; High school v2, 2026-10-31) | daily records `stars` | 10 / 75 / 300 / 750 |
-| `bestdays` | Water tower (was the Windmill) | heavy days handled (due > avg of last 14 closed days, >= 3 days history, 0 missed) | daily records `due`/`missed` | 2 / 5 / 15 / 30 |
+| `bestdays` | Water tower (was the Windmill) | planned days (every priority slot set ahead + at least 2 finished; 2026-11-25, was heavy days handled) | daily records `pri.p` / `pri.d` (v18) | 2 / 5 / 15 / 30 |
 
 Day-based counters use this run's closed days in `deadline.days` (matching `run`) plus the open `save.today` where it
 makes sense (a day only counts once it can no longer change: closed days for `defense`, `heroes`, `bestdays`, `lurkers`;
@@ -213,12 +213,12 @@ makes sense (a day only counts once it can no longer change: closed days for `de
 
 **Build 1 -- data + pure model (Sonnet, medium; Jest):**
 1. `CONFIG.VILLAGE_TIER_THRESHOLDS = { kind: [t2, t3, t4, t5] }` plus `VILLAGE_DEFENSE_HELD_FRAC` 0.75,
-   `VILLAGE_HEAVY_DAY_WINDOW` 14, `VILLAGE_HEAVY_DAY_MIN_DAYS` 3 (balance numbers, already approved; comment them as such).
+   (The `VILLAGE_HEAVY_DAY_*` keys were removed 2026-11-25 with the heavy-day counter.)
 2. Daily record: add per-day routine attendance (e.g. `routines: { active, perfect }` or per-routine due/done, decide in the
    build) bumped through the existing `recordDaily` seams; frozen/KO'd routines excluded; bump `DailyRecord.v`, note it in
    `docs/DATA_SCHEMA.md` (CLAUDE.md daily-record rule). Check first whether `load.routines` already covers "active".
 3. New pure `js/villageProgress.js`: `counters(ctx)` -> `{ kind: value }` from `currentRunStats`, nights, this run's day
-   records + today; `tierFor(value, thresholds)` -> `{ tier, value, nextAt, toNext, maxed }`; `heavyDays`, `comebackDays`,
+   records + today; `tierFor(value, thresholds)` -> `{ tier, value, nextAt, toNext, maxed }`; `plannedDays`, `comebackDays`,
    `attendanceStreak` helpers. Tests in `test/villageProgress.test.js` (each counter, threshold edges, history < 3 days,
    no-routine / no-bad-habit days, reset on a new run).
 
@@ -653,7 +653,7 @@ copy), hold-to-peek last.
 - **script.js:** `skyBest()`, `skyUnlockedBands()`; `skyNow()` caches on real result / pick / earned list; `setSkyPick` refuses a locked band; `getPickerInfo` builds `bands`; `handleConfirmReset` calls `State.resetBestPlayerLevel()`. The once-a-second best-tier tracker already raises `bestVillageTiers`, so a sky unlocks the moment the star is reached.
 - **Tests:** `test/skyUnlocks.test.js` (rules, config, history seed, theme lines, locked-row markup, State field + wiring), `test/climateWiring.test.js` (wiring checks updated). Full suite in a fresh clone: 207 suites, 4,747 of 4,748 pass (the one failure is the CRLF check on the clone's LF `index.html`, which does not apply to the device).
 - **Checked:** headless Chromium at 844x390 with a save at Lv 4 + Radio tower star 3: Hazy and Overcast are buttons, Clear / Fog / Storm are locked rows showing their requirement, no console errors, page width unchanged (846 vs 844 is the same without this change). Phone: Jeremy confirmed it works (2026-11-09, after the stale sw v305 cache cleared); tap size and wrapping of the two-line locked rows were not reported separately.
-- **Watch out:** (1) no unlock toast yet, a sky just becomes available (an idea if it feels silent); (2) the Windmill's pace (heavy days handled) has never been measured, so Storm's timing is a guess; (3) Clear at 50 nights vs the 100-night star 5 is a dial to confirm after play; (4) the dev level tools raise `bestPlayerLevel` too (they go through `setPlayerLevel`), so a dev jump to Lv 4 unlocks Hazy for good until a Reset Game; (5) the pick itself is still per run (reset by `initGame`), only the unlocks are lifetime.
+- **Watch out:** (1) no unlock toast yet, a sky just becomes available (an idea if it feels silent); (2) the Water tower's pace (planned days, 5 for star 3) has never been measured, so Storm's timing is a guess; (3) Clear at 50 nights vs the 100-night star 5 is a dial to confirm after play; (4) the dev level tools raise `bestPlayerLevel` too (they go through `setPlayerLevel`), so a dev jump to Lv 4 unlocks Hazy for good until a Reset Game; (5) the pick itself is still per run (reset by `initGame`), only the unlocks are lifetime.
 
 ### Parked ideas (later enhancements, Jeremy 2026-11-03)
 - **Observatory** (a telescope aimed at the moon) or a **weather balloon** in the distance as the weather tap target

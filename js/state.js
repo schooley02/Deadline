@@ -84,6 +84,8 @@ const State = (() => {
     // { 'YYYY-MM-DD': n } (schema 17). A mark is spent when a task is marked and never given back (PrioritySlots owns the
     // maths). Pruned to yesterday-and-later at rollover; a fresh run (initGame) starts with none spent.
     let priorityMarks = {};
+    // Planning ahead (2026-11-25): { 'YYYY-MM-DD': slots of that due day that were set on an EARLIER day }. Read at close into DailyRecord `pri.p`.
+    let priorityPlanned = {};
     // Sky picker (2026-11-09, W1c, docs/WORLD_FEEDBACK_PLAN.md; schema 19): the band the player picked for THIS run's sky, or null = follow my
     // run. View-only (js/skyPick.js owns the rules); reset by initGame like the level perks, exported with the save, never in `deadline.days`.
     let skyPick = null;
@@ -180,6 +182,10 @@ const State = (() => {
         notNeededUses = Array.isArray(arr) ? arr.filter(n => typeof n === 'number' && isFinite(n)) : [];
     };
     const getPriorityMarks = () => priorityMarks;
+    const getPriorityPlanned = () => priorityPlanned;
+    const setPriorityPlanned = (obj) => {
+        priorityPlanned = (typeof PrioritySlots !== 'undefined') ? PrioritySlots.sanitizeMarks(obj) : ((obj && typeof obj === 'object') ? obj : {});
+    };
     // Keeps only { 'YYYY-MM-DD': n > 0 }; junk and old saves become empty. No-op shape when PrioritySlots isn't loaded (tests).
     const setPriorityMarks = (obj) => {
         priorityMarks = (typeof PrioritySlots !== 'undefined') ? PrioritySlots.sanitizeMarks(obj) : ((obj && typeof obj === 'object') ? obj : {});
@@ -340,6 +346,7 @@ const State = (() => {
         setPushbackUses(null); // a fresh run: no charges used (Clock tower stars reset too)
         setAnytimeCreditUses(null); // ...and no anytime morning credits spent
         setPriorityMarks(null); // ...and no priority slots spent (a plan for a day that ended the run is moot)
+        setPriorityPlanned(null);
         setSkyPick(null); // ...and the sky follows the run again (the PICK is per run; the skies you EARNED are lifetime, W1d: bestPlayerLevel + bestVillageTiers)
         setSickDayDate(null); // frozen-slots sub-session 5 — fresh run has no active Sick Day
         // Run stats reset with the run; runHistory is deliberately NOT
@@ -431,6 +438,7 @@ const State = (() => {
             anytimeCreditUses: getAnytimeCreditUses(),
             notNeededUses: getNotNeededUses(),
             priorityMarks: getPriorityMarks(),
+            priorityPlanned: getPriorityPlanned(),
             skyPick: getSkyPick(),
             goals: getGoals(),
             runHistory: getRunHistory(),
@@ -603,6 +611,7 @@ const State = (() => {
         setAnytimeCreditUses(save.anytimeCreditUses);
         setNotNeededUses(save.notNeededUses);
         setPriorityMarks(save.priorityMarks);
+        setPriorityPlanned(save.priorityPlanned); // additive: absent on older saves -> {}
         setSkyPick(save.skyPick);
         // Run history (session 52, docs/RUN_HISTORY_PLAN.md). The v9→v10
         // migration seeds both, but guard here too so a malformed save can
@@ -896,7 +905,10 @@ const State = (() => {
             });
         deps.setCurrentGameDate(DayRollover.startOfDay(now));
         // Priority slots: marks older than yesterday can never be read again (a task's slots belong to its due day).
-        if (typeof PrioritySlots !== 'undefined') setPriorityMarks(PrioritySlots.prune(getPriorityMarks(), now));
+        if (typeof PrioritySlots !== 'undefined') {
+            setPriorityMarks(PrioritySlots.prune(getPriorityMarks(), now));
+            setPriorityPlanned(PrioritySlots.prune(getPriorityPlanned(), now)); // yesterday's count stays until closeDailyRecord reads it
+        }
         // Daily record (D2): close the day that just ended. AFTER the settle loop
         // above on purpose -- auto-avoided lurkers and misses it records belong
         // to the closing day. Never allowed to break a rollover.
@@ -941,6 +953,7 @@ const State = (() => {
             lvl: getPlayerLevel(),
             run: (Array.isArray(runHistory) ? runHistory.length : 0) + 1,
             night: daysSurvived,
+            plannedPri: (typeof PrioritySlots !== 'undefined') ? PrioritySlots.marksFor(getPriorityPlanned(), rec.date) : 0,
             load: { habits: habits.length, routines: (getDefinedRoutines() || []).length, tasksDue },
             // Denominators: habit instances are removed once settled, so they are
             // derived from what was resolved (done + missed); tasks from the
@@ -1423,7 +1436,7 @@ const State = (() => {
         getPushbackUses, setPushbackUses,
         getAnytimeCreditUses, setAnytimeCreditUses,
         getNotNeededUses, setNotNeededUses,
-        getPriorityMarks, setPriorityMarks,
+        getPriorityMarks, setPriorityMarks, getPriorityPlanned, setPriorityPlanned,
         getSkyPick, setSkyPick,
         getGoals, setGoals, goalSlotCount, syncGoalSlots, ensureGoalsSeeded, settleGoals, applyGoalCompletion, closeGoalPeriods,
         getGoalViews, getGoalSlotInfo, updateGoalTarget, retireGoal, deleteGoal, takeGoalEvents,

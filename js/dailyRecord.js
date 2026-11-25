@@ -74,7 +74,7 @@ const DailyRecord = (() => {
     // stop, a spent budget, a moved due date), min = the minutes of ice they lasted (fractional, like timer.workMin). Recorded at the thaw.
     // v13 (2026-11-11, Sub-task credit; DECISIONS 2026-11-11 (sub-task credit)): `missed.subtask` counts overdue SUB-tasks on their own
     // (they used to land in `missed.task`), and a sub-task's late completion no longer adds to `done.late`. Day totals, the Clock tower,
-    // the Windmill, best / worst day, clean days and the run climate count tasks + habits only; sub-tasks stay fully recorded
+    // the Water tower, best / worst day, clean days and the run climate count tasks + habits only; sub-tasks stay fully recorded
     // (`done.subtask`, `missed.subtask`) for later insights. Days closed before v13 keep their old numbers (a few late sub-tasks may
     // still sit inside their `done.late`; the on-time total floors at 0).
     // v14 (2026-11-11, Momentum Build A; docs/MOMENTUM_PLAN.md): `pri.q` = priority finishes that were at least
@@ -91,7 +91,11 @@ const DailyRecord = (() => {
     // go?" note for a day that is already closed does NOT touch the closed record. The month roll-up sums it. Older days read as 0.
     // v17 (2026-11-13, Not needed passes): `ne` = how many "not needed" passes were spent that day (a COUNT only; delete of an overdue task,
     // skip a habit or routine task for today, or move a one-off task to tomorrow). Event `notNeeded`. The month roll-up sums it. Older days read as 0.
-    const V = 17;
+    // v18 (2026-11-25, Planning ahead; Water tower): `pri.p` = how many of that day's priority slots were SET AHEAD (the task was marked on an
+    // earlier local day than its due day), written at close from `State.priorityPlanned`. A day is a planned day when pri.p fills every slot
+    // and at least two priorities were finished (pri.d); a perfect plan finishes all of them. A slot stays spent (and planned) even if the task
+    // is later moved or unmarked, so a plan that fell through never counts as finished. Days before v18 read 0.
+    const V = 18;
     // Mirrors Habits.GOAL_UNIT_SUGGESTIONS (test/dailyRecord.test.js checks they match). Kept local: no global dependencies.
     const GOAL_UNITS = ['pages', 'glasses', 'oz', 'steps', 'miles', 'km', 'reps', 'words', 'servings', 'drinks', 'cigarettes', 'cups', '$', 'times'];
     const GOAL_TYPES = ['time', 'amount', 'note'];
@@ -189,7 +193,7 @@ const DailyRecord = (() => {
             // v8: timer-session corrections that took halved damage back (see V above).
             tcorr: { n: 0, hp: 0 },
             // v9: priority slots marked / finished today (see V above).
-            pri: { m: 0, d: 0, s: 0, q: 0 },
+            pri: { m: 0, d: 0, s: 0, q: 0, p: 0 },
             // v10: the player's Goals today (see V above).
             pg: { climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 },
             // v12: stretches of ice today (see V above).
@@ -423,7 +427,7 @@ const DailyRecord = (() => {
             return;
         }
         if (p.pri === true) {
-            if (!rec.pri) rec.pri = { m: 0, d: 0, s: 0, q: 0 };
+            if (!rec.pri) rec.pri = { m: 0, d: 0, s: 0, q: 0, p: 0 };
             rec.pri.d = dir > 0 ? rec.pri.d + 1 : dec(rec.pri.d);
             // v14: only a priority finish that was old enough defends the night (the caller decides: `priQ`).
             if (p.priQ === true) {
@@ -531,7 +535,7 @@ const DailyRecord = (() => {
             }
             case 'pri': {
                 // A priority slot was spent (a task marked): p = { mark: 1 }. Finishes ride on 'complete' / 'uncomplete' (p.pri).
-                if (!rec.pri) rec.pri = { m: 0, d: 0, s: 0, q: 0 };
+                if (!rec.pri) rec.pri = { m: 0, d: 0, s: 0, q: 0, p: 0 };
                 if (Math.floor(Number(p.mark)) > 0) rec.pri.m += 1;
                 break;
             }
@@ -658,6 +662,8 @@ const DailyRecord = (() => {
         r.rt = {};
         // v9: full priority sets finished that day (three finished = three more slots).
         r.pri.s = Math.floor(r.pri.d / 3);
+        // v18: slots set ahead for this day (the caller reads State.priorityPlanned); a second close of a closed record keeps what it had.
+        if (c.plannedPri != null) r.pri.p = Math.max(0, Math.floor(Number(c.plannedPri)) || 0);
         return r;
     }
 
@@ -784,11 +790,12 @@ const DailyRecord = (() => {
         if (!dst.tcorr) dst.tcorr = { n: 0, hp: 0 };
         dst.tcorr.n += (src.tcorr && src.tcorr.n) || 0;
         dst.tcorr.hp += (src.tcorr && src.tcorr.hp) || 0;
-        if (!dst.pri) dst.pri = { m: 0, d: 0, s: 0, q: 0 };
+        if (!dst.pri) dst.pri = { m: 0, d: 0, s: 0, q: 0, p: 0 };
         dst.pri.m += (src.pri && src.pri.m) || 0;
         dst.pri.d += (src.pri && src.pri.d) || 0;
         dst.pri.s += (src.pri && src.pri.s) || 0;
         dst.pri.q = (dst.pri.q || 0) + ((src.pri && src.pri.q) || 0);
+        dst.pri.p = (dst.pri.p || 0) + ((src.pri && src.pri.p) || 0);
         if (!dst.pg) dst.pg = { climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 };
         ['climb', 'drop', 'met', 'done', 'pts', 'items'].forEach((k) => { dst.pg[k] = (dst.pg[k] || 0) + ((src.pg && src.pg[k]) || 0); });
         if (!dst.ice) dst.ice = { n: 0, min: 0 };

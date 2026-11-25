@@ -116,7 +116,7 @@ describe('Items: a priority finish records pri.q only when the task was old enou
         const { rec, recordDaily } = recorded();
         const item = priorityTask({ isHighPriority: false, creationTime: new Date(Date.now() - 3600 * 1000) });
         Items.completeItem(1, makeDeps({ activeItems: [item], recordDaily }));
-        expect(rec.pri).toEqual({ m: 0, d: 0, s: 0, q: 0 });
+        expect(rec.pri).toEqual({ m: 0, d: 0, s: 0, q: 0, p: 0 });
         expect(Momentum.isDefended(rec)).toBe(false);
     });
     test('undo takes the night back (d and q both), so an undo on the open day can undefend it', () => {

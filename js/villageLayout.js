@@ -52,9 +52,9 @@ const VillageLayout = (() => {
         devSchoolTier: 3,
         hospitalWidthPx: 176,
         hospitalHeightPx: 144,
-        windmillWidthPx: 128,
-        windmillHeightPx: 208,
-        devWindmillTier: 3,
+        waterTowerWidthPx: 128,
+        waterTowerHeightPx: 208,
+        devWaterTowerTier: 3,
         farRowRaisePx: 35,
         farRowBrightness: 0.65,
         devHospitalTier: 3,
@@ -106,9 +106,9 @@ const VillageLayout = (() => {
             devSchoolTier: (cfg.VILLAGE_DEV_SCHOOL_TIER === null) ? null : pick(cfg.VILLAGE_DEV_SCHOOL_TIER, DEFAULTS.devSchoolTier),
             hospitalWidthPx: pick(cfg.VILLAGE_HOSPITAL_W_PX, DEFAULTS.hospitalWidthPx),
             hospitalHeightPx: pick(cfg.VILLAGE_HOSPITAL_H_PX, DEFAULTS.hospitalHeightPx),
-            windmillWidthPx: pick(cfg.VILLAGE_WINDMILL_W_PX, DEFAULTS.windmillWidthPx),
-            windmillHeightPx: pick(cfg.VILLAGE_WINDMILL_H_PX, DEFAULTS.windmillHeightPx),
-            devWindmillTier: (cfg.VILLAGE_DEV_WINDMILL_TIER === null) ? null : pick(cfg.VILLAGE_DEV_WINDMILL_TIER, DEFAULTS.devWindmillTier),
+            waterTowerWidthPx: pick(cfg.VILLAGE_WATERTOWER_W_PX, DEFAULTS.waterTowerWidthPx),
+            waterTowerHeightPx: pick(cfg.VILLAGE_WATERTOWER_H_PX, DEFAULTS.waterTowerHeightPx),
+            devWaterTowerTier: (cfg.VILLAGE_DEV_WATERTOWER_TIER === null) ? null : pick(cfg.VILLAGE_DEV_WATERTOWER_TIER, DEFAULTS.devWaterTowerTier),
             farRowRaisePx: pick(cfg.VILLAGE_FAR_ROW_RAISE_PX, DEFAULTS.farRowRaisePx),
             farRowBrightness: pick(cfg.VILLAGE_FAR_ROW_BRIGHTNESS, DEFAULTS.farRowBrightness),
             devHospitalTier: (cfg.VILLAGE_DEV_HOSPITAL_TIER === null) ? null : pick(cfg.VILLAGE_DEV_HOSPITAL_TIER, DEFAULTS.devHospitalTier),
@@ -197,10 +197,10 @@ const VillageLayout = (() => {
         return resolveTierParam(search, 'hospitalTier', o.devHospitalTier, o.tiers);
     }
 
-    // Water tower (kind `bestdays`): `?windmillTier=` (the param keeps its old name)
-    function resolveDevWindmillTier(search, opts) {
+    // Water tower (kind `bestdays`): `?waterTowerTier=`
+    function resolveDevWaterTowerTier(search, opts) {
         const o = opts || DEFAULTS;
-        return resolveTierParam(search, 'windmillTier', o.devWindmillTier, o.tiers);
+        return resolveTierParam(search, 'waterTowerTier', o.devWaterTowerTier, o.tiers);
     }
 
     function fieldWidth(canvasW, baseW, hillW) {
@@ -225,7 +225,7 @@ const VillageLayout = (() => {
             case 'lurkers': return [o.gymWidthPx, o.gymHeightPx];
             case 'heroes': return [o.schoolWidthPx, o.schoolHeightPx];
             case 'habits': return [o.hospitalWidthPx, o.hospitalHeightPx];
-            case 'bestdays': return [o.windmillWidthPx, o.windmillHeightPx];
+            case 'bestdays': return [o.waterTowerWidthPx, o.waterTowerHeightPx];
             default: return [128, 128];
         }
     }
@@ -315,7 +315,7 @@ const VillageLayout = (() => {
         return out;
     }
 
-    return { DEFAULTS, fromConfig, clampTier, resolveTier, sizeOf, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, resolveDevHospitalTier, resolveDevWindmillTier, fieldWidth, spriteUrl, horizonFeetY, villageSlots };
+    return { DEFAULTS, fromConfig, clampTier, resolveTier, sizeOf, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, resolveDevHospitalTier, resolveDevWaterTowerTier, fieldWidth, spriteUrl, horizonFeetY, villageSlots };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

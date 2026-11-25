@@ -8,7 +8,7 @@
  *                   hero layers and every zombie (30+)). One <img class="village-sprite">
  *                   one per building, keyed by data-kind, stacked in slot order (z-index = paint
  *                   order, so a building that appears later still lands in the right place). Back-row
- *                   buildings (the Radio tower, the high school, the hospital, the far-row windmill) carry `.village-back` and a brightness filter.
+ *                   buildings (the Radio tower, the high school, the hospital, the far-row Water tower) carry `.village-back` and a brightness filter.
  *                   TAPPABLE (Build 2, 2026-10-30): each sprite has pointer-events auto while the layer stays none; a tap
  *                   is resolved by `pickHit` over every sprite under the finger (topmost first) using an alpha hit-test, so
  *                   transparent corners and a back-row building tucked behind a front one still go to the right building.
@@ -40,7 +40,7 @@
  *         getGymTier: () => 1..5 or null (kind `lurkers`; DEV: CONFIG.VILLAGE_DEV_GYM_TIER / ?gymTier=; optional),
  *         getSchoolTier: () => 1..5 or null (kind `heroes`; DEV: CONFIG.VILLAGE_DEV_SCHOOL_TIER / ?schoolTier=; optional),
  *         getHospitalTier: () => 1..5 or null (kind `habits`; DEV: CONFIG.VILLAGE_DEV_HOSPITAL_TIER / ?hospitalTier=; optional),
- *         getWindmillTier: () => 1..5 or null (kind `bestdays`, FAR row; DEV: CONFIG.VILLAGE_DEV_WINDMILL_TIER / ?windmillTier=; optional),
+ *         getWaterTowerTier: () => 1..5 or null (kind `bestdays`, FAR row; DEV: CONFIG.VILLAGE_DEV_WATERTOWER_TIER / ?waterTowerTier=; optional),
  *         onOpenBuilding: ({ kind, tier, url, width, height }) => void  (a tap landed on a building; optional) }
  * (Since Build 2 the get<Kind>Tier deps return the REAL tier; the DEV params only override it. See VillageLayout.resolveTier.)
  */
@@ -109,7 +109,7 @@ const VillageView = (() => {
 
     /**
      * Pure. Is any pixel within `slop` of (px, py) more opaque than `minAlpha`? `data` = RGBA bytes of a w x h image.
-     * Forgiving taps: thin far-row art (the radio mast, the windmill spokes) is mostly transparent between its lines.
+     * Forgiving taps: thin far-row art (the radio mast, the Water tower's braced legs) is mostly transparent between its lines.
      */
     function opaqueNear(data, w, h, px, py, slop, minAlpha) {
         const r = Math.max(0, slop | 0);
@@ -170,7 +170,7 @@ const VillageView = (() => {
      * Pure. The sprites to hit-test, TOPMOST FIRST by their PAINT order (the z-index render() gives each slot), never by the
      * browser's stacking at the moment. 2026-11-09 (Jeremy): the hovered building is lifted to z 40 by .village-hover, so
      * `elementsFromPoint` listed it first and it kept the glow while the pointer slid onto a building drawn IN FRONT of it
-     * (windmill tower behind the gym's roof). Sorting by the slot z keeps "the building you see on top wins".
+     * (Water tower behind the gym's roof). Sorting by the slot z keeps "the building you see on top wins".
      */
     function byPaintOrder(sprites) {
         const z = (el) => { const n = Number(el && el.style ? el.style.zIndex : NaN); return isFinite(n) ? n : -1; };
@@ -312,7 +312,7 @@ const VillageView = (() => {
             lurkers: deps.getGymTier ? deps.getGymTier() : null,
             heroes: deps.getSchoolTier ? deps.getSchoolTier() : null,
             habits: deps.getHospitalTier ? deps.getHospitalTier() : null,
-            bestdays: deps.getWindmillTier ? deps.getWindmillTier() : null,
+            bestdays: deps.getWaterTowerTier ? deps.getWaterTowerTier() : null,
         };
         const sig = [hillW, canvasW, canvasH, baseW, tiers.punctuality, tiers.defense, tiers.slain, tiers.nights, tiers.lurkers, tiers.heroes, tiers.habits, tiers.bestdays].join('|');
         if (sig === lastSig) return;

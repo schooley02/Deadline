@@ -536,7 +536,7 @@ const Items = (() => {
     }
     /**
      * Mark (on = true) or unmark an open task. deps: { activeItems, completedItems (getter), getPriorityMarks,
-     * setPriorityMarks, recordDaily?, saveGame?, onPriorityChanged? }. Returns { ok, changed, action, left, reason? }:
+     * setPriorityMarks, getPriorityPlanned?, setPriorityPlanned?, recordDaily?, saveGame?, onPriorityChanged? }. Returns { ok, changed, action, left, reason? }:
      * reason 'full' = no slot left that day (nothing changed); 'covered' = a sub-task under a priority parent (the parent
      * owns it); 'missing' = no such open task. Marking spends a slot of the task's DUE day; unmarking refunds nothing.
      */
@@ -556,6 +556,12 @@ const Items = (() => {
             item.isHighPriority = true;
             delete item.priorityInherited;
             deps.setPriorityMarks(PrioritySlots.addMark(deps.getPriorityMarks(), slots.key));
+            // Planning ahead (2026-11-25, Water tower): a slot set on an EARLIER local day than the task's due day is a planned one. Counted per
+            // due day (State.priorityPlanned) and written to that day's record at close (`pri.p`). Optional deps: absent in older callers / tests.
+            if (typeof deps.setPriorityPlanned === 'function' && typeof deps.getPriorityPlanned === 'function' &&
+                slots.key > PrioritySlots.dayKey(new Date())) {
+                deps.setPriorityPlanned(PrioritySlots.addMark(deps.getPriorityPlanned(), slots.key));
+            }
             recordDaily(deps, 'pri', { mark: 1 });
             if (!item.parentId) {
                 items.forEach((c) => {

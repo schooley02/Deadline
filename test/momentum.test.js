@@ -249,9 +249,9 @@ describe('DailyRecord v14: pri.q', () => {
     const rec = () => DailyRecord.fresh({ date: '2026-11-02', tz: 0 });
 
     test('the version is 17 and a fresh record carries pri { m, d, s, q }', () => {
-        expect(DailyRecord.V).toBe(17);
-        expect(rec().v).toBe(17);
-        expect(rec().pri).toEqual({ m: 0, d: 0, s: 0, q: 0 });
+        expect(DailyRecord.V).toBe(18);
+        expect(rec().v).toBe(18);
+        expect(rec().pri).toEqual({ m: 0, d: 0, s: 0, q: 0, p: 0 });
     });
     test('a priority completion that is old enough bumps d AND q; an undo takes both back', () => {
         const r = rec();
@@ -282,14 +282,14 @@ describe('DailyRecord v14: pri.q', () => {
         old.v = 13;
         old.pri = { m: 2, d: 2, s: 0 };
         const n = DailyRecord.normalize(old);
-        expect(n.pri).toEqual({ m: 2, d: 2, s: 0, q: 0 });
+        expect(n.pri).toEqual({ m: 2, d: 2, s: 0, q: 0, p: 0 });
         expect(n.v).toBe(13);
         expect(Momentum.isDefended(n)).toBe(true); // v13 reads pri.d
     });
     test('close keeps q, and a day closed under v14 with q 0 stays undefended', () => {
         const r = rec();
         r.pri = { m: 3, d: 3, s: 0, q: 2 };
-        expect(DailyRecord.close(r, {}).pri).toEqual({ m: 3, d: 3, s: 1, q: 2 });
+        expect(DailyRecord.close(r, {}).pri).toEqual({ m: 3, d: 3, s: 1, q: 2, p: 0 });
         const fresh = rec();
         fresh.pri = { m: 3, d: 3, s: 0, q: 0 };
         expect(Momentum.isDefended(DailyRecord.close(fresh, {}))).toBe(false);

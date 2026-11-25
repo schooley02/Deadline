@@ -8,9 +8,9 @@ const rec = () => DailyRecord.fresh({ date: '2026-11-03', tz: 0 });
 
 describe('v7 drops tally', () => {
     test('the version is 10 (v8 adds tcorr, v9 adds pri, v10 adds pg) and a fresh record starts with no drops', () => {
-        expect(DailyRecord.V).toBe(17);
+        expect(DailyRecord.V).toBe(18);
         const r = rec();
-        expect(r.v).toBe(17);
+        expect(r.v).toBe(18);
         expect(r.drops).toEqual({ n: 0, pts: 0 });
     });
 

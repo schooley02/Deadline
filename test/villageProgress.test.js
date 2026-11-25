@@ -54,10 +54,7 @@ describe('thresholds', () => {
     });
     test('config defaults the module mirrors', () => {
         expect(CONFIG.VILLAGE_DEFENSE_HELD_FRAC).toBe(0.75);
-        expect(CONFIG.VILLAGE_HEAVY_DAY_WINDOW).toBe(14);
-        expect(CONFIG.VILLAGE_HEAVY_DAY_MIN_DAYS).toBe(3);
-        expect(CONFIG.VILLAGE_HEAVY_DAY_FACTOR).toBe(1.25);
-        expect(CONFIG.VILLAGE_HEAVY_DAY_MIN_EXTRA).toBe(1);
+        expect(CONFIG.PRIORITY_SLOTS_PER_DAY).toBe(3); // the planned-day rule (Water tower) needs every one of these set ahead
     });
 });
 
@@ -258,57 +255,40 @@ describe('counters', () => {
         });
     });
 
-    describe('bestdays (Water tower, was the Windmill): heavy days handled', () => {
-        function due(date, n, missed) {
-            return day(date, { due: { task: n, habit: 0 }, missed: { task: missed || 0, habit: 0 } });
+    describe('bestdays (Water tower, was the Windmill): planned days (Jeremy, 2026-11-25)', () => {
+        // p = slots set ahead (DailyRecord v18 pri.p), d = priorities finished (pri.d)
+        function plan(date, p, d) {
+            return day(date, { pri: { m: 0, d, s: 0, q: 0, p } });
         }
-        test('no day can be heavy before 3 days of history', () => {
-            const days = [due(dated(1), 5), due(dated(2), 5), due(dated(3), 50)];
-            expect(VillageProgress.counters(ctx({ days })).bestdays).toBe(0);
+        test('a day needs every slot set ahead AND at least two priorities finished', () => {
+            const days = [plan(dated(1), 3, 2), plan(dated(2), 3, 3), plan(dated(3), 3, 1), plan(dated(4), 2, 3), plan(dated(5), 0, 3)];
+            expect(VillageProgress.counters(ctx({ days })).bestdays).toBe(2);
         });
-        test('the 4th day counts when it is clearly heavier than the average and nothing was missed', () => {
-            const days = [due(dated(1), 4), due(dated(2), 4), due(dated(3), 4), due(dated(4), 6)];
-            expect(VillageProgress.counters(ctx({ days })).bestdays).toBe(1);
+        test('a perfect plan (all slots finished) also counts as a planned day and is counted on its own', () => {
+            const days = [plan(dated(1), 3, 2), plan(dated(2), 3, 3), plan(dated(3), 3, 3)];
+            expect(VillageProgress.plannedDays(days, 3)).toEqual({ planned: 3, perfect: 2 });
+            // a perfect plan is a card line, never extra stars: the counter is the planned-day count only
+            expect(VillageProgress.counters(ctx({ days })).bestdays).toBe(3);
+            expect(VillageProgress.extras(ctx({ days })).perfectPlans).toBe(2);
         });
-        test('a slightly-above-average day is not heavy: it needs > 1.25x the average AND at least 1 more item', () => {
-            // avg 4: 5 is only 1.25x (not more than), 5 vs avg 4 passes the +1 test but fails the factor
-            expect(VillageProgress.heavyDays([due(dated(1), 4), due(dated(2), 4), due(dated(3), 4), due(dated(4), 5)], 14, 3).heavy).toBe(0);
-            // tiny average: avg 1, 1.5x would pass the factor (1.25) but needs +1 -> 2 is enough, 1.2 is not
-            const tiny = [due(dated(1), 1), due(dated(2), 1), due(dated(3), 1)];
-            expect(VillageProgress.heavyDays(tiny.concat([due(dated(4), 2)]), 14, 3).heavy).toBe(1);
-            expect(VillageProgress.heavyDays(tiny.concat([due(dated(4), 1)]), 14, 3).heavy).toBe(0);
+        test('days from before DailyRecord v18 have no pri.p and count 0', () => {
+            const old = day(dated(1), { pri: { m: 3, d: 3, s: 1, q: 3 } });
+            expect(VillageProgress.counters(ctx({ days: [old] })).bestdays).toBe(0);
+            expect(VillageProgress.plannedDays([day(dated(1))], 3)).toEqual({ planned: 0, perfect: 0 });
         });
-        test('factor / extra are parameters', () => {
-            const days = [due(dated(1), 4), due(dated(2), 4), due(dated(3), 4), due(dated(4), 5)];
-            expect(VillageProgress.heavyDays(days, 14, 3, 1, 0).heavy).toBe(1);
-            expect(VillageProgress.counters(ctx({ days, heavyFactor: 1, heavyExtra: 0 })).bestdays).toBe(1);
+        test('the open day never counts (pri.p is written at close); other runs are ignored', () => {
+            const open = plan(dated(2), 3, 3);
+            expect(VillageProgress.counters(ctx({ days: [plan(dated(1), 3, 2)], today: open })).bestdays).toBe(1);
+            const other = Object.assign(plan(dated(3), 3, 3), { run: RUN + 1 });
+            expect(VillageProgress.counters(ctx({ days: [other] })).bestdays).toBe(0);
         });
-        test('a heavy day with a miss is heavy but not handled', () => {
-            const days = [due(dated(1), 4), due(dated(2), 4), due(dated(3), 4), due(dated(4), 9, 1)];
-            expect(VillageProgress.counters(ctx({ days })).bestdays).toBe(0);
-            expect(VillageProgress.heavyDays(days, 14, 3)).toEqual({ heavy: 1, handled: 0 });
+        test('the slot count and the finished minimum are parameters', () => {
+            expect(VillageProgress.plannedDays([plan(dated(1), 2, 1)], 2, 1)).toEqual({ planned: 1, perfect: 0 });
+            expect(VillageProgress.counters(ctx({ days: [plan(dated(1), 3, 1)], plannedMinDone: 1 })).bestdays).toBe(1);
         });
-        test('equal to the average is not heavy (strictly above)', () => {
-            const days = [due(dated(1), 4), due(dated(2), 4), due(dated(3), 4), due(dated(4), 4)];
-            expect(VillageProgress.counters(ctx({ days })).bestdays).toBe(0);
-        });
-        test('a permanent step up (4 -> 10 a day) scores 6 days, not 14, then the plateau stops (the 1.25x margin, Jeremy 2026-10-30)', () => {
-            // Without the margin (factor 1, extra 0) the whole 14-day window scored, because the trailing average lags the new level.
-            const days = [due(dated(1), 4), due(dated(2), 4), due(dated(3), 4)];
-            for (let n = 4; n <= 28; n++) days.push(due(dated(n), 10));
-            expect(VillageProgress.heavyDays(days, 14, 3, 1, 0).handled).toBe(14);
-            expect(VillageProgress.heavyDays(days, 14, 3).handled).toBe(6);
-            // ...and once the window is all 10s the plateau scores nothing.
-            const plateau = [due(dated(1), 10), due(dated(2), 10), due(dated(3), 10), due(dated(4), 10)];
-            expect(VillageProgress.heavyDays(plateau, 14, 3).handled).toBe(0);
-        });
-        test('the average only looks at the last N closed days', () => {
-            const days = [];
-            for (let n = 1; n <= 6; n++) days.push(due(dated(n), 20)); // old heavy stretch
-            for (let n = 7; n <= 9; n++) days.push(due(dated(n), 2));  // quiet recent days
-            days.push(due(dated(10), 5)); // heavy against the last 3 days (avg 2), not against the whole run
-            expect(VillageProgress.heavyDays(days, 3, 3).handled).toBeGreaterThanOrEqual(1);
-            expect(VillageProgress.heavyDays(days.slice(6), 3, 3).handled).toBe(1);
+        test('the heavy-day counter and its config keys are gone', () => {
+            expect(VillageProgress.heavyDays).toBeUndefined();
+            expect(Object.keys(CONFIG).filter((k) => /^VILLAGE_HEAVY_DAY_/.test(k))).toEqual([]);
         });
     });
 });
@@ -340,7 +320,7 @@ describe('DailyRecord routine attendance (feeds the High school)', () => {
     function rec() { return DailyRecord.fresh({ date: '2026-11-01', run: RUN }); }
 
     test('v2 and a zeroed att / empty rt on a fresh record', () => {
-        expect(DailyRecord.V).toBe(17); // v17 (Not needed passes: ne); v16 (Journal: notes); v15 (Mood check-in: mood, moodHist); v14 (Momentum Build A: pri.q); v13 (Sub-task credit: missed.subtask); v12 (Iced zombies: ice); v11 (Goals Build C: pg.pts / items); v10 (Goals: pg); v9 (Priority slots: pri); v8 (Timer sessions: tcorr); v7 Village tier drops: drops; v6 Pushback charges Build B: pb; v5 goals; v4 was Build 2c timer edits
+        expect(DailyRecord.V).toBe(18); // v18 (Planning ahead: pri.p); v17 (Not needed passes: ne); v16 (Journal: notes); v15 (Mood check-in: mood, moodHist); v14 (Momentum Build A: pri.q); v13 (Sub-task credit: missed.subtask); v12 (Iced zombies: ice); v11 (Goals Build C: pg.pts / items); v10 (Goals: pg); v9 (Priority slots: pri); v8 (Timer sessions: tcorr); v7 Village tier drops: drops; v6 Pushback charges Build B: pb; v5 goals; v4 was Build 2c timer edits
         const r = rec();
         expect(r.att).toEqual({ active: 0, perfect: 0 });
         expect(r.rt).toEqual({});

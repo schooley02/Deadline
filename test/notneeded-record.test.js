@@ -9,7 +9,7 @@ const rec = () => DailyRecord.fresh({ date: '2026-11-13', tz: 0 });
 describe('daily record ne', () => {
     test('a fresh day starts at 0 and each notNeeded event adds one', () => {
         const r = rec();
-        expect(r.v).toBe(17);
+        expect(r.v).toBe(18);
         expect(r.ne).toBe(0);
         DailyRecord.bump(r, 'notNeeded', {});
         DailyRecord.bump(r, 'notNeeded', {});

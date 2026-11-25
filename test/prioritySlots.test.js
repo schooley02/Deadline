@@ -182,6 +182,58 @@ describe('PrioritySlots: the marks map', () => {
     });
 });
 
+describe('Items.setPriority: planning ahead (Water tower, 2026-11-25)', () => {
+    const FUTURE = new Date(2099, 0, 2, 12, 0, 0, 0); // always a later local day than the test run
+    const FUTURE_KEY = '2099-01-02';
+    function plannedDeps(active) {
+        let planned = {};
+        const deps = makeDeps(active, []);
+        deps.getPriorityPlanned = () => planned;
+        deps.setPriorityPlanned = (next) => { planned = next; };
+        deps.planned = () => planned;
+        return deps;
+    }
+    test('a slot set on an earlier day than the due day is counted as planned for the DUE day', () => {
+        const deps = plannedDeps([task({ id: 1, dueDateTime: FUTURE }), task({ id: 2, dueDateTime: FUTURE })]);
+        Items.setPriority(1, true, deps);
+        Items.setPriority(2, true, deps);
+        expect(deps.planned()).toEqual({ [FUTURE_KEY]: 2 });
+        expect(deps.marks()).toEqual({ [FUTURE_KEY]: 2 });
+    });
+    test('a slot set on the due day itself (or for a day already past) is not planned', () => {
+        const deps = plannedDeps([task({ id: 1, dueDateTime: at(5) }), task({ id: 2, dueDateTime: new Date() })]);
+        Items.setPriority(1, true, deps);
+        Items.setPriority(2, true, deps);
+        expect(deps.planned()).toEqual({});
+    });
+    test('unmarking never takes a planned slot back, and a refused mark (no slot left) adds nothing', () => {
+        const items = [1, 2, 3, 4].map((id) => task({ id, dueDateTime: FUTURE }));
+        const deps = plannedDeps(items);
+        [1, 2, 3].forEach((id) => Items.setPriority(id, true, deps));
+        Items.setPriority(1, false, deps);
+        expect(Items.setPriority(4, true, deps)).toMatchObject({ ok: false });
+        expect(deps.planned()).toEqual({ [FUTURE_KEY]: 3 });
+    });
+    test('callers that do not pass the planned deps still mark normally', () => {
+        const deps = makeDeps([task({ id: 1, dueDateTime: FUTURE })], []);
+        expect(Items.setPriority(1, true, deps)).toMatchObject({ ok: true, action: 'mark' });
+    });
+});
+
+describe('DailyRecord v18: pri.p (slots set ahead)', () => {
+    test('close writes the planned count the caller supplies; a second close without it keeps it', () => {
+        const rec = DailyRecord.fresh({ date: '2026-11-05' });
+        const closed = DailyRecord.close(rec, { plannedPri: 3 });
+        expect(closed.pri.p).toBe(3);
+        expect(DailyRecord.close(closed, {}).pri.p).toBe(3);
+        expect(DailyRecord.close(rec, { plannedPri: -2 }).pri.p).toBe(0);
+    });
+    test('normalize keeps pri.p and an older record reads 0', () => {
+        expect(DailyRecord.normalize({ date: '2026-11-05', pri: { m: 1, d: 1, s: 0, q: 1, p: 2 } }).pri.p).toBe(2);
+        expect(DailyRecord.normalize({ date: '2026-11-05', pri: { m: 1, d: 1, s: 0, q: 1 } }).pri.p).toBe(0);
+    });
+});
+
 describe('Items.setPriority', () => {
     test('marking spends a slot of the task\'s DUE day, sets the flag and the look, records the mark', () => {
         const t = task({ id: 1 });
@@ -399,8 +451,8 @@ describe('Items.completeItem / uncompleteItem: the daily record `pri` flag', () 
 
 describe('DailyRecord v9: pri', () => {
     test('the version is 11 (v10 adds pg, v11 adds pg.pts / items) and a fresh record carries pri { m, d, s, q } (v14 adds q; v15 adds mood, v16 adds notes)', () => {
-        expect(DailyRecord.V).toBe(17);
-        expect(DailyRecord.fresh().pri).toEqual({ m: 0, d: 0, s: 0, q: 0 });
+        expect(DailyRecord.V).toBe(18);
+        expect(DailyRecord.fresh().pri).toEqual({ m: 0, d: 0, s: 0, q: 0, p: 0 }); // v18 adds p (slots set ahead)
     });
     test('a mark bumps m; a priority completion bumps d and an undo takes it back (floor 0)', () => {
         const rec = DailyRecord.fresh();
@@ -422,15 +474,15 @@ describe('DailyRecord v9: pri', () => {
         DailyRecord.bump(rec, 'complete', { kind: 'task', category: 'other', at: Date.now() });
         DailyRecord.bump(rec, 'pri', { mark: 0 });
         DailyRecord.bump(rec, 'pri', {});
-        expect(rec.pri).toEqual({ m: 0, d: 0, s: 0, q: 0 });
+        expect(rec.pri).toEqual({ m: 0, d: 0, s: 0, q: 0, p: 0 });
     });
     test('close writes s = full sets of three; older records without pri normalise to zeros', () => {
         const rec = DailyRecord.fresh();
         rec.pri = { m: 7, d: 7, s: 0 };
-        expect(DailyRecord.close(rec, {}).pri).toEqual({ m: 7, d: 7, s: 2, q: 0 });
+        expect(DailyRecord.close(rec, {}).pri).toEqual({ m: 7, d: 7, s: 2, q: 0, p: 0 });
         const old = DailyRecord.fresh();
         delete old.pri;
-        expect(DailyRecord.normalize(old).pri).toEqual({ m: 0, d: 0, s: 0, q: 0 });
+        expect(DailyRecord.normalize(old).pri).toEqual({ m: 0, d: 0, s: 0, q: 0, p: 0 });
     });
     test('the month roll-up sums pri', () => {
         const a = DailyRecord.fresh({ date: '2026-10-01' });
@@ -443,7 +495,7 @@ describe('DailyRecord v9: pri', () => {
         const rolled = DailyRecord.rollUp(store, new Date(2028, 5, 1)); // far enough on that October is a month
         const month = rolled.months['2026-10'];
         expect(month).toBeTruthy();
-        expect(month.pri).toEqual({ m: 5, d: 4, s: 1, q: 0 });
+        expect(month.pri).toEqual({ m: 5, d: 4, s: 1, q: 0, p: 0 });
     });
 });
 

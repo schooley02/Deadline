@@ -673,23 +673,23 @@ describe('Water tower (far row)', () => {
 
     test('fromConfig mirrors the Water tower + far-row CONFIG and DEFAULTS agree with it', () => {
         const d = VillageLayout.DEFAULTS;
-        ['windmillWidthPx', 'windmillHeightPx', 'devWindmillTier', 'farRowRaisePx', 'farRowBrightness'].forEach(k => expect(OPTS[k]).toBe(d[k]));
-        expect(OPTS.windmillWidthPx).toBe(CONFIG.VILLAGE_WINDMILL_W_PX);
-        expect(OPTS.windmillHeightPx).toBe(CONFIG.VILLAGE_WINDMILL_H_PX);
-        expect(OPTS.devWindmillTier).toBe(CONFIG.VILLAGE_DEV_WINDMILL_TIER);
+        ['waterTowerWidthPx', 'waterTowerHeightPx', 'devWaterTowerTier', 'farRowRaisePx', 'farRowBrightness'].forEach(k => expect(OPTS[k]).toBe(d[k]));
+        expect(OPTS.waterTowerWidthPx).toBe(CONFIG.VILLAGE_WATERTOWER_W_PX);
+        expect(OPTS.waterTowerHeightPx).toBe(CONFIG.VILLAGE_WATERTOWER_H_PX);
+        expect(OPTS.devWaterTowerTier).toBe(CONFIG.VILLAGE_DEV_WATERTOWER_TIER);
         expect(OPTS.farRowRaisePx).toBe(CONFIG.VILLAGE_FAR_ROW_RAISE_PX);
         expect(OPTS.farRowBrightness).toBe(CONFIG.VILLAGE_FAR_ROW_BRIGHTNESS);
         expect(CONFIG.VILLAGE_FAR_ROW_BRIGHTNESS).toBeLessThan(CONFIG.VILLAGE_BACK_ROW_BRIGHTNESS);
-        expect(VillageLayout.fromConfig({ VILLAGE_DEV_WINDMILL_TIER: null }).devWindmillTier).toBeNull();
+        expect(VillageLayout.fromConfig({ VILLAGE_DEV_WATERTOWER_TIER: null }).devWaterTowerTier).toBeNull();
     });
 
-    test('resolveDevWindmillTier reads only ?windmillTier=', () => {
-        expect(VillageLayout.resolveDevWindmillTier('', OPTS)).toBe(CONFIG.VILLAGE_DEV_WINDMILL_TIER);
-        expect(VillageLayout.resolveDevWindmillTier('?windmillTier=1', OPTS)).toBe(1);
-        expect(VillageLayout.resolveDevWindmillTier('?a=2&windmillTier=5', OPTS)).toBe(5);
-        expect(VillageLayout.resolveDevWindmillTier('?windmillTier=off', OPTS)).toBeNull();
-        expect(VillageLayout.resolveDevWindmillTier('?hospitalTier=1', OPTS)).toBe(CONFIG.VILLAGE_DEV_WINDMILL_TIER);
-        expect(VillageLayout.resolveDevHospitalTier('?windmillTier=1', OPTS)).toBe(CONFIG.VILLAGE_DEV_HOSPITAL_TIER);
+    test('resolveDevWaterTowerTier reads only ?waterTowerTier=', () => {
+        expect(VillageLayout.resolveDevWaterTowerTier('', OPTS)).toBe(CONFIG.VILLAGE_DEV_WATERTOWER_TIER);
+        expect(VillageLayout.resolveDevWaterTowerTier('?waterTowerTier=1', OPTS)).toBe(1);
+        expect(VillageLayout.resolveDevWaterTowerTier('?a=2&waterTowerTier=5', OPTS)).toBe(5);
+        expect(VillageLayout.resolveDevWaterTowerTier('?waterTowerTier=off', OPTS)).toBeNull();
+        expect(VillageLayout.resolveDevWaterTowerTier('?hospitalTier=1', OPTS)).toBe(CONFIG.VILLAGE_DEV_WATERTOWER_TIER);
+        expect(VillageLayout.resolveDevHospitalTier('?waterTowerTier=1', OPTS)).toBe(CONFIG.VILLAGE_DEV_HOSPITAL_TIER);
     });
 
 
@@ -706,8 +706,8 @@ describe('Water tower (far row)', () => {
         expect(fs.existsSync(file)).toBe(true);
         const b = fs.readFileSync(file);
         expect(b.slice(1, 4).toString()).toBe('PNG');
-        expect(b.readUInt32BE(16)).toBe(CONFIG.VILLAGE_WINDMILL_W_PX);
-        expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_WINDMILL_H_PX);
+        expect(b.readUInt32BE(16)).toBe(CONFIG.VILLAGE_WATERTOWER_W_PX);
+        expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_WATERTOWER_H_PX);
     });
 });
 
@@ -930,7 +930,7 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
 
     test('the Water tower (2026-11-25): 128x208, far row, three-quarter art, behind the Police station and clear of the Broadcast tower', () => {
         expect(CONFIG.VILLAGE_PLACEMENT.bestdays).toEqual({ row: 'far', right: -120, sink: 95 });
-        expect([CONFIG.VILLAGE_WINDMILL_W_PX, CONFIG.VILLAGE_WINDMILL_H_PX]).toEqual([128, 208]);
+        expect([CONFIG.VILLAGE_WATERTOWER_W_PX, CONFIG.VILLAGE_WATERTOWER_H_PX]).toEqual([128, 208]);
         expect(CONFIG.VILLAGE_ART_X.bestdays).toEqual([4, 127]);
         const s = byKind(at(800));
         expect(s.bestdays.row).toBe('far');

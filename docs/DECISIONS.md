@@ -4,6 +4,20 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-25 (Planning ahead BUILT + windmill code cleaned up) -- Claude app session, Sonnet 5.5; Jeremy ("lets go with option 1 and make sure we clean up any unused code from the windmill"; renames: yes; current run starts at zero: yes; excused priorities: "I wouldn't count it since the planning wasn't helpful if it wasn't needed")
+
+- **The Water tower now counts planned days.** A day counts when EVERY priority slot of that day was set on an earlier local day (DailyRecord v18 `pri.p` >= `CONFIG.PRIORITY_SLOTS_PER_DAY`) AND at least two priorities were finished (`pri.d`). `extras.perfectPlans` (all three finished) feeds a new card line, "Perfect plans this run: N", that never adds stars. Thresholds stay [2, 5, 15, 30] (same ladder as the heavy-day counter it replaces; re-check with real play data through the balance-tuning process before changing them).
+- **How "set ahead" is recorded.** `Items.setPriority` adds one to `State.priorityPlanned[dueDay]` when the mark happens on an earlier local day than the task's due day (a new additive save field, absent on older saves = `{}`; pruned with `priorityMarks` at rollover; cleared at a run end). `closeDailyRecord` writes it into the closing day's `pri.p`. Why per due day, at mark time: the day's slots are a hard cap of three and are charged to the due day, so a day whose three slots were all spent ahead can only reach two finished priorities with the planned ones. A slot stays spent and planned even if the task is later unmarked or moved, so a plan that fell through never counts as finished.
+- **Excused ("not needed today") priorities do not count (Jeremy).** A not-needed pass moves the task to tomorrow, which strips its priority, so it is never a finish and the day only counts if two others were finished. No special case needed.
+- **The current run starts at zero (Jeremy: yes).** Days closed before v18 have no `pri.p` and count 0, so the Water tower shows 0 planned days on the 32-day run; the tier only ever goes up, so a tier already earned does not drop.
+- **Open day does not count.** `pri.p` is written at close, so a planned day shows up on the card the next morning (the same rule as the High school's stars).
+- **Windmill code removed:** `VillageProgress.heavyDays` (+ its `heavyDays` extra and the `heavy*` ctx options), the four `CONFIG.VILLAGE_HEAVY_DAY_*` keys and their tests. `comebackDays` (the card's comeback line) stays.
+- **Renamed (Jeremy: yes; reverses the 2026-11-25 "kept on purpose" call):** `VILLAGE_WINDMILL_W_PX` / `_H_PX` / `VILLAGE_DEV_WINDMILL_TIER` -> `VILLAGE_WATERTOWER_*`, `getWindmillTier` -> `getWaterTowerTier`, `devWindmillTier` / `windmillWidthPx` / `windmillHeightPx` -> `devWaterTowerTier` / `waterTowerWidthPx` / `waterTowerHeightPx`, `resolveDevWindmillTier` -> `resolveDevWaterTowerTier`, the URL param `?windmillTier=` -> `?waterTowerTier=`. The kind id `bestdays` stays (it is in saved data: `bestVillageTiers`, `peakVillageTiers`).
+- **Not built (still parked):** free edits of a future day's priorities and the lock-in at rollover, moving a planned priority keeps its slot, and the TARGET marker in the forecast view (ROADMAP "Planning ahead"). The Lab and the top-bar collapse button are separate tasks.
+- sw v425 -> v426.
+
+---
+
 ## 2026-11-25 (Water tower WIRED) -- Claude app session, Sonnet 5.5; Jeremy ("lets wire the water tower into the game")
 
 - **Wired exactly as the 2026-11-25 spec said.** The five finals ship as `Assets/Village/bestdays_t1..t5.png` (128x208, pixel-identical to `_source/watertower-3q/`); the old 128x160 windmill art is archived in `_source/americana-windmill/bestdays_old_t*_128x160.png`. Placement `bestdays: { row: 'far', right: -120, sink: 95 }`, art measured [4, 127] (union of the five tiers). On the 800x360 phone its canvas left is the Police station's + 38 (433), top 0 (sunk like the Broadcast tower), art 437-560: behind the Police station, clear of the Broadcast tower (574). Why: it is the phone mock Jeremy approved ("likes the tall Water tower's height and spot").

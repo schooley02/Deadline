@@ -138,8 +138,8 @@ describe('script.js hook-up', () => {
     test('the hospital tier is fed to the view too (dev ?hospitalTier= until habits tier data exists)', () => {
         expect(script).toContain('getHospitalTier:');
         expect(script).toContain("villageTierDep('habits', 'hospitalTier')"); // real tier, URL param overrides (Build 2)
-        expect(script).toContain('getWindmillTier:'); // the far-row windmill (2026-10-30)
-        expect(script).toContain("villageTierDep('bestdays', 'windmillTier')"); // real tier, URL param overrides (Build 2)
+        expect(script).toContain('getWaterTowerTier:'); // the far-row windmill (2026-10-30)
+        expect(script).toContain("villageTierDep('bestdays', 'waterTowerTier')"); // real tier, URL param overrides (Build 2)
     });
 
     test('`lurkers_t*` is the Gym now; the Police station stays `defense_t*`', () => {

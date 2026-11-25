@@ -688,14 +688,14 @@ const CONFIG = {
     VILLAGE_HOSPITAL_W_PX: 176,
     VILLAGE_HOSPITAL_H_PX: 144,
     VILLAGE_DEV_HOSPITAL_TIER: 3, // DEV: no habits tier data yet. `?hospitalTier=1..5` overrides, `off` hides; null = hidden
-    // Water tower (kind `bestdays`; replaced the Windmill and was WIRED 2026-11-25, Jeremy; the VILLAGE_WINDMILL_* keys and the `?windmillTier=` URL param keep their
-    // names, like the Broadcast tower's VILLAGE_RADIO_* keys): a tall light-blue tank on a braced steel frame, town name DALTON (CAMP at star 4, FORT at star 5),
+    // Water tower (kind `bestdays`; replaced the Windmill and was WIRED 2026-11-25, Jeremy; the keys were renamed from VILLAGE_WINDMILL_* the same day, the kind id
+    // `bestdays` is kept because it is in saved data): a tall light-blue tank on a braced steel frame, town name DALTON (CAMP at star 4, FORT at star 5),
     // 128x208 three-quarter art, never mirrored. FAR row, behind the Police station: one ridge further back than the back row (feet VILLAGE_FAR_ROW_RAISE_PX above
     // the back row's), darker, painted first. A far-row building may hide behind any front/back building; it is dropped only if its art would reach the church
     // or the hill. Art measured [4, 127] (the union of the five tiers).
-    VILLAGE_WINDMILL_W_PX: 128,
-    VILLAGE_WINDMILL_H_PX: 208,
-    VILLAGE_DEV_WINDMILL_TIER: 3, // DEV: no bestdays tier data yet. `?windmillTier=1..5` overrides, `off` hides; null = hidden
+    VILLAGE_WATERTOWER_W_PX: 128,
+    VILLAGE_WATERTOWER_H_PX: 208,
+    VILLAGE_DEV_WATERTOWER_TIER: 3, // DEV: no bestdays tier data yet. `?waterTowerTier=1..5` overrides, `off` hides; null = hidden
     VILLAGE_FAR_ROW_RAISE_PX: 35, // far-row feet stand this far above the BACK row's feet (2026-11-24: 30 -> 35, so the far row is 95px above the front row)
     VILLAGE_FAR_ROW_BRIGHTNESS: 0.65, // darker than the back row (0.8) so it reads as further away
     // Visible-art extent [left, right) inside each kind's 128px canvas, the UNION over its five tiers (measured from the shipped sprites, 2026-10-30).
@@ -738,13 +738,9 @@ const CONFIG = {
         // THEORY PASS: ~85% completion, routines added as slots unlock (1 routine at the start, max 4 at Lv3/5/7) -> T2 about the end
         // of week 1, T3 ~3 weeks, T4 ~7 weeks, T5 ~100 days (the Radio tower's pace). Re-check with real play data.
         heroes: [10, 75, 300, 750],
-        bestdays: [2, 5, 15, 30],         // Water tower (was the Windmill): heavy days handled (more due than the recent average, nothing missed); becomes planning ahead with the parked Planning ahead build
+        bestdays: [2, 5, 15, 30],         // Water tower (was the Windmill): planned days (every priority slot set ahead + at least 2 finished; Jeremy 2026-11-25). Same ladder as the heavy-day days it replaced; re-check with real play data
     },
     VILLAGE_DEFENSE_HELD_FRAC: 0.75, // a night counts for the Police station when the church ends the day at >= this fraction of MAX_BASE_HEALTH
-    VILLAGE_HEAVY_DAY_WINDOW: 14, // the Water tower's "recent average" = this run's last N closed days
-    VILLAGE_HEAVY_DAY_MIN_DAYS: 3, // ...and needs at least this many closed days of history before any day can be heavy
-    VILLAGE_HEAVY_DAY_FACTOR: 1.25, // a day is HEAVY only when more than this x the recent average was due (Jeremy 2026-10-30, option 2: a permanent step up stops scoring once the average catches up)
-    VILLAGE_HEAVY_DAY_MIN_EXTRA: 1, // ...and at least this many items above that average (keeps a tiny average from making every +1 "heavy")
 
     // ---- Village tier DROPS (DECIDED 2026-11-03, Jeremy + Claude; DECISIONS "Village tier drops"; docs/ECONOMY.md "Village tier drops") ----
     // Reaching star N of a building (N = 2..5; every building starts at star 1, which pays nothing) adds ONE fixed item to the HELD

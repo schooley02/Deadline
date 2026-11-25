@@ -15,7 +15,8 @@
  *   lurkers      Gym           days with no slips (at least one bad habit resolved, none slipped)
  *   defense      Police station nights the church ended at >= 75% health AND the day was defended (Momentum, 2026-11-11)
  *   heroes       High school   hero stars banked: each closed day adds every routine's star rating at day close (0-5 each)
- *   bestdays     Water tower   heavy days handled (> 1.25x this run's recent average and >= 1 item above it, nothing missed)
+ *   bestdays     Water tower   planned days (Jeremy, 2026-11-25): every priority slot of the day was SET AHEAD (DailyRecord v18 `pri.p`) and at
+ *                              least two priorities were finished (`pri.d`). A perfect plan (all slots finished) is a card line, never a star
  *
  * Same pattern as runStats.js / dailyRecord.js: pure functions, no DOM, no State or CONFIG reads
  * (the caller passes everything in), so it is unit-tested directly. Day-based counters use this
@@ -31,7 +32,7 @@
  *     maxHp,           CONFIG.MAX_BASE_HEALTH
  *     countsAsNight?,  (rec) => boolean, Momentum.countsAsNight bound to the save's start day; the Police station also needs it (absent = every day counts)
  *     thresholds?,     defaults to DEFAULT_THRESHOLDS (a test checks it matches CONFIG)
- *     defenseFrac?, prioritySlots?, heavyWindow?, heavyMinDays?, heavyFactor?, heavyExtra? }   defaults mirror CONFIG
+ *     defenseFrac?, prioritySlots?, plannedMinDone? }   defaults mirror CONFIG
  */
 const VillageProgress = (() => {
     const KINDS = ['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes', 'habits', 'bestdays'];
@@ -49,10 +50,7 @@ const VillageProgress = (() => {
     };
     const DEFAULT_DEFENSE_FRAC = 0.75;
     const DEFAULT_PRIORITY_SLOTS = 3; // mirrors CONFIG.PRIORITY_SLOTS_PER_DAY (the Command Post's daily cap)
-    const DEFAULT_HEAVY_WINDOW = 14;
-    const DEFAULT_HEAVY_MIN_DAYS = 3;
-    const DEFAULT_HEAVY_FACTOR = 1.25;
-    const DEFAULT_HEAVY_EXTRA = 1;
+    const DEFAULT_PLANNED_MIN_DONE = 2; // priorities that must be finished for a planned day to count (the Water tower)
     const MAX_TIER = 5;
 
     function num(v) { return Number.isFinite(v) && v > 0 ? v : 0; }
@@ -133,27 +131,23 @@ const VillageProgress = (() => {
     }
 
     /**
-     * Water tower (was the Windmill): a day is HEAVY when what was due is MORE THAN `factor` x the average of this run's previous `window`
-     * closed days AND at least `extra` items above that average (needs >= `minDays` of history), and HANDLED when
-     * nothing was missed. The margin matters: with a bare "above average" rule a permanent step up (4 -> 10 a day) kept
-     * scoring every day until the whole window filled with the new level (~11 days per ramp-up); with 1.25x it stops
-     * after about 5. Decided 2026-10-30 (Jeremy, option 2).
+     * Water tower (Jeremy, 2026-11-25; replaced the Windmill's "heavy days handled"): a day is PLANNED when every priority slot of that day was
+     * set on an earlier day (`pri.p` >= `slots`) and at least `minDone` priorities were finished (`pri.d`). A day is a PERFECT plan when all
+     * `slots` were finished too. A "not needed today" priority is moved to another day, so it never counts as finished. Days recorded
+     * before DailyRecord v18 have no `pri.p` and count 0.
      */
-    function heavyDays(days, window, minDays, factor, extra) {
-        const f = factor != null ? factor : DEFAULT_HEAVY_FACTOR;
-        const x = extra != null ? extra : DEFAULT_HEAVY_EXTRA;
-        let heavy = 0, handled = 0;
+    function plannedDays(days, slots, minDone) {
+        const need = slots > 0 ? Math.floor(slots) : DEFAULT_PRIORITY_SLOTS;
+        const min = minDone > 0 ? Math.floor(minDone) : DEFAULT_PLANNED_MIN_DONE;
+        let planned = 0, perfect = 0;
         for (let i = 0; i < days.length; i++) {
-            const prior = days.slice(Math.max(0, i - window), i);
-            if (prior.length < minDays) continue;
-            const avg = prior.reduce((s, r) => s + dueTotal(r), 0) / prior.length;
-            const due = dueTotal(days[i]);
-            if (due > avg * f && due >= avg + x) {
-                heavy += 1;
-                if (missedTotal(days[i]) === 0) handled += 1;
-            }
+            const r = days[i];
+            if (num(r && r.pri && r.pri.p) < need) continue;
+            const done = num(r.pri.d);
+            if (done >= min) planned += 1;
+            if (done >= need) perfect += 1;
         }
-        return { heavy, handled };
+        return { planned, perfect };
     }
 
     /** Water tower flavour line: a clean day (something due, nothing missed) right after a rough one (misses or damage). */
@@ -186,10 +180,7 @@ const VillageProgress = (() => {
             thresholds: c.thresholds || DEFAULT_THRESHOLDS,
             defenseFrac: c.defenseFrac != null ? c.defenseFrac : DEFAULT_DEFENSE_FRAC,
             prioritySlots: c.prioritySlots > 0 ? Math.floor(c.prioritySlots) : DEFAULT_PRIORITY_SLOTS,
-            heavyWindow: c.heavyWindow != null ? c.heavyWindow : DEFAULT_HEAVY_WINDOW,
-            heavyMinDays: c.heavyMinDays != null ? c.heavyMinDays : DEFAULT_HEAVY_MIN_DAYS,
-            heavyFactor: c.heavyFactor != null ? c.heavyFactor : DEFAULT_HEAVY_FACTOR,
-            heavyExtra: c.heavyExtra != null ? c.heavyExtra : DEFAULT_HEAVY_EXTRA,
+            plannedMinDone: c.plannedMinDone > 0 ? Math.floor(c.plannedMinDone) : DEFAULT_PLANNED_MIN_DONE,
         };
     }
 
@@ -213,7 +204,8 @@ const VillageProgress = (() => {
             defense: days.filter((r) => churchHeld(r, c.maxHp, o.defenseFrac) && (typeof c.countsAsNight !== 'function' || c.countsAsNight(r))).length,
             // High school v2 (2026-10-31): banked hero stars, summed over this run's closed days. Days from before the field existed count 0.
             heroes: days.reduce((sum, r) => sum + starsTotal(r), 0),
-            bestdays: heavyDays(days, o.heavyWindow, o.heavyMinDays, o.heavyFactor, o.heavyExtra).handled,
+            // Water tower (2026-11-25): planned days, from the closed days only (`pri.p` is written at close).
+            bestdays: plannedDays(days, o.prioritySlots, o.plannedMinDone).planned,
         };
     }
 
@@ -234,7 +226,7 @@ const VillageProgress = (() => {
         return {
             attendanceStreak: attendanceStreak(days),
             comebackDays: comebackDays(days),
-            heavyDays: heavyDays(days, o.heavyWindow, o.heavyMinDays, o.heavyFactor, o.heavyExtra).heavy,
+            perfectPlans: plannedDays(days, o.prioritySlots, o.plannedMinDone).perfect,
         };
     }
 
@@ -247,7 +239,7 @@ const VillageProgress = (() => {
         counters,
         compute,
         extras,
-        heavyDays,
+        plannedDays,
         comebackDays,
         attendanceStreak,
         isPerfectAttendance,

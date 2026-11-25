@@ -13,7 +13,7 @@
  * buildModel(ctx): ctx = {
  *   kind,           'nights' | 'slain' | 'punctuality' | 'habits' | 'lurkers' | 'defense' | 'heroes' | 'bestdays'
  *   progress,       VillageProgress.compute(...)[kind] -> { tier, value, prevAt, nextAt, toNext, maxed, fraction }
- *   extras?,        VillageProgress.extras(...) -> { attendanceStreak, comebackDays }  (the school no longer shows the streak)
+ *   extras?,        VillageProgress.extras(...) -> { attendanceStreak, comebackDays, perfectPlans }  (the school no longer shows the streak)
  *   reportRows?,    Heroes.reportRows(...) -> one row per routine for the High school's report card
  *   hasBadHabit?,   true when at least one active (non-archived) negative habit exists (gym empty state)
  *   hasRoutine?,    true when at least one routine exists (school empty state)
@@ -136,6 +136,8 @@ const VillageCard = (() => {
         const lines = [];
         const ex = c.extras || {};
         if (c.kind === 'bestdays') {
+            const perfect = count(ex.perfectPlans);
+            if (perfect > 0) lines.push('Perfect plans this run: ' + perfect + '. Every priority set ahead and finished. They never add stars.');
             const back = count(ex.comebackDays);
             if (back > 0) lines.push('Comeback days this run: ' + back + '. A clean day right after a rough one.');
         }
