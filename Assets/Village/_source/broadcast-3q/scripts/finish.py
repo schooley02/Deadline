@@ -32,7 +32,7 @@ def glow(im,cx,cy,R,col,k0,cap=150,shape=None,opaque_only=False):
     return im
 def station_for(tier):
     st=station_pl()
-    if tier>=4:                                                   # T4 additions drawn in code, laid over the PixelLab station
+    if tier!=3:                                                   # tier changes drawn in code, laid over the PixelLab station
         a=C.station_code(3).load(); bim=C.station_code(tier); b=bim.load(); P=st.load()
         for y in range(H):
             for x in range(W):
@@ -77,7 +77,37 @@ def build(soldier=False,station=None,tier=3,figure=None,front_rail=True,lights=T
             P=im.load()
             for yy in range(fy0-3,fy0+1): P[fx0,yy]=(84,88,102,255)         # the whip runs 3px higher to carry it
             fl_=clean(Image.open(PC+'flag_r1.png')); im.alpha_composite(fl_,(fx0+1,fy0-3))
+    if tier==1:                                                    # dead weeds and rubble along the foot (in front of everything)
+        import random
+        rw=random.Random(5); P=im.load()
+        for (xc,n) in ((6,3),(15,2),(36,3),(58,4),(66,3),(84,4),(92,2),(119,4),(124,2)):
+            for k in range(n):
+                x=xc+k*2+rw.randint(-1,1); hgt=rw.randint(3,8); lean=rw.choice((-1,0,0,1)); col=rw.choice(((92,88,56),(74,76,50),(110,98,66)))
+                for t in range(hgt):
+                    xx=x+(lean*t)//3
+                    if 0<=xx<W: P[xx,H-1-t]=(col if t<hgt-1 else tuple(min(255,v+24) for v in col))+(255,)
+        for (xr,wr) in ((44,5),(74,6),(100,4)):                                                             # low rubble heaps
+            for i in range(wr):
+                hh=1+(1 if 0<i<wr-1 else 0)+(1 if i==wr//2 else 0)
+                for t in range(hh): P[xr+i,H-1-t]=((96,92,88) if t==hh-1 else (64,62,64))+(255,)
+    if tier<=2:                                                    # dull pass (before any light): colour and brightness pulled down, light sources left alone
+        sat,br={2:(0.80,0.80),1:(0.62,0.64)}[tier]
+        keepers=[(B.CX-3,Y(B.TOP+20),B.CX+2,Y(B.TOP+13)),(70,H-17,80,H-1),(51,Y(21),56,Y(16))]   # beacon lens, fire barrel, candle
+        P=im.load()
+        for y in range(H):
+            for x in range(W):
+                r,g,b_,a_=P[x,y]
+                if not a_ or any(x0<=x<=x1 and y0<=y<=y1 for (x0,y0,x1,y1) in keepers): continue
+                gr=0.299*r+0.587*g+0.114*b_
+                P[x,y]=(int((gr+(r-gr)*sat)*br),int((gr+(g-gr)*sat)*br),int((gr+(b_-gr)*sat)*br),255)
     if not lights: return im
+    if tier==2:
+        glow(im,B.CX-0.5,Y(B.TOP+17),4,(214,80,62),0.30,cap=70)                       # the weak beacon
+        glow(im,74.5,H-13,9,(244,160,70),0.34,cap=90,shape=0.9)                        # fire barrel
+        glow(im,74.5,H-8,13,(244,160,70),0.20,opaque_only=True)
+        glow(im,53.5,Y(18),5,(255,214,150),0.22,opaque_only=True)                      # the candle on the sill
+        return im
+    if tier==1: return im
     keep=im.copy()
     glow(im,B.CX-0.5,Y(B.TOP+17),7,(240,84,60),0.55,cap=120)
     bx=keep.load(); P=im.load()

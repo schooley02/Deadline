@@ -27,3 +27,19 @@ Everything that must show on a phone sits in the top 67 px of the art (beacon, d
 - Two red obstruction lights halfway up the front legs, a second wire coil round the legs, two more Gym sandbag stacks, a yard light on the station roof's right end.
 - The guard under the door lamp: PixelLab `generate-image-v2` at 32x48 (`../pieces/guard_pixellab_32x48.png`, pick 12 of 36), `resize` to 21x32.
 - No barbed wire on the station roof (Jeremy had it removed).
+
+## 2026-11-24 late: T2 final (all code, no PixelLab)
+- `broadcast_t2_final_144x208.png` (Jeremy approved). `finish.build(tier=2)`.
+- Top: beacon weak (dull lens, small bloom); big dish patched with a scrap sheet and turned 12 degrees (drawn on its own layer, then rotated about its mount); one panel antenna; a tarp shelter roped to the rail's left end; one rail section gone with a rope across.
+- Steel: a brown-grey grime tint, rust in solid PATCHES (heavier low down) with dark runs under them. Jeremy asked for dirtier / rustier; single-pixel specks avoided.
+- The two dishes, the panel antenna and the electrical box each got `dirty()`: tint + a few solid stains + short runs; the box also has a mud band along its bottom.
+- Foot: sign and door lamp dead, candle on the front sill under one plank, side window under three planks at different angles, a tarp roped over the roof's right end, a fire barrel, the box's right door ajar.
+- Dull pass in `finish.py` (colour 0.80, brightness 0.80), light sources left out, lights last.
+
+## 2026-11-24 late: T1 final (all code, no PixelLab)
+- `broadcast_t1_final_144x208.png` (Jeremy approved). `finish.build(tier=1)`.
+- The big dish is torn off its mount and hangs in the air below the platform's right side, from a charcoal cable tied round the middle of the mast, bent over the hand rail (the right-end rail section is left standing for it). Jeremy: it may hang behind the school, players see it in the building window; he tried pure black (too dark) and near-black, and chose CHARCOAL. Dented, a bite out of the rim, feed horn gone, turned 75 degrees about its bracket then moved to the hang point.
+- Beacon dead (dark cracked lens, no glow). The beacon stays ON (weak) at T2: Jeremy, it is the tower's signature.
+- Small dish gone (bracket stub), last panel antenna hanging by one bolt, one whip bent over, the middle of the front rail torn out and hanging, two stretches of the ladder missing, the heaviest grime + rust patches.
+- Station: both windows smashed, the door hanging open on a black doorway, the sign box hanging by one corner, a roof hole with rafters that follow the roof's lean, two wall boards gone. Electrical box gutted, a door lying against it. Dead weeds + rubble (drawn in `finish.py`, in front of everything).
+- Dull pass colour 0.62, brightness 0.64 (about the Clock tower T1's); no light pass at all.
