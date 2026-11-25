@@ -43,3 +43,8 @@ Everything that must show on a phone sits in the top 67 px of the art (beacon, d
 - Small dish gone (bracket stub), last panel antenna hanging by one bolt, one whip bent over, the middle of the front rail torn out and hanging, two stretches of the ladder missing, the heaviest grime + rust patches.
 - Station: both windows smashed, the door hanging open on a black doorway, the sign box hanging by one corner, a roof hole with rafters that follow the roof's lean, two wall boards gone. Electrical box gutted, a door lying against it. Dead weeds + rubble (drawn in `finish.py`, in front of everything).
 - Dull pass colour 0.62, brightness 0.64 (about the Clock tower T1's); no light pass at all.
+
+## 2026-11-24 night: Jeremy's PixelLab touch-ups
+- All five finals were saved to his PixelLab gallery as "Deadline Broadcast Tower T1..T5 FINAL (144x208)" (T1 50855893, T2 ec01cd80, T3 e1a40854, T4 f7cc7eaa, T5 ded0dbe7).
+- He exported all five back. Pixel diff against the code finals: T3 and T4 unchanged; T1 13 px (the bright footing + rust pixels at the tower's left foot toned down); T2 24 px (the same footing beside the fire barrel, the barrel's edge); T5 55 px (the same footing, a few pixels of the beacon bloom, the obstruction lights and the floodlight beam).
+- `broadcast_t1 / t2 / t5_final_144x208.png` are now HIS versions; the scripts' own output is kept as `broadcast_t1 / t2 / t5_code_144x208.png`. Re-running the scripts does not reproduce his edits.
