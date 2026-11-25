@@ -366,7 +366,7 @@ const CONFIG = {
         hazy:     { level: 4 },
         overcast: { kind: 'nights',   tier: 3 }, // Radio tower
         fog:      { kind: 'defense',  tier: 3 }, // Police station
-        storm:    { kind: 'bestdays', tier: 3 }, // Windmill
+        storm:    { kind: 'bestdays', tier: 3 }, // Water tower
         clear:    { kind: 'nights',   tier: 4 }, // Radio tower
     },
     CLIMATE: {
@@ -688,13 +688,13 @@ const CONFIG = {
     VILLAGE_HOSPITAL_W_PX: 176,
     VILLAGE_HOSPITAL_H_PX: 144,
     VILLAGE_DEV_HOSPITAL_TIER: 3, // DEV: no habits tier data yet. `?hospitalTier=1..5` overrides, `off` hides; null = hidden
-    // Windmill (kind `bestdays`, 2026-10-30, PLACEHOLDER art until PixelLab credits return Nov 7): farm water-pumping windmill on a
-    // timber tower + barn-red pump house, 128x160, the first FAR-ROW building: one ridge further back than the back row (feet
-    // VILLAGE_FAR_ROW_RAISE_PX above the back row's), darker, painted first, so mostly its wheel shows, between the school and
-    // the hospital. The back row was full at 844 wide. A far-row building may hide behind any front/back building; it is
-    // dropped only if its art would reach the church or the hill, or overlap the Clock tower's art (the landmark stays clear).
+    // Water tower (kind `bestdays`; replaced the Windmill and was WIRED 2026-11-25, Jeremy; the VILLAGE_WINDMILL_* keys and the `?windmillTier=` URL param keep their
+    // names, like the Broadcast tower's VILLAGE_RADIO_* keys): a tall light-blue tank on a braced steel frame, town name DALTON (CAMP at star 4, FORT at star 5),
+    // 128x208 three-quarter art, never mirrored. FAR row, behind the Police station: one ridge further back than the back row (feet VILLAGE_FAR_ROW_RAISE_PX above
+    // the back row's), darker, painted first. A far-row building may hide behind any front/back building; it is dropped only if its art would reach the church
+    // or the hill. Art measured [4, 127] (the union of the five tiers).
     VILLAGE_WINDMILL_W_PX: 128,
-    VILLAGE_WINDMILL_H_PX: 160,
+    VILLAGE_WINDMILL_H_PX: 208,
     VILLAGE_DEV_WINDMILL_TIER: 3, // DEV: no bestdays tier data yet. `?windmillTier=1..5` overrides, `off` hides; null = hidden
     VILLAGE_FAR_ROW_RAISE_PX: 35, // far-row feet stand this far above the BACK row's feet (2026-11-24: 30 -> 35, so the far row is 95px above the front row)
     VILLAGE_FAR_ROW_BRIGHTNESS: 0.65, // darker than the back row (0.8) so it reads as further away
@@ -707,7 +707,7 @@ const CONFIG = {
     // Only short buildings may stand in the ~90px under the moon + "NIGHTS SURVIVED" label. `flip` mirrors the sprite.
     // ---- RE-ARRANGEMENT (2026-11-24, Jeremy approved mock "D"; DECISIONS 2026-11-24 "Village re-arrangement"). The design screen is now the SMALLEST one,
     // the 800x360 phone: 800 - 120 (plot) - 188 (the church box on phones, --base-w) = a 492px field, where every `right` below is exact.
-    // Front: Gym, Police station, Command Post. Back: Hospital, Clock tower, High school. Far: Windmill (old art, rough spot until redrawn), Broadcast tower.
+    // Front: Gym, Police station, Command Post. Back: Hospital, Clock tower, High school. Far: Water tower (wired 2026-11-25), Broadcast tower.
     VILLAGE_DESIGN_FIELD_PX: 492,
     VILLAGE_BASE_TUCK_PX: 24, // a building's art may start this far INSIDE the church's box (the church draws over it): the Gym sits 20px in, beside the lantern
     VILLAGE_PLACEMENT: {
@@ -717,10 +717,10 @@ const CONFIG = {
         habits: { row: 'back', right: -317 },               // Hospital: art 190-363; its ER end and the ambulance show between the Gym and the tower
         punctuality: { row: 'back', right: -240, drop: 26, sink: 34, overTop: 12 }, // Clock tower: art 351-440 (T2-T5 361-437), in the Gym / Police gap so its door shows. `drop` 26 = it ALWAYS stands 26px lower than the back row: feet 34px above the front row's, 22px above the raised Police station's, on every screen. That is mock-up "option 3" (Jeremy 2026-11-24: "closer to the station"); before this it only stood there on the 800x360 phone, and higher up the hill on anything taller. `sink` = how much further (px) it may stand lower so its roof fits a canvas shorter than that phone's (never below the front row's feet); `overTop` = px of roof tip that may run off the top before it sinks (12 = what the phone cuts)
         heroes: { row: 'back', right: 20 },                 // High school: art 526-700, 12px short of the moon (buildings draw over the moon)
-        bestdays: { row: 'far', right: -299, flip: true },  // Windmill (old front-view art, mirrored): rough far-row spot until it is redrawn
+        bestdays: { row: 'far', right: -120, sink: 95 },     // Water tower (128x208 three-quarter art, no flip): art 437-560 at 800 wide, canvas left = the Police station's + 38 (it stands behind the station, left of the Broadcast tower at 574); `sink` like the Broadcast tower, so its top is on screen (top 0) on the 800x360 phone
         nights: { row: 'far', right: 34, sink: 95 },         // Broadcast tower (144x208 three-quarter art, no flip): art 574-714 at 800 wide (the tower itself ends at 698; 698-714 is the T4 / T5 floodlight beam, see-through), its mast (canvas x 90) at 662, behind the High school's right wing, right of the phone HUD (ends 580) and left of the moon (712). Only its top shows above the school: the beacon, the big dish, the crew platform (all in the top 67px of the art). `sink` 95 = on a canvas too short for 208px above the far row it stands lower, as far as the front row's feet, so the beacon stays on screen (74px lower on the 800x360 phone; full far-row height from a 379px canvas)
     },
-    VILLAGE_ART_X: { punctuality: [16, 105], defense: [3, 160], slain: [1, 160], nights: [2, 142], lurkers: [3, 191], heroes: [0, 174], habits: [1, 174], bestdays: [13, 116] },
+    VILLAGE_ART_X: { punctuality: [16, 105], defense: [3, 160], slain: [1, 160], nights: [2, 142], lurkers: [3, 191], heroes: [0, 174], habits: [1, 174], bestdays: [4, 127] },
 
     // ---- Village tiers (DECIDED 2026-10-30 night, DECISIONS "Village tiers"; docs/WORLD_FEEDBACK_PLAN.md "Village tiers + building cards") ----
     // BALANCE numbers, approved by Jeremy as a THEORY pass (rates are estimates; re-check against real play, like the shop prices).
@@ -738,10 +738,10 @@ const CONFIG = {
         // THEORY PASS: ~85% completion, routines added as slots unlock (1 routine at the start, max 4 at Lv3/5/7) -> T2 about the end
         // of week 1, T3 ~3 weeks, T4 ~7 weeks, T5 ~100 days (the Radio tower's pace). Re-check with real play data.
         heroes: [10, 75, 300, 750],
-        bestdays: [2, 5, 15, 30],         // Windmill: heavy days handled (more due than the recent average, nothing missed)
+        bestdays: [2, 5, 15, 30],         // Water tower (was the Windmill): heavy days handled (more due than the recent average, nothing missed); becomes planning ahead with the parked Planning ahead build
     },
     VILLAGE_DEFENSE_HELD_FRAC: 0.75, // a night counts for the Police station when the church ends the day at >= this fraction of MAX_BASE_HEALTH
-    VILLAGE_HEAVY_DAY_WINDOW: 14, // the Windmill's "recent average" = this run's last N closed days
+    VILLAGE_HEAVY_DAY_WINDOW: 14, // the Water tower's "recent average" = this run's last N closed days
     VILLAGE_HEAVY_DAY_MIN_DAYS: 3, // ...and needs at least this many closed days of history before any day can be heavy
     VILLAGE_HEAVY_DAY_FACTOR: 1.25, // a day is HEAVY only when more than this x the recent average was due (Jeremy 2026-10-30, option 2: a permanent step up stops scoring once the average catches up)
     VILLAGE_HEAVY_DAY_MIN_EXTRA: 1, // ...and at least this many items above that average (keeps a tiny average from making every +1 "heavy")

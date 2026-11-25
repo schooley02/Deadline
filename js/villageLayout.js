@@ -53,12 +53,12 @@ const VillageLayout = (() => {
         hospitalWidthPx: 176,
         hospitalHeightPx: 144,
         windmillWidthPx: 128,
-        windmillHeightPx: 160,
+        windmillHeightPx: 208,
         devWindmillTier: 3,
         farRowRaisePx: 35,
         farRowBrightness: 0.65,
         devHospitalTier: 3,
-        art: { punctuality: [16, 105], defense: [3, 160], slain: [1, 160], nights: [2, 142], lurkers: [3, 191], heroes: [0, 174], habits: [1, 174], bestdays: [13, 116] },
+        art: { punctuality: [16, 105], defense: [3, 160], slain: [1, 160], nights: [2, 142], lurkers: [3, 191], heroes: [0, 174], habits: [1, 174], bestdays: [4, 127] },
         backRowRaisePx: 60,
         backRowBrightness: 0.8,
         baseTuckPx: 24,
@@ -71,7 +71,7 @@ const VillageLayout = (() => {
             habits: { row: 'back', right: -317 },
             punctuality: { row: 'back', right: -240, drop: 26, sink: 34, overTop: 12 },
             heroes: { row: 'back', right: 20 },
-            bestdays: { row: 'far', right: -299, flip: true },
+            bestdays: { row: 'far', right: -120, sink: 95 },
             nights: { row: 'far', right: 34, sink: 95 },
         },
     };
@@ -197,7 +197,7 @@ const VillageLayout = (() => {
         return resolveTierParam(search, 'hospitalTier', o.devHospitalTier, o.tiers);
     }
 
-    // Windmill: `?windmillTier=`
+    // Water tower (kind `bestdays`): `?windmillTier=` (the param keeps its old name)
     function resolveDevWindmillTier(search, opts) {
         const o = opts || DEFAULTS;
         return resolveTierParam(search, 'windmillTier', o.devWindmillTier, o.tiers);

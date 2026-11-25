@@ -15,7 +15,7 @@
  *   lurkers      Gym           days with no slips (at least one bad habit resolved, none slipped)
  *   defense      Police station nights the church ended at >= 75% health AND the day was defended (Momentum, 2026-11-11)
  *   heroes       High school   hero stars banked: each closed day adds every routine's star rating at day close (0-5 each)
- *   bestdays     Windmill      heavy days handled (> 1.25x this run's recent average and >= 1 item above it, nothing missed)
+ *   bestdays     Water tower   heavy days handled (> 1.25x this run's recent average and >= 1 item above it, nothing missed)
  *
  * Same pattern as runStats.js / dailyRecord.js: pure functions, no DOM, no State or CONFIG reads
  * (the caller passes everything in), so it is unit-tested directly. Day-based counters use this
@@ -133,7 +133,7 @@ const VillageProgress = (() => {
     }
 
     /**
-     * Windmill: a day is HEAVY when what was due is MORE THAN `factor` x the average of this run's previous `window`
+     * Water tower (was the Windmill): a day is HEAVY when what was due is MORE THAN `factor` x the average of this run's previous `window`
      * closed days AND at least `extra` items above that average (needs >= `minDays` of history), and HANDLED when
      * nothing was missed. The margin matters: with a bare "above average" rule a permanent step up (4 -> 10 a day) kept
      * scoring every day until the whole window filled with the new level (~11 days per ramp-up); with 1.25x it stops
@@ -156,7 +156,7 @@ const VillageProgress = (() => {
         return { heavy, handled };
     }
 
-    /** Windmill flavour line: a clean day (something due, nothing missed) right after a rough one (misses or damage). */
+    /** Water tower flavour line: a clean day (something due, nothing missed) right after a rough one (misses or damage). */
     function comebackDays(days) {
         let n = 0;
         for (let i = 1; i < days.length; i++) {

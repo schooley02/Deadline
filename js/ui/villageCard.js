@@ -4,7 +4,7 @@
  *
  * Shows: the sprite at 3x/2x when that fits, else fitted to the column height (3x for the 128px canvases, 2x for the Clock tower), the building's name, five tier STARS (filled = earned, in the header),
  * a progress bar "N / M <unit> to earn star <n+1>" ("Fully rebuilt" at T5), the flavour lines that never
- * drive a tier (school = attendance streak, windmill = comeback days), then "What we measure" and "Why it helps" (KINDS[kind].measures / .why). Two empty states: the gym with no bad
+ * drive a tier (school = attendance streak, water tower = comeback days), then "What we measure" and "Why it helps" (KINDS[kind].measures / .why). Two empty states: the gym with no bad
  * habit to resist, the school with no routine.
  *
  * PURE / DOM split like the other UI modules: `buildModel` and `cardHtml` are pure and unit-tested
@@ -70,9 +70,9 @@ const VillageCard = (() => {
             why: "This game puts your routines to the test. If your routines aren't making the grade, you need to study why, learn new methods, and test them again to advance.",
         },
         bestdays: {
-            name: 'Windmill', unit: 'whirlwind days',
+            name: 'Water tower', unit: 'whirlwind days',
             measures: 'Whirlwind days: busier than your recent average, and you got through them with nothing missed.',
-            why: 'Anyone can keep up on a light day. A windmill turns the strongest winds into power. Weather the storm and every whirlwind day you get through cleanly makes you stronger for the next one.',
+            why: 'Anyone can keep up on a light day. A water tower stores up for the days demand surges. Get through every whirlwind day cleanly and the reserve in the tank grows, ready for the next one.',
         },
     };
 

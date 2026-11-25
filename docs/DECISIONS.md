@@ -4,6 +4,15 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-25 (Water tower WIRED) -- Claude app session, Sonnet 5.5; Jeremy ("lets wire the water tower into the game")
+
+- **Wired exactly as the 2026-11-25 spec said.** The five finals ship as `Assets/Village/bestdays_t1..t5.png` (128x208, pixel-identical to `_source/watertower-3q/`); the old 128x160 windmill art is archived in `_source/americana-windmill/bestdays_old_t*_128x160.png`. Placement `bestdays: { row: 'far', right: -120, sink: 95 }`, art measured [4, 127] (union of the five tiers). On the 800x360 phone its canvas left is the Police station's + 38 (433), top 0 (sunk like the Broadcast tower), art 437-560: behind the Police station, clear of the Broadcast tower (574). Why: it is the phone mock Jeremy approved ("likes the tall Water tower's height and spot").
+- **Kept the old technical names:** `VILLAGE_WINDMILL_W_PX` / `_H_PX`, `getWindmillTier`, `?windmillTier=`, the kind id `bestdays`. Why: the Broadcast tower kept its `VILLAGE_RADIO_*` keys the same way; a rename touches script.js, five tests and the dev panel for no player-visible gain. Rejected: renaming everything to `watertower`.
+- **Card wording:** the building is named "Water tower" (theme, card, sky-unlock line "Water tower star 3"). The `why` text no longer talks about a windmill; the `measures` line and the `unit` ('whirlwind days') are unchanged because the counter is STILL "heavy days handled" until the parked Planning ahead build. The new `why` is interim wording and gets rewritten with that build.
+- **Nothing is mirrored any more.** The Water tower was the last `flip: true` building; the layout keeps the `flip` maths (one test pins it) in case a placement ever needs it.
+- **Storm sky unlock unchanged** (`SKY_UNLOCKS.storm` stays `bestdays` star 3); only the name shown changed.
+- **Not changed (known):** the tank is hidden behind the top-bar buttons on a phone until the collapse button exists; the foot of the tower (fence, drums) only shows in the building window.
+
 ## 2026-11-25 (Water tower replaces the Windmill: design + art, NOT wired) -- Claude app session, Fable 5.2; Jeremy ("I'm not really earning stars for this", "there is a large benefit to being able successfully plan ahead", "I like Dalton for a town name", "I like camp dalton to fort dalton progression", "the space where you had the water tower in your mockup could be where we put the lab", "I think you are correct in keeping them 13px")
 
 - **The Windmill and its "heavy days handled" measure are retired.** Jeremy, day 32 of a run: it had never come up, so the building earned no stars. Why: it measured how busy life is, not a behaviour (his 2026-11-19 point). The kind id stays `bestdays`. Nothing is wired yet.
@@ -12,7 +21,7 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 - **Depends on two planned changes (Jeremy):** (1) the graveyard will be moved or removed ("plan and build for that scenario"); (2) a collapse button for the top-bar buttons, top left: with today's buttons the tank is hidden behind them on a phone.
 - **The Lab becomes a NINTH village building** in the right-end strip the graveyard frees (about 82 x 116 px under the "NIGHTS SURVIVED" label on the 800x360 phone). It earns stars and a tap opens the Goals window. Consequences to settle in its own session: the Memorial averages nine buildings, star progress shows at the top of the Goals window, the Goals button can leave the top bar except in the upright phone view (the village is hidden there).
 - **Lab stars count people cured, paid by goal length (agreed in principle, numbers NOT set):** dailies allowed but worth little (placeholder: one cure per 10 days met), weekly more, monthly more, finished yearly / lifetime goals cure several; progress shows the day it is earned; long goals pay as the patient improves (each stage once); a one-time goal cannot pay more than the time it was open. Keep the shared goal-slot pool and add only a cap on daily goals (Jeremy agreed; his five slot groups were rejected as a rebuild of slots, perks and window). Rejected: a once-a-week limit on "Your word" progress (frustrating to wait for credit you know is coming, Jeremy).
-- **The Storm sky unlock** (Windmill star 3 today) is to be revisited now that the building is decided (Jeremy deferred it).
+- **The Storm sky unlock moves to the Water tower's star 3** (Jeremy, at wrap-up: "yes"). No config change: `SKY_UNLOCKS.storm` is already `{ kind: 'bestdays', tier: 3 }` and the kind id stays; only the building name shown in the Weather panel changes when the tower is wired. Why: rain fills a water tower, so the link still makes sense.
 
 ## 2026-11-24 (late) -- Wide screens keep the compact village cluster centred -- Jeremy ("lets keep it centered for now")
 

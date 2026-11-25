@@ -414,8 +414,8 @@ describe('Hospital (back row)', () => {
 
 });
 
-// ---- Windmill (kind `bestdays`, FAR row, placeholder art), added 2026-10-30 ----
-describe('Windmill (far row)', () => {
+// ---- Water tower (kind `bestdays`, FAR row; the windmill placeholder until 2026-11-25), added 2026-10-30 ----
+describe('Water tower (far row)', () => {
     const q = k => document.querySelector(`#villageLayer .village-sprite[data-kind="${k}"]`);
     const ALL = { punctuality: 3, defense: 3, slain: 3, nights: 3, lurkers: 3, heroes: 3, habits: 3, bestdays: 3 };
     function initAll(over = {}, size = {}) {

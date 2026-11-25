@@ -258,7 +258,7 @@ describe('counters', () => {
         });
     });
 
-    describe('bestdays (Windmill): heavy days handled', () => {
+    describe('bestdays (Water tower, was the Windmill): heavy days handled', () => {
         function due(date, n, missed) {
             return day(date, { due: { task: n, habit: 0 }, missed: { task: missed || 0, habit: 0 } });
         }

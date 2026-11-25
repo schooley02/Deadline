@@ -75,8 +75,10 @@ describe('buildModel', () => {
         expect(m.measures).toMatch(/Hero stars banked/);
     });
 
-    test('windmill: comeback line only when > 0; other buildings never show these lines', () => {
+    test('water tower (was the windmill): named "Water tower"; comeback line only when > 0; other buildings never show these lines', () => {
         const w = { kind: 'bestdays', progress: progress(0, 'bestdays') };
+        expect(VillageCard.buildModel({ ...w, extras: { comebackDays: 0 } }).name).toBe('Water tower');
+        expect(VillageCard.buildModel({ ...w, extras: { comebackDays: 0 } }).why).not.toMatch(/windmill/i);
         expect(VillageCard.buildModel({ ...w, extras: { comebackDays: 0 } }).lines).toEqual([]);
         expect(VillageCard.buildModel({ ...w, extras: { comebackDays: 2 } }).lines[0]).toMatch(/Comeback days this run: 2/);
         expect(VillageCard.buildModel({ kind: 'nights', progress: progress(0), extras: { attendanceStreak: 3, comebackDays: 3 } }).lines).toEqual([]);

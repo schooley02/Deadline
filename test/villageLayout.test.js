@@ -574,7 +574,7 @@ describe('High school (back row)', () => {
     });
 
     test('every back-row building fits under the canvas top on the short canvases (back row 60px up since 2026-11-24)', () => {
-        // The FAR row (the old Windmill / Radio art, 95px up) does run off the top on short canvases until those two are redrawn; it is not checked here.
+        // The FAR row (Water tower + Broadcast tower, 95px up) is sunk by `sink` on short canvases (own tests below); it is not checked here.
         [[1265, 298], [1280, 298], [844, 334], [800, 306], [800, 296]].forEach(([w, h]) => {
             slots(w, h, ALL).filter(x => x.row === 'back').forEach(b => expect(b.top).toBeGreaterThanOrEqual(b.kind === 'punctuality' ? -CONFIG.VILLAGE_PLACEMENT.punctuality.overTop : 0));
         });
@@ -662,8 +662,8 @@ describe('Hospital (back row)', () => {
     });
 });
 
-// ---- Windmill (kind `bestdays`), the first FAR-ROW building, PLACEHOLDER art 2026-10-30 ----
-describe('Windmill (far row)', () => {
+// ---- Water tower (kind `bestdays`), the first FAR-ROW building (windmill placeholder 2026-10-30; Water tower wired 2026-11-25) ----
+describe('Water tower (far row)', () => {
     const slots = (canvasW, canvasH, tiers, baseW = 160, hillW = 120, opts = OPTS) =>
         VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts);
     const SEVEN = { punctuality: 3, defense: 3, slain: 3, lurkers: 3, nights: 3, heroes: 3, habits: 3 };
@@ -671,7 +671,7 @@ describe('Windmill (far row)', () => {
     const SIZES = [[844, 334], [915, 356], [1265, 298], [1100, 320], [1440, 400]];
     const ov = (a, b) => Math.max(0, Math.min(a.artRight, b.artRight) - Math.max(a.artLeft, b.artLeft));
 
-    test('fromConfig mirrors the windmill + far-row CONFIG and DEFAULTS agree with it', () => {
+    test('fromConfig mirrors the Water tower + far-row CONFIG and DEFAULTS agree with it', () => {
         const d = VillageLayout.DEFAULTS;
         ['windmillWidthPx', 'windmillHeightPx', 'devWindmillTier', 'farRowRaisePx', 'farRowBrightness'].forEach(k => expect(OPTS[k]).toBe(d[k]));
         expect(OPTS.windmillWidthPx).toBe(CONFIG.VILLAGE_WINDMILL_W_PX);
@@ -693,7 +693,7 @@ describe('Windmill (far row)', () => {
     });
 
 
-    test('adding the windmill never moves or drops another building (every width)', () => {
+    test('adding the Water tower never moves or drops another building (every width)', () => {
         [[640, 334], [700, 334], [760, 334], [800, 334], ...SIZES].forEach(([w, h]) => {
             const without = slots(w, h, SEVEN);
             const withMill = slots(w, h, ALL).filter(x => x.kind !== 'bestdays');
@@ -701,7 +701,7 @@ describe('Windmill (far row)', () => {
         });
     });
 
-    test.each([1, 2, 3, 4, 5])('shipped bestdays tier %i exists and is the authored 128x160 canvas', tier => {
+    test.each([1, 2, 3, 4, 5])('shipped bestdays tier %i exists and is the authored 128x208 canvas', tier => {
         const file = path.join(__dirname, '..', VillageLayout.spriteUrl('bestdays', tier));
         expect(fs.existsSync(file)).toBe(true);
         const b = fs.readFileSync(file);
@@ -753,7 +753,7 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
         expect(CONFIG.VILLAGE_DESIGN_FIELD_PX).toBe(800 - CONFIG.GRAVEYARD_HILL_WIDTH_PX - BASE);
     });
 
-    test('rows (Village 2.0 rule 3): front = Gym, Police station, Command Post; back = Hospital, Clock tower, High school; far = Windmill, Radio', () => {
+    test('rows (Village 2.0 rule 3): front = Gym, Police station, Command Post; back = Hospital, Clock tower, High school; far = Water tower, Broadcast tower', () => {
         const rows = r => Object.keys(P).filter(k => P[k].row === r).sort();
         expect(rows('front')).toEqual(['defense', 'lurkers', 'slain']);
         expect(rows('back')).toEqual(['habits', 'heroes', 'punctuality']);
@@ -914,15 +914,48 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
         });
     });
 
-    test('flipped buildings mirror their art columns', () => {
+    test('no building is mirrored: all art is three-quarter (the Broadcast tower left the flipped list 2026-11-24, the Water tower 2026-11-25)', () => {
         const s = byKind(at(800));
-        ['bestdays'].forEach((k) => { // the Broadcast tower (`nights`) left this list 2026-11-24: its redraw is three-quarter art
-            expect(s[k].flip).toBe(true);
-            const art = CONFIG.VILLAGE_ART_X[k];
-            expect(s[k].artLeft - s[k].left).toBe(128 - art[1]);
-            expect(s[k].artRight - s[k].left).toBe(128 - art[0]);
-        });
-        ['lurkers', 'defense', 'slain', 'habits', 'punctuality', 'heroes', 'nights'].forEach(k => expect(s[k].flip).toBe(false)); // three-quarter art is never mirrored (ART_STYLE Village 2.0 rule 1)
+        Object.keys(ALL8).forEach(k => expect(s[k].flip).toBe(false)); // three-quarter art is never mirrored (ART_STYLE Village 2.0 rule 1)
+    });
+
+    test('`flip` still mirrors the art columns for any placement that sets it (the maths is kept even though nothing ships mirrored)', () => {
+        const o = { ...OPTS, placement: { bestdays: { row: 'far', right: -120, flip: true } } };
+        const f = VillageLayout.villageSlots(800, 306, BASE, 120, { bestdays: 3 }, o)[0];
+        const art = CONFIG.VILLAGE_ART_X.bestdays;
+        expect(f.flip).toBe(true);
+        expect(f.artLeft - f.left).toBe(128 - art[1]);
+        expect(f.artRight - f.left).toBe(128 - art[0]);
+    });
+
+    test('the Water tower (2026-11-25): 128x208, far row, three-quarter art, behind the Police station and clear of the Broadcast tower', () => {
+        expect(CONFIG.VILLAGE_PLACEMENT.bestdays).toEqual({ row: 'far', right: -120, sink: 95 });
+        expect([CONFIG.VILLAGE_WINDMILL_W_PX, CONFIG.VILLAGE_WINDMILL_H_PX]).toEqual([128, 208]);
+        expect(CONFIG.VILLAGE_ART_X.bestdays).toEqual([4, 127]);
+        const s = byKind(at(800));
+        expect(s.bestdays.row).toBe('far');
+        expect(s.bestdays.far).toBe(true);
+        expect(s.bestdays.flip).toBe(false);
+        expect(s.bestdays.left).toBe(s.defense.left + 38);                  // the phone mock: canvas left = the Police station's canvas left + 38
+        expect([s.bestdays.artLeft, s.bestdays.artRight]).toEqual([437, 560]);
+        expect(s.bestdays.top).toBe(0);                                     // sunk like the Broadcast tower, so it starts at the top of the 800x360 phone
+        expect(s.bestdays.artLeft).toBeGreaterThan(s.defense.artLeft);      // it stands behind the Police station (art 398-555)...
+        expect(s.bestdays.artRight).toBeLessThan(s.slain.artRight);         // ...and does not reach the Command Post's right end
+        expect(s.bestdays.artRight).toBeLessThan(s.nights.artLeft);         // clear of the Broadcast tower (art starts at 574)
+        expect(s.bestdays.artRight).toBeLessThanOrEqual(800 - 120 + 39);    // nothing reaches past the Memorial
+    });
+
+    test('the Water tower stands lower than the far row only on a canvas too short for it, like the Broadcast tower', () => {
+        const tower = (h) => byKind(at(800, h)).bestdays;
+        const farFeet = (h) => VillageLayout.horizonFeetY(h, OPTS) - CONFIG.VILLAGE_BACK_ROW_RAISE_PX - CONFIG.VILLAGE_FAR_ROW_RAISE_PX;
+        const phone = tower(306);                                           // the 800x360 phone
+        expect(phone.top).toBe(0);
+        expect(phone.sink).toBe(208 - farFeet(306));
+        expect(phone.feetY).toBe(farFeet(306));                             // `feetY` stays the row's horizon
+        expect(tower(379).sink).toBeUndefined();
+        expect(tower(379).top).toBe(0);
+        expect(tower(500).top).toBe(farFeet(500) - 208);
+        expect(tower(250).sink).toBe(CONFIG.VILLAGE_BACK_ROW_RAISE_PX + CONFIG.VILLAGE_FAR_ROW_RAISE_PX); // never below the front row's feet
     });
 
     test('the Broadcast tower (2026-11-24): 144x208, far row, behind the High school\'s right wing, its mast right of the phone HUD and its art left of the moon', () => {

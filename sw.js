@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v424';
+const CACHE_NAME = 'deadline-shell-v425';
 
 const APP_SHELL = [
     './',
@@ -291,7 +291,7 @@ const APP_SHELL = [
     'Assets/Village/habits_t3.png',
     'Assets/Village/habits_t4.png',
     'Assets/Village/habits_t5.png',
-    'Assets/Village/bestdays_t1.png', // windmill PLACEHOLDER art (2026-10-30)
+    'Assets/Village/bestdays_t1.png', // Water tower, 128x208 (2026-11-25; was the windmill placeholder)
     'Assets/Village/bestdays_t2.png',
     'Assets/Village/bestdays_t3.png',
     'Assets/Village/bestdays_t4.png',

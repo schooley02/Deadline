@@ -205,7 +205,7 @@ building opens a card that shows how far it is to the next tier.
 | `lurkers` | Boxing gym | days with no slips (>= 1 bad habit due, 0 slipped) | daily records `lurk` | 3 / 14 / 40 / 80 |
 | `defense` | Jailhouse | nights the church held (day ended >= 75% health) | daily records `base.endHp` | 3 / 14 / 40 / 80 |
 | `heroes` | High school | hero stars banked (each closed day adds every routine's star rating, 0-5 each; High school v2, 2026-10-31) | daily records `stars` | 10 / 75 / 300 / 750 |
-| `bestdays` | Windmill | heavy days handled (due > avg of last 14 closed days, >= 3 days history, 0 missed) | daily records `due`/`missed` | 2 / 5 / 15 / 30 |
+| `bestdays` | Water tower (was the Windmill) | heavy days handled (due > avg of last 14 closed days, >= 3 days history, 0 missed) | daily records `due`/`missed` | 2 / 5 / 15 / 30 |
 
 Day-based counters use this run's closed days in `deadline.days` (matching `run`) plus the open `save.today` where it
 makes sense (a day only counts once it can no longer change: closed days for `defense`, `heroes`, `bestdays`, `lurkers`;
@@ -641,7 +641,7 @@ copy), hold-to-peek last.
   | Hazy | player Lv 4 (the Geo Storm perk) | the starter; about the first week |
   | Overcast | Radio tower star 3 (18 nights) | nights survived, about 3 weeks |
   | Fog | Jailhouse star 3 (14 nights held at 75%+ health) | defending the church |
-  | Storm | Windmill star 3 (5 heavy days handled) | surviving hard days |
+  | Storm | Water tower (was the Windmill) star 3 (5 heavy days handled) | surviving hard days |
   | Clear | Radio tower star 4 (50 nights) | the one you really earn |
 
 - **Dropped:** a player max-level change (every level-keyed table would need new rows). "Star N" = tier N, so star 3 is the SECOND number of `VILLAGE_TIER_THRESHOLDS[kind]` (nights 18, defense 14, bestdays 5) and star 4 is the third (nights 50).

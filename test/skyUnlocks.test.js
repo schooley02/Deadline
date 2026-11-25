@@ -129,7 +129,7 @@ describe('theme requirement lines', () => {
         expect(Theme.skyRequirement(CONFIG.SKY_UNLOCKS.hazy)).toBe('Player Lv 4');
         expect(Theme.skyRequirement(CONFIG.SKY_UNLOCKS.overcast)).toBe('Broadcast tower star 3');
         expect(Theme.skyRequirement(CONFIG.SKY_UNLOCKS.fog)).toBe('Jailhouse star 3');
-        expect(Theme.skyRequirement(CONFIG.SKY_UNLOCKS.storm)).toBe('Windmill star 3');
+        expect(Theme.skyRequirement(CONFIG.SKY_UNLOCKS.storm)).toBe('Water tower star 3');
         expect(Theme.skyRequirement(CONFIG.SKY_UNLOCKS.clear)).toBe('Broadcast tower star 4');
     });
     test('a malformed rule is an empty line, never "undefined"', () => {
@@ -139,7 +139,7 @@ describe('theme requirement lines', () => {
         const fs = require('fs');
         ['js/skyPick.js', 'js/ui/weatherPanel.js'].forEach((f) => {
             const text = fs.readFileSync(require('path').join(__dirname, '..', f), 'utf8');
-            expect(text).not.toMatch(/Radio tower|Broadcast tower|Jailhouse|Windmill/);
+            expect(text).not.toMatch(/Radio tower|Broadcast tower|Jailhouse|Windmill|Water tower/);
         });
     });
 });
@@ -165,7 +165,7 @@ describe('Weather panel: locked rows', () => {
         const html = WeatherPanel.panelHtml(WeatherPanel.buildViewModel(real('hazy')), WeatherPanel.pickerModel(info(['hazy'])));
         expect(html).toContain('wx-pick wx-pick--locked');
         expect(html).toContain('Jailhouse star 3');
-        expect(html).toContain('Windmill star 3');
+        expect(html).toContain('Water tower star 3');
         expect(html).toContain('Broadcast tower star 3');
         expect(html).toContain('aria-label="Fog, locked. Unlocks at Jailhouse star 3"');
         expect((html.match(/wx-pick--locked/g) || []).length).toBe(4);
