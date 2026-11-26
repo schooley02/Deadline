@@ -195,7 +195,7 @@ describe('Clock tower `drop` and `sink` (2026-11-24): the tower stands beside th
     const withSink = sink => withP({ sink });
 
     test('the tower is a back-row building that always stands 26px lower than its row', () => {
-        expect(CONFIG.VILLAGE_PLACEMENT.punctuality).toEqual({ row: 'back', right: -240, drop: 26, sink: 34, overTop: 12, spread: 0.35 });
+        expect(CONFIG.VILLAGE_PLACEMENT.punctuality).toEqual({ row: 'back', right: -240, drop: 26, sink: 34, overTop: 12 });
         expect(DROP + CONFIG.VILLAGE_PLACEMENT.punctuality.sink).toBeLessThanOrEqual(RAISE);
     });
 
@@ -455,15 +455,9 @@ describe('Gym (front row) + art-box collision', () => {
             const s = Object.fromEntries(VillageLayout.villageSlots(w, 306, 188, 120, { punctuality: 3, defense: 3, lurkers: 3 }, OPTS).map(x => [x.kind, x]));
             expect(s.defense).toBeDefined(); // never dropped
             expect(s.defense.artLeft - s.lurkers.artRight).toBeGreaterThanOrEqual(40);
-            // the tower's door (the middle of its art) is in the gap. At 800 its sides also pass behind the two front buildings; from 2026-11-26 a wider screen
-            // spreads the buildings, so there the gap opens and the tower may stand clear of the Gym (see the spread tests at the end)
-            const door = (s.punctuality.artLeft + s.punctuality.artRight) / 2;
-            expect(door).toBeGreaterThan(s.lurkers.artRight);
-            expect(door).toBeLessThan(s.defense.artLeft);
-            if (w === 800) {
-                expect(s.punctuality.artLeft).toBeLessThanOrEqual(s.lurkers.artRight);
-                expect(s.punctuality.artRight).toBeGreaterThanOrEqual(s.defense.artLeft);
-            }
+            // the tower's art spans the gap (its door is in it; its sides pass behind the two front buildings)
+            expect(s.punctuality.artLeft).toBeLessThanOrEqual(s.lurkers.artRight);
+            expect(s.punctuality.artRight).toBeGreaterThanOrEqual(s.defense.artLeft);
         });
     });
 
@@ -560,7 +554,7 @@ describe('High school (back row)', () => {
         expect(CONFIG.VILLAGE_SCHOOL_H_PX).toBe(144);
         expect(CONFIG.VILLAGE_ART_X.heroes).toEqual([0, 174]);
         expect(VillageLayout.DEFAULTS.art.heroes).toEqual([0, 174]);
-        expect(CONFIG.VILLAGE_PLACEMENT.heroes).toEqual({ row: 'back', right: 20, spread: 1 }); // 2026-11-24 re-arrangement: right end of the back row, 12px short of the moon at 800
+        expect(CONFIG.VILLAGE_PLACEMENT.heroes).toEqual({ row: 'back', right: 20 }); // 2026-11-24 re-arrangement: right end of the back row, 12px short of the moon at 800
         const s = slots(844, 334, { heroes: 3 }).find(x => x.kind === 'heroes');
         expect([s.width, s.height]).toEqual([176, 144]);
         expect(s.artRight - s.artLeft).toBe(174);
@@ -748,8 +742,6 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
     test('CONFIG and the module defaults agree; every kind has a row', () => {
         expect(VillageLayout.DEFAULTS.placement).toEqual(P);
         expect(VillageLayout.DEFAULTS.designFieldPx).toBe(CONFIG.VILLAGE_DESIGN_FIELD_PX);
-        expect(VillageLayout.DEFAULTS.spreadMaxPx).toBe(CONFIG.VILLAGE_SPREAD_MAX_PX);
-        expect(OPTS.spreadMaxPx).toBe(CONFIG.VILLAGE_SPREAD_MAX_PX);
         expect(VillageLayout.DEFAULTS.baseTuckPx).toBe(CONFIG.VILLAGE_BASE_TUCK_PX);
         expect(OPTS.baseTuckPx).toBe(CONFIG.VILLAGE_BASE_TUCK_PX);
         expect(VillageLayout.DEFAULTS.backRowRaisePx).toBe(CONFIG.VILLAGE_BACK_ROW_RAISE_PX);
@@ -795,14 +787,12 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
         expect(box('heroes')).toEqual([526, 700, 26]);
     });
 
-    test('wider screens SPREAD the phone arrangement (2026-11-26): each building moves right by (extra - spread) / 2 + spread * its weight, same art width, same feet', () => {
+    test('wider screens keep the phone arrangement pixel-for-pixel, CENTRED in the field', () => {
         const phone = byKind(at(800));
         [1100, 1366, 1827, 1920].forEach((w) => {
             const s = byKind(at(w));
-            const extra = w - 800;
-            const spread = Math.min(extra, CONFIG.VILLAGE_SPREAD_MAX_PX);
+            const shift = (w - 800) / 2; // half the extra width on each side
             Object.keys(ALL8).forEach((k) => {
-                const shift = (extra - spread) / 2 + spread * P[k].spread;
                 expect(Math.abs(s[k].artLeft - (phone[k].artLeft + shift))).toBeLessThanOrEqual(0.5);
                 expect(s[k].artRight - s[k].artLeft).toBe(phone[k].artRight - phone[k].artLeft);
                 expect(s[k].feetY).toBe(phone[k].feetY);
@@ -810,17 +800,12 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
         });
     });
 
-    test('a bigger church box (tablet / desktop) spreads the same cluster across what is left of the field', () => {
+    test('a bigger church box (tablet / desktop) centres the same cluster in what is left of the field', () => {
         const phone = byKind(at(800));
         [[1100, 300], [1366, 368]].forEach(([w, base]) => {
             const s = byKind(at(w, 306, ALL8, 120, base));
-            const extra = (w - 120 - base) - CONFIG.VILLAGE_DESIGN_FIELD_PX;
-            const spread = Math.min(extra, CONFIG.VILLAGE_SPREAD_MAX_PX);
-            Object.keys(ALL8).forEach((k) => {
-                // distance from the plot's left edge: the centred leftover plus the part of the spread this building does not take
-                const dist = 680 - phone[k].artRight + (extra - spread) / 2 + spread * (1 - P[k].spread);
-                expect(Math.abs((w - 120 - s[k].artRight) - dist)).toBeLessThanOrEqual(0.5);
-            });
+            const shift = ((w - 120 - base) - CONFIG.VILLAGE_DESIGN_FIELD_PX) / 2;
+            Object.keys(ALL8).forEach(k => expect(Math.abs((w - 120 - s[k].artRight) - (680 - phone[k].artRight + shift))).toBeLessThanOrEqual(0.5));
         });
     });
 
@@ -944,7 +929,7 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
     });
 
     test('the Water tower (2026-11-25): 128x208, far row, three-quarter art, behind the Police station and clear of the Broadcast tower', () => {
-        expect(CONFIG.VILLAGE_PLACEMENT.bestdays).toEqual({ row: 'far', right: -120, sink: 95, dropWide: 40, spread: 0.55 });
+        expect(CONFIG.VILLAGE_PLACEMENT.bestdays).toEqual({ row: 'far', right: -120, sink: 95 });
         expect([CONFIG.VILLAGE_WATERTOWER_W_PX, CONFIG.VILLAGE_WATERTOWER_H_PX]).toEqual([128, 208]);
         expect(CONFIG.VILLAGE_ART_X.bestdays).toEqual([4, 127]);
         const s = byKind(at(800));
@@ -969,12 +954,12 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
         expect(phone.feetY).toBe(farFeet(306));                             // `feetY` stays the row's horizon
         expect(tower(379).sink).toBeUndefined();
         expect(tower(379).top).toBe(0);
-        expect(tower(500).top).toBe(farFeet(500) - 208 + 40);               // free sky above: `dropWide` 40 lowers it (2026-11-26, see the `dropWide` tests below)
+        expect(tower(500).top).toBe(farFeet(500) - 208);
         expect(tower(250).sink).toBe(CONFIG.VILLAGE_BACK_ROW_RAISE_PX + CONFIG.VILLAGE_FAR_ROW_RAISE_PX); // never below the front row's feet
     });
 
     test('the Broadcast tower (2026-11-24): 144x208, far row, behind the High school\'s right wing, its mast right of the phone HUD and its art left of the moon', () => {
-        expect(CONFIG.VILLAGE_PLACEMENT.nights).toEqual({ row: 'far', right: 34, sink: 95, spread: 1 });
+        expect(CONFIG.VILLAGE_PLACEMENT.nights).toEqual({ row: 'far', right: 34, sink: 95 });
         expect([CONFIG.VILLAGE_RADIO_W_PX, CONFIG.VILLAGE_RADIO_H_PX]).toEqual([144, 208]);
         const s = byKind(at(800));
         expect([s.nights.artLeft, s.nights.artRight]).toEqual([574, 714]);                 // 698-714 is only the T4 / T5 floodlight beam
@@ -1079,157 +1064,5 @@ describe('Lab (front row, painted behind the Command Post)', () => {
         expect(b.slice(1, 4).toString()).toBe('PNG');
         expect(b.readUInt32BE(16)).toBe(CONFIG.VILLAGE_LAB_W_PX);
         expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_LAB_H_PX);
-    });
-});
-
-// ---- Wide-screen spread (2026-11-26, Jeremy: "spread out the village buildings a little more for laptop and desktop screens") ----
-describe('wide-screen spread: `spread` weights + CONFIG.VILLAGE_SPREAD_MAX_PX', () => {
-    const P = CONFIG.VILLAGE_PLACEMENT;
-    const BASE = 188;
-    const ALL9 = { punctuality: 3, defense: 3, slain: 3, nights: 3, lurkers: 3, heroes: 3, habits: 3, bestdays: 3, goals: 3 };
-    const at = (w, h = 306, base = BASE, opts = OPTS, tiers = ALL9) => VillageLayout.villageSlots(w, h, base, 120, tiers, opts);
-    const byKind = s => Object.fromEntries(s.map(x => [x.kind, x]));
-    const MAX = CONFIG.VILLAGE_SPREAD_MAX_PX;
-
-    test('the knobs: a spread cap and a 0..1 weight on every building', () => {
-        expect(MAX).toBe(200);
-        Object.keys(ALL9).forEach(k => {
-            expect(P[k].spread).toBeGreaterThanOrEqual(0);
-            expect(P[k].spread).toBeLessThanOrEqual(1);
-        });
-        // left to right along the phone cluster: the Gym by the church, the Command Post by the plot
-        expect(P.lurkers.spread).toBe(0);
-        expect(P.slain.spread).toBe(1);
-        expect(P.lurkers.spread).toBeLessThan(P.punctuality.spread);
-        expect(P.punctuality.spread).toBeLessThan(P.defense.spread);
-        expect(P.defense.spread).toBeLessThan(P.slain.spread);
-    });
-
-    test('the phone (800 wide) and anything narrower are untouched by the spread', () => {
-        const off = { ...OPTS, spreadMaxPx: 0 };
-        [640, 700, 760, 800].forEach((w) => {
-            expect(at(w)).toEqual(at(w, 306, BASE, off));
-        });
-    });
-
-    test('a spread cap of 0 is the old plain centring (and so is a building with no weight)', () => {
-        const phone = byKind(at(800));
-        const off = { ...OPTS, spreadMaxPx: 0 };
-        const noWeights = { ...OPTS, placement: Object.fromEntries(Object.entries(P).map(([k, v]) => { const { spread, ...rest } = v; return [k, rest]; })) };
-        [1100, 1366, 1920].forEach((w) => {
-            [off, noWeights].forEach((o) => {
-                const s = byKind(at(w, 306, BASE, o));
-                Object.keys(ALL9).forEach(k => expect(Math.abs(s[k].artLeft - (phone[k].artLeft + (w - 800) / 2))).toBeLessThanOrEqual(0.5));
-            });
-        });
-    });
-
-    test('with less extra width than the cap the Gym stays by the church and the Command Post by the plot; the gaps take the width', () => {
-        const phone = byKind(at(800));
-        const s = byKind(at(900)); // extra 100 < 200: all of it spreads
-        expect(s.lurkers.artLeft).toBe(phone.lurkers.artLeft);
-        expect(900 - 120 - s.slain.artRight).toBe(800 - 120 - phone.slain.artRight);
-        expect(s.defense.artLeft - s.lurkers.artRight).toBeGreaterThan(phone.defense.artLeft - phone.lurkers.artRight);
-        expect(s.slain.artLeft - s.defense.artRight).toBeGreaterThan(phone.slain.artLeft - phone.defense.artRight);
-    });
-
-    test('beyond the cap the cluster stops growing and is centred in the rest', () => {
-        const a = byKind(at(1100));
-        const b = byKind(at(1500));
-        // same cluster width at both screens: the Gym-to-Command Post distance is the same
-        expect(b.slain.artRight - b.lurkers.artLeft).toBe(a.slain.artRight - a.lurkers.artLeft);
-        const phone = byKind(at(800));
-        expect(a.slain.artRight - a.lurkers.artLeft).toBe(phone.slain.artRight - phone.lurkers.artLeft + MAX);
-        // and both ends sit the same distance in from the church and the plot
-        expect(b.lurkers.artLeft - (BASE - 20) - (a.lurkers.artLeft - (BASE - 20))).toBe((1500 - 1100) / 2);
-    });
-
-    test('left-to-right order within each row never changes, and nothing is dropped, at any width', () => {
-        const order = (s, row) => s.filter(x => x.row === row && !x.behind).sort((p, q) => p.artLeft - q.artLeft).map(x => x.kind);
-        const phone = at(800);
-        for (let w = 800; w <= 2560; w += 40) {
-            const s = at(w);
-            expect(s).toHaveLength(9);
-            ['front', 'back', 'far'].forEach(row => expect(order(s, row)).toEqual(order(phone, row)));
-            s.forEach((x) => {
-                expect(x.artLeft).toBeGreaterThanOrEqual(BASE - CONFIG.VILLAGE_BASE_TUCK_PX);
-                expect(x.artRight).toBeLessThanOrEqual(w);
-            });
-        }
-    });
-
-    test('buildings that overlap on purpose keep the phone\'s overlap: Lab / Command Post, Water tower / Police station, Broadcast tower / High school', () => {
-        const phone = byKind(at(800));
-        [1100, 1366, 1920, 2560].forEach((w) => {
-            const s = byKind(at(w));
-            expect(s.goals.artLeft - s.slain.artLeft).toBe(phone.goals.artLeft - phone.slain.artLeft);
-            expect(s.bestdays.left - s.defense.left).toBe(38);
-            expect(s.nights.artLeft - s.heroes.artLeft).toBe(phone.nights.artLeft - phone.heroes.artLeft);
-        });
-    });
-
-    test('the Clock tower stays between the Gym and the Police station, in the gap, at every width', () => {
-        for (let w = 800; w <= 2560; w += 80) {
-            const s = byKind(at(w));
-            expect(s.punctuality.artLeft).toBeGreaterThan(s.lurkers.artLeft);
-            expect(s.punctuality.artRight).toBeLessThan(s.defense.artRight);
-            expect(s.punctuality.artLeft).toBeLessThan(s.defense.artLeft);
-        }
-    });
-
-    test('a junk weight means the plain-centring 0.5; a weight outside 0..1 clamps', () => {
-        const one = (spread) => VillageLayout.villageSlots(1366, 306, BASE, 120, { lurkers: 3 }, { ...OPTS, placement: { lurkers: { row: 'front', right: -324, spread } } })[0].artLeft;
-        const centred = one(0.5);
-        ['x', NaN, undefined, null].forEach(v => expect(one(v)).toBe(centred));
-        expect(one(-3)).toBe(one(0));
-        expect(one(9)).toBe(one(1));
-        expect(one(1)).toBeGreaterThan(one(0));
-    });
-});
-
-describe('`dropWide` (2026-11-26): the Water tower stands lower on laptop / desktop heights only', () => {
-    const farFeet = h => VillageLayout.horizonFeetY(h, OPTS) - CONFIG.VILLAGE_BACK_ROW_RAISE_PX - CONFIG.VILLAGE_FAR_ROW_RAISE_PX;
-    const slot = (h, kind = 'bestdays', opts = OPTS, w = 1366) => VillageLayout.villageSlots(w, h, 368, 120, { [kind]: 3 }, opts).find(x => x.kind === kind);
-    const withP = extra => ({ ...OPTS, placement: { ...OPTS.placement, bestdays: { ...OPTS.placement.bestdays, ...extra } } });
-    const DROP = CONFIG.VILLAGE_PLACEMENT.bestdays.dropWide;
-
-    test('only the Water tower has it', () => {
-        expect(DROP).toBe(40);
-        Object.keys(CONFIG.VILLAGE_PLACEMENT).filter(k => k !== 'bestdays').forEach(k => expect(CONFIG.VILLAGE_PLACEMENT[k].dropWide).toBeUndefined());
-    });
-
-    test('a phone or short window gets none: the tower sits exactly where it did', () => {
-        [250, 306, 340, 379].forEach((h) => {
-            const t = slot(h);
-            expect(t.wideDrop).toBeUndefined();
-            expect(t.top).toBe(slot(h, 'bestdays', withP({ dropWide: 0 })).top);
-        });
-        expect(slot(379).top).toBe(0);
-    });
-
-    test('it eases in with the free sky above the tower: at most the free sky, at most `dropWide`', () => {
-        expect(slot(400).wideDrop).toBe(21);            // 21px of sky above it at 400 -> 21px lower
-        expect(slot(400).top).toBe(21 + 21);
-        expect(slot(419).wideDrop).toBe(40);
-        expect(slot(500).wideDrop).toBe(40);
-        expect(slot(500).top).toBe(farFeet(500) - 208 + 40);
-        expect(slot(900).wideDrop).toBe(40);
-    });
-
-    test('`feetY` stays the far row\'s horizon, and it never stands below the front row\'s feet', () => {
-        expect(slot(500).feetY).toBe(farFeet(500));
-        const deep = slot(500, 'bestdays', withP({ dropWide: 999 }));
-        expect(deep.top + deep.height).toBe(VillageLayout.horizonFeetY(500, OPTS)); // exactly the front row's feet
-    });
-
-    test('a missing, negative or junk `dropWide` means none', () => {
-        [undefined, null, -5, 'x', NaN].forEach(v => expect(slot(500, 'bestdays', withP({ dropWide: v })).wideDrop).toBeUndefined());
-    });
-
-    test('the Broadcast tower and every other building are untouched', () => {
-        ['nights', 'defense', 'slain', 'lurkers', 'heroes', 'habits', 'punctuality', 'goals'].forEach((k) => {
-            expect(slot(500, k).wideDrop).toBeUndefined();
-        });
-        expect(slot(500, 'nights').top).toBe(farFeet(500) - 208);
     });
 });
