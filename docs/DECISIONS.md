@@ -4,6 +4,23 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-26 (Lab art, all five stars) -- Claude app session, Fable 5.2; Jeremy (art direction throughout; "here are all 5 that I want you to use when we wire them into the game in the next session")
+
+- **The Lab is a two-storey modular lab made of stacked cargo containers (Jeremy's concept, with reference photos).** Why: a lab that "came in on a truck" fits the world, and two storeys "feel capable of actually curing someone" where one small container did not. Steel grey, because tan was "too similar to the school" and dark charcoal hid the detail. Rejected: a single container, the first off-white and tan placeholders.
+- **Same camera as the rest of Village 2.0, with the Police station as the reference:** front flat to the viewer, LEFT end wall receding 1 px per 4 px. Three rounds were needed; the lesson (square the front in code, masked inpaints afterwards) is in ART_STYLE "LAB".
+- **What shows through the glass matches the Goals window:** two cylindrical tanks, a floating zombie and a floating gowned human being cured (first a silhouette, then naked, then clothed and floating: Jeremy). Empty tank = unused, broken tank = locked, the same language the Goals pane uses. The sign says only "LAB".
+- **The plants became an infection FUNGUS that glows green (Jeremy), and it is this building's tier signal:** heaviest at star 1, heavy at star 2 (the look he first approved for star 3 "moves down to star 2"), thin at star 3, one clump at star 4, none at star 5.
+- **End wall: a separate shallow zombie holding cage under one work lamp (Jeremy said yes to the cage; "should the side wall still show the container texture": yes).** Star 2 has NO work lamp and an empty cage (Jeremy painted the lamp out in his own touch-up and used his own end wall instead of the rusted redraw); the zombie and the lamp arrive at star 3. Open: he mentioned animating a light flicker later.
+- **Ladder as built** (full list in ART_STYLE "LAB"): T1 abandoned and overgrown, lit only by fungus, glass smashed, cage broken open; T2 squatters, one lit tank and a candle; T3 running; T4 airlock tunnel, lab-coat scientist, security camera, hazmat guard on a perch; T5 clean steel, survivor flag, barbed wire along the whole roofline, hazard barriers, a clipboard scientist studying the caged zombie. T5 changes he asked for: no big ground guard with a cut-off gun, no second scientist upstairs, no extra floodlight.
+- **Star 1 glass (Jeremy):** a hole may not be pitch black beside glass you can see through. The glass is dirty and opaque, the breaks are bigger and different in every pane and window, and the room behind is dark except for a little fungus at the back that lights it, also seen in the doorway.
+- **Glass shine on the ground-floor panes, like the Police station entrance, on the tiers that are kept up; it runs the full height of the pane** (the first version stopped short of the top: Jeremy).
+- **The finals are Jeremy's five touched-up files, used as they are:** `Assets/Village/_source/lab-3q/ship/lab_t1..t5.png`. He edits the game version (light baked in) in PixelLab; his pixels win over any redraw of mine (star 2's end wall is his).
+- **Detail level (Jeremy asked):** measured against the Police station, Gym and Command Post: same pixel grain and scale; the Lab is busier and uses about 1,300 colours where the Police station and Gym use about 160 (the Command Post about 2,200). A shared-palette pass was offered; NOT decided.
+- **NOT decided here (next session):** the kind id, the placement (right of and partly behind the Command Post is a proposal), the paint-order and wide-screen rules, the star numbers (balance process), the Goals-window tank art. Nothing was wired; no balance number changed.
+- **Tests:** Jest not run (art and docs only). **PixelLab:** about 70 generations on star 1 this afternoon, 6,354 left; gallery images can only be added, not replaced, from this session.
+
+---
+
 ## 2026-11-26 (TARGET marker; delete refund confirmed) -- Claude app session, Opus 5.5; Jeremy ("to your question, yes. continue with B")
 
 - **Deleting a future-day priority gives its slot back: CONFIRMED (Jeremy: yes).** The 2026-11-25 "Claude's call" in the entry below stands.
