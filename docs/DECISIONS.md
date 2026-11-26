@@ -4,6 +4,16 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-26 (wide-screen village spread + Water tower drop) -- Claude app session, Sonnet 5.5; Jeremy ("spread out the village buildings a little more for laptop and desktop screens ... lower the water tower some on the laptop and desktop")
+
+- **Wide screens now SPREAD the village instead of only centring it.** On a field wider than `VILLAGE_DESIGN_FIELD_PX` (492, the 800x360 phone), up to `CONFIG.VILLAGE_SPREAD_MAX_PX` (200) of the extra width opens gaps between the buildings; the rest is centred as before. Each placement has a `spread` weight 0..1 (0 = stays by the church, 1 = stays by the plot; a missing weight is 0.5 = the old plain centring): Gym 0, Hospital 0.15, Clock tower 0.35, Police station 0.55, Water tower 0.55, and 1 for the Command Post, Lab, High school and Broadcast tower. Buildings that overlap on purpose share their partner's weight (Lab / Command Post, Water tower / Police station, Broadcast tower / High school), so the overlaps never change. At or below 800 wide nothing moves. Maths: a building moves right by (extra - spread) / 2 + spread * weight.
+- **Water tower `dropWide` 40.** A new placement option: a building stands this much lower only when its canvas has free sky above it (a laptop / desktop height), easing in from the canvas height where its top just touches the top of the scene (379 for the Water tower), at most `dropWide`, never below the front row's feet. Phones and short windows are unchanged. Slot field `wideDrop`.
+- **The Clock tower's door stays in the Gym / Police gap, but on a wide screen its sides no longer pass behind the Gym** (the gap opens faster than the tower moves). Accepted: it reads as standing in the open between them.
+- **Numbers are guesses, not measured on a screen.** `VILLAGE_SPREAD_MAX_PX` 200, the weights and `dropWide` 40 are plain numbers in `js/config.js` (mirrored in `villageLayout.js` DEFAULTS) for Jeremy to tune by eye in his browser. No balance number changed.
+- Tests: the two "centred pixel-for-pixel" tests became spread tests; new suites for the weights and for `dropWide` in `test/villageLayout.test.js`. sw v433.
+
+---
+
 ## 2026-11-26 (Lab stars Build B) -- Claude app session, Sonnet 5.5; Jeremy ("wait until done with build B. continue")
 
 - **Build B of `docs/LAB_PLAN.md` is built: what the player sees.** No balance number changed. Every number shown comes from `CONFIG.GOAL_CREDIT`, `GOAL_DAILY_MAX` and `VILLAGE_TIER_THRESHOLDS.goals`, in people (credit / `perPerson`).

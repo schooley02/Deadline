@@ -67,16 +67,17 @@ const VillageLayout = (() => {
         baseTuckPx: 24,
         // Placement model (2026-10-30 night; spots redone 2026-11-24): mirrors CONFIG.VILLAGE_PLACEMENT / VILLAGE_DESIGN_FIELD_PX.
         designFieldPx: 492,
+        spreadMaxPx: 200,
         placement: {
-            lurkers: { row: 'front', right: -324 },
-            defense: { row: 'front', right: -125, raise: 12 },
-            slain: { row: 'front', right: 34 },
-            habits: { row: 'back', right: -317 },
-            punctuality: { row: 'back', right: -240, drop: 26, sink: 34, overTop: 12 },
-            heroes: { row: 'back', right: 20 },
-            bestdays: { row: 'far', right: -120, sink: 95 },
-            goals: { row: 'front', right: 118, raise: 10, behind: true },
-            nights: { row: 'far', right: 34, sink: 95 },
+            lurkers: { row: 'front', right: -324, spread: 0 },
+            defense: { row: 'front', right: -125, raise: 12, spread: 0.55 },
+            slain: { row: 'front', right: 34, spread: 1 },
+            habits: { row: 'back', right: -317, spread: 0.15 },
+            punctuality: { row: 'back', right: -240, drop: 26, sink: 34, overTop: 12, spread: 0.35 },
+            heroes: { row: 'back', right: 20, spread: 1 },
+            bestdays: { row: 'far', right: -120, sink: 95, dropWide: 40, spread: 0.55 },
+            goals: { row: 'front', right: 118, raise: 10, behind: true, spread: 1 },
+            nights: { row: 'far', right: 34, sink: 95, spread: 1 },
         },
     };
 
@@ -122,6 +123,7 @@ const VillageLayout = (() => {
             art: (cfg.VILLAGE_ART_X && typeof cfg.VILLAGE_ART_X === 'object') ? cfg.VILLAGE_ART_X : DEFAULTS.art,
             baseTuckPx: pick(cfg.VILLAGE_BASE_TUCK_PX, DEFAULTS.baseTuckPx),
             designFieldPx: pick(cfg.VILLAGE_DESIGN_FIELD_PX, DEFAULTS.designFieldPx),
+            spreadMaxPx: pick(cfg.VILLAGE_SPREAD_MAX_PX, DEFAULTS.spreadMaxPx),
             placement: (cfg.VILLAGE_PLACEMENT && typeof cfg.VILLAGE_PLACEMENT === 'object') ? cfg.VILLAGE_PLACEMENT : DEFAULTS.placement,
         };
     }
@@ -264,6 +266,9 @@ const VillageLayout = (() => {
      *          canvases shorter than the 800x360 phone's). `feetY` stays the row's horizon either way.
      *   behind true: painted BEFORE the other buildings of its row (under them) instead of in left-to-right order (Lab, 2026-11-26: it stands right
      *          of the Command Post and the Command Post covers its left end wall). `slot.behind` carries it.
+     *   spread 0..1 (default 0.5): the building's share of the wide-screen spread (CONFIG.VILLAGE_SPREAD_MAX_PX), 0 = stays by the church, 1 = stays by the plot;
+     *          buildings that overlap on purpose must share their partner's weight (2026-11-26).
+     *   dropWide px (>= 0): lower still, but only with free sky above the building (laptop / desktop heights); slot.wideDrop carries it (Water tower 40, 2026-11-26).
      *   overTop px (>= 0) of the canvas's top rows that may run off the top of the scene before `sink` starts: the building sinks only
      *          until that much is cut (Clock tower 12: on the 800x360 phone its roof tip is cut exactly 12px, as in the mock-up).
      * The church draws OVER the village, so a building's art may start up to baseTuckPx inside the church's box (the Gym, beside the
@@ -279,8 +284,13 @@ const VillageLayout = (() => {
         const fieldLeft = baseW || 0;
         const fieldRight = fieldLeft + field;
         const k = (o.designFieldPx > 0) ? Math.min(1, field / o.designFieldPx) : 1;
-        // Wider than the phone: slide the whole (unchanged) cluster to the middle of the field (Jeremy 2026-10-30).
-        const centreShift = (o.designFieldPx > 0) ? Math.max(0, (field - o.designFieldPx) / 2) : 0;
+        // Wider than the phone (Jeremy 2026-10-30: centre the cluster; 2026-11-26: and spread it a little). `extra` is the width beyond the design field.
+        // `spreadPx` of it (at most spreadMaxPx) opens GAPS: a building with weight w (placement `spread`, 0..1, default 0.5) moves right by spreadPx * w, so weight 0
+        // stays by the church and weight 1 by the plot; the rest of the extra is split evenly on both sides (centred). With the default weight 0.5 this is the old plain
+        // centring, and at or below the design width both are 0.
+        const extra = (o.designFieldPx > 0) ? Math.max(0, field - o.designFieldPx) : 0;
+        const spreadPx = Math.min(extra, Math.max(0, Number(o.spreadMaxPx) || 0));
+        const centreShift = (extra - spreadPx) / 2;
         const frontFeet = horizonFeetY(canvasH, o);
         const feet = {
             front: frontFeet,
@@ -303,7 +313,8 @@ const VillageLayout = (() => {
             // `right` is authored at the design width; narrower fields scale the art's LEFT-edge offset (so a building that
             // cleared the church at the design width still clears it), keeping the sprite's width.
             const designLeft = (Number(p.right) || 0) - (a1 - a0);
-            const artLeft = Math.round(fieldRight - centreShift + designLeft * k);
+            const wt = (p.spread === undefined || p.spread === null || !isFinite(Number(p.spread))) ? 0.5 : Math.min(1, Math.max(0, Number(p.spread)));
+            const artLeft = Math.round(fieldRight - centreShift - spreadPx * (1 - wt) + designLeft * k);
             const left = artLeft - a0;
             const artRight = left + a1;
             if (artLeft < fieldLeft - tuck || artRight > fieldRight + hillW) return;
@@ -316,12 +327,18 @@ const VillageLayout = (() => {
             // Optional per-building `drop` (px, >= 0): always stands this much lower than its row, never below the front row's feet.
             const room = Math.max(0, Math.round(frontFeet) - (feetY - raise));
             const drop = Math.max(0, Math.min(Math.round(Number(p.drop) || 0), room));
-            const rawTop = feetY - h - raise + drop;
+            const topNoWide = feetY - h - raise + drop;
+            // Optional per-building `dropWide` (px, >= 0): lower still, but only with free sky above the building (a laptop / desktop height): it eases in from the canvas
+            // height where the top just touches the top of the scene, at most `dropWide`, never below the front row's feet. A short canvas (top <= 0) gets none, so
+            // phones are unchanged and `sink` below still decides everything there.
+            const wide = Math.max(0, Math.min(Math.round(Number(p.dropWide) || 0), Math.max(0, topNoWide), room - drop));
+            const rawTop = topNoWide + wide;
             const overTop = Math.max(0, Math.round(Number(p.overTop) || 0));
             const sink = (maxSink > 0 && rawTop < -overTop) ? Math.max(0, Math.min(maxSink, -rawTop - overTop, room - drop)) : 0;
             const slot = { kind, tier, url: spriteUrl(kind, tier), left, top: rawTop + sink, width: w, height: h, feetY, artLeft, artRight, row, flip };
             if (raise > 0) slot.raise = raise;
             if (drop > 0) slot.drop = drop;
+            if (wide > 0) slot.wideDrop = wide;
             if (sink > 0) slot.sink = sink;
             if (row !== 'front') { slot.back = true; slot.brightness = bright[row]; }
             if (row === 'far') slot.far = true;
