@@ -135,6 +135,51 @@ const GoalsPane = (() => {
         return `Goals · ${info.used} of ${info.slots} slots`;
     }
 
+    /**
+     * Star strip model (Star credit Build B, docs/LAB_PLAN.md). stars = { value (credit, tenths), tier (1..5), toNext (tenths), maxed, pending (tenths) },
+     * perPerson = CONFIG.GOAL_CREDIT.perPerson. Returns null with no stars. Words come from Theme.strings.goals.
+     */
+    function starModel(stars, perPerson) {
+        if (!stars) return null;
+        const per = perPerson > 0 ? perPerson : 10;
+        const ts = themeStrings();
+        const tier = Math.max(0, Math.min(PIP_COUNT, Math.floor(stars.tier || 0)));
+        const maxed = !!stars.maxed || tier >= PIP_COUNT;
+        const pending = stars.pending > 0 ? stars.pending : 0;
+        return {
+            tier,
+            maxed,
+            title: ts.creditTitle || 'Credit this run',
+            people: fmtNum((stars.value || 0) / per),
+            nextLine: maxed ? (ts.fullyRebuilt || 'Fully rebuilt') : fillText(ts.toNextStar || '{n} more to star {star}', { n: fmtNum((stars.toNext || 0) / per), star: tier + 1 }),
+            tonightLine: pending > 0 ? fillText(ts.tonight || 'Tonight: +{n}', { n: fmtNum(pending / per) }) : '',
+            infoLabel: ts.infoLabel || 'How it works',
+        };
+    }
+
+    /** The "what this goal pays" line for a goal card; '' when there are no rates. rates = CONFIG.GOAL_CREDIT. */
+    function payLine(goalLike, rates) {
+        if (!goalLike || !rates || !(rates.perPerson > 0)) return '';
+        const ts = themeStrings();
+        if (goalLike.kind === 'recurring') {
+            const amount = rates[goalLike.period];
+            if (!(amount > 0)) return '';
+            return fillText(ts.payRecurring || 'Pays {n} credit each {period} you meet it', { n: fmtNum(amount / rates.perPerson), period: periodWord(goalLike.period) });
+        }
+        if (!(rates.oneTimePerWeek > 0)) return '';
+        return fillText(ts.payOneTime || 'Pays {n} credit per week open, at each new stage', { n: fmtNum(rates.oneTimePerWeek / rates.perPerson) });
+    }
+
+    function starHtml(m) {
+        if (!m) return '';
+        const pips = Array.from({ length: PIP_COUNT }, (_, i) => `<i class="star-pip${i < m.tier ? ' star-pip--on' : ''}"></i>`).join('');
+        return `<div class="star-strip-pips" role="img" aria-label="${esc(m.tier + ' of ' + PIP_COUNT + ' stars')}">${pips}</div>`
+            + `<div class="star-strip-text"><span class="star-strip-title">${esc(m.title)}: <b>${esc(m.people)}</b></span>`
+            + `<span class="star-strip-next">${esc(m.nextLine)}</span>`
+            + (m.tonightLine ? `<span class="star-strip-tonight">${esc(m.tonightLine)}</span>` : '')
+            + `</div><button type="button" class="star-strip-info" data-action="star-info" aria-label="${esc(m.infoLabel)}">i</button>`;
+    }
+
     /** Short kind line for the card and the roster: 'Repeats every week' / 'One-time · Due Dec 31'. */
     function kindLine(goalLike) {
         if (goalLike.kind === 'recurring') return `Repeats every ${periodWord(goalLike.period)}`;
@@ -343,16 +388,27 @@ const GoalsPane = (() => {
         btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     }
 
+    function updateStrip() {
+        if (!els || !els.stripEl) return;
+        const stars = typeof deps.getStars === 'function' ? deps.getStars() : null;
+        const m = showRoster ? null : starModel(stars, deps.perPerson);
+        els.stripEl.hidden = !m;
+        els.stripEl.innerHTML = starHtml(m);
+    }
+
     function updateBody() {
         const finishedCount = deps.getRoster().length;
         const ts = themeStrings();
         const claimSig = showRoster ? deps.getRoster().map(r => (r.claimed ? 1 : 0) + (r.reward ? 'r' : '')).join('') : '';
-        const sig = [showRoster ? 'r' : 'g', finishedCount, claimSig, lastInfo.slots, lastInfo.used, lastInfo.next ? lastInfo.next.level : '-',
+        const star0 = typeof deps.getStars === 'function' ? starModel(deps.getStars(), deps.perPerson) : null;
+        const starSig = star0 ? [star0.tier, star0.people, star0.nextLine, star0.tonightLine].join('/') : '-';
+        const sig = [showRoster ? 'r' : 'g', starSig, finishedCount, claimSig, lastInfo.slots, lastInfo.used, lastInfo.next ? lastInfo.next.level : '-',
             lastViews.length, cellModels(lastViews, lastInfo).map(cellSignature).join('~')].join('#');
         if (sig === bodySig) return;
         bodySig = sig;
         if (els.titleEl) els.titleEl.textContent = ts.paneTitle || 'Goals';
         if (els.subEl) els.subEl.textContent = headerText(lastInfo);
+        updateStrip();
         if (els.rosterBtnEl) {
             els.rosterBtnEl.textContent = showRoster ? 'Back to goals' : `${ts.finishedPlural || 'Finished'}: ${finishedCount}`;
             els.rosterBtnEl.setAttribute('aria-pressed', showRoster ? 'true' : 'false');
@@ -400,6 +456,19 @@ const GoalsPane = (() => {
     function init(d) {
         deps = d;
         els = { tabEl: d.tabEl, paneEl: d.paneEl, backdropEl: d.backdropEl, bodyEl: d.bodyEl, titleEl: d.titleEl || null, subEl: d.subEl || null, rosterBtnEl: d.rosterBtnEl || null };
+        if (typeof document !== 'undefined' && d.bodyEl.parentNode && typeof document.createElement === 'function') {
+            const strip = document.createElement('div');
+            strip.className = 'star-strip';
+            strip.hidden = true;
+            d.bodyEl.parentNode.insertBefore(strip, d.bodyEl);
+            els.stripEl = strip;
+            strip.addEventListener('click', (e) => {
+                const btn = e.target.closest ? e.target.closest('[data-action="star-info"]') : null;
+                if (!btn) return;
+                e.stopPropagation();
+                if (typeof d.onStarInfo === 'function') d.onStarInfo();
+            });
+        }
         d.tabEl.addEventListener('click', (e) => {
             // stopPropagation: Modal's document click handler would otherwise see this tap as an outside click.
             e.stopPropagation();
@@ -442,7 +511,7 @@ const GoalsPane = (() => {
 
     return {
         shortDate, fmtNum, percent, periodWord, buttonModel, buttonSignature, buttonLabel, streakPips, progressText, cellLine, cellChip,
-        cellModels, cellSignature, headerText, kindLine, periodEndsText, paceText, rosterRows, artHtml, cellHtml, rosterHtml, pipsHtml,
+        cellModels, cellSignature, headerText, starModel, starHtml, payLine, kindLine, periodEndsText, paceText, rosterRows, artHtml, cellHtml, rosterHtml, pipsHtml,
         badgeFor, badgeSignature, badgeHtml, applyBadges,
         FLAG_ICON, PACE_WORD,
         init, refresh, open, close, toggle,

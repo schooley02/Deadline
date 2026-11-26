@@ -15,7 +15,7 @@ const VillagePanel = require('../js/ui/villagePanel.js');
 global.VillageCard = VillageCard;
 
 const read = (...p) => fs.readFileSync(path.join(__dirname, '..', ...p), 'utf8');
-const ALL_KINDS = ['nights', 'slain', 'punctuality', 'habits', 'lurkers', 'defense', 'heroes', 'bestdays'];
+const ALL_KINDS = ['nights', 'slain', 'punctuality', 'habits', 'lurkers', 'defense', 'heroes', 'bestdays', 'goals'];
 const spriteFor = (kind, tier) => ({ url: `Assets/Village/${kind}_t${tier}.png`, width: 128, height: kind === 'punctuality' ? 256 : 128 });
 
 function progressAt(tierByKind = {}) {
@@ -31,7 +31,7 @@ describe('buildModel', () => {
     test('one row per building, in the card\'s order, with the same names', () => {
         const m = VillagePanel.buildModel({ progress: progressAt(), spriteFor });
         expect(m.rows.map(r => r.kind)).toEqual(ALL_KINDS);
-        m.rows.forEach(r => expect(r.name).toBe(VillageCard.KINDS[r.kind].name));
+        m.rows.forEach(r => expect(r.name).toBe(r.kind === 'goals' ? 'Lab' : VillageCard.KINDS[r.kind].name));
     });
 
     test('tier, bar text and the fully-rebuilt state come from the same model as the card', () => {
@@ -45,15 +45,15 @@ describe('buildModel', () => {
         expect(slain.barText).toBe('3 / 10 priorities to earn star 3');
     });
 
-    test('the title total adds the tiers: a new game is 8 of 40', () => {
-        expect(VillagePanel.buildModel({ progress: progressAt() })).toMatchObject({ tiersTotal: 8, tiersMax: 40 });
-        expect(VillagePanel.buildModel({ progress: progressAt({ nights: 3, habits: 5 }) }).tiersTotal).toBe(8 + 2 + 4);
+    test('the title total adds the tiers: a new game is 9 of 45', () => {
+        expect(VillagePanel.buildModel({ progress: progressAt() })).toMatchObject({ tiersTotal: 9, tiersMax: 45 });
+        expect(VillagePanel.buildModel({ progress: progressAt({ nights: 3, habits: 5 }) }).tiersTotal).toBe(9 + 2 + 4);
     });
 
     test('no progress at all (never computed) reads as a T1 village', () => {
         const m = VillagePanel.buildModel({});
-        expect(m.rows).toHaveLength(8);
-        expect(m.tiersTotal).toBe(8);
+        expect(m.rows).toHaveLength(9);
+        expect(m.tiersTotal).toBe(9);
     });
 
     test('the thumbnail is the building\'s CURRENT tier sprite; without spriteFor there is none', () => {
@@ -66,15 +66,15 @@ describe('buildModel', () => {
 describe('panelHtml', () => {
     const html = VillagePanel.panelHtml(VillagePanel.buildModel({ progress: progressAt({ nights: 5 }), spriteFor: (k, t) => ({ url: 'Assets/Village/p"x.png', width: 128, height: 128 }) }));
 
-    test('a titled dialog with eight tappable rows and a small corner x (no Close row)', () => {
+    test('a titled dialog with nine tappable rows and a small corner x (no Close row)', () => {
         expect(html).toContain('village-panel-overlay');
         expect(html).toContain('aria-label="Village"');
-        expect((html.match(/data-action="open"/g) || [])).toHaveLength(8);
+        expect((html.match(/data-action="open"/g) || [])).toHaveLength(9);
         ALL_KINDS.forEach(k => expect(html).toContain(`data-kind="${k}"`));
         expect(html).toContain('class="modal-close-x"');
         expect(html).not.toContain('modal-buttons');
         expect(html).not.toContain('primary-button');
-        expect(html).toContain('12 / 40 tiers');
+        expect(html).toContain('13 / 45 tiers');
     });
 
     test('escapes the sprite url and marks the maxed row', () => {

@@ -4,6 +4,20 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-26 (Lab stars Build B) -- Claude app session, Sonnet 5.5; Jeremy ("wait until done with build B. continue")
+
+- **Build B of `docs/LAB_PLAN.md` is built: what the player sees.** No balance number changed. Every number shown comes from `CONFIG.GOAL_CREDIT`, `GOAL_DAILY_MAX` and `VILLAGE_TIER_THRESHOLDS.goals`, in people (credit / `perPerson`).
+- **Strip in the Goals window.** Made by `GoalsPane.init` and put above the body (index.html unchanged): five pips for the star, "People cured this run: N", "N more to star X" (or "Fully rebuilt" at star 5), "Tonight: +N" and an info button that opens the new How Deadline works Lab topic. Hidden on the survivors list. Pure model `starModel`, markup `starHtml`.
+- **"Tonight" rule.** `State.getPendingGoalCredit(now)` sums the credit of recurring goals whose open period is already met and not yet paid (same test as `closeGoalPeriods`: progress >= 1 - 1e-9, `creditKey` below `periodKey`), so the line never promises more than the night pays.
+- **Goal card pay line.** `GoalsPane.payLine(goal, rates)`: "Pays N cured each {period} you meet it" (repeating) or "Pays 1.2 cured per week open, at each new stage" (one-time). Rates come from CONFIG.
+- **Daily cap message.** Add Goal form shows `Theme.strings.goals.dailyFull` for reason `dailyFull`.
+- **Lab topic** in How Deadline works (`labTopic`, id `lab`, fifteen topics): the pay rules, the daily cap, the ladder in people, "the count starts over with each run, a star reached in the Memorial stays". Numbers from CONFIG.
+- **Village panel.** A ninth row, "Lab", built by `labRow` in `villagePanel.js` (`VillageCard.KINDS` still has no `goals`). Tapping it opens the Goals window, not a card (`onOpenBuilding('goals')` in script.js). The peak strips and Stats keep eight kinds.
+- **Wording rule.** The Goals engine files (`goalsPane.js`, `goalCard.js`, `goalForm.js`, `goalsPane.css`) carry no theme word: hooks are `star-strip`, `getStars`, `onStarInfo`; the theme words live in `Theme.strings.goals` (`creditTitle`, `toNextStar`, `fullyRebuilt`, `tonight`, `infoLabel`, `payRecurring`, `payOneTime`, `dailyFull`, `infoTitle`). Engine fallbacks say "credit".
+- sw v432. Tests updated: goalsPane, goalCard, goalForm, howItWorks, villagePanel.
+
+---
+
 ## 2026-11-26 (Lab stars Build A) -- Claude app session, Sonnet 5.5; Jeremy ("yes start A")
 
 - **Build A of `docs/LAB_PLAN.md` is built: engine and data, no new screen.** The Lab's stars are now real in the game. The numbers from the design pass go into `js/config.js` as approved: `GOAL_CREDIT { day: 1, week: 10, month: 50, oneTimePerWeek: 12, perPerson: 10 }`, `GOAL_DAILY_MAX 2`, `VILLAGE_TIER_THRESHOLDS.goals [10, 60, 180, 400]` (1 / 6 / 18 / 40 people). THEORY numbers, balance process, unchanged from the design entry below.

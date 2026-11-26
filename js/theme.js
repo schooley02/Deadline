@@ -27,6 +27,16 @@ const Theme = (() => {
             retireNote: 'moves to your survivors list with its streak',
             // "{level}" is replaced by fill().
             lockedLine: 'Unlocks at Lv {level}',
+            // Lab stars (Build B, 2026-11-26; docs/LAB_PLAN.md). Placeholders: {n}, {star}, {period}, {max}.
+            creditTitle: 'People cured this run',
+            toNextStar: '{n} more to star {star}',
+            fullyRebuilt: 'Fully rebuilt',
+            tonight: 'Tonight: +{n}',
+            infoLabel: 'How the Lab earns stars',
+            payRecurring: 'Pays {n} cured each {period} you meet it',
+            payOneTime: 'Pays {n} cured per week open, at each new stage',
+            dailyFull: 'You already have {max} daily goals. Finish or delete one first.',
+            infoTitle: 'The Lab',
         },
         // Level-perk names that are theme words (2026-11-09): CONFIG.LEVEL_PERKS keeps an empty label for these, Theme.perkLabel
         // supplies it. The tagline is the honesty line: the pick changes the picture, never the run's real climate (Jeremy, "for now").

@@ -1287,6 +1287,21 @@ const State = (() => {
         }));
     }
 
+    /**
+     * Lab: credit (tenths) a recurring goal will pay at tonight's close: its open period is already met and not yet paid. Shown as "Tonight: +N".
+     * Matches closeGoalPeriods (progress >= 1 - 1e-9, creditKey below periodKey), so the line never promises more than the night pays.
+     */
+    function getPendingGoalCredit(now) {
+        if (!goalsReady() || !CONFIG.GOAL_CREDIT) return 0;
+        return getGoalViews(now).reduce((sum, v) => {
+            const g = v.goal;
+            if (!g || g.kind !== 'recurring') return sum;
+            if (!(v.progress >= 1 - 1e-9)) return sum;
+            if (typeof g.creditKey === 'string' && typeof g.periodKey === 'string' && g.creditKey >= g.periodKey) return sum;
+            return sum + (CONFIG.GOAL_CREDIT[g.period] || 0);
+        }, 0);
+    }
+
     /** The slot facts the pane shows: { slots, used, next: { level, slots } | null }. */
     function getGoalSlotInfo() {
         if (!goalsReady()) return { slots: 0, used: 0, next: null };
@@ -1493,7 +1508,7 @@ const State = (() => {
         getPriorityMarks, setPriorityMarks, getPriorityPlanned, setPriorityPlanned,
         getSkyPick, setSkyPick,
         getGoals, setGoals, goalSlotCount, syncGoalSlots, ensureGoalsSeeded, settleGoals, applyGoalCompletion, closeGoalPeriods,
-        getGoalViews, getGoalSlotInfo, updateGoalTarget, retireGoal, deleteGoal, takeGoalEvents,
+        getGoalViews, getGoalSlotInfo, getPendingGoalCredit, updateGoalTarget, retireGoal, deleteGoal, takeGoalEvents,
         addGoal, editGoal, getGoalLinkOptions, getGoalLinkedItemIds, claimGoalReward, keepGoal,
         getCurrentRunStats, setCurrentRunStats,
         getRunHistory, setRunHistory,

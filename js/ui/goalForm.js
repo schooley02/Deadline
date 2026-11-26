@@ -387,7 +387,12 @@ const GoalForm = (() => {
             const result = draft.mode === 'edit' ? d.save(s.fields, s.links) : d.save(s.fields, s.links);
             if (!result || !result.ok) {
                 const full = result && result.reason === 'full';
-                showError(overlay, full ? 'All your goal slots are in use. Finish or delete a goal first.' : "That goal couldn't be saved. Check the fields and try again.", null);
+                const dailyFull = result && result.reason === 'dailyFull';
+                const gs = (typeof Theme !== 'undefined' && Theme.strings && Theme.strings.goals) || {};
+                const dailyText = (typeof Theme !== 'undefined' && Theme.fill && gs.dailyFull)
+                    ? Theme.fill(gs.dailyFull, { max: (typeof CONFIG !== 'undefined' && CONFIG.GOAL_DAILY_MAX) || 2 })
+                    : 'You already have the most daily goals allowed. Finish or delete one first.';
+                showError(overlay, dailyFull ? dailyText : full ? 'All your goal slots are in use. Finish or delete a goal first.' : "That goal couldn't be saved. Check the fields and try again.", null);
                 return;
             }
             close();

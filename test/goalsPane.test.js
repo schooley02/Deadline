@@ -96,6 +96,36 @@ describe('text helpers', () => {
     });
 });
 
+describe('Star strip', () => {
+    const per = CONFIG.GOAL_CREDIT.perPerson;
+    test('starModel: people in whole or tenths, next-star line, tonight line', () => {
+        const m = GoalsPane.starModel({ value: 25, tier: 1, toNext: 35, maxed: false, pending: 10 }, per);
+        expect(m).toMatchObject({ tier: 1, maxed: false, people: '2.5', nextLine: '3.5 more to star 2', tonightLine: 'Tonight: +1' });
+    });
+    test('no pending credit means no tonight line; star 5 reads Fully rebuilt', () => {
+        expect(GoalsPane.starModel({ value: 5, tier: 1, toNext: 55, pending: 0 }, per).tonightLine).toBe('');
+        const top = GoalsPane.starModel({ value: 400, tier: 5, maxed: true, pending: 0 }, per);
+        expect(top.nextLine).toBe('Fully rebuilt');
+        expect(top.tier).toBe(5);
+    });
+    test('null stars gives no model and no markup', () => {
+        expect(GoalsPane.starModel(null, per)).toBeNull();
+        expect(GoalsPane.starHtml(null)).toBe('');
+    });
+    test('starHtml draws five pips, filled up to the tier, and the info button', () => {
+        const html = GoalsPane.starHtml(GoalsPane.starModel({ value: 70, tier: 2, toNext: 110, pending: 0 }, per));
+        expect((html.match(/class="star-pip/g) || [])).toHaveLength(5);
+        expect((html.match(/star-pip--on/g) || [])).toHaveLength(2);
+        expect(html).toContain('data-action="star-info"');
+    });
+    test('payLine: recurring by period, one-time per week, nothing without rates', () => {
+        const c = CONFIG.GOAL_CREDIT;
+        expect(GoalsPane.payLine({ kind: 'recurring', period: 'month' }, c)).toBe(`Pays ${c.month / c.perPerson} cured each month you meet it`);
+        expect(GoalsPane.payLine({ kind: 'milestone' }, c)).toBe(`Pays ${c.oneTimePerWeek / c.perPerson} cured per week open, at each new stage`);
+        expect(GoalsPane.payLine({ kind: 'milestone' }, null)).toBe('');
+    });
+});
+
 describe('periodEndsText / paceText', () => {
     test('a day ends tonight, a week on its last weekday, a month on its last date', () => {
         expect(GoalsPane.periodEndsText({ period: 'day' }, NOW, 1)).toBe('tonight');
@@ -182,6 +212,8 @@ describe('DOM', () => {
     let roster;
     let opened;
     let newGoalAsks;
+    let stars;
+    let starInfoAsks;
 
     function build() {
         document.body.innerHTML = `
@@ -194,6 +226,7 @@ describe('DOM', () => {
             bodyEl: document.getElementById('body'), titleEl: document.getElementById('title'), subEl: document.getElementById('sub'),
             closeEl: document.getElementById('closeBtn'), rosterBtnEl: document.getElementById('rosterBtn'),
             getViews: () => views, getSlotInfo: () => info, getRoster: () => roster, onOpenGoal: (id) => opened.push(id), onNewGoal: () => { newGoalAsks += 1; },
+            getStars: () => stars, perPerson: CONFIG.GOAL_CREDIT.perPerson, onStarInfo: () => { starInfoAsks += 1; },
         });
     }
 
@@ -203,6 +236,8 @@ describe('DOM', () => {
         roster = [];
         opened = [];
         newGoalAsks = 0;
+        starInfoAsks = 0;
+        stars = { value: 25, tier: 1, toNext: 35, maxed: false, pending: 10 };
         GoalsPane.close(); // the module is a singleton: leave the previous test's pane closed before re-initialising
         build();
     });
@@ -297,6 +332,23 @@ describe('DOM', () => {
         views = [view({ id: 3, stage: 3, progress: 0.7 }), view({ id: 4, pace: 'behind' })];
         GoalsPane.refresh();
         expect(document.querySelector('#body .goal-grid')).not.toBe(grid);
+    });
+
+    test('the Star strip shows people cured and tonight, hides on the roster, and its info button asks for the Lab topic', () => {
+        document.getElementById('tab').click();
+        const strip = document.querySelector('.star-strip');
+        expect(strip.hidden).toBe(false);
+        expect(strip.textContent).toContain('People cured this run: 2.5');
+        expect(strip.textContent).toContain('3.5 more to star 2');
+        expect(strip.textContent).toContain('Tonight: +1');
+        strip.querySelector('[data-action="star-info"]').click();
+        expect(starInfoAsks).toBe(1);
+        stars = { value: 30, tier: 1, toNext: 30, maxed: false, pending: 0 };
+        GoalsPane.refresh();
+        expect(document.querySelector('.star-strip').textContent).toContain('People cured this run: 3');
+        expect(document.querySelector('.star-strip').textContent).not.toContain('Tonight');
+        document.getElementById('rosterBtn').click();
+        expect(document.querySelector('.star-strip').hidden).toBe(true);
     });
 
     test('the roster button swaps the grid for the finished list and back', () => {

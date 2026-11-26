@@ -30,10 +30,38 @@ const VillagePanel = (() => {
         return Object.keys(VillageCard.KINDS);
     }
 
+    // The Lab row (Lab stars Build B, 2026-11-26): the ninth building. VillageCard.KINDS has no 'goals' (a tap opens the Goals window, not a
+    // card), so the row is built here. Words come from Theme.strings.goals; the credit counter is in tenths (CONFIG.GOAL_CREDIT.perPerson).
+    function labRow(p, c) {
+        const ts = (typeof Theme !== 'undefined' && Theme.strings && Theme.strings.goals) || {};
+        const per = (typeof CONFIG !== 'undefined' && CONFIG.GOAL_CREDIT && CONFIG.GOAL_CREDIT.perPerson) || 10;
+        const q = p || {};
+        const tier = Math.min(VillageCard.MAX_TIER, Math.max(1, Math.round(q.tier) || 1));
+        const maxed = !!q.maxed || tier >= VillageCard.MAX_TIER;
+        const num = (v) => String(Math.round((v / per) * 10) / 10);
+        const fill = (text, vars) => (typeof Theme !== 'undefined' && Theme.fill) ? Theme.fill(text, vars) : String(text || '');
+        const barText = maxed
+            ? (ts.fullyRebuilt || 'Fully rebuilt')
+            : fill(ts.toNextStar || '{n} more to star {star}', { n: num(Number.isFinite(q.toNext) ? q.toNext : 0), star: tier + 1 });
+        const sprite = (typeof c.spriteFor === 'function') ? c.spriteFor('goals', tier) : null;
+        return {
+            kind: 'goals',
+            name: 'Lab',
+            tier,
+            maxed,
+            fraction: maxed ? 1 : Math.min(1, Math.max(0, Number.isFinite(q.fraction) ? q.fraction : 0)),
+            barText,
+            spriteUrl: sprite && sprite.url ? sprite.url : null,
+            spriteW: sprite && sprite.width ? sprite.width : 0,
+            spriteH: sprite && sprite.height ? sprite.height : 0,
+        };
+    }
+
     function buildModel(ctx) {
         const c = ctx || {};
         const progress = c.progress || {};
-        const rows = kinds().map((kind) => {
+        const rows = kinds().concat(['goals']).map((kind) => {
+            if (kind === 'goals') return labRow(progress.goals, c);
             const m = VillageCard.buildModel({ kind, progress: progress[kind] });
             const sprite = (typeof c.spriteFor === 'function') ? c.spriteFor(kind, m.tier) : null;
             return {

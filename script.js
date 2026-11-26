@@ -3464,6 +3464,7 @@ document.addEventListener('DOMContentLoaded', () => {
             markers: realMarkerCounts(),
             onOpenMarkers: () => openMarkerPanel(null),
             onOpenBuilding: (kind) => {
+                if (kind === 'goals') { if (ensureGoalsPane()) GoalsPane.open(); return; }
                 const sprite = villageSpriteFor(kind, progress[kind] ? progress[kind].tier : 1);
                 const placement = (CONFIG.VILLAGE_PLACEMENT || {})[kind] || {};
                 openVillageCard({ kind, url: sprite.url, width: sprite.width, height: sprite.height, flip: !!placement.flip });
@@ -3674,6 +3675,12 @@ document.addEventListener('DOMContentLoaded', () => {
             rosterBtnEl: document.getElementById('goalsPaneRosterBtn'),
             getViews: () => State.getGoalViews(Date.now()),
             getSlotInfo: () => State.getGoalSlotInfo(),
+            getStars: () => {
+                const credit = villageProgressNow().goals;
+                return credit ? Object.assign({}, credit, { pending: State.getPendingGoalCredit(Date.now()) }) : null;
+            },
+            perPerson: CONFIG.GOAL_CREDIT.perPerson,
+            onStarInfo: () => HowItWorks.open({ topic: 'lab' }),
             getRoster: () => (State.getGoals() || {}).done || [],
             onOpenGoal: (goalId) => { GoalCard.open(goalId, goalCardDeps()); },
             onNewGoal: () => openGoalForm(null),

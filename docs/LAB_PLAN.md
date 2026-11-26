@@ -1,7 +1,7 @@
 # Lab stars plan (people cured)
 
 DESIGNED 2026-11-26 (Fable 5.2, Claude app; Jeremy approved all five picks: "I'm good with your recommendation to start with" / "i agree" x4).
-BUILD A BUILT 2026-11-26 (Sonnet 5.5; engine + data, no new screen; DECISIONS 2026-11-26 "Lab stars Build A"). BUILD B (what the player sees) NOT BUILT.
+BUILD A BUILT 2026-11-26 (Sonnet 5.5; engine + data, no new screen; DECISIONS 2026-11-26 "Lab stars Build A"). BUILD B BUILT 2026-11-26 (what the player sees; DECISIONS 2026-11-26 "Lab stars Build B"; NOT phone-checked). Pacing check against real credit still to do.
 The Lab building is wired (kind `goals`) and now has real stars from Build A (DECISIONS 2026-11-26 "Lab wired").
 Read with `docs/GOALS_PLAN.md` (goal rules) and `docs/WORLD_FEEDBACK_PLAN.md` "Village tiers + building cards".
 

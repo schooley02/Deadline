@@ -252,6 +252,28 @@ const HowItWorks = (() => {
         };
     }
 
+    // ---- The Lab (Lab stars Build B, 2026-11-26; docs/LAB_PLAN.md) ---------------------------------------------------------------
+    // Every number comes from CONFIG (GOAL_CREDIT, GOAL_DAILY_MAX, VILLAGE_TIER_THRESHOLDS.goals). Credit is counted in tenths of a person.
+    function labTopic(config) {
+        const ts = (typeof Theme !== 'undefined' && Theme.strings && Theme.strings.goals) || {};
+        const c = config.GOAL_CREDIT || {};
+        const per = c.perPerson || 10;
+        const n = (v) => String(Math.round((v / per) * 10) / 10);
+        const ladder = ((config.VILLAGE_TIER_THRESHOLDS || {}).goals || []).map((v) => Math.round(v / per));
+        return {
+            id: 'lab',
+            title: ts.infoTitle || ts.paneTitle || 'The Lab',
+            what: [
+                `The Lab earns stars from people cured this run. Every goal you keep pays credit toward it.`,
+                `A repeating goal pays once per period, on the night you reach its target: ${n(c.day)} per day, ${n(c.week)} per week, ${n(c.month)} per month. A period you miss pays nothing.`,
+                `A one-time goal pays by how long it stays open, ${n(c.oneTimePerWeek)} per week, each time it climbs a stage. Opening a goal and finishing it on the same day pays almost nothing.`,
+                `You can have up to ${config.GOAL_DAILY_MAX} daily goals at once. Weekly, monthly and one-time goals are limited only by your slots.`,
+                ladder.length ? `Stars 2 to ${ladder.length + 1} open at ${ladder.join(', ')} people cured. The count starts over with each run, but a star you reached in the Memorial stays.` : '',
+            ].filter(Boolean),
+            why: `Goals that take real time earn the most, so the Lab rewards steady work and cannot be rushed in a day.`,
+        };
+    }
+
     // ---- Nights and momentum (Momentum Build B, 2026-11-11; docs/MOMENTUM_PLAN.md) ---------------------------------------------
     // Every number comes from CONFIG.MOMENTUM. Anything built against cheating is explained here (Jeremy): none of these rules depend on
     // secrecy.
@@ -344,7 +366,7 @@ const HowItWorks = (() => {
 
     function topics(config) {
         const cfg = config || (typeof CONFIG !== 'undefined' ? CONFIG : {});
-        return [pointsTopic(cfg), prioritiesTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg), timersTopic(cfg), runsTopic(cfg), momentumTopic(cfg), awayTopic(cfg), goalsTopic(cfg), journalTopic(cfg), passesTopic(cfg)];
+        return [pointsTopic(cfg), prioritiesTopic(cfg), pushbacksTopic(cfg), streaksTopic(cfg), heroTopic(cfg), achievementsTopic(cfg), weatherTopic(cfg), timersTopic(cfg), runsTopic(cfg), momentumTopic(cfg), awayTopic(cfg), goalsTopic(cfg), labTopic(cfg), journalTopic(cfg), passesTopic(cfg)];
     }
 
     // ---- Markup ------------------------------------------------------------------------------------------------
@@ -397,7 +419,7 @@ const HowItWorks = (() => {
     // Capture + stopPropagation is deliberate: Modal's outside-click dismiss (a bubbling document handler) would
     // otherwise see the same tap and close the popup or window the button sits in, and a row's own tap handler
     // (agenda rows, hero rows) must not fire as well.
-    const TOPIC_IDS = ['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals', 'journal', 'passes'];
+    const TOPIC_IDS = ['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals', 'lab', 'journal', 'passes'];
 
     function buttonHtml(topicId, label) {
         if (TOPIC_IDS.indexOf(topicId) === -1) return '';

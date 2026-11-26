@@ -150,10 +150,12 @@ const GoalCard = (() => {
         const c = ctx || {};
         const chip = GoalsPane.cellChip(view);
         const pace = GoalsPane.paceText(view, c.nowMs || Date.now(), c.weekStartsOn);
+        const payText = GoalsPane.payLine(g, c.credit || (typeof CONFIG !== 'undefined' ? CONFIG.GOAL_CREDIT : null));
         return `<div class="goal-card-top">`
             + `<div class="goal-card-art">${GoalsPane.artHtml('stage', view.stage)}</div>`
             + `<div class="goal-card-head"><h3 class="goal-card-title">${esc(g.name)}${chip && chip.kind === 'example' ? ` <span class="goal-chip goal-chip--example">${esc(chip.text)}</span>` : ''}</h3>`
             + `<p class="goal-card-kind">${esc(GoalsPane.kindLine(g))}</p>`
+            + (payText ? `<p class="goal-card-pay">${esc(payText)}</p>` : '')
             + rewardHtml(g)
             + `<p class="goal-card-progress">${GoalsPane.percent(view.progress)}% · stage ${view.stage} of 5</p>`
             + (pace ? `<p class="goal-card-pace goal-pace--${esc(view.pace)}"><i class="goal-pace-dot" aria-hidden="true"></i>${esc(pace)}</p>` : '')

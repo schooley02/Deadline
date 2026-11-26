@@ -318,3 +318,41 @@ button.goal-slot:focus-visible { outline: 2px solid var(--color-primary-dark-gre
 .goal-roster-reward--claimed { opacity: 0.7; }
 .goal-claim-btn { min-height: 44px; min-width: 44px; padding: 4px 12px; font-size: 13px; font-style: normal; }
 .goal-notice-detail { font-size: 13px; }
+
+/* --- Star strip (Star credit Build B) ------------------------------------------ */
+.star-strip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 12px 6px;
+    padding: 8px 10px;
+    flex: none;
+    background: var(--color-secondary-green-pale, #e6f4f1);
+    border-radius: 10px;
+}
+.star-strip[hidden] { display: none; }
+.star-strip-pips { display: flex; gap: 3px; flex: none; }
+.star-pip {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1.5px solid var(--color-secondary-green-light, #4caf94);
+    background: transparent;
+}
+.star-pip--on { background: var(--color-secondary-green-light, #4caf94); }
+.star-strip-text { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; font-size: 12px; }
+.star-strip-title { font-weight: 600; color: var(--color-primary-dark-green, #0a5f55); }
+.star-strip-next { color: var(--color-neutral, #757575); }
+.star-strip-tonight { color: var(--color-primary-dark-green, #0a5f55); font-weight: 600; }
+.star-strip-info {
+    flex: none;
+    min-width: 32px;
+    min-height: 32px;
+    font: 700 13px/1 var(--font-primary, sans-serif);
+    color: var(--color-primary-dark-green, #0a5f55);
+    background: none;
+    border: 1.5px solid currentColor;
+    border-radius: 50%;
+    cursor: pointer;
+    touch-action: manipulation;
+}

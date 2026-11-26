@@ -70,6 +70,16 @@ describe('html', () => {
         expect(html).toContain('goal-target--linked');
         expect(html).toContain('Counted as you finish');
     });
+    test('a pay line says what the goal pays, from CONFIG', () => {
+        const c = CONFIG.GOAL_CREDIT;
+        const one = GoalCard.html(makeView(), { nowMs: NOW, weekStartsOn: 1 });
+        expect(one).toContain('class="goal-card-pay"');
+        expect(one).toContain(`Pays ${c.oneTimePerWeek / c.perPerson} cured per week open`);
+        const wk = GoalCard.html(makeView({ goal: { kind: 'recurring', period: 'week' } }), { nowMs: NOW, weekStartsOn: 1 });
+        expect(wk).toContain(`Pays ${c.week / c.perPerson} cured each week you meet it`);
+        const none = GoalCard.html(makeView(), { nowMs: NOW, weekStartsOn: 1, credit: { perPerson: 0 } });
+        expect(none).not.toContain('goal-card-pay');
+    });
     test('Retire is offered to recurring goals only; Delete to all', () => {
         const milestone = GoalCard.html(makeView(), { nowMs: NOW, weekStartsOn: 1 });
         expect(milestone).not.toContain('data-action="retire"');

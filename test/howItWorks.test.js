@@ -23,14 +23,14 @@ const topic = (id, cfg) => all(cfg).find(t => t.id === id);
 // Everything a player can read in a topic, as one lowercase-insensitive string.
 const textOf = (t) => [].concat(t.what || [], t.list || [], t.html || '', t.why || '').join(' ');
 
-describe('the fourteen topics', () => {
+describe('the fifteen topics', () => {
     test('Points, Priorities, Pushbacks, Streaks, Hero ranking, Achievements, The weather, Timers and Time Logged, When a run ends, Goals, in that order', () => {
-        expect(all().map(t => t.title)).toEqual(['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The weather', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Being away', 'Goals', 'Journal and notes', 'Not needed today and Delete Task']);
-        expect(all().map(t => t.id)).toEqual(['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals', 'journal', 'passes']);
+        expect(all().map(t => t.title)).toEqual(['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The weather', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Being away', 'Goals', 'The Lab', 'Journal and notes', 'Not needed today and Delete Task']);
+        expect(all().map(t => t.id)).toEqual(['points', 'priorities', 'pushbacks', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals', 'lab', 'journal', 'passes']);
     });
 
     test('Streaks, Hero ranking, Achievements, The weather, Timers and When a run ends carry a "Why"; Points and Pushbacks do not invent one', () => {
-        ['priorities', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals', 'journal', 'passes'].forEach(id => expect(topic(id).why).toBeTruthy());
+        ['priorities', 'streaks', 'heroes', 'achievements', 'weather', 'timers', 'runs', 'momentum', 'away', 'goals', 'lab', 'journal', 'passes'].forEach(id => expect(topic(id).why).toBeTruthy());
         ['points', 'pushbacks'].forEach(id => expect(topic(id).why).toBeUndefined());
     });
 });
@@ -267,8 +267,8 @@ describe('Achievements', () => {
 describe('windowHtml', () => {
     test('one <details> per topic, in order, with the corner x', () => {
         const html = HowItWorks.windowHtml(all());
-        expect((html.match(/<details /g) || []).length).toBe(14);
-        const order = ['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The weather', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Being away', 'Goals', 'Journal and notes'].map(n => html.indexOf(`<summary>${n}</summary>`));
+        expect((html.match(/<details /g) || []).length).toBe(15);
+        const order = ['Points', 'Three priorities a day', 'Pushbacks', 'Streaks', 'Hero ranking', 'Achievements', 'The weather', 'Timers and Time Logged', 'When a run ends', 'Nights and momentum', 'Being away', 'Goals', 'The Lab', 'Journal and notes'].map(n => html.indexOf(`<summary>${n}</summary>`));
         expect(order.every(i => i > 0)).toBe(true);
         expect(order).toEqual(order.slice().sort((a, b) => a - b));
         expect(html).toContain('modal-close-x');
@@ -540,5 +540,26 @@ describe('Not needed passes topic (2026-11-13)', () => {
         expect(text).toContain('4 "not needed" passes');
         expect(text).toMatch(/free while nothing is due/);
         expect(t.why).toBeTruthy();
+    });
+});
+
+describe('The Lab (Lab stars Build B, 2026-11-26)', () => {
+    const text = (cfg) => textOf(topic('lab', cfg));
+    test('quotes every credit number from CONFIG, in people', () => {
+        const t = text();
+        const c = CONFIG.GOAL_CREDIT;
+        expect(t).toContain(`${c.day / c.perPerson} per day`);
+        expect(t).toContain(`${c.week / c.perPerson} per week`);
+        expect(t).toContain(`${c.month / c.perPerson} per month`);
+        expect(t).toContain(`${c.oneTimePerWeek / c.perPerson} per week`);
+        expect(t).toContain(`${CONFIG.GOAL_DAILY_MAX} daily goals`);
+    });
+    test('names the star ladder from the thresholds', () => {
+        const ladder = CONFIG.VILLAGE_TIER_THRESHOLDS.goals.map(v => v / CONFIG.GOAL_CREDIT.perPerson);
+        expect(text()).toContain(ladder.join(', '));
+    });
+    test('follows CONFIG (negative control)', () => {
+        const retuned = Object.assign({}, CONFIG, { GOAL_DAILY_MAX: 3 });
+        expect(text(retuned)).toContain('3 daily goals');
     });
 });

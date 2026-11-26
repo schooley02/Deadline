@@ -247,6 +247,15 @@ describe('DOM form', () => {
         expect(d.onDone).not.toHaveBeenCalled();
     });
 
+    test('a refused daily goal (the cap) names the cap and keeps the form', () => {
+        const d = deps({ save: jest.fn(() => ({ ok: false, reason: 'dailyFull' })) });
+        GoalForm.open(d);
+        type('gfName', 'Walk more');
+        $('[data-action="save"]').click();
+        expect($('.form-error').textContent).toContain(`${CONFIG.GOAL_DAILY_MAX} daily goals`);
+        expect($('.goal-form-overlay')).not.toBeNull();
+    });
+
     test('Cancel closes only the form and tells the owner', () => {
         const d = deps();
         GoalForm.open(d);
