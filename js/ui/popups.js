@@ -172,10 +172,15 @@ const Popups = (() => {
         const ctx = pushbackHelpCtx(deps);
         const hint = (ctx && typeof PushbackHelp !== 'undefined') ? PushbackHelp.hintBlockHtml('popupPushbackHint', ctx) : '';
 
-        // Priority slots (Build B): a push onto another day drops the priority (the old day's slot stays spent).
-        const priorityNote = (item.type === 'task' && item.isHighPriority && !item.priorityInherited)
-            ? '<p class="pushback-priority-note">A push to another day drops this task\'s priority. Mark it again on the new day.</p>'
-            : '';
+        // Priority slots (Build B): a push onto another day drops the priority (the old day's slot stays spent). Planning ahead
+        // (2026-11-25): a task due on a day that has not started keeps it when pushed to another later day with a free slot.
+        const ownsPriority = item.type === 'task' && item.isHighPriority && !item.priorityInherited;
+        const dueAhead = ownsPriority && typeof PrioritySlots !== 'undefined'
+            && PrioritySlots.isOpenDay(PrioritySlots.dayKey(item.dueDateTime), PrioritySlots.dayKey(new Date()));
+        const priorityNote = !ownsPriority ? ''
+            : dueAhead
+                ? '<p class="pushback-priority-note">A push to another day keeps this task\'s priority if that day has a free slot.</p>'
+                : '<p class="pushback-priority-note">A push to another day drops this task\'s priority. Mark it again on the new day.</p>';
 
         return `
             <div class="pushback-section">

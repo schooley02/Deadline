@@ -4,6 +4,32 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-26 (TARGET marker; delete refund confirmed) -- Claude app session, Opus 5.5; Jeremy ("to your question, yes. continue with B")
+
+- **Deleting a future-day priority gives its slot back: CONFIRMED (Jeremy: yes).** The 2026-11-25 "Claude's call" in the entry below stands.
+- **TARGET marker (ROADMAP Planning ahead leaning 4) BUILT.** On a LATER day's page (the forecast; the day pager at +1..+6), a ghost that holds a priority slot of its own (`ownsPriority` = priority and not `priorityInherited`, new on `DayPager.existingItemsForDay` ghosts) gets `.forecast-target` with two children: a "TARGET" tag over its head (red #ff3b30 on a dark red box, the FORECAST stamp's monospace type, a notch pointing at the head) and a red reticle on the ground (SVG: a flat ellipse broken by four crosshair notches + a small centre ellipse). Both pulse (0.9 s, stepped, alternate). Rule: `DayPager.isForecastTarget(ghost, offset)`.
+- **Distinct from the plain ring (as the roadmap asked):** the ground ring (white = selected / family, amber = started) is a whole thin ellipse and is switched off on ghosts anyway; the reticle is red, broken and crossed.
+- **Where it shows (Jeremy: agreed 2026-11-25, pick 4):** later days only. Not Today (the live board has its gold priority look), not Yesterday, not habits, not a sub-task covered by its parent (the parent carries the mark). Portrait strip: hidden (its 20px dots have no room). Reduced motion / Effects reduced or off: shown, held still.
+- **Layering fix found in the headless check:** ghosts have no lane z-index, so they sit under the forecast tint layer (z 29) and the red came out teal. A target ghost now sits at z 30; its body keeps the blueprint tint through `--g-ghost`, so only the tag and reticle stay full red. Side effect: a target ghost draws in front of plain ghosts at the same spot.
+- **Not done:** no TARGET chip on the ghost agenda rows (the list already says Priority); a forward scrub on Today shows no marker.
+- sw v428 -> v429.
+
+---
+
+## 2026-11-25 (Planning ahead: free draft for future days) -- Claude app session, Opus 5.5; Jeremy ("lets do the rest of Planning ahead"; all five plan picks: "i agree")
+
+- **A day that has not started is a free draft (ROADMAP leaning 1, confirmed).** Marking, unmarking, moving and deleting a priority due on a later local day give the slot back, on BOTH `State.priorityMarks` and `State.priorityPlanned` (every slot on a future day was set ahead, so the two move together). At that day's rollover the plan locks in and the old rules apply: spent when marked, never refunded. No rollover hook is needed: the rule is "is the due day later than today right now" (`PrioritySlots.isOpenDay`).
+- **Future -> future moves keep the priority (leaning 3, confirmed).** The old day's slot comes back and the new day's is taken (`PrioritySlots.planMove`, `Items.syncPriorityOnMove`). **New day full (Jeremy: agreed):** the task still moves, loses its priority, and the old day's slot is still released (not: block the move). A move off a future day onto today or the past strips it and releases the old slot; a move off a started day is unchanged (stripped, slot stays spent). A carried parent keeps its sub-tasks' inherited priority. Callers that wire no slot deps keep the old strip rule.
+- **Everywhere (Jeremy: agreed).** The rules live in `Items.setPriority` / `syncPriorityOnMove` / `deleteTask`, so Add Task, Edit Task, sub-tasks, pushbacks, "Tomorrow" and not-needed moves all follow them. Routine task definitions still have no priority box.
+- **Planned-day credit (Jeremy: agreed, unchanged).** A day counts only from what is set when it closes (`pri.p` written at close), so unmarking a future day down to one slot loses the credit until it is filled again.
+- **Deletes (Claude's call; Jeremy confirmed 2026-11-26):** deleting a priority due on a future day gives its slot back too (it is part of "free draft"). A covered sub-task adds nothing; a sub-task with its own slot gives its slot back.
+- **`pri.m` stays a gross count** ("marks made today"): a free refund never lowers it, since the mark may have been made on another day.
+- **UI:** the Edit Task row keeps the tick on a future -> future change with "Its priority moves with it to the new day."; no "The slot stays used." confirm on a future day; the pushback note for a task due on a future day reads "A push to another day keeps this task's priority if that day has a free slot."; How Deadline works (Priorities) gains a Planning ahead line and the move line. Fixed on the way: on a full day the row unticked the box after deciding it stayed enabled, so a carried tick on a full day was left enabled; it now unticks first.
+- **Not built:** the forecast-view TARGET marker (leaning 4, next; Sonnet). The Water tower ladder stays [2,5,15,30] until play data (balance process).
+- sw v427 -> v428.
+
+---
+
 ## 2026-11-25 (Top-bar collapse button) -- Claude app session, Sonnet 5.5; Jeremy ("lets work on the top-bar collapse button"; all three plan picks: "i agree")
 
 - **What it is.** A small chevron button (`#hudCollapseButton`, 26x32px, same raised look as the HUD buttons) is the first thing in the HUD row, top left. Tap it and the six buttons (health, level, village, heroes, points, goals) are hidden; tap again to bring them back. Why: on the 800x360 phone the buttons sat over the Water tower's tank, the Hospital cross and the Clock tower belfry (ROADMAP, DECISIONS 2026-11-25 "Water tower WIRED").

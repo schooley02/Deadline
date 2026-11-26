@@ -137,7 +137,7 @@ describe('Items.deleteTask', () => {
         expect(deps.activeItems).toHaveLength(1);
     });
 
-    test('a deleted priority does not hand its slot back (the marks map is never touched)', () => {
+    test('a deleted priority due today does not hand its slot back (the marks map is never touched)', () => {
         const t = task(1, { isHighPriority: true });
         const deps = makeDeps({ activeItems: [t] });
         const setMarks = jest.fn();
@@ -145,6 +145,27 @@ describe('Items.deleteTask', () => {
         deps.setPriorityMarks = setMarks;
         Items.deleteTask(1, deps);
         expect(setMarks).not.toHaveBeenCalled();
+    });
+});
+
+describe('Items.deleteTask: planning ahead (2026-11-25)', () => {
+    test('a priority due on a day not started gives its slot back (marks + planned); a covered sub-task adds nothing', () => {
+        const D3 = new Date(2099, 0, 3, 12, 0, 0, 0);
+        const parent = task(1, { dueDateTime: D3 });
+        const sub = task(2, { parentId: 1, dueDateTime: D3 });
+        const own = task(3, { dueDateTime: D3 });
+        const deps = makeDeps({ activeItems: [parent, sub, own] });
+        let marks = {}, planned = {};
+        deps.getPriorityMarks = () => marks; deps.setPriorityMarks = (m) => { marks = m; };
+        deps.getPriorityPlanned = () => planned; deps.setPriorityPlanned = (m) => { planned = m; };
+        deps.completedItems = () => [];
+        Items.setPriority(1, true, deps);
+        Items.setPriority(3, true, deps);
+        expect(sub.isHighPriority).toBe(true);
+        expect(marks).toEqual({ '2099-01-03': 2 });
+        expect(Items.deleteTask(1, deps).ok).toBe(true);
+        expect(marks).toEqual({ '2099-01-03': 1 });
+        expect(planned).toEqual({ '2099-01-03': 1 });
     });
 });
 

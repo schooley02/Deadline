@@ -55,6 +55,16 @@ describe('zombie popup pushback buttons', () => {
         expect(document.querySelector('.pushback-balance-note').textContent).toBe('(you have 40 pts)');
     });
 
+    test('a priority task due on a day not started gets the "keeps its priority" note instead (Planning ahead)', () => {
+        global.PrioritySlots = require('../js/prioritySlots.js');
+        try {
+            const d = deps({ pushbackOptionsFor: three, onPushback: jest.fn() });
+            Popups.showTaskDetailsPopup(task({ isHighPriority: true, dueDateTime: new Date(2099, 0, 2, 12) }), d);
+            expect(document.querySelector('.pushback-priority-note').textContent)
+                .toBe("A push to another day keeps this task's priority if that day has a free slot.");
+        } finally { delete global.PrioritySlots; }
+    });
+
     test('a priority task gets the "a push to another day drops priority" note; a normal task, a sub-task of a priority parent and the Priority line do not', () => {
         const d = () => deps({ pushbackOptionsFor: three, onPushback: jest.fn() });
         Popups.showTaskDetailsPopup(task({ isHighPriority: true }), d());

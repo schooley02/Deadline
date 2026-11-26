@@ -93,8 +93,10 @@ const DailyRecord = (() => {
     // skip a habit or routine task for today, or move a one-off task to tomorrow). Event `notNeeded`. The month roll-up sums it. Older days read as 0.
     // v18 (2026-11-25, Planning ahead; Water tower): `pri.p` = how many of that day's priority slots were SET AHEAD (the task was marked on an
     // earlier local day than its due day), written at close from `State.priorityPlanned`. A day is a planned day when pri.p fills every slot
-    // and at least two priorities were finished (pri.d); a perfect plan finishes all of them. A slot stays spent (and planned) even if the task
-    // is later moved or unmarked, so a plan that fell through never counts as finished. Days before v18 read 0.
+    // and at least two priorities were finished (pri.d); a perfect plan finishes all of them. Until the day starts its plan is a free draft
+    // (unmark / move / delete give the slot back, both maps); from its rollover a slot stays spent (and planned) even if the task is later moved
+    // or unmarked, so a plan that fell through on the day never counts as finished. `pri.m` stays a gross count (a refund never lowers it).
+    // Days before v18 read 0.
     const V = 18;
     // Mirrors Habits.GOAL_UNIT_SUGGESTIONS (test/dailyRecord.test.js checks they match). Kept local: no global dependencies.
     const GOAL_UNITS = ['pages', 'glasses', 'oz', 'steps', 'miles', 'km', 'reps', 'words', 'servings', 'drinks', 'cigarettes', 'cups', '$', 'times'];

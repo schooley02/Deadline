@@ -5,13 +5,16 @@
  * "High Priority" used to be an unlimited checkbox on tasks. It is now a SLOT: each local day (the task's DUE day)
  * has CONFIG.PRIORITY_SLOTS_PER_DAY of them (3). Rules, all pure here:
  *
- *   - A slot is SPENT when a task is marked (`marks[day]` goes up). Unmarking never gives it back.
+ *   - A slot is SPENT when a task is marked (`marks[day]` goes up). Unmarking never gives it back -- EXCEPT while the due day is
+ *       still ahead (Planning ahead, Jeremy 2026-11-25): a future day's priorities are a free draft. Marking, unmarking, moving
+ *       and deleting all give the slot back until that day starts; at its rollover the plan locks in and the rules above apply.
  *   - A day's slots are a HARD CAP (Jeremy, 2026-11-12): finishing priorities never opens more. The old "finish three,
  *       get three more" refill is gone (DECISIONS 2026-11-12 (priority cap)).
  *       available = perDay - marks          (a save from before the cap can sit below 0; remaining() floors it)
  *   - Only a task that TAKES a slot counts: a priority standalone task, or a priority sub-task whose parent is NOT
  *     priority. A priority parent covers its sub-tasks for ONE slot (they inherit the look and the x2 points).
- *   - A move to another local day strips priority (the old day's slot stays spent).
+ *   - A move to another local day strips priority (the old day's slot stays spent). A move from one FUTURE day to another future
+ *       day keeps it instead: the old day's slot comes back and the new day's is taken (stripped when the new day is full).
  *
  * PURE: no DOM, no State, no CONFIG read except the optional `config` argument. Items.setPriority (js/items.js)
  * applies the result; State owns the `priorityMarks` map ({ 'YYYY-MM-DD': spent }).
@@ -102,6 +105,24 @@ const PrioritySlots = (() => {
         return a != null && b != null && a !== b;
     }
 
+    /** Is `key` a day that has not started yet (its priorities are still a free draft)? `todayKey` = PrioritySlots.dayKey(now). */
+    function isOpenDay(key, todayKey) {
+        return KEY_RE.test(String(key)) && KEY_RE.test(String(todayKey)) && key > todayKey;
+    }
+
+    /**
+     * A priority task's due time moved from `oldDue` to `newDue`. Returns { changed, releaseOld, carry }:
+     *   changed    -- the local day changed (nothing else matters when false);
+     *   releaseOld -- the old day had not started, so its slot comes back (free draft);
+     *   carry      -- future day -> future day: keep the priority and take a slot on the new day, if it has one.
+     */
+    function planMove(oldDue, newDue, todayKey) {
+        const a = dayKey(oldDue), b = dayKey(newDue);
+        if (a == null || b == null || a === b) return { changed: false, releaseOld: false, carry: false };
+        const releaseOld = isOpenDay(a, todayKey);
+        return { changed: true, releaseOld, carry: releaseOld && isOpenDay(b, todayKey) };
+    }
+
     /**
      * What would marking / unmarking do? `ctx` = { item, parent, on, marks, perDay } where marks is the count for the
      * item's due day. Returns { ok, action: 'mark' | 'unmark' | 'noop', left, reason? }:
@@ -148,6 +169,15 @@ const PrioritySlots = (() => {
         return out;
     }
 
+    /** A NEW marks map with one slot given back on `key` (a day at 0 is dropped; the input is never mutated). */
+    function removeMark(marks, key) {
+        const out = sanitizeMarks(marks);
+        if (!out[key]) return out;
+        out[key] -= 1;
+        if (out[key] <= 0) delete out[key];
+        return out;
+    }
+
     function marksFor(marks, key) {
         return marks && typeof marks === 'object' ? whole(marks[key]) : 0;
     }
@@ -165,8 +195,8 @@ const PrioritySlots = (() => {
 
     return {
         DEFAULT_PER_DAY, perDayOf, dayKey, available, remaining, canMark,
-        takesSlot, findParent, countDone, stripsOnMove, planChange,
-        sanitizeMarks, addMark, marksFor, prune,
+        takesSlot, findParent, countDone, stripsOnMove, isOpenDay, planMove, planChange,
+        sanitizeMarks, addMark, removeMark, marksFor, prune,
     };
 })();
 

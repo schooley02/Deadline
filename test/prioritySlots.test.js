@@ -206,17 +206,132 @@ describe('Items.setPriority: planning ahead (Water tower, 2026-11-25)', () => {
         Items.setPriority(2, true, deps);
         expect(deps.planned()).toEqual({});
     });
-    test('unmarking never takes a planned slot back, and a refused mark (no slot left) adds nothing', () => {
+    test('a refused mark (no slot left) adds nothing', () => {
         const items = [1, 2, 3, 4].map((id) => task({ id, dueDateTime: FUTURE }));
         const deps = plannedDeps(items);
         [1, 2, 3].forEach((id) => Items.setPriority(id, true, deps));
-        Items.setPriority(1, false, deps);
-        expect(Items.setPriority(4, true, deps)).toMatchObject({ ok: false });
+        expect(Items.setPriority(4, true, deps)).toMatchObject({ ok: false, reason: 'full' });
         expect(deps.planned()).toEqual({ [FUTURE_KEY]: 3 });
+    });
+    test('free draft: unmarking on a day not started yet gives the slot back on both maps, so another task can take it', () => {
+        const items = [1, 2, 3, 4].map((id) => task({ id, dueDateTime: FUTURE }));
+        const deps = plannedDeps(items);
+        [1, 2, 3].forEach((id) => Items.setPriority(id, true, deps));
+        expect(Items.setPriority(1, false, deps)).toMatchObject({ ok: true, action: 'unmark' });
+        expect(deps.marks()).toEqual({ [FUTURE_KEY]: 2 });
+        expect(deps.planned()).toEqual({ [FUTURE_KEY]: 2 });
+        expect(Items.setPriority(4, true, deps)).toMatchObject({ ok: true, action: 'mark' });
+        expect(deps.planned()).toEqual({ [FUTURE_KEY]: 3 });
+        // mark / unmark round trips never drift the counts
+        Items.setPriority(4, false, deps); Items.setPriority(4, true, deps); Items.setPriority(4, false, deps);
+        expect(deps.marks()).toEqual({ [FUTURE_KEY]: 2 });
+        expect(deps.planned()).toEqual({ [FUTURE_KEY]: 2 });
+    });
+    test('locked in: once the day has started, unmarking gives nothing back (today and past days)', () => {
+        const items = [task({ id: 1, dueDateTime: new Date() }), task({ id: 2, dueDateTime: at(5) })];
+        const deps = plannedDeps(items);
+        Items.setPriority(1, true, deps);
+        Items.setPriority(2, true, deps);
+        const before = deps.marks();
+        Items.setPriority(1, false, deps);
+        Items.setPriority(2, false, deps);
+        expect(deps.marks()).toEqual(before);
+    });
+    test('unmarking a priority parent on a future day gives back ONE slot (its covered sub-tasks never held one)', () => {
+        const parent = task({ id: 1, dueDateTime: FUTURE });
+        const sub = task({ id: 2, parentId: 1, dueDateTime: FUTURE });
+        const deps = plannedDeps([parent, sub]);
+        Items.setPriority(1, true, deps);
+        expect(sub.isHighPriority).toBe(true);
+        Items.setPriority(1, false, deps);
+        expect(sub.isHighPriority).toBe(false);
+        expect(deps.marks()).toEqual({});
+        expect(deps.planned()).toEqual({});
     });
     test('callers that do not pass the planned deps still mark normally', () => {
         const deps = makeDeps([task({ id: 1, dueDateTime: FUTURE })], []);
         expect(Items.setPriority(1, true, deps)).toMatchObject({ ok: true, action: 'mark' });
+    });
+});
+
+describe('Planning ahead: moves and deletes on days not started yet', () => {
+    const D2 = new Date(2099, 0, 2, 12, 0, 0, 0), K2 = '2099-01-02';
+    const D3 = new Date(2099, 0, 3, 12, 0, 0, 0), K3 = '2099-01-03';
+    function plannedDeps(active) {
+        let planned = {};
+        const deps = makeDeps(active, []);
+        deps.getPriorityPlanned = () => planned;
+        deps.setPriorityPlanned = (next) => { planned = next; };
+        deps.planned = () => planned;
+        return deps;
+    }
+    function moveTo(item, when, deps) {
+        const old = item.dueDateTime;
+        item.dueDateTime = when;
+        return Items.syncPriorityOnMove(item, old, deps);
+    }
+    test('PrioritySlots.planMove: only future -> future carries; any move off a future day releases it', () => {
+        const today = '2099-01-01';
+        expect(PS.planMove(D2, D3, today)).toEqual({ changed: true, releaseOld: true, carry: true });
+        expect(PS.planMove(D2, new Date(2099, 0, 1, 9), today)).toEqual({ changed: true, releaseOld: true, carry: false });
+        expect(PS.planMove(new Date(2099, 0, 1, 9), D2, today)).toEqual({ changed: true, releaseOld: false, carry: false });
+        expect(PS.planMove(D2, new Date(2099, 0, 2, 20), today)).toEqual({ changed: false, releaseOld: false, carry: false });
+        expect(PS.isOpenDay(K2, today)).toBe(true);
+        expect(PS.isOpenDay(today, today)).toBe(false);
+        expect(PS.removeMark({ [K2]: 1, [K3]: 2 }, K2)).toEqual({ [K3]: 2 });
+        expect(PS.removeMark({}, K2)).toEqual({});
+    });
+    test('future -> future keeps the priority: the old day gets its slot back, the new day spends one (both maps)', () => {
+        const t = task({ id: 1, dueDateTime: D2 });
+        const deps = plannedDeps([t]);
+        Items.setPriority(1, true, deps);
+        expect(moveTo(t, D3, deps)).toBe(false);
+        expect(t.isHighPriority).toBe(true);
+        expect(deps.marks()).toEqual({ [K3]: 1 });
+        expect(deps.planned()).toEqual({ [K3]: 1 });
+    });
+    test('a parent carried to another future day keeps its sub-tasks\' inherited priority', () => {
+        const parent = task({ id: 1, dueDateTime: D3 });
+        const sub = task({ id: 2, parentId: 1, dueDateTime: D2 });
+        const deps = plannedDeps([parent, sub]);
+        Items.setPriority(1, true, deps);
+        moveTo(parent, new Date(2099, 0, 4, 12), deps);
+        expect(parent.isHighPriority).toBe(true);
+        expect(sub.isHighPriority).toBe(true);
+    });
+    test('future -> a FULL future day: moves, loses the priority, and the old day still gets its slot back', () => {
+        const items = [1, 2, 3].map((id) => task({ id, dueDateTime: D3 })).concat([task({ id: 4, dueDateTime: D2 })]);
+        const deps = plannedDeps(items);
+        [1, 2, 3, 4].forEach((id) => Items.setPriority(id, true, deps));
+        expect(moveTo(items[3], D3, deps)).toBe(true);
+        expect(items[3].isHighPriority).toBe(false);
+        expect(deps.marks()).toEqual({ [K3]: 3 });
+        expect(deps.planned()).toEqual({ [K3]: 3 });
+    });
+    test('future -> today strips the priority and gives the future slot back', () => {
+        const t = task({ id: 1, dueDateTime: D2 });
+        const deps = plannedDeps([t]);
+        Items.setPriority(1, true, deps);
+        const today = new Date(); today.setHours(23, 0, 0, 0);
+        expect(moveTo(t, today, deps)).toBe(true);
+        expect(t.isHighPriority).toBe(false);
+        expect(deps.marks()).toEqual({});
+        expect(deps.planned()).toEqual({});
+    });
+    test('today -> future is still locked in: priority stripped, today\'s slot stays spent', () => {
+        const today = new Date(); today.setHours(23, 0, 0, 0);
+        const t = task({ id: 1, dueDateTime: today });
+        const deps = plannedDeps([t]);
+        Items.setPriority(1, true, deps);
+        const before = deps.marks();
+        expect(moveTo(t, D2, deps)).toBe(true);
+        expect(t.isHighPriority).toBe(false);
+        expect(deps.marks()).toEqual(before);
+    });
+    test('callers without slot deps fall back to the old rule (stripped, nothing written)', () => {
+        const t = task({ id: 1, dueDateTime: D2, isHighPriority: true });
+        expect(moveTo(t, D3, { activeItems: [t] })).toBe(true);
+        expect(t.isHighPriority).toBe(false);
     });
 });
 

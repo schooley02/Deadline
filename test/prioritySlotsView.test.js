@@ -238,6 +238,40 @@ describe('bindRow', () => {
         expect(el.cb.checked).toBe(false);
     });
 
+    // Planning ahead (2026-11-25): today is 2026-11-04 in deps(); the 5th and later have not started.
+    function mountOn(date) {
+        const el = mount(true);
+        el.dateInput.value = date;
+        return el;
+    }
+    test('Edit Task, future day -> another future day: the priority carries (stays ticked, keep text); a full day drops it', () => {
+        slotsByKey['2026-11-07'] = { marks: 3, left: 0 };
+        const el = mountOn('2026-11-05');
+        const row = PrioritySlotsView.bindRow(Object.assign({
+            checkbox: el.cb, deps: deps(), confirm, originalKey: '2026-11-05', originalChecked: true }, el));
+        setDate(el, '2026-11-06');
+        expect(row.movedDay()).toBe(true);
+        expect(el.cb.checked).toBe(true);
+        expect(el.cb.disabled).toBe(false);
+        expect(el.hint.textContent).toBe(PrioritySlotsView.CARRY_KEEP_TEXT);
+        setDate(el, '2026-11-07');
+        expect(el.cb.checked).toBe(false);
+        expect(el.cb.disabled).toBe(true);
+        expect(el.hint.textContent).toContain('No priority slots left');
+        setDate(el, '2026-11-04'); // into today: does not carry
+        expect(el.cb.checked).toBe(false);
+        expect(el.hint.textContent).toBe(PrioritySlotsView.CARRY_TEXT);
+    });
+    test('Edit Task on a day not started: unticking an owned priority is free, so it never asks', async () => {
+        const el = mountOn('2026-11-05');
+        PrioritySlotsView.bindRow(Object.assign({
+            checkbox: el.cb, deps: deps(), confirm, originalKey: '2026-11-05', originalChecked: true }, el));
+        el.cb.checked = false; el.cb.dispatchEvent(new Event('change'));
+        await flush();
+        expect(confirm).not.toHaveBeenCalled();
+        expect(el.cb.checked).toBe(false);
+    });
+
     test('unticking a box that is only ticked in this form (Add Task) never asks', async () => {
         const el = mount(false);
         PrioritySlotsView.bindRow(Object.assign({ checkbox: el.cb, deps: deps(), confirm }, el));

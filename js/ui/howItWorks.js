@@ -56,8 +56,9 @@ const HowItWorks = (() => {
             what: [
                 `Each day has ${n} priority ${n === 1 ? 'slot' : 'slots'}. A priority task pays double points and glows gold. You can put a priority on a task due today, or on a task due tomorrow or later (that day has its own ${n}).`,
                 `Marking a task uses a slot for good. Unmarking it takes away the glow and the double points but does not give the slot back, so pick the tasks that matter. Finishing priorities does not open more: ${n} is the most a day gets.`,
+                `Planning ahead: until a day starts, its priorities are a draft. You can mark, unmark, move or delete them and the slot comes back. When the day starts, the plan is locked in.`,
                 `A priority task covers its sub-tasks for one slot. You can also mark a single sub-task on its own.`,
-                `Moving a task to another day, by a pushback or an edit, drops its priority. Mark it again on the new day if it is still a big one.`,
+                `Moving a task to another day, by a pushback or an edit, drops its priority. Mark it again on the new day if it is still a big one. A task moved from one future day to another keeps its priority if the new day has a free slot.`,
             ],
             why: `Naming a few big things for the day keeps you from calling everything important.`,
         };

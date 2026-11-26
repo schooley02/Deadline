@@ -142,6 +142,8 @@ const DayPager = (() => {
                 isHabit: false,
                 isNegative: false,
                 isHighPriority: !!item.isHighPriority,
+                // Planning ahead (2026-11-25): it holds a priority slot of its own (a sub-task covered by a priority parent does not).
+                ownsPriority: !!item.isHighPriority && !item.priorityInherited,
                 routineId: null,
                 dueTime: item.dueDateTime,
             startTime: item.startDateTime || null,
@@ -446,9 +448,17 @@ const DayPager = (() => {
         return active;
     }
 
+    // Planning ahead TARGET marker (2026-11-26, Jeremy; DECISIONS 2026-11-26): on a LATER day's page (the forecast), a ghost
+    // that holds a priority slot of its own is marked as a target. Never Today (the live board has its own priority look) or
+    // Yesterday, and never a sub-task riding on its parent's priority (the parent gets the mark).
+    function isForecastTarget(ghost, offset) {
+        return Number(offset) > 0 && !!ghost && !ghost.isHabit && !!ghost.ownsPriority;
+    }
+
     return {
         MIN_OFFSET,
         MAX_OFFSET,
+        isForecastTarget,
         SCROLL_ACTIVE_THRESHOLD_PX,
         activeOffsetFromTops,
         clampDayOffset,

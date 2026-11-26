@@ -525,6 +525,28 @@ const Items = (() => {
         return { key, marks, done, left: PrioritySlots.remaining(marks, priorityPerDay()) };
     }
     /** Take the inherited flag back from a parent's sub-tasks (the parent was unmarked or moved to another day). */
+    // Planning ahead (2026-11-25): a day that has not started is a free draft. These move one slot on the marks map AND the planned map
+    // (State.priorityPlanned), since every slot on a future day was set ahead. No-ops when a caller (older code, tests) wires no slot deps.
+    function hasSlotDeps(deps) {
+        return !!deps && typeof deps.getPriorityMarks === 'function' && typeof deps.setPriorityMarks === 'function';
+    }
+    function hasPlannedDeps(deps) {
+        return !!deps && typeof deps.getPriorityPlanned === 'function' && typeof deps.setPriorityPlanned === 'function';
+    }
+    function releasePrioritySlot(key, deps) {
+        if (!hasSlotDeps(deps)) return;
+        deps.setPriorityMarks(PrioritySlots.removeMark(deps.getPriorityMarks(), key));
+        if (hasPlannedDeps(deps)) deps.setPriorityPlanned(PrioritySlots.removeMark(deps.getPriorityPlanned(), key));
+    }
+    function takePlannedSlot(key, deps) {
+        if (!hasSlotDeps(deps)) return;
+        deps.setPriorityMarks(PrioritySlots.addMark(deps.getPriorityMarks(), key));
+        if (hasPlannedDeps(deps)) deps.setPriorityPlanned(PrioritySlots.addMark(deps.getPriorityPlanned(), key));
+    }
+    function todayPriorityKey() {
+        return PrioritySlots.dayKey(new Date());
+    }
+
     function dropInheritedPriority(parent, deps) {
         (deps.activeItems || []).forEach((c) => {
             if (c.parentId === parent.id && c.type === 'task' && c.priorityInherited) {
@@ -538,7 +560,8 @@ const Items = (() => {
      * Mark (on = true) or unmark an open task. deps: { activeItems, completedItems (getter), getPriorityMarks,
      * setPriorityMarks, getPriorityPlanned?, setPriorityPlanned?, recordDaily?, saveGame?, onPriorityChanged? }. Returns { ok, changed, action, left, reason? }:
      * reason 'full' = no slot left that day (nothing changed); 'covered' = a sub-task under a priority parent (the parent
-     * owns it); 'missing' = no such open task. Marking spends a slot of the task's DUE day; unmarking refunds nothing.
+     * owns it); 'missing' = no such open task. Marking spends a slot of the task's DUE day; unmarking refunds nothing -- unless that
+     * day has not started yet (Planning ahead: a future day's priorities are a free draft until its rollover).
      */
     function setPriority(itemId, on, deps) {
         const items = deps.activeItems || [];
@@ -575,6 +598,8 @@ const Items = (() => {
         } else {
             item.isHighPriority = false;
             if (!item.parentId) dropInheritedPriority(item, deps);
+            // Planning ahead: the day has not started, so the slot (and its planned count) comes back. Once it starts the plan is locked in.
+            if (PrioritySlots.isOpenDay(slots.key, todayPriorityKey())) releasePrioritySlot(slots.key, deps);
         }
         syncPriorityLook(item);
         if (typeof deps.onPriorityChanged === 'function') deps.onPriorityChanged(item, plan.action);
@@ -584,11 +609,23 @@ const Items = (() => {
     /**
      * Call after ANY due-time change (pushback, moves, edits): a move to another local day strips priority (the old day's
      * slot stays spent) and takes back what the task's sub-tasks inherited. `oldDue` = the due time BEFORE the move.
+     * Planning ahead (2026-11-25): when the old day has not started its slot comes back, and a move from one future day to another
+     * future day KEEPS the priority, taking a slot of the new day (stripped only when that day is full).
      * Returns true when priority was stripped.
      */
     function syncPriorityOnMove(item, oldDue, deps) {
         if (!item || item.type !== 'task' || !item.isHighPriority || item.priorityInherited) return false; // inherited = the parent owns it
-        if (typeof PrioritySlots === 'undefined' || !PrioritySlots.stripsOnMove(oldDue, item.dueDateTime)) return false;
+        if (typeof PrioritySlots === 'undefined') return false;
+        const move = PrioritySlots.planMove(oldDue, item.dueDateTime, todayPriorityKey());
+        if (!move.changed) return false;
+        if (move.releaseOld) releasePrioritySlot(PrioritySlots.dayKey(oldDue), deps);
+        if (move.carry && hasSlotDeps(deps)) {
+            const newKey = PrioritySlots.dayKey(item.dueDateTime);
+            if (PrioritySlots.canMark(PrioritySlots.marksFor(deps.getPriorityMarks(), newKey), priorityPerDay())) {
+                takePlannedSlot(newKey, deps);
+                return false; // carried: still priority, its sub-tasks keep what they inherited
+            }
+        }
         item.isHighPriority = false;
         delete item.priorityInherited;
         if (!item.parentId) dropInheritedPriority(item, deps || { activeItems: [] });
@@ -2180,14 +2217,28 @@ const Items = (() => {
     /**
      * Delete a one-off task or sub-task for good (and its sub-tasks). Free while nothing under it is due; once overdue it spends a pass.
      * No XP, no points, no damage change (damage already taken stays), nothing recorded as done. A deleted priority keeps its slot spent
-     * (PrioritySlots: a slot is never given back). Returns the plan: { ok: false, reason } when refused.
+     * (PrioritySlots: a slot is never given back) -- unless its due day has not started (Planning ahead: a free draft until then).
+     * Returns the plan: { ok: false, reason } when refused.
      */
     function deleteTask(itemId, deps) {
         const check = planNotNeeded(itemId, 'delete', deps);
         if (!check.ok) return check;
         if (check.usesPass) spendNotNeededPass(deps);
+        releaseDeletedPriorities(itemId, deps);
         removeItem(itemId, deps); // stops a running timer, cascades to sub-tasks, fixes the parent's counters, saves
         return check;
+    }
+
+    // The task and any sub-task under it that owns a slot (inherited ones ride on the parent's) give it back when due on a day not started yet.
+    function releaseDeletedPriorities(itemId, deps) {
+        if (typeof PrioritySlots === 'undefined' || !hasSlotDeps(deps)) return;
+        const today = todayPriorityKey();
+        (deps.activeItems || []).forEach((t) => {
+            if (!t || t.type !== 'task' || (t.id !== itemId && t.parentId !== itemId)) return;
+            if (!t.isHighPriority || t.priorityInherited) return;
+            const key = PrioritySlots.dayKey(t.dueDateTime);
+            if (PrioritySlots.isOpenDay(key, today)) releasePrioritySlot(key, deps);
+        });
     }
 
     /**

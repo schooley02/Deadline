@@ -58,6 +58,8 @@ const PrioritySlotsView = (() => {
     }
 
     const CARRY_TEXT = "Priority doesn't carry over. Mark it again on the new day.";
+    // Planning ahead (2026-11-25): a future day -> another future day keeps the priority (it takes a slot there).
+    const CARRY_KEEP_TEXT = 'Its priority moves with it to the new day.';
     const COVERED_TEXT = "The parent's priority covers this sub-task.";
     const KEEP_TEXT = 'The slot stays used.';
 
@@ -179,6 +181,8 @@ const PrioritySlotsView = (() => {
      *   deps: { prioritySlotsFor(due) -> {key,left,...}, perDay?, todayKey? }
      *   originalKey / originalChecked: Edit Task -- the task's current due day and whether it is priority NOW. Moving to
      *     another day drops it (priority doesn't carry over), so on a different day the box starts unticked and costs a slot.
+     *     Planning ahead: from a future day to another future day it carries instead (ticked, takes a slot there if one is free).
+     *     Unticking on a day that has not started gives the slot back, so it asks nothing.
      *   confirm: (message, options) -> Promise<boolean>  (Dialog.confirm)
      *   covered: true -> a sub-task under a priority parent: the box is hidden and shows COVERED_TEXT instead.
      * Returns { refresh(), wantsPriority(), movedDay() }.
@@ -198,6 +202,11 @@ const PrioritySlotsView = (() => {
             const s = slots || currentSlots();
             return !!(o.originalKey && s && s.key && s.key !== o.originalKey);
         }
+        function isOpen(key) { return !!(key && deps.todayKey && key > deps.todayKey); }
+        // A priority moving between two days that have not started keeps it (Planning ahead).
+        function carries(slots) {
+            return !!(o.originalChecked && slots && movedDay(slots) && isOpen(o.originalKey) && isOpen(slots.key));
+        }
         function setText(el, text) { if (el) el.textContent = text; }
 
         function refresh() {
@@ -216,17 +225,19 @@ const PrioritySlotsView = (() => {
             const word = dayWord(slots.key, deps.todayKey);
             const moved = movedDay(slots);
             // Edit Task: back on the original day the priority is still there and costs nothing; on another day it is gone.
+            const carry = carries(slots);
             if (o.originalChecked && o.originalKey && cb.dataset.dayMemo !== slots.key) {
-                cb.checked = !moved;
+                cb.checked = !moved || carry;
                 cb.dataset.dayMemo = slots.key;
             }
             const free = o.originalChecked && !moved; // the task already owns a slot of this day
             const full = slots.left <= 0 && !free;
+            if (full && cb.checked && !free) cb.checked = false; // first, so a carried tick on a full day ends up disabled too
             if (full && !cb.checked) cb.disabled = true; else cb.disabled = false;
-            if (full && cb.checked && !free) cb.checked = false;
             setText(o.label, labelText(slots.left, perDay, word));
             let hint = '';
-            if (o.originalChecked && moved) hint = full ? CARRY_TEXT + ' ' + fullText(perDay, word) : CARRY_TEXT;
+            if (carry && !full) hint = cb.checked ? CARRY_KEEP_TEXT : '';
+            else if (o.originalChecked && moved) hint = full ? CARRY_TEXT + ' ' + fullText(perDay, word) : CARRY_TEXT;
             else if (full) hint = fullText(perDay, word);
             setText(o.hint, hint);
         }
@@ -235,8 +246,9 @@ const PrioritySlotsView = (() => {
             cb.addEventListener('change', async () => {
                 const slots = currentSlots();
                 const owns = o.originalChecked && !movedDay(slots);
-                // Unticking a priority the task already holds spends nothing back: ask first.
-                if (owns && !cb.checked && !asked && typeof o.confirm === 'function') {
+                // Unticking a priority the task already holds spends nothing back: ask first. Not on a day that has not started
+                // (Planning ahead): there the slot comes back, so there is nothing to warn about.
+                if (owns && !cb.checked && !asked && typeof o.confirm === 'function' && !isOpen(slots && slots.key)) {
                     cb.checked = true;
                     asked = true;
                     let ok = false;
@@ -262,7 +274,7 @@ const PrioritySlotsView = (() => {
 
     return {
         dayWord, leftText, labelText, fullText, pipStates, pipsHtml, momentumMarkHtml, explainerText, render,
-        bindRow, rowHtml, dueFromDateValue, CARRY_TEXT, COVERED_TEXT, KEEP_TEXT, esc,
+        bindRow, rowHtml, dueFromDateValue, CARRY_TEXT, CARRY_KEEP_TEXT, COVERED_TEXT, KEEP_TEXT, esc,
     };
 })();
 

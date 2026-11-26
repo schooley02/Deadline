@@ -240,16 +240,42 @@ const DayPagerView = (() => {
             el.title = `${ghost.name} — ${TimeSlider.formatLabel(ghost.dueTime)}`;
         }
 
+        // Planning ahead (2026-11-26): a priority planned for a later day is a TARGET in the forecast -- a pulsing red
+        // label over the head and a red reticle on the ground (css/dayPager.css). Not a ring: the plain ground ring means
+        // selected / started / family, and is switched off on ghosts anyway.
+        if (DayPager.isForecastTarget && DayPager.isForecastTarget(ghost, viewedDayOffset)) addTargetMarker(el);
+
         // Tap a ghost to see which zombie it is (2026-11-04, Jeremy). stopPropagation: Modal's document click handler
         // would otherwise close the card in the same click.
         el.setAttribute('role', 'button');
-        el.setAttribute('aria-label', ghost.name);
+        el.setAttribute('aria-label', el.classList.contains('forecast-target') ? ghost.name + ' (priority target)' : ghost.name);
         el.addEventListener('click', (e) => {
             e.stopPropagation();
             showGhostCard(ghost, el);
         });
 
         return el;
+    }
+
+    // Reticle: a flat ellipse broken by four crosshair notches + a small centre ellipse, drawn in SVG so the gaps stay crisp.
+    const TARGET_RETICLE_SVG =
+        '<svg viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true" focusable="false">' +
+        '<ellipse class="target-reticle-outer" cx="50" cy="14" rx="46" ry="11" pathLength="100"/>' +
+        '<ellipse class="target-reticle-inner" cx="50" cy="14" rx="15" ry="4"/>' +
+        '<path class="target-reticle-ticks" d="M50 0V7M50 21V28M0 14H12M88 14H100"/>' +
+        '</svg>';
+
+    function addTargetMarker(el) {
+        el.classList.add('forecast-target');
+        const label = document.createElement('span');
+        label.className = 'target-label';
+        label.setAttribute('aria-hidden', 'true');
+        label.textContent = 'TARGET';
+        const mark = document.createElement('span');
+        mark.className = 'target-reticle';
+        mark.innerHTML = TARGET_RETICLE_SVG;
+        el.appendChild(mark);
+        el.appendChild(label);
     }
 
     // The agenda row that belongs to `ghost` on the day on screen (paged list, or that day's section in the
