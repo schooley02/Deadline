@@ -23,9 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
         onOpenMarkers: (id) => openMarkerPanel(id),
         onOpenStats: () => openManagementWindow('stats'),
     });
-    // Achievement village (V7 W2): eight buildings on the horizon hill. Build 2 (2026-10-30): each building's tier is
+    // Achievement village (V7 W2): nine buildings on the horizon hill. Build 2 (2026-10-30): each building's tier is
     // the REAL per-run tier from VillageProgress (a new game = a T1 village); the DEV URL params (?villageTier=,
-    // ?jailTier=, ?armoryTier=, ?radioTier=, ?gymTier=, ?schoolTier=, ?hospitalTier=, ?waterTowerTier= = 1..5 | off)
+    // ?jailTier=, ?armoryTier=, ?radioTier=, ?gymTier=, ?schoolTier=, ?hospitalTier=, ?waterTowerTier=, ?labTier= = 1..5 | off)
     // still override it for art checks. Tapping a building opens its card (js/ui/villageCard.js).
     // The tier maths is cached: it re-runs only when a counter it reads changes (VillageView.render runs every tick).
     const villageCache = { key: null, progress: null, daysKey: null, days: null };
@@ -249,6 +249,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openVillageCard(hit) {
+        // The Lab (kind `goals`) has no card: tapping it opens the Goals window, the inside of the lab (Jeremy 2026-11-25 / 2026-11-26).
+        if (hit.kind === 'goals') {
+            if (ensureGoalsPane()) GoalsPane.open();
+            return;
+        }
         const ctx = villageContext();
         const progress = VillageProgress.compute(ctx);
         VillageCard.open({
@@ -287,6 +292,8 @@ document.addEventListener('DOMContentLoaded', () => {
         getSchoolTier: villageTierDep('heroes', 'schoolTier'),
         getHospitalTier: villageTierDep('habits', 'hospitalTier'),
         getWaterTowerTier: villageTierDep('bestdays', 'waterTowerTier'),
+        // Lab (kind `goals`, wired 2026-11-26): no per-run counter yet, so the real tier is T1 until the star design session; ?labTier= and the DEV star still pick one.
+        getLabTier: villageTierDep('goals', 'labTier'),
         onOpenBuilding: openVillageCard,
     });
     // Run climate (2026-11-03, docs/WORLD_FEEDBACK_PLAN.md "W1 Run climate"): the sky's weather from how the last ~7 CLOSED days

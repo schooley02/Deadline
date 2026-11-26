@@ -418,7 +418,7 @@ describe('Gym (front row) + art-box collision', () => {
     });
 
     test('every kind has an art extent inside its canvas', () => {
-        ['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes', 'habits', 'bestdays'].forEach(k => {
+        ['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes', 'habits', 'bestdays', 'goals'].forEach(k => {
             const [l, r] = CONFIG.VILLAGE_ART_X[k];
             expect(l).toBeGreaterThanOrEqual(0);
             expect(r).toBeGreaterThan(l);
@@ -505,7 +505,7 @@ describe('Gym (front row) + art-box collision', () => {
     // CONFIG.VILLAGE_ART_X must match the real sprites: the union over the five tiers of each kind's visible columns.
     let PNG = null;
     try { PNG = require('pngjs').PNG; } catch (e) { PNG = null; }
-    (PNG ? test : test.skip).each(['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes', 'habits', 'bestdays'])(
+    (PNG ? test : test.skip).each(['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes', 'habits', 'bestdays', 'goals'])(
         'CONFIG.VILLAGE_ART_X.%s equals the union of its five tiers\' visible columns (measured from the PNGs)', kind => {
             let lo = Infinity, hi = -Infinity;
             [1, 2, 3, 4, 5].forEach(t => {
@@ -755,7 +755,7 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
 
     test('rows (Village 2.0 rule 3): front = Gym, Police station, Command Post; back = Hospital, Clock tower, High school; far = Water tower, Broadcast tower', () => {
         const rows = r => Object.keys(P).filter(k => P[k].row === r).sort();
-        expect(rows('front')).toEqual(['defense', 'lurkers', 'slain']);
+        expect(rows('front')).toEqual(['defense', 'goals', 'lurkers', 'slain']); // + the Lab (kind `goals`, wired 2026-11-26, painted behind the Command Post)
         expect(rows('back')).toEqual(['habits', 'heroes', 'punctuality']);
         expect(rows('far')).toEqual(['bestdays', 'nights']);
         const left = r => at(800).filter(x => x.row === r).map(x => x.kind);
@@ -994,5 +994,75 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
         const a = byKind(at(800, 306, { ...ALL8, heroes: 1 }));
         const b = byKind(at(800, 306, { ...ALL8, heroes: 5 }));
         Object.keys(ALL8).filter(k => k !== 'heroes').forEach(k => expect(a[k]).toEqual(b[k]));
+    });
+});
+
+// ---- Lab (kind `goals`), the ninth building, WIRED 2026-11-26 (Jeremy: show it for everyone now, overlap with the graveyard plot accepted) ----
+describe('Lab (front row, painted behind the Command Post)', () => {
+    const slots = (canvasW, canvasH, tiers, baseW = 188, hillW = 120, opts = OPTS) =>
+        VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts);
+    const EIGHT = { punctuality: 3, defense: 3, slain: 3, lurkers: 3, nights: 3, heroes: 3, habits: 3, bestdays: 3 };
+    const ALL = { ...EIGHT, goals: 1 };
+    const kindOf = (list, k) => list.find(s => s.kind === k);
+
+    test('fromConfig mirrors the Lab CONFIG and DEFAULTS agree with it', () => {
+        const d = VillageLayout.DEFAULTS;
+        ['labWidthPx', 'labHeightPx', 'devLabTier'].forEach(k => expect(OPTS[k]).toBe(d[k]));
+        expect(OPTS.labWidthPx).toBe(CONFIG.VILLAGE_LAB_W_PX);
+        expect(OPTS.labHeightPx).toBe(CONFIG.VILLAGE_LAB_H_PX);
+        expect(OPTS.devLabTier).toBe(CONFIG.VILLAGE_DEV_LAB_TIER);
+        expect(d.placement.goals).toEqual(CONFIG.VILLAGE_PLACEMENT.goals);
+        expect(VillageLayout.fromConfig({ VILLAGE_DEV_LAB_TIER: null }).devLabTier).toBeNull();
+        expect(VillageLayout.sizeOf('goals', OPTS)).toEqual([160, 160]);
+    });
+
+    test('resolveDevLabTier reads only ?labTier=', () => {
+        expect(VillageLayout.resolveDevLabTier('', OPTS)).toBe(CONFIG.VILLAGE_DEV_LAB_TIER);
+        expect(VillageLayout.resolveDevLabTier('?labTier=4', OPTS)).toBe(4);
+        expect(VillageLayout.resolveDevLabTier('?labTier=off', OPTS)).toBeNull();
+        expect(VillageLayout.resolveDevLabTier('?waterTowerTier=2', OPTS)).toBe(CONFIG.VILLAGE_DEV_LAB_TIER);
+        expect(VillageLayout.resolveDevWaterTowerTier('?labTier=2', OPTS)).toBe(CONFIG.VILLAGE_DEV_WATERTOWER_TIER);
+    });
+
+    test('on the 800x360 phone the Lab\'s art ends 2px inside the screen, 10px further back than the front row', () => {
+        const lab = kindOf(slots(800, 360, ALL), 'goals');
+        expect(lab).toBeDefined();
+        expect(lab.row).toBe('front');
+        expect(lab.artRight).toBe(798);
+        expect(lab.artLeft).toBe(641);
+        expect(lab.raise).toBe(10);
+        expect(lab.behind).toBe(true);
+        expect(lab.url).toBe('Assets/Village/goals_t1.png');
+        expect([lab.width, lab.height]).toEqual([160, 160]);
+        expect(lab.top).toBe(lab.feetY - lab.height - 10);
+    });
+
+    test('it is painted BEFORE every other front-row building (behind the Command Post)', () => {
+        const front = slots(800, 360, ALL).filter(s => s.row === 'front').map(s => s.kind);
+        expect(front[0]).toBe('goals');
+        expect(front.slice(1)).toEqual(['lurkers', 'defense', 'slain']);
+        expect(kindOf(slots(800, 360, ALL), 'goals').artLeft).toBeGreaterThan(kindOf(slots(800, 360, ALL), 'slain').artLeft);
+    });
+
+    test('adding the Lab never moves or drops another building (every width)', () => {
+        [[640, 334], [700, 334], [760, 334], [800, 360], [844, 334], [1100, 320], [1440, 400]].forEach(([w, h]) => {
+            const without = slots(w, h, EIGHT, w >= 800 ? 188 : 160);
+            const withLab = slots(w, h, ALL, w >= 800 ? 188 : 160).filter(s => s.kind !== 'goals');
+            expect(withLab).toEqual(without);
+        });
+    });
+
+    test('no tier = no Lab; it hides with the village when the plot is gone', () => {
+        expect(kindOf(slots(800, 360, EIGHT), 'goals')).toBeUndefined();
+        expect(slots(800, 360, ALL, 188, 0)).toEqual([]);
+    });
+
+    test.each([1, 2, 3, 4, 5])('shipped goals tier %i exists and is the authored 160x160 canvas', tier => {
+        const file = path.join(__dirname, '..', VillageLayout.spriteUrl('goals', tier));
+        expect(fs.existsSync(file)).toBe(true);
+        const b = fs.readFileSync(file);
+        expect(b.slice(1, 4).toString()).toBe('PNG');
+        expect(b.readUInt32BE(16)).toBe(CONFIG.VILLAGE_LAB_W_PX);
+        expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_LAB_H_PX);
     });
 });

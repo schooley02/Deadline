@@ -41,6 +41,7 @@
  *         getSchoolTier: () => 1..5 or null (kind `heroes`; DEV: CONFIG.VILLAGE_DEV_SCHOOL_TIER / ?schoolTier=; optional),
  *         getHospitalTier: () => 1..5 or null (kind `habits`; DEV: CONFIG.VILLAGE_DEV_HOSPITAL_TIER / ?hospitalTier=; optional),
  *         getWaterTowerTier: () => 1..5 or null (kind `bestdays`, FAR row; DEV: CONFIG.VILLAGE_DEV_WATERTOWER_TIER / ?waterTowerTier=; optional),
+ *         getLabTier: () => 1..5 or null (kind `goals`, FRONT row, painted behind the Command Post; DEV: ?labTier=; optional),
  *         onOpenBuilding: ({ kind, tier, url, width, height }) => void  (a tap landed on a building; optional) }
  * (Since Build 2 the get<Kind>Tier deps return the REAL tier; the DEV params only override it. See VillageLayout.resolveTier.)
  */
@@ -313,8 +314,9 @@ const VillageView = (() => {
             heroes: deps.getSchoolTier ? deps.getSchoolTier() : null,
             habits: deps.getHospitalTier ? deps.getHospitalTier() : null,
             bestdays: deps.getWaterTowerTier ? deps.getWaterTowerTier() : null,
+            goals: deps.getLabTier ? deps.getLabTier() : null,
         };
-        const sig = [hillW, canvasW, canvasH, baseW, tiers.punctuality, tiers.defense, tiers.slain, tiers.nights, tiers.lurkers, tiers.heroes, tiers.habits, tiers.bestdays].join('|');
+        const sig = [hillW, canvasW, canvasH, baseW, tiers.punctuality, tiers.defense, tiers.slain, tiers.nights, tiers.lurkers, tiers.heroes, tiers.habits, tiers.bestdays, tiers.goals].join('|');
         if (sig === lastSig) return;
         lastSig = sig;
         const slots = VillageLayout.villageSlots(canvasW, canvasH, baseW, hillW, tiers, opts);

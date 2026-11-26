@@ -142,6 +142,16 @@ describe('script.js hook-up', () => {
         expect(script).toContain("villageTierDep('bestdays', 'waterTowerTier')"); // real tier, URL param overrides (Build 2)
     });
 
+    test('the Lab (kind `goals`, wired 2026-11-26): tier dep, Goals-window tap, art cached by the service worker', () => {
+        expect(script).toContain('getLabTier:');
+        expect(script).toContain("villageTierDep('goals', 'labTier')"); // no counter yet: T1 until the star design session, ?labTier= overrides
+        expect(script).toMatch(/hit\.kind === 'goals'\)\s*\{\s*if \(ensureGoalsPane\(\)\) GoalsPane\.open\(\);\s*return;/); // the Lab has no card: a tap opens the Goals window
+        [1, 2, 3, 4, 5].forEach(t => {
+            expect(fs.existsSync(path.join(__dirname, '..', `Assets/Village/goals_t${t}.png`))).toBe(true);
+            expect(sw).toContain(`'Assets/Village/goals_t${t}.png'`);
+        });
+    });
+
     test('`lurkers_t*` is the Gym now; the Police station stays `defense_t*`', () => {
         [1, 2, 3, 4, 5].forEach(t => {
             ['lurkers', 'defense'].forEach(k => expect(fs.existsSync(path.join(__dirname, '..', `Assets/Village/${k}_t${t}.png`))).toBe(true));

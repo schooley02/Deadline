@@ -3,7 +3,7 @@
  * (V7 W2, first slice 2026-10-29; docs/ART_STYLE.md "Achievement village art",
  * docs/WORLD_FEEDBACK_PLAN.md W2). No DOM, no State.
  *
- * Eight buildings in three rows (front / back / far), placed by villageSlots from the PLACEMENT
+ * Nine buildings in three rows (front / back / far), placed by villageSlots from the PLACEMENT
  * MODEL (CONFIG.VILLAGE_PLACEMENT, 2026-10-30 night; see its doc comment below). A building whose
  * VISIBLE ART would reach over the church or past the hill is dropped, never moved. (The old
  * per-kind slot helpers and x-fraction keys were removed 2026-10-30.)
@@ -55,10 +55,13 @@ const VillageLayout = (() => {
         waterTowerWidthPx: 128,
         waterTowerHeightPx: 208,
         devWaterTowerTier: 3,
+        labWidthPx: 160,
+        labHeightPx: 160,
+        devLabTier: 1,
         farRowRaisePx: 35,
         farRowBrightness: 0.65,
         devHospitalTier: 3,
-        art: { punctuality: [16, 105], defense: [3, 160], slain: [1, 160], nights: [2, 142], lurkers: [3, 191], heroes: [0, 174], habits: [1, 174], bestdays: [4, 127] },
+        art: { punctuality: [16, 105], defense: [3, 160], slain: [1, 160], nights: [2, 142], lurkers: [3, 191], heroes: [0, 174], habits: [1, 174], bestdays: [4, 127], goals: [2, 159] },
         backRowRaisePx: 60,
         backRowBrightness: 0.8,
         baseTuckPx: 24,
@@ -72,6 +75,7 @@ const VillageLayout = (() => {
             punctuality: { row: 'back', right: -240, drop: 26, sink: 34, overTop: 12 },
             heroes: { row: 'back', right: 20 },
             bestdays: { row: 'far', right: -120, sink: 95 },
+            goals: { row: 'front', right: 118, raise: 10, behind: true },
             nights: { row: 'far', right: 34, sink: 95 },
         },
     };
@@ -109,6 +113,9 @@ const VillageLayout = (() => {
             waterTowerWidthPx: pick(cfg.VILLAGE_WATERTOWER_W_PX, DEFAULTS.waterTowerWidthPx),
             waterTowerHeightPx: pick(cfg.VILLAGE_WATERTOWER_H_PX, DEFAULTS.waterTowerHeightPx),
             devWaterTowerTier: (cfg.VILLAGE_DEV_WATERTOWER_TIER === null) ? null : pick(cfg.VILLAGE_DEV_WATERTOWER_TIER, DEFAULTS.devWaterTowerTier),
+            labWidthPx: pick(cfg.VILLAGE_LAB_W_PX, DEFAULTS.labWidthPx),
+            labHeightPx: pick(cfg.VILLAGE_LAB_H_PX, DEFAULTS.labHeightPx),
+            devLabTier: (cfg.VILLAGE_DEV_LAB_TIER === null) ? null : pick(cfg.VILLAGE_DEV_LAB_TIER, DEFAULTS.devLabTier),
             farRowRaisePx: pick(cfg.VILLAGE_FAR_ROW_RAISE_PX, DEFAULTS.farRowRaisePx),
             farRowBrightness: pick(cfg.VILLAGE_FAR_ROW_BRIGHTNESS, DEFAULTS.farRowBrightness),
             devHospitalTier: (cfg.VILLAGE_DEV_HOSPITAL_TIER === null) ? null : pick(cfg.VILLAGE_DEV_HOSPITAL_TIER, DEFAULTS.devHospitalTier),
@@ -203,6 +210,12 @@ const VillageLayout = (() => {
         return resolveTierParam(search, 'waterTowerTier', o.devWaterTowerTier, o.tiers);
     }
 
+    // Lab (kind `goals`): `?labTier=`
+    function resolveDevLabTier(search, opts) {
+        const o = opts || DEFAULTS;
+        return resolveTierParam(search, 'labTier', o.devLabTier, o.tiers);
+    }
+
     function fieldWidth(canvasW, baseW, hillW) {
         return Math.max(0, (canvasW || 0) - (hillW || 0) - (baseW || 0));
     }
@@ -226,6 +239,7 @@ const VillageLayout = (() => {
             case 'heroes': return [o.schoolWidthPx, o.schoolHeightPx];
             case 'habits': return [o.hospitalWidthPx, o.hospitalHeightPx];
             case 'bestdays': return [o.waterTowerWidthPx, o.waterTowerHeightPx];
+            case 'goals': return [o.labWidthPx, o.labHeightPx];
             default: return [128, 128];
         }
     }
@@ -248,6 +262,8 @@ const VillageLayout = (() => {
      *   sink   px (>= 0) the building may stand LOWER than its row when its canvas would otherwise run off the top of the scene: it drops
      *          only as far as needed, never more than `sink`, and never below the front row's feet (Clock tower, 2026-11-24: for
      *          canvases shorter than the 800x360 phone's). `feetY` stays the row's horizon either way.
+     *   behind true: painted BEFORE the other buildings of its row (under them) instead of in left-to-right order (Lab, 2026-11-26: it stands right
+     *          of the Command Post and the Command Post covers its left end wall). `slot.behind` carries it.
      *   overTop px (>= 0) of the canvas's top rows that may run off the top of the scene before `sink` starts: the building sinks only
      *          until that much is cut (Clock tower 12: on the 800x360 phone its roof tip is cut exactly 12px, as in the mock-up).
      * The church draws OVER the village, so a building's art may start up to baseTuckPx inside the church's box (the Gym, beside the
@@ -309,13 +325,14 @@ const VillageLayout = (() => {
             if (sink > 0) slot.sink = sink;
             if (row !== 'front') { slot.back = true; slot.brightness = bright[row]; }
             if (row === 'far') slot.far = true;
+            if (p.behind) slot.behind = true;
             out.push(slot);
         });
-        out.sort((x, y) => (ROW_ORDER[x.row] - ROW_ORDER[y.row]) || (x.artLeft - y.artLeft));
+        out.sort((x, y) => (ROW_ORDER[x.row] - ROW_ORDER[y.row]) || ((x.behind ? 0 : 1) - (y.behind ? 0 : 1)) || (x.artLeft - y.artLeft));
         return out;
     }
 
-    return { DEFAULTS, fromConfig, clampTier, resolveTier, sizeOf, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, resolveDevHospitalTier, resolveDevWaterTowerTier, fieldWidth, spriteUrl, horizonFeetY, villageSlots };
+    return { DEFAULTS, fromConfig, clampTier, resolveTier, sizeOf, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, resolveDevHospitalTier, resolveDevWaterTowerTier, resolveDevLabTier, fieldWidth, spriteUrl, horizonFeetY, villageSlots };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
