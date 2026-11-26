@@ -5,7 +5,7 @@
  *
  * It shows what the Memorial measures and how the player measures up:
  *   - the current stage's obelisk and "Stage N of 5";
- *   - the rule in one line (the average of the 8 buildings' best-ever tiers, rounded down, never goes down);
+ *   - the rule in one line (the average of the 9 buildings' best-ever tiers, rounded down, never goes down);
  *   - one row per building: its best-ever tier (green pips) and the tier it is at THIS run (gold outline), so it is clear the Memorial
  *     keeps your best even when a new run starts every building back at T1;
  *   - how many tier-ups, in any buildings, reach the next stage (or that it is fully restored).
@@ -15,6 +15,7 @@
  *
  * buildModel(ctx): ctx = {
  *   best,      { [kind]: 1..5 } the saved all-time bests (State.getBestVillageTiers); missing kinds count as T1
+ *   saved,     the saved Memorial stage mark (State.getBestMemorialStage), optional: the stage never drops below it
  *   current?   { [kind]: 1..5 } the tiers of THIS run (script.js realVillageTiers); missing = T1
  * }
  */
@@ -25,7 +26,7 @@ const MemorialPanel = (() => {
     }
 
     const MAX_TIER = 5;
-    const RULE = 'Stands for your best-ever tier in each of your 8 buildings: the average, rounded down. It never goes down.';
+    const RULE = 'Stands for your best-ever tier in each of your 9 buildings: the average, rounded down. It never goes down.';
 
     function tierOr1(map, kind) {
         const t = map && map[kind];
@@ -41,10 +42,10 @@ const MemorialPanel = (() => {
 
     function buildModel(ctx) {
         const c = ctx || {};
-        const p = Memorial.progress(c.best);
+        const p = Memorial.progress(c.best, c.saved);
         const rows = p.kinds.map((k) => ({
             kind: k.kind,
-            name: (VillageCard.KINDS[k.kind] || { name: k.kind }).name,
+            name: (VillageCard.KINDS[k.kind] || { name: k.kind === 'goals' ? 'Lab' : k.kind }).name,
             best: k.best,
             current: tierOr1(c.current, k.kind),
         }));

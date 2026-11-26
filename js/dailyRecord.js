@@ -38,7 +38,7 @@
  *   timer       {kind:'work'|'limit', minutes}
  *   goal        {habitId, type:'time'|'amount'|'note', amount, unit, met, actual}   (v5: an answered habit's goal)
  *   goalClear   {habitId}                                                           (v5: that answer was undone)
- *   pgoal       {climb, drop, met, done, pts, items} (v10 / v11: the player's Goals today -- counts to add; see State.bumpToday)
+ *   pgoal       {climb, drop, met, done, pts, items, credit} (v10 / v11 / v19: the player's Goals today -- counts to add; see State.bumpToday)
  * setGoalActual(rec, habitId, actual) corrects an already-recorded entry's `actual` (v5, an edited logged time).
  * adjustTimer(rec, kind, deltaMin) is the one NON-bump writer: it corrects timer.workMin / limitMin by a signed delta
  * when a logged time is edited (v4), on the item's own day -- today's working record or a closed one.
@@ -97,7 +97,10 @@ const DailyRecord = (() => {
     // (unmark / move / delete give the slot back, both maps); from its rollover a slot stays spent (and planned) even if the task is later moved
     // or unmarked, so a plan that fell through on the day never counts as finished. `pri.m` stays a gross count (a refund never lowers it).
     // Days before v18 read 0.
-    const V = 18;
+    // v19 (2026-11-26, Lab stars; docs/LAB_PLAN.md): `pg.credit` = the Lab credit goals paid that day, in tenths of a person (a recurring period
+    // met on the night its target was reached, a one-time goal's new stage). The Lab's per-run counter sums it (js/villageProgress.js). Days
+    // before v19 read 0.
+    const V = 19;
     // Mirrors Habits.GOAL_UNIT_SUGGESTIONS (test/dailyRecord.test.js checks they match). Kept local: no global dependencies.
     const GOAL_UNITS = ['pages', 'glasses', 'oz', 'steps', 'miles', 'km', 'reps', 'words', 'servings', 'drinks', 'cigarettes', 'cups', '$', 'times'];
     const GOAL_TYPES = ['time', 'amount', 'note'];
@@ -197,7 +200,7 @@ const DailyRecord = (() => {
             // v9: priority slots marked / finished today (see V above).
             pri: { m: 0, d: 0, s: 0, q: 0, p: 0 },
             // v10: the player's Goals today (see V above).
-            pg: { climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 },
+            pg: { climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0, credit: 0 },
             // v12: stretches of ice today (see V above).
             ice: { n: 0, min: 0 },
             // v15: the day's mood check-ins + the month roll-up histogram (see V above).
@@ -544,7 +547,7 @@ const DailyRecord = (() => {
             case 'pgoal': {
                 // A player Goals change: p = { climb, drop, met, done } (counts to add; each a whole number, ignored when not > 0).
                 if (!rec.pg) rec.pg = { climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 };
-                ['climb', 'drop', 'met', 'done', 'pts', 'items'].forEach((k) => {
+                ['climb', 'drop', 'met', 'done', 'pts', 'items', 'credit'].forEach((k) => {
                     const n = Math.floor(Number(p[k]));
                     if (n > 0) rec.pg[k] = (rec.pg[k] || 0) + n;
                 });
@@ -799,7 +802,7 @@ const DailyRecord = (() => {
         dst.pri.q = (dst.pri.q || 0) + ((src.pri && src.pri.q) || 0);
         dst.pri.p = (dst.pri.p || 0) + ((src.pri && src.pri.p) || 0);
         if (!dst.pg) dst.pg = { climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 };
-        ['climb', 'drop', 'met', 'done', 'pts', 'items'].forEach((k) => { dst.pg[k] = (dst.pg[k] || 0) + ((src.pg && src.pg[k]) || 0); });
+        ['climb', 'drop', 'met', 'done', 'pts', 'items', 'credit'].forEach((k) => { dst.pg[k] = (dst.pg[k] || 0) + ((src.pg && src.pg[k]) || 0); });
         if (!dst.ice) dst.ice = { n: 0, min: 0 };
         dst.ice.n += (src.ice && src.ice.n) || 0;
         dst.ice.min += (src.ice && src.ice.min) || 0;

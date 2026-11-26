@@ -64,6 +64,7 @@ const State = (() => {
     let baseHealth, playerXP, playerLevel, playerPoints, routineSlots;
     let bestRoutineSlots = 0; // run-end carryover (2026-11-03): the most routine slots ever held; survives a new run
     let bestPlayerLevel = 0; // sky unlocks (W1d, 2026-11-09): the highest player level ever reached; survives a new run (initGame never touches it)
+    let bestMemorialStage = 0; // Lab plan (2026-11-26): the Memorial stage as a high-water mark, so a ninth building at star 1 cannot lower it (see getBestMemorialStage)
     let bestVillageTiers = {}; // Memorial (2026-11-08, js/memorial.js): each building's all-time best tier { kind: 1..5 }; survives a new run
     let playerInventory = {};
     let sickDayDate = null;
@@ -154,10 +155,20 @@ const State = (() => {
         const next = (typeof Memorial !== 'undefined') ? Memorial.merge(bestVillageTiers, map) : bestVillageTiers;
         const changed = JSON.stringify(next) !== JSON.stringify(bestVillageTiers);
         bestVillageTiers = next;
-        return changed;
+        // The Memorial's stage is a high-water mark of its own (Lab plan): raised whenever the nine-building average passes it, never lowered.
+        const stageBefore = bestMemorialStage;
+        if (typeof Memorial !== 'undefined') bestMemorialStage = Math.max(bestMemorialStage, Memorial.stage(bestVillageTiers));
+        return changed || bestMemorialStage !== stageBefore;
+    };
+    const getBestMemorialStage = () => bestMemorialStage;
+    // Raise-only; anything that is not a whole stage 1..5 is ignored. Returns true when it went up.
+    const raiseBestMemorialStage = (n) => {
+        if (!Number.isInteger(n) || n < 1 || n > 5 || n <= bestMemorialStage) return false;
+        bestMemorialStage = n;
+        return true;
     };
     // The one way DOWN: a dev Reset Game forgets the Memorial's marks too (script.js handleConfirmReset), like bestRoutineSlots.
-    const resetBestVillageTiers = () => { bestVillageTiers = {}; };
+    const resetBestVillageTiers = () => { bestVillageTiers = {}; bestMemorialStage = 0; };
     const getPlayerInventory = () => playerInventory;
     const setPlayerInventory = (obj) => { playerInventory = obj; };
     const getSickDayDate = () => sickDayDate;
@@ -449,6 +460,7 @@ const State = (() => {
             routineSlots: getRoutineSlots(),
             bestRoutineSlots: getBestRoutineSlots(),
             bestVillageTiers: getBestVillageTiers(),
+            bestMemorialStage: getBestMemorialStage(),
             bestPlayerLevel: getBestPlayerLevel(),
             itemIdCounter: getItemIdCounter(),
             gameIsOver: isGameOver(),
@@ -676,8 +688,12 @@ const State = (() => {
         raiseBestPlayerLevel(getPlayerLevel());
         raiseBestPlayerLevel((typeof SkyPick !== 'undefined') ? SkyPick.bestLevelFromHistory(getRunHistory()) : 0);
         resetBestVillageTiers();
+        raiseBestMemorialStage(save.bestMemorialStage); // Lab plan (2026-11-26): the saved Memorial stage mark (it only ever goes up)
         setBestVillageTiers(save.bestVillageTiers);
         setBestVillageTiers((typeof Memorial !== 'undefined') ? Memorial.fromHistory(getRunHistory()) : null);
+        // A save from before the ninth building has no stage mark: seed it from the EIGHT old buildings' marks (the Lab's T1 would lower the
+        // nine-building average), so a stage the player already earned is never lowered.
+        if (typeof Memorial !== 'undefined' && !Number.isInteger(save.bestMemorialStage)) raiseBestMemorialStage(Memorial.legacyStage(getBestVillageTiers()));
         // The lifetime night bank (2026-11-08; Achievements.seedNightsBanked since the graveyard tree left, 2026-11-23): a save from before this field gets the
         // nights of every run still in history (the run in progress counts live, so it is NOT in the seed). A saved number is the truth and is never re-seeded.
         if (typeof restoredLifetimeStats.nightsSurvived !== 'number') {
@@ -1033,9 +1049,9 @@ const State = (() => {
     let goalEvents = [];
     const takeGoalEvents = () => { const out = goalEvents; goalEvents = []; return out; };
 
-    // pg counts (DailyRecord v10): stages climbed / lost, recurring periods met, milestones completed.
+    // pg counts (DailyRecord v10): stages climbed / lost, recurring periods met, milestones completed; v19 adds `credit` (Lab credit, tenths of a person).
     function bumpGoalCounts(counts) {
-        if (counts.climb > 0 || counts.drop > 0 || counts.met > 0 || counts.done > 0 || counts.pts > 0 || counts.items > 0) bumpToday('pgoal', counts);
+        if (counts.climb > 0 || counts.drop > 0 || counts.met > 0 || counts.done > 0 || counts.pts > 0 || counts.items > 0 || counts.credit > 0) bumpToday('pgoal', counts);
     }
 
     // ---- Goal rewards (Build C; CONFIG.GOAL_REWARDS, docs/GOALS_PLAN.md "Build C as built") ----
@@ -1075,7 +1091,7 @@ const State = (() => {
         const item = grantGoalItem(nowMs);
         if (!item) return;
         goals = Object.assign({}, goals, { owed: goals.owed - 1 });
-        bumpGoalCounts({ climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 1 });
+        bumpGoalCounts({ climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 1, credit: 0 });
         goalEvents.push({ type: 'owed', item: { id: item.id, name: item.name } });
         saveGame();
     }
@@ -1091,7 +1107,8 @@ const State = (() => {
         const needsDays = goals.active.some(g => g.kind === 'milestone' && g.targets.some(t => t.type === 'aggregate'));
         const days = needsDays ? loadClosedDays() : {};
         const before = {};
-        goals.active.forEach((g) => { before[g.id] = g.stage; });
+        const beforeGoal = {};
+        goals.active.forEach((g) => { before[g.id] = g.stage; beforeGoal[g.id] = g; });
         const r = Goals.settleMilestones(goals, {
             nowMs,
             runNights: daysSurvived,
@@ -1101,7 +1118,21 @@ const State = (() => {
         });
         if (!r.changed) return [];
         goals = r.goals;
-        const counts = { climb: 0, drop: 0, met: 0, done: r.completed.length, pts: 0, items: 0 };
+        const counts = { climb: 0, drop: 0, met: 0, done: r.completed.length, pts: 0, items: 0, credit: 0 };
+        // Lab credit (docs/LAB_PLAN.md): a one-time goal pays when it reaches a NEW stage, at that moment (a finished goal leaves its slot at once).
+        if (CONFIG.GOAL_CREDIT) {
+            r.completed.forEach((rec) => {
+                if (beforeGoal[rec.id]) counts.credit += Goals.payOneTimeCredit(beforeGoal[rec.id], Goals.MAX_STAGE, nowMs, runStartedAtMs, CONFIG.GOAL_CREDIT).credit;
+            });
+            goals = Object.assign({}, goals, {
+                active: goals.active.map((g) => {
+                    if (g.kind !== 'milestone' || g.stage <= (g.creditStage || 0)) return g;
+                    const p = Goals.payOneTimeCredit(g, g.stage, nowMs, runStartedAtMs, CONFIG.GOAL_CREDIT);
+                    counts.credit += p.credit;
+                    return p.goal;
+                }),
+            });
+        }
         goals.active.forEach((g) => {
             if (before[g.id] === undefined) return;
             if (g.stage > before[g.id]) counts.climb += g.stage - before[g.id];
@@ -1141,7 +1172,7 @@ const State = (() => {
         if (!goals.active.some(g => g.kind === 'recurring')) return [];
         const days = loadClosedDays();
         const all = [];
-        const counts = { climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 };
+        const counts = { climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0, credit: 0 };
         const closed = []; // [{ goal (before), o (outcome) }] in order, for the payouts below
         const active = goals.active.map((goal) => {
             if (goal.kind !== 'recurring') return goal;
@@ -1165,9 +1196,32 @@ const State = (() => {
             });
             return r.goal;
         });
-        const changed = active.some((g, i) => g !== goals.active[i]);
+        // Lab credit (docs/LAB_PLAN.md): a recurring goal pays ONCE per period, on the night its target is reached. (1) every period that
+        // just closed as met pays unless it already did; (2) the open period pays if it is met already (progress through the closed days).
+        let paidActive = active;
+        if (CONFIG.GOAL_CREDIT) {
+            paidActive = active.map((g) => {
+                if (g.kind !== 'recurring') return g;
+                let cur = g;
+                closed.filter(c => c.goal.id === g.id).forEach(({ o }) => {
+                    const p = Goals.payRecurringCredit(cur, o.key, o.met, CONFIG.GOAL_CREDIT);
+                    cur = p.goal; counts.credit += p.credit;
+                });
+                const dayKeys = Goals.periodDayKeys(cur.period, cur.periodKey);
+                if (dayKeys.length > 0) {
+                    const rc = recordsForRange(days, dayKeys[0], dayKeys[dayKeys.length - 1]);
+                    const progress = Goals.goalProgress(cur, { records: rc.records, openKey: rc.openKey, metricValue });
+                    if (progress >= 1 - 1e-9) {
+                        const p = Goals.payRecurringCredit(cur, cur.periodKey, true, CONFIG.GOAL_CREDIT);
+                        cur = p.goal; counts.credit += p.credit;
+                    }
+                }
+                return cur;
+            });
+        }
+        const changed = paidActive.some((g, i) => g !== goals.active[i]);
         if (!changed) return all;
-        goals = Object.assign({}, goals, { active });
+        goals = Object.assign({}, goals, { active: paidActive });
         // Payouts: a met period pays a share of the points earned in it (+ streak bonus); a monthly one also earns the item.
         closed.forEach(({ goal, o }) => {
             let pts = 0;
@@ -1294,10 +1348,10 @@ const State = (() => {
         activeItems.forEach((item) => { if (sameKey(item.goalId, goalId)) clearItemLink(item); });
     }
 
-    /** Adds a goal from the form into the next free slot. Returns { ok, goal } or { ok: false, reason: 'invalid' | 'full' }. */
+    /** Adds a goal from the form into the next free slot. Returns { ok, goal } or { ok: false, reason: 'invalid' | 'full' | 'dailyFull' }. */
     function addGoal(fields, links, now) {
         if (!goalsReady()) return { ok: false, reason: 'invalid' };
-        const r = Goals.addGoal(goals, fields, goalSlotCount(), toMs(now), CONFIG.GOAL_WEEK_STARTS_ON);
+        const r = Goals.addGoal(goals, fields, goalSlotCount(), toMs(now), CONFIG.GOAL_WEEK_STARTS_ON, CONFIG.GOAL_DAILY_MAX);
         if (!r.ok) return { ok: false, reason: r.reason };
         goals = r.goals;
         syncItemLinks(r.goal.id, links);
@@ -1429,7 +1483,7 @@ const State = (() => {
         getPlayerPoints, setPlayerPoints,
         getRoutineSlots, setRoutineSlots,
         getBestRoutineSlots, setBestRoutineSlots, slotsForLevel,
-        getBestVillageTiers, setBestVillageTiers, resetBestVillageTiers,
+        getBestVillageTiers, setBestVillageTiers, resetBestVillageTiers, getBestMemorialStage, raiseBestMemorialStage,
         getBestPlayerLevel, resetBestPlayerLevel,
         getPlayerInventory, setPlayerInventory,
         getSickDayDate, setSickDayDate,

@@ -40,8 +40,8 @@ afterAll(() => { delete global.Persistence; });
 
 describe('DailyRecord v10 / v11: pg', () => {
     test('version 11 and a fresh record starts with an all-zero pg', () => {
-        expect(DailyRecord.V).toBe(18);
-        expect(DailyRecord.fresh().pg).toEqual({ climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 });
+        expect(DailyRecord.V).toBe(19);
+        expect(DailyRecord.fresh().pg).toEqual({ climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0, credit: 0 });
     });
     test("the 'pgoal' event adds whole counts and ignores junk", () => {
         const rec = DailyRecord.fresh();
@@ -49,12 +49,12 @@ describe('DailyRecord v10 / v11: pg', () => {
         DailyRecord.bump(rec, 'pgoal', { climb: 1, drop: 1, done: 1 });
         DailyRecord.bump(rec, 'pgoal', { climb: -3, drop: 'x', met: NaN, done: 0.4 });
         DailyRecord.bump(rec, 'pgoal');
-        expect(rec.pg).toEqual({ climb: 3, drop: 1, met: 1, done: 1, pts: 0, items: 0 });
+        expect(rec.pg).toEqual({ climb: 3, drop: 1, met: 1, done: 1, pts: 0, items: 0, credit: 0 });
     });
     test('an old record (no pg) is repaired by normalize, and a stored pg survives it', () => {
         const old = DailyRecord.fresh({ date: '2026-11-01' });
         delete old.pg;
-        expect(DailyRecord.normalize(old).pg).toEqual({ climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 });
+        expect(DailyRecord.normalize(old).pg).toEqual({ climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0, credit: 0 });
         const kept = DailyRecord.fresh({ date: '2026-11-01' });
         kept.pg = { climb: 4, drop: 2, met: 1, done: 3 };
         expect(DailyRecord.normalize(kept).pg).toMatchObject({ climb: 4, drop: 2, met: 1, done: 3 });
@@ -65,7 +65,7 @@ describe('DailyRecord v10 / v11: pg', () => {
         let store = DailyRecord.addDay(DailyRecord.addDay(null, a), b);
         store = DailyRecord.rollUp(store, new Date(2026, 10, 5));
         expect(store.days['2024-01-03']).toBeUndefined();
-        expect(store.months['2024-01'].pg).toEqual({ climb: 3, drop: 1, met: 1, done: 1, pts: 0, items: 0 });
+        expect(store.months['2024-01'].pg).toEqual({ climb: 3, drop: 1, met: 1, done: 1, pts: 0, items: 0, credit: 0 });
     });
 });
 
@@ -204,7 +204,7 @@ describe('linked targets: the Items -> State hook', () => {
         const info = { goalId: goal.id, goalTargetId: goal.targets[0].id, type: 'task', definitionId: null, routineId: null };
         State.applyGoalCompletion(info, +1, NOON(2026, 11, 5)); // 0 -> 2
         State.applyGoalCompletion(info, +1, NOON(2026, 11, 5)); // 2 -> done (5): +3
-        expect(State.getToday().pg).toEqual({ climb: 5, drop: 0, met: 0, done: 1, pts: 0, items: 0 });
+        expect(State.getToday().pg).toEqual({ climb: 5, drop: 0, met: 0, done: 1, pts: 0, items: 0, credit: 0 });
     });
 
     // Items.completeItem / uncompleteItem need a full DOM to run, so the hook is pinned at source level here (the behaviour behind it is
@@ -278,7 +278,7 @@ describe('the period close inside performDayRollover', () => {
         fakePersistence({ '2026-11-03': dayRec('2026-11-03', { done: Object.assign(DailyRecord.fresh().done, { task: 5 }) }) });
         State.setToday(dayRec('2026-11-09'));
         State.closeGoalPeriods(NOON(2026, 11, 9));
-        expect(State.getToday().pg).toEqual({ climb: 1, drop: 0, met: 1, done: 0, pts: 0, items: 0 });
+        expect(State.getToday().pg).toEqual({ climb: 1, drop: 0, met: 1, done: 0, pts: 0, items: 0, credit: 10 });
     });
     test('an app closed for weeks closes each missed period in order', () => {
         weeklyGoal();

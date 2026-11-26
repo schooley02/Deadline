@@ -26,7 +26,7 @@
  */
 const VillageDrops = (() => {
     // Same order as VillageProgress.KINDS (test checks), so a multi-building payout always lists in the same order.
-    const KINDS = ['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes', 'habits', 'bestdays'];
+    const KINDS = ['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes', 'habits', 'bestdays', 'goals'];
     const MIN_STAR = 2;
     const MAX_STAR = 5;
 

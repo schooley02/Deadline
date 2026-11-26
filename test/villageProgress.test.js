@@ -2,7 +2,7 @@
  * VillageProgress pure-core tests (Build 1, 2026-10-30; docs/WORLD_FEEDBACK_PLAN.md
  * "Village tiers + building cards", DECISIONS 2026-10-30 night).
  *
- * Covers: threshold parity with CONFIG, tierFor edges, each of the eight per-run counters
+ * Covers: threshold parity with CONFIG, tierFor edges, each of the nine per-run counters
  * (including the run filter, the open day, and the "no history" edges), the flavour extras,
  * and the DailyRecord routine-attendance tally that feeds the High school.
  */
@@ -48,9 +48,9 @@ describe('thresholds', () => {
             expect(t[0]).toBeGreaterThan(0);
         });
     });
-    test('the eight kinds match the village kinds', () => {
+    test('the nine kinds match the village kinds', () => {
         expect(VillageProgress.KINDS.slice().sort()).toEqual(
-            ['bestdays', 'defense', 'habits', 'heroes', 'lurkers', 'nights', 'punctuality', 'slain']);
+            ['bestdays', 'defense', 'goals', 'habits', 'heroes', 'lurkers', 'nights', 'punctuality', 'slain']);
     });
     test('config defaults the module mirrors', () => {
         expect(CONFIG.VILLAGE_DEFENSE_HELD_FRAC).toBe(0.75);
@@ -320,7 +320,7 @@ describe('DailyRecord routine attendance (feeds the High school)', () => {
     function rec() { return DailyRecord.fresh({ date: '2026-11-01', run: RUN }); }
 
     test('v2 and a zeroed att / empty rt on a fresh record', () => {
-        expect(DailyRecord.V).toBe(18); // v18 (Planning ahead: pri.p); v17 (Not needed passes: ne); v16 (Journal: notes); v15 (Mood check-in: mood, moodHist); v14 (Momentum Build A: pri.q); v13 (Sub-task credit: missed.subtask); v12 (Iced zombies: ice); v11 (Goals Build C: pg.pts / items); v10 (Goals: pg); v9 (Priority slots: pri); v8 (Timer sessions: tcorr); v7 Village tier drops: drops; v6 Pushback charges Build B: pb; v5 goals; v4 was Build 2c timer edits
+        expect(DailyRecord.V).toBe(19); // v19 (Lab stars: pg.credit); v18 (Planning ahead: pri.p); v17 (Not needed passes: ne); v16 (Journal: notes); v15 (Mood check-in: mood, moodHist); v14 (Momentum Build A: pri.q); v13 (Sub-task credit: missed.subtask); v12 (Iced zombies: ice); v11 (Goals Build C: pg.pts / items); v10 (Goals: pg); v9 (Priority slots: pri); v8 (Timer sessions: tcorr); v7 Village tier drops: drops; v6 Pushback charges Build B: pb; v5 goals; v4 was Build 2c timer edits
         const r = rec();
         expect(r.att).toEqual({ active: 0, perfect: 0 });
         expect(r.rt).toEqual({});

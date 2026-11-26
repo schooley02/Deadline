@@ -16,7 +16,7 @@ global.VillageCard = VillageCard;
 
 const root = path.join(__dirname, '..');
 const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8').replace(/\r\n/g, '\n');
-const ALL_KINDS = ['nights', 'slain', 'punctuality', 'habits', 'lurkers', 'defense', 'heroes', 'bestdays'];
+const ALL_KINDS = ['nights', 'slain', 'punctuality', 'habits', 'lurkers', 'defense', 'heroes', 'bestdays', 'goals'];
 const all = (t) => Object.fromEntries(ALL_KINDS.map((k) => [k, t]));
 
 describe('buildModel', () => {
@@ -24,16 +24,16 @@ describe('buildModel', () => {
         const m = MemorialPanel.buildModel({ best: {}, current: {} });
         expect(m.rows.map((r) => r.kind)).toEqual(Memorial.KINDS);
         expect([...Memorial.KINDS].sort()).toEqual([...ALL_KINDS].sort());
-        m.rows.forEach((r) => expect(r.name).toBe(VillageCard.KINDS[r.kind].name));
+        m.rows.forEach((r) => expect(r.name).toBe((VillageCard.KINDS[r.kind] || { name: 'Lab' }).name)); // the Lab has no card (a tap opens the Goals window)
     });
 
-    test('a fresh game: stage 1, every building at T1, 8 tier-ups to Stage 2', () => {
+    test('a fresh game: stage 1, every building at T1, 9 tier-ups to Stage 2', () => {
         const m = MemorialPanel.buildModel({ best: {}, current: {} });
         expect(m.stage).toBe(1);
-        expect(m.sum).toBe(8);
-        expect(m.max).toBe(40);
-        expect(m.toNextStage).toBe(8);
-        expect(m.nextText).toBe('8 more tier-ups, in any buildings, reach Stage 2.');
+        expect(m.sum).toBe(9);
+        expect(m.max).toBe(45);
+        expect(m.toNextStage).toBe(9);
+        expect(m.nextText).toBe('9 more tier-ups, in any buildings, reach Stage 2.');
         m.rows.forEach((r) => { expect(r.best).toBe(1); expect(r.current).toBe(1); });
     });
 
@@ -48,12 +48,12 @@ describe('buildModel', () => {
     });
 
     test('the stage and the tier-ups come from Memorial.progress (same numbers the hill uses)', () => {
-        const best = { slain: 4, nights: 3, punctuality: 3, habits: 2, lurkers: 2, defense: 2, heroes: 2, bestdays: 1 }; // sum 19
+        const best = { slain: 4, nights: 3, punctuality: 3, habits: 2, lurkers: 2, defense: 2, heroes: 2, bestdays: 1 }; // sum 19 + the Lab at T1 = 20
         const m = MemorialPanel.buildModel({ best, current: {} });
         expect(m.stage).toBe(Memorial.stage(best));
         expect(m.stage).toBe(2);
-        expect(m.toNextStage).toBe(5); // 24 - 19
-        expect(m.nextText).toBe('5 more tier-ups, in any buildings, reach Stage 3.');
+        expect(m.toNextStage).toBe(7); // 27 - 20
+        expect(m.nextText).toBe('7 more tier-ups, in any buildings, reach Stage 3.');
     });
 
     test('one tier-up away reads in the singular', () => {
@@ -64,6 +64,14 @@ describe('buildModel', () => {
         const m = MemorialPanel.buildModel({ best: near, current: {} });
         expect(m.stage).toBe(2);
         expect(m.nextText).toBe('1 more tier-up, in any buildings, reaches Stage 3.');
+    });
+
+    test('the saved stage mark (Lab plan) keeps the stage: eight buildings at T3 and the Lab at T1 still read the stage already earned', () => {
+        const eight = Object.fromEntries(Memorial.LEGACY_KINDS.map((k) => [k, 3]));
+        expect(MemorialPanel.buildModel({ best: eight, current: {} }).stage).toBe(2); // the plain nine-building average
+        const m = MemorialPanel.buildModel({ best: eight, saved: 3, current: {} });
+        expect(m.stage).toBe(3);
+        expect(m.toNextStage).toBe(36 - 25);
     });
 
     test('stage 5 is fully restored with nothing left to climb', () => {
@@ -97,10 +105,10 @@ describe('panelHtml', () => {
         expect(d.querySelector('.mp-sprite').dataset.stage).toBe('3');
     });
 
-    test('eight rows, each with five pips: green up to the best, a gold ring on this run\'s tier', () => {
+    test('nine rows, each with five pips: green up to the best, a gold ring on this run\'s tier', () => {
         const d = doc({ best: { slain: 4 }, current: { slain: 2 } });
         const rows = d.querySelectorAll('.mp-row');
-        expect(rows).toHaveLength(8);
+        expect(rows).toHaveLength(9);
         const slain = [...rows].find((r) => r.querySelector('.mp-name').textContent === 'Command Post');
         const pips = [...slain.querySelectorAll('.mp-pip')];
         expect(pips).toHaveLength(5);

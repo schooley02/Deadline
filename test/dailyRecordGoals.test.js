@@ -10,9 +10,9 @@ const amountEntry = (o) => Object.assign({ habitId: 'h1', type: 'amount', amount
 
 describe('v5 shape', () => {
     test('version is 10 (v6 adds pb, v7 adds drops, v8 adds tcorr, v9 adds pri, v10 adds pg) and a fresh record starts with an empty goals map', () => {
-        expect(DailyRecord.V).toBe(18);
+        expect(DailyRecord.V).toBe(19);
         const r = rec();
-        expect(r.v).toBe(18);
+        expect(r.v).toBe(19);
         expect(r.goals).toEqual({});
     });
 
@@ -169,10 +169,10 @@ describe('settings round trip for the evening time', () => {
 describe('v11: pg carries the goal bonus points and items (Goals Build C)', () => {
     test('a fresh record starts them at zero, pgoal adds them, and an older (v10) record gains them on the first bump', () => {
         const r = DailyRecord.fresh('2026-11-05');
-        expect(r.pg).toEqual({ climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0 });
+        expect(r.pg).toEqual({ climb: 0, drop: 0, met: 0, done: 0, pts: 0, items: 0, credit: 0 });
         DailyRecord.bump(r, 'pgoal', { pts: 12, items: 1, met: 1 });
         DailyRecord.bump(r, 'pgoal', { pts: 3.9, items: -2, nope: 5 });
-        expect(r.pg).toEqual({ climb: 0, drop: 0, met: 1, done: 0, pts: 15, items: 1 });
+        expect(r.pg).toEqual({ climb: 0, drop: 0, met: 1, done: 0, pts: 15, items: 1, credit: 0 });
         const old = DailyRecord.fresh('2026-11-04');
         old.pg = { climb: 1, drop: 0, met: 0, done: 0 }; // a v10 day
         DailyRecord.bump(old, 'pgoal', { pts: 4 });

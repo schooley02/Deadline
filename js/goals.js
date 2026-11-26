@@ -382,6 +382,10 @@ const Goals = (() => {
             history,
             completedAt: isNum(raw.completedAt) ? raw.completedAt : null,
         };
+        // Lab credit markers (docs/LAB_PLAN.md): the last recurring period key paid, the highest one-time stage paid, and when it was paid.
+        if (kind === 'recurring' && typeof raw.creditKey === 'string' && validKey(period, raw.creditKey)) goal.creditKey = raw.creditKey;
+        if (kind === 'milestone' && isInt(raw.creditStage) && raw.creditStage > 0) goal.creditStage = clamp(raw.creditStage, 0, MAX_STAGE);
+        if (kind === 'milestone' && isNum(raw.creditAt) && raw.creditAt >= 0) goal.creditAt = raw.creditAt;
         if (raw.suggested === true) goal.suggested = true;
         const reward = str(raw.reward, REWARD_MAX);
         if (reward) goal.reward = reward;
@@ -452,14 +456,56 @@ const Goals = (() => {
 
     /**
      * Puts a new goal in the next free slot. `slots` = how many the player has. Returns { ok, goals, reason }:
-     * reason 'invalid' (no name, no targets, a bad kind or period) or 'full' (every slot used).
+     * reason 'invalid' (no name, no targets, a bad kind or period), 'full' (every slot used) or 'dailyFull' (`dailyMax` daily goals already
+     * open; Lab credit rules, docs/LAB_PLAN.md; omit `dailyMax` for no cap).
      */
-    function addGoal(goals, fields, slots, nowMs, weekStartsOn) {
+    /** How many open goals repeat every day. */
+    function dailyGoalCount(goals) {
+        return goals && Array.isArray(goals.active) ? goals.active.filter(g => g.kind === 'recurring' && g.period === 'day').length : 0;
+    }
+
+    // ---------------------------------------------------------------- Lab credit (docs/LAB_PLAN.md)
+
+    /**
+     * Credit (tenths of a person) a recurring goal earns when its period `key` is met. Once per period: a goal that already paid this key
+     * (or a later one) pays 0. `rates` = CONFIG.GOAL_CREDIT. Returns { goal, credit }; the input is not mutated.
+     */
+    function payRecurringCredit(goal, key, met, rates) {
+        if (!goal || goal.kind !== 'recurring' || !met || !validKey(goal.period, key)) return { goal, credit: 0 };
+        if (typeof goal.creditKey === 'string' && goal.creditKey >= key) return { goal, credit: 0 };
+        const credit = rates && isInt(rates[goal.period]) && rates[goal.period] > 0 ? rates[goal.period] : 0;
+        return { goal: Object.assign({}, goal, { creditKey: key }), credit };
+    }
+
+    /**
+     * Credit for a one-time goal that reached `stage` at `nowMs`. Each stage pays once (`creditStage` is a high-water mark). The credit is
+     * `round(oneTimePerWeek * days / 7)`, days = time since the LATER of the goal's creation, its last paid stage and the start of this run
+     * (`runStartMs`, null = no run clamp), so a goal cannot pay more than the time it was open and stages jumped at once share one span.
+     * Returns { goal, credit }; the input is not mutated. A stage that pays 0 still moves the marker.
+     */
+    function payOneTimeCredit(goal, stage, nowMs, runStartMs, rates) {
+        if (!goal || goal.kind !== 'milestone' || !isNum(nowMs)) return { goal, credit: 0 };
+        const s = clamp(Math.floor(Number(stage) || 0), 0, MAX_STAGE);
+        const paid = isInt(goal.creditStage) ? goal.creditStage : 0;
+        if (s <= paid) return { goal, credit: 0 };
+        let from = isNum(goal.creditAt) ? goal.creditAt : goal.createdAt;
+        if (isNum(goal.createdAt) && goal.createdAt > from) from = goal.createdAt;
+        if (isNum(runStartMs) && runStartMs > from) from = runStartMs;
+        const days = Math.max(0, (nowMs - from) / DAY_MS);
+        const perWeek = rates && isNum(rates.oneTimePerWeek) && rates.oneTimePerWeek > 0 ? rates.oneTimePerWeek : 0;
+        const credit = Math.round(perWeek * days / 7);
+        return { goal: Object.assign({}, goal, { creditStage: s, creditAt: nowMs }), credit };
+    }
+
+    function addGoal(goals, fields, slots, nowMs, weekStartsOn, dailyMax) {
         const list = goals || freshGoals();
         if (!fields || typeof fields !== 'object' || !str(fields.name, NAME_MAX)) return { ok: false, goals: list, reason: 'invalid' };
         const goal = newGoal(Object.assign({}, fields, { id: list.nextId }), nowMs, weekStartsOn, list.nextId);
         if (!goal) return { ok: false, goals: list, reason: 'invalid' };
         if (list.active.length >= slots) return { ok: false, goals: list, reason: 'full' };
+        if (goal.kind === 'recurring' && goal.period === 'day' && isInt(dailyMax) && dailyMax >= 0 && dailyGoalCount(list) >= dailyMax) {
+            return { ok: false, goals: list, reason: 'dailyFull' };
+        }
         return {
             ok: true,
             goal,
@@ -940,6 +986,7 @@ const Goals = (() => {
         applyCompletion, closePeriods, settleMilestones, retireGoal, recordFor,
         targetDetail, viewFor, updateTarget, nextUnlockLevel,
         editGoal, setLinkedTotal, isLinkableTask,
+        dailyGoalCount, payRecurringCredit, payOneTimeCredit,
         periodBonus, itemStatus, itemPayable, cooldownOver, claimReward, keepGoal, sameDefinitions,
     };
 })();

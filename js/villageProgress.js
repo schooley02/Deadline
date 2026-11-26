@@ -18,6 +18,8 @@
  *   bestdays     Water tower   planned days (Jeremy, 2026-11-25): every priority slot of the day was SET AHEAD (DailyRecord v18 `pri.p`) and at
  *                              least two priorities were finished (`pri.d`). A perfect plan (all slots finished) is a card line, never a star
  *
+ *   goals        Lab           Lab credit (tenths of a person cured; DailyRecord v19 `pg.credit`, closed days + the open day). docs/LAB_PLAN.md
+ *
  * Same pattern as runStats.js / dailyRecord.js: pure functions, no DOM, no State or CONFIG reads
  * (the caller passes everything in), so it is unit-tested directly. Day-based counters use this
  * run's CLOSED daily records (a day only counts once it can no longer change); `punctuality` also
@@ -35,7 +37,7 @@
  *     defenseFrac?, prioritySlots?, plannedMinDone? }   defaults mirror CONFIG
  */
 const VillageProgress = (() => {
-    const KINDS = ['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes', 'habits', 'bestdays'];
+    const KINDS = ['punctuality', 'defense', 'slain', 'nights', 'lurkers', 'heroes', 'habits', 'bestdays', 'goals'];
 
     // Mirrors CONFIG.VILLAGE_TIER_THRESHOLDS (test/villageProgress.test.js checks they match).
     const DEFAULT_THRESHOLDS = {
@@ -47,6 +49,7 @@ const VillageProgress = (() => {
         defense: [3, 14, 40, 80],
         heroes: [10, 75, 300, 750],
         bestdays: [2, 5, 15, 30],
+        goals: [10, 60, 180, 400],
     };
     const DEFAULT_DEFENSE_FRAC = 0.75;
     const DEFAULT_PRIORITY_SLOTS = 3; // mirrors CONFIG.PRIORITY_SLOTS_PER_DAY (the Command Post's daily cap)
@@ -96,6 +99,8 @@ const VillageProgress = (() => {
     }
     /** Command Post: priority tasks finished that day (DailyRecord v9 `pri.d`), capped at the daily slot count. Days before v9 count 0. */
     function priorityDone(r, cap) { return Math.min(num(r && r.pri && r.pri.d), cap); }
+    /** Lab credit a day recorded (DailyRecord v19 `pg.credit`, tenths of a person); days before v19 count 0. */
+    function creditOf(r) { return num(r && r.pg && r.pg.credit); }
     function onTimeTotal(r) { return Math.max(0, doneTotal(r) - num(r && r.done && r.done.late)); }
 
     function dayIndex(dateStr) {
@@ -184,7 +189,7 @@ const VillageProgress = (() => {
         };
     }
 
-    /** The eight per-run counter values, keyed by building kind. */
+    /** The nine per-run counter values, keyed by building kind. */
     function counters(ctx) {
         const c = ctx || {};
         const o = opts(c);
@@ -206,6 +211,8 @@ const VillageProgress = (() => {
             heroes: days.reduce((sum, r) => sum + starsTotal(r), 0),
             // Water tower (2026-11-25): planned days, from the closed days only (`pri.p` is written at close).
             bestdays: plannedDays(days, o.prioritySlots, o.plannedMinDone).planned,
+            // Lab (2026-11-26, docs/LAB_PLAN.md): Lab credit (tenths of a person cured) goals paid in this run: closed days' `pg.credit` plus the open day's.
+            goals: days.reduce((s, r) => s + creditOf(r), 0) + (today ? creditOf(today) : 0),
         };
     }
 

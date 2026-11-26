@@ -744,6 +744,9 @@ const CONFIG = {
         // THEORY PASS: ~85% completion, routines added as slots unlock (1 routine at the start, max 4 at Lv3/5/7) -> T2 about the end
         // of week 1, T3 ~3 weeks, T4 ~7 weeks, T5 ~100 days (the Radio tower's pace). Re-check with real play data.
         heroes: [10, 75, 300, 750],
+        // Lab (docs/LAB_PLAN.md, DESIGNED 2026-11-26, THEORY numbers): people cured this run, counted in tenths ("credit", GOAL_CREDIT): stars 2-5 at
+        // 1 / 6 / 18 / 40 people. Pacing for a player with 3-4 goals going reasonably well: star 2 first days, 3 about 2-3 weeks, 4 about 6-8 weeks, 5 3+ months.
+        goals: [10, 60, 180, 400],
         bestdays: [2, 5, 15, 30],         // Water tower (was the Windmill): planned days (every priority slot set ahead + at least 2 finished; Jeremy 2026-11-25). Same ladder as the heavy-day days it replaced; re-check with real play data
     },
     VILLAGE_DEFENSE_HELD_FRAC: 0.75, // a night counts for the Police station when the church ends the day at >= this fraction of MAX_BASE_HEALTH
@@ -1003,6 +1006,11 @@ const CONFIG = {
     // `bestRoutineSlots` precedent), so a lost run never takes a slot back. Even levels only: a goal slot never lands on the same
     // level-up as a routine slot (odd levels). Every level has an entry and the table never decreases (a test checks).
     // A balance number: change it only via the balance-tuning process (DECISIONS).
+    // Lab credit (docs/LAB_PLAN.md; DECIDED 2026-11-26, THEORY numbers, balance process). Counted in tenths of a person. A recurring goal pays
+    // day / week / month once per period, on the night its target is reached; a one-time goal pays oneTimePerWeek per week open (since the later of
+    // its creation, its last paid stage and the start of the run) each time it reaches a NEW stage. perPerson = credit per person cured (display).
+    GOAL_CREDIT: { day: 1, week: 10, month: 50, oneTimePerWeek: 12, perPerson: 10 },
+    GOAL_DAILY_MAX: 2, // at most this many daily goals at once (checked when a goal is added)
     GOAL_SLOTS_PER_LEVEL: { 1: 2, 2: 3, 3: 3, 4: 4, 5: 4, 6: 5, 7: 5, 8: 6, 9: 6 },
     // First day of a "Every week" goal's week: 0 = Sunday, 1 = Monday. (A Settings row later, if asked.)
     GOAL_WEEK_STARTS_ON: 1,

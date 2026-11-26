@@ -173,9 +173,9 @@ describe('owed', () => {
         expect(rows.map(r => r.kind + ':' + r.star)).toEqual(['punctuality:2', 'punctuality:3', 'nights:2', 'bestdays:2']);
     });
 
-    test('a fully rebuilt village owes the whole table: 8 buildings x 4 stars', () => {
+    test('a fully rebuilt village owes the whole table: 9 buildings x 4 stars', () => {
         const t = {}; VillageDrops.KINDS.forEach(k => { t[k] = 5; });
-        expect(VillageDrops.owed(t, {}, TABLE)).toHaveLength(32);
+        expect(VillageDrops.owed(t, {}, TABLE)).toHaveLength(36);
     });
 
     test('unknown kinds, missing kinds and junk tiers are ignored or clamped', () => {
@@ -347,10 +347,10 @@ describe('balance pin (theory pass, 2026-11-03)', () => {
         ['lurkers', 'habits', 'nights'].forEach(k => expect(value(k, 5)).toBe(200));
     });
 
-    test('a fully rebuilt village pays 1,780 points of items in total (5 x 185 + 3 x 285)', () => {
+    test('a fully rebuilt village pays 1,965 points of items in total (6 x 185 + 3 x 285; the Lab, the ninth building, is on the default ladder)', () => {
         const t = {}; VillageDrops.KINDS.forEach(k => { t[k] = 5; });
         const r = settle({ tiers: t });
-        expect(r.granted.reduce((n, g) => n + g.value, 0)).toBe(1780);
+        expect(r.granted.reduce((n, g) => n + g.value, 0)).toBe(1965);
     });
 
     test('the harder the star, the more the item is worth (never a cheaper prize later), for every building', () => {

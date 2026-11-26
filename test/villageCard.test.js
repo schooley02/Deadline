@@ -40,7 +40,7 @@ describe('buildModel', () => {
     });
 
     test('every building kind has a name, a unit, what it measures and why it helps the player', () => {
-        VillageProgress.KINDS.forEach(k => {
+        VillageProgress.KINDS.filter(k => k !== 'goals').forEach(k => { // the Lab has no card: a tap opens the Goals window (docs/LAB_PLAN.md)
             const meta = VillageCard.KINDS[k];
             expect(meta).toBeTruthy();
             expect(meta.name.length).toBeGreaterThan(0);

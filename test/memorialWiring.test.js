@@ -92,7 +92,7 @@ describe('script.js hooks', () => {
         const i = script.indexOf('function memorialStageNow()');
         expect(i).toBeGreaterThan(0);
         const body = script.slice(i, script.indexOf('\n    }\n', i));
-        expect(body).toContain('Memorial.stage(State.getBestVillageTiers())');
+        expect(body).toContain('Memorial.stage(State.getBestVillageTiers(), State.getBestMemorialStage())');
         expect(body).toContain("'memorialTier'");
         expect(body).toContain('DevDemo.villageTier()');
     });
@@ -174,6 +174,25 @@ describe('State: bestVillageTiers high-water mark', () => {
         expect(seeded).toBeGreaterThan(saved);
         // and the history is restored earlier in the same function, so the seed reads the real runs:
         expect(src.indexOf("setRunHistory(Array.isArray(save.runHistory)")).toBeLessThan(saved);
+    });
+
+    test('restore: the saved stage mark is read, and a save without one is seeded from the eight old buildings AFTER the marks are merged (Lab plan)', () => {
+        const src = read('js/state.js');
+        const merged = src.indexOf('Memorial.fromHistory(getRunHistory())');
+        const seed = src.indexOf('Memorial.legacyStage(getBestVillageTiers())');
+        expect(src).toContain('raiseBestMemorialStage(save.bestMemorialStage);');
+        expect(seed).toBeGreaterThan(merged);
+        expect(src).toContain('bestMemorialStage: getBestMemorialStage(),');
+    });
+
+    test('the stage mark: seeded from eight marks it keeps the stage, a Lab star then lifts the average', () => {
+        State.setBestVillageTiers(Object.fromEntries(Memorial.LEGACY_KINDS.map((k) => [k, 3])));
+        expect(State.getBestMemorialStage()).toBe(2); // the nine-building average alone (the Lab is T1)
+        State.raiseBestMemorialStage(Memorial.legacyStage(State.getBestVillageTiers())); // what a pre-Lab save's restore does
+        expect(State.getBestMemorialStage()).toBe(3);
+        State.setBestVillageTiers({ goals: 5 });
+        expect(Memorial.stage(State.getBestVillageTiers(), State.getBestMemorialStage())).toBe(3); // 8 x 3 + 5 = 29 -> 3
+        expect(State.getBestMemorialStage()).toBe(3);
     });
 
     test('seeding an old save: the best peak per kind over its history', () => {

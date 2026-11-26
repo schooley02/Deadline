@@ -4,6 +4,36 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-26 (Lab stars Build A) -- Claude app session, Sonnet 5.5; Jeremy ("yes start A")
+
+- **Build A of `docs/LAB_PLAN.md` is built: engine and data, no new screen.** The Lab's stars are now real in the game. The numbers from the design pass go into `js/config.js` as approved: `GOAL_CREDIT { day: 1, week: 10, month: 50, oneTimePerWeek: 12, perPerson: 10 }`, `GOAL_DAILY_MAX 2`, `VILLAGE_TIER_THRESHOLDS.goals [10, 60, 180, 400]` (1 / 6 / 18 / 40 people). THEORY numbers, balance process, unchanged from the design entry below.
+- **Rules as built:** recurring goals pay once per period at the day close the target is reached (`creditKey`, the last period paid; a period that closes met and unpaid pays at its close); one-time goals pay at the stage moment (`creditStage` high-water, `creditAt`), `round(12 * days / 7)` since the later of creation, the last paid stage and the run start (`State.runStartedAtMs`, none = no clamp). Credit is added to the day's `pg.credit` (DailyRecord v19); the Lab counter is this run's closed days plus the open day. A recurring goal's credit lands on the record of the day AFTER the close that paid it (the close runs at rollover, after the ended day is written); the counter does not care.
+- **Daily cap:** `Goals.addGoal(..., dailyMax)` refuses a third daily goal with reason `dailyFull`; `State.addGoal` passes `GOAL_DAILY_MAX`; starters, existing dailies above the cap and goal edits are untouched. Build B shows the message (the form does not know the reason yet).
+- **Memorial:** nine buildings, `bestMemorialStage` saved (root field, additive, no schema bump, raise-only, raised whenever the nine-building average passes it; reset by the dev Reset Game). A save from before this has no mark and is seeded on load from the EIGHT old buildings (`Memorial.legacyStage`), so Jeremy's current stage cannot drop when the Lab joins at star 1. `Memorial.stage(best, saved)`.
+- **BALANCE SIDE EFFECT, logged on purpose:** the Lab is on the default village drop ladder (the design said so), so a fully rebuilt village now pays 1,965 points of items in total (was 1,780: one more building at 10 / 25 / 50 / 100 = 185). `test/villageDrops.test.js` pins the new total.
+- **Supersedes** the "Lab wired" entry's "not in `VillageProgress` / `Memorial` / thresholds / drops; always T1" and the Memorial "still averages the eight". The saved peak tiers (run records) include `goals` automatically.
+- **Memorial window:** the Lab row is named "Lab" there; no card exists for it (a tap opens the Goals window), so `VillageCard.KINDS` has no `goals` and the Village panel has no Lab row yet (Build B).
+- **Tests:** new `test/goalsCredit.test.js` (26: config, both credit rules, markers, cap, State pay seams, Lab counter and ladder, Memorial mark); updated memorial, villageProgress, villageDrops, villageCard, memorialPanel, memorialWiring, dailyRecord, dailyRecordGoals, goalsState. Cloud copy: everything passes except 5 Memorial PNG-size checks that need art files the copy lacked. Full `npx jest` on the device NOT run. sw v430 -> v431.
+
+---
+
+## 2026-11-26 (Lab stars: people cured, DESIGN, not built) -- Claude app session, Fable 5.2; Jeremy ("I'm good with your recommendation to start with" on the numbers; "i agree" on picks 2-5)
+
+Full design and builds: `docs/LAB_PLAN.md`. Settles the open points of 2026-11-25 ("Lab stars count people cured").
+
+- **Core rule: every goal slot can earn about one person cured per week, whatever shape the goal has; longer shapes earn a little more, dailies the least.** Why: it makes every goal shape pay at a comparable rate, so no shape is the farming shape, and it keeps Jeremy's "dailies allowed but worth little". Counted in tenths of a person ("credit", an integer).
+- **NEW BALANCE NUMBERS (theory pass, not in `js/config.js` yet; they go in with Build A):** daily period met 1 credit (0.1 person; Jeremy's placeholder of 10 days per cure), weekly 10, monthly 50, a one-time goal 12 per week since its last paid stage; at most 2 daily goals at once; Lab ladder 10 / 60 / 180 / 400 credit = **1 / 6 / 18 / 40 people** for stars 2-5. Pacing: four goals going reasonably well (about 32 credit a week) reach star 3 in about 2 weeks, star 4 in about 6, star 5 in about 12.5; three goals about 18 weeks; dailies only about 28 weeks. Re-check with play data.
+- **One-time goals pay by TIME, at each new stage (high-water, each stage once):** `round(12 * days / 7)` since the later of creation, the last paid stage, the run's start. Why: it is the "cannot pay more than the time it was open" rule in one line; a goal made and ticked in one sitting pays about nothing and there is no income for a goal that just sits. A six-month goal cures about 30 people. Rejected: a fixed value per goal (the player's own word sets it), paying a share of time-open for the current stage every day (income for doing nothing), a per-goal cap.
+- **Recurring goals pay once per period on the night the target is reached** (that day's close), not at the period's end (Jeremy's worry: waiting for credit you know is coming). The Goals window shows a "Tonight: +1.0" line meanwhile. Rejected: paying at the period's end like the points bonus.
+- **This run only, never down:** only periods met and time passed in the current run count (the building is per-run like the others); a missed period shows on the patient, not on the count. **No yearly period:** a one-time goal with a deadline covers yearly / lifetime goals.
+- **Memorial averages nine buildings, and its stage is saved as a high-water mark (`bestMemorialStage`) so the ninth building cannot lower it.** Rejected: gifting the Lab a starting best tier equal to the current Memorial stage (a star it never earned).
+- **The Goals button stays in the top bar for now** (pace dots; the Lab is partly under the graveyard). Revisit with the graveyard move or the UI rework.
+- **Goals window header:** five star pips, "People cured this run", how many to the next star, the Tonight line, an info button; the anti-cheat rules also go into "How Deadline works" (Jeremy's standing rule).
+- **Known limit, accepted for now:** trivial weekly goals in all six slots reach star 5 in about 6.5 weeks (the same class of cheating as marking easy priorities). A weekly cap on cures is the lever if it shows up in play; left out because it would also cap an honest long one-time goal.
+- **Not designed here:** the tank art inside the Goals window, a themed star-5 item (default drop ladder).
+
+---
+
 ## 2026-11-26 (Lab wired) -- Claude app session, Sonnet 5.5; Jeremy ("show it for everyone now and accept the overlap" / "i agree")
 
 - **The Lab is wired into the game as kind `goals`, the ninth building.** Why: the art was done and Jeremy asked to wire it. The five finals were copied unchanged to `Assets/Village/goals_t1..t5.png` (byte-identical to `_source/lab-3q/ship/lab_t1..t5.png`). `goals` is the Baseline-style word suggested in the HANDOFF; the building's name is "Lab".

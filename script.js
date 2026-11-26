@@ -175,12 +175,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return VillageLayout.resolveTier(window.location.search, param, real, VillageLayout.fromConfig(CONFIG).tiers);
         };
     }
-    // Memorial obelisk (2026-11-08, js/memorial.js): the stage the graveyard draws = floor of the average of the 8 buildings' ALL-TIME best
-    // tiers (State.getBestVillageTiers, a saved high-water mark: the village tiers themselves are per-run and fall back to T1 on a new run).
+    // Memorial obelisk (2026-11-08, js/memorial.js): the stage the graveyard draws = floor of the average of the 9 buildings' ALL-TIME best
+    // tiers, never below the saved stage mark (State.getBestVillageTiers + getBestMemorialStage, saved high-water marks: the village tiers themselves are per-run and fall back to T1 on a new run).
     // The dev tools win over the real stage the way they do for the buildings: the DEV panel's star, then `?memorialTier=1..5|off`.
     function memorialStageNow() {
         const tiers = VillageLayout.fromConfig(CONFIG).tiers;
-        const real = Memorial.stage(State.getBestVillageTiers());
+        const real = Memorial.stage(State.getBestVillageTiers(), State.getBestMemorialStage());
         const demoMemorial = DevDemo.memorialStage(); // its own DEV chips (2026-11-08); beats the star below
         if (demoMemorial != null) return VillageLayout.resolveTier('', 'memorialTier', demoMemorial, tiers);
         const demoTier = DevDemo.villageTier();
@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // The Memorial's own window (js/ui/memorialPanel.js): the REAL stage and tiers, never the dev overrides, so it always tells the truth about the save.
     function openMemorialPanel() {
-        MemorialPanel.open({ best: State.getBestVillageTiers(), current: realVillageTiers() || {} });
+        MemorialPanel.open({ best: State.getBestVillageTiers(), saved: State.getBestMemorialStage(), current: realVillageTiers() || {} });
     }
     // Raise the saved all-time best tiers once a second from the REAL tiers (never the dev overrides). Skipped while the game is over (the
     // run's peak is on its history record and is merged back in on load) and during offline catch-up (the first tick afterwards covers it).
@@ -3459,7 +3459,7 @@ document.addEventListener('DOMContentLoaded', () => {
         VillagePanel.open({
             progress,
             spriteFor: villageSpriteFor,
-            memorial: { stage: Memorial.stage(State.getBestVillageTiers()) },
+            memorial: { stage: Memorial.stage(State.getBestVillageTiers(), State.getBestMemorialStage()) },
             onOpenMemorial: () => openMemorialPanel(),
             markers: realMarkerCounts(),
             onOpenMarkers: () => openMarkerPanel(null),
