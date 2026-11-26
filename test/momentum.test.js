@@ -249,8 +249,8 @@ describe('DailyRecord v14: pri.q', () => {
     const rec = () => DailyRecord.fresh({ date: '2026-11-02', tz: 0 });
 
     test('the version is 17 and a fresh record carries pri { m, d, s, q }', () => {
-        expect(DailyRecord.V).toBe(18);
-        expect(rec().v).toBe(18);
+        expect(DailyRecord.V).toBe(19);
+        expect(rec().v).toBe(19);
         expect(rec().pri).toEqual({ m: 0, d: 0, s: 0, q: 0, p: 0 });
     });
     test('a priority completion that is old enough bumps d AND q; an undo takes both back', () => {
