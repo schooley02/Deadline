@@ -11,6 +11,12 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-26 (night, last) -- Far-row towers lowered on laptop / desktop (Sonnet 5.5, Claude app)
+**Did:** Jeremy kept one piece of the reverted spread: the Water tower and the Broadcast tower ("radio tower") stand lower on laptop / desktop, because their bases floated above the bottom of the tree line. `js/villageLayout.js` + `js/config.js`: placement option `dropWide` (40) on `bestdays` and `nights`, slot field `wideDrop`. `test/villageLayout.test.js`: new `dropWide` suite, two placement pins and two tall-canvas checks updated. sw v435. Docs: DECISIONS, ART_STYLE, CLAUDE.md.
+**State:** village layout / view / wiring suites pass on a cloud copy except the missing-art checks (46 + 2, PNGs not in the copy). NOT the full suite on the device, NOT seen on a real screen.
+**Next:** Jeremy: run `npx jest`, commit, unregister the service worker so v435 loads, look at both towers on the laptop and desktop; tune `dropWide` (40) in `js/config.js` (keep `villageLayout.js` DEFAULTS in step, CRLF) until the bases meet the tree line. Then the barricade-to-wall idea or the Lab pacing check.
+**Watch out:** `dropWide` only acts with free sky above the tower (canvas taller than 379), so phones are untouched; it lowers the whole tower, it does not move it sideways.
+
 ## 2026-11-26 (night, later) -- Wide-screen village spread tried, then REVERTED (Sonnet 5.5, Claude app)
 **Did:** spread the village buildings on laptop / desktop widths and lowered the Water tower there, then Jeremy decided the original tight arrangement feels more like a village and asked to revert everything. All of it is out of `js/villageLayout.js`, `js/config.js` and `test/villageLayout.test.js`; the two arrangement tests are back to "centred pixel-for-pixel". sw v434. Docs: DECISIONS (revert entry), the spread notes removed from ART_STYLE and CLAUDE.md. Also fixed nine stale DailyRecord version checks (18 -> 19) in `prioritySlots`, `momentum`, `dailyRecordMood / Drops / Ice / Journal / Pushback / Tcorr`, `notneeded-record`.
 **State:** village layout suite and view suite pass on a cloud copy except the missing-art checks (the Assets PNGs are not in the copy); the 9 version tests were fixed from Jeremy's own full run (5,706 pass, only those 9 failed). NOT a full device run after the revert.

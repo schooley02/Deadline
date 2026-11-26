@@ -929,7 +929,7 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
     });
 
     test('the Water tower (2026-11-25): 128x208, far row, three-quarter art, behind the Police station and clear of the Broadcast tower', () => {
-        expect(CONFIG.VILLAGE_PLACEMENT.bestdays).toEqual({ row: 'far', right: -120, sink: 95 });
+        expect(CONFIG.VILLAGE_PLACEMENT.bestdays).toEqual({ row: 'far', right: -120, sink: 95, dropWide: 40 });
         expect([CONFIG.VILLAGE_WATERTOWER_W_PX, CONFIG.VILLAGE_WATERTOWER_H_PX]).toEqual([128, 208]);
         expect(CONFIG.VILLAGE_ART_X.bestdays).toEqual([4, 127]);
         const s = byKind(at(800));
@@ -954,12 +954,12 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
         expect(phone.feetY).toBe(farFeet(306));                             // `feetY` stays the row's horizon
         expect(tower(379).sink).toBeUndefined();
         expect(tower(379).top).toBe(0);
-        expect(tower(500).top).toBe(farFeet(500) - 208);
+        expect(tower(500).top).toBe(farFeet(500) - 208 + 40);               // free sky above: `dropWide` 40 lowers it (2026-11-26, see the `dropWide` tests at the end)
         expect(tower(250).sink).toBe(CONFIG.VILLAGE_BACK_ROW_RAISE_PX + CONFIG.VILLAGE_FAR_ROW_RAISE_PX); // never below the front row's feet
     });
 
     test('the Broadcast tower (2026-11-24): 144x208, far row, behind the High school\'s right wing, its mast right of the phone HUD and its art left of the moon', () => {
-        expect(CONFIG.VILLAGE_PLACEMENT.nights).toEqual({ row: 'far', right: 34, sink: 95 });
+        expect(CONFIG.VILLAGE_PLACEMENT.nights).toEqual({ row: 'far', right: 34, sink: 95, dropWide: 40 });
         expect([CONFIG.VILLAGE_RADIO_W_PX, CONFIG.VILLAGE_RADIO_H_PX]).toEqual([144, 208]);
         const s = byKind(at(800));
         expect([s.nights.artLeft, s.nights.artRight]).toEqual([574, 714]);                 // 698-714 is only the T4 / T5 floodlight beam
@@ -983,7 +983,7 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
         const tall = tower(379);                                           // the first canvas with 208px of sky above the far row
         expect(tall.sink).toBeUndefined();
         expect(tall.top).toBe(0);
-        expect(tower(500).top).toBe(farFeet(500) - 208);
+        expect(tower(500).top).toBe(farFeet(500) - 208 + 40);               // free sky above: `dropWide` 40 lowers it (2026-11-26, see the `dropWide` tests at the end)
         expect(tower(500).sink).toBeUndefined();
         const tiny = tower(250);                                           // never below the front row's feet
         expect(tiny.sink).toBe(CONFIG.VILLAGE_BACK_ROW_RAISE_PX + CONFIG.VILLAGE_FAR_ROW_RAISE_PX);
@@ -1064,5 +1064,65 @@ describe('Lab (front row, painted behind the Command Post)', () => {
         expect(b.slice(1, 4).toString()).toBe('PNG');
         expect(b.readUInt32BE(16)).toBe(CONFIG.VILLAGE_LAB_W_PX);
         expect(b.readUInt32BE(20)).toBe(CONFIG.VILLAGE_LAB_H_PX);
+    });
+});
+
+// ---- `dropWide` (2026-11-26, Jeremy: "lower the water tower and radio tower a little on laptop and desktop, the bottoms float above the bottom of the tree line") ----
+describe('`dropWide`: the Water tower and the Broadcast tower stand lower on laptop / desktop heights only', () => {
+    const farFeet = h => VillageLayout.horizonFeetY(h, OPTS) - CONFIG.VILLAGE_BACK_ROW_RAISE_PX - CONFIG.VILLAGE_FAR_ROW_RAISE_PX;
+    const slot = (h, kind, opts = OPTS, w = 1366) => VillageLayout.villageSlots(w, h, 368, 120, { [kind]: 3 }, opts).find(x => x.kind === kind);
+    const withP = (kind, extra) => ({ ...OPTS, placement: { ...OPTS.placement, [kind]: { ...OPTS.placement[kind], ...extra } } });
+    const TOWERS = ['bestdays', 'nights'];
+    const DROP = 40;
+
+    test('only the two far-row towers have it', () => {
+        TOWERS.forEach(k => expect(CONFIG.VILLAGE_PLACEMENT[k].dropWide).toBe(DROP));
+        Object.keys(CONFIG.VILLAGE_PLACEMENT).filter(k => !TOWERS.includes(k)).forEach(k => expect(CONFIG.VILLAGE_PLACEMENT[k].dropWide).toBeUndefined());
+        expect(VillageLayout.DEFAULTS.placement).toEqual(CONFIG.VILLAGE_PLACEMENT);
+    });
+
+    test.each(TOWERS)('%s: a phone or short window gets none, so it sits exactly where it did', (k) => {
+        [250, 306, 340, 379].forEach((h) => {
+            const t = slot(h, k);
+            expect(t.wideDrop).toBeUndefined();
+            expect(t.top).toBe(slot(h, k, withP(k, { dropWide: 0 })).top);
+        });
+        expect(slot(379, k).top).toBe(0);
+    });
+
+    test.each(TOWERS)('%s: it eases in with the free sky above the tower: at most the free sky, at most `dropWide`', (k) => {
+        expect(slot(400, k).wideDrop).toBe(21);          // 21px of sky above it at 400 -> 21px lower
+        expect(slot(400, k).top).toBe(21 + 21);
+        expect(slot(419, k).wideDrop).toBe(40);
+        expect(slot(500, k).wideDrop).toBe(40);
+        expect(slot(500, k).top).toBe(farFeet(500) - 208 + 40);
+        expect(slot(900, k).wideDrop).toBe(40);
+    });
+
+    test.each(TOWERS)('%s: `feetY` stays the far row\'s horizon, and it never stands below the front row\'s feet', (k) => {
+        expect(slot(500, k).feetY).toBe(farFeet(500));
+        const deep = slot(500, k, withP(k, { dropWide: 999 }));
+        expect(deep.top + deep.height).toBe(VillageLayout.horizonFeetY(500, OPTS)); // exactly the front row's feet
+    });
+
+    test.each(TOWERS)('%s: a missing, negative or junk `dropWide` means none', (k) => {
+        [undefined, null, -5, 'x', NaN].forEach(v => expect(slot(500, k, withP(k, { dropWide: v })).wideDrop).toBeUndefined());
+    });
+
+    test('every other building is untouched, and nothing moves sideways', () => {
+        ['defense', 'slain', 'lurkers', 'heroes', 'habits', 'punctuality', 'goals'].forEach((k) => {
+            expect(slot(500, k).wideDrop).toBeUndefined();
+        });
+        const off = { ...OPTS, placement: Object.fromEntries(Object.entries(OPTS.placement).map(([k, v]) => { const { dropWide, ...rest } = v; return [k, rest]; })) };
+        const all = { punctuality: 3, defense: 3, slain: 3, nights: 3, lurkers: 3, heroes: 3, habits: 3, bestdays: 3, goals: 3 };
+        [[1366, 500], [1920, 700]].forEach(([w, h]) => {
+            const a = VillageLayout.villageSlots(w, h, 368, 120, all, OPTS);
+            const b = VillageLayout.villageSlots(w, h, 368, 120, all, off);
+            a.forEach((x, n) => {
+                expect(x.artLeft).toBe(b[n].artLeft);
+                expect(x.left).toBe(b[n].left);
+                if (!TOWERS.includes(x.kind)) expect(x).toEqual(b[n]);
+            });
+        });
     });
 });

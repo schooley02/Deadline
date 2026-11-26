@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-26 (far-row towers lowered on laptop / desktop) -- Claude app session, Sonnet 5.5; Jeremy ("I do still want you to lower the water tower and radio tower a little on laptop and desktop ... the bottoms float above the bottom of the tree line")
+
+- **`dropWide` is back, for the two far-row towers only** (Water tower `bestdays`, Broadcast tower `nights`; "radio tower" is the Broadcast tower's old name). A placement option: the building stands up to `dropWide` (40) px lower, but only when its canvas has free sky above it (a laptop / desktop height), easing in from the canvas height where its top just touches the top of the scene (379), never below the front row's feet. Phones and short windows are exactly as before. Slot field `wideDrop`. No building is spread or moved sideways (see the entry below this one).
+- **40 is a by-eye guess**, not measured against the tree line (no screen to look at). Tune `dropWide` in `js/config.js` (and `villageLayout.js` DEFAULTS, CRLF).
+- sw v435. Tests: new `dropWide` suite at the end of `test/villageLayout.test.js`; the two "tower(500).top" checks and the two placement pins updated.
+
+---
+
 ## 2026-11-26 (wide-screen village spread REVERTED) -- Claude app session, Sonnet 5.5; Jeremy ("I actually think it looks better when they are in the original arrangement because it makes it feel more like a village ... for now revert everything back to how it was before")
 
 - **Reverted: the wide-screen spread and the Water tower drop.** Earlier the same night the village was spread out on laptop / desktop widths (`VILLAGE_SPREAD_MAX_PX`, per-building `spread` weights, then a gap-levelling chain) and the Water tower was lowered there (`dropWide`). All of it is out again: on a wider screen the phone arrangement is centred in the field, exactly as in DECISIONS 2026-10-30 and 2026-11-24 "Village re-arrangement". The Water tower is NOT lowered on laptop / desktop either. sw v434.

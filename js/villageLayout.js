@@ -74,9 +74,9 @@ const VillageLayout = (() => {
             habits: { row: 'back', right: -317 },
             punctuality: { row: 'back', right: -240, drop: 26, sink: 34, overTop: 12 },
             heroes: { row: 'back', right: 20 },
-            bestdays: { row: 'far', right: -120, sink: 95 },
+            bestdays: { row: 'far', right: -120, sink: 95, dropWide: 40 },
             goals: { row: 'front', right: 118, raise: 10, behind: true },
-            nights: { row: 'far', right: 34, sink: 95 },
+            nights: { row: 'far', right: 34, sink: 95, dropWide: 40 },
         },
     };
 
@@ -264,6 +264,7 @@ const VillageLayout = (() => {
      *          canvases shorter than the 800x360 phone's). `feetY` stays the row's horizon either way.
      *   behind true: painted BEFORE the other buildings of its row (under them) instead of in left-to-right order (Lab, 2026-11-26: it stands right
      *          of the Command Post and the Command Post covers its left end wall). `slot.behind` carries it.
+     *   dropWide px (>= 0): lower still, but only with free sky above the building (laptop / desktop heights); slot.wideDrop carries it (the far-row towers, 40, 2026-11-26).
      *   overTop px (>= 0) of the canvas's top rows that may run off the top of the scene before `sink` starts: the building sinks only
      *          until that much is cut (Clock tower 12: on the 800x360 phone its roof tip is cut exactly 12px, as in the mock-up).
      * The church draws OVER the village, so a building's art may start up to baseTuckPx inside the church's box (the Gym, beside the
@@ -316,12 +317,18 @@ const VillageLayout = (() => {
             // Optional per-building `drop` (px, >= 0): always stands this much lower than its row, never below the front row's feet.
             const room = Math.max(0, Math.round(frontFeet) - (feetY - raise));
             const drop = Math.max(0, Math.min(Math.round(Number(p.drop) || 0), room));
-            const rawTop = feetY - h - raise + drop;
+            const topNoWide = feetY - h - raise + drop;
+            // Optional per-building `dropWide` (px, >= 0): lower still, but only with free sky above the building (a laptop / desktop height): it eases in from the canvas
+            // height where the top just touches the top of the scene, at most `dropWide`, never below the front row's feet. A short canvas (top <= 0) gets none, so
+            // phones are unchanged and `sink` below still decides everything there.
+            const wide = Math.max(0, Math.min(Math.round(Number(p.dropWide) || 0), Math.max(0, topNoWide), room - drop));
+            const rawTop = topNoWide + wide;
             const overTop = Math.max(0, Math.round(Number(p.overTop) || 0));
             const sink = (maxSink > 0 && rawTop < -overTop) ? Math.max(0, Math.min(maxSink, -rawTop - overTop, room - drop)) : 0;
             const slot = { kind, tier, url: spriteUrl(kind, tier), left, top: rawTop + sink, width: w, height: h, feetY, artLeft, artRight, row, flip };
             if (raise > 0) slot.raise = raise;
             if (drop > 0) slot.drop = drop;
+            if (wide > 0) slot.wideDrop = wide;
             if (sink > 0) slot.sink = sink;
             if (row !== 'front') { slot.back = true; slot.brightness = bright[row]; }
             if (row === 'far') slot.far = true;
