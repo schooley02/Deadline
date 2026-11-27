@@ -405,11 +405,13 @@ const VillageLayout = (() => {
     // traffic light at its right end). Assets/scene/village-road.png is a 320x18 strip shown at 2x, tiled across the whole layer UNDER the pad. Laptop / desktop
     // only: it shows when there is at least minGapPx of open ground between the church's box and the Gym (phones have none). The signs stand signGapPx from the
     // Gym's left art edge and from the right-most front-row art edge (the Lab); their PNGs carry their own short left-falling shadow (2 rows below the foot),
-    // and the traffic light's PNG has a 4 px left margin for its lamp glow.
+    // and the traffic light's PNG has a 4 px left margin for its lamp glow. Its mast arm rises to the upper left (the scene's depth
+    // direction), so it reads as reaching back over the road. Both signs and the contact shadows are drawn at FULL resolution (1 art px = 1 screen px,
+    // like the buildings and the tree line); the pad, the road strip and the grass are still 2x art.
     const ROAD = {
         src: 'Assets/scene/village-road.png', tileWidth: 640, height: 36, topFromFeet: -66, minGapPx: 60, signGapPx: 19, signFeetFromFeet: -36,
-        stop: { src: 'Assets/scene/village-stop-sign.png', width: 18, height: 42, foot: 40, margin: 0 },
-        light: { src: 'Assets/scene/village-traffic-light.png', width: 46, height: 74, foot: 72, margin: 4 },
+        stop: { src: 'Assets/scene/village-stop-sign.png', width: 20, height: 42, foot: 40, margin: 0 },
+        light: { src: 'Assets/scene/village-traffic-light.png', width: 38, height: 78, foot: 76, margin: 4 },
     };
 
     // Pure. The road strip and its two signs for these slots, or null when the road is not shown (no Gym, or no open ground beside the village).

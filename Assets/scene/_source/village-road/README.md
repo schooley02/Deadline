@@ -1,5 +1,9 @@
 # Village road, option C (2026-11-26, Claude app session, Fable 5.2; Jeremy picked each step)
 
+**Signs redrawn at FULL resolution the same night (sw v445):** the shipped `Assets/scene/village-stop-sign.png` (20x42) and `village-traffic-light.png`
+(38x78) are made by `scripts/signs.py` at 1 art px = 1 screen px, like the buildings. The sign files and sizes described below are the earlier 2x
+versions, kept for history. The road strip and the pad here are still 2x art and are due to be redrawn at full resolution.
+
 ART DONE and WIRED 2026-11-26 night (sw v442). In the game: `Assets/scene/village-road.png` (= `village-road_320x18.png`), `Assets/scene/village-pad.png`
 (= `village-pad_lighter_356x46.png`), `Assets/scene/village-stop-sign.png` and `village-traffic-light.png` (= the two sign files here plus a baked
 shadow / lamp glow, see the end).
@@ -24,7 +28,9 @@ Files:
 - `village-pad_lighter_356x46.png`: the pad for the game once the road is wired. Same shape and size as the shipped
   `Assets/scene/village-pad.png`; only the asphalt pixels moved by about (+5, +11, +14) in RGB. Weeds and shoulder gravel untouched.
 - `stop-sign_18x40.png`: code-drawn (9x20 art at 2x). Both PixelLab redraws lost the octagon and the white border.
-- `traffic-light_42x72.png`: PixelLab redraw (seed 5301, `pixellab/signs_5301_0.png`), cut out and shown at 2x. Top lamp dim red.
+- `traffic-light_42x72.png`: the pole and arm are the PixelLab redraw (seed 5301, `pixellab/signs_5301_0.png`), cut out and shown at 2x. The signal head
+  is code-drawn (Jeremy: "a normal three color traffic light"): dark housing, red lens lit, amber and green lenses below. PixelLab's own head was a
+  ragged blob with stray pixels hanging under it.
 - `mocks/final_laptop_1366x480.png`, `mocks/final_desktop_1920x640.png`: the scene with all of it, star 3 buildings, contact shadows.
 - `pixellab/`: the canvases sent and the redraws used (B = seed 5202, not used). Not kept: seeds 5101 / 5102 on a 384x64 canvas
   (one erased the road, one blew it up to fill the frame: the road must fill a good part of the canvas, 13 of 32 rows worked).
@@ -36,7 +42,12 @@ Placement in the mocks (shown px, hz = the front row's feet): road strip top at 
 signs' feet at hz - 36; stop sign's right edge 19 px left of the Gym's art left edge; traffic light's left edge 19 px right of
 the right-most front-row art edge (the Lab); each sign has a short shadow falling left.
 
-Shipped sign PNGs: `village-stop-sign.png` is 18x42 (the sign plus 2 rows for its short left-falling shadow); `village-traffic-light.png`
+`traffic-light_38x76.png` (`scripts/light3.py`) is the CURRENT traffic light (Jeremy: "angle it like it is extending over the road and make the light look
+more realistic"): PixelLab's pole, a code-drawn mast arm rising to the upper left (the scene's depth direction) and a three-lens head with hoods.
+It is shipped as the 38x78 `village-traffic-light.png` (4 px left margin inside the art for the glow, 2 rows for the shadow); `ROAD.light` in
+`js/villageLayout.js` has its numbers. `traffic-light_42x72.png` is the earlier straight-arm version.
+
+Shipped sign PNGs (first version): `village-stop-sign.png` is 18x42 (the sign plus 2 rows for its short left-falling shadow); `village-traffic-light.png`
 is 46x74 (4 px left margin for the dim red lamp glow, 2 rows for the shadow). The game's numbers are `ROAD` in `js/villageLayout.js`.
 
 Wired as shown, never answered by Jeremy: the arm points at the Lab (the pole is about 40 px further out than the 19 px gap), and
