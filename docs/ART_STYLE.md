@@ -66,13 +66,14 @@ Healthy, non-zombie twins of the category zombies above (same outfit, alive pale
 ## Category Colors (from prototype, for UI accents)
 other #90ee90 · career #4a90e2 · creativity #f5a623 · financial #50e3c2 · health #e91e63 · lifestyle #bd10e0 · relationships #f8e71c · spirituality #7ed321
 
-## Backdrop: mountains, tree line, moonlit field (BUILT 2026-11-07; replaces the SVG hill; FIELD REPLACED 2026-11-26, see "Village ground v2" below)
+## Backdrop: mountains, tree line, moonlit field (BUILT 2026-11-07; replaces the SVG hill; FIELD REPLACED 2026-11-26, see "Village ground v2" below; TREE LINE + MOUNTAINS REDRAWN 2026-11-26, see "Backdrop v2" right below the table)
 Three repeating strips in `.scene-silhouettes` (css/gameCanvas.css "Backdrop"), back to front, pixelated (mountains and trees 1:1, the field at 2x since 2026-11-26):
 | Layer | File | Size | Pinned (top edge) |
 |---|---|---|---|
 | Mountains | `Assets/scene/mountains.png` | 640x240 | `--clm-hz` - 280px, clamped at -44px |
 | Tree line | `Assets/scene/treeline.png` | 404x168 | `--clm-hz` - 230px, clamped at -8px |
 | Field | `Assets/scene/village-field.png` | 640x78 art, shown 1280x156 (2x) since 2026-11-26 (was 505x156 at 1:1) | `--clm-hz` - 90px (underbrush in the top rows; solid from 10 shown px down) |
+**Backdrop v2 (2026-11-26 late night, sw v447 / v448; DECISIONS "tree line v2", "mountains v2"):** both strips redrawn IN CODE at the same sizes and placement (no CSS change for the art). Tree line = B2: three rows of mostly full pines / spruce, a few ragged trees, snags and leafy trees, stands with openings, undergrowth along each row, flat three-tone shading lit from the upper right (`_source/treeline-v2/scripts/trees.py` `build('B2', 22)`). Mountains = rugged range A, two ranges built peak by peak (lit face right of each crest, shadow face left, rock ribs, muted snow only on high lit faces), recoloured blue-violet, hue 236 (`_source/mountains-v2/scripts/mountains.py` `build('A', 3)` + hue 236 / sat x1.15). Hue rule now: sky ~237-240, mountains 236, tree line ~233: one cool moonlit family. The sky horizon is blue-grey since the same night (`.scene-sky` s1-s3 #171936 / #292d4c / #373c5c; hazy / overcast / fog shifted by the same hue step; storm unchanged). Jeremy rejected grey mountain colours ("too black and white") and PixelLab redraws of the tree line ("too many highlights").
 `--clm-hz` = the village front row's feet (js/ui/villageView.js); fallback `100% - 76px` (floor top + 4px). The backdrop STAYS LOW on
 tall screens (Jeremy: open sky above). **Lined up with the moon:** the mountains' widest valley (tile column 270) and the tree line's widest gap (column 130) are pinned under the moon from the right edge (`background-position: right calc(var(--moon-right) + 29px - 370px / 274px)`; `.scene-silhouettes` is canvas-wide for this). Moon, count and weather badge live in the top-right corner (`--moon-right: 30px`, css/graveyard.css). PixelLab originals + reference/inpaint canvases are in `Assets/scene/_source/`.
 **Depth rules (keep these if the art is redone):** farther = lighter, bluer, flatter. Mountains are the lightest (hazy, near the sky
