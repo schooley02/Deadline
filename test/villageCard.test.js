@@ -153,14 +153,14 @@ describe('spriteScale', () => {
     test('3x when it fits 480x480, 2x when only that fits, else fitted to the column height', () => {
         expect(VillageCard.spriteScale(128, 128)).toBe(3);
         expect(VillageCard.spriteScale(128, 133)).toBe(3);
-        expect(VillageCard.spriteScale(128, 160)).toBe(3); // 384x480: fits since the limits grew to 480x480 (2026-11-27)
+        expect(VillageCard.spriteScale(128, 160)).toBe(3); // 384x480: fits since the limits grew to 480x480 (2026-11-26)
         expect(VillageCard.spriteScale(128, 161)).toBe(2);
         expect(VillageCard.spriteScale(161, 128)).toBe(2);
         expect(VillageCard.spriteScale(112, 208)).toBe(2); // Clock tower (112x208 since 2026-11-24): an even 2x, 416px tall
         expect(VillageCard.spriteScale(128, 256)).toBe(1.5); // a canvas too tall for 2x (the old 128x256 tower) is fitted: 256 * 1.5 = 384 tall
         expect(VillageCard.spriteScale(0, 0)).toBe(3); // unknown size: the card omits the width style
     });
-    test('bigger art (2026-11-27): the 160x160 squares show at 3x; every other shipped canvas keeps its scale', () => {
+    test('bigger art (2026-11-26): the 160x160 squares show at 3x; every other shipped canvas keeps its scale', () => {
         expect(VillageCard.spriteScale(160, 160)).toBe(3); // Lab, Command Post, Police station: 480px (was 2x = 320px)
         expect(VillageCard.spriteScale(192, 160)).toBe(2); // Gym
         expect(VillageCard.spriteScale(176, 144)).toBe(2); // High school, Hospital
@@ -416,7 +416,7 @@ describe('Command Post (the Armory re-aimed at priorities, 2026-11-09)', () => {
     });
 });
 
-describe('Lab card (kind `goals`, 2026-11-27): the art preview, with the Goals window behind a "View Goals" button', () => {
+describe('Lab card (kind `goals`, 2026-11-26): the art preview, with the Goals window behind a "View Goals" button', () => {
     const lab = (value, extra = {}) => VillageCard.buildModel({ kind: 'goals', progress: progress(value, 'goals'), perPerson: 10, ...extra });
 
     test('the Lab has its own words and is not in KINDS (the village panel walks KINDS for the other eight)', () => {

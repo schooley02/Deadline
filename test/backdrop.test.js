@@ -22,7 +22,7 @@ const block = (sel) => {
 };
 
 const LAYERS = [
-    // [selector, file, png width, png height, CSS background width, CSS background height]. The field strip (2026-11-27) is 640x78 art shown at 2x.
+    // [selector, file, png width, png height, CSS background width, CSS background height]. The field strip (2026-11-26) is 640x78 art shown at 2x.
     ['.scene-mountains', 'Assets/scene/mountains.png', 640, 240, 640, 240],
     ['.scene-treeline', 'Assets/scene/treeline.png', 404, 168, 404, 168],
     ['.scene-field', 'Assets/scene/village-field.png', 640, 78, 1280, 156],

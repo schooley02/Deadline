@@ -142,10 +142,10 @@ describe('script.js hook-up', () => {
         expect(script).toContain("villageTierDep('bestdays', 'waterTowerTier')"); // real tier, URL param overrides (Build 2)
     });
 
-    test('the Lab (kind `goals`, wired 2026-11-26): tier dep, a card with a "View Goals" button (2026-11-27), art cached by the service worker', () => {
+    test('the Lab (kind `goals`, wired 2026-11-26): tier dep, a card with a "View Goals" button (2026-11-26), art cached by the service worker', () => {
         expect(script).toContain('getLabTier:');
         expect(script).toContain("villageTierDep('goals', 'labTier')"); // no counter yet: T1 until the star design session, ?labTier= overrides
-        // 2026-11-27: a tap opens the Lab's card like every other building; the Goals window is behind the card's "View Goals" button.
+        // 2026-11-26: a tap opens the Lab's card like every other building; the Goals window is behind the card's "View Goals" button.
         const open = script.slice(script.indexOf('function openVillageCard('), script.indexOf('VillageView.init('));
         expect(open).not.toMatch(/if \(hit\.kind === 'goals'\)\s*\{/); // no early return to the Goals window
         expect(open).toMatch(/onOpenGoals: hit\.kind === 'goals' \? \(\(\) => \{ if \(ensureGoalsPane\(\)\) GoalsPane\.open\(\); \}\) : undefined/);

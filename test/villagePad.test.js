@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  *
- * Village ground (2026-11-27): the worn-asphalt pad under the whole village and the new option-B grass strip. Pure placement (VillageLayout.padRect),
+ * Village ground (2026-11-26): the worn-asphalt pad under the whole village and the new option-B grass strip. Pure placement (VillageLayout.padRect),
  * the DOM half (villageView.js syncPad), and the shell (CSS, asset sizes, service worker).
  */
 const fs = require('fs');
@@ -18,7 +18,7 @@ const ALL = { punctuality: 3, defense: 3, slain: 3, nights: 3, lurkers: 3, heroe
 const slots = (w, h, t = ALL) => VillageLayout.villageSlots(w, h, 368, 120, t, OPTS);
 
 describe('padRect', () => {
-    test('anchored to the Gym\'s left art edge and the front row\'s feet, 672x92 (348x46 art at 2x)', () => {
+    test('anchored to the Gym\'s left art edge and the front row\'s feet, 672x92 (356x46 art at 2x)', () => {
         [[1366, 480], [1920, 640], [844, 334]].forEach(([w, h]) => {
             const s = slots(w, h);
             const gym = s.find(x => x.kind === 'lurkers');
@@ -27,7 +27,7 @@ describe('padRect', () => {
             expect(r.left).toBe(gym.artLeft - 21);
             expect(r.top).toBe(feet - 88);
             expect(r.top + r.height).toBe(feet + 4);
-            expect(r.width).toBe(696);
+            expect(r.width).toBe(712);
             expect(r.url).toBe('Assets/scene/village-pad.png');
         });
     });
@@ -88,7 +88,7 @@ describe('villageView pad', () => {
         expect(pad().getAttribute('src')).toBe(want.url);
         expect(pad().style.left).toBe(want.left + 'px');
         expect(pad().style.top).toBe(want.top + 'px');
-        expect(pad().style.width).toBe('696px');
+        expect(pad().style.width).toBe('712px');
         expect(pad().style.height).toBe('92px');
     });
 
@@ -108,9 +108,9 @@ describe('villageView pad', () => {
 });
 
 describe('shell', () => {
-    test('assets: grass strip 640x78 and pad 348x46', () => {
+    test('assets: grass strip 640x78 and pad 356x46', () => {
         expect(pngSize('Assets/scene/village-field.png')).toEqual({ w: 640, h: 78 });
-        expect(pngSize('Assets/scene/village-pad.png')).toEqual({ w: 348, h: 46 });
+        expect(pngSize('Assets/scene/village-pad.png')).toEqual({ w: 356, h: 46 });
     });
 
     test('CSS: the pad is behind the sprites, untappable, pixelated', () => {

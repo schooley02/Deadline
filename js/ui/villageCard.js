@@ -79,7 +79,7 @@ const VillageCard = (() => {
         },
     };
 
-    // The Lab (kind `goals`). Card added 2026-11-27 (Jeremy: "I want the user to be able to preview the artwork for the building when they tap it like the
+    // The Lab (kind `goals`). Card added 2026-11-26 (Jeremy: "I want the user to be able to preview the artwork for the building when they tap it like the
     // other buildings ... hide the current goal window behind a button in the building window? like a View Goals button"). Until then a tap on the Lab
     // opened the Goals window directly. It is NOT in KINDS on purpose: KINDS is the list the village panel walks for its eight whole-number buildings
     // (the panel builds the Lab's row itself), and the Lab's counter is in tenths of a person (`perPerson`). `action` is the card's button: shown only
@@ -123,14 +123,14 @@ const VillageCard = (() => {
     // MAX_ART_H was 400 until 2026-11-24, when the tower was fitted at a non-whole scale). A canvas too tall even for 2x is
     // fitted to the column height (FIT_H): a non-whole scale that image-rendering: pixelated keeps crisp (some pixels come
     // out a hair wider than others).
-    // 2026-11-27 (Jeremy, on the Lab's card: "can you make the artwork bigger"): the limits went from 384x416 to 480x480, so the three 160x160 squares
+    // 2026-11-26 (Jeremy, on the Lab's card: "can you make the artwork bigger"): the limits went from 384x416 to 480x480, so the three 160x160 squares
     // (Lab, Command Post, Police station) show at 3x (480px) like the 128px canvases, not 2x (320px). Every other shipped canvas keeps its scale. A sprite
     // shown wider than WIDE_ART_W gets the wider card (`.village-card--wide`, css/villageCard.css) so the text column keeps its width.
     const MAX_ART_W = 480;
     const MAX_ART_H = 480;
     const FIT_H = 384;
     const WIDE_ART_W = 384;
-    // The sprite also carries its full shown height as --vc-h: on a short screen the CSS shows it at min(--vc-h, the card's inner height). Before 2026-11-27
+    // The sprite also carries its full shown height as --vc-h: on a short screen the CSS shows it at min(--vc-h, the card's inner height). Before 2026-11-26
     // the short-screen rule only set a max-height, which left the art at its 1x file size on a phone.
     function spriteScale(w, h) {
         for (let k = 3; k >= 2; k--) {

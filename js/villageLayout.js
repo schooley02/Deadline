@@ -292,7 +292,7 @@ const VillageLayout = (() => {
         };
         const bright = { front: 1, back: o.backRowBrightness, far: o.farRowBrightness };
         const tuck = Math.max(0, Number(o.baseTuckPx) || 0);
-        // Narrow-screen fit (2026-11-27, Jeremy: "the lab needs to show on the 667 wide phone. shift the village to the left ... we have room to the left of
+        // Narrow-screen fit (2026-11-26, Jeremy: "the lab needs to show on the 667 wide phone. shift the village to the left ... we have room to the left of
         // the gym"): on a field narrower than the design width the right-most building (the Lab) can run off the right edge of the screen and be dropped.
         // When the whole cluster can slide left far enough to bring it back on screen without the left-most building going deeper than fitTuckPx under
         // the church (the lantern and sandbags draw over its left edge there), it does. It is worked out from EVERY building in the placement table (never from which ones are built), so building one never moves
@@ -363,7 +363,7 @@ const VillageLayout = (() => {
         return out;
     }
 
-    // Worn-asphalt pad under the whole village (2026-11-27, Jeremy: "a separate asphalt ground under it ... grass closer to the zombie lane").
+    // Worn-asphalt pad under the whole village (2026-11-26, Jeremy: "a separate asphalt ground under it ... grass closer to the zombie lane").
     // Assets/scene/village-pad.png is 356x46 art shown at 2x. It is anchored to the Gym's left art edge and the front row's feet, so it follows the
     // village at every screen size. Returns null when there is no Gym slot.
     const PAD = { src: 'Assets/scene/village-pad.png', width: 712, height: 92, leftFromGym: -21, topFromFeet: -88 };

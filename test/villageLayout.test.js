@@ -1137,7 +1137,7 @@ describe('`dropWide`: the Water tower and the Broadcast tower stand lower on lap
     });
 });
 
-describe('narrow-screen fit (2026-11-27): the village slides left so the Lab stays on screen', () => {
+describe('narrow-screen fit (2026-11-26): the village slides left so the Lab stays on screen', () => {
     const ALL = { punctuality: 3, defense: 3, slain: 3, nights: 3, lurkers: 3, heroes: 3, habits: 3, bestdays: 3, goals: 3 };
     const at = (w, tiers = ALL, opts = OPTS) => VillageLayout.villageSlots(w, 306, 188, 120, tiers, opts);
     const find = (list, k) => list.find(s => s.kind === k);

@@ -7,8 +7,8 @@ Read with `docs/GOALS_PLAN.md` (goal rules) and `docs/WORLD_FEEDBACK_PLAN.md` "V
 
 ## What it is
 
-The Lab is the ninth village building. Its stars count **people cured this run**, earned by goals. A tap on the Lab opens the Goals
-window ("The Lab"). Like every building its tier is per-run, never goes down within a run, and starts at star 1 on a new run.
+The Lab is the ninth village building. Its stars count **people cured this run**, earned by goals. A tap on the Lab opens its building card,
+and the card's "View Goals" button opens the Goals window ("The Lab") (changed 2026-11-26 night; before that a tap opened the Goals window directly). Like every building its tier is per-run, never goes down within a run, and starts at star 1 on a new run.
 Goals themselves still carry across runs.
 
 ## The core rule
@@ -102,5 +102,7 @@ rules above. The anti-cheat rules (time-based pay for one-time goals, once per p
 - Goal card: one line saying what this goal pays.
 - "How Deadline works": a Lab topic with the rules. Add Goal form: the daily-cap message.
 - Village panel / Memorial panel rows for the Lab (a Lab row opens the Goals window, not a card). sw bump.
+
+**Lab card (BUILT 2026-11-26 night, Fable; sw v439 / v440; DECISIONS "Lab building card + bigger card art").** The Lab and its Village panel row now open a building card like the other eight: art left, stars, "N / M people cured to earn star X", next item, What we measure / Why it helps, and a "View Goals" button to the Goals window. Words in `VillageCard.LAB` (`js/ui/villageCard.js`).
 
 **Later:** balance check with real play data (the ladder and the four rates), the Goals button, the tank art, the graveyard move.

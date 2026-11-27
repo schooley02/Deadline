@@ -138,7 +138,11 @@ describe('Items.deleteTask', () => {
     });
 
     test('a deleted priority due today does not hand its slot back (the marks map is never touched)', () => {
-        const t = task(1, { isHighPriority: true });
+        // Due at 23:59 TODAY, not "5 hours from now": after 7 PM that lands on tomorrow, a day not started yet, whose slot IS handed back (this test
+        // failed on every evening run until 2026-11-26).
+        const dueToday = new Date();
+        dueToday.setHours(23, 59, 0, 0);
+        const t = task(1, { isHighPriority: true, dueDateTime: dueToday });
         const deps = makeDeps({ activeItems: [t] });
         const setMarks = jest.fn();
         deps.getPriorityMarks = () => ({ [key(t.dueDateTime)]: 1 });

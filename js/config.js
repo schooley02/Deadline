@@ -715,7 +715,7 @@ const CONFIG = {
     // Front: Gym, Police station, Command Post. Back: Hospital, Clock tower, High school. Far: Water tower (wired 2026-11-25), Broadcast tower.
     VILLAGE_DESIGN_FIELD_PX: 492,
     VILLAGE_BASE_TUCK_PX: 24, // a building's art may start this far INSIDE the church's box (the church draws over it): the Gym sits 20px in, beside the lantern
-    VILLAGE_FIT_TUCK_PX: 40, // narrow screens only (2026-11-27): how far inside the church's box the left-most building may start when the whole village slides left to keep the right-most one (the Lab) on screen. The church's wall ends 47px inside its box and the lantern and sandbags draw over the Gym's left edge, so 40 stays clear of the wall
+    VILLAGE_FIT_TUCK_PX: 40, // narrow screens only (2026-11-26): how far inside the church's box the left-most building may start when the whole village slides left to keep the right-most one (the Lab) on screen. The church's wall ends 47px inside its box and the lantern and sandbags draw over the Gym's left edge, so 40 stays clear of the wall
     // `dropWide` (px, placement option; 2026-11-26, Jeremy: "lower the water tower and radio tower a little on laptop and desktop, the bottoms float above the bottom of the tree line"):
     // a building stands this much LOWER only when its canvas has free sky above it (a laptop / desktop height), easing in from the canvas height where its top just touches the
     // top of the scene, and never below the front row's feet. Phones and short windows are unchanged. The two far-row towers have it. 17 is MEASURED (2026-11-26): the far row's feet stand 95px above the

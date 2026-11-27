@@ -1,6 +1,8 @@
 # Village ground v2 (2026-11-26, Claude app session, Fable 5.2; Jeremy picked each step)
 
-ART DONE, NOT WIRED. Nothing in the game uses these files yet.
+ART DONE and WIRED 2026-11-26 night (sw v437; DECISIONS 2026-11-26 "village ground v2 WIRED"; docs/ART_STYLE.md "Village ground v2").
+In the game: `Assets/scene/village-field.png` (= `village-field_640x78.png`) and `Assets/scene/village-pad.png` (= `village-pad.png` here, then WIDENED:
+see the note at the end).
 
 - `village-field_640x78.png`: the grass strip, "option B" (two gentle rises + underbrush at the tree line), in the lane-grass style
   (flat tones in soft clumps, separate tufts, chunky pixels). 640x78 art, to be shown at 2x (1280x156), tiles in x, top edge at
@@ -20,3 +22,8 @@ ART DONE, NOT WIRED. Nothing in the game uses these files yet.
   session workspace, never stored here), `plscene.py`, `finals.py` (builds the two finals + anchor), `slots.js`.
 
 Weather: the old field has no storm version (weather is drawn as films over the scene), so these need none.
+
+Pad widened after wiring (2026-11-26 night): the shipped `Assets/scene/village-pad.png` is 356x46 (shown 712x92), 20 art px wider on the right
+than `village-pad.png` here (336x46). The extra columns repeat texture from inside the pad (12 px inserted at column 240, then 8 px at column 252),
+so the edge shape is unchanged. Reason: the Lab's right corner overhung the ragged upper-right edge. `anchor.json` (left and top) still applies;
+only the width changed. The game's numbers are `PAD` in `js/villageLayout.js`.

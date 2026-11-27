@@ -502,7 +502,7 @@ body.glance-strip .hud-collapse-button { display: none; }
     background-position: right calc(var(--moon-right, 30px) + 29px - 274px) top 0;
 }
 
-/* The field's top rows are transparent (underbrush at the tree line pokes up into them). 2026-11-27: village-field.png is now the 640x78 option-B grass
+/* The field's top rows are transparent (underbrush at the tree line pokes up into them). 2026-11-26: village-field.png is now the 640x78 option-B grass
    strip (two gentle rises + underbrush) shown at 2x like the lane art; the asphalt under the village is the separate .village-pad (css/village.css). */
 .scene-field {
     top: calc(var(--clm-hz, calc(100% - 76px)) - 90px);
