@@ -376,7 +376,32 @@ const VillageLayout = (() => {
         return { url: PAD.src, left: gym.artLeft + PAD.leftFromGym, top: feet + PAD.topFromFeet, width: PAD.width, height: PAD.height };
     }
 
-    return { DEFAULTS, fromConfig, clampTier, resolveTier, sizeOf, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, resolveDevHospitalTier, resolveDevWaterTowerTier, resolveDevLabTier, fieldWidth, spriteUrl, horizonFeetY, villageSlots, padRect, PAD };
+    // Contact shadows under the buildings (2026-11-26, Jeremy: "the moon is on the right so the shadows should fall to the left"). One small PNG per
+    // building per star in Assets/Village/shadows/, generated from the sprite's base outline (Assets/Village/_source/contact-shadows/shadows.py). Every
+    // file is (sprite width + padLeft) x height and hangs `below` px under the sprite's bottom edge, so the game needs no per-file numbers. The rear rows'
+    // shadows are fainter (they stand further away, in the haze).
+    const SHADOW = { dir: 'Assets/Village/shadows/', padLeft: 16, height: 48, below: 8, opacity: { front: 1, back: 0.8, far: 0.6 } };
+
+    function shadowUrl(kind, tier) {
+        return `${SHADOW.dir}${kind}_t${tier}.png`;
+    }
+
+    // Pure. Where a slot's contact shadow goes. A mirrored building's shadow is mirrored with it (flip), so it stays under the building's base.
+    function shadowRect(slot) {
+        if (!slot || !slot.kind) return null;
+        const flip = !!slot.flip;
+        return {
+            url: shadowUrl(slot.kind, slot.tier),
+            left: flip ? slot.left : slot.left - SHADOW.padLeft,
+            top: slot.top + slot.height + SHADOW.below - SHADOW.height,
+            width: slot.width + SHADOW.padLeft,
+            height: SHADOW.height,
+            opacity: SHADOW.opacity[slot.row] != null ? SHADOW.opacity[slot.row] : 1,
+            flip,
+        };
+    }
+
+    return { DEFAULTS, fromConfig, clampTier, resolveTier, sizeOf, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, resolveDevHospitalTier, resolveDevWaterTowerTier, resolveDevLabTier, fieldWidth, spriteUrl, horizonFeetY, villageSlots, padRect, PAD, shadowUrl, shadowRect, SHADOW };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

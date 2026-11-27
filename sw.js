@@ -15,7 +15,7 @@
  * edited CSS/JS) so returning users pick up the update instead of serving a
  * stale cached shell forever — the whole point of a version string here.
  */
-const CACHE_NAME = 'deadline-shell-v440';
+const CACHE_NAME = 'deadline-shell-v441';
 
 const APP_SHELL = [
     './',
@@ -318,6 +318,52 @@ const APP_SHELL = [
     'Assets/scene/treeline.png',
     'Assets/scene/village-field.png',
     'Assets/scene/village-pad.png', // asphalt under the village (2026-11-26)
+    // contact shadows under the village buildings (2026-11-26), one per building per star
+    'Assets/Village/shadows/bestdays_t1.png',
+    'Assets/Village/shadows/bestdays_t2.png',
+    'Assets/Village/shadows/bestdays_t3.png',
+    'Assets/Village/shadows/bestdays_t4.png',
+    'Assets/Village/shadows/bestdays_t5.png',
+    'Assets/Village/shadows/defense_t1.png',
+    'Assets/Village/shadows/defense_t2.png',
+    'Assets/Village/shadows/defense_t3.png',
+    'Assets/Village/shadows/defense_t4.png',
+    'Assets/Village/shadows/defense_t5.png',
+    'Assets/Village/shadows/goals_t1.png',
+    'Assets/Village/shadows/goals_t2.png',
+    'Assets/Village/shadows/goals_t3.png',
+    'Assets/Village/shadows/goals_t4.png',
+    'Assets/Village/shadows/goals_t5.png',
+    'Assets/Village/shadows/habits_t1.png',
+    'Assets/Village/shadows/habits_t2.png',
+    'Assets/Village/shadows/habits_t3.png',
+    'Assets/Village/shadows/habits_t4.png',
+    'Assets/Village/shadows/habits_t5.png',
+    'Assets/Village/shadows/heroes_t1.png',
+    'Assets/Village/shadows/heroes_t2.png',
+    'Assets/Village/shadows/heroes_t3.png',
+    'Assets/Village/shadows/heroes_t4.png',
+    'Assets/Village/shadows/heroes_t5.png',
+    'Assets/Village/shadows/lurkers_t1.png',
+    'Assets/Village/shadows/lurkers_t2.png',
+    'Assets/Village/shadows/lurkers_t3.png',
+    'Assets/Village/shadows/lurkers_t4.png',
+    'Assets/Village/shadows/lurkers_t5.png',
+    'Assets/Village/shadows/nights_t1.png',
+    'Assets/Village/shadows/nights_t2.png',
+    'Assets/Village/shadows/nights_t3.png',
+    'Assets/Village/shadows/nights_t4.png',
+    'Assets/Village/shadows/nights_t5.png',
+    'Assets/Village/shadows/punctuality_t1.png',
+    'Assets/Village/shadows/punctuality_t2.png',
+    'Assets/Village/shadows/punctuality_t3.png',
+    'Assets/Village/shadows/punctuality_t4.png',
+    'Assets/Village/shadows/punctuality_t5.png',
+    'Assets/Village/shadows/slain_t1.png',
+    'Assets/Village/shadows/slain_t2.png',
+    'Assets/Village/shadows/slain_t3.png',
+    'Assets/Village/shadows/slain_t4.png',
+    'Assets/Village/shadows/slain_t5.png',
     'Assets/scene/graveyard-ground.png', // graveyard v3 (2026-11-23): flat ground + back fence + front fence, shown at 2x
     'Assets/scene/graveyard-fence-back.png',
     'Assets/scene/graveyard-fence-front.png',

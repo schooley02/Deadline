@@ -348,7 +348,40 @@ const VillageView = (() => {
             img.style.filter = (slot.back && slot.brightness > 0 && slot.brightness < 1) ? 'brightness(' + slot.brightness + ')' : '';
         });
         syncPad(slots);
+        syncShadows(slots);
         syncHaze(slots, baseW);
+    }
+
+    // Contact shadows (2026-11-26): one img per building, placed by VillageLayout.shadowRect. Not a .village-sprite, so never tapped or hovered. Each takes
+    // the z-index of the FIRST building in its row and sits BEFORE every sprite in the layer, so it paints under every building of its own row and of the
+    // rows in front (a shadow never lands on a neighbour's wall), over the rows behind, and under its row's haze veil.
+    function syncShadows(slots) {
+        const olds = Array.from(layerEl.querySelectorAll('.village-shadow'));
+        if (!VillageLayout.shadowRect) { olds.forEach(el => el.remove()); return; }
+        const keep = new Set(slots.map(sl => sl.kind));
+        olds.forEach((el) => { if (!keep.has(el.dataset.kind)) el.remove(); });
+        const rowFirst = {};
+        slots.forEach((slot, order) => { if (rowFirst[slot.row] == null) rowFirst[slot.row] = order; });
+        slots.forEach((slot) => {
+            const r = VillageLayout.shadowRect(slot);
+            let sh = olds.find(el => el.dataset.kind === slot.kind);
+            if (!sh) {
+                sh = document.createElement('img');
+                sh.className = 'village-shadow';
+                sh.alt = '';
+                sh.draggable = false;
+                sh.dataset.kind = slot.kind;
+                layerEl.insertBefore(sh, layerEl.querySelector('.village-sprite'));
+            }
+            if (sh.getAttribute('src') !== r.url) sh.setAttribute('src', r.url);
+            sh.style.left = r.left + 'px';
+            sh.style.top = r.top + 'px';
+            sh.style.width = r.width + 'px';
+            sh.style.height = r.height + 'px';
+            sh.style.zIndex = String(rowFirst[slot.row]);
+            sh.style.opacity = String(r.opacity);
+            sh.style.transform = r.flip ? 'scaleX(-1)' : '';
+        });
     }
 
     // The village's asphalt pad: one img under every sprite (z-index -1 inside the layer), not a .village-sprite so it is never tapped or hovered.

@@ -4,6 +4,19 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-26 (contact shadows under the village buildings, WIRED) -- Claude app session, Sonnet 5.5 then Fable 5.2; Jeremy ("can we work on the contact shadows"; "the moon is on the right so the shadows should fall to the left")
+
+- **What:** every village building now has a contact shadow on the ground. One small PNG per building per star, `Assets/Village/shadows/<kind>_t<1..5>.png` (45 files), generated from the sprite's base outline by `Assets/Village/_source/contact-shadows/shadows.py` (the footing logic of the approved ground-v2 mocks: only the columns whose lowest pixel is within 30 px of the lowest one count as standing on the ground).
+- **Direction (Jeremy):** the moon is on the right, so the shadow falls LEFT. It also falls a little toward the viewer (the moon is behind the scene): a dark line along the base, then a cast reaching 14 px left and up to 4 px down, fading out, in chunky 2x pixels.
+- **One image for both grounds:** semi-transparent near-black (not the per-ground colours the mocks used), so the same file reads on the asphalt pad and on the grass.
+- **Every file is (sprite width + 16) x 48 and hangs 8 px below the sprite's bottom edge** (`VillageLayout.SHADOW`), so the game needs no per-file numbers. `VillageLayout.shadowRect(slot)` is pure; rear rows are fainter (opacity front 1, back 0.8, far 0.6; layout numbers, not balance numbers).
+- **Drawing (`villageView.js` `syncShadows`, `css/village.css` `.village-shadow`):** one `<img>` per building, not a `.village-sprite` (never tapped or hovered), with the z-index of the FIRST building in its row and placed BEFORE every sprite in `#villageLayer`, so it paints under every building of its own row and of the rows in front, over the rows behind and the pad, and under its row's haze veil. (First built with each shadow at its own building's z-index: on a 667 px phone at stars 1 / 4 / 5 a shadow then landed on the foot of the building to its left, up to about 170 px; with the row rule at most 19 px, in renders at 667 / 740 / 800 / 1366 wide, stars 1 to 5.) A hovered building lifts; its shadow stays on the ground.
+- **Rejected:** one shadow file per building shared by all five stars (the base outline changes with sandbags, fences, props); a CSS `drop-shadow` filter (it shadows the whole silhouette, not the ground contact, and costs phone performance).
+- **If a building sprite's base changes, re-run the script** (usage in its header) or the shadow will not match the base.
+- sw v441. Tests: new `test/villageShadow.test.js` (11). Jeremy saw the star 3 laptop render ("that looks great"); phone sizes checked in renders by Claude only. NOT seen in a browser.
+
+---
+
 ## 2026-11-26 (Lab building card + bigger card art) -- Claude app session, Fable 5.2; Jeremy ("I want the user to be able to preview the artwork for the building when they tap it like the other buildings ... like a two column where the artwork is in the left column. Should we hide the current goal window behind a button in the building window? like a View Goals button?"; "draft the lab card yourself"; "can you make the artwork bigger"; "that looks good for now")
 
 - **The Lab has a building card like the other eight.** A tap on the Lab (scene or Village panel row) opens `VillageCard` for kind `goals`: art in the left column, name + stars, the credit bar, the next item, "What we measure", "Why it helps". This REVERSES "a tap opens the Goals window, no card" (2026-11-26 "Lab wired" and "Lab stars Build B"). Why: the Lab was the only building whose art could not be previewed, and the card is where every building explains itself. Cost: one more tap to reach the goals; accepted because landing in the Goals window by accident is the worse mistake.

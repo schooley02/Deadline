@@ -56,3 +56,14 @@
     image-rendering: pixelated;
     user-select: none;
 }
+
+/* Contact shadows under the buildings (js/ui/villageView.js syncShadows, placed by VillageLayout.shadowRect): one per building, drawn 1:1 under its
+   sprite, never tapped. The shadows fall to the left (the moon is on the right). */
+.village-shadow {
+    position: absolute;
+    display: block;
+    max-width: none;
+    pointer-events: none;
+    image-rendering: pixelated;
+    user-select: none;
+}
