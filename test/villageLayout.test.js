@@ -929,7 +929,7 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
     });
 
     test('the Water tower (2026-11-25): 128x208, far row, three-quarter art, behind the Police station and clear of the Broadcast tower', () => {
-        expect(CONFIG.VILLAGE_PLACEMENT.bestdays).toEqual({ row: 'far', right: -120, sink: 95, dropWide: 40 });
+        expect(CONFIG.VILLAGE_PLACEMENT.bestdays).toEqual({ row: 'far', right: -120, sink: 95, dropWide: 17 });
         expect([CONFIG.VILLAGE_WATERTOWER_W_PX, CONFIG.VILLAGE_WATERTOWER_H_PX]).toEqual([128, 208]);
         expect(CONFIG.VILLAGE_ART_X.bestdays).toEqual([4, 127]);
         const s = byKind(at(800));
@@ -954,12 +954,12 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
         expect(phone.feetY).toBe(farFeet(306));                             // `feetY` stays the row's horizon
         expect(tower(379).sink).toBeUndefined();
         expect(tower(379).top).toBe(0);
-        expect(tower(500).top).toBe(farFeet(500) - 208 + 40);               // free sky above: `dropWide` 40 lowers it (2026-11-26, see the `dropWide` tests at the end)
+        expect(tower(500).top).toBe(farFeet(500) - 208 + 17);               // free sky above: `dropWide` 17 lowers it (2026-11-26, see the `dropWide` tests at the end)
         expect(tower(250).sink).toBe(CONFIG.VILLAGE_BACK_ROW_RAISE_PX + CONFIG.VILLAGE_FAR_ROW_RAISE_PX); // never below the front row's feet
     });
 
     test('the Broadcast tower (2026-11-24): 144x208, far row, behind the High school\'s right wing, its mast right of the phone HUD and its art left of the moon', () => {
-        expect(CONFIG.VILLAGE_PLACEMENT.nights).toEqual({ row: 'far', right: 34, sink: 95, dropWide: 40 });
+        expect(CONFIG.VILLAGE_PLACEMENT.nights).toEqual({ row: 'far', right: 34, sink: 95, dropWide: 17 });
         expect([CONFIG.VILLAGE_RADIO_W_PX, CONFIG.VILLAGE_RADIO_H_PX]).toEqual([144, 208]);
         const s = byKind(at(800));
         expect([s.nights.artLeft, s.nights.artRight]).toEqual([574, 714]);                 // 698-714 is only the T4 / T5 floodlight beam
@@ -983,7 +983,7 @@ describe('arrangement / placement model (2026-10-30 night; spots redone 2026-11-
         const tall = tower(379);                                           // the first canvas with 208px of sky above the far row
         expect(tall.sink).toBeUndefined();
         expect(tall.top).toBe(0);
-        expect(tower(500).top).toBe(farFeet(500) - 208 + 40);               // free sky above: `dropWide` 40 lowers it (2026-11-26, see the `dropWide` tests at the end)
+        expect(tower(500).top).toBe(farFeet(500) - 208 + 17);               // free sky above: `dropWide` 17 lowers it (2026-11-26, see the `dropWide` tests at the end)
         expect(tower(500).sink).toBeUndefined();
         const tiny = tower(250);                                           // never below the front row's feet
         expect(tiny.sink).toBe(CONFIG.VILLAGE_BACK_ROW_RAISE_PX + CONFIG.VILLAGE_FAR_ROW_RAISE_PX);
@@ -1073,7 +1073,7 @@ describe('`dropWide`: the Water tower and the Broadcast tower stand lower on lap
     const slot = (h, kind, opts = OPTS, w = 1366) => VillageLayout.villageSlots(w, h, 368, 120, { [kind]: 3 }, opts).find(x => x.kind === kind);
     const withP = (kind, extra) => ({ ...OPTS, placement: { ...OPTS.placement, [kind]: { ...OPTS.placement[kind], ...extra } } });
     const TOWERS = ['bestdays', 'nights'];
-    const DROP = 40;
+    const DROP = 17;
 
     test('only the two far-row towers have it', () => {
         TOWERS.forEach(k => expect(CONFIG.VILLAGE_PLACEMENT[k].dropWide).toBe(DROP));
@@ -1091,12 +1091,22 @@ describe('`dropWide`: the Water tower and the Broadcast tower stand lower on lap
     });
 
     test.each(TOWERS)('%s: it eases in with the free sky above the tower: at most the free sky, at most `dropWide`', (k) => {
-        expect(slot(400, k).wideDrop).toBe(21);          // 21px of sky above it at 400 -> 21px lower
-        expect(slot(400, k).top).toBe(21 + 21);
-        expect(slot(419, k).wideDrop).toBe(40);
-        expect(slot(500, k).wideDrop).toBe(40);
-        expect(slot(500, k).top).toBe(farFeet(500) - 208 + 40);
-        expect(slot(900, k).wideDrop).toBe(40);
+        expect(slot(385, k).wideDrop).toBe(6);           // 6px of sky above it at 385 -> 6px lower (less than 17)
+        expect(slot(385, k).top).toBe(6 + 6);
+        expect(slot(396, k).wideDrop).toBe(17);
+        expect(slot(500, k).wideDrop).toBe(17);
+        expect(slot(500, k).top).toBe(farFeet(500) - 208 + 17);
+        expect(slot(900, k).wideDrop).toBe(17);
+    });
+
+    test('17 puts the tower bases on the bottom of the tree line: the visible tree line ends 78px above the front row\'s feet (the field covers it from 90px up, solid from its row 12)', () => {
+        const FIELD_TOP = 90, FIELD_SOLID_ROW = 12, TREE_BOTTOM = FIELD_TOP - FIELD_SOLID_ROW; // 78 above the front row's feet
+        const farUp = CONFIG.VILLAGE_BACK_ROW_RAISE_PX + CONFIG.VILLAGE_FAR_ROW_RAISE_PX;       // 95
+        TOWERS.forEach((k) => {
+            const t = slot(600, k);
+            expect(Math.abs((VillageLayout.horizonFeetY(600, OPTS) - TREE_BOTTOM) - (t.top + t.height))).toBeLessThanOrEqual(1);
+            expect(farUp - DROP).toBe(TREE_BOTTOM);
+        });
     });
 
     test.each(TOWERS)('%s: `feetY` stays the far row\'s horizon, and it never stands below the front row\'s feet', (k) => {

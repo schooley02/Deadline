@@ -11,6 +11,12 @@ Newest entry at TOP. Every session appends one entry before ending (use `/end-se
 **Watch out:** gotchas discovered this session
 ```
 
+## 2026-11-26 (night, final) -- Far-row tower drop 40 -> 17, measured (Sonnet 5.5, Claude app)
+**Did:** Jeremy: 40 was too much, line the tower bottoms up with the bottom of the tree line. Measured the art: the visible tree line ends ~78px above the front row's feet (field covers it from 90px up, solid from its row 12), the far row's feet are 95px up, so `dropWide` is 17 on the Water tower and the Broadcast tower (`js/config.js`, `villageLayout.js` DEFAULTS). New test pins the relation. sw v436. Docs: DECISIONS, ART_STYLE, CLAUDE.md.
+**State:** village layout / view / wiring suites pass on a cloud copy except the missing-art checks. NOT the full device suite, NOT seen on a real screen.
+**Next:** Jeremy: `npx jest`, commit, unregister the service worker so v436 loads, check both tower bases on the laptop and desktop. If the backdrop art or pins change, recompute `dropWide` (see the comment above `VILLAGE_PLACEMENT`).
+**Watch out:** the entry below says 40; that number is superseded by this one.
+
 ## 2026-11-26 (night, last) -- Far-row towers lowered on laptop / desktop (Sonnet 5.5, Claude app)
 **Did:** Jeremy kept one piece of the reverted spread: the Water tower and the Broadcast tower ("radio tower") stand lower on laptop / desktop, because their bases floated above the bottom of the tree line. `js/villageLayout.js` + `js/config.js`: placement option `dropWide` (40) on `bestdays` and `nights`, slot field `wideDrop`. `test/villageLayout.test.js`: new `dropWide` suite, two placement pins and two tall-canvas checks updated. sw v435. Docs: DECISIONS, ART_STYLE, CLAUDE.md.
 **State:** village layout / view / wiring suites pass on a cloud copy except the missing-art checks (46 + 2, PNGs not in the copy). NOT the full suite on the device, NOT seen on a real screen.

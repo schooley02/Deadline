@@ -4,6 +4,13 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-26 (far-row tower drop 40 -> 17, measured) -- Claude app session, Sonnet 5.5; Jeremy ("that was too much, line the bottoms up with the bottom of the tree line")
+
+- **`dropWide` 40 -> 17 on the Water tower and the Broadcast tower.** 17 is measured, not guessed: the backdrop is pinned to the front row's feet (`--clm-hz`): the tree line art (`treeline.png`, 168 tall, top at hz - 230) is solid to its last row, 62px above that line, but the field (`village-field.png`, top at hz - 90, bushes from its row 5, solid from row 12) draws over it, so the VISIBLE bottom of the tree line is ~78px above the front row's feet. The far row's feet stand 95px above, so 95 - 78 = 17px lower puts the tower bases on it. 40 had put them 23px into the field. A test pins the relation. sw v436.
+- Still only on tall canvases (free sky above the tower, canvas > 379, full 17 from 396); phones unchanged. If the backdrop art or its pins are redone, recompute (config comment above `VILLAGE_PLACEMENT`).
+
+---
+
 ## 2026-11-26 (far-row towers lowered on laptop / desktop) -- Claude app session, Sonnet 5.5; Jeremy ("I do still want you to lower the water tower and radio tower a little on laptop and desktop ... the bottoms float above the bottom of the tree line")
 
 - **`dropWide` is back, for the two far-row towers only** (Water tower `bestdays`, Broadcast tower `nights`; "radio tower" is the Broadcast tower's old name). A placement option: the building stands up to `dropWide` (40) px lower, but only when its canvas has free sky above it (a laptop / desktop height), easing in from the canvas height where its top just touches the top of the scene (379), never below the front row's feet. Phones and short windows are exactly as before. Slot field `wideDrop`. No building is spread or moved sideways (see the entry below this one).
