@@ -299,7 +299,7 @@ describe('looks key off one class per band', () => {
 
     test('Clear keeps today\'s look: gameCanvas.css fallbacks are the original colours and glow', () => {
         expect(canvasCss).toContain('var(--clm-s0, #0b0b24)');
-        expect(canvasCss).toContain('var(--clm-s3, #3d3a5c)');
+        expect(canvasCss).toContain('var(--clm-s3, #373c5c)'); // cooler horizon 2026-11-26 (was #3d3a5c)
         expect(canvasCss).toContain('var(--clm-g1, 36px)');
         expect(block(css, '#gameCanvas.climate-clear')).not.toMatch(/--clm-s0/);
     });

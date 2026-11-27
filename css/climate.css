@@ -32,8 +32,10 @@
     --clm-far: 0; --clm-row1: 0; --clm-row2: 0; --clm-mid: 0; --clm-near: 0;
 }
 
+/* 2026-11-26: hazy / overcast / fog horizons (s1-s3) shifted toward blue by the same hue step as the clear sky (css/gameCanvas.css .scene-sky);
+   storm unchanged (its own green-grey). Was hazy #1c1c3a #302f4c #423f5c, overcast #23223a #34324a #46435a, fog #2c2b3c #3b3a4a #4b4957. */
 #gameCanvas.climate-hazy {
-    --clm-s0: #11112a; --clm-s1: #1c1c3a; --clm-s2: #302f4c; --clm-s3: #423f5c;
+    --clm-s0: #11112a; --clm-s1: #1c1e3a; --clm-s2: #2f324c; --clm-s3: #3f425c;
     --clm-stars: 0.85;
     --clm-moon: 0.9; --clm-g1: 26px; --clm-g2: 8px; --clm-ga: 0.38; --clm-gb: 0.1;
     --clm-rgb: 170, 168, 190;
@@ -41,7 +43,7 @@
 }
 
 #gameCanvas.climate-overcast {
-    --clm-s0: #17172a; --clm-s1: #23223a; --clm-s2: #34324a; --clm-s3: #46435a;
+    --clm-s0: #17172a; --clm-s1: #22233a; --clm-s2: #32334a; --clm-s3: #43455a;
     --clm-stars: 0.6;
     --clm-moon: 0.6; --clm-g1: 16px; --clm-g2: 4px; --clm-ga: 0.25; --clm-gb: 0.05;
     --clm-rgb: 170, 168, 190;
@@ -49,7 +51,7 @@
 }
 
 #gameCanvas.climate-fog {
-    --clm-s0: #1f1f2e; --clm-s1: #2c2b3c; --clm-s2: #3b3a4a; --clm-s3: #4b4957;
+    --clm-s0: #1f1f2e; --clm-s1: #2b2b3c; --clm-s2: #3a3b4a; --clm-s3: #494a57;
     --clm-stars: 0;
     --clm-moon: 0.28; --clm-g1: 10px; --clm-g2: 2px; --clm-ga: 0.15; --clm-gb: 0;
     --clm-rgb: 175, 175, 190;

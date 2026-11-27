@@ -232,7 +232,9 @@ body.glance-strip .hud-collapse-button { display: none; }
     z-index: -4;
     /* Run climate (2026-11-03, css/climate.css): the --clm-* vars come from the band class on #gameCanvas; with no band the
        fallbacks below are the original colours. */
-    background: linear-gradient(180deg, var(--clm-s0, #0b0b24) 0%, var(--clm-s1, #171735) 35%, var(--clm-s2, #2b2a4a) 68%, var(--clm-s3, #3d3a5c) 100%);
+    /* 2026-11-26 (Jeremy, "B2"): the horizon is cooler (purple-grey -> blue-grey, same lightness) to match the tree line and the
+       blue-violet mountains; was #171735 / #2b2a4a / #3d3a5c. The other bands in css/climate.css moved by the same hue step. */
+    background: linear-gradient(180deg, var(--clm-s0, #0b0b24) 0%, var(--clm-s1, #171936) 35%, var(--clm-s2, #292d4c) 68%, var(--clm-s3, #373c5c) 100%);
 }
 
 /* Twinkling pixel stars (2026-11-01, Jeremy: "a few small ones and a few slightly larger ones",
