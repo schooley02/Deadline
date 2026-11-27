@@ -1,8 +1,9 @@
 # Village road, option C (2026-11-26, Claude app session, Fable 5.2; Jeremy picked each step)
 
-**Signs redrawn at FULL resolution the same night (sw v445):** the shipped `Assets/scene/village-stop-sign.png` (20x42) and `village-traffic-light.png`
-(38x78) are made by `scripts/signs.py` at 1 art px = 1 screen px, like the buildings. The sign files and sizes described below are the earlier 2x
-versions, kept for history. The road strip and the pad here are still 2x art and are due to be redrawn at full resolution.
+**Current signs (sw v446):** `Assets/scene/village-stop-sign.png` is the 2x chunky stop sign (18x42, `scripts/strip.py` `STOP` plus its shadow) and
+`village-traffic-light.png` is the 2x chunky light with a 3-art-px pole (40x78, `scripts/light4.py`; source `traffic-light_40x76.png`).
+Full-resolution versions (`scripts/signs.py`) were tried the same night and Jeremy preferred the chunky look. Sign sizes described below are
+earlier versions, kept for history.
 
 ART DONE and WIRED 2026-11-26 night (sw v442). In the game: `Assets/scene/village-road.png` (= `village-road_320x18.png`), `Assets/scene/village-pad.png`
 (= `village-pad_lighter_356x46.png`), `Assets/scene/village-stop-sign.png` and `village-traffic-light.png` (= the two sign files here plus a baked
