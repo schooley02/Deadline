@@ -7,8 +7,8 @@
  *   - Tier = how many family members are attacking RIGHT NOW (at the church: overdue, not a lurker / ghost, not completed, not
  *     iced). 1-2 attackers -> x1.0, 3-4 -> x1.5, 5+ -> x2.0 (CONFIG.FAMILY_TIER_*). Sub-tasks that only exist, or are due later,
  *     never count.
- *   - A work timer running on ANY member halves the whole family (CONFIG.WORK_TIMER_DAMAGE_FACTOR), live loop only: offline and
- *     live-gap catch-up ignore timers (and ice) exactly as before.
+ *   - A work timer running on ANY member halves the whole family (CONFIG.WORK_TIMER_DAMAGE_FACTOR). Since 2026-11-27 offline and
+ *     live-gap catch-up honour it too (and skip the iced stretch): see Damage.catchUpTicks.
  *   - Damage is whole points per hit, so the family rate is set by stretching each member's hit interval: with n attackers and a
  *     family multiplier m, every member swings every base * n / m ms. The family then lands m hits per base interval in total, and
  *     its members' own damage clocks (set by their due times) make them take turns.

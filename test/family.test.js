@@ -160,7 +160,7 @@ describe('live loop: damage per hour at the church (one zombie alone = 12)', () 
     });
 });
 
-describe('catch-up (offline and live gap) uses the same tiers, never timers or ice', () => {
+describe('catch-up (offline and live gap) uses the same tiers; a timer / ice counts from when it started (2026-11-27)', () => {
     function overdueFamily(subCount, minutesAgo) {
         const nowMs = T0;
         const f = family(subCount);
@@ -177,11 +177,14 @@ describe('catch-up (offline and live gap) uses the same tiers, never timers or i
         const { hits } = Damage.computeGapCatchUpHits(f.all, nowMs);
         expect(hits.reduce((s, h) => s + h.dmg, 0)).toBe(24);
     });
-    test('live-gap: a timer / ice on the family changes nothing', () => {
+    test('live-gap: a parent timer started 30 min ago ices the family for those 30 min only', () => {
         const { f, nowMs } = overdueFamily(3, 80);
         f.parent.timer = running(nowMs - 30 * MIN);
         const { hits } = Damage.computeGapCatchUpHits(f.all, nowMs);
-        expect(hits.reduce((s, h) => s + h.dmg, 0)).toBe(24); // 80 min: one zombie owes 16, a x1.5 family owes 24
+        // Was 24 before 2026-11-27 (catch-up ignored timers and ice). Now the first 50 min hit at the x1.5 family pace (each of the
+        // 4 members swings every 13.3 min -> 3 hits each = 12) and the last 30 min are iced (no hits).
+        expect(hits.reduce((s, h) => s + h.dmg, 0)).toBe(12);
+        f.all.forEach(i => expect(i.iceUsedMs).toBe(30 * MIN));
     });
     test('live-gap: a lone item is unchanged and the damage clock advances by whole member intervals', () => {
         const a = mk({ dueDateTime: new Date(T0 - 17 * MIN), lastDamageTickTime: T0 - 17 * MIN });

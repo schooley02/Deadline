@@ -268,7 +268,12 @@ const Loop = (() => {
                     if (typeof IceOverlay !== 'undefined') IceOverlay.sync(item.element, ice.phase);
                 }
                 // The thaw moment restarts the damage clock (no back-charge for the iced time; next hit one full interval later).
-                if (ice.thawed && item.isOverdue) item.lastDamageTickTime = currentTimeMs;
+                // When the ice ran out during a gap, catch-up has already charged from that moment (Ice.spendGap, 2026-11-27): keep its clock.
+                if (ice.thawed && item.isOverdue) {
+                    const at = typeof ice.thawAtMs === 'number' ? ice.thawAtMs : currentTimeMs;
+                    item.lastDamageTickTime = (typeof item.lastDamageTickTime === 'number' && at < currentTimeMs)
+                        ? Math.max(item.lastDamageTickTime, at) : currentTimeMs;
+                }
                 // One daily-record entry per stretch of ice, at its end (the episode length).
                 if (ice.thawed && ice.episodeMs > 0 && deps.recordIce) deps.recordIce({ ms: ice.episodeMs });
                 iceCountdown(item, ice, deps.activeItems);
@@ -277,7 +282,7 @@ const Loop = (() => {
             // Handle damage from overdue items
             if (item.isOverdue && !isLurker && iced) {
                 // Iced: no hit, and the damage clock moves with the ice, so the next hit is one full interval after the thaw and
-                // offline / live-gap catch-up (which ignores ice, like timers) only ever charges the time it really covers.
+                // offline / live-gap catch-up (which skips the iced stretch via Ice.spendGap) only ever charges the time it really covers.
                 item.lastDamageTickTime = currentTimeMs;
             } else if (item.isOverdue && !isLurker) {
                 // Work timer (Build 3, 2026-10-25): while a timer runs on this item the

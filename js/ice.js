@@ -9,7 +9,10 @@
  *     refill it. When it is spent the zombie attacks again at the timer's usual half rate (Timer.damageIntervalMs).
  *   - Pausing an iced item leaves it iced (cracking) for `CONFIG.ICE_GRACE_MS` (`item.icePausedAt`); the grace is spent from the
  *     same budget. Stop, resume, or a timer starting on another item (one timer at a time) ends the grace at once.
- *   - Offline / live-gap catch-up ignores ice, exactly as it ignores timers: `tick` spends nothing across a gap.
+ *   - Across a gap the loop did not tick (a background tab, a sleeping laptop, a reload) `tick` spends nothing; catch-up calls
+ *     `spendGap` instead, which spends the ice the zombie used while away (from the later of its last iced tick, its due time and
+ *     the timer's start) and tells catch-up which stretch to skip (2026-11-27, Jeremy: tabbing back used to hand out a full fresh
+ *     hour from that moment, "it should have applied it from the moment they reached the base").
  *   - Not a shop item, no charges: running the timer on the task is the price. It never moves the due time or the position.
  * The live loop (js/loop.js) calls `tick` every tick; per-item bookkeeping that is NOT saved (last tick, episode length, phase)
  * lives in a WeakMap here, so only `iceUsedMs` / `icePausedAt` ride on the item.
@@ -86,7 +89,7 @@ const Ice = (() => {
         (items || []).forEach(i => { if (i !== except) clearGrace(i); });
     }
 
-    // Unsaved per-item bookkeeping: { at, episodeMs, iced, phase }.
+    // Unsaved per-item bookkeeping: { at, episodeMs, iced, phase, thawAtMs }.
     const track = new WeakMap();
 
     /**
@@ -94,11 +97,12 @@ const Ice = (() => {
      * across a gap longer than LIVE_GAP_THRESHOLD_MS: catch-up owns that time) and reports:
      *   iced / leftMs        after this tick's spending
      *   started / thawed     this tick crossed into / out of the ice
+     *   thawAtMs             (thawed only) when the ice really ended: now, or earlier when it ran out during a gap (spendGap)
      *   episodeMs            (thawed only) how long this stretch of ice lasted
      *   phase / phaseChanged 'iced' | 'thawing' | null, for the CSS classes (touched only when it moves)
      */
     function tick(item, nowMs, c, holder) {
-        const out = { iced: false, leftMs: 0, started: false, thawed: false, episodeMs: 0, phase: null, phaseChanged: false };
+        const out = { iced: false, leftMs: 0, started: false, thawed: false, thawAtMs: null, episodeMs: 0, phase: null, phaseChanged: false };
         if (!item || typeof item !== 'object') return out;
         let tr = track.get(item);
         const before = state(item, nowMs, c, holder);
@@ -111,6 +115,7 @@ const Ice = (() => {
                 tr.episodeMs += spend;
             }
             tr.at = nowMs;
+            tr.thawAtMs = null; // still iced now: a thaw time left by spendGap is stale
         }
         const after = state(item, nowMs, c, holder);
         out.iced = after.iced;
@@ -119,14 +124,54 @@ const Ice = (() => {
         out.thawed = !after.iced && tr.iced;
         out.phase = after.iced ? (after.thawing ? 'thawing' : 'iced') : null;
         out.phaseChanged = out.phase !== tr.phase;
+        if (out.thawed) out.thawAtMs = (typeof tr.thawAtMs === 'number' && tr.thawAtMs <= nowMs) ? tr.thawAtMs : nowMs;
         if (!after.iced) {
             out.episodeMs = tr.episodeMs;
             tr.episodeMs = 0;
             tr.at = null;
+            tr.thawAtMs = null;
         }
         tr.iced = after.iced;
         tr.phase = out.phase;
         return out;
+    }
+
+    /**
+     * Catch-up for a gap the live loop did not tick through (live-gap catch-up and the reload catch-up call this BEFORE their damage
+     * math). Spends the ice this item used while away and returns { fromMs, untilMs, spentMs } -- the stretch catch-up must not
+     * charge -- or null when no ice was used. The stretch starts at the item's last iced tick when the loop saw it iced; otherwise
+     * at the latest of `sinceMs` (start of the absence, optional), its due time and the holder's timer start. It ends at `nowMs`,
+     * when the budget runs out, or (paused holder) when the pause grace ends. Leaves the per-item bookkeeping so the next `tick`
+     * neither spends the gap again nor misses a thaw that happened while away (that thaw then reports `thawAtMs` = `untilMs`).
+     */
+    function spendGap(item, sinceMs, nowMs, c, holder) {
+        if (!atBase(item) || typeof nowMs !== 'number') return null;
+        const left = budgetLeftMs(item, c);
+        if (left <= 0) return null;
+        const h = holder || item;
+        let endMs;
+        if (isRunning(h)) endMs = nowMs;
+        else if (h.timerPaused === true && typeof h.icePausedAt === 'number') endMs = Math.min(nowMs, h.icePausedAt + cfg('ICE_GRACE_MS', c));
+        else return null;
+        let tr = track.get(item);
+        let fromMs;
+        if (tr && tr.iced && typeof tr.at === 'number') {
+            fromMs = tr.at;
+        } else {
+            const due = item.dueDateTime instanceof Date ? item.dueDateTime.getTime()
+                : (typeof item.dueDateTime === 'number' ? item.dueDateTime : -Infinity);
+            fromMs = Math.max(typeof sinceMs === 'number' ? sinceMs : -Infinity, due);
+            if (isRunning(h)) fromMs = Math.max(fromMs, h.timer.startedAt);
+        }
+        if (!isFinite(fromMs) || !(fromMs < endMs)) return null;
+        const spentMs = Math.min(endMs - fromMs, left);
+        item.iceUsedMs = used(item) + spentMs;
+        if (!tr) { tr = { at: null, episodeMs: 0, iced: false, phase: null }; track.set(item, tr); }
+        tr.episodeMs += spentMs;
+        tr.iced = true;
+        tr.at = nowMs;
+        tr.thawAtMs = fromMs + spentMs;
+        return { fromMs, untilMs: fromMs + spentMs, spentMs };
     }
 
     // ms of ice left (0 when not iced): the Base Health panel's ETA and its attacker rows read this.
@@ -148,7 +193,7 @@ const Ice = (() => {
     function stateIn(item, items, nowMs, c) { return state(item, nowMs, c, holderFor(item, items)); }
     function leftMsIn(item, items, nowMs, c) { return leftMs(item, nowMs, c, holderFor(item, items)); }
 
-    return { holderFor, stateIn, leftMsIn, atBase, state, leftMs, thawAt, onPause, clearGrace, clearOthers, tick, budgetLeftMs, graceLeftMs };
+    return { holderFor, stateIn, leftMsIn, atBase, state, leftMs, thawAt, onPause, clearGrace, clearOthers, tick, spendGap, budgetLeftMs, graceLeftMs };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

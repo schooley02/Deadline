@@ -256,9 +256,9 @@ const Damage = (() => {
         if (typeof savedTickMs === 'number' && isFinite(savedTickMs) && savedTickMs <= nowMs) {
             startMs = Math.max(savedTickMs, dueMs, nowMs - CONFIG.OFFLINE_MAX_MS - interval);
         }
-        if (startMs >= nowMs) return { ticks: 0, nextTickMs: nowMs };
+        if (startMs >= nowMs) return { ticks: 0, nextTickMs: nowMs, startMs: nowMs };
         const ticks = Math.floor((nowMs - startMs) / interval);
-        return { ticks, nextTickMs: startMs + ticks * interval };
+        return { ticks, nextTickMs: startMs + ticks * interval, startMs };
     }
 
     // The decision half of runLiveGapCatchUp, separated so it can be tested on
@@ -295,16 +295,21 @@ const Damage = (() => {
             }
         });
 
+        // Ice used while away (2026-11-27): spent for every member BEFORE any interval is worked out, so a family's tier sees who
+        // is still iced now. The live loop saw the gap start, so an untracked item's ice starts at its due time / timer start.
+        const iceWins = spendGapIce(activeItems, undefined, nowMs, isLurker);
+
         activeItems.forEach(item => {
             if (isLurker(item)) return;
             if (item.dueDateTime.getTime() > nowMs) return;
 
-            // Family tier (js/family.js): catch-up ignores timers and ice, like before, but a family at the church swings at its
-            // tier's pace (each member's interval = base * attackers / multiplier).
-            const interval = familyInterval(item, activeItems, nowMs, isLurker);
-            const pendingTicks = Math.floor((nowMs - item.lastDamageTickTime) / interval);
+            // Family tier (js/family.js): a family at the church swings at its tier's pace (each member's interval = base *
+            // attackers / multiplier). A work timer that kept running through the gap counts too (2026-11-27): the iced stretch
+            // is skipped and the rest is charged at the timer's half rate, as the live loop would have.
+            const t = catchUpTicks(item, activeItems, item.lastDamageTickTime, nowMs, isLurker, iceWins.get(item));
+            const pendingTicks = t.ticks;
+            item.lastDamageTickTime = t.nextTickMs;
             if (pendingTicks <= 0) return;
-            item.lastDamageTickTime += pendingTicks * interval;
 
             const remaining = CONFIG.OFFLINE_DAMAGE_CAP_PER_ITEM - (item.offlineDamageCharged || 0);
             const dmg = Math.min(pendingTicks * CONFIG.OVERDUE_DAMAGE, Math.max(0, remaining));
@@ -314,7 +319,6 @@ const Damage = (() => {
         return { hits, newlyOverdue };
     }
 
-    // Duration of the offline catch-up animation for N moving sprites.
     // This item's hit interval under the family tier for catch-up (no timers, no ice). Falls back to the plain interval when the
     // Family module is not loaded (old tests / callers).
     function familyInterval(item, activeItems, nowMs, isLurker) {
@@ -323,6 +327,93 @@ const Damage = (() => {
             isLurker, isAttacking: m => m.dueDateTime && m.dueDateTime.getTime() <= nowMs,
         });
     }
+
+    // ---- Work timer + ice through a gap (2026-11-27, Jeremy: tab away with a timer running, come back past the due time, and the
+    // ice used to start a fresh hour from that moment while the gap was charged at full rate). ----
+
+    function timerRunning(item) {
+        return !!(item && item.timer && typeof item.timer.startedAt === 'number');
+    }
+    // The running timer on this item's family (one timer at a time), or null.
+    function familyTimerItem(item, activeItems) {
+        const root = item.parentId || item.id;
+        if (timerRunning(item)) return item;
+        return (activeItems || []).find(i => i && !i.completedAt && (i.id === root || i.parentId === root) && timerRunning(i)) || null;
+    }
+    // Until when a timer that ran through a gap counts as running. An unanswered "Still working?" prompt auto-stops it and banks
+    // only up to the prompt time (js/timer.js autoStop), so a long absence earns the half rate only that far.
+    function timerCreditEndMs(timerItem, nowMs) {
+        const t = timerItem.timer;
+        const autoMs = typeof CONFIG.WORK_TIMER_AUTO_STOP_MS === 'number' ? CONFIG.WORK_TIMER_AUTO_STOP_MS : 10 * 60 * 1000;
+        if (typeof t.promptedAt === 'number') return nowMs - t.promptedAt >= autoMs ? t.promptedAt : nowMs;
+        if (typeof CONFIG.WORK_TIMER_CHECK_MS !== 'number') return nowMs;
+        const dueAt = (typeof t.checkedAt === 'number' ? t.checkedAt : t.startedAt) + CONFIG.WORK_TIMER_CHECK_MS;
+        return nowMs >= dueAt + autoMs ? dueAt : nowMs;
+    }
+    // Spends every at-base item's ice for the gap (Ice.spendGap) -> Map(item -> { fromMs, untilMs }). Empty without Ice.
+    function spendGapIce(activeItems, sinceMs, nowMs, isLurker) {
+        const wins = new Map();
+        if (typeof Ice === 'undefined' || !Ice.spendGap) return wins;
+        (activeItems || []).forEach(item => {
+            if (!item || isLurker(item)) return;
+            const w = Ice.spendGap(item, sinceMs, nowMs, undefined, Ice.holderFor(item, activeItems));
+            if (w) wins.set(item, w);
+        });
+        return wins;
+    }
+    /**
+     * Whole hits owed from `clockMs` (the item's damage clock) to `nowMs`, walking the gap in stretches: the iced stretch `iceWin`
+     * deals nothing and moves the clock past it; from the family timer's start until it stops counting (timerCreditEndMs) the
+     * interval is the timer's half-rate one; outside that, the plain catch-up interval. Sub-interval remainders carry across stretches, like the live loop.
+     * Without a timer or ice this is exactly floor((now - clock) / familyInterval). Returns { ticks, nextTickMs }.
+     */
+    function catchUpTicks(item, activeItems, clockMs, nowMs, isLurker, iceWin) {
+        const plain = familyInterval(item, activeItems, nowMs, isLurker);
+        const timerItem = familyTimerItem(item, activeItems);
+        if (!timerItem && !iceWin) {
+            if (!(clockMs < nowMs)) return { ticks: 0, nextTickMs: clockMs };
+            const k = Math.floor((nowMs - clockMs) / plain);
+            return { ticks: k, nextTickMs: clockMs + k * plain };
+        }
+        let half = plain;
+        let creditStart = Infinity;
+        let creditEnd = -Infinity;
+        if (timerItem) {
+            creditStart = timerItem.timer.startedAt;
+            creditEnd = timerCreditEndMs(timerItem, nowMs);
+            if (typeof Family !== 'undefined') {
+                half = Family.intervalMs(item, activeItems, CONFIG.DAMAGE_INTERVAL_MS, {
+                    timers: true, isLurker,
+                    isAttacking: m => m.dueDateTime && m.dueDateTime.getTime() <= nowMs,
+                    isIced: (typeof Ice !== 'undefined') ? (m => Ice.stateIn(m, activeItems, nowMs).iced) : undefined,
+                });
+            } else if (timerItem === item && typeof Timer !== 'undefined' && Timer.damageIntervalMs) {
+                half = Timer.damageIntervalMs(item, CONFIG.DAMAGE_INTERVAL_MS);
+            }
+        }
+        const cuts = [clockMs, nowMs, creditStart, creditEnd];
+        if (iceWin) cuts.push(iceWin.fromMs, iceWin.untilMs);
+        const pts = Array.from(new Set(cuts.filter(x => typeof x === 'number' && isFinite(x) && x >= clockMs && x <= nowMs)))
+            .sort((a, b) => a - b);
+        let at = clockMs;
+        let ticks = 0;
+        for (let i = 0; i + 1 < pts.length; i++) {
+            const a = pts[i], b = pts[i + 1];
+            const mid = (a + b) / 2;
+            if (iceWin && mid >= iceWin.fromMs && mid < iceWin.untilMs) {
+                if (at < b) at = b; // iced: no hit, the clock moves with the ice
+                continue;
+            }
+            const interval = (mid >= creditStart && mid < creditEnd) ? half : plain;
+            if (at >= b) continue;
+            const k = Math.floor((b - at) / interval);
+            ticks += k;
+            at += k * interval;
+        }
+        return { ticks, nextTickMs: at };
+    }
+
+    // Duration of the offline catch-up animation for N moving sprites.
 
     function computeCatchUpDuration(animatableCount) {
         return Math.max(
@@ -686,14 +777,29 @@ const Damage = (() => {
         entries.forEach(e => {
             if (typeof e.savedTickMs === 'number') savedTicks.set(e.item, e.savedTickMs);
         });
+        // Ice used while the app was closed (2026-11-27): a timer left running keeps its zombie iced from the start of the absence
+        // (or its due time / the timer's start, whichever is later), like the live-gap path. Spent before any damage math.
+        const iceWins = offlineMs > 0 ? spendGapIce(getActiveItems(), nowMs - offlineMs, nowMs, isLurker) : new Map();
         getActiveItems().forEach(item => {
             if (isLurker(item)) return; // [P1-DATA-005] session 27 — no offline damage for lurkers
             const dueMs = item.dueDateTime.getTime();
             const savedTickMs = savedTicks.get(item);
             const interval = familyInterval(item, getActiveItems(), nowMs, isLurker);
-            const dmg = computeOfflineOverdueDamage(
-                dueMs, nowMs, offlineMs, item.offlineDamageCharged, savedTickMs, interval
-            );
+            const iceWin = iceWins.get(item);
+            const timed = !!(iceWin || familyTimerItem(item, getActiveItems()));
+            let dmg;
+            if (!timed) {
+                dmg = computeOfflineOverdueDamage(
+                    dueMs, nowMs, offlineMs, item.offlineDamageCharged, savedTickMs, interval
+                );
+            } else {
+                // Timer through the absence: same window start, but the iced stretch is skipped and the rest runs at the half rate.
+                const remaining = CONFIG.OFFLINE_DAMAGE_CAP_PER_ITEM - (item.offlineDamageCharged || 0);
+                const { startMs } = computeOfflineTicks(dueMs, nowMs, offlineMs, savedTickMs, interval);
+                const t = (offlineMs > 0 && dueMs < nowMs && remaining > 0)
+                    ? catchUpTicks(item, getActiveItems(), startMs, nowMs, isLurker, iceWin) : { ticks: 0 };
+                dmg = Math.min(t.ticks * CONFIG.OVERDUE_DAMAGE, Math.max(0, remaining));
+            }
             if (dmg > 0) hits.push({ item, dmg });
             // Keep the partial countdown: resume the live damage clock at the
             // last whole tick boundary (restore had reset it to "now"). Applies
@@ -701,8 +807,10 @@ const Damage = (() => {
             // loop never replays the ticks the cap refused. Only touches items
             // that are actually overdue.
             if (item.isOverdue && dueMs < nowMs && offlineMs > 0) {
-                const { nextTickMs } = computeOfflineTicks(dueMs, nowMs, offlineMs, savedTickMs, interval);
-                item.lastDamageTickTime = nextTickMs;
+                const { nextTickMs, startMs } = computeOfflineTicks(dueMs, nowMs, offlineMs, savedTickMs, interval);
+                item.lastDamageTickTime = timed
+                    ? catchUpTicks(item, getActiveItems(), startMs, nowMs, isLurker, iceWin).nextTickMs
+                    : nextTickMs;
             }
         });
 
@@ -775,6 +883,8 @@ const Damage = (() => {
         computeOfflineTicks,
         computeGapCatchUpHits,
         computeCatchUpDuration,
+        catchUpTicks,
+        timerCreditEndMs,
         computeRegenTicks,
         computeQuietMs,
         // stateful

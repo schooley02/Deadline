@@ -10,6 +10,7 @@ global.Clock = require('../js/clock.js');
 global.Timer = require('../js/timer.js');
 global.Ice = require('../js/ice.js');
 const Loop = require('../js/loop.js');
+const Damage = require('../js/damage.js');
 
 const MIN = 60000;
 const INTERVAL = CONFIG.DAMAGE_INTERVAL_MS;
@@ -220,5 +221,25 @@ describe('thaw countdown (badge on the zombie, chip on its row)', () => {
         row.querySelector('.ice-note').remove();
         run(deps, T0 + 3000, T0 + 3000);
         expect(row.querySelector('.ice-note')).not.toBeNull();
+    });
+});
+
+describe('a thaw that happened while the tab was in the background (2026-11-27)', () => {
+    test('the first tick back keeps the clock catch-up set at the real thaw, records the whole episode, and hits on schedule', () => {
+        const item = atBase({ id: 1, timer: running(T0 - MIN) });
+        const deps = makeDeps([item]);
+        run(deps, T0, T0); // the loop sees it iced at T0
+        const back = T0 + 67 * MIN;
+        jest.setSystemTime(back);
+        // What runLiveGapCatchUp does first: spend the ice used while away and charge the rest (60 iced + 7 min at the half rate).
+        Damage.computeGapCatchUpHits([item], back);
+        expect(item.lastDamageTickTime).toBe(T0 + 60 * MIN);
+        Loop.updateActiveItems(deps);
+        expect(item.lastDamageTickTime).toBe(T0 + 60 * MIN); // not reset to `back`
+        expect(deps._state.ice).toEqual([{ ms: 60 * MIN }]);
+        expect(deps._state.damage).toBe(0);
+        // Half-rate interval (10 min) from the thaw: the first hit lands at T0+70, not T0+77.
+        run(deps, back + 1000, T0 + 70 * MIN);
+        expect(deps._state.damage).toBe(DMG);
     });
 });
