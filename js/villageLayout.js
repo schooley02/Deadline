@@ -340,9 +340,9 @@ const VillageLayout = (() => {
     }
 
     // Worn-asphalt pad under the whole village (2026-11-27, Jeremy: "a separate asphalt ground under it ... grass closer to the zombie lane").
-    // Assets/scene/village-pad.png is 336x46 art shown at 2x. It is anchored to the Gym's left art edge and the front row's feet, so it follows the
+    // Assets/scene/village-pad.png is 348x46 art shown at 2x. It is anchored to the Gym's left art edge and the front row's feet, so it follows the
     // village at every screen size. Returns null when there is no Gym slot.
-    const PAD = { src: 'Assets/scene/village-pad.png', width: 672, height: 92, leftFromGym: -21, topFromFeet: -88 };
+    const PAD = { src: 'Assets/scene/village-pad.png', width: 696, height: 92, leftFromGym: -21, topFromFeet: -88 };
 
     function padRect(slots) {
         const list = slots || [];
