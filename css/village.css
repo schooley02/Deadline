@@ -57,6 +57,29 @@
     user-select: none;
 }
 
+/* Road into town (js/ui/villageView.js syncRoad, placed by VillageLayout.roadRect): a tiled strip across the whole layer, under the pad (-2), art shown at 2x.
+   The church (#base, z 3) and the graveyard zone (6) draw over it. Laptop / desktop only (roadRect returns null on phones). */
+.village-road {
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: -2;
+    background-repeat: repeat-x;
+    background-position: 0 0;
+    pointer-events: none;
+    image-rendering: pixelated;
+}
+
+/* The stop sign and the traffic light at the pad's ends: drawn 1:1, never tapped. */
+.village-sign {
+    position: absolute;
+    display: block;
+    max-width: none;
+    pointer-events: none;
+    image-rendering: pixelated;
+    user-select: none;
+}
+
 /* Contact shadows under the buildings (js/ui/villageView.js syncShadows, placed by VillageLayout.shadowRect): one per building, drawn 1:1 under its
    sprite, never tapped. The shadows fall to the left (the moon is on the right). */
 .village-shadow {

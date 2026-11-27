@@ -401,7 +401,38 @@ const VillageLayout = (() => {
         };
     }
 
-    return { DEFAULTS, fromConfig, clampTier, resolveTier, sizeOf, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, resolveDevHospitalTier, resolveDevWaterTowerTier, resolveDevLabTier, fieldWidth, spriteUrl, horizonFeetY, villageSlots, padRect, PAD, shadowUrl, shadowRect, SHADOW };
+    // Road into town (2026-11-26, Jeremy: option C, a LEVEL road behind the church and the graveyard, through the pad; a stop sign at the pad's left end, a
+    // traffic light at its right end). Assets/scene/village-road.png is a 320x18 strip shown at 2x, tiled across the whole layer UNDER the pad. Laptop / desktop
+    // only: it shows when there is at least minGapPx of open ground between the church's box and the Gym (phones have none). The signs stand signGapPx from the
+    // Gym's left art edge and from the right-most front-row art edge (the Lab); their PNGs carry their own short left-falling shadow (2 rows below the foot),
+    // and the traffic light's PNG has a 4 px left margin for its lamp glow.
+    const ROAD = {
+        src: 'Assets/scene/village-road.png', tileWidth: 640, height: 36, topFromFeet: -66, minGapPx: 60, signGapPx: 19, signFeetFromFeet: -36,
+        stop: { src: 'Assets/scene/village-stop-sign.png', width: 18, height: 42, foot: 40, margin: 0 },
+        light: { src: 'Assets/scene/village-traffic-light.png', width: 46, height: 74, foot: 72, margin: 4 },
+    };
+
+    // Pure. The road strip and its two signs for these slots, or null when the road is not shown (no Gym, or no open ground beside the village).
+    function roadRect(slots, baseW) {
+        const list = slots || [];
+        const gym = list.find(s => s.kind === 'lurkers');
+        if (!gym) return null;
+        if (gym.artLeft - (Number(baseW) || 0) < ROAD.minGapPx) return null;
+        const front = list.filter(s => s.row === 'front');
+        const feet = front.reduce((m, s) => Math.max(m, s.feetY), gym.feetY);
+        const right = front.reduce((m, s) => Math.max(m, s.artRight), gym.artRight);
+        const footY = feet + ROAD.signFeetFromFeet;
+        const sign = (key, d, left) => ({ key, url: d.src, left, top: footY - d.foot, width: d.width, height: d.height });
+        return {
+            url: ROAD.src, top: feet + ROAD.topFromFeet, height: ROAD.height, tileWidth: ROAD.tileWidth,
+            signs: [
+                sign('stop', ROAD.stop, gym.artLeft - ROAD.signGapPx - ROAD.stop.width),
+                sign('light', ROAD.light, right + ROAD.signGapPx - ROAD.light.margin),
+            ],
+        };
+    }
+
+    return { DEFAULTS, fromConfig, clampTier, resolveTier, sizeOf, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, resolveDevHospitalTier, resolveDevWaterTowerTier, resolveDevLabTier, fieldWidth, spriteUrl, horizonFeetY, villageSlots, padRect, PAD, shadowUrl, shadowRect, SHADOW, roadRect, ROAD };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

@@ -348,8 +348,48 @@ const VillageView = (() => {
             img.style.filter = (slot.back && slot.brightness > 0 && slot.brightness < 1) ? 'brightness(' + slot.brightness + ')' : '';
         });
         syncPad(slots);
+        syncRoad(slots, baseW);
         syncShadows(slots);
         syncHaze(slots, baseW);
+    }
+
+    // Road into town (2026-11-26): one tiled strip across the whole layer UNDER the pad (z-index -2), plus the stop sign and the traffic light. All placed by
+    // VillageLayout.roadRect (null on phones / with no Gym: everything is removed). None is a .village-sprite, so none is tapped or hovered. The signs take the
+    // z-index of the first front-row building and sit before every sprite in the DOM: over the rear rows and their haze, under the front row.
+    function syncRoad(slots, baseW) {
+        const r = VillageLayout.roadRect ? VillageLayout.roadRect(slots, baseW) : null;
+        let road = layerEl.querySelector('.village-road');
+        const signs = Array.from(layerEl.querySelectorAll('.village-sign'));
+        if (!r) { if (road) road.remove(); signs.forEach(el => el.remove()); return; }
+        const pad = layerEl.querySelector('.village-pad');
+        if (!road) {
+            road = document.createElement('div');
+            road.className = 'village-road';
+            layerEl.insertBefore(road, pad ? pad.nextSibling : layerEl.firstChild);
+        }
+        road.style.top = r.top + 'px';
+        road.style.height = r.height + 'px';
+        road.style.backgroundImage = 'url("' + r.url + '")';
+        road.style.backgroundSize = r.tileWidth + 'px ' + r.height + 'px';
+        let z = slots.findIndex(sl => sl.row === 'front');
+        if (z < 0) z = slots.length - 1;
+        r.signs.forEach((s) => {
+            let el = signs.find(x => x.dataset.sign === s.key);
+            if (!el) {
+                el = document.createElement('img');
+                el.className = 'village-sign';
+                el.alt = '';
+                el.draggable = false;
+                el.dataset.sign = s.key;
+                layerEl.insertBefore(el, road.nextSibling);
+            }
+            if (el.getAttribute('src') !== s.url) el.setAttribute('src', s.url);
+            el.style.left = s.left + 'px';
+            el.style.top = s.top + 'px';
+            el.style.width = s.width + 'px';
+            el.style.height = s.height + 'px';
+            el.style.zIndex = String(z);
+        });
     }
 
     // Contact shadows (2026-11-26): one img per building, placed by VillageLayout.shadowRect. Not a .village-sprite, so never tapped or hovered. Each takes
