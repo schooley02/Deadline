@@ -1136,3 +1136,63 @@ describe('`dropWide`: the Water tower and the Broadcast tower stand lower on lap
         });
     });
 });
+
+describe('narrow-screen fit (2026-11-27): the village slides left so the Lab stays on screen', () => {
+    const ALL = { punctuality: 3, defense: 3, slain: 3, nights: 3, lurkers: 3, heroes: 3, habits: 3, bestdays: 3, goals: 3 };
+    const at = (w, tiers = ALL, opts = OPTS) => VillageLayout.villageSlots(w, 306, 188, 120, tiers, opts);
+    const find = (list, k) => list.find(s => s.kind === k);
+
+    test('CONFIG.VILLAGE_FIT_TUCK_PX is read, and DEFAULTS agree', () => {
+        expect(OPTS.fitTuckPx).toBe(CONFIG.VILLAGE_FIT_TUCK_PX);
+        expect(VillageLayout.DEFAULTS.fitTuckPx).toBe(CONFIG.VILLAGE_FIT_TUCK_PX);
+        expect(CONFIG.VILLAGE_FIT_TUCK_PX).toBeGreaterThan(CONFIG.VILLAGE_BASE_TUCK_PX);
+        expect(CONFIG.VILLAGE_FIT_TUCK_PX).toBeLessThan(47); // the church's wall ends 47px inside its box
+    });
+
+    test('the Lab is placed, fully on screen, at every width from 560 to 800 (667 = the small phone)', () => {
+        for (let w = 560; w <= 800; w += 1) {
+            const s = at(w);
+            expect(s).toHaveLength(9);
+            expect(find(s, 'goals').artRight).toBeLessThanOrEqual(w);
+            expect(find(s, 'lurkers').artLeft).toBeGreaterThanOrEqual(188 - CONFIG.VILLAGE_FIT_TUCK_PX);
+        }
+        const s = at(667);
+        expect(find(s, 'goals').artRight).toBe(667); // slid exactly as far as needed, no further
+    });
+
+    test('with only the base tuck (no fit allowance) the Lab is still dropped at 620', () => {
+        const off = { ...OPTS, fitTuckPx: 0 };
+        expect(find(at(620, ALL, off), 'goals')).toBeUndefined();
+        expect(at(620, ALL, off)).toHaveLength(8);
+        expect(at(620)).toHaveLength(9);
+    });
+
+    test('the design width and wider screens are untouched', () => {
+        const off = { ...OPTS, fitTuckPx: 0 };
+        [[800, 306, 188], [1366, 480, 368], [1920, 640, 368]].forEach(([w, h, base]) => {
+            expect(VillageLayout.villageSlots(w, h, base, 120, ALL, OPTS)).toEqual(VillageLayout.villageSlots(w, h, base, 120, ALL, off));
+        });
+    });
+
+    test('the slide comes from the placement table, never from what is built: building the Lab moves nothing else', () => {
+        const { goals, ...noLab } = ALL;
+        const a = at(667);
+        const b = at(667, noLab);
+        b.forEach((x) => expect(find(a, x.kind)).toEqual(x));
+        const only = at(667, { lurkers: 3 });
+        expect(only[0]).toEqual(find(a, 'lurkers'));
+    });
+
+    test('every building moves by the same amount, and a slide too short to save the Lab is not made', () => {
+        const off = { ...OPTS, fitTuckPx: 0 };
+        const a = at(620);
+        const b = at(620, ALL, off);
+        const d = find(a, 'lurkers').artLeft - find(b, 'lurkers').artLeft;
+        expect(d).toBeLessThan(0);
+        b.forEach((x) => { expect(find(a, x.kind).artLeft - x.artLeft).toBe(d); expect(find(a, x.kind).top).toBe(x.top); });
+        const tight = { ...OPTS, fitTuckPx: CONFIG.VILLAGE_BASE_TUCK_PX + 1 };
+        const c = at(600, ALL, tight); // needs more room than 1px extra gives
+        expect(find(c, 'goals')).toBeUndefined();
+        c.forEach((x) => expect(x.artLeft).toBe(find(at(600, ALL, off), x.kind).artLeft));
+    });
+});

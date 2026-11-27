@@ -65,6 +65,7 @@ const VillageLayout = (() => {
         backRowRaisePx: 60,
         backRowBrightness: 0.8,
         baseTuckPx: 24,
+        fitTuckPx: 40,
         // Placement model (2026-10-30 night; spots redone 2026-11-24): mirrors CONFIG.VILLAGE_PLACEMENT / VILLAGE_DESIGN_FIELD_PX.
         designFieldPx: 492,
         placement: {
@@ -121,6 +122,7 @@ const VillageLayout = (() => {
             devHospitalTier: (cfg.VILLAGE_DEV_HOSPITAL_TIER === null) ? null : pick(cfg.VILLAGE_DEV_HOSPITAL_TIER, DEFAULTS.devHospitalTier),
             art: (cfg.VILLAGE_ART_X && typeof cfg.VILLAGE_ART_X === 'object') ? cfg.VILLAGE_ART_X : DEFAULTS.art,
             baseTuckPx: pick(cfg.VILLAGE_BASE_TUCK_PX, DEFAULTS.baseTuckPx),
+            fitTuckPx: pick(cfg.VILLAGE_FIT_TUCK_PX, DEFAULTS.fitTuckPx),
             designFieldPx: pick(cfg.VILLAGE_DESIGN_FIELD_PX, DEFAULTS.designFieldPx),
             placement: (cfg.VILLAGE_PLACEMENT && typeof cfg.VILLAGE_PLACEMENT === 'object') ? cfg.VILLAGE_PLACEMENT : DEFAULTS.placement,
         };
@@ -290,6 +292,28 @@ const VillageLayout = (() => {
         };
         const bright = { front: 1, back: o.backRowBrightness, far: o.farRowBrightness };
         const tuck = Math.max(0, Number(o.baseTuckPx) || 0);
+        // Narrow-screen fit (2026-11-27, Jeremy: "the lab needs to show on the 667 wide phone. shift the village to the left ... we have room to the left of
+        // the gym"): on a field narrower than the design width the right-most building (the Lab) can run off the right edge of the screen and be dropped.
+        // When the whole cluster can slide left far enough to bring it back on screen without the left-most building going deeper than fitTuckPx under
+        // the church (the lantern and sandbags draw over its left edge there), it does. It is worked out from EVERY building in the placement table (never from which ones are built), so building one never moves
+        // another, and it is all-or-nothing: a slide too short to save the building is not made.
+        let fitShift = 0;
+        if (k < 1) {
+            let minLeft = Infinity;
+            let maxRight = -Infinity;
+            Object.keys(o.placement || {}).forEach((kind) => {
+                const p = o.placement[kind] || {};
+                const [w] = sizeOf(kind, o);
+                const art = (o.art && o.art[kind]) || [0, w];
+                const span = art[1] - art[0];
+                const l = Math.round(fieldRight + ((Number(p.right) || 0) - span) * k);
+                minLeft = Math.min(minLeft, l);
+                maxRight = Math.max(maxRight, l + span);
+            });
+            const over = maxRight - (fieldRight + hillW);
+            const slack = minLeft - (fieldLeft - Math.max(tuck, Number(o.fitTuckPx) || 0));
+            if (over > 0 && slack >= over) fitShift = over;
+        }
         const out = [];
         Object.keys(o.placement || {}).forEach((kind) => {
             const p = o.placement[kind] || {};
@@ -304,10 +328,10 @@ const VillageLayout = (() => {
             // `right` is authored at the design width; narrower fields scale the art's LEFT-edge offset (so a building that
             // cleared the church at the design width still clears it), keeping the sprite's width.
             const designLeft = (Number(p.right) || 0) - (a1 - a0);
-            const artLeft = Math.round(fieldRight - centreShift + designLeft * k);
+            const artLeft = Math.round(fieldRight - centreShift + designLeft * k) - fitShift;
             const left = artLeft - a0;
             const artRight = left + a1;
-            if (artLeft < fieldLeft - tuck || artRight > fieldRight + hillW) return;
+            if (artLeft < fieldLeft - tuck - fitShift || artRight > fieldRight + hillW) return;
             const feetY = Math.round(feet[row]);
             // Optional per-building `raise` (px, >= 0): stands the sprite further back than its row without touching `feetY` (the row's
             // horizon, which the haze plan reads).
@@ -340,9 +364,9 @@ const VillageLayout = (() => {
     }
 
     // Worn-asphalt pad under the whole village (2026-11-27, Jeremy: "a separate asphalt ground under it ... grass closer to the zombie lane").
-    // Assets/scene/village-pad.png is 348x46 art shown at 2x. It is anchored to the Gym's left art edge and the front row's feet, so it follows the
+    // Assets/scene/village-pad.png is 356x46 art shown at 2x. It is anchored to the Gym's left art edge and the front row's feet, so it follows the
     // village at every screen size. Returns null when there is no Gym slot.
-    const PAD = { src: 'Assets/scene/village-pad.png', width: 696, height: 92, leftFromGym: -21, topFromFeet: -88 };
+    const PAD = { src: 'Assets/scene/village-pad.png', width: 712, height: 92, leftFromGym: -21, topFromFeet: -88 };
 
     function padRect(slots) {
         const list = slots || [];
