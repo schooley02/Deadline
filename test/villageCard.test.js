@@ -40,7 +40,7 @@ describe('buildModel', () => {
     });
 
     test('every building kind has a name, a unit, what it measures and why it helps the player', () => {
-        VillageProgress.KINDS.filter(k => k !== 'goals').forEach(k => { // the Lab has no card: a tap opens the Goals window (docs/LAB_PLAN.md)
+        VillageProgress.KINDS.filter(k => k !== 'goals').forEach(k => { // the Lab's words live in VillageCard.LAB (its own tests are at the end of this file)
             const meta = VillageCard.KINDS[k];
             expect(meta).toBeTruthy();
             expect(meta.name.length).toBeGreaterThan(0);
@@ -150,14 +150,30 @@ describe('cardHtml', () => {
 });
 
 describe('spriteScale', () => {
-    test('3x for a 128px canvas, 2x when only that fits, else fitted to the column height (the Clock tower)', () => {
+    test('3x when it fits 480x480, 2x when only that fits, else fitted to the column height', () => {
         expect(VillageCard.spriteScale(128, 128)).toBe(3);
         expect(VillageCard.spriteScale(128, 133)).toBe(3);
-        expect(VillageCard.spriteScale(128, 160)).toBe(2);
-        expect(VillageCard.spriteScale(146, 150)).toBe(2);
+        expect(VillageCard.spriteScale(128, 160)).toBe(3); // 384x480: fits since the limits grew to 480x480 (2026-11-27)
+        expect(VillageCard.spriteScale(128, 161)).toBe(2);
+        expect(VillageCard.spriteScale(161, 128)).toBe(2);
         expect(VillageCard.spriteScale(112, 208)).toBe(2); // Clock tower (112x208 since 2026-11-24): an even 2x, 416px tall
         expect(VillageCard.spriteScale(128, 256)).toBe(1.5); // a canvas too tall for 2x (the old 128x256 tower) is fitted: 256 * 1.5 = 384 tall
         expect(VillageCard.spriteScale(0, 0)).toBe(3); // unknown size: the card omits the width style
+    });
+    test('bigger art (2026-11-27): the 160x160 squares show at 3x; every other shipped canvas keeps its scale', () => {
+        expect(VillageCard.spriteScale(160, 160)).toBe(3); // Lab, Command Post, Police station: 480px (was 2x = 320px)
+        expect(VillageCard.spriteScale(192, 160)).toBe(2); // Gym
+        expect(VillageCard.spriteScale(176, 144)).toBe(2); // High school, Hospital
+        expect(VillageCard.spriteScale(128, 208)).toBe(2); // Water tower
+        expect(VillageCard.spriteScale(144, 208)).toBe(2); // Broadcast tower
+    });
+    test('a sprite shown wider than 384px gets the wider card; the others do not', () => {
+        const html = (w, h) => VillageCard.cardHtml(VillageCard.buildModel({ kind: 'slain', progress: progress(0, 'slain'), spriteUrl: 'a.png', spriteW: w, spriteH: h }));
+        expect(html(160, 160)).toContain('class="modal-content village-card village-card--wide"');
+        expect(html(160, 160)).toContain('width:480px;--vc-h:480px;'); // --vc-h: the full shown height, which the short-screen CSS scales down from
+        expect(html(192, 160)).toContain('class="modal-content village-card"'); // 384px: not wider
+        expect(html(128, 128)).toContain('class="modal-content village-card"');
+        expect(VillageCard.cardHtml(VillageCard.buildModel({ kind: 'slain', progress: progress(0, 'slain') }))).toContain('class="modal-content village-card"'); // no sprite
     });
     test('the card is two columns: art (.vc-art) beside the info (.vc-info)', () => {
         const html = VillageCard.cardHtml(VillageCard.buildModel({ kind: 'nights', progress: progress(0) }));
@@ -397,5 +413,112 @@ describe('Command Post (the Armory re-aimed at priorities, 2026-11-09)', () => {
         expect(m.empty).toBe('Tick Priority on a task to start building.');
         expect(m.emptyLink).toBeNull();
         expect(VillageCard.buildModel({ kind: 'slain', progress: progress(1, 'slain') }).empty).toBeNull();
+    });
+});
+
+describe('Lab card (kind `goals`, 2026-11-27): the art preview, with the Goals window behind a "View Goals" button', () => {
+    const lab = (value, extra = {}) => VillageCard.buildModel({ kind: 'goals', progress: progress(value, 'goals'), perPerson: 10, ...extra });
+
+    test('the Lab has its own words and is not in KINDS (the village panel walks KINDS for the other eight)', () => {
+        expect(VillageCard.KINDS.goals).toBeUndefined();
+        const meta = VillageCard.LAB;
+        expect(meta.name).toBe('Lab');
+        expect(meta.unit).toBe('people cured');
+        expect(meta.measures.length).toBeGreaterThan(20);
+        expect(meta.why.length).toBeGreaterThan(40);
+        expect(meta.why).not.toBe(meta.measures);
+        expect(meta.measures + meta.why).not.toMatch(/\u2014/); // no em dashes, like the other cards
+    });
+
+    test('the bar counts PEOPLE, not tenths: "0.4 / 1 people cured to earn star 2"', () => {
+        const m = lab(4);
+        expect(m.name).toBe('Lab');
+        expect(m.tier).toBe(1);
+        expect(m.barText).toBe('0.4 / 1 people cured to earn star 2');
+        expect(m.measures).toBe(VillageCard.LAB.measures);
+        expect(m.why).toBe(VillageCard.LAB.why);
+        expect(lab(0).barText).toBe('0 / 1 people cured to earn star 2');
+        expect(lab(25).barText).toBe('2.5 / 6 people cured to earn star 3');
+        expect(lab(180).barText).toBe('18 / 40 people cured to earn star 5');
+    });
+
+    test('`perPerson` comes from the caller (default 10)', () => {
+        expect(VillageCard.buildModel({ kind: 'goals', progress: progress(4, 'goals') }).barText).toBe('0.4 / 1 people cured to earn star 2');
+        expect(VillageCard.buildModel({ kind: 'goals', progress: progress(4, 'goals'), perPerson: 1 }).barText).toBe('4 / 10 people cured to earn star 2');
+    });
+
+    test('star 5 reads "Fully rebuilt"', () => {
+        const m = lab(400);
+        expect(m.tier).toBe(5);
+        expect(m.maxed).toBe(true);
+        expect(m.barText).toBe('Fully rebuilt');
+    });
+
+    test('"View Goals" shows only when the card is given onOpenGoals, and only on the Lab', () => {
+        expect(lab(4).action).toBeNull();
+        expect(lab(4, { onOpenGoals: () => {} }).action).toEqual({ text: 'View Goals', action: 'open-goals' });
+        expect(VillageCard.buildModel({ kind: 'nights', progress: progress(1), onOpenGoals: () => {} }).action).toBeNull();
+        const html = VillageCard.cardHtml(lab(4, { onOpenGoals: () => {} }));
+        expect(html).toMatch(/<button type="button" class="primary-button vc-action" data-action="open-goals">View Goals<\/button>/);
+        expect(html.indexOf('vc-action')).toBeLessThan(html.indexOf('What we measure')); // above the long text: on screen without scrolling
+        expect(VillageCard.cardHtml(lab(4))).not.toContain('vc-action');
+        expect(VillageCard.cardHtml(VillageCard.buildModel({ kind: 'nights', progress: progress(1) }))).not.toContain('vc-action');
+    });
+
+    test('two columns like every other card: the sprite at 3x in the art column', () => {
+        const m = lab(4, { spriteUrl: 'Assets/Village/goals_t1.png', spriteW: 160, spriteH: 160 });
+        expect(m.spriteScale).toBe(3);
+        const html = VillageCard.cardHtml(m);
+        expect(html).toMatch(/<div class="vc-art"><img class="vc-sprite" src="Assets\/Village\/goals_t1\.png"/);
+        expect(html).toContain('width:480px');
+        expect(html).toContain('aria-label="Lab, tier 1"');
+    });
+
+    test('no active goal: an empty line points at the button; with a goal (or unknown) there is none', () => {
+        expect(lab(0, { hasGoal: false }).empty).toBe(VillageCard.EMPTY_TEXT.goals);
+        expect(lab(0, { hasGoal: true }).empty).toBeNull();
+        expect(lab(0).empty).toBeNull();
+        expect(VillageCard.buildModel({ kind: 'nights', progress: progress(1), hasGoal: false }).empty).toBeNull();
+    });
+
+    test('the next star\'s item shows like on the other cards', () => {
+        const m = lab(4, { nextDrop: { star: 2, label: 'Medium Pushback (2 hr)' } });
+        expect(m.nextItem).toEqual({ star: 2, label: 'Medium Pushback (2 hr)' });
+    });
+
+    describe('open', () => {
+        let overlay;
+        beforeEach(() => {
+            document.body.innerHTML = ''; // cards left open by the tests above
+            global.Modal = {
+                open: jest.fn((html) => {
+                    const host = document.createElement('div');
+                    host.innerHTML = html.trim();
+                    overlay = host.firstChild;
+                    document.body.appendChild(overlay);
+                    return overlay;
+                }),
+            };
+        });
+        afterEach(() => { delete global.Modal; document.body.innerHTML = ''; });
+
+        test('"View Goals" closes the card, then opens the Goals window; the click never reaches the document', () => {
+            const onOpenGoals = jest.fn(() => expect(document.querySelector('.village-card-overlay')).toBeNull()); // the card is already gone
+            const outside = jest.fn();
+            document.addEventListener('click', outside);
+            VillageCard.open({ kind: 'goals', progress: progress(4, 'goals'), perPerson: 10, onOpenGoals });
+            overlay.querySelector('[data-action="open-goals"]').click();
+            document.removeEventListener('click', outside);
+            expect(onOpenGoals).toHaveBeenCalledTimes(1);
+            expect(outside).not.toHaveBeenCalled();
+        });
+
+        test('the x closes the card without opening the Goals window', () => {
+            const onOpenGoals = jest.fn();
+            VillageCard.open({ kind: 'goals', progress: progress(4, 'goals'), perPerson: 10, onOpenGoals });
+            overlay.querySelector('[data-action="close"]').click();
+            expect(document.querySelector('.village-card-overlay')).toBeNull();
+            expect(onOpenGoals).not.toHaveBeenCalled();
+        });
     });
 });

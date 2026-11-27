@@ -249,11 +249,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openVillageCard(hit) {
-        // The Lab (kind `goals`) has no card: tapping it opens the Goals window, the inside of the lab (Jeremy 2026-11-25 / 2026-11-26).
-        if (hit.kind === 'goals') {
-            if (ensureGoalsPane()) GoalsPane.open();
-            return;
-        }
+        // The Lab (kind `goals`) has a card like every other building since 2026-11-27 (Jeremy: preview the art; the Goals window, the inside of the
+        // lab, is behind the card's "View Goals" button). Before that a tap opened the Goals window directly.
         const ctx = villageContext();
         const progress = VillageProgress.compute(ctx);
         VillageCard.open({
@@ -264,6 +261,10 @@ document.addEventListener('DOMContentLoaded', () => {
             hasRoutine: (State.getDefinedRoutines() || []).length > 0,
             // Boxing gym empty line (2026-11-04): its "Break Habit" words open Add Habit with Break Habit picked.
             onAddBreakHabit: () => openAddHabitForm({ isNegative: true }),
+            // Lab card (2026-11-27): the counter is in tenths of a person; "View Goals" opens the Goals window; empty line when no goal is active.
+            perPerson: CONFIG.GOAL_CREDIT.perPerson,
+            hasGoal: hit.kind === 'goals' ? (((State.getGoals() || {}).active || []).length > 0) : undefined,
+            onOpenGoals: hit.kind === 'goals' ? (() => { if (ensureGoalsPane()) GoalsPane.open(); }) : undefined,
             // Clock tower "Your reward" (pushback charges, Build C): the free allowance at this star + what the next adds.
             reward: hit.kind === 'punctuality' && progress.punctuality
                 ? Object.assign(PushbackHelp.rewardModel({ star: progress.punctuality.tier, table: CONFIG.PUSHBACK_ALLOWANCE }),
@@ -3464,7 +3465,6 @@ document.addEventListener('DOMContentLoaded', () => {
             markers: realMarkerCounts(),
             onOpenMarkers: () => openMarkerPanel(null),
             onOpenBuilding: (kind) => {
-                if (kind === 'goals') { if (ensureGoalsPane()) GoalsPane.open(); return; }
                 const sprite = villageSpriteFor(kind, progress[kind] ? progress[kind].tier : 1);
                 const placement = (CONFIG.VILLAGE_PLACEMENT || {})[kind] || {};
                 openVillageCard({ kind, url: sprite.url, width: sprite.width, height: sprite.height, flip: !!placement.flip });

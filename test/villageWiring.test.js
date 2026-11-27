@@ -142,10 +142,19 @@ describe('script.js hook-up', () => {
         expect(script).toContain("villageTierDep('bestdays', 'waterTowerTier')"); // real tier, URL param overrides (Build 2)
     });
 
-    test('the Lab (kind `goals`, wired 2026-11-26): tier dep, Goals-window tap, art cached by the service worker', () => {
+    test('the Lab (kind `goals`, wired 2026-11-26): tier dep, a card with a "View Goals" button (2026-11-27), art cached by the service worker', () => {
         expect(script).toContain('getLabTier:');
         expect(script).toContain("villageTierDep('goals', 'labTier')"); // no counter yet: T1 until the star design session, ?labTier= overrides
-        expect(script).toMatch(/hit\.kind === 'goals'\)\s*\{\s*if \(ensureGoalsPane\(\)\) GoalsPane\.open\(\);\s*return;/); // the Lab has no card: a tap opens the Goals window
+        // 2026-11-27: a tap opens the Lab's card like every other building; the Goals window is behind the card's "View Goals" button.
+        const open = script.slice(script.indexOf('function openVillageCard('), script.indexOf('VillageView.init('));
+        expect(open).not.toMatch(/if \(hit\.kind === 'goals'\)\s*\{/); // no early return to the Goals window
+        expect(open).toMatch(/onOpenGoals: hit\.kind === 'goals' \? \(\(\) => \{ if \(ensureGoalsPane\(\)\) GoalsPane\.open\(\); \}\) : undefined/);
+        expect(open).toContain('perPerson: CONFIG.GOAL_CREDIT.perPerson');
+        expect(open).toMatch(/hasGoal: hit\.kind === 'goals' \?/);
+        // The village list's Lab row opens the same card (no direct jump to the Goals window).
+        const panel = script.slice(script.indexOf('function openVillagePanel('), script.indexOf("villageButton.addEventListener('click', openVillagePanel)"));
+        expect(panel).not.toContain('GoalsPane.open');
+        expect(panel).toContain('openVillageCard({ kind,');
         [1, 2, 3, 4, 5].forEach(t => {
             expect(fs.existsSync(path.join(__dirname, '..', `Assets/Village/goals_t${t}.png`))).toBe(true);
             expect(sw).toContain(`'Assets/Village/goals_t${t}.png'`);

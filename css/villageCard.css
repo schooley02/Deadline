@@ -2,6 +2,7 @@
    Markup + model: js/ui/villageCard.js. Same overlay/content shell as the level panel. */
 
 .village-card { position: relative; max-width: 760px; width: calc(100vw - 32px); max-height: calc(100vh - 32px); overflow-y: auto; }
+.village-card--wide { max-width: 900px; } /* art shown wider than 384px (the 160x160 squares at 3x = 480px, 2026-11-27): the text column keeps its width */
 .vc-head { padding-right: 28px; } /* keep the stars clear of the x (.modal-close-x, css/modal.css) */
 /* Two columns: the art on the left (as big as fits), the facts on the right. */
 .vc-body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px; align-items: center; }
@@ -61,9 +62,16 @@
 .rc-next { margin-top: 2px; font-size: 12px; color: var(--color-text-primary); }
 .rc-paused { margin-top: 2px; font-size: 11px; color: var(--color-neutral); font-style: italic; }
 
-/* Short screens (landscape phones): keep two columns, but cap the art so the card still fits the height. */
+/* Short screens (landscape phones, short laptop windows): keep two columns, but cap the art so the card still fits the height.
+   2026-11-27 (Jeremy: bigger art): the art is SCALED to the cap (--vc-h = its full shown height, set by js/ui/villageCard.js); before, a max-height alone
+   left it at its 1x file size. The cap went from 50vh to the card's full inner height (viewport - 110px: 32 overlay margin, 48 card padding, 20 art
+   padding, 10 spare), and it now starts at 620px because the 480px squares need that much. */
+@media (max-height: 620px) {
+    .vc-sprite { width: auto !important; height: min(var(--vc-h, 384px), calc(100vh - 110px)); }
+    /* The text column is taller than the card here, so the card scrolls: the art stays in view at the top while the text scrolls past it. */
+    .vc-art { align-self: start; position: sticky; top: 0; }
+}
 @media (max-height: 520px) {
-    .vc-sprite { width: auto !important; max-height: 50vh; }
     .vc-body { gap: 14px; }
 }
 
@@ -76,3 +84,7 @@
 /* Text-link button inside a card's empty line (2026-11-04): the Gym's "Break Habit" opens Add Habit. */
 .vc-text-link { display: inline; padding: 0; margin: 0; border: none; background: none; font: inherit; font-weight: 700; color: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .vc-text-link:hover, .vc-text-link:focus-visible { text-decoration-thickness: 2px; }
+
+/* The card's own button (2026-11-27): the Lab's "View Goals" (.primary-button, css/forms.css). Full width of the text column, an easy tap. */
+.vc-actions { margin: 12px 0 0; }
+.vc-action { width: 100%; min-height: 44px; }

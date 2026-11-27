@@ -11,7 +11,7 @@
  * (test/villageCard.test.js); `open` is DOM and live-checked. Global read at call time: Modal.
  *
  * buildModel(ctx): ctx = {
- *   kind,           'nights' | 'slain' | 'punctuality' | 'habits' | 'lurkers' | 'defense' | 'heroes' | 'bestdays'
+ *   kind,           'nights' | 'slain' | 'punctuality' | 'habits' | 'lurkers' | 'defense' | 'heroes' | 'bestdays' | 'goals' (the Lab, see LAB below)
  *   progress,       VillageProgress.compute(...)[kind] -> { tier, value, prevAt, nextAt, toNext, maxed, fraction }
  *   extras?,        VillageProgress.extras(...) -> { attendanceStreak, comebackDays, perfectPlans }  (the school no longer shows the streak)
  *   reportRows?,    Heroes.reportRows(...) -> one row per routine for the High school's report card
@@ -21,6 +21,9 @@
  *   nextDrop?,      the item the NEXT star pays (village tier drops, 2026-11-03): { star, label } from VillageDrops.nextDrop + .label,
  *                   or null/absent. Shown as a "Next item" line under the progress bar; at the top star the card says all item rewards
  *                   are earned.
+ *   perPerson?,     the Lab only: credit per person (CONFIG.GOAL_CREDIT.perPerson, default 10). The Lab's counter is in tenths of a person.
+ *   hasGoal?,       the Lab only: false when the player has no active goal (Lab empty state)
+ *   onOpenGoals?,   the Lab only: () => void. Given, the card shows a "View Goals" button that closes the card and calls it.
  *   spriteUrl?, spriteW?, spriteH?, spriteFlip?   the building's current sprite (mirrored like the scene when spriteFlip)
  * }
  */
@@ -76,6 +79,18 @@ const VillageCard = (() => {
         },
     };
 
+    // The Lab (kind `goals`). Card added 2026-11-27 (Jeremy: "I want the user to be able to preview the artwork for the building when they tap it like the
+    // other buildings ... hide the current goal window behind a button in the building window? like a View Goals button"). Until then a tap on the Lab
+    // opened the Goals window directly. It is NOT in KINDS on purpose: KINDS is the list the village panel walks for its eight whole-number buildings
+    // (the panel builds the Lab's row itself), and the Lab's counter is in tenths of a person (`perPerson`). `action` is the card's button: shown only
+    // when the card is given its handler.
+    const LAB = {
+        name: 'Lab', unit: 'people cured',
+        measures: 'People cured this run. Every goal you keep pays toward the count. A repeating goal pays on the night you reach its target, once for each day, week or month. A one-time goal pays each time it climbs a stage, and pays more the longer it has been open. A period you miss pays nothing.',
+        why: 'Getting through the night is not the same as getting somewhere. Goals are the long work that changes things, and they pay the most when you keep at them for weeks. Every star here is proof that you stayed on course, not that you had one big day.',
+        action: { text: 'View Goals', action: 'open-goals', handler: 'onOpenGoals' },
+    };
+
     // The words in an empty line that become a text-link button when the card is given a handler for it (2026-11-04,
     // Jeremy): the Gym's "Break Habit" opens the Add Habit form with Break Habit picked.
     const EMPTY_LINKS = {
@@ -86,6 +101,7 @@ const VillageCard = (() => {
         lurkers: 'Add a Break Habit to start rebuilding.',
         heroes: 'Start a routine to open the school.',
         slain: 'Tick Priority on a task to start building.',
+        goals: 'Set your first goal to start curing people.',
     };
 
     function count(n) { return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0; }
@@ -107,9 +123,15 @@ const VillageCard = (() => {
     // MAX_ART_H was 400 until 2026-11-24, when the tower was fitted at a non-whole scale). A canvas too tall even for 2x is
     // fitted to the column height (FIT_H): a non-whole scale that image-rendering: pixelated keeps crisp (some pixels come
     // out a hair wider than others).
-    const MAX_ART_W = 384;
-    const MAX_ART_H = 416;
+    // 2026-11-27 (Jeremy, on the Lab's card: "can you make the artwork bigger"): the limits went from 384x416 to 480x480, so the three 160x160 squares
+    // (Lab, Command Post, Police station) show at 3x (480px) like the 128px canvases, not 2x (320px). Every other shipped canvas keeps its scale. A sprite
+    // shown wider than WIDE_ART_W gets the wider card (`.village-card--wide`, css/villageCard.css) so the text column keeps its width.
+    const MAX_ART_W = 480;
+    const MAX_ART_H = 480;
     const FIT_H = 384;
+    const WIDE_ART_W = 384;
+    // The sprite also carries its full shown height as --vc-h: on a short screen the CSS shows it at min(--vc-h, the card's inner height). Before 2026-11-27
+    // the short-screen rule only set a max-height, which left the art at its 1x file size on a phone.
     function spriteScale(w, h) {
         for (let k = 3; k >= 2; k--) {
             if (w * k <= MAX_ART_W && h * k <= MAX_ART_H) return k;
@@ -120,7 +142,8 @@ const VillageCard = (() => {
 
     function buildModel(ctx) {
         const c = ctx || {};
-        const meta = KINDS[c.kind] || { name: 'Building', measures: '', why: '', unit: '' };
+        const isLab = c.kind === 'goals';
+        const meta = isLab ? LAB : (KINDS[c.kind] || { name: 'Building', measures: '', why: '', unit: '' });
         const p = c.progress || {};
         const tier = Math.min(MAX_TIER, Math.max(1, Math.round(p.tier) || 1));
         const value = count(p.value);
@@ -128,10 +151,13 @@ const VillageCard = (() => {
         const nextAt = (!maxed && Number.isFinite(p.nextAt)) ? p.nextAt : null;
         const fraction = maxed ? 1 : Math.min(1, Math.max(0, Number.isFinite(p.fraction) ? p.fraction : 0));
 
+        // The Lab counts in tenths of a person: shown as people, to one decimal place (4 -> "0.4", 10 -> "1").
+        const per = (isLab && Number.isFinite(c.perPerson) && c.perPerson > 0) ? c.perPerson : (isLab ? 10 : 1);
+        const shown = (v) => (isLab ? String(Math.round((v / per) * 10) / 10) : String(v));
         let barText;
         if (maxed) barText = 'Fully rebuilt';
-        else if (nextAt === null) barText = value + ' ' + meta.unit;
-        else barText = value + ' / ' + nextAt + ' ' + meta.unit + ' to earn star ' + (tier + 1);
+        else if (nextAt === null) barText = shown(value) + ' ' + meta.unit;
+        else barText = shown(value) + ' / ' + shown(nextAt) + ' ' + meta.unit + ' to earn star ' + (tier + 1);
 
         const lines = [];
         const ex = c.extras || {};
@@ -148,6 +174,8 @@ const VillageCard = (() => {
         const emptyLink = (link && typeof c[link.handler] === 'function') ? { text: link.text, action: link.action } : null;
         if (c.kind === 'heroes' && c.hasRoutine === false) empty = EMPTY_TEXT.heroes;
         if (c.kind === 'slain' && value === 0) empty = EMPTY_TEXT.slain; // Command Post: nothing counted yet (no link: the Priority box lives in the task forms)
+        if (isLab && c.hasGoal === false) empty = EMPTY_TEXT.goals; // Lab: no active goal (the "View Goals" button below is the way in)
+        const action = (meta.action && typeof c[meta.action.handler] === 'function') ? { text: meta.action.text, action: meta.action.action } : null;
 
         return {
             kind: c.kind,
@@ -173,6 +201,7 @@ const VillageCard = (() => {
             reportRows: (c.kind === 'heroes' && Array.isArray(c.reportRows)) ? c.reportRows : [],
             empty,
             emptyLink,
+            action,
             spriteUrl: c.spriteUrl || null,
             spriteW: count(c.spriteW),
             spriteH: count(c.spriteH),
@@ -198,7 +227,7 @@ const VillageCard = (() => {
         const m = model;
         const pct = Math.round(m.fraction * 100);
         const sprite = m.spriteUrl
-            ? `<img class="vc-sprite" src="${esc(m.spriteUrl)}" alt="" draggable="false"${(m.spriteW || m.spriteFlip) ? ` style="${m.spriteW ? `width:${Math.round(m.spriteW * m.spriteScale)}px;` : ''}${m.spriteFlip ? 'transform:scaleX(-1);' : ''}"` : ''}>`
+            ? `<img class="vc-sprite" src="${esc(m.spriteUrl)}" alt="" draggable="false"${(m.spriteW || m.spriteFlip) ? ` style="${m.spriteW ? `width:${Math.round(m.spriteW * m.spriteScale)}px;` : ''}${m.spriteH ? `--vc-h:${Math.round(m.spriteH * m.spriteScale)}px;` : ''}${m.spriteFlip ? 'transform:scaleX(-1);' : ''}"` : ''}>`
             : '';
         // Clock tower only (Build C): the free pushbacks the current star gives and what the next star adds.
         const rewardHtml = m.reward
@@ -221,12 +250,16 @@ const VillageCard = (() => {
         }
         const emptyHtml = m.empty ? `<p class="vc-empty">${emptyInner}</p>` : '';
         const linesHtml = m.lines.map(l => `<p class="vc-line">${esc(l)}</p>`).join('');
+        // The card's own button (the Lab's "View Goals"): above the long text, so it is on screen without scrolling on a short phone.
+        const actionHtml = m.action
+            ? `<div class="vc-actions"><button type="button" class="primary-button vc-action" data-action="${esc(m.action.action)}">${esc(m.action.text)}</button></div>`
+            : '';
         // High school report card (HeroesView loads before this module; tests without it simply skip the card).
         const reportHtml = (m.reportRows && m.reportRows.length && typeof HeroesView !== 'undefined' && HeroesView.reportCardHtml)
             ? HeroesView.reportCardHtml(m.reportRows) : '';
         return `
             <div class="modal-overlay village-card-overlay">
-                <div class="modal-content village-card" role="dialog" aria-label="${esc(m.name)}, tier ${m.tier}">
+                <div class="modal-content village-card${(m.spriteUrl && m.spriteW * m.spriteScale > WIDE_ART_W) ? ' village-card--wide' : ''}" role="dialog" aria-label="${esc(m.name)}, tier ${m.tier}">
                     <div class="vc-body">
                         <div class="vc-art">${sprite}</div>
                         <div class="vc-info">
@@ -238,6 +271,7 @@ const VillageCard = (() => {
                             <p class="vc-bar-text${m.maxed ? ' vc-bar-text--maxed' : ''}">${esc(m.barText)}</p>
                             ${nextItemHtml}
                             ${emptyHtml}${linesHtml}
+                            ${actionHtml}
                             ${reportHtml}
                             ${m.measures ? `<p class="vc-label">What we measure</p><p class="vc-measures">${esc(m.measures)}</p>` : ''}
                             ${rewardHtml}
@@ -272,10 +306,15 @@ const VillageCard = (() => {
                 overlay.remove();
                 ctx.onAddBreakHabit();
             }
+            // "View Goals" on the Lab's card: close the card, then open the Goals window (script.js). Same stopped click as above.
+            if (btn.dataset.action === 'open-goals' && typeof ctx.onOpenGoals === 'function') {
+                overlay.remove();
+                ctx.onOpenGoals();
+            }
         });
     }
 
-    return { KINDS, MAX_TIER, EMPTY_TEXT, EMPTY_LINKS, pipsFor, starsHtml, spriteScale, buildModel, cardHtml, open };
+    return { KINDS, LAB, MAX_TIER, EMPTY_TEXT, EMPTY_LINKS, pipsFor, starsHtml, spriteScale, buildModel, cardHtml, open };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
