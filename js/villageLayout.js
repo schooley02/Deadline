@@ -339,7 +339,20 @@ const VillageLayout = (() => {
         return out;
     }
 
-    return { DEFAULTS, fromConfig, clampTier, resolveTier, sizeOf, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, resolveDevHospitalTier, resolveDevWaterTowerTier, resolveDevLabTier, fieldWidth, spriteUrl, horizonFeetY, villageSlots };
+    // Worn-asphalt pad under the whole village (2026-11-27, Jeremy: "a separate asphalt ground under it ... grass closer to the zombie lane").
+    // Assets/scene/village-pad.png is 336x46 art shown at 2x. It is anchored to the Gym's left art edge and the front row's feet, so it follows the
+    // village at every screen size. Returns null when there is no Gym slot.
+    const PAD = { src: 'Assets/scene/village-pad.png', width: 672, height: 92, leftFromGym: -21, topFromFeet: -88 };
+
+    function padRect(slots) {
+        const list = slots || [];
+        const gym = list.find(s => s.kind === 'lurkers');
+        if (!gym) return null;
+        const feet = list.filter(s => s.row === 'front').reduce((m, s) => Math.max(m, s.feetY), gym.feetY);
+        return { url: PAD.src, left: gym.artLeft + PAD.leftFromGym, top: feet + PAD.topFromFeet, width: PAD.width, height: PAD.height };
+    }
+
+    return { DEFAULTS, fromConfig, clampTier, resolveTier, sizeOf, resolveDevTier, resolveDevJailTier, resolveDevArmoryTier, resolveDevRadioTier, resolveDevGymTier, resolveDevSchoolTier, resolveDevHospitalTier, resolveDevWaterTowerTier, resolveDevLabTier, fieldWidth, spriteUrl, horizonFeetY, villageSlots, padRect, PAD };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

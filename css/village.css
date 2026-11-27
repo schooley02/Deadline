@@ -45,3 +45,14 @@
 .village-sprite.village-hover[data-flip="1"] {
     transform: scaleX(-1) scale(1.05) !important; /* a mirrored building stays mirrored */
 }
+
+/* Asphalt pad under the village (js/ui/villageView.js syncPad, placed by VillageLayout.padRect): behind every sprite, never tapped, art shown at 2x. */
+.village-pad {
+    position: absolute;
+    z-index: -1;
+    display: block;
+    max-width: none;
+    pointer-events: none;
+    image-rendering: pixelated;
+    user-select: none;
+}

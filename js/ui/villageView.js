@@ -347,7 +347,27 @@ const VillageView = (() => {
             img.style.transform = slot.flip ? 'scaleX(-1)' : '';
             img.style.filter = (slot.back && slot.brightness > 0 && slot.brightness < 1) ? 'brightness(' + slot.brightness + ')' : '';
         });
+        syncPad(slots);
         syncHaze(slots, baseW);
+    }
+
+    // The village's asphalt pad: one img under every sprite (z-index -1 inside the layer), not a .village-sprite so it is never tapped or hovered.
+    function syncPad(slots) {
+        let pad = layerEl.querySelector('.village-pad');
+        const r = VillageLayout.padRect ? VillageLayout.padRect(slots) : null;
+        if (!r) { if (pad) pad.remove(); return; }
+        if (!pad) {
+            pad = document.createElement('img');
+            pad.className = 'village-pad';
+            pad.alt = '';
+            pad.draggable = false;
+            layerEl.insertBefore(pad, layerEl.firstChild);
+        }
+        if (pad.getAttribute('src') !== r.url) pad.setAttribute('src', r.url);
+        pad.style.left = r.left + 'px';
+        pad.style.top = r.top + 'px';
+        pad.style.width = r.width + 'px';
+        pad.style.height = r.height + 'px';
     }
 
     function init(d) {

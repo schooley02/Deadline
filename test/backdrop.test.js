@@ -22,17 +22,18 @@ const block = (sel) => {
 };
 
 const LAYERS = [
-    ['.scene-mountains', 'Assets/scene/mountains.png', 640, 240],
-    ['.scene-treeline', 'Assets/scene/treeline.png', 404, 168],
-    ['.scene-field', 'Assets/scene/village-field.png', 505, 156],
+    // [selector, file, png width, png height, CSS background width, CSS background height]. The field strip (2026-11-27) is 640x78 art shown at 2x.
+    ['.scene-mountains', 'Assets/scene/mountains.png', 640, 240, 640, 240],
+    ['.scene-treeline', 'Assets/scene/treeline.png', 404, 168, 404, 168],
+    ['.scene-field', 'Assets/scene/village-field.png', 640, 78, 1280, 156],
 ];
 
 describe('backdrop strips', () => {
-    test.each(LAYERS)('%s uses %s at its true size (%ix%i), repeating', (sel, file, w, h) => {
+    test.each(LAYERS)('%s uses %s (%ix%i art, shown %ix%i), repeating', (sel, file, w, h, cw, ch) => {
         expect(pngSize(file)).toEqual({ w, h });
         const b = block(sel);
         expect(b).toContain(`url("../${file}")`);
-        expect(b).toContain(`background-size: ${w}px ${h}px`);
+        expect(b).toContain(`background-size: ${cw}px ${ch}px`);
         expect(block('.scene-backdrop')).toMatch(/repeat-x/);
         expect(block('.scene-backdrop')).toMatch(/image-rendering: pixelated/);
     });
