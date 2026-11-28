@@ -53,6 +53,16 @@ describe('eveningCandidates: who the evening check asks about', () => {
         expect(GoalCheck.eveningCandidates(items, defs, NOW).map((i) => i.id)).toEqual([1, 2, 3]);
     });
 
+    test('2026-11-27: a habit tonight\'s check was closed on is skipped tonight, asked again tomorrow night', () => {
+        const items = [brk(1, 'a', at(9)), brk(2, 'b', at(15))];
+        GoalCheck.stampEvening(items[0], NOW);
+        expect(items[0].eveningAsked).toBe('2026-11-01');
+        expect(GoalCheck.askedTonight(items[0], NOW)).toBe(true);
+        expect(GoalCheck.eveningCandidates(items, defs, NOW).map((i) => i.id)).toEqual([2]);
+        const tomorrow = new Date(2026, 10, 2, 21, 0, 0).getTime();
+        expect(GoalCheck.askedTonight(items[0], tomorrow)).toBe(false);
+    });
+
     test('skips a habit whose tempting window has not started yet (it keeps its arrival prompt + the morning card)', () => {
         const items = [brk(1, 'a', at(9)), brk(2, 'b', at(22)), brk(3, 'c', new Date(NOW + 1))];
         expect(GoalCheck.eveningCandidates(items, defs, NOW).map((i) => i.id)).toEqual([1]);

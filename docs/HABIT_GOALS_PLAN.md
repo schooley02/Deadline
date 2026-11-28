@@ -44,7 +44,8 @@ change); it changes how a Break habit's result is decided and what data we keep.
    pops nothing (the old "Time's up — did you stay within it?" limit-expiry prompt is removed).
 7. **Evening check** (new): at an evening time (default 9 PM, a Settings field) the game asks about every Break habit
    still unanswered TODAY — one modal, one card each: the goal line, the timer hint if any ("timer logged 18 min"),
-   an optional **How much?** box, and **Resisted / Slipped / Later**. In-app only (shows when the app is open at or
+   an optional **How much?** box, and **Resisted / Slipped / Later**. (2026-11-27: Later, or closing the check, silences that
+   habit for the rest of tonight via `item.eveningAsked`; before, a return to the tab asked again.) In-app only (shows when the app is open at or
    after that time; no push). **The next-morning check-in card stays** as the backstop for a day that was never
    answered (fell asleep, never opened the app); it gets the same goal line + How much? box.
 8. **Record the actual amount (optional).** Answering a Break habit (evening check, check-in card, popup) or marking a

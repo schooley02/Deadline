@@ -173,13 +173,24 @@ describe('Evening modal: anytime task cards', () => {
         expect(c.querySelector('.evening-task-cost').textContent).toBe('Free: more than 4 hours away');
     });
 
-    test('2026-11-12: the skip button reads "Not tonight" with its meaning in the intro and tooltip (was "Leave it")', () => {
+    test('2026-11-27: the buttons say what they do: Move to tomorrow / Keep today\'s deadline, don\'t ask again (was Tomorrow / Not tonight)', () => {
         CheckIn.showEveningModal(makeDeps([task({ id: 1 })]));
         const btn = card(1).querySelector('[data-outcome="leave"]');
-        expect(btn.textContent).toBe('Not tonight');
-        expect(btn.getAttribute('title')).toBe("Don't ask about this task again tonight");
-        expect(document.querySelector('.check-in-intro').textContent).toContain('Not tonight means no more questions about that task tonight.');
+        expect(btn.textContent).toBe("Keep today's deadline, don't ask again");
+        expect(btn.getAttribute('title')).toBe('It stays due at midnight. No more questions about it tonight');
+        expect(card(1).querySelector('[data-outcome="tomorrow"]').textContent).toBe('Move to tomorrow');
+        expect(document.querySelector('.check-in-intro').textContent).toContain("Keep today's deadline leaves a task due at midnight: if it isn't done by then, it attacks.");
         expect(document.querySelector('.evening-later-link')).toBeNull();
+    });
+
+    test('2026-11-27: closing the check answers the task cards still showing (leaveTask), answered ones are left alone', async () => {
+        const d = makeDeps([task({ id: 1 }), task({ id: 2 })]);
+        CheckIn.showEveningModal(d);
+        click(1, 'done');
+        document.querySelector('.evening-overlay').remove();
+        await flush();
+        expect(d.calls).toEqual([['done', 1], ['leave', 2]]);
+        expect(d.onDismiss).toHaveBeenCalledTimes(1);
     });
 
     test('2026-11-12: a parent with open sub-tasks has no Done button; a plain line says how many are open', () => {

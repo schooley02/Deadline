@@ -43,7 +43,8 @@ const GoalCheck = (() => {
     /**
      * The active Break-habit instances the evening check should ask about right now, in the order given.
      * Skips archived habit definitions, KO ghosts (inert while the routine is down) and anything whose time has
-     * not arrived yet. An answered habit is no longer in `activeItems`, so "unanswered today" needs no extra test.
+     * not arrived yet, and habits tonight's check was already closed on (`askedTonight`). An answered habit is no longer in
+     * `activeItems`, so "unanswered today" needs no extra test.
      */
     function eveningCandidates(activeItems, definedHabits, nowMs) {
         const now = typeof nowMs === 'number' ? nowMs : Date.now();
@@ -52,9 +53,30 @@ const GoalCheck = (() => {
             if (!item || item.type !== 'habit' || item.isNegative !== true || item.koGhost) return false;
             const def = defs.find((d) => d.id === item.definitionId);
             if (!def || def.archivedAt) return false;
+            if (askedTonight(item, now)) return false;
             const due = item.dueDateTime ? new Date(item.dueDateTime).getTime() : NaN;
             return Number.isFinite(due) && due <= now;
         });
+    }
+
+    /** Local calendar date of a time, "YYYY-MM-DD". */
+    function dateKey(value) {
+        const d = value instanceof Date ? value : new Date(typeof value === 'number' ? value : Date.now());
+        const p = (n) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    }
+
+    /**
+     * True when tonight's evening check was already closed or answered "Later" for this Break-habit instance (2026-11-27,
+     * Jeremy: closing the check kept bringing it back every time he returned to the tab). Stamp = tonight's local date.
+     */
+    function askedTonight(item, nowMs) {
+        return !!(item && item.eveningAsked === dateKey(typeof nowMs === 'number' ? nowMs : Date.now()));
+    }
+    /** Records that tonight's check should not ask about this habit again. Returns the item. */
+    function stampEvening(item, nowMs) {
+        if (item) item.eveningAsked = dateKey(typeof nowMs === 'number' ? nowMs : Date.now());
+        return item;
     }
 
     /** Which How much? box a goal gets: 'amount' (a number), 'time' (minutes = the logged time) or null (none / note). */
@@ -115,6 +137,8 @@ const GoalCheck = (() => {
         normalizeEveningTime,
         isEveningTime,
         eveningCandidates,
+        askedTonight,
+        stampEvening,
         howMuchKind,
         parseHowMuch,
         loggedMinutes,

@@ -1507,9 +1507,18 @@ document.addEventListener('DOMContentLoaded', () => {
             indulgeHabit: (id, opts) => Items.indulgeHabit(id, itemsDeps(), opts),
             setLoggedMinutes: (id, minutes) => Items.setLoggedTime(id, minutes * 60000, itemsDeps(), { collapse: true }),
             onDismiss: () => { eveningDismissedFor = DailyRecord.dateKey(Date.now()); },
+            // 2026-11-27 (Jeremy): closing the check (or Later) silences a Break habit for tonight, saved on the instance, so coming back
+            // to the tab or reopening the app does not ask again. The next-morning check-in still settles it.
+            leaveHabit: (id) => {
+                const habit = State.getActiveItems().find(i => i.id === id && i.type === 'habit');
+                if (!habit) return;
+                GoalCheck.stampEvening(habit, Date.now());
+                saveGame();
+            },
             // Anytime tasks (Anytime Build 2, 2026-11-02; DECISIONS 2026-11-02 night): the same modal lists open "Anytime today"
             // tasks. Done = an ordinary on-time completion; Tomorrow = a move to tomorrow 11:59 PM through the pushback quote
-            // (free before ~8 PM, a Long charge inside the last 4 hours); Leave it = answered for tonight (stamp).
+            // (free before ~8 PM, a Long charge inside the last 4 hours); "Keep today's deadline, don't ask again" (and closing the check,
+            // 2026-11-27) = answered for tonight (stamp).
             getTaskCandidates: () => AnytimeCheck.eveningCandidates(State.getActiveItems(), Date.now()),
             completeTask: (id) => Items.completeItem(id, itemsDeps()),
             leaveTask: (id) => {

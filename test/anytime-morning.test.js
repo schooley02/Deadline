@@ -233,7 +233,7 @@ describe('Morning modal: anytime task cards', () => {
         expect(CheckIn.showMorningTaskModal(makeDeps([]))).toBeNull();
     });
 
-    test('one card per task, escaped name, past-tense wording, Done / Today / Leave it, and the cost', () => {
+    test('one card per task, escaped name, past-tense wording, Done / Move to today / "Don\'t ask again this morning", and the cost', () => {
         CheckIn.showMorningTaskModal(makeDeps([task({ name: 'Pay <b>bills</b>' })]));
         const c = card(7);
         expect(c.textContent).toContain('Pay <b>bills</b>');
@@ -242,7 +242,7 @@ describe('Morning modal: anytime task cards', () => {
         expect(c.textContent).not.toContain('today?');
         ['done', 'today', 'leave'].forEach((o) => expect(c.querySelector(`[data-outcome="${o}"]`)).not.toBeNull());
         expect(c.querySelector('[data-outcome="tomorrow"]')).toBeNull();
-        expect(c.querySelector('[data-outcome="today"]').textContent).toBe('Today');
+        expect(c.querySelector('[data-outcome="today"]').textContent).toBe('Move to today');
         expect(c.querySelector('.evening-task-cost').textContent).toBe('Costs 1 Long charge');
     });
 
@@ -330,9 +330,18 @@ describe('Morning modal: anytime task cards', () => {
         expect(deps.onDismiss).toHaveBeenCalledTimes(1);
     });
 
-    test('2026-11-12: the skip button reads "Not now" on the morning card', () => {
+    test('2026-11-27: the skip button reads "Don\'t ask again this morning" on the morning card (was "Not now")', () => {
         CheckIn.showMorningTaskModal(makeDeps([task()]));
-        expect(card(7).querySelector('[data-outcome="leave"]').textContent).toBe('Not now');
+        expect(card(7).querySelector('[data-outcome="leave"]').textContent).toBe("Don't ask again this morning");
+    });
+
+    test('2026-11-27: closing the morning card answers what is left (leaveTask), so a return to the tab does not re-ask', async () => {
+        const deps = makeDeps([task()]);
+        CheckIn.showMorningTaskModal(deps);
+        document.querySelector('.morning-task-overlay').remove();
+        await new Promise(r => setTimeout(r, 0));
+        expect(deps.calls).toContainEqual(['leave', 7]);
+        expect(deps.onDismiss).toHaveBeenCalledTimes(1);
     });
 
     test('answering every card does NOT report a dismissal', async () => {
@@ -343,7 +352,7 @@ describe('Morning modal: anytime task cards', () => {
         expect(deps.onDismiss).not.toHaveBeenCalled();
     });
 
-    test('the evening card is unchanged: still "Tomorrow" and "today?"', () => {
+    test('the evening card keeps its own wording: "Move to tomorrow" and "today?"', () => {
         const html = CheckIn.showEveningModal({
             getCandidates: () => [], getTaskCandidates: () => [task({ isOverdue: false })],
             describeTomorrow: () => ({ text: '', blocked: false }), completeTask() {}, leaveTask() {}, moveTaskToTomorrow: () => ({ ok: true }),
@@ -351,7 +360,7 @@ describe('Morning modal: anytime task cards', () => {
         });
         const c = html.querySelector('.evening-task-card');
         expect(c.classList.contains('morning-task-card')).toBe(false);
-        expect(c.querySelector('[data-outcome="tomorrow"]').textContent).toBe('Tomorrow');
+        expect(c.querySelector('[data-outcome="tomorrow"]').textContent).toBe('Move to tomorrow');
         expect(c.textContent).toContain('today?');
     });
 });

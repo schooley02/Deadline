@@ -209,11 +209,11 @@ const CheckIn = (() => {
     // an optional How much?, and Resisted / Slipped / Later. "Later" leaves that habit unanswered (the arrival prompt and
     // the next-morning card still apply); closing the modal with cards left hides it until the next app open.
     // Anytime tasks (Anytime Build 2, 2026-11-02): the same modal also lists open "Anytime today" tasks, one card each, with
-    // Done / Tomorrow / Not tonight (data-outcome "leave"). "Not tonight" ANSWERS the card for tonight (no re-ask); closing the modal with cards left hides
-    // it until the next app open, like the Break-habit cards. All task deps are optional, so older callers keep working.
+    // Done / Move to tomorrow / Keep today's deadline, don't ask again (data-outcome "leave"). The last one ANSWERS the card for tonight (no re-ask).
+    // Closing the modal (or Later on a habit) silences what is left for tonight too (2026-11-27). All task deps are optional, so older callers keep working.
     // deps: { getCandidates() -> active items, completeItem(id, opts), indulgeHabit(id, opts), setLoggedMinutes(id, min),
     //         onDismiss(),
-    //         getTaskCandidates() -> anytime tasks, completeTask(id), leaveTask(id),
+    //         getTaskCandidates() -> anytime tasks, completeTask(id), leaveTask(id), leaveHabit(id) (silence a habit for tonight),
     //         describeTomorrow(item) -> { text, blocked }  (what moving it to tomorrow costs),
     //         moveTaskToTomorrow(id) -> { ok } }.
     //         Returns the overlay, or null when there is nothing to ask / one is already open.
@@ -268,9 +268,11 @@ const CheckIn = (() => {
         const subsNote = openSubCount > 0
             ? `<p class="check-in-goal evening-task-subs">${openSubCount === 1 ? '1 sub-task is' : openSubCount + ' sub-tasks are'} still open. Finish ${openSubCount === 1 ? 'it' : 'them'} to mark this done.</p>`
             : '';
-        // 2026-11-12 (Jeremy): "Leave it" was unclear. The evening button says what it does: no more questions about this task tonight.
-        const skipLabel = morning ? 'Not now' : 'Not tonight';
-        const skipTitle = morning ? "Don't ask about this task again this morning" : "Don't ask about this task again tonight";
+        // 2026-11-12 (Jeremy): "Leave it" was unclear. 2026-11-27 (Jeremy): "Not tonight" / "Tomorrow" were still unclear, so each
+        // button now says what it does: the evening skip keeps the midnight deadline and stops the questions for tonight.
+        const skipLabel = morning ? "Don't ask again this morning" : "Keep today's deadline, don't ask again";
+        const skipTitle = morning ? "Don't ask about this task again this morning" : "It stays due at midnight. No more questions about it tonight";
+        const moveLabel = morning ? 'Move to today' : 'Move to tomorrow';
         return `
             <div class="check-in-card evening-card evening-task-card${morning ? ' morning-task-card' : ''}" data-card-kind="task" data-item-id="${item.id}">
                 <p class="check-in-question">Did you finish <strong>${escapeHtml(item.name)}</strong>${morning ? '' : ' today'}?</p>
@@ -278,7 +280,7 @@ const CheckIn = (() => {
                 ${subsNote}
                 <div class="check-in-actions">
                     ${done}
-                    <button type="button" class="check-in-button" data-outcome="${morning ? 'today' : 'tomorrow'}"${t.blocked ? ' disabled' : ''}>${morning ? 'Today' : 'Tomorrow'}</button>
+                    <button type="button" class="check-in-button" data-outcome="${morning ? 'today' : 'tomorrow'}"${t.blocked ? ' disabled' : ''}>${moveLabel}</button>
                     <button type="button" class="check-in-button check-in-later" data-outcome="leave" title="${skipTitle}">${skipLabel}</button>
                 </div>
             </div>
@@ -315,7 +317,7 @@ const CheckIn = (() => {
             <div class="modal-overlay evening-overlay">
                 <div class="modal-content check-in-modal">
                     <h3>Tonight's check-in</h3>
-                    <p class="check-in-intro">Before the day ends: how did these go?${tasks.length ? ' Not tonight means no more questions about that task tonight.' : ''}</p>
+                    <p class="check-in-intro">Before the day ends: how did these go?${tasks.length ? " Keep today's deadline leaves a task due at midnight: if it isn't done by then, it attacks." : ''}</p>
                     <div class="evening-cards">${tasks.map(t => buildEveningTaskCardHtml(t, describe(t))).join('')}${items.map(buildEveningCardHtml).join('')}</div>
                     <p class="check-in-snooze"><a href="#" class="check-in-close-link">Close</a></p>
                 </div>
@@ -324,6 +326,7 @@ const CheckIn = (() => {
         if (!overlay) return null;
 
         let skipped = false;
+        const laterIds = [];   // Break habits answered "Later": silenced for tonight when the check closes (2026-11-27)
         wireCloseLink(overlay);
         overlay.querySelectorAll('.evening-card').forEach((card) => {
             const itemId = Number(card.getAttribute('data-item-id'));
@@ -337,6 +340,7 @@ const CheckIn = (() => {
                         if (!answerTaskCard(outcome, button, itemId, deps, deps.moveTaskToTomorrow)) return;
                     } else if (outcome === 'later') {
                         skipped = true;
+                        laterIds.push(itemId);
                     } else {
                         const how = readHowMuch(card);
                         const opts = how.actual !== undefined ? { actual: how.actual } : undefined;
@@ -353,13 +357,22 @@ const CheckIn = (() => {
             });
         });
 
-        // However it closes (answered, Later, Close, an outside tap or Esc; the "I'll check this later" link is gone, 2026-11-12): if any habit was left unanswered, tell the
-        // caller so tonight's check stays quiet until the next app open.
-        if (typeof MutationObserver !== 'undefined' && typeof deps.onDismiss === 'function') {
+        // However it closes (answered, Later, Close, an outside tap or Esc; the "I'll check this later" link is gone, 2026-11-12): if any card was left unanswered, tell the
+        // caller. 2026-11-27 (Jeremy: closing it brought it back every time he returned to the tab): closing also SILENCES every card
+        // still showing (and every Later habit) for the rest of tonight, like "Keep today's deadline, don't ask again"; anything that
+        // comes due later tonight still gets asked about once, and the next-morning cards stay the backstop.
+        if (typeof MutationObserver !== 'undefined') {
             const observer = new MutationObserver(() => {
                 if (overlay.isConnected) return;
                 observer.disconnect();
-                if (skipped || overlay.querySelector('.evening-card')) deps.onDismiss();
+                const left = Array.from(overlay.querySelectorAll('.evening-card'));
+                left.forEach((card) => {
+                    const id = Number(card.getAttribute('data-item-id'));
+                    if (card.getAttribute('data-card-kind') === 'task') { if (typeof deps.leaveTask === 'function') deps.leaveTask(id); }
+                    else if (typeof deps.leaveHabit === 'function') deps.leaveHabit(id);
+                });
+                if (typeof deps.leaveHabit === 'function') laterIds.forEach((id) => deps.leaveHabit(id));
+                if ((skipped || left.length) && typeof deps.onDismiss === 'function') deps.onDismiss();
             });
             observer.observe(document.body, { childList: true, subtree: true });
         }
@@ -416,12 +429,15 @@ const CheckIn = (() => {
             });
         });
 
-        // However it closes: if any card was left unanswered, tell the caller so this morning's check stays quiet until the next app open.
-        if (typeof MutationObserver !== 'undefined' && typeof deps.onDismiss === 'function') {
+        // However it closes: if any card was left unanswered, tell the caller. 2026-11-27: closing also answers every card still showing
+        // as "Don't ask again this morning" (deps.leaveTask), so coming back to the tab does not bring it back until tomorrow morning.
+        if (typeof MutationObserver !== 'undefined') {
             const observer = new MutationObserver(() => {
                 if (overlay.isConnected) return;
                 observer.disconnect();
-                if (overlay.querySelector('.morning-task-card')) deps.onDismiss();
+                const left = Array.from(overlay.querySelectorAll('.morning-task-card'));
+                if (typeof deps.leaveTask === 'function') left.forEach((card) => deps.leaveTask(Number(card.getAttribute('data-item-id'))));
+                if (left.length && typeof deps.onDismiss === 'function') deps.onDismiss();
             });
             observer.observe(document.body, { childList: true, subtree: true });
         }

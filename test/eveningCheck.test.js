@@ -144,6 +144,18 @@ describe('showEveningModal: Later and dismissal', () => {
         expect(d.onDismiss).toHaveBeenCalledTimes(1);
     });
 
+    test('2026-11-27: Later and closing silence the habits left for tonight (leaveHabit), so a return to the tab does not re-ask', async () => {
+        const d = makeDeps([item(1, 'A', AMOUNT), item(2, 'B', AMOUNT), item(3, 'C', AMOUNT)]);
+        d.leaveHabit = (id) => d.calls.push(['leave', id]);
+        CheckIn.showEveningModal(d);
+        click(1, 'later');
+        click(2, 'avoided');
+        document.querySelector('.evening-overlay').remove(); // outside tap / Esc / Close with card 3 left
+        await flush();
+        expect(d.calls.filter(c => c[0] === 'leave').map(c => c[1]).sort()).toEqual([1, 3]);
+        expect(d.onDismiss).toHaveBeenCalledTimes(1);
+    });
+
     test('answering everything is NOT a dismissal', async () => {
         const d = makeDeps([item(1, 'A', AMOUNT), item(2, 'B', NOTE)]);
         CheckIn.showEveningModal(d);

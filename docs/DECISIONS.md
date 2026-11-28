@@ -4,6 +4,14 @@ Append-only. Newest at top. Format: date — decision — why — alternatives r
 
 ---
 
+## 2026-11-27 (evening / morning check: closing silences it for the night, buttons say what they do) -- Claude app session, Opus 5.5; Jeremy ("i'm confused as to which button silences it for the rest of the night and which pushes it to tomorrow"; "everytime I leave that tab and come back to it, i get that check in for the new task again, even after I close it")
+
+- **Bug / confusion:** closing the evening check (Close, outside tap, Esc) only hid it "until the next app open", and returning to the tab counts as an app open (`visibilitychange` clears `eveningDismissedFor`), so it came back on every tab switch. "Tomorrow" / "Not tonight" did not say what they did. (A card with no Done button = the task had open sub-tasks, by design since 2026-11-12.)
+- **Decision (sw v450):** closing the evening check answers every card still showing for tonight: anytime tasks get `anytimeAsked.evening`, Break habits (and habits answered **Later**) get the new per-instance stamp `item.eveningAsked` (`GoalCheck.askedTonight` / `stampEvening`; additive field, no schema bump; script.js `leaveHabit` dep). Items that come due later tonight are still asked about once. Same for the next-morning card (closing stamps `anytimeAsked.morning` on the cards left). Wording (Jeremy's picks): evening **Done / Move to tomorrow / Keep today's deadline, don't ask again**; morning **Done / Move to today / Don't ask again this morning**; the evening intro says a kept deadline attacks at midnight if not done. Jeremy: "I'll revisit wording later."
+- **Why:** closing a check should mean "I've seen it"; a check that re-opens on every tab switch is noise, and the next-morning cards already catch anything left.
+- **Alternatives rejected:** silencing only the task cards (Jeremy agreed habits too: the next-morning check-in still settles them); a single "dismissed tonight" flag (it would also hide items that come due later tonight).
+- **Tests:** goalCheck +1, eveningCheck +1, anytime-check +1 (and the wording test rewritten), anytime-morning +1 (and two wording tests updated).
+
 ## 2026-11-27 (ice and the work timer count while away: catch-up spends the ice and skips the iced stretch) -- Claude app session, Opus 5.5; Jeremy ("if i start a timer before the due date and switch to another tab ... it applies the freeze from that moment even though it should have applied it from the moment they reached the base"; scope: "yes" to covering a reload too)
 
 - **Bug:** a background tab (or sleep / reload) stops the live loop; `Ice.tick` spent nothing across a gap (ICE_PLAN rule 7, "catch-up ignores ice"), so on return the zombie got a full fresh `ICE_MAX_MS` from that moment, while live-gap catch-up charged the whole gap at the FULL rate (it ignored timers too).
